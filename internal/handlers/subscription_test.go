@@ -23,23 +23,29 @@ func (m *MockSubscriptionStore) CreateSubscription(ctx context.Context, sub *mod
 	return m.CreateSubscriptionFunc(ctx, sub)
 }
 
-func TestCreateSubscription(t *testing.T) {
+const validOrigin = "https://jonesrussell.github.io/me"
+
+func setupTestHandler() (*echo.Echo, *SubscriptionHandler) {
 	e := echo.New()
-	// Add the error handling middleware
 	e.Use(middleware.Recover())
 	logger, _ := zap.NewDevelopment()
 	store := &MockSubscriptionStore{}
 	handler := NewSubscriptionHandler(logger, store)
+	return e, handler
+}
+
+func TestCreateSubscription(t *testing.T) {
+	e, handler := setupTestHandler()
 
 	// Test successful creation
 	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions",
 		bytes.NewReader([]byte(`{"email":"test@example.com"}`)))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	req.Header.Set(echo.HeaderOrigin, "https://jonesrussell.github.io/me")
+	req.Header.Set(echo.HeaderOrigin, validOrigin)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	store.CreateSubscriptionFunc = func(_ context.Context, _ *models.Subscription) error {
+	handler.store.(*MockSubscriptionStore).CreateSubscriptionFunc = func(_ context.Context, _ *models.Subscription) error {
 		return nil
 	}
 
@@ -48,12 +54,13 @@ func TestCreateSubscription(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
 	// Test duplicate subscription
-	store.CreateSubscriptionFunc = func(_ context.Context, _ *models.Subscription) error {
+	handler.store.(*MockSubscriptionStore).CreateSubscriptionFunc = func(_ context.Context, _ *models.Subscription) error {
 		return echo.NewHTTPError(http.StatusConflict, "Email already subscribed")
 	}
 
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
+	c.Request().Header.Set(echo.HeaderOrigin, validOrigin)
 	c.Request().Body = httptest.NewRequest(http.MethodPost, "/api/subscriptions",
 		bytes.NewReader([]byte(`{"email":"test@example.com"}`))).Body
 
@@ -66,6 +73,7 @@ func TestCreateSubscription(t *testing.T) {
 	// Test invalid email format
 	rec = httptest.NewRecorder()
 	c = e.NewContext(req, rec)
+	c.Request().Header.Set(echo.HeaderOrigin, validOrigin)
 	c.Request().Body = httptest.NewRequest(http.MethodPost, "/api/subscriptions",
 		bytes.NewReader([]byte(`{"email":"invalid-email"}`))).Body
 
@@ -76,16 +84,44 @@ func TestCreateSubscription(t *testing.T) {
 	assert.Equal(t, "invalid email format", he.Message)
 }
 
+func TestInvalidOrigin(t *testing.T) {
+	e, handler := setupTestHandler()
+
+	// Test with invalid origin
+	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions",
+		bytes.NewReader([]byte(`{"email":"test@example.com"}`)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set(echo.HeaderOrigin, "https://invalid-origin.com")
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	err := handler.CreateSubscription(c)
+	he, ok := err.(*echo.HTTPError)
+	assert.True(t, ok)
+	assert.Equal(t, http.StatusForbidden, he.Code)
+	assert.Equal(t, "invalid origin", he.Message)
+
+	// Test with missing origin
+	req = httptest.NewRequest(http.MethodPost, "/api/subscriptions",
+		bytes.NewReader([]byte(`{"email":"test@example.com"}`)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec = httptest.NewRecorder()
+	c = e.NewContext(req, rec)
+
+	err = handler.CreateSubscription(c)
+	he, ok = err.(*echo.HTTPError)
+	assert.True(t, ok)
+	assert.Equal(t, http.StatusForbidden, he.Code)
+	assert.Equal(t, "invalid origin", he.Message)
+}
+
 func TestInvalidPayload(t *testing.T) {
-	e := echo.New()
-	e.Use(middleware.Recover())
-	logger, _ := zap.NewDevelopment()
-	store := &MockSubscriptionStore{}
-	handler := NewSubscriptionHandler(logger, store)
+	e, handler := setupTestHandler()
 
 	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions",
 		bytes.NewReader([]byte(`{"invalid":"data"}`)))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set(echo.HeaderOrigin, validOrigin)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -97,10 +133,7 @@ func TestInvalidPayload(t *testing.T) {
 }
 
 func TestHandlerRegister(t *testing.T) {
-	e := echo.New()
-	logger, _ := zap.NewDevelopment()
-	store := &MockSubscriptionStore{}
-	handler := NewSubscriptionHandler(logger, store)
+	e, handler := setupTestHandler()
 	handler.Register(e)
 
 	// Test that the route is registered
