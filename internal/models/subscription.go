@@ -1,31 +1,56 @@
 package models
 
 import (
-	"errors"
+	"context"
+	"net/http"
 	"time"
+
+	"github.com/labstack/echo/v4"
 )
 
+// Subscription represents a newsletter subscription
 type Subscription struct {
 	ID        int64     `db:"id" json:"id"`
 	Email     string    `db:"email" json:"email"`
+	Name      string    `db:"name" json:"name"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
-	UpdatedAt time.Time `db:"updated_at" json:"updated_at"`
-	Status    string    `db:"status" json:"status"`
 }
 
-type SubscriptionRequest struct {
-	Email string `json:"email"`
-}
-
-type SubscriptionResponse struct {
-	Message string `json:"message"`
-}
-
-// Validate performs validation on the Subscription fields
+// Validate checks if the subscription data is valid
 func (s *Subscription) Validate() error {
 	if s.Email == "" {
-		return errors.New("email is required")
+		return echo.NewHTTPError(http.StatusBadRequest, "email is required")
 	}
-	// Add any other validation rules you need
+	// Add more validation as needed
 	return nil
+}
+
+// SubscriptionStore defines the interface for subscription storage operations
+type SubscriptionStore interface {
+	CreateSubscription(ctx context.Context, sub *Subscription) error
+}
+
+// subscriptionStore implements SubscriptionStore
+type subscriptionStore struct {
+	db DB
+}
+
+// NewSubscriptionStore creates a new subscription store
+func NewSubscriptionStore(db DB) SubscriptionStore {
+	return &subscriptionStore{db: db}
+}
+
+// CreateSubscription implements the subscription creation
+func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscription) error {
+	query := `
+		INSERT INTO subscriptions (email, name, created_at)
+		VALUES ($1, $2, $3)
+		RETURNING id`
+
+	sub.CreatedAt = time.Now()
+	return s.db.QueryRowContext(ctx, query,
+		sub.Email,
+		sub.Name,
+		sub.CreatedAt,
+	).Scan(&sub.ID)
 }

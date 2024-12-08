@@ -9,6 +9,7 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/handlers"
+	"github.com/jonesrussell/goforms/internal/models"
 )
 
 type App struct {
@@ -70,6 +71,10 @@ func customErrorHandler(logger *zap.Logger) echo.HTTPErrorHandler {
 }
 
 func (a *App) RegisterHandlers() {
-	subscriptionHandler := handlers.NewSubscriptionHandler(a.db, a.logger)
+	// Create a subscription store (you'll need to implement this)
+	subscriptionStore := models.NewSubscriptionStore(a.db)
+
+	// Create the subscription handler with correct parameters
+	subscriptionHandler := handlers.NewSubscriptionHandler(a.logger, subscriptionStore)
 	subscriptionHandler.Register(a.echo)
 }

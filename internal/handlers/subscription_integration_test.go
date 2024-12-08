@@ -1,17 +1,21 @@
 package handlers
 
 import (
-	"context"
+	"net/http"
+	"net/http/httptest"
 	"os"
+	"strings"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap"
 
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/database"
+	"github.com/jonesrussell/goforms/internal/models"
 )
 
 var (
@@ -45,17 +49,28 @@ func TestSubscriptionIntegration(t *testing.T) {
 	}
 
 	logger, _ := zap.NewDevelopment()
-	handler := NewSubscriptionHandler(testDB, logger)
+	store := models.NewSubscriptionStore(testDB)
+	handler := NewSubscriptionHandler(logger, store)
 
 	t.Run("Full subscription flow", func(t *testing.T) {
 		// Clean up any existing test data
 		_, err := testDB.Exec("DELETE FROM subscriptions WHERE email = $1", "integration@test.com")
 		require.NoError(t, err)
 
+		// Create a mock echo.Context
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(`{
+			"email": "integration@test.com",
+			"name": "Test User"
+		}`))
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		c := e.NewContext(req, rec)
+
 		// Test subscription creation
-		ctx := context.Background()
-		err = handler.CreateSubscription(ctx, "integration@test.com")
+		err = handler.CreateSubscription(c)
 		assert.NoError(t, err)
+		assert.Equal(t, http.StatusCreated, rec.Code)
 
 		// Verify subscription exists
 		var exists bool
@@ -64,7 +79,7 @@ func TestSubscriptionIntegration(t *testing.T) {
 		assert.True(t, exists)
 
 		// Test duplicate subscription
-		err = handler.CreateSubscription(ctx, "integration@test.com")
+		err = handler.CreateSubscription(c)
 		assert.Error(t, err)
 	})
 }
