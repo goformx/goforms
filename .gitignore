@@ -1,0 +1,26 @@
+# Binaries and objects
+*.exe
+*.exe~
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Environment and IDE
+.env
+*.swp
+*.swo
+
+# Dependencies
+vendor/
+
+# Build
+bin/
+dist/
+
+# Logs
+*.log
+
+# Database
+*.db 
