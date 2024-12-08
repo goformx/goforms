@@ -4,6 +4,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/config"
 
+	// Import mysql driver for side effects - required for database/sql to work with MySQL
 	_ "github.com/go-sql-driver/mysql"
 )
 

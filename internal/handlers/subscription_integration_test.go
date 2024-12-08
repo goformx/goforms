@@ -14,8 +14,9 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
-	"github.com/golang-migrate/migrate"
-	"github.com/golang-migrate/migrate/database/mysql"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/database"
 	"github.com/jonesrussell/goforms/internal/models"
@@ -87,7 +88,6 @@ func (s *SubscriptionTestSuite) SetupTest() {
 }
 
 func (s *SubscriptionTestSuite) setupTestDatabase() error {
-	// Use golang-migrate to run migrations
 	migrationPath := "file://../../migrations"
 
 	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{})
@@ -104,7 +104,25 @@ func (s *SubscriptionTestSuite) setupTestDatabase() error {
 		return err
 	}
 
-	// Run migrations
+	// Drop all tables to ensure clean state
+	_, err = s.db.Exec("DROP TABLE IF EXISTS schema_migrations, subscriptions")
+	if err != nil {
+		return err
+	}
+
+	// Create schema_migrations table manually
+	_, err = s.db.Exec(`
+		CREATE TABLE IF NOT EXISTS schema_migrations (
+			version bigint NOT NULL,
+			dirty boolean NOT NULL,
+			PRIMARY KEY (version)
+		)
+	`)
+	if err != nil {
+		return err
+	}
+
+	// Run migrations without trying to force version
 	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
 		return err
 	}
