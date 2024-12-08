@@ -2,9 +2,6 @@ version: "3"
 
 dotenv: ['.env']
 
-vars:
-  DB_URL: postgres://{{.POSTGRES_USER}}:{{.POSTGRES_PASSWORD}}@localhost:5432/{{.POSTGRES_DB}}?sslmode=disable
-
 tasks:
   default:
     cmds:
@@ -30,27 +27,75 @@ tasks:
     desc: Run all tests
     cmds:
       - go test -v ./internal/... -coverprofile=coverage.out
+    env:
+      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
+      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
+      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
+      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
+      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
 
   test:integration:
-    desc: Run integration tests
+    desc: Run integration tests with Docker
     cmds:
-      - go test -v -tags=integration ./internal/...
+      - docker-compose -f docker/test/docker-compose.yml up -d
+      - docker-compose -f docker/test/docker-compose.yml up test-db --wait
+      - go test -v ./... -tags=integration
+    finally:
+      - docker-compose -f docker/test/docker-compose.yml down
+    env:
+      MYSQL_USER: 'goforms_test'
+      MYSQL_PASSWORD: 'goforms_test'
+      MYSQL_DATABASE: 'goforms_test'
+      MYSQL_HOSTNAME: 'localhost'
+      MYSQL_PORT: '3306'
+
+  test:
+    desc: Run unit tests
+    cmds:
+      - go test -v ./... -tags=unit
 
   test:coverage:
-    desc: Show test coverage report
-    deps: [test]
+    desc: Run tests with coverage and generate report
     cmds:
-      - go tool cover -html=coverage.out
+      - |
+        go test -v ./internal/... \
+          -coverprofile=coverage.out \
+          -covermode=atomic \
+          -race
+      - go tool cover -html=coverage.out -o coverage.html
+      - go tool cover -func=coverage.out
+    env:
+      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
+      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
+      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
+      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
+      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
 
   migrate:up:
     desc: Run database migrations
     cmds:
-      - migrate -database "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOSTNAME}:${MYSQL_PORT})/${MYSQL_DATABASE}" -path migrations up
+      - |
+        migrate -database "mysql://{{.MYSQL_USER}}:{{.MYSQL_PASSWORD}}@tcp({{.MYSQL_HOSTNAME}}:{{.MYSQL_PORT}})/{{.MYSQL_DATABASE}}" \
+          -path migrations up
+    env:
+      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
+      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
+      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
+      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
+      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
 
   migrate:down:
     desc: Rollback database migrations
     cmds:
-      - migrate -database "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOSTNAME}:${MYSQL_PORT})/${MYSQL_DATABASE}" -path migrations down
+      - |
+        migrate -database "mysql://{{.MYSQL_USER}}:{{.MYSQL_PASSWORD}}@tcp({{.MYSQL_HOSTNAME}}:{{.MYSQL_PORT}})/{{.MYSQL_DATABASE}}" \
+          -path migrations down
+    env:
+      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
+      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
+      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
+      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
+      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
 
   migrate:create:
     desc: Create a new migration
@@ -68,3 +113,51 @@ tasks:
     cmds:
       - rm -rf bin/
       - rm -f coverage.out
+      - rm -f coverage.html
+
+  ci:test:
+    desc: Run tests in CI environment
+    cmds:
+      - task: test:coverage
+    env:
+      CGO_ENABLED: 1
+      MYSQL_USER: goforms
+      MYSQL_PASSWORD: goforms
+      MYSQL_DATABASE: goforms_test
+      MYSQL_HOSTNAME: localhost
+      MYSQL_PORT: 3306
+
+  ci:build:
+    desc: Build in CI environment
+    cmds:
+      - task: build
+    env:
+      CGO_ENABLED: 0
+      GOOS: linux
+      GOARCH: amd64
+
+  dev:up:
+    desc: Start development environment
+    cmds:
+      - docker-compose -f docker/dev/docker-compose.yml up -d
+      - task: migrate:up
+
+  dev:down:
+    desc: Stop development environment
+    cmds:
+      - docker-compose -f docker/dev/docker-compose.yml down
+
+  dev:logs:
+    desc: View development logs
+    cmds:
+      - docker-compose -f docker/dev/docker-compose.yml logs -f
+
+  docker:build:
+    desc: Build Docker image
+    cmds:
+      - docker build -t goforms:latest -f docker/Dockerfile .
+
+  docker:run:
+    desc: Run Docker container
+    cmds:
+      - docker run -p 8090:8090 --env-file .env goforms:latest

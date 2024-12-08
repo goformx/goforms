@@ -1,0 +1,18 @@
+services:
+  test-db:
+    image: mariadb:10.11
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: goforms_test
+      MYSQL_USER: goforms_test
+      MYSQL_PASSWORD: goforms_test
+    command: >
+      --character-set-server=utf8mb4
+      --collation-server=utf8mb4_unicode_ci
+    ports:
+      - "3306:3306"
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "goforms_test", "-pgoforms_test"]
+      interval: 5s
+      timeout: 5s
+      retries: 5 
