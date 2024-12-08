@@ -4,31 +4,33 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+
+	"github.com/go-playground/validator/v10"
 )
 
 type Config struct {
-	Server    ServerConfig
-	Database  DatabaseConfig
-	RateLimit RateLimitConfig
+	Server    ServerConfig    `validate:"required"`
+	Database  DatabaseConfig  `validate:"required"`
+	RateLimit RateLimitConfig `validate:"required"`
 }
 
 type ServerConfig struct {
-	Host string
-	Port int
+	Host string `validate:"required"`
+	Port int    `validate:"required,min=1,max=65535"`
 }
 
 type DatabaseConfig struct {
-	Host     string
-	Port     int
-	User     string
-	Password string
-	DBName   string
-	SSLMode  string
+	Host     string `validate:"required"`
+	Port     int    `validate:"required,min=1,max=65535"`
+	User     string `validate:"required"`
+	Password string `validate:"required"`
+	DBName   string `validate:"required"`
+	SSLMode  string `validate:"required,oneof=disable enable verify-ca verify-full"`
 }
 
 type RateLimitConfig struct {
-	Rate  int
-	Burst int
+	Rate  int `validate:"required,min=1"`
+	Burst int `validate:"required,min=1"`
 }
 
 func Load() (*Config, error) {
@@ -49,6 +51,11 @@ func Load() (*Config, error) {
 			Rate:  getEnvInt("RATE_LIMIT", 100),
 			Burst: getEnvInt("RATE_BURST", 5),
 		},
+	}
+
+	validate := validator.New()
+	if err := validate.Struct(cfg); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
 	return cfg, nil

@@ -39,7 +39,7 @@
 ## Phase 1: Core API Setup
 - [x] 1. Project Structure
    - [x] Set up Go project with modules
-   - [x] Configure PostgreSQL database
+   - [x] Configure MariaDB database
    - [x] Set up basic HTTP server using Echo
    - [x] Implement middleware for logging, error handling
    - [x] Set up configuration management
@@ -49,6 +49,12 @@
    - [ ] Form fields table
    - [ ] Form submissions table
    - [ ] Basic migrations setup
+
+- [ ] 3. Observability
+   - [ ] Structured logging with Zap
+   - [ ] Health check endpoints
+   - [ ] Request tracing with request IDs
+   - [ ] Error tracking and reporting
 
 ## Phase 2: Form Management
 - [ ] 1. Form Creation API

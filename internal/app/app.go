@@ -3,6 +3,7 @@ package app
 import (
 	"context"
 	"fmt"
+	"os"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -15,10 +16,11 @@ import (
 )
 
 type App struct {
-	logger   *zap.Logger
-	echo     *echo.Echo
-	config   *config.Config
-	handlers *handlers.SubscriptionHandler
+	logger      *zap.Logger
+	echo        *echo.Echo
+	config      *config.Config
+	handlers    *handlers.SubscriptionHandler
+	serverError chan error
 }
 
 func NewApp(
@@ -29,10 +31,11 @@ func NewApp(
 	handler *handlers.SubscriptionHandler,
 ) *App {
 	app := &App{
-		logger:   logger,
-		echo:     echo,
-		config:   cfg,
-		handlers: handler,
+		logger:      logger,
+		echo:        echo,
+		config:      cfg,
+		handlers:    handler,
+		serverError: make(chan error, 1),
 	}
 
 	app.setupMiddleware()
@@ -47,12 +50,38 @@ func NewApp(
 }
 
 func (a *App) setupMiddleware() {
+	// Recovery should be first
 	a.echo.Use(middleware.Recover())
+
+	// Logging middleware
+	a.echo.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
+		Format: `{"time":"${time_rfc3339_nano}","remote_ip":"${remote_ip}",` +
+			`"method":"${method}","uri":"${uri}","status":${status},` +
+			`"latency":${latency},"latency_human":"${latency_human}"` +
+			`,"bytes_in":${bytes_in},"bytes_out":${bytes_out}}` + "\n",
+		Output: os.Stdout,
+	}))
+
+	// Request ID for tracing
 	a.echo.Use(middleware.RequestID())
+
+	// Security middleware
+	a.echo.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "SAMEORIGIN",
+		HSTSMaxAge:            31536000,
+		HSTSExcludeSubdomains: false,
+	}))
+
+	// CORS
 	a.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{echo.GET, echo.POST, echo.PUT, echo.DELETE},
+		AllowHeaders: []string{echo.HeaderOrigin, echo.HeaderContentType, echo.HeaderAccept},
 	}))
+
+	// Rate limiting should be last
 	a.echo.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(
 		rate.Limit(a.config.RateLimit.Rate))))
 
@@ -63,11 +92,30 @@ func (a *App) registerHandlers() {
 	a.handlers.Register(a.echo)
 }
 
-func (a *App) start(_ context.Context) error {
+func (a *App) start(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", a.config.Server.Host, a.config.Server.Port)
 	a.logger.Info("starting server", zap.String("address", address))
 
-	return a.echo.Start(address)
+	go func() {
+		if err := a.echo.Start(address); err != nil {
+			a.serverError <- err
+			a.logger.Error("server error", zap.Error(err))
+		}
+	}()
+
+	// Monitor for server errors
+	go func() {
+		select {
+		case err := <-a.serverError:
+			a.logger.Error("server error detected", zap.Error(err))
+			// Trigger application shutdown
+			os.Exit(1)
+		case <-ctx.Done():
+			return
+		}
+	}()
+
+	return nil
 }
 
 func (a *App) stop(ctx context.Context) error {

@@ -54,6 +54,10 @@ func NewSubscriptionStore(db DB) SubscriptionStore {
 
 // CreateSubscription implements the subscription creation
 func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscription) error {
+	// Create a timeout context
+	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
 	query := `
 		INSERT INTO subscriptions (email, created_at)
 		VALUES ($1, $2)
@@ -67,6 +71,9 @@ func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscri
 
 	err := row.Scan(&sub.ID)
 	if err != nil {
+		if err == context.DeadlineExceeded {
+			return echo.NewHTTPError(http.StatusGatewayTimeout, "Database operation timed out")
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create subscription")
 	}
 

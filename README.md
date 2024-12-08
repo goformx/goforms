@@ -1,12 +1,12 @@
 # Goforms
 
-A modern Go web application for form management with PostgreSQL backend.
+A modern Go web application for form management with MariaDB backend.
 
 ## Features
 
 - ✅ Email subscription system with validation
 - ✅ RESTful API using Echo framework
-- ✅ PostgreSQL database with migrations
+- ✅ MariaDB database with migrations
 - ✅ Dependency injection using Uber FX
 - ✅ Structured logging with Zap
 - ✅ Rate limiting and CORS support
@@ -28,8 +28,8 @@ This project uses VS Code Dev Containers for development. Make sure you have:
 
 The container will:
 - Set up Go 1.23 environment
-- Initialize PostgreSQL database
-- Install required tools (migrate, PostgreSQL client, task)
+- Initialize MariaDB database
+- Install required tools (migrate, MariaDB client, task)
 
 ### Task Commands
 
@@ -62,10 +62,10 @@ task migrate:create  # Create new migration
 Database credentials are configured in `.devcontainer/.env`:
 
 ```env
-POSTGRES_USER=postgres
-POSTGRES_PASSWORD=postgres
-POSTGRES_DB=goforms
-POSTGRES_HOSTNAME=localhost
+MYSQL_USER=goforms
+MYSQL_PASSWORD=goforms
+MYSQL_DATABASE=goforms
+MYSQL_HOSTNAME=db
 ```
 
 ### API Endpoints
@@ -82,7 +82,7 @@ POST /api/subscriptions
 ### Tech Stack
 
 - Go 1.23
-- PostgreSQL
+- MariaDB
 - Echo web framework
 - Uber FX for dependency injection
 - Zap for logging
@@ -118,3 +118,21 @@ POST /api/subscriptions
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+### Observability
+
+The application includes several observability features:
+- Structured logging with Zap
+- Request ID tracking
+- Health check endpoints
+- Detailed error reporting
+
+### Middleware Stack
+
+The middleware is configured in the following order for optimal security and functionality:
+1. Recovery middleware (panic recovery)
+2. Logging middleware (request logging)
+3. Request ID middleware (request tracking)
+4. Security middleware (HTTP security headers)
+5. CORS middleware (Cross-Origin Resource Sharing)
+6. Rate limiting middleware (request rate limiting)
