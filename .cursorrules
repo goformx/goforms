@@ -1,0 +1,51 @@
+General Guidelines
+- Use Uber's fx dependency injection.
+- Write correct, up-to-date, bug-free, fully functional, secure, and efficient Go 1.23 code.
+- Use taskfile.dev over makefiles and build scripts.
+- Use uber's zap for logging.
+- Use echo/v4 for web development.
+- Confirm the plan, then write code.
+
+API Development
+- Use Echo for API development.
+- Utilize the new ServeMux introduced in Go 1.22 for routing.
+- Return JSON responses for HTTP methods (GET, POST, PUT, DELETE).
+- Use method handlers with appropriate signatures (e.g., func(c echo.Context) error).
+- Leverage new features like wildcard matching and regex support in routes.
+- Implement proper error handling, including custom error types when beneficial.
+- Implement input validation for form submissions.
+- Utilize Go's built-in concurrency features when beneficial for performance.
+- Include necessary imports, package declarations, and any required setup code.
+- Consider implementing middleware for cross-cutting concerns (e.g., logging, rate limiting).
+- Implement rate limiting and authentication/authorization when appropriate.
+- Leave NO todos, placeholders, or missing pieces in the implementation.
+- Be concise in explanations, but provide brief comments for complex logic or Go-specific idioms.
+- If unsure about a best practice or implementation detail, provide options and explain the pros and cons.
+
+Database
+- Use PostgreSQL as the primary database.
+- Implement database migrations using golang-migrate.
+- Use sqlx for database operations.
+- Implement proper connection pooling.
+- Handle database errors appropriately.
+
+Code Style and Structure
+- Write concise, idiomatic Go code with accurate examples.
+- Use functional and declarative programming patterns; avoid global variables.
+- Prefer iteration and modularization over code duplication.
+- Use descriptive variable names with auxiliary verbs (e.g., isValid, hasSubmission).
+- Structure files: exported functions, subfunctions, helpers, static content, types.
+- Use Go for all code; prefer interfaces over concrete types.
+- Use echo.Context for all web requests.
+
+Naming Conventions
+- Use lowercase with underscores for directories.
+- Favor named exports for functions.
+- Use clear, descriptive names for API endpoints.
+
+Testing
+- Do not use github.com/golang/mock/gomock; use testify's mock package instead.
+- Use testify's assert package for assertions.
+- Write comprehensive tests for API endpoints.
+- Include integration tests for database operations.
+- Test validation logic thoroughly. 
