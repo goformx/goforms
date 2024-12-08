@@ -18,7 +18,7 @@ services:
     restart: unless-stopped
     volumes:
       - mariadb-data:/var/lib/mysql
-      - ./init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     env_file:
       - .env
     environment:

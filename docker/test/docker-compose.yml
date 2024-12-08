@@ -4,7 +4,7 @@ services:
     environment:
       MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
       MARIADB_ROOT_HOST: "%"
-      MARIADB_DATABASE: "${DB_DATABASE:-goforms_test}"
+      MARIADB_DATABASE: "${DB_NAME:-goforms_test}"
       MARIADB_USER: "${DB_USER:-goforms_test}"
       MARIADB_PASSWORD: "${DB_PASSWORD:-goforms_test}"
       MARIADB_AUTO_UPGRADE: "1"
