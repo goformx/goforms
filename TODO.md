@@ -1,35 +1,35 @@
 # Project TODO List
 
 ## Current Sprint: Email Subscription MVP
-- [ ] 1. Project Setup
-  - [ ] Initialize Go module
-  - [ ] Create basic directory structure
-  - [ ] Add .gitignore
-  - [ ] Add .env.example
-  - [ ] Set up configuration management
+- [x] 1. Project Setup
+  - [x] Initialize Go module
+  - [x] Create basic directory structure
+  - [x] Add .gitignore
+  - [x] Add .env.example
+  - [x] Set up configuration management
 
-- [ ] 2. Database Setup
-  - [ ] Create migrations directory
-  - [ ] Write subscription table migration
-    - [ ] Up migration
-    - [ ] Down migration
-  - [ ] Set up database connection
-  - [ ] Implement connection pooling
+- [x] 2. Database Setup
+  - [x] Create migrations directory
+  - [x] Write subscription table migration
+    - [x] Up migration
+    - [x] Down migration
+  - [x] Set up database connection
+  - [x] Implement connection pooling
 
-- [ ] 3. Core Application
-  - [ ] Set up Echo server
-  - [ ] Configure middleware
-    - [ ] Logging (zap)
-    - [ ] Error handling
-    - [ ] CORS
-  - [ ] Create app struct and initialization
+- [x] 3. Core Application
+  - [x] Set up Echo server
+  - [x] Configure middleware
+    - [x] Logging (zap)
+    - [x] Error handling
+    - [x] CORS
+  - [x] Create app struct and initialization
 
-- [ ] 4. Subscription Handler
-  - [ ] Create subscription model
-  - [ ] Implement email validation
-  - [ ] Create POST endpoint for subscriptions
-  - [ ] Add basic rate limiting
-  - [ ] Add error responses
+- [x] 4. Subscription Handler
+  - [x] Create subscription model
+  - [x] Implement email validation
+  - [x] Create POST endpoint for subscriptions
+  - [x] Add basic rate limiting
+  - [x] Add error responses
 
 - [ ] 5. Testing
   - [ ] Write handler tests
