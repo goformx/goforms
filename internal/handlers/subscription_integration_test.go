@@ -27,7 +27,7 @@ type SubscriptionTestSuite struct {
 }
 
 func (s *SubscriptionTestSuite) SetupSuite() {
-	cfg, err := config.Load()
+	cfg, err := config.New()
 	require.NoError(s.T(), err)
 
 	s.db, err = database.New(cfg)
