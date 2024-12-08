@@ -23,11 +23,11 @@ API Development
 - If unsure about a best practice or implementation detail, provide options and explain the pros and cons.
 
 Database
-- Use PostgreSQL as the primary database.
-- Implement database migrations using golang-migrate.
-- Use sqlx for database operations.
-- Implement proper connection pooling.
-- Handle database errors appropriately.
+- Use MariaDB as the primary database
+- Implement database migrations using golang-migrate
+- Use sqlx for database operations
+- Implement proper connection pooling
+- Handle database errors appropriately
 
 Code Style and Structure
 - Write concise, idiomatic Go code with accurate examples.
@@ -49,3 +49,17 @@ Testing
 - Write comprehensive tests for API endpoints.
 - Include integration tests for database operations.
 - Test validation logic thoroughly. 
+
+Observability
+- Use structured logging with Zap
+- Implement request tracking with unique request IDs
+- Add health check endpoints
+- Include detailed error reporting
+- Use appropriate log levels (debug, info, warn, error)
+
+Error Handling
+- Use custom error types when beneficial
+- Include context in error messages
+- Log errors with appropriate stack traces
+- Return consistent error responses
+- Handle all error cases explicitly 
