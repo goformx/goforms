@@ -38,11 +38,11 @@ func Load() (*Config, error) {
 			Port: getEnvInt("SERVER_PORT", 8080),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnvString("DB_HOST", "localhost"),
+			Host:     getEnvString("POSTGRES_HOSTNAME", "localhost"),
 			Port:     getEnvInt("DB_PORT", 5432),
-			User:     getEnvString("DB_USER", "postgres"),
-			Password: getEnvString("DB_PASSWORD", "postgres"),
-			DBName:   getEnvString("DB_NAME", "goforms"),
+			User:     getEnvString("POSTGRES_USER", "postgres"),
+			Password: getEnvString("POSTGRES_PASSWORD", "postgres"),
+			DBName:   getEnvString("POSTGRES_DB", "goforms"),
 			SSLMode:  getEnvString("DB_SSL_MODE", "disable"),
 		},
 		RateLimit: RateLimitConfig{
