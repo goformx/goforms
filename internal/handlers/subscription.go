@@ -1,7 +1,9 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
+	"time"
 
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
@@ -24,6 +26,13 @@ func NewSubscriptionHandler(logger *zap.Logger, store models.SubscriptionStore) 
 
 // CreateSubscription handles the creation of new subscriptions
 func (h *SubscriptionHandler) CreateSubscription(c echo.Context) error {
+	// Add timeout context
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
+	defer cancel()
+
+	// Use ctx for database operations
+	c.SetRequest(c.Request().WithContext(ctx))
+
 	var sub models.Subscription
 	if err := c.Bind(&sub); err != nil {
 		if sub.Email == "" {

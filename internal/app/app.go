@@ -4,6 +4,7 @@ import (
 	"context"
 	"fmt"
 	"os"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -119,7 +120,17 @@ func (a *App) start(ctx context.Context) error {
 }
 
 func (a *App) stop(ctx context.Context) error {
-	return a.echo.Shutdown(ctx)
+	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	defer cancel()
+
+	if err := a.echo.Shutdown(shutdownCtx); err != nil {
+		a.logger.Error("shutdown error", zap.Error(err))
+		return err
+	}
+
+	// Close database connections
+	// Clean up other resources
+	return nil
 }
 
 func (a *App) customErrorHandler() echo.HTTPErrorHandler {

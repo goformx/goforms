@@ -9,6 +9,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 // Module exports all app providers
@@ -29,7 +30,18 @@ func NewModule() fx.Option {
 }
 
 func NewLogger() (*zap.Logger, error) {
-	return zap.NewProduction()
+	return zap.Config{
+		Level:       zap.NewAtomicLevelAt(zapcore.InfoLevel),
+		Development: false,
+		Sampling: &zap.SamplingConfig{
+			Initial:    100,
+			Thereafter: 100,
+		},
+		Encoding:         "json",
+		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		OutputPaths:      []string{"stdout"},
+		ErrorOutputPaths: []string{"stderr"},
+	}.Build()
 }
 
 func NewEcho() *echo.Echo {
