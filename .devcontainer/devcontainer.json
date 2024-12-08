@@ -36,5 +36,5 @@
 			]
 		}
 	},
-	"forwardPorts": [3306, 8090]
+	"forwardPorts": [3306, 8090, 8099]
 }

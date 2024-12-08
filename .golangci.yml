@@ -1,16 +1,54 @@
 linters:
   enable:
-    - errcheck
-    - goimports
-    - revive
-    - govet
-    - staticcheck
-    - dogsled
-    - gochecknoglobals
-    # Add more linters as needed
+    # Basic linters
+    - errcheck      # Check for unchecked errors
+    - goimports     # Manage imports and format code
+    - revive        # Drop-in replacement for golint
+    - govet         # Reports suspicious constructs
+    - staticcheck   # Advanced static analysis
+    
+    # Code quality linters
+    - dogsled       # Checks for too many blank identifiers
+    - gochecknoglobals  # Check for global variables
+    - gosimple      # Simplify code
+    - ineffassign   # Detect ineffective assignments
+    - unconvert     # Remove unnecessary type conversions
+    - unused        # Check for unused constants, variables, functions
+    - misspell      # Check spelling
+    
+    # Performance linters
+    - bodyclose     # Checks whether HTTP response bodies are closed
+    - prealloc      # Find slice preallocation opportunities
+    
+    # Security linters
+    - gosec        # Security checker
 
 linters-settings:
-  # Configure specific linter settings here
+  revive:
+    rules:
+      - name: exported
+        severity: warning
+        disabled: false
+      - name: package-comments
+        severity: warning
+        disabled: false
+  
+  gosec:
+    excludes:
+      - G104  # Audit errors not checked
+      
+  govet:
+    checks:
+      - shadow
+      - fieldalignment
 
 issues:
-  # Configure issue reporting settings here
+  exclude-rules:
+    - path: _test\.go
+      linters:
+        - gochecknoglobals
+        - gosec
+  
+  max-issues-per-linter: 50
+  max-same-issues: 10
+  fix: true
