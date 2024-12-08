@@ -2,7 +2,6 @@ package config
 
 import (
 	"fmt"
-	"os"
 	"time"
 
 	"github.com/go-playground/validator/v10"
@@ -57,11 +56,6 @@ type LoggingConfig struct {
 // New provides the application configuration for fx
 func New() (*Config, error) {
 	var cfg Config
-
-	// Debug: Print environment variables
-	fmt.Printf("DB_USER=%s\n", os.Getenv("DB_USER"))
-	fmt.Printf("DB_PASSWORD=%s\n", os.Getenv("DB_PASSWORD"))
-	fmt.Printf("DB_NAME=%s\n", os.Getenv("DB_NAME"))
 
 	if err := envconfig.Process("", &cfg); err != nil {
 		return nil, fmt.Errorf("failed to process config: %w", err)
