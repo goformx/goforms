@@ -60,8 +60,15 @@ func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscri
 		RETURNING id`
 
 	sub.CreatedAt = time.Now()
-	return s.db.QueryRowContext(ctx, query,
+	row := s.db.QueryRowxContext(ctx, query,
 		sub.Email,
 		sub.CreatedAt,
-	).Scan(&sub.ID)
+	)
+
+	err := row.Scan(&sub.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create subscription")
+	}
+
+	return nil
 }

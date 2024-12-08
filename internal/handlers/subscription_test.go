@@ -10,6 +10,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -22,12 +23,12 @@ type MockDB struct {
 	mock.Mock
 }
 
-func (m *MockDB) QueryRowContext(ctx context.Context, query string, args ...interface{}) *sql.Row {
+func (m *MockDB) QueryRowxContext(ctx context.Context, query string, args ...interface{}) *sqlx.Row {
 	args = append([]interface{}{ctx, query}, args...)
 	m.Called(args...)
 
-	// Create a new sql.DB connection just for creating a row
-	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
+	// Create a new sqlx.DB connection just for creating a row
+	db, err := sqlx.Connect("postgres", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
@@ -35,11 +36,25 @@ func (m *MockDB) QueryRowContext(ctx context.Context, query string, args ...inte
 
 	// For the error case, return a row that will fail to scan
 	if args[2] == "error@example.com" {
-		return db.QueryRow("SELECT NULL WHERE 1=0")
+		return db.QueryRowx("SELECT NULL WHERE 1=0")
 	}
 
 	// Return a row that will scan the ID successfully
-	return db.QueryRow("SELECT 1")
+	return db.QueryRowx("SELECT 1")
+}
+
+func (m *MockDB) ExecContext(ctx context.Context, query string, args ...interface{}) (sql.Result, error) {
+	args = append([]interface{}{ctx, query}, args...)
+	ret := m.Called(args...)
+	result, _ := ret.Get(0).(sql.Result)
+	return result, ret.Error(1)
+}
+
+func (m *MockDB) QueryxContext(ctx context.Context, query string, args ...interface{}) (*sqlx.Rows, error) {
+	args = append([]interface{}{ctx, query}, args...)
+	ret := m.Called(args...)
+	rows, _ := ret.Get(0).(*sqlx.Rows)
+	return rows, ret.Error(1)
 }
 
 func TestCreateSubscription(t *testing.T) {
@@ -54,7 +69,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:  "Valid subscription",
 			email: "test@example.com",
 			mockSetup: func(db *MockDB) {
-				db.On("QueryRowContext",
+				db.On("QueryRowxContext",
 					mock.Anything,
 					mock.Anything,
 					"test@example.com",
@@ -84,7 +99,7 @@ func TestCreateSubscription(t *testing.T) {
 			name:  "Database error",
 			email: "error@example.com",
 			mockSetup: func(db *MockDB) {
-				db.On("QueryRowContext",
+				db.On("QueryRowxContext",
 					mock.Anything,
 					mock.Anything,
 					"error@example.com",
