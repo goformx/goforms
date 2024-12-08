@@ -31,7 +31,7 @@ func NewTestDB() (*TestDB, error) {
 	if dbPass == "" {
 		dbPass = "goforms_test"
 	}
-	dbName := os.Getenv("DB_DATABASE")
+	dbName := os.Getenv("DB_NAME")
 	if dbName == "" {
 		dbName = "goforms_test"
 	}

@@ -34,7 +34,7 @@ services:
     environment:
       DB_USER: "${DB_USER:-goforms_test}"
       DB_PASSWORD: "${DB_PASSWORD:-goforms_test}"
-      DB_DATABASE: "${DB_DATABASE:-goforms_test}"
+      DB_NAME: "${DB_NAME:-goforms_test}"
       DB_HOST: "test-db"
       DB_PORT: "3306"
       DB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"

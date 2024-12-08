@@ -21,13 +21,14 @@ services:
     restart: unless-stopped
     volumes:
       - mariadb-data:/var/lib/mysql
+      - ./init-test-db.sql:/docker-entrypoint-initdb.d/init-test-db.sql
     env_file:
       - .env
     environment:
       - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - MARIADB_USER=${DB_USER}
       - MARIADB_PASSWORD=${DB_PASSWORD}
-      - MARIADB_DATABASE=${DB_DATABASE}
+      - MARIADB_DATABASE=${DB_NAME}
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASSWORD}"]
       interval: 5s

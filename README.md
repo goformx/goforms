@@ -80,7 +80,7 @@ DB_HOST=localhost
 DB_PORT=3306
 DB_USER=goforms
 DB_PASSWORD=goforms
-DB_DATABASE=goforms
+DB_NAME=goforms
 
 # Security
 CORS_ALLOWED_ORIGINS=http://localhost:3000,https://jonesrussell.github.io

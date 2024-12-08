@@ -4,10 +4,13 @@ import (
 	"testing"
 	"time"
 
+	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestConfig_Validation(t *testing.T) {
+	validate := validator.New()
+
 	tests := []struct {
 		name    string
 		config  Config
@@ -20,7 +23,7 @@ func TestConfig_Validation(t *testing.T) {
 				Port:           3306,
 				User:           "testuser",
 				Password:       "testpass",
-				DBName:         "testdb",
+				Name:           "testdb",
 				MaxOpenConns:   25,
 				MaxIdleConns:   5,
 				ConnMaxLifetme: 5 * time.Minute,
@@ -33,7 +36,7 @@ func TestConfig_Validation(t *testing.T) {
 				Port:           3306,
 				User:           "testuser",
 				Password:       "testpass",
-				DBName:         "testdb",
+				Name:           "testdb",
 				MaxOpenConns:   25,
 				MaxIdleConns:   5,
 				ConnMaxLifetme: 5 * time.Minute,
@@ -46,7 +49,7 @@ func TestConfig_Validation(t *testing.T) {
 				Host:           "localhost",
 				Port:           3306,
 				Password:       "testpass",
-				DBName:         "testdb",
+				Name:           "testdb",
 				MaxOpenConns:   25,
 				MaxIdleConns:   5,
 				ConnMaxLifetme: 5 * time.Minute,
@@ -60,7 +63,7 @@ func TestConfig_Validation(t *testing.T) {
 				Port:           0,
 				User:           "testuser",
 				Password:       "testpass",
-				DBName:         "testdb",
+				Name:           "testdb",
 				MaxOpenConns:   25,
 				MaxIdleConns:   5,
 				ConnMaxLifetme: 5 * time.Minute,
@@ -74,7 +77,7 @@ func TestConfig_Validation(t *testing.T) {
 				Port:           3306,
 				User:           "testuser",
 				Password:       "testpass",
-				DBName:         "testdb",
+				Name:           "testdb",
 				MaxOpenConns:   0,
 				MaxIdleConns:   5,
 				ConnMaxLifetme: 5 * time.Minute,
@@ -88,7 +91,7 @@ func TestConfig_Validation(t *testing.T) {
 				Port:           3306,
 				User:           "testuser",
 				Password:       "testpass",
-				DBName:         "testdb",
+				Name:           "testdb",
 				MaxOpenConns:   25,
 				MaxIdleConns:   5,
 				ConnMaxLifetme: 0,
@@ -115,17 +118,19 @@ func TestConfig_DefaultValues(t *testing.T) {
 	expectedDB := "testdb"
 
 	// Use NewConfig to get defaults
-	config := NewConfig()
+	config, err := NewConfig()
+	assert.NoError(t, err)
+	assert.NotNil(t, config)
 
 	// Override with test values
 	config.User = expectedUser
 	config.Password = expectedPass
-	config.DBName = expectedDB
+	config.Name = expectedDB
 
 	// Test all fields, including explicitly set ones
 	assert.Equal(t, expectedUser, config.User)
 	assert.Equal(t, expectedPass, config.Password)
-	assert.Equal(t, expectedDB, config.DBName)
+	assert.Equal(t, expectedDB, config.Name)
 
 	// Test default values
 	assert.Equal(t, "localhost", config.Host)

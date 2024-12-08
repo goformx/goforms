@@ -39,5 +39,5 @@ func buildDSN(dbConfig *database.Config) string {
 		dbConfig.Password,
 		dbConfig.Host,
 		dbConfig.Port,
-		dbConfig.DBName)
+		dbConfig.Name)
 }

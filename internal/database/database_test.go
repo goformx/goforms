@@ -31,7 +31,7 @@ func (s *DatabaseTestSuite) TestNewDatabase() {
 			Port:           3306,
 			User:           os.Getenv("DB_USER"),
 			Password:       os.Getenv("DB_PASSWORD"),
-			DBName:         os.Getenv("DB_DATABASE"),
+			Name:           os.Getenv("DB_NAME"),
 			MaxOpenConns:   10,
 			MaxIdleConns:   5,
 			ConnMaxLifetme: time.Hour,

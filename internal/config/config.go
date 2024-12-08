@@ -61,7 +61,7 @@ func New() (*Config, error) {
 	// Debug: Print environment variables
 	fmt.Printf("DB_USER=%s\n", os.Getenv("DB_USER"))
 	fmt.Printf("DB_PASSWORD=%s\n", os.Getenv("DB_PASSWORD"))
-	fmt.Printf("DB_DATABASE=%s\n", os.Getenv("DB_DATABASE"))
+	fmt.Printf("DB_NAME=%s\n", os.Getenv("DB_NAME"))
 
 	if err := envconfig.Process("", &cfg); err != nil {
 		return nil, fmt.Errorf("failed to process config: %w", err)

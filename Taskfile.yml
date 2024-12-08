@@ -5,7 +5,7 @@ dotenv: ['.env']
 vars:
   DB_USER: '{{.DB_USER | default "goforms_test"}}'
   DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
-  DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+  DB_NAME: '{{.DB_NAME | default "goforms_test"}}'
   DB_HOST: '{{.DB_HOST | default "test-db"}}'
   DB_PORT: '{{.DB_PORT | default "3306"}}'
   DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD | default "rootpassword"}}'
@@ -38,7 +38,7 @@ tasks:
     env:
       DB_USER: '{{.DB_USER | default "goforms_test"}}'
       DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
-      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_NAME: '{{.DB_NAME | default "goforms_test"}}'
       DB_HOST: '{{.DB_HOST | default "test-db"}}'
       DB_PORT: '{{.DB_PORT | default "3306"}}'
 
@@ -57,7 +57,7 @@ tasks:
     env:
       DB_USER: '{{.DB_USER}}'
       DB_PASSWORD: '{{.DB_PASSWORD}}'
-      DB_DATABASE: '{{.DB_DATABASE}}'
+      DB_NAME: '{{.DB_NAME}}'
       DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD}}'
 
   test:unit:
@@ -77,7 +77,7 @@ tasks:
     env:
       DB_USER: '{{.DB_USER | default "goforms_test"}}'
       DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
-      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_NAME: '{{.DB_NAME | default "goforms_test"}}'
       DB_HOST: '{{.DB_HOST | default "localhost"}}'
       DB_PORT: '{{.DB_PORT | default "3306"}}'
 
@@ -85,12 +85,12 @@ tasks:
     desc: Run database migrations
     cmds:
       - |
-        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_DATABASE}}" \
+        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
           -path migrations up
     env:
       DB_USER: '{{.DB_USER | default "goforms"}}'
       DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
-      DB_DATABASE: '{{.DB_DATABASE | default "goforms"}}'
+      DB_NAME: '{{.DB_NAME | default "goforms"}}'
       DB_HOST: '{{.DB_HOST | default "localhost"}}'
       DB_PORT: '{{.DB_PORT | default "3306"}}'
 
@@ -98,12 +98,12 @@ tasks:
     desc: Rollback database migrations
     cmds:
       - |
-        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_DATABASE}}" \
+        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
           -path migrations down
     env:
       DB_USER: '{{.DB_USER | default "goforms"}}'
       DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
-      DB_DATABASE: '{{.DB_DATABASE | default "goforms"}}'
+      DB_NAME: '{{.DB_NAME | default "goforms"}}'
       DB_HOST: '{{.DB_HOST | default "localhost"}}'
       DB_PORT: '{{.DB_PORT | default "3306"}}'
 
@@ -133,7 +133,7 @@ tasks:
       CGO_ENABLED: 1
       DB_USER: goforms
       DB_PASSWORD: goforms
-      DB_DATABASE: goforms_test
+      DB_NAME: goforms_test
       DB_HOST: localhost
       DB_PORT: 3306
 

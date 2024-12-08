@@ -32,7 +32,6 @@
 		"vscode": {
 			"extensions": [
 				"ms-azuretools.vscode-docker",
-				"ckolkman.vscode-postgres",
 				"github.vscode-github-actions"
 			]
 		}
