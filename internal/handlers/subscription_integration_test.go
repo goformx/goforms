@@ -2,7 +2,6 @@ package handlers
 
 import (
 	"net/http"
-	"os"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/models"
@@ -24,14 +23,6 @@ type SubscriptionTestSuite struct {
 func (s *SubscriptionTestSuite) SetupSuite() {
 	var err error
 
-	// Set required environment variables for testing
-	os.Setenv("DB_USER", "goforms_test")
-	os.Setenv("DB_PASSWORD", "goforms_test")
-	os.Setenv("DB_DATABASE", "goforms_test")
-	// os.Setenv("DB_HOSTNAME", "localhost")
-	os.Setenv("DB_PORT", "3306")
-	os.Setenv("ALLOWED_ORIGINS", "http://localhost:3000,http://host.docker.internal:3000")
-
 	// Setup test database
 	s.testDB, err = setup.NewTestDB()
 	require.NoError(s.T(), err)
@@ -40,10 +31,14 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 	err = s.testDB.RunMigrations()
 	require.NoError(s.T(), err)
 
+	// Create a production logger for tests (less verbose)
+	logger := zap.NewProductionConfig()
+	logger.Level = zap.NewAtomicLevelAt(zap.WarnLevel) // Only show warnings and errors
+	log, _ := logger.Build()
+
 	// Setup handler
-	logger, _ := zap.NewDevelopment()
 	store := models.NewSubscriptionStore(s.testDB.DB)
-	s.handler = NewSubscriptionHandler(logger, store)
+	s.handler = NewSubscriptionHandler(log, store)
 
 	// Setup fixture
 	s.fixture = fixtures.NewSubscriptionFixture(s.handler.CreateSubscription)

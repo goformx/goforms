@@ -34,7 +34,7 @@ tasks:
   test:
     desc: Run all tests
     cmds:
-      - go test -v ./internal/... -coverprofile=coverage.out
+      - go test ./internal/... -coverprofile=coverage.out
     env:
       DB_USER: '{{.DB_USER | default "goforms_test"}}'
       DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
@@ -69,15 +69,14 @@ tasks:
     desc: Run tests with coverage and generate report
     cmds:
       - |
-        go test -v ./internal/... \
+        go test ./internal/... \
           -coverprofile=coverage.out \
           -covermode=atomic \
           -race
-      - go tool cover -html=coverage.out -o coverage.html
       - go tool cover -func=coverage.out
     env:
-      DB_USER: '{{.DB_USER | default "goforms"}}'
-      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+      DB_USER: '{{.DB_USER | default "goforms_test"}}'
+      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
       DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
       DB_HOSTNAME: '{{.DB_HOSTNAME | default "localhost"}}'
       DB_PORT: '{{.DB_PORT | default "3306"}}'
@@ -91,7 +90,7 @@ tasks:
     env:
       DB_USER: '{{.DB_USER | default "goforms"}}'
       DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
-      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_DATABASE: '{{.DB_DATABASE | default "goforms"}}'
       DB_HOSTNAME: '{{.DB_HOSTNAME | default "localhost"}}'
       DB_PORT: '{{.DB_PORT | default "3306"}}'
 
@@ -104,7 +103,7 @@ tasks:
     env:
       DB_USER: '{{.DB_USER | default "goforms"}}'
       DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
-      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_DATABASE: '{{.DB_DATABASE | default "goforms"}}'
       DB_HOSTNAME: '{{.DB_HOSTNAME | default "localhost"}}'
       DB_PORT: '{{.DB_PORT | default "3306"}}'
 
