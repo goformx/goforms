@@ -8,6 +8,7 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/config"
+	"github.com/jonesrussell/goforms/internal/config/database"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/suite"
@@ -21,15 +22,19 @@ type DatabaseTestSuite struct {
 
 func (s *DatabaseTestSuite) SetupSuite() {
 	s.cfg = &config.Config{
-		Database: config.DatabaseConfig{
-			User:            "goforms",
-			Password:        "goforms",
-			Host:            "localhost",
-			Port:            3306,
-			DBName:          "goforms_test",
-			MaxOpenConns:    25,
-			MaxIdleConns:    5,
-			ConnMaxLifetime: 5 * time.Minute,
+		Database: database.Config{
+			Host: "localhost",
+			Port: 3306,
+			Credentials: database.Credentials{
+				User:     "goforms",
+				Password: "goforms",
+				DBName:   "goforms_test",
+			},
+			ConnectionPool: database.PoolConfig{
+				MaxOpenConns:    25,
+				MaxIdleConns:    5,
+				ConnMaxLifetime: 5 * time.Minute,
+			},
 		},
 	}
 
@@ -37,8 +42,8 @@ func (s *DatabaseTestSuite) SetupSuite() {
 	var err error
 	s.rootDB, err = sqlx.Connect("mysql", fmt.Sprintf(
 		"%s:%s@tcp(%s:%d)/",
-		s.cfg.Database.User,
-		s.cfg.Database.Password,
+		s.cfg.Database.Credentials.User,
+		s.cfg.Database.Credentials.Password,
 		s.cfg.Database.Host,
 		s.cfg.Database.Port,
 	))
@@ -65,7 +70,7 @@ func (s *DatabaseTestSuite) TestNewDatabase() {
 	defer db.Close()
 
 	// Test connection settings
-	assert.Equal(s.T(), s.cfg.Database.MaxOpenConns, db.Stats().MaxOpenConnections)
+	assert.Equal(s.T(), s.cfg.Database.ConnectionPool.MaxOpenConns, db.Stats().MaxOpenConnections)
 
 	// Test connection is alive
 	err = db.Ping()
@@ -74,12 +79,14 @@ func (s *DatabaseTestSuite) TestNewDatabase() {
 
 func (s *DatabaseTestSuite) TestNewDatabaseError() {
 	invalidCfg := &config.Config{
-		Database: config.DatabaseConfig{
-			User:     "invalid",
-			Password: "invalid",
-			Host:     "invalid",
-			Port:     3306,
-			DBName:   "invalid",
+		Database: database.Config{
+			Host: "invalid",
+			Port: 3306,
+			Credentials: database.Credentials{
+				User:     "invalid",
+				Password: "invalid",
+				DBName:   "invalid",
+			},
 		},
 	}
 

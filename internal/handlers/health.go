@@ -10,8 +10,16 @@ import (
 )
 
 type HealthHandler struct {
-	db  *sqlx.DB
-	log *zap.Logger
+	db     *sqlx.DB
+	logger *zap.Logger
+}
+
+// NewHealthHandler creates a new health handler
+func NewHealthHandler(db *sqlx.DB, logger *zap.Logger) *HealthHandler {
+	return &HealthHandler{
+		db:     db,
+		logger: logger,
+	}
 }
 
 func (h *HealthHandler) Register(e *echo.Echo) {
@@ -29,11 +37,19 @@ func (h *HealthHandler) Check(c echo.Context) error {
 	}
 
 	if err := h.db.PingContext(c.Request().Context()); err != nil {
+		h.logger.Error("database health check failed",
+			zap.Error(err),
+			zap.String("status", "degraded"),
+		)
 		health.DBStatus = "error"
 		health.Status = "degraded"
 		return c.JSON(http.StatusServiceUnavailable, health)
 	}
 
+	h.logger.Info("health check successful",
+		zap.String("status", "ok"),
+		zap.String("db_status", "ok"),
+	)
 	health.DBStatus = "ok"
 	return c.JSON(http.StatusOK, health)
 }

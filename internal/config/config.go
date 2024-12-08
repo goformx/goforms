@@ -9,39 +9,27 @@ import (
 
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
+	"github.com/jonesrussell/goforms/internal/config/database"
+	"github.com/jonesrussell/goforms/internal/config/server"
 )
 
+// Config represents the complete application configuration
 type Config struct {
 	App       AppConfig       `validate:"required"`
-	Server    ServerConfig    `validate:"required"`
-	Database  DatabaseConfig  `validate:"required"`
+	Server    server.Config   `validate:"required"`
+	Database  database.Config `validate:"required"`
 	Security  SecurityConfig  `validate:"required"`
 	RateLimit RateLimitConfig `validate:"required"`
 	Logging   LoggingConfig   `validate:"required"`
-	Timeouts  TimeoutConfig   `validate:"required"`
 }
 
+// AppConfig contains basic application settings
 type AppConfig struct {
 	Name string `validate:"required"`
 	Env  string `validate:"required,oneof=development staging production"`
 }
 
-type ServerConfig struct {
-	Host string `validate:"required"`
-	Port int    `validate:"required,min=1,max=65535"`
-}
-
-type DatabaseConfig struct {
-	Host            string        `validate:"required"`
-	Port            int           `validate:"required,min=1,max=65535"`
-	User            string        `validate:"required"`
-	Password        string        `validate:"required"`
-	DBName          string        `validate:"required"`
-	MaxOpenConns    int           `validate:"required,min=1"`
-	MaxIdleConns    int           `validate:"required,min=1"`
-	ConnMaxLifetime time.Duration `validate:"required"`
-}
-
+// SecurityConfig contains security-related settings
 type SecurityConfig struct {
 	CorsAllowedOrigins []string `validate:"required"`
 	CorsAllowedMethods []string `validate:"required"`
@@ -49,20 +37,16 @@ type SecurityConfig struct {
 	CorsMaxAge         int      `validate:"required,min=0"`
 }
 
+// RateLimitConfig contains rate limiting settings
 type RateLimitConfig struct {
 	Rate  int `validate:"required,min=1"`
 	Burst int `validate:"required,min=1"`
 }
 
+// LoggingConfig contains logging settings
 type LoggingConfig struct {
 	Level  string `validate:"required,oneof=debug info warn error"`
 	Format string `validate:"required,oneof=json console"`
-}
-
-type TimeoutConfig struct {
-	Read  time.Duration `validate:"required"`
-	Write time.Duration `validate:"required"`
-	Idle  time.Duration `validate:"required"`
 }
 
 // New provides the application configuration for fx
@@ -76,19 +60,28 @@ func New() (*Config, error) {
 			Name: getEnvString("APP_NAME", "goforms"),
 			Env:  getEnvString("APP_ENV", "development"),
 		},
-		Server: ServerConfig{
+		Server: server.Config{
 			Host: getEnvString("SERVER_HOST", "localhost"),
 			Port: getEnvInt("SERVER_PORT", 8090),
+			Timeouts: server.TimeoutConfig{
+				Read:  getEnvDuration("READ_TIMEOUT", 5*time.Second),
+				Write: getEnvDuration("WRITE_TIMEOUT", 10*time.Second),
+				Idle:  getEnvDuration("IDLE_TIMEOUT", 120*time.Second),
+			},
 		},
-		Database: DatabaseConfig{
-			Host:            getEnvString("MYSQL_HOSTNAME", "db"),
-			Port:            getEnvInt("MYSQL_PORT", 3306),
-			User:            getEnvString("MYSQL_USER", "goforms"),
-			Password:        getEnvString("MYSQL_PASSWORD", "goforms"),
-			DBName:          getEnvString("MYSQL_DATABASE", "goforms"),
-			MaxOpenConns:    getEnvInt("MYSQL_MAX_OPEN_CONNS", 25),
-			MaxIdleConns:    getEnvInt("MYSQL_MAX_IDLE_CONNS", 5),
-			ConnMaxLifetime: getEnvDuration("MYSQL_CONN_MAX_LIFETIME", 5*time.Minute),
+		Database: database.Config{
+			Host: getEnvString("MYSQL_HOSTNAME", "db"),
+			Port: getEnvInt("MYSQL_PORT", 3306),
+			Credentials: database.Credentials{
+				User:     getEnvString("MYSQL_USER", "goforms"),
+				Password: getEnvString("MYSQL_PASSWORD", "goforms"),
+				DBName:   getEnvString("MYSQL_DATABASE", "goforms"),
+			},
+			ConnectionPool: database.PoolConfig{
+				MaxOpenConns:    getEnvInt("MYSQL_MAX_OPEN_CONNS", 25),
+				MaxIdleConns:    getEnvInt("MYSQL_MAX_IDLE_CONNS", 5),
+				ConnMaxLifetime: getEnvDuration("MYSQL_CONN_MAX_LIFETIME", 5*time.Minute),
+			},
 		},
 		Security: SecurityConfig{
 			CorsAllowedOrigins: getEnvStringSlice("CORS_ALLOWED_ORIGINS", []string{"*"}),
@@ -104,11 +97,6 @@ func New() (*Config, error) {
 			Level:  getEnvString("LOG_LEVEL", "debug"),
 			Format: getEnvString("LOG_FORMAT", "json"),
 		},
-		Timeouts: TimeoutConfig{
-			Read:  getEnvDuration("READ_TIMEOUT", 5*time.Second),
-			Write: getEnvDuration("WRITE_TIMEOUT", 10*time.Second),
-			Idle:  getEnvDuration("IDLE_TIMEOUT", 120*time.Second),
-		},
 	}
 
 	validate := validator.New()
@@ -117,11 +105,6 @@ func New() (*Config, error) {
 	}
 
 	return cfg, nil
-}
-
-func (d DatabaseConfig) DSN() string {
-	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
-		d.User, d.Password, d.Host, d.Port, d.DBName)
 }
 
 // Helper functions for environment variables

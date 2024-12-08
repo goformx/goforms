@@ -50,10 +50,8 @@ func (h *SubscriptionHandler) CreateSubscription(c echo.Context) error {
 
 	if err := h.store.CreateSubscription(c.Request().Context(), &sub); err != nil {
 		if he, ok := err.(*echo.HTTPError); ok {
-			h.logger.Error("failed to create subscription", zap.Error(err))
 			return he
 		}
-		h.logger.Error("failed to create subscription", zap.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create subscription")
 	}
 
