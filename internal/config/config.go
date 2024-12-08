@@ -31,16 +31,23 @@ type AppConfig struct {
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	CorsAllowedOrigins []string `validate:"required"`
-	CorsAllowedMethods []string `validate:"required"`
-	CorsAllowedHeaders []string `validate:"required"`
-	CorsMaxAge         int      `validate:"required,min=0"`
+	CorsAllowedOrigins []string      `validate:"required"`
+	CorsAllowedMethods []string      `validate:"required"`
+	CorsAllowedHeaders []string      `validate:"required"`
+	CorsMaxAge         int           `validate:"required,min=0"`
+	AllowedOrigins     []string      `validate:"required"`
+	TrustedProxies     []string      `validate:"required"`
+	RequestTimeout     time.Duration `validate:"required"`
 }
 
 // RateLimitConfig contains rate limiting settings
 type RateLimitConfig struct {
-	Rate  int `validate:"required,min=1"`
-	Burst int `validate:"required,min=1"`
+	Enabled     bool          `validate:"required"`
+	Rate        int           `validate:"required_if=Enabled true,min=1"`
+	Burst       int           `validate:"required_if=Enabled true,min=1"`
+	TimeWindow  time.Duration `validate:"required_if=Enabled true"`
+	PerIP       bool          `validate:"required"`
+	ExemptPaths []string      `validate:"required"`
 }
 
 // LoggingConfig contains logging settings
@@ -84,14 +91,26 @@ func New() (*Config, error) {
 			},
 		},
 		Security: SecurityConfig{
-			CorsAllowedOrigins: getEnvStringSlice("CORS_ALLOWED_ORIGINS", []string{"*"}),
-			CorsAllowedMethods: getEnvStringSlice("CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE"}),
-			CorsAllowedHeaders: getEnvStringSlice("CORS_ALLOWED_HEADERS", []string{"Origin", "Content-Type", "Accept", "Authorization"}),
-			CorsMaxAge:         getEnvInt("CORS_MAX_AGE", 300),
+			CorsAllowedOrigins: getEnvStringSlice("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
+			CorsAllowedMethods: getEnvStringSlice("CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}),
+			CorsAllowedHeaders: getEnvStringSlice("CORS_ALLOWED_HEADERS", []string{
+				"Origin", "Content-Type", "Accept", "Authorization", "X-Requested-With",
+			}),
+			CorsMaxAge:     getEnvInt("CORS_MAX_AGE", 3600),
+			AllowedOrigins: getEnvStringSlice("ALLOWED_ORIGINS", []string{"https://jonesrussell.github.io"}),
+			TrustedProxies: getEnvStringSlice("TRUSTED_PROXIES", []string{"127.0.0.1", "::1"}),
+			RequestTimeout: getEnvDuration("REQUEST_TIMEOUT", 30*time.Second),
 		},
 		RateLimit: RateLimitConfig{
-			Rate:  getEnvInt("RATE_LIMIT", 100),
-			Burst: getEnvInt("RATE_BURST", 5),
+			Enabled:    getEnvBool("RATE_LIMIT_ENABLED", true),
+			Rate:       getEnvInt("RATE_LIMIT_RATE", 100),
+			Burst:      getEnvInt("RATE_LIMIT_BURST", 5),
+			TimeWindow: getEnvDuration("RATE_LIMIT_WINDOW", time.Minute),
+			PerIP:      getEnvBool("RATE_LIMIT_PER_IP", true),
+			ExemptPaths: getEnvStringSlice("RATE_LIMIT_EXEMPT_PATHS", []string{
+				"/health",
+				"/metrics",
+			}),
 		},
 		Logging: LoggingConfig{
 			Level:  getEnvString("LOG_LEVEL", "debug"),
@@ -136,6 +155,16 @@ func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
 func getEnvStringSlice(key string, defaultValue []string) []string {
 	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return strings.Split(value, ",")
+	}
+	return defaultValue
+}
+
+func getEnvBool(key string, defaultValue bool) bool {
+	if value, exists := os.LookupEnv(key); exists {
+		b, err := strconv.ParseBool(value)
+		if err == nil {
+			return b
+		}
 	}
 	return defaultValue
 }
