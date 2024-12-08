@@ -63,7 +63,7 @@ func (a *App) registerHandlers() {
 	a.handlers.Register(a.echo)
 }
 
-func (a *App) start(ctx context.Context) error {
+func (a *App) start(_ context.Context) error {
 	address := fmt.Sprintf("%s:%d", a.config.Server.Host, a.config.Server.Port)
 	a.logger.Info("starting server", zap.String("address", address))
 
@@ -98,4 +98,9 @@ func (a *App) customErrorHandler() echo.HTTPErrorHandler {
 			}
 		}
 	}
+}
+
+// Module returns the application fx module
+func Module() fx.Option {
+	return NewModule()
 }

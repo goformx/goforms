@@ -7,6 +7,6 @@ import (
 
 func main() {
 	fx.New(
-		app.Module,
+		app.Module(),
 	).Run()
 }

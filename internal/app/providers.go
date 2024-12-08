@@ -12,19 +12,21 @@ import (
 )
 
 // Module exports all app providers
-var Module = fx.Options(
-	fx.Provide(
-		config.Load,
-		NewLogger,
-		database.New,
-		NewEcho,
-		AsModelsDB,
-		models.NewSubscriptionStore,
-		handlers.NewSubscriptionHandler,
-		NewApp,
-	),
-	fx.Invoke(func(app *App) {}),
-)
+func NewModule() fx.Option {
+	return fx.Options(
+		fx.Provide(
+			config.Load,
+			NewLogger,
+			database.New,
+			NewEcho,
+			AsModelsDB,
+			models.NewSubscriptionStore,
+			handlers.NewSubscriptionHandler,
+			NewApp,
+		),
+		fx.Invoke(func(_ *App) {}),
+	)
+}
 
 func NewLogger() (*zap.Logger, error) {
 	return zap.NewProduction()

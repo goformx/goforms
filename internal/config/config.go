@@ -74,3 +74,21 @@ func getEnvInt(key string, defaultValue int) int {
 	}
 	return defaultValue
 }
+
+func NewConfig() *Config {
+	cfg := &Config{}
+
+	// Set default values
+	cfg.Server.Host = os.Getenv("SERVER_HOST")
+	if cfg.Server.Host == "" {
+		cfg.Server.Host = "localhost"
+	}
+
+	// Default port 8080
+	cfg.Server.Port = 8080
+
+	// Default rate limit of 100 requests per second
+	cfg.RateLimit.Rate = 100
+
+	return cfg
+}
