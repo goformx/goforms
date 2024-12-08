@@ -19,10 +19,10 @@ func New(cfg *config.Config) (*sqlx.DB, error) {
 	}
 
 	// Set connection pool settings from config
-	db.SetMaxOpenConns(cfg.Database.ConnectionPool.MaxOpenConns)
-	db.SetMaxIdleConns(cfg.Database.ConnectionPool.MaxIdleConns)
-	db.SetConnMaxLifetime(cfg.Database.ConnectionPool.ConnMaxLifetime)
-	db.SetConnMaxIdleTime(cfg.Database.ConnectionPool.ConnMaxLifetime) // Using same value for idle time
+	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetme)
+	db.SetConnMaxIdleTime(cfg.Database.ConnMaxLifetme) // Using same value for idle time
 
 	// Verify connection
 	if err := db.Ping(); err != nil {
@@ -35,9 +35,9 @@ func New(cfg *config.Config) (*sqlx.DB, error) {
 // buildDSN constructs the database connection string
 func buildDSN(dbConfig *database.Config) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
-		dbConfig.Credentials.User,
-		dbConfig.Credentials.Password,
+		dbConfig.User,
+		dbConfig.Password,
 		dbConfig.Host,
 		dbConfig.Port,
-		dbConfig.Credentials.DBName)
+		dbConfig.DBName)
 }

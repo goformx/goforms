@@ -27,18 +27,14 @@ func (s *DatabaseTestSuite) SetupSuite() {
 func (s *DatabaseTestSuite) TestNewDatabase() {
 	cfg := &config.Config{
 		Database: database.Config{
-			Host: os.Getenv("DB_HOSTNAME"),
-			Port: 3306,
-			Credentials: database.Credentials{
-				User:     os.Getenv("DB_USER"),
-				Password: os.Getenv("DB_PASSWORD"),
-				DBName:   os.Getenv("DB_DATABASE"),
-			},
-			ConnectionPool: database.PoolConfig{
-				MaxOpenConns:    10,
-				MaxIdleConns:    5,
-				ConnMaxLifetime: time.Hour,
-			},
+			Host:           os.Getenv("DB_HOSTNAME"),
+			Port:           3306,
+			User:           os.Getenv("DB_USER"),
+			Password:       os.Getenv("DB_PASSWORD"),
+			DBName:         os.Getenv("DB_DATABASE"),
+			MaxOpenConns:   10,
+			MaxIdleConns:   5,
+			ConnMaxLifetme: time.Hour,
 		},
 	}
 

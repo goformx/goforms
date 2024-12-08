@@ -6,19 +6,12 @@ services:
     build: 
       context: .
       dockerfile: Dockerfile
-    env_file:
-      - .env
     volumes:
       - ../..:/workspaces:cached
       
     command: sleep infinity
     network_mode: service:db
     
-    environment:
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_DATABASE=${DB_DATABASE}
-      - DB_HOSTNAME=localhost
     depends_on:
       db:
         condition: service_healthy
