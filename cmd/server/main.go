@@ -17,7 +17,12 @@ func main() {
 	if err != nil {
 		log.Fatalf("failed to create logger: %v", err)
 	}
-	defer logger.Sync()
+	defer func() {
+		if err := logger.Sync(); err != nil {
+			// We can't use the logger here as we're shutting it down
+			log.Printf("failed to sync logger: %v", err)
+		}
+	}()
 
 	// Load configuration
 	cfg, err := config.Load()

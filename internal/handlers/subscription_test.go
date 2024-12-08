@@ -74,7 +74,7 @@ func TestCreateSubscription(t *testing.T) {
 		{
 			name:           "Invalid email",
 			email:          "",
-			mockSetup:      func(db *MockDB) {},
+			mockSetup:      func(_ *MockDB) {},
 			expectedStatus: http.StatusBadRequest,
 			checkResponse: func(t *testing.T, body string) {
 				assert.JSONEq(t, `{"error":"code=400, message=email is required"}`, body)

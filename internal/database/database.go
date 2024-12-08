@@ -3,6 +3,8 @@ package database
 import (
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/config"
+
+	// _ import of pq is required for PostgreSQL driver registration
 	_ "github.com/lib/pq"
 )
 

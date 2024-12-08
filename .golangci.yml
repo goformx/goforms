@@ -1,0 +1,16 @@
+linters:
+  enable:
+    - errcheck
+    - goimports
+    - revive
+    - govet
+    - staticcheck
+    - dogsled
+    - gochecknoglobals
+    # Add more linters as needed
+
+linters-settings:
+  # Configure specific linter settings here
+
+issues:
+  # Configure issue reporting settings here
