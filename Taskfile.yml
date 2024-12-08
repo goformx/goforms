@@ -1,6 +1,14 @@
-version: "3"
+version: '3'
 
 dotenv: ['.env']
+
+vars:
+  DB_USER: '{{.DB_USER | default "goforms_test"}}'
+  DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
+  DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+  DB_HOSTNAME: '{{.DB_HOSTNAME | default "host.docker.internal"}}'
+  DB_PORT: '{{.DB_PORT | default "3306"}}'
+  DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD | default "rootpassword"}}'
 
 tasks:
   default:
@@ -28,28 +36,31 @@ tasks:
     cmds:
       - go test -v ./internal/... -coverprofile=coverage.out
     env:
-      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
-      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
-      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
-      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
-      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
+      DB_USER: '{{.DB_USER | default "goforms_test"}}'
+      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
+      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_HOSTNAME: '{{.DB_HOSTNAME | default "test-db"}}'
+      DB_PORT: '{{.DB_PORT | default "3306"}}'
 
   test:integration:
     desc: Run integration tests with Docker
     cmds:
-      - docker-compose -f docker/test/docker-compose.yml up -d
-      - docker-compose -f docker/test/docker-compose.yml up test-db --wait
-      - go test -v ./... -tags=integration
-    finally:
-      - docker-compose -f docker/test/docker-compose.yml down
+      # Clean up first
+      - docker compose -f docker/test/docker-compose.yml down -v
+      # Start services in detached mode
+      - docker compose -f docker/test/docker-compose.yml up -d
+      # Show database logs
+      - sleep 5 # Give the container a moment to start and log any errors
+      - docker compose -f docker/test/docker-compose.yml logs test-db
+      # If successful, run the tests
+      - docker compose -f docker/test/docker-compose.yml exec -T test-app go test ./...
     env:
-      MYSQL_USER: 'goforms_test'
-      MYSQL_PASSWORD: 'goforms_test'
-      MYSQL_DATABASE: 'goforms_test'
-      MYSQL_HOSTNAME: 'localhost'
-      MYSQL_PORT: '3306'
+      DB_USER: '{{.DB_USER}}'
+      DB_PASSWORD: '{{.DB_PASSWORD}}'
+      DB_DATABASE: '{{.DB_DATABASE}}'
+      DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD}}'
 
-  test:
+  test:unit:
     desc: Run unit tests
     cmds:
       - go test -v ./... -tags=unit
@@ -65,37 +76,37 @@ tasks:
       - go tool cover -html=coverage.out -o coverage.html
       - go tool cover -func=coverage.out
     env:
-      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
-      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
-      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
-      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
-      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
+      DB_USER: '{{.DB_USER | default "goforms"}}'
+      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_HOSTNAME: '{{.DB_HOSTNAME | default "localhost"}}'
+      DB_PORT: '{{.DB_PORT | default "3306"}}'
 
   migrate:up:
     desc: Run database migrations
     cmds:
       - |
-        migrate -database "mysql://{{.MYSQL_USER}}:{{.MYSQL_PASSWORD}}@tcp({{.MYSQL_HOSTNAME}}:{{.MYSQL_PORT}})/{{.MYSQL_DATABASE}}" \
+        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOSTNAME}}:{{.DB_PORT}})/{{.DB_DATABASE}}" \
           -path migrations up
     env:
-      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
-      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
-      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
-      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
-      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
+      DB_USER: '{{.DB_USER | default "goforms"}}'
+      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_HOSTNAME: '{{.DB_HOSTNAME | default "localhost"}}'
+      DB_PORT: '{{.DB_PORT | default "3306"}}'
 
   migrate:down:
     desc: Rollback database migrations
     cmds:
       - |
-        migrate -database "mysql://{{.MYSQL_USER}}:{{.MYSQL_PASSWORD}}@tcp({{.MYSQL_HOSTNAME}}:{{.MYSQL_PORT}})/{{.MYSQL_DATABASE}}" \
+        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOSTNAME}}:{{.DB_PORT}})/{{.DB_DATABASE}}" \
           -path migrations down
     env:
-      MYSQL_USER: '{{.MYSQL_USER | default "goforms"}}'
-      MYSQL_PASSWORD: '{{.MYSQL_PASSWORD | default "goforms"}}'
-      MYSQL_DATABASE: '{{.MYSQL_DATABASE | default "goforms_test"}}'
-      MYSQL_HOSTNAME: '{{.MYSQL_HOSTNAME | default "localhost"}}'
-      MYSQL_PORT: '{{.MYSQL_PORT | default "3306"}}'
+      DB_USER: '{{.DB_USER | default "goforms"}}'
+      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+      DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
+      DB_HOSTNAME: '{{.DB_HOSTNAME | default "localhost"}}'
+      DB_PORT: '{{.DB_PORT | default "3306"}}'
 
   migrate:create:
     desc: Create a new migration
@@ -121,11 +132,11 @@ tasks:
       - task: test:coverage
     env:
       CGO_ENABLED: 1
-      MYSQL_USER: goforms
-      MYSQL_PASSWORD: goforms
-      MYSQL_DATABASE: goforms_test
-      MYSQL_HOSTNAME: localhost
-      MYSQL_PORT: 3306
+      DB_USER: goforms
+      DB_PASSWORD: goforms
+      DB_DATABASE: goforms_test
+      DB_HOSTNAME: localhost
+      DB_PORT: 3306
 
   ci:build:
     desc: Build in CI environment
@@ -161,3 +172,25 @@ tasks:
     desc: Run Docker container
     cmds:
       - docker run -p 8090:8090 --env-file .env goforms:latest
+
+  prod:up:
+    desc: Start production environment
+    cmds:
+      - docker-compose -f docker/prod/docker-compose.yml up -d
+      - task: migrate:up
+
+  prod:down:
+    desc: Stop production environment
+    cmds:
+      - docker-compose -f docker/prod/docker-compose.yml down
+
+  prod:logs:
+    desc: View production logs
+    cmds:
+      - docker-compose -f docker/prod/docker-compose.yml logs -f
+
+  prod:build:
+    desc: Build production image
+    cmds:
+      - task: docker:build
+      - docker-compose -f docker/prod/docker-compose.yml build

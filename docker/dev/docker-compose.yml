@@ -2,10 +2,10 @@ services:
   dev-db:
     image: mariadb:10.11
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: goforms
-      MYSQL_USER: goforms
-      MYSQL_PASSWORD: goforms
+      DB_ROOT_PASSWORD: rootpassword
+      DB_DATABASE: goforms
+      DB_USER: goforms
+      DB_PASSWORD: goforms
     command: >
       --character-set-server=utf8mb4
       --collation-server=utf8mb4_unicode_ci

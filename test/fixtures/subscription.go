@@ -3,6 +3,7 @@ package fixtures
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 
@@ -77,9 +78,19 @@ func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(email, origin 
 		he, ok := err.(*echo.HTTPError)
 		if ok {
 			rec.Code = he.Code
-			_ = json.NewEncoder(rec.Body).Encode(map[string]string{
+			if err := json.NewEncoder(rec.Body).Encode(map[string]string{
 				"error": he.Message.(string),
-			})
+			}); err != nil {
+				return nil, fmt.Errorf("failed to encode error response: %w", err)
+			}
+		} else {
+			// Handle non-HTTP errors
+			rec.Code = http.StatusInternalServerError
+			if err := json.NewEncoder(rec.Body).Encode(map[string]string{
+				"error": "Internal server error",
+			}); err != nil {
+				return nil, fmt.Errorf("failed to encode error response: %w", err)
+			}
 		}
 	}
 

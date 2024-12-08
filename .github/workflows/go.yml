@@ -15,10 +15,10 @@ jobs:
       mariadb:
         image: mariadb:10.11
         env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-          MYSQL_USER: goforms
-          MYSQL_PASSWORD: goforms
-          MYSQL_DATABASE: goforms_test
+          DB_ROOT_PASSWORD: rootpassword
+          DB_USER: goforms
+          DB_PASSWORD: goforms
+          DB_DATABASE: goforms_test
         ports:
           - 3306:3306
         options: >-
@@ -60,22 +60,22 @@ jobs:
       - name: Run migrations
         run: task migrate:up
         env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-          MYSQL_USER: goforms
-          MYSQL_PASSWORD: goforms
-          MYSQL_DATABASE: goforms_test
-          MYSQL_HOSTNAME: localhost
-          MYSQL_PORT: 3306
+          DB_ROOT_PASSWORD: rootpassword
+          DB_USER: goforms
+          DB_PASSWORD: goforms
+          DB_DATABASE: goforms_test
+          DB_HOSTNAME: localhost
+          DB_PORT: 3306
 
       - name: Run tests
         run: task test:coverage
         env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-          MYSQL_USER: goforms
-          MYSQL_PASSWORD: goforms
-          MYSQL_DATABASE: goforms_test
-          MYSQL_HOSTNAME: localhost
-          MYSQL_PORT: 3306
+          DB_ROOT_PASSWORD: rootpassword
+          DB_USER: goforms
+          DB_PASSWORD: goforms
+          DB_DATABASE: goforms_test
+          DB_HOSTNAME: localhost
+          DB_PORT: 3306
 
   build:
     name: Build

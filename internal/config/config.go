@@ -70,17 +70,17 @@ func New() (*Config, error) {
 			},
 		},
 		Database: database.Config{
-			Host: getEnvString("MYSQL_HOSTNAME", "db"),
-			Port: getEnvInt("MYSQL_PORT", 3306),
+			Host: getEnvString("DB_HOSTNAME", "db"),
+			Port: getEnvInt("DB_PORT", 3306),
 			Credentials: database.Credentials{
-				User:     getEnvString("MYSQL_USER", "goforms"),
-				Password: getEnvString("MYSQL_PASSWORD", "goforms"),
-				DBName:   getEnvString("MYSQL_DATABASE", "goforms"),
+				User:     getEnvString("DB_USER", "goforms"),
+				Password: getEnvString("DB_PASSWORD", "goforms"),
+				DBName:   getEnvString("DB_DATABASE", "goforms"),
 			},
 			ConnectionPool: database.PoolConfig{
-				MaxOpenConns:    getEnvInt("MYSQL_MAX_OPEN_CONNS", 25),
-				MaxIdleConns:    getEnvInt("MYSQL_MAX_IDLE_CONNS", 5),
-				ConnMaxLifetime: getEnvDuration("MYSQL_CONN_MAX_LIFETIME", 5*time.Minute),
+				MaxOpenConns:    getEnvInt("DB_MAX_OPEN_CONNS", 25),
+				MaxIdleConns:    getEnvInt("DB_MAX_IDLE_CONNS", 5),
+				ConnMaxLifetime: getEnvDuration("DB_CONN_MAX_LIFETIME", 5*time.Minute),
 			},
 		},
 		Security: SecurityConfig{

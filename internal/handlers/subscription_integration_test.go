@@ -5,9 +5,6 @@ import (
 	"os"
 	"testing"
 
-	"log"
-
-	"github.com/joho/godotenv"
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/jonesrussell/goforms/test/fixtures"
 	"github.com/jonesrussell/goforms/test/setup"
@@ -19,25 +16,21 @@ import (
 
 type SubscriptionTestSuite struct {
 	suite.Suite
-	testDB  *setup.TestDB
 	handler *SubscriptionHandler
+	testDB  *setup.TestDB
 	fixture *fixtures.SubscriptionFixture
 }
 
 func (s *SubscriptionTestSuite) SetupSuite() {
 	var err error
 
-	// Add this to help debug the current working directory
-	dir, _ := os.Getwd()
-	log.Printf("Current working directory: %s", dir)
-
-	// Option 1: Use relative path from test file location
-	err = godotenv.Load("../../.env.test")
-
-	// OR Option 2: Use project root relative path
-	// err = godotenv.Load("../../../.env.test")
-
-	require.NoError(s.T(), err, "Error loading .env.test file")
+	// Set required environment variables for testing
+	os.Setenv("DB_USER", "goforms_test")
+	os.Setenv("DB_PASSWORD", "goforms_test")
+	os.Setenv("DB_DATABASE", "goforms_test")
+	os.Setenv("DB_HOSTNAME", "test-db")
+	os.Setenv("DB_PORT", "3306")
+	os.Setenv("ALLOWED_ORIGINS", "http://localhost:3000,http://host.docker.internal:3000")
 
 	// Setup test database
 	s.testDB, err = setup.NewTestDB()

@@ -2,13 +2,17 @@ package setup
 
 import (
 	"fmt"
+	"log"
+	"math"
 	"os"
+	"time"
 
 	"github.com/golang-migrate/migrate/v4"
 	"github.com/golang-migrate/migrate/v4/database/mysql"
+
+	// Import the file source driver
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
 )
 
 // TestDB manages test database setup and teardown
@@ -18,25 +22,53 @@ type TestDB struct {
 
 // NewTestDB creates a new test database connection
 func NewTestDB() (*TestDB, error) {
-	// Only load .env.test for testing
-	if err := godotenv.Load(".env.test"); err != nil {
-		return nil, fmt.Errorf("failed to load test environment (.env.test): %w", err)
+	// Use environment variables with defaults
+	dbUser := os.Getenv("DB_USER")
+	if dbUser == "" {
+		dbUser = "goforms_test"
+	}
+	dbPass := os.Getenv("DB_PASSWORD")
+	if dbPass == "" {
+		dbPass = "goforms_test"
+	}
+	dbName := os.Getenv("DB_DATABASE")
+	if dbName == "" {
+		dbName = "goforms_test"
+	}
+	dbHost := os.Getenv("DB_HOSTNAME")
+	if dbHost == "" {
+		dbHost = "test-db" // Default to Docker service name
+	}
+	dbPort := os.Getenv("DB_PORT")
+	if dbPort == "" {
+		dbPort = "3306" // Use internal Docker port
 	}
 
-	dbUser := getEnvOrDefault("MYSQL_USER", "goforms_test")
-	dbPass := getEnvOrDefault("MYSQL_PASSWORD", "goforms_test")
-	dbHost := getEnvOrDefault("MYSQL_HOSTNAME", "localhost")
-	dbPort := getEnvOrDefault("MYSQL_PORT", "3306")
-	dbName := getEnvOrDefault("MYSQL_DATABASE", "goforms_test")
-
-	// Create DSN for test database
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&multiStatements=true",
+	// Build connection string
+	dsn := fmt.Sprintf("%s:%s@tcp(%s:%s)/%s?parseTime=true&allowNativePasswords=true",
 		dbUser, dbPass, dbHost, dbPort, dbName)
 
-	// Connect to database
-	db, err := sqlx.Connect("mysql", dsn)
+	// Debug connection info
+	log.Printf("Attempting to connect to database with DSN: %s:%s@tcp(%s:%s)/%s",
+		dbUser, "[REDACTED]", dbHost, dbPort, dbName)
+
+	// Retry connection up to 5 times with exponential backoff
+	var db *sqlx.DB
+	var err error
+	maxRetries := 5
+	for i := 0; i < maxRetries; i++ {
+		db, err = sqlx.Connect("mysql", dsn)
+		if err == nil {
+			break
+		}
+		if i < maxRetries-1 {
+			waitTime := time.Duration(math.Pow(2, float64(i))) * time.Second
+			log.Printf("Failed to connect, retrying in %v... (attempt %d/%d)", waitTime, i+1, maxRetries)
+			time.Sleep(waitTime)
+		}
+	}
 	if err != nil {
-		return nil, fmt.Errorf("failed to connect to test database: %w", err)
+		return nil, fmt.Errorf("failed to connect to test database after %d attempts: %w", maxRetries, err)
 	}
 
 	return &TestDB{DB: db}, nil
@@ -88,11 +120,4 @@ func (tdb *TestDB) Cleanup(dropDB bool) error {
 		return tdb.DB.Close()
 	}
 	return nil
-}
-
-func getEnvOrDefault(key, defaultValue string) string {
-	if value := os.Getenv(key); value != "" {
-		return value
-	}
-	return defaultValue
 }

@@ -2,17 +2,50 @@ services:
   test-db:
     image: mariadb:10.11
     environment:
-      MYSQL_ROOT_PASSWORD: rootpassword
-      MYSQL_DATABASE: goforms_test
-      MYSQL_USER: goforms_test
-      MYSQL_PASSWORD: goforms_test
-    command: >
-      --character-set-server=utf8mb4
-      --collation-server=utf8mb4_unicode_ci
-    ports:
-      - "3306:3306"
+      MARIADB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
+      MARIADB_ROOT_HOST: "%"
+      MARIADB_DATABASE: "${DB_DATABASE:-goforms_test}"
+      MARIADB_USER: "${DB_USER:-goforms_test}"
+      MARIADB_PASSWORD: "${DB_PASSWORD:-goforms_test}"
+      MARIADB_AUTO_UPGRADE: "1"
+    volumes:
+      - test-db-data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u", "goforms_test", "-pgoforms_test"]
+      test: ["CMD", "/usr/local/bin/healthcheck.sh", "--su-mysql", "--connect", "--innodb_initialized"]
       interval: 5s
-      timeout: 5s
-      retries: 5 
+      timeout: 10s
+      retries: 20
+      start_period: 30s
+    networks:
+      - test-network
+
+  test-app:
+    image: golang:1.23
+    volumes:
+      - ../../:/app
+    working_dir: /app
+    command: sh -c "while true; do sleep 1; done"
+    stdin_open: true
+    tty: true
+    depends_on:
+      test-db:
+        condition: service_healthy
+    environment:
+      DB_USER: "${DB_USER:-goforms_test}"
+      DB_PASSWORD: "${DB_PASSWORD:-goforms_test}"
+      DB_DATABASE: "${DB_DATABASE:-goforms_test}"
+      DB_HOSTNAME: "test-db"
+      DB_PORT: "3306"
+      DB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
+      CGO_ENABLED: "1"
+      GO111MODULE: "on"
+    networks:
+      - test-network
+
+volumes:
+  test-db-data:
+
+networks:
+  test-network:
+    driver: bridge

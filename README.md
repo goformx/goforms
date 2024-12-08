@@ -62,10 +62,10 @@ task migrate:create  # Create new migration
 Database credentials are configured in `.devcontainer/.env`:
 
 ```env
-MYSQL_USER=goforms
-MYSQL_PASSWORD=goforms
-MYSQL_DATABASE=goforms
-MYSQL_HOSTNAME=db
+DB_USER=goforms
+DB_PASSWORD=goforms
+DB_DATABASE=goforms
+DB_HOSTNAME=db
 ```
 
 ### API Endpoints
