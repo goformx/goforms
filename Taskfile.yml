@@ -43,12 +43,12 @@ tasks:
   migrate:up:
     desc: Run database migrations
     cmds:
-      - migrate -database "{{.DB_URL}}" -path migrations up
+      - migrate -database "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOSTNAME}:${MYSQL_PORT})/${MYSQL_DATABASE}" -path migrations up
 
   migrate:down:
     desc: Rollback database migrations
     cmds:
-      - migrate -database "{{.DB_URL}}" -path migrations down
+      - migrate -database "mysql://${MYSQL_USER}:${MYSQL_PASSWORD}@tcp(${MYSQL_HOSTNAME}:${MYSQL_PORT})/${MYSQL_DATABASE}" -path migrations down
 
   migrate:create:
     desc: Create a new migration
