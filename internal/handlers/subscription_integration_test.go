@@ -160,19 +160,8 @@ func (s *SubscriptionTestSuite) TestSubscriptionIntegration() {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	s.logger.Debug("request details",
-		zap.String("method", req.Method),
-		zap.String("path", req.URL.Path),
-		zap.String("body", string(body)),
-		zap.Any("headers", req.Header))
-
+	s.logger.Info("testing subscription creation")
 	err = s.handler.CreateSubscription(c)
-
-	s.logger.Debug("response details",
-		zap.Error(err),
-		zap.Int("status_code", rec.Code),
-		zap.String("response_body", rec.Body.String()))
-
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), http.StatusCreated, rec.Code)
 
@@ -187,16 +176,11 @@ func (s *SubscriptionTestSuite) TestSubscriptionIntegration() {
 	assert.True(s.T(), exists)
 
 	// Test duplicate subscription with a fresh request
+	s.logger.Info("testing duplicate subscription")
 	duplicateReq := httptest.NewRequest(http.MethodPost, "/api/subscriptions", bytes.NewBuffer(body))
 	duplicateReq.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	duplicateRec := httptest.NewRecorder()
 	duplicateC := e.NewContext(duplicateReq, duplicateRec)
-
-	s.logger.Debug("duplicate request details",
-		zap.String("method", duplicateReq.Method),
-		zap.String("path", duplicateReq.URL.Path),
-		zap.String("body", string(body)),
-		zap.Any("headers", duplicateReq.Header))
 
 	err = s.handler.CreateSubscription(duplicateC)
 
@@ -214,11 +198,6 @@ func (s *SubscriptionTestSuite) TestSubscriptionIntegration() {
 			"error": he.Message.(string),
 		})
 	}
-
-	s.logger.Debug("duplicate response details",
-		zap.Error(err),
-		zap.Int("status_code", duplicateRec.Code),
-		zap.String("response_body", duplicateRec.Body.String()))
 
 	// Verify the response matches what we expect
 	assert.Equal(s.T(), http.StatusConflict, duplicateRec.Code)
