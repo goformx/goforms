@@ -1,6 +1,6 @@
 # Project TODO List
 
-## Current Sprint: Email Subscription MVP
+## Current Sprint: Email Subscription MVP ✅
 - [x] 1. Project Setup
   - [x] Initialize Go module
   - [x] Create basic directory structure
@@ -11,24 +11,19 @@
 - [x] 2. Database Setup
   - [x] Create migrations directory
   - [x] Write subscription table migration
-    - [x] Up migration
-    - [x] Down migration
   - [x] Set up database connection
   - [x] Implement connection pooling
 
 - [x] 3. Core Application
   - [x] Set up Echo server
   - [x] Configure middleware
-    - [x] Logging (zap)
-    - [x] Error handling
-    - [x] CORS
   - [x] Create app struct and initialization
 
 - [x] 4. Subscription Handler
   - [x] Create subscription model
   - [x] Implement email validation
-  - [x] Create POST endpoint for subscriptions
-  - [x] Add basic rate limiting
+  - [x] Create POST endpoint
+  - [x] Add rate limiting
   - [x] Add error responses
 
 - [x] 5. Testing
@@ -36,59 +31,62 @@
   - [x] Write validation tests
   - [x] Write integration tests
 
-## Phase 1: Core API Setup
-- [x] 1. Project Structure
-   - [x] Set up Go project with modules
-   - [x] Configure MariaDB database
-   - [x] Set up basic HTTP server using Echo
-   - [x] Implement middleware for logging, error handling
-   - [x] Set up configuration management
+## Current Sprint: Form Management API
+- [ ] 1. Database Schema
+  - [ ] Create forms table migration
+    - [ ] ID, title, description, created_at, updated_at
+    - [ ] Status (draft, published, archived)
+    - [ ] Validation rules
+  - [ ] Create form_fields table migration
+    - [ ] Field types (text, number, email, etc.)
+    - [ ] Validation rules
+    - [ ] Required/optional status
+  - [ ] Create form_submissions table migration
+    - [ ] Submission data (JSON)
+    - [ ] Metadata (IP, timestamp, etc.)
 
-- [ ] 2. Database Schema
-   - [ ] Forms table
-   - [ ] Form fields table
-   - [ ] Form submissions table
-   - [ ] Basic migrations setup
+- [ ] 2. Core Form API
+  - [ ] Form model and validation
+  - [ ] CRUD endpoints for forms
+  - [ ] Field configuration
+  - [ ] Form submission handling
+  - [ ] Input sanitization
 
-- [ ] 3. Observability
-   - [ ] Structured logging with Zap
-   - [ ] Health check endpoints
-   - [ ] Request tracing with request IDs
-   - [ ] Error tracking and reporting
+- [ ] 3. Testing & Documentation
+  - [ ] Unit tests for form models
+  - [ ] Integration tests for form API
+  - [ ] API documentation with OpenAPI/Swagger
+  - [ ] Update README with new endpoints
 
-## Phase 2: Form Management
-- [ ] 1. Form Creation API
-   - [ ] Endpoint to create new forms
-   - [ ] Support for basic templates
-   - [ ] Field configuration options
+## Next Up: Enhanced Features
+- [ ] 1. Security & Performance
+  - [ ] Rate limiting per form
+  - [ ] CAPTCHA integration
+  - [ ] XSS protection
+  - [ ] SQL injection prevention
+  - [ ] Response caching
 
-- [ ] 2. Form Management Features
-   - [ ] List forms
-   - [ ] Update forms
-   - [ ] Delete forms
-   - [ ] Get form details
+- [ ] 2. Analytics & Monitoring
+  - [ ] Submission analytics
+  - [ ] Performance metrics
+  - [ ] Error tracking
+  - [ ] Usage statistics
 
-## Future Features
-- [ ] 1. Multi-tenancy Support
-   - [ ] Organization/user management
-   - [ ] Role-based access control
+## Future Phases
+- [ ] 1. Advanced Form Features
+  - [ ] Conditional logic
+  - [ ] Multi-page forms
+  - [ ] File uploads
+  - [ ] Custom validation rules
 
-- [ ] 2. Advanced Form Features
-   - [ ] Conditional logic
-   - [ ] Multi-page forms
-   - [ ] File upload support
-   - [ ] Custom form templates
+- [ ] 2. Integration Features
+  - [ ] Email notifications
+  - [ ] Webhook support
+  - [ ] Export capabilities (CSV, JSON)
+  - [ ] API key management
 
-- [ ] 3. Integrations
-   - [ ] Email notifications
-   - [ ] Payment processing
-   - [ ] Webhooks
-
-- [ ] 4. Real-time Capabilities
-   - [ ] Live form previews
-   - [ ] Real-time validation
-
-- [ ] 5. Frontend Interface
-   - [ ] Admin dashboard
-   - [ ] Form builder UI
-   - [ ] Form preview
+- [ ] 3. Administration
+  - [ ] User management
+  - [ ] Role-based access
+  - [ ] Audit logging
+  - [ ] Backup/restore functionality
