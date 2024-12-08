@@ -38,7 +38,7 @@ func TestCreateSubscription(t *testing.T) {
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	store.CreateSubscriptionFunc = func(_ context.Context, sub *models.Subscription) error {
+	store.CreateSubscriptionFunc = func(_ context.Context, _ *models.Subscription) error {
 		return nil
 	}
 
@@ -47,7 +47,7 @@ func TestCreateSubscription(t *testing.T) {
 	assert.Equal(t, http.StatusCreated, rec.Code)
 
 	// Test duplicate subscription
-	store.CreateSubscriptionFunc = func(_ context.Context, sub *models.Subscription) error {
+	store.CreateSubscriptionFunc = func(_ context.Context, _ *models.Subscription) error {
 		return echo.NewHTTPError(http.StatusConflict, "Email already subscribed")
 	}
 
