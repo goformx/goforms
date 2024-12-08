@@ -1,6 +1,3 @@
-volumes:
-  mariadb-data:
-
 services:
   app:
     build: 
@@ -29,8 +26,22 @@ services:
       - MARIADB_USER=${DB_USER}
       - MARIADB_PASSWORD=${DB_PASSWORD}
       - MARIADB_DATABASE=${DB_NAME}
+    ports:
+      - "${DB_PORT}:3306"
+      - "8099:8080"  # For adminer
     healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-u${DB_USER}", "-p${DB_PASSWORD}"]
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
       interval: 5s
       timeout: 5s
       retries: 5
+
+  adminer:
+    image: adminer:latest
+    restart: unless-stopped
+    network_mode: service:db
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  mariadb-data:
