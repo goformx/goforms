@@ -4,12 +4,11 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/config"
 
-	// _ import of pq is required for PostgreSQL driver registration
-	_ "github.com/lib/pq"
+	_ "github.com/go-sql-driver/mysql"
 )
 
 func New(cfg *config.Config) (*sqlx.DB, error) {
-	db, err := sqlx.Connect("postgres", cfg.Database.DSN())
+	db, err := sqlx.Connect("mysql", cfg.Database.DSN())
 	if err != nil {
 		return nil, err
 	}

@@ -55,8 +55,8 @@ func Load() (*Config, error) {
 }
 
 func (d DatabaseConfig) DSN() string {
-	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		d.Host, d.Port, d.User, d.Password, d.DBName, d.SSLMode)
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
+		d.User, d.Password, d.Host, d.Port, d.DBName)
 }
 
 func getEnvString(key, defaultValue string) string {

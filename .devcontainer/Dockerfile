@@ -1,8 +1,8 @@
 FROM mcr.microsoft.com/devcontainers/go:1-1.23-bookworm
 
-# Install PostgreSQL client tools, golang-migrate, and go-task
+# Install MariaDB client tools, golang-migrate, and go-task
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-    && apt-get -y install --no-install-recommends postgresql-client \
+    && apt-get -y install --no-install-recommends mariadb-client \
     && curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz \
     && mv migrate /usr/local/bin/migrate \
     && chmod +x /usr/local/bin/migrate \

@@ -36,8 +36,8 @@
 			]
 		}
 	},
-	"forwardPorts": [5432, 8080],
-	"postCreateCommand": "while ! pg_isready -h localhost -p 5432 -U ${POSTGRES_USER}; do sleep 1; done"
+	"forwardPorts": [3306, 8080],
+	"postCreateCommand": "while ! mysqladmin ping -h localhost -u ${MYSQL_USER} -p${MYSQL_PASSWORD}; do sleep 1; done"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.
 	// "features": {},

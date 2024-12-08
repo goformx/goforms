@@ -12,19 +12,20 @@ jobs:
     runs-on: ubuntu-latest
 
     services:
-      postgres:
-        image: postgres:latest
+      mariadb:
+        image: mariadb:10.11
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: goforms_test
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_USER: goforms
+          MYSQL_PASSWORD: goforms
+          MYSQL_DATABASE: goforms_test
         ports:
-          - 5432:5432
+          - 3306:3306
         options: >-
-          --health-cmd pg_isready
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+          --health-cmd="mysqladmin ping -h localhost"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -59,18 +60,20 @@ jobs:
       - name: Run migrations
         run: task migrate:up
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: goforms_test
-          POSTGRES_HOSTNAME: localhost
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_USER: goforms
+          MYSQL_PASSWORD: goforms
+          MYSQL_DATABASE: goforms_test
+          MYSQL_HOSTNAME: localhost
 
       - name: Run tests
         run: task test:coverage
         env:
-          POSTGRES_USER: postgres
-          POSTGRES_PASSWORD: postgres
-          POSTGRES_DB: goforms_test
-          POSTGRES_HOSTNAME: localhost
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_USER: goforms
+          MYSQL_PASSWORD: goforms
+          MYSQL_DATABASE: goforms_test
+          MYSQL_HOSTNAME: localhost
 
   build:
     name: Build
