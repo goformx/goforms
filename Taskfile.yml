@@ -21,9 +21,8 @@ tasks:
 
   run:
     desc: Run the application
-    deps: [build]
     cmds:
-      - ./bin/server
+      - go run ./cmd/server
 
   test:
     desc: Run all tests
