@@ -6,7 +6,6 @@ import (
 	"os"
 	"strings"
 	"testing"
-	"time"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
@@ -15,6 +14,8 @@ import (
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 
+	"github.com/golang-migrate/migrate"
+	"github.com/golang-migrate/migrate/database/mysql"
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/database"
 	"github.com/jonesrussell/goforms/internal/models"
@@ -54,12 +55,27 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 }
 
 func (s *SubscriptionTestSuite) TearDownSuite() {
-	// Clean up test data
-	_, err := s.db.Exec("DROP TABLE IF EXISTS subscriptions")
-	if err != nil {
-		s.T().Logf("Failed to drop test table: %v", err)
-	}
 	if s.db != nil {
+		driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{})
+		if err != nil {
+			s.T().Logf("Failed to create driver instance: %v", err)
+			return
+		}
+
+		m, err := migrate.NewWithDatabaseInstance(
+			"file://../../migrations",
+			"mysql",
+			driver,
+		)
+		if err != nil {
+			s.T().Logf("Failed to create migrate instance: %v", err)
+			return
+		}
+
+		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
+			s.T().Logf("Failed to run down migrations: %v", err)
+		}
+
 		s.db.Close()
 	}
 }
@@ -71,23 +87,28 @@ func (s *SubscriptionTestSuite) SetupTest() {
 }
 
 func (s *SubscriptionTestSuite) setupTestDatabase() error {
-	// Create subscriptions table if it doesn't exist
-	_, err := s.db.Exec(`
-		CREATE TABLE IF NOT EXISTS subscriptions (
-			id INT AUTO_INCREMENT PRIMARY KEY,
-			email VARCHAR(255) NOT NULL UNIQUE,
-			name VARCHAR(255) NOT NULL,
-			created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-			updated_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-			INDEX idx_email (email)
-		) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci;
-	`)
+	// Use golang-migrate to run migrations
+	migrationPath := "file://../../migrations"
+
+	driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{})
 	if err != nil {
 		return err
 	}
 
-	// Wait a bit for the table to be ready
-	time.Sleep(100 * time.Millisecond)
+	m, err := migrate.NewWithDatabaseInstance(
+		migrationPath,
+		"mysql",
+		driver,
+	)
+	if err != nil {
+		return err
+	}
+
+	// Run migrations
+	if err := m.Up(); err != nil && err != migrate.ErrNoChange {
+		return err
+	}
+
 	return nil
 }
 

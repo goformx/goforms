@@ -60,7 +60,7 @@ func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscri
 
 	query := `
 		INSERT INTO subscriptions (email, created_at)
-		VALUES ($1, $2)
+		VALUES (?, ?)
 		RETURNING id`
 
 	sub.CreatedAt = time.Now()
