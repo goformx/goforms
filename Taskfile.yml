@@ -1,4 +1,4 @@
-version: '3'
+version: "3"
 
 vars:
   DB_URL: postgres://{{.POSTGRES_USER}}:{{.POSTGRES_PASSWORD}}@localhost:5432/{{.POSTGRES_DB}}?sslmode=disable
@@ -66,4 +66,4 @@ tasks:
     desc: Clean build artifacts
     cmds:
       - rm -rf bin/
-      - rm -f coverage.out 
+      - rm -f coverage.out
