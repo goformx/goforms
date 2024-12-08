@@ -4,8 +4,6 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/config"
 
-	"time"
-
 	_ "github.com/go-sql-driver/mysql"
 )
 
@@ -15,11 +13,11 @@ func New(cfg *config.Config) (*sqlx.DB, error) {
 		return nil, err
 	}
 
-	// Set connection pool settings
-	db.SetMaxOpenConns(25)
-	db.SetMaxIdleConns(5)
-	db.SetConnMaxLifetime(5 * time.Minute)
-	db.SetConnMaxIdleTime(5 * time.Minute)
+	// Set connection pool settings from config
+	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
+	db.SetConnMaxIdleTime(cfg.Database.ConnMaxLifetime) // Using same value for idle time
 
 	// Verify connection
 	if err := db.Ping(); err != nil {
