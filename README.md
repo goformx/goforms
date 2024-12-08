@@ -65,7 +65,7 @@ Database credentials are configured in `.devcontainer/.env`:
 DB_USER=goforms
 DB_PASSWORD=goforms
 DB_DATABASE=goforms
-DB_HOSTNAME=db
+DB_HOST=db
 ```
 
 ### API Endpoints

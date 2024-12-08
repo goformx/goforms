@@ -35,7 +35,7 @@ services:
       DB_USER: "${DB_USER:-goforms_test}"
       DB_PASSWORD: "${DB_PASSWORD:-goforms_test}"
       DB_DATABASE: "${DB_DATABASE:-goforms_test}"
-      DB_HOSTNAME: "test-db"
+      DB_HOST: "test-db"
       DB_PORT: "3306"
       DB_ROOT_PASSWORD: "${DB_ROOT_PASSWORD:-rootpassword}"
       CGO_ENABLED: "1"

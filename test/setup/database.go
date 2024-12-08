@@ -35,7 +35,7 @@ func NewTestDB() (*TestDB, error) {
 	if dbName == "" {
 		dbName = "goforms_test"
 	}
-	dbHost := os.Getenv("DB_HOSTNAME")
+	dbHost := os.Getenv("DB_HOST")
 	if dbHost == "" {
 		dbHost = "test-db" // Default to Docker service name
 	}

@@ -64,7 +64,7 @@ jobs:
           MARIADB_USER: goforms
           MARIADB_PASSWORD: goforms
           MARIADB_DATABASE: goforms_test
-          DB_HOSTNAME: localhost
+          DB_HOST: localhost
           DB_PORT: 3306
 
       - name: Run tests
@@ -74,7 +74,7 @@ jobs:
           MARIADB_USER: goforms
           MARIADB_PASSWORD: goforms
           MARIADB_DATABASE: goforms_test
-          DB_HOSTNAME: localhost
+          DB_HOST: localhost
           DB_PORT: 3306
 
   build:

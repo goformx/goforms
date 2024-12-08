@@ -27,7 +27,7 @@ func (s *DatabaseTestSuite) SetupSuite() {
 func (s *DatabaseTestSuite) TestNewDatabase() {
 	cfg := &config.Config{
 		Database: database.Config{
-			Host:           os.Getenv("DB_HOSTNAME"),
+			Host:           os.Getenv("DB_HOST"),
 			Port:           3306,
 			User:           os.Getenv("DB_USER"),
 			Password:       os.Getenv("DB_PASSWORD"),
