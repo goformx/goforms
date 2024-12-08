@@ -3,6 +3,8 @@ package models
 import (
 	"context"
 	"net/http"
+	"regexp"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -21,7 +23,18 @@ func (s *Subscription) Validate() error {
 	if s.Email == "" {
 		return echo.NewHTTPError(http.StatusBadRequest, "email is required")
 	}
-	// Add more validation as needed
+
+	// Check for spaces in email
+	if strings.Contains(s.Email, " ") {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid email format")
+	}
+
+	// Basic email format validation
+	emailRegex := regexp.MustCompile(`^[a-zA-Z0-9._%+\-]+@[a-zA-Z0-9.\-]+\.[a-zA-Z]{2,}$`)
+	if !emailRegex.MatchString(s.Email) {
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid email format")
+	}
+
 	return nil
 }
 
