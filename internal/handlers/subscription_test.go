@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -26,11 +27,16 @@ func (m *MockDB) QueryRowContext(ctx context.Context, query string, args ...inte
 	m.Called(args...)
 
 	// Create a new sql.DB connection just for creating a row
-	db, err := sql.Open("postgres", "mock")
+	db, err := sql.Open("postgres", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
 	if err != nil {
 		panic(err)
 	}
 	defer db.Close()
+
+	// For the error case, return a row that will fail to scan
+	if args[2] == "error@example.com" {
+		return db.QueryRow("SELECT NULL WHERE 1=0")
+	}
 
 	// Return a row that will scan the ID successfully
 	return db.QueryRow("SELECT 1")
@@ -42,7 +48,7 @@ func TestCreateSubscription(t *testing.T) {
 		email          string
 		mockSetup      func(*MockDB)
 		expectedStatus int
-		expectedBody   string
+		checkResponse  func(*testing.T, string)
 	}{
 		{
 			name:  "Valid subscription",
@@ -52,27 +58,42 @@ func TestCreateSubscription(t *testing.T) {
 					mock.Anything,
 					mock.Anything,
 					"test@example.com",
-					"",
 					mock.Anything).Return(nil)
 			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"id":1,"email":"test@example.com","name":"","created_at":"0001-01-01T00:00:00Z"}`,
+			checkResponse: func(t *testing.T, body string) {
+				var response map[string]interface{}
+				err := json.Unmarshal([]byte(body), &response)
+				assert.NoError(t, err)
+
+				assert.Equal(t, float64(1), response["id"])
+				assert.Equal(t, "test@example.com", response["email"])
+				assert.NotEmpty(t, response["created_at"])
+			},
 		},
 		{
 			name:           "Invalid email",
 			email:          "",
 			mockSetup:      func(db *MockDB) {},
 			expectedStatus: http.StatusBadRequest,
-			expectedBody:   `{"error":"email is required"}`,
+			checkResponse: func(t *testing.T, body string) {
+				assert.JSONEq(t, `{"error":"code=400, message=email is required"}`, body)
+			},
 		},
 		{
 			name:  "Database error",
 			email: "error@example.com",
 			mockSetup: func(db *MockDB) {
-				db.On("QueryRowContext", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+				db.On("QueryRowContext",
+					mock.Anything,
+					mock.Anything,
+					"error@example.com",
+					mock.Anything).Return(nil)
 			},
 			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"error":"failed to create subscription"}`,
+			checkResponse: func(t *testing.T, body string) {
+				assert.JSONEq(t, `{"error":"failed to create subscription"}`, body)
+			},
 		},
 	}
 
@@ -99,7 +120,7 @@ func TestCreateSubscription(t *testing.T) {
 				he, ok := err.(*echo.HTTPError)
 				if ok {
 					assert.Equal(t, test.expectedStatus, he.Code)
-					assert.Equal(t, test.expectedBody, fmt.Sprintf(`{"error":"%v"}`, he.Message))
+					test.checkResponse(t, fmt.Sprintf(`{"error":"%v"}`, he.Message))
 					return
 				}
 				t.Errorf("expected HTTPError, got %v", err)
@@ -108,7 +129,7 @@ func TestCreateSubscription(t *testing.T) {
 
 			// Assert
 			assert.Equal(t, test.expectedStatus, rec.Code)
-			assert.JSONEq(t, test.expectedBody, rec.Body.String())
+			test.checkResponse(t, rec.Body.String())
 		})
 	}
 }

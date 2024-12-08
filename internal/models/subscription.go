@@ -14,7 +14,6 @@ import (
 type Subscription struct {
 	ID        int64     `db:"id" json:"id"`
 	Email     string    `db:"email" json:"email"`
-	Name      string    `db:"name" json:"name"`
 	CreatedAt time.Time `db:"created_at" json:"created_at"`
 }
 
@@ -56,14 +55,13 @@ func NewSubscriptionStore(db DB) SubscriptionStore {
 // CreateSubscription implements the subscription creation
 func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscription) error {
 	query := `
-		INSERT INTO subscriptions (email, name, created_at)
-		VALUES ($1, $2, $3)
+		INSERT INTO subscriptions (email, created_at)
+		VALUES ($1, $2)
 		RETURNING id`
 
 	sub.CreatedAt = time.Now()
 	return s.db.QueryRowContext(ctx, query,
 		sub.Email,
-		sub.Name,
 		sub.CreatedAt,
 	).Scan(&sub.ID)
 }
