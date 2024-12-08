@@ -65,6 +65,7 @@ jobs:
           MYSQL_PASSWORD: goforms
           MYSQL_DATABASE: goforms_test
           MYSQL_HOSTNAME: localhost
+          MYSQL_PORT: 3306
 
       - name: Run tests
         run: task test:coverage
@@ -74,6 +75,7 @@ jobs:
           MYSQL_PASSWORD: goforms
           MYSQL_DATABASE: goforms_test
           MYSQL_HOSTNAME: localhost
+          MYSQL_PORT: 3306
 
   build:
     name: Build
