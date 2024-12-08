@@ -4,6 +4,7 @@ A modern Go web application for form management with MariaDB backend.
 
 ## Features
 
+Current:
 - ✅ Email subscription system with validation
 - ✅ RESTful API using Echo framework
 - ✅ MariaDB database with migrations
@@ -13,11 +14,18 @@ A modern Go web application for form management with MariaDB backend.
 - ✅ Comprehensive test coverage
 - ✅ Docker-based development environment
 
+Coming Soon:
+- 🚧 Form Management API
+- 🚧 Custom Form Fields
+- 🚧 Form Analytics
+- 🚧 Advanced Security Features
+
 ## Development Setup
 
 This project uses VS Code Dev Containers for development. Make sure you have:
 - Docker installed
 - VS Code with Dev Containers extension
+- Git
 
 ### Getting Started
 
@@ -25,6 +33,7 @@ This project uses VS Code Dev Containers for development. Make sure you have:
 2. Open in VS Code
 3. When prompted, click "Reopen in Container"
    - Or use Command Palette: "Dev Containers: Reopen in Container"
+4. Copy `.env.example` to `.env` and adjust values if needed
 
 The container will:
 - Set up Go 1.23 environment
@@ -57,15 +66,26 @@ task migrate:down    # Rollback migrations
 task migrate:create  # Create new migration
 ```
 
-### Database Configuration
+### Environment Variables
 
-Database credentials are configured in `.devcontainer/.env`:
+Key configuration options in `.env`:
 
 ```env
+# Server Configuration
+SERVER_PORT=8090
+SERVER_HOST=localhost
+
+# Database Configuration
+DB_HOST=localhost
+DB_PORT=3306
 DB_USER=goforms
 DB_PASSWORD=goforms
 DB_DATABASE=goforms
-DB_HOST=db
+
+# Security
+CORS_ALLOWED_ORIGINS=http://localhost:3000,https://jonesrussell.github.io
+RATE_LIMIT_ENABLED=true
+RATE_LIMIT_RATE=100
 ```
 
 ### API Endpoints
@@ -77,15 +97,19 @@ POST /api/subscriptions
 - Create new email subscription
 - Rate limited
 - Validates email format
+
+GET /health
+- Health check endpoint
+- Returns service status
 ```
 
 ### Tech Stack
 
 - Go 1.23
-- MariaDB
-- Echo web framework
+- MariaDB 10.11
+- Echo v4 web framework
 - Uber FX for dependency injection
-- Zap for logging
+- Zap for structured logging
 - Testify for testing
 - Task for automation
 
@@ -102,8 +126,10 @@ POST /api/subscriptions
 │   ├── config/       # Configuration management
 │   ├── database/     # Database connection and utilities
 │   ├── handlers/     # HTTP handlers
+│   ├── middleware/   # Custom middleware
 │   └── models/       # Data models and business logic
 ├── migrations/        # Database migrations
+├── test/             # Test helpers and fixtures
 └── Taskfile.yml      # Task automation configuration
 ```
 
@@ -126,6 +152,7 @@ The application includes several observability features:
 - Request ID tracking
 - Health check endpoints
 - Detailed error reporting
+- Performance metrics
 
 ### Middleware Stack
 
