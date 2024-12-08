@@ -33,6 +33,15 @@ func (h *SubscriptionHandler) CreateSubscription(c echo.Context) error {
 	// Use ctx for database operations
 	c.SetRequest(c.Request().WithContext(ctx))
 
+	// Validate origin
+	origin := c.Request().Header.Get(echo.HeaderOrigin)
+	if origin != "https://jonesrussell.github.io/me" {
+		h.logger.Warn("invalid origin",
+			zap.String("origin", origin),
+			zap.String("remote_ip", c.RealIP()))
+		return echo.NewHTTPError(http.StatusForbidden, "invalid origin")
+	}
+
 	var sub models.Subscription
 	if err := c.Bind(&sub); err != nil {
 		if sub.Email == "" {

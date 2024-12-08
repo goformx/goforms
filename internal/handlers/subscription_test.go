@@ -35,6 +35,7 @@ func TestCreateSubscription(t *testing.T) {
 	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions",
 		bytes.NewReader([]byte(`{"email":"test@example.com"}`)))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set(echo.HeaderOrigin, "https://jonesrussell.github.io/me")
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
