@@ -6,9 +6,14 @@ vars:
   DB_USER: '{{.DB_USER | default "goforms_test"}}'
   DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
   DB_NAME: '{{.DB_NAME | default "goforms_test"}}'
-  DB_HOST: '{{.DB_HOST | default "test-db"}}'
+  DB_HOST: '{{.DB_HOST | default "localhost"}}'
   DB_PORT: '{{.DB_PORT | default "3306"}}'
   DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD | default "rootpassword"}}'
+  TEST_DB_USER: '{{.TEST_DB_USER | default "goforms_test"}}'
+  TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD | default "goforms_test"}}'
+  TEST_DB_NAME: '{{.TEST_DB_NAME | default "goforms_test"}}'
+  TEST_DB_HOST: '{{.TEST_DB_HOST | default "localhost"}}'
+  TEST_DB_PORT: '{{.TEST_DB_PORT | default "3306"}}'
 
 tasks:
   default:
@@ -31,16 +36,51 @@ tasks:
     cmds:
       - go run ./cmd/server
 
+  test:setup-db:
+    desc: Create and setup test database
+    cmds:
+      - |
+        mysql -h {{.TEST_DB_HOST}} \
+              -P {{.TEST_DB_PORT}} \
+              -u root \
+              -p{{.DB_ROOT_PASSWORD}} \
+              -e "CREATE DATABASE IF NOT EXISTS {{.TEST_DB_NAME}};"
+      - |
+        mysql -h {{.TEST_DB_HOST}} \
+              -P {{.TEST_DB_PORT}} \
+              -u root \
+              -p{{.DB_ROOT_PASSWORD}} \
+              -e "CREATE USER IF NOT EXISTS '{{.TEST_DB_USER}}'@'%' IDENTIFIED BY '{{.TEST_DB_PASSWORD}}';"
+      - |
+        mysql -h {{.TEST_DB_HOST}} \
+              -P {{.TEST_DB_PORT}} \
+              -u root \
+              -p{{.DB_ROOT_PASSWORD}} \
+              -e "GRANT ALL PRIVILEGES ON {{.TEST_DB_NAME}}.* TO '{{.TEST_DB_USER}}'@'%';"
+      - |
+        mysql -h {{.TEST_DB_HOST}} \
+              -P {{.TEST_DB_PORT}} \
+              -u root \
+              -p{{.DB_ROOT_PASSWORD}} \
+              -e "FLUSH PRIVILEGES;"
+    env:
+      TEST_DB_USER: '{{.TEST_DB_USER}}'
+      TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
+      TEST_DB_NAME: '{{.TEST_DB_NAME}}'
+      TEST_DB_HOST: '{{.TEST_DB_HOST}}'
+      TEST_DB_PORT: '{{.TEST_DB_PORT}}'
+
   test:
     desc: Run all tests
+    deps: [test:setup-db]
     cmds:
       - go test ./internal/... -coverprofile=coverage.out
     env:
-      DB_USER: '{{.DB_USER | default "goforms_test"}}'
-      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
-      DB_NAME: '{{.DB_NAME | default "goforms_test"}}'
-      DB_HOST: '{{.DB_HOST | default "test-db"}}'
-      DB_PORT: '{{.DB_PORT | default "3306"}}'
+      DB_USER: '{{.TEST_DB_USER}}'
+      DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
+      DB_NAME: '{{.TEST_DB_NAME}}'
+      DB_HOST: '{{.TEST_DB_HOST}}'
+      DB_PORT: '{{.TEST_DB_PORT}}'
 
   test:integration:
     desc: Run integration tests with Docker

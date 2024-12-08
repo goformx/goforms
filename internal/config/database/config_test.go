@@ -1,11 +1,13 @@
 package database
 
 import (
+	"os"
 	"testing"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestConfig_Validation(t *testing.T) {
@@ -113,26 +115,33 @@ func TestConfig_Validation(t *testing.T) {
 }
 
 func TestConfig_DefaultValues(t *testing.T) {
-	expectedUser := "testuser"
-	expectedPass := "testpass"
-	expectedDB := "testdb"
+	// Clear any existing env vars first
+	os.Clearenv()
 
-	// Use NewConfig to get defaults
+	// Set required environment variables with correct prefix
+	os.Setenv("DB_USER", "testuser")
+	os.Setenv("DB_PASSWORD", "testpass")
+	os.Setenv("DB_NAME", "testdb")
+	os.Setenv("DB_HOST", "localhost")
+	os.Setenv("DB_PORT", "3306")
+	os.Setenv("DB_MAX_OPEN_CONNS", "25")
+	os.Setenv("DB_MAX_IDLE_CONNS", "5")
+	os.Setenv("DB_CONN_MAX_LIFETIME", "5m")
+
+	// Clean up after test
+	defer func() {
+		os.Clearenv()
+	}()
+
+	// Use NewConfig to get config with environment variables
 	config, err := NewConfig()
-	assert.NoError(t, err)
-	assert.NotNil(t, config)
+	require.NoError(t, err, "Failed to create config")
+	require.NotNil(t, config, "Config should not be nil")
 
-	// Override with test values
-	config.User = expectedUser
-	config.Password = expectedPass
-	config.Name = expectedDB
-
-	// Test all fields, including explicitly set ones
-	assert.Equal(t, expectedUser, config.User)
-	assert.Equal(t, expectedPass, config.Password)
-	assert.Equal(t, expectedDB, config.Name)
-
-	// Test default values
+	// Test all fields
+	assert.Equal(t, "testuser", config.User)
+	assert.Equal(t, "testpass", config.Password)
+	assert.Equal(t, "testdb", config.Name)
 	assert.Equal(t, "localhost", config.Host)
 	assert.Equal(t, 3306, config.Port)
 	assert.Equal(t, 25, config.MaxOpenConns)

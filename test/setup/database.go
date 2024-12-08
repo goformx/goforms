@@ -37,7 +37,7 @@ func NewTestDB() (*TestDB, error) {
 	}
 	dbHost := os.Getenv("DB_HOST")
 	if dbHost == "" {
-		dbHost = "test-db" // Default to Docker service name
+		dbHost = "localhost" // Default to Docker service name
 	}
 	dbPort := os.Getenv("DB_PORT")
 	if dbPort == "" {
@@ -102,20 +102,26 @@ func (tdb *TestDB) RunMigrations() error {
 
 // ClearData removes all data from tables while preserving structure
 func (tdb *TestDB) ClearData() error {
-	_, err := tdb.DB.Exec("DELETE FROM subscriptions")
-	if err != nil {
-		return fmt.Errorf("failed to clear test data: %w", err)
+	// Add all your tables here
+	tables := []string{
+		"subscriptions",
+		// Add other tables as needed
+	}
+
+	for _, table := range tables {
+		_, err := tdb.DB.Exec(fmt.Sprintf("DELETE FROM %s", table))
+		if err != nil {
+			return fmt.Errorf("failed to clear data from %s: %w", table, err)
+		}
 	}
 	return nil
 }
 
-// Cleanup closes the database connection and optionally drops the database
-func (tdb *TestDB) Cleanup(dropDB bool) error {
+// Cleanup closes the database connection without dropping the database
+func (tdb *TestDB) Cleanup() error {
 	if tdb.DB != nil {
-		if dropDB {
-			if _, err := tdb.DB.Exec("DROP DATABASE IF EXISTS goforms_test"); err != nil {
-				return fmt.Errorf("failed to drop test database: %w", err)
-			}
+		if err := tdb.ClearData(); err != nil {
+			return fmt.Errorf("failed to clear test data: %w", err)
 		}
 		return tdb.DB.Close()
 	}

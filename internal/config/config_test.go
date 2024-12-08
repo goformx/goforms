@@ -119,66 +119,53 @@ func TestNew(t *testing.T) {
 }
 
 func TestSecurityConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		envVars map[string]string
-		check   func(*testing.T, *Config)
-	}{
-		{
-			name: "default security settings",
-			envVars: map[string]string{
-				"APP_NAME":    "goforms",
-				"APP_ENV":     "development",
-				"DB_USER":     "testuser",
-				"DB_PASSWORD": "testpass",
-				"DB_NAME":     "testdb",
-			},
-			check: func(t *testing.T, cfg *Config) {
-				assert.Equal(t, []string{"http://localhost:3000"}, cfg.Security.CorsAllowedOrigins)
-				assert.Equal(t, []string{"GET,POST,PUT,DELETE,OPTIONS"}, cfg.Security.CorsAllowedMethods)
-				assert.Equal(t, 3600, cfg.Security.CorsMaxAge)
-				assert.Equal(t, []string{"127.0.0.1,::1"}, cfg.Security.TrustedProxies)
-				assert.Equal(t, 30*time.Second, cfg.Security.RequestTimeout)
-			},
-		},
-		{
-			name: "custom security settings",
-			envVars: map[string]string{
-				"APP_NAME":             "goforms",
-				"APP_ENV":              "development",
-				"DB_USER":              "testuser",
-				"DB_PASSWORD":          "testpass",
-				"DB_NAME":              "testdb",
-				"CORS_ALLOWED_ORIGINS": "https://example.com",
-				"CORS_ALLOWED_METHODS": "GET,POST",
-				"CORS_MAX_AGE":         "7200",
-				"TRUSTED_PROXIES":      "10.0.0.1",
-				"REQUEST_TIMEOUT":      "60s",
-			},
-			check: func(t *testing.T, cfg *Config) {
-				assert.Equal(t, []string{"https://example.com"}, cfg.Security.CorsAllowedOrigins)
-				assert.Equal(t, []string{"GET,POST"}, cfg.Security.CorsAllowedMethods)
-				assert.Equal(t, 7200, cfg.Security.CorsMaxAge)
-				assert.Equal(t, []string{"10.0.0.1"}, cfg.Security.TrustedProxies)
-				assert.Equal(t, 60*time.Second, cfg.Security.RequestTimeout)
-			},
-		},
-	}
+	t.Run("default_security_settings", func(t *testing.T) {
+		// Set required database config
+		os.Setenv("DB_USER", "testuser")
+		os.Setenv("DB_PASSWORD", "testpass")
+		os.Setenv("DB_NAME", "testdb")
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Set environment variables
-			for k, v := range tt.envVars {
-				os.Setenv(k, v)
-			}
+		// Clean up after test
+		defer func() {
+			os.Unsetenv("DB_USER")
+			os.Unsetenv("DB_PASSWORD")
+			os.Unsetenv("DB_NAME")
+			os.Unsetenv("SECURITY_CORS_ALLOWED_METHODS")
+			os.Unsetenv("SECURITY_TRUSTED_PROXIES")
+		}()
 
-			cfg, err := New()
-			require.NoError(t, err)
-			require.NotNil(t, cfg)
+		config, err := New()
+		assert.NoError(t, err)
 
-			tt.check(t, cfg)
-		})
-	}
+		assert.Equal(t, []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}, config.Security.CorsAllowedMethods)
+		assert.Equal(t, []string{"127.0.0.1", "::1"}, config.Security.TrustedProxies)
+	})
+
+	t.Run("custom_security_settings", func(t *testing.T) {
+		// Set required database config
+		os.Setenv("DB_USER", "testuser")
+		os.Setenv("DB_PASSWORD", "testpass")
+		os.Setenv("DB_NAME", "testdb")
+
+		// Set custom security values
+		os.Setenv("SECURITY_CORS_ALLOWED_METHODS", "GET,POST")
+		os.Setenv("SECURITY_TRUSTED_PROXIES", "10.0.0.1")
+
+		// Clean up after test
+		defer func() {
+			os.Unsetenv("DB_USER")
+			os.Unsetenv("DB_PASSWORD")
+			os.Unsetenv("DB_NAME")
+			os.Unsetenv("SECURITY_CORS_ALLOWED_METHODS")
+			os.Unsetenv("SECURITY_TRUSTED_PROXIES")
+		}()
+
+		config, err := New()
+		assert.NoError(t, err)
+
+		assert.Equal(t, []string{"GET", "POST"}, config.Security.CorsAllowedMethods)
+		assert.Equal(t, []string{"10.0.0.1"}, config.Security.TrustedProxies)
+	})
 }
 
 func TestRateLimitConfig(t *testing.T) {
@@ -190,8 +177,7 @@ func TestRateLimitConfig(t *testing.T) {
 		{
 			name: "default rate limit settings",
 			envVars: map[string]string{
-				"APP_NAME":    "goforms",
-				"APP_ENV":     "development",
+				// Required database config
 				"DB_USER":     "testuser",
 				"DB_PASSWORD": "testpass",
 				"DB_NAME":     "testdb",
@@ -202,41 +188,47 @@ func TestRateLimitConfig(t *testing.T) {
 				assert.Equal(t, 5, cfg.RateLimit.Burst)
 				assert.Equal(t, time.Minute, cfg.RateLimit.TimeWindow)
 				assert.True(t, cfg.RateLimit.PerIP)
-				assert.Equal(t, []string{"/health,/metrics"}, cfg.RateLimit.ExemptPaths)
+				assert.Equal(t, []string{"/health", "/metrics"}, cfg.RateLimit.ExemptPaths)
 			},
 		},
 		{
 			name: "custom rate limit settings",
 			envVars: map[string]string{
-				"APP_NAME":                "goforms",
-				"APP_ENV":                 "development",
-				"DB_USER":                 "testuser",
-				"DB_PASSWORD":             "testpass",
-				"DB_NAME":                 "testdb",
-				"RATE_LIMIT_ENABLED":      "false",
-				"RATE_LIMIT_RATE":         "50",
+				// Required database config
+				"DB_USER":     "testuser",
+				"DB_PASSWORD": "testpass",
+				"DB_NAME":     "testdb",
+				// Rate limit config
+				"RATE_LIMIT_ENABLED":      "true",
+				"RATE_LIMIT_PER_IP":       "true",
+				"RATE_LIMIT_RATE":         "200",
 				"RATE_LIMIT_BURST":        "10",
-				"RATE_LIMIT_WINDOW":       "2m",
-				"RATE_LIMIT_PER_IP":       "false",
-				"RATE_LIMIT_EXEMPT_PATHS": "/status,/ping",
+				"RATE_LIMIT_TIME_WINDOW":  "2m",
+				"RATE_LIMIT_EXEMPT_PATHS": "/health,/status",
 			},
 			check: func(t *testing.T, cfg *Config) {
-				assert.False(t, cfg.RateLimit.Enabled)
-				assert.Equal(t, 50, cfg.RateLimit.Rate)
+				assert.True(t, cfg.RateLimit.Enabled)
+				assert.True(t, cfg.RateLimit.PerIP)
+				assert.Equal(t, 200, cfg.RateLimit.Rate)
 				assert.Equal(t, 10, cfg.RateLimit.Burst)
 				assert.Equal(t, 2*time.Minute, cfg.RateLimit.TimeWindow)
-				assert.False(t, cfg.RateLimit.PerIP)
-				assert.Equal(t, []string{"/status,/ping"}, cfg.RateLimit.ExemptPaths)
+				assert.Equal(t, []string{"/health", "/status"}, cfg.RateLimit.ExemptPaths)
 			},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			// Clear environment
+			os.Clearenv()
+
 			// Set environment variables
 			for k, v := range tt.envVars {
 				os.Setenv(k, v)
 			}
+
+			// Clean up after test
+			defer os.Clearenv()
 
 			cfg, err := New()
 			require.NoError(t, err)

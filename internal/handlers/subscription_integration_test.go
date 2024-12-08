@@ -46,9 +46,8 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 
 func (s *SubscriptionTestSuite) TearDownSuite() {
 	if s.testDB != nil {
-		err := s.testDB.Cleanup(true)
-		if err != nil {
-			s.T().Logf("Failed to cleanup test database: %v", err)
+		if err := s.testDB.Cleanup(); err != nil {
+			s.T().Logf("Failed to cleanup test data: %v", err)
 		}
 	}
 }
