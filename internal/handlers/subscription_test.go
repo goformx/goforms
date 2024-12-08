@@ -28,7 +28,7 @@ func (m *MockDB) QueryRowxContext(ctx context.Context, query string, args ...int
 	m.Called(args...)
 
 	// Create a new sqlx.DB connection just for creating a row
-	db, err := sqlx.Connect("postgres", "postgres://postgres:postgres@localhost:5432/postgres?sslmode=disable")
+	db, err := sqlx.Connect("mysql", "goforms:goforms@tcp(localhost:3306)/goforms?parseTime=true")
 	if err != nil {
 		panic(err)
 	}
