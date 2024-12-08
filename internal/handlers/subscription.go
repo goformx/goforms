@@ -26,20 +26,25 @@ func NewSubscriptionHandler(logger *zap.Logger, store models.SubscriptionStore) 
 func (h *SubscriptionHandler) CreateSubscription(c echo.Context) error {
 	var sub models.Subscription
 	if err := c.Bind(&sub); err != nil {
-		h.logger.Error("failed to bind subscription", zap.Error(err))
+		if sub.Email == "" {
+			return echo.NewHTTPError(http.StatusBadRequest, "email is required")
+		}
 		return echo.NewHTTPError(http.StatusBadRequest, "invalid request payload")
 	}
 
 	if err := sub.Validate(); err != nil {
-		h.logger.Error("subscription validation failed", zap.Error(err))
+		if he, ok := err.(*echo.HTTPError); ok {
+			return he
+		}
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	if err := h.store.CreateSubscription(c.Request().Context(), &sub); err != nil {
-		h.logger.Error("failed to create subscription", zap.Error(err))
 		if he, ok := err.(*echo.HTTPError); ok {
+			h.logger.Error("failed to create subscription", zap.Error(err))
 			return he
 		}
+		h.logger.Error("failed to create subscription", zap.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create subscription")
 	}
 
