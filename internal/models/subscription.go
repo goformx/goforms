@@ -58,6 +58,17 @@ func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscri
 	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
 	defer cancel()
 
+	// Check for existing subscription
+	var exists bool
+	checkQuery := "SELECT EXISTS(SELECT 1 FROM subscriptions WHERE email = ?)"
+	err := s.db.QueryRowxContext(ctx, checkQuery, sub.Email).Scan(&exists)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to check subscription")
+	}
+	if exists {
+		return echo.NewHTTPError(http.StatusConflict, "Email already subscribed")
+	}
+
 	query := `
 		INSERT INTO subscriptions (email, created_at)
 		VALUES (?, ?)
@@ -69,7 +80,7 @@ func (s *subscriptionStore) CreateSubscription(ctx context.Context, sub *Subscri
 		sub.CreatedAt,
 	)
 
-	err := row.Scan(&sub.ID)
+	err = row.Scan(&sub.ID)
 	if err != nil {
 		if err == context.DeadlineExceeded {
 			return echo.NewHTTPError(http.StatusGatewayTimeout, "Database operation timed out")

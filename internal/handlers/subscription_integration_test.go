@@ -1,10 +1,12 @@
 package handlers
 
 import (
+	"bytes"
+	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"os"
-	"strings"
 	"testing"
 
 	"github.com/jmoiron/sqlx"
@@ -33,13 +35,39 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 	// Set test environment variables
 	os.Setenv("MYSQL_HOSTNAME", "localhost")
 	os.Setenv("MYSQL_PORT", "3306")
-	os.Setenv("MYSQL_USER", "goforms")
-	os.Setenv("MYSQL_PASSWORD", "goforms")
-	os.Setenv("MYSQL_DATABASE", "goforms")
+	os.Setenv("MYSQL_USER", "root")
+	os.Setenv("MYSQL_PASSWORD", "rootpassword")
+	// Don't set MYSQL_DATABASE yet as we need to create it first
 	os.Setenv("MYSQL_MAX_OPEN_CONNS", "25")
 	os.Setenv("MYSQL_MAX_IDLE_CONNS", "5")
 	os.Setenv("MYSQL_CONN_MAX_LIFETIME", "5m")
 
+	// Connect to MySQL without specifying a database
+	db, err := sqlx.Connect("mysql",
+		fmt.Sprintf("%s:%s@tcp(%s:%s)/",
+			os.Getenv("MYSQL_USER"),
+			os.Getenv("MYSQL_PASSWORD"),
+			os.Getenv("MYSQL_HOSTNAME"),
+			os.Getenv("MYSQL_PORT"),
+		))
+	require.NoError(s.T(), err)
+
+	// Create test database
+	_, err = db.Exec("CREATE DATABASE IF NOT EXISTS goforms_test")
+	require.NoError(s.T(), err)
+
+	// Grant privileges
+	_, err = db.Exec("GRANT ALL PRIVILEGES ON goforms_test.* TO 'goforms'@'%'")
+	require.NoError(s.T(), err)
+
+	_, err = db.Exec("FLUSH PRIVILEGES")
+	require.NoError(s.T(), err)
+
+	// Close initial connection
+	db.Close()
+
+	// Now set the database name and create the real connection
+	os.Setenv("MYSQL_DATABASE", "goforms_test")
 	cfg, err := config.New()
 	require.NoError(s.T(), err)
 
@@ -57,24 +85,10 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 
 func (s *SubscriptionTestSuite) TearDownSuite() {
 	if s.db != nil {
-		driver, err := mysql.WithInstance(s.db.DB, &mysql.Config{})
+		// Drop test database
+		_, err := s.db.Exec("DROP DATABASE IF EXISTS goforms_test")
 		if err != nil {
-			s.T().Logf("Failed to create driver instance: %v", err)
-			return
-		}
-
-		m, err := migrate.NewWithDatabaseInstance(
-			"file://../../migrations",
-			"mysql",
-			driver,
-		)
-		if err != nil {
-			s.T().Logf("Failed to create migrate instance: %v", err)
-			return
-		}
-
-		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
-			s.T().Logf("Failed to run down migrations: %v", err)
+			s.T().Logf("Failed to drop test database: %v", err)
 		}
 
 		s.db.Close()
@@ -131,45 +145,87 @@ func (s *SubscriptionTestSuite) setupTestDatabase() error {
 }
 
 func (s *SubscriptionTestSuite) TestSubscriptionIntegration() {
-	// Skip in CI environment
-	if os.Getenv("CI") != "" {
-		s.T().Skip("Skipping integration test in CI environment")
+	// Test subscription creation
+	requestBody := map[string]string{
+		"email": "integration@test.com",
 	}
 
-	// Test subscription creation
-	requestBody := strings.NewReader(`{
-		"email": "integration@test.com",
-		"name": "Test User"
-	}`)
+	body, err := json.Marshal(requestBody)
+	require.NoError(s.T(), err)
 
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions", requestBody)
+	// Create initial request
+	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions", bytes.NewBuffer(body))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	err := s.handler.CreateSubscription(c)
+	s.logger.Debug("request details",
+		zap.String("method", req.Method),
+		zap.String("path", req.URL.Path),
+		zap.String("body", string(body)),
+		zap.Any("headers", req.Header))
+
+	err = s.handler.CreateSubscription(c)
+
+	s.logger.Debug("response details",
+		zap.Error(err),
+		zap.Int("status_code", rec.Code),
+		zap.String("response_body", rec.Body.String()))
+
 	require.NoError(s.T(), err)
 	assert.Equal(s.T(), http.StatusCreated, rec.Code)
 
-	// Verify subscription exists
+	var response map[string]interface{}
+	err = json.NewDecoder(rec.Body).Decode(&response)
+	require.NoError(s.T(), err)
+	assert.Equal(s.T(), requestBody["email"], response["email"])
+
 	var exists bool
-	err = s.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM subscriptions WHERE email = ?)", "integration@test.com")
+	err = s.db.Get(&exists, "SELECT EXISTS(SELECT 1 FROM subscriptions WHERE email = ?)", requestBody["email"])
 	require.NoError(s.T(), err)
 	assert.True(s.T(), exists)
 
-	// Test duplicate subscription
-	requestBody = strings.NewReader(`{
-		"email": "integration@test.com",
-		"name": "Test User"
-	}`)
-	req = httptest.NewRequest(http.MethodPost, "/api/subscriptions", requestBody)
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec = httptest.NewRecorder()
-	c = e.NewContext(req, rec)
+	// Test duplicate subscription with a fresh request
+	duplicateReq := httptest.NewRequest(http.MethodPost, "/api/subscriptions", bytes.NewBuffer(body))
+	duplicateReq.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	duplicateRec := httptest.NewRecorder()
+	duplicateC := e.NewContext(duplicateReq, duplicateRec)
 
-	err = s.handler.CreateSubscription(c)
-	assert.Error(s.T(), err)
+	s.logger.Debug("duplicate request details",
+		zap.String("method", duplicateReq.Method),
+		zap.String("path", duplicateReq.URL.Path),
+		zap.String("body", string(body)),
+		zap.Any("headers", duplicateReq.Header))
+
+	err = s.handler.CreateSubscription(duplicateC)
+
+	// Handle the error using Echo's default error handler
+	if err != nil {
+		he, ok := err.(*echo.HTTPError)
+		assert.True(s.T(), ok)
+		assert.Equal(s.T(), http.StatusConflict, he.Code)
+		assert.Equal(s.T(), "Email already subscribed", he.Message)
+
+		// Set the status code in the recorder
+		duplicateRec.Code = he.Code
+		// Write the error response
+		_ = json.NewEncoder(duplicateRec.Body).Encode(map[string]string{
+			"error": he.Message.(string),
+		})
+	}
+
+	s.logger.Debug("duplicate response details",
+		zap.Error(err),
+		zap.Int("status_code", duplicateRec.Code),
+		zap.String("response_body", duplicateRec.Body.String()))
+
+	// Verify the response matches what we expect
+	assert.Equal(s.T(), http.StatusConflict, duplicateRec.Code)
+	var errResponse map[string]string
+	err = json.NewDecoder(duplicateRec.Body).Decode(&errResponse)
+	require.NoError(s.T(), err)
+	assert.Equal(s.T(), "Email already subscribed", errResponse["error"])
 }
 
 func TestSubscriptionSuite(t *testing.T) {
