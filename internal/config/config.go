@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
 )
 
 type Config struct {
@@ -25,7 +26,6 @@ type DatabaseConfig struct {
 	User     string `validate:"required"`
 	Password string `validate:"required"`
 	DBName   string `validate:"required"`
-	SSLMode  string `validate:"required,oneof=disable enable verify-ca verify-full"`
 }
 
 type RateLimitConfig struct {
@@ -33,23 +33,29 @@ type RateLimitConfig struct {
 	Burst int `validate:"required,min=1"`
 }
 
+// Load initializes configuration from environment variables
 func Load() (*Config, error) {
+	// Load .env file if it exists
+	if err := godotenv.Load(); err != nil {
+		// Only log warning as .env is optional in production
+		fmt.Printf("Warning: .env file not found: %v\n", err)
+	}
+
 	cfg := &Config{
 		Server: ServerConfig{
-			Host: getEnvString("SERVER_HOST", "localhost"),
-			Port: getEnvInt("SERVER_PORT", 8080),
+			Host: getEnvStringOrPanic("SERVER_HOST", "localhost"),
+			Port: getEnvIntOrPanic("SERVER_PORT", 8090),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnvString("MYSQL_HOSTNAME", "db"),
-			Port:     getEnvInt("MYSQL_PORT", 3306),
-			User:     getEnvString("MYSQL_USER", "goforms"),
-			Password: getEnvString("MYSQL_PASSWORD", "goforms"),
-			DBName:   getEnvString("MYSQL_DATABASE", "goforms"),
-			SSLMode:  getEnvString("DB_SSL_MODE", "disable"),
+			Host:     getEnvStringOrPanic("MYSQL_HOSTNAME", "db"),
+			Port:     getEnvIntOrPanic("MYSQL_PORT", 3306),
+			User:     getEnvStringOrPanic("MYSQL_USER", "goforms"),
+			Password: getEnvStringOrPanic("MYSQL_PASSWORD", "goforms"),
+			DBName:   getEnvStringOrPanic("MYSQL_DATABASE", "goforms"),
 		},
 		RateLimit: RateLimitConfig{
-			Rate:  getEnvInt("RATE_LIMIT", 100),
-			Burst: getEnvInt("RATE_BURST", 5),
+			Rate:  getEnvIntOrPanic("RATE_LIMIT", 100),
+			Burst: getEnvIntOrPanic("RATE_BURST", 5),
 		},
 	}
 
@@ -66,36 +72,32 @@ func (d DatabaseConfig) DSN() string {
 		d.User, d.Password, d.Host, d.Port, d.DBName)
 }
 
-func getEnvString(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists {
+// getEnvStringOrPanic gets an environment variable or returns the default value
+// It panics if the environment variable is empty and no default is provided
+func getEnvStringOrPanic(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
 	}
+	if defaultValue == "" {
+		panic(fmt.Sprintf("required environment variable %s is not set", key))
+	}
 	return defaultValue
 }
 
-func getEnvInt(key string, defaultValue int) int {
+// getEnvIntOrPanic gets an environment variable as integer or returns the default value
+// It panics if the environment variable is not a valid integer
+func getEnvIntOrPanic(key string, defaultValue int) int {
 	if value, exists := os.LookupEnv(key); exists {
-		if intValue, err := strconv.Atoi(value); err == nil {
-			return intValue
+		intValue, err := strconv.Atoi(value)
+		if err != nil {
+			panic(fmt.Sprintf("environment variable %s must be a valid integer: %v", key, err))
 		}
+		return intValue
 	}
 	return defaultValue
 }
 
-func NewConfig() *Config {
-	cfg := &Config{}
-
-	// Set default values
-	cfg.Server.Host = os.Getenv("SERVER_HOST")
-	if cfg.Server.Host == "" {
-		cfg.Server.Host = "localhost"
-	}
-
-	// Default port 8080
-	cfg.Server.Port = 8080
-
-	// Default rate limit of 100 requests per second
-	cfg.RateLimit.Rate = 100
-
-	return cfg
+// Provide a constructor for fx
+func NewConfig() (*Config, error) {
+	return Load()
 }
