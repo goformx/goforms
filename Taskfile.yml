@@ -1,0 +1,69 @@
+version: '3'
+
+vars:
+  DB_URL: postgres://{{.POSTGRES_USER}}:{{.POSTGRES_PASSWORD}}@localhost:5432/{{.POSTGRES_DB}}?sslmode=disable
+
+tasks:
+  default:
+    cmds:
+      - task: test
+
+  install:
+    desc: Install project dependencies
+    cmds:
+      - go mod download
+      - go mod tidy
+
+  build:
+    desc: Build the application
+    cmds:
+      - go build -o bin/server ./cmd/server
+
+  run:
+    desc: Run the application
+    deps: [build]
+    cmds:
+      - ./bin/server
+
+  test:
+    desc: Run all tests
+    cmds:
+      - go test -v ./internal/... -coverprofile=coverage.out
+
+  test:integration:
+    desc: Run integration tests
+    cmds:
+      - go test -v -tags=integration ./internal/...
+
+  test:coverage:
+    desc: Show test coverage report
+    deps: [test]
+    cmds:
+      - go tool cover -html=coverage.out
+
+  migrate:up:
+    desc: Run database migrations
+    cmds:
+      - migrate -database "{{.DB_URL}}" -path migrations up
+
+  migrate:down:
+    desc: Rollback database migrations
+    cmds:
+      - migrate -database "{{.DB_URL}}" -path migrations down
+
+  migrate:create:
+    desc: Create a new migration
+    cmds:
+      - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
+
+  lint:
+    desc: Run linters
+    cmds:
+      - go vet ./...
+      - golangci-lint run
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf bin/
+      - rm -f coverage.out 
