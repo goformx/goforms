@@ -15,7 +15,7 @@ import (
 func NewModule() fx.Option {
 	return fx.Options(
 		fx.Provide(
-			config.Load,
+			config.New,
 			NewLogger,
 			database.New,
 			NewEcho,

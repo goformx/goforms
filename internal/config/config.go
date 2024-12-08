@@ -4,15 +4,26 @@ import (
 	"fmt"
 	"os"
 	"strconv"
+	"strings"
+	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/joho/godotenv"
 )
 
 type Config struct {
+	App       AppConfig       `validate:"required"`
 	Server    ServerConfig    `validate:"required"`
 	Database  DatabaseConfig  `validate:"required"`
+	Security  SecurityConfig  `validate:"required"`
 	RateLimit RateLimitConfig `validate:"required"`
+	Logging   LoggingConfig   `validate:"required"`
+	Timeouts  TimeoutConfig   `validate:"required"`
+}
+
+type AppConfig struct {
+	Name string `validate:"required"`
+	Env  string `validate:"required,oneof=development staging production"`
 }
 
 type ServerConfig struct {
@@ -21,11 +32,21 @@ type ServerConfig struct {
 }
 
 type DatabaseConfig struct {
-	Host     string `validate:"required"`
-	Port     int    `validate:"required,min=1,max=65535"`
-	User     string `validate:"required"`
-	Password string `validate:"required"`
-	DBName   string `validate:"required"`
+	Host            string        `validate:"required"`
+	Port            int           `validate:"required,min=1,max=65535"`
+	User            string        `validate:"required"`
+	Password        string        `validate:"required"`
+	DBName          string        `validate:"required"`
+	MaxOpenConns    int           `validate:"required,min=1"`
+	MaxIdleConns    int           `validate:"required,min=1"`
+	ConnMaxLifetime time.Duration `validate:"required"`
+}
+
+type SecurityConfig struct {
+	CorsAllowedOrigins []string `validate:"required"`
+	CorsAllowedMethods []string `validate:"required"`
+	CorsAllowedHeaders []string `validate:"required"`
+	CorsMaxAge         int      `validate:"required,min=0"`
 }
 
 type RateLimitConfig struct {
@@ -33,29 +54,60 @@ type RateLimitConfig struct {
 	Burst int `validate:"required,min=1"`
 }
 
-// Load initializes configuration from environment variables
-func Load() (*Config, error) {
-	// Load .env file if it exists
+type LoggingConfig struct {
+	Level  string `validate:"required,oneof=debug info warn error"`
+	Format string `validate:"required,oneof=json console"`
+}
+
+type TimeoutConfig struct {
+	Read  time.Duration `validate:"required"`
+	Write time.Duration `validate:"required"`
+	Idle  time.Duration `validate:"required"`
+}
+
+// New provides the application configuration for fx
+func New() (*Config, error) {
 	if err := godotenv.Load(); err != nil {
-		// Only log warning as .env is optional in production
 		fmt.Printf("Warning: .env file not found: %v\n", err)
 	}
 
 	cfg := &Config{
+		App: AppConfig{
+			Name: getEnvString("APP_NAME", "goforms"),
+			Env:  getEnvString("APP_ENV", "development"),
+		},
 		Server: ServerConfig{
-			Host: getEnvStringOrPanic("SERVER_HOST", "localhost"),
-			Port: getEnvIntOrPanic("SERVER_PORT", 8090),
+			Host: getEnvString("SERVER_HOST", "localhost"),
+			Port: getEnvInt("SERVER_PORT", 8090),
 		},
 		Database: DatabaseConfig{
-			Host:     getEnvStringOrPanic("MYSQL_HOSTNAME", "db"),
-			Port:     getEnvIntOrPanic("MYSQL_PORT", 3306),
-			User:     getEnvStringOrPanic("MYSQL_USER", "goforms"),
-			Password: getEnvStringOrPanic("MYSQL_PASSWORD", "goforms"),
-			DBName:   getEnvStringOrPanic("MYSQL_DATABASE", "goforms"),
+			Host:            getEnvString("MYSQL_HOSTNAME", "db"),
+			Port:            getEnvInt("MYSQL_PORT", 3306),
+			User:            getEnvString("MYSQL_USER", "goforms"),
+			Password:        getEnvString("MYSQL_PASSWORD", "goforms"),
+			DBName:          getEnvString("MYSQL_DATABASE", "goforms"),
+			MaxOpenConns:    getEnvInt("MYSQL_MAX_OPEN_CONNS", 25),
+			MaxIdleConns:    getEnvInt("MYSQL_MAX_IDLE_CONNS", 5),
+			ConnMaxLifetime: getEnvDuration("MYSQL_CONN_MAX_LIFETIME", 5*time.Minute),
+		},
+		Security: SecurityConfig{
+			CorsAllowedOrigins: getEnvStringSlice("CORS_ALLOWED_ORIGINS", []string{"*"}),
+			CorsAllowedMethods: getEnvStringSlice("CORS_ALLOWED_METHODS", []string{"GET", "POST", "PUT", "DELETE"}),
+			CorsAllowedHeaders: getEnvStringSlice("CORS_ALLOWED_HEADERS", []string{"Origin", "Content-Type", "Accept", "Authorization"}),
+			CorsMaxAge:         getEnvInt("CORS_MAX_AGE", 300),
 		},
 		RateLimit: RateLimitConfig{
-			Rate:  getEnvIntOrPanic("RATE_LIMIT", 100),
-			Burst: getEnvIntOrPanic("RATE_BURST", 5),
+			Rate:  getEnvInt("RATE_LIMIT", 100),
+			Burst: getEnvInt("RATE_BURST", 5),
+		},
+		Logging: LoggingConfig{
+			Level:  getEnvString("LOG_LEVEL", "debug"),
+			Format: getEnvString("LOG_FORMAT", "json"),
+		},
+		Timeouts: TimeoutConfig{
+			Read:  getEnvDuration("READ_TIMEOUT", 5*time.Second),
+			Write: getEnvDuration("WRITE_TIMEOUT", 10*time.Second),
+			Idle:  getEnvDuration("IDLE_TIMEOUT", 120*time.Second),
 		},
 	}
 
@@ -72,32 +124,35 @@ func (d DatabaseConfig) DSN() string {
 		d.User, d.Password, d.Host, d.Port, d.DBName)
 }
 
-// getEnvStringOrPanic gets an environment variable or returns the default value
-// It panics if the environment variable is empty and no default is provided
-func getEnvStringOrPanic(key, defaultValue string) string {
+// Helper functions for environment variables
+func getEnvString(key, defaultValue string) string {
 	if value, exists := os.LookupEnv(key); exists && value != "" {
 		return value
 	}
-	if defaultValue == "" {
-		panic(fmt.Sprintf("required environment variable %s is not set", key))
-	}
 	return defaultValue
 }
 
-// getEnvIntOrPanic gets an environment variable as integer or returns the default value
-// It panics if the environment variable is not a valid integer
-func getEnvIntOrPanic(key string, defaultValue int) int {
+func getEnvInt(key string, defaultValue int) int {
 	if value, exists := os.LookupEnv(key); exists {
-		intValue, err := strconv.Atoi(value)
-		if err != nil {
-			panic(fmt.Sprintf("environment variable %s must be a valid integer: %v", key, err))
+		if intValue, err := strconv.Atoi(value); err == nil {
+			return intValue
 		}
-		return intValue
 	}
 	return defaultValue
 }
 
-// Provide a constructor for fx
-func NewConfig() (*Config, error) {
-	return Load()
+func getEnvDuration(key string, defaultValue time.Duration) time.Duration {
+	if value, exists := os.LookupEnv(key); exists {
+		if duration, err := time.ParseDuration(value); err == nil {
+			return duration
+		}
+	}
+	return defaultValue
+}
+
+func getEnvStringSlice(key string, defaultValue []string) []string {
+	if value, exists := os.LookupEnv(key); exists && value != "" {
+		return strings.Split(value, ",")
+	}
+	return defaultValue
 }
