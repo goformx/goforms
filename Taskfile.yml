@@ -6,7 +6,7 @@ vars:
   DB_USER: '{{.DB_USER | default "goforms_test"}}'
   DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
   DB_DATABASE: '{{.DB_DATABASE | default "goforms_test"}}'
-  DB_HOSTNAME: '{{.DB_HOSTNAME | default "host.docker.internal"}}'
+  DB_HOSTNAME: '{{.DB_HOSTNAME | default "test-db"}}'
   DB_PORT: '{{.DB_PORT | default "3306"}}'
   DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD | default "rootpassword"}}'
 

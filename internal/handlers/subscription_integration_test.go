@@ -28,7 +28,7 @@ func (s *SubscriptionTestSuite) SetupSuite() {
 	os.Setenv("DB_USER", "goforms_test")
 	os.Setenv("DB_PASSWORD", "goforms_test")
 	os.Setenv("DB_DATABASE", "goforms_test")
-	os.Setenv("DB_HOSTNAME", "test-db")
+	// os.Setenv("DB_HOSTNAME", "localhost")
 	os.Setenv("DB_PORT", "3306")
 	os.Setenv("ALLOWED_ORIGINS", "http://localhost:3000,http://host.docker.internal:3000")
 
