@@ -36,7 +36,7 @@
 			]
 		}
 	},
-	"forwardPorts": [5432],
+	"forwardPorts": [5432, 8080],
 	"postCreateCommand": "while ! pg_isready -h localhost -p 5432 -U ${POSTGRES_USER}; do sleep 1; done"
 
 	// Features to add to the dev container. More info: https://containers.dev/features.

@@ -34,6 +34,10 @@ func main() {
 
 	// Create and start application
 	application := app.New(cfg, logger, db)
+
+	// Register handlers
+	application.RegisterHandlers()
+
 	address := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
 
 	logger.Info("starting server", zap.String("address", address))
