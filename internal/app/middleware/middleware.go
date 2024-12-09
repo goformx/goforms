@@ -35,21 +35,16 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Structured logging
 	e.Use(m.structuredLogger())
 
-	// Security headers
-	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "SAMEORIGIN",
-		HSTSMaxAge:            31536000,
-		HSTSExcludeSubdomains: false,
-	}))
+	// Log CORS configuration
+	m.logConfig()
 
 	// CORS
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
-		AllowOrigins: m.config.CorsAllowedOrigins,
-		AllowMethods: m.config.CorsAllowedMethods,
-		AllowHeaders: m.config.CorsAllowedHeaders,
-		MaxAge:       m.config.CorsMaxAge,
+		AllowOrigins:     m.config.CorsAllowedOrigins,
+		AllowMethods:     m.config.CorsAllowedMethods,
+		AllowHeaders:     m.config.CorsAllowedHeaders,
+		MaxAge:           m.config.CorsMaxAge,
+		AllowCredentials: m.config.CorsAllowCredentials,
 	}))
 
 	// Rate limiting
@@ -65,4 +60,15 @@ func (m *Manager) structuredLogger() echo.MiddlewareFunc {
 			`,"bytes_in":${bytes_in},"bytes_out":${bytes_out}}` + "\n",
 		Output: os.Stdout,
 	})
+}
+
+// logConfig logs the CORS configuration for debugging
+func (m *Manager) logConfig() {
+	m.logger.Info("CORS configuration",
+		zap.Strings("allowed_origins", m.config.CorsAllowedOrigins),
+		zap.Strings("allowed_methods", m.config.CorsAllowedMethods),
+		zap.Strings("allowed_headers", m.config.CorsAllowedHeaders),
+		zap.Int("max_age", m.config.CorsMaxAge),
+		zap.Bool("allow_credentials", m.config.CorsAllowCredentials),
+	)
 }

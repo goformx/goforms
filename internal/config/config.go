@@ -28,12 +28,13 @@ type AppConfig struct {
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	CorsAllowedOrigins []string      `validate:"required" envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
-	CorsAllowedMethods []string      `validate:"required" envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	CorsAllowedHeaders []string      `validate:"required" envconfig:"CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept,Authorization,X-Requested-With"`
-	CorsMaxAge         int           `validate:"required" envconfig:"CORS_MAX_AGE" default:"3600"`
-	TrustedProxies     []string      `validate:"required" envconfig:"TRUSTED_PROXIES" default:"127.0.0.1,::1"`
-	RequestTimeout     time.Duration `validate:"required" envconfig:"REQUEST_TIMEOUT" default:"30s"`
+	CorsAllowedOrigins   []string      `validate:"required" envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
+	CorsAllowedMethods   []string      `validate:"required" envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
+	CorsAllowedHeaders   []string      `validate:"required" envconfig:"CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept,Authorization,X-Requested-With"`
+	CorsMaxAge           int           `validate:"required" envconfig:"CORS_MAX_AGE" default:"3600"`
+	CorsAllowCredentials bool          `validate:"required" envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
+	TrustedProxies       []string      `validate:"required" envconfig:"TRUSTED_PROXIES" default:"127.0.0.1,::1"`
+	RequestTimeout       time.Duration `validate:"required" envconfig:"REQUEST_TIMEOUT" default:"30s"`
 }
 
 // RateLimitConfig contains rate limiting settings
