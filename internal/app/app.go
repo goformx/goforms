@@ -54,7 +54,7 @@ func NewApp(
 }
 
 func (a *App) setupMiddleware() {
-	// Debug logging first to catch all requests
+	// Debug logging first for request visibility
 	a.echo.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			a.logger.Debug("incoming request",
@@ -67,13 +67,7 @@ func (a *App) setupMiddleware() {
 		}
 	})
 
-	// Recovery middleware
-	a.echo.Use(middleware.Recover())
-
-	// Request ID for tracing
-	a.echo.Use(middleware.RequestID())
-
-	// CORS middleware
+	// CORS middleware before other middleware to properly handle preflight and blocked origins
 	a.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
 		AllowOrigins:     a.config.Security.CorsAllowedOrigins,
 		AllowMethods:     a.config.Security.CorsAllowedMethods,
@@ -83,13 +77,11 @@ func (a *App) setupMiddleware() {
 		ExposeHeaders:    []string{"X-Request-Id"},
 	}))
 
-	// Log CORS config
-	a.logger.Info("CORS configuration",
-		zap.Strings("allowed_origins", a.config.Security.CorsAllowedOrigins),
-		zap.Strings("allowed_methods", a.config.Security.CorsAllowedMethods),
-		zap.Strings("allowed_headers", a.config.Security.CorsAllowedHeaders),
-		zap.Int("max_age", a.config.Security.CorsMaxAge),
-	)
+	// Recovery middleware
+	a.echo.Use(middleware.Recover())
+
+	// Request ID for tracing
+	a.echo.Use(middleware.RequestID())
 
 	// Security headers
 	a.echo.Use(middleware.SecureWithConfig(middleware.SecureConfig{
@@ -105,6 +97,14 @@ func (a *App) setupMiddleware() {
 		rate.Limit(a.config.RateLimit.Rate))))
 
 	a.echo.HTTPErrorHandler = a.customErrorHandler()
+
+	// Log CORS config
+	a.logger.Info("CORS configuration",
+		zap.Strings("allowed_origins", a.config.Security.CorsAllowedOrigins),
+		zap.Strings("allowed_methods", a.config.Security.CorsAllowedMethods),
+		zap.Strings("allowed_headers", a.config.Security.CorsAllowedHeaders),
+		zap.Int("max_age", a.config.Security.CorsMaxAge),
+	)
 }
 
 func (a *App) registerHandlers() {

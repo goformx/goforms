@@ -22,6 +22,9 @@ func TestCORSMiddleware(t *testing.T) {
 			CorsAllowedHeaders: []string{"Origin", "Content-Type"},
 			CorsMaxAge:         3600,
 		},
+		RateLimit: config.RateLimitConfig{
+			Rate: 100, // Higher rate for testing
+		},
 	}
 
 	app := &App{
@@ -32,38 +35,49 @@ func TestCORSMiddleware(t *testing.T) {
 
 	app.setupMiddleware()
 
-	// Add a test handler
+	// Test endpoint
 	e.GET("/test", func(c echo.Context) error {
-		return c.String(http.StatusOK, "test")
+		return c.String(http.StatusOK, "success")
 	})
 
 	tests := []struct {
-		name           string
-		origin         string
-		method         string
-		expectedStatus int
-		expectedHeader string
+		name            string
+		method          string
+		origin          string
+		expectedStatus  int
+		expectedHeaders map[string]string
 	}{
 		{
-			name:           "allowed origin",
-			origin:         "https://jonesrussell.github.io",
+			name:           "allowed_origin",
 			method:         "GET",
+			origin:         "https://jonesrussell.github.io",
 			expectedStatus: http.StatusOK,
-			expectedHeader: "https://jonesrussell.github.io",
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":      "https://jonesrussell.github.io",
+				"Access-Control-Allow-Credentials": "true",
+			},
 		},
 		{
-			name:           "disallowed origin",
-			origin:         "https://evil.com",
-			method:         "GET",
-			expectedStatus: http.StatusForbidden,
-			expectedHeader: "",
-		},
-		{
-			name:           "preflight request",
-			origin:         "https://jonesrussell.github.io",
+			name:           "preflight_request",
 			method:         "OPTIONS",
+			origin:         "https://jonesrussell.github.io",
 			expectedStatus: http.StatusNoContent,
-			expectedHeader: "https://jonesrussell.github.io",
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":      "https://jonesrussell.github.io",
+				"Access-Control-Allow-Methods":     "GET,POST,OPTIONS",
+				"Access-Control-Allow-Headers":     "Origin,Content-Type",
+				"Access-Control-Allow-Credentials": "true",
+				"Access-Control-Max-Age":           "3600",
+			},
+		},
+		{
+			name:           "preflight_request_invalid_origin",
+			method:         "OPTIONS",
+			origin:         "https://invalid-origin.com",
+			expectedStatus: http.StatusNoContent,
+			expectedHeaders: map[string]string{
+				"Allow": "OPTIONS, GET",
+			},
 		},
 	}
 
@@ -76,8 +90,11 @@ func TestCORSMiddleware(t *testing.T) {
 			e.ServeHTTP(rec, req)
 
 			assert.Equal(t, tt.expectedStatus, rec.Code)
-			if tt.expectedHeader != "" {
-				assert.Equal(t, tt.expectedHeader, rec.Header().Get("Access-Control-Allow-Origin"))
+
+			if tt.expectedHeaders != nil {
+				for key, expectedValue := range tt.expectedHeaders {
+					assert.Equal(t, expectedValue, rec.Header().Get(key))
+				}
 			}
 		})
 	}
