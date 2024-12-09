@@ -1,6 +1,7 @@
 version: '3'
 
 vars:
+  # Version and Build Info
   VERSION:
     sh: git describe --tags --always --dirty
   BUILD_TIME:
@@ -9,19 +10,22 @@ vars:
     sh: git rev-parse HEAD
   GO_VERSION:
     sh: go version | cut -d ' ' -f 3
-  DB_USER:
-    sh: echo "${DB_USER:-goforms}"
-  DB_PASSWORD:
-    sh: echo "${DB_PASSWORD:-goforms}"
-  DB_HOSTNAME:
-    sh: echo "${DB_HOSTNAME:-localhost}"
-  DB_PORT:
-    sh: echo "${DB_PORT:-3306}"
-  DB_NAME:
-    sh: echo "${DB_NAME:-goforms}"
-  DB_URL:
-    sh: echo "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOSTNAME}}:{{.DB_PORT}})/{{.DB_NAME}}"
   LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.buildTime={{.BUILD_TIME}} -X main.gitCommit={{.GIT_COMMIT}} -X main.goVersion={{.GO_VERSION}}
+
+  # Application DB
+  DB_USER: '{{.DB_USER}}'
+  DB_PASSWORD: '{{.DB_PASSWORD}}'
+  DB_NAME: '{{.DB_NAME}}'
+  DB_HOST: '{{.DB_HOST}}'
+  DB_PORT: '{{.DB_PORT}}'
+  DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD}}'
+  
+  # Test DB
+  TEST_DB_USER: '{{.TEST_DB_USER}}'
+  TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
+  TEST_DB_NAME: '{{.TEST_DB_NAME}}'
+  TEST_DB_HOST: '{{.TEST_DB_HOST}}'
+  TEST_DB_PORT: '{{.TEST_DB_PORT}}'
 
 tasks:
   default:
@@ -46,7 +50,18 @@ tasks:
     desc: Run the application
     deps: [install, generate]
     cmds:
-      - go run ./cmd/goforms
+      - go run ./cmd/server
+
+  test:setup-db:
+    desc: Create and setup test database
+    cmds:
+      - echo "Database setup should be handled by migrations"
+    env:
+      TEST_DB_USER: '{{.TEST_DB_USER}}'
+      TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
+      TEST_DB_NAME: '{{.TEST_DB_NAME}}'
+      TEST_DB_HOST: '{{.TEST_DB_HOST}}'
+      TEST_DB_PORT: '{{.TEST_DB_PORT}}'
 
   test:
     desc: Run tests
@@ -66,8 +81,8 @@ tasks:
       - coverage/coverage.out
       - coverage/coverage.html
 
-  lint:
-    desc: Run linters
+  test:unit:
+    desc: Run unit tests
     cmds:
       - golangci-lint run
 
@@ -75,48 +90,41 @@ tasks:
     desc: Build the application
     deps: [generate]
     cmds:
-      - >
-        go build -ldflags "
-        -X main.version={{.VERSION}}
-        -X main.buildTime={{.BUILD_TIME}}
-        -X main.gitCommit={{.GIT_COMMIT}}
-        -X main.goVersion={{.GO_VERSION}}
-        " -o bin/goforms cmd/goforms/main.go
+      - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/server
 
   build:linux:
     desc: Build for Linux
     deps: [generate]
     cmds:
-      - GOOS=linux GOARCH=amd64 go build -o bin/goforms-linux-amd64 ./cmd/goforms
+      - GOOS=linux GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-linux-amd64 ./cmd/server
 
   build:darwin:
     desc: Build for macOS
     deps: [generate]
     cmds:
-      - GOOS=darwin GOARCH=amd64 go build -o bin/goforms-darwin-amd64 ./cmd/goforms
+      - GOOS=darwin GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-darwin-amd64 ./cmd/server
 
   build:windows:
     desc: Build for Windows
     deps: [generate]
     cmds:
-      - GOOS=windows GOARCH=amd64 go build -o bin/goforms-windows-amd64.exe ./cmd/goforms
-
-  act:
-    desc: Run GitHub Actions locally
-    cmds:
-      - act -P ubuntu-latest=catthehacker/ubuntu:act-latest
+      - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/server
 
   migrate:up:
     desc: Run database migrations up
     cmds:
-      - migrate -database "{{.DB_URL}}" -path migrations up
+      - |
+        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
+          -path migrations up
 
   migrate:down:
     desc: Run database migrations down
     cmds:
-      - migrate -database "{{.DB_URL}}" -path migrations down
+      - |
+        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
+          -path migrations down
 
-  migrate:create:
+  migrate:new:
     desc: Create a new migration
     cmds:
       - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
@@ -124,12 +132,12 @@ tasks:
   migrate:force:
     desc: Force set migration version
     cmds:
-      - migrate -database "{{.DB_URL}}" -path migrations force {{.CLI_ARGS}}
+      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations force {{.CLI_ARGS}}
 
   migrate:version:
     desc: Show current migration version
     cmds:
-      - migrate -database "{{.DB_URL}}" -path migrations version
+      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations version
 
   clean:
     desc: Clean build artifacts
@@ -137,3 +145,26 @@ tasks:
       - rm -rf bin/
       - rm -rf coverage/
       - go clean -cache -testcache
+
+  logs:
+    desc: Tail production logs
+    cmds:
+      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log"
+
+  logs:err:
+    desc: Tail production error logs
+    cmds:
+      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log"
+
+  logs:all:
+    desc: Tail both production logs simultaneously (requires tmux)
+    cmds:
+      - |
+        tmux new-session -d 'task logs' \; \
+        split-window -h 'task logs:err' \; \
+        attach \;
+
+  logs:cors:
+    desc: Monitor CORS-related logs
+    cmds:
+      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.{out,err}.log | grep -i 'origin\|cors'"
