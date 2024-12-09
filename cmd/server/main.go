@@ -4,12 +4,14 @@ import (
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/goforms/internal/app"
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 )
 
 func main() {
-	// Load .env file before fx initialization
+	// Try to load .env file, but don't panic if it doesn't exist
 	if err := godotenv.Load(); err != nil {
-		panic("Error loading .env file: " + err.Error())
+		logger, _ := zap.NewDevelopment()
+		logger.Warn("No .env file found, using environment variables")
 	}
 
 	fx.New(
