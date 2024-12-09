@@ -18,6 +18,8 @@
   - [x] Set up Echo server
   - [x] Configure middleware
   - [x] Create app struct and initialization
+  - [x] Implement health check endpoint
+  - [x] Add database health monitoring
 
 - [x] 4. Subscription Handler
   - [x] Create subscription model
@@ -30,6 +32,7 @@
   - [x] Write handler tests
   - [x] Write validation tests
   - [x] Write integration tests
+  - [x] Add health check tests
 
 ## Current Sprint: Form Management API
 - [ ] 1. Database Schema
@@ -69,8 +72,16 @@
 - [ ] 2. Analytics & Monitoring
   - [ ] Submission analytics
   - [ ] Performance metrics
+  - [x] Health check endpoint
+  - [x] Database connectivity monitoring
   - [ ] Error tracking
   - [ ] Usage statistics
+  - [ ] Prometheus metrics integration
+  - [ ] Uptime monitoring setup
+  - [ ] Alert configuration for degraded status
+  - [ ] Response time tracking
+  - [ ] Resource usage monitoring (CPU, Memory)
+  - [ ] Request rate monitoring
 
 ## Future Phases
 - [ ] 1. Advanced Form Features
@@ -90,3 +101,5 @@
   - [ ] Role-based access
   - [ ] Audit logging
   - [ ] Backup/restore functionality
+  - [ ] Health check dashboard
+  - [ ] System status page
