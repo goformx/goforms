@@ -54,29 +54,24 @@ func NewApp(
 }
 
 func (a *App) setupMiddleware() {
-	// Recovery should be first
-	a.echo.Use(middleware.Recover())
+	// Debug logging first to catch all requests
+	a.echo.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			a.logger.Debug("incoming request",
+				zap.String("origin", c.Request().Header.Get(echo.HeaderOrigin)),
+				zap.String("method", c.Request().Method),
+				zap.String("path", c.Request().URL.Path),
+				zap.Any("headers", c.Request().Header),
+			)
+			return next(c)
+		}
+	})
 
-	// Logging middleware
-	a.echo.Use(middleware.LoggerWithConfig(middleware.LoggerConfig{
-		Format: `{"time":"${time_rfc3339_nano}","remote_ip":"${remote_ip}",` +
-			`"method":"${method}","uri":"${uri}","status":${status},` +
-			`"latency":${latency},"latency_human":"${latency_human}"` +
-			`,"bytes_in":${bytes_in},"bytes_out":${bytes_out}}` + "\n",
-		Output: os.Stdout,
-	}))
+	// Recovery middleware
+	a.echo.Use(middleware.Recover())
 
 	// Request ID for tracing
 	a.echo.Use(middleware.RequestID())
-
-	// Security middleware
-	a.echo.Use(middleware.SecureWithConfig(middleware.SecureConfig{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "SAMEORIGIN",
-		HSTSMaxAge:            31536000,
-		HSTSExcludeSubdomains: false,
-	}))
 
 	// CORS middleware
 	a.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
@@ -85,9 +80,27 @@ func (a *App) setupMiddleware() {
 		AllowHeaders:     a.config.Security.CorsAllowedHeaders,
 		AllowCredentials: true,
 		MaxAge:           a.config.Security.CorsMaxAge,
+		ExposeHeaders:    []string{"X-Request-Id"},
 	}))
 
-	// Rate limiting should be last
+	// Log CORS config
+	a.logger.Info("CORS configuration",
+		zap.Strings("allowed_origins", a.config.Security.CorsAllowedOrigins),
+		zap.Strings("allowed_methods", a.config.Security.CorsAllowedMethods),
+		zap.Strings("allowed_headers", a.config.Security.CorsAllowedHeaders),
+		zap.Int("max_age", a.config.Security.CorsMaxAge),
+	)
+
+	// Security headers
+	a.echo.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "SAMEORIGIN",
+		HSTSMaxAge:            31536000,
+		HSTSExcludeSubdomains: false,
+	}))
+
+	// Rate limiting last
 	a.echo.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(
 		rate.Limit(a.config.RateLimit.Rate))))
 
@@ -142,23 +155,29 @@ func (a *App) stop(ctx context.Context) error {
 
 func (a *App) customErrorHandler() echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
-		code := 500
+		code := http.StatusInternalServerError
 		message := "Internal Server Error"
 
 		if he, ok := err.(*echo.HTTPError); ok {
 			code = he.Code
-			message = he.Message.(string)
+			message = fmt.Sprintf("%v", he.Message)
 		}
 
 		a.logger.Error("request error",
 			zap.Int("status", code),
 			zap.String("message", message),
 			zap.Error(err),
+			zap.String("path", c.Request().URL.Path),
+			zap.String("method", c.Request().Method),
+			zap.String("origin", c.Request().Header.Get(echo.HeaderOrigin)),
 		)
 
 		if !c.Response().Committed {
-			if err := c.JSON(code, map[string]string{
-				"error": message,
+			if err := c.JSON(code, map[string]interface{}{
+				"error":  message,
+				"code":   code,
+				"path":   c.Request().URL.Path,
+				"method": c.Request().Method,
 			}); err != nil {
 				a.logger.Error("error sending error response", zap.Error(err))
 			}
