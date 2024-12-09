@@ -13,7 +13,7 @@ import (
 
 type App struct {
 	server     *server.Server
-	middleware *middleware.Middleware
+	middleware *middleware.Manager
 	handlers   *handlers.SubscriptionHandler
 }
 

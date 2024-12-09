@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"os"
 
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/labstack/echo/v4"
@@ -11,84 +12,121 @@ import (
 	"golang.org/x/time/rate"
 )
 
-type Middleware struct {
+// Manager handles all middleware setup and configuration
+type Manager struct {
 	logger *zap.Logger
 	config *config.Config
 }
 
-func New(logger *zap.Logger, cfg *config.Config) *Middleware {
-	return &Middleware{
+// New creates a new middleware manager
+func New(logger *zap.Logger, config *config.Config) *Manager {
+	return &Manager{
 		logger: logger,
-		config: cfg,
+		config: config,
 	}
 }
 
-func (m *Middleware) Setup(e *echo.Echo) {
-	// Debug logging first
-	e.Use(m.requestLogger())
-
-	// CORS middleware
-	e.Use(m.corsMiddleware())
-
-	// Recovery middleware
+// Setup configures all middleware for the Echo instance
+func (m *Manager) Setup(e *echo.Echo) {
+	// Recovery middleware should be first for safety
 	e.Use(echomw.Recover())
 
-	// Request ID
+	// Request ID for tracing
 	e.Use(echomw.RequestID())
+
+	// Debug logging for detailed request information
+	e.Use(m.requestLogger())
+
+	// Structured logging for machine-readable logs
+	e.Use(m.structuredLogger())
+
+	// Log initial configuration
+	m.logConfig()
+
+	// CORS configuration
+	e.Use(m.corsMiddleware())
 
 	// Security headers
 	e.Use(m.securityHeaders())
 
-	// Rate limiting last
+	// Timeout middleware
+	e.Use(m.timeoutMiddleware())
+
+	// Rate limiting should be last
 	e.Use(m.rateLimiter())
 
 	// Custom error handler
 	e.HTTPErrorHandler = m.errorHandler()
-
-	m.logConfig()
 }
 
-func (m *Middleware) requestLogger() echo.MiddlewareFunc {
+// requestLogger provides detailed debug logging for requests
+func (m *Manager) requestLogger() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			req := c.Request()
 			m.logger.Debug("incoming request",
-				zap.String("origin", c.Request().Header.Get(echo.HeaderOrigin)),
-				zap.String("method", c.Request().Method),
-				zap.String("path", c.Request().URL.Path),
-				zap.Any("headers", c.Request().Header),
+				zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
+				zap.String("origin", req.Header.Get(echo.HeaderOrigin)),
+				zap.String("method", req.Method),
+				zap.String("path", req.URL.Path),
+				zap.String("remote_addr", c.RealIP()),
+				zap.Any("headers", req.Header),
 			)
 			return next(c)
 		}
 	}
 }
 
-func (m *Middleware) corsMiddleware() echo.MiddlewareFunc {
+// structuredLogger provides machine-readable JSON logs
+func (m *Manager) structuredLogger() echo.MiddlewareFunc {
+	return echomw.LoggerWithConfig(echomw.LoggerConfig{
+		Format: `{"time":"${time_rfc3339_nano}","request_id":"${id}","remote_ip":"${remote_ip}",` +
+			`"method":"${method}","uri":"${uri}","status":${status},` +
+			`"latency":${latency},"latency_human":"${latency_human}"` +
+			`,"bytes_in":${bytes_in},"bytes_out":${bytes_out}}` + "\n",
+		Output: os.Stdout,
+	})
+}
+
+// corsMiddleware handles CORS configuration
+func (m *Manager) corsMiddleware() echo.MiddlewareFunc {
 	return echomw.CORSWithConfig(echomw.CORSConfig{
 		AllowOrigins:     m.config.Security.CorsAllowedOrigins,
 		AllowMethods:     m.config.Security.CorsAllowedMethods,
 		AllowHeaders:     m.config.Security.CorsAllowedHeaders,
-		AllowCredentials: true,
+		AllowCredentials: m.config.Security.CorsAllowCredentials,
 		MaxAge:           m.config.Security.CorsMaxAge,
-		ExposeHeaders:    []string{"X-Request-Id"},
+		ExposeHeaders:    []string{echo.HeaderXRequestID}, // Expose Request ID
 	})
 }
 
-func (m *Middleware) securityHeaders() echo.MiddlewareFunc {
+// securityHeaders adds security-related HTTP headers
+func (m *Manager) securityHeaders() echo.MiddlewareFunc {
 	return echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "SAMEORIGIN",
-		HSTSMaxAge:            31536000,
-		HSTSExcludeSubdomains: false,
+		XSSProtection:      "1; mode=block",
+		ContentTypeNosniff: "nosniff",
+		XFrameOptions:      "DENY",
+		HSTSMaxAge:         31536000,
+		HSTSPreloadEnabled: true,
 	})
 }
 
-func (m *Middleware) rateLimiter() echo.MiddlewareFunc {
-	return echomw.RateLimiter(echomw.NewRateLimiterMemoryStore(
-		rate.Limit(m.config.RateLimit.Rate)))
+// timeoutMiddleware adds request timeout handling
+func (m *Manager) timeoutMiddleware() echo.MiddlewareFunc {
+	return echomw.TimeoutWithConfig(echomw.TimeoutConfig{
+		Timeout: m.config.Security.RequestTimeout,
+	})
 }
 
-func (m *Middleware) errorHandler() echo.HTTPErrorHandler {
+// rateLimiter implements rate limiting
+func (m *Manager) rateLimiter() echo.MiddlewareFunc {
+	return echomw.RateLimiter(echomw.NewRateLimiterMemoryStore(
+		rate.Limit(m.config.RateLimit.Rate),
+	))
+}
+
+// errorHandler provides consistent error responses
+func (m *Manager) errorHandler() echo.HTTPErrorHandler {
 	return func(err error, c echo.Context) {
 		code := http.StatusInternalServerError
 		message := "Internal Server Error"
@@ -98,21 +136,26 @@ func (m *Middleware) errorHandler() echo.HTTPErrorHandler {
 			message = fmt.Sprintf("%v", he.Message)
 		}
 
+		// Log the error with context
 		m.logger.Error("request error",
+			zap.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
 			zap.Int("status", code),
 			zap.String("message", message),
 			zap.Error(err),
 			zap.String("path", c.Request().URL.Path),
 			zap.String("method", c.Request().Method),
 			zap.String("origin", c.Request().Header.Get(echo.HeaderOrigin)),
+			zap.String("remote_addr", c.RealIP()),
 		)
 
+		// Send error response if not already sent
 		if !c.Response().Committed {
 			if err := c.JSON(code, map[string]interface{}{
-				"error":  message,
-				"code":   code,
-				"path":   c.Request().URL.Path,
-				"method": c.Request().Method,
+				"error":      message,
+				"code":       code,
+				"request_id": c.Response().Header().Get(echo.HeaderXRequestID),
+				"path":       c.Request().URL.Path,
+				"method":     c.Request().Method,
 			}); err != nil {
 				m.logger.Error("error sending error response", zap.Error(err))
 			}
@@ -120,13 +163,17 @@ func (m *Middleware) errorHandler() echo.HTTPErrorHandler {
 	}
 }
 
-func (m *Middleware) logConfig() {
-	m.logger.Info("CORS configuration",
-		zap.Strings("allowed_origins", m.config.Security.CorsAllowedOrigins),
-		zap.Strings("allowed_methods", m.config.Security.CorsAllowedMethods),
-		zap.Strings("allowed_headers", m.config.Security.CorsAllowedHeaders),
-		zap.Int("max_age", m.config.Security.CorsMaxAge),
+// logConfig logs the middleware configuration for debugging
+func (m *Manager) logConfig() {
+	m.logger.Info("middleware configuration",
+		zap.Any("cors", map[string]interface{}{
+			"allowed_origins":   m.config.Security.CorsAllowedOrigins,
+			"allowed_methods":   m.config.Security.CorsAllowedMethods,
+			"allowed_headers":   m.config.Security.CorsAllowedHeaders,
+			"max_age":           m.config.Security.CorsMaxAge,
+			"allow_credentials": m.config.Security.CorsAllowCredentials,
+		}),
+		zap.Any("rate_limit", m.config.RateLimit),
+		zap.Duration("request_timeout", m.config.Security.RequestTimeout),
 	)
 }
-
-// Individual middleware methods...
