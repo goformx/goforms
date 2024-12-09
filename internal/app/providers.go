@@ -1,6 +1,7 @@
 package app
 
 import (
+	"github.com/ipfans/fxlogger"
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/database"
@@ -15,6 +16,7 @@ import (
 // Module exports all app providers
 func NewModule() fx.Option {
 	return fx.Options(
+		fx.WithLogger(fxlogger.Default()),
 		fx.Provide(
 			config.New,
 			NewLogger,
@@ -35,18 +37,32 @@ func NewModule() fx.Option {
 }
 
 func NewLogger() (*zap.Logger, error) {
-	return zap.Config{
+	config := zap.Config{
 		Level:       zap.NewAtomicLevelAt(zapcore.InfoLevel),
 		Development: false,
 		Sampling: &zap.SamplingConfig{
 			Initial:    100,
 			Thereafter: 100,
 		},
-		Encoding:         "json",
-		EncoderConfig:    zap.NewProductionEncoderConfig(),
+		Encoding: "json",
+		EncoderConfig: zapcore.EncoderConfig{
+			TimeKey:        "ts",
+			LevelKey:       "level",
+			NameKey:        "logger",
+			CallerKey:      "caller",
+			FunctionKey:    zapcore.OmitKey,
+			MessageKey:     "msg",
+			StacktraceKey:  "stacktrace",
+			LineEnding:     zapcore.DefaultLineEnding,
+			EncodeLevel:    zapcore.LowercaseLevelEncoder,
+			EncodeTime:     zapcore.ISO8601TimeEncoder,
+			EncodeDuration: zapcore.StringDurationEncoder,
+			EncodeCaller:   zapcore.ShortCallerEncoder,
+		},
 		OutputPaths:      []string{"stdout"},
 		ErrorOutputPaths: []string{"stderr"},
-	}.Build()
+	}
+	return config.Build()
 }
 
 func NewEcho() *echo.Echo {

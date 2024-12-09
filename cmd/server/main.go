@@ -13,6 +13,6 @@ func main() {
 	}
 
 	fx.New(
-		app.Module(),
+		app.NewModule(),
 	).Run()
 }

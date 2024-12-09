@@ -184,8 +184,3 @@ func (a *App) customErrorHandler() echo.HTTPErrorHandler {
 		}
 	}
 }
-
-// Module returns the application fx module
-func Module() fx.Option {
-	return NewModule()
-}
