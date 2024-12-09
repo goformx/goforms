@@ -1,42 +1,20 @@
 package app
 
 import (
-	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/config"
+	"github.com/jonesrussell/goforms/internal/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/fx"
-	"go.uber.org/zap"
+	"go.uber.org/zap/zaptest"
 )
 
 func TestCORSMiddleware(t *testing.T) {
 	// Setup
-	logger, _ := zap.NewDevelopment()
-	e := echo.New()
-	cfg := &config.Config{
-		Security: config.SecurityConfig{
-			CorsAllowedOrigins: []string{"https://jonesrussell.github.io"},
-			CorsAllowedMethods: []string{"GET", "POST", "OPTIONS"},
-			CorsAllowedHeaders: []string{"Origin", "Content-Type"},
-			CorsMaxAge:         3600,
-		},
-		RateLimit: config.RateLimitConfig{
-			Rate: 100, // Higher rate for testing
-		},
-	}
-
-	// Create mock lifecycle
-	lc := &testLifecycle{
-		startHook: func(context.Context) error { return nil },
-		stopHook:  func(context.Context) error { return nil },
-	}
-
-	// Create app with middleware
-	_ = NewApp(lc, logger, e, cfg, nil, nil)
+	e := setupTestServer(t)
 
 	// Test endpoint
 	e.GET("/test", func(c echo.Context) error {
@@ -103,17 +81,25 @@ func TestCORSMiddleware(t *testing.T) {
 	}
 }
 
-// testLifecycle implements fx.Lifecycle for testing
-type testLifecycle struct {
-	startHook func(context.Context) error
-	stopHook  func(context.Context) error
-}
+func setupTestServer(t *testing.T) *echo.Echo {
+	logger := zaptest.NewLogger(t)
+	cfg := &config.Config{
+		Security: config.SecurityConfig{
+			CorsAllowedOrigins:   []string{"https://jonesrussell.github.io"},
+			CorsAllowedMethods:   []string{"GET", "POST", "OPTIONS"},
+			CorsAllowedHeaders:   []string{"Origin", "Content-Type"},
+			CorsMaxAge:           3600,
+			CorsAllowCredentials: true,
+		},
+		RateLimit: config.RateLimitConfig{
+			Enabled: true,
+			Rate:    100,
+		},
+	}
 
-func (l *testLifecycle) Append(hook fx.Hook) {
-	if hook.OnStart != nil {
-		l.startHook = hook.OnStart
-	}
-	if hook.OnStop != nil {
-		l.stopHook = hook.OnStop
-	}
+	e := echo.New()
+	mw := middleware.New(logger, cfg)
+	mw.Setup(e)
+
+	return e
 }
