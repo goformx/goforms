@@ -95,6 +95,11 @@
   - [ ] Webhook support
   - [ ] Export capabilities (CSV, JSON)
   - [ ] API key management
+  - [ ] Multi-tenant CORS management
+    - [ ] Database-driven CORS configuration
+    - [ ] Per-tenant origin management
+    - [ ] Dynamic CORS updates without nginx changes
+    - [ ] CORS audit logging
 
 - [ ] 3. Administration
   - [ ] User management
