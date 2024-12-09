@@ -1,6 +1,7 @@
 package app
 
 import (
+	"context"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -8,6 +9,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/fx"
 	"go.uber.org/zap"
 )
 
@@ -27,13 +29,14 @@ func TestCORSMiddleware(t *testing.T) {
 		},
 	}
 
-	app := &App{
-		logger: logger,
-		echo:   e,
-		config: cfg,
+	// Create mock lifecycle
+	lc := &testLifecycle{
+		startHook: func(context.Context) error { return nil },
+		stopHook:  func(context.Context) error { return nil },
 	}
 
-	app.setupMiddleware()
+	// Create app with middleware
+	_ = NewApp(lc, logger, e, cfg, nil, nil)
 
 	// Test endpoint
 	e.GET("/test", func(c echo.Context) error {
@@ -97,5 +100,20 @@ func TestCORSMiddleware(t *testing.T) {
 				}
 			}
 		})
+	}
+}
+
+// testLifecycle implements fx.Lifecycle for testing
+type testLifecycle struct {
+	startHook func(context.Context) error
+	stopHook  func(context.Context) error
+}
+
+func (l *testLifecycle) Append(hook fx.Hook) {
+	if hook.OnStart != nil {
+		l.startHook = hook.OnStart
+	}
+	if hook.OnStop != nil {
+		l.stopHook = hook.OnStop
 	}
 }
