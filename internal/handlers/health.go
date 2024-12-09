@@ -1,21 +1,25 @@
 package handlers
 
 import (
+	"context"
 	"net/http"
 	"time"
 
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/zap"
 )
 
+type PingContexter interface {
+	PingContext(context.Context) error
+}
+
 type HealthHandler struct {
-	db     *sqlx.DB
+	db     PingContexter
 	logger *zap.Logger
 }
 
 // NewHealthHandler creates a new health handler
-func NewHealthHandler(db *sqlx.DB, logger *zap.Logger) *HealthHandler {
+func NewHealthHandler(db PingContexter, logger *zap.Logger) *HealthHandler {
 	return &HealthHandler{
 		db:     db,
 		logger: logger,

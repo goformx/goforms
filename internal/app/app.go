@@ -32,6 +32,7 @@ func NewApp(
 	echo *echo.Echo,
 	cfg *config.Config,
 	handler *handlers.SubscriptionHandler,
+	healthHandler *handlers.HealthHandler,
 ) *App {
 	app := &App{
 		logger:      logger,
@@ -43,6 +44,7 @@ func NewApp(
 
 	app.setupMiddleware()
 	app.registerHandlers()
+	healthHandler.Register(app.echo)
 
 	lc.Append(fx.Hook{
 		OnStart: app.start,

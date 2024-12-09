@@ -23,6 +23,7 @@ func NewModule() fx.Option {
 			AsModelsDB,
 			models.NewSubscriptionStore,
 			handlers.NewSubscriptionHandler,
+			handlers.NewHealthHandler,
 			NewApp,
 		),
 		fx.Invoke(func(_ *App) {}),
