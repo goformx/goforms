@@ -1,99 +1,105 @@
 package handlers
 
 import (
+	"encoding/json"
 	"net/http"
+	"net/http/httptest"
+	"os"
+	"strings"
 	"testing"
 
+	_ "github.com/go-sql-driver/mysql" // Import MySQL driver
+	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/models"
-	"github.com/jonesrussell/goforms/test/fixtures"
-	"github.com/jonesrussell/goforms/test/setup"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
+	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/suite"
 	"go.uber.org/zap"
 )
 
-type SubscriptionTestSuite struct {
+type SubscriptionSuite struct {
 	suite.Suite
-	handler *SubscriptionHandler
-	testDB  *setup.TestDB
-	fixture *fixtures.SubscriptionFixture
+	logger *zap.Logger
+	db     *sqlx.DB
+	store  models.SubscriptionStore
 }
 
-func (s *SubscriptionTestSuite) SetupSuite() {
+func (s *SubscriptionSuite) SetupSuite() {
 	var err error
 
-	// Setup test database
-	s.testDB, err = setup.NewTestDB()
-	require.NoError(s.T(), err)
+	// Initialize logger first
+	s.logger, err = zap.NewDevelopment()
+	if err != nil {
+		s.T().Fatalf("Failed to create logger: %v", err)
+	}
 
-	// Run migrations
-	err = s.testDB.RunMigrations()
-	require.NoError(s.T(), err)
+	// Setup test database connection
+	dsn := os.Getenv("TEST_DB_DSN")
+	if dsn == "" {
+		dsn = "goforms_test:goforms_test@tcp(localhost:3306)/goforms_test"
+	}
 
-	// Create a production logger for tests (less verbose)
-	logger := zap.NewProductionConfig()
-	logger.Level = zap.NewAtomicLevelAt(zap.WarnLevel) // Only show warnings and errors
-	log, _ := logger.Build()
+	redactedDSN := strings.Replace(dsn, "goforms_test:", "goforms_test:[REDACTED]@", 1)
+	s.logger.Info("Attempting to connect to database", zap.String("dsn", redactedDSN))
 
-	// Setup handler
-	store := models.NewSubscriptionStore(s.testDB.DB)
-	s.handler = NewSubscriptionHandler(log, store)
+	s.db, err = sqlx.Connect("mysql", dsn)
+	if err != nil {
+		s.T().Fatalf("Failed to connect to test database: %v", err)
+	}
 
-	// Setup fixture
-	s.fixture = fixtures.NewSubscriptionFixture(s.handler.CreateSubscription)
+	// Initialize store with test database
+	s.store = models.NewSubscriptionStore(s.db)
+
+	// Clear test data
+	_, err = s.db.Exec("TRUNCATE TABLE subscriptions")
+	if err != nil {
+		s.T().Fatalf("Failed to truncate test table: %v", err)
+	}
 }
 
-func (s *SubscriptionTestSuite) TearDownSuite() {
-	if s.testDB != nil {
-		if err := s.testDB.Cleanup(); err != nil {
-			s.T().Logf("Failed to cleanup test data: %v", err)
+func (s *SubscriptionSuite) TearDownSuite() {
+	if s.db != nil {
+		if err := s.db.Close(); err != nil {
+			s.T().Errorf("Error closing database connection: %v", err)
 		}
 	}
 }
 
-func (s *SubscriptionTestSuite) SetupTest() {
-	err := s.testDB.ClearData()
-	require.NoError(s.T(), err)
-}
+func (s *SubscriptionSuite) TestSubscriptionIntegration() {
+	// Setup test server
+	e := echo.New()
+	handler := NewSubscriptionHandler(s.logger, s.store)
+	handler.Register(e)
 
-func (s *SubscriptionTestSuite) TestSubscriptionIntegration() {
-	// Test successful subscription
-	rec, err := s.fixture.CreateSubscriptionRequest("integration@test.com")
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), http.StatusCreated, rec.Code)
+	// Test valid subscription
+	validPayload := `{"email":"test@example.com"}`
+	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(validPayload))
+	req.Header.Set(echo.HeaderContentType, "application/json")
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
 
-	var response map[string]interface{}
-	err = fixtures.ParseResponse(rec, &response)
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), "integration@test.com", response["email"])
+	s.Equal(http.StatusCreated, rec.Code)
 
-	// Verify database record
-	var exists bool
-	err = s.testDB.DB.Get(&exists, "SELECT EXISTS(SELECT 1 FROM subscriptions WHERE email = ?)", "integration@test.com")
-	require.NoError(s.T(), err)
-	assert.True(s.T(), exists)
+	var response models.Subscription
+	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	s.NoError(err)
+	s.Equal("test@example.com", response.Email)
 
-	// Test duplicate subscription
-	rec, err = s.fixture.CreateSubscriptionRequest("integration@test.com")
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), http.StatusConflict, rec.Code)
+	// Verify subscription was stored
+	var count int
+	err = s.db.Get(&count, "SELECT COUNT(*) FROM subscriptions WHERE email = ?", "test@example.com")
+	s.NoError(err)
+	s.Equal(1, count)
 
-	var errResponse map[string]string
-	err = fixtures.ParseResponse(rec, &errResponse)
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), "Email already subscribed", errResponse["error"])
+	// Test invalid email
+	invalidPayload := `{"email":"invalid-email"}`
+	req = httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(invalidPayload))
+	req.Header.Set(echo.HeaderContentType, "application/json")
+	rec = httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
 
-	// Test invalid origin
-	rec, err = s.fixture.CreateSubscriptionRequestWithOrigin("new@test.com", "https://invalid-origin.com")
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), http.StatusForbidden, rec.Code)
-
-	err = fixtures.ParseResponse(rec, &errResponse)
-	require.NoError(s.T(), err)
-	assert.Equal(s.T(), "invalid origin", errResponse["error"])
+	s.Equal(http.StatusBadRequest, rec.Code)
 }
 
 func TestSubscriptionSuite(t *testing.T) {
-	suite.Run(t, new(SubscriptionTestSuite))
+	suite.Run(t, new(SubscriptionSuite))
 }

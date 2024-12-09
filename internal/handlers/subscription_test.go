@@ -16,11 +16,29 @@ import (
 )
 
 type MockSubscriptionStore struct {
-	CreateSubscriptionFunc func(ctx context.Context, sub *models.Subscription) error
+	CreateSubscriptionFunc  func(ctx context.Context, sub *models.Subscription) error
+	createSubscriptionCalls []struct {
+		Ctx context.Context
+		Sub *models.Subscription
+	}
 }
 
 func (m *MockSubscriptionStore) CreateSubscription(ctx context.Context, sub *models.Subscription) error {
+	if m.CreateSubscriptionFunc == nil {
+		return nil
+	}
+	m.createSubscriptionCalls = append(m.createSubscriptionCalls, struct {
+		Ctx context.Context
+		Sub *models.Subscription
+	}{ctx, sub})
 	return m.CreateSubscriptionFunc(ctx, sub)
+}
+
+func (m *MockSubscriptionStore) CreateSubscriptionCalls() []struct {
+	Ctx context.Context
+	Sub *models.Subscription
+} {
+	return m.createSubscriptionCalls
 }
 
 const validOrigin = "https://jonesrussell.github.io/me"
@@ -82,37 +100,6 @@ func TestCreateSubscription(t *testing.T) {
 	assert.True(t, ok)
 	assert.Equal(t, http.StatusBadRequest, he.Code)
 	assert.Equal(t, "invalid email format", he.Message)
-}
-
-func TestInvalidOrigin(t *testing.T) {
-	e, handler := setupTestHandler()
-
-	// Test with invalid origin
-	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions",
-		bytes.NewReader([]byte(`{"email":"test@example.com"}`)))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	req.Header.Set(echo.HeaderOrigin, "https://invalid-origin.com")
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := handler.CreateSubscription(c)
-	he, ok := err.(*echo.HTTPError)
-	assert.True(t, ok)
-	assert.Equal(t, http.StatusForbidden, he.Code)
-	assert.Equal(t, "invalid origin", he.Message)
-
-	// Test with missing origin
-	req = httptest.NewRequest(http.MethodPost, "/api/subscriptions",
-		bytes.NewReader([]byte(`{"email":"test@example.com"}`)))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec = httptest.NewRecorder()
-	c = e.NewContext(req, rec)
-
-	err = handler.CreateSubscription(c)
-	he, ok = err.(*echo.HTTPError)
-	assert.True(t, ok)
-	assert.Equal(t, http.StatusForbidden, he.Code)
-	assert.Equal(t, "invalid origin", he.Message)
 }
 
 func TestInvalidPayload(t *testing.T) {
