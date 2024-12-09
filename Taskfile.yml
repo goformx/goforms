@@ -264,3 +264,12 @@ tasks:
     # - Ctrl+b then d to detach
     # - Ctrl+b then z to zoom/unzoom current pane
     # - tmux attach to reconnect to existing session
+
+  logs:cors:
+    desc: Monitor CORS-related logs
+    cmds:
+      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.{out,err}.log | grep -i 'origin\|cors'"
+    # Filter examples:
+    # - Only errors: add "| grep 'error'"
+    # - Specific origin: add "| grep 'jonesrussell.github.io'"
+    # - With context: add "-C 3" to see surrounding lines
