@@ -32,7 +32,6 @@ type SecurityConfig struct {
 	CorsAllowedMethods []string      `validate:"required" envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
 	CorsAllowedHeaders []string      `validate:"required" envconfig:"CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept,Authorization,X-Requested-With"`
 	CorsMaxAge         int           `validate:"required" envconfig:"CORS_MAX_AGE" default:"3600"`
-	AllowedOrigins     []string      `validate:"required" envconfig:"ALLOWED_ORIGINS" default:"https://jonesrussell.github.io"`
 	TrustedProxies     []string      `validate:"required" envconfig:"TRUSTED_PROXIES" default:"127.0.0.1,::1"`
 	RequestTimeout     time.Duration `validate:"required" envconfig:"REQUEST_TIMEOUT" default:"30s"`
 }

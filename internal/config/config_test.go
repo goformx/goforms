@@ -166,6 +166,37 @@ func TestSecurityConfig(t *testing.T) {
 		assert.Equal(t, []string{"GET", "POST"}, config.Security.CorsAllowedMethods)
 		assert.Equal(t, []string{"10.0.0.1"}, config.Security.TrustedProxies)
 	})
+
+	t.Run("cors_configuration", func(t *testing.T) {
+		// Set required database config
+		os.Setenv("DB_USER", "testuser")
+		os.Setenv("DB_PASSWORD", "testpass")
+		os.Setenv("DB_NAME", "testdb")
+
+		// Set CORS config
+		os.Setenv("SECURITY_CORS_ALLOWED_ORIGINS", "https://jonesrussell.github.io")
+		os.Setenv("SECURITY_CORS_ALLOWED_METHODS", "GET,POST")
+		os.Setenv("SECURITY_CORS_ALLOWED_HEADERS", "Origin,Content-Type")
+
+		defer func() {
+			// Clean up database config
+			os.Unsetenv("DB_USER")
+			os.Unsetenv("DB_PASSWORD")
+			os.Unsetenv("DB_NAME")
+
+			// Clean up CORS config
+			os.Unsetenv("SECURITY_CORS_ALLOWED_ORIGINS")
+			os.Unsetenv("SECURITY_CORS_ALLOWED_METHODS")
+			os.Unsetenv("SECURITY_CORS_ALLOWED_HEADERS")
+		}()
+
+		config, err := New()
+		require.NoError(t, err)
+
+		assert.Equal(t, []string{"https://jonesrussell.github.io"}, config.Security.CorsAllowedOrigins)
+		assert.Equal(t, []string{"GET", "POST"}, config.Security.CorsAllowedMethods)
+		assert.Equal(t, []string{"Origin", "Content-Type"}, config.Security.CorsAllowedHeaders)
+	})
 }
 
 func TestRateLimitConfig(t *testing.T) {
