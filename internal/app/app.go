@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"net/http"
 	"os"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -81,47 +80,12 @@ func (a *App) setupMiddleware() {
 
 	// CORS middleware
 	a.echo.Use(middleware.CORSWithConfig(middleware.CORSConfig{
-		AllowOrigins: a.config.Security.CorsAllowedOrigins,
-		AllowMethods: []string{
-			http.MethodGet,
-			http.MethodPost,
-			http.MethodPut,
-			http.MethodDelete,
-			http.MethodOptions,
-		},
-		AllowHeaders: []string{
-			echo.HeaderOrigin,
-			echo.HeaderContentType,
-			echo.HeaderAccept,
-			echo.HeaderAuthorization,
-		},
+		AllowOrigins:     a.config.Security.CorsAllowedOrigins,
+		AllowMethods:     a.config.Security.CorsAllowedMethods,
+		AllowHeaders:     a.config.Security.CorsAllowedHeaders,
 		AllowCredentials: true,
-		MaxAge:           300, // Maximum value not ignored by any of major browsers
+		MaxAge:           a.config.Security.CorsMaxAge,
 	}))
-
-	// Add logging of invalid origins
-	a.echo.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			origin := c.Request().Header.Get(echo.HeaderOrigin)
-			if origin != "" {
-				allowed := false
-				for _, o := range a.config.Security.CorsAllowedOrigins {
-					if origin == strings.TrimSpace(o) {
-						allowed = true
-						break
-					}
-				}
-				if !allowed {
-					a.logger.Warn("invalid origin",
-						zap.String("origin", origin),
-						zap.String("remote_ip", c.RealIP()),
-					)
-					return echo.NewHTTPError(http.StatusForbidden, "invalid origin")
-				}
-			}
-			return next(c)
-		}
-	})
 
 	// Rate limiting should be last
 	a.echo.Use(middleware.RateLimiter(middleware.NewRateLimiterMemoryStore(
