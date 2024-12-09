@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/jonesrussell/goforms/internal/config/server"
@@ -31,12 +32,24 @@ func New(e *echo.Echo, logger *zap.Logger, cfg *server.Config) *Server {
 // Start begins the server
 func (s *Server) Start(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
-	s.logger.Info("starting server", zap.String("address", address))
+	s.logger.Info("server configuration",
+		zap.String("bind_address", address),
+		zap.String("host", s.config.Host),
+		zap.Int("port", s.config.Port),
+		zap.Duration("read_timeout", s.config.Timeouts.Read),
+		zap.Duration("write_timeout", s.config.Timeouts.Write),
+		zap.Duration("idle_timeout", s.config.Timeouts.Idle),
+	)
 
 	go func() {
 		if err := s.echo.Start(address); err != nil {
-			s.serverError <- err
-			s.logger.Error("server error", zap.Error(err))
+			if err != http.ErrServerClosed {
+				s.serverError <- err
+				s.logger.Error("server error",
+					zap.Error(err),
+					zap.String("bind_address", address),
+				)
+			}
 		}
 	}()
 
@@ -44,8 +57,14 @@ func (s *Server) Start(ctx context.Context) error {
 	go func() {
 		select {
 		case err := <-s.serverError:
-			s.logger.Error("server error detected", zap.Error(err))
+			s.logger.Error("server error detected",
+				zap.Error(err),
+				zap.String("bind_address", address),
+			)
 		case <-ctx.Done():
+			s.logger.Info("server shutdown initiated",
+				zap.String("bind_address", address),
+			)
 			return
 		}
 	}()
