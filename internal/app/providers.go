@@ -23,6 +23,10 @@ func NewModule() fx.Option {
 			AsModelsDB,
 			models.NewSubscriptionStore,
 			handlers.NewSubscriptionHandler,
+			fx.Annotate(
+				database.New,
+				fx.As(new(handlers.PingContexter)),
+			),
 			handlers.NewHealthHandler,
 			NewApp,
 		),
