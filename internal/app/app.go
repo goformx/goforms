@@ -133,11 +133,14 @@ func (a *App) registerHandlers() {
 }
 
 func (a *App) start(ctx context.Context) error {
-	address := fmt.Sprintf("%s:%d", a.config.Server.Host, a.config.Server.Port)
-	a.logger.Info("starting server", zap.String("address", address))
+	// Always bind to all interfaces
+	bindAddress := fmt.Sprintf(":%d", a.config.Server.Port)
+	a.logger.Info("starting server",
+		zap.String("bind", bindAddress),
+		zap.String("host", a.config.Server.Host))
 
 	go func() {
-		if err := a.echo.Start(address); err != nil {
+		if err := a.echo.Start(bindAddress); err != nil && err != http.ErrServerClosed {
 			a.serverError <- err
 			a.logger.Error("server error", zap.Error(err))
 		}
@@ -148,7 +151,6 @@ func (a *App) start(ctx context.Context) error {
 		select {
 		case err := <-a.serverError:
 			a.logger.Error("server error detected", zap.Error(err))
-			// Trigger application shutdown
 			os.Exit(1)
 		case <-ctx.Done():
 			return
