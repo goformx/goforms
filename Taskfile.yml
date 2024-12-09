@@ -238,3 +238,29 @@ tasks:
     desc: Tail production logs
     cmds:
       - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log"
+    # Filter examples:
+    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log | grep 'error'"
+    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log | grep -i 'cors'"
+    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log | jq 'select(.level==\"error\")'"
+
+  logs:err:
+    desc: Tail production error logs
+    cmds:
+      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log"
+    # Filter examples:
+    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log | grep 'panic'"
+    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log | grep -v 'invalid origin'"
+    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log | jq 'select(.status>=500)'"
+
+  logs:all:
+    desc: Tail both production logs simultaneously (requires tmux)
+    cmds:
+      - |
+        tmux new-session -d 'task logs' \; \
+        split-window -h 'task logs:err' \; \
+        attach \;
+    # Note: Use tmux commands while viewing:
+    # - Ctrl+b then arrow keys to switch panes
+    # - Ctrl+b then d to detach
+    # - Ctrl+b then z to zoom/unzoom current pane
+    # - tmux attach to reconnect to existing session
