@@ -103,6 +103,24 @@ GET /health
 - Returns service status
 ```
 
+### API Versioning
+
+All new endpoints will be versioned under `/v1`:
+```
+POST /v1/forms
+GET  /v1/forms/{id}
+PUT  /v1/forms/{id}
+POST /v1/forms/{id}/submissions
+```
+
+### Development Guidelines
+
+- All new endpoints must include OpenAPI/Swagger annotations
+- Use fx.Module for feature grouping
+- Follow REST best practices for resource naming
+- Include rate limiting per endpoint
+- Add comprehensive test coverage
+
 ### Tech Stack
 
 - Go 1.23

@@ -47,6 +47,10 @@
   - [ ] Create form_submissions table migration
     - [ ] Submission data (JSON)
     - [ ] Metadata (IP, timestamp, etc.)
+  - [ ] Add form_access_control table migration
+    - [ ] Owner ID, form ID, permissions
+    - [ ] API key associations
+    - [ ] Rate limit configurations
 
 - [ ] 2. Core Form API
   - [ ] Form model and validation
@@ -54,6 +58,10 @@
   - [ ] Field configuration
   - [ ] Form submission handling
   - [ ] Input sanitization
+  - [ ] Implement API versioning (v1)
+  - [ ] Add OpenAPI/Swagger annotations
+  - [ ] Add request/response validation middleware
+  - [ ] Implement bulk operations
 
 - [ ] 3. Testing & Documentation
   - [ ] Unit tests for form models

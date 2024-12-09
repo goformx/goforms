@@ -5,10 +5,18 @@ General Guidelines
 - Use uber's zap for logging.
 - Use echo/v4 for web development.
 - Confirm the plan, then write code.
+- Continually evaluate for SRP principles.
+- Continually evaluate for DRY principles.
+- Continually evaluate for SOLID principles.
+- Continually evaluate for YAGNI principles.
+- Continually evaluate for KISS principles.
+- Continually evaluate for SoC principles.
+- Continuosly refactor code to improve readability and maintainability.
+- Continue to add tests to the codebase.
 
 API Development
 - Use Echo for API development.
-- Utilize the new ServeMux introduced in Go 1.22 for routing.
+- Utilize the new ServeMux available in Go 1.23 for routing.
 - Return JSON responses for HTTP methods (GET, POST, PUT, DELETE).
 - Use method handlers with appropriate signatures (e.g., func(c echo.Context) error).
 - Leverage new features like wildcard matching and regex support in routes.
@@ -21,6 +29,11 @@ API Development
 - Leave NO todos, placeholders, or missing pieces in the implementation.
 - Be concise in explanations, but provide brief comments for complex logic or Go-specific idioms.
 - If unsure about a best practice or implementation detail, provide options and explain the pros and cons.
+- Use /v1 prefix for all new API endpoints
+- Include OpenAPI/Swagger annotations for all handlers
+- Group related functionality into fx.Module
+- Implement proper API versioning
+- Use consistent error response format
 
 Database
 - Use MariaDB as the primary database
@@ -49,6 +62,9 @@ Testing
 - Write comprehensive tests for API endpoints.
 - Include integration tests for database operations.
 - Test validation logic thoroughly. 
+- Include performance benchmarks for critical paths
+- Add API documentation tests
+- Test rate limiting behavior
 
 Observability
 - Use structured logging with Zap
