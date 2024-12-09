@@ -233,3 +233,8 @@ tasks:
     cmds:
       - task: docker:build
       - docker-compose -f docker/prod/docker-compose.yml build
+
+  logs:
+    desc: Tail production logs
+    cmds:
+      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log"
