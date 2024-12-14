@@ -31,6 +31,8 @@ func NewModule() fx.Option {
 			),
 			handlers.NewHealthHandler,
 			NewApp,
+			models.NewContactStore,
+			handlers.NewContactHandler,
 		),
 		fx.Invoke(func(_ *App) {}),
 	)

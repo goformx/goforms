@@ -27,7 +27,6 @@ services:
       - MARIADB_PASSWORD=${DB_PASSWORD}
       - MARIADB_DATABASE=${DB_NAME}
     ports:
-      - "${DB_PORT}:3306"
       - "8099:8080"  # For adminer
     healthcheck:
       test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]

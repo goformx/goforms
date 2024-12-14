@@ -37,6 +37,10 @@ func (s *DatabaseTestSuite) SetupSuite() {
 }
 
 func (s *DatabaseTestSuite) TestNewDatabase() {
+	s.T().Logf("DB_USER=%s DB_HOST=%s DB_NAME=%s",
+		os.Getenv("DB_USER"),
+		os.Getenv("DB_HOST"),
+		os.Getenv("DB_NAME"))
 	port, _ := strconv.Atoi(os.Getenv("TEST_DB_PORT"))
 	if port == 0 {
 		port = 3306 // default port if not set

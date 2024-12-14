@@ -74,6 +74,8 @@ tasks:
     desc: Run all tests
     deps: [test:setup-db]
     cmds:
+      - task: test:migrate
+      - echo "Testing with DB_USER=$DB_USER DB_HOST=$DB_HOST DB_NAME=$DB_NAME"
       - go test ./internal/... -coverprofile=coverage.out
     env:
       DB_USER: '{{.TEST_DB_USER}}'
@@ -273,3 +275,21 @@ tasks:
     # - Only errors: add "| grep 'error'"
     # - Specific origin: add "| grep 'jonesrussell.github.io'"
     # - With context: add "-C 3" to see surrounding lines
+
+  test:setup:
+    cmds:
+      - task test:setup-db
+      - go run cmd/migrate/main.go -database "mysql://goforms_test:goforms_test@tcp(localhost:3306)/goforms_test" up
+
+  test:migrate:
+    desc: Run migrations for test database
+    cmds:
+      - |
+        migrate -database "mysql://{{.TEST_DB_USER}}:{{.TEST_DB_PASSWORD}}@tcp({{.TEST_DB_HOST}}:{{.TEST_DB_PORT}})/{{.TEST_DB_NAME}}" \
+          -path migrations up
+    env:
+      TEST_DB_USER: '{{.TEST_DB_USER}}'
+      TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
+      TEST_DB_NAME: '{{.TEST_DB_NAME}}'
+      TEST_DB_HOST: '{{.TEST_DB_HOST}}'
+      TEST_DB_PORT: '{{.TEST_DB_PORT}}'
