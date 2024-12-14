@@ -58,6 +58,6 @@ func (h *ContactHandler) CreateContact(c echo.Context) error {
 
 // Register registers the contact form routes with Echo
 func (h *ContactHandler) Register(e *echo.Echo) {
-	g := e.Group("/app")
+	g := e.Group("/api")
 	g.POST("/contact", h.CreateContact)
 }
