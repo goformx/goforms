@@ -3,17 +3,17 @@ version: '3'
 dotenv: ['.env']
 
 vars:
-  DB_USER: '{{.DB_USER | default "goforms_test"}}'
-  DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
-  DB_NAME: '{{.DB_NAME | default "goforms_test"}}'
-  DB_HOST: '{{.DB_HOST | default "localhost"}}'
-  DB_PORT: '{{.DB_PORT | default "3306"}}'
-  DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD | default "rootpassword"}}'
-  TEST_DB_USER: '{{.TEST_DB_USER | default "goforms_test"}}'
-  TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD | default "goforms_test"}}'
-  TEST_DB_NAME: '{{.TEST_DB_NAME | default "goforms_test"}}'
-  TEST_DB_HOST: '{{.TEST_DB_HOST | default "localhost"}}'
-  TEST_DB_PORT: '{{.TEST_DB_PORT | default "3306"}}'
+  DB_USER: '{{.DB_USER}}'
+  DB_PASSWORD: '{{.DB_PASSWORD}}'
+  DB_NAME: '{{.DB_NAME}}'
+  DB_HOST: '{{.DB_HOST}}'
+  DB_PORT: '{{.DB_PORT}}'
+  DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD}}'
+  TEST_DB_USER: '{{.TEST_DB_USER}}'
+  TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
+  TEST_DB_NAME: '{{.TEST_DB_NAME}}'
+  TEST_DB_HOST: '{{.TEST_DB_HOST}}'
+  TEST_DB_PORT: '{{.TEST_DB_PORT}}'
 
 tasks:
   default:
@@ -87,14 +87,10 @@ tasks:
   test:integration:
     desc: Run integration tests with Docker
     cmds:
-      # Clean up first
       - docker compose -f docker/test/docker-compose.yml down -v
-      # Start services in detached mode
       - docker compose -f docker/test/docker-compose.yml up -d
-      # Show database logs
-      - sleep 5 # Give the container a moment to start and log any errors
+      - sleep 5
       - docker compose -f docker/test/docker-compose.yml logs test-db
-      # If successful, run the tests
       - docker compose -f docker/test/docker-compose.yml exec -T test-app go test ./...
     env:
       DB_USER: '{{.DB_USER}}'
@@ -117,11 +113,11 @@ tasks:
           -race
       - go tool cover -func=coverage.out
     env:
-      DB_USER: '{{.DB_USER | default "goforms_test"}}'
-      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms_test"}}'
-      DB_NAME: '{{.DB_NAME | default "goforms_test"}}'
-      DB_HOST: '{{.DB_HOST | default "localhost"}}'
-      DB_PORT: '{{.DB_PORT | default "3306"}}'
+      DB_USER: '{{.DB_USER}}'
+      DB_PASSWORD: '{{.DB_PASSWORD}}'
+      DB_NAME: '{{.DB_NAME}}'
+      DB_HOST: '{{.DB_HOST}}'
+      DB_PORT: '{{.DB_PORT}}'
 
   migrate:up:
     desc: Run database migrations
@@ -130,11 +126,11 @@ tasks:
         migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
           -path migrations up
     env:
-      DB_USER: '{{.DB_USER | default "goforms"}}'
-      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
-      DB_NAME: '{{.DB_NAME | default "goforms"}}'
-      DB_HOST: '{{.DB_HOST | default "localhost"}}'
-      DB_PORT: '{{.DB_PORT | default "3306"}}'
+      DB_USER: '{{.DB_USER}}'
+      DB_PASSWORD: '{{.DB_PASSWORD}}'
+      DB_NAME: '{{.DB_NAME}}'
+      DB_HOST: '{{.DB_HOST}}'
+      DB_PORT: '{{.DB_PORT}}'
 
   migrate:down:
     desc: Rollback database migrations
@@ -143,11 +139,11 @@ tasks:
         migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
           -path migrations down
     env:
-      DB_USER: '{{.DB_USER | default "goforms"}}'
-      DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
-      DB_NAME: '{{.DB_NAME | default "goforms"}}'
-      DB_HOST: '{{.DB_HOST | default "localhost"}}'
-      DB_PORT: '{{.DB_PORT | default "3306"}}'
+      DB_USER: '{{.DB_USER}}'
+      DB_PASSWORD: '{{.DB_PASSWORD}}'
+      DB_NAME: '{{.DB_NAME}}'
+      DB_HOST: '{{.DB_HOST}}'
+      DB_PORT: '{{.DB_PORT}}'
 
   migrate:create:
     desc: Create a new migration
@@ -240,19 +236,11 @@ tasks:
     desc: Tail production logs
     cmds:
       - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log"
-    # Filter examples:
-    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log | grep 'error'"
-    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log | grep -i 'cors'"
-    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log | jq 'select(.level==\"error\")'"
 
   logs:err:
     desc: Tail production error logs
     cmds:
       - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log"
-    # Filter examples:
-    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log | grep 'panic'"
-    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log | grep -v 'invalid origin'"
-    # - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log | jq 'select(.status>=500)'"
 
   logs:all:
     desc: Tail both production logs simultaneously (requires tmux)
@@ -261,25 +249,16 @@ tasks:
         tmux new-session -d 'task logs' \; \
         split-window -h 'task logs:err' \; \
         attach \;
-    # Note: Use tmux commands while viewing:
-    # - Ctrl+b then arrow keys to switch panes
-    # - Ctrl+b then d to detach
-    # - Ctrl+b then z to zoom/unzoom current pane
-    # - tmux attach to reconnect to existing session
 
   logs:cors:
     desc: Monitor CORS-related logs
     cmds:
       - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.{out,err}.log | grep -i 'origin\|cors'"
-    # Filter examples:
-    # - Only errors: add "| grep 'error'"
-    # - Specific origin: add "| grep 'jonesrussell.github.io'"
-    # - With context: add "-C 3" to see surrounding lines
 
   test:setup:
     cmds:
       - task test:setup-db
-      - go run cmd/migrate/main.go -database "mysql://goforms_test:goforms_test@tcp(localhost:3306)/goforms_test" up
+      - go run cmd/migrate/main.go -database "mysql://{{.TEST_DB_USER}}:{{.TEST_DB_PASSWORD}}@tcp({{.TEST_DB_HOST}}:{{.TEST_DB_PORT}})/{{.TEST_DB_NAME}}" up
 
   test:migrate:
     desc: Run migrations for test database
