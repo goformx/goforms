@@ -51,7 +51,7 @@ func TestCreateContact(t *testing.T) {
 	}`
 
 	t.Run("successful submission", func(t *testing.T) {
-		req := httptest.NewRequest(http.MethodPost, "/v1/contact",
+		req := httptest.NewRequest(http.MethodPost, "/app/contact",
 			bytes.NewReader([]byte(validPayload)))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
@@ -75,7 +75,7 @@ func TestCreateContact(t *testing.T) {
 		}
 
 		for _, payload := range invalidPayloads {
-			req := httptest.NewRequest(http.MethodPost, "/v1/contact",
+			req := httptest.NewRequest(http.MethodPost, "/app/contact",
 				bytes.NewReader([]byte(payload)))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
@@ -97,7 +97,7 @@ func TestCreateContact(t *testing.T) {
 			"message": "Test message"
 		}`
 
-		req := httptest.NewRequest(http.MethodPost, "/v1/contact",
+		req := httptest.NewRequest(http.MethodPost, "/app/contact",
 			bytes.NewReader([]byte(invalidPayload)))
 		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 		rec := httptest.NewRecorder()
