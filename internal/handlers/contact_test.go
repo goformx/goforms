@@ -118,11 +118,11 @@ func TestContactHandlerRegister(t *testing.T) {
 	routes := e.Routes()
 	found := false
 	for _, route := range routes {
-		if route.Path == "/v1/contact" && route.Method == http.MethodPost {
+		if route.Path == "/api/contact" && route.Method == http.MethodPost {
 			found = true
 			break
 		}
 	}
 
-	require.True(t, found, "Route /v1/contact should be registered")
+	require.True(t, found, "Route /api/contact should be registered")
 }

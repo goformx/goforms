@@ -77,7 +77,7 @@ func (s *ContactSuite) TestContactIntegration() {
 		"message": "This is a test message"
 	}`
 
-	req := httptest.NewRequest(http.MethodPost, "/v1/contact", strings.NewReader(validPayload))
+	req := httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(validPayload))
 	req.Header.Set(echo.HeaderContentType, "application/json")
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
@@ -103,7 +103,7 @@ func (s *ContactSuite) TestContactIntegration() {
 		"email": "invalid-email",
 		"message": ""
 	}`
-	req = httptest.NewRequest(http.MethodPost, "/v1/contact", strings.NewReader(invalidPayload))
+	req = httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(invalidPayload))
 	req.Header.Set(echo.HeaderContentType, "application/json")
 	rec = httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
