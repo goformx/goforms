@@ -60,5 +60,6 @@ func (h *SubscriptionHandler) CreateSubscription(c echo.Context) error {
 
 // Register registers the subscription routes with Echo
 func (h *SubscriptionHandler) Register(e *echo.Echo) {
-	e.POST("/api/subscriptions", h.CreateSubscription)
+	api := e.Group("/api")
+	api.POST("/subscriptions", h.CreateSubscription)
 }
