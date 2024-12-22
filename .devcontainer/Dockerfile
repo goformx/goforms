@@ -10,6 +10,12 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Fix permissions for the Go modules directory
+RUN mkdir -p /go/pkg && chown -R vscode:vscode /go/pkg
+
+# Switch to vscode user for subsequent operations
+USER vscode
+
 # [Optional] Uncomment this section to install additional OS packages.
 # RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 #     && apt-get -y install --no-install-recommends <your-package-list-here>

@@ -68,7 +68,17 @@ func NewLogger() (*zap.Logger, error) {
 }
 
 func NewEcho() *echo.Echo {
-	return echo.New()
+	e := echo.New()
+
+	// Add validator
+	e.Validator = NewValidator()
+
+	// Serve static files
+	e.Static("/static", "static")
+	e.File("/", "static/index.html")
+	e.File("/contact", "static/contact.html")
+
+	return e
 }
 
 func AsModelsDB(db *sqlx.DB) models.DB {

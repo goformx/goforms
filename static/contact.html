@@ -1,0 +1,85 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Contact Demo - Goforms</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">Goforms</a>
+            <div class="nav-links">
+                <a href="/contact">Contact Demo</a>
+                <a href="https://github.com/yourusername/goforms">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        <section class="form-section">
+            <h1>Contact Form Demo</h1>
+            <p>This form demonstrates Goforms' capabilities.</p>
+            
+            <form id="contact-form" action="/api/v1/submit" method="POST">
+                <div class="form-group">
+                    <label for="name">Name</label>
+                    <input type="text" id="name" name="name" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="email">Email</label>
+                    <input type="email" id="email" name="email" required>
+                </div>
+
+                <div class="form-group">
+                    <label for="message">Message</label>
+                    <textarea id="message" name="message" required></textarea>
+                </div>
+
+                <button type="submit" class="button primary">Send Message</button>
+            </form>
+
+            <div id="form-result" class="hidden">
+                <h3>API Response:</h3>
+                <pre><code id="response"></code></pre>
+            </div>
+        </section>
+    </main>
+
+    <script>
+        document.getElementById('contact-form').addEventListener('submit', async (e) => {
+            e.preventDefault();
+            const form = e.target;
+            const result = document.getElementById('form-result');
+            const responseEl = document.getElementById('response');
+
+            try {
+                const response = await fetch(form.action, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({
+                        name: form.name.value,
+                        email: form.email.value,
+                        message: form.message.value,
+                    }),
+                });
+
+                const data = await response.json();
+                result.classList.remove('hidden');
+                responseEl.textContent = JSON.stringify(data, null, 2);
+                
+                if (response.ok) {
+                    form.reset();
+                }
+            } catch (err) {
+                result.classList.remove('hidden');
+                responseEl.textContent = `Error: ${err.message}`;
+            }
+        });
+    </script>
+</body>
+</html> 
