@@ -1,6 +1,6 @@
 version: '3'
 
-dotenv: ['.env']
+dotenv: ['.env', '.env.test']
 
 vars:
   DB_USER: '{{.DB_USER}}'
@@ -17,8 +17,7 @@ vars:
 
 tasks:
   default:
-    cmds:
-      - task: test
+    deps: [test:setup-db]
 
   install:
     desc: Install project dependencies
@@ -39,44 +38,20 @@ tasks:
   test:setup-db:
     desc: Create and setup test database
     cmds:
-      - |
-        mysql -h {{.TEST_DB_HOST}} \
-              -P {{.TEST_DB_PORT}} \
-              -u root \
-              -p{{.DB_ROOT_PASSWORD}} \
-              -e "CREATE DATABASE IF NOT EXISTS {{.TEST_DB_NAME}};"
-      - |
-        mysql -h {{.TEST_DB_HOST}} \
-              -P {{.TEST_DB_PORT}} \
-              -u root \
-              -p{{.DB_ROOT_PASSWORD}} \
-              -e "CREATE USER IF NOT EXISTS '{{.TEST_DB_USER}}'@'%' IDENTIFIED BY '{{.TEST_DB_PASSWORD}}';"
-      - |
-        mysql -h {{.TEST_DB_HOST}} \
-              -P {{.TEST_DB_PORT}} \
-              -u root \
-              -p{{.DB_ROOT_PASSWORD}} \
-              -e "GRANT ALL PRIVILEGES ON {{.TEST_DB_NAME}}.* TO '{{.TEST_DB_USER}}'@'%';"
-      - |
-        mysql -h {{.TEST_DB_HOST}} \
-              -P {{.TEST_DB_PORT}} \
-              -u root \
-              -p{{.DB_ROOT_PASSWORD}} \
-              -e "FLUSH PRIVILEGES;"
-    env:
-      TEST_DB_USER: '{{.TEST_DB_USER}}'
-      TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
-      TEST_DB_NAME: '{{.TEST_DB_NAME}}'
-      TEST_DB_HOST: '{{.TEST_DB_HOST}}'
-      TEST_DB_PORT: '{{.TEST_DB_PORT}}'
+      - mysql -h db -u goforms -pgoforms -e "CREATE DATABASE IF NOT EXISTS goforms;"
+      - mysql -h db -u goforms -pgoforms -e "CREATE DATABASE IF NOT EXISTS goforms_test;"
+
+  test:migrate:
+    desc: Run migrations for both databases
+    cmds:
+      - migrate -database "mysql://goforms:goforms@tcp(db:3306)/goforms" -path migrations up
+      - migrate -database "mysql://goforms:goforms@tcp(db:3306)/goforms_test" -path migrations up
 
   test:
     desc: Run all tests
-    deps: [test:setup-db]
+    deps: [test:setup-db, test:migrate]
     cmds:
-      - task: test:migrate
-      - echo "Testing with DB_USER=$DB_USER DB_HOST=$DB_HOST DB_NAME=$DB_NAME"
-      - go test ./internal/... -coverprofile=coverage.out
+      - go test ./... -v
     env:
       DB_USER: '{{.TEST_DB_USER}}'
       DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
@@ -259,16 +234,3 @@ tasks:
     cmds:
       - task test:setup-db
       - go run cmd/migrate/main.go -database "mysql://{{.TEST_DB_USER}}:{{.TEST_DB_PASSWORD}}@tcp({{.TEST_DB_HOST}}:{{.TEST_DB_PORT}})/{{.TEST_DB_NAME}}" up
-
-  test:migrate:
-    desc: Run migrations for test database
-    cmds:
-      - |
-        migrate -database "mysql://{{.TEST_DB_USER}}:{{.TEST_DB_PASSWORD}}@tcp({{.TEST_DB_HOST}}:{{.TEST_DB_PORT}})/{{.TEST_DB_NAME}}" \
-          -path migrations up
-    env:
-      TEST_DB_USER: '{{.TEST_DB_USER}}'
-      TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
-      TEST_DB_NAME: '{{.TEST_DB_NAME}}'
-      TEST_DB_HOST: '{{.TEST_DB_HOST}}'
-      TEST_DB_PORT: '{{.TEST_DB_PORT}}'

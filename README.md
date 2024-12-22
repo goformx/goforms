@@ -101,6 +101,38 @@ POST /api/subscriptions
 GET /health
 - Health check endpoint
 - Returns service status
+
+### Marketing Website API
+
+```
+GET /v1/marketing/pages
+- List all marketing pages
+- Supports pagination
+- Optional filtering by status
+- Cached responses
+
+GET /v1/marketing/pages/{id}
+- Get specific marketing page
+- Includes SEO metadata
+- Cached responses
+
+POST /v1/marketing/pages
+- Create new marketing page
+- Requires authentication
+- Validates content format
+- Rate limited
+
+PUT /v1/marketing/pages/{id}
+- Update existing page
+- Requires authentication
+- Validates content format
+- Rate limited
+
+GET /v1/marketing/stats
+- Get marketing statistics
+- Requires authentication
+- Supports date range filtering
+- Rate limited
 ```
 
 ### API Versioning

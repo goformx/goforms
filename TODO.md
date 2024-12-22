@@ -126,3 +126,29 @@
   - [ ] Backup/restore functionality
   - [ ] Health check dashboard
   - [ ] System status page
+
+## Current Sprint: Marketing Website API
+- [ ] 1. Database Schema
+  - [ ] Create marketing_pages table migration
+    - [ ] ID, title, content, meta_description
+    - [ ] Status (draft, published, archived)
+    - [ ] SEO fields (meta_title, meta_description, og_image)
+    - [ ] Created_at, updated_at, published_at
+  - [ ] Create marketing_stats table migration
+    - [ ] Page views, unique visitors
+    - [ ] Conversion tracking
+    - [ ] UTM parameter tracking
+
+- [ ] 2. Core Marketing API
+  - [ ] Create marketing module using fx.Module
+  - [ ] Implement page model and validation
+  - [ ] Add CRUD endpoints with OpenAPI annotations
+  - [ ] Add rate limiting and caching
+  - [ ] Implement stats collection middleware
+  - [ ] Add input sanitization for content
+
+- [ ] 3. Testing & Documentation
+  - [ ] Unit tests for marketing models
+  - [ ] Integration tests for marketing API
+  - [ ] Update API documentation
+  - [ ] Add performance benchmarks
