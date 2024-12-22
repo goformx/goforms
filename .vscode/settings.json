@@ -1,11 +1,17 @@
 {
     "cSpell.words": [
         "Buildx",
+        "covermode",
+        "coverprofile",
         "davidanson",
         "devcontainers",
+        "dotenv",
         "eamodio",
+        "GOARCH",
         "Goforms",
+        "golangci",
         "moby",
+        "pgoforms",
         "rootpassword"
     ]
 }
