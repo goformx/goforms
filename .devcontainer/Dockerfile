@@ -10,6 +10,10 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
     && apt-get clean \
     && rm -rf /var/lib/apt/lists/*
 
+# Install Docker Compose
+RUN curl -L "https://github.com/docker/compose/releases/download/2.32.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
+    && chmod +x /usr/local/bin/docker-compose
+
 # Fix permissions for the Go modules directory
 RUN mkdir -p /go/pkg && chown -R vscode:vscode /go/pkg
 
