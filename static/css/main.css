@@ -53,6 +53,7 @@ nav .container {
     color: var(--primary);
     text-decoration: none;
     background: linear-gradient(135deg, var(--primary), var(--accent));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     transition: opacity 0.2s ease;
@@ -109,6 +110,7 @@ nav .container {
     line-height: 1.2;
     margin-bottom: 1.5rem;
     background: linear-gradient(135deg, var(--primary), var(--accent));
+    background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     animation: fadeIn 0.8s ease-out;
