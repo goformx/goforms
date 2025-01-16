@@ -17,6 +17,8 @@ jobs:
         env:
           MYSQL_ROOT_PASSWORD: rootpassword
           MYSQL_DATABASE: goforms_test
+          MYSQL_USER: goforms_test
+          MYSQL_PASSWORD: goforms_test
         ports:
           - 3306:3306
         options: >-
@@ -56,16 +58,23 @@ jobs:
           which migrate
 
       - name: Run migrations
-        run: migrate -database "mysql://root:rootpassword@tcp(localhost:3306)/goforms_test" -path migrations up
+        run: migrate -database "mysql://goforms_test:goforms_test@tcp(localhost:3306)/goforms_test" -path migrations up
 
       - name: Run tests
         run: task test:coverage
         env:
-          DB_USER: root
-          DB_PASSWORD: rootpassword
+          # Regular DB connection
+          DB_USER: goforms_test
+          DB_PASSWORD: goforms_test
           DB_NAME: goforms_test
           DB_HOST: localhost
           DB_PORT: 3306
+          # Test-specific DB connection
+          TEST_DB_USER: goforms_test
+          TEST_DB_PASSWORD: goforms_test
+          TEST_DB_NAME: goforms_test
+          TEST_DB_HOST: localhost
+          TEST_DB_PORT: 3306
 
   build:
     name: Build
