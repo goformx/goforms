@@ -4,6 +4,8 @@ import (
 	"html/template"
 	"net/http"
 	"net/http/httptest"
+	"os"
+	"path/filepath"
 	"strings"
 	"testing"
 
@@ -28,27 +30,71 @@ func TestTemplate_Render(t *testing.T) {
 	assert.Equal(t, "<h1>Test Title</h1>", strings.TrimSpace(rec.Body.String()))
 }
 
-func setupTestMarketingHandler(t *testing.T) (*MarketingHandler, *echo.Echo) {
+func setupTestTemplates(t *testing.T) string {
+	// Create a temporary directory for test templates
+	tmpDir := t.TempDir()
+	templatesDir := filepath.Join(tmpDir, "static", "templates")
+	err := os.MkdirAll(templatesDir, 0755)
+	require.NoError(t, err)
+
+	// Create test templates
+	templates := map[string]string{
+		"layout.html":  `{{ define "base" }}<!DOCTYPE html><html><head><title>{{.Title}}</title></head><body>{{ template "content" . }}</body></html>{{ end }}`,
+		"index.html":   `{{ define "content" }}<h1>Modern Form Handling</h1>{{ end }}`,
+		"contact.html": `{{ define "content" }}<h1>Contact Form Demo</h1>{{ end }}`,
+	}
+
+	for name, content := range templates {
+		err := os.WriteFile(filepath.Join(templatesDir, name), []byte(content), 0644)
+		require.NoError(t, err)
+	}
+
+	return tmpDir
+}
+
+func setupTestMarketingHandler(t *testing.T) (*MarketingHandler, *echo.Echo, func()) {
 	logger, _ := zap.NewDevelopment()
-	templates := template.Must(template.ParseGlob("testdata/templates/*.html"))
+
+	// Create test templates inline
+	templates := template.Must(template.New("base").Parse(`
+		{{ define "base" }}<!DOCTYPE html><html><head><title>{{.Title}}</title></head><body>{{ template "content" . }}</body></html>{{ end }}
+		{{ define "index.html" }}{{ template "base" . }}{{ end }}
+		{{ define "contact.html" }}{{ template "base" . }}{{ end }}
+		{{ define "content" }}<h1>{{.Title}}</h1>{{ end }}
+	`))
+
 	handler := &MarketingHandler{
 		logger:    logger,
 		templates: templates,
 	}
 	e := echo.New()
 	e.Renderer = &Template{templates: templates}
-	return handler, e
+	return handler, e, func() {}
 }
 
 func TestNewMarketingHandler(t *testing.T) {
-	handler, _ := setupTestMarketingHandler(t)
+	// Set up test templates
+	tmpDir := setupTestTemplates(t)
+
+	// Change to temp dir for test
+	oldWd, err := os.Getwd()
+	require.NoError(t, err)
+	err = os.Chdir(tmpDir)
+	require.NoError(t, err)
+	defer func() {
+		os.Chdir(oldWd)
+	}()
+
+	logger, _ := zap.NewDevelopment()
+	handler := NewMarketingHandler(logger)
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.templates)
 	assert.NotNil(t, handler.logger)
 }
 
 func TestMarketingHandler_HomePage(t *testing.T) {
-	handler, e := setupTestMarketingHandler(t)
+	handler, e, cleanup := setupTestMarketingHandler(t)
+	defer cleanup()
 
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
@@ -61,7 +107,8 @@ func TestMarketingHandler_HomePage(t *testing.T) {
 }
 
 func TestMarketingHandler_ContactPage(t *testing.T) {
-	handler, e := setupTestMarketingHandler(t)
+	handler, e, cleanup := setupTestMarketingHandler(t)
+	defer cleanup()
 
 	req := httptest.NewRequest(http.MethodGet, "/contact", nil)
 	rec := httptest.NewRecorder()
@@ -74,7 +121,8 @@ func TestMarketingHandler_ContactPage(t *testing.T) {
 }
 
 func TestMarketingHandler_Register(t *testing.T) {
-	handler, e := setupTestMarketingHandler(t)
+	handler, e, cleanup := setupTestMarketingHandler(t)
+	defer cleanup()
 	handler.Register(e)
 
 	routes := e.Routes()

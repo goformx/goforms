@@ -256,4 +256,39 @@ nav .container {
         background: #1e293b;
         border-color: #334155;
     }
+}
+
+/* Footer */
+footer {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    padding: 2rem 0;
+    margin-top: 4rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+footer .container {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 1rem;
+}
+
+footer a {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+footer a:hover {
+    color: var(--accent);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    footer {
+        background: rgba(30, 41, 59, 0.8);
+        border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
 } 
