@@ -25,7 +25,7 @@ func TestTemplate_Render(t *testing.T) {
 		"Title": "Test Title",
 	}
 
-	err := renderer.Render(rec, "test", data, c)
+	err := renderer.Render(rec, "base", data, c)
 	assert.NoError(t, err)
 	assert.Equal(t, "<h1>Test Title</h1>", strings.TrimSpace(rec.Body.String()))
 }
@@ -40,7 +40,7 @@ func setupTestTemplates(t *testing.T) string {
 	// Create test templates
 	templates := map[string]string{
 		"layout.html":  `{{ define "base" }}<!DOCTYPE html><html><head><title>{{.Title}}</title></head><body>{{ template "content" . }}</body></html>{{ end }}`,
-		"index.html":   `{{ define "content" }}<h1>Modern Form Handling</h1>{{ end }}`,
+		"index.html":   `{{ define "content" }}<h1>Free Form Backend Service</h1>{{ end }}`,
 		"contact.html": `{{ define "content" }}<h1>Contact Form Demo</h1>{{ end }}`,
 	}
 
@@ -58,8 +58,6 @@ func setupTestMarketingHandler(t *testing.T) (*MarketingHandler, *echo.Echo, fun
 	// Create test templates inline
 	templates := template.Must(template.New("base").Parse(`
 		{{ define "base" }}<!DOCTYPE html><html><head><title>{{.Title}}</title></head><body>{{ template "content" . }}</body></html>{{ end }}
-		{{ define "index.html" }}{{ template "base" . }}{{ end }}
-		{{ define "contact.html" }}{{ template "base" . }}{{ end }}
 		{{ define "content" }}<h1>{{.Title}}</h1>{{ end }}
 	`))
 
@@ -103,7 +101,7 @@ func TestMarketingHandler_HomePage(t *testing.T) {
 	err := handler.HomePage(c)
 	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Modern Form Handling")
+	assert.Contains(t, rec.Body.String(), "Form Backend")
 }
 
 func TestMarketingHandler_ContactPage(t *testing.T) {
