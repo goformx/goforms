@@ -30,6 +30,7 @@ func NewModule() fx.Option {
 				fx.As(new(handlers.PingContexter)),
 			),
 			handlers.NewHealthHandler,
+			handlers.NewMarketingHandler,
 			NewApp,
 			models.NewContactStore,
 			handlers.NewContactHandler,
