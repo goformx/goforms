@@ -67,7 +67,10 @@ func setupTestMarketingHandler(t *testing.T) (*MarketingHandler, *echo.Echo, fun
 	}
 	e := echo.New()
 	e.Renderer = &Template{templates: templates}
-	return handler, e, func() {}
+	return handler, e, func() {
+		// Cleanup function can use t for test assertions if needed
+		t.Cleanup(func() {})
+	}
 }
 
 func TestNewMarketingHandler(t *testing.T) {
