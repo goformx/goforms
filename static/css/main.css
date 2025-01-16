@@ -81,10 +81,11 @@ nav .container {
 
 /* Hero Section */
 .hero {
-    padding: 160px 0 100px;
+    padding: 120px 0 80px;
     background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
     position: relative;
     overflow: hidden;
+    min-height: calc(100vh - 400px);
 }
 
 .hero::before {
