@@ -15,10 +15,8 @@ jobs:
       mariadb:
         image: mariadb:10.11
         env:
-          MARIADB_ROOT_PASSWORD: rootpassword
-          MARIADB_USER: goforms_test
-          MARIADB_PASSWORD: goforms_test
-          MARIADB_DATABASE: goforms_test
+          MYSQL_ROOT_PASSWORD: rootpassword
+          MYSQL_DATABASE: goforms_test
         ports:
           - 3306:3306
         options: >-
@@ -58,22 +56,14 @@ jobs:
           which migrate
 
       - name: Run migrations
-        run: task migrate:up
-        env:
-          MARIADB_ROOT_PASSWORD: rootpassword
-          MARIADB_USER: goforms
-          MARIADB_PASSWORD: goforms
-          MARIADB_DATABASE: goforms_test
-          DB_HOST: localhost
-          DB_PORT: 3306
+        run: migrate -database "mysql://root:rootpassword@tcp(localhost:3306)/goforms_test" -path migrations up
 
       - name: Run tests
         run: task test:coverage
         env:
-          MARIADB_ROOT_PASSWORD: rootpassword
-          MARIADB_USER: goforms
-          MARIADB_PASSWORD: goforms
-          MARIADB_DATABASE: goforms_test
+          DB_USER: root
+          DB_PASSWORD: rootpassword
+          DB_NAME: goforms_test
           DB_HOST: localhost
           DB_PORT: 3306
 
