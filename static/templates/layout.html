@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>{{ .Title }} - Goforms</title>
+    <link rel="stylesheet" href="/static/css/main.css">
+    {{ block "styles" . }}{{ end }}
+</head>
+<body>
+    <nav>
+        <div class="container">
+            <a href="/" class="logo">Goforms</a>
+            <div class="nav-links">
+                <a href="/contact">Contact Demo</a>
+                <a href="https://github.com/jonesrussell/goforms">GitHub</a>
+            </div>
+        </div>
+    </nav>
+
+    <main class="container">
+        {{ block "content" . }}{{ end }}
+    </main>
+
+    <footer>
+        <div class="container">
+            Created by <a href="https://jonesrussell.github.io/me/" target="_blank" rel="noopener noreferrer">Russell Jones</a>
+        </div>
+    </footer>
+
+    {{ block "scripts" . }}{{ end }}
+</body>
+</html> 
