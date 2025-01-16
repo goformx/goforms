@@ -16,7 +16,7 @@ type Template struct {
 
 // Render implements echo.Renderer
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return t.templates.ExecuteTemplate(w, "base", data)
+	return t.templates.ExecuteTemplate(w, name, data)
 }
 
 // MarketingHandler handles marketing page requests
@@ -42,8 +42,8 @@ func NewMarketingHandler(logger *zap.Logger) *MarketingHandler {
 // @Success 200 {string} html
 // @Router / [get]
 func (h *MarketingHandler) HomePage(c echo.Context) error {
-	return c.Render(http.StatusOK, "index.html", map[string]interface{}{
-		"Title": "Modern Form Handling",
+	return c.Render(http.StatusOK, "base", map[string]interface{}{
+		"Title": "Form Backend",
 	})
 }
 
@@ -55,7 +55,7 @@ func (h *MarketingHandler) HomePage(c echo.Context) error {
 // @Success 200 {string} html
 // @Router /contact [get]
 func (h *MarketingHandler) ContactPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "contact.html", map[string]interface{}{
+	return c.Render(http.StatusOK, "base", map[string]interface{}{
 		"Title": "Contact Form Demo",
 	})
 }
