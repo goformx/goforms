@@ -24,6 +24,22 @@ func NewContactHandler(logger *zap.Logger, store models.ContactStore) *ContactHa
 	}
 }
 
+// GetContacts returns all contact form submissions
+func (h *ContactHandler) GetContacts(c echo.Context) error {
+	ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
+	defer cancel()
+
+	submissions, err := h.store.GetContacts(ctx)
+	if err != nil {
+		h.logger.Error("failed to get contact submissions",
+			zap.Error(err),
+		)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to get submissions")
+	}
+
+	return c.JSON(http.StatusOK, submissions)
+}
+
 // CreateContact handles new contact form submissions
 func (h *ContactHandler) CreateContact(c echo.Context) error {
 	// Add timeout context
@@ -59,5 +75,6 @@ func (h *ContactHandler) CreateContact(c echo.Context) error {
 // Register registers the contact form routes with Echo
 func (h *ContactHandler) Register(e *echo.Echo) {
 	g := e.Group("/api")
+	g.GET("/contact", h.GetContacts)
 	g.POST("/contact", h.CreateContact)
 }

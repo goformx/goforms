@@ -42,6 +42,7 @@ func (c *ContactSubmission) Validate() error {
 
 type ContactStore interface {
 	CreateContact(ctx context.Context, contact *ContactSubmission) error
+	GetContacts(ctx context.Context) ([]ContactSubmission, error)
 }
 
 type contactStore struct {
@@ -53,21 +54,35 @@ func NewContactStore(db DB) ContactStore {
 }
 
 func (s *contactStore) CreateContact(ctx context.Context, contact *ContactSubmission) error {
-	ctx, cancel := context.WithTimeout(ctx, 5*time.Second)
-	defer cancel()
-
 	query := `
 		INSERT INTO contact_submissions (name, email, message, created_at)
-		VALUES (?, ?, ?, ?)
-		RETURNING id`
+		VALUES (?, ?, ?, NOW())
+	`
+	result, err := s.db.ExecContext(ctx, query, contact.Name, contact.Email, contact.Message)
+	if err != nil {
+		return err
+	}
 
+	id, err := result.LastInsertId()
+	if err != nil {
+		return err
+	}
+
+	contact.ID = id
 	contact.CreatedAt = time.Now()
-	row := s.db.QueryRowxContext(ctx, query,
-		contact.Name,
-		contact.Email,
-		contact.Message,
-		contact.CreatedAt,
-	)
+	return nil
+}
 
-	return row.Scan(&contact.ID)
+func (s *contactStore) GetContacts(ctx context.Context) ([]ContactSubmission, error) {
+	query := `
+		SELECT id, name, email, message, created_at
+		FROM contact_submissions
+		ORDER BY created_at DESC
+		LIMIT 100
+	`
+	var submissions []ContactSubmission
+	if err := s.db.SelectContext(ctx, &submissions, query); err != nil {
+		return nil, err
+	}
+	return submissions, nil
 }
