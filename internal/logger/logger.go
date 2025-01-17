@@ -6,19 +6,24 @@ import (
 	"go.uber.org/zap"
 )
 
+type Logger struct {
+	instance *zap.Logger
+}
+
 var (
-	once   sync.Once
-	logger *zap.Logger
+	loggerInstance *Logger
+	once           sync.Once
 )
 
 // GetLogger returns a singleton instance of the zap.Logger
 func GetLogger() *zap.Logger {
 	once.Do(func() {
 		var err error
-		logger, err = zap.NewDevelopment()
+		zapLogger, err := zap.NewDevelopment()
 		if err != nil {
 			panic("Failed to initialize logger: " + err.Error())
 		}
+		loggerInstance = &Logger{instance: zapLogger}
 	})
-	return logger
+	return loggerInstance.instance
 }
