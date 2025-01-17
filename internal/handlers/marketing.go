@@ -16,7 +16,12 @@ type Template struct {
 
 // Render implements echo.Renderer
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	return t.templates.ExecuteTemplate(w, "base", data)
+	// Remove .html suffix if present
+	templateName := name
+	if len(name) > 5 && name[len(name)-5:] == ".html" {
+		templateName = name[:len(name)-5]
+	}
+	return t.templates.ExecuteTemplate(w, templateName, data)
 }
 
 // MarketingHandler handles marketing page requests
@@ -41,7 +46,7 @@ func NewMarketingHandler(logger *zap.Logger, templates *template.Template) *Mark
 // @Success 200 {string} html
 // @Router / [get]
 func (h *MarketingHandler) HomePage(c echo.Context) error {
-	return c.Render(http.StatusOK, "home.html", nil)
+	return c.Render(http.StatusOK, "home", nil)
 }
 
 // ContactPage renders the contact form demo page
@@ -52,7 +57,7 @@ func (h *MarketingHandler) HomePage(c echo.Context) error {
 // @Success 200 {string} html
 // @Router /contact [get]
 func (h *MarketingHandler) ContactPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "contact.html", nil)
+	return c.Render(http.StatusOK, "contact", nil)
 }
 
 // Register registers the marketing routes and sets up the template renderer
