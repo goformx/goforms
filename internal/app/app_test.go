@@ -67,7 +67,10 @@ func TestAppIntegration(t *testing.T) {
 	)
 
 	require.NoError(t, testApp.Start(context.Background()))
-	defer testApp.Stop(context.Background())
+	defer func() {
+		err := testApp.Stop(context.Background())
+		require.NoError(t, err)
+	}()
 
 	// Test health check endpoint
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
