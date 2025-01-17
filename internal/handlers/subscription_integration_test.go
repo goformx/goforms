@@ -10,6 +10,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql" // Import MySQL driver
 	"github.com/jmoiron/sqlx"
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/suite"
@@ -24,6 +25,7 @@ type SubscriptionSuite struct {
 }
 
 func (s *SubscriptionSuite) SetupSuite() {
+	s.logger = logger.GetLogger()
 	var err error
 
 	// Initialize logger first
@@ -67,7 +69,7 @@ func (s *SubscriptionSuite) TearDownSuite() {
 func (s *SubscriptionSuite) TestSubscriptionIntegration() {
 	// Setup test server
 	e := echo.New()
-	handler := NewSubscriptionHandler(s.logger, s.store)
+	handler := NewSubscriptionHandler(s.store)
 	handler.Register(e)
 
 	// Test valid subscription

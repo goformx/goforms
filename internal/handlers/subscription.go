@@ -7,20 +7,17 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 // SubscriptionHandler handles subscription-related requests
 type SubscriptionHandler struct {
-	logger *zap.Logger
-	store  models.SubscriptionStore
+	store models.SubscriptionStore
 }
 
 // NewSubscriptionHandler creates a new subscription handler
-func NewSubscriptionHandler(logger *zap.Logger, store models.SubscriptionStore) *SubscriptionHandler {
+func NewSubscriptionHandler(store models.SubscriptionStore) *SubscriptionHandler {
 	return &SubscriptionHandler{
-		logger: logger,
-		store:  store,
+		store: store,
 	}
 }
 

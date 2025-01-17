@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 type MockSubscriptionStore struct {
@@ -46,9 +45,8 @@ const validOrigin = "https://jonesrussell.github.io/me"
 func setupTestHandler() (*echo.Echo, *SubscriptionHandler) {
 	e := echo.New()
 	e.Use(middleware.Recover())
-	logger, _ := zap.NewDevelopment()
 	store := &MockSubscriptionStore{}
-	handler := NewSubscriptionHandler(logger, store)
+	handler := NewSubscriptionHandler(store)
 	return e, handler
 }
 

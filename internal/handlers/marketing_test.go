@@ -9,10 +9,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	"go.uber.org/zap"
 )
 
 func TestTemplate_Render(t *testing.T) {
@@ -53,7 +53,7 @@ func setupTestTemplates(t *testing.T) string {
 }
 
 func setupTestMarketingHandler(t *testing.T) (*MarketingHandler, *echo.Echo, func()) {
-	logger, _ := zap.NewDevelopment()
+	logger := logger.GetLogger()
 
 	// Create test templates inline
 	templates := template.Must(template.New("base").Parse(`
@@ -79,14 +79,18 @@ func TestNewMarketingHandler(t *testing.T) {
 
 	// Change to temp dir for test
 	oldWd, err := os.Getwd()
-	require.NoError(t, err)
+	if err != nil {
+		t.Fatalf("Failed to get current working directory: %v", err)
+	}
+	defer func() {
+		if err := os.Chdir(oldWd); err != nil {
+			t.Errorf("Failed to change back to original directory: %v", err)
+		}
+	}()
 	err = os.Chdir(tmpDir)
 	require.NoError(t, err)
-	defer func() {
-		os.Chdir(oldWd)
-	}()
 
-	logger, _ := zap.NewDevelopment()
+	logger := logger.GetLogger()
 	handler := NewMarketingHandler(logger)
 	assert.NotNil(t, handler)
 	assert.NotNil(t, handler.templates)
