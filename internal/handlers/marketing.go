@@ -46,7 +46,9 @@ func NewMarketingHandler(logger *zap.Logger, templates *template.Template) *Mark
 // @Success 200 {string} html
 // @Router / [get]
 func (h *MarketingHandler) HomePage(c echo.Context) error {
-	return c.Render(http.StatusOK, "home", nil)
+	return c.Render(http.StatusOK, "base", map[string]interface{}{
+		"Title": "Home",
+	})
 }
 
 // ContactPage renders the contact form demo page
