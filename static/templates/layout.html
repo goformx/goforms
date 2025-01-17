@@ -21,8 +21,8 @@
         </div>
     </nav>
 
-    <main>
-        {{ template "content" . }}
+    <main class="container">
+        {{ block "content" . }}{{ end }}
     </main>
 
     <footer>

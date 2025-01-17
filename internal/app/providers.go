@@ -2,7 +2,6 @@ package app
 
 import (
 	"html/template"
-	"path/filepath"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/models"
@@ -58,6 +57,11 @@ func AsModelsDB(db *sqlx.DB) models.DB {
 
 // NewTemplateProvider creates and returns a template provider
 func NewTemplateProvider() *template.Template {
-	// Parse all templates in the static/templates directory
-	return template.Must(template.ParseGlob(filepath.Join("static", "templates", "*.html")))
+	// First parse the base template
+	tmpl := template.Must(template.ParseFiles("static/templates/layout.html"))
+
+	// Then parse all other templates that use the base
+	template.Must(tmpl.ParseGlob("static/templates/*.html"))
+
+	return tmpl
 }

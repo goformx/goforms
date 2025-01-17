@@ -15,6 +15,7 @@ type App struct {
 	server     *server.Server
 	middleware *middleware.Manager
 	handlers   *handlers.SubscriptionHandler
+	logger     *zap.Logger
 }
 
 func NewApp(
@@ -34,6 +35,7 @@ func NewApp(
 		server:     srv,
 		middleware: mw,
 		handlers:   handler,
+		logger:     logger,
 	}
 
 	// Setup order: middleware -> handlers -> lifecycle hooks
@@ -64,4 +66,9 @@ func NewModule() fx.Option {
 			// Add other providers as needed
 		),
 	)
+}
+
+// RegisterHooks sets up the application hooks
+func RegisterHooks(app *App) {
+	app.logger.Info("Application started successfully")
 }

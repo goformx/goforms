@@ -14,14 +14,10 @@ import (
 )
 
 func main() {
-	log := logger.GetLogger()
+	// Try to load .env file
+	_ = godotenv.Load()
 
-	// Try to load .env file, but don't panic if it doesn't exist
-	if err := godotenv.Load(); err != nil {
-		log.Warn("No .env file found, using environment variables")
-	}
-
-	app := fx.New(
+	fx.New(
 		fx.Provide(
 			logger.GetLogger,
 			config.New,
@@ -38,13 +34,9 @@ func main() {
 			handlers.NewContactHandler,
 			app.NewApp,
 		),
-		fx.Invoke(func(a *app.App) {
-			log.Info("Application started successfully")
-		}),
+		fx.Invoke(app.RegisterHooks),
 		fx.WithLogger(func() fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: log}
+			return &fxevent.ZapLogger{Logger: logger.GetLogger()}
 		}),
-	)
-
-	app.Run()
+	).Run()
 }

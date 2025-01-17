@@ -16,12 +16,14 @@ type Template struct {
 
 // Render implements echo.Renderer
 func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	// Remove .html suffix if present
-	templateName := name
-	if len(name) > 5 && name[len(name)-5:] == ".html" {
-		templateName = name[:len(name)-5]
+	var dataMap map[string]interface{}
+	if data == nil {
+		dataMap = make(map[string]interface{})
+	} else {
+		dataMap = data.(map[string]interface{})
 	}
-	return t.templates.ExecuteTemplate(w, templateName, data)
+
+	return t.templates.ExecuteTemplate(w, name, dataMap)
 }
 
 // MarketingHandler handles marketing page requests
@@ -59,7 +61,9 @@ func (h *MarketingHandler) HomePage(c echo.Context) error {
 // @Success 200 {string} html
 // @Router /contact [get]
 func (h *MarketingHandler) ContactPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "contact", nil)
+	return c.Render(http.StatusOK, "base", map[string]interface{}{
+		"Title": "Contact Demo",
+	})
 }
 
 // Register registers the marketing routes and sets up the template renderer
