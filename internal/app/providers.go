@@ -1,43 +1,15 @@
 package app
 
 import (
-	"github.com/ipfans/fxlogger"
+	"html/template"
+	"log"
+
 	"github.com/jmoiron/sqlx"
-	"github.com/jonesrussell/goforms/internal/config"
-	"github.com/jonesrussell/goforms/internal/database"
-	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/fx"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
-
-// Module exports all app providers
-func NewModule() fx.Option {
-	return fx.Options(
-		fx.WithLogger(fxlogger.Default()),
-		fx.Provide(
-			config.New,
-			NewLogger,
-			database.New,
-			NewEcho,
-			AsModelsDB,
-			models.NewSubscriptionStore,
-			handlers.NewSubscriptionHandler,
-			fx.Annotate(
-				database.New,
-				fx.As(new(handlers.PingContexter)),
-			),
-			handlers.NewHealthHandler,
-			handlers.NewMarketingHandler,
-			NewApp,
-			models.NewContactStore,
-			handlers.NewContactHandler,
-		),
-		fx.Invoke(func(_ *App) {}),
-	)
-}
 
 func NewLogger() (*zap.Logger, error) {
 	config := zap.Config{
@@ -84,4 +56,13 @@ func NewEcho() *echo.Echo {
 
 func AsModelsDB(db *sqlx.DB) models.DB {
 	return db
+}
+
+// NewTemplateProvider parses and returns the HTML templates
+func NewTemplateProvider() *template.Template {
+	templates, err := template.ParseGlob("templates/*.html")
+	if err != nil {
+		log.Fatalf("Failed to parse templates: %v", err)
+	}
+	return templates
 }

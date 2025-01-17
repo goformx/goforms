@@ -26,8 +26,7 @@ type MarketingHandler struct {
 }
 
 // NewMarketingHandler creates a new marketing handler
-func NewMarketingHandler(logger *zap.Logger) *MarketingHandler {
-	templates := template.Must(template.ParseGlob("static/templates/*.html"))
+func NewMarketingHandler(logger *zap.Logger, templates *template.Template) *MarketingHandler {
 	return &MarketingHandler{
 		logger:    logger,
 		templates: templates,
@@ -42,9 +41,7 @@ func NewMarketingHandler(logger *zap.Logger) *MarketingHandler {
 // @Success 200 {string} html
 // @Router / [get]
 func (h *MarketingHandler) HomePage(c echo.Context) error {
-	return c.Render(http.StatusOK, "base", map[string]interface{}{
-		"Title": "Form Backend",
-	})
+	return c.Render(http.StatusOK, "home.html", nil)
 }
 
 // ContactPage renders the contact form demo page
@@ -55,9 +52,7 @@ func (h *MarketingHandler) HomePage(c echo.Context) error {
 // @Success 200 {string} html
 // @Router /contact [get]
 func (h *MarketingHandler) ContactPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "base", map[string]interface{}{
-		"Title": "Contact Form Demo",
-	})
+	return c.Render(http.StatusOK, "contact.html", nil)
 }
 
 // Register registers the marketing routes and sets up the template renderer

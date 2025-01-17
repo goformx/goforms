@@ -50,3 +50,18 @@ func NewApp(
 
 	return app
 }
+
+func NewModule() fx.Option {
+	return fx.Options(
+		fx.Provide(
+			NewLogger,
+			NewEcho,
+			NewTemplateProvider,
+			handlers.NewMarketingHandler,
+			handlers.NewSubscriptionHandler,
+			handlers.NewHealthHandler,
+			handlers.NewContactHandler,
+			// Add other providers as needed
+		),
+	)
+}
