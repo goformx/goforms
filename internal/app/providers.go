@@ -2,7 +2,7 @@ package app
 
 import (
 	"html/template"
-	"log"
+	"path/filepath"
 
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/models"
@@ -48,8 +48,6 @@ func NewEcho() *echo.Echo {
 
 	// Serve static files
 	e.Static("/static", "static")
-	e.File("/", "static/index.html")
-	e.File("/contact", "static/contact.html")
 
 	return e
 }
@@ -58,11 +56,8 @@ func AsModelsDB(db *sqlx.DB) models.DB {
 	return db
 }
 
-// NewTemplateProvider parses and returns the HTML templates
+// NewTemplateProvider creates and returns a template provider
 func NewTemplateProvider() *template.Template {
-	templates, err := template.ParseGlob("templates/*.html")
-	if err != nil {
-		log.Fatalf("Failed to parse templates: %v", err)
-	}
-	return templates
+	// Parse all templates in the static/templates directory
+	return template.Must(template.ParseGlob(filepath.Join("static", "templates", "*.html")))
 }
