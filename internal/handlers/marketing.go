@@ -48,7 +48,7 @@ func NewMarketingHandler(logger *zap.Logger, templates *template.Template) *Mark
 // @Success 200 {string} html
 // @Router / [get]
 func (h *MarketingHandler) HomePage(c echo.Context) error {
-	return c.Render(http.StatusOK, "base", map[string]interface{}{
+	return c.Render(http.StatusOK, "index", map[string]interface{}{
 		"Title": "Home",
 	})
 }
@@ -61,7 +61,7 @@ func (h *MarketingHandler) HomePage(c echo.Context) error {
 // @Success 200 {string} html
 // @Router /contact [get]
 func (h *MarketingHandler) ContactPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "base", map[string]interface{}{
+	return c.Render(http.StatusOK, "contact", map[string]interface{}{
 		"Title": "Contact Demo",
 	})
 }

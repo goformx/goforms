@@ -57,11 +57,5 @@ func AsModelsDB(db *sqlx.DB) models.DB {
 
 // NewTemplateProvider creates and returns a template provider
 func NewTemplateProvider() *template.Template {
-	// First parse the base template
-	tmpl := template.Must(template.ParseFiles("static/templates/layout.html"))
-
-	// Then parse all other templates that use the base
-	template.Must(tmpl.ParseGlob("static/templates/*.html"))
-
-	return tmpl
+	return template.Must(template.ParseGlob("static/templates/*.html"))
 }
