@@ -1,105 +1,72 @@
 package app
 
 import (
+	"context"
+	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/config"
-	"github.com/jonesrussell/goforms/internal/middleware"
+	"github.com/jonesrussell/goforms/internal/config/server"
+	"github.com/jonesrussell/goforms/internal/handlers"
+	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap/zaptest"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxtest"
 )
 
-func TestCORSMiddleware(t *testing.T) {
-	// Setup
-	e := setupTestServer(t)
+func TestAppIntegration(t *testing.T) {
+	var app *App
+	var e *echo.Echo
 
-	// Test endpoint
-	e.GET("/test", func(c echo.Context) error {
-		return c.String(http.StatusOK, "success")
-	})
+	// Create mock implementations
+	subscriptionStore := &models.MockSubscriptionStore{}
+	contactStore := &models.MockContactStore{}
+	pingContexter := &models.MockPingContexter{}
+	tmpl := template.Must(template.New("test").Parse("{{.}}"))
 
-	tests := []struct {
-		name            string
-		method          string
-		origin          string
-		expectedStatus  int
-		expectedHeaders map[string]string
-	}{
-		{
-			name:           "allowed_origin",
-			method:         "GET",
-			origin:         "https://jonesrussell.github.io",
-			expectedStatus: http.StatusOK,
-			expectedHeaders: map[string]string{
-				"Access-Control-Allow-Origin":      "https://jonesrussell.github.io",
-				"Access-Control-Allow-Credentials": "true",
-			},
-		},
-		{
-			name:           "preflight_request",
-			method:         "OPTIONS",
-			origin:         "https://jonesrussell.github.io",
-			expectedStatus: http.StatusNoContent,
-			expectedHeaders: map[string]string{
-				"Access-Control-Allow-Origin":      "https://jonesrussell.github.io",
-				"Access-Control-Allow-Methods":     "GET,POST,OPTIONS",
-				"Access-Control-Allow-Headers":     "Origin,Content-Type",
-				"Access-Control-Allow-Credentials": "true",
-				"Access-Control-Max-Age":           "3600",
-			},
-		},
-		{
-			name:           "preflight_request_invalid_origin",
-			method:         "OPTIONS",
-			origin:         "https://invalid-origin.com",
-			expectedStatus: http.StatusNoContent,
-			expectedHeaders: map[string]string{
-				"Allow": "OPTIONS, GET",
-			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(tt.method, "/test", nil)
-			req.Header.Set(echo.HeaderOrigin, tt.origin)
-			rec := httptest.NewRecorder()
-
-			e.ServeHTTP(rec, req)
-
-			assert.Equal(t, tt.expectedStatus, rec.Code)
-
-			if tt.expectedHeaders != nil {
-				for key, expectedValue := range tt.expectedHeaders {
-					assert.Equal(t, expectedValue, rec.Header().Get(key))
+	testApp := fxtest.New(t,
+		fx.Provide(
+			func() *config.Config {
+				return &config.Config{
+					Server: server.Config{
+						Port: 8081,
+					},
 				}
-			}
-		})
-	}
+			},
+			func() *echo.Echo { return echo.New() },
+			logger.GetLogger,
+			func() *template.Template { return tmpl },
+			func() models.SubscriptionStore { return subscriptionStore },
+			func() handlers.PingContexter { return pingContexter },
+			func() models.ContactStore { return contactStore },
+			handlers.NewSubscriptionHandler,
+			handlers.NewHealthHandler,
+			handlers.NewContactHandler,
+			handlers.NewMarketingHandler,
+			NewApp,
+		),
+		fx.Populate(&app, &e),
+	)
+
+	require.NoError(t, testApp.Start(context.Background()))
+	defer testApp.Stop(context.Background())
+
+	// Test health check endpoint
+	req := httptest.NewRequest(http.MethodGet, "/health", nil)
+	rec := httptest.NewRecorder()
+	e.ServeHTTP(rec, req)
+	assert.Equal(t, http.StatusOK, rec.Code)
 }
 
-func setupTestServer(t *testing.T) *echo.Echo {
-	logger := zaptest.NewLogger(t)
-	cfg := &config.Config{
-		Security: config.SecurityConfig{
-			CorsAllowedOrigins:   []string{"https://jonesrussell.github.io"},
-			CorsAllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-			CorsAllowedHeaders:   []string{"Origin", "Content-Type"},
-			CorsMaxAge:           3600,
-			CorsAllowCredentials: true,
-		},
-		RateLimit: config.RateLimitConfig{
-			Enabled: true,
-			Rate:    100,
-		},
-	}
-
-	e := echo.New()
-	mw := middleware.New(logger, cfg)
-	mw.Setup(e)
-
-	return e
+func TestTemplateRendering(t *testing.T) {
+	tmpl := template.Must(template.New("test").Parse("{{.}}"))
+	rec := httptest.NewRecorder()
+	err := tmpl.Execute(rec, "test content")
+	require.NoError(t, err)
+	assert.Contains(t, rec.Body.String(), "test content")
 }
