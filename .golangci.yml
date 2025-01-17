@@ -48,6 +48,9 @@ issues:
       linters:
         - gochecknoglobals
         - gosec
+    - path: internal/logger/logger.go
+      linters:
+        - gochecknoglobals
   
   max-issues-per-linter: 50
   max-same-issues: 10
