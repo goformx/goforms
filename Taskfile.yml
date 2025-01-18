@@ -24,6 +24,7 @@ tasks:
     cmds:
       - go mod download
       - go mod tidy
+      - go install github.com/air-verse/air@latest
 
   build:
     desc: Build the application
@@ -31,9 +32,10 @@ tasks:
       - go build -o bin/goforms ./cmd/goforms
 
   run:
-    desc: Run the application
+    desc: Run the application with hot reload
+    deps: [install]
     cmds:
-      - go run ./cmd/goforms
+      - air
 
   test:setup-db:
     desc: Create and setup test database
