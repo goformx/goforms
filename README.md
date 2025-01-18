@@ -5,6 +5,7 @@ A modern Go web application for form management with MariaDB backend.
 ## Features
 
 ✨ **Core Features**
+
 - Form Management System
 - Contact Submissions
 - Email Subscriptions
@@ -13,6 +14,7 @@ A modern Go web application for form management with MariaDB backend.
 - MariaDB Database
 
 🛠️ **Technical Features**
+
 - Clean Architecture
 - Dependency Injection (Uber FX)
 - Type-safe Templates (templ)
@@ -28,6 +30,7 @@ A modern Go web application for form management with MariaDB backend.
    - Git
 
 2. Clone and Setup:
+
    ```bash
    git clone https://github.com/jonesrussell/goforms.git
    cd goforms

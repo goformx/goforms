@@ -115,4 +115,4 @@ Using Uber's fx for:
 - [Detailed Layer Design](./layers.md)
 - [Component Design](./components.md)
 - [Data Flow](./data-flow.md)
-- [Dependencies](./dependencies.md) 
+- [Dependencies](./dependencies.md)

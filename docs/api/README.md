@@ -71,4 +71,4 @@ Standard HTTP status codes are used:
 - [Contact API](./contact.md)
 - [Subscription API](./subscription.md)
 - [Error Codes](./errors.md)
-- [Rate Limiting](./rate-limiting.md) 
+- [Rate Limiting](./rate-limiting.md)
