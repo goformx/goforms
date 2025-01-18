@@ -6,6 +6,7 @@ linters:
     - revive        # Drop-in replacement for golint
     - govet         # Reports suspicious constructs
     - staticcheck   # Advanced static analysis
+    - wrapcheck     # Checks that errors are wrapped with context
     
     # Code quality linters
     - dogsled       # Checks for too many blank identifiers
@@ -29,6 +30,19 @@ linters-settings:
     forbidden-imports:
       - pattern: "go.uber.org/zap"
         except: ["github.com/jonesrussell/goforms/internal/logger"]
+
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+    ignorePackageGlobs:
+      - github.com/jonesrussell/goforms/internal/logger
+      - github.com/labstack/echo/v4
 
   revive:
     rules:
@@ -54,6 +68,7 @@ issues:
       linters:
         - gochecknoglobals
         - gosec
+        - wrapcheck
     - path: internal/logger/logger.go
       linters:
         - gochecknoglobals

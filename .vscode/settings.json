@@ -13,5 +13,8 @@
         "moby",
         "pgoforms",
         "rootpassword"
+    ],
+    "markdownlint.ignore": [
+        ".cursorrules"
     ]
 }
