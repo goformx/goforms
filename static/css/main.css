@@ -295,3 +295,61 @@ footer a:hover {
         border-top-color: #334155;
     }
 }
+
+/* Form Section */
+.form-section {
+    padding: 5rem 0;
+}
+
+.contact-form {
+    display: flex;
+    flex-direction: column;
+    gap: 1.5rem;
+}
+
+.form-group {
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.form-group label {
+    font-weight: 500;
+    color: var(--text);
+}
+
+.form-group input,
+.form-group textarea {
+    padding: 0.75rem;
+    border-radius: var(--border-radius);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    background: rgba(255, 255, 255, 0.05);
+    color: var(--text);
+    font-size: 1rem;
+    width: 100%;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+    outline: none;
+    border-color: var(--primary);
+}
+
+.form-group textarea {
+    resize: vertical;
+    min-height: 100px;
+}
+
+/* Dark mode form adjustments */
+@media (prefers-color-scheme: dark) {
+    .form-group input,
+    .form-group textarea {
+        background: rgba(30, 41, 59, 0.5);
+        border-color: #334155;
+    }
+    
+    .form-group input:focus,
+    .form-group textarea:focus {
+        border-color: var(--primary);
+    }
+}
