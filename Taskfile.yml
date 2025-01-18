@@ -20,6 +20,7 @@ tasks:
       - go mod tidy
       - go install github.com/a-h/templ/cmd/templ@latest
       - go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
+      - go install github.com/air-verse/air@latest
 
   generate:
     desc: Generate templ files
@@ -27,10 +28,17 @@ tasks:
       - templ generate ./internal/...
 
   dev:
-    desc: Run development server
+    desc: Run development server with hot reload
     deps: [install, generate]
     cmds:
-      - go run ./cmd/goforms
+      - air
+    sources:
+      - ./**/*.go
+      - ./**/*.templ
+      - static/**/*
+    generates:
+      - tmp/**/*
+    method: none
 
   build:
     desc: Build for production
@@ -97,5 +105,5 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -rf bin/
+      - rm -rf bin/ tmp/
       - go clean -cache -testcache

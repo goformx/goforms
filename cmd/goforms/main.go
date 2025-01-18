@@ -5,11 +5,13 @@ import (
 
 	"github.com/joho/godotenv"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 
 	"github.com/jonesrussell/goforms/internal/api"
 	"github.com/jonesrussell/goforms/internal/app"
 	"github.com/jonesrussell/goforms/internal/app/server"
 	"github.com/jonesrussell/goforms/internal/core"
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/platform"
 )
 
@@ -29,6 +31,9 @@ func main() {
 	// Try to load .env file
 	_ = godotenv.Load()
 
+	// Initialize logger
+	log := logger.GetLogger()
+
 	app := fx.New(
 		// Platform modules
 		platform.Module,
@@ -41,6 +46,11 @@ func main() {
 
 		// App configuration
 		app.Module,
+
+		// Configure fx to use our logger
+		fx.WithLogger(func() fxevent.Logger {
+			return &fxevent.ZapLogger{Logger: logger.UnderlyingZap(log)}
+		}),
 
 		fx.Invoke(server.Start),
 	)
