@@ -28,3 +28,6 @@ dist/
 # Air
 tmp/
 air_errors.log 
+
+# Taskfile
+.task/

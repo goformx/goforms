@@ -25,6 +25,7 @@ tasks:
       - go mod download
       - go mod tidy
       - go install github.com/air-verse/air@latest
+      - go install github.com/a-h/templ/cmd/templ@latest
 
   build:
     desc: Build the application
@@ -35,7 +36,12 @@ tasks:
     desc: Run the application with hot reload
     deps: [install]
     cmds:
+      - templ generate
       - air
+    sources:
+      - "**/*.templ"
+    generates:
+      - "**/*_templ.go"
 
   test:setup-db:
     desc: Create and setup test database
@@ -236,3 +242,17 @@ tasks:
     cmds:
       - task test:setup-db
       - go run cmd/migrate/main.go -database "mysql://{{.TEST_DB_USER}}:{{.TEST_DB_PASSWORD}}@tcp({{.TEST_DB_HOST}}:{{.TEST_DB_PORT}})/{{.TEST_DB_NAME}}" up
+
+  templ:
+    desc: Generate templ files
+    cmds:
+      - templ generate
+    sources:
+      - "**/*.templ"
+    generates:
+      - "**/*_templ.go"
+    
+  templ:watch:
+    desc: Watch and generate templ files
+    cmds:
+      - templ generate --watch
