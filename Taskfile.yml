@@ -41,43 +41,6 @@ tasks:
       - tmp/**/*
     method: none
 
-  verify:
-    desc: Run all verifications (lint and test)
-    deps: [generate]
-    cmds:
-      - task: lint
-      - task: test
-
-  build-linux:
-    desc: Build for Linux
-    deps: [verify]
-    cmds:
-      - mkdir -p bin
-      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-linux-amd64 ./cmd/goforms
-
-  build-darwin:
-    desc: Build for macOS
-    deps: [verify]
-    cmds:
-      - mkdir -p bin
-      - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-darwin-amd64 ./cmd/goforms
-
-  build-windows:
-    desc: Build for Windows
-    deps: [verify]
-    cmds:
-      - mkdir -p bin
-      - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-windows-amd64.exe ./cmd/goforms
-
-  build:
-    desc: Build for all platforms
-    deps: [verify]
-    cmds:
-      - task: build-linux
-      - task: build-darwin
-      - task: build-windows
-      - echo "Build completed successfully!"
-
   test:
     desc: Run tests
     deps: [generate]
@@ -89,6 +52,38 @@ tasks:
     deps: [generate]
     cmds:
       - golangci-lint run
+
+  verify:
+    desc: Run all verifications (lint and test)
+    cmds:
+      - task: lint
+      - task: test
+
+  build:os:linux:
+    desc: Build for Linux
+    cmds:
+      - mkdir -p bin
+      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-linux-amd64 ./cmd/goforms
+
+  build:os:darwin:
+    desc: Build for macOS
+    cmds:
+      - mkdir -p bin
+      - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-darwin-amd64 ./cmd/goforms
+
+  build:os:windows:
+    desc: Build for Windows
+    cmds:
+      - mkdir -p bin
+      - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-windows-amd64.exe ./cmd/goforms
+
+  build:all:
+    desc: Build for all platforms
+    cmds:
+      - task: build:os:linux
+      - task: build:os:darwin
+      - task: build:os:windows
+      - echo "Build completed successfully!"
 
   migrate:up:
     desc: Run database migrations up
