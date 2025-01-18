@@ -4,7 +4,7 @@
 
 GoForms follows Clean Architecture principles, organizing code into distinct layers:
 
-```
+```ascii
 ┌──────────────────┐
 │     Web Layer    │ 
 │   (UI/Templates) │
@@ -51,6 +51,7 @@ GoForms follows Clean Architecture principles, organizing code into distinct lay
 ### Dependency Rule
 
 Dependencies flow inward:
+
 - Outer layers can depend on inner layers
 - Inner layers cannot depend on outer layers
 - Core layer has no external dependencies
@@ -58,6 +59,7 @@ Dependencies flow inward:
 ### Dependency Injection
 
 Using Uber's fx for:
+
 - Constructor injection
 - Module organization
 - Lifecycle management

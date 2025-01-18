@@ -10,7 +10,7 @@ Currently, the API is open for testing. Authentication will be implemented in fu
 
 ## Base URL
 
-```
+```plaintext
 http://localhost:8090/api/v1
 ```
 

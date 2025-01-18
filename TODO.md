@@ -1,6 +1,7 @@
 # Project TODO List
 
 ## Completed
+
 - [x] Core domain implementation
   - [x] Contact submissions
   - [x] Email subscriptions
@@ -23,6 +24,7 @@
   - [x] Hot reload
 
 ## In Progress
+
 - [ ] Form Management System
   - [ ] Custom form builder UI
   - [ ] Dynamic field validation
@@ -30,6 +32,7 @@
   - [ ] Form analytics dashboard
 
 ## Upcoming
+
 - [ ] Documentation
   - [ ] API documentation
   - [ ] Development guides

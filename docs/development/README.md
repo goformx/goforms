@@ -11,22 +11,26 @@
 ### Development Environment
 
 1. Clone the repository:
+
    ```bash
    git clone https://github.com/jonesrussell/goforms.git
    cd goforms
    ```
 
 2. Open in VS Code:
+
    ```bash
    code .
    ```
 
 3. When prompted, click "Reopen in Container" or use Command Palette:
-   ```
+
+   ```plaintext
    Dev Containers: Reopen in Container
    ```
 
 4. Set up environment:
+
    ```bash
    cp .env.example .env
    task install
@@ -73,7 +77,7 @@ task migrate:down
 
 ## Code Organization
 
-```
+```plaintext
 .
 ├── cmd/                  # Application entrypoints
 ├── internal/            
@@ -107,17 +111,20 @@ task migrate:down
 ### Git Workflow
 
 1. Create feature branch:
+
    ```bash
    git checkout -b feature/name
    ```
 
 2. Make changes and commit:
+
    ```bash
    git add .
    git commit -m "Description of changes"
    ```
 
 3. Push and create PR:
+
    ```bash
    git push origin feature/name
    ```
@@ -153,6 +160,7 @@ tasks:
 ### VS Code Extensions
 
 Recommended extensions:
+
 - Go
 - Dev Containers
 - GitLens
@@ -171,4 +179,3 @@ Recommended extensions:
 - [Testing Guide](./testing.md)
 - [Database Guide](./database.md)
 - [Deployment Guide](./deployment.md)
-``` 
