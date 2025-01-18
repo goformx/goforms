@@ -10,13 +10,16 @@ import (
 	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/fx"
 
+	"github.com/jonesrussell/goforms/internal/api"
+	v1 "github.com/jonesrussell/goforms/internal/api/v1"
 	"github.com/jonesrussell/goforms/internal/config/server"
 	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/web"
 )
 
 // NewEcho creates a new Echo instance with common middleware and routes
-func NewEcho(log logger.Logger) *echo.Echo {
+func NewEcho(log logger.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.SubscriptionAPI) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -43,7 +46,11 @@ func NewEcho(log logger.Logger) *echo.Echo {
 	e.Use(middleware.RequestID())
 	e.Use(middleware.Gzip())
 
-	// Register routes
+	// Register API routes
+	contactAPI.Register(e)
+	subscriptionAPI.Register(e)
+
+	// Register web routes
 	ph := handlers.NewPageHandler()
 	e.GET("/", ph.HomePage)
 	e.GET("/contact", ph.ContactPage)
@@ -89,5 +96,9 @@ var Module = fx.Options(
 	fx.Provide(
 		NewEcho,
 		NewServerConfig,
+		v1.NewContactAPI,
+		v1.NewSubscriptionAPI,
 	),
+	api.Module,
+	web.Module,
 )

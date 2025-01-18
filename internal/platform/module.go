@@ -16,6 +16,7 @@ var Module = fx.Options(
 		NewDatabaseConfig,
 		database.New,
 		database.NewContactStore,
+		database.NewSubscriptionStore,
 		logger.GetLogger,
 	),
 )

@@ -17,7 +17,7 @@ type SubscriptionStore struct {
 }
 
 // NewSubscriptionStore creates a new subscription store
-func NewSubscriptionStore(db *sqlx.DB) *SubscriptionStore {
+func NewSubscriptionStore(db *sqlx.DB) subscription.Store {
 	return &SubscriptionStore{
 		db: db,
 	}
