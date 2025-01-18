@@ -2,7 +2,6 @@ package app
 
 import (
 	"context"
-	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -28,20 +27,6 @@ func TestAppIntegration(t *testing.T) {
 	contactStore := &models.MockContactStore{}
 	pingContexter := &models.MockPingContexter{}
 
-	// Create a minimal test template
-	tmpl := template.Must(template.New("base").Parse(`
-		{{define "base"}}<!DOCTYPE html><html><body>{{template "content" .}}</body></html>{{end}}
-		{{define "content"}}{{end}}
-		{{define "home"}}{{template "home-content" .}}{{end}}
-		{{define "home-content"}}<h1>Home</h1>{{end}}
-		{{define "contact"}}{{template "contact-content" .}}{{end}}
-		{{define "contact-content"}}<h1>Contact</h1>{{end}}
-		{{define "marketing"}}{{template "marketing-content" .}}{{end}}
-		{{define "marketing-content"}}<h1>Marketing</h1>{{end}}
-		{{define "error"}}{{template "error-content" .}}{{end}}
-		{{define "error-content"}}<h1>Error</h1>{{end}}
-	`))
-
 	testApp := fxtest.New(t,
 		fx.Provide(
 			func() *config.Config {
@@ -53,7 +38,6 @@ func TestAppIntegration(t *testing.T) {
 			},
 			func() *echo.Echo { return echo.New() },
 			logger.GetLogger,
-			func() *template.Template { return tmpl },
 			func() models.SubscriptionStore { return subscriptionStore },
 			func() handlers.PingContexter { return pingContexter },
 			func() models.ContactStore { return contactStore },
@@ -83,20 +67,12 @@ func TestAppIntegration(t *testing.T) {
 	rec = httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "<h1>Home</h1>")
+	assert.Contains(t, rec.Body.String(), "Welcome to Goforms")
 
 	// Test contact page
 	req = httptest.NewRequest(http.MethodGet, "/contact", nil)
 	rec = httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "<h1>Contact</h1>")
-}
-
-func TestTemplateRendering(t *testing.T) {
-	tmpl := template.Must(template.New("test").Parse("{{.}}"))
-	rec := httptest.NewRecorder()
-	err := tmpl.Execute(rec, "test content")
-	require.NoError(t, err)
-	assert.Contains(t, rec.Body.String(), "test content")
+	assert.Contains(t, rec.Body.String(), "Contact Form Demo")
 }
