@@ -24,3 +24,7 @@ dist/
 
 # Database
 *.db 
+
+# Air
+tmp/
+air_errors.log 
