@@ -16,6 +16,7 @@
 @import 'components/alerts.css' layer(components);
 @import 'components/modal.css' layer(components);
 @import 'components/lists.css' layer(components);
+@import 'components/hero.css' layer(components);
 @import 'base/utilities.css' layer(utilities);
 
 /* Theme Layer */

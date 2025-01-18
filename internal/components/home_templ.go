@@ -61,7 +61,7 @@ func homeContent() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"card\"><div class=\"card-header\"><h1 class=\"card-title\">Welcome to Goforms</h1><p class=\"card-subtitle\">A self-hosted form backend service built with Go</p></div></div><div class=\"card-grid\"><div class=\"card\"><div class=\"card-header\"><h2 class=\"card-title\">Features</h2></div><div class=\"card-body\"><ul class=\"list\"><li class=\"list-item\">Simple form submissions</li><li class=\"list-item\">Contact form demo</li><li class=\"list-item\">Easy to deploy</li><li class=\"list-item\">Built with modern Go</li></ul></div></div></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"hero\"><h1 class=\"hero-title\">Free Form Backend Service</h1><p class=\"hero-subtitle\">Use our free hosted service or deploy your own. No dependencies, just Go.</p><div class=\"hero-actions\"><a href=\"/contact\" class=\"btn btn-primary\">Try Demo Form</a> <a href=\"https://github.com/jonesrussell/goforms\" class=\"btn btn-secondary\">View on GitHub</a></div></div><div class=\"feature-grid\"><div class=\"feature-card\"><div class=\"feature-icon\">🎯</div><h3>Free Hosted</h3><p>Start using our service instantly, no setup required.</p></div><div class=\"feature-card\"><div class=\"feature-icon\">🔒</div><h3>Self Hosted Option</h3><p>Deploy on your own infrastructure if needed.</p></div><div class=\"feature-card\"><div class=\"feature-icon\">🚀</div><h3>API First</h3><p>RESTful API with JSON responses.</p></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
