@@ -11,7 +11,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/app/server"
 	"github.com/jonesrussell/goforms/internal/core"
 	"github.com/jonesrussell/goforms/internal/platform"
-	"github.com/jonesrussell/goforms/internal/web"
 )
 
 //nolint:gochecknoglobals // These variables are populated by -ldflags at build time
@@ -39,9 +38,6 @@ func main() {
 
 		// API handlers
 		api.Module,
-
-		// Web handlers
-		web.Module,
 
 		// App configuration
 		app.Module,
