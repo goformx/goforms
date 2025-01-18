@@ -3,7 +3,6 @@ package app
 import (
 	"os"
 	"strconv"
-	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -18,39 +17,27 @@ import (
 )
 
 // NewEcho creates a new Echo instance with common middleware and routes
-func NewEcho(log logger.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.SubscriptionAPI, pageHandler *web.PageHandler) *echo.Echo {
+func NewEcho(log logger.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.SubscriptionAPI, handler *web.Handler) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
 
-	// Configure static file serving with proper caching and security
-	e.Static("/static", "static")
-	e.File("/favicon.ico", "static/favicon.ico")
-
-	// Add cache control headers for static files
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			if strings.HasPrefix(c.Path(), "/static") || c.Path() == "/favicon.ico" {
-				c.Response().Header().Set("Cache-Control", "public, max-age=31536000")
-			}
-			return next(c)
-		}
-	})
-
-	// Add middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-	e.Use(middleware.CORS())
-	e.Use(middleware.Secure())
-	e.Use(middleware.RequestID())
-	e.Use(middleware.Gzip())
+	// Configure security middleware
+	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "SAMEORIGIN",
+		HSTSMaxAge:            31536000,
+		HSTSExcludeSubdomains: false,
+		ContentSecurityPolicy: "default-src 'self'",
+	}))
 
 	// Register API routes
 	contactAPI.Register(e)
 	subscriptionAPI.Register(e)
 
 	// Register web routes
-	pageHandler.RegisterRoutes(e)
+	handler.Register(e)
 
 	return e
 }

@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
@@ -51,6 +52,21 @@ func (h *Handler) Register(e *echo.Echo) {
 	e.GET("/", h.Home)
 	e.GET("/contact", h.Contact)
 
+	// Configure static file serving with proper caching and security
+	e.Static("/static", "static")
+	e.File("/favicon.ico", "static/favicon.ico")
+
+	// Add cache control headers for static files
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Root:   "static",
+		Browse: false,
+		HTML5:  true,
+		Index:  "index.html",
+		Skipper: func(c echo.Context) bool {
+			return !strings.HasPrefix(c.Request().URL.Path, "/static")
+		},
+	}))
+
 	// Custom logger middleware
 	e.Use(middleware.RequestLoggerWithConfig(middleware.RequestLoggerConfig{
 		LogURI:    true,
@@ -66,7 +82,4 @@ func (h *Handler) Register(e *echo.Echo) {
 			return nil
 		},
 	}))
-
-	// Static files
-	e.Static("/static", "static")
 }
