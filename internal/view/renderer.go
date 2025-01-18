@@ -14,6 +14,12 @@ type Renderer struct {
 	logger logger.Logger
 }
 
+func NewRenderer(logger logger.Logger) *Renderer {
+	return &Renderer{
+		logger: logger,
+	}
+}
+
 func (r *Renderer) Render(c echo.Context, t templ.Component) error {
 	if err := t.Render(c.Request().Context(), c.Response().Writer); err != nil {
 		r.logger.Error("failed to render template",

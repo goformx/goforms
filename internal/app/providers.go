@@ -13,13 +13,12 @@ import (
 	"github.com/jonesrussell/goforms/internal/api"
 	v1 "github.com/jonesrussell/goforms/internal/api/v1"
 	"github.com/jonesrussell/goforms/internal/config/server"
-	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/web"
 )
 
 // NewEcho creates a new Echo instance with common middleware and routes
-func NewEcho(log logger.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.SubscriptionAPI) *echo.Echo {
+func NewEcho(log logger.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.SubscriptionAPI, pageHandler *web.PageHandler) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -51,9 +50,7 @@ func NewEcho(log logger.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.S
 	subscriptionAPI.Register(e)
 
 	// Register web routes
-	ph := handlers.NewPageHandler()
-	e.GET("/", ph.HomePage)
-	e.GET("/contact", ph.ContactPage)
+	pageHandler.RegisterRoutes(e)
 
 	return e
 }
