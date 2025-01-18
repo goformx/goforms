@@ -61,7 +61,7 @@ func homeContent() templ.Component {
 			templ_7745c5c3_Var2 = templ.NopComponent
 		}
 		ctx = templ.ClearChildren(ctx)
-		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"hero\"><h1>Welcome to Goforms</h1><p>A self-hosted form backend service built with Go</p></div><div class=\"features\"><h2>Features</h2><ul><li>Simple form submissions</li><li>Contact form demo</li><li>Easy to deploy</li><li>Built with modern Go</li></ul></div>")
+		templ_7745c5c3_Err = templruntime.WriteString(templ_7745c5c3_Buffer, 1, "<div class=\"card\"><div class=\"card-header\"><h1 class=\"card-title\">Welcome to Goforms</h1><p class=\"card-subtitle\">A self-hosted form backend service built with Go</p></div></div><div class=\"card-grid\"><div class=\"card\"><div class=\"card-header\"><h2 class=\"card-title\">Features</h2></div><div class=\"card-body\"><ul class=\"list\"><li class=\"list-item\">Simple form submissions</li><li class=\"list-item\">Contact form demo</li><li class=\"list-item\">Easy to deploy</li><li class=\"list-item\">Built with modern Go</li></ul></div></div></div>")
 		if templ_7745c5c3_Err != nil {
 			return templ_7745c5c3_Err
 		}
