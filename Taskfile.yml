@@ -28,12 +28,12 @@ tasks:
   build:
     desc: Build the application
     cmds:
-      - go build -o bin/server ./cmd/server
+      - go build -o bin/goforms ./cmd/goforms
 
   run:
     desc: Run the application
     cmds:
-      - go run ./cmd/server
+      - go run ./cmd/goforms
 
   test:setup-db:
     desc: Create and setup test database

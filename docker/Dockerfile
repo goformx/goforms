@@ -13,7 +13,7 @@ RUN go mod download
 COPY . .
 
 # Build the application
-RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/server ./cmd/server
+RUN CGO_ENABLED=1 GOOS=linux go build -o /app/bin/goforms ./cmd/goforms
 
 # Final stage
 FROM alpine:latest
@@ -24,11 +24,11 @@ WORKDIR /app
 RUN apk add --no-cache ca-certificates
 
 # Copy binary from builder
-COPY --from=builder /app/bin/server .
+COPY --from=builder /app/bin/goforms .
 
 # Copy configuration files
 COPY --from=builder /app/.env.* ./
 
 EXPOSE 8090
 
-CMD ["./server"] 
+CMD ["./goforms"] 
