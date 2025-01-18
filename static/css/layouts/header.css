@@ -5,6 +5,7 @@ header {
     left: 0;
     right: 0;
     background: rgba(255, 255, 255, 0.8);
+    -webkit-backdrop-filter: blur(10px);
     backdrop-filter: blur(10px);
     border-bottom: 1px solid #e5e7eb;
     z-index: 1000;
@@ -28,8 +29,8 @@ header {
     color: var(--primary);
     text-decoration: none;
     background: linear-gradient(135deg, var(--primary), var(--accent));
-    background-clip: text;
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
@@ -54,10 +55,6 @@ header {
 @media (max-width: 768px) {
     .header-content {
         padding: 0 var(--spacing-4);
-    }
-
-    .nav-links {
-        gap: var(--spacing-4);
     }
 }
 

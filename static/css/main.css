@@ -1,58 +1,28 @@
 /* CSS Entry Point */
 @layer base, theme, layout, components, utilities;
 
-/* Base Layer */
-@layer base {
-  @import 'base/reset.css';
-  @import 'base/variables.css';
-}
+/* Import all stylesheets */
+@import 'base/reset.css' layer(base);
+@import 'base/variables.css' layer(base);
+@import 'themes/light.css' layer(theme);
+@import 'themes/dark.css' layer(theme) (prefers-color-scheme: dark);
+@import 'layouts/header.css' layer(layout);
+@import 'layouts/main.css' layer(layout);
+@import 'layouts/footer.css' layer(layout);
+@import 'components/buttons.css' layer(components);
+@import 'components/forms.css' layer(components);
+@import 'components/cards.css' layer(components);
+@import 'components/navigation.css' layer(components);
+@import 'components/alerts.css' layer(components);
+@import 'components/modal.css' layer(components);
+@import 'components/lists.css' layer(components);
+@import 'base/utilities.css' layer(utilities);
 
 /* Theme Layer */
 @layer theme {
-  /* Default light/dark mode based on system preference */
   :root {
     color-scheme: light dark;
   }
-
-  /* Light theme variables (default) */
-  @import 'themes/light.css';
-
-  /* Dark theme variables (when system prefers dark) */
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      @import 'themes/dark.css';
-    }
-  }
-
-  /* Explicit theme choices override system preference */
-  :root[data-theme="dark"] {
-    @import 'themes/dark.css';
-  }
-
-  :root[data-theme="light"] {
-    @import 'themes/light.css';
-  }
 }
 
-/* Layout Layer */
-@layer layout {
-  @import 'layouts/header.css';
-  @import 'layouts/main.css';
-  @import 'layouts/footer.css';
-}
-
-/* Components Layer */
-@layer components {
-  @import 'components/buttons.css';
-  @import 'components/forms.css';
-  @import 'components/cards.css';
-  @import 'components/navigation.css';
-  @import 'components/alerts.css';
-  @import 'components/modal.css';
-  @import 'components/lists.css';
-}
-
-/* Utilities Layer */
-@layer utilities {
-  @import 'base/utilities.css';
-}
+/* Remove duplicate imports that were causing the warning */
