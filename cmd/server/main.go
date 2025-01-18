@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"os"
 
+	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/goforms/internal/app"
 	"github.com/jonesrussell/goforms/internal/config"
@@ -28,6 +29,12 @@ func main() {
 			echo.New,
 			func(db *database.DB) handlers.PingContexter {
 				return db
+			},
+			func(db *database.DB) models.DB {
+				return db
+			},
+			func(db *database.DB) *sqlx.DB {
+				return db.DB
 			},
 			models.NewSubscriptionStore,
 			models.NewContactStore,

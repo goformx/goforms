@@ -66,17 +66,11 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 
-	// Monitor for server errors or shutdown signal
+	// Monitor for server errors only, not context cancellation
 	go func() {
-		select {
-		case err := <-s.serverError:
+		if err := <-s.serverError; err != nil {
 			s.logger.Error("server error detected",
 				logger.Error(err),
-				logger.String("bind_address", address),
-			)
-			close(s.shutdownCh)
-		case <-ctx.Done():
-			s.logger.Info("server shutdown initiated",
 				logger.String("bind_address", address),
 			)
 			close(s.shutdownCh)
@@ -100,13 +94,8 @@ func (s *Server) Stop(ctx context.Context) error {
 		return err
 	}
 
-	// Wait for server to fully stop or timeout
-	select {
-	case <-s.shutdownCh:
-		s.logger.Info("server stopped successfully")
-	case <-shutdownCtx.Done():
-		s.logger.Warn("server shutdown timed out")
-	}
+	close(s.shutdownCh)
+	s.logger.Info("server stopped successfully")
 
 	return nil
 }
