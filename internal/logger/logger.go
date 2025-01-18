@@ -9,11 +9,11 @@ import (
 
 var (
 	once   sync.Once
-	logger *zap.Logger
+	logger Logger
 )
 
-// GetLogger returns a singleton instance of the zap.Logger
-func GetLogger() *zap.Logger {
+// GetLogger returns a singleton instance of the Logger
+func GetLogger() Logger {
 	once.Do(func() {
 		config := zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -23,11 +23,11 @@ func GetLogger() *zap.Logger {
 		config.DisableCaller = false
 		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
 
-		var err error
-		logger, err = config.Build()
+		zapLogger, err := config.Build()
 		if err != nil {
 			panic("Failed to initialize logger: " + err.Error())
 		}
+		logger = newZapLogger(zapLogger)
 	})
 	return logger
 }

@@ -1,7 +1,9 @@
 package main
 
 import (
-	"github.com/jmoiron/sqlx"
+	"fmt"
+	"os"
+
 	"github.com/joho/godotenv"
 	"github.com/jonesrussell/goforms/internal/app"
 	"github.com/jonesrussell/goforms/internal/config"
@@ -9,6 +11,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
+	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 )
@@ -21,10 +24,11 @@ func main() {
 		fx.Provide(
 			logger.GetLogger,
 			config.New,
-			app.NewEcho,
 			database.New,
-			func(db *sqlx.DB) models.DB { return db },
-			func(db *sqlx.DB) handlers.PingContexter { return db },
+			echo.New,
+			func(db *database.DB) handlers.PingContexter {
+				return db
+			},
 			models.NewSubscriptionStore,
 			models.NewContactStore,
 			handlers.NewMarketingHandler,
@@ -35,7 +39,10 @@ func main() {
 		),
 		fx.Invoke(app.RegisterHooks),
 		fx.WithLogger(func() fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: logger.GetLogger()}
+			return &fxevent.ZapLogger{Logger: logger.UnderlyingZap(logger.GetLogger())}
 		}),
 	).Run()
+
+	fmt.Println("Server stopped")
+	os.Exit(0)
 }

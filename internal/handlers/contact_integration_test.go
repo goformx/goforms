@@ -10,15 +10,16 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
+	"github.com/jonesrussell/goforms/internal/response"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap"
 )
 
 type ContactSuite struct {
 	suite.Suite
-	logger *zap.Logger
+	logger logger.Logger
 	db     *sqlx.DB
 	store  models.ContactStore
 }
@@ -26,11 +27,8 @@ type ContactSuite struct {
 func (s *ContactSuite) SetupSuite() {
 	var err error
 
-	// Initialize logger first
-	s.logger, err = zap.NewDevelopment()
-	if err != nil {
-		s.T().Fatalf("Failed to create logger: %v", err)
-	}
+	// Initialize logger
+	s.logger = logger.GetLogger()
 
 	// Setup test database connection
 	dsn := os.Getenv("TEST_DB_DSN")
@@ -39,7 +37,7 @@ func (s *ContactSuite) SetupSuite() {
 	}
 
 	redactedDSN := strings.Replace(dsn, "goforms_test:", "goforms_test:[REDACTED]@", 1)
-	s.logger.Info("Attempting to connect to database", zap.String("dsn", redactedDSN))
+	s.logger.Info("Attempting to connect to database", logger.String("dsn", redactedDSN))
 
 	s.db, err = sqlx.Connect("mysql", dsn)
 	if err != nil {
@@ -84,12 +82,22 @@ func (s *ContactSuite) TestContactIntegration() {
 
 	s.Equal(http.StatusCreated, rec.Code)
 
-	var response models.ContactSubmission
-	err := json.Unmarshal(rec.Body.Bytes(), &response)
+	// Parse the wrapped response
+	var resp response.Response
+	err := json.Unmarshal(rec.Body.Bytes(), &resp)
 	s.NoError(err)
-	s.Equal("Test User", response.Name)
-	s.Equal("test@example.com", response.Email)
-	s.Equal("This is a test message", response.Message)
+	s.Equal("success", resp.Status)
+
+	// Convert the data field to contact submission
+	contactData, err := json.Marshal(resp.Data)
+	s.NoError(err)
+	var contact models.ContactSubmission
+	err = json.Unmarshal(contactData, &contact)
+	s.NoError(err)
+
+	s.Equal("Test User", contact.Name)
+	s.Equal("test@example.com", contact.Email)
+	s.Equal("This is a test message", contact.Message)
 
 	// Verify submission was stored
 	var count int
@@ -109,6 +117,12 @@ func (s *ContactSuite) TestContactIntegration() {
 	e.ServeHTTP(rec, req)
 
 	s.Equal(http.StatusBadRequest, rec.Code)
+
+	// Verify error response
+	err = json.Unmarshal(rec.Body.Bytes(), &resp)
+	s.NoError(err)
+	s.Equal("error", resp.Status)
+	s.NotEmpty(resp.Message)
 }
 
 func TestContactSuite(t *testing.T) {

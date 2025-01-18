@@ -2,15 +2,15 @@ package handlers
 
 import (
 	"github.com/jonesrussell/goforms/internal/components"
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
 type MarketingHandler struct {
-	logger *zap.Logger
+	logger logger.Logger
 }
 
-func NewMarketingHandler(logger *zap.Logger) *MarketingHandler {
+func NewMarketingHandler(logger logger.Logger) *MarketingHandler {
 	return &MarketingHandler{
 		logger: logger,
 	}
@@ -24,16 +24,16 @@ func (h *MarketingHandler) Register(e *echo.Echo) {
 
 func (h *MarketingHandler) HandleHome(c echo.Context) error {
 	h.logger.Debug("Handling home page request",
-		zap.String("path", c.Path()),
-		zap.String("method", c.Request().Method),
+		logger.String("path", c.Path()),
+		logger.String("method", c.Request().Method),
 	)
 	return components.Home().Render(c.Request().Context(), c.Response().Writer)
 }
 
 func (h *MarketingHandler) HandleContact(c echo.Context) error {
 	h.logger.Debug("Handling contact page request",
-		zap.String("path", c.Path()),
-		zap.String("method", c.Request().Method),
+		logger.String("path", c.Path()),
+		logger.String("method", c.Request().Method),
 	)
 	return components.Contact().Render(c.Request().Context(), c.Response().Writer)
 }

@@ -6,12 +6,19 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/config/database"
+	"github.com/labstack/echo/v4"
 
 	// Import mysql driver for side effects - required for database/sql to work with MySQL
 	_ "github.com/go-sql-driver/mysql"
 )
 
-func New(cfg *config.Config) (*sqlx.DB, error) {
+// DB wraps sqlx.DB to add custom methods
+type DB struct {
+	*sqlx.DB
+}
+
+// New creates a new database connection
+func New(cfg *config.Config) (*DB, error) {
 	dsn := buildDSN(&cfg.Database)
 	db, err := sqlx.Connect("mysql", dsn)
 	if err != nil {
@@ -29,7 +36,7 @@ func New(cfg *config.Config) (*sqlx.DB, error) {
 		return nil, err
 	}
 
-	return db, nil
+	return &DB{DB: db}, nil
 }
 
 // buildDSN constructs the database connection string
@@ -40,4 +47,9 @@ func buildDSN(dbConfig *database.Config) string {
 		dbConfig.Host,
 		dbConfig.Port,
 		dbConfig.Name)
+}
+
+// PingContext implements the PingContexter interface
+func (db *DB) PingContext(c echo.Context) error {
+	return db.Ping()
 }

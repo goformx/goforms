@@ -7,65 +7,79 @@ import (
 	"time"
 
 	"github.com/jonesrussell/goforms/internal/config/server"
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
+	"go.uber.org/fx"
 )
 
 // Server handles HTTP server lifecycle
 type Server struct {
 	echo        *echo.Echo
-	logger      *zap.Logger
+	logger      logger.Logger
 	config      *server.Config
+	shutdownCh  chan struct{}
 	serverError chan error
 }
 
-// New creates a new server instance
-func New(e *echo.Echo, logger *zap.Logger, cfg *server.Config) *Server {
-	return &Server{
+// New creates a new server instance and registers lifecycle hooks with fx
+func New(lc fx.Lifecycle, e *echo.Echo, log logger.Logger, cfg *server.Config) *Server {
+	srv := &Server{
 		echo:        e,
-		logger:      logger,
+		logger:      log,
 		config:      cfg,
+		shutdownCh:  make(chan struct{}),
 		serverError: make(chan error, 1),
 	}
+
+	lc.Append(fx.Hook{
+		OnStart: srv.Start,
+		OnStop:  srv.Stop,
+	})
+
+	return srv
 }
 
 // Start begins the server
 func (s *Server) Start(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 	s.logger.Info("server configuration",
-		zap.String("bind_address", address),
-		zap.String("host", s.config.Host),
-		zap.Int("port", s.config.Port),
-		zap.Duration("read_timeout", s.config.Timeouts.Read),
-		zap.Duration("write_timeout", s.config.Timeouts.Write),
-		zap.Duration("idle_timeout", s.config.Timeouts.Idle),
+		logger.String("bind_address", address),
+		logger.String("host", s.config.Host),
+		logger.Int("port", s.config.Port),
+		logger.Duration("read_timeout", s.config.Timeouts.Read),
+		logger.Duration("write_timeout", s.config.Timeouts.Write),
+		logger.Duration("idle_timeout", s.config.Timeouts.Idle),
 	)
 
+	// Configure server timeouts
+	s.echo.Server.ReadTimeout = s.config.Timeouts.Read
+	s.echo.Server.WriteTimeout = s.config.Timeouts.Write
+	s.echo.Server.IdleTimeout = s.config.Timeouts.Idle
+
 	go func() {
-		if err := s.echo.Start(address); err != nil {
-			if err != http.ErrServerClosed {
-				s.serverError <- err
-				s.logger.Error("server error",
-					zap.Error(err),
-					zap.String("bind_address", address),
-				)
-			}
+		if err := s.echo.Start(address); err != nil && err != http.ErrServerClosed {
+			s.serverError <- err
+			s.logger.Error("server error",
+				logger.Error(err),
+				logger.String("bind_address", address),
+			)
 		}
 	}()
 
-	// Monitor for server errors
+	// Monitor for server errors or shutdown signal
 	go func() {
 		select {
 		case err := <-s.serverError:
 			s.logger.Error("server error detected",
-				zap.Error(err),
-				zap.String("bind_address", address),
+				logger.Error(err),
+				logger.String("bind_address", address),
 			)
+			close(s.shutdownCh)
 		case <-ctx.Done():
 			s.logger.Info("server shutdown initiated",
-				zap.String("bind_address", address),
+				logger.String("bind_address", address),
 			)
-			return
+			close(s.shutdownCh)
 		}
 	}()
 
@@ -74,12 +88,24 @@ func (s *Server) Start(ctx context.Context) error {
 
 // Stop gracefully shuts down the server
 func (s *Server) Stop(ctx context.Context) error {
-	shutdownCtx, cancel := context.WithTimeout(ctx, 10*time.Second)
+	s.logger.Info("graceful shutdown initiated")
+
+	// Create a context with timeout for shutdown
+	shutdownCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
+	// Wait for in-flight requests to complete
 	if err := s.echo.Shutdown(shutdownCtx); err != nil {
-		s.logger.Error("shutdown error", zap.Error(err))
+		s.logger.Error("shutdown error", logger.Error(err))
 		return err
+	}
+
+	// Wait for server to fully stop or timeout
+	select {
+	case <-s.shutdownCh:
+		s.logger.Info("server stopped successfully")
+	case <-shutdownCtx.Done():
+		s.logger.Warn("server shutdown timed out")
 	}
 
 	return nil

@@ -1,62 +1,57 @@
 package handlers
 
 import (
-	"context"
-	"net/http"
-	"time"
-
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
+	"github.com/jonesrussell/goforms/internal/response"
+	"github.com/jonesrussell/goforms/internal/validation"
 	"github.com/labstack/echo/v4"
 )
 
-// SubscriptionHandler handles subscription-related requests
+// SubscriptionHandler handles subscription requests
 type SubscriptionHandler struct {
-	store models.SubscriptionStore
+	store  models.SubscriptionStore
+	logger logger.Logger
 }
 
 // NewSubscriptionHandler creates a new subscription handler
-func NewSubscriptionHandler(store models.SubscriptionStore) *SubscriptionHandler {
+func NewSubscriptionHandler(store models.SubscriptionStore, log logger.Logger) *SubscriptionHandler {
 	return &SubscriptionHandler{
-		store: store,
+		store:  store,
+		logger: log,
 	}
 }
 
-// CreateSubscription handles the creation of new subscriptions
-func (h *SubscriptionHandler) CreateSubscription(c echo.Context) error {
-	// Add timeout context
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
-	defer cancel()
-
-	// Use ctx for database operations
-	c.SetRequest(c.Request().WithContext(ctx))
-
-	var sub models.Subscription
-	if err := c.Bind(&sub); err != nil {
-		if sub.Email == "" {
-			return echo.NewHTTPError(http.StatusBadRequest, "email is required")
-		}
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid request payload")
-	}
-
-	if err := sub.Validate(); err != nil {
-		if he, ok := err.(*echo.HTTPError); ok {
-			return he
-		}
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-	}
-
-	if err := h.store.CreateSubscription(c.Request().Context(), &sub); err != nil {
-		if he, ok := err.(*echo.HTTPError); ok {
-			return he
-		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create subscription")
-	}
-
-	return c.JSON(http.StatusCreated, sub)
-}
-
-// Register registers the subscription routes with Echo
+// Register registers the subscription routes
 func (h *SubscriptionHandler) Register(e *echo.Echo) {
-	api := e.Group("/api")
-	api.POST("/subscriptions", h.CreateSubscription)
+	e.POST("/api/v1/subscribe", h.HandleSubscribe)
+}
+
+// HandleSubscribe handles subscription creation requests
+func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
+	var subscription models.Subscription
+	if err := c.Bind(&subscription); err != nil {
+		h.logger.Error("failed to bind subscription request",
+			logger.Error(err),
+		)
+		return response.BadRequest(c, "Invalid request body")
+	}
+
+	if err := validation.ValidateSubscription(&subscription); err != nil {
+		return response.BadRequest(c, err.Error())
+	}
+
+	if err := h.store.Create(&subscription); err != nil {
+		h.logger.Error("failed to create subscription",
+			logger.Error(err),
+			logger.String("email", subscription.Email),
+		)
+		return response.InternalError(c, "Failed to create subscription")
+	}
+
+	h.logger.Info("subscription created",
+		logger.String("email", subscription.Email),
+	)
+
+	return response.Created(c, subscription)
 }

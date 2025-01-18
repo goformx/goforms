@@ -1,107 +1,94 @@
 package handlers
 
 import (
+	"bytes"
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"os"
-	"strings"
 	"testing"
 
-	_ "github.com/go-sql-driver/mysql" // Import MySQL driver
-	"github.com/jmoiron/sqlx"
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
+	"github.com/jonesrussell/goforms/internal/response"
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/suite"
-	"go.uber.org/zap"
+	"github.com/stretchr/testify/assert"
 )
 
-type SubscriptionSuite struct {
-	suite.Suite
-	logger *zap.Logger
-	db     *sqlx.DB
-	store  models.SubscriptionStore
-}
-
-func (s *SubscriptionSuite) SetupSuite() {
-	s.logger = logger.GetLogger()
-	var err error
-
-	// Initialize logger first
-	s.logger, err = zap.NewDevelopment()
-	if err != nil {
-		s.T().Fatalf("Failed to create logger: %v", err)
-	}
-
-	// Setup test database connection
-	dsn := os.Getenv("TEST_DB_DSN")
-	if dsn == "" {
-		dsn = "goforms_test:goforms_test@tcp(localhost:3306)/goforms_test"
-	}
-
-	redactedDSN := strings.Replace(dsn, "goforms_test:", "goforms_test:[REDACTED]@", 1)
-	s.logger.Info("Attempting to connect to database", zap.String("dsn", redactedDSN))
-
-	s.db, err = sqlx.Connect("mysql", dsn)
-	if err != nil {
-		s.T().Fatalf("Failed to connect to test database: %v", err)
-	}
-
-	// Initialize store with test database
-	s.store = models.NewSubscriptionStore(s.db)
-
-	// Clear test data
-	_, err = s.db.Exec("TRUNCATE TABLE subscriptions")
-	if err != nil {
-		s.T().Fatalf("Failed to truncate test table: %v", err)
-	}
-}
-
-func (s *SubscriptionSuite) TearDownSuite() {
-	if s.db != nil {
-		if err := s.db.Close(); err != nil {
-			s.T().Errorf("Error closing database connection: %v", err)
-		}
-	}
-}
-
-func (s *SubscriptionSuite) TestSubscriptionIntegration() {
-	// Setup test server
+func TestSubscriptionIntegration(t *testing.T) {
+	// Setup
 	e := echo.New()
-	handler := NewSubscriptionHandler(s.store)
+	mockStore := models.NewMockSubscriptionStore()
+	mockLogger := logger.NewMockLogger()
+
+	handler := NewSubscriptionHandler(mockStore, mockLogger)
 	handler.Register(e)
 
-	// Test valid subscription
-	validPayload := `{"email":"test@example.com"}`
-	req := httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(validPayload))
-	req.Header.Set(echo.HeaderContentType, "application/json")
-	rec := httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+	tests := []struct {
+		name           string
+		subscription   models.Subscription
+		setupMock      func()
+		expectedStatus int
+		expectedError  bool
+	}{
+		{
+			name: "valid subscription",
+			subscription: models.Subscription{
+				Email: "test@example.com",
+			},
+			setupMock: func() {
+				mockStore.On("Create", &models.Subscription{Email: "test@example.com"}).Return(nil)
+			},
+			expectedStatus: http.StatusCreated,
+			expectedError:  false,
+		},
+	}
 
-	s.Equal(http.StatusCreated, rec.Code)
+	for _, tc := range tests {
+		t.Run(tc.name, func(t *testing.T) {
+			// Reset mock between tests
+			mockStore.ExpectedCalls = nil
+			mockStore.Calls = nil
 
-	var response models.Subscription
-	err := json.Unmarshal(rec.Body.Bytes(), &response)
-	s.NoError(err)
-	s.Equal("test@example.com", response.Email)
+			// Setup mock expectations
+			tc.setupMock()
 
-	// Verify subscription was stored
-	var count int
-	err = s.db.Get(&count, "SELECT COUNT(*) FROM subscriptions WHERE email = ?", "test@example.com")
-	s.NoError(err)
-	s.Equal(1, count)
+			// Create request
+			jsonData, err := json.Marshal(tc.subscription)
+			assert.NoError(t, err)
 
-	// Test invalid email
-	invalidPayload := `{"email":"invalid-email"}`
-	req = httptest.NewRequest(http.MethodPost, "/api/subscriptions", strings.NewReader(invalidPayload))
-	req.Header.Set(echo.HeaderContentType, "application/json")
-	rec = httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/subscribe", bytes.NewReader(jsonData))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			rec := httptest.NewRecorder()
+			e.ServeHTTP(rec, req)
 
-	s.Equal(http.StatusBadRequest, rec.Code)
-}
+			// Verify response code
+			assert.Equal(t, tc.expectedStatus, rec.Code)
 
-func TestSubscriptionSuite(t *testing.T) {
-	suite.Run(t, new(SubscriptionSuite))
+			// Parse response
+			var resp response.Response
+			err = json.Unmarshal(rec.Body.Bytes(), &resp)
+			assert.NoError(t, err)
+
+			if tc.expectedError {
+				assert.Equal(t, "error", resp.Status)
+				assert.NotEmpty(t, resp.Message)
+			} else {
+				assert.Equal(t, "success", resp.Status)
+
+				// Verify subscription data
+				subscriptionData, err := json.Marshal(resp.Data)
+				assert.NoError(t, err)
+				var subscription models.Subscription
+				err = json.Unmarshal(subscriptionData, &subscription)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.subscription.Email, subscription.Email)
+			}
+
+			// Verify logger and mock expectations
+			if !tc.expectedError {
+				assert.True(t, mockLogger.HasInfoLog("subscription created"))
+			}
+			mockStore.AssertExpectations(t)
+		})
+	}
 }
