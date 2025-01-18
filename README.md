@@ -153,11 +153,77 @@ POST /v1/forms/{id}/submissions
 
 ### Development Guidelines
 
-- All new endpoints must include OpenAPI/Swagger annotations
-- Use fx.Module for feature grouping
-- Follow REST best practices for resource naming
-- Include rate limiting per endpoint
-- Add comprehensive test coverage
+### Code Organization
+- Follow clean architecture principles with distinct layers:
+  - `internal/core/` - Domain logic and interfaces
+  - `internal/platform/` - Infrastructure implementations
+  - `internal/api/` - REST API endpoints
+  - `internal/web/` - Web UI and templates
+
+### Coding Standards
+- Use Go 1.23 features appropriately
+- Follow Go standard project layout
+- Implement proper error handling and logging
+- Write idiomatic Go code
+- Use interfaces for dependency inversion
+- Keep functions focused and small
+
+### Dependencies
+- Use Uber's fx for dependency injection
+- Use Echo/v4 for web routing
+- Use Zap for structured logging
+- Use sqlx for database operations
+- Use testify for testing
+- Use templ for server-side rendering
+
+### Testing Requirements
+- Write unit tests for core domain logic
+- Write integration tests for API endpoints
+- Mock external dependencies in tests
+- Aim for high test coverage
+- Use table-driven tests where appropriate
+
+### API Development
+- Version all new endpoints under `/v1`
+- Include OpenAPI/Swagger annotations
+- Implement proper input validation
+- Use consistent error response format
+- Add rate limiting for public endpoints
+- Group related functionality into fx.Module
+
+### Database
+- Use MariaDB as primary database
+- Implement database migrations using golang-migrate
+- Use sqlx for database operations
+- Implement proper connection pooling
+- Handle database errors appropriately
+
+### Code Style
+- Use lowercase with underscores for directories
+- Favor named exports for functions
+- Use clear, descriptive names for API endpoints
+- Structure files: exported functions, subfunctions, helpers
+
+### Observability
+- Use structured logging with Zap
+- Implement request tracking with unique request IDs
+- Add health check endpoints
+- Include detailed error reporting
+- Use appropriate log levels (debug, info, warn, error)
+
+### Error Handling
+- Use custom error types when beneficial
+- Include context in error messages
+- Log errors with appropriate stack traces
+- Return consistent error responses
+- Handle all error cases explicitly
+
+### Security
+- Implement proper input validation
+- Use secure headers middleware
+- Configure CORS appropriately
+- Implement rate limiting
+- Follow security best practices
 
 ### Tech Stack
 
@@ -171,23 +237,43 @@ POST /v1/forms/{id}/submissions
 
 ## Project Structure
 
-```shell
+```
 .
 ├── .devcontainer/     # Development container configuration
 ├── .github/           # GitHub workflows and configuration
 ├── cmd/              
 │   └── server/        # Application entrypoint
 ├── internal/          
+│   ├── api/          # API endpoints and handlers
+│   │   └── v1/       # API version 1 endpoints
 │   ├── app/          # Application setup and initialization
 │   ├── config/       # Configuration management
-│   ├── database/     # Database connection and utilities
-│   ├── handlers/     # HTTP handlers
-│   ├── middleware/   # Custom middleware
-│   └── models/       # Data models and business logic
-├── migrations/        # Database migrations
-├── test/             # Test helpers and fixtures
-└── Taskfile.yml      # Task automation configuration
+│   ├── core/         # Core domain logic
+│   │   ├── contact/     # Contact domain models and interfaces
+│   │   └── subscription/# Subscription domain models and interfaces
+│   ├── platform/     # Infrastructure implementations
+│   │   ├── database/    # Database implementations
+│   │   └── server/      # Server setup and configuration
+│   ├── web/          # Web UI layer
+│   │   ├── components/  # Reusable UI components
+│   │   ├── handlers/    # Web request handlers
+│   │   ├── layouts/     # Page layouts
+│   │   └── pages/       # Page templates
+│   ├── logger/       # Logging infrastructure
+│   ├── middleware/   # HTTP middleware
+│   └── response/     # Common response types
+├── migrations/       # Database migrations
+├── static/          # Static assets
+│   └── css/         # CSS files
+├── test/            # Test helpers and fixtures
+└── Taskfile.yml     # Task automation configuration
 ```
+
+This structure better reflects our clean architecture approach, with clear separation between:
+- API layer (`internal/api/v1/`)
+- Core domain logic (`internal/core/`)
+- Infrastructure concerns (`internal/platform/`)
+- Web UI layer (`internal/web/`)
 
 ## Contributing
 
@@ -221,3 +307,37 @@ The middleware is configured in the following order for optimal security and fun
 4. Security middleware (HTTP security headers)
 5. CORS middleware (Cross-Origin Resource Sharing)
 6. Rate limiting middleware (request rate limiting)
+
+## Architecture
+
+The application follows a clean architecture approach:
+
+### Core Layer
+- Contains domain models and business logic
+- No external dependencies
+- Defines interfaces for infrastructure
+
+### Platform Layer
+- Implements infrastructure concerns
+- Database access
+- External services integration
+
+### API Layer
+- REST API endpoints
+- Request/response handling
+- Input validation
+
+### Web Layer
+- Server-side rendering with templ
+- UI components and layouts
+- Static assets
+
+### Key Features
+
+- Clean Architecture
+- Domain-Driven Design
+- Dependency Injection with Uber FX
+- Type-safe templates with templ
+- Structured logging with Zap
+- MariaDB with sqlx
+- Echo web framework

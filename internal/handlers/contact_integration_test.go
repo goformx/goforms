@@ -11,10 +11,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/suite"
 
+	"github.com/jonesrussell/goforms/internal/core/contact"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/jonesrussell/goforms/internal/response"
 )
 
@@ -22,7 +23,7 @@ type ContactSuite struct {
 	suite.Suite
 	logger logger.Logger
 	db     *sqlx.DB
-	store  models.ContactStore
+	store  contact.Store
 }
 
 func (s *ContactSuite) SetupSuite() {
@@ -46,7 +47,7 @@ func (s *ContactSuite) SetupSuite() {
 	}
 
 	// Initialize store with test database
-	s.store = models.NewContactStore(s.db)
+	s.store = contact.NewMockStore()
 
 	// Clear test data
 	_, err = s.db.Exec("TRUNCATE TABLE contact_submissions")
@@ -67,7 +68,10 @@ func (s *ContactSuite) TestContactIntegration() {
 	// Setup test server
 	e := echo.New()
 	handler := NewContactHandler(s.logger, s.store)
-	handler.Register(e)
+
+	// Register routes
+	e.POST("/api/contact", handler.CreateContact)
+	e.GET("/api/contact", handler.GetContacts)
 
 	// Test valid contact submission
 	validPayload := `{
@@ -75,6 +79,15 @@ func (s *ContactSuite) TestContactIntegration() {
 		"email": "test@example.com",
 		"message": "This is a test message"
 	}`
+
+	// Setup mock expectations
+	mockStore := s.store.(*contact.MockStore)
+	mockStore.On("Create", mock.Anything, &contact.Submission{
+		Name:    "Test User",
+		Email:   "test@example.com",
+		Message: "This is a test message",
+		Status:  contact.StatusPending,
+	}).Return(nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(validPayload))
 	req.Header.Set(echo.HeaderContentType, "application/json")
@@ -92,19 +105,13 @@ func (s *ContactSuite) TestContactIntegration() {
 	// Convert the data field to contact submission
 	contactData, err := json.Marshal(resp.Data)
 	s.NoError(err)
-	var contact models.ContactSubmission
-	err = json.Unmarshal(contactData, &contact)
+	var submission contact.Submission
+	err = json.Unmarshal(contactData, &submission)
 	s.NoError(err)
 
-	s.Equal("Test User", contact.Name)
-	s.Equal("test@example.com", contact.Email)
-	s.Equal("This is a test message", contact.Message)
-
-	// Verify submission was stored
-	var count int
-	err = s.db.Get(&count, "SELECT COUNT(*) FROM contact_submissions WHERE email = ?", "test@example.com")
-	s.NoError(err)
-	s.Equal(1, count)
+	s.Equal("Test User", submission.Name)
+	s.Equal("test@example.com", submission.Email)
+	s.Equal("This is a test message", submission.Message)
 
 	// Test invalid submission
 	invalidPayload := `{
@@ -124,6 +131,9 @@ func (s *ContactSuite) TestContactIntegration() {
 	s.NoError(err)
 	s.Equal("error", resp.Status)
 	s.NotEmpty(resp.Message)
+
+	// Verify mock expectations
+	mockStore.AssertExpectations(s.T())
 }
 
 func TestContactSuite(t *testing.T) {

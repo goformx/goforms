@@ -31,3 +31,9 @@ air_errors.log
 
 # Taskfile
 .task/
+
+# HTMGo
+__htmgo/
+
+# Add to .gitignore
+*_templ.go

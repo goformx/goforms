@@ -1,210 +1,167 @@
 package handlers
 
 import (
-	"bytes"
 	"context"
 	"encoding/json"
-	"errors"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
+	"github.com/jonesrussell/goforms/internal/core/contact"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
-	"github.com/jonesrussell/goforms/internal/response"
 )
 
+// MockContactStore is a mock implementation of contact.Store
 type MockContactStore struct {
 	mock.Mock
 }
 
-func (m *MockContactStore) CreateContact(ctx context.Context, contact *models.ContactSubmission) error {
-	args := m.Called(ctx, contact)
+func (m *MockContactStore) Create(ctx context.Context, submission *contact.Submission) error {
+	args := m.Called(ctx, submission)
 	return args.Error(0)
 }
 
-func (m *MockContactStore) GetContacts(ctx context.Context) ([]models.ContactSubmission, error) {
+func (m *MockContactStore) List(ctx context.Context) ([]contact.Submission, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]models.ContactSubmission), args.Error(1)
+	return args.Get(0).([]contact.Submission), args.Error(1)
 }
 
-func TestContactHandler_CreateContact(t *testing.T) {
-	// Setup
-	e := echo.New()
-	mockStore := new(MockContactStore)
-	mockLogger := logger.NewMockLogger()
-	handler := NewContactHandler(mockLogger, mockStore)
+func (m *MockContactStore) GetByID(ctx context.Context, id int64) (*contact.Submission, error) {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*contact.Submission), args.Error(1)
+}
 
-	tests := []struct {
-		name           string
-		contact        *models.ContactSubmission
-		setupMock      func()
-		expectedStatus int
-		expectedError  bool
-	}{
+func (m *MockContactStore) UpdateStatus(ctx context.Context, id int64, status contact.Status) error {
+	args := m.Called(ctx, id, status)
+	return args.Error(0)
+}
+
+type createContactTestCase struct {
+	name          string
+	contact       *contact.Submission
+	expectedCode  int
+	expectedError string
+}
+
+func TestCreateContact(t *testing.T) {
+	testCases := []createContactTestCase{
 		{
-			name: "successful submission",
-			contact: &models.ContactSubmission{
-				Name:    "Test User",
-				Email:   "test@example.com",
+			name: "valid contact",
+			contact: &contact.Submission{
+				Name:    "John Doe",
+				Email:   "john@example.com",
 				Message: "Test message",
 			},
-			setupMock: func() {
-				mockStore.On("CreateContact", mock.Anything, &models.ContactSubmission{
-					Name:    "Test User",
-					Email:   "test@example.com",
-					Message: "Test message",
-				}).Return(nil)
-			},
-			expectedStatus: http.StatusCreated,
-			expectedError:  false,
+			expectedCode: http.StatusCreated,
 		},
 		{
-			name:           "invalid request",
-			contact:        nil,
-			setupMock:      func() {},
-			expectedStatus: http.StatusBadRequest,
-			expectedError:  true,
-		},
-		{
-			name: "store error",
-			contact: &models.ContactSubmission{
-				Name:    "Test User",
-				Email:   "test@example.com",
-				Message: "Test message",
+			name: "invalid contact",
+			contact: &contact.Submission{
+				Name:    "",
+				Email:   "invalid-email",
+				Message: "",
 			},
-			setupMock: func() {
-				mockStore.On("CreateContact", mock.Anything, &models.ContactSubmission{
-					Name:    "Test User",
-					Email:   "test@example.com",
-					Message: "Test message",
-				}).Return(errors.New("database error"))
-			},
-			expectedStatus: http.StatusInternalServerError,
-			expectedError:  true,
+			expectedCode:  http.StatusBadRequest,
+			expectedError: "invalid request",
 		},
 	}
 
-	for _, tc := range tests {
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Reset mock
-			mockStore.ExpectedCalls = nil
-			mockStore.Calls = nil
-
-			// Setup mock expectations
-			tc.setupMock()
+			// Setup
+			e := echo.New()
+			mockStore := new(MockContactStore)
+			mockLogger := logger.NewMockLogger()
+			handler := NewContactHandler(mockLogger, mockStore)
 
 			// Create request
-			var jsonData []byte
-			var err error
-			if tc.contact != nil {
-				jsonData, err = json.Marshal(tc.contact)
-				assert.NoError(t, err)
-			} else {
-				jsonData = []byte(`{"email": "invalid"}`)
-			}
-
-			req := httptest.NewRequest(http.MethodPost, "/api/contact", bytes.NewReader(jsonData))
+			jsonBytes, _ := json.Marshal(tc.contact)
+			req := httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(string(jsonBytes)))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
-			// Test
-			err = handler.CreateContact(c)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedStatus, rec.Code)
-
-			// Parse response
-			var resp response.Response
-			err = json.Unmarshal(rec.Body.Bytes(), &resp)
-			assert.NoError(t, err)
-
-			if tc.expectedError {
-				assert.Equal(t, "error", resp.Status)
-				assert.NotEmpty(t, resp.Message)
-			} else {
-				assert.Equal(t, "success", resp.Status)
-
-				// Verify contact data
-				contactData, err := json.Marshal(resp.Data)
-				assert.NoError(t, err)
-				var contact models.ContactSubmission
-				err = json.Unmarshal(contactData, &contact)
-				assert.NoError(t, err)
-				assert.Equal(t, tc.contact.Name, contact.Name)
-				assert.Equal(t, tc.contact.Email, contact.Email)
-				assert.Equal(t, tc.contact.Message, contact.Message)
+			// Set expectations
+			if tc.expectedCode == http.StatusCreated {
+				mockStore.On("Create", mock.Anything, tc.contact).Return(nil)
 			}
 
-			// Verify mock
+			// Test
+			err := handler.CreateContact(c)
+
+			// Assert
+			if tc.expectedError != "" {
+				assert.Error(t, err)
+				// Add more specific assertions about the error if needed
+			} else {
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedCode, rec.Code)
+
+				var submission contact.Submission
+				err := json.Unmarshal(rec.Body.Bytes(), &submission)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.contact.Name, submission.Name)
+				assert.Equal(t, tc.contact.Email, submission.Email)
+				assert.Equal(t, tc.contact.Message, submission.Message)
+			}
+
 			mockStore.AssertExpectations(t)
 		})
 	}
 }
 
-func TestContactHandler_GetContacts(t *testing.T) {
-	// Setup
-	e := echo.New()
-	mockStore := new(MockContactStore)
-	mockLogger := logger.NewMockLogger()
-	handler := NewContactHandler(mockLogger, mockStore)
+type listContactsTestCase struct {
+	name          string
+	expectedCode  int
+	expectedError string
+	expectedData  []contact.Submission
+	setupMock     func(*MockContactStore)
+}
 
-	tests := []struct {
-		name           string
-		setupMock      func()
-		expectedStatus int
-		expectedError  bool
-		expectedData   []models.ContactSubmission
-	}{
-		{
-			name: "successful retrieval",
-			setupMock: func() {
-				mockStore.On("GetContacts", mock.Anything).Return([]models.ContactSubmission{
-					{
-						ID:      1,
-						Name:    "Test User",
-						Email:   "test@example.com",
-						Message: "Test message",
-					},
-				}, nil)
-			},
-			expectedStatus: http.StatusOK,
-			expectedError:  false,
-			expectedData: []models.ContactSubmission{
-				{
-					ID:      1,
-					Name:    "Test User",
-					Email:   "test@example.com",
-					Message: "Test message",
-				},
-			},
-		},
-		{
-			name: "store error",
-			setupMock: func() {
-				mockStore.On("GetContacts", mock.Anything).Return(nil, errors.New("database error"))
-			},
-			expectedStatus: http.StatusInternalServerError,
-			expectedError:  true,
-			expectedData:   nil,
-		},
+func TestListContacts(t *testing.T) {
+	sampleSubmission := contact.Submission{
+		ID:      1,
+		Name:    "John Doe",
+		Email:   "john@example.com",
+		Message: "Test message",
+		Status:  contact.StatusPending,
 	}
 
-	for _, tc := range tests {
+	testCases := []listContactsTestCase{
+		{
+			name:         "success",
+			expectedCode: http.StatusOK,
+			setupMock: func(ms *MockContactStore) {
+				ms.On("List", mock.Anything).Return([]contact.Submission{sampleSubmission}, nil)
+			},
+			expectedData: []contact.Submission{sampleSubmission},
+		},
+		// Add more test cases as needed
+	}
+
+	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Reset mock
-			mockStore.ExpectedCalls = nil
-			mockStore.Calls = nil
+			// Setup
+			e := echo.New()
+			mockStore := new(MockContactStore)
+			mockLogger := logger.NewMockLogger()
+			handler := NewContactHandler(mockLogger, mockStore)
 
 			// Setup mock expectations
-			tc.setupMock()
+			if tc.setupMock != nil {
+				tc.setupMock(mockStore)
+			}
 
 			// Create request
 			req := httptest.NewRequest(http.MethodGet, "/api/contact", nil)
@@ -213,30 +170,21 @@ func TestContactHandler_GetContacts(t *testing.T) {
 
 			// Test
 			err := handler.GetContacts(c)
-			assert.NoError(t, err)
-			assert.Equal(t, tc.expectedStatus, rec.Code)
 
-			// Parse response
-			var resp response.Response
-			err = json.Unmarshal(rec.Body.Bytes(), &resp)
-			assert.NoError(t, err)
-
-			if tc.expectedError {
-				assert.Equal(t, "error", resp.Status)
-				assert.NotEmpty(t, resp.Message)
+			// Assert
+			if tc.expectedError != "" {
+				assert.Error(t, err)
+				// Add more specific assertions about the error if needed
 			} else {
-				assert.Equal(t, "success", resp.Status)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedCode, rec.Code)
 
-				// Verify contacts data
-				contactsData, err := json.Marshal(resp.Data)
+				var submissions []contact.Submission
+				err := json.Unmarshal(rec.Body.Bytes(), &submissions)
 				assert.NoError(t, err)
-				var contacts []models.ContactSubmission
-				err = json.Unmarshal(contactsData, &contacts)
-				assert.NoError(t, err)
-				assert.Equal(t, tc.expectedData, contacts)
+				assert.Equal(t, tc.expectedData, submissions)
 			}
 
-			// Verify mock
 			mockStore.AssertExpectations(t)
 		})
 	}

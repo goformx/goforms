@@ -100,3 +100,8 @@ func (s *Server) Stop(ctx context.Context) error {
 
 	return nil
 }
+
+// Start is used by fx.Invoke to create and start the server
+func Start(e *echo.Echo, log logger.Logger, cfg *server.Config, lc fx.Lifecycle) {
+	_ = New(lc, e, log, cfg)
+}

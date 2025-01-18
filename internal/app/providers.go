@@ -5,11 +5,13 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+	"go.uber.org/fx"
 
+	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/logger"
 )
 
-// NewEcho creates a new Echo instance with common middleware
+// NewEcho creates a new Echo instance with common middleware and routes
 func NewEcho(log logger.Logger) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
@@ -41,5 +43,15 @@ func NewEcho(log logger.Logger) *echo.Echo {
 	e.Use(middleware.Recover())
 	e.Use(middleware.CORS())
 
+	// Register routes
+	ph := handlers.NewPageHandler()
+	e.GET("/", ph.HomePage)
+	e.GET("/contact", ph.ContactPage)
+
 	return e
 }
+
+//nolint:gochecknoglobals // This is an intentional global following fx module pattern
+var Module = fx.Options(
+	fx.Provide(NewEcho),
+)

@@ -1,76 +1,108 @@
 package handlers
 
 import (
-	"context"
+	"fmt"
 	"net/http"
-	"time"
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/jonesrussell/goforms/internal/core/contact"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/jonesrussell/goforms/internal/response"
-	"github.com/jonesrussell/goforms/internal/validation"
 )
 
-// ContactHandler handles contact form submissions
 type ContactHandler struct {
-	logger logger.Logger
-	store  models.ContactStore
+	log   logger.Logger
+	store contact.Store
 }
 
-// NewContactHandler creates a new contact form handler
-func NewContactHandler(logger logger.Logger, store models.ContactStore) *ContactHandler {
+func NewContactHandler(log logger.Logger, store contact.Store) *ContactHandler {
 	return &ContactHandler{
-		logger: logger,
-		store:  store,
+		log:   log,
+		store: store,
 	}
 }
 
-// Register registers the contact form routes with Echo
+// Register registers the contact routes
 func (h *ContactHandler) Register(e *echo.Echo) {
-	g := e.Group("/api")
-	g.GET("/contact", h.GetContacts)
-	g.POST("/contact", h.CreateContact)
+	e.POST("/api/contact", h.CreateContact)
+	e.GET("/api/contact", h.GetContacts)
+	e.GET("/api/contact/:id", h.GetContact)
+	e.PUT("/api/contact/:id/status", h.UpdateContactStatus)
 }
 
-// GetContacts returns all contact form submissions
-func (h *ContactHandler) GetContacts(c echo.Context) error {
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
-	defer cancel()
+func (h *ContactHandler) CreateContact(c echo.Context) error {
+	var submission contact.Submission
+	if err := c.Bind(&submission); err != nil {
+		h.log.Error("failed to bind contact submission", logger.Error(err))
+		return response.Error(c, http.StatusBadRequest, "invalid request")
+	}
 
-	submissions, err := h.store.GetContacts(ctx)
+	if err := h.store.Create(c.Request().Context(), &submission); err != nil {
+		h.log.Error("failed to create contact submission", logger.Error(err))
+		return response.Error(c, http.StatusInternalServerError, "failed to create contact submission")
+	}
+
+	return response.Success(c, http.StatusCreated, submission)
+}
+
+func (h *ContactHandler) GetContacts(c echo.Context) error {
+	submissions, err := h.store.List(c.Request().Context())
 	if err != nil {
-		h.logger.Error("failed to get contact submissions",
-			logger.Error(err),
-		)
-		return response.Error(c, http.StatusInternalServerError, "failed to get submissions")
+		h.log.Error("failed to get contact submissions", logger.Error(err))
+		return response.Error(c, http.StatusInternalServerError, "failed to get contact submissions")
 	}
 
 	return response.Success(c, http.StatusOK, submissions)
 }
 
-// CreateContact handles new contact form submissions
-func (h *ContactHandler) CreateContact(c echo.Context) error {
-	ctx, cancel := context.WithTimeout(c.Request().Context(), 5*time.Second)
-	defer cancel()
-
-	var contact models.ContactSubmission
-	if err := c.Bind(&contact); err != nil {
-		return response.Error(c, http.StatusBadRequest, "invalid request payload")
+func (h *ContactHandler) GetContact(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return response.Error(c, http.StatusBadRequest, "missing contact submission id")
 	}
 
-	if err := validation.ValidateContact(&contact); err != nil {
-		return response.Error(c, http.StatusBadRequest, err.Error())
+	var submissionID int64
+	if _, err := fmt.Sscanf(id, "%d", &submissionID); err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid contact submission id")
 	}
 
-	if err := h.store.CreateContact(ctx, &contact); err != nil {
-		h.logger.Error("failed to create contact submission",
-			logger.Error(err),
-			logger.String("email", contact.Email),
-		)
-		return response.Error(c, http.StatusInternalServerError, "failed to submit contact form")
+	submission, err := h.store.GetByID(c.Request().Context(), submissionID)
+	if err != nil {
+		h.log.Error("failed to get contact submission", logger.Error(err))
+		return response.Error(c, http.StatusInternalServerError, "failed to get contact submission")
 	}
 
-	return response.Success(c, http.StatusCreated, contact)
+	if submission == nil {
+		return response.Error(c, http.StatusNotFound, "contact submission not found")
+	}
+
+	return response.Success(c, http.StatusOK, submission)
+}
+
+func (h *ContactHandler) UpdateContactStatus(c echo.Context) error {
+	id := c.Param("id")
+	if id == "" {
+		return response.Error(c, http.StatusBadRequest, "missing contact submission id")
+	}
+
+	var submissionID int64
+	if _, err := fmt.Sscanf(id, "%d", &submissionID); err != nil {
+		return response.Error(c, http.StatusBadRequest, "invalid contact submission id")
+	}
+
+	var req struct {
+		Status contact.Status `json:"status"`
+	}
+	if err := c.Bind(&req); err != nil {
+		h.log.Error("failed to bind status update request", logger.Error(err))
+		return response.Error(c, http.StatusBadRequest, "invalid request")
+	}
+
+	if err := h.store.UpdateStatus(c.Request().Context(), submissionID, req.Status); err != nil {
+		h.log.Error("failed to update contact submission status", logger.Error(err))
+		return response.Error(c, http.StatusInternalServerError, "failed to update contact submission status")
+	}
+
+	return response.Success(c, http.StatusOK, nil)
 }

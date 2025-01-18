@@ -1,0 +1,16 @@
+// internal/pages/contact.templ
+
+package pages
+
+import (
+    "github.com/jonesrussell/goforms/internal/layouts"
+    "github.com/jonesrussell/goforms/internal/components"
+)
+
+templ Contact() {
+    @layouts.Base("Contact Demo - Goforms") {
+        <main class="container">
+            @components.ContactForm()
+        </main>
+    }
+}

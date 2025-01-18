@@ -1,259 +1,43 @@
 version: '3'
 
-dotenv: ['.env', '.env.test']
-
-vars:
-  DB_USER: '{{.DB_USER}}'
-  DB_PASSWORD: '{{.DB_PASSWORD}}'
-  DB_NAME: '{{.DB_NAME}}'
-  DB_HOST: '{{.DB_HOST}}'
-  DB_PORT: '{{.DB_PORT}}'
-  DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD}}'
-  TEST_DB_USER: '{{.TEST_DB_USER}}'
-  TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
-  TEST_DB_NAME: '{{.TEST_DB_NAME}}'
-  TEST_DB_HOST: '{{.TEST_DB_HOST}}'
-  TEST_DB_PORT: '{{.TEST_DB_PORT}}'
-
 tasks:
-  default:
-    deps: [test:setup-db]
-
   install:
-    desc: Install project dependencies
+    desc: Install dependencies
     cmds:
       - go mod download
       - go mod tidy
-      - go install github.com/air-verse/air@latest
       - go install github.com/a-h/templ/cmd/templ@latest
 
+  generate:
+    desc: Generate templ files
+    cmds:
+      - templ generate ./internal/...
+
+  dev:
+    desc: Run development server
+    deps: [install, generate]
+    cmds:
+      - go run ./cmd/goforms
+
   build:
-    desc: Build the application
+    desc: Build for production
+    deps: [install, generate]
     cmds:
       - go build -o bin/goforms ./cmd/goforms
 
-  run:
-    desc: Run the application with hot reload
-    deps: [install]
-    method: none
-    cmds:
-      - templ generate
-      - air
-    sources:
-      - "**/*.templ"
-    generates:
-      - "**/*_templ.go"
-
-  test:setup-db:
-    desc: Create and setup test database
-    cmds:
-      - mysql -h db -u goforms -pgoforms -e "CREATE DATABASE IF NOT EXISTS goforms;"
-      - mysql -h db -u goforms -pgoforms -e "CREATE DATABASE IF NOT EXISTS goforms_test;"
-
-  test:migrate:
-    desc: Run migrations for both databases
-    cmds:
-      - migrate -database "mysql://goforms:goforms@tcp(db:3306)/goforms" -path migrations up
-      - migrate -database "mysql://goforms:goforms@tcp(db:3306)/goforms_test" -path migrations up
-
   test:
-    desc: Run all tests
-    deps: [test:setup-db, test:migrate]
+    desc: Run tests
+    deps: [generate]
     cmds:
-      - go test ./... -v
-    env:
-      DB_USER: '{{.TEST_DB_USER}}'
-      DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
-      DB_NAME: '{{.TEST_DB_NAME}}'
-      DB_HOST: '{{.TEST_DB_HOST}}'
-      DB_PORT: '{{.TEST_DB_PORT}}'
-
-  test:integration:
-    desc: Run integration tests with Docker
-    cmds:
-      - docker compose -f docker/test/docker-compose.yml down -v
-      - docker compose -f docker/test/docker-compose.yml up -d
-      - sleep 5
-      - docker compose -f docker/test/docker-compose.yml logs test-db
-      - docker compose -f docker/test/docker-compose.yml exec -T test-app go test ./...
-    env:
-      DB_USER: '{{.DB_USER}}'
-      DB_PASSWORD: '{{.DB_PASSWORD}}'
-      DB_NAME: '{{.DB_NAME}}'
-      DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD}}'
-
-  test:unit:
-    desc: Run unit tests
-    cmds:
-      - go test -v ./... -tags=unit
-
-  test:coverage:
-    desc: Run tests with coverage and generate report
-    cmds:
-      - |
-        go test ./internal/... \
-          -coverprofile=coverage.out \
-          -covermode=atomic \
-          -race
-      - go tool cover -func=coverage.out
-    env:
-      DB_USER: '{{.DB_USER}}'
-      DB_PASSWORD: '{{.DB_PASSWORD}}'
-      DB_NAME: '{{.DB_NAME}}'
-      DB_HOST: '{{.DB_HOST}}'
-      DB_PORT: '{{.DB_PORT}}'
-
-  migrate:up:
-    desc: Run database migrations
-    cmds:
-      - |
-        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
-          -path migrations up
-    env:
-      DB_USER: '{{.DB_USER}}'
-      DB_PASSWORD: '{{.DB_PASSWORD}}'
-      DB_NAME: '{{.DB_NAME}}'
-      DB_HOST: '{{.DB_HOST}}'
-      DB_PORT: '{{.DB_PORT}}'
-
-  migrate:down:
-    desc: Rollback database migrations
-    cmds:
-      - |
-        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
-          -path migrations down
-    env:
-      DB_USER: '{{.DB_USER}}'
-      DB_PASSWORD: '{{.DB_PASSWORD}}'
-      DB_NAME: '{{.DB_NAME}}'
-      DB_HOST: '{{.DB_HOST}}'
-      DB_PORT: '{{.DB_PORT}}'
-
-  migrate:create:
-    desc: Create a new migration
-    cmds:
-      - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
+      - go test -v ./...
 
   lint:
     desc: Run linters
+    deps: [generate]
     cmds:
-      - go vet ./...
       - golangci-lint run
 
-  clean:
-    desc: Clean build artifacts
+  migrate:
+    desc: Run database migrations
     cmds:
-      - rm -rf bin/
-      - rm -f coverage.out
-      - rm -f coverage.html
-
-  ci:test:
-    desc: Run tests in CI environment
-    cmds:
-      - task: test:coverage
-    env:
-      CGO_ENABLED: 1
-      DB_USER: goforms
-      DB_PASSWORD: goforms
-      DB_NAME: goforms_test
-      DB_HOST: localhost
-      DB_PORT: 3306
-
-  ci:build:
-    desc: Build in CI environment
-    cmds:
-      - task: build
-    env:
-      CGO_ENABLED: 0
-      GOOS: linux
-      GOARCH: amd64
-
-  dev:up:
-    desc: Start development environment
-    cmds:
-      - docker-compose -f docker/dev/docker-compose.yml up -d
-      - task: migrate:up
-
-  dev:down:
-    desc: Stop development environment
-    cmds:
-      - docker-compose -f docker/dev/docker-compose.yml down
-
-  dev:logs:
-    desc: View development logs
-    cmds:
-      - docker-compose -f docker/dev/docker-compose.yml logs -f
-
-  docker:build:
-    desc: Build Docker image
-    cmds:
-      - docker build -t goforms:latest -f docker/Dockerfile .
-
-  docker:run:
-    desc: Run Docker container
-    cmds:
-      - docker run -p 8090:8090 --env-file .env goforms:latest
-
-  prod:up:
-    desc: Start production environment
-    cmds:
-      - docker-compose -f docker/prod/docker-compose.yml up -d
-      - task: migrate:up
-
-  prod:down:
-    desc: Stop production environment
-    cmds:
-      - docker-compose -f docker/prod/docker-compose.yml down
-
-  prod:logs:
-    desc: View production logs
-    cmds:
-      - docker-compose -f docker/prod/docker-compose.yml logs -f
-
-  prod:build:
-    desc: Build production image
-    cmds:
-      - task: docker:build
-      - docker-compose -f docker/prod/docker-compose.yml build
-
-  logs:
-    desc: Tail production logs
-    cmds:
-      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log"
-
-  logs:err:
-    desc: Tail production error logs
-    cmds:
-      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log"
-
-  logs:all:
-    desc: Tail both production logs simultaneously (requires tmux)
-    cmds:
-      - |
-        tmux new-session -d 'task logs' \; \
-        split-window -h 'task logs:err' \; \
-        attach \;
-
-  logs:cors:
-    desc: Monitor CORS-related logs
-    cmds:
-      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.{out,err}.log | grep -i 'origin\|cors'"
-
-  test:setup:
-    cmds:
-      - task test:setup-db
-      - go run cmd/migrate/main.go -database "mysql://{{.TEST_DB_USER}}:{{.TEST_DB_PASSWORD}}@tcp({{.TEST_DB_HOST}}:{{.TEST_DB_PORT}})/{{.TEST_DB_NAME}}" up
-
-  templ:
-    desc: Generate templ files
-    cmds:
-      - templ generate
-    sources:
-      - "**/*.templ"
-    generates:
-      - "**/*_templ.go"
-    
-  templ:watch:
-    desc: Watch and generate templ files
-    cmds:
-      - templ generate --watch
+      - go run cmd/migrate/main.go

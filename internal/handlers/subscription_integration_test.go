@@ -9,16 +9,17 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
+	"github.com/jonesrussell/goforms/internal/core/subscription"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/jonesrussell/goforms/internal/response"
 )
 
 func TestSubscriptionIntegration(t *testing.T) {
 	// Setup
 	e := echo.New()
-	mockStore := models.NewMockSubscriptionStore()
+	mockStore := subscription.NewMockStore()
 	mockLogger := logger.NewMockLogger()
 
 	handler := NewSubscriptionHandler(mockStore, mockLogger)
@@ -26,18 +27,22 @@ func TestSubscriptionIntegration(t *testing.T) {
 
 	tests := []struct {
 		name           string
-		subscription   models.Subscription
+		subscription   subscription.Subscription
 		setupMock      func()
 		expectedStatus int
 		expectedError  bool
 	}{
 		{
 			name: "valid subscription",
-			subscription: models.Subscription{
+			subscription: subscription.Subscription{
 				Email: "test@example.com",
+				Name:  "Test User",
 			},
 			setupMock: func() {
-				mockStore.On("Create", &models.Subscription{Email: "test@example.com"}).Return(nil)
+				mockStore.On("Create", mock.Anything, &subscription.Subscription{
+					Email: "test@example.com",
+					Name:  "Test User",
+				}).Return(nil)
 			},
 			expectedStatus: http.StatusCreated,
 			expectedError:  false,
@@ -79,10 +84,11 @@ func TestSubscriptionIntegration(t *testing.T) {
 				// Verify subscription data
 				subscriptionData, err := json.Marshal(resp.Data)
 				assert.NoError(t, err)
-				var subscription models.Subscription
+				var subscription subscription.Subscription
 				err = json.Unmarshal(subscriptionData, &subscription)
 				assert.NoError(t, err)
 				assert.Equal(t, tc.subscription.Email, subscription.Email)
+				assert.Equal(t, tc.subscription.Name, subscription.Name)
 			}
 
 			// Verify logger and mock expectations

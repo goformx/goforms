@@ -9,30 +9,35 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
+	"github.com/jonesrussell/goforms/internal/core/subscription"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
 )
 
 func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 	e := echo.New()
 	mockLogger := logger.NewMockLogger()
-	mockStore := models.NewMockSubscriptionStore()
+	mockStore := subscription.NewMockStore()
 	handler := NewSubscriptionHandler(mockStore, mockLogger)
 
 	tests := []struct {
 		name           string
-		subscription   *models.Subscription
+		subscription   *subscription.Subscription
 		setupMock      func()
 		expectedStatus int
 	}{
 		{
 			name: "valid subscription",
-			subscription: &models.Subscription{
+			subscription: &subscription.Subscription{
 				Email: "test@example.com",
+				Name:  "Test User",
 			},
 			setupMock: func() {
-				mockStore.On("Create", &models.Subscription{Email: "test@example.com"}).Return(nil)
+				mockStore.On("Create", mock.Anything, &subscription.Subscription{
+					Email: "test@example.com",
+					Name:  "Test User",
+				}).Return(nil)
 			},
 			expectedStatus: http.StatusCreated,
 		},
