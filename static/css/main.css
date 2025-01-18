@@ -296,11 +296,71 @@ footer a:hover {
     }
 }
 
-/* Form Section */
-.form-section {
-    padding: 5rem 0;
+/* Form and Messages Layout */
+.contact-layout {
+    display: grid;
+    gap: 2rem;
+    padding: 2rem 0;
 }
 
+@media (min-width: 1024px) {
+    .contact-layout {
+        grid-template-columns: 1fr 1fr;
+        align-items: start;
+    }
+}
+
+.form-section {
+    margin-bottom: 0;
+}
+
+.messages-section {
+    background: var(--background);
+    padding: 2rem 0;
+}
+
+.section-title {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 1.5rem;
+    color: var(--text-primary);
+}
+
+.messages-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.message-card {
+    background: rgba(30, 41, 59, 0.5);
+    border-radius: 0.5rem;
+    padding: 1.25rem;
+}
+
+.message-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.75rem;
+}
+
+.message-name {
+    font-weight: 500;
+    color: var(--text-primary);
+}
+
+.message-time {
+    font-size: 0.875rem;
+    color: var(--text-secondary);
+}
+
+.message-content {
+    color: var(--text-secondary);
+    line-height: 1.5;
+}
+
+/* Contact Form Styling */
 .contact-form {
     display: flex;
     flex-direction: column;
@@ -315,93 +375,39 @@ footer a:hover {
 
 .form-group label {
     font-weight: 500;
-    color: var(--text);
+    color: var(--text-primary);
 }
 
 .form-group input,
 .form-group textarea {
-    padding: 0.75rem;
-    border-radius: var(--border-radius);
+    padding: 0.75rem 1rem;
+    border-radius: 0.375rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(255, 255, 255, 0.05);
-    color: var(--text);
+    background: rgba(30, 41, 59, 0.5);
+    color: var(--text-primary);
     font-size: 1rem;
     width: 100%;
+    transition: border-color 0.2s ease;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
     border-color: var(--primary);
+    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.1);
 }
 
 .form-group textarea {
     resize: vertical;
-    min-height: 100px;
+    min-height: 120px;
 }
 
-/* Dark mode form adjustments */
-@media (prefers-color-scheme: dark) {
-    .form-group input,
-    .form-group textarea {
-        background: rgba(30, 41, 59, 0.5);
-        border-color: #334155;
-    }
-    
-    .form-group input:focus,
-    .form-group textarea:focus {
-        border-color: var(--primary);
-    }
-}
-
-/* Messages Section */
-.messages-section {
-    padding: 5rem 0;
-    border-top: 1px solid rgba(255, 255, 255, 0.1);
-}
-
-.section-title {
-    font-size: 2rem;
+.button.primary {
+    width: 100%;
+    justify-content: center;
     font-weight: 600;
-    margin-bottom: 2rem;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    background-clip: text;
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-}
-
-.messages-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-}
-
-.message-card {
-    background: rgba(30, 41, 59, 0.5);
-    padding: 1.5rem;
-    border-radius: var(--border-radius);
-}
-
-.message-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 0.75rem;
-}
-
-.message-name {
-    color: var(--primary);
-    font-weight: 500;
-}
-
-.message-time {
-    color: var(--text-light);
-    font-size: 0.875rem;
-}
-
-.message-content {
-    color: var(--text);
-    line-height: 1.5;
+    padding: 0.875rem 1.5rem;
+    font-size: 1rem;
 }
 
 /* Dark mode message adjustments */

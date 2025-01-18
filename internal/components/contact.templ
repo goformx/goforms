@@ -15,8 +15,8 @@ templ contactContent() {
 		</div>
 	</section>
 
-	<section class="form-section">
-		<div class="container">
+	<div class="contact-layout container">
+		<section class="form-section">
 			<div class="feature-card">
 				<form class="contact-form" action="/api/v1/contact" method="POST">
 					<div class="form-group">
@@ -34,11 +34,9 @@ templ contactContent() {
 					<button class="button primary" type="submit">Send Message</button>
 				</form>
 			</div>
-		</div>
-	</section>
+		</section>
 
-	<section class="messages-section">
-		<div class="container">
+		<section class="messages-section">
 			<h2 class="section-title">Recent Messages</h2>
 			<div class="messages-list">
 				<div class="message-card">
@@ -65,6 +63,6 @@ templ contactContent() {
 					<p class="message-content">asdf</p>
 				</div>
 			</div>
-		</div>
-	</section>
+		</section>
+	</div>
 } 
