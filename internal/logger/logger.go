@@ -2,6 +2,7 @@
 package logger
 
 import (
+	"os"
 	"time"
 
 	"go.uber.org/zap"
@@ -23,8 +24,25 @@ type zapLogger struct {
 	*zap.Logger
 }
 
-// GetLogger returns a new production logger instance
+// GetLogger returns a logger instance configured based on environment
 func GetLogger() Logger {
+	isDev := os.Getenv("APP_ENV") != "production"
+
+	if isDev {
+		config := zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		config.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+		config.EncoderConfig.EncodeDuration = zapcore.StringDurationEncoder
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+
+		log, _ := config.Build(
+			zap.AddCaller(),
+			zap.AddStacktrace(zapcore.ErrorLevel),
+		)
+		return &zapLogger{log}
+	}
+
 	config := zap.NewProductionConfig()
 	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	log, _ := config.Build(
