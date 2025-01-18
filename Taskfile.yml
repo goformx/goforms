@@ -35,6 +35,7 @@ tasks:
   run:
     desc: Run the application with hot reload
     deps: [install]
+    method: none
     cmds:
       - templ generate
       - air
