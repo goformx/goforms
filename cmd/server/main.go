@@ -17,7 +17,7 @@ func main() {
 	// Try to load .env file
 	_ = godotenv.Load()
 
-	app := fx.New(
+	application := fx.New(
 		fx.Provide(
 			logger.GetLogger,
 			config.New,
@@ -38,5 +38,5 @@ func main() {
 			return &fxevent.ZapLogger{Logger: logger.GetLogger()}
 		}),
 	)
-	app.Run()
+	application.Run()
 }
