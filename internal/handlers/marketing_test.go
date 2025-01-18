@@ -7,11 +7,15 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"go.uber.org/zap"
 )
 
 func TestMarketingHandler(t *testing.T) {
+	// Create a test logger
+	logger := zap.NewNop()
+
 	// Create a new marketing handler
-	handler := NewMarketingHandler()
+	handler := NewMarketingHandler(logger)
 
 	// Set up Echo
 	e := echo.New()
