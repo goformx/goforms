@@ -5,7 +5,7 @@ templ ContactForm() {
         <h1>Contact Form Demo</h1>
         <p>This form demonstrates Goforms' capabilities.</p>
         
-        <form id="contact-form" action="/api/contact" method="POST">
+        <form id="contact-form" action="/api/v1/contacts" method="POST">
             <div class="form-group">
                 <label for="name">Name</label>
                 <input type="text" id="name" name="name" required/>
@@ -47,9 +47,14 @@ templ ContactForm() {
         // Load and display submissions
         async function loadSubmissions() {
             try {
-                const response = await fetch('/api/contact');
-                const submissions = await response.json();
+                const response = await fetch('/api/v1/contacts');
+                const data = await response.json();
+                const submissions = data.data; // Extract submissions from response wrapper
                 
+                if (!Array.isArray(submissions)) {
+                    throw new Error('Invalid response format');
+                }
+
                 const submissionsList = document.getElementById('submissions-list');
                 submissionsList.innerHTML = submissions
                     .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
