@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/config/server"
-	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
+
+	"github.com/jonesrussell/goforms/internal/config/server"
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
 // Server handles HTTP server lifecycle
@@ -98,4 +99,9 @@ func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("server stopped successfully")
 
 	return nil
+}
+
+// Start is used by fx.Invoke to create and start the server
+func Start(e *echo.Echo, log logger.Logger, cfg *server.Config, lc fx.Lifecycle) {
+	_ = New(lc, e, log, cfg)
 }

@@ -8,17 +8,33 @@ templ Home() {
 }
 
 templ homeContent() {
-	<div class="hero">
-		<h1>Welcome to Goforms</h1>
-		<p>A self-hosted form backend service built with Go</p>
-	</div>
-	<div class="features">
-		<h2>Features</h2>
-		<ul>
-			<li>Simple form submissions</li>
-			<li>Contact form demo</li>
-			<li>Easy to deploy</li>
-			<li>Built with modern Go</li>
-		</ul>
-	</div>
+	<section class="hero">
+		<div class="container">
+			<h1 class="hero-title">Free Form Backend Service</h1>
+			<p class="hero-subtitle">Use our free hosted service or deploy your own. No dependencies, just Go.</p>
+			<div class="hero-actions">
+				<a href="/contact" class="button primary">Try Demo Form</a>
+				<a href="https://github.com/jonesrussell/goforms" class="button">View on GitHub</a>
+			</div>
+		</div>
+	</section>
+
+	<section class="features">
+		<div class="container">
+			<div class="feature-card">
+				<h3><span>🎯</span>Free Hosted</h3>
+				<p>Start using our service instantly, no setup required.</p>
+			</div>
+
+			<div class="feature-card">
+				<h3><span>🔒</span>Self Hosted Option</h3>
+				<p>Deploy on your own infrastructure if needed.</p>
+			</div>
+
+			<div class="feature-card">
+				<h3><span>🛠️</span>API First</h3>
+				<p>RESTful API with JSON responses.</p>
+			</div>
+		</div>
+	</section>
 } 

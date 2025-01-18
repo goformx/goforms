@@ -1,0 +1,35 @@
+root = "."
+tmp_dir = "tmp"
+
+[build]
+cmd = "templ generate ./internal/... && go build -o ./tmp/main ./cmd/goforms"
+bin = "tmp/main"
+full_bin = "./tmp/main"
+include_ext = ["go", "templ", "css"]
+exclude_dir = ["assets", "tmp", "vendor", "testdata", "bin"]
+include_dir = ["static"]
+exclude_file = []
+delay = 1000
+stop_on_error = true
+log = "air.log"
+send_interrupt = true
+
+[log]
+time = true
+
+[color]
+main = "magenta"
+watcher = "cyan"
+build = "yellow"
+runner = "green"
+
+[misc]
+clean_on_exit = true
+
+[screen]
+clear_on_rebuild = false
+
+[proxy]
+enabled = true
+proxy_port = 3333
+app_port = 8090

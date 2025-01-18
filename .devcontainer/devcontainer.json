@@ -35,7 +35,8 @@
 				"github.vscode-github-actions",
 				"golang.go",
 				"eamodio.gitlens",
-				"davidanson.vscode-markdownlint"
+				"davidanson.vscode-markdownlint",
+				"a-h.templ"
 			]
 		}
 	},

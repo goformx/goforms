@@ -1,0 +1,3 @@
+DROP INDEX idx_contact_submissions_email ON contact_submissions;
+DROP INDEX idx_contact_submissions_status ON contact_submissions;
+DROP INDEX idx_subscriptions_status ON subscriptions; 

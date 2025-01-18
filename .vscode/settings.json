@@ -1,17 +1,12 @@
 {
-    "cSpell.words": [
-        "Buildx",
-        "covermode",
-        "coverprofile",
-        "davidanson",
-        "devcontainers",
-        "dotenv",
-        "eamodio",
-        "GOARCH",
-        "Goforms",
-        "golangci",
-        "moby",
-        "pgoforms",
-        "rootpassword"
-    ]
+    "markdownlint.lintWorkspaceGlobs": [
+        "**/*.{md,mkd,mdwn,mdown,markdown,markdn,mdtxt,mdtext,workbook}",
+        "!**/*.code-search",
+        "!**/bower_components",
+        "!**/node_modules",
+        "!**/.git",
+        "!**/vendor",
+        "!.{cursorrules}"
+    ],
+    "markdownlint.run": "onSave"
 }

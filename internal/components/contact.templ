@@ -8,22 +8,61 @@ templ Contact() {
 }
 
 templ contactContent() {
-	<div class="contact-form">
-		<h1>Contact Form Demo</h1>
-		<form action="/api/v1/contact" method="POST">
-			<div class="form-group">
-				<label for="name">Name:</label>
-				<input type="text" id="name" name="name" required/>
+	<section class="hero">
+		<div class="container">
+			<h1 class="hero-title">Contact Form Demo</h1>
+			<p class="hero-subtitle">This form demonstrates Goforms' capabilities.</p>
+		</div>
+	</section>
+
+	<div class="contact-layout container">
+		<section class="form-section">
+			<div class="feature-card">
+				<form class="contact-form" action="/api/v1/contact" method="POST">
+					<div class="form-group">
+						<label for="name">Name</label>
+						<input type="text" id="name" name="name" required/>
+					</div>
+					<div class="form-group">
+						<label for="email">Email</label>
+						<input type="email" id="email" name="email" required/>
+					</div>
+					<div class="form-group">
+						<label for="message">Message</label>
+						<textarea id="message" name="message" rows="4" required></textarea>
+					</div>
+					<button class="button primary" type="submit">Send Message</button>
+				</form>
 			</div>
-			<div class="form-group">
-				<label for="email">Email:</label>
-				<input type="email" id="email" name="email" required/>
+		</section>
+
+		<section class="messages-section">
+			<h2 class="section-title">Recent Messages</h2>
+			<div class="messages-list">
+				<div class="message-card">
+					<div class="message-header">
+						<span class="message-name">test</span>
+						<span class="message-time">2025-01-15, 9:57:09 p.m.</span>
+					</div>
+					<p class="message-content">test 123</p>
+				</div>
+
+				<div class="message-card">
+					<div class="message-header">
+						<span class="message-name">Russell Elliot Jones</span>
+						<span class="message-time">2025-01-15, 9:10:15 p.m.</span>
+					</div>
+					<p class="message-content">yadddddda</p>
+				</div>
+
+				<div class="message-card">
+					<div class="message-header">
+						<span class="message-name">Russell Jones</span>
+						<span class="message-time">2024-12-14, 2:29:17 a.m.</span>
+					</div>
+					<p class="message-content">asdf</p>
+				</div>
 			</div>
-			<div class="form-group">
-				<label for="message">Message:</label>
-				<textarea id="message" name="message" required></textarea>
-			</div>
-			<button type="submit">Send Message</button>
-		</form>
+		</section>
 	</div>
 } 

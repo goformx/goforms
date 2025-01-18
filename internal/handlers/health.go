@@ -3,9 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/response"
-	"github.com/labstack/echo/v4"
 )
 
 // PingContexter is an interface for database health checks

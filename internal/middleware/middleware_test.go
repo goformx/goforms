@@ -6,10 +6,11 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/config"
-	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jonesrussell/goforms/internal/config"
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
 func TestMiddlewareSetup(t *testing.T) {

@@ -6,6 +6,8 @@ linters:
     - revive        # Drop-in replacement for golint
     - govet         # Reports suspicious constructs
     - staticcheck   # Advanced static analysis
+    - wrapcheck     # Checks that errors are wrapped with context
+    - importas      # Enforce import aliases
     
     # Code quality linters
     - dogsled       # Checks for too many blank identifiers
@@ -24,6 +26,41 @@ linters:
     - gosec        # Security checker
 
 linters-settings:
+  goimports:
+    local-prefixes: github.com/jonesrussell/goforms
+    forbidden-imports:
+      - pattern: "go.uber.org/zap"
+        except: ["github.com/jonesrussell/goforms/internal/logger"]
+
+  importas:
+    no-unaliased: true
+    alias:
+      - pkg: go.uber.org/zap
+        alias: forbidden_zap
+
+  wrapcheck:
+    ignoreSigs:
+      - .Errorf(
+      - errors.New(
+      - errors.Unwrap(
+      - .Wrap(
+      - .Wrapf(
+      - .WithMessage(
+      - .WithMessagef(
+      - .Struct(
+      - .ExecContext(
+      - .SelectContext(
+    ignorePackageGlobs:
+      - github.com/jonesrussell/goforms/internal/logger
+      - github.com/jonesrussell/goforms/internal/response
+      - github.com/labstack/echo/v4
+      - github.com/stretchr/testify/*
+      - github.com/a-h/templ
+      - encoding/json
+      - database/sql
+      - github.com/jmoiron/sqlx
+      - github.com/go-playground/validator/v10
+
   revive:
     rules:
       - name: exported
@@ -48,9 +85,20 @@ issues:
       linters:
         - gochecknoglobals
         - gosec
+        - wrapcheck
     - path: internal/logger/logger.go
       linters:
         - gochecknoglobals
+        - importas
+    - path: internal/models/mocks.go
+      linters:
+        - wrapcheck
+    - path: test/
+      linters:
+        - wrapcheck
+    - path: internal/models/
+      linters:
+        - wrapcheck
   
   max-issues-per-linter: 50
   max-same-issues: 10

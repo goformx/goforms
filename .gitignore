@@ -1,26 +1,30 @@
-# Binaries and objects
+# Generated files
+*_templ.go
+tmp/
+
+# Binary files
+bin/
 *.exe
 *.exe~
 *.dll
 *.so
 *.dylib
+
+# Test binary, built with `go test -c`
 *.test
+
+# Output of the go coverage tool
 *.out
 
-# Environment and IDE
-.env
+# IDE specific files
+.idea/
+.vscode/
 *.swp
 *.swo
 
-# Dependencies
-vendor/
+# Air logs
+air.log
 
-# Build
-bin/
-dist/
-
-# Logs
-*.log
-
-# Database
-*.db 
+# Environment variables
+.env
+.env.local
