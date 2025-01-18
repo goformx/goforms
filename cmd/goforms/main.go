@@ -7,6 +7,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/api"
+	"github.com/jonesrussell/goforms/internal/app"
 	"github.com/jonesrussell/goforms/internal/app/server"
 	"github.com/jonesrussell/goforms/internal/core"
 	"github.com/jonesrussell/goforms/internal/platform"
@@ -41,6 +42,9 @@ func main() {
 
 		// Web handlers
 		web.Module,
+
+		// App configuration
+		app.Module,
 
 		fx.Invoke(server.Start),
 	)
