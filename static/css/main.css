@@ -79,50 +79,34 @@ nav .container {
     color: var(--primary);
 }
 
+/* Main Content */
+main {
+    padding-top: 70px; /* Match the height of the nav */
+}
+
 /* Hero Section */
 .hero {
-    padding: 120px 0 80px;
-    background: linear-gradient(135deg, #f0f9ff 0%, #e0f2fe 100%);
-    position: relative;
-    overflow: hidden;
-    min-height: calc(100vh - 400px);
-}
-
-.hero::before {
-    content: '';
-    position: absolute;
-    width: 100%;
-    height: 100%;
-    top: 0;
-    left: 0;
-    background: url("data:image/svg+xml,%3Csvg width='100' height='100' viewBox='0 0 100 100' xmlns='http://www.w3.org/2000/svg'%3E%3Cpath d='M11 18c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm48 25c3.866 0 7-3.134 7-7s-3.134-7-7-7-7 3.134-7 7 3.134 7 7 7zm-43-7c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm63 31c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM34 90c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zm56-76c1.657 0 3-1.343 3-3s-1.343-3-3-3-3 1.343-3 3 1.343 3 3 3zM12 86c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm28-65c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm23-11c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-6 60c2.21 0 4-1.79 4-4s-1.79-4-4-4-4 1.79-4 4 1.79 4 4 4zm29 22c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zM32 63c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm57-13c2.76 0 5-2.24 5-5s-2.24-5-5-5-5 2.24-5 5 2.24 5 5 5zm-9-21c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM60 91c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM35 41c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2zM12 60c1.105 0 2-.895 2-2s-.895-2-2-2-2 .895-2 2 .895 2 2 2z' fill='%232563eb' fill-opacity='0.03' fill-rule='evenodd'/%3E%3C/svg%3E");
-    opacity: 0.5;
-}
-
-.hero .container {
-    position: relative;
-    z-index: 1;
+    padding: 4rem 0;
+    background: linear-gradient(180deg, rgba(30, 41, 59, 0) 0%, rgba(30, 41, 59, 0.5) 100%);
     text-align: center;
+    position: relative;
 }
 
-.hero h1 {
-    font-size: 3.5rem;
-    font-weight: 800;
-    line-height: 1.2;
-    margin-bottom: 1.5rem;
-    background: linear-gradient(135deg, var(--primary), var(--accent));
-    background-clip: text;
+.hero-title {
+    font-size: 3rem;
+    font-weight: 700;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
     -webkit-background-clip: text;
+    background-clip: text;
     -webkit-text-fill-color: transparent;
-    animation: fadeIn 0.8s ease-out;
+    margin-bottom: 1rem;
 }
 
-.hero p {
+.hero-subtitle {
     font-size: 1.25rem;
-    color: var(--text-light);
+    color: var(--text-secondary);
     max-width: 600px;
-    margin: 0 auto 2.5rem;
-    animation: fadeIn 0.8s ease-out 0.2s backwards;
+    margin: 0 auto;
 }
 
 .hero-actions {
@@ -217,16 +201,20 @@ nav .container {
 /* Responsive Design */
 @media (max-width: 768px) {
     .hero {
-        padding: 120px 0 80px;
+        padding: 2rem 0;
     }
 
-    .hero h1 {
+    .hero-title {
         font-size: 2.5rem;
     }
 
-    .hero p {
+    .hero-subtitle {
         font-size: 1.125rem;
         padding: 0 1rem;
+    }
+
+    .contact-layout {
+        padding: 1rem;
     }
 
     .features {
@@ -236,6 +224,11 @@ nav .container {
 
     .nav-links {
         gap: 1rem;
+    }
+
+    .form-section .feature-card,
+    .message-card {
+        padding: 1.5rem;
     }
 }
 
@@ -299,14 +292,17 @@ footer a:hover {
 /* Form and Messages Layout */
 .contact-layout {
     display: grid;
-    gap: 2rem;
-    padding: 2rem 0;
+    gap: 2.5rem;
+    padding: 2rem 0 4rem;
+    max-width: 1200px;
+    margin: 0 auto;
 }
 
 @media (min-width: 1024px) {
     .contact-layout {
         grid-template-columns: 1fr 1fr;
         align-items: start;
+        gap: 4rem;
     }
 }
 
@@ -314,9 +310,15 @@ footer a:hover {
     margin-bottom: 0;
 }
 
+.form-section .feature-card {
+    background: rgba(30, 41, 59, 0.6);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    backdrop-filter: blur(8px);
+    padding: 2rem;
+}
+
 .messages-section {
-    background: var(--background);
-    padding: 2rem 0;
+    background: transparent;
 }
 
 .section-title {
@@ -324,6 +326,8 @@ footer a:hover {
     font-weight: 600;
     margin-bottom: 1.5rem;
     color: var(--text-primary);
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid rgba(255, 255, 255, 0.1);
 }
 
 .messages-list {
@@ -333,21 +337,29 @@ footer a:hover {
 }
 
 .message-card {
-    background: rgba(30, 41, 59, 0.5);
-    border-radius: 0.5rem;
-    padding: 1.25rem;
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: 0.75rem;
+    padding: 1.5rem;
+    transition: transform 0.2s ease;
+}
+
+.message-card:hover {
+    transform: translateY(-2px);
 }
 
 .message-header {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    margin-bottom: 0.75rem;
+    margin-bottom: 1rem;
+    padding-bottom: 0.75rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
 }
 
 .message-name {
-    font-weight: 500;
-    color: var(--text-primary);
+    font-weight: 600;
+    color: var(--primary);
 }
 
 .message-time {
@@ -357,7 +369,8 @@ footer a:hover {
 
 .message-content {
     color: var(--text-secondary);
-    line-height: 1.5;
+    line-height: 1.6;
+    font-size: 0.9375rem;
 }
 
 /* Contact Form Styling */
@@ -376,25 +389,29 @@ footer a:hover {
 .form-group label {
     font-weight: 500;
     color: var(--text-primary);
+    font-size: 0.875rem;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
 }
 
 .form-group input,
 .form-group textarea {
-    padding: 0.75rem 1rem;
-    border-radius: 0.375rem;
+    padding: 0.875rem 1rem;
+    border-radius: 0.5rem;
     border: 1px solid rgba(255, 255, 255, 0.1);
-    background: rgba(30, 41, 59, 0.5);
+    background: rgba(15, 23, 42, 0.5);
     color: var(--text-primary);
     font-size: 1rem;
     width: 100%;
-    transition: border-color 0.2s ease;
+    transition: all 0.2s ease;
 }
 
 .form-group input:focus,
 .form-group textarea:focus {
     outline: none;
     border-color: var(--primary);
-    box-shadow: 0 0 0 2px rgba(66, 153, 225, 0.1);
+    box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
+    background: rgba(15, 23, 42, 0.7);
 }
 
 .form-group textarea {
@@ -406,8 +423,15 @@ footer a:hover {
     width: 100%;
     justify-content: center;
     font-weight: 600;
-    padding: 0.875rem 1.5rem;
+    padding: 1rem 1.5rem;
     font-size: 1rem;
+    border-radius: 0.5rem;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    transition: opacity 0.2s ease;
+}
+
+.button.primary:hover {
+    opacity: 0.9;
 }
 
 /* Dark mode message adjustments */
