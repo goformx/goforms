@@ -6,15 +6,16 @@ import (
 
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"github.com/labstack/echo/v4"
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
+
 	"github.com/jonesrussell/goforms/internal/app"
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/database"
 	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
-	"github.com/labstack/echo/v4"
-	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 )
 
 func main() {

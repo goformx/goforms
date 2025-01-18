@@ -5,11 +5,12 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/jonesrussell/goforms/internal/response"
 	"github.com/jonesrussell/goforms/internal/validation"
-	"github.com/labstack/echo/v4"
 )
 
 // ContactHandler handles contact form submissions

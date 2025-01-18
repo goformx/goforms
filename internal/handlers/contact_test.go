@@ -9,12 +9,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
-	"github.com/jonesrussell/goforms/internal/response"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/models"
+	"github.com/jonesrussell/goforms/internal/response"
 )
 
 type MockContactStore struct {

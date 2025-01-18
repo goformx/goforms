@@ -6,10 +6,11 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/config/server"
-	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
+
+	"github.com/jonesrussell/goforms/internal/config/server"
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
 // Server handles HTTP server lifecycle

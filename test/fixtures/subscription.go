@@ -7,8 +7,9 @@ import (
 	"net/http"
 	"net/http/httptest"
 
-	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
+
+	"github.com/jonesrussell/goforms/internal/models"
 )
 
 // SubscriptionFixture contains test data and helpers for subscription tests

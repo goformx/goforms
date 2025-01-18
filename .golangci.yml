@@ -24,6 +24,12 @@ linters:
     - gosec        # Security checker
 
 linters-settings:
+  goimports:
+    local-prefixes: github.com/jonesrussell/goforms
+    forbidden-imports:
+      - pattern: "go.uber.org/zap"
+        except: ["github.com/jonesrussell/goforms/internal/logger"]
+
   revive:
     rules:
       - name: exported

@@ -1,11 +1,12 @@
 package handlers
 
 import (
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/jonesrussell/goforms/internal/response"
 	"github.com/jonesrussell/goforms/internal/validation"
-	"github.com/labstack/echo/v4"
 )
 
 // SubscriptionHandler handles subscription requests

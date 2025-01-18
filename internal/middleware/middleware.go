@@ -5,9 +5,10 @@ import (
 	"net/http"
 
 	"github.com/google/uuid"
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/labstack/echo/v4"
 )
 
 // Manager handles middleware configuration and setup

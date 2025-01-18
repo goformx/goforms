@@ -10,11 +10,12 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/jonesrussell/goforms/internal/response"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/suite"
 )
 
 type ContactSuite struct {

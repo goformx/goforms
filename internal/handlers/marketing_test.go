@@ -5,9 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
 func TestMarketingHandler_Register(t *testing.T) {

@@ -4,9 +4,10 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/config/database"
-	"github.com/labstack/echo/v4"
 
 	// Import mysql driver for side effects - required for database/sql to work with MySQL
 	_ "github.com/go-sql-driver/mysql"

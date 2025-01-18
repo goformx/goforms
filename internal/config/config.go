@@ -5,9 +5,10 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/kelseyhightower/envconfig"
+
 	"github.com/jonesrussell/goforms/internal/config/database"
 	"github.com/jonesrussell/goforms/internal/config/server"
-	"github.com/kelseyhightower/envconfig"
 )
 
 // Config represents the complete application configuration

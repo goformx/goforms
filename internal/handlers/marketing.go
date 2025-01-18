@@ -1,9 +1,10 @@
 package handlers
 
 import (
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonesrussell/goforms/internal/components"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/labstack/echo/v4"
 )
 
 type MarketingHandler struct {

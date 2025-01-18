@@ -9,10 +9,11 @@ import (
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
 	"github.com/joho/godotenv"
+	"github.com/stretchr/testify/suite"
+
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/config/database"
 	"github.com/jonesrussell/goforms/test/setup"
-	"github.com/stretchr/testify/suite"
 )
 
 type DatabaseTestSuite struct {

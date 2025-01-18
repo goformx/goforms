@@ -7,10 +7,11 @@ import (
 	"strings"
 	"testing"
 
-	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/models"
 )
 
 func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
