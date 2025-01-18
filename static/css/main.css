@@ -1,54 +1,57 @@
-/* Base */
-@import url("base/variables.css");
-@import url("base/reset.css");
-@import url("base/utilities.css");
+/* CSS Entry Point */
+@layer base, theme, layout, components, utilities;
 
-/* Layouts */
-@import url("layouts/header.css");
-@import url("layouts/main.css");
-@import url("layouts/footer.css");
+/* Base Layer */
+@layer base {
+  @import 'base/reset.css';
+  @import 'base/variables.css';
+}
 
-/* Components */
-@import url("components/buttons.css");
-@import url("components/forms.css");
-@import url("components/cards.css");
-@import url("components/navigation.css");
-@import url("components/alerts.css");
-@import url("components/modal.css");
-
-/* Themes */
-@import url("themes/light.css");
-@import url("themes/dark.css");
-
-/* Modern CSS Features */
-@layer base, layouts, components, utilities;
-
-/* Support for older browsers */
-@supports not (aspect-ratio: 1) {
-  [style*="--aspect-ratio"] {
-    position: relative;
+/* Theme Layer */
+@layer theme {
+  /* Default light/dark mode based on system preference */
+  :root {
+    color-scheme: light dark;
   }
-  [style*="--aspect-ratio"]::before {
-    content: "";
-    display: block;
-    padding-bottom: calc(100% / (var(--aspect-ratio)));
+
+  /* Light theme variables (default) */
+  @import 'themes/light.css';
+
+  /* Dark theme variables (when system prefers dark) */
+  @media (prefers-color-scheme: dark) {
+    :root:not([data-theme="light"]) {
+      @import 'themes/dark.css';
+    }
   }
-  [style*="--aspect-ratio"] > * {
-    position: absolute;
-    top: 0;
-    left: 0;
-    height: 100%;
-    width: 100%;
+
+  /* Explicit theme choices override system preference */
+  :root[data-theme="dark"] {
+    @import 'themes/dark.css';
+  }
+
+  :root[data-theme="light"] {
+    @import 'themes/light.css';
   }
 }
 
-/* Print styles */
-@media print {
-  @page {
-    margin: 2cm;
-  }
-  
-  a[href^="http"]::after {
-    content: " (" attr(href) ")";
-  }
+/* Layout Layer */
+@layer layout {
+  @import 'layouts/header.css';
+  @import 'layouts/main.css';
+  @import 'layouts/footer.css';
+}
+
+/* Components Layer */
+@layer components {
+  @import 'components/buttons.css';
+  @import 'components/forms.css';
+  @import 'components/cards.css';
+  @import 'components/navigation.css';
+  @import 'components/alerts.css';
+  @import 'components/modal.css';
+}
+
+/* Utilities Layer */
+@layer utilities {
+  @import 'base/utilities.css';
 }

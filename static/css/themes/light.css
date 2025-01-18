@@ -1,0 +1,55 @@
+/* Light Theme Variables */
+:root {
+    /* Colors */
+    --primary-color: #2563eb;
+    --primary-color-dark: #1d4ed8;
+    --primary-color-rgb: 37, 99, 235;
+    
+    --secondary-color: #64748b;
+    --secondary-color-dark: #475569;
+    
+    --success-color: #16a34a;
+    --success-bg: #dcfce7;
+    --success-border: #86efac;
+    
+    --error-color: #dc2626;
+    --error-bg: #fee2e2;
+    --error-border: #fca5a5;
+    
+    --warning-color: #d97706;
+    --warning-bg: #fef3c7;
+    --warning-border: #fcd34d;
+    
+    --info-color: #0891b2;
+    --info-bg: #cffafe;
+    --info-border: #67e8f9;
+    
+    /* Text Colors */
+    --text-color: #1f2937;
+    --text-color-light: #6b7280;
+    --text-color-dark: #111827;
+    
+    /* Background Colors */
+    --background-color: #ffffff;
+    --background-color-dark: #f3f4f6;
+    --background-color-darker: #e5e7eb;
+    
+    /* Border Colors */
+    --border-color: #e5e7eb;
+    --border-color-dark: #d1d5db;
+    
+    /* Shadow Colors */
+    --shadow-color: rgba(0, 0, 0, 0.1);
+    --shadow-color-dark: rgba(0, 0, 0, 0.2);
+    
+    /* Input Colors */
+    --input-bg: #ffffff;
+    --input-border: #d1d5db;
+    --input-focus-border: #2563eb;
+    --input-placeholder: #9ca3af;
+    
+    /* Disabled Colors */
+    --disabled-bg: #f3f4f6;
+    --disabled-text: #9ca3af;
+    --disabled-border: #e5e7eb;
+} 

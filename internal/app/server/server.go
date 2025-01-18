@@ -32,6 +32,9 @@ func New(lc fx.Lifecycle, e *echo.Echo, log logger.Logger, cfg *server.Config) *
 		serverError: make(chan error, 1),
 	}
 
+	// Configure static file serving
+	e.Static("/static", "static")
+
 	lc.Append(fx.Hook{
 		OnStart: srv.Start,
 		OnStop:  srv.Stop,
