@@ -1,5 +1,15 @@
 version: '3'
 
+vars:
+  VERSION:
+    sh: git describe --tags --always --dirty
+  BUILD_TIME:
+    sh: date -u '+%Y-%m-%d_%H:%M:%S'
+  GIT_COMMIT:
+    sh: git rev-parse HEAD
+  GO_VERSION:
+    sh: go version | cut -d ' ' -f 3
+
 tasks:
   install:
     desc: Install dependencies
@@ -21,15 +31,34 @@ tasks:
 
   build:
     desc: Build for production
-    deps: [install, generate]
+    deps: [install, generate, lint, test]
     cmds:
-      - go build -o bin/goforms ./cmd/goforms
+      - mkdir -p bin
+      - |
+        LDFLAGS="-s -w \
+          -X main.version=$(git describe --tags --always --dirty) \
+          -X main.buildTime=$(date -u '+%Y-%m-%d_%H:%M:%S') \
+          -X main.gitCommit=$(git rev-parse HEAD) \
+          -X main.goVersion=$(go version | cut -d ' ' -f 3)"
+        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o bin/goforms-linux-amd64 ./cmd/goforms
+        GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o bin/goforms-darwin-amd64 ./cmd/goforms
+        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o bin/goforms-windows-amd64.exe ./cmd/goforms
+      - echo "Build completed successfully!"
+    sources:
+      - ./**/*.go
+      - go.mod
+      - go.sum
+    generates:
+      - bin/goforms-linux-amd64
+      - bin/goforms-darwin-amd64
+      - bin/goforms-windows-amd64.exe
+    method: checksum
 
   test:
     desc: Run tests
     deps: [generate]
     cmds:
-      - go test -v ./...
+      - go test -v -race -cover ./...
 
   lint:
     desc: Run linters
@@ -41,3 +70,9 @@ tasks:
     desc: Run database migrations
     cmds:
       - go run cmd/migrate/main.go
+
+  clean:
+    desc: Clean build artifacts
+    cmds:
+      - rm -rf bin/
+      - go clean -cache -testcache
