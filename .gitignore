@@ -28,3 +28,6 @@ air.log
 # Environment variables
 .env
 .env.local
+
+# Task checksum
+.task/
