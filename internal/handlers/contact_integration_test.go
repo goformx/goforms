@@ -77,17 +77,18 @@ func (s *ContactSuite) TestContactIntegration() {
 	validPayload := `{
 		"name": "Test User",
 		"email": "test@example.com",
-		"message": "This is a test message"
+		"message": "This is a test message",
+		"status": "pending"
 	}`
 
 	// Setup mock expectations
 	mockStore := s.store.(*contact.MockStore)
-	mockStore.On("Create", mock.Anything, &contact.Submission{
-		Name:    "Test User",
-		Email:   "test@example.com",
-		Message: "This is a test message",
-		Status:  contact.StatusPending,
-	}).Return(nil)
+	mockStore.On("Create", mock.Anything, mock.MatchedBy(func(submission *contact.Submission) bool {
+		return submission.Name == "Test User" &&
+			submission.Email == "test@example.com" &&
+			submission.Message == "This is a test message" &&
+			submission.Status == contact.StatusPending
+	})).Return(nil)
 
 	req := httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(validPayload))
 	req.Header.Set(echo.HeaderContentType, "application/json")
@@ -112,6 +113,7 @@ func (s *ContactSuite) TestContactIntegration() {
 	s.Equal("Test User", submission.Name)
 	s.Equal("test@example.com", submission.Email)
 	s.Equal("This is a test message", submission.Message)
+	s.Equal(contact.StatusPending, submission.Status)
 
 	// Test invalid submission
 	invalidPayload := `{

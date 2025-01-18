@@ -14,6 +14,7 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/core/contact"
 	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/response"
 )
 
 // MockContactStore is a mock implementation of contact.Store
@@ -50,6 +51,7 @@ func (m *MockContactStore) UpdateStatus(ctx context.Context, id int64, status co
 type createContactTestCase struct {
 	name          string
 	contact       *contact.Submission
+	setupMock     func(*MockContactStore)
 	expectedCode  int
 	expectedError string
 }
@@ -62,6 +64,15 @@ func TestCreateContact(t *testing.T) {
 				Name:    "John Doe",
 				Email:   "john@example.com",
 				Message: "Test message",
+				Status:  contact.StatusPending,
+			},
+			setupMock: func(ms *MockContactStore) {
+				ms.On("Create", mock.Anything, mock.MatchedBy(func(s *contact.Submission) bool {
+					return s.Name == "John Doe" &&
+						s.Email == "john@example.com" &&
+						s.Message == "Test message" &&
+						s.Status == contact.StatusPending
+				})).Return(nil)
 			},
 			expectedCode: http.StatusCreated,
 		},
@@ -71,6 +82,13 @@ func TestCreateContact(t *testing.T) {
 				Name:    "",
 				Email:   "invalid-email",
 				Message: "",
+			},
+			setupMock: func(ms *MockContactStore) {
+				ms.On("Create", mock.Anything, mock.MatchedBy(func(s *contact.Submission) bool {
+					return s.Name == "" &&
+						s.Email == "invalid-email" &&
+						s.Message == ""
+				})).Return(nil)
 			},
 			expectedCode:  http.StatusBadRequest,
 			expectedError: "invalid request",
@@ -85,6 +103,11 @@ func TestCreateContact(t *testing.T) {
 			mockLogger := logger.NewMockLogger()
 			handler := NewContactHandler(mockLogger, mockStore)
 
+			// Setup mock expectations
+			if tc.setupMock != nil {
+				tc.setupMock(mockStore)
+			}
+
 			// Create request
 			jsonBytes, _ := json.Marshal(tc.contact)
 			req := httptest.NewRequest(http.MethodPost, "/api/contact", strings.NewReader(string(jsonBytes)))
@@ -92,28 +115,34 @@ func TestCreateContact(t *testing.T) {
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
-			// Set expectations
-			if tc.expectedCode == http.StatusCreated {
-				mockStore.On("Create", mock.Anything, tc.contact).Return(nil)
-			}
-
 			// Test
 			err := handler.CreateContact(c)
 
 			// Assert
 			if tc.expectedError != "" {
 				assert.Error(t, err)
-				// Add more specific assertions about the error if needed
+				var resp response.Response
+				err := json.Unmarshal(rec.Body.Bytes(), &resp)
+				assert.NoError(t, err)
+				assert.Equal(t, tc.expectedError, resp.Message)
 			} else {
 				assert.NoError(t, err)
 				assert.Equal(t, tc.expectedCode, rec.Code)
 
-				var submission contact.Submission
-				err := json.Unmarshal(rec.Body.Bytes(), &submission)
+				var resp response.Response
+				err := json.Unmarshal(rec.Body.Bytes(), &resp)
 				assert.NoError(t, err)
+
+				var submission contact.Submission
+				submissionBytes, err := json.Marshal(resp.Data)
+				assert.NoError(t, err)
+				err = json.Unmarshal(submissionBytes, &submission)
+				assert.NoError(t, err)
+
 				assert.Equal(t, tc.contact.Name, submission.Name)
 				assert.Equal(t, tc.contact.Email, submission.Email)
 				assert.Equal(t, tc.contact.Message, submission.Message)
+				assert.Equal(t, tc.contact.Status, submission.Status)
 			}
 
 			mockStore.AssertExpectations(t)
