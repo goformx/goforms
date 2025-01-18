@@ -9,8 +9,12 @@ import (
 
 templ Contact() {
     @layouts.Base("Contact Demo - Goforms") {
-        <main class="container">
-            @components.ContactForm()
+        <main>
+            <section class="contact-section">
+                <div class="container">
+                    @components.ContactForm()
+                </div>
+            </section>
         </main>
     }
 }
