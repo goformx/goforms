@@ -11,6 +11,7 @@ vars:
     sh: go version | cut -d ' ' -f 3
   DB_URL:
     sh: echo "mysql://${DB_USER}:${DB_PASSWORD}@tcp(${DB_HOSTNAME}:${DB_PORT})/${DB_NAME}"
+  LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.buildTime={{.BUILD_TIME}} -X main.gitCommit={{.GIT_COMMIT}} -X main.goVersion={{.GO_VERSION}}
 
 tasks:
   install:
@@ -40,30 +41,42 @@ tasks:
       - tmp/**/*
     method: none
 
-  build:
-    desc: Build for production
-    deps: [install, generate, lint, test]
+  verify:
+    desc: Run all verifications (lint and test)
+    deps: [generate]
+    cmds:
+      - task: lint
+      - task: test
+
+  build-linux:
+    desc: Build for Linux
+    deps: [verify]
     cmds:
       - mkdir -p bin
-      - |
-        LDFLAGS="-s -w \
-          -X main.version=$(git describe --tags --always --dirty) \
-          -X main.buildTime=$(date -u '+%Y-%m-%d_%H:%M:%S') \
-          -X main.gitCommit=$(git rev-parse HEAD) \
-          -X main.goVersion=$(go version | cut -d ' ' -f 3)"
-        GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o bin/goforms-linux-amd64 ./cmd/goforms
-        GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o bin/goforms-darwin-amd64 ./cmd/goforms
-        GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "$LDFLAGS" -o bin/goforms-windows-amd64.exe ./cmd/goforms
+      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-linux-amd64 ./cmd/goforms
+
+  build-darwin:
+    desc: Build for macOS
+    deps: [verify]
+    cmds:
+      - mkdir -p bin
+      - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-darwin-amd64 ./cmd/goforms
+
+  build-windows:
+    desc: Build for Windows
+    deps: [verify]
+    cmds:
+      - mkdir -p bin
+      - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-windows-amd64.exe ./cmd/goforms
+
+  build:
+    desc: Build for all platforms
+    deps: [verify]
+    cmds:
+      - task: build-linux
+      - task: build-darwin
+      - task: build-windows
       - echo "Build completed successfully!"
-    sources:
-      - ./**/*.go
-      - go.mod
-      - go.sum
-    generates:
-      - bin/goforms-linux-amd64
-      - bin/goforms-darwin-amd64
-      - bin/goforms-windows-amd64.exe
-    method: checksum
 
   test:
     desc: Run tests
