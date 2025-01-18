@@ -34,7 +34,6 @@
 				"ms-azuretools.vscode-docker",
 				"github.vscode-github-actions",
 				"golang.go",
-				"streetsidesoftware.code-spell-checker",
 				"eamodio.gitlens",
 				"davidanson.vscode-markdownlint"
 			]

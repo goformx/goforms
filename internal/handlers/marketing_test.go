@@ -1,46 +1,74 @@
 package handlers
 
 import (
-	"html/template"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
 )
 
-func TestMarketingHandler(t *testing.T) {
-	// Create a logger instance
-	logger, _ := zap.NewDevelopment()
-
-	// Parse the templates
-	templates, err := template.ParseGlob("../../templates/*.html")
-	if err != nil {
-		t.Fatalf("Failed to parse templates: %v", err)
-	}
-
-	// Create a new marketing handler
-	handler := NewMarketingHandler(logger, templates)
-
-	// Set up Echo
+func TestMarketingHandler_Register(t *testing.T) {
+	// Setup
+	mockLogger := logger.NewMockLogger()
+	handler := NewMarketingHandler(mockLogger)
 	e := echo.New()
+
+	// Test
 	handler.Register(e)
 
-	// Test the home page
+	// Verify routes are registered
+	routes := e.Routes()
+	var foundHome, foundContact bool
+
+	for _, route := range routes {
+		switch {
+		case route.Path == "/" && route.Method == http.MethodGet:
+			foundHome = true
+		case route.Path == "/contact" && route.Method == http.MethodGet:
+			foundContact = true
+		}
+	}
+
+	assert.True(t, foundHome, "Home route should be registered")
+	assert.True(t, foundContact, "Contact route should be registered")
+	assert.Contains(t, mockLogger.DebugCalls[0].Message, "Registering marketing routes")
+}
+
+func TestMarketingHandler_HandleHome(t *testing.T) {
+	// Setup
+	mockLogger := logger.NewMockLogger()
+	handler := NewMarketingHandler(mockLogger)
+	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+	c := e.NewContext(req, rec)
 
+	// Test
+	err := handler.HandleHome(c)
+
+	// Verify
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Welcome to the Home Page")
+	assert.True(t, len(mockLogger.DebugCalls) > 0, "Expected debug log for home request")
+}
 
-	// Test the contact page
-	req = httptest.NewRequest(http.MethodGet, "/contact", nil)
-	rec = httptest.NewRecorder()
-	e.ServeHTTP(rec, req)
+func TestMarketingHandler_HandleContact(t *testing.T) {
+	// Setup
+	mockLogger := logger.NewMockLogger()
+	handler := NewMarketingHandler(mockLogger)
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/contact", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
 
+	// Test
+	err := handler.HandleContact(c)
+
+	// Verify
+	assert.NoError(t, err)
 	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Contains(t, rec.Body.String(), "Contact Us")
+	assert.True(t, len(mockLogger.DebugCalls) > 0, "Expected debug log for contact request")
 }

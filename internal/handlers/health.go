@@ -1,59 +1,49 @@
 package handlers
 
 import (
-	"context"
 	"net/http"
-	"time"
 
+	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/response"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
+// PingContexter is an interface for database health checks
 type PingContexter interface {
-	PingContext(context.Context) error
+	PingContext(ctx echo.Context) error
 }
 
+// HealthHandler handles health check requests
 type HealthHandler struct {
+	logger logger.Logger
 	db     PingContexter
-	logger *zap.Logger
 }
 
 // NewHealthHandler creates a new health handler
-func NewHealthHandler(db PingContexter, logger *zap.Logger) *HealthHandler {
+func NewHealthHandler(log logger.Logger, db PingContexter) *HealthHandler {
 	return &HealthHandler{
+		logger: log,
 		db:     db,
-		logger: logger,
 	}
 }
 
+// Register registers the health check routes
 func (h *HealthHandler) Register(e *echo.Echo) {
-	e.GET("/health", h.Check)
+	e.GET("/health", h.HandleHealth)
 }
 
-func (h *HealthHandler) Check(c echo.Context) error {
-	health := struct {
-		Status    string `json:"status"`
-		DBStatus  string `json:"db_status"`
-		Timestamp string `json:"timestamp"`
-	}{
-		Status:    "ok",
-		Timestamp: time.Now().UTC().Format(time.RFC3339),
-	}
+// HandleHealth handles health check requests
+func (h *HealthHandler) HandleHealth(c echo.Context) error {
+	h.logger.Debug("handling health check request")
 
-	if err := h.db.PingContext(c.Request().Context()); err != nil {
+	if err := h.db.PingContext(c); err != nil {
 		h.logger.Error("database health check failed",
-			zap.Error(err),
-			zap.String("status", "degraded"),
+			logger.Error(err),
 		)
-		health.DBStatus = "error"
-		health.Status = "degraded"
-		return c.JSON(http.StatusServiceUnavailable, health)
+		return response.Error(c, http.StatusServiceUnavailable, "database connection failed")
 	}
 
-	h.logger.Info("health check successful",
-		zap.String("status", "ok"),
-		zap.String("db_status", "ok"),
-	)
-	health.DBStatus = "ok"
-	return c.JSON(http.StatusOK, health)
+	return response.Success(c, http.StatusOK, map[string]string{
+		"status": "ok",
+	})
 }

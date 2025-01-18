@@ -3,11 +3,11 @@ package app
 import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/jonesrussell/goforms/internal/app/server"
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/handlers"
+	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/middleware"
 )
 
@@ -15,12 +15,12 @@ type App struct {
 	server     *server.Server
 	middleware *middleware.Manager
 	handlers   *handlers.SubscriptionHandler
-	logger     *zap.Logger
+	logger     logger.Logger
 }
 
 func NewApp(
 	lc fx.Lifecycle,
-	logger *zap.Logger,
+	log logger.Logger,
 	echo *echo.Echo,
 	cfg *config.Config,
 	handler *handlers.SubscriptionHandler,
@@ -28,44 +28,24 @@ func NewApp(
 	contactHandler *handlers.ContactHandler,
 	marketingHandler *handlers.MarketingHandler,
 ) *App {
-	mw := middleware.New(logger, cfg)
-	srv := server.New(echo, logger, &cfg.Server)
+	mw := middleware.New(log, cfg)
+	srv := server.New(lc, echo, log, &cfg.Server)
 
 	app := &App{
 		server:     srv,
 		middleware: mw,
 		handlers:   handler,
-		logger:     logger,
+		logger:     log,
 	}
 
-	// Setup order: middleware -> handlers -> lifecycle hooks
+	// Setup order: middleware -> handlers
 	mw.Setup(echo)
 	marketingHandler.Register(echo)
 	handler.Register(echo)
 	healthHandler.Register(echo)
 	contactHandler.Register(echo)
 
-	lc.Append(fx.Hook{
-		OnStart: srv.Start,
-		OnStop:  srv.Stop,
-	})
-
 	return app
-}
-
-func NewModule() fx.Option {
-	return fx.Options(
-		fx.Provide(
-			NewLogger,
-			NewEcho,
-			NewTemplateProvider,
-			handlers.NewMarketingHandler,
-			handlers.NewSubscriptionHandler,
-			handlers.NewHealthHandler,
-			handlers.NewContactHandler,
-			// Add other providers as needed
-		),
-	)
 }
 
 // RegisterHooks sets up the application hooks

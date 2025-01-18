@@ -1,0 +1,43 @@
+package components
+
+import t "github.com/a-h/templ"
+
+type PageData struct {
+	Title   string
+	Content t.Component
+}
+
+templ Layout(data PageData) {
+	<!DOCTYPE html>
+	<html lang="en">
+	<head>
+		<meta charset="UTF-8"/>
+		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+		<meta name="description" content="Goforms - A self-hosted form backend service built with Go"/>
+		<meta name="keywords" content="forms, golang, backend, self-hosted"/>
+		<title>{ data.Title } - Goforms</title>
+		<link rel="stylesheet" href="/static/css/main.css"/>
+	</head>
+	<body>
+		<nav>
+			<div class="container">
+				<a href="/" class="logo">Goforms</a>
+				<div class="nav-links">
+					<a href="/contact">Contact Demo</a>
+					<a href="https://github.com/jonesrussell/goforms">GitHub</a>
+				</div>
+			</div>
+		</nav>
+
+		<main class="container">
+			@data.Content
+		</main>
+
+		<footer>
+			<div class="container">
+				Created by <a href="https://jonesrussell.github.io/me/" target="_blank" rel="noopener noreferrer">Russell Jones</a>
+			</div>
+		</footer>
+	</body>
+	</html>
+} 

@@ -4,21 +4,30 @@ import (
 	"sync"
 
 	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 var (
 	once   sync.Once
-	logger *zap.Logger
+	logger Logger
 )
 
-// GetLogger returns a singleton instance of the zap.Logger
-func GetLogger() *zap.Logger {
+// GetLogger returns a singleton instance of the Logger
+func GetLogger() Logger {
 	once.Do(func() {
-		var err error
-		logger, err = zap.NewDevelopment()
+		config := zap.NewDevelopmentConfig()
+		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		config.EncoderConfig.TimeKey = "time"
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+		config.DisableStacktrace = true
+		config.DisableCaller = false
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+
+		zapLogger, err := config.Build()
 		if err != nil {
 			panic("Failed to initialize logger: " + err.Error())
 		}
+		logger = newZapLogger(zapLogger)
 	})
 	return logger
 }
