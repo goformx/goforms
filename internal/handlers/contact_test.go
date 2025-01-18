@@ -83,13 +83,7 @@ func TestCreateContact(t *testing.T) {
 				Email:   "invalid-email",
 				Message: "",
 			},
-			setupMock: func(ms *MockContactStore) {
-				ms.On("Create", mock.Anything, mock.MatchedBy(func(s *contact.Submission) bool {
-					return s.Name == "" &&
-						s.Email == "invalid-email" &&
-						s.Message == ""
-				})).Return(nil)
-			},
+			setupMock:     nil, // No Create call expected for invalid submission
 			expectedCode:  http.StatusBadRequest,
 			expectedError: "invalid request",
 		},
