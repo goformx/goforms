@@ -86,32 +86,59 @@ main {
 
 /* Hero Section */
 .hero {
-    padding: 4rem 0;
-    background: linear-gradient(180deg, rgba(30, 41, 59, 0) 0%, rgba(30, 41, 59, 0.5) 100%);
+    padding: 8rem 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%);
     text-align: center;
     position: relative;
+    min-height: calc(100vh - 70px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+.hero::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    background: 
+        radial-gradient(circle at 20% 30%, rgba(79, 70, 229, 0.15) 0%, transparent 50%),
+        radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+    z-index: 0;
+}
+
+.hero .container {
+    position: relative;
+    z-index: 1;
+    max-width: 800px;
 }
 
 .hero-title {
-    font-size: 3rem;
-    font-weight: 700;
+    font-size: 4.5rem;
+    line-height: 1.1;
+    font-weight: 800;
     background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
     -webkit-background-clip: text;
     background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: 1rem;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.02em;
 }
 
 .hero-subtitle {
-    font-size: 1.25rem;
-    color: var(--text-secondary);
+    font-size: 1.5rem;
+    color: var(--text-light);
     max-width: 600px;
-    margin: 0 auto;
+    margin: 0 auto 3rem;
+    line-height: 1.5;
 }
 
 .hero-actions {
     display: flex;
-    gap: 1rem;
+    gap: 1.5rem;
     justify-content: center;
     animation: fadeIn 0.8s ease-out 0.4s backwards;
 }
@@ -119,34 +146,90 @@ main {
 .button {
     display: inline-flex;
     align-items: center;
-    padding: 0.75rem 1.5rem;
-    border-radius: var(--border-radius);
+    padding: 1rem 2rem;
+    border-radius: 0.75rem;
     font-weight: 600;
+    font-size: 1.125rem;
     text-decoration: none;
     transition: all 0.2s ease;
 }
 
 .button.primary {
-    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    background: linear-gradient(135deg, var(--primary), var(--accent));
     color: white;
     box-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -2px rgba(37, 99, 235, 0.1);
 }
 
 .button.primary:hover {
     transform: translateY(-2px);
-    box-shadow: 0 6px 8px -1px rgba(37, 99, 235, 0.3), 0 4px 6px -2px rgba(37, 99, 235, 0.2);
+    box-shadow: 0 8px 12px -1px rgba(37, 99, 235, 0.3), 0 4px 8px -2px rgba(37, 99, 235, 0.2);
 }
 
 .button:not(.primary) {
-    background: white;
+    background: rgba(255, 255, 255, 0.1);
     color: var(--text);
-    border: 2px solid #e5e7eb;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    backdrop-filter: blur(10px);
 }
 
 .button:not(.primary):hover {
+    background: rgba(255, 255, 255, 0.15);
     border-color: var(--primary);
     color: var(--primary);
     transform: translateY(-2px);
+}
+
+/* Dark mode adjustments for hero */
+@media (prefers-color-scheme: dark) {
+    .hero {
+        background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 1) 100%);
+    }
+
+    .hero-subtitle {
+        color: #94a3b8;
+    }
+
+    .button:not(.primary) {
+        background: rgba(30, 41, 59, 0.5);
+        border-color: rgba(255, 255, 255, 0.1);
+        color: #f1f5f9;
+    }
+
+    .button:not(.primary):hover {
+        background: rgba(30, 41, 59, 0.7);
+        border-color: var(--primary);
+        color: var(--primary);
+    }
+}
+
+/* Responsive hero adjustments */
+@media (max-width: 768px) {
+    .hero {
+        padding: 6rem 0;
+        min-height: auto;
+    }
+
+    .hero-title {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+
+    .hero-subtitle {
+        font-size: 1.25rem;
+        margin-bottom: 2rem;
+        padding: 0 1rem;
+    }
+
+    .hero-actions {
+        flex-direction: column;
+        gap: 1rem;
+        padding: 0 1rem;
+    }
+
+    .button {
+        width: 100%;
+        justify-content: center;
+    }
 }
 
 /* Features Section */
