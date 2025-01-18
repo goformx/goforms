@@ -9,6 +9,8 @@ vars:
     sh: git rev-parse HEAD
   GO_VERSION:
     sh: go version | cut -d ' ' -f 3
+  DB_URL:
+    sh: echo "mysql://${DB_USER}:${DB_PASSWORD}@tcp(${DB_HOSTNAME}:${DB_PORT})/${DB_NAME}"
 
 tasks:
   install:
@@ -17,6 +19,7 @@ tasks:
       - go mod download
       - go mod tidy
       - go install github.com/a-h/templ/cmd/templ@latest
+      - go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
   generate:
     desc: Generate templ files
@@ -66,10 +69,30 @@ tasks:
     cmds:
       - golangci-lint run
 
-  migrate:
-    desc: Run database migrations
+  migrate:up:
+    desc: Run database migrations up
     cmds:
-      - go run cmd/migrate/main.go
+      - migrate -database "{{.DB_URL}}" -path migrations up
+
+  migrate:down:
+    desc: Run database migrations down
+    cmds:
+      - migrate -database "{{.DB_URL}}" -path migrations down
+
+  migrate:create:
+    desc: Create a new migration
+    cmds:
+      - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
+
+  migrate:force:
+    desc: Force set migration version
+    cmds:
+      - migrate -database "{{.DB_URL}}" -path migrations force {{.CLI_ARGS}}
+
+  migrate:version:
+    desc: Show current migration version
+    cmds:
+      - migrate -database "{{.DB_URL}}" -path migrations version
 
   clean:
     desc: Clean build artifacts
