@@ -5,7 +5,7 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../..:/workspaces:cached
-      
+      - go-cache:/go/pkg
     command: sleep infinity
     network_mode: service:db
     
@@ -44,3 +44,4 @@ services:
 
 volumes:
   mariadb-data:
+  go-cache:

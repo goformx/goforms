@@ -20,20 +20,9 @@ RUN mkdir -p /go/pkg && chown -R vscode:vscode /go/pkg
 # Switch to vscode user for subsequent operations
 USER vscode
 
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
-
-# [Optional] Uncomment the next lines to use go get to install anything else you need
-# USER vscode
-# RUN go get -x <your-dependency-or-tool>
-# USER root
-
-# [Optional] Uncomment this line to install global node packages.
-# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1
-
-# Add after existing installations
+# Install Go tools
 RUN go install github.com/go-delve/delve/cmd/dlv@latest && \
     go install golang.org/x/tools/gopls@latest && \
     go install github.com/fatih/gomodifytags@latest && \
-    go install github.com/cweill/gotests/gotests@latest
+    go install github.com/cweill/gotests/gotests@latest && \
+    go install github.com/a-h/templ/cmd/templ@latest
