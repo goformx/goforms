@@ -5,6 +5,7 @@ A modern Go web application for form management with MariaDB backend.
 ## Features
 
 Current:
+
 - ✅ Email subscription system with validation
 - ✅ RESTful API using Echo framework
 - ✅ MariaDB database with migrations
@@ -15,6 +16,7 @@ Current:
 - ✅ Docker-based development environment
 
 Coming Soon:
+
 - 🚧 Form Management API
 - 🚧 Custom Form Fields
 - 🚧 Form Analytics
@@ -23,6 +25,7 @@ Coming Soon:
 ## Development Setup
 
 This project uses VS Code Dev Containers for development. Make sure you have:
+
 - Docker installed
 - VS Code with Dev Containers extension
 - Git
@@ -36,6 +39,7 @@ This project uses VS Code Dev Containers for development. Make sure you have:
 4. Copy `.env.example` to `.env` and adjust values if needed
 
 The container will:
+
 - Set up Go 1.23 environment
 - Initialize MariaDB database
 - Install required tools (migrate, MariaDB client, task)
@@ -44,7 +48,7 @@ The container will:
 
 We use [Task](https://taskfile.dev) for project automation:
 
-```bash
+```shell
 # Install dependencies
 task install
 
@@ -70,7 +74,7 @@ task migrate:create  # Create new migration
 
 Key configuration options in `.env`:
 
-```env
+```shell
 # Server Configuration
 SERVER_PORT=8090
 SERVER_HOST=localhost
@@ -92,7 +96,7 @@ RATE_LIMIT_RATE=100
 
 Current endpoints:
 
-```
+```http
 POST /api/subscriptions
 - Create new email subscription
 - Rate limited
@@ -101,10 +105,11 @@ POST /api/subscriptions
 GET /health
 - Health check endpoint
 - Returns service status
+```
 
 ### Marketing Website API
 
-```
+```http
 GET /v1/marketing/pages
 - List all marketing pages
 - Supports pagination
@@ -138,7 +143,8 @@ GET /v1/marketing/stats
 ### API Versioning
 
 All new endpoints will be versioned under `/v1`:
-```
+
+```http
 POST /v1/forms
 GET  /v1/forms/{id}
 PUT  /v1/forms/{id}
@@ -165,7 +171,7 @@ POST /v1/forms/{id}/submissions
 
 ## Project Structure
 
-```
+```shell
 .
 ├── .devcontainer/     # Development container configuration
 ├── .github/           # GitHub workflows and configuration
@@ -198,6 +204,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ### Observability
 
 The application includes several observability features:
+
 - Structured logging with Zap
 - Request ID tracking
 - Health check endpoints
@@ -207,6 +214,7 @@ The application includes several observability features:
 ### Middleware Stack
 
 The middleware is configured in the following order for optimal security and functionality:
+
 1. Recovery middleware (panic recovery)
 2. Logging middleware (request logging)
 3. Request ID middleware (request tracking)
