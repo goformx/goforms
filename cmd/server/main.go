@@ -22,7 +22,6 @@ func main() {
 			logger.GetLogger,
 			config.New,
 			app.NewEcho,
-			app.NewTemplateProvider,
 			database.New,
 			func(db *sqlx.DB) models.DB { return db },
 			func(db *sqlx.DB) handlers.PingContexter { return db },

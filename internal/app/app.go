@@ -53,21 +53,6 @@ func NewApp(
 	return app
 }
 
-func NewModule() fx.Option {
-	return fx.Options(
-		fx.Provide(
-			NewLogger,
-			NewEcho,
-			NewTemplateProvider,
-			handlers.NewMarketingHandler,
-			handlers.NewSubscriptionHandler,
-			handlers.NewHealthHandler,
-			handlers.NewContactHandler,
-			// Add other providers as needed
-		),
-	)
-}
-
 // RegisterHooks sets up the application hooks
 func RegisterHooks(app *App) {
 	app.logger.Info("Application started successfully")

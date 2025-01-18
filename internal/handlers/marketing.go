@@ -1,80 +1,25 @@
 package handlers
 
 import (
-	"html/template"
-	"io"
-	"net/http"
-
+	"github.com/jonesrussell/goforms/internal/components"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
 )
 
-// Template is a custom renderer for Echo
-type Template struct {
-	templates *template.Template
+type MarketingHandler struct{}
+
+func NewMarketingHandler() *MarketingHandler {
+	return &MarketingHandler{}
 }
 
-// Render implements echo.Renderer
-func (t *Template) Render(w io.Writer, name string, data interface{}, c echo.Context) error {
-	var dataMap map[string]interface{}
-	if data == nil {
-		dataMap = make(map[string]interface{})
-	} else {
-		dataMap = data.(map[string]interface{})
-	}
-
-	return t.templates.ExecuteTemplate(w, name, dataMap)
-}
-
-// MarketingHandler handles marketing page requests
-type MarketingHandler struct {
-	logger    *zap.Logger
-	templates *template.Template
-}
-
-// NewMarketingHandler creates a new marketing handler
-func NewMarketingHandler(logger *zap.Logger, templates *template.Template) *MarketingHandler {
-	return &MarketingHandler{
-		logger:    logger,
-		templates: templates,
-	}
-}
-
-// HomePage renders the landing page
-// @Summary Serves the landing page
-// @Description Returns the main marketing page for Goforms
-// @Tags marketing
-// @Produce html
-// @Success 200 {string} html
-// @Router / [get]
-func (h *MarketingHandler) HomePage(c echo.Context) error {
-	return c.Render(http.StatusOK, "index", map[string]interface{}{
-		"Title": "Home",
-	})
-}
-
-// ContactPage renders the contact form demo page
-// @Summary Serves the contact form demo page
-// @Description Returns the contact form demo page
-// @Tags marketing
-// @Produce html
-// @Success 200 {string} html
-// @Router /contact [get]
-func (h *MarketingHandler) ContactPage(c echo.Context) error {
-	return c.Render(http.StatusOK, "contact", map[string]interface{}{
-		"Title": "Contact Demo",
-	})
-}
-
-// Register registers the marketing routes and sets up the template renderer
 func (h *MarketingHandler) Register(e *echo.Echo) {
-	// Set up the template renderer
-	e.Renderer = &Template{templates: h.templates}
+	e.GET("/", h.HandleHome)
+	e.GET("/contact", h.HandleContact)
+}
 
-	// Register routes
-	e.GET("/", h.HomePage)
-	e.GET("/contact", h.ContactPage)
+func (h *MarketingHandler) HandleHome(c echo.Context) error {
+	return components.Home().Render(c.Request().Context(), c.Response().Writer)
+}
 
-	// Serve static files
-	e.Static("/static", "static")
+func (h *MarketingHandler) HandleContact(c echo.Context) error {
+	return components.Contact().Render(c.Request().Context(), c.Response().Writer)
 }

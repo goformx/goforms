@@ -1,0 +1,24 @@
+package components
+
+templ Home() {
+	@Layout(PageData{
+		Title: "Home",
+		Content: homeContent(),
+	})
+}
+
+templ homeContent() {
+	<div class="hero">
+		<h1>Welcome to Goforms</h1>
+		<p>A self-hosted form backend service built with Go</p>
+	</div>
+	<div class="features">
+		<h2>Features</h2>
+		<ul>
+			<li>Simple form submissions</li>
+			<li>Contact form demo</li>
+			<li>Easy to deploy</li>
+			<li>Built with modern Go</li>
+		</ul>
+	</div>
+} 
