@@ -7,6 +7,7 @@ linters:
     - govet         # Reports suspicious constructs
     - staticcheck   # Advanced static analysis
     - wrapcheck     # Checks that errors are wrapped with context
+    - importas      # Enforce import aliases
     
     # Code quality linters
     - dogsled       # Checks for too many blank identifiers
@@ -30,6 +31,12 @@ linters-settings:
     forbidden-imports:
       - pattern: "go.uber.org/zap"
         except: ["github.com/jonesrussell/goforms/internal/logger"]
+
+  importas:
+    no-unaliased: true
+    alias:
+      - pkg: go.uber.org/zap
+        alias: forbidden_zap
 
   wrapcheck:
     ignoreSigs:
@@ -82,6 +89,7 @@ issues:
     - path: internal/logger/logger.go
       linters:
         - gochecknoglobals
+        - importas
     - path: internal/models/mocks.go
       linters:
         - wrapcheck

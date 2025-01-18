@@ -5,11 +5,12 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
-	"go.uber.org/zap"
+
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
 // NewEcho creates a new Echo instance with common middleware
-func NewEcho(logger *zap.Logger) *echo.Echo {
+func NewEcho(log logger.Logger) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 

@@ -7,16 +7,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"go.uber.org/zap"
-	"go.uber.org/zap/zaptest/observer"
+
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
-	// Create an observer core for testing logs
-	core, logs := observer.New(zap.InfoLevel)
-	logger := zap.New(core)
-
-	// Create test handler that returns different status codes
 	testCases := []struct {
 		name       string
 		handler    echo.HandlerFunc
@@ -44,8 +39,8 @@ func TestLoggingMiddleware(t *testing.T) {
 
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
-			// Clear logs before each test
-			logs.TakeAll()
+			// Create a new mock logger for each test
+			mockLogger := logger.NewMockLogger()
 
 			// Create Echo instance and context
 			e := echo.New()
@@ -54,7 +49,7 @@ func TestLoggingMiddleware(t *testing.T) {
 			c := e.NewContext(req, rec)
 
 			// Create middleware
-			middleware := LoggingMiddleware(logger)
+			middleware := LoggingMiddleware(mockLogger)
 			handler := middleware(tc.handler)
 
 			// Execute request
@@ -68,25 +63,24 @@ func TestLoggingMiddleware(t *testing.T) {
 			}
 
 			// Verify logs
-			logEntries := logs.TakeAll()
-			assert.Equal(t, tc.expectLogs, len(logEntries))
+			infoCalls := mockLogger.InfoCalls
+			assert.Equal(t, tc.expectLogs, len(infoCalls))
 
-			if len(logEntries) > 0 {
-				entry := logEntries[0]
-				assert.Equal(t, "http request", entry.Message)
-				assert.Equal(t, req.Method, entry.Context[0].String)      // method
-				assert.Equal(t, req.URL.Path, entry.Context[1].String)    // path
-				assert.Equal(t, tc.status, int(entry.Context[2].Integer)) // status
-				assert.Equal(t, "192.0.2.1", entry.Context[4].String)     // ip
+			if len(infoCalls) > 0 {
+				call := infoCalls[0]
+				assert.Equal(t, "http request", call.Message)
+				assert.Contains(t, call.Fields, logger.String("method", req.Method))
+				assert.Contains(t, call.Fields, logger.String("path", req.URL.Path))
+				assert.Contains(t, call.Fields, logger.Int("status", tc.status))
+				assert.Contains(t, call.Fields, logger.String("ip", "192.0.2.1"))
 			}
 		})
 	}
 }
 
 func TestLoggingMiddleware_RealIP(t *testing.T) {
-	// Create an observer core for testing logs
-	core, logs := observer.New(zap.InfoLevel)
-	logger := zap.New(core)
+	// Create a mock logger for testing
+	mockLogger := logger.NewMockLogger()
 
 	// Create Echo instance
 	e := echo.New()
@@ -96,7 +90,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Create middleware
-	middleware := LoggingMiddleware(logger)
+	middleware := LoggingMiddleware(mockLogger)
 	handler := middleware(func(c echo.Context) error {
 		return c.String(http.StatusOK, "success")
 	})
@@ -105,7 +99,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	_ = handler(c)
 
 	// Verify logs
-	logEntries := logs.TakeAll()
-	assert.Equal(t, 1, len(logEntries))
-	assert.Equal(t, "192.168.1.1", logEntries[0].Context[4].String) // ip
+	infoCalls := mockLogger.InfoCalls
+	assert.Equal(t, 1, len(infoCalls))
+	assert.Contains(t, infoCalls[0].Fields, logger.String("ip", "192.168.1.1"))
 }

@@ -3,23 +3,23 @@ package logger
 import (
 	"time"
 
-	"go.uber.org/zap"
+	forbidden_zap "go.uber.org/zap"
 )
 
 type zapLogger struct {
-	*zap.Logger
+	*forbidden_zap.Logger
 }
 
-func newZapLogger(l *zap.Logger) Logger {
+func newZapLogger(l *forbidden_zap.Logger) Logger {
 	return &zapLogger{l}
 }
 
 // UnderlyingZap returns the underlying zap logger
-func UnderlyingZap(l Logger) *zap.Logger {
+func UnderlyingZap(l Logger) *forbidden_zap.Logger {
 	if zl, ok := l.(*zapLogger); ok {
 		return zl.Logger
 	}
-	return zap.NewNop()
+	return forbidden_zap.NewNop()
 }
 
 func (l *zapLogger) Info(msg string, fields ...Field) {
@@ -38,10 +38,10 @@ func (l *zapLogger) Debug(msg string, fields ...Field) {
 	l.Logger.Debug(msg, toZapFields(fields)...)
 }
 
-func toZapFields(fields []Field) []zap.Field {
-	zapFields := make([]zap.Field, len(fields))
+func toZapFields(fields []Field) []forbidden_zap.Field {
+	zapFields := make([]forbidden_zap.Field, len(fields))
 	for i, field := range fields {
-		if zf, ok := field.(zap.Field); ok {
+		if zf, ok := field.(forbidden_zap.Field); ok {
 			zapFields[i] = zf
 		}
 	}
@@ -49,22 +49,22 @@ func toZapFields(fields []Field) []zap.Field {
 }
 
 func zapString(key string, value string) Field {
-	return zap.String(key, value)
+	return forbidden_zap.String(key, value)
 }
 
 func zapInt(key string, value int) Field {
-	return zap.Int(key, value)
+	return forbidden_zap.Int(key, value)
 }
 
 func zapDuration(key string, value interface{}) Field {
 	switch v := value.(type) {
 	case time.Duration:
-		return zap.Duration(key, v)
+		return forbidden_zap.Duration(key, v)
 	default:
-		return zap.Any(key, v)
+		return forbidden_zap.Any(key, v)
 	}
 }
 
 func zapError(err error) Field {
-	return zap.Error(err)
+	return forbidden_zap.Error(err)
 }

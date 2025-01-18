@@ -4,10 +4,11 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"go.uber.org/zap"
+
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
-func LoggingMiddleware(logger *zap.Logger) echo.MiddlewareFunc {
+func LoggingMiddleware(log logger.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			start := time.Now()
@@ -16,12 +17,12 @@ func LoggingMiddleware(logger *zap.Logger) echo.MiddlewareFunc {
 			err := next(c)
 
 			// Log the request details
-			logger.Info("http request",
-				zap.String("method", c.Request().Method),
-				zap.String("path", c.Request().URL.Path),
-				zap.Int("status", c.Response().Status),
-				zap.Duration("latency", time.Since(start)),
-				zap.String("ip", c.RealIP()),
+			log.Info("http request",
+				logger.String("method", c.Request().Method),
+				logger.String("path", c.Request().URL.Path),
+				logger.Int("status", c.Response().Status),
+				logger.Duration("latency", time.Since(start)),
+				logger.String("ip", c.RealIP()),
 			)
 
 			return err
