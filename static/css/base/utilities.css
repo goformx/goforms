@@ -1,0 +1,143 @@
+/* Modern Utility Classes */
+
+/* Layout */
+.flow > * + * {
+  margin-block-start: var(--space-s);
+}
+
+.grid {
+  display: grid;
+  gap: var(--grid-gap);
+  grid-template-columns: repeat(auto-fit, minmax(var(--grid-min-item-size), 1fr));
+}
+
+.flex {
+  display: flex;
+  gap: var(--space-s);
+}
+
+.flex-col {
+  flex-direction: column;
+}
+
+.items-center {
+  align-items: center;
+}
+
+.justify-between {
+  justify-content: space-between;
+}
+
+.center {
+  max-inline-size: var(--content-max-width);
+  margin-inline: auto;
+  padding-inline: var(--space-s);
+}
+
+/* Spacing */
+.mt-auto { margin-block-start: auto; }
+.mb-auto { margin-block-end: auto; }
+.ml-auto { margin-inline-start: auto; }
+.mr-auto { margin-inline-end: auto; }
+
+/* Typography */
+.text-center { text-align: center; }
+.text-start { text-align: start; }
+.text-end { text-align: end; }
+
+.text-1 { font-size: var(--font-size-1); }
+.text-2 { font-size: var(--font-size-2); }
+.text-3 { font-size: var(--font-size-3); }
+.text-4 { font-size: var(--font-size-4); }
+.text-5 { font-size: var(--font-size-5); }
+
+.font-bold { font-weight: 700; }
+.font-medium { font-weight: 500; }
+.font-normal { font-weight: 400; }
+
+/* Colors */
+.text-primary { color: var(--primary); }
+.text-secondary { color: var(--secondary); }
+.text-accent { color: var(--accent); }
+.text-1 { color: var(--text-1); }
+.text-2 { color: var(--text-2); }
+.text-3 { color: var(--text-3); }
+
+.bg-surface-1 { background-color: var(--surface-1); }
+.bg-surface-2 { background-color: var(--surface-2); }
+.bg-surface-3 { background-color: var(--surface-3); }
+.bg-surface-4 { background-color: var(--surface-4); }
+
+/* Shadows */
+.shadow-1 { box-shadow: var(--shadow-1); }
+.shadow-2 { box-shadow: var(--shadow-2); }
+.shadow-3 { box-shadow: var(--shadow-3); }
+
+/* Border Radius */
+.radius-sm { border-radius: var(--radius-sm); }
+.radius-md { border-radius: var(--radius-md); }
+.radius-lg { border-radius: var(--radius-lg); }
+.radius-full { border-radius: var(--radius-full); }
+
+/* Aspect Ratios */
+.aspect-square { aspect-ratio: var(--ratio-square); }
+.aspect-landscape { aspect-ratio: var(--ratio-landscape); }
+.aspect-portrait { aspect-ratio: var(--ratio-portrait); }
+.aspect-video { aspect-ratio: var(--ratio-widescreen); }
+
+/* Container Queries */
+@container main (width > 45em) {
+  .container\:grid-2 {
+    grid-template-columns: repeat(2, 1fr);
+  }
+  
+  .container\:grid-3 {
+    grid-template-columns: repeat(3, 1fr);
+  }
+}
+
+/* States */
+.hover\:shadow-2:hover {
+  box-shadow: var(--shadow-2);
+}
+
+.hover\:shadow-3:hover {
+  box-shadow: var(--shadow-3);
+}
+
+.hover\:scale:hover {
+  transform: scale(1.05);
+  transition: transform var(--transition-normal);
+}
+
+/* Animations */
+.animate-fade-in {
+  animation: fade-in var(--transition-normal) ease-out;
+}
+
+.animate-slide-up {
+  animation: slide-up var(--transition-normal) ease-out;
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes slide-up {
+  from {
+    opacity: 0;
+    transform: translateY(1rem);
+  }
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+/* Print */
+@media print {
+  .no-print {
+    display: none !important;
+  }
+} 

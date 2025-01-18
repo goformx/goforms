@@ -1,15 +1,54 @@
 /* Base */
 @import url("base/variables.css");
 @import url("base/reset.css");
+@import url("base/utilities.css");
 
 /* Layouts */
 @import url("layouts/header.css");
 @import url("layouts/main.css");
+@import url("layouts/footer.css");
 
 /* Components */
 @import url("components/buttons.css");
 @import url("components/forms.css");
 @import url("components/cards.css");
+@import url("components/navigation.css");
+@import url("components/alerts.css");
+@import url("components/modal.css");
 
 /* Themes */
+@import url("themes/light.css");
 @import url("themes/dark.css");
+
+/* Modern CSS Features */
+@layer base, layouts, components, utilities;
+
+/* Support for older browsers */
+@supports not (aspect-ratio: 1) {
+  [style*="--aspect-ratio"] {
+    position: relative;
+  }
+  [style*="--aspect-ratio"]::before {
+    content: "";
+    display: block;
+    padding-bottom: calc(100% / (var(--aspect-ratio)));
+  }
+  [style*="--aspect-ratio"] > * {
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    width: 100%;
+  }
+}
+
+/* Print styles */
+@media print {
+  @page {
+    margin: 2cm;
+  }
+  
+  a[href^="http"]::after {
+    content: " (" attr(href) ")";
+  }
+}

@@ -1,30 +1,122 @@
 :root {
-    --primary: #2563eb;
-    --primary-dark: #1d4ed8;
-    --secondary: #4f46e5;
-    --accent: #8b5cf6;
-    --background: #ffffff;
-    --text: #1f2937;
-    --text-light: #6b7280;
-    --max-width: 1200px;
-    --border-radius: 12px;
+    /* Color System - Using modern color spaces */
+    --primary-hsl: 221 83% 53%;
+    --primary: hsl(var(--primary-hsl));
+    --primary-dark: color-mix(in hsl, var(--primary) 80%, black);
+    --secondary-hsl: 248 88% 58%;
+    --secondary: hsl(var(--secondary-hsl));
+    --accent-hsl: 262 83% 58%;
+    --accent: hsl(var(--accent-hsl));
     
-    /* Shadows */
-    --shadow-sm: 0 1px 2px 0 rgb(0 0 0 / 0.05);
-    --shadow: 0 1px 3px 0 rgb(0 0 0 / 0.1), 0 1px 2px -1px rgb(0 0 0 / 0.1);
-    --shadow-md: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
-    --shadow-lg: 0 10px 15px -3px rgb(0 0 0 / 0.1), 0 4px 6px -4px rgb(0 0 0 / 0.1);
+    /* Theme Colors */
+    --surface-1: hsl(0 0% 100%);
+    --surface-2: hsl(210 20% 98%);
+    --surface-3: hsl(210 20% 96%);
+    --surface-4: hsl(210 20% 94%);
     
-    /* Transitions */
-    --transition-all: all 0.2s ease;
+    /* Text Colors */
+    --text-1: hsl(220 10% 10%);
+    --text-2: hsl(220 10% 20%);
+    --text-3: hsl(220 10% 30%);
     
-    /* Spacing */
-    --spacing-1: 0.25rem;
-    --spacing-2: 0.5rem;
-    --spacing-3: 0.75rem;
-    --spacing-4: 1rem;
-    --spacing-6: 1.5rem;
-    --spacing-8: 2rem;
-    --spacing-12: 3rem;
-    --spacing-16: 4rem;
+    /* Semantic Colors */
+    --error: hsl(0 84% 60%);
+    --success: hsl(142 76% 36%);
+    --warning: hsl(38 92% 50%);
+    --info: hsl(200 98% 39%);
+    
+    /* Layout */
+    --max-width: clamp(16rem, 90vw, 75rem);
+    --content-max-width: 70ch;
+    --header-height: 4rem;
+    --footer-height: 3rem;
+    
+    /* Container Query Breakpoints */
+    --container-sm: 20rem;
+    --container-md: 30rem;
+    --container-lg: 40rem;
+    --container-xl: 60rem;
+    
+    /* Spacing Scale - Using relative units */
+    --space-3xs: clamp(0.25rem, 0.5vw, 0.375rem);
+    --space-2xs: clamp(0.5rem, 1vw, 0.75rem);
+    --space-xs: clamp(0.75rem, 1.5vw, 1rem);
+    --space-s: clamp(1rem, 2vw, 1.5rem);
+    --space-m: clamp(1.5rem, 3vw, 2rem);
+    --space-l: clamp(2rem, 4vw, 3rem);
+    --space-xl: clamp(3rem, 6vw, 4rem);
+    --space-2xl: clamp(4rem, 8vw, 6rem);
+    
+    /* Typography */
+    --font-sans: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+    --font-serif: Georgia, serif;
+    --font-mono: ui-monospace, 'Cascadia Code', 'Source Code Pro', Menlo, Consolas, monospace;
+    
+    --font-size-00: clamp(0.75rem, 1vw, 0.875rem);
+    --font-size-0: clamp(0.875rem, 1.2vw, 1rem);
+    --font-size-1: clamp(1rem, 1.5vw, 1.125rem);
+    --font-size-2: clamp(1.125rem, 2vw, 1.25rem);
+    --font-size-3: clamp(1.25rem, 2.5vw, 1.5rem);
+    --font-size-4: clamp(1.5rem, 3vw, 2rem);
+    --font-size-5: clamp(2rem, 4vw, 3rem);
+    
+    /* Border Radius */
+    --radius-sm: 0.25rem;
+    --radius-md: 0.5rem;
+    --radius-lg: 1rem;
+    --radius-full: 9999px;
+    
+    /* Shadows using modern alpha values */
+    --shadow-color: 220 3% 15%;
+    --shadow-strength: 1%;
+    --shadow-1: 0 1px 2px hsl(var(--shadow-color) / calc(var(--shadow-strength) + 5%));
+    --shadow-2: 
+        0 1px 2px hsl(var(--shadow-color) / calc(var(--shadow-strength) + 3%)),
+        0 1px 4px hsl(var(--shadow-color) / calc(var(--shadow-strength) + 5%));
+    --shadow-3: 
+        0 1px 2px hsl(var(--shadow-color) / calc(var(--shadow-strength) + 3%)),
+        0 2px 4px hsl(var(--shadow-color) / calc(var(--shadow-strength) + 5%)),
+        0 4px 8px hsl(var(--shadow-color) / calc(var(--shadow-strength) + 7%));
+    
+    /* Animations */
+    --transition-fast: 150ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-normal: 250ms cubic-bezier(0.4, 0, 0.2, 1);
+    --transition-slow: 350ms cubic-bezier(0.4, 0, 0.2, 1);
+    
+    /* Z-index scale */
+    --z-negative: -1;
+    --z-elevate: 1;
+    --z-sticky: 100;
+    --z-drawer: 200;
+    --z-modal: 300;
+    --z-popover: 400;
+    --z-toast: 500;
+    
+    /* Focus */
+    --focus-ring-color: hsl(var(--primary-hsl) / 0.35);
+    --focus-ring-width: 3px;
+    --focus-ring-offset: 2px;
+    
+    /* Grid */
+    --grid-min-item-size: clamp(16rem, 30%, 20rem);
+    --grid-gap: var(--space-s);
+    
+    /* Aspect Ratios */
+    --ratio-square: 1;
+    --ratio-landscape: 4/3;
+    --ratio-portrait: 3/4;
+    --ratio-widescreen: 16/9;
+    
+    /* Motion */
+    @media (prefers-reduced-motion: no-preference) {
+        --duration-fast: 150ms;
+        --duration-normal: 250ms;
+        --duration-slow: 350ms;
+    }
+    
+    @media (prefers-reduced-motion: reduce) {
+        --duration-fast: 50ms;
+        --duration-normal: 100ms;
+        --duration-slow: 150ms;
+    }
 } 
