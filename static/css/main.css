@@ -29,25 +29,28 @@ body {
     padding: 0 2rem;
 }
 
-/* Navigation */
-nav {
-    background: rgba(255, 255, 255, 0.8);
-    backdrop-filter: blur(10px);
+/* Header and Navigation */
+header {
     position: fixed;
-    width: 100%;
     top: 0;
+    left: 0;
+    right: 0;
+    background: #ffffff;
+    border-bottom: 1px solid #e5e7eb;
     z-index: 1000;
-    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+    padding: 0.75rem 0;
 }
 
-nav .container {
+.header-content {
     display: flex;
     justify-content: space-between;
     align-items: center;
-    height: 70px;
+    padding: 0 2rem;
+    max-width: var(--max-width);
+    margin: 0 auto;
 }
 
-.logo {
+.site-title {
     font-size: 1.5rem;
     font-weight: 700;
     color: var(--primary);
@@ -56,16 +59,12 @@ nav .container {
     background-clip: text;
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    transition: opacity 0.2s ease;
-}
-
-.logo:hover {
-    opacity: 0.8;
 }
 
 .nav-links {
     display: flex;
     gap: 2rem;
+    align-items: center;
 }
 
 .nav-links a {
@@ -77,6 +76,30 @@ nav .container {
 
 .nav-links a:hover {
     color: var(--primary);
+}
+
+/* Dark mode support for header */
+@media (prefers-color-scheme: dark) {
+    header {
+        background: #0f172a;
+        border-bottom-color: #334155;
+    }
+}
+
+/* Responsive header */
+@media (max-width: 768px) {
+    .header-content {
+        padding: 0 1rem;
+    }
+
+    .nav-links {
+        gap: 1rem;
+    }
+}
+
+/* Adjust main content padding for fixed header */
+main {
+    padding-top: 4rem;
 }
 
 /* Hero Section */
@@ -460,4 +483,73 @@ footer a:hover {
         color: #fef2f2;
         border-color: #dc2626;
     }
+}
+
+/* Navigation */
+nav {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+nav .container {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+}
+
+.logo {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: opacity 0.2s ease;
+}
+
+.logo:hover {
+    opacity: 0.8;
+}
+
+.nav-links {
+    display: flex;
+    gap: 2rem;
+}
+
+.nav-links a {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+.nav-links a:hover {
+    color: var(--primary);
+}
+
+/* Dark mode support */
+@media (prefers-color-scheme: dark) {
+    nav {
+        background: rgba(15, 23, 42, 0.8);
+    }
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .nav-links {
+        gap: 1rem;
+    }
+}
+
+/* Adjust main content padding for fixed nav */
+main {
+    padding-top: 70px;
 }
