@@ -26,7 +26,6 @@ func NewApp(
 	handler *handlers.SubscriptionHandler,
 	healthHandler *handlers.HealthHandler,
 	contactHandler *handlers.ContactHandler,
-	marketingHandler *handlers.MarketingHandler,
 ) *App {
 	mw := middleware.New(log, cfg)
 	srv := server.New(lc, echo, log, &cfg.Server)
@@ -40,7 +39,6 @@ func NewApp(
 
 	// Setup order: middleware -> handlers
 	mw.Setup(echo)
-	marketingHandler.Register(echo)
 	handler.Register(echo)
 	healthHandler.Register(echo)
 	contactHandler.Register(echo)
