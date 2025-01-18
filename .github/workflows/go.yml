@@ -3,12 +3,13 @@ name: Go CI/CD
 on:
   push:
     branches: [main]
+    tags: ['v*']
   pull_request:
     branches: [main]
 
 jobs:
-  test:
-    name: Test
+  verify:
+    name: Verify
     runs-on: ubuntu-latest
 
     services:
@@ -29,6 +30,8 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for git describe
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -46,6 +49,9 @@ jobs:
       - name: Install dependencies
         run: task install
 
+      - name: Generate files
+        run: task generate
+
       - name: Run linter
         uses: golangci/golangci-lint-action@v4
         with:
@@ -61,15 +67,13 @@ jobs:
         run: migrate -database "mysql://goforms_test:goforms_test@tcp(localhost:3306)/goforms_test" -path migrations up
 
       - name: Run tests
-        run: task test:coverage
+        run: task test
         env:
-          # Regular DB connection
           DB_USER: goforms_test
           DB_PASSWORD: goforms_test
           DB_NAME: goforms_test
           DB_HOST: localhost
           DB_PORT: 3306
-          # Test-specific DB connection
           TEST_DB_USER: goforms_test
           TEST_DB_PASSWORD: goforms_test
           TEST_DB_NAME: goforms_test
@@ -78,12 +82,14 @@ jobs:
 
   build:
     name: Build
-    needs: test
+    needs: verify
     runs-on: ubuntu-latest
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0  # Required for git describe
 
       - name: Set up Go
         uses: actions/setup-go@v5
@@ -98,5 +104,27 @@ jobs:
           version: "3.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Build
+      - name: Install dependencies
+        run: task install
+
+      - name: Generate files
+        run: task generate
+
+      - name: Build all platforms
         run: task build
+
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: binaries
+          path: bin/
+          retention-days: 7
+
+      - name: Create Release
+        if: startsWith(github.ref, 'refs/tags/v')
+        uses: softprops/action-gh-release@v1
+        with:
+          files: bin/*
+          draft: false
+          prerelease: false
+          generate_release_notes: true

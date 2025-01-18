@@ -59,31 +59,36 @@ tasks:
       - task: lint
       - task: test
 
-  build:os:linux:
+  build:linux:
     desc: Build for Linux
     cmds:
       - mkdir -p bin
       - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-linux-amd64 ./cmd/goforms
 
-  build:os:darwin:
+  build:darwin:
     desc: Build for macOS
     cmds:
       - mkdir -p bin
       - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-darwin-amd64 ./cmd/goforms
 
-  build:os:windows:
+  build:windows:
     desc: Build for Windows
     cmds:
       - mkdir -p bin
       - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-windows-amd64.exe ./cmd/goforms
 
-  build:all:
+  build:
     desc: Build for all platforms
     cmds:
-      - task: build:os:linux
-      - task: build:os:darwin
-      - task: build:os:windows
+      - task: build:linux
+      - task: build:darwin
+      - task: build:windows
       - echo "Build completed successfully!"
+
+  act:
+    desc: Run GitHub Actions locally
+    cmds:
+      - act -P ubuntu-latest=catthehacker/ubuntu:act-latest
 
   migrate:up:
     desc: Run database migrations up
