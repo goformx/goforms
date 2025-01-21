@@ -14,76 +14,60 @@ vars:
   LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.buildTime={{.BUILD_TIME}} -X main.gitCommit={{.GIT_COMMIT}} -X main.goVersion={{.GO_VERSION}}
 
 tasks:
+  default:
+    cmds:
+      - task: install
+      - task: generate
+      - task: run
+
   install:
     desc: Install dependencies
     cmds:
+      - task: generate
       - go mod download
       - go mod tidy
-      - go install github.com/a-h/templ/cmd/templ@latest
-      - go install -tags 'mysql' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
-      - go install github.com/air-verse/air@latest
 
   generate:
-    desc: Generate templ files
+    desc: Generate code
     cmds:
       - templ generate ./internal/...
 
-  dev:
-    desc: Run development server with hot reload
-    deps: [install, generate]
+  run:
+    desc: Run the application
     cmds:
       - air
-    sources:
-      - ./**/*.go
-      - ./**/*.templ
-      - static/**/*
-    generates:
-      - tmp/**/*
-    method: none
 
   test:
     desc: Run tests
-    deps: [generate]
     cmds:
-      - go test -v -race -cover ./...
+      - go test -v ./...
 
   lint:
-    desc: Run linters
-    deps: [generate]
+    desc: Run linter
     cmds:
       - golangci-lint run
 
-  verify:
-    desc: Run all verifications (lint and test)
-    cmds:
-      - task: lint
-      - task: test
-
-  build:linux:
-    desc: Build for Linux
-    cmds:
-      - mkdir -p bin
-      - GOOS=linux GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-linux-amd64 ./cmd/goforms
-
-  build:darwin:
-    desc: Build for macOS
-    cmds:
-      - mkdir -p bin
-      - GOOS=darwin GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-darwin-amd64 ./cmd/goforms
-
-  build:windows:
-    desc: Build for Windows
-    cmds:
-      - mkdir -p bin
-      - GOOS=windows GOARCH=amd64 CGO_ENABLED=0 go build -trimpath -ldflags "{{.LDFLAGS}}" -o bin/goforms-windows-amd64.exe ./cmd/goforms
-
   build:
-    desc: Build for all platforms
+    desc: Build all platforms
     cmds:
       - task: build:linux
       - task: build:darwin
       - task: build:windows
-      - echo "Build completed successfully!"
+
+  build:linux:
+    desc: Build for Linux
+    cmds:
+      - GOOS=linux GOARCH=amd64 go build -o bin/goforms-linux-amd64 ./cmd/goforms
+
+  build:darwin:
+    desc: Build for macOS
+    cmds:
+      - GOOS=darwin GOARCH=amd64 go build -o bin/goforms-darwin-amd64 ./cmd/goforms
+
+  build:windows:
+    desc: Build for Windows
+    cmds:
+      - GOOS=windows GOARCH=amd64 go build -o bin/goforms-windows-amd64.exe ./cmd/goforms
 
   act:
     desc: Run GitHub Actions locally

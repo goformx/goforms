@@ -14,6 +14,9 @@ RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
 RUN curl -L "https://github.com/docker/compose/releases/download/2.32.4/docker-compose-$(uname -s)-$(uname -m)" -o /usr/local/bin/docker-compose \
     && chmod +x /usr/local/bin/docker-compose
 
+# Install act for local GitHub Actions testing
+RUN curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash
+
 # Fix permissions for the Go modules directory
 RUN mkdir -p /go/pkg && chown -R vscode:vscode /go/pkg
 
