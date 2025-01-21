@@ -7,6 +7,19 @@ on:
   pull_request:
     branches: [main]
 
+env:
+  DB_USER: goforms_test
+  DB_PASSWORD: goforms_test
+  DB_NAME: goforms_test
+  DB_HOST: localhost
+  DB_PORT: 3306
+  TEST_DB_USER: goforms_test
+  TEST_DB_PASSWORD: goforms_test
+  TEST_DB_NAME: goforms_test
+  TEST_DB_HOST: localhost
+  TEST_DB_PORT: 3306
+  RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
+
 jobs:
   verify:
     name: Verify
@@ -50,10 +63,12 @@ jobs:
         run: go install github.com/a-h/templ/cmd/templ@latest
 
       - name: Install dependencies
-        run: task install
+        run: |
+          go mod download
+          go mod tidy
 
       - name: Generate files
-        run: task generate
+        run: templ generate ./internal/...
 
       - name: Run linter
         uses: golangci/golangci-lint-action@v4
@@ -67,21 +82,10 @@ jobs:
           which migrate
 
       - name: Run migrations
-        run: migrate -database "mysql://goforms_test:goforms_test@tcp(localhost:3306)/goforms_test" -path migrations up
+        run: migrate -database "mysql://${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@tcp(${{ env.DB_HOST }}:${{ env.DB_PORT }})/${{ env.DB_NAME }}" -path migrations up
 
       - name: Run tests
         run: task test
-        env:
-          DB_USER: goforms_test
-          DB_PASSWORD: goforms_test
-          DB_NAME: goforms_test
-          DB_HOST: localhost
-          DB_PORT: 3306
-          TEST_DB_USER: goforms_test
-          TEST_DB_PASSWORD: goforms_test
-          TEST_DB_NAME: goforms_test
-          TEST_DB_HOST: localhost
-          TEST_DB_PORT: 3306
 
   build:
     name: Build
@@ -111,23 +115,33 @@ jobs:
         run: go install github.com/a-h/templ/cmd/templ@latest
 
       - name: Install dependencies
-        run: task install
+        run: |
+          go mod download
+          go mod tidy
 
       - name: Generate files
-        run: task generate
+        run: templ generate ./internal/...
 
       - name: Build all platforms
-        run: task build
+        run: |
+          mkdir -p bin
+          task build
 
+      - name: List artifacts
+        run: ls -la bin/
+
+      # Skip artifact upload when running locally with act
       - name: Upload artifacts
+        if: ${{ !env.RUNNING_IN_ACT }}
         uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: bin/
           retention-days: 7
 
+      # Skip release creation when running locally with act
       - name: Create Release
-        if: startsWith(github.ref, 'refs/tags/v')
+        if: ${{ !env.RUNNING_IN_ACT && startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v1
         with:
           files: bin/*

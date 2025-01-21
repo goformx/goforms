@@ -34,7 +34,8 @@
 				"golang.go",
 				"eamodio.gitlens",
 				"davidanson.vscode-markdownlint",
-				"a-h.templ"
+				"a-h.templ",
+				"SanjulaGanepola.github-local-actions"
 			],
 			"settings": {
 				"go.toolsManagement.checkForUpdates": "local",
