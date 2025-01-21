@@ -46,6 +46,9 @@ jobs:
           version: "3.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
+
       - name: Install dependencies
         run: task install
 
@@ -103,6 +106,9 @@ jobs:
         with:
           version: "3.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
 
       - name: Install dependencies
         run: task install
