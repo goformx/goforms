@@ -11,12 +11,12 @@ env:
   DB_USER: goforms_test
   DB_PASSWORD: goforms_test
   DB_NAME: goforms_test
-  DB_HOST: ${{ github.actor == 'nektos/act' && 'mariadb' || 'localhost' }}
+  DB_HOST: 127.0.0.1
   DB_PORT: 3306
   TEST_DB_USER: goforms_test
   TEST_DB_PASSWORD: goforms_test
   TEST_DB_NAME: goforms_test
-  TEST_DB_HOST: ${{ github.actor == 'nektos/act' && 'mariadb' || 'localhost' }}
+  TEST_DB_HOST: 127.0.0.1
   TEST_DB_PORT: 3306
   RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
 

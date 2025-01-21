@@ -42,6 +42,14 @@ tasks:
     cmds:
       - go test -v ./...
 
+  test:local:
+    desc: Run tests with local Docker Compose
+    cmds:
+      - docker-compose -f .github/workflows/docker-compose.yml up -d
+      - defer: docker-compose -f .github/workflows/docker-compose.yml down
+      - sleep 10
+      - go test -v ./...
+
   lint:
     desc: Run linter
     cmds:
