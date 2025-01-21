@@ -11,12 +11,12 @@ env:
   DB_USER: goforms_test
   DB_PASSWORD: goforms_test
   DB_NAME: goforms_test
-  DB_HOST: localhost
+  DB_HOST: ${{ github.actor == 'nektos/act' && 'mariadb' || 'localhost' }}
   DB_PORT: 3306
   TEST_DB_USER: goforms_test
   TEST_DB_PASSWORD: goforms_test
   TEST_DB_NAME: goforms_test
-  TEST_DB_HOST: localhost
+  TEST_DB_HOST: ${{ github.actor == 'nektos/act' && 'mariadb' || 'localhost' }}
   TEST_DB_PORT: 3306
   RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
 
@@ -62,13 +62,13 @@ jobs:
       - name: Install templ
         run: go install github.com/a-h/templ/cmd/templ@latest
 
+      - name: Generate files
+        run: templ generate ./internal/...
+
       - name: Install dependencies
         run: |
           go mod download
           go mod tidy
-
-      - name: Generate files
-        run: templ generate ./internal/...
 
       - name: Run linter
         uses: golangci/golangci-lint-action@v4
@@ -114,13 +114,13 @@ jobs:
       - name: Install templ
         run: go install github.com/a-h/templ/cmd/templ@latest
 
+      - name: Generate files
+        run: templ generate ./internal/...
+
       - name: Install dependencies
         run: |
           go mod download
           go mod tidy
-
-      - name: Generate files
-        run: templ generate ./internal/...
 
       - name: Build all platforms
         run: |
