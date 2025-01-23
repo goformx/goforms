@@ -450,10 +450,16 @@ footer a:hover {
 .message-header {
     display: flex;
     justify-content: space-between;
-    align-items: center;
+    align-items: flex-start;
     margin-bottom: 1rem;
     padding-bottom: 0.75rem;
     border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.message-info {
+    display: flex;
+    flex-direction: column;
+    gap: 0.25rem;
 }
 
 .message-name {
@@ -461,13 +467,18 @@ footer a:hover {
     color: var(--primary);
 }
 
+.message-email {
+    font-size: 0.875rem;
+    color: var(--text-light);
+}
+
 .message-time {
     font-size: 0.875rem;
-    color: var(--text-secondary);
+    color: var(--text-light);
 }
 
 .message-content {
-    color: var(--text-secondary);
+    color: var(--text);
     line-height: 1.6;
     font-size: 0.9375rem;
 }

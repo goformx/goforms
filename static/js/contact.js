@@ -28,7 +28,10 @@ async function loadMessages() {
             .map(msg => `
                 <div class="message-card">
                     <div class="message-header">
-                        <span class="message-name">${msg.name}</span>
+                        <div class="message-info">
+                            <span class="message-name">${msg.name}</span>
+                            <span class="message-email">${msg.email}</span>
+                        </div>
                         <span class="message-time">${formatDate(msg.created_at)}</span>
                     </div>
                     <p class="message-content">${msg.message}</p>

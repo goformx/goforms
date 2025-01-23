@@ -25,7 +25,6 @@ tasks:
     cmds:
       - go mod download
       - go mod tidy
-      - go install github.com/air-verse/air@latest
       - go install github.com/a-h/templ/cmd/templ@latest
 
   generate:
@@ -35,15 +34,10 @@ tasks:
       - templ generate ./internal/...
 
   run:
-    desc: Run the application with hot reload
+    desc: Run the application
     deps: [install, generate]
-    method: none
     cmds:
-      - air
-    sources:
-      - "**/*.templ"
-    generates:
-      - "**/*_templ.go"
+      - go run ./cmd/goforms
 
   test:
     desc: Run unit tests only
