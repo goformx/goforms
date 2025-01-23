@@ -7,8 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
-	"github.com/jonesrussell/goforms/internal/components"
 	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/ui/pages"
 	"github.com/jonesrussell/goforms/internal/view"
 )
 
@@ -32,7 +32,7 @@ func (h *Handler) wrapError(err error, msg string) error {
 }
 
 func (h *Handler) Home(c echo.Context) error {
-	if err := h.renderer.Render(c, components.Home()); err != nil {
+	if err := h.renderer.Render(c, pages.Home()); err != nil {
 		h.log.Error("failed to render home page", logger.Error(err))
 		return h.wrapError(err, "failed to render home page")
 	}
@@ -40,7 +40,7 @@ func (h *Handler) Home(c echo.Context) error {
 }
 
 func (h *Handler) Contact(c echo.Context) error {
-	if err := h.renderer.Render(c, components.Contact()); err != nil {
+	if err := h.renderer.Render(c, pages.Contact()); err != nil {
 		h.log.Error("failed to render contact page", logger.Error(err))
 		return h.wrapError(err, "failed to render contact page")
 	}
