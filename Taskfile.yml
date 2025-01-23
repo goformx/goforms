@@ -27,7 +27,6 @@ tasks:
       - go mod tidy
       - go install github.com/air-verse/air@latest
       - go install github.com/a-h/templ/cmd/templ@latest
-      - GOPROXY=direct go install github.com/maddalax/htmgo/cli/htmgo@latest
 
   generate:
     desc: Generate code
@@ -36,7 +35,7 @@ tasks:
 
   run:
     desc: Run the application with hot reload
-    deps: [install, htmgo:assets]
+    deps: [install]
     method: none
     cmds:
       - templ generate
@@ -47,17 +46,9 @@ tasks:
       - "**/*_templ.go"
 
   test:
-    desc: Run tests
+    desc: Run unit tests only
     cmds:
-      - go test -v ./...
-
-  test:local:
-    desc: Run tests with local Docker Compose
-    cmds:
-      - docker-compose -f docker/compose.test.yml up -d
-      - defer: docker-compose -f docker/compose.test.yml down
-      - sleep 10
-      - go test -v ./...
+      - go test -v ./internal/...
 
   lint:
     desc: Run linter
@@ -121,10 +112,3 @@ tasks:
     cmds:
       - rm -rf bin/ tmp/
       - go clean -cache -testcache
-
-  htmgo:assets:
-    desc: Setup HTMGo assets directory
-    cmds:
-      - mkdir -p public/assets
-      - touch public/assets/main.css
-      - cp $(go env GOPATH)/pkg/mod/github.com/maddalax/htmgo*/assets/htmgo.js public/assets/

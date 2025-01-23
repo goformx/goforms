@@ -23,25 +23,25 @@ type TestDB struct {
 // NewTestDB creates a new test database connection
 func NewTestDB() (*TestDB, error) {
 	// Use environment variables with defaults
-	dbUser := os.Getenv("DB_USER")
+	dbUser := os.Getenv("TEST_DB_USER")
 	if dbUser == "" {
 		dbUser = "goforms_test"
 	}
-	dbPass := os.Getenv("DB_PASSWORD")
+	dbPass := os.Getenv("TEST_DB_PASSWORD")
 	if dbPass == "" {
 		dbPass = "goforms_test"
 	}
-	dbName := os.Getenv("DB_NAME")
+	dbName := os.Getenv("TEST_DB_NAME")
 	if dbName == "" {
 		dbName = "goforms_test"
 	}
-	dbHost := os.Getenv("DB_HOST")
+	dbHost := os.Getenv("TEST_DB_HOST")
 	if dbHost == "" {
 		dbHost = "localhost" // Default to Docker service name
 	}
-	dbPort := os.Getenv("DB_PORT")
+	dbPort := os.Getenv("TEST_DB_PORT")
 	if dbPort == "" {
-		dbPort = "3306" // Use internal Docker port
+		dbPort = "3307" // Use test Docker port
 	}
 
 	// Build connection string

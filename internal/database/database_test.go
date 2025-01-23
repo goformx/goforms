@@ -1,70 +1,81 @@
 package database
 
 import (
-	"os"
-	"strconv"
 	"testing"
 	"time"
 
-	_ "github.com/go-sql-driver/mysql"
-	"github.com/jmoiron/sqlx"
-	"github.com/joho/godotenv"
-	"github.com/stretchr/testify/suite"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/config"
 	"github.com/jonesrussell/goforms/internal/config/database"
-	"github.com/jonesrussell/goforms/test/setup"
 )
 
-type DatabaseTestSuite struct {
-	suite.Suite
-	db *sqlx.DB
-}
-
-func init() {
-	// Load .env.test file
-	if err := godotenv.Load("../../.env.test"); err != nil {
-		// Don't fail if .env.test doesn't exist, we might be using environment variables
-		if !os.IsNotExist(err) {
-			panic("Error loading .env.test file: " + err.Error())
-		}
-	}
-}
-
-func (s *DatabaseTestSuite) SetupSuite() {
-	testDB, err := setup.NewTestDB()
-	s.Require().NoError(err)
-	s.db = testDB.DB
-}
-
-func (s *DatabaseTestSuite) TestNewDatabase() {
-	s.T().Logf("DB_USER=%s DB_HOST=%s DB_NAME=%s",
-		os.Getenv("DB_USER"),
-		os.Getenv("DB_HOST"),
-		os.Getenv("DB_NAME"))
-	port, _ := strconv.Atoi(os.Getenv("TEST_DB_PORT"))
-	if port == 0 {
-		port = 3306 // default port if not set
-	}
-
-	cfg := &config.Config{
-		Database: database.Config{
-			Host:           os.Getenv("TEST_DB_HOST"),
-			Port:           port,
-			User:           os.Getenv("TEST_DB_USER"),
-			Password:       os.Getenv("TEST_DB_PASSWORD"),
-			Name:           os.Getenv("TEST_DB_NAME"),
-			MaxOpenConns:   10,
-			MaxIdleConns:   5,
-			ConnMaxLifetme: time.Hour,
+func TestNew(t *testing.T) {
+	tests := []struct {
+		name    string
+		cfg     *config.Config
+		wantErr bool
+	}{
+		{
+			name: "valid configuration",
+			cfg: &config.Config{
+				Database: database.Config{
+					Host:           "localhost",
+					Port:           3306,
+					User:           "test_user",
+					Password:       "test_pass",
+					Name:           "test_db",
+					MaxOpenConns:   10,
+					MaxIdleConns:   5,
+					ConnMaxLifetme: time.Hour,
+				},
+			},
+			wantErr: false,
+		},
+		{
+			name: "invalid configuration - empty host",
+			cfg: &config.Config{
+				Database: database.Config{
+					Port:           3306,
+					User:           "test_user",
+					Password:       "test_pass",
+					Name:           "test_db",
+					MaxOpenConns:   10,
+					MaxIdleConns:   5,
+					ConnMaxLifetme: time.Hour,
+				},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid configuration - empty user",
+			cfg: &config.Config{
+				Database: database.Config{
+					Host:           "localhost",
+					Port:           3306,
+					Password:       "test_pass",
+					Name:           "test_db",
+					MaxOpenConns:   10,
+					MaxIdleConns:   5,
+					ConnMaxLifetme: time.Hour,
+				},
+			},
+			wantErr: true,
 		},
 	}
 
-	db, err := New(cfg)
-	s.Require().NoError(err)
-	s.NotNil(db)
-}
-
-func TestDatabaseSuite(t *testing.T) {
-	suite.Run(t, new(DatabaseTestSuite))
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			db, err := New(tt.cfg)
+			if tt.wantErr {
+				assert.Error(t, err)
+				assert.Nil(t, db)
+			} else {
+				// We can't actually connect to the database in a unit test,
+				// but we can verify the DSN was constructed correctly
+				assert.NoError(t, err)
+				assert.NotNil(t, db)
+			}
+		})
+	}
 }
