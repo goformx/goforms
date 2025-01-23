@@ -57,6 +57,7 @@ tasks:
 
   build:
     desc: Build all platforms
+    deps: [generate]
     cmds:
       - task: build:linux
       - task: build:darwin
@@ -64,16 +65,19 @@ tasks:
 
   build:linux:
     desc: Build for Linux
+    deps: [generate]
     cmds:
       - GOOS=linux GOARCH=amd64 go build -o bin/goforms-linux-amd64 ./cmd/goforms
 
   build:darwin:
     desc: Build for macOS
+    deps: [generate]
     cmds:
       - GOOS=darwin GOARCH=amd64 go build -o bin/goforms-darwin-amd64 ./cmd/goforms
 
   build:windows:
     desc: Build for Windows
+    deps: [generate]
     cmds:
       - GOOS=windows GOARCH=amd64 go build -o bin/goforms-windows-amd64.exe ./cmd/goforms
 
