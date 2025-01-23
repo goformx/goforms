@@ -1,28 +1,9 @@
 package components
 
-css footer() {
-    background: #f8fafc;
-    padding: 2rem 0;
-    margin-top: 4rem;
-    border-top: 1px solid #e2e8f0;
-}
-
-css footerContainer() {
-    text-align: center;
-    color: var(--text-light);
-}
-
-css footerLink() {
-    color: var(--primary);
-    text-decoration: none;
-    font-weight: 500;
-    transition: color 0.2s ease;
-}
-
 templ Footer() {
-    <footer class={ footer() }>
-        <div class={ "container", footerContainer() }>
-            <p>Created by <a href="https://github.com/jonesrussell" class={ footerLink() }>Russell Jones</a></p>
+    <footer class="footer">
+        <div class="container footer-container">
+            <p>Created by <a href="https://github.com/jonesrussell" class="footer-link">Russell Jones</a></p>
         </div>
     </footer>
 } 
