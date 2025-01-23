@@ -1,10 +1,14 @@
 package layouts
 
-import t "github.com/a-h/templ"
+import (
+	t "github.com/a-h/templ"
+	"github.com/jonesrussell/goforms/internal/ui/components"
+)
 
 type PageData struct {
 	Title   string
 	Content t.Component
+	Styles  []string
 }
 
 templ Layout(data PageData) {
@@ -20,28 +24,18 @@ templ Layout(data PageData) {
 		
 		<!-- CSS Files -->
 		<link rel="stylesheet" href="/static/css/main.css"/>
-		<link rel="stylesheet" href="/static/css/api-response.css"/>
+		for _, style := range data.Styles {
+			<link rel="stylesheet" href={ style }/>
+		}
 	</head>
 	<body>
-		<nav>
-			<div class="container">
-				<a href="/" class="logo">Goforms</a>
-				<div class="nav-links">
-					<a href="/contact">Contact Demo</a>
-					<a href="https://github.com/jonesrussell/goforms">GitHub</a>
-				</div>
-			</div>
-		</nav>
+		@components.Nav()
 
 		<main>
 			@data.Content
 		</main>
 
-		<footer>
-			<div class="container">
-				<p>Created by <a href="https://github.com/jonesrussell">Russell Jones</a></p>
-			</div>
-		</footer>
+		@components.Footer()
 	</body>
 	</html>
 } 

@@ -1,6 +1,9 @@
 package pages
 
-import "github.com/jonesrussell/goforms/internal/ui/layouts"
+import (
+	"github.com/jonesrussell/goforms/internal/ui/layouts"
+	"github.com/jonesrussell/goforms/internal/ui/components"
+)
 
 templ Home() {
 	@layouts.Layout(layouts.PageData{
@@ -10,33 +13,23 @@ templ Home() {
 }
 
 templ homeContent() {
-	<section class="hero">
-		<div class="container">
-			<h1 class="hero-title">Free Form Backend Service</h1>
-			<p class="hero-subtitle">Use our free hosted service or deploy your own. No dependencies, just Go.</p>
-			<div class="hero-actions">
-				<a href="/contact" class="button primary">Try Demo Form</a>
-				<a href="https://github.com/jonesrussell/goforms" class="button">View on GitHub</a>
-			</div>
-		</div>
-	</section>
+	@components.Hero("Free Form Backend Service", "Use our free hosted service or deploy your own. No dependencies, just Go.", false)
 
-	<section class="features">
-		<div class="container">
-			<div class="feature-card">
-				<h3><span>🎯</span>Free Hosted</h3>
-				<p>Start using our service instantly, no setup required.</p>
-			</div>
-
-			<div class="feature-card">
-				<h3><span>🔒</span>Self Hosted Option</h3>
-				<p>Deploy on your own infrastructure if needed.</p>
-			</div>
-
-			<div class="feature-card">
-				<h3><span>🛠️</span>API First</h3>
-				<p>RESTful API with JSON responses.</p>
-			</div>
-		</div>
-	</section>
+	@components.Features([]components.Feature{
+		{
+			Icon: "🎯",
+			Title: "Free Hosted",
+			Description: "Start using our service instantly, no setup required.",
+		},
+		{
+			Icon: "🔒",
+			Title: "Self Hosted Option",
+			Description: "Deploy on your own infrastructure if needed.",
+		},
+		{
+			Icon: "🛠️",
+			Title: "API First",
+			Description: "RESTful API with JSON responses.",
+		},
+	})
 } 

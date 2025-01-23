@@ -1,0 +1,54 @@
+package components
+
+css nav() {
+    background: rgba(255, 255, 255, 0.8);
+    backdrop-filter: blur(10px);
+    position: fixed;
+    width: 100%;
+    top: 0;
+    z-index: 1000;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+css navContainer() {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    height: 70px;
+}
+
+css logo() {
+    font-size: 1.5rem;
+    font-weight: 700;
+    color: var(--primary);
+    text-decoration: none;
+    background: linear-gradient(135deg, var(--primary), var(--accent));
+    background-clip: text;
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    transition: opacity 0.2s ease;
+}
+
+css navLinks() {
+    display: flex;
+    gap: 2rem;
+}
+
+css navLink() {
+    color: var(--text);
+    text-decoration: none;
+    font-weight: 500;
+    transition: color 0.2s ease;
+}
+
+templ Nav() {
+    <nav class={ nav() }>
+        <div class={ "container", navContainer() }>
+            <a href="/" class={ logo() }>Goforms</a>
+            <div class={ navLinks() }>
+                <a href="/contact" class={ navLink() }>Contact Demo</a>
+                <a href="https://github.com/jonesrussell/goforms" class={ navLink() }>GitHub</a>
+            </div>
+        </div>
+    </nav>
+} 

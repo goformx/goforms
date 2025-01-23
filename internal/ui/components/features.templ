@@ -1,0 +1,49 @@
+package components
+
+css featuresSection() {
+    padding: 5rem 0;
+    background: var(--background);
+}
+
+css featuresGrid() {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 2rem;
+}
+
+css featureTitle() {
+    font-size: 1.5rem;
+    font-weight: 600;
+    margin-bottom: 0.75rem;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    color: var(--text);
+}
+
+css featureDescription() {
+    color: var(--text-light);
+    font-size: 1rem;
+    line-height: 1.5;
+}
+
+type Feature struct {
+    Icon        string
+    Title       string
+    Description string
+}
+
+templ Features(features []Feature) {
+    <section class={ featuresSection() }>
+        <div class="container">
+            <div class={ featuresGrid() }>
+                for _, feature := range features {
+                    <div class="feature-card">
+                        <h3 class={ featureTitle() }><span>{ feature.Icon }</span>{ feature.Title }</h3>
+                        <p class={ featureDescription() }>{ feature.Description }</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </section>
+} 

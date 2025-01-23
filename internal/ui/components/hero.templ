@@ -1,0 +1,60 @@
+package components
+
+css hero() {
+    padding: 8rem 0;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%);
+    text-align: center;
+    position: relative;
+    min-height: calc(100vh - 70px);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    overflow: hidden;
+}
+
+css heroCompact() {
+    padding: 4rem 0;
+    min-height: auto;
+}
+
+css heroTitle() {
+    font-size: 4.5rem;
+    line-height: 1.1;
+    font-weight: 800;
+    background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+    -webkit-background-clip: text;
+    background-clip: text;
+    -webkit-text-fill-color: transparent;
+    margin-bottom: 1.5rem;
+    letter-spacing: -0.02em;
+}
+
+css heroSubtitle() {
+    font-size: 1.5rem;
+    color: var(--text-light);
+    max-width: 600px;
+    margin: 0 auto 3rem;
+    line-height: 1.5;
+}
+
+css heroActions() {
+    display: flex;
+    gap: 1.5rem;
+    justify-content: center;
+    animation: fadeIn 0.8s ease-out 0.4s backwards;
+}
+
+templ Hero(title string, subtitle string, isCompact bool) {
+    <section class={ "hero", templ.KV(heroCompact(), isCompact) }>
+        <div class="container">
+            <h1 class={ heroTitle() }>{ title }</h1>
+            <p class={ heroSubtitle() }>{ subtitle }</p>
+            if !isCompact {
+                <div class={ heroActions() }>
+                    <a href="/contact" class="button primary">Try Demo Form</a>
+                    <a href="https://github.com/jonesrussell/goforms" class="button">View on GitHub</a>
+                </div>
+            }
+        </div>
+    </section>
+} 

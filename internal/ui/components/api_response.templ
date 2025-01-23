@@ -1,0 +1,71 @@
+package components
+
+css apiResponseSection() {
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+css apiResponseTitle() {
+    margin: 0 0 1rem 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+css apiResponseContainer() {
+    margin: 1rem 0;
+    max-height: 500px;
+    overflow-y: auto;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+css apiResponse() {
+    margin: 0.5rem 0;
+    padding: 1rem;
+    border-radius: 4px;
+    background: var(--bg-primary, #f5f5f5);
+    transition: background-color 0.2s ease;
+}
+
+css apiResponseHeader() {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+css apiResponseType() {
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+css apiResponseTime() {
+    color: var(--text-secondary, #666);
+    font-size: 0.85rem;
+}
+
+css apiResponseData() {
+    margin: 0;
+    padding: 0.5rem;
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: 4px;
+    white-space: pre-wrap;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-primary, #333);
+}
+
+templ APIResponse() {
+    <div class={ apiResponseSection() }>
+        <h3 class={ apiResponseTitle() }>API Responses</h3>
+        <div id="api-response" class={ apiResponseContainer() }>
+            <!-- API responses will be displayed here -->
+        </div>
+    </div>
+} 
