@@ -102,5 +102,8 @@ func (api *ContactAPI) UpdateContactStatus(c echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "failed to update contact submission status")
 	}
 
-	return response.Success(c, http.StatusOK, nil)
+	return response.Success(c, http.StatusOK, map[string]interface{}{
+		"id":     id,
+		"status": req.Status,
+	})
 }

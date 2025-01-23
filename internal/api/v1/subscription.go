@@ -142,5 +142,8 @@ func (api *SubscriptionAPI) DeleteSubscription(c echo.Context) error {
 		return response.Error(c, http.StatusInternalServerError, "failed to delete subscription")
 	}
 
-	return response.Success(c, http.StatusOK, nil)
+	return response.Success(c, http.StatusOK, map[string]interface{}{
+		"id":      id,
+		"deleted": true,
+	})
 }

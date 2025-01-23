@@ -8,24 +8,21 @@ import (
 
 // Response represents a standardized API response
 type Response struct {
-	Status  string      `json:"status"`
-	Message string      `json:"message,omitempty"`
-	Data    interface{} `json:"data,omitempty"`
+	Data  interface{} `json:"data,omitempty"`
+	Error string      `json:"error,omitempty"`
 }
 
 // Success sends a successful response
 func Success(c echo.Context, code int, data interface{}) error {
 	return c.JSON(code, Response{
-		Status: "success",
-		Data:   data,
+		Data: data,
 	})
 }
 
 // Error sends an error response
 func Error(c echo.Context, code int, message string) error {
 	return c.JSON(code, Response{
-		Status:  "error",
-		Message: message,
+		Error: message,
 	})
 }
 
