@@ -12,12 +12,12 @@ import (
 
 // ContactAPI handles contact-related API endpoints
 type ContactAPI struct {
-	service *contact.Service
+	service contact.Service
 	logger  logger.Logger
 }
 
 // NewContactAPI creates a new contact API handler
-func NewContactAPI(service *contact.Service, log logger.Logger) *ContactAPI {
+func NewContactAPI(service contact.Service, log logger.Logger) *ContactAPI {
 	return &ContactAPI{
 		service: service,
 		logger:  log,

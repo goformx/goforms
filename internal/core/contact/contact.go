@@ -16,6 +16,14 @@ const (
 	StatusRejected Status = "rejected"
 )
 
+// Service defines the interface for contact form operations
+type Service interface {
+	CreateSubmission(ctx context.Context, submission *Submission) error
+	ListSubmissions(ctx context.Context) ([]Submission, error)
+	GetSubmission(ctx context.Context, id int64) (*Submission, error)
+	UpdateSubmissionStatus(ctx context.Context, id int64, status Status) error
+}
+
 type Store interface {
 	Create(ctx context.Context, submission *Submission) error
 	List(ctx context.Context) ([]Submission, error)
@@ -23,7 +31,8 @@ type Store interface {
 	UpdateStatus(ctx context.Context, id int64, status Status) error
 }
 
-type Service struct {
+// ServiceImpl implements the Service interface
+type ServiceImpl struct {
 	store  Store
 	logger logger.Logger
 }
@@ -39,21 +48,22 @@ type Submission struct {
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
-func NewService(store Store, logger logger.Logger) *Service {
-	return &Service{
+// NewService creates a new ServiceImpl instance
+func NewService(store Store, logger logger.Logger) Service {
+	return &ServiceImpl{
 		store:  store,
 		logger: logger,
 	}
 }
 
-func (s *Service) wrapError(err error, msg string) error {
+func (s *ServiceImpl) wrapError(err error, msg string) error {
 	if err == nil {
 		return nil
 	}
 	return fmt.Errorf("%s: %w", msg, err)
 }
 
-func (s *Service) CreateSubmission(ctx context.Context, submission *Submission) error {
+func (s *ServiceImpl) CreateSubmission(ctx context.Context, submission *Submission) error {
 	if submission.Status == "" {
 		submission.Status = StatusPending
 	}
@@ -68,7 +78,7 @@ func (s *Service) CreateSubmission(ctx context.Context, submission *Submission) 
 	return nil
 }
 
-func (s *Service) ListSubmissions(ctx context.Context) ([]Submission, error) {
+func (s *ServiceImpl) ListSubmissions(ctx context.Context) ([]Submission, error) {
 	submissions, err := s.store.List(ctx)
 	if err != nil {
 		s.logger.Error("failed to list contact submissions", logger.Error(err))
@@ -77,7 +87,7 @@ func (s *Service) ListSubmissions(ctx context.Context) ([]Submission, error) {
 	return submissions, nil
 }
 
-func (s *Service) GetSubmission(ctx context.Context, id int64) (*Submission, error) {
+func (s *ServiceImpl) GetSubmission(ctx context.Context, id int64) (*Submission, error) {
 	submission, err := s.store.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Error("failed to get contact submission",
@@ -89,7 +99,7 @@ func (s *Service) GetSubmission(ctx context.Context, id int64) (*Submission, err
 	return submission, nil
 }
 
-func (s *Service) UpdateSubmissionStatus(ctx context.Context, id int64, status Status) error {
+func (s *ServiceImpl) UpdateSubmissionStatus(ctx context.Context, id int64, status Status) error {
 	if err := s.store.UpdateStatus(ctx, id, status); err != nil {
 		s.logger.Error("failed to update contact submission status",
 			logger.Error(err),
