@@ -38,9 +38,8 @@ tasks:
       - go install github.com/a-h/templ/cmd/templ@latest
 
   generate:
-    desc: Generate code
+    desc: Generate code from templates
     cmds:
-      - go install github.com/a-h/templ/cmd/templ@latest
       - templ generate ./internal/...
 
   run:
@@ -50,17 +49,30 @@ tasks:
       - go run ./cmd/goforms
 
   test:
-    desc: Run unit tests only
+    desc: Run tests
+    deps: [generate]
     cmds:
-      - go test -v ./internal/...
+      - go test -v ./...
+
+  test:cover:
+    desc: Run tests with coverage
+    deps: [generate]
+    cmds:
+      - mkdir -p coverage
+      - go test -v -race -coverprofile=coverage/coverage.out -covermode=atomic ./...
+      - go tool cover -html=coverage/coverage.out -o coverage/coverage.html
+      - go tool cover -func=coverage/coverage.out
+    generates:
+      - coverage/coverage.out
+      - coverage/coverage.html
 
   lint:
-    desc: Run linter
+    desc: Run linters
     cmds:
       - golangci-lint run
 
   build:
-    desc: Build all platforms
+    desc: Build the application
     deps: [generate]
     cmds:
       - task: build:linux
@@ -118,5 +130,6 @@ tasks:
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -rf bin/ tmp/
+      - rm -rf bin/
+      - rm -rf coverage/
       - go clean -cache -testcache
