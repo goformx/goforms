@@ -1,6 +1,10 @@
 package subscription
 
-import "time"
+import (
+	"time"
+
+	"github.com/go-playground/validator/v10"
+)
 
 // Status represents the status of a subscription
 type Status string
@@ -22,4 +26,10 @@ type Subscription struct {
 	Status    Status    `json:"status" db:"status"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
+}
+
+// Validate validates the subscription
+func (s *Subscription) Validate() error {
+	validate := validator.New()
+	return validate.Struct(s)
 }

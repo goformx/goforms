@@ -5,6 +5,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"errors"
+
 	"github.com/jonesrussell/goforms/internal/core/subscription"
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/response"
@@ -12,12 +14,12 @@ import (
 
 // SubscriptionAPI handles subscription-related API endpoints
 type SubscriptionAPI struct {
-	service *subscription.Service
+	service subscription.Service
 	logger  logger.Logger
 }
 
 // NewSubscriptionAPI creates a new subscription API handler
-func NewSubscriptionAPI(service *subscription.Service, log logger.Logger) *SubscriptionAPI {
+func NewSubscriptionAPI(service subscription.Service, log logger.Logger) *SubscriptionAPI {
 	return &SubscriptionAPI{
 		service: service,
 		logger:  log,
@@ -42,6 +44,12 @@ func (api *SubscriptionAPI) CreateSubscription(c echo.Context) error {
 	if err := c.Bind(&sub); err != nil {
 		api.logger.Error("failed to bind subscription", logger.Error(err))
 		return response.Error(c, http.StatusBadRequest, "invalid request")
+	}
+
+	// Validate subscription
+	if err := sub.Validate(); err != nil {
+		api.logger.Error("failed to validate subscription", logger.Error(err))
+		return response.Error(c, http.StatusBadRequest, "invalid subscription data")
 	}
 
 	if err := api.service.CreateSubscription(c.Request().Context(), &sub); err != nil {
@@ -72,12 +80,11 @@ func (api *SubscriptionAPI) GetSubscription(c echo.Context) error {
 
 	sub, err := api.service.GetSubscription(c.Request().Context(), id)
 	if err != nil {
+		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			return response.Error(c, http.StatusNotFound, "subscription not found")
+		}
 		api.logger.Error("failed to get subscription", logger.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to get subscription")
-	}
-
-	if sub == nil {
-		return response.Error(c, http.StatusNotFound, "subscription not found")
 	}
 
 	return response.Success(c, http.StatusOK, sub)
@@ -98,12 +105,26 @@ func (api *SubscriptionAPI) UpdateSubscriptionStatus(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "invalid request")
 	}
 
+	// Validate status
+	switch req.Status {
+	case subscription.StatusPending, subscription.StatusActive, subscription.StatusCancelled:
+		// Valid status
+	default:
+		return response.Error(c, http.StatusBadRequest, "invalid status")
+	}
+
 	if err := api.service.UpdateSubscriptionStatus(c.Request().Context(), id, req.Status); err != nil {
+		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			return response.Error(c, http.StatusNotFound, "subscription not found")
+		}
 		api.logger.Error("failed to update subscription status", logger.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to update subscription status")
 	}
 
-	return response.Success(c, http.StatusOK, nil)
+	// Return the updated status in the response
+	return response.Success(c, http.StatusOK, map[string]interface{}{
+		"status": req.Status,
+	})
 }
 
 // DeleteSubscription handles subscription deletion
@@ -114,6 +135,9 @@ func (api *SubscriptionAPI) DeleteSubscription(c echo.Context) error {
 	}
 
 	if err := api.service.DeleteSubscription(c.Request().Context(), id); err != nil {
+		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			return response.Error(c, http.StatusNotFound, "subscription not found")
+		}
 		api.logger.Error("failed to delete subscription", logger.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to delete subscription")
 	}

@@ -18,21 +18,31 @@ var (
 	ErrInvalidStatus = errors.New("invalid status")
 )
 
-// Service handles subscription business logic
-type Service struct {
+// Service defines the interface for subscription operations
+type Service interface {
+	CreateSubscription(ctx context.Context, subscription *Subscription) error
+	ListSubscriptions(ctx context.Context) ([]Subscription, error)
+	GetSubscription(ctx context.Context, id int64) (*Subscription, error)
+	GetSubscriptionByEmail(ctx context.Context, email string) (*Subscription, error)
+	UpdateSubscriptionStatus(ctx context.Context, id int64, status Status) error
+	DeleteSubscription(ctx context.Context, id int64) error
+}
+
+// ServiceImpl handles subscription business logic
+type ServiceImpl struct {
 	log   logger.Logger
 	store Store
 }
 
 // NewService creates a new subscription service
-func NewService(log logger.Logger, store Store) *Service {
-	return &Service{
+func NewService(log logger.Logger, store Store) Service {
+	return &ServiceImpl{
 		log:   log,
 		store: store,
 	}
 }
 
-func (s *Service) wrapError(err error, msg string) error {
+func (s *ServiceImpl) wrapError(err error, msg string) error {
 	if err == nil {
 		return nil
 	}
@@ -40,7 +50,7 @@ func (s *Service) wrapError(err error, msg string) error {
 }
 
 // CreateSubscription creates a new subscription
-func (s *Service) CreateSubscription(ctx context.Context, subscription *Subscription) error {
+func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subscription) error {
 	// Check if email already exists
 	existing, err := s.store.GetByEmail(ctx, subscription.Email)
 	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
@@ -66,7 +76,7 @@ func (s *Service) CreateSubscription(ctx context.Context, subscription *Subscrip
 }
 
 // ListSubscriptions returns all subscriptions
-func (s *Service) ListSubscriptions(ctx context.Context) ([]Subscription, error) {
+func (s *ServiceImpl) ListSubscriptions(ctx context.Context) ([]Subscription, error) {
 	subscriptions, err := s.store.List(ctx)
 	if err != nil {
 		s.log.Error("failed to list subscriptions", logger.Error(err))
@@ -77,7 +87,7 @@ func (s *Service) ListSubscriptions(ctx context.Context) ([]Subscription, error)
 }
 
 // GetSubscription returns a subscription by ID
-func (s *Service) GetSubscription(ctx context.Context, id int64) (*Subscription, error) {
+func (s *ServiceImpl) GetSubscription(ctx context.Context, id int64) (*Subscription, error) {
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
 		s.log.Error("failed to get subscription", logger.Error(err))
@@ -92,7 +102,7 @@ func (s *Service) GetSubscription(ctx context.Context, id int64) (*Subscription,
 }
 
 // GetSubscriptionByEmail returns a subscription by email
-func (s *Service) GetSubscriptionByEmail(ctx context.Context, email string) (*Subscription, error) {
+func (s *ServiceImpl) GetSubscriptionByEmail(ctx context.Context, email string) (*Subscription, error) {
 	subscription, err := s.store.GetByEmail(ctx, email)
 	if err != nil {
 		s.log.Error("failed to get subscription by email", logger.Error(err))
@@ -107,7 +117,7 @@ func (s *Service) GetSubscriptionByEmail(ctx context.Context, email string) (*Su
 }
 
 // UpdateSubscriptionStatus updates the status of a subscription
-func (s *Service) UpdateSubscriptionStatus(ctx context.Context, id int64, status Status) error {
+func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, status Status) error {
 	// Validate status
 	switch status {
 	case StatusPending, StatusActive, StatusCancelled:
@@ -137,7 +147,7 @@ func (s *Service) UpdateSubscriptionStatus(ctx context.Context, id int64, status
 }
 
 // DeleteSubscription removes a subscription
-func (s *Service) DeleteSubscription(ctx context.Context, id int64) error {
+func (s *ServiceImpl) DeleteSubscription(ctx context.Context, id int64) error {
 	// Check if subscription exists
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
