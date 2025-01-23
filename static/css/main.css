@@ -562,3 +562,60 @@ footer a:hover {
         background: #1e293b;
     }
 }
+
+/* API Response Section */
+.api-response-section {
+    margin-top: 2rem;
+    padding-top: 2rem;
+    border-top: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+.api-response-title {
+    font-size: 1.25rem;
+    font-weight: 600;
+    color: var(--text);
+    margin-bottom: 1rem;
+}
+
+.api-response-container {
+    background: rgba(15, 23, 42, 0.5);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    border-radius: var(--border-radius);
+    padding: 1.5rem;
+    font-family: 'SF Mono', Consolas, 'Liberation Mono', Menlo, monospace;
+    font-size: 0.875rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    position: relative;
+    backdrop-filter: blur(8px);
+}
+
+.api-response-container pre {
+    margin: 0;
+    white-space: pre-wrap;
+    word-break: break-word;
+}
+
+.api-response-container .success {
+    color: #10B981;
+}
+
+.api-response-container .error {
+    color: #EF4444;
+}
+
+.api-response-container .timestamp {
+    position: absolute;
+    top: 1rem;
+    right: 1rem;
+    font-size: 0.75rem;
+    color: var(--text-light);
+    font-family: -apple-system, system-ui, sans-serif;
+}
+
+/* Dark mode adjustments */
+@media (prefers-color-scheme: dark) {
+    .api-response-container {
+        background: rgba(15, 23, 42, 0.7);
+    }
+}
