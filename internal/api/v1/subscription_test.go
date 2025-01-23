@@ -9,6 +9,8 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/core/subscription"
 	"github.com/jonesrussell/goforms/internal/logger"
+	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/subscription"
+	"github.com/jonesrussell/goforms/test/utils"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
@@ -17,70 +19,76 @@ import (
 func TestCreateSubscription(t *testing.T) {
 	tests := []struct {
 		name           string
-		payload        string
+		subscription   subscription.Subscription
+		setupFn        func(*subscriptionmock.MockService)
 		expectedStatus int
-		setupMock      func(*subscription.MockService)
 	}{
 		{
-			name:           "valid subscription",
-			payload:        `{"email":"test@example.com","name":"Test User"}`,
-			expectedStatus: http.StatusCreated,
-			setupMock: func(ms *subscription.MockService) {
-				ms.On("CreateSubscription", mock.Anything, &subscription.Subscription{
-					Email: "test@example.com",
-					Name:  "Test User",
-				}).Return(nil)
+			name: "valid subscription",
+			subscription: subscription.Subscription{
+				Email: "test@example.com",
+				Name:  "Test User",
 			},
+			setupFn: func(ms *subscriptionmock.MockService) {
+				ms.On("CreateSubscription", mock.Anything, mock.MatchedBy(func(s *subscription.Subscription) bool {
+					return s.Email == "test@example.com" && s.Name == "Test User"
+				})).Return(nil)
+			},
+			expectedStatus: http.StatusCreated,
 		},
 		{
-			name:           "invalid email",
-			payload:        `{"email":"invalid-email","name":"Test User"}`,
+			name: "invalid email",
+			subscription: subscription.Subscription{
+				Email: "invalid-email",
+				Name:  "Test User",
+			},
+			setupFn:        func(ms *subscriptionmock.MockService) {},
 			expectedStatus: http.StatusBadRequest,
-			setupMock:      func(ms *subscription.MockService) {},
 		},
 		{
-			name:           "missing email",
-			payload:        `{"name":"Test User"}`,
+			name: "missing email",
+			subscription: subscription.Subscription{
+				Name: "Test User",
+			},
+			setupFn:        func(ms *subscriptionmock.MockService) {},
 			expectedStatus: http.StatusBadRequest,
-			setupMock:      func(ms *subscription.MockService) {},
 		},
 		{
-			name:           "missing name",
-			payload:        `{"email":"test@example.com"}`,
+			name: "missing name",
+			subscription: subscription.Subscription{
+				Email: "test@example.com",
+			},
+			setupFn:        func(ms *subscriptionmock.MockService) {},
 			expectedStatus: http.StatusBadRequest,
-			setupMock:      func(ms *subscription.MockService) {},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", strings.NewReader(tt.payload))
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
+			setup := utils.NewTestSetup()
+			defer setup.Close()
 
-			mockService := new(subscription.MockService)
-			tt.setupMock(mockService)
+			mockService := subscriptionmock.NewMockService()
+			tt.setupFn(mockService)
 
-			mockLogger := logger.NewMockLogger()
-			handler := NewSubscriptionAPI(mockService, mockLogger)
+			api := NewSubscriptionAPI(mockService, setup.Logger)
 
-			// Test
-			err := handler.CreateSubscription(c)
-
-			// Assertions
+			// Create request
+			req, err := utils.NewJSONRequest(http.MethodPost, "/api/v1/subscriptions", tt.subscription)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedStatus, rec.Code)
 
+			// Execute request
+			c, rec := utils.NewTestContext(setup.Echo, req)
+			err = api.CreateSubscription(c)
+			assert.NoError(t, err)
+
+			// Assert response
 			if tt.expectedStatus == http.StatusCreated {
-				var response map[string]interface{}
-				err := json.Unmarshal(rec.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				assert.Contains(t, response, "data")
+				utils.AssertSuccessResponse(t, rec, tt.expectedStatus)
+			} else {
+				utils.AssertErrorResponse(t, rec, tt.expectedStatus, "")
 			}
-
 			mockService.AssertExpectations(t)
 		})
 	}
@@ -89,47 +97,54 @@ func TestCreateSubscription(t *testing.T) {
 func TestListSubscriptions(t *testing.T) {
 	tests := []struct {
 		name           string
+		setupFn        func(*subscriptionmock.MockService)
 		expectedStatus int
-		setupMock      func(*subscription.MockService)
 	}{
 		{
-			name:           "successful list",
-			expectedStatus: http.StatusOK,
-			setupMock: func(ms *subscription.MockService) {
+			name: "successful list",
+			setupFn: func(ms *subscriptionmock.MockService) {
 				ms.On("ListSubscriptions", mock.Anything).Return([]subscription.Subscription{
 					{ID: 1, Email: "test1@example.com"},
 					{ID: 2, Email: "test2@example.com"},
 				}, nil)
 			},
+			expectedStatus: http.StatusOK,
+		},
+		{
+			name: "service error",
+			setupFn: func(ms *subscriptionmock.MockService) {
+				ms.On("ListSubscriptions", mock.Anything).Return(nil, assert.AnError)
+			},
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/api/v1/subscriptions", nil)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
+			setup := utils.NewTestSetup()
+			defer setup.Close()
 
-			mockService := new(subscription.MockService)
-			tt.setupMock(mockService)
+			mockService := subscriptionmock.NewMockService()
+			tt.setupFn(mockService)
 
-			mockLogger := logger.NewMockLogger()
-			handler := NewSubscriptionAPI(mockService, mockLogger)
+			api := NewSubscriptionAPI(mockService, setup.Logger)
 
-			// Test
-			err := handler.ListSubscriptions(c)
-
-			// Assertions
+			// Create request
+			req, err := utils.NewJSONRequest(http.MethodGet, "/api/v1/subscriptions", nil)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedStatus, rec.Code)
 
-			var response map[string]interface{}
-			err = json.Unmarshal(rec.Body.Bytes(), &response)
+			// Execute request
+			c, rec := utils.NewTestContext(setup.Echo, req)
+			err = api.ListSubscriptions(c)
 			assert.NoError(t, err)
-			assert.Contains(t, response, "data")
 
+			// Assert response
+			if tt.expectedStatus == http.StatusOK {
+				utils.AssertSuccessResponse(t, rec, tt.expectedStatus)
+			} else {
+				utils.AssertErrorResponse(t, rec, tt.expectedStatus, "")
+			}
 			mockService.AssertExpectations(t)
 		})
 	}
@@ -139,67 +154,65 @@ func TestGetSubscription(t *testing.T) {
 	tests := []struct {
 		name           string
 		id             string
+		setupFn        func(*subscriptionmock.MockService)
 		expectedStatus int
-		setupMock      func(*subscription.MockService)
 	}{
 		{
-			name:           "existing subscription",
-			id:             "1",
-			expectedStatus: http.StatusOK,
-			setupMock: func(ms *subscription.MockService) {
+			name: "existing subscription",
+			id:   "1",
+			setupFn: func(ms *subscriptionmock.MockService) {
 				ms.On("GetSubscription", mock.Anything, int64(1)).Return(&subscription.Subscription{
 					ID:    1,
 					Email: "test@example.com",
 				}, nil)
 			},
+			expectedStatus: http.StatusOK,
 		},
 		{
-			name:           "non-existent subscription",
-			id:             "999",
-			expectedStatus: http.StatusNotFound,
-			setupMock: func(ms *subscription.MockService) {
+			name: "non-existent subscription",
+			id:   "999",
+			setupFn: func(ms *subscriptionmock.MockService) {
 				ms.On("GetSubscription", mock.Anything, int64(999)).Return(nil, subscription.ErrSubscriptionNotFound)
 			},
+			expectedStatus: http.StatusNotFound,
 		},
 		{
 			name:           "invalid id",
 			id:             "invalid",
+			setupFn:        func(ms *subscriptionmock.MockService) {},
 			expectedStatus: http.StatusBadRequest,
-			setupMock:      func(ms *subscription.MockService) {},
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-			c.SetPath("/api/v1/subscriptions/:id")
+			setup := utils.NewTestSetup()
+			defer setup.Close()
+
+			mockService := subscriptionmock.NewMockService()
+			tt.setupFn(mockService)
+
+			api := NewSubscriptionAPI(mockService, setup.Logger)
+
+			// Create request
+			req, err := utils.NewJSONRequest(http.MethodGet, "/", nil)
+			assert.NoError(t, err)
+
+			// Execute request
+			c, rec := utils.NewTestContext(setup.Echo, req)
 			c.SetParamNames("id")
 			c.SetParamValues(tt.id)
 
-			mockService := new(subscription.MockService)
-			tt.setupMock(mockService)
-
-			mockLogger := logger.NewMockLogger()
-			handler := NewSubscriptionAPI(mockService, mockLogger)
-
-			// Test
-			err := handler.GetSubscription(c)
-
-			// Assertions
+			err = api.GetSubscription(c)
 			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedStatus, rec.Code)
 
+			// Assert response
 			if tt.expectedStatus == http.StatusOK {
-				var response map[string]interface{}
-				err = json.Unmarshal(rec.Body.Bytes(), &response)
-				assert.NoError(t, err)
-				assert.Contains(t, response, "data")
+				utils.AssertSuccessResponse(t, rec, tt.expectedStatus)
+			} else {
+				utils.AssertErrorResponse(t, rec, tt.expectedStatus, "")
 			}
-
 			mockService.AssertExpectations(t)
 		})
 	}
@@ -328,5 +341,42 @@ func TestDeleteSubscription(t *testing.T) {
 
 			mockService.AssertExpectations(t)
 		})
+	}
+}
+
+func TestRegister(t *testing.T) {
+	// Setup
+	setup := utils.NewTestSetup()
+	defer setup.Close()
+
+	mockService := subscriptionmock.NewMockService()
+
+	// Set up mock expectations for any potential service calls
+	mockService.On("CreateSubscription", mock.Anything, mock.Anything).Return(nil)
+	mockService.On("ListSubscriptions", mock.Anything).Return([]subscription.Subscription{}, nil)
+	mockService.On("GetSubscription", mock.Anything, mock.Anything).Return(&subscription.Subscription{}, nil)
+
+	api := NewSubscriptionAPI(mockService, setup.Logger)
+
+	// Test registration
+	api.Register(setup.Echo)
+
+	// Verify routes are registered by making test requests
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/v1/subscriptions"},
+		{http.MethodGet, "/api/v1/subscriptions"},
+		{http.MethodGet, "/api/v1/subscriptions/1"},
+	}
+
+	for _, route := range routes {
+		req, err := utils.NewJSONRequest(route.method, route.path, nil)
+		assert.NoError(t, err)
+
+		rec := httptest.NewRecorder()
+		setup.Echo.ServeHTTP(rec, req)
+		assert.NotEqual(t, http.StatusNotFound, rec.Code, "Route %s %s should exist", route.method, route.path)
 	}
 }
