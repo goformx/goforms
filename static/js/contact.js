@@ -17,13 +17,10 @@ const DOM_IDS = {
 const TEMPLATES = {
     NO_MESSAGES: '<div class="message-card">No messages yet. Be the first to send one!</div>',
     ERROR_MESSAGE: '<div class="message-card error">Failed to load messages</div>',
-    MESSAGE_CARD: ({ name, email, message, created_at }) => `
+    MESSAGE_CARD: ({ name, message, created_at }) => `
         <div class="message-card">
             <div class="message-header">
-                <div class="message-info">
-                    <span class="message-name">${name ?? 'Anonymous'}</span>
-                    <span class="message-email">${email ?? 'No email'}</span>
-                </div>
+                <span class="message-name">${name ?? 'Anonymous'}</span>
                 <span class="message-time">${formatDate(created_at)}</span>
             </div>
             <p class="message-content">${message ?? 'No message'}</p>
