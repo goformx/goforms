@@ -1,125 +1,159 @@
-// Format date to a readable string
-const formatDate = (dateStr) => {
-    console.debug('Formatting date:', dateStr);
-    const date = new Date(dateStr);
-    const formatted = new Intl.DateTimeFormat('default', {
-        dateStyle: 'medium',
-        timeStyle: 'short'
-    }).format(date);
-    console.debug('Formatted date:', formatted);
-    return formatted;
-};
-
-// Load and display messages
-const loadMessages = async () => {
-    console.debug('Loading messages...');
-    const messagesList = document.getElementById('messages-list');
-    
-    try {
-        console.debug('Fetching messages from API...');
-        const response = await fetch('/api/v1/contacts');
-        console.debug('API Response status:', response.status);
-        console.debug('API Response headers:', Object.fromEntries(response.headers.entries()));
-
-        const { data: messages = [] } = await response.json();
-        console.debug('Processed messages array:', messages);
-
-        if (!messages?.length) {
-            console.debug('No messages found, showing empty state');
-            messagesList.innerHTML = '<div class="message-card">No messages yet. Be the first to send one!</div>';
-            return;
-        }
-
-        console.debug('Sorting messages by date...');
-        const sortedMessages = [...messages].sort((a, b) => 
-            new Date(b.created_at) - new Date(a.created_at)
-        );
-        console.debug('Sorted messages:', sortedMessages);
-
-        console.debug('Rendering messages to DOM...');
-        messagesList.innerHTML = sortedMessages
-            .map(({ name, email, message, created_at }) => `
-                <div class="message-card">
-                    <div class="message-header">
-                        <div class="message-info">
-                            <span class="message-name">${name ?? 'Anonymous'}</span>
-                            <span class="message-email">${email ?? 'No email'}</span>
-                        </div>
-                        <span class="message-time">${formatDate(created_at)}</span>
-                    </div>
-                    <p class="message-content">${message ?? 'No message'}</p>
-                </div>
-            `)
-            .join('');
-        console.debug('Messages rendered successfully');
-    } catch (err) {
-        console.error('Failed to load messages:', err);
-        console.error('Error stack:', err.stack);
-        messagesList.innerHTML = '<div class="message-card error">Failed to load messages</div>';
+// Constants and Configuration
+const API = {
+    CONTACTS: '/api/v1/contacts',
+    HEADERS: {
+        'Content-Type': 'application/json'
     }
 };
 
-// Handle form submission
+const DOM_IDS = {
+    CONTACT_FORM: 'contact-form',
+    MESSAGES_LIST: 'messages-list',
+    FORM_RESULT: 'form-result',
+    RESPONSE: 'response'
+};
+
+const TEMPLATES = {
+    NO_MESSAGES: '<div class="message-card">No messages yet. Be the first to send one!</div>',
+    ERROR_MESSAGE: '<div class="message-card error">Failed to load messages</div>',
+    MESSAGE_CARD: ({ name, email, message, created_at }) => `
+        <div class="message-card">
+            <div class="message-header">
+                <div class="message-info">
+                    <span class="message-name">${name ?? 'Anonymous'}</span>
+                    <span class="message-email">${email ?? 'No email'}</span>
+                </div>
+                <span class="message-time">${formatDate(created_at)}</span>
+            </div>
+            <p class="message-content">${message ?? 'No message'}</p>
+        </div>
+    `
+};
+
+// Utility Functions
+const formatDate = (dateStr) => {
+    const date = new Date(dateStr);
+    return new Intl.DateTimeFormat('default', {
+        dateStyle: 'medium',
+        timeStyle: 'short'
+    }).format(date);
+};
+
+const logDebug = (message, data) => {
+    console.debug(message, data ?? '');
+};
+
+const logError = (message, error) => {
+    console.error(message, error);
+    if (error?.stack) console.error('Error stack:', error.stack);
+};
+
+// DOM Helpers
+const getElement = (id) => document.getElementById(id);
+
+const updateElement = (id, content) => {
+    const element = getElement(id);
+    if (element) element.innerHTML = content;
+};
+
+const showResult = (content) => {
+    const result = getElement(DOM_IDS.FORM_RESULT);
+    const responseEl = getElement(DOM_IDS.RESPONSE);
+    if (result) result.classList.remove('hidden');
+    if (responseEl) responseEl.textContent = content;
+};
+
+// API Functions
+const fetchMessages = async () => {
+    const response = await fetch(API.CONTACTS);
+    logDebug('API Response status:', response.status);
+    logDebug('API Response headers:', Object.fromEntries(response.headers.entries()));
+    
+    const { data: messages = [] } = await response.json();
+    logDebug('Processed messages array:', messages);
+    return messages;
+};
+
+const submitContact = async (formData) => {
+    const response = await fetch(API.CONTACTS, {
+        method: 'POST',
+        headers: API.HEADERS,
+        body: JSON.stringify(formData)
+    });
+    
+    logDebug('API Response status:', response.status);
+    logDebug('API Response headers:', Object.fromEntries(response.headers.entries()));
+    
+    const data = await response.json();
+    logDebug('API Response data:', data);
+    return { ok: response.ok, data };
+};
+
+// Message Handling
+const sortMessagesByDate = (messages) => 
+    [...messages].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+const renderMessages = (messages) => {
+    if (!messages?.length) {
+        logDebug('No messages found, showing empty state');
+        return TEMPLATES.NO_MESSAGES;
+    }
+
+    logDebug('Sorting and rendering messages...');
+    return sortMessagesByDate(messages)
+        .map(TEMPLATES.MESSAGE_CARD)
+        .join('');
+};
+
+// Main Functions
+const loadMessages = async () => {
+    logDebug('Loading messages...');
+    try {
+        const messages = await fetchMessages();
+        updateElement(DOM_IDS.MESSAGES_LIST, renderMessages(messages));
+        logDebug('Messages rendered successfully');
+    } catch (err) {
+        logError('Failed to load messages:', err);
+        updateElement(DOM_IDS.MESSAGES_LIST, TEMPLATES.ERROR_MESSAGE);
+    }
+};
+
 const handleSubmit = async (event) => {
-    console.debug('Form submission started...');
+    logDebug('Form submission started...');
     event.preventDefault();
     
-    const form = document.getElementById('contact-form');
-    const result = document.getElementById('form-result');
-    const responseEl = document.getElementById('response');
-
+    const form = getElement(DOM_IDS.CONTACT_FORM);
     const formData = Object.fromEntries(
         ['name', 'email', 'message'].map(id => [
             id, 
             form.querySelector(`#${id}`).value
         ])
     );
-    console.debug('Form data:', formData);
+    logDebug('Form data:', formData);
 
     try {
-        console.debug('Sending POST request to API...');
-        const response = await fetch('/api/v1/contacts', {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(formData),
-        });
-        console.debug('API Response status:', response.status);
-        console.debug('API Response headers:', Object.fromEntries(response.headers.entries()));
-
-        const data = await response.json();
-        console.debug('API Response data:', data);
+        const { ok, data } = await submitContact(formData);
+        showResult(JSON.stringify(data, null, 2));
         
-        result.classList.remove('hidden');
-        responseEl.textContent = JSON.stringify(data, null, 2);
-        
-        if (response.ok) {
-            console.debug('Submission successful, resetting form');
+        if (ok) {
+            logDebug('Submission successful, resetting form');
             form.reset();
-            console.debug('Reloading messages...');
             await loadMessages();
         } else {
-            console.error('Submission failed:', data);
+            logError('Submission failed:', data);
         }
     } catch (err) {
-        console.error('Submit error:', err);
-        console.error('Error stack:', err.stack);
-        result.classList.remove('hidden');
-        responseEl.textContent = `Error: ${err.message}`;
+        logError('Submit error:', err);
+        showResult(`Error: ${err.message}`);
     }
 };
 
-// Initialize when DOM is loaded
-document.addEventListener('DOMContentLoaded', () => {
-    console.debug('DOM loaded, initializing...');
-    
-    // Load initial messages
-    console.debug('Loading initial messages...');
+// Initialization
+const initialize = () => {
+    logDebug('DOM loaded, initializing...');
     loadMessages();
-    
-    // Set up form submission handler
-    console.debug('Setting up form submission handler...');
-    document.getElementById('contact-form')?.addEventListener('submit', handleSubmit);
-    console.debug('Initialization complete');
-}); 
+    getElement(DOM_IDS.CONTACT_FORM)?.addEventListener('submit', handleSubmit);
+    logDebug('Initialization complete');
+};
+
+document.addEventListener('DOMContentLoaded', initialize);
