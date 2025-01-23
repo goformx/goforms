@@ -1,0 +1,143 @@
+/* API Response Section */
+.api-response-section {
+    margin-top: var(--spacing-lg, 2rem);
+    padding-top: var(--spacing-sm);
+    border-top: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.api-response-section h3 {
+    margin: 0 0 var(--spacing-sm) 0;
+    font-size: 1.1rem;
+    color: var(--text-primary);
+    font-weight: 500;
+}
+
+/* API Response Container */
+.api-response-container {
+    --success-color: #4caf50;
+    --error-color: #f44336;
+    --info-color: #2196f3;
+    --text-primary: #333;
+    --text-secondary: #666;
+    --bg-primary: #f5f5f5;
+    --bg-hover: #eaeaea;
+    --border-radius: 4px;
+    --spacing-xs: 0.5rem;
+    --spacing-sm: 1rem;
+    --spacing-lg: 2rem;
+    
+    margin: var(--spacing-sm) 0;
+    max-height: 500px;
+    overflow-y: auto;
+    font-family: system-ui, -apple-system, sans-serif;
+}
+
+/* Response Card */
+.api-response {
+    margin: var(--spacing-xs) 0;
+    padding: var(--spacing-sm);
+    border-radius: var(--border-radius);
+    background: var(--bg-primary);
+    transition: background-color 0.2s ease;
+}
+
+.api-response:hover {
+    background: var(--bg-hover);
+}
+
+/* Response Types */
+.api-response.success {
+    border-left: 4px solid var(--success-color);
+}
+
+.api-response.error {
+    border-left: 4px solid var(--error-color);
+}
+
+.api-response.default {
+    border-left: 4px solid var(--info-color);
+}
+
+/* Response Header */
+.api-response-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-xs);
+    padding-bottom: var(--spacing-xs);
+    border-bottom: 1px solid rgba(0, 0, 0, 0.1);
+}
+
+.api-response-type {
+    font-weight: 600;
+    font-size: 0.9rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+}
+
+.api-response.success .api-response-type {
+    color: var(--success-color);
+}
+
+.api-response.error .api-response-type {
+    color: var(--error-color);
+}
+
+.api-response.default .api-response-type {
+    color: var(--info-color);
+}
+
+.api-response-time {
+    color: var(--text-secondary);
+    font-size: 0.85rem;
+}
+
+/* Response Data */
+.api-response-data {
+    margin: 0;
+    padding: var(--spacing-xs);
+    background: rgba(0, 0, 0, 0.03);
+    border-radius: var(--border-radius);
+    white-space: pre-wrap;
+    font-family: 'SF Mono', 'Consolas', monospace;
+    font-size: 0.9rem;
+    line-height: 1.5;
+    color: var(--text-primary);
+}
+
+/* Scrollbar Styling */
+.api-response-container::-webkit-scrollbar {
+    width: 8px;
+}
+
+.api-response-container::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: var(--border-radius);
+}
+
+.api-response-container::-webkit-scrollbar-thumb {
+    background: var(--text-secondary);
+    border-radius: var(--border-radius);
+}
+
+.api-response-container::-webkit-scrollbar-thumb:hover {
+    background: var(--text-primary);
+}
+
+/* Dark Mode Support */
+@media (prefers-color-scheme: dark) {
+    .api-response-container {
+        --text-primary: #e1e1e1;
+        --text-secondary: #999;
+        --bg-primary: #2d2d2d;
+        --bg-hover: #353535;
+    }
+
+    .api-response-data {
+        background: rgba(0, 0, 0, 0.2);
+    }
+
+    .api-response-section {
+        border-top-color: rgba(255, 255, 255, 0.1);
+    }
+} 
