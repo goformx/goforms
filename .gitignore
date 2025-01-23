@@ -31,3 +31,4 @@ air.log
 
 # Task checksum
 .task/
+coverage/coverage.html
