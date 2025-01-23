@@ -1,0 +1,13 @@
+@layer base {
+    :root {
+        --primary: #2563eb;
+        --primary-dark: #1d4ed8;
+        --secondary: #4f46e5;
+        --accent: #8b5cf6;
+        --background: #ffffff;
+        --text: #1f2937;
+        --text-light: #6b7280;
+        --max-width: 1200px;
+        --border-radius: 12px;
+    }
+} 

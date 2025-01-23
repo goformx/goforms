@@ -1,0 +1,36 @@
+@layer layouts {
+    .container {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    main {
+        padding-top: 70px; /* Match the height of the nav */
+    }
+
+    /* Contact Page Layout */
+    .contact-layout {
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 0 2rem;
+    }
+
+    .contact-grid {
+        display: grid;
+        grid-template-columns: 2fr 1fr;
+        gap: 2rem;
+        margin: 2rem 0;
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .contact-layout {
+            padding: 1rem;
+        }
+
+        .contact-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+} 

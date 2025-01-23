@@ -1,0 +1,24 @@
+@layer layouts {
+    footer {
+        background: #f8fafc;
+        padding: 2rem 0;
+        margin-top: 4rem;
+        border-top: 1px solid #e2e8f0;
+    }
+
+    footer .container {
+        text-align: center;
+        color: var(--text-light);
+    }
+
+    footer a {
+        color: var(--primary);
+        text-decoration: none;
+        font-weight: 500;
+        transition: color 0.2s ease;
+    }
+
+    footer a:hover {
+        color: var(--accent);
+    }
+} 
