@@ -36,10 +36,9 @@ tasks:
 
   run:
     desc: Run the application with hot reload
-    deps: [install]
+    deps: [install, generate]
     method: none
     cmds:
-      - templ generate
       - air
     sources:
       - "**/*.templ"

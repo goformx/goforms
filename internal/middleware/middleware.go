@@ -48,7 +48,7 @@ func (m *Manager) securityHeaders() echo.MiddlewareFunc {
 			c.Response().Header().Set("Content-Security-Policy",
 				"default-src 'self'; "+
 					"style-src 'self' 'unsafe-inline'; "+
-					"script-src 'self' 'unsafe-inline' 'unsafe-eval'; "+
+					"script-src 'self'; "+
 					"img-src 'self' data:; "+
 					"font-src 'self'; "+
 					"connect-src 'self'")
