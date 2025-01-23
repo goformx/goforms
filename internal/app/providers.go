@@ -6,7 +6,6 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/api"
@@ -21,16 +20,6 @@ func NewEcho(log logger.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.S
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
-
-	// Configure security middleware
-	e.Use(middleware.SecureWithConfig(middleware.SecureConfig{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "SAMEORIGIN",
-		HSTSMaxAge:            31536000,
-		HSTSExcludeSubdomains: false,
-		ContentSecurityPolicy: "default-src 'self'",
-	}))
 
 	// Register API routes
 	contactAPI.Register(e)

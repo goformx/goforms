@@ -3,6 +3,7 @@ package logger
 
 import (
 	"os"
+	"strings"
 	"time"
 
 	"go.uber.org/zap"
@@ -26,25 +27,28 @@ type zapLogger struct {
 
 // GetLogger returns a logger instance configured based on environment
 func GetLogger() Logger {
-	isDev := os.Getenv("APP_ENV") != "production"
+	env := os.Getenv("APP_ENV")
+	debug := strings.ToLower(os.Getenv("APP_DEBUG")) == "true"
 
-	if isDev {
-		config := zap.NewDevelopmentConfig()
+	var config zap.Config
+	if env == "production" {
+		config = zap.NewProductionConfig()
+		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	} else {
+		config = zap.NewDevelopmentConfig()
 		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 		config.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 		config.EncoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-
-		log, _ := config.Build(
-			zap.AddCaller(),
-			zap.AddStacktrace(zapcore.ErrorLevel),
-		)
-		return &zapLogger{log}
 	}
 
-	config := zap.NewProductionConfig()
-	config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	// Set log level based on APP_DEBUG
+	if debug {
+		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
+	} else {
+		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
+	}
+
 	log, _ := config.Build(
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),
