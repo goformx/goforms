@@ -41,32 +41,6 @@ templ Layout(data PageData) {
 				<p>Created by <a href="https://github.com/jonesrussell">Russell Jones</a></p>
 			</div>
 		</footer>
-
-		<!-- Theme Toggle Script -->
-		<script>
-			// Use modern JavaScript features
-			const themeToggle = () => {
-				// Get current theme or system preference
-				const getTheme = () => 
-					localStorage.getItem('theme') || 
-					(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-
-				// Toggle between light and dark
-				const theme = getTheme() === 'dark' ? 'light' : 'dark';
-				
-				// Update DOM and storage
-				document.documentElement.dataset.theme = theme;
-				localStorage.setItem('theme', theme);
-			};
-
-			// Initialize theme
-			document.documentElement.dataset.theme = 
-				localStorage.getItem('theme') || 
-				(window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light');
-
-			// Expose toggle function
-			window.toggleTheme = themeToggle;
-		</script>
 	</body>
 	</html>
 } 
