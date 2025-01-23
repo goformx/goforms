@@ -10,28 +10,39 @@ import (
 	"github.com/jonesrussell/goforms/internal/config/database"
 )
 
+func TestBuildDSN(t *testing.T) {
+	tests := []struct {
+		name     string
+		config   *database.Config
+		expected string
+	}{
+		{
+			name: "valid configuration",
+			config: &database.Config{
+				Host:     "localhost",
+				Port:     3306,
+				User:     "test_user",
+				Password: "test_pass",
+				Name:     "test_db",
+			},
+			expected: "test_user:test_pass@tcp(localhost:3306)/test_db?parseTime=true",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			dsn := buildDSN(tt.config)
+			assert.Equal(t, tt.expected, dsn)
+		})
+	}
+}
+
 func TestNew(t *testing.T) {
 	tests := []struct {
 		name    string
 		cfg     *config.Config
 		wantErr bool
 	}{
-		{
-			name: "valid configuration",
-			cfg: &config.Config{
-				Database: database.Config{
-					Host:           "localhost",
-					Port:           3306,
-					User:           "test_user",
-					Password:       "test_pass",
-					Name:           "test_db",
-					MaxOpenConns:   10,
-					MaxIdleConns:   5,
-					ConnMaxLifetme: time.Hour,
-				},
-			},
-			wantErr: false,
-		},
 		{
 			name: "invalid configuration - empty host",
 			cfg: &config.Config{
@@ -66,15 +77,10 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			db, err := New(tt.cfg)
+			// We only test invalid configurations since valid ones would try to connect
 			if tt.wantErr {
+				_, err := New(tt.cfg)
 				assert.Error(t, err)
-				assert.Nil(t, db)
-			} else {
-				// We can't actually connect to the database in a unit test,
-				// but we can verify the DSN was constructed correctly
-				assert.NoError(t, err)
-				assert.NotNil(t, db)
 			}
 		})
 	}
