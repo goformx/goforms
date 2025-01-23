@@ -5,30 +5,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/ui/components"
 )
 
-css contactLayout() {
-	max-width: 1400px;
-	margin: 0 auto;
-	padding: 0 2rem;
-}
-
-css contactGrid() {
-	display: grid;
-	grid-template-columns: 1fr;
-	gap: 2rem;
-	margin: 2rem 0;
-}
-
-css formSection() {
-	margin-bottom: 0;
-}
-
-css featureCard() {
-	background: rgba(30, 41, 59, 0.6);
-	border: 1px solid rgba(255, 255, 255, 0.1);
-	backdrop-filter: blur(8px);
-	padding: 2rem;
-}
-
 templ Contact() {
 	@layouts.Layout(layouts.PageData{
 		Title: "Contact Demo",
@@ -39,10 +15,10 @@ templ Contact() {
 templ contactContent() {
 	@components.Hero("Contact Form Demo", "This form demonstrates Goforms' capabilities.", true)
 
-	<div class={ contactLayout() }>
-		<div class={ contactGrid() }>
-			<section class={ formSection() }>
-				<div class={ featureCard() }>
+	<div class="contact-layout">
+		<div class="contact-grid">
+			<section class="form-section">
+				<div class="feature-card">
 					@components.ContactForm()
 				</div>
 			</section>
