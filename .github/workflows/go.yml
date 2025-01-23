@@ -8,38 +8,12 @@ on:
     branches: [main]
 
 env:
-  DB_USER: goforms_test
-  DB_PASSWORD: goforms_test
-  DB_NAME: goforms_test
-  DB_HOST: 127.0.0.1
-  DB_PORT: 3306
-  TEST_DB_USER: goforms_test
-  TEST_DB_PASSWORD: goforms_test
-  TEST_DB_NAME: goforms_test
-  TEST_DB_HOST: 127.0.0.1
-  TEST_DB_PORT: 3306
   RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
 
 jobs:
   verify:
     name: Verify
     runs-on: ubuntu-latest
-
-    services:
-      mariadb:
-        image: mariadb:10.11
-        env:
-          MYSQL_ROOT_PASSWORD: rootpassword
-          MYSQL_DATABASE: goforms_test
-          MYSQL_USER: goforms_test
-          MYSQL_PASSWORD: goforms_test
-        ports:
-          - 3306:3306
-        options: >-
-          --health-cmd="mysqladmin ping -h localhost"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
 
     steps:
       - uses: actions/checkout@v4
@@ -74,15 +48,6 @@ jobs:
         uses: golangci/golangci-lint-action@v4
         with:
           version: latest
-
-      - name: Install golang-migrate
-        run: |
-          curl -L https://github.com/golang-migrate/migrate/releases/download/v4.17.0/migrate.linux-amd64.tar.gz | tar xvz
-          sudo mv migrate /usr/local/bin/migrate
-          which migrate
-
-      - name: Run migrations
-        run: migrate -database "mysql://${{ env.DB_USER }}:${{ env.DB_PASSWORD }}@tcp(${{ env.DB_HOST }}:${{ env.DB_PORT }})/${{ env.DB_NAME }}" -path migrations up
 
       - name: Run tests
         run: task test
