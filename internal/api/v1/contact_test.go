@@ -47,6 +47,14 @@ func TestCreateContact(t *testing.T) {
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
+		{
+			name:       "invalid json",
+			submission: contact.Submission{},
+			setupFn: func(ms *contact.MockService) {
+				// No mock setup needed as it should fail before service call
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
@@ -58,7 +66,12 @@ func TestCreateContact(t *testing.T) {
 			api := NewContactAPI(mockService, mockLogger)
 			e := echo.New()
 
-			body, _ := json.Marshal(tt.submission)
+			var body []byte
+			if tt.name == "invalid json" {
+				body = []byte(`{invalid json`)
+			} else {
+				body, _ = json.Marshal(tt.submission)
+			}
 			req := httptest.NewRequest(http.MethodPost, "/api/v1/contacts", bytes.NewReader(body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
@@ -209,6 +222,15 @@ func TestUpdateContactStatus(t *testing.T) {
 			},
 			expectedStatus: http.StatusBadRequest,
 		},
+		{
+			name:   "invalid json",
+			id:     "1",
+			status: contact.StatusApproved,
+			setupFn: func(ms *contact.MockService) {
+				// No mock setup needed as it should fail before service call
+			},
+			expectedStatus: http.StatusBadRequest,
+		},
 	}
 
 	for _, tt := range tests {
@@ -220,7 +242,12 @@ func TestUpdateContactStatus(t *testing.T) {
 			api := NewContactAPI(mockService, mockLogger)
 			e := echo.New()
 
-			body, _ := json.Marshal(map[string]string{"status": string(tt.status)})
+			var body []byte
+			if tt.name == "invalid json" {
+				body = []byte(`{invalid json`)
+			} else {
+				body, _ = json.Marshal(map[string]string{"status": string(tt.status)})
+			}
 			req := httptest.NewRequest(http.MethodPut, "/", bytes.NewReader(body))
 			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
@@ -232,5 +259,43 @@ func TestUpdateContactStatus(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 			mockService.AssertExpectations(t)
 		})
+	}
+}
+
+func TestRegister(t *testing.T) {
+	mockService := contact.NewMockService()
+	mockLogger := logger.NewMockLogger()
+
+	// Set up mock expectations for any potential service calls
+	mockService.On("CreateSubmission", mock.Anything, mock.Anything).Return(nil)
+	mockService.On("ListSubmissions", mock.Anything).Return([]contact.Submission{}, nil)
+	mockService.On("GetSubmission", mock.Anything, mock.Anything).Return(&contact.Submission{}, nil)
+	mockService.On("UpdateSubmissionStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
+
+	api := NewContactAPI(mockService, mockLogger)
+	e := echo.New()
+
+	// Test registration
+	api.Register(e)
+
+	// Verify routes are registered by making test requests
+	routes := []struct {
+		method string
+		path   string
+	}{
+		{http.MethodPost, "/api/v1/contacts"},
+		{http.MethodGet, "/api/v1/contacts"},
+		{http.MethodGet, "/api/v1/contacts/1"},
+		{http.MethodPut, "/api/v1/contacts/1/status"},
+	}
+
+	for _, route := range routes {
+		req := httptest.NewRequest(route.method, route.path, nil)
+		req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+		rec := httptest.NewRecorder()
+		e.ServeHTTP(rec, req)
+		// We expect a 404 or other error because we're not setting up the full request,
+		// but the point is that the route exists and is handled
+		assert.NotEqual(t, http.StatusNotFound, rec.Code, "Route %s %s should exist", route.method, route.path)
 	}
 }

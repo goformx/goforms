@@ -11,8 +11,11 @@ import (
 	"github.com/golang-migrate/migrate/v4/database/mysql"
 
 	// Import the file source driver
+	"testing"
+
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jmoiron/sqlx"
+	"github.com/stretchr/testify/assert"
 )
 
 // TestDB manages test database setup and teardown
@@ -105,6 +108,7 @@ func (tdb *TestDB) ClearData() error {
 	// Add all your tables here
 	tables := []string{
 		"subscriptions",
+		"contacts",
 		// Add other tables as needed
 	}
 
@@ -126,4 +130,34 @@ func (tdb *TestDB) Cleanup() error {
 		return tdb.DB.Close()
 	}
 	return nil
+}
+
+// TestNewTestDBRetries tests the retry mechanism for database connections
+func TestNewTestDBRetries(t *testing.T) {
+	// Save original environment variables
+	origUser := os.Getenv("TEST_DB_USER")
+	origPass := os.Getenv("TEST_DB_PASSWORD")
+	origName := os.Getenv("TEST_DB_NAME")
+	origHost := os.Getenv("TEST_DB_HOST")
+	origPort := os.Getenv("TEST_DB_PORT")
+
+	// Set invalid connection details to force retries
+	os.Setenv("TEST_DB_HOST", "nonexistent-host")
+	os.Setenv("TEST_DB_PORT", "1234")
+
+	start := time.Now()
+	db, err := NewTestDB()
+	duration := time.Since(start)
+
+	// Verify that it took some time due to retries
+	assert.Error(t, err)
+	assert.Nil(t, db)
+	assert.True(t, duration >= 30*time.Second) // 5 retries with exponential backoff
+
+	// Restore original environment variables
+	os.Setenv("TEST_DB_USER", origUser)
+	os.Setenv("TEST_DB_PASSWORD", origPass)
+	os.Setenv("TEST_DB_NAME", origName)
+	os.Setenv("TEST_DB_HOST", origHost)
+	os.Setenv("TEST_DB_PORT", origPort)
 }
