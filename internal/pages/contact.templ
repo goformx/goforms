@@ -1,0 +1,32 @@
+package pages
+
+import (
+	"github.com/jonesrussell/goforms/internal/layouts"
+	"github.com/jonesrussell/goforms/internal/components"
+)
+
+templ Contact() {
+	@layouts.Layout(layouts.PageData{
+		Title: "Contact Demo",
+		Content: contactContent(),
+	})
+}
+
+templ contactContent() {
+	<section class="hero hero-compact">
+		<div class="container">
+			<h1 class="hero-title">Contact Form Demo</h1>
+			<p class="hero-subtitle">This form demonstrates Goforms' capabilities.</p>
+		</div>
+	</section>
+
+	<div class="contact-layout container">
+		<section class="form-section">
+			<div class="feature-card">
+				@components.ContactForm()
+			</div>
+		</section>
+	</div>
+
+	<script src="/static/js/contact.js"></script>
+} 

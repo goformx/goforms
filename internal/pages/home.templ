@@ -1,7 +1,9 @@
-package components
+package pages
+
+import "github.com/jonesrussell/goforms/internal/layouts"
 
 templ Home() {
-	@Layout(PageData{
+	@layouts.Layout(layouts.PageData{
 		Title: "Home",
 		Content: homeContent(),
 	})
