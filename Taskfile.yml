@@ -9,8 +9,18 @@ vars:
     sh: git rev-parse HEAD
   GO_VERSION:
     sh: go version | cut -d ' ' -f 3
+  DB_USER:
+    sh: echo "${DB_USER:-goforms}"
+  DB_PASSWORD:
+    sh: echo "${DB_PASSWORD:-goforms}"
+  DB_HOSTNAME:
+    sh: echo "${DB_HOSTNAME:-localhost}"
+  DB_PORT:
+    sh: echo "${DB_PORT:-3306}"
+  DB_NAME:
+    sh: echo "${DB_NAME:-goforms}"
   DB_URL:
-    sh: echo "mysql://${DB_USER}:${DB_PASSWORD}@tcp(${DB_HOSTNAME}:${DB_PORT})/${DB_NAME}"
+    sh: echo "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOSTNAME}}:{{.DB_PORT}})/{{.DB_NAME}}"
   LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.buildTime={{.BUILD_TIME}} -X main.gitCommit={{.GIT_COMMIT}} -X main.goVersion={{.GO_VERSION}}
 
 tasks:

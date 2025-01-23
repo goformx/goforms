@@ -19,12 +19,7 @@ async function loadMessages() {
         const result = await response.json();
         console.debug('API Response data:', result);
         
-        if (!result.data) {
-            console.error('Invalid response format - missing data field:', result);
-            throw new Error('Invalid response format');
-        }
-
-        const messages = Array.isArray(result.data) ? result.data : [];
+        const messages = result.data ?? [];
         console.debug('Processed messages array:', messages);
         const messagesList = document.getElementById('messages-list');
 
@@ -46,12 +41,12 @@ async function loadMessages() {
                     <div class="message-card">
                         <div class="message-header">
                             <div class="message-info">
-                                <span class="message-name">${msg.name || 'Anonymous'}</span>
-                                <span class="message-email">${msg.email || 'No email'}</span>
+                                <span class="message-name">${msg.name ?? 'Anonymous'}</span>
+                                <span class="message-email">${msg.email ?? 'No email'}</span>
                             </div>
                             <span class="message-time">${formatDate(msg.created_at)}</span>
                         </div>
-                        <p class="message-content">${msg.message || 'No message'}</p>
+                        <p class="message-content">${msg.message ?? 'No message'}</p>
                     </div>
                 `;
             })
