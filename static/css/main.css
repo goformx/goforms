@@ -388,23 +388,31 @@ footer a:hover {
     }
 }
 
-/* Form and Messages Layout */
+/* Contact Page Layout */
 .contact-layout {
-    display: grid;
-    gap: 2.5rem;
-    padding: 2rem 0 4rem;
-    max-width: 1200px;
+    max-width: var(--max-width);
     margin: 0 auto;
+    padding: 0 2rem;
 }
 
-@media (min-width: 1024px) {
-    .contact-layout {
-        grid-template-columns: 1fr 1fr;
-        align-items: start;
-        gap: 4rem;
+.contact-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+    margin: 2rem 0;
+}
+
+.form-section {
+    margin-bottom: 0;
+}
+
+@media (max-width: 768px) {
+    .contact-grid {
+        grid-template-columns: 1fr;
     }
 }
 
+/* Form and Messages Layout */
 .form-section {
     margin-bottom: 0;
 }
