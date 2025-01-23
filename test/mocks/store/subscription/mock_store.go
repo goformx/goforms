@@ -1,4 +1,4 @@
-package storemock
+package subscription
 
 import (
 	"context"
@@ -10,12 +10,12 @@ import (
 // Ensure MockStore implements Store interface
 var _ subscription.Store = (*MockStore)(nil)
 
-// MockStore is a mock implementation of Store
+// MockStore is a mock implementation of the Store interface
 type MockStore struct {
 	mock.Mock
 }
 
-// NewMockStore creates a new mock store
+// NewMockStore creates a new instance of MockStore
 func NewMockStore() *MockStore {
 	return &MockStore{}
 }

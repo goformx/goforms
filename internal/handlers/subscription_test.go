@@ -13,18 +13,19 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/core/subscription"
 	"github.com/jonesrussell/goforms/internal/logger"
+	storemock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
 )
 
 func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 	e := echo.New()
 	mockLogger := logger.NewMockLogger()
-	mockStore := subscription.NewMockStore()
+	mockStore := storemock.NewMockStore()
 	handler := NewSubscriptionHandler(mockStore, mockLogger)
 
 	tests := []struct {
 		name           string
 		subscription   *subscription.Subscription
-		setupMock      func()
+		setupMock      func(*storemock.MockStore)
 		expectedStatus int
 	}{
 		{
@@ -33,7 +34,7 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 				Email: "test@example.com",
 				Name:  "Test User",
 			},
-			setupMock: func() {
+			setupMock: func(mockStore *storemock.MockStore) {
 				mockStore.On("Create", mock.Anything, &subscription.Subscription{
 					Email: "test@example.com",
 					Name:  "Test User",
@@ -43,17 +44,12 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 		},
 	}
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			// Reset mock between tests
-			mockStore.ExpectedCalls = nil
-			mockStore.Calls = nil
-
-			// Setup mock expectations
-			tc.setupMock()
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			tt.setupMock(mockStore)
 
 			// Create request
-			jsonData, err := json.Marshal(tc.subscription)
+			jsonData, err := json.Marshal(tt.subscription)
 			assert.NoError(t, err)
 			body := string(jsonData)
 
@@ -67,7 +63,7 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			assert.NoError(t, err)
 
 			// Assert response
-			assert.Equal(t, tc.expectedStatus, rec.Code)
+			assert.Equal(t, tt.expectedStatus, rec.Code)
 
 			// Verify mock expectations
 			mockStore.AssertExpectations(t)

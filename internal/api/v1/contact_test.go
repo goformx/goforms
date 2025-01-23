@@ -304,7 +304,7 @@ func TestUpdateContactStatus(t *testing.T) {
 	}
 }
 
-func TestRegister(t *testing.T) {
+func TestContactRegister(t *testing.T) {
 	// Setup
 	setup := utils.NewTestSetup()
 	defer setup.Close()
