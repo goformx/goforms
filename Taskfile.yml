@@ -21,11 +21,13 @@ tasks:
       - task: run
 
   install:
-    desc: Install dependencies
+    desc: Install project dependencies
     cmds:
-      - task: generate
       - go mod download
       - go mod tidy
+      - go install github.com/air-verse/air@latest
+      - go install github.com/a-h/templ/cmd/templ@latest
+      - GOPROXY=direct go install github.com/maddalax/htmgo/cli/htmgo@latest
 
   generate:
     desc: Generate code
@@ -33,9 +35,16 @@ tasks:
       - templ generate ./internal/...
 
   run:
-    desc: Run the application
+    desc: Run the application with hot reload
+    deps: [install, htmgo:assets]
+    method: none
     cmds:
+      - templ generate
       - air
+    sources:
+      - "**/*.templ"
+    generates:
+      - "**/*_templ.go"
 
   test:
     desc: Run tests
@@ -112,3 +121,10 @@ tasks:
     cmds:
       - rm -rf bin/ tmp/
       - go clean -cache -testcache
+
+  htmgo:assets:
+    desc: Setup HTMGo assets directory
+    cmds:
+      - mkdir -p public/assets
+      - touch public/assets/main.css
+      - cp $(go env GOPATH)/pkg/mod/github.com/maddalax/htmgo*/assets/htmgo.js public/assets/
