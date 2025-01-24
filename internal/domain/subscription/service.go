@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 // Service defines the interface for subscription operations
@@ -21,12 +21,12 @@ type Service interface {
 
 // ServiceImpl handles subscription business logic
 type ServiceImpl struct {
-	log   logger.Logger
+	log   logging.Logger
 	store Store
 }
 
 // NewService creates a new subscription service
-func NewService(log logger.Logger, store Store) Service {
+func NewService(log logging.Logger, store Store) Service {
 	return &ServiceImpl{
 		log:   log,
 		store: store,
@@ -45,7 +45,7 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 	// Check if email already exists
 	existing, err := s.store.GetByEmail(ctx, subscription.Email)
 	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
-		s.log.Error("failed to check existing subscription", logger.Error(err))
+		s.log.Error("failed to check existing subscription", logging.Error(err))
 		return s.wrapError(err, "failed to check existing subscription")
 	}
 	if existing != nil {
@@ -59,7 +59,7 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 
 	// Create subscription
 	if err := s.store.Create(ctx, subscription); err != nil {
-		s.log.Error("failed to create subscription", logger.Error(err))
+		s.log.Error("failed to create subscription", logging.Error(err))
 		return s.wrapError(err, "failed to create subscription")
 	}
 
@@ -70,7 +70,7 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 func (s *ServiceImpl) ListSubscriptions(ctx context.Context) ([]Subscription, error) {
 	subscriptions, err := s.store.List(ctx)
 	if err != nil {
-		s.log.Error("failed to list subscriptions", logger.Error(err))
+		s.log.Error("failed to list subscriptions", logging.Error(err))
 		return nil, s.wrapError(err, "failed to list subscriptions")
 	}
 
@@ -81,7 +81,7 @@ func (s *ServiceImpl) ListSubscriptions(ctx context.Context) ([]Subscription, er
 func (s *ServiceImpl) GetSubscription(ctx context.Context, id int64) (*Subscription, error) {
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
-		s.log.Error("failed to get subscription", logger.Error(err))
+		s.log.Error("failed to get subscription", logging.Error(err))
 		return nil, s.wrapError(err, "failed to get subscription")
 	}
 
@@ -100,7 +100,7 @@ func (s *ServiceImpl) GetSubscriptionByEmail(ctx context.Context, email string) 
 
 	subscription, err := s.store.GetByEmail(ctx, email)
 	if err != nil {
-		s.log.Error("failed to get subscription by email", logger.Error(err))
+		s.log.Error("failed to get subscription by email", logging.Error(err))
 		return nil, s.wrapError(err, "failed to get subscription by email")
 	}
 
@@ -124,7 +124,7 @@ func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, st
 	// Check if subscription exists
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
-		s.log.Error("failed to get subscription", logger.Error(err))
+		s.log.Error("failed to get subscription", logging.Error(err))
 		return s.wrapError(err, "failed to get subscription")
 	}
 
@@ -134,7 +134,7 @@ func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, st
 
 	// Update status
 	if err := s.store.UpdateStatus(ctx, id, status); err != nil {
-		s.log.Error("failed to update subscription status", logger.Error(err))
+		s.log.Error("failed to update subscription status", logging.Error(err))
 		return s.wrapError(err, "failed to update subscription status")
 	}
 
@@ -146,7 +146,7 @@ func (s *ServiceImpl) DeleteSubscription(ctx context.Context, id int64) error {
 	// Check if subscription exists
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
-		s.log.Error("failed to get subscription", logger.Error(err))
+		s.log.Error("failed to get subscription", logging.Error(err))
 		return s.wrapError(err, "failed to get subscription")
 	}
 
@@ -156,7 +156,7 @@ func (s *ServiceImpl) DeleteSubscription(ctx context.Context, id int64) error {
 
 	// Delete subscription
 	if err := s.store.Delete(ctx, id); err != nil {
-		s.log.Error("failed to delete subscription", logger.Error(err))
+		s.log.Error("failed to delete subscription", logging.Error(err))
 		return s.wrapError(err, "failed to delete subscription")
 	}
 

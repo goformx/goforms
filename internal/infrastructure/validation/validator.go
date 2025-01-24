@@ -4,14 +4,16 @@ import (
 	"sync"
 
 	validator "github.com/go-playground/validator/v10"
+
 	"github.com/jonesrussell/goforms/internal/domain/common/interfaces"
 )
 
 // validatorImpl implements the Validator interface
 type validatorImpl struct {
-	validate *validator.Validate
+	*validator.Validate
 }
 
+//nolint:gochecknoglobals // singleton pattern requires global instance and once
 var (
 	instance *validatorImpl
 	once     sync.Once
@@ -21,7 +23,7 @@ var (
 func New() interfaces.Validator {
 	once.Do(func() {
 		instance = &validatorImpl{
-			validate: validator.New(),
+			Validate: validator.New(),
 		}
 	})
 	return instance
@@ -29,15 +31,15 @@ func New() interfaces.Validator {
 
 // Struct implements validator.Struct
 func (v *validatorImpl) Struct(s interface{}) error {
-	return v.validate.Struct(s)
+	return v.Validate.Struct(s)
 }
 
 // Var implements validator.Var
 func (v *validatorImpl) Var(field interface{}, tag string) error {
-	return v.validate.Var(field, tag)
+	return v.Validate.Var(field, tag)
 }
 
 // RegisterValidation implements validator.RegisterValidation
 func (v *validatorImpl) RegisterValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
-	return v.validate.RegisterValidation(tag, fn)
+	return v.Validate.RegisterValidation(tag, fn)
 }

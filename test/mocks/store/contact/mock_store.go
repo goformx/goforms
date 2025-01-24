@@ -1,24 +1,19 @@
-package contact
+package contactmock
 
 import (
 	"context"
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/contact"
+	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
-// Ensure MockStore implements Store interface
+// Ensure MockStore implements contact.Store interface
 var _ contact.Store = (*MockStore)(nil)
 
-// MockStore is a mock implementation of the Store interface
+// MockStore is a mock implementation of contact.Store
 type MockStore struct {
 	mock.Mock
-}
-
-// NewMockStore creates a new instance of MockStore
-func NewMockStore() *MockStore {
-	return &MockStore{}
 }
 
 // Create mocks the Create method
@@ -36,8 +31,8 @@ func (m *MockStore) List(ctx context.Context) ([]contact.Submission, error) {
 	return args.Get(0).([]contact.Submission), args.Error(1)
 }
 
-// GetByID mocks the GetByID method
-func (m *MockStore) GetByID(ctx context.Context, id int64) (*contact.Submission, error) {
+// Get mocks the Get method
+func (m *MockStore) Get(ctx context.Context, id int64) (*contact.Submission, error) {
 	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
@@ -49,4 +44,9 @@ func (m *MockStore) GetByID(ctx context.Context, id int64) (*contact.Submission,
 func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status contact.Status) error {
 	args := m.Called(ctx, id, status)
 	return args.Error(0)
+}
+
+// NewMockStore creates a new mock store
+func NewMockStore() *MockStore {
+	return &MockStore{}
 }

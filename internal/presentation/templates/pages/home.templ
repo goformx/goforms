@@ -1,0 +1,35 @@
+package pages
+
+import (
+	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/components"
+)
+
+templ Home() {
+	@layouts.Layout(layouts.PageData{
+		Title: "Home",
+		Content: homeContent(),
+	})
+}
+
+templ homeContent() {
+	@components.Hero("Free Form Backend Service", "Use our free hosted service or deploy your own. No dependencies, just Go.", false)
+
+	@components.Features([]components.Feature{
+		{
+			Icon: "🎯",
+			Title: "Free Hosted",
+			Description: "Start using our service instantly, no setup required.",
+		},
+		{
+			Icon: "🔒",
+			Title: "Self Hosted Option",
+			Description: "Deploy on your own infrastructure if needed.",
+		},
+		{
+			Icon: "🛠️",
+			Title: "API First",
+			Description: "RESTful API with JSON responses.",
+		},
+	})
+} 

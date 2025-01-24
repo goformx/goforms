@@ -8,7 +8,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
@@ -40,7 +40,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	for _, tc := range testCases {
 		t.Run(tc.name, func(t *testing.T) {
 			// Create a new mock logger for each test
-			mockLogger := logger.NewMockLogger()
+			mockLogger := logging.NewMockLogger()
 
 			// Create Echo instance and context
 			e := echo.New()
@@ -69,10 +69,10 @@ func TestLoggingMiddleware(t *testing.T) {
 			if len(infoCalls) > 0 {
 				call := infoCalls[0]
 				assert.Equal(t, "http request", call.Message)
-				assert.Contains(t, call.Fields, logger.String("method", req.Method))
-				assert.Contains(t, call.Fields, logger.String("path", req.URL.Path))
-				assert.Contains(t, call.Fields, logger.Int("status", tc.status))
-				assert.Contains(t, call.Fields, logger.String("ip", "192.0.2.1"))
+				assert.Contains(t, call.Fields, logging.String("method", req.Method))
+				assert.Contains(t, call.Fields, logging.String("path", req.URL.Path))
+				assert.Contains(t, call.Fields, logging.Int("status", tc.status))
+				assert.Contains(t, call.Fields, logging.String("ip", "192.0.2.1"))
 			}
 		})
 	}
@@ -80,7 +80,7 @@ func TestLoggingMiddleware(t *testing.T) {
 
 func TestLoggingMiddleware_RealIP(t *testing.T) {
 	// Create a mock logger for testing
-	mockLogger := logger.NewMockLogger()
+	mockLogger := logging.NewMockLogger()
 
 	// Create Echo instance
 	e := echo.New()
@@ -101,5 +101,5 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	// Verify logs
 	infoCalls := mockLogger.InfoCalls
 	assert.Equal(t, 1, len(infoCalls))
-	assert.Contains(t, infoCalls[0].Fields, logger.String("ip", "192.168.1.1"))
+	assert.Contains(t, infoCalls[0].Fields, logging.String("ip", "192.168.1.1"))
 }

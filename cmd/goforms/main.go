@@ -7,12 +7,12 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
-	"github.com/jonesrussell/goforms/internal/api"
 	"github.com/jonesrussell/goforms/internal/application"
-	"github.com/jonesrussell/goforms/internal/auth"
-	"github.com/jonesrussell/goforms/internal/core"
-	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/platform"
+	"github.com/jonesrussell/goforms/internal/application/http"
+	"github.com/jonesrussell/goforms/internal/domain"
+	"github.com/jonesrussell/goforms/internal/infrastructure"
+	"github.com/jonesrussell/goforms/internal/infrastructure/auth"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 //nolint:gochecknoglobals // These variables are populated by -ldflags at build time
@@ -32,27 +32,27 @@ func main() {
 	_ = godotenv.Load()
 
 	// Initialize logger
-	log := logger.GetLogger()
+	log := logging.GetLogger()
 
 	app := fx.New(
-		// Platform modules
-		platform.Module,
+		// Infrastructure modules
+		infrastructure.Module,
 
-		// Core business logic
-		core.Module,
+		// Domain modules
+		domain.Module,
 
 		// Authentication module
 		auth.Module,
 
-		// API handlers
-		api.Module,
+		// HTTP handlers
+		http.Module,
 
 		// App configuration
 		application.Module,
 
 		// Configure fx to use our logger
 		fx.WithLogger(func() fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: logger.UnderlyingZap(log)}
+			return &fxevent.ZapLogger{Logger: logging.UnderlyingZap(log)}
 		}),
 	)
 

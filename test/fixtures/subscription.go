@@ -9,7 +9,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/models"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 )
 
 // SubscriptionFixture contains test data and helpers for subscription tests
@@ -99,9 +99,10 @@ func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(email, origin 
 }
 
 // ValidTestSubscription returns a valid subscription for testing
-func ValidTestSubscription() *models.Subscription {
-	return &models.Subscription{
+func ValidTestSubscription() *subscription.Subscription {
+	return &subscription.Subscription{
 		Email: "test@example.com",
+		Name:  "Test User",
 	}
 }
 

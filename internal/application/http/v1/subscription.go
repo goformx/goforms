@@ -7,22 +7,22 @@ import (
 
 	"errors"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/response"
 )
 
 // SubscriptionAPI handles subscription-related API endpoints
 type SubscriptionAPI struct {
 	service subscription.Service
-	logger  logger.Logger
+	logger  logging.Logger
 }
 
 // NewSubscriptionAPI creates a new subscription API handler
-func NewSubscriptionAPI(service subscription.Service, log logger.Logger) *SubscriptionAPI {
+func NewSubscriptionAPI(service subscription.Service, logger logging.Logger) *SubscriptionAPI {
 	return &SubscriptionAPI{
 		service: service,
-		logger:  log,
+		logger:  logger,
 	}
 }
 
@@ -42,18 +42,18 @@ func (api *SubscriptionAPI) Register(e *echo.Echo) {
 func (api *SubscriptionAPI) CreateSubscription(c echo.Context) error {
 	var sub subscription.Subscription
 	if err := c.Bind(&sub); err != nil {
-		api.logger.Error("failed to bind subscription", logger.Error(err))
+		api.logger.Error("failed to bind subscription", logging.Error(err))
 		return response.Error(c, http.StatusBadRequest, "invalid request")
 	}
 
 	// Validate subscription
 	if err := sub.Validate(); err != nil {
-		api.logger.Error("failed to validate subscription", logger.Error(err))
+		api.logger.Error("failed to validate subscription", logging.Error(err))
 		return response.Error(c, http.StatusBadRequest, "invalid subscription data")
 	}
 
 	if err := api.service.CreateSubscription(c.Request().Context(), &sub); err != nil {
-		api.logger.Error("failed to create subscription", logger.Error(err))
+		api.logger.Error("failed to create subscription", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to create subscription")
 	}
 
@@ -64,7 +64,7 @@ func (api *SubscriptionAPI) CreateSubscription(c echo.Context) error {
 func (api *SubscriptionAPI) ListSubscriptions(c echo.Context) error {
 	subs, err := api.service.ListSubscriptions(c.Request().Context())
 	if err != nil {
-		api.logger.Error("failed to list subscriptions", logger.Error(err))
+		api.logger.Error("failed to list subscriptions", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to list subscriptions")
 	}
 
@@ -83,7 +83,7 @@ func (api *SubscriptionAPI) GetSubscription(c echo.Context) error {
 		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			return response.Error(c, http.StatusNotFound, "subscription not found")
 		}
-		api.logger.Error("failed to get subscription", logger.Error(err))
+		api.logger.Error("failed to get subscription", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to get subscription")
 	}
 
@@ -101,7 +101,7 @@ func (api *SubscriptionAPI) UpdateSubscriptionStatus(c echo.Context) error {
 		Status subscription.Status `json:"status"`
 	}
 	if err := c.Bind(&req); err != nil {
-		api.logger.Error("failed to bind status update request", logger.Error(err))
+		api.logger.Error("failed to bind status update request", logging.Error(err))
 		return response.Error(c, http.StatusBadRequest, "invalid request")
 	}
 
@@ -117,7 +117,7 @@ func (api *SubscriptionAPI) UpdateSubscriptionStatus(c echo.Context) error {
 		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			return response.Error(c, http.StatusNotFound, "subscription not found")
 		}
-		api.logger.Error("failed to update subscription status", logger.Error(err))
+		api.logger.Error("failed to update subscription status", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to update subscription status")
 	}
 
@@ -138,7 +138,7 @@ func (api *SubscriptionAPI) DeleteSubscription(c echo.Context) error {
 		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			return response.Error(c, http.StatusNotFound, "subscription not found")
 		}
-		api.logger.Error("failed to delete subscription", logger.Error(err))
+		api.logger.Error("failed to delete subscription", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to delete subscription")
 	}
 

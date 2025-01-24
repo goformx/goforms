@@ -6,19 +6,18 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jonesrussell/goforms/internal/config"
-	"github.com/jonesrussell/goforms/internal/config/database"
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
 
 func TestBuildDSN(t *testing.T) {
 	tests := []struct {
 		name     string
-		config   *database.Config
+		config   *config.DatabaseConfig
 		expected string
 	}{
 		{
 			name: "valid configuration",
-			config: &database.Config{
+			config: &config.DatabaseConfig{
 				Host:     "localhost",
 				Port:     3306,
 				User:     "test_user",
@@ -46,7 +45,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "invalid configuration - empty host",
 			cfg: &config.Config{
-				Database: database.Config{
+				Database: config.DatabaseConfig{
 					Port:           3306,
 					User:           "test_user",
 					Password:       "test_pass",
@@ -61,7 +60,7 @@ func TestNew(t *testing.T) {
 		{
 			name: "invalid configuration - empty user",
 			cfg: &config.Config{
-				Database: database.Config{
+				Database: config.DatabaseConfig{
 					Host:           "localhost",
 					Port:           3306,
 					Password:       "test_pass",

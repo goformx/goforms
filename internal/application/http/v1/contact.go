@@ -5,19 +5,19 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/core/contact"
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/response"
 )
 
 // ContactAPI handles contact-related API endpoints
 type ContactAPI struct {
 	service contact.Service
-	logger  logger.Logger
+	logger  logging.Logger
 }
 
 // NewContactAPI creates a new contact API handler
-func NewContactAPI(service contact.Service, log logger.Logger) *ContactAPI {
+func NewContactAPI(service contact.Service, log logging.Logger) *ContactAPI {
 	return &ContactAPI{
 		service: service,
 		logger:  log,
@@ -39,12 +39,12 @@ func (api *ContactAPI) Register(e *echo.Echo) {
 func (api *ContactAPI) CreateContact(c echo.Context) error {
 	var submission contact.Submission
 	if err := c.Bind(&submission); err != nil {
-		api.logger.Error("failed to bind contact submission", logger.Error(err))
+		api.logger.Error("failed to bind contact submission", logging.Error(err))
 		return response.Error(c, http.StatusBadRequest, "invalid request")
 	}
 
-	if err := api.service.CreateSubmission(c.Request().Context(), &submission); err != nil {
-		api.logger.Error("failed to create contact submission", logger.Error(err))
+	if err := api.service.Submit(c.Request().Context(), &submission); err != nil {
+		api.logger.Error("failed to create contact submission", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to create contact submission")
 	}
 
@@ -55,7 +55,7 @@ func (api *ContactAPI) CreateContact(c echo.Context) error {
 func (api *ContactAPI) ListContacts(c echo.Context) error {
 	submissions, err := api.service.ListSubmissions(c.Request().Context())
 	if err != nil {
-		api.logger.Error("failed to list contact submissions", logger.Error(err))
+		api.logger.Error("failed to list contact submissions", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to list contact submissions")
 	}
 
@@ -71,7 +71,7 @@ func (api *ContactAPI) GetContact(c echo.Context) error {
 
 	submission, err := api.service.GetSubmission(c.Request().Context(), id)
 	if err != nil {
-		api.logger.Error("failed to get contact submission", logger.Error(err))
+		api.logger.Error("failed to get contact submission", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to get contact submission")
 	}
 
@@ -93,12 +93,12 @@ func (api *ContactAPI) UpdateContactStatus(c echo.Context) error {
 		Status contact.Status `json:"status"`
 	}
 	if err := c.Bind(&req); err != nil {
-		api.logger.Error("failed to bind status update request", logger.Error(err))
+		api.logger.Error("failed to bind status update request", logging.Error(err))
 		return response.Error(c, http.StatusBadRequest, "invalid request")
 	}
 
 	if err := api.service.UpdateSubmissionStatus(c.Request().Context(), id, req.Status); err != nil {
-		api.logger.Error("failed to update contact submission status", logger.Error(err))
+		api.logger.Error("failed to update contact submission status", logging.Error(err))
 		return response.Error(c, http.StatusInternalServerError, "failed to update contact submission status")
 	}
 

@@ -1,4 +1,4 @@
-package v1
+package v1_test
 
 import (
 	"net/http"
@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/contact"
+	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
+	"github.com/jonesrussell/goforms/internal/domain/contact"
 	contactmock "github.com/jonesrussell/goforms/test/mocks/contact"
 	"github.com/jonesrussell/goforms/test/utils"
 )
@@ -28,7 +29,7 @@ func TestCreateContact(t *testing.T) {
 				Message: "Test message",
 			},
 			setupFn: func(ms *contactmock.MockService) {
-				ms.On("CreateSubmission", mock.Anything, mock.MatchedBy(func(s *contact.Submission) bool {
+				ms.On("Submit", mock.Anything, mock.MatchedBy(func(s *contact.Submission) bool {
 					return s.Name == "Test User" && s.Email == "test@example.com"
 				})).Return(nil)
 			},
@@ -42,7 +43,7 @@ func TestCreateContact(t *testing.T) {
 				Message: "Test message",
 			},
 			setupFn: func(ms *contactmock.MockService) {
-				ms.On("CreateSubmission", mock.Anything, mock.Anything).Return(assert.AnError)
+				ms.On("Submit", mock.Anything, mock.Anything).Return(assert.AnError)
 			},
 			expectedStatus: http.StatusInternalServerError,
 		},
@@ -65,7 +66,7 @@ func TestCreateContact(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewContactAPI(mockService, setup.Logger)
+			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
 			var body interface{}
@@ -126,7 +127,7 @@ func TestListContacts(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewContactAPI(mockService, setup.Logger)
+			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
 			req, err := utils.NewJSONRequest(http.MethodGet, "/api/v1/contacts", nil)
@@ -194,7 +195,7 @@ func TestGetContact(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewContactAPI(mockService, setup.Logger)
+			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
 			req, err := utils.NewJSONRequest(http.MethodGet, "/", nil)
@@ -274,7 +275,7 @@ func TestUpdateContactStatus(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewContactAPI(mockService, setup.Logger)
+			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
 			var body interface{}
@@ -313,12 +314,12 @@ func TestContactRegister(t *testing.T) {
 	mockService := contactmock.NewMockService()
 
 	// Set up mock expectations for any potential service calls
-	mockService.On("CreateSubmission", mock.Anything, mock.Anything).Return(nil)
+	mockService.On("Submit", mock.Anything, mock.Anything).Return(nil)
 	mockService.On("ListSubmissions", mock.Anything).Return([]contact.Submission{}, nil)
 	mockService.On("GetSubmission", mock.Anything, mock.Anything).Return(&contact.Submission{}, nil)
 	mockService.On("UpdateSubmissionStatus", mock.Anything, mock.Anything, mock.Anything).Return(nil)
 
-	api := NewContactAPI(mockService, setup.Logger)
+	api := v1.NewContactAPI(mockService, setup.Logger)
 
 	// Test registration
 	api.Register(setup.Echo)

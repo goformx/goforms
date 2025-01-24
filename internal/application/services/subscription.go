@@ -1,21 +1,21 @@
-package handlers
+package services
 
 import (
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
-	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/response"
+	"github.com/jonesrussell/goforms/internal/application/response"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 // SubscriptionHandler handles subscription requests
 type SubscriptionHandler struct {
 	store  subscription.Store
-	logger logger.Logger
+	logger logging.Logger
 }
 
 // NewSubscriptionHandler creates a new subscription handler
-func NewSubscriptionHandler(store subscription.Store, log logger.Logger) *SubscriptionHandler {
+func NewSubscriptionHandler(store subscription.Store, log logging.Logger) *SubscriptionHandler {
 	return &SubscriptionHandler{
 		store:  store,
 		logger: log,
@@ -32,7 +32,7 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 	var sub subscription.Subscription
 	if err := c.Bind(&sub); err != nil {
 		h.logger.Error("failed to bind subscription request",
-			logger.Error(err),
+			logging.Error(err),
 		)
 		return response.BadRequest(c, "Invalid request body")
 	}
@@ -43,14 +43,14 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 
 	if err := h.store.Create(c.Request().Context(), &sub); err != nil {
 		h.logger.Error("failed to create subscription",
-			logger.Error(err),
-			logger.String("email", sub.Email),
+			logging.Error(err),
+			logging.String("email", sub.Email),
 		)
 		return response.InternalError(c, "Failed to create subscription")
 	}
 
 	h.logger.Info("subscription created",
-		logger.String("email", sub.Email),
+		logging.String("email", sub.Email),
 	)
 
 	return response.Created(c, sub)

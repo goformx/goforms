@@ -5,7 +5,7 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 )
 
 // Ensure MockService implements Service interface
@@ -45,6 +45,15 @@ func (m *MockService) GetSubscription(ctx context.Context, id int64) (*subscript
 	return args.Get(0).(*subscription.Subscription), args.Error(1)
 }
 
+// GetSubscriptionByEmail mocks the GetSubscriptionByEmail method
+func (m *MockService) GetSubscriptionByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	return args.Get(0).(*subscription.Subscription), args.Error(1)
+}
+
 // UpdateSubscriptionStatus mocks the UpdateSubscriptionStatus method
 func (m *MockService) UpdateSubscriptionStatus(ctx context.Context, id int64, status subscription.Status) error {
 	args := m.Called(ctx, id, status)
@@ -55,13 +64,4 @@ func (m *MockService) UpdateSubscriptionStatus(ctx context.Context, id int64, st
 func (m *MockService) DeleteSubscription(ctx context.Context, id int64) error {
 	args := m.Called(ctx, id)
 	return args.Error(0)
-}
-
-// GetSubscriptionByEmail mocks the GetSubscriptionByEmail method
-func (m *MockService) GetSubscriptionByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
-	args := m.Called(ctx, email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*subscription.Subscription), args.Error(1)
 }

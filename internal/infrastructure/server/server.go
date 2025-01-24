@@ -6,15 +6,15 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 type Server struct {
 	echo   *echo.Echo
-	logger logger.Logger
+	logger logging.Logger
 }
 
-func New(logger logger.Logger) *Server {
+func New(logger logging.Logger) *Server {
 	return &Server{
 		echo:   echo.New(),
 		logger: logger,
@@ -26,7 +26,7 @@ func Start(lc fx.Lifecycle, s *Server) {
 		OnStart: func(ctx context.Context) error {
 			go func() {
 				if err := s.echo.Start(":8080"); err != nil {
-					s.logger.Error("server failed to start", logger.Error(err))
+					s.logger.Error("server failed to start", logging.Error(err))
 				}
 			}()
 			return nil

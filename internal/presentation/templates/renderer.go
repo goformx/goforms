@@ -7,14 +7,14 @@ import (
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 type Renderer struct {
-	logger logger.Logger
+	logger logging.Logger
 }
 
-func NewRenderer(logger logger.Logger) *Renderer {
+func NewRenderer(logger logging.Logger) *Renderer {
 	return &Renderer{
 		logger: logger,
 	}
@@ -23,8 +23,8 @@ func NewRenderer(logger logger.Logger) *Renderer {
 func (r *Renderer) Render(c echo.Context, t templ.Component) error {
 	if err := t.Render(c.Request().Context(), c.Response().Writer); err != nil {
 		r.logger.Error("failed to render template",
-			logger.Error(err),
-			logger.String("template", fmt.Sprintf("%T", t)),
+			logging.Error(err),
+			logging.String("template", fmt.Sprintf("%T", t)),
 		)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to render page")
 	}

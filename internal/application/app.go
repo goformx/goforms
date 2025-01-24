@@ -3,17 +3,17 @@ package application
 import (
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 // App represents the application
 type App struct {
 	echo   *echo.Echo
-	logger logger.Logger
+	logger logging.Logger
 }
 
 // NewApp creates a new application instance
-func NewApp(e *echo.Echo, log logger.Logger) *App {
+func NewApp(e *echo.Echo, log logging.Logger) *App {
 	return &App{
 		echo:   e,
 		logger: log,

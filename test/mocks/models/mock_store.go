@@ -6,13 +6,13 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
-	"github.com/jonesrussell/goforms/internal/handlers"
+	"github.com/jonesrussell/goforms/internal/application/services"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 )
 
 // Verify interface compliance at compile time
 var _ subscription.Store = (*MockSubscriptionStore)(nil)
-var _ handlers.PingContexter = (*MockPingContexter)(nil)
+var _ services.PingContexter = (*MockPingContexter)(nil)
 
 // MockSubscriptionStore is a mock implementation of subscription.Store interface
 type MockSubscriptionStore struct {
@@ -75,7 +75,7 @@ func (m *MockSubscriptionStore) Delete(ctx context.Context, id int64) error {
 	return args.Error(0)
 }
 
-// MockPingContexter is a mock implementation of handlers.PingContexter interface
+// MockPingContexter is a mock implementation of services.PingContexter interface
 type MockPingContexter struct {
 	mock.Mock
 }
@@ -85,7 +85,7 @@ func NewMockPingContexter() *MockPingContexter {
 	return &MockPingContexter{}
 }
 
-// PingContext mocks the PingContext method of the handlers.PingContexter interface.
+// PingContext mocks the PingContext method of the services.PingContexter interface.
 // It records the context and returns the configured error.
 func (m *MockPingContexter) PingContext(c echo.Context) error {
 	args := m.Called(c)

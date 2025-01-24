@@ -6,12 +6,11 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	v1 "github.com/jonesrussell/goforms/internal/api/v1"
-	"github.com/jonesrussell/goforms/internal/core/user"
-	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/middleware"
-	"github.com/jonesrussell/goforms/internal/models"
-	userstore "github.com/jonesrussell/goforms/internal/store/user"
+	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
+	"github.com/jonesrussell/goforms/internal/application/middleware"
+	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	userstore "github.com/jonesrussell/goforms/internal/infrastructure/store"
 )
 
 // Config holds authentication configuration
@@ -44,7 +43,7 @@ var Module = fx.Module("auth",
 )
 
 // provideUserService creates a new user service with JWT configuration
-func provideUserService(cfg *Config, log logger.Logger, store models.UserStore) user.Service {
+func provideUserService(cfg *Config, log logging.Logger, store user.Store) user.Service {
 	return user.NewService(log, store, cfg.JWTSecret)
 }
 
@@ -53,8 +52,8 @@ func provideJWTMiddleware(cfg *Config, userService user.Service) echo.Middleware
 	return middleware.NewJWTMiddleware(userService, cfg.JWTSecret)
 }
 
-// AuthParams contains the dependencies needed for auth routes
-type AuthParams struct {
+// Params contains authentication parameters
+type Params struct {
 	fx.In
 
 	Echo          *echo.Echo
@@ -63,7 +62,7 @@ type AuthParams struct {
 }
 
 // registerAuthRoutes sets up the authentication routes
-func registerAuthRoutes(p AuthParams) {
+func registerAuthRoutes(p Params) {
 	// Apply JWT middleware to all routes except auth routes
 	p.Echo.Use(p.JWTMiddleware)
 

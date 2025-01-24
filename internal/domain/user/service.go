@@ -9,8 +9,7 @@ import (
 
 	"github.com/golang-jwt/jwt/v5"
 
-	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/models"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 var (
@@ -32,31 +31,31 @@ type TokenPair struct {
 	RefreshToken string `json:"refresh_token"`
 }
 
-// Service defines the interface for user operations
+// Service defines the user service interface
 type Service interface {
-	SignUp(ctx context.Context, signup *models.UserSignup) (*models.User, error)
-	Login(ctx context.Context, login *models.UserLogin) (*TokenPair, error)
+	SignUp(ctx context.Context, signup *Signup) (*User, error)
+	Login(ctx context.Context, login *Login) (*TokenPair, error)
 	Logout(ctx context.Context, token string) error
 	RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error)
-	GetUserByID(ctx context.Context, id uint) (*models.User, error)
-	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
-	UpdateUser(ctx context.Context, user *models.User) error
+	GetUserByID(ctx context.Context, id uint) (*User, error)
+	GetUserByEmail(ctx context.Context, email string) (*User, error)
+	UpdateUser(ctx context.Context, user *User) error
 	DeleteUser(ctx context.Context, id uint) error
-	ListUsers(ctx context.Context) ([]models.User, error)
+	ListUsers(ctx context.Context) ([]User, error)
 	ValidateToken(token string) (*jwt.Token, error)
 	IsTokenBlacklisted(token string) bool
 }
 
-// ServiceImpl implements the user Service interface
+// ServiceImpl implements the Service interface
 type ServiceImpl struct {
-	log            logger.Logger
-	store          models.UserStore
+	log            logging.Logger
+	store          Store
 	jwtSecret      []byte
 	tokenBlacklist sync.Map
 }
 
 // NewService creates a new user service
-func NewService(log logger.Logger, store models.UserStore, jwtSecret string) Service {
+func NewService(log logging.Logger, store Store, jwtSecret string) Service {
 	return &ServiceImpl{
 		log:       log,
 		store:     store,
@@ -64,69 +63,64 @@ func NewService(log logger.Logger, store models.UserStore, jwtSecret string) Ser
 	}
 }
 
-// SignUp handles user registration
-func (s *ServiceImpl) SignUp(ctx context.Context, signup *models.UserSignup) (*models.User, error) {
+// SignUp registers a new user
+func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
 	// Check if email already exists
-	existing, err := s.store.GetByEmail(signup.Email)
-	if err != nil && !errors.Is(err, ErrUserNotFound) {
-		s.log.Error("failed to check existing user", logger.Error(err))
-		return nil, fmt.Errorf("failed to check existing user: %w", err)
+	existingUser, err := s.store.GetByEmail(signup.Email)
+	if err != nil {
+		s.log.Error("failed to check existing user", logging.Error(err))
+		return nil, err
 	}
-	if existing != nil {
+	if existingUser != nil {
 		return nil, ErrEmailAlreadyExists
 	}
 
 	// Create new user
-	user := &models.User{
+	user := &User{
 		Email:     signup.Email,
 		FirstName: signup.FirstName,
 		LastName:  signup.LastName,
 		Role:      "user",
 		Active:    true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
 	}
 
 	// Set password
 	if err := user.SetPassword(signup.Password); err != nil {
-		s.log.Error("failed to hash password", logger.Error(err))
-		return nil, fmt.Errorf("failed to hash password: %w", err)
+		s.log.Error("failed to set password", logging.Error(err))
+		return nil, err
 	}
 
 	// Save user
 	if err := s.store.Create(user); err != nil {
-		s.log.Error("failed to create user", logger.Error(err))
-		return nil, fmt.Errorf("failed to create user: %w", err)
+		s.log.Error("failed to create user", logging.Error(err))
+		return nil, err
 	}
 
 	return user, nil
 }
 
-// Login handles user authentication and returns a token pair
-func (s *ServiceImpl) Login(ctx context.Context, login *models.UserLogin) (*TokenPair, error) {
-	// Get user by email
+// Login authenticates a user and returns a token pair
+func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, error) {
 	user, err := s.store.GetByEmail(login.Email)
 	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			return nil, ErrInvalidCredentials
-		}
-		s.log.Error("failed to get user", logger.Error(err))
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		s.log.Error("failed to get user by email", logging.Error(err))
+		return nil, err
+	}
+	if user == nil {
+		return nil, ErrInvalidCredentials
 	}
 
-	// Check password
 	if !user.CheckPassword(login.Password) {
 		return nil, ErrInvalidCredentials
 	}
 
-	// Generate token pair
-	tokenPair, err := s.generateTokenPair(user)
+	tokens, err := s.generateTokenPair(user)
 	if err != nil {
-		s.log.Error("failed to generate token pair", logger.Error(err))
-		return nil, fmt.Errorf("failed to generate token pair: %w", err)
+		s.log.Error("failed to generate token pair", logging.Error(err))
+		return nil, err
 	}
 
-	return tokenPair, nil
+	return tokens, nil
 }
 
 // Logout blacklists the provided token
@@ -206,7 +200,7 @@ func (s *ServiceImpl) IsTokenBlacklisted(token string) bool {
 }
 
 // generateTokenPair creates a new access and refresh token pair
-func (s *ServiceImpl) generateTokenPair(user *models.User) (*TokenPair, error) {
+func (s *ServiceImpl) generateTokenPair(user *User) (*TokenPair, error) {
 	// Generate access token
 	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
@@ -241,29 +235,29 @@ func (s *ServiceImpl) generateTokenPair(user *models.User) (*TokenPair, error) {
 }
 
 // GetUserByID retrieves a user by ID
-func (s *ServiceImpl) GetUserByID(ctx context.Context, id uint) (*models.User, error) {
+func (s *ServiceImpl) GetUserByID(ctx context.Context, id uint) (*User, error) {
 	user, err := s.store.GetByID(id)
 	if err != nil {
-		s.log.Error("failed to get user", logger.Error(err))
+		s.log.Error("failed to get user", logging.Error(err))
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 	return user, nil
 }
 
 // GetUserByEmail retrieves a user by email
-func (s *ServiceImpl) GetUserByEmail(ctx context.Context, email string) (*models.User, error) {
+func (s *ServiceImpl) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	user, err := s.store.GetByEmail(email)
 	if err != nil {
-		s.log.Error("failed to get user", logger.Error(err))
+		s.log.Error("failed to get user", logging.Error(err))
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 	return user, nil
 }
 
 // UpdateUser updates user information
-func (s *ServiceImpl) UpdateUser(ctx context.Context, user *models.User) error {
+func (s *ServiceImpl) UpdateUser(ctx context.Context, user *User) error {
 	if err := s.store.Update(user); err != nil {
-		s.log.Error("failed to update user", logger.Error(err))
+		s.log.Error("failed to update user", logging.Error(err))
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 	return nil
@@ -272,17 +266,17 @@ func (s *ServiceImpl) UpdateUser(ctx context.Context, user *models.User) error {
 // DeleteUser removes a user
 func (s *ServiceImpl) DeleteUser(ctx context.Context, id uint) error {
 	if err := s.store.Delete(id); err != nil {
-		s.log.Error("failed to delete user", logger.Error(err))
+		s.log.Error("failed to delete user", logging.Error(err))
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 	return nil
 }
 
 // ListUsers returns all users
-func (s *ServiceImpl) ListUsers(ctx context.Context) ([]models.User, error) {
+func (s *ServiceImpl) ListUsers(ctx context.Context) ([]User, error) {
 	users, err := s.store.List()
 	if err != nil {
-		s.log.Error("failed to list users", logger.Error(err))
+		s.log.Error("failed to list users", logging.Error(err))
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 	return users, nil

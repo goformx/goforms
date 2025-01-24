@@ -38,6 +38,14 @@ linters-settings:
       - pkg: go.uber.org/zap
         alias: forbidden_zap
 
+  gochecknoglobals:
+    ignore-fields: true
+    ignore-patterns:
+      - .*Module.*  # Ignore all fx module variables
+    ignore-names:
+      - instance    # Ignore validator instance
+      - once       # Ignore sync.Once instance
+
   wrapcheck:
     ignoreSigs:
       - .Errorf(
@@ -50,9 +58,19 @@ linters-settings:
       - .Struct(
       - .ExecContext(
       - .SelectContext(
+      - .SignedString(
+      - .Parse(
+      - .GenerateFromPassword(
+      - .GetByEmail(
+      - .Create(
+      - .Update(
+      - .Delete(
+      - .List(
     ignorePackageGlobs:
       - github.com/jonesrussell/goforms/internal/logger
       - github.com/jonesrussell/goforms/internal/response
+      - github.com/jonesrussell/goforms/internal/domain/*
+      - github.com/jonesrussell/goforms/internal/application/*
       - github.com/labstack/echo/v4
       - github.com/stretchr/testify/*
       - github.com/a-h/templ
@@ -60,6 +78,8 @@ linters-settings:
       - database/sql
       - github.com/jmoiron/sqlx
       - github.com/go-playground/validator/v10
+      - github.com/golang-jwt/jwt/v5
+      - golang.org/x/crypto/bcrypt
 
   revive:
     rules:

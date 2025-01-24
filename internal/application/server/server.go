@@ -9,21 +9,34 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/config/server"
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
+
+// TimeoutConfig holds server timeout settings
+type TimeoutConfig struct {
+	Read  time.Duration
+	Write time.Duration
+	Idle  time.Duration
+}
+
+// Config holds server configuration
+type Config struct {
+	Host     string
+	Port     int
+	Timeouts TimeoutConfig
+}
 
 // Server handles HTTP server lifecycle
 type Server struct {
 	echo        *echo.Echo
-	logger      logger.Logger
-	config      *server.Config
+	logger      logging.Logger
+	config      *Config
 	shutdownCh  chan struct{}
 	serverError chan error
 }
 
 // New creates a new server instance and registers lifecycle hooks with fx
-func New(lc fx.Lifecycle, e *echo.Echo, log logger.Logger, cfg *server.Config) *Server {
+func New(lc fx.Lifecycle, e *echo.Echo, log logging.Logger, cfg *Config) *Server {
 	srv := &Server{
 		echo:        e,
 		logger:      log,
@@ -44,12 +57,12 @@ func New(lc fx.Lifecycle, e *echo.Echo, log logger.Logger, cfg *server.Config) *
 func (s *Server) Start(ctx context.Context) error {
 	address := fmt.Sprintf("%s:%d", s.config.Host, s.config.Port)
 	s.logger.Info("server configuration",
-		logger.String("bind_address", address),
-		logger.String("host", s.config.Host),
-		logger.Int("port", s.config.Port),
-		logger.Duration("read_timeout", s.config.Timeouts.Read),
-		logger.Duration("write_timeout", s.config.Timeouts.Write),
-		logger.Duration("idle_timeout", s.config.Timeouts.Idle),
+		logging.String("bind_address", address),
+		logging.String("host", s.config.Host),
+		logging.Int("port", s.config.Port),
+		logging.Duration("read_timeout", s.config.Timeouts.Read),
+		logging.Duration("write_timeout", s.config.Timeouts.Write),
+		logging.Duration("idle_timeout", s.config.Timeouts.Idle),
 	)
 
 	// Configure server timeouts
@@ -61,8 +74,8 @@ func (s *Server) Start(ctx context.Context) error {
 		if err := s.echo.Start(address); err != nil && err != http.ErrServerClosed {
 			s.serverError <- err
 			s.logger.Error("server error",
-				logger.Error(err),
-				logger.String("bind_address", address),
+				logging.Error(err),
+				logging.String("bind_address", address),
 			)
 		}
 	}()
@@ -71,8 +84,8 @@ func (s *Server) Start(ctx context.Context) error {
 	go func() {
 		if err := <-s.serverError; err != nil {
 			s.logger.Error("server error detected",
-				logger.Error(err),
-				logger.String("bind_address", address),
+				logging.Error(err),
+				logging.String("bind_address", address),
 			)
 			close(s.shutdownCh)
 		}
@@ -91,7 +104,7 @@ func (s *Server) Stop(ctx context.Context) error {
 
 	// Wait for in-flight requests to complete
 	if err := s.echo.Shutdown(shutdownCtx); err != nil {
-		s.logger.Error("shutdown error", logger.Error(err))
+		s.logger.Error("shutdown error", logging.Error(err))
 		return err
 	}
 
@@ -102,6 +115,6 @@ func (s *Server) Stop(ctx context.Context) error {
 }
 
 // Start is used by fx.Invoke to create and start the server
-func Start(e *echo.Echo, log logger.Logger, cfg *server.Config, lc fx.Lifecycle) {
+func Start(e *echo.Echo, log logging.Logger, cfg *Config, lc fx.Lifecycle) {
 	_ = New(lc, e, log, cfg)
 }

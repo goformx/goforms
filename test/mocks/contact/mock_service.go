@@ -5,25 +5,20 @@ import (
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/contact"
+	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
-// Ensure MockService implements Service interface
+// Ensure MockService implements contact.Service interface
 var _ contact.Service = (*MockService)(nil)
 
-// MockService is a mock implementation of the Service interface
+// MockService is a mock implementation of the contact service
 type MockService struct {
 	mock.Mock
 }
 
-// NewMockService creates a new instance of MockService
-func NewMockService() *MockService {
-	return &MockService{}
-}
-
-// CreateSubmission mocks the CreateSubmission method
-func (m *MockService) CreateSubmission(ctx context.Context, submission *contact.Submission) error {
-	args := m.Called(ctx, submission)
+// Submit mocks the Submit method
+func (m *MockService) Submit(ctx context.Context, sub *contact.Submission) error {
+	args := m.Called(ctx, sub)
 	return args.Error(0)
 }
 
@@ -49,4 +44,9 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 func (m *MockService) UpdateSubmissionStatus(ctx context.Context, id int64, status contact.Status) error {
 	args := m.Called(ctx, id, status)
 	return args.Error(0)
+}
+
+// NewMockService creates a new mock service
+func NewMockService() *MockService {
+	return &MockService{}
 }

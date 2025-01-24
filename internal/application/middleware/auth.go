@@ -7,8 +7,11 @@ import (
 	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/core/user"
+	"github.com/jonesrussell/goforms/internal/domain/user"
 )
+
+// JWTClaims is a type alias for jwt.MapClaims
+type JWTClaims = jwt.MapClaims
 
 // JWTConfig holds the configuration for JWT middleware
 type JWTConfig struct {
@@ -53,21 +56,21 @@ func NewJWTMiddleware(userService user.Service, secret string) echo.MiddlewareFu
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token")
 			}
 
-			claims, ok := token.Claims.(jwt.MapClaims)
+			claims, ok := token.Claims.(*JWTClaims)
 			if !ok || !token.Valid {
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token claims")
 			}
 
 			// Check token type
-			tokenType, ok := claims["type"].(string)
+			tokenType, ok := (*claims)["type"].(string)
 			if !ok || tokenType != "access" {
 				return echo.NewHTTPError(http.StatusUnauthorized, "invalid token type")
 			}
 
 			// Set user information in context
-			c.Set("user_id", uint(claims["user_id"].(float64)))
-			c.Set("email", claims["email"].(string))
-			c.Set("role", claims["role"].(string))
+			c.Set("user_id", uint((*claims)["user_id"].(float64)))
+			c.Set("email", (*claims)["email"].(string))
+			c.Set("role", (*claims)["role"].(string))
 
 			return next(c)
 		}

@@ -5,10 +5,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/logger"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
-func LoggingMiddleware(log logger.Logger) echo.MiddlewareFunc {
+func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			start := time.Now()
@@ -18,11 +18,11 @@ func LoggingMiddleware(log logger.Logger) echo.MiddlewareFunc {
 
 			// Log the request details
 			log.Info("http request",
-				logger.String("method", c.Request().Method),
-				logger.String("path", c.Request().URL.Path),
-				logger.Int("status", c.Response().Status),
-				logger.Duration("latency", time.Since(start)),
-				logger.String("ip", c.RealIP()),
+				logging.String("method", c.Request().Method),
+				logging.String("path", c.Request().URL.Path),
+				logging.Int("status", c.Response().Status),
+				logging.Duration("latency", time.Since(start)),
+				logging.String("ip", c.RealIP()),
 			)
 
 			return err

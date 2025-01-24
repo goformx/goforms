@@ -6,8 +6,7 @@ import (
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/config"
-	"github.com/jonesrussell/goforms/internal/config/database"
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 
 	// Import mysql driver for side effects - required for database/sql to work with MySQL
 	_ "github.com/go-sql-driver/mysql"
@@ -41,7 +40,7 @@ func New(cfg *config.Config) (*DB, error) {
 }
 
 // buildDSN constructs the database connection string
-func buildDSN(dbConfig *database.Config) string {
+func buildDSN(dbConfig *config.DatabaseConfig) string {
 	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
 		dbConfig.User,
 		dbConfig.Password,

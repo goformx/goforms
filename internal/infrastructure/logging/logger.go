@@ -1,12 +1,12 @@
-// Package logger provides a unified logging interface using zap
-package logger
+// Package logging provides a unified logging interface using zap
+package logging
 
 import (
 	"os"
 	"strings"
 	"time"
 
-	"go.uber.org/zap"
+	forbidden_zap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -18,78 +18,85 @@ type Logger interface {
 	Warn(msg string, fields ...Field)
 }
 
-// Field represents a log field
-type Field = zap.Field
+// Field represents a logging field
+type Field = forbidden_zap.Field
+
+// String creates a string field
+func String(key string, value string) Field { return forbidden_zap.String(key, value) }
+
+// Int creates an integer field
+func Int(key string, value int) Field { return forbidden_zap.Int(key, value) }
+
+// Error creates an error field
+func Error(err error) Field { return forbidden_zap.Error(err) }
+
+// Duration creates a duration field
+func Duration(key string, value time.Duration) Field { return forbidden_zap.Duration(key, value) }
+
+// Any creates a field with any value
+func Any(key string, value interface{}) Field { return forbidden_zap.Any(key, value) }
 
 type zapLogger struct {
-	*zap.Logger
+	*forbidden_zap.Logger
 }
 
-// GetLogger returns a logger instance configured based on environment
+// GetLogger returns a singleton logger instance
 func GetLogger() Logger {
-	env := os.Getenv("APP_ENV")
-	debug := strings.ToLower(os.Getenv("APP_DEBUG")) == "true"
+	// Initialize logger with production configuration
+	config := forbidden_zap.NewProductionConfig()
 
-	var config zap.Config
-	if env == "production" {
-		config = zap.NewProductionConfig()
-		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	} else {
-		config = zap.NewDevelopmentConfig()
-		config.EncoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		config.EncoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-		config.EncoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
-		config.EncoderConfig.EncodeDuration = zapcore.StringDurationEncoder
+	// Configure log level from environment
+	level := strings.ToLower(os.Getenv("LOG_LEVEL"))
+	switch level {
+	case "debug":
+		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.DebugLevel)
+	case "info":
+		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.InfoLevel)
+	case "warn":
+		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.WarnLevel)
+	case "error":
+		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.ErrorLevel)
+	default:
+		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.InfoLevel)
 	}
 
-	// Set log level based on APP_DEBUG
-	if debug {
-		config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-	} else {
-		config.Level = zap.NewAtomicLevelAt(zap.InfoLevel)
-	}
-
-	log, _ := config.Build(
-		zap.AddCaller(),
-		zap.AddStacktrace(zapcore.ErrorLevel),
-	)
-	return &zapLogger{log}
+	// Build the logger
+	logger, _ := config.Build()
+	return &zapLogger{logger}
 }
 
-// NewTestLogger returns a logger suitable for testing
+// NewTestLogger creates a logger suitable for testing
 func NewTestLogger() Logger {
-	config := zap.NewDevelopmentConfig()
-	config.Level = zap.NewAtomicLevelAt(zap.DebugLevel)
-	log, _ := config.Build()
-	return &zapLogger{log}
+	logger, _ := forbidden_zap.NewDevelopment()
+	return &zapLogger{logger}
 }
 
-// NewMockLogger returns a mock logger for testing
+// NewMockLogger creates a mock logger for testing
 func NewMockLogger() *MockLogger {
 	return &MockLogger{}
 }
 
-func (l *zapLogger) Info(msg string, fields ...Field)  { l.Logger.Info(msg, fields...) }
+// Info logs an info message
+func (l *zapLogger) Info(msg string, fields ...Field) { l.Logger.Info(msg, fields...) }
+
+// Error logs an error message
 func (l *zapLogger) Error(msg string, fields ...Field) { l.Logger.Error(msg, fields...) }
+
+// Debug logs a debug message
 func (l *zapLogger) Debug(msg string, fields ...Field) { l.Logger.Debug(msg, fields...) }
-func (l *zapLogger) Warn(msg string, fields ...Field)  { l.Logger.Warn(msg, fields...) }
 
-// Field constructors
-func String(key string, value string) Field          { return zap.String(key, value) }
-func Int(key string, value int) Field                { return zap.Int(key, value) }
-func Error(err error) Field                          { return zap.Error(err) }
-func Duration(key string, value time.Duration) Field { return zap.Duration(key, value) }
-func Any(key string, value interface{}) Field        { return zap.Any(key, value) }
+// Warn logs a warning message
+func (l *zapLogger) Warn(msg string, fields ...Field) { l.Logger.Warn(msg, fields...) }
 
-// UnderlyingZap returns the underlying zap logger for advanced usage
-func UnderlyingZap(l Logger) *zap.Logger {
+// UnderlyingZap returns the underlying zap logger
+func UnderlyingZap(l Logger) *forbidden_zap.Logger {
 	if zl, ok := l.(*zapLogger); ok {
 		return zl.Logger
 	}
-	return zap.NewNop()
+	return nil
 }
 
-// MockLogger implements Logger interface for testing
+// MockLogger is a mock implementation of Logger for testing
 type MockLogger struct {
 	InfoCalls []struct {
 		Message string
@@ -109,6 +116,7 @@ type MockLogger struct {
 	}
 }
 
+// Info records an info message call
 func (m *MockLogger) Info(msg string, fields ...Field) {
 	m.InfoCalls = append(m.InfoCalls, struct {
 		Message string
@@ -116,6 +124,7 @@ func (m *MockLogger) Info(msg string, fields ...Field) {
 	}{msg, fields})
 }
 
+// Error records an error message call
 func (m *MockLogger) Error(msg string, fields ...Field) {
 	m.ErrorCalls = append(m.ErrorCalls, struct {
 		Message string
@@ -123,6 +132,7 @@ func (m *MockLogger) Error(msg string, fields ...Field) {
 	}{msg, fields})
 }
 
+// Debug records a debug message call
 func (m *MockLogger) Debug(msg string, fields ...Field) {
 	m.DebugCalls = append(m.DebugCalls, struct {
 		Message string
@@ -130,6 +140,7 @@ func (m *MockLogger) Debug(msg string, fields ...Field) {
 	}{msg, fields})
 }
 
+// Warn records a warning message call
 func (m *MockLogger) Warn(msg string, fields ...Field) {
 	m.WarnCalls = append(m.WarnCalls, struct {
 		Message string

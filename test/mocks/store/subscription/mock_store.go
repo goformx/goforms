@@ -1,11 +1,11 @@
-package storemock
+package subscriptionmock
 
 import (
 	"context"
 
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 )
 
 // Ensure MockStore implements Store interface

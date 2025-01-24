@@ -8,14 +8,14 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
-	"github.com/jonesrussell/goforms/internal/logger"
-	storemock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
 )
 
 func TestNewService(t *testing.T) {
-	store := storemock.NewMockStore()
-	mockLogger := logger.NewMockLogger()
+	store := subscriptionmock.NewMockStore()
+	mockLogger := logging.NewMockLogger()
 	service := subscription.NewService(mockLogger, store)
 	assert.NotNil(t, service)
 }
@@ -24,7 +24,7 @@ func TestCreateSubscription(t *testing.T) {
 	tests := []struct {
 		name    string
 		sub     *subscription.Subscription
-		setupFn func(*storemock.MockStore)
+		setupFn func(*subscriptionmock.MockStore)
 		wantErr bool
 	}{
 		{
@@ -34,7 +34,7 @@ func TestCreateSubscription(t *testing.T) {
 				Name:   "Test User",
 				Status: subscription.StatusPending,
 			},
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByEmail", mock.Anything, "test@example.com").Return(nil, subscription.ErrSubscriptionNotFound)
 				ms.On("Create", mock.Anything, mock.AnythingOfType("*subscription.Subscription")).Return(nil)
 			},
@@ -47,7 +47,7 @@ func TestCreateSubscription(t *testing.T) {
 				Name:   "Test User",
 				Status: subscription.StatusPending,
 			},
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByEmail", mock.Anything, "existing@example.com").Return(&subscription.Subscription{
 					ID:     1,
 					Email:  "existing@example.com",
@@ -63,7 +63,7 @@ func TestCreateSubscription(t *testing.T) {
 				Name:   "Test User",
 				Status: subscription.StatusPending,
 			},
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByEmail", mock.Anything, "test@example.com").Return(nil, subscription.ErrSubscriptionNotFound)
 				ms.On("Create", mock.Anything, mock.AnythingOfType("*subscription.Subscription")).Return(subscription.ErrSubscriptionNotFound)
 			},
@@ -73,9 +73,9 @@ func TestCreateSubscription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStore := storemock.NewMockStore()
+			mockStore := subscriptionmock.NewMockStore()
 			tt.setupFn(mockStore)
-			service := subscription.NewService(logger.NewMockLogger(), mockStore)
+			service := subscription.NewService(logging.NewMockLogger(), mockStore)
 
 			err := service.CreateSubscription(context.Background(), tt.sub)
 			if tt.wantErr {
@@ -91,13 +91,13 @@ func TestCreateSubscription(t *testing.T) {
 func TestListSubscriptions(t *testing.T) {
 	tests := []struct {
 		name    string
-		setupFn func(*storemock.MockStore)
+		setupFn func(*subscriptionmock.MockStore)
 		want    []subscription.Subscription
 		wantErr bool
 	}{
 		{
 			name: "successful list",
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("List", mock.Anything).Return([]subscription.Subscription{
 					{ID: 1, Email: "test1@example.com", Status: subscription.StatusActive},
 					{ID: 2, Email: "test2@example.com", Status: subscription.StatusPending},
@@ -111,7 +111,7 @@ func TestListSubscriptions(t *testing.T) {
 		},
 		{
 			name: "store error",
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("List", mock.Anything).Return(nil, subscription.ErrSubscriptionNotFound)
 			},
 			want:    nil,
@@ -121,8 +121,8 @@ func TestListSubscriptions(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStore := storemock.NewMockStore()
-			mockLogger := logger.NewMockLogger()
+			mockStore := subscriptionmock.NewMockStore()
+			mockLogger := logging.NewMockLogger()
 			tt.setupFn(mockStore)
 			service := subscription.NewService(mockLogger, mockStore)
 
@@ -142,14 +142,14 @@ func TestGetSubscription(t *testing.T) {
 	tests := []struct {
 		name    string
 		id      int64
-		setupFn func(*storemock.MockStore)
+		setupFn func(*subscriptionmock.MockStore)
 		want    *subscription.Subscription
 		wantErr bool
 	}{
 		{
 			name: "existing subscription",
 			id:   1,
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByID", mock.Anything, int64(1)).Return(&subscription.Subscription{
 					ID:     1,
 					Email:  "test@example.com",
@@ -166,7 +166,7 @@ func TestGetSubscription(t *testing.T) {
 		{
 			name: "non-existent subscription",
 			id:   999,
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByID", mock.Anything, int64(999)).Return(nil, subscription.ErrSubscriptionNotFound)
 			},
 			want:    nil,
@@ -176,8 +176,8 @@ func TestGetSubscription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStore := storemock.NewMockStore()
-			mockLogger := logger.NewMockLogger()
+			mockStore := subscriptionmock.NewMockStore()
+			mockLogger := logging.NewMockLogger()
 			tt.setupFn(mockStore)
 			service := subscription.NewService(mockLogger, mockStore)
 
@@ -198,14 +198,14 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 		name    string
 		id      int64
 		status  subscription.Status
-		setupFn func(*storemock.MockStore)
+		setupFn func(*subscriptionmock.MockStore)
 		wantErr bool
 	}{
 		{
 			name:   "valid update",
 			id:     1,
 			status: subscription.StatusActive,
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByID", mock.Anything, int64(1)).Return(&subscription.Subscription{
 					ID:     1,
 					Email:  "test@example.com",
@@ -219,7 +219,7 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			name:   "non-existent subscription",
 			id:     999,
 			status: subscription.StatusActive,
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByID", mock.Anything, int64(999)).Return(nil, subscription.ErrSubscriptionNotFound)
 			},
 			wantErr: true,
@@ -228,7 +228,7 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			name:   "invalid status",
 			id:     1,
 			status: "invalid",
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByID", mock.Anything, int64(1)).Return(&subscription.Subscription{
 					ID:     1,
 					Email:  "test@example.com",
@@ -241,8 +241,8 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStore := storemock.NewMockStore()
-			mockLogger := logger.NewMockLogger()
+			mockStore := subscriptionmock.NewMockStore()
+			mockLogger := logging.NewMockLogger()
 			tt.setupFn(mockStore)
 			service := subscription.NewService(mockLogger, mockStore)
 
@@ -261,13 +261,13 @@ func TestDeleteSubscription(t *testing.T) {
 	tests := []struct {
 		name    string
 		id      int64
-		setupFn func(*storemock.MockStore)
+		setupFn func(*subscriptionmock.MockStore)
 		wantErr bool
 	}{
 		{
 			name: "successful delete",
 			id:   1,
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByID", mock.Anything, int64(1)).Return(&subscription.Subscription{
 					ID:     1,
 					Email:  "test@example.com",
@@ -280,7 +280,7 @@ func TestDeleteSubscription(t *testing.T) {
 		{
 			name: "non-existent subscription",
 			id:   999,
-			setupFn: func(ms *storemock.MockStore) {
+			setupFn: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByID", mock.Anything, int64(999)).Return(nil, subscription.ErrSubscriptionNotFound)
 			},
 			wantErr: true,
@@ -289,8 +289,8 @@ func TestDeleteSubscription(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStore := storemock.NewMockStore()
-			mockLogger := logger.NewMockLogger()
+			mockStore := subscriptionmock.NewMockStore()
+			mockLogger := logging.NewMockLogger()
 			tt.setupFn(mockStore)
 			service := subscription.NewService(mockLogger, mockStore)
 
@@ -309,14 +309,14 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 	tests := []struct {
 		name    string
 		email   string
-		setup   func(*storemock.MockStore)
+		setup   func(*subscriptionmock.MockStore)
 		want    *subscription.Subscription
 		wantErr error
 	}{
 		{
 			name:  "existing subscription",
 			email: "test@example.com",
-			setup: func(ms *storemock.MockStore) {
+			setup: func(ms *subscriptionmock.MockStore) {
 				sub := &subscription.Subscription{
 					ID:     1,
 					Email:  "test@example.com",
@@ -336,7 +336,7 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		{
 			name:  "non-existent subscription",
 			email: "nonexistent@example.com",
-			setup: func(ms *storemock.MockStore) {
+			setup: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByEmail", mock.Anything, "nonexistent@example.com").Return(nil, subscription.ErrSubscriptionNotFound)
 			},
 			want:    nil,
@@ -345,7 +345,7 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		{
 			name:  "store error",
 			email: "test@example.com",
-			setup: func(ms *storemock.MockStore) {
+			setup: func(ms *subscriptionmock.MockStore) {
 				ms.On("GetByEmail", mock.Anything, "test@example.com").Return(nil, errors.New("database error"))
 			},
 			want:    nil,
@@ -354,7 +354,7 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		{
 			name:  "empty email",
 			email: "",
-			setup: func(ms *storemock.MockStore) {
+			setup: func(ms *subscriptionmock.MockStore) {
 				// No mock setup needed as it should fail before store call
 			},
 			want:    nil,
@@ -365,8 +365,8 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a new mock store for each test
-			mockStore := storemock.NewMockStore()
-			mockLogger := logger.NewMockLogger()
+			mockStore := subscriptionmock.NewMockStore()
+			mockLogger := logging.NewMockLogger()
 
 			// Setup the mock expectations
 			tt.setup(mockStore)

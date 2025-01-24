@@ -1,4 +1,4 @@
-package v1
+package v1_test
 
 import (
 	"net/http"
@@ -8,7 +8,8 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
+	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/subscription"
 	"github.com/jonesrussell/goforms/test/utils"
 )
@@ -69,7 +70,7 @@ func TestCreateSubscription(t *testing.T) {
 			mockService := subscriptionmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewSubscriptionAPI(mockService, setup.Logger)
+			api := v1.NewSubscriptionAPI(mockService, setup.Logger)
 
 			// Create request
 			req, err := utils.NewJSONRequest(http.MethodPost, "/api/v1/subscriptions", tt.subscription)
@@ -125,7 +126,7 @@ func TestListSubscriptions(t *testing.T) {
 			mockService := subscriptionmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewSubscriptionAPI(mockService, setup.Logger)
+			api := v1.NewSubscriptionAPI(mockService, setup.Logger)
 
 			// Create request
 			req, err := utils.NewJSONRequest(http.MethodGet, "/api/v1/subscriptions", nil)
@@ -190,7 +191,7 @@ func TestGetSubscription(t *testing.T) {
 			mockService := subscriptionmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewSubscriptionAPI(mockService, setup.Logger)
+			api := v1.NewSubscriptionAPI(mockService, setup.Logger)
 
 			// Create request
 			req, err := utils.NewJSONRequest(http.MethodGet, "/", nil)
@@ -259,7 +260,7 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			mockService := subscriptionmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewSubscriptionAPI(mockService, setup.Logger)
+			api := v1.NewSubscriptionAPI(mockService, setup.Logger)
 
 			// Create request
 			body := map[string]string{"status": string(tt.status)}
@@ -319,7 +320,7 @@ func TestDeleteSubscription(t *testing.T) {
 			mockService := subscriptionmock.NewMockService()
 			tt.setupFn(mockService)
 
-			api := NewSubscriptionAPI(mockService, setup.Logger)
+			api := v1.NewSubscriptionAPI(mockService, setup.Logger)
 
 			// Create request
 			req, err := utils.NewJSONRequest(http.MethodDelete, "/", nil)
@@ -356,7 +357,7 @@ func TestSubscriptionRegister(t *testing.T) {
 	mockService.On("ListSubscriptions", mock.Anything).Return([]subscription.Subscription{}, nil)
 	mockService.On("GetSubscription", mock.Anything, mock.Anything).Return(&subscription.Subscription{}, nil)
 
-	api := NewSubscriptionAPI(mockService, setup.Logger)
+	api := v1.NewSubscriptionAPI(mockService, setup.Logger)
 
 	// Test registration
 	api.Register(setup.Echo)

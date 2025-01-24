@@ -1,9 +1,8 @@
 package subscription
 
 import (
+	"errors"
 	"time"
-
-	"github.com/jonesrussell/goforms/internal/infrastructure/validation"
 )
 
 // Status represents the status of a subscription
@@ -21,17 +20,20 @@ const (
 // Subscription represents a newsletter subscription
 type Subscription struct {
 	ID        int64     `json:"id" db:"id"`
-	Email     string    `json:"email" db:"email" validate:"required,email"`
-	Name      string    `json:"name" db:"name" validate:"required"`
+	Email     string    `json:"email" db:"email"`
+	Name      string    `json:"name" db:"name"`
 	Status    Status    `json:"status" db:"status"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
 }
 
-// Validate validates the subscription
+// Validate checks if the subscription data is valid
 func (s *Subscription) Validate() error {
-	if s == nil {
-		return ErrInvalidSubscription
+	if s.Email == "" {
+		return errors.New("email is required")
 	}
-	return validation.New().Struct(s)
+	if s.Name == "" {
+		return errors.New("name is required")
+	}
+	return nil
 }
