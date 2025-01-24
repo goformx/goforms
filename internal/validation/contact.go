@@ -12,6 +12,10 @@ var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]
 
 // ValidateContact validates a contact submission
 func ValidateContact(submission *contact.Submission) error {
+	if submission == nil {
+		return fmt.Errorf("submission cannot be nil")
+	}
+
 	if strings.TrimSpace(submission.Name) == "" {
 		return fmt.Errorf("name is required")
 	}

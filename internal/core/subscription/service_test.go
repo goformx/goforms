@@ -2,6 +2,7 @@ package subscription_test
 
 import (
 	"context"
+	"errors"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/core/subscription"
@@ -298,6 +299,93 @@ func TestDeleteSubscription(t *testing.T) {
 				return
 			}
 			assert.NoError(t, err)
+			mockStore.AssertExpectations(t)
+		})
+	}
+}
+
+func TestGetSubscriptionByEmail(t *testing.T) {
+	tests := []struct {
+		name    string
+		email   string
+		setup   func(*storemock.MockStore)
+		want    *subscription.Subscription
+		wantErr error
+	}{
+		{
+			name:  "existing subscription",
+			email: "test@example.com",
+			setup: func(ms *storemock.MockStore) {
+				sub := &subscription.Subscription{
+					ID:     1,
+					Email:  "test@example.com",
+					Name:   "Test User",
+					Status: subscription.StatusActive,
+				}
+				ms.On("GetByEmail", mock.Anything, "test@example.com").Return(sub, nil)
+			},
+			want: &subscription.Subscription{
+				ID:     1,
+				Email:  "test@example.com",
+				Name:   "Test User",
+				Status: subscription.StatusActive,
+			},
+			wantErr: nil,
+		},
+		{
+			name:  "non-existent subscription",
+			email: "nonexistent@example.com",
+			setup: func(ms *storemock.MockStore) {
+				ms.On("GetByEmail", mock.Anything, "nonexistent@example.com").Return(nil, subscription.ErrSubscriptionNotFound)
+			},
+			want:    nil,
+			wantErr: errors.New("failed to get subscription by email: subscription not found"),
+		},
+		{
+			name:  "store error",
+			email: "test@example.com",
+			setup: func(ms *storemock.MockStore) {
+				ms.On("GetByEmail", mock.Anything, "test@example.com").Return(nil, errors.New("database error"))
+			},
+			want:    nil,
+			wantErr: errors.New("failed to get subscription by email: database error"),
+		},
+		{
+			name:  "empty email",
+			email: "",
+			setup: func(ms *storemock.MockStore) {
+				// No mock setup needed as it should fail before store call
+			},
+			want:    nil,
+			wantErr: errors.New("invalid input: email is required"),
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create a new mock store for each test
+			mockStore := storemock.NewMockStore()
+			mockLogger := logger.NewMockLogger()
+
+			// Setup the mock expectations
+			tt.setup(mockStore)
+
+			// Create the service with the mock store
+			service := subscription.NewService(mockLogger, mockStore)
+
+			// Call the method being tested
+			got, err := service.GetSubscriptionByEmail(context.Background(), tt.email)
+
+			// Assert the results
+			if tt.wantErr != nil {
+				assert.Error(t, err)
+				assert.Equal(t, tt.wantErr.Error(), err.Error())
+			} else {
+				assert.NoError(t, err)
+			}
+			assert.Equal(t, tt.want, got)
+
+			// Verify all expectations were met
 			mockStore.AssertExpectations(t)
 		})
 	}
