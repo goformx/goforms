@@ -7,4 +7,8 @@ import (
 // Module provides contact domain dependencies
 //
 //nolint:gochecknoglobals // fx modules are designed to be global
-var Module = fx.Options()
+var Module = fx.Options(
+	fx.Provide(
+		NewService,
+	),
+)
