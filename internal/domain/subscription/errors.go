@@ -11,4 +11,10 @@ var (
 	ErrInvalidStatus = errors.New("invalid status")
 	// ErrInvalidSubscription indicates that the subscription is invalid
 	ErrInvalidSubscription = errors.New("invalid subscription")
+	// ErrEmailRequired indicates that email is required
+	ErrEmailRequired = errors.New("email is required")
+	// ErrNameRequired indicates that name is required
+	ErrNameRequired = errors.New("name is required")
+	// ErrInvalidEmail indicates that email format is invalid
+	ErrInvalidEmail = errors.New("invalid email format")
 )

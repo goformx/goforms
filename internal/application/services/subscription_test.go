@@ -38,7 +38,7 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 				logger.On("Info", "subscription created", mock.Anything).Return()
 			},
 			expectedStatus: http.StatusCreated,
-			expectedBody:   `{"success":true,"data":{"id":0,"email":"test@example.com","name":"Test User","active":false,"created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z"}}`,
+			expectedBody:   `{"success":true,"data":{"id":0,"email":"test@example.com","name":"Test User","status":"pending","created_at":"0001-01-01T00:00:00Z","updated_at":"0001-01-01T00:00:00Z"}}`,
 		},
 		{
 			name:        "invalid request body",

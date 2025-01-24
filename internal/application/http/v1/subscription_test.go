@@ -40,7 +40,11 @@ func TestCreateSubscription(t *testing.T) {
 				Email: "invalid-email",
 				Name:  "Test User",
 			},
-			setupFn:        func(ms *subscriptionmock.MockService) {},
+			setupFn: func(ms *subscriptionmock.MockService) {
+				ms.On("CreateSubscription", mock.Anything, mock.MatchedBy(func(s *subscription.Subscription) bool {
+					return s.Email == "invalid-email" && s.Name == "Test User"
+				})).Return(subscription.ErrInvalidEmail)
+			},
 			expectedStatus: http.StatusBadRequest,
 		},
 		{

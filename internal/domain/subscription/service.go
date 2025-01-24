@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -42,6 +43,16 @@ func (s *ServiceImpl) wrapError(err error, msg string) error {
 
 // CreateSubscription creates a new subscription
 func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subscription) error {
+	// Validate subscription
+	if err := subscription.Validate(); err != nil {
+		return err
+	}
+
+	// Validate email format
+	if !isValidEmail(subscription.Email) {
+		return ErrInvalidEmail
+	}
+
 	// Check if email already exists
 	existing, err := s.store.GetByEmail(ctx, subscription.Email)
 	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
@@ -55,7 +66,7 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 	// Set default values
 	subscription.Status = StatusPending
 	subscription.CreatedAt = time.Now()
-	subscription.UpdatedAt = subscription.CreatedAt
+	subscription.UpdatedAt = time.Now()
 
 	// Create subscription
 	if err := s.store.Create(ctx, subscription); err != nil {
@@ -64,6 +75,13 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 	}
 
 	return nil
+}
+
+// isValidEmail checks if the email format is valid
+func isValidEmail(email string) bool {
+	// Simple email validation for now
+	// In a real application, you might want to use a more robust validation
+	return strings.Contains(email, "@") && strings.Contains(email, ".")
 }
 
 // ListSubscriptions returns all subscriptions

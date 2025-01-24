@@ -49,12 +49,19 @@ func (api *SubscriptionAPI) CreateSubscription(c echo.Context) error {
 	// Validate subscription
 	if err := sub.Validate(); err != nil {
 		api.logger.Error("failed to validate subscription", logging.Error(err))
-		return response.Error(c, http.StatusBadRequest, "invalid subscription data")
+		return response.Error(c, http.StatusBadRequest, err.Error())
 	}
 
 	if err := api.service.CreateSubscription(c.Request().Context(), &sub); err != nil {
 		api.logger.Error("failed to create subscription", logging.Error(err))
-		return response.Error(c, http.StatusInternalServerError, "failed to create subscription")
+		switch {
+		case errors.Is(err, subscription.ErrInvalidEmail):
+			return response.Error(c, http.StatusBadRequest, err.Error())
+		case errors.Is(err, subscription.ErrEmailAlreadyExists):
+			return response.Error(c, http.StatusConflict, err.Error())
+		default:
+			return response.Error(c, http.StatusInternalServerError, "failed to create subscription")
+		}
 	}
 
 	return response.Success(c, http.StatusCreated, sub)

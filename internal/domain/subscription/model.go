@@ -1,7 +1,7 @@
 package subscription
 
 import (
-	"errors"
+	"strings"
 	"time"
 )
 
@@ -20,8 +20,8 @@ const (
 // Subscription represents a newsletter subscription
 type Subscription struct {
 	ID        int64     `json:"id" db:"id"`
-	Email     string    `json:"email" db:"email"`
-	Name      string    `json:"name" db:"name"`
+	Email     string    `json:"email" db:"email" validate:"required,email"`
+	Name      string    `json:"name" db:"name" validate:"required"`
 	Status    Status    `json:"status" db:"status"`
 	CreatedAt time.Time `json:"created_at" db:"created_at"`
 	UpdatedAt time.Time `json:"updated_at" db:"updated_at"`
@@ -29,11 +29,17 @@ type Subscription struct {
 
 // Validate checks if the subscription data is valid
 func (s *Subscription) Validate() error {
+	if s == nil {
+		return ErrInvalidSubscription
+	}
 	if s.Email == "" {
-		return errors.New("email is required")
+		return ErrEmailRequired
+	}
+	if !strings.Contains(s.Email, "@") || !strings.Contains(s.Email, ".") {
+		return ErrInvalidEmail
 	}
 	if s.Name == "" {
-		return errors.New("name is required")
+		return ErrNameRequired
 	}
 	return nil
 }
