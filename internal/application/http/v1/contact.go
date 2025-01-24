@@ -17,14 +17,24 @@ type ContactAPI struct {
 }
 
 // NewContactAPI creates a new contact API handler
-func NewContactAPI(service contact.Service, log logging.Logger) *ContactAPI {
+//
+// Dependencies:
+//   - service: contact.Service for handling contact business logic
+//   - logger: logging.Logger for structured logging
+//
+// The handler implements RESTful endpoints for contact management:
+//   - POST /api/v1/contacts - Create a new contact
+//   - GET /api/v1/contacts - List all contacts
+//   - GET /api/v1/contacts/:id - Get a specific contact
+//   - PUT /api/v1/contacts/:id/status - Update contact status
+func NewContactAPI(service contact.Service, logger logging.Logger) *ContactAPI {
 	return &ContactAPI{
 		service: service,
-		logger:  log,
+		logger:  logger,
 	}
 }
 
-// Register registers the contact API routes
+// Register registers the contact API routes with the given Echo instance
 func (api *ContactAPI) Register(e *echo.Echo) {
 	v1 := e.Group("/api/v1")
 	contacts := v1.Group("/contacts")
@@ -36,6 +46,16 @@ func (api *ContactAPI) Register(e *echo.Echo) {
 }
 
 // CreateContact handles contact submission creation
+// @Summary Create a new contact submission
+// @Description Creates a new contact submission with the provided details
+// @Tags contacts
+// @Accept json
+// @Produce json
+// @Param submission body contact.Submission true "Contact submission details"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/v1/contacts [post]
 func (api *ContactAPI) CreateContact(c echo.Context) error {
 	var submission contact.Submission
 	if err := c.Bind(&submission); err != nil {

@@ -19,6 +19,17 @@ type SubscriptionAPI struct {
 }
 
 // NewSubscriptionAPI creates a new subscription API handler
+//
+// Dependencies:
+//   - service: subscription.Service for handling subscription business logic
+//   - logger: logging.Logger for structured logging
+//
+// The handler implements RESTful endpoints for subscription management:
+//   - POST /api/v1/subscriptions - Create a new subscription
+//   - GET /api/v1/subscriptions - List all subscriptions
+//   - GET /api/v1/subscriptions/:id - Get a specific subscription
+//   - PUT /api/v1/subscriptions/:id/status - Update subscription status
+//   - DELETE /api/v1/subscriptions/:id - Delete a subscription
 func NewSubscriptionAPI(service subscription.Service, logger logging.Logger) *SubscriptionAPI {
 	return &SubscriptionAPI{
 		service: service,
@@ -26,7 +37,7 @@ func NewSubscriptionAPI(service subscription.Service, logger logging.Logger) *Su
 	}
 }
 
-// Register registers the subscription API routes
+// Register registers the subscription API routes with the given Echo instance
 func (api *SubscriptionAPI) Register(e *echo.Echo) {
 	v1 := e.Group("/api/v1")
 	subscriptions := v1.Group("/subscriptions")
@@ -39,6 +50,16 @@ func (api *SubscriptionAPI) Register(e *echo.Echo) {
 }
 
 // CreateSubscription handles subscription creation
+// @Summary Create a new subscription
+// @Description Creates a new subscription with the provided details
+// @Tags subscriptions
+// @Accept json
+// @Produce json
+// @Param subscription body subscription.Subscription true "Subscription details"
+// @Success 200 {object} response.Response
+// @Failure 400 {object} response.ErrorResponse
+// @Failure 500 {object} response.ErrorResponse
+// @Router /api/v1/subscriptions [post]
 func (api *SubscriptionAPI) CreateSubscription(c echo.Context) error {
 	var sub subscription.Subscription
 	if err := c.Bind(&sub); err != nil {
