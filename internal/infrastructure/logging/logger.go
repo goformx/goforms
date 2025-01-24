@@ -50,37 +50,54 @@ type zapLogger struct {
 	*zap.Logger
 }
 
-// NewLogger creates a new production logger instance
+// NewLogger creates a new logger instance
 func NewLogger() Logger {
-	// Set up logger configuration
-	logLevel := zapcore.InfoLevel
-	if level := os.Getenv("LOG_LEVEL"); level != "" {
-		switch strings.ToLower(level) {
-		case "debug":
-			logLevel = zapcore.DebugLevel
-		case "info":
-			logLevel = zapcore.InfoLevel
-		case "warn":
-			logLevel = zapcore.WarnLevel
-		case "error":
-			logLevel = zapcore.ErrorLevel
-		}
+	logLevel := os.Getenv("LOG_LEVEL")
+	if logLevel == "" {
+		logLevel = "info"
 	}
 
-	config := zap.Config{
-		Level:            zap.NewAtomicLevelAt(logLevel),
-		Development:      false,
-		Encoding:         "json",
-		EncoderConfig:    zap.NewProductionEncoderConfig(),
-		OutputPaths:      []string{"stdout"},
-		ErrorOutputPaths: []string{"stderr"},
+	logFormat := os.Getenv("LOG_FORMAT")
+	if logFormat == "" {
+		logFormat = "json"
 	}
 
-	logger, err := config.Build()
-	if err != nil {
-		panic(err)
+	// Parse log level
+	var level zapcore.Level
+	switch strings.ToLower(logLevel) {
+	case "debug":
+		level = zapcore.DebugLevel
+	case "info":
+		level = zapcore.InfoLevel
+	case "warn":
+		level = zapcore.WarnLevel
+	case "error":
+		level = zapcore.ErrorLevel
+	default:
+		level = zapcore.InfoLevel
 	}
 
+	// Configure encoder
+	encoderConfig := zap.NewProductionEncoderConfig()
+	encoderConfig.TimeKey = "ts"
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+
+	var encoder zapcore.Encoder
+	if logFormat == "console" {
+		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+		encoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
+		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	} else {
+		encoder = zapcore.NewJSONEncoder(encoderConfig)
+	}
+
+	core := zapcore.NewCore(
+		encoder,
+		zapcore.AddSync(os.Stdout),
+		level,
+	)
+
+	logger := zap.New(core)
 	return &zapLogger{logger}
 }
 
