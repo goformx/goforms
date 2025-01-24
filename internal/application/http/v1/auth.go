@@ -25,12 +25,11 @@ func NewAuthHandler(userService user.Service, log logging.Logger) *AuthHandler {
 }
 
 // RegisterRoutes registers the authentication routes
-func (h *AuthHandler) RegisterRoutes(e *echo.Echo) {
-	auth := e.Group("/api/v1/auth")
-	auth.POST("/signup", h.SignUp)
-	auth.POST("/login", h.Login)
-	auth.POST("/logout", h.Logout)
-	auth.POST("/refresh", h.RefreshToken)
+func (h *AuthHandler) RegisterRoutes(g *echo.Group) {
+	g.POST("/signup", h.SignUp)
+	g.POST("/login", h.Login)
+	g.POST("/logout", h.Logout)
+	g.POST("/refresh", h.RefreshToken)
 }
 
 // SignUp godoc

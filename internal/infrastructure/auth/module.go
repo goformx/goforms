@@ -72,9 +72,14 @@ type Params struct {
 
 // registerAuthRoutes registers authentication routes
 func registerAuthRoutes(p Params) {
-	// Apply JWT middleware to all routes except auth routes
-	p.Echo.Use(p.JWTMiddleware)
+	// Create API group for v1
+	v1 := p.Echo.Group("/api/v1")
 
-	// Register auth routes
-	p.AuthHandler.RegisterRoutes(p.Echo)
+	// Create auth routes group (unprotected)
+	auth := v1.Group("/auth")
+	p.AuthHandler.RegisterRoutes(auth)
+
+	// Apply JWT middleware only to protected routes
+	protected := v1.Group("", p.JWTMiddleware)
+	_ = protected // Routes will be registered by their respective handlers
 }

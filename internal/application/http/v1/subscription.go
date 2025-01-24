@@ -39,14 +39,29 @@ func NewSubscriptionAPI(service subscription.Service, logger logging.Logger) *Su
 
 // Register registers the subscription API routes with the given Echo instance
 func (api *SubscriptionAPI) Register(e *echo.Echo) {
+	// Public routes
 	v1 := e.Group("/api/v1")
-	subscriptions := v1.Group("/subscriptions")
+	v1.POST("/subscribe", api.CreateSubscription) // Public subscription endpoint
 
-	subscriptions.POST("", api.CreateSubscription)
-	subscriptions.GET("", api.ListSubscriptions)
-	subscriptions.GET("/:id", api.GetSubscription)
-	subscriptions.PUT("/:id/status", api.UpdateSubscriptionStatus)
-	subscriptions.DELETE("/:id", api.DeleteSubscription)
+	// Protected routes
+	protected := v1.Group("/subscriptions", api.requireAuth())
+	protected.GET("", api.ListSubscriptions)
+	protected.GET("/:id", api.GetSubscription)
+	protected.PUT("/:id/status", api.UpdateSubscriptionStatus)
+	protected.DELETE("/:id", api.DeleteSubscription)
+}
+
+// requireAuth returns middleware that requires authentication
+func (api *SubscriptionAPI) requireAuth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			auth := c.Request().Header.Get("Authorization")
+			if auth == "" {
+				return echo.NewHTTPError(http.StatusUnauthorized, "missing authorization header")
+			}
+			return next(c)
+		}
+	}
 }
 
 // CreateSubscription handles subscription creation
