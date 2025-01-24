@@ -10,11 +10,12 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/test/mocks"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestNewService(t *testing.T) {
 	mockStore := mocks.NewSubscriptionStore()
-	mockLogger := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
 	service := subscription.NewService(mockLogger, mockStore)
 	assert.NotNil(t, service)
 }
@@ -22,7 +23,8 @@ func TestNewService(t *testing.T) {
 func TestCreateSubscription(t *testing.T) {
 	// Create mock store
 	mockStore := mocks.NewSubscriptionStore()
-	mockLogger := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("creating subscription")
 
 	// Create service with mocks
 	service := subscription.NewService(mockLogger, mockStore)
@@ -80,6 +82,7 @@ func TestCreateSubscription(t *testing.T) {
 
 			// Verify mock expectations
 			mockStore.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
@@ -87,7 +90,8 @@ func TestCreateSubscription(t *testing.T) {
 func TestListSubscriptions(t *testing.T) {
 	// Create mock store
 	mockStore := mocks.NewSubscriptionStore()
-	mockLogger := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("listing subscriptions")
 
 	// Create service with mocks
 	service := subscription.NewService(mockLogger, mockStore)
@@ -110,12 +114,14 @@ func TestListSubscriptions(t *testing.T) {
 
 	// Verify mock expectations
 	mockStore.AssertExpectations(t)
+	mockLogger.AssertExpectations(t)
 }
 
 func TestGetSubscription(t *testing.T) {
 	// Create mock store
 	mockStore := mocks.NewSubscriptionStore()
-	mockLogger := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("getting subscription")
 
 	// Create service with mocks
 	service := subscription.NewService(mockLogger, mockStore)
@@ -167,6 +173,7 @@ func TestGetSubscription(t *testing.T) {
 
 			// Verify mock expectations
 			mockStore.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
@@ -174,7 +181,8 @@ func TestGetSubscription(t *testing.T) {
 func TestUpdateSubscriptionStatus(t *testing.T) {
 	// Create mock store
 	mockStore := &mocks.SubscriptionStore{}
-	mockLogger := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("updating subscription status")
 
 	// Create service with mocks
 	service := subscription.NewService(mockLogger, mockStore)
@@ -228,6 +236,7 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 
 			// Verify mock expectations
 			mockStore.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
@@ -235,7 +244,8 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 func TestDeleteSubscription(t *testing.T) {
 	// Create mock store
 	mockStore := &mocks.SubscriptionStore{}
-	mockLogger := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("deleting subscription")
 
 	// Create service with mocks
 	service := subscription.NewService(mockLogger, mockStore)
@@ -285,6 +295,7 @@ func TestDeleteSubscription(t *testing.T) {
 
 			// Verify mock expectations
 			mockStore.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
@@ -350,7 +361,8 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create a new mock store for each test
 			mockStore := mocks.NewSubscriptionStore()
-			mockLogger := mocks.NewLogger()
+			mockLogger := mocklogging.NewMockLogger()
+			mockLogger.ExpectInfo("getting subscription by email")
 
 			// Setup the mock expectations
 			tt.setup(mockStore)
@@ -372,6 +384,7 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 
 			// Verify all expectations were met
 			mockStore.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
