@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sync"
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
@@ -19,24 +20,39 @@ var (
 	ErrEmailAlreadyExists = errors.New("email already exists")
 	// ErrInvalidCredentials indicates that the provided credentials are invalid
 	ErrInvalidCredentials = errors.New("invalid credentials")
+	// ErrInvalidToken indicates that the provided token is invalid
+	ErrInvalidToken = errors.New("invalid token")
+	// ErrTokenBlacklisted indicates that the token has been blacklisted
+	ErrTokenBlacklisted = errors.New("token is blacklisted")
 )
+
+// TokenPair represents an access and refresh token pair
+type TokenPair struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
 
 // Service defines the interface for user operations
 type Service interface {
 	SignUp(ctx context.Context, signup *models.UserSignup) (*models.User, error)
-	Login(ctx context.Context, login *models.UserLogin) (string, error)
+	Login(ctx context.Context, login *models.UserLogin) (*TokenPair, error)
+	Logout(ctx context.Context, token string) error
+	RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error)
 	GetUserByID(ctx context.Context, id uint) (*models.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*models.User, error)
 	UpdateUser(ctx context.Context, user *models.User) error
 	DeleteUser(ctx context.Context, id uint) error
 	ListUsers(ctx context.Context) ([]models.User, error)
+	ValidateToken(token string) (*jwt.Token, error)
+	IsTokenBlacklisted(token string) bool
 }
 
 // ServiceImpl implements the user Service interface
 type ServiceImpl struct {
-	log       logger.Logger
-	store     models.UserStore
-	jwtSecret []byte
+	log            logger.Logger
+	store          models.UserStore
+	jwtSecret      []byte
+	tokenBlacklist sync.Map
 }
 
 // NewService creates a new user service
@@ -86,39 +102,142 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *models.UserSignup) (*m
 	return user, nil
 }
 
-// Login handles user authentication and returns a JWT token
-func (s *ServiceImpl) Login(ctx context.Context, login *models.UserLogin) (string, error) {
+// Login handles user authentication and returns a token pair
+func (s *ServiceImpl) Login(ctx context.Context, login *models.UserLogin) (*TokenPair, error) {
 	// Get user by email
 	user, err := s.store.GetByEmail(login.Email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			return "", ErrInvalidCredentials
+			return nil, ErrInvalidCredentials
 		}
 		s.log.Error("failed to get user", logger.Error(err))
-		return "", fmt.Errorf("failed to get user: %w", err)
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
 
 	// Check password
 	if !user.CheckPassword(login.Password) {
-		return "", ErrInvalidCredentials
+		return nil, ErrInvalidCredentials
 	}
 
-	// Generate JWT token
-	token := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+	// Generate token pair
+	tokenPair, err := s.generateTokenPair(user)
+	if err != nil {
+		s.log.Error("failed to generate token pair", logger.Error(err))
+		return nil, fmt.Errorf("failed to generate token pair: %w", err)
+	}
+
+	return tokenPair, nil
+}
+
+// Logout blacklists the provided token
+func (s *ServiceImpl) Logout(ctx context.Context, token string) error {
+	// Validate token before blacklisting
+	if _, err := s.ValidateToken(token); err != nil {
+		return ErrInvalidToken
+	}
+
+	// Add token to blacklist with expiry time from token claims
+	s.tokenBlacklist.Store(token, time.Now())
+	return nil
+}
+
+// RefreshToken generates a new token pair using a refresh token
+func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error) {
+	// Validate refresh token
+	token, err := s.ValidateToken(refreshToken)
+	if err != nil {
+		return nil, ErrInvalidToken
+	}
+
+	// Check if token is blacklisted
+	if s.IsTokenBlacklisted(refreshToken) {
+		return nil, ErrTokenBlacklisted
+	}
+
+	// Extract claims
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, ErrInvalidToken
+	}
+
+	// Get user from claims
+	userID := uint(claims["user_id"].(float64))
+	user, err := s.GetUserByID(ctx, userID)
+	if err != nil {
+		return nil, err
+	}
+
+	// Generate new token pair
+	tokenPair, err := s.generateTokenPair(user)
+	if err != nil {
+		return nil, err
+	}
+
+	// Blacklist the old refresh token
+	s.tokenBlacklist.Store(refreshToken, time.Now())
+
+	return tokenPair, nil
+}
+
+// ValidateToken validates a JWT token
+func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return s.jwtSecret, nil
+	})
+
+	if err != nil {
+		return nil, err
+	}
+
+	if !token.Valid {
+		return nil, ErrInvalidToken
+	}
+
+	return token, nil
+}
+
+// IsTokenBlacklisted checks if a token is blacklisted
+func (s *ServiceImpl) IsTokenBlacklisted(token string) bool {
+	_, blacklisted := s.tokenBlacklist.Load(token)
+	return blacklisted
+}
+
+// generateTokenPair creates a new access and refresh token pair
+func (s *ServiceImpl) generateTokenPair(user *models.User) (*TokenPair, error) {
+	// Generate access token
+	accessToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"email":   user.Email,
 		"role":    user.Role,
-		"exp":     time.Now().Add(24 * time.Hour).Unix(),
+		"type":    "access",
+		"exp":     time.Now().Add(15 * time.Minute).Unix(),
 	})
 
-	// Sign and get the complete encoded token as a string
-	tokenString, err := token.SignedString(s.jwtSecret)
+	// Generate refresh token with longer expiry
+	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
+		"user_id": user.ID,
+		"type":    "refresh",
+		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+	})
+
+	// Sign tokens
+	accessTokenString, err := accessToken.SignedString(s.jwtSecret)
 	if err != nil {
-		s.log.Error("failed to generate token", logger.Error(err))
-		return "", fmt.Errorf("failed to generate token: %w", err)
+		return nil, err
 	}
 
-	return tokenString, nil
+	refreshTokenString, err := refreshToken.SignedString(s.jwtSecret)
+	if err != nil {
+		return nil, err
+	}
+
+	return &TokenPair{
+		AccessToken:  accessTokenString,
+		RefreshToken: refreshTokenString,
+	}, nil
 }
 
 // GetUserByID retrieves a user by ID
