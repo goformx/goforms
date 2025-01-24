@@ -3,7 +3,7 @@ package validation
 import (
 	"sync"
 
-	"github.com/go-playground/validator/v10"
+	validator "github.com/go-playground/validator/v10"
 	"github.com/jonesrussell/goforms/internal/domain/common/interfaces"
 )
 
@@ -38,8 +38,6 @@ func (v *validatorImpl) Var(field interface{}, tag string) error {
 }
 
 // RegisterValidation implements validator.RegisterValidation
-func (v *validatorImpl) RegisterValidation(tag string, fn func(interface{}) bool) error {
-	return v.validate.RegisterValidation(tag, func(fl validator.FieldLevel) bool {
-		return fn(fl.Field().Interface())
-	})
+func (v *validatorImpl) RegisterValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
+	return v.validate.RegisterValidation(tag, fn)
 }
