@@ -4,11 +4,10 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewLogger(t *testing.T) {
@@ -78,25 +77,19 @@ func TestLoggerDebugLevel(t *testing.T) {
 func TestMockLogger(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
 
-	// Test Info logging
-	mockLogger.ExpectInfo("test info message")
-	mockLogger.Info("test info message")
-	mockLogger.AssertExpectations(t)
+	mockLogger.ExpectInfo("info message")
+	mockLogger.ExpectError("error message")
+	mockLogger.ExpectDebug("debug message")
+	mockLogger.ExpectWarn("warn message")
 
-	// Test Error logging
-	mockLogger.ExpectError("test error message")
-	mockLogger.Error("test error message")
-	mockLogger.AssertExpectations(t)
+	mockLogger.Info("info message")
+	mockLogger.Error("error message")
+	mockLogger.Debug("debug message")
+	mockLogger.Warn("warn message")
 
-	// Test Debug logging
-	mockLogger.ExpectDebug("test debug message")
-	mockLogger.Debug("test debug message")
-	mockLogger.AssertExpectations(t)
-
-	// Test Warn logging
-	mockLogger.ExpectWarn("test warn message")
-	mockLogger.Warn("test warn message")
-	mockLogger.AssertExpectations(t)
+	if err := mockLogger.Verify(); err != nil {
+		t.Fatalf("Verify failed: %v", err)
+	}
 }
 
 func TestNewTestLogger(t *testing.T) {

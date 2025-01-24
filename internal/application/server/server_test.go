@@ -1,94 +1,129 @@
-package server
+package server_test
 
 import (
 	"context"
 	"testing"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/fx"
 
+	"github.com/jonesrussell/goforms/internal/application/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
-// mockLifecycle implements fx.Lifecycle for testing
-type mockLifecycle struct{}
+// mockLifecycle captures hooks for testing
+type mockLifecycle struct {
+	startHook func(context.Context) error
+	stopHook  func(context.Context) error
+}
 
 func (m *mockLifecycle) Append(hook fx.Hook) {
-	// No-op for testing
+	m.startHook = hook.OnStart
+	m.stopHook = hook.OnStop
 }
 
 func TestNewServer(t *testing.T) {
-	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("initializing server")
-
+	// Create test config
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Host: "localhost",
-			Port: 8090,
+			Name:  "test-app",
+			Env:   "test",
+			Debug: true,
 		},
 	}
 
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+
+	// Create Echo instance
 	e := echo.New()
+
+	// Create mock lifecycle
 	lc := &mockLifecycle{}
 
-	srv := New(lc, e, mockLogger, cfg)
+	// Create server
+	srv := server.New(lc, e, mockLogger, cfg)
+
+	// Assert server is created
 	assert.NotNil(t, srv)
-	mockLogger.AssertExpectations(t)
+	assert.NotNil(t, lc.startHook)
+	assert.NotNil(t, lc.stopHook)
+
+	// Verify logger calls
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
 }
 
 func TestServerStart(t *testing.T) {
-	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("starting HTTP server",
-		logging.String("host", "localhost"),
-		logging.Int("port", 8090),
-		logging.String("env", ""),
-	)
-
+	// Create test config
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Host: "localhost",
-			Port: 8090,
+			Name:  "test-app",
+			Env:   "test",
+			Debug: true,
 		},
 	}
 
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("starting HTTP server",
+		logging.String("host", ""),
+		logging.Int("port", 0),
+		logging.String("env", "test"),
+	)
+
+	// Create Echo instance
 	e := echo.New()
+
+	// Create mock lifecycle
 	lc := &mockLifecycle{}
 
-	srv := New(lc, e, mockLogger, cfg)
+	// Create server
+	server.New(lc, e, mockLogger, cfg)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	err := srv.Start(ctx)
+	// Execute OnStart hook
+	err := lc.startHook(context.Background())
 	assert.NoError(t, err)
-	mockLogger.AssertExpectations(t)
+
+	// Verify logger calls
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
 }
 
 func TestServerStop(t *testing.T) {
-	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("initializing server")
-	mockLogger.ExpectInfo("stopping HTTP server")
-
+	// Create test config
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Host: "localhost",
-			Port: 8090,
+			Name:  "test-app",
+			Env:   "test",
+			Debug: true,
 		},
 	}
 
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("stopping HTTP server")
+
+	// Create Echo instance
 	e := echo.New()
+
+	// Create mock lifecycle
 	lc := &mockLifecycle{}
 
-	srv := New(lc, e, mockLogger, cfg)
+	// Create server
+	server.New(lc, e, mockLogger, cfg)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
-	defer cancel()
-
-	err := srv.Stop(ctx)
+	// Execute OnStop hook
+	err := lc.stopHook(context.Background())
 	assert.NoError(t, err)
-	mockLogger.AssertExpectations(t)
+
+	// Verify logger calls
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
 }

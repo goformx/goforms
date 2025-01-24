@@ -31,6 +31,7 @@ linters-settings:
     forbidden-imports:
       - pattern: "go.uber.org/zap"
         except: ["github.com/jonesrussell/goforms/internal/logger"]
+      - pattern: "github.com/stretchr/testify"  # Forbid testify
 
   importas:
     no-unaliased: true
@@ -70,9 +71,9 @@ linters-settings:
       - .List(
     ignorePackageGlobs:
       - github.com/jonesrussell/goforms/internal/logger
-      - github.com/jonesrussell/goforms/internal/response
-      - github.com/jonesrussell/goforms/internal/domain/*
-      - github.com/jonesrussell/goforms/internal/application/*
+      - github.com.jonesrussell/goforms/internal/response
+      - github.com.jonesrussell/goforms/internal/domain/*
+      - github.com.jonesrussell/goforms/internal/application/*
       - github.com/labstack/echo/v4
       - github.com/stretchr/testify/*
       - github.com/a-h/templ

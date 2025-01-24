@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -26,6 +27,8 @@ func TestLoggingMiddleware(t *testing.T) {
 		mockLogger.ExpectInfo("http request",
 			logging.String("method", "GET"),
 			logging.String("path", "/test"),
+			logging.Int("status", http.StatusOK),
+			logging.Duration("latency", time.Duration(0)),
 			logging.String("ip", "192.0.2.1"),
 		)
 
@@ -42,7 +45,9 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		mockLogger.AssertExpectations(t)
+		if err := mockLogger.Verify(); err != nil {
+			t.Errorf("logger expectations not met: %v", err)
+		}
 	})
 
 	t.Run("logs error when handler fails", func(t *testing.T) {
@@ -57,10 +62,9 @@ func TestLoggingMiddleware(t *testing.T) {
 		mockLogger.ExpectInfo("http request",
 			logging.String("method", "GET"),
 			logging.String("path", "/test"),
+			logging.Int("status", http.StatusInternalServerError),
+			logging.Duration("latency", time.Duration(0)),
 			logging.String("ip", "192.0.2.1"),
-		)
-		mockLogger.ExpectError("request failed",
-			logging.String("error", "test error"),
 		)
 
 		// Create middleware
@@ -76,7 +80,9 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		mockLogger.AssertExpectations(t)
+		if err := mockLogger.Verify(); err != nil {
+			t.Errorf("logger expectations not met: %v", err)
+		}
 	})
 }
 
@@ -86,6 +92,8 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	mockLogger.ExpectInfo("http request",
 		logging.String("method", "GET"),
 		logging.String("path", "/test"),
+		logging.Int("status", http.StatusOK),
+		logging.Duration("latency", time.Duration(0)),
 		logging.String("ip", "192.168.1.1"),
 	)
 
@@ -97,8 +105,8 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Create middleware
-	middleware := middleware.LoggingMiddleware(mockLogger)
-	handler := middleware(func(c echo.Context) error {
+	mw := middleware.LoggingMiddleware(mockLogger)
+	handler := mw(func(c echo.Context) error {
 		return c.String(http.StatusOK, "success")
 	})
 
@@ -106,5 +114,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	_ = handler(c)
 
 	// Verify logs
-	mockLogger.AssertExpectations(t)
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
 }

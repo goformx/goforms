@@ -18,8 +18,6 @@ type Server struct {
 	logger       logging.Logger
 	appConfig    *config.AppConfig
 	serverConfig *config.ServerConfig
-	shutdownCh   chan struct{}
-	serverError  chan error
 }
 
 // New creates a new server instance
@@ -29,8 +27,6 @@ func New(lc fx.Lifecycle, e *echo.Echo, log logging.Logger, cfg *config.Config) 
 		logger:       log,
 		appConfig:    &cfg.App,
 		serverConfig: &cfg.Server,
-		shutdownCh:   make(chan struct{}),
-		serverError:  make(chan error, 1),
 	}
 
 	lc.Append(fx.Hook{
@@ -65,17 +61,23 @@ func (s *Server) Start(ctx context.Context) error {
 		s.logger.Info("server listening", logging.String("addr", srv.Addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.logger.Error("server error", logging.Error(err))
-			s.serverError <- err
 		}
 	}()
 
-	// Don't block on context.Done() - let the server run
+	// Use a separate goroutine to handle graceful shutdown
+	go func() {
+		<-ctx.Done()
+		s.logger.Info("shutting down server")
+		if err := srv.Shutdown(context.Background()); err != nil {
+			s.logger.Error("server shutdown error", logging.Error(err))
+		}
+	}()
+
 	return nil
 }
 
 // Stop stops the HTTP server
 func (s *Server) Stop(ctx context.Context) error {
 	s.logger.Info("stopping HTTP server")
-	close(s.shutdownCh)
 	return s.echo.Shutdown(ctx)
 }

@@ -3,50 +3,51 @@ package contactmock
 import (
 	"context"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
-// Ensure MockStore implements contact.Store interface
-var _ contact.Store = (*MockStore)(nil)
-
 // MockStore is a mock implementation of contact.Store
 type MockStore struct {
-	mock.Mock
+	CreateFunc       func(ctx context.Context, sub *contact.Submission) error
+	ListFunc         func(ctx context.Context) ([]contact.Submission, error)
+	GetFunc          func(ctx context.Context, id int64) (*contact.Submission, error)
+	UpdateStatusFunc func(ctx context.Context, id int64, status contact.Status) error
 }
 
 // NewMockStore creates a new mock store
 func NewMockStore() *MockStore {
-	return &MockStore{}
+	return &MockStore{
+		CreateFunc: func(ctx context.Context, sub *contact.Submission) error {
+			return nil
+		},
+		ListFunc: func(ctx context.Context) ([]contact.Submission, error) {
+			return nil, nil
+		},
+		GetFunc: func(ctx context.Context, id int64) (*contact.Submission, error) {
+			return nil, nil
+		},
+		UpdateStatusFunc: func(ctx context.Context, id int64, status contact.Status) error {
+			return nil
+		},
+	}
 }
 
-// Create mocks the Create method
+// Create implements contact.Store
 func (m *MockStore) Create(ctx context.Context, sub *contact.Submission) error {
-	args := m.Called(ctx, sub)
-	return args.Error(0)
+	return m.CreateFunc(ctx, sub)
 }
 
-// List mocks the List method
+// List implements contact.Store
 func (m *MockStore) List(ctx context.Context) ([]contact.Submission, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]contact.Submission), args.Error(1)
+	return m.ListFunc(ctx)
 }
 
-// Get mocks the Get method
+// Get implements contact.Store
 func (m *MockStore) Get(ctx context.Context, id int64) (*contact.Submission, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*contact.Submission), args.Error(1)
+	return m.GetFunc(ctx, id)
 }
 
-// UpdateStatus mocks the UpdateStatus method
+// UpdateStatus implements contact.Store
 func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status contact.Status) error {
-	args := m.Called(ctx, id, status)
-	return args.Error(0)
+	return m.UpdateStatusFunc(ctx, id, status)
 }

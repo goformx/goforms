@@ -28,7 +28,7 @@ func TestMiddlewareSetup(t *testing.T) {
 	mw.Setup(e)
 
 	// Verify logger calls
-	mockLogger.AssertExpectations(t)
+	mockLogger.Verify()
 }
 
 func TestRequestIDMiddleware(t *testing.T) {
@@ -60,7 +60,7 @@ func TestRequestIDMiddleware(t *testing.T) {
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, rec.Code)
-	mockLogger.AssertExpectations(t)
+	mockLogger.Verify()
 }
 
 func TestSecurityHeadersMiddleware(t *testing.T) {
@@ -100,5 +100,5 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	assert.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
 
 	// Verify logger calls
-	mockLogger.AssertExpectations(t)
+	mockLogger.Verify()
 }

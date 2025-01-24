@@ -77,7 +77,8 @@ func (m *Manager) securityHeaders() echo.MiddlewareFunc {
 			// Set security headers
 			c.Response().Header().Set("Content-Security-Policy", csp)
 			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
-			c.Response().Header().Set("X-Frame-Options", "DENY")
+			c.Response().Header().Set("X-Frame-Options", "SAMEORIGIN")
+			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
 			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 			c.Response().Header().Set("Cross-Origin-Opener-Policy", "same-origin")
@@ -85,7 +86,6 @@ func (m *Manager) securityHeaders() echo.MiddlewareFunc {
 			c.Response().Header().Set("Cross-Origin-Resource-Policy", "same-origin")
 
 			// Remove unnecessary headers
-			c.Response().Header().Del("X-XSS-Protection")
 			c.Response().Header().Del("Server")
 
 			return next(c)

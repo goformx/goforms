@@ -11,6 +11,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/jonesrussell/goforms/internal/application/services"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklog "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
@@ -57,7 +58,9 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 
 			logger := new(mocklog.MockLogger)
 			if tt.dbError != nil {
-				logger.On("Error", "health check failed", mock.Anything).Return()
+				logger.ExpectError("health check failed", logging.Field{
+					Key: "error", Interface: tt.dbError,
+				})
 			}
 
 			handler := services.NewHealthHandler(logger, mockDB)
@@ -70,7 +73,9 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 			assert.Equal(t, tt.expectedStatus, rec.Code)
 			assert.JSONEq(t, tt.expectedBody, rec.Body.String())
 			mockDB.AssertExpectations(t)
-			logger.AssertExpectations(t)
+			if err := logger.Verify(); err != nil {
+				t.Errorf("logger expectations not met: %v", err)
+			}
 		})
 	}
 }
