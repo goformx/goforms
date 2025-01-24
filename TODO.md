@@ -28,14 +28,40 @@
   - [x] Dev Container Setup
   - [x] Task Automation
   - [x] Hot Reload
+- [x] Security
+  - [x] Authentication System
+    - [x] User Model & Migration
+    - [x] JWT Token Implementation
+    - [x] Login Endpoint
+    - [x] Signup Endpoint
+    - [x] Middleware Protection
 
 ## In Progress
+
+- [ ] Security
+  - [ ] Authentication System
+    - [ ] Logout Functionality
+    - [ ] Password Reset Flow
+    - [ ] Email Verification
+    - [ ] Session Management
+    - [ ] Token Refresh Mechanism
+  - [ ] Role-based Access Control
+    - [ ] Role Definitions
+    - [ ] Permission System
+    - [ ] Role Assignment
+    - [ ] Access Control Middleware
+  - [ ] API Security
+    - [ ] Rate Limiting
+    - [ ] API Key Management
+    - [ ] CORS Configuration
+    - [ ] Security Headers
 
 - [ ] Documentation
   - [ ] API Documentation
     - [ ] OpenAPI/Swagger Specs
     - [ ] API Usage Examples
     - [ ] Error Response Guide
+    - [ ] Authentication Guide
   - [ ] Development Guides
     - [ ] Setup Instructions
     - [ ] Testing Guide
@@ -52,11 +78,6 @@
   - [ ] Dynamic Field Validation
   - [ ] Form Templates
   - [ ] Form Analytics
-- [ ] Security
-  - [ ] Authentication System
-  - [ ] Role-based Access Control
-  - [ ] API Key Management
-  - [ ] Rate Limiting
 - [ ] Testing Improvements
   - [ ] Integration Tests
   - [ ] Performance Tests
@@ -72,3 +93,4 @@
   - [ ] Performance Monitoring
   - [ ] Error Tracking
   - [ ] Audit Logging
+  - [ ] User Activity Tracking
