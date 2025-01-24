@@ -40,9 +40,10 @@ type DatabaseConfig struct {
 
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
-	ReadTimeout  time.Duration `envconfig:"READ_TIMEOUT" default:"5s"`
-	WriteTimeout time.Duration `envconfig:"WRITE_TIMEOUT" default:"10s"`
-	IdleTimeout  time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
+	ReadTimeout     time.Duration `envconfig:"READ_TIMEOUT" default:"5s"`
+	WriteTimeout    time.Duration `envconfig:"WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout     time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
+	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
 }
 
 // SecurityConfig contains security-related settings

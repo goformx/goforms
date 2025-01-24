@@ -7,36 +7,40 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
-// WebHandler handles web page requests and template rendering
-type WebHandler struct {
+// Handler handles web page requests
+type Handler struct {
 	renderer *view.Renderer
 	logger   logging.Logger
+	service  contact.Service
 }
 
-// NewWebHandler creates a new web handler
+// NewHandler creates a new web handler
 //
 // Dependencies:
 //   - renderer: view.Renderer for template rendering
 //   - logger: logging.Logger for structured logging
+//   - service: contact.Service for contact-related operations
 //
 // The handler implements web page endpoints:
 //   - GET / - Home page
 //   - GET /contact - Contact page
 //   - GET /subscribe - Subscription page
-func NewWebHandler(renderer *view.Renderer, logger logging.Logger) *WebHandler {
-	return &WebHandler{
+func NewHandler(renderer *view.Renderer, logger logging.Logger, service contact.Service) *Handler {
+	return &Handler{
 		renderer: renderer,
 		logger:   logger,
+		service:  service,
 	}
 }
 
 // Register registers the web routes with the given Echo instance
-func (h *WebHandler) Register(e *echo.Echo) {
+func (h *Handler) Register(e *echo.Echo) {
 	e.GET("/", h.Home)
 	e.GET("/contact", h.Contact)
 
@@ -57,7 +61,7 @@ func (h *WebHandler) Register(e *echo.Echo) {
 }
 
 // wrapError wraps an error with additional context
-func (h *WebHandler) wrapError(err error, msg string) error {
+func (h *Handler) wrapError(err error, msg string) error {
 	if err == nil {
 		return nil
 	}
@@ -72,7 +76,7 @@ func (h *WebHandler) wrapError(err error, msg string) error {
 // @Success 200 {string} string "HTML content"
 // @Failure 500 {object} response.ErrorResponse
 // @Router / [get]
-func (h *WebHandler) Home(c echo.Context) error {
+func (h *Handler) Home(c echo.Context) error {
 	if err := h.renderer.Render(c, pages.Home()); err != nil {
 		h.logger.Error("failed to render home page", logging.Error(err))
 		return h.wrapError(err, "failed to render home page")
@@ -88,7 +92,7 @@ func (h *WebHandler) Home(c echo.Context) error {
 // @Success 200 {string} string "HTML content"
 // @Failure 500 {object} response.ErrorResponse
 // @Router /contact [get]
-func (h *WebHandler) Contact(c echo.Context) error {
+func (h *Handler) Contact(c echo.Context) error {
 	if err := h.renderer.Render(c, pages.Contact()); err != nil {
 		h.logger.Error("failed to render contact page", logging.Error(err))
 		return h.wrapError(err, "failed to render contact page")

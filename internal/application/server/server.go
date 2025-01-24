@@ -57,6 +57,7 @@ func (s *Server) Start(ctx context.Context) error {
 		IdleTimeout:  s.serverConfig.IdleTimeout,
 	}
 
+	// Start server in background
 	go func() {
 		s.logger.Info("server listening", logging.String("addr", srv.Addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
@@ -64,14 +65,18 @@ func (s *Server) Start(ctx context.Context) error {
 		}
 	}()
 
-	// Use a separate goroutine to handle graceful shutdown
-	go func() {
-		<-ctx.Done()
-		s.logger.Info("shutting down server")
-		if err := srv.Shutdown(context.Background()); err != nil {
-			s.logger.Error("server shutdown error", logging.Error(err))
-		}
-	}()
+	// Wait for shutdown signal
+	<-ctx.Done()
+	s.logger.Info("shutting down server")
+
+	// Create shutdown context with timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), s.serverConfig.ShutdownTimeout)
+	defer cancel()
+
+	if err := srv.Shutdown(shutdownCtx); err != nil {
+		s.logger.Error("server shutdown error", logging.Error(err))
+		return err
+	}
 
 	return nil
 }

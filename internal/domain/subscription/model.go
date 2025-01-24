@@ -1,6 +1,8 @@
 package subscription
 
 import (
+	"fmt"
+	"strconv"
 	"strings"
 	"time"
 )
@@ -42,4 +44,13 @@ func (s *Subscription) Validate() error {
 		return ErrNameRequired
 	}
 	return nil
+}
+
+// ParseID parses a string into a subscription ID
+func ParseID(id string) (int64, error) {
+	parsed, err := strconv.ParseInt(id, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse subscription ID %q: %w", id, err)
+	}
+	return parsed, nil
 }

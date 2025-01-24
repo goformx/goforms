@@ -1,6 +1,9 @@
 package services
 
 import (
+	"errors"
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/application/response"
@@ -27,6 +30,14 @@ func (h *SubscriptionHandler) Register(e *echo.Echo) {
 	e.POST("/api/v1/subscribe", h.HandleSubscribe)
 }
 
+// wrapResponseError wraps errors from the response package
+func (h *SubscriptionHandler) wrapResponseError(err error, msg string) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", msg, err)
+}
+
 // HandleSubscribe handles subscription creation requests
 func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 	var sub subscription.Subscription
@@ -34,11 +45,24 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 		h.logger.Error("failed to bind subscription request",
 			logging.Error(err),
 		)
-		return response.BadRequest(c, "Invalid request body")
+		return h.wrapResponseError(response.BadRequest(c, "Invalid request body"), "failed to handle subscription request")
 	}
 
 	if err := sub.Validate(); err != nil {
-		return response.BadRequest(c, err.Error())
+		return h.wrapResponseError(response.BadRequest(c, err.Error()), "failed to validate subscription")
+	}
+
+	// Check if subscription already exists
+	existing, err := h.store.GetByEmail(c.Request().Context(), sub.Email)
+	if err != nil && !errors.Is(err, subscription.ErrSubscriptionNotFound) {
+		h.logger.Error("failed to check existing subscription",
+			logging.Error(err),
+			logging.String("email", sub.Email),
+		)
+		return h.wrapResponseError(response.InternalError(c, "Failed to create subscription"), "failed to check existing subscription")
+	}
+	if existing != nil {
+		return h.wrapResponseError(response.BadRequest(c, "Email already subscribed"), "duplicate subscription")
 	}
 
 	// Set initial status to pending
@@ -49,12 +73,12 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 			logging.Error(err),
 			logging.String("email", sub.Email),
 		)
-		return response.InternalError(c, "Failed to create subscription")
+		return h.wrapResponseError(response.InternalError(c, "Failed to create subscription"), "failed to create subscription")
 	}
 
 	h.logger.Info("subscription created",
 		logging.String("email", sub.Email),
 	)
 
-	return response.Created(c, sub)
+	return h.wrapResponseError(response.Created(c, sub), "failed to send response")
 }

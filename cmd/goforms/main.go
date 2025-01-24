@@ -1,7 +1,11 @@
 package main
 
 import (
+	"context"
 	"fmt"
+	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/fx"
@@ -56,5 +60,22 @@ func main() {
 		}),
 	)
 
-	app.Run()
+	// In development mode, use fx.Start to keep the application running
+	if os.Getenv("APP_ENV") == "development" {
+		if err := app.Start(context.Background()); err != nil {
+			os.Exit(1)
+		}
+
+		// Wait for interrupt signal
+		sigChan := make(chan os.Signal, 1)
+		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+		<-sigChan
+
+		// Gracefully shutdown
+		if err := app.Stop(context.Background()); err != nil {
+			os.Exit(1)
+		}
+	} else {
+		app.Run()
+	}
 }

@@ -7,10 +7,10 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestMiddlewareSetup(t *testing.T) {
@@ -28,7 +28,7 @@ func TestMiddlewareSetup(t *testing.T) {
 	mw.Setup(e)
 
 	// Verify logger calls
-	mockLogger.Verify()
+	assert.NoError(t, mockLogger.Verify(), "logger expectations not met")
 }
 
 func TestRequestIDMiddleware(t *testing.T) {
@@ -60,45 +60,38 @@ func TestRequestIDMiddleware(t *testing.T) {
 
 	// Assert response
 	assert.Equal(t, http.StatusOK, rec.Code)
-	mockLogger.Verify()
+	assert.NoError(t, mockLogger.Verify(), "logger expectations not met")
 }
 
 func TestSecurityHeadersMiddleware(t *testing.T) {
-	// Create mock logger
-	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectDebug("adding security headers")
-
-	// Create middleware manager
-	mw := New(mockLogger)
-
-	// Create Echo instance
+	// Setup
 	e := echo.New()
-
-	// Add security headers middleware
-	e.Use(mw.securityHeaders())
-
-	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
+	mockLogger := mocklogging.NewMockLogger()
 
-	// Create test handler
-	handler := func(c echo.Context) error {
-		return c.String(http.StatusOK, "success")
-	}
+	// Create middleware manager
+	m := New(mockLogger)
 
-	// Execute middleware
-	h := mw.securityHeaders()(handler)
-	err := h(c)
+	// Create handler with security headers middleware
+	handler := m.securityHeaders()(func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
+	})
 
-	// Assert no errors
+	// Execute
+	err := handler(c)
 	assert.NoError(t, err)
 
-	// Verify security headers
-	assert.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
-	assert.Equal(t, "SAMEORIGIN", rec.Header().Get("X-Frame-Options"))
-	assert.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
-
-	// Verify logger calls
-	mockLogger.Verify()
+	// Assert headers
+	headers := rec.Header()
+	assert.Equal(t, "nosniff", headers.Get("X-Content-Type-Options"))
+	assert.Equal(t, "SAMEORIGIN", headers.Get("X-Frame-Options"))
+	assert.Equal(t, "1; mode=block", headers.Get("X-XSS-Protection"))
+	assert.Contains(t, headers.Get("Content-Security-Policy"), "default-src 'self'")
+	assert.Equal(t, "strict-origin-when-cross-origin", headers.Get("Referrer-Policy"))
+	assert.Equal(t, "same-origin", headers.Get("Cross-Origin-Opener-Policy"))
+	assert.Equal(t, "require-corp", headers.Get("Cross-Origin-Embedder-Policy"))
+	assert.Equal(t, "same-origin", headers.Get("Cross-Origin-Resource-Policy"))
+	assert.Equal(t, "geolocation=(), microphone=(), camera=()", headers.Get("Permissions-Policy"))
 }

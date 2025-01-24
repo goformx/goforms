@@ -1,11 +1,11 @@
 package v1
 
 import (
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-
-	"errors"
 
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -64,6 +64,14 @@ func (api *SubscriptionAPI) requireAuth() echo.MiddlewareFunc {
 	}
 }
 
+// wrapResponseError wraps errors from the response package
+func (api *SubscriptionAPI) wrapResponseError(err error, msg string) error {
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("%s: %w", msg, err)
+}
+
 // CreateSubscription handles subscription creation
 // @Summary Create a new subscription
 // @Description Creates a new subscription with the provided details
@@ -79,64 +87,79 @@ func (api *SubscriptionAPI) CreateSubscription(c echo.Context) error {
 	var sub subscription.Subscription
 	if err := c.Bind(&sub); err != nil {
 		api.logger.Error("failed to bind subscription", logging.Error(err))
-		return response.Error(c, http.StatusBadRequest, "invalid request")
+		return api.wrapResponseError(
+			response.Error(c, http.StatusBadRequest, "invalid request"),
+			"failed to bind request")
 	}
 
 	if err := sub.Validate(); err != nil {
-		api.logger.Error("invalid subscription", logging.Error(err))
-		return response.Error(c, http.StatusBadRequest, err.Error())
+		api.logger.Error("failed to validate subscription", logging.Error(err))
+		return api.wrapResponseError(
+			response.Error(c, http.StatusBadRequest, err.Error()),
+			"failed to validate subscription")
 	}
 
 	if err := api.service.CreateSubscription(c.Request().Context(), &sub); err != nil {
 		api.logger.Error("failed to create subscription", logging.Error(err))
-		switch {
-		case errors.Is(err, subscription.ErrInvalidEmail):
-			return response.Error(c, http.StatusBadRequest, err.Error())
-		case errors.Is(err, subscription.ErrEmailAlreadyExists):
-			return response.Error(c, http.StatusConflict, err.Error())
-		default:
-			return response.Error(c, http.StatusInternalServerError, "failed to create subscription")
-		}
+		return api.wrapResponseError(
+			response.Error(c, http.StatusInternalServerError, "failed to create subscription"),
+			"failed to create subscription")
 	}
 
-	return response.Success(c, http.StatusCreated, sub)
+	return api.wrapResponseError(
+		response.Success(c, http.StatusCreated, sub),
+		"failed to send response")
 }
 
-// ListSubscriptions handles listing subscriptions
+// ListSubscriptions handles listing all subscriptions
 func (api *SubscriptionAPI) ListSubscriptions(c echo.Context) error {
 	subs, err := api.service.ListSubscriptions(c.Request().Context())
 	if err != nil {
 		api.logger.Error("failed to list subscriptions", logging.Error(err))
-		return response.Error(c, http.StatusInternalServerError, "failed to list subscriptions")
+		return api.wrapResponseError(
+			response.Error(c, http.StatusInternalServerError, "failed to list subscriptions"),
+			"failed to list subscriptions")
 	}
 
-	return response.Success(c, http.StatusOK, subs)
+	return api.wrapResponseError(
+		response.Success(c, http.StatusOK, subs),
+		"failed to send response")
 }
 
 // GetSubscription handles retrieving a single subscription
 func (api *SubscriptionAPI) GetSubscription(c echo.Context) error {
-	id, err := response.ParseInt64Param(c, "id")
+	id, err := api.parseID(c)
 	if err != nil {
-		return response.Error(c, http.StatusBadRequest, "invalid subscription id")
+		return api.wrapResponseError(
+			response.Error(c, http.StatusBadRequest, "invalid subscription id"),
+			"failed to parse id")
 	}
 
 	sub, err := api.service.GetSubscription(c.Request().Context(), id)
 	if err != nil {
-		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
-			return response.Error(c, http.StatusNotFound, "subscription not found")
-		}
 		api.logger.Error("failed to get subscription", logging.Error(err))
-		return response.Error(c, http.StatusInternalServerError, "failed to get subscription")
+		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			return api.wrapResponseError(
+				response.Error(c, http.StatusNotFound, "subscription not found"),
+				"subscription not found")
+		}
+		return api.wrapResponseError(
+			response.Error(c, http.StatusInternalServerError, "failed to get subscription"),
+			"failed to get subscription")
 	}
 
-	return response.Success(c, http.StatusOK, sub)
+	return api.wrapResponseError(
+		response.Success(c, http.StatusOK, sub),
+		"failed to send response")
 }
 
 // UpdateSubscriptionStatus handles updating a subscription's status
 func (api *SubscriptionAPI) UpdateSubscriptionStatus(c echo.Context) error {
-	id, err := response.ParseInt64Param(c, "id")
+	id, err := api.parseID(c)
 	if err != nil {
-		return response.Error(c, http.StatusBadRequest, "invalid subscription id")
+		return api.wrapResponseError(
+			response.Error(c, http.StatusBadRequest, "invalid subscription id"),
+			"failed to parse id")
 	}
 
 	var req struct {
@@ -144,48 +167,56 @@ func (api *SubscriptionAPI) UpdateSubscriptionStatus(c echo.Context) error {
 	}
 	if err := c.Bind(&req); err != nil {
 		api.logger.Error("failed to bind status update request", logging.Error(err))
-		return response.Error(c, http.StatusBadRequest, "invalid request")
-	}
-
-	// Validate status
-	switch req.Status {
-	case subscription.StatusPending, subscription.StatusActive, subscription.StatusCancelled:
-		// Valid status
-	default:
-		return response.Error(c, http.StatusBadRequest, "invalid status")
+		return api.wrapResponseError(
+			response.Error(c, http.StatusBadRequest, "invalid request"),
+			"failed to bind request")
 	}
 
 	if err := api.service.UpdateSubscriptionStatus(c.Request().Context(), id, req.Status); err != nil {
-		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
-			return response.Error(c, http.StatusNotFound, "subscription not found")
-		}
 		api.logger.Error("failed to update subscription status", logging.Error(err))
-		return response.Error(c, http.StatusInternalServerError, "failed to update subscription status")
+		return api.wrapResponseError(
+			response.Error(c, http.StatusInternalServerError, "failed to update subscription status"),
+			"failed to update subscription status")
 	}
 
-	// Return the updated status in the response
-	return response.Success(c, http.StatusOK, map[string]interface{}{
-		"status": req.Status,
-	})
+	return api.wrapResponseError(
+		response.Success(c, http.StatusOK, map[string]interface{}{
+			"id":     id,
+			"status": req.Status,
+		}),
+		"failed to send response")
 }
 
-// DeleteSubscription handles subscription deletion
+// DeleteSubscription handles deleting a subscription
 func (api *SubscriptionAPI) DeleteSubscription(c echo.Context) error {
-	id, err := response.ParseInt64Param(c, "id")
+	id, err := api.parseID(c)
 	if err != nil {
-		return response.Error(c, http.StatusBadRequest, "invalid subscription id")
+		return api.wrapResponseError(response.Error(c, http.StatusBadRequest, "invalid subscription id"), "failed to parse id")
 	}
 
 	if err := api.service.DeleteSubscription(c.Request().Context(), id); err != nil {
-		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
-			return response.Error(c, http.StatusNotFound, "subscription not found")
-		}
 		api.logger.Error("failed to delete subscription", logging.Error(err))
-		return response.Error(c, http.StatusInternalServerError, "failed to delete subscription")
+		if errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			return api.wrapResponseError(response.Error(c, http.StatusNotFound, err.Error()), "subscription not found")
+		}
+		return api.wrapResponseError(response.Error(c, http.StatusInternalServerError, "failed to delete subscription"), "failed to delete subscription")
 	}
 
-	return response.Success(c, http.StatusOK, map[string]interface{}{
+	return api.wrapResponseError(response.Success(c, http.StatusOK, map[string]interface{}{
 		"id":      id,
 		"deleted": true,
-	})
+	}), "failed to send response")
+}
+
+// parseID parses the ID parameter from the request
+func (api *SubscriptionAPI) parseID(c echo.Context) (int64, error) {
+	id := c.Param("id")
+	if id == "" {
+		return 0, errors.New("missing id parameter")
+	}
+	parsed, err := subscription.ParseID(id)
+	if err != nil {
+		return 0, fmt.Errorf("failed to parse subscription ID: %w", err)
+	}
+	return parsed, nil
 }

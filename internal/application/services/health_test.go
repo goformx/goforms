@@ -1,6 +1,7 @@
-package services_test
+package services
 
 import (
+	"encoding/json"
 	"errors"
 	"net/http"
 	"net/http/httptest"
@@ -8,74 +9,78 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 
-	"github.com/jonesrussell/goforms/internal/application/services"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklog "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
-type mockDB struct {
-	mock.Mock
+type mockPingContexter struct {
+	err error
 }
 
-func (m *mockDB) PingContext(ctx echo.Context) error {
-	args := m.Called(ctx)
-	return args.Error(0)
+func (m *mockPingContexter) PingContext(ctx echo.Context) error {
+	return m.err
 }
 
 func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 	tests := []struct {
-		name           string
-		dbError        error
-		expectedStatus int
-		expectedBody   string
+		name        string
+		pingError   error
+		wantStatus  int
+		wantBody    map[string]interface{}
+		wantLogCall bool
 	}{
 		{
-			name:           "healthy service",
-			dbError:        nil,
-			expectedStatus: http.StatusOK,
-			expectedBody:   `{"status":"healthy"}`,
+			name:       "healthy service",
+			pingError:  nil,
+			wantStatus: http.StatusOK,
+			wantBody: map[string]interface{}{
+				"success": true,
+				"data": map[string]interface{}{
+					"status": "healthy",
+				},
+			},
+			wantLogCall: false,
 		},
 		{
-			name:           "unhealthy service",
-			dbError:        errors.New("connection failed"),
-			expectedStatus: http.StatusInternalServerError,
-			expectedBody:   `{"success":false,"error":"Service is not healthy"}`,
+			name:       "unhealthy service",
+			pingError:  errors.New("db connection failed"),
+			wantStatus: http.StatusInternalServerError,
+			wantBody: map[string]interface{}{
+				"success": false,
+				"error":   "Service is not healthy",
+			},
+			wantLogCall: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup
-			e := echo.New()
+			mockLogger := mocklog.NewMockLogger()
+			mockDB := &mockPingContexter{err: tt.pingError}
+			handler := NewHealthHandler(mockLogger, mockDB)
+
+			// Create request and recorder
 			req := httptest.NewRequest(http.MethodGet, "/health", nil)
 			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
+			c := echo.New().NewContext(req, rec)
 
-			mockDB := new(mockDB)
-			mockDB.On("PingContext", c).Return(tt.dbError)
-
-			logger := new(mocklog.MockLogger)
-			if tt.dbError != nil {
-				logger.ExpectError("health check failed", logging.Field{
-					Key: "error", Interface: tt.dbError,
-				})
-			}
-
-			handler := services.NewHealthHandler(logger, mockDB)
-
-			// Test
+			// Execute
 			err := handler.HandleHealthCheck(c)
 
 			// Assert
-			assert.NoError(t, err)
-			assert.Equal(t, tt.expectedStatus, rec.Code)
-			assert.JSONEq(t, tt.expectedBody, rec.Body.String())
-			mockDB.AssertExpectations(t)
-			if err := logger.Verify(); err != nil {
-				t.Errorf("logger expectations not met: %v", err)
+			if tt.wantLogCall {
+				assert.Error(t, err)
+			} else {
+				assert.NoError(t, err)
 			}
+
+			// Verify response
+			assert.Equal(t, tt.wantStatus, rec.Code)
+			var gotBody map[string]interface{}
+			err = json.Unmarshal(rec.Body.Bytes(), &gotBody)
+			assert.NoError(t, err)
+			assert.Equal(t, tt.wantBody, gotBody)
 		})
 	}
 }

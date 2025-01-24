@@ -4,10 +4,11 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestNewLogger(t *testing.T) {

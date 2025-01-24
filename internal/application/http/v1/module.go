@@ -11,6 +11,6 @@ var Module = fx.Options(
 	fx.Provide(
 		NewContactAPI,
 		NewSubscriptionAPI,
-		NewWebHandler,
+		NewHandler,
 	),
 )

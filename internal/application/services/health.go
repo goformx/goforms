@@ -1,7 +1,7 @@
 package services
 
 import (
-	"net/http"
+	"fmt"
 
 	"github.com/labstack/echo/v4"
 
@@ -37,10 +37,15 @@ func (h *HealthHandler) Register(e *echo.Echo) {
 func (h *HealthHandler) HandleHealthCheck(c echo.Context) error {
 	if err := h.db.PingContext(c); err != nil {
 		h.logger.Error("health check failed", logging.Error(err))
-		return response.InternalError(c, "Service is not healthy")
+		return fmt.Errorf("failed to check health status: %w",
+			response.InternalError(c, "Service is not healthy"))
 	}
 
-	return c.JSON(http.StatusOK, map[string]string{
+	err := response.Success(c, map[string]interface{}{
 		"status": "healthy",
 	})
+	if err == nil {
+		return nil
+	}
+	return fmt.Errorf("failed to send health check response: %w", err)
 }
