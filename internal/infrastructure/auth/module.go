@@ -9,7 +9,6 @@ import (
 	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	userstore "github.com/jonesrussell/goforms/internal/infrastructure/store"
 )
 
@@ -30,29 +29,37 @@ func NewConfig() (*Config, error) {
 	}, nil
 }
 
+// Result bundles auth-related dependencies for injection
+type Result struct {
+	fx.Out
+
+	JWTMiddleware echo.MiddlewareFunc
+}
+
+// New creates auth-related dependencies
+func New(cfg *Config, userService user.Service) Result {
+	return Result{
+		JWTMiddleware: provideJWTMiddleware(cfg, userService),
+	}
+}
+
 //nolint:gochecknoglobals // fx modules are designed to be global
 var Module = fx.Module("auth",
 	fx.Provide(
 		NewConfig,
 		userstore.NewStore,
-		provideUserService,
-		provideJWTMiddleware,
+		New,
 		v1.NewAuthHandler,
 	),
 	fx.Invoke(registerAuthRoutes),
 )
-
-// provideUserService creates a new user service with JWT configuration
-func provideUserService(cfg *Config, log logging.Logger, store user.Store) user.Service {
-	return user.NewService(log, store, cfg.JWTSecret)
-}
 
 // provideJWTMiddleware creates a new JWT middleware with configuration
 func provideJWTMiddleware(cfg *Config, userService user.Service) echo.MiddlewareFunc {
 	return middleware.NewJWTMiddleware(userService, cfg.JWTSecret)
 }
 
-// Params contains authentication parameters
+// Params for route registration
 type Params struct {
 	fx.In
 
@@ -61,7 +68,7 @@ type Params struct {
 	JWTMiddleware echo.MiddlewareFunc
 }
 
-// registerAuthRoutes sets up the authentication routes
+// registerAuthRoutes registers authentication routes
 func registerAuthRoutes(p Params) {
 	// Apply JWT middleware to all routes except auth routes
 	p.Echo.Use(p.JWTMiddleware)
