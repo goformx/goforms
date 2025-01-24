@@ -39,7 +39,6 @@ func NewWebHandler(renderer *view.Renderer, logger logging.Logger) *WebHandler {
 func (h *WebHandler) Register(e *echo.Echo) {
 	e.GET("/", h.Home)
 	e.GET("/contact", h.Contact)
-	e.GET("/subscribe", h.Subscribe)
 
 	// Configure static file serving with proper caching and security
 	e.Static("/static", "static")
