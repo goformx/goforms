@@ -5,11 +5,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/jonesrussell/goforms/internal/core/contact"
 	contactmock "github.com/jonesrussell/goforms/test/mocks/contact"
 	"github.com/jonesrussell/goforms/test/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestCreateContact(t *testing.T) {

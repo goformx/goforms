@@ -3,8 +3,9 @@ package subscriptionmock
 import (
 	"context"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/jonesrussell/goforms/internal/core/subscription"
 )
 
 // Ensure MockService implements Service interface

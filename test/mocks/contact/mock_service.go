@@ -3,8 +3,9 @@ package contactmock
 import (
 	"context"
 
-	"github.com/jonesrussell/goforms/internal/core/contact"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/jonesrussell/goforms/internal/core/contact"
 )
 
 // Ensure MockService implements Service interface

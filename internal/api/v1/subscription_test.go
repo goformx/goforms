@@ -5,11 +5,12 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
+
 	"github.com/jonesrussell/goforms/internal/core/subscription"
 	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/subscription"
 	"github.com/jonesrussell/goforms/test/utils"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 )
 
 func TestCreateSubscription(t *testing.T) {

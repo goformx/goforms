@@ -3,8 +3,9 @@ package validation
 import (
 	"testing"
 
-	"github.com/jonesrussell/goforms/internal/core/contact"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/jonesrussell/goforms/internal/core/contact"
 )
 
 func TestValidateContact(t *testing.T) {

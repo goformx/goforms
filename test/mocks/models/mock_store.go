@@ -3,10 +3,11 @@ package models
 import (
 	"context"
 
-	"github.com/jonesrussell/goforms/internal/core/subscription"
-	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/mock"
+
+	"github.com/jonesrussell/goforms/internal/core/subscription"
+	"github.com/jonesrussell/goforms/internal/handlers"
 )
 
 // Verify interface compliance at compile time

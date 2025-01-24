@@ -1,8 +1,9 @@
 package utils
 
 import (
-	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/labstack/echo/v4"
+
+	"github.com/jonesrussell/goforms/internal/logger"
 )
 
 // TestSetup contains common test setup utilities
