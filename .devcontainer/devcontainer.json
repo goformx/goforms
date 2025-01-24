@@ -35,7 +35,8 @@
 				"eamodio.gitlens",
 				"davidanson.vscode-markdownlint",
 				"a-h.templ",
-				"SanjulaGanepola.github-local-actions"
+				"SanjulaGanepola.github-local-actions",
+				"humao.rest-client"
 			],
 			"settings": {
 				"go.toolsManagement.checkForUpdates": "local",
