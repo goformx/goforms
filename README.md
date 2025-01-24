@@ -38,6 +38,61 @@ A modern Go web application for form management with MariaDB backend.
 - Task Automation
 - Docker Development
 
+## Architecture
+
+The project follows Clean Architecture principles with clear separation of concerns:
+
+### Core Domain Layer (`/internal/core/`)
+Contains business logic and domain entities:
+- Domain Models and Interfaces
+- Business Rules and Validation
+- Use Cases and Services
+- No External Dependencies
+
+### Platform Layer (`/internal/platform/`)
+Implements infrastructure and technical concerns:
+- Database Implementations
+- Server Configuration
+- Error Handling
+- External Integrations
+
+### Application Layer
+```
+/internal/
+├── api/          - API endpoints and versioning
+├── handlers/     - Request handlers
+├── middleware/   - HTTP middleware
+├── response/     - Response formatting
+└── validation/   - Input validation
+```
+
+### Infrastructure Layer
+```
+/internal/
+├── app/          - Application bootstrapping
+├── config/       - Configuration management
+├── database/     - Database connections
+├── logger/       - Logging infrastructure
+└── web/         - Web server setup
+```
+
+### Presentation Layer
+```
+/internal/
+├── components/   - UI components
+├── ui/          - UI logic
+└── view/        - View templates
+```
+
+## Dependencies
+
+The project follows a strict dependency rule where dependencies point inward:
+- Core Domain: No external dependencies
+- Platform: Implements core interfaces
+- Application: Depends on core and platform
+- Infrastructure: Configures and connects components
+- Presentation: Consumes application services
+
 ## Project Structure
 
 ```
