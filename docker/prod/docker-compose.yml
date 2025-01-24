@@ -7,8 +7,8 @@ services:
     ports:
       - "8090:8090"
     environment:
-      - SERVER_HOST=0.0.0.0
-      - SERVER_PORT=8090
+      - APP_HOST=0.0.0.0
+      - APP_PORT=8090
       - DB_HOST=db
       - DB_PORT=3306
       - DB_USER=${DB_USER}

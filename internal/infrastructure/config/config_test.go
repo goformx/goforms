@@ -17,8 +17,8 @@ func TestNew(t *testing.T) {
 		"DB_NAME":     os.Getenv("DB_NAME"),
 		"DB_HOST":     os.Getenv("DB_HOST"),
 		"DB_PORT":     os.Getenv("DB_PORT"),
-		"SERVER_PORT": os.Getenv("SERVER_PORT"),
-		"SERVER_HOST": os.Getenv("SERVER_HOST"),
+		"APP_PORT":    os.Getenv("APP_PORT"),
+		"APP_HOST":    os.Getenv("APP_HOST"),
 	}
 
 	// Cleanup function to restore original env vars
@@ -45,8 +45,8 @@ func TestNew(t *testing.T) {
 				"DB_NAME":              "testdb",
 				"DB_HOST":              "localhost",
 				"DB_PORT":              "3306",
-				"SERVER_PORT":          "8080",
-				"SERVER_HOST":          "localhost",
+				"APP_PORT":             "8080",
+				"APP_HOST":             "localhost",
 				"CORS_ALLOWED_ORIGINS": "http://localhost:3000",
 				"CORS_ALLOWED_METHODS": "GET,POST,PUT,DELETE,OPTIONS",
 			},
@@ -55,8 +55,8 @@ func TestNew(t *testing.T) {
 		{
 			name: "missing required database config",
 			envVars: map[string]string{
-				"SERVER_PORT": "8080",
-				"SERVER_HOST": "localhost",
+				"APP_PORT": "8080",
+				"APP_HOST": "localhost",
 			},
 			wantError: true,
 		},
