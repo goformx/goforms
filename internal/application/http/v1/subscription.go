@@ -46,6 +46,11 @@ func (api *SubscriptionAPI) CreateSubscription(c echo.Context) error {
 		return response.Error(c, http.StatusBadRequest, "invalid request")
 	}
 
+	if err := sub.Validate(); err != nil {
+		api.logger.Error("invalid subscription", logging.Error(err))
+		return response.Error(c, http.StatusBadRequest, err.Error())
+	}
+
 	if err := api.service.CreateSubscription(c.Request().Context(), &sub); err != nil {
 		api.logger.Error("failed to create subscription", logging.Error(err))
 		switch {
