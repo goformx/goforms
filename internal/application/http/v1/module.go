@@ -2,6 +2,9 @@ package v1
 
 import (
 	"go.uber.org/fx"
+
+	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 )
 
 // Module combines all v1 API handlers and their dependencies
@@ -10,6 +13,9 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		NewContactAPI,
-		NewAuthHandler,
+		NewSubscriptionAPI,
+		NewWebHandler,
+		contact.NewService,
+		subscription.NewService,
 	),
 )
