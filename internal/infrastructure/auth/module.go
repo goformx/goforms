@@ -9,7 +9,6 @@ import (
 	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/user"
-	userstore "github.com/jonesrussell/goforms/internal/infrastructure/store"
 )
 
 // Config holds authentication configuration
@@ -47,7 +46,10 @@ func New(cfg *Config, userService user.Service) Result {
 var Module = fx.Module("auth",
 	fx.Provide(
 		NewConfig,
-		userstore.NewStore,
+		fx.Annotate(
+			func(cfg *Config) string { return cfg.JWTSecret },
+			fx.ResultTags(`name:"jwt_secret"`),
+		),
 		New,
 		v1.NewAuthHandler,
 	),

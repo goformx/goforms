@@ -9,6 +9,9 @@ import (
 //nolint:gochecknoglobals // fx modules are designed to be global
 var Module = fx.Options(
 	fx.Provide(
-		NewService,
+		fx.Annotate(
+			NewService,
+			fx.ParamTags(``, ``, `name:"jwt_secret"`),
+		),
 	),
 )
