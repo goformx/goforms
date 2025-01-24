@@ -1,12 +1,12 @@
 package app
 
 import (
-	"github.com/go-playground/validator/v10"
+	"github.com/jonesrussell/goforms/internal/validation"
 )
 
 // CustomValidator for request validation
 type CustomValidator struct {
-	validator *validator.Validate
+	validator validation.Validator
 }
 
 // Validate implements echo.Validator interface
@@ -16,5 +16,7 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 
 // NewValidator creates a new validator instance
 func NewValidator() *CustomValidator {
-	return &CustomValidator{validator: validator.New()}
+	return &CustomValidator{
+		validator: validation.New(),
+	}
 }
