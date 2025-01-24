@@ -1,7 +1,7 @@
 package app
 
 import (
-	"github.com/jonesrussell/goforms/internal/common/interfaces"
+	"github.com/jonesrussell/goforms/internal/domain/common/interfaces"
 	"github.com/jonesrussell/goforms/internal/infrastructure/validation"
 )
 

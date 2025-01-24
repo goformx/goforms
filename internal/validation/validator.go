@@ -4,7 +4,7 @@ import (
 	"sync"
 
 	"github.com/go-playground/validator/v10"
-	commonval "github.com/jonesrussell/goforms/internal/common/validation"
+	commonval "github.com/jonesrussell/goforms/internal/domain/common/validation"
 )
 
 // Validator defines the interface for validation operations
