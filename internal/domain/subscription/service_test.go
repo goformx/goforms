@@ -251,6 +251,8 @@ func TestDeleteSubscription(t *testing.T) {
 			name: "existing subscription",
 			id:   1,
 			setup: func() {
+				mockStore.On("GetByID", mock.Anything, int64(1)).
+					Return(&subscription.Subscription{ID: 1}, nil)
 				mockStore.On("Delete", mock.Anything, int64(1)).Return(nil)
 			},
 		},
@@ -258,8 +260,8 @@ func TestDeleteSubscription(t *testing.T) {
 			name: "non-existent subscription",
 			id:   999,
 			setup: func() {
-				mockStore.On("Delete", mock.Anything, int64(999)).
-					Return(subscription.ErrSubscriptionNotFound)
+				mockStore.On("GetByID", mock.Anything, int64(999)).
+					Return(nil, subscription.ErrSubscriptionNotFound)
 			},
 			wantErr: subscription.ErrSubscriptionNotFound,
 		},
