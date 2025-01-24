@@ -42,9 +42,11 @@ linters-settings:
     ignore-fields: true
     ignore-patterns:
       - .*Module.*  # Ignore all fx module variables
+      - .*Logger.*  # Ignore logger-related variables
     ignore-names:
-      - instance    # Ignore validator instance
-      - once       # Ignore sync.Once instance
+      - instance    # Ignore singleton instances
+      - once       # Ignore sync.Once instances
+      - logger     # Ignore logger instances
 
   wrapcheck:
     ignoreSigs:
@@ -106,7 +108,7 @@ issues:
         - gochecknoglobals
         - gosec
         - wrapcheck
-    - path: internal/logger/logger.go
+    - path: internal/infrastructure/logging/logger.go
       linters:
         - gochecknoglobals
         - importas
