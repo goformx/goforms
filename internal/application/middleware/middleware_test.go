@@ -10,6 +10,7 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/stretchr/testify/mock"
 )
 
 func TestMiddlewareSetup(t *testing.T) {
@@ -31,42 +32,34 @@ func TestMiddlewareSetup(t *testing.T) {
 }
 
 func TestRequestIDMiddleware(t *testing.T) {
-	// Create mock logger
 	mockLogger := mocklogging.NewMockLogger()
 	mockLogger.ExpectDebug("incoming request",
-		logging.String("request_id", "test-id"),
+		logging.String("request_id", mock.Anything),
+		logging.String("method", "GET"),
+		logging.String("path", "/"),
+		logging.String("remote_addr", "192.0.2.1:1234"),
 	)
 
-	// Create middleware manager
-	mw := New(mockLogger)
-
-	// Create Echo instance
 	e := echo.New()
-
-	// Add request ID middleware
-	e.Use(mw.requestID())
+	m := New(mockLogger)
 
 	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
+
+	// Add middleware
+	e.Use(m.requestID())
 
 	// Create test handler
-	handler := func(c echo.Context) error {
-		requestID := c.Get("request_id")
-		assert.NotNil(t, requestID)
-		assert.NotEmpty(t, requestID)
-		return nil
-	}
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
+	})
 
-	// Execute middleware
-	h := mw.requestID()(handler)
-	err := h(c)
+	// Process the request
+	e.ServeHTTP(rec, req)
 
-	// Assert no errors
-	assert.NoError(t, err)
-
-	// Verify logger calls
+	// Assert response
+	assert.Equal(t, http.StatusOK, rec.Code)
 	mockLogger.AssertExpectations(t)
 }
 

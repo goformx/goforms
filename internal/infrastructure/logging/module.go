@@ -1,9 +1,10 @@
 package logging
 
 import (
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
+
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
 
 // Result bundles logger-related dependencies for injection.
@@ -28,6 +29,8 @@ func New(cfg *config.Config) Result {
 }
 
 // Module provides logging dependencies.
+//
+//nolint:gochecknoglobals // This is an fx module definition, which is meant to be global
 var Module = fx.Options(
 	fx.Provide(New),
 )

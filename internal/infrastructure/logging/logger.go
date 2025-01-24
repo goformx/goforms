@@ -5,9 +5,10 @@ import (
 	"os"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
 
 // Logger defines the interface for logging operations

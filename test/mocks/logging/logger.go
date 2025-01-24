@@ -17,19 +17,35 @@ func NewMockLogger() *MockLogger {
 }
 
 func (m *MockLogger) Info(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, fields)
+	}
+	m.Called(args...)
 }
 
 func (m *MockLogger) Error(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, fields)
+	}
+	m.Called(args...)
 }
 
 func (m *MockLogger) Debug(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, fields)
+	}
+	m.Called(args...)
 }
 
 func (m *MockLogger) Warn(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, fields)
+	}
+	m.Called(args...)
 }
 
 // Helper methods for common verifications
@@ -48,10 +64,10 @@ func (m *MockLogger) VerifyInfo(msg string) bool {
 func (m *MockLogger) VerifyError(msg string) bool {
 	for _, call := range m.Calls {
 		if call.Method == "Error" && call.Arguments[0].(string) == msg {
-			return true
+			return false
 		}
 	}
-	return false
+	return true
 }
 
 // VerifyDebug verifies that a debug message was logged
@@ -86,20 +102,88 @@ func (m *MockLogger) VerifyNoErrors() bool {
 
 // ExpectInfo sets up an expectation for an info message
 func (m *MockLogger) ExpectInfo(msg string, fields ...logging.Field) *mock.Call {
-	return m.On("Info", msg, fields).Return()
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, mock.MatchedBy(func(actual []logging.Field) bool {
+			if len(actual) != len(fields) {
+				return false
+			}
+			for i, field := range fields {
+				if field.String == "mock.Anything" {
+					continue
+				}
+				if actual[i].Key != field.Key || actual[i].String != field.String {
+					return false
+				}
+			}
+			return true
+		}))
+	}
+	return m.On("Info", args...).Return()
 }
 
 // ExpectError sets up an expectation for an error message
 func (m *MockLogger) ExpectError(msg string, fields ...logging.Field) *mock.Call {
-	return m.On("Error", msg, fields).Return()
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, mock.MatchedBy(func(actual []logging.Field) bool {
+			if len(actual) != len(fields) {
+				return false
+			}
+			for i, field := range fields {
+				if field.String == "mock.Anything" {
+					continue
+				}
+				if actual[i].Key != field.Key || actual[i].String != field.String {
+					return false
+				}
+			}
+			return true
+		}))
+	}
+	return m.On("Error", args...).Return()
 }
 
 // ExpectDebug sets up an expectation for a debug message
 func (m *MockLogger) ExpectDebug(msg string, fields ...logging.Field) *mock.Call {
-	return m.On("Debug", msg, fields).Return()
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, mock.MatchedBy(func(actual []logging.Field) bool {
+			if len(actual) != len(fields) {
+				return false
+			}
+			for i, field := range fields {
+				if field.String == "mock.Anything" {
+					continue
+				}
+				if actual[i].Key != field.Key || actual[i].String != field.String {
+					return false
+				}
+			}
+			return true
+		}))
+	}
+	return m.On("Debug", args...).Return()
 }
 
 // ExpectWarn sets up an expectation for a warning message
 func (m *MockLogger) ExpectWarn(msg string, fields ...logging.Field) *mock.Call {
-	return m.On("Warn", msg, fields).Return()
+	args := []interface{}{msg}
+	if len(fields) > 0 {
+		args = append(args, mock.MatchedBy(func(actual []logging.Field) bool {
+			if len(actual) != len(fields) {
+				return false
+			}
+			for i, field := range fields {
+				if field.String == "mock.Anything" {
+					continue
+				}
+				if actual[i].Key != field.Key || actual[i].String != field.String {
+					return false
+				}
+			}
+			return true
+		}))
+	}
+	return m.On("Warn", args...).Return()
 }

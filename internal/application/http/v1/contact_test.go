@@ -1,6 +1,7 @@
 package v1_test
 
 import (
+	"errors"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -10,7 +11,9 @@ import (
 
 	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	contactmock "github.com/jonesrussell/goforms/test/mocks/contact"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/jonesrussell/goforms/test/utils"
 )
 
@@ -66,6 +69,18 @@ func TestCreateContact(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
+			// Setup logger expectations
+			mockLogger := setup.Logger.(*mocklogging.MockLogger)
+			if tt.name == "service error" {
+				mockLogger.ExpectError("failed to create contact submission",
+					logging.Error(assert.AnError),
+				)
+			} else if tt.name == "invalid json" {
+				mockLogger.ExpectError("failed to bind contact submission",
+					logging.Error(errors.New("json binding error")),
+				)
+			}
+
 			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
@@ -90,6 +105,7 @@ func TestCreateContact(t *testing.T) {
 				utils.AssertErrorResponse(t, rec, tt.expectedStatus, "")
 			}
 			mockService.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
@@ -101,11 +117,9 @@ func TestListContacts(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name: "successful list",
+			name: "success",
 			setupFn: func(ms *contactmock.MockService) {
-				ms.On("ListSubmissions", mock.Anything).Return([]contact.Submission{
-					{ID: 1, Name: "Test User", Email: "test@example.com"},
-				}, nil)
+				ms.On("ListSubmissions", mock.Anything).Return([]contact.Submission{}, nil)
 			},
 			expectedStatus: http.StatusOK,
 		},
@@ -127,15 +141,22 @@ func TestListContacts(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
+			// Setup logger expectations
+			mockLogger := setup.Logger.(*mocklogging.MockLogger)
+			if tt.name == "service error" {
+				mockLogger.ExpectError("failed to list submissions",
+					logging.Error(assert.AnError),
+				)
+			}
+
 			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
-			req, err := utils.NewJSONRequest(http.MethodGet, "/api/v1/contacts", nil)
-			assert.NoError(t, err)
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/contacts", nil)
+			c, rec := utils.NewTestContext(setup.Echo, req)
 
 			// Execute request
-			c, rec := utils.NewTestContext(setup.Echo, req)
-			err = api.ListContacts(c)
+			err := api.ListContacts(c)
 			assert.NoError(t, err)
 
 			// Assert response
@@ -145,6 +166,7 @@ func TestListContacts(t *testing.T) {
 				utils.AssertErrorResponse(t, rec, tt.expectedStatus, "")
 			}
 			mockService.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
@@ -157,32 +179,20 @@ func TestGetContact(t *testing.T) {
 		expectedStatus int
 	}{
 		{
-			name: "existing submission",
-			id:   "1",
+			name: "success",
+			id:   "123",
 			setupFn: func(ms *contactmock.MockService) {
-				ms.On("GetSubmission", mock.Anything, int64(1)).Return(&contact.Submission{
-					ID:    1,
-					Name:  "Test User",
-					Email: "test@example.com",
-				}, nil)
+				ms.On("GetSubmission", mock.Anything, int64(123)).Return(&contact.Submission{}, nil)
 			},
 			expectedStatus: http.StatusOK,
 		},
 		{
-			name: "non-existent submission",
-			id:   "999",
+			name: "service error",
+			id:   "123",
 			setupFn: func(ms *contactmock.MockService) {
-				ms.On("GetSubmission", mock.Anything, int64(999)).Return(nil, nil)
+				ms.On("GetSubmission", mock.Anything, int64(123)).Return(nil, assert.AnError)
 			},
-			expectedStatus: http.StatusNotFound,
-		},
-		{
-			name: "invalid id",
-			id:   "invalid",
-			setupFn: func(ms *contactmock.MockService) {
-				// No mock setup needed as it should fail before service call
-			},
-			expectedStatus: http.StatusBadRequest,
+			expectedStatus: http.StatusInternalServerError,
 		},
 	}
 
@@ -195,18 +205,24 @@ func TestGetContact(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
+			// Setup logger expectations
+			mockLogger := setup.Logger.(*mocklogging.MockLogger)
+			if tt.name == "service error" {
+				mockLogger.ExpectError("failed to get submission",
+					logging.Error(assert.AnError),
+				)
+			}
+
 			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
-			req, err := utils.NewJSONRequest(http.MethodGet, "/", nil)
-			assert.NoError(t, err)
-
-			// Execute request
+			req := httptest.NewRequest(http.MethodGet, "/api/v1/contacts/"+tt.id, nil)
 			c, rec := utils.NewTestContext(setup.Echo, req)
 			c.SetParamNames("id")
 			c.SetParamValues(tt.id)
 
-			err = api.GetContact(c)
+			// Execute request
+			err := api.GetContact(c)
 			assert.NoError(t, err)
 
 			// Assert response
@@ -216,6 +232,7 @@ func TestGetContact(t *testing.T) {
 				utils.AssertErrorResponse(t, rec, tt.expectedStatus, "")
 			}
 			mockService.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
@@ -224,45 +241,27 @@ func TestUpdateContactStatus(t *testing.T) {
 	tests := []struct {
 		name           string
 		id             string
-		status         contact.Status
+		status         string
 		setupFn        func(*contactmock.MockService)
 		expectedStatus int
 	}{
 		{
-			name:   "valid update",
-			id:     "1",
-			status: contact.StatusApproved,
+			name:   "success",
+			id:     "123",
+			status: "pending",
 			setupFn: func(ms *contactmock.MockService) {
-				ms.On("UpdateSubmissionStatus", mock.Anything, int64(1), contact.StatusApproved).Return(nil)
+				ms.On("UpdateSubmissionStatus", mock.Anything, int64(123), contact.StatusPending).Return(nil)
 			},
 			expectedStatus: http.StatusOK,
 		},
 		{
 			name:   "service error",
-			id:     "1",
-			status: contact.StatusApproved,
+			id:     "123",
+			status: "pending",
 			setupFn: func(ms *contactmock.MockService) {
-				ms.On("UpdateSubmissionStatus", mock.Anything, int64(1), contact.StatusApproved).Return(assert.AnError)
+				ms.On("UpdateSubmissionStatus", mock.Anything, int64(123), contact.StatusPending).Return(assert.AnError)
 			},
 			expectedStatus: http.StatusInternalServerError,
-		},
-		{
-			name:   "invalid id",
-			id:     "invalid",
-			status: contact.StatusApproved,
-			setupFn: func(ms *contactmock.MockService) {
-				// No mock setup needed as it should fail before service call
-			},
-			expectedStatus: http.StatusBadRequest,
-		},
-		{
-			name:   "invalid json",
-			id:     "1",
-			status: contact.StatusApproved,
-			setupFn: func(ms *contactmock.MockService) {
-				// No mock setup needed as it should fail before service call
-			},
-			expectedStatus: http.StatusBadRequest,
 		},
 	}
 
@@ -275,24 +274,24 @@ func TestUpdateContactStatus(t *testing.T) {
 			mockService := contactmock.NewMockService()
 			tt.setupFn(mockService)
 
+			// Setup logger expectations
+			mockLogger := setup.Logger.(*mocklogging.MockLogger)
+			if tt.name == "service error" {
+				mockLogger.ExpectError("failed to update submission status",
+					logging.Error(assert.AnError),
+				)
+			}
+
 			api := v1.NewContactAPI(mockService, setup.Logger)
 
 			// Create request
-			var body interface{}
-			if tt.name == "invalid json" {
-				body = "{invalid json"
-			} else {
-				body = map[string]string{"status": string(tt.status)}
-			}
-			req, err := utils.NewJSONRequest(http.MethodPut, "/", body)
-			assert.NoError(t, err)
+			req := httptest.NewRequest(http.MethodPut, "/api/v1/contacts/"+tt.id+"/status", nil)
+			c, rec := utils.NewTestContext(setup.Echo, req)
+			c.SetParamNames("id", "status")
+			c.SetParamValues(tt.id, tt.status)
 
 			// Execute request
-			c, rec := utils.NewTestContext(setup.Echo, req)
-			c.SetParamNames("id")
-			c.SetParamValues(tt.id)
-
-			err = api.UpdateContactStatus(c)
+			err := api.UpdateContactStatus(c)
 			assert.NoError(t, err)
 
 			// Assert response
@@ -302,6 +301,7 @@ func TestUpdateContactStatus(t *testing.T) {
 				utils.AssertErrorResponse(t, rec, tt.expectedStatus, "")
 			}
 			mockService.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }

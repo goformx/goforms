@@ -8,7 +8,7 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/test/mocks"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestNewLogger(t *testing.T) {
@@ -76,25 +76,27 @@ func TestLoggerDebugLevel(t *testing.T) {
 }
 
 func TestMockLogger(t *testing.T) {
-	mock := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
 
-	// Test info logging
-	testMsg := "test info message"
-	mock.Info(testMsg, logging.String("key", "value"))
-	assert.True(t, mock.HasInfoLog(testMsg), "Mock should record info message")
+	// Test Info logging
+	mockLogger.ExpectInfo("test info message")
+	mockLogger.Info("test info message")
+	mockLogger.AssertExpectations(t)
 
-	// Test error logging
-	errMsg := "test error message"
-	mock.Error(errMsg)
-	assert.True(t, mock.HasErrorLog(errMsg), "Mock should record error message")
+	// Test Error logging
+	mockLogger.ExpectError("test error message")
+	mockLogger.Error("test error message")
+	mockLogger.AssertExpectations(t)
 
-	// Test debug logging
-	mock.Debug("test debug")
-	assert.Len(t, mock.DebugCalls, 1, "Mock should record debug call")
+	// Test Debug logging
+	mockLogger.ExpectDebug("test debug message")
+	mockLogger.Debug("test debug message")
+	mockLogger.AssertExpectations(t)
 
-	// Test warn logging
-	mock.Warn("test warn")
-	assert.Len(t, mock.WarnCalls, 1, "Mock should record warn call")
+	// Test Warn logging
+	mockLogger.ExpectWarn("test warn message")
+	mockLogger.Warn("test warn message")
+	mockLogger.AssertExpectations(t)
 }
 
 func TestNewTestLogger(t *testing.T) {

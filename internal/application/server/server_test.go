@@ -5,12 +5,13 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/fx"
+
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 // mockLifecycle implements fx.Lifecycle for testing
@@ -22,7 +23,7 @@ func (m *mockLifecycle) Append(hook fx.Hook) {
 
 func TestNewServer(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("Initializing server")
+	mockLogger.ExpectInfo("initializing server")
 
 	cfg := &config.Config{
 		App: config.AppConfig{
@@ -41,9 +42,10 @@ func TestNewServer(t *testing.T) {
 
 func TestServerStart(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("Starting HTTP server",
+	mockLogger.ExpectInfo("starting HTTP server",
 		logging.String("host", "localhost"),
 		logging.Int("port", 8090),
+		logging.String("env", ""),
 	)
 
 	cfg := &config.Config{
@@ -68,8 +70,8 @@ func TestServerStart(t *testing.T) {
 
 func TestServerStop(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("Initializing server")
-	mockLogger.ExpectInfo("Shutting down server")
+	mockLogger.ExpectInfo("initializing server")
+	mockLogger.ExpectInfo("stopping HTTP server")
 
 	cfg := &config.Config{
 		App: config.AppConfig{
