@@ -1,0 +1,52 @@
+@baseUrl = http://localhost:8090
+@contentType = application/json
+@email = test@example.com
+@password = password123
+
+### Sign up a new user
+# @name signup
+POST {{baseUrl}}/api/v1/auth/signup
+Content-Type: {{contentType}}
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}",
+    "confirm_password": "{{password}}",
+    "first_name": "Test",
+    "last_name": "User"
+}
+
+### Login
+# @name login
+POST {{baseUrl}}/api/v1/auth/login
+Content-Type: {{contentType}}
+
+{
+    "email": "{{email}}",
+    "password": "{{password}}"
+}
+
+### Save tokens from login response
+@auth_token = {{login.response.body.data.access_token}}
+@refresh_token = {{login.response.body.data.refresh_token}}
+
+### Refresh Token
+# @name refresh
+POST {{baseUrl}}/api/v1/auth/refresh
+Content-Type: {{contentType}}
+
+{
+    "token": "{{refresh_token}}"
+}
+
+### Logout
+# @name logout
+POST {{baseUrl}}/api/v1/auth/logout
+Authorization: Bearer {{auth_token}}
+Content-Type: {{contentType}}
+
+### Get Protected Resource (Example)
+# @name protected
+GET {{baseUrl}}/api/v1/protected
+Authorization: Bearer {{auth_token}}
+Content-Type: {{contentType}} 
