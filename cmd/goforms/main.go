@@ -5,7 +5,6 @@ import (
 
 	"github.com/joho/godotenv"
 	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
 
 	"github.com/jonesrussell/goforms/internal/application"
 	"github.com/jonesrussell/goforms/internal/application/http"
@@ -31,10 +30,10 @@ func main() {
 	// Try to load .env file
 	_ = godotenv.Load()
 
-	// Initialize logger
-	log := logging.GetLogger()
-
 	app := fx.New(
+		// Logging module (must be first to capture other modules' initialization)
+		logging.Module,
+
 		// Infrastructure modules
 		infrastructure.Module,
 
@@ -47,14 +46,23 @@ func main() {
 		// HTTP handlers
 		http.Module,
 
-		// App configuration
+		// Application module
 		application.Module,
 
 		// Configure fx to use our logger
-		fx.WithLogger(func() fxevent.Logger {
-			return &fxevent.ZapLogger{Logger: logging.UnderlyingZap(log)}
+		fx.WithLogger(func(log logging.Logger) fx.Printer {
+			return &fxLogger{log}
 		}),
 	)
 
 	app.Run()
+}
+
+// fxLogger adapts our logger to fx.Printer
+type fxLogger struct {
+	log logging.Logger
+}
+
+func (l *fxLogger) Printf(format string, args ...interface{}) {
+	l.log.Info(fmt.Sprintf(format, args...))
 }

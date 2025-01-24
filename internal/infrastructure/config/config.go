@@ -30,8 +30,11 @@ type DatabaseConfig struct {
 
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
-	Port int    `envconfig:"SERVER_PORT" default:"8080"`
-	Host string `envconfig:"SERVER_HOST" default:"localhost"`
+	Port         int           `envconfig:"SERVER_PORT" default:"8080"`
+	Host         string        `envconfig:"SERVER_HOST" default:"localhost"`
+	ReadTimeout  time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"5s"`
+	WriteTimeout time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout  time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"120s"`
 }
 
 // SecurityConfig contains security-related settings

@@ -38,6 +38,24 @@
 
 ## In Progress
 
+- [ ] Dependency Injection Improvements
+  - [x] Logger Consistency
+    - [x] Consolidate logger initialization
+    - [x] Replace direct GetLogger calls with DI
+    - [x] Add logger interface documentation
+  - [x] Configuration Management
+    - [x] Move server config to infrastructure layer
+    - [x] Create unified config structure
+    - [x] Add config validation
+  - [x] Database Access
+    - [x] Group store providers
+    - [x] Ensure consistent store initialization
+    - [x] Add store interfaces documentation
+  - [ ] Handler Dependencies
+    - [ ] Audit handler constructors
+    - [ ] Ensure consistent DI usage
+    - [ ] Document dependency requirements
+
 - [ ] Security
   - [ ] Authentication System
     - [ ] Logout Functionality
