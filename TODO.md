@@ -38,6 +38,19 @@
 
 ## In Progress
 
+- [ ] Contact Form Demo
+  - [x] Basic Form Implementation
+  - [x] API Response Display
+  - [x] Message History Display
+  - [ ] Form Validation
+  - [ ] Error Handling Improvements
+  - [ ] Loading States
+  - [ ] Success Feedback
+  - [ ] Message Filtering
+  - [ ] Message Sorting Options
+  - [ ] Responsive Design
+  - [ ] Accessibility Improvements
+
 - [ ] Dependency Injection Improvements
   - [x] Logger Consistency
     - [x] Consolidate logger initialization

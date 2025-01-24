@@ -1,176 +1,106 @@
-# Architecture Overview
+# Architecture Documentation
 
-GoForms follows Clean Architecture principles to maintain a clear separation of concerns and dependencies. This document outlines the architectural decisions and patterns used in the project.
+## Overview
 
-## Architectural Layers
+GoForms is built using a clean architecture approach with clear separation of concerns. The application is divided into several layers:
 
-### 1. Core Domain Layer (`/internal/core/`)
+- Domain Layer: Core business logic and entities
+- Application Layer: Use cases and service orchestration
+- Infrastructure Layer: External dependencies and implementations
+- Presentation Layer: Web UI and API endpoints
 
-The heart of the application, containing business logic and domain rules.
+## Components
 
-#### Key Components:
-- **Contact Domain**
-  ```go
-  /internal/core/contact/
-  ├── model.go       // Domain entities and types
-  ├── service.go     // Business operations
-  ├── store.go       // Storage interface
-  └── errors.go      // Domain-specific errors
-  ```
+### Domain Layer
 
-- **Subscription Domain**
-  ```go
-  /internal/core/subscription/
-  ├── model.go       // Domain entities and types
-  ├── service.go     // Business operations
-  ├── store.go       // Storage interface
-  └── errors.go      // Domain-specific errors
-  ```
+#### Contact Module
+- `contact.Submission`: Entity representing a contact form submission
+- `contact.Service`: Interface defining contact form business operations
+- `contact.Store`: Interface for contact data persistence
+- `contact.Status`: Enumeration of possible submission statuses
 
-#### Characteristics:
-- Pure business logic
-- No external dependencies
-- Defines interfaces for external requirements
-- Contains domain models and business rules
-- Framework-independent
+#### Subscription Module
+- `subscription.Subscription`: Entity for email subscriptions
+- `subscription.Service`: Interface for subscription management
+- `subscription.Store`: Interface for subscription data persistence
+- `subscription.Status`: Enumeration of subscription statuses
 
-### 2. Platform Layer (`/internal/platform/`)
+### Application Layer
 
-Implements technical concerns and infrastructure.
+#### HTTP Handlers
+- `v1.ContactAPI`: Handles contact form HTTP endpoints
+  - Public endpoints for form submission and message listing
+  - Protected endpoints for admin operations
+- `v1.SubscriptionAPI`: Manages subscription-related endpoints
 
-#### Key Components:
-- **Database**
-  ```go
-  /internal/platform/database/
-  ├── migrations/    // Database schema changes
-  ├── stores/       // Implementation of core interfaces
-  └── connection.go // Database connection management
-  ```
+#### Services
+- `services.ContactService`: Implements contact form business logic
+- `services.SubscriptionService`: Implements subscription management
 
-- **Error Handling**
-  ```go
-  /internal/platform/errors/
-  ├── errors.go     // Error types and handling
-  └── middleware.go // Error middleware
-  ```
+### Infrastructure Layer
 
-- **Server**
-  ```go
-  /internal/platform/server/
-  ├── config.go     // Server configuration
-  └── server.go     // HTTP server setup
-  ```
+#### Database
+- MariaDB for persistent storage
+- Connection pooling and configuration
+- Migration management
 
-#### Characteristics:
-- Implements interfaces defined in core
-- Handles technical details
-- Contains external dependencies
-- Provides concrete implementations
+#### Logging
+- Structured logging using Uber's zap
+- Request tracking with unique IDs
+- Error and debug logging
 
-## Dependency Flow
+#### Configuration
+- Environment-based configuration
+- Validation and defaults
+- Type-safe config access
 
-```mermaid
-graph TD
-    A[Presentation Layer] --> B[Application Layer]
-    B --> C[Core Domain Layer]
-    D[Platform Layer] --> C
-    B --> D
-    E[Infrastructure Layer] --> D
-```
+### Presentation Layer
 
-## Key Design Decisions
+#### Web UI
+- Contact Form Demo
+  - Form submission component
+  - Message history display
+  - API response visualization
+- Subscription Management
+  - Subscription forms
+  - Status management
 
-### 1. Interface Segregation
-- Small, focused interfaces in core
-- Concrete implementations in platform
-- Example:
-  ```go
-  // Core interface
-  type Store interface {
-      Create(ctx context.Context, entity *Entity) error
-      Get(ctx context.Context, id string) (*Entity, error)
-  }
+#### Templates
+- Using templ for type-safe templates
+- Component-based UI architecture
+- Shared layouts and components
 
-  // Platform implementation
-  type SQLStore struct {
-      db *sqlx.DB
-  }
-  ```
+## Data Flow
 
-### 2. Dependency Injection
-- Using Uber FX for DI
-- Modules provide their dependencies
-- Example:
-  ```go
-  func NewModule() fx.Option {
-      return fx.Options(
-          fx.Provide(
-              NewService,
-              NewStore,
-          ),
-      )
-  }
-  ```
+1. User submits contact form
+2. Frontend JavaScript handles submission
+3. Request goes to public API endpoint
+4. Service layer validates input
+5. Data is persisted to database
+6. Response is returned to user
+7. UI updates to show submission status
 
-### 3. Error Handling
-- Domain-specific errors in core
-- Technical errors in platform
-- Error translation at boundaries
-- Example:
-  ```go
-  // Core error
-  var ErrNotFound = errors.New("entity not found")
+## Security
 
-  // Platform error handling
-  func (s *SQLStore) handleError(err error) error {
-      if errors.Is(err, sql.ErrNoRows) {
-          return ErrNotFound
-      }
-      return err
-  }
-  ```
+- Authentication required for admin operations
+- Public endpoints for demo functionality
+- CORS and security headers
+- Input validation at multiple levels
+- Error handling and logging
 
-## Testing Strategy
+## Dependencies
 
-### Core Layer
-- Pure unit tests
-- Mock interfaces
-- No external dependencies
-- Example:
-  ```go
-  func TestService_Create(t *testing.T) {
-      mockStore := mocks.NewMockStore()
-      service := NewService(mockStore)
-      // Test business logic
-  }
-  ```
+- Echo: Web framework
+- Fx: Dependency injection
+- Zap: Logging
+- SQLx: Database access
+- Templ: Templates
+- Testify: Testing
 
-### Platform Layer
-- Integration tests
-- Real dependencies
-- Infrastructure testing
-- Example:
-  ```go
-  func TestSQLStore_Create(t *testing.T) {
-      db := setupTestDB(t)
-      store := NewSQLStore(db)
-      // Test with real database
-  }
-  ```
+## Development
 
-## Future Considerations
-
-1. **Scalability**
-   - Microservices split along domain boundaries
-   - Independent scaling of components
-   - Message queue integration
-
-2. **Monitoring**
-   - Metrics collection in platform layer
-   - Business metrics in core
-   - Distributed tracing
-
-3. **Security**
-   - Authentication/Authorization in platform
-   - Business rules in core
-   - Rate limiting and API security
+- Dev container for consistent environment
+- Hot reload for rapid development
+- Task automation with Taskfile
+- Comprehensive test suite
+- Linting and formatting rules

@@ -40,11 +40,12 @@ func NewContactAPI(service contact.Service, logger logging.Logger) *ContactAPI {
 func (api *ContactAPI) Register(e *echo.Echo) {
 	// Public routes
 	v1 := e.Group("/api/v1")
-	v1.POST("/contact", api.CreateContact) // Public contact form submission
+	public := v1.Group("/contacts")
+	public.POST("", api.CreateContact) // Public contact form submission
+	public.GET("", api.ListContacts)   // Public messages list for demo
 
-	// Protected routes
+	// Protected routes (separate group from public)
 	protected := v1.Group("/contacts", api.requireAuth())
-	protected.GET("", api.ListContacts)
 	protected.GET("/:id", api.GetContact)
 	protected.PUT("/:id/status", api.UpdateContactStatus)
 }
