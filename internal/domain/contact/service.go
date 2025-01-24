@@ -47,7 +47,7 @@ func (s *ServiceImpl) Submit(ctx context.Context, sub *Submission) error {
 			logging.Error(err),
 			logging.String("email", sub.Email),
 		)
-		return fmt.Errorf("failed to create submission: %w", err)
+		return err
 	}
 
 	s.logger.Info("submission created",

@@ -18,11 +18,11 @@ type Config struct {
 
 // DatabaseConfig holds all database-related configuration
 type DatabaseConfig struct {
-	Host           string        `envconfig:"DB_HOST" default:"localhost"`
-	Port           int           `envconfig:"DB_PORT" default:"3306"`
-	User           string        `envconfig:"DB_USER" default:"root"`
-	Password       string        `envconfig:"DB_PASSWORD" default:""`
-	Name           string        `envconfig:"DB_NAME" default:"goforms"`
+	Host           string        `envconfig:"DB_HOST" validate:"required" default:"localhost"`
+	Port           int           `envconfig:"DB_PORT" validate:"required" default:"3306"`
+	User           string        `envconfig:"DB_USER" validate:"required" default:"root"`
+	Password       string        `envconfig:"DB_PASSWORD" validate:"required" default:""`
+	Name           string        `envconfig:"DB_NAME" validate:"required" default:"goforms"`
 	MaxOpenConns   int           `envconfig:"DB_MAX_OPEN_CONNS" default:"25"`
 	MaxIdleConns   int           `envconfig:"DB_MAX_IDLE_CONNS" default:"25"`
 	ConnMaxLifetme time.Duration `envconfig:"DB_CONN_MAX_LIFETIME" default:"5m"`
