@@ -10,7 +10,7 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/test/mocks"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
@@ -22,7 +22,12 @@ func TestLoggingMiddleware(t *testing.T) {
 		c := e.NewContext(req, rec)
 
 		// Create mock logger
-		mockLogger := mocks.NewLogger()
+		mockLogger := mocklogging.NewMockLogger()
+		mockLogger.ExpectInfo("http request",
+			logging.String("method", "GET"),
+			logging.String("path", "/test"),
+			logging.String("ip", "192.0.2.1"),
+		)
 
 		// Create middleware
 		mw := middleware.LoggingMiddleware(mockLogger)
@@ -37,7 +42,7 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Assert
 		assert.NoError(t, err)
-		assert.True(t, mockLogger.HasInfoLog("http request"), "Should log request details")
+		mockLogger.AssertExpectations(t)
 	})
 
 	t.Run("logs error when handler fails", func(t *testing.T) {
@@ -48,7 +53,15 @@ func TestLoggingMiddleware(t *testing.T) {
 		c := e.NewContext(req, rec)
 
 		// Create mock logger
-		mockLogger := mocks.NewLogger()
+		mockLogger := mocklogging.NewMockLogger()
+		mockLogger.ExpectInfo("http request",
+			logging.String("method", "GET"),
+			logging.String("path", "/test"),
+			logging.String("ip", "192.0.2.1"),
+		)
+		mockLogger.ExpectError("request failed",
+			logging.String("error", "test error"),
+		)
 
 		// Create middleware
 		mw := middleware.LoggingMiddleware(mockLogger)
@@ -63,13 +76,18 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Assert
 		assert.Error(t, err)
-		assert.True(t, mockLogger.HasInfoLog("http request"), "Should log request details")
+		mockLogger.AssertExpectations(t)
 	})
 }
 
 func TestLoggingMiddleware_RealIP(t *testing.T) {
 	// Create a mock logger for testing
-	mockLogger := mocks.NewLogger()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("http request",
+		logging.String("method", "GET"),
+		logging.String("path", "/test"),
+		logging.String("ip", "192.168.1.1"),
+	)
 
 	// Create Echo instance
 	e := echo.New()
@@ -88,7 +106,5 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	_ = handler(c)
 
 	// Verify logs
-	infoCalls := mockLogger.InfoCalls
-	assert.Equal(t, 1, len(infoCalls))
-	assert.Contains(t, infoCalls[0].Fields, logging.String("ip", "192.168.1.1"))
+	mockLogger.AssertExpectations(t)
 }
