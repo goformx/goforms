@@ -41,6 +41,9 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 		return response.BadRequest(c, err.Error())
 	}
 
+	// Set initial status to pending
+	sub.Status = subscription.StatusPending
+
 	if err := h.store.Create(c.Request().Context(), &sub); err != nil {
 		h.logger.Error("failed to create subscription",
 			logging.Error(err),
