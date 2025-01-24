@@ -14,5 +14,10 @@ var Module = fx.Options(
 		NewEcho,
 		server.New,
 	),
-	fx.Invoke(RegisterRoutes),
+	fx.Invoke(
+		RegisterRoutes,
+		func(srv *server.Server) {
+			// Server is started via lifecycle hooks
+		},
+	),
 )

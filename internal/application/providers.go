@@ -16,8 +16,8 @@ func RegisterRoutes(e *echo.Echo, handlers ...interface{ Register(e *echo.Echo) 
 // NewEcho creates a new Echo instance with common middleware and routes
 func NewEcho(log logging.Logger) *echo.Echo {
 	e := echo.New()
-	e.HideBanner = true
-	e.HidePort = true
+	// e.HideBanner = true
+	// e.HidePort = true
 
 	return e
 }

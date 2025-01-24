@@ -50,6 +50,7 @@ func (s *Server) Start(ctx context.Context) error {
 	s.logger.Info("starting HTTP server",
 		logging.String("host", s.appConfig.Host),
 		logging.Int("port", s.appConfig.Port),
+		logging.String("env", s.appConfig.Env),
 	)
 
 	srv := &http.Server{
@@ -61,19 +62,15 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	go func() {
+		s.logger.Info("server listening", logging.String("addr", srv.Addr))
 		if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			s.logger.Error("server error", logging.Error(err))
 			s.serverError <- err
 		}
 	}()
 
-	select {
-	case <-ctx.Done():
-		return ctx.Err()
-	case err := <-s.serverError:
-		return fmt.Errorf("server error: %w", err)
-	case <-s.shutdownCh:
-		return nil
-	}
+	// Don't block on context.Done() - let the server run
+	return nil
 }
 
 // Stop stops the HTTP server
