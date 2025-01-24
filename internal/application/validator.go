@@ -1,4 +1,4 @@
-package app
+package application
 
 import (
 	"github.com/jonesrussell/goforms/internal/domain/common/interfaces"

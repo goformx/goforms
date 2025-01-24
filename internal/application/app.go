@@ -1,47 +1,23 @@
-package app
+package application
 
 import (
 	"github.com/labstack/echo/v4"
-	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/app/server"
-	"github.com/jonesrussell/goforms/internal/config"
-	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/logger"
-	"github.com/jonesrussell/goforms/internal/middleware"
 )
 
+// App represents the application
 type App struct {
-	server     *server.Server
-	middleware *middleware.Manager
-	handlers   *handlers.SubscriptionHandler
-	logger     logger.Logger
+	echo   *echo.Echo
+	logger logger.Logger
 }
 
-func NewApp(
-	lc fx.Lifecycle,
-	log logger.Logger,
-	echo *echo.Echo,
-	cfg *config.Config,
-	handler *handlers.SubscriptionHandler,
-	healthHandler *handlers.HealthHandler,
-) *App {
-	mw := middleware.New(log, cfg)
-	srv := server.New(lc, echo, log, &cfg.Server)
-
-	app := &App{
-		server:     srv,
-		middleware: mw,
-		handlers:   handler,
-		logger:     log,
+// NewApp creates a new application instance
+func NewApp(e *echo.Echo, log logger.Logger) *App {
+	return &App{
+		echo:   e,
+		logger: log,
 	}
-
-	// Setup order: middleware -> handlers
-	mw.Setup(echo)
-	handler.Register(echo)
-	healthHandler.Register(echo)
-
-	return app
 }
 
 // RegisterHooks sets up the application hooks

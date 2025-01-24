@@ -8,8 +8,7 @@ import (
 	"go.uber.org/fx/fxevent"
 
 	"github.com/jonesrussell/goforms/internal/api"
-	"github.com/jonesrussell/goforms/internal/app"
-	"github.com/jonesrussell/goforms/internal/app/server"
+	"github.com/jonesrussell/goforms/internal/application"
 	"github.com/jonesrussell/goforms/internal/auth"
 	"github.com/jonesrussell/goforms/internal/core"
 	"github.com/jonesrussell/goforms/internal/logger"
@@ -49,14 +48,12 @@ func main() {
 		api.Module,
 
 		// App configuration
-		app.Module,
+		application.Module,
 
 		// Configure fx to use our logger
 		fx.WithLogger(func() fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: logger.UnderlyingZap(log)}
 		}),
-
-		fx.Invoke(server.Start),
 	)
 
 	app.Run()
