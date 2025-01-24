@@ -6,25 +6,23 @@ import (
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/application/http"
-	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
 	"github.com/jonesrussell/goforms/internal/application/server"
-	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+// RegisterRoutes registers all API routes
+func RegisterRoutes(e *echo.Echo, handlers ...interface{ Register(e *echo.Echo) }) {
+	for _, handler := range handlers {
+		handler.Register(e)
+	}
+}
+
 // NewEcho creates a new Echo instance with common middleware and routes
-func NewEcho(log logging.Logger, contactAPI *v1.ContactAPI, subscriptionAPI *v1.SubscriptionAPI, webHandler *v1.WebHandler) *echo.Echo {
+func NewEcho(log logging.Logger) *echo.Echo {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
-
-	// Register API routes
-	contactAPI.Register(e)
-	subscriptionAPI.Register(e)
-	webHandler.Register(e)
 
 	return e
 }
@@ -61,16 +59,3 @@ func NewServerConfig() *server.Config {
 		},
 	}
 }
-
-// Module provides application dependencies
-//
-//nolint:gochecknoglobals // fx modules are designed to be global
-var Module = fx.Options(
-	fx.Provide(
-		NewEcho,
-		server.New,
-		NewServerConfig,
-	),
-	http.Module,
-	domain.Module,
-)
