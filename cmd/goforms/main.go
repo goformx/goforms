@@ -10,6 +10,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/api"
 	"github.com/jonesrussell/goforms/internal/app"
 	"github.com/jonesrussell/goforms/internal/app/server"
+	"github.com/jonesrussell/goforms/internal/auth"
 	"github.com/jonesrussell/goforms/internal/core"
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/platform"
@@ -40,6 +41,9 @@ func main() {
 
 		// Core business logic
 		core.Module,
+
+		// Authentication module
+		auth.Module,
 
 		// API handlers
 		api.Module,
