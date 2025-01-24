@@ -38,8 +38,11 @@ func TestCreateSubscription(t *testing.T) {
 			name: "valid subscription",
 			sub: &subscription.Subscription{
 				Email: "test@example.com",
+				Name:  "Test User",
 			},
 			setup: func() {
+				mockStore.On("GetByEmail", mock.Anything, "test@example.com").
+					Return(nil, subscription.ErrSubscriptionNotFound)
 				mockStore.On("Create", mock.Anything, mock.AnythingOfType("*subscription.Subscription")).
 					Return(nil)
 			},
@@ -49,10 +52,11 @@ func TestCreateSubscription(t *testing.T) {
 			name: "duplicate email",
 			sub: &subscription.Subscription{
 				Email: "existing@example.com",
+				Name:  "Existing User",
 			},
 			setup: func() {
-				mockStore.On("Create", mock.Anything, mock.AnythingOfType("*subscription.Subscription")).
-					Return(subscription.ErrEmailAlreadyExists)
+				mockStore.On("GetByEmail", mock.Anything, "existing@example.com").
+					Return(&subscription.Subscription{}, nil)
 			},
 			wantErr: subscription.ErrEmailAlreadyExists,
 		},
@@ -188,6 +192,8 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			id:     1,
 			status: subscription.StatusActive,
 			setup: func() {
+				mockStore.On("GetByID", mock.Anything, int64(1)).
+					Return(&subscription.Subscription{ID: 1}, nil)
 				mockStore.On("UpdateStatus", mock.Anything, int64(1), subscription.StatusActive).
 					Return(nil)
 			},
@@ -197,8 +203,8 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			id:     999,
 			status: subscription.StatusActive,
 			setup: func() {
-				mockStore.On("UpdateStatus", mock.Anything, int64(999), subscription.StatusActive).
-					Return(subscription.ErrSubscriptionNotFound)
+				mockStore.On("GetByID", mock.Anything, int64(999)).
+					Return(nil, subscription.ErrSubscriptionNotFound)
 			},
 			wantErr: subscription.ErrSubscriptionNotFound,
 		},
