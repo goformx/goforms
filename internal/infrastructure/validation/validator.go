@@ -4,18 +4,8 @@ import (
 	"sync"
 
 	"github.com/go-playground/validator/v10"
-	commonval "github.com/jonesrussell/goforms/internal/common/validation"
+	"github.com/jonesrussell/goforms/internal/common/interfaces"
 )
-
-// Validator defines the interface for validation operations
-type Validator interface {
-	// Struct validates a struct based on validation tags
-	Struct(interface{}) error
-	// Var validates a single variable using a tag
-	Var(interface{}, string) error
-	// RegisterValidation adds a custom validation with the given tag
-	RegisterValidation(string, func(fl validator.FieldLevel) bool) error
-}
 
 // validatorImpl implements the Validator interface
 type validatorImpl struct {
@@ -28,7 +18,7 @@ var (
 )
 
 // New returns a singleton instance of the validator
-func New() commonval.Validator {
+func New() interfaces.Validator {
 	once.Do(func() {
 		instance = &validatorImpl{
 			validate: validator.New(),

@@ -9,15 +9,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/logger"
 )
 
-var (
-	// ErrSubscriptionNotFound indicates that a subscription was not found
-	ErrSubscriptionNotFound = errors.New("subscription not found")
-	// ErrEmailAlreadyExists indicates that a subscription with the given email already exists
-	ErrEmailAlreadyExists = errors.New("email already exists")
-	// ErrInvalidStatus indicates that the provided status is invalid
-	ErrInvalidStatus = errors.New("invalid status")
-)
-
 // Service defines the interface for subscription operations
 type Service interface {
 	CreateSubscription(ctx context.Context, subscription *Subscription) error

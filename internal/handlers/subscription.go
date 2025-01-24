@@ -6,7 +6,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/core/subscription"
 	"github.com/jonesrussell/goforms/internal/logger"
 	"github.com/jonesrussell/goforms/internal/response"
-	"github.com/jonesrussell/goforms/internal/validation"
 )
 
 // SubscriptionHandler handles subscription requests
@@ -38,7 +37,7 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 		return response.BadRequest(c, "Invalid request body")
 	}
 
-	if err := validation.ValidateSubscription(&sub); err != nil {
+	if err := sub.Validate(); err != nil {
 		return response.BadRequest(c, err.Error())
 	}
 

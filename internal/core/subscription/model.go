@@ -3,7 +3,7 @@ package subscription
 import (
 	"time"
 
-	"github.com/go-playground/validator/v10"
+	"github.com/jonesrussell/goforms/internal/infrastructure/validation"
 )
 
 // Status represents the status of a subscription
@@ -30,6 +30,8 @@ type Subscription struct {
 
 // Validate validates the subscription
 func (s *Subscription) Validate() error {
-	validate := validator.New()
-	return validate.Struct(s)
+	if s == nil {
+		return ErrInvalidSubscription
+	}
+	return validation.New().Struct(s)
 }

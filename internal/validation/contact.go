@@ -2,33 +2,32 @@ package validation
 
 import (
 	"fmt"
-	"regexp"
-	"strings"
+	"net/mail"
 
 	"github.com/jonesrussell/goforms/internal/core/contact"
 )
 
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
-
-// ValidateContact validates a contact submission
-func ValidateContact(submission *contact.Submission) error {
-	if submission == nil {
+// ValidateContact validates a contact form submission
+func ValidateContact(sub *contact.Submission) error {
+	if sub == nil {
 		return fmt.Errorf("submission cannot be nil")
 	}
 
-	if strings.TrimSpace(submission.Name) == "" {
+	// Validate email
+	if sub.Email == "" {
+		return fmt.Errorf("email is required")
+	}
+	if _, err := mail.ParseAddress(sub.Email); err != nil {
+		return fmt.Errorf("invalid email format: %w", err)
+	}
+
+	// Validate name
+	if sub.Name == "" {
 		return fmt.Errorf("name is required")
 	}
 
-	if strings.TrimSpace(submission.Email) == "" {
-		return fmt.Errorf("email is required")
-	}
-
-	if !emailRegex.MatchString(submission.Email) {
-		return fmt.Errorf("invalid email format")
-	}
-
-	if strings.TrimSpace(submission.Message) == "" {
+	// Validate message
+	if sub.Message == "" {
 		return fmt.Errorf("message is required")
 	}
 

@@ -3,8 +3,9 @@ package models
 import (
 	"time"
 
-	"github.com/go-playground/validator/v10"
 	"golang.org/x/crypto/bcrypt"
+
+	"github.com/jonesrussell/goforms/internal/infrastructure/validation"
 )
 
 // User represents a user in the system
@@ -24,7 +25,7 @@ type User struct {
 type UserSignup struct {
 	Email           string `json:"email" validate:"required,email"`
 	Password        string `json:"password" validate:"required,min=8"`
-	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=Password"`
+	PasswordConfirm string `json:"password_confirm" validate:"required,eqfield=Password"`
 	FirstName       string `json:"first_name" validate:"required"`
 	LastName        string `json:"last_name" validate:"required"`
 }
@@ -37,8 +38,7 @@ type UserLogin struct {
 
 // Validate validates the user data
 func (u *User) Validate() error {
-	validate := validator.New()
-	return validate.Struct(u)
+	return validation.New().Struct(u)
 }
 
 // SetPassword hashes and sets the user's password

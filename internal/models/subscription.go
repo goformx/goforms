@@ -3,7 +3,7 @@ package models
 import (
 	"time"
 
-	"github.com/go-playground/validator/v10"
+	"github.com/jonesrussell/goforms/internal/infrastructure/validation"
 )
 
 // Subscription represents a newsletter subscription
@@ -17,8 +17,7 @@ type Subscription struct {
 
 // Validate validates the subscription
 func (s *Subscription) Validate() error {
-	validate := validator.New()
-	return validate.Struct(s)
+	return validation.New().Struct(s)
 }
 
 // SubscriptionStore defines the interface for subscription storage
