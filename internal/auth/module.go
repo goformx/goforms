@@ -1,4 +1,4 @@
-package module
+package auth
 
 import (
 	"github.com/labstack/echo/v4"
@@ -11,7 +11,7 @@ import (
 )
 
 //nolint:gochecknoglobals // fx modules are designed to be global
-var AuthModule = fx.Module("auth",
+var Module = fx.Module("auth",
 	fx.Provide(
 		userstore.NewStore,
 		user.NewService,
