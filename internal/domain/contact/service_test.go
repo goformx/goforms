@@ -8,7 +8,7 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/test/mocks"
 	mocklog "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
@@ -179,7 +179,7 @@ func TestListSubmissions(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStore := new(mockStore)
 			tt.setupFn(mockStore)
-			service := contact.NewService(mockStore, logging.NewMockLogger())
+			service := contact.NewService(mockStore, mocks.NewLogger())
 			got, err := service.ListSubmissions(context.Background())
 
 			if tt.wantErr {
@@ -238,7 +238,7 @@ func TestGetSubmission(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStore := new(mockStore)
 			tt.setupFn(mockStore)
-			service := contact.NewService(mockStore, logging.NewMockLogger())
+			service := contact.NewService(mockStore, mocks.NewLogger())
 			got, err := service.GetSubmission(context.Background(), tt.id)
 
 			if tt.wantErr {
@@ -285,7 +285,7 @@ func TestUpdateSubmissionStatus(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			mockStore := new(mockStore)
 			tt.setupFn(mockStore)
-			service := contact.NewService(mockStore, logging.NewMockLogger())
+			service := contact.NewService(mockStore, mocks.NewLogger())
 			err := service.UpdateSubmissionStatus(context.Background(), tt.id, tt.status)
 
 			if tt.wantErr {

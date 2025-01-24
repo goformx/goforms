@@ -8,12 +8,12 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/test/mocks"
 )
 
 func TestMiddlewareSetup(t *testing.T) {
 	// Create mock logger
-	mockLogger := logging.NewMockLogger()
+	mockLogger := mocks.NewLogger()
 
 	// Create middleware manager
 	mw := New(mockLogger)
@@ -31,7 +31,7 @@ func TestMiddlewareSetup(t *testing.T) {
 
 func TestRequestIDMiddleware(t *testing.T) {
 	// Create mock logger
-	mockLogger := logging.NewMockLogger()
+	mockLogger := mocks.NewLogger()
 
 	// Create middleware manager
 	mw := New(mockLogger)
@@ -69,7 +69,7 @@ func TestRequestIDMiddleware(t *testing.T) {
 
 func TestSecurityHeadersMiddleware(t *testing.T) {
 	// Create mock logger
-	mockLogger := logging.NewMockLogger()
+	mockLogger := mocks.NewLogger()
 
 	// Create middleware manager
 	mw := New(mockLogger)

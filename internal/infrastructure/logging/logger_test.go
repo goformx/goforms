@@ -7,6 +7,7 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/test/mocks"
 )
 
 func TestNewLogger(t *testing.T) {
@@ -38,7 +39,7 @@ func TestLoggerFunctionality(t *testing.T) {
 }
 
 func TestMockLogger(t *testing.T) {
-	mock := logging.NewMockLogger()
+	mock := mocks.NewLogger()
 
 	// Test info logging
 	testMsg := "test info message"

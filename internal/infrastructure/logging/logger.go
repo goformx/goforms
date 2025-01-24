@@ -7,7 +7,6 @@ import (
 	"time"
 
 	"go.uber.org/zap"
-	forbidden_zap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
 
@@ -16,6 +15,8 @@ import (
 // This interface abstracts the underlying logging implementation,
 // allowing for easy mocking in tests and flexibility to change
 // the logging backend without affecting application code.
+//
+// For testing, use test/mocks.Logger instead of implementing this interface directly.
 type Logger interface {
 	// Info logs a message at info level with optional fields
 	Info(msg string, fields ...Field)
@@ -28,25 +29,25 @@ type Logger interface {
 }
 
 // Field represents a logging field
-type Field = forbidden_zap.Field
+type Field = zap.Field
 
 // String creates a string field
-func String(key string, value string) Field { return forbidden_zap.String(key, value) }
+func String(key string, value string) Field { return zap.String(key, value) }
 
 // Int creates an integer field
-func Int(key string, value int) Field { return forbidden_zap.Int(key, value) }
+func Int(key string, value int) Field { return zap.Int(key, value) }
 
 // Error creates an error field
-func Error(err error) Field { return forbidden_zap.Error(err) }
+func Error(err error) Field { return zap.Error(err) }
 
 // Duration creates a duration field
-func Duration(key string, value time.Duration) Field { return forbidden_zap.Duration(key, value) }
+func Duration(key string, value time.Duration) Field { return zap.Duration(key, value) }
 
 // Any creates a field with any value
-func Any(key string, value interface{}) Field { return forbidden_zap.Any(key, value) }
+func Any(key string, value interface{}) Field { return zap.Any(key, value) }
 
 type zapLogger struct {
-	*forbidden_zap.Logger
+	*zap.Logger
 }
 
 // NewLogger creates a new production logger instance
@@ -66,8 +67,8 @@ func NewLogger() Logger {
 		}
 	}
 
-	config := forbidden_zap.Config{
-		Level:            forbidden_zap.NewAtomicLevelAt(logLevel),
+	config := zap.Config{
+		Level:            zap.NewAtomicLevelAt(logLevel),
 		Development:      false,
 		Encoding:         "json",
 		EncoderConfig:    zap.NewProductionEncoderConfig(),
@@ -85,86 +86,13 @@ func NewLogger() Logger {
 
 // NewTestLogger creates a logger suitable for testing
 func NewTestLogger() Logger {
-	config := forbidden_zap.NewDevelopmentConfig()
+	config := zap.NewDevelopmentConfig()
 	config.OutputPaths = []string{"stdout"}
 	logger, _ := config.Build()
 	return &zapLogger{logger}
-}
-
-// NewMockLogger creates a new mock logger for testing
-func NewMockLogger() *MockLogger {
-	return &MockLogger{}
 }
 
 func (l *zapLogger) Info(msg string, fields ...Field)  { l.Logger.Info(msg, fields...) }
 func (l *zapLogger) Error(msg string, fields ...Field) { l.Logger.Error(msg, fields...) }
 func (l *zapLogger) Debug(msg string, fields ...Field) { l.Logger.Debug(msg, fields...) }
 func (l *zapLogger) Warn(msg string, fields ...Field)  { l.Logger.Warn(msg, fields...) }
-
-// MockLogger implements Logger interface for testing
-type MockLogger struct {
-	InfoCalls []struct {
-		Message string
-		Fields  []Field
-	}
-	ErrorCalls []struct {
-		Message string
-		Fields  []Field
-	}
-	DebugCalls []struct {
-		Message string
-		Fields  []Field
-	}
-	WarnCalls []struct {
-		Message string
-		Fields  []Field
-	}
-}
-
-func (m *MockLogger) Info(msg string, fields ...Field) {
-	m.InfoCalls = append(m.InfoCalls, struct {
-		Message string
-		Fields  []Field
-	}{msg, fields})
-}
-
-func (m *MockLogger) Error(msg string, fields ...Field) {
-	m.ErrorCalls = append(m.ErrorCalls, struct {
-		Message string
-		Fields  []Field
-	}{msg, fields})
-}
-
-func (m *MockLogger) Debug(msg string, fields ...Field) {
-	m.DebugCalls = append(m.DebugCalls, struct {
-		Message string
-		Fields  []Field
-	}{msg, fields})
-}
-
-func (m *MockLogger) Warn(msg string, fields ...Field) {
-	m.WarnCalls = append(m.WarnCalls, struct {
-		Message string
-		Fields  []Field
-	}{msg, fields})
-}
-
-// HasInfoLog checks if a specific info message was logged
-func (m *MockLogger) HasInfoLog(msg string) bool {
-	for _, call := range m.InfoCalls {
-		if call.Message == msg {
-			return true
-		}
-	}
-	return false
-}
-
-// HasErrorLog checks if a specific error message was logged
-func (m *MockLogger) HasErrorLog(msg string) bool {
-	for _, call := range m.ErrorCalls {
-		if call.Message == msg {
-			return true
-		}
-	}
-	return false
-}

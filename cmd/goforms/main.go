@@ -5,6 +5,7 @@ import (
 
 	"github.com/joho/godotenv"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 
 	"github.com/jonesrussell/goforms/internal/application"
 	"github.com/jonesrussell/goforms/internal/application/http"
@@ -50,19 +51,10 @@ func main() {
 		application.Module,
 
 		// Configure fx to use our logger
-		fx.WithLogger(func(log logging.Logger) fx.Printer {
-			return &fxLogger{log}
+		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
+			return &logging.FxEventLogger{Logger: logger}
 		}),
 	)
 
 	app.Run()
-}
-
-// fxLogger adapts our logger to fx.Printer
-type fxLogger struct {
-	log logging.Logger
-}
-
-func (l *fxLogger) Printf(format string, args ...interface{}) {
-	l.log.Info(fmt.Sprintf(format, args...))
 }
