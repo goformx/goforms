@@ -1,6 +1,7 @@
 package logging
 
 import (
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 )
@@ -14,8 +15,8 @@ type Result struct {
 }
 
 // New constructs a new logger and its fx event logger.
-func New() Result {
-	logger := NewLogger()
+func New(cfg *config.Config) Result {
+	logger := NewLogger(&cfg.App)
 
 	// Create an fx event logger that uses our logger
 	fxLogger := &FxEventLogger{logger}
@@ -28,7 +29,12 @@ func New() Result {
 
 // Module provides logging dependencies.
 var Module = fx.Options(
-	fx.Provide(New),
+	fx.Provide(
+		fx.Annotate(
+			New,
+			fx.ParamTags(`group:"config"`),
+		),
+	),
 )
 
 // FxEventLogger adapts our Logger to fx's logging interface

@@ -6,24 +6,39 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/test/mocks"
 )
 
 func TestNewLogger(t *testing.T) {
+	// Create test config
+	cfg := &config.AppConfig{
+		Name:  "test-app",
+		Env:   "test",
+		Debug: true,
+	}
+
 	// Create a new logger
-	logger := logging.NewLogger()
+	logger := logging.NewLogger(cfg)
 
 	// Test that it's not nil
 	assert.NotNil(t, logger, "Logger should not be nil")
 
 	// Test that each new instance is independent
-	logger2 := logging.NewLogger()
+	logger2 := logging.NewLogger(cfg)
 	assert.NotNil(t, logger2, "Second logger should not be nil")
 }
 
 func TestLoggerFunctionality(t *testing.T) {
-	logger := logging.NewLogger()
+	// Create test config
+	cfg := &config.AppConfig{
+		Name:  "test-app",
+		Env:   "test",
+		Debug: true,
+	}
+
+	logger := logging.NewLogger(cfg)
 
 	// Test logging methods don't panic
 	assert.NotPanics(t, func() {
@@ -36,6 +51,28 @@ func TestLoggerFunctionality(t *testing.T) {
 		logger.Debug("test debug message")
 		logger.Warn("test warn message")
 	})
+}
+
+func TestLoggerDebugLevel(t *testing.T) {
+	// Test with debug enabled
+	debugCfg := &config.AppConfig{
+		Name:  "test-app",
+		Env:   "test",
+		Debug: true,
+	}
+	debugLogger := logging.NewLogger(debugCfg)
+
+	// Test with debug disabled
+	nonDebugCfg := &config.AppConfig{
+		Name:  "test-app",
+		Env:   "test",
+		Debug: false,
+	}
+	nonDebugLogger := logging.NewLogger(nonDebugCfg)
+
+	// Both loggers should be created successfully
+	assert.NotNil(t, debugLogger, "Debug logger should not be nil")
+	assert.NotNil(t, nonDebugLogger, "Non-debug logger should not be nil")
 }
 
 func TestMockLogger(t *testing.T) {

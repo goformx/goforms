@@ -12,6 +12,9 @@ import (
 func TestNew(t *testing.T) {
 	// Save original env vars
 	originalEnv := map[string]string{
+		"APP_NAME":    os.Getenv("APP_NAME"),
+		"APP_ENV":     os.Getenv("APP_ENV"),
+		"APP_DEBUG":   os.Getenv("APP_DEBUG"),
 		"DB_USER":     os.Getenv("DB_USER"),
 		"DB_PASSWORD": os.Getenv("DB_PASSWORD"),
 		"DB_NAME":     os.Getenv("DB_NAME"),
@@ -40,6 +43,9 @@ func TestNew(t *testing.T) {
 		{
 			name: "valid configuration",
 			envVars: map[string]string{
+				"APP_NAME":             "testapp",
+				"APP_ENV":              "development",
+				"APP_DEBUG":            "true",
 				"DB_USER":              "testuser",
 				"DB_PASSWORD":          "testpass",
 				"DB_NAME":              "testdb",
@@ -55,8 +61,11 @@ func TestNew(t *testing.T) {
 		{
 			name: "missing required database config",
 			envVars: map[string]string{
-				"APP_PORT": "8080",
-				"APP_HOST": "localhost",
+				"APP_NAME":  "testapp",
+				"APP_ENV":   "development",
+				"APP_DEBUG": "true",
+				"APP_PORT":  "8080",
+				"APP_HOST":  "localhost",
 			},
 			wantError: true,
 		},
@@ -85,6 +94,9 @@ func TestNew(t *testing.T) {
 
 			// Verify configuration values
 			if tt.name == "valid configuration" {
+				assert.Equal(t, "testapp", cfg.App.Name)
+				assert.Equal(t, "development", cfg.App.Env)
+				assert.True(t, cfg.App.Debug)
 				assert.Equal(t, "testuser", cfg.Database.User)
 				assert.Equal(t, "testpass", cfg.Database.Password)
 				assert.Equal(t, "testdb", cfg.Database.Name)
@@ -122,14 +134,14 @@ func TestSecurityConfig(t *testing.T) {
 		os.Setenv("DB_NAME", "testdb")
 
 		// Set custom security values
-		os.Setenv("SECURITY_CORS_ALLOWED_METHODS", "GET,POST")
+		os.Setenv("CORS_ALLOWED_METHODS", "GET,POST")
 
 		// Clean up after test
 		defer func() {
 			os.Unsetenv("DB_USER")
 			os.Unsetenv("DB_PASSWORD")
 			os.Unsetenv("DB_NAME")
-			os.Unsetenv("SECURITY_CORS_ALLOWED_METHODS")
+			os.Unsetenv("CORS_ALLOWED_METHODS")
 		}()
 
 		config, err := New()
@@ -171,8 +183,8 @@ func TestRateLimitConfig(t *testing.T) {
 				// Rate limit config
 				"RATE_LIMIT_ENABLED":     "true",
 				"RATE_LIMIT_PER_IP":      "true",
-				"RATE_LIMIT_RATE":        "200",
-				"RATE_LIMIT_BURST":       "10",
+				"RATE_LIMIT":             "200",
+				"RATE_BURST":             "10",
 				"RATE_LIMIT_TIME_WINDOW": "2m",
 			},
 			check: func(t *testing.T, cfg *Config) {

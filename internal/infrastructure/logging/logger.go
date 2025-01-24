@@ -3,9 +3,9 @@ package logging
 
 import (
 	"os"
-	"strings"
 	"time"
 
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -51,30 +51,18 @@ type zapLogger struct {
 }
 
 // NewLogger creates a new logger instance
-func NewLogger() Logger {
-	logLevel := os.Getenv("LOG_LEVEL")
-	if logLevel == "" {
-		logLevel = "info"
+func NewLogger(cfg *config.AppConfig) Logger {
+	// Set log level based on APP_DEBUG
+	var level zapcore.Level
+	if cfg.Debug {
+		level = zapcore.DebugLevel
+	} else {
+		level = zapcore.InfoLevel
 	}
 
 	logFormat := os.Getenv("LOG_FORMAT")
 	if logFormat == "" {
 		logFormat = "json"
-	}
-
-	// Parse log level
-	var level zapcore.Level
-	switch strings.ToLower(logLevel) {
-	case "debug":
-		level = zapcore.DebugLevel
-	case "info":
-		level = zapcore.InfoLevel
-	case "warn":
-		level = zapcore.WarnLevel
-	case "error":
-		level = zapcore.ErrorLevel
-	default:
-		level = zapcore.InfoLevel
 	}
 
 	// Configure encoder
@@ -97,7 +85,10 @@ func NewLogger() Logger {
 		level,
 	)
 
-	logger := zap.New(core)
+	logger := zap.New(core, zap.Fields(
+		zap.String("app", cfg.Name),
+		zap.String("env", cfg.Env),
+	))
 	return &zapLogger{logger}
 }
 

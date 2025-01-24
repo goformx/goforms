@@ -10,10 +10,20 @@ import (
 
 // Config represents the complete application configuration
 type Config struct {
+	App       AppConfig
 	Server    ServerConfig
 	Database  DatabaseConfig
 	Security  SecurityConfig
 	RateLimit RateLimitConfig
+}
+
+// AppConfig holds application-level configuration
+type AppConfig struct {
+	Name  string `envconfig:"APP_NAME" default:"goforms"`
+	Env   string `envconfig:"APP_ENV" default:"development"`
+	Debug bool   `envconfig:"APP_DEBUG" default:"false"`
+	Port  int    `envconfig:"APP_PORT" default:"8080"`
+	Host  string `envconfig:"APP_HOST" default:"localhost"`
 }
 
 // DatabaseConfig holds all database-related configuration
@@ -30,28 +40,26 @@ type DatabaseConfig struct {
 
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
-	Port         int           `envconfig:"APP_PORT" default:"8080"`
-	Host         string        `envconfig:"APP_HOST" default:"localhost"`
-	ReadTimeout  time.Duration `envconfig:"SERVER_READ_TIMEOUT" default:"5s"`
-	WriteTimeout time.Duration `envconfig:"SERVER_WRITE_TIMEOUT" default:"10s"`
-	IdleTimeout  time.Duration `envconfig:"SERVER_IDLE_TIMEOUT" default:"120s"`
+	ReadTimeout  time.Duration `envconfig:"READ_TIMEOUT" default:"5s"`
+	WriteTimeout time.Duration `envconfig:"WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout  time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
 }
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	CorsAllowedOrigins   []string      `envconfig:"SECURITY_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
-	CorsAllowedMethods   []string      `envconfig:"SECURITY_CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	CorsAllowedHeaders   []string      `envconfig:"SECURITY_CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept,Authorization"`
-	CorsMaxAge           int           `envconfig:"SECURITY_CORS_MAX_AGE" default:"3600"`
-	CorsAllowCredentials bool          `envconfig:"SECURITY_CORS_ALLOW_CREDENTIALS" default:"true"`
-	RequestTimeout       time.Duration `envconfig:"SECURITY_REQUEST_TIMEOUT" default:"30s"`
+	CorsAllowedOrigins   []string      `envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
+	CorsAllowedMethods   []string      `envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
+	CorsAllowedHeaders   []string      `envconfig:"CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept,Authorization"`
+	CorsMaxAge           int           `envconfig:"CORS_MAX_AGE" default:"3600"`
+	CorsAllowCredentials bool          `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
+	RequestTimeout       time.Duration `envconfig:"REQUEST_TIMEOUT" default:"30s"`
 }
 
 // RateLimitConfig contains rate limiting settings
 type RateLimitConfig struct {
 	Enabled    bool          `envconfig:"RATE_LIMIT_ENABLED" default:"true"`
-	Rate       int           `envconfig:"RATE_LIMIT_RATE" default:"100"`
-	Burst      int           `envconfig:"RATE_LIMIT_BURST" default:"5"`
+	Rate       int           `envconfig:"RATE_LIMIT" default:"100"`
+	Burst      int           `envconfig:"RATE_BURST" default:"5"`
 	TimeWindow time.Duration `envconfig:"RATE_LIMIT_TIME_WINDOW" default:"1m"`
 	PerIP      bool          `envconfig:"RATE_LIMIT_PER_IP" default:"true"`
 }

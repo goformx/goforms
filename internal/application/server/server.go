@@ -14,21 +14,23 @@ import (
 
 // Server handles HTTP server lifecycle
 type Server struct {
-	echo        *echo.Echo
-	logger      logging.Logger
-	config      *config.ServerConfig
-	shutdownCh  chan struct{}
-	serverError chan error
+	echo         *echo.Echo
+	logger       logging.Logger
+	appConfig    *config.AppConfig
+	serverConfig *config.ServerConfig
+	shutdownCh   chan struct{}
+	serverError  chan error
 }
 
 // New creates a new server instance
 func New(lc fx.Lifecycle, e *echo.Echo, log logging.Logger, cfg *config.Config) *Server {
 	srv := &Server{
-		echo:        e,
-		logger:      log,
-		config:      &cfg.Server,
-		shutdownCh:  make(chan struct{}),
-		serverError: make(chan error, 1),
+		echo:         e,
+		logger:       log,
+		appConfig:    &cfg.App,
+		serverConfig: &cfg.Server,
+		shutdownCh:   make(chan struct{}),
+		serverError:  make(chan error, 1),
 	}
 
 	lc.Append(fx.Hook{
@@ -46,16 +48,16 @@ func New(lc fx.Lifecycle, e *echo.Echo, log logging.Logger, cfg *config.Config) 
 // Start starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
 	s.logger.Info("starting HTTP server",
-		logging.String("host", s.config.Host),
-		logging.Int("port", s.config.Port),
+		logging.String("host", s.appConfig.Host),
+		logging.Int("port", s.appConfig.Port),
 	)
 
 	srv := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", s.config.Host, s.config.Port),
+		Addr:         fmt.Sprintf("%s:%d", s.appConfig.Host, s.appConfig.Port),
 		Handler:      s.echo,
-		ReadTimeout:  s.config.ReadTimeout,
-		WriteTimeout: s.config.WriteTimeout,
-		IdleTimeout:  s.config.IdleTimeout,
+		ReadTimeout:  s.serverConfig.ReadTimeout,
+		WriteTimeout: s.serverConfig.WriteTimeout,
+		IdleTimeout:  s.serverConfig.IdleTimeout,
 	}
 
 	go func() {
