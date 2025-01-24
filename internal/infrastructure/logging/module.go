@@ -29,12 +29,7 @@ func New(cfg *config.Config) Result {
 
 // Module provides logging dependencies.
 var Module = fx.Options(
-	fx.Provide(
-		fx.Annotate(
-			New,
-			fx.ParamTags(`group:"config"`),
-		),
-	),
+	fx.Provide(New),
 )
 
 // FxEventLogger adapts our Logger to fx's logging interface

@@ -32,11 +32,11 @@ func main() {
 	_ = godotenv.Load()
 
 	app := fx.New(
-		// Logging module (must be first to capture other modules' initialization)
-		logging.Module,
-
-		// Infrastructure modules
+		// Infrastructure modules (must be first to provide config)
 		infrastructure.Module,
+
+		// Logging module
+		logging.Module,
 
 		// Domain modules
 		domain.Module,
