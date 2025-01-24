@@ -4,10 +4,16 @@ package logging
 import (
 	"os"
 	"strings"
+	"sync"
 	"time"
 
 	forbidden_zap "go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+var (
+	instance Logger
+	once     sync.Once
 )
 
 // Logger defines the interface for logging operations
@@ -42,27 +48,34 @@ type zapLogger struct {
 
 // GetLogger returns a singleton logger instance
 func GetLogger() Logger {
-	// Initialize logger with production configuration
-	config := forbidden_zap.NewProductionConfig()
+	once.Do(func() {
+		// Initialize logger with production configuration
+		config := forbidden_zap.NewProductionConfig()
 
-	// Configure log level from environment
-	level := strings.ToLower(os.Getenv("LOG_LEVEL"))
-	switch level {
-	case "debug":
-		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.DebugLevel)
-	case "info":
-		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	case "warn":
-		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.WarnLevel)
-	case "error":
-		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.ErrorLevel)
-	default:
-		config.Level = forbidden_zap.NewAtomicLevelAt(zapcore.InfoLevel)
-	}
+		// Configure log level from environment
+		level := strings.ToLower(os.Getenv("LOG_LEVEL"))
+		switch level {
+		case "debug":
+			config.Level.SetLevel(zapcore.DebugLevel)
+		case "info":
+			config.Level.SetLevel(zapcore.InfoLevel)
+		case "warn":
+			config.Level.SetLevel(zapcore.WarnLevel)
+		case "error":
+			config.Level.SetLevel(zapcore.ErrorLevel)
+		default:
+			config.Level.SetLevel(zapcore.InfoLevel)
+		}
 
-	// Build the logger
-	logger, _ := config.Build()
-	return &zapLogger{logger}
+		logger, err := config.Build()
+		if err != nil {
+			panic("failed to initialize logger: " + err.Error())
+		}
+
+		instance = &zapLogger{Logger: logger}
+	})
+
+	return instance
 }
 
 // NewTestLogger creates a logger suitable for testing
