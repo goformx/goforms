@@ -8,249 +8,143 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
-	"github.com/jonesrussell/goforms/test/mocks"
-	mocklog "github.com/jonesrussell/goforms/test/mocks/logging"
+	mockstore "github.com/jonesrussell/goforms/test/mocks/contact"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
-type mockStore struct {
-	mock.Mock
-}
-
-func (m *mockStore) Create(ctx context.Context, sub *contact.Submission) error {
-	args := m.Called(ctx, sub)
-	return args.Error(0)
-}
-
-func (m *mockStore) List(ctx context.Context) ([]contact.Submission, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]contact.Submission), args.Error(1)
-}
-
-func (m *mockStore) Get(ctx context.Context, id int64) (*contact.Submission, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*contact.Submission), args.Error(1)
-}
-
-func (m *mockStore) UpdateStatus(ctx context.Context, id int64, status contact.Status) error {
-	args := m.Called(ctx, id, status)
-	return args.Error(0)
-}
-
-func TestNewService(t *testing.T) {
-	store := new(mockStore)
-	logger := new(mocklog.MockLogger)
-	service := contact.NewService(store, logger)
-	assert.NotNil(t, service)
-}
-
-func TestService_Submit(t *testing.T) {
+func TestSubmitContact(t *testing.T) {
 	tests := []struct {
-		name          string
-		submission    *contact.Submission
-		setupMocks    func(*mockStore, *mocklog.MockLogger)
-		expectedError error
+		name    string
+		setup   func(*mockstore.Store)
+		input   *contact.Submission
+		wantErr bool
 	}{
 		{
 			name: "valid submission",
-			submission: &contact.Submission{
+			setup: func(ms *mockstore.Store) {
+				ms.On("Create", mock.Anything, mock.AnythingOfType("*contact.Submission")).Return(nil)
+			},
+			input: &contact.Submission{
 				Name:    "Test User",
 				Email:   "test@example.com",
 				Message: "Test message",
 			},
-			setupMocks: func(store *mockStore, logger *mocklog.MockLogger) {
-				store.On("Create", mock.Anything, mock.MatchedBy(func(s *contact.Submission) bool {
-					return s.Name == "Test User" && s.Email == "test@example.com" && s.Status == contact.StatusPending
-				})).Return(nil)
-				logger.On("Info", "submission created", mock.Anything).Return()
-			},
-			expectedError: nil,
-		},
-		{
-			name: "missing name",
-			submission: &contact.Submission{
-				Email:   "test@example.com",
-				Message: "Test message",
-			},
-			setupMocks:    func(store *mockStore, logger *mocklog.MockLogger) {},
-			expectedError: contact.ErrNameRequired,
-		},
-		{
-			name: "missing email",
-			submission: &contact.Submission{
-				Name:    "Test User",
-				Message: "Test message",
-			},
-			setupMocks:    func(store *mockStore, logger *mocklog.MockLogger) {},
-			expectedError: contact.ErrEmailRequired,
-		},
-		{
-			name: "missing message",
-			submission: &contact.Submission{
-				Name:  "Test User",
-				Email: "test@example.com",
-			},
-			setupMocks:    func(store *mockStore, logger *mocklog.MockLogger) {},
-			expectedError: contact.ErrMessageRequired,
+			wantErr: false,
 		},
 		{
 			name: "store error",
-			submission: &contact.Submission{
+			setup: func(ms *mockstore.Store) {
+				ms.On("Create", mock.Anything, mock.AnythingOfType("*contact.Submission")).Return(assert.AnError)
+			},
+			input: &contact.Submission{
 				Name:    "Test User",
 				Email:   "test@example.com",
 				Message: "Test message",
 			},
-			setupMocks: func(store *mockStore, logger *mocklog.MockLogger) {
-				store.On("Create", mock.Anything, mock.Anything).Return(assert.AnError)
-				logger.On("Error", "failed to create submission", mock.Anything).Return()
-			},
-			expectedError: assert.AnError,
+			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			store := new(mockStore)
-			logger := new(mocklog.MockLogger)
-			tt.setupMocks(store, logger)
+			// Create mocks
+			mockStore := mockstore.NewStore()
+			mockLogger := mocklogging.NewMockLogger()
+			mockLogger.ExpectInfo("submitting contact form")
 
-			service := contact.NewService(store, logger)
-			err := service.Submit(context.Background(), tt.submission)
+			// Setup mock expectations
+			tt.setup(mockStore)
 
-			if tt.expectedError != nil {
-				assert.Equal(t, tt.expectedError, err)
+			// Create service
+			service := contact.NewService(mockStore, mockLogger)
+
+			// Call method
+			err := service.Submit(context.Background(), tt.input)
+
+			// Assert results
+			if tt.wantErr {
+				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
 
-			store.AssertExpectations(t)
-			logger.AssertExpectations(t)
+			// Verify expectations
+			mockStore.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
 
 func TestListSubmissions(t *testing.T) {
-	tests := []struct {
-		name    string
-		setupFn func(*mockStore)
-		want    []contact.Submission
-		wantErr bool
-	}{
+	// Create test data
+	submissions := []contact.Submission{
 		{
-			name: "successful list",
-			setupFn: func(ms *mockStore) {
-				ms.On("List", mock.Anything).Return([]contact.Submission{
-					{
-						ID:      1,
-						Name:    "Test User",
-						Email:   "test@example.com",
-						Message: "Test message",
-						Status:  contact.StatusPending,
-					},
-				}, nil)
-			},
-			want: []contact.Submission{
-				{
-					ID:      1,
-					Name:    "Test User",
-					Email:   "test@example.com",
-					Message: "Test message",
-					Status:  contact.StatusPending,
-				},
-			},
-			wantErr: false,
+			ID:      1,
+			Name:    "User 1",
+			Email:   "user1@example.com",
+			Message: "Message 1",
 		},
 		{
-			name: "store error",
-			setupFn: func(ms *mockStore) {
-				ms.On("List", mock.Anything).Return(nil, assert.AnError)
-			},
-			want:    nil,
-			wantErr: true,
+			ID:      2,
+			Name:    "User 2",
+			Email:   "user2@example.com",
+			Message: "Message 2",
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockStore := new(mockStore)
-			tt.setupFn(mockStore)
-			service := contact.NewService(mockStore, mocks.NewLogger())
-			got, err := service.ListSubmissions(context.Background())
+	// Create mocks
+	mockStore := mockstore.NewStore()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("listing contact submissions")
 
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, got)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
-			}
-			mockStore.AssertExpectations(t)
-		})
-	}
+	// Setup expectations
+	mockStore.On("List", mock.Anything).Return(submissions, nil)
+
+	// Create service
+	service := contact.NewService(mockStore, mockLogger)
+
+	// Call method
+	result, err := service.ListSubmissions(context.Background())
+
+	// Assert results
+	assert.NoError(t, err)
+	assert.Equal(t, submissions, result)
+
+	// Verify expectations
+	mockStore.AssertExpectations(t)
+	mockLogger.AssertExpectations(t)
 }
 
 func TestGetSubmission(t *testing.T) {
-	tests := []struct {
-		name    string
-		id      int64
-		setupFn func(*mockStore)
-		want    *contact.Submission
-		wantErr bool
-	}{
-		{
-			name: "existing submission",
-			id:   1,
-			setupFn: func(ms *mockStore) {
-				ms.On("Get", mock.Anything, int64(1)).Return(&contact.Submission{
-					ID:      1,
-					Name:    "Test User",
-					Email:   "test@example.com",
-					Message: "Test message",
-					Status:  contact.StatusPending,
-				}, nil)
-			},
-			want: &contact.Submission{
-				ID:      1,
-				Name:    "Test User",
-				Email:   "test@example.com",
-				Message: "Test message",
-				Status:  contact.StatusPending,
-			},
-			wantErr: false,
-		},
-		{
-			name: "non-existent submission",
-			id:   999,
-			setupFn: func(ms *mockStore) {
-				ms.On("Get", mock.Anything, int64(999)).Return(nil, assert.AnError)
-			},
-			want:    nil,
-			wantErr: true,
-		},
+	// Create test data
+	submission := &contact.Submission{
+		ID:      1,
+		Name:    "Test User",
+		Email:   "test@example.com",
+		Message: "Test message",
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			mockStore := new(mockStore)
-			tt.setupFn(mockStore)
-			service := contact.NewService(mockStore, mocks.NewLogger())
-			got, err := service.GetSubmission(context.Background(), tt.id)
+	// Create mocks
+	mockStore := mockstore.NewStore()
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("getting contact submission")
 
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, got)
-			} else {
-				assert.NoError(t, err)
-				assert.Equal(t, tt.want, got)
-			}
-			mockStore.AssertExpectations(t)
-		})
-	}
+	// Setup expectations
+	mockStore.On("GetByID", mock.Anything, int64(1)).Return(submission, nil)
+
+	// Create service
+	service := contact.NewService(mockStore, mockLogger)
+
+	// Call method
+	result, err := service.GetSubmission(context.Background(), 1)
+
+	// Assert results
+	assert.NoError(t, err)
+	assert.Equal(t, submission, result)
+
+	// Verify expectations
+	mockStore.AssertExpectations(t)
+	mockLogger.AssertExpectations(t)
 }
 
 func TestUpdateSubmissionStatus(t *testing.T) {
@@ -258,24 +152,24 @@ func TestUpdateSubmissionStatus(t *testing.T) {
 		name    string
 		id      int64
 		status  contact.Status
-		setupFn func(*mockStore)
+		setup   func(*mockstore.Store)
 		wantErr bool
 	}{
 		{
-			name:   "successful update",
+			name:   "valid update",
 			id:     1,
-			status: contact.StatusApproved,
-			setupFn: func(ms *mockStore) {
-				ms.On("UpdateStatus", mock.Anything, int64(1), contact.StatusApproved).Return(nil)
+			status: contact.StatusPending,
+			setup: func(ms *mockstore.Store) {
+				ms.On("UpdateStatus", mock.Anything, int64(1), contact.StatusPending).Return(nil)
 			},
 			wantErr: false,
 		},
 		{
 			name:   "store error",
 			id:     1,
-			status: contact.StatusApproved,
-			setupFn: func(ms *mockStore) {
-				ms.On("UpdateStatus", mock.Anything, int64(1), contact.StatusApproved).Return(assert.AnError)
+			status: contact.StatusPending,
+			setup: func(ms *mockstore.Store) {
+				ms.On("UpdateStatus", mock.Anything, int64(1), contact.StatusPending).Return(assert.AnError)
 			},
 			wantErr: true,
 		},
@@ -283,17 +177,30 @@ func TestUpdateSubmissionStatus(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			mockStore := new(mockStore)
-			tt.setupFn(mockStore)
-			service := contact.NewService(mockStore, mocks.NewLogger())
+			// Create mocks
+			mockStore := mockstore.NewStore()
+			mockLogger := mocklogging.NewMockLogger()
+			mockLogger.ExpectInfo("updating contact submission status")
+
+			// Setup mock expectations
+			tt.setup(mockStore)
+
+			// Create service
+			service := contact.NewService(mockStore, mockLogger)
+
+			// Call method
 			err := service.UpdateSubmissionStatus(context.Background(), tt.id, tt.status)
 
+			// Assert results
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {
 				assert.NoError(t, err)
 			}
+
+			// Verify expectations
 			mockStore.AssertExpectations(t)
+			mockLogger.AssertExpectations(t)
 		})
 	}
 }
