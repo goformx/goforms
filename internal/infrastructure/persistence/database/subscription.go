@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -19,9 +20,9 @@ type SubscriptionStore struct {
 }
 
 // NewSubscriptionStore creates a new subscription store
-func NewSubscriptionStore(db *DB, logger logging.Logger) subscription.Store {
+func NewSubscriptionStore(db *sqlx.DB, logger logging.Logger) subscription.Store {
 	return &SubscriptionStore{
-		db:     db.DB,
+		db:     db,
 		logger: logger,
 	}
 }
@@ -69,24 +70,25 @@ func (s *SubscriptionStore) List(ctx context.Context) ([]subscription.Subscripti
 	return subs, nil
 }
 
-// GetByID returns a subscription by ID
-func (s *SubscriptionStore) GetByID(ctx context.Context, id int64) (*subscription.Subscription, error) {
+// Get implements subscription.Store
+func (s *SubscriptionStore) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
 	var sub subscription.Subscription
-	query := `
-		SELECT id, email, name, status, created_at, updated_at
-		FROM subscriptions
-		WHERE id = ?
-	`
+	query := `SELECT * FROM subscriptions WHERE id = ?`
 
-	err := s.db.GetContext(ctx, &sub, query, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+	if err := s.db.GetContext(ctx, &sub, query, id); err != nil {
+		if err == sql.ErrNoRows {
+			return nil, subscription.ErrSubscriptionNotFound
 		}
-		return nil, err
+		s.logger.Error("failed to get subscription", logging.Error(err))
+		return nil, fmt.Errorf("failed to get subscription: %w", err)
 	}
 
 	return &sub, nil
+}
+
+// GetByID implements subscription.Store
+func (s *SubscriptionStore) GetByID(ctx context.Context, id int64) (*subscription.Subscription, error) {
+	return s.Get(ctx, id)
 }
 
 // GetByEmail returns a subscription by email

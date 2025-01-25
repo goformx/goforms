@@ -6,10 +6,9 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/auth"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 )
 
@@ -17,9 +16,8 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		config.New,
-		logging.New,
+		logging.NewLogger,
 		database.New,
-		auth.NewManager,
 		NewStores,
 	),
 )
@@ -34,7 +32,7 @@ type Stores struct {
 }
 
 // NewStores creates all database stores
-func NewStores(db *database.DB, logger logging.Logger) Stores {
+func NewStores(db *database.Database, logger logging.Logger) Stores {
 	return Stores{
 		ContactStore:      store.NewContactStore(db, logger),
 		SubscriptionStore: store.NewSubscriptionStore(db, logger),

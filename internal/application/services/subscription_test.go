@@ -17,11 +17,12 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	storemock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
+	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
 )
 
 func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 	// Setup
-	mockStore := storemock.NewMockStore()
+	mockStore := storemock.NewMockStore(t)
 	mockLogger := mocklogging.NewMockLogger()
 	handler := services.NewSubscriptionHandler(mockStore, mockLogger)
 
@@ -81,9 +82,9 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 
 func TestSubscriptionService(t *testing.T) {
 	t.Run("create subscription", func(t *testing.T) {
-		mockStore := storemock.NewMockStore()
+		mockStore := storemock.NewMockStore(t)
 		mockLogger := mocklogging.NewMockLogger()
-		service := subscription.NewService(mockLogger, mockStore)
+		service := subscription.NewService(mockStore, mockLogger)
 		assert.NotNil(t, service)
 
 		sub := &subscription.Subscription{
@@ -102,9 +103,9 @@ func TestSubscriptionService(t *testing.T) {
 	})
 
 	t.Run("create subscription error", func(t *testing.T) {
-		mockStore := storemock.NewMockStore()
+		mockStore := storemock.NewMockStore(t)
 		mockLogger := mocklogging.NewMockLogger()
-		service := subscription.NewService(mockLogger, mockStore)
+		service := subscription.NewService(mockStore, mockLogger)
 		assert.NotNil(t, service)
 
 		sub := &subscription.Subscription{
@@ -130,9 +131,9 @@ func TestSubscriptionService(t *testing.T) {
 	})
 
 	t.Run("list subscriptions", func(t *testing.T) {
-		mockStore := storemock.NewMockStore()
+		mockStore := storemock.NewMockStore(t)
 		mockLogger := mocklogging.NewMockLogger()
-		service := subscription.NewService(mockLogger, mockStore)
+		service := subscription.NewService(mockStore, mockLogger)
 		assert.NotNil(t, service)
 
 		expected := []subscription.Subscription{}
@@ -147,9 +148,9 @@ func TestSubscriptionService(t *testing.T) {
 	})
 
 	t.Run("list subscriptions error", func(t *testing.T) {
-		mockStore := storemock.NewMockStore()
+		mockStore := storemock.NewMockStore(t)
 		mockLogger := mocklogging.NewMockLogger()
-		service := subscription.NewService(mockLogger, mockStore)
+		service := subscription.NewService(mockStore, mockLogger)
 		assert.NotNil(t, service)
 
 		storeErr := errors.New("store error")
@@ -166,5 +167,36 @@ func TestSubscriptionService(t *testing.T) {
 
 		assert.NoError(t, mockStore.Verify(), "store expectations not met")
 		assert.NoError(t, mockLogger.Verify(), "logger expectations not met")
+	})
+}
+
+func TestSubscriptionService_Create(t *testing.T) {
+	mockStore := subscriptionmock.NewMockStore(t)
+	mockLogger := mocklogging.NewMockLogger()
+
+	service := subscription.NewService(mockStore, mockLogger)
+
+	t.Run("valid subscription", func(t *testing.T) {
+		sub := &subscription.Subscription{
+			Email: "test@example.com",
+		}
+
+		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, nil)
+		mockStore.ExpectCreate(context.Background(), sub, nil)
+
+		err := service.CreateSubscription(context.Background(), sub)
+		assert.NoError(t, err)
+	})
+
+	t.Run("duplicate email", func(t *testing.T) {
+		sub := &subscription.Subscription{
+			Email: "test@example.com",
+		}
+
+		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", &subscription.Subscription{}, nil)
+
+		err := service.CreateSubscription(context.Background(), sub)
+		assert.Error(t, err)
+		assert.Equal(t, subscription.ErrEmailAlreadyExists, err)
 	})
 }

@@ -4,6 +4,9 @@ import (
 	"context"
 	"fmt"
 	"sync"
+	"testing"
+
+	"github.com/stretchr/testify/mock"
 
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 )
@@ -13,6 +16,8 @@ var _ subscription.Store = (*MockStore)(nil)
 
 // MockStore is a mock implementation of the Store interface
 type MockStore struct {
+	mock.Mock
+	t        *testing.T
 	mu       sync.Mutex
 	calls    []mockCall
 	expected []mockCall
@@ -26,8 +31,8 @@ type mockCall struct {
 }
 
 // NewMockStore creates a new instance of MockStore
-func NewMockStore() *MockStore {
-	return &MockStore{}
+func NewMockStore(t *testing.T) *MockStore {
+	return &MockStore{t: t}
 }
 
 // recordCall records a method call
@@ -237,4 +242,13 @@ func (m *MockStore) Reset() {
 	defer m.mu.Unlock()
 	m.calls = m.calls[:0]
 	m.expected = m.expected[:0]
+}
+
+// Get implements subscription.Store
+func (m *MockStore) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
+	args := m.Called(ctx, id)
+	if sub := args.Get(0); sub != nil {
+		return sub.(*subscription.Subscription), args.Error(1)
+	}
+	return nil, args.Error(1)
 }

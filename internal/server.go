@@ -28,7 +28,7 @@ func registerServer(
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
 			go func() {
-				addr := fmt.Sprintf(":%d", cfg.Server.Port)
+				addr := fmt.Sprintf("%s:%d", cfg.App.Host, cfg.App.Port)
 				if err := e.Start(addr); err != nil {
 					logger.Error("failed to start server", logging.Error(err))
 				}

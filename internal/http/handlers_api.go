@@ -33,9 +33,12 @@ func (h *Handlers) handleContactList(c echo.Context) error {
 }
 
 func (h *Handlers) handleContactGet(c echo.Context) error {
-	id := c.Param("id")
-	// Convert id to int64...
-	submission, err := h.contactService.GetSubmission(c.Request().Context(), 0) // TODO: proper ID conversion
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
+	}
+
+	submission, err := h.contactService.GetSubmission(c.Request().Context(), id)
 	if err != nil {
 		h.logger.Error("failed to get contact", logging.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get contact")
@@ -63,7 +66,7 @@ func (h *Handlers) handleSubscriptionCreate(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	if err := h.subscriptionService.Create(c.Request().Context(), &sub); err != nil {
+	if err := h.subscriptionService.CreateSubscription(c.Request().Context(), &sub); err != nil {
 		h.logger.Error("failed to create subscription", logging.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create subscription")
 	}
@@ -72,7 +75,7 @@ func (h *Handlers) handleSubscriptionCreate(c echo.Context) error {
 }
 
 func (h *Handlers) handleSubscriptionList(c echo.Context) error {
-	subs, err := h.subscriptionService.List(c.Request().Context())
+	subs, err := h.subscriptionService.ListSubscriptions(c.Request().Context())
 	if err != nil {
 		h.logger.Error("failed to list subscriptions", logging.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list subscriptions")
@@ -86,7 +89,7 @@ func (h *Handlers) handleSubscriptionGet(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
 	}
 
-	sub, err := h.subscriptionService.Get(c.Request().Context(), id)
+	sub, err := h.subscriptionService.GetSubscription(c.Request().Context(), id)
 	if err != nil {
 		h.logger.Error("failed to get subscription", logging.Error(err))
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get subscription")
