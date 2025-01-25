@@ -2,11 +2,12 @@ package infrastructure
 
 import (
 	"context"
+	"fmt"
 
+	"github.com/jmoiron/sqlx"
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
-	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -25,42 +26,29 @@ var Module = fx.Options(
 	// Core infrastructure
 	fx.Provide(
 		config.New,
-		logging.NewLogger,
+		fx.Annotate(
+			logging.NewLogger,
+			fx.ParamTags(`name:"debug"`, `name:"app_name"`),
+		),
+		// Database setup
+		fx.Annotate(
+			func(cfg *config.Config) database.Config {
+				return database.Config{
+					Host:     cfg.Database.Host,
+					Port:     cfg.Database.Port,
+					User:     cfg.Database.User,
+					Password: cfg.Database.Password,
+					Database: cfg.Database.Name,
+				}
+			},
+		),
+		database.New,
 		store.NewStore,
-	),
-
-	// Stores
-	fx.Provide(
-		store.NewUserStore,
-		store.NewContactStore,
-		store.NewSubscriptionStore,
-	),
-
-	// Services
-	fx.Provide(
-		user.NewService,
-		contact.NewService,
-		subscription.NewService,
 	),
 
 	// Handlers
 	fx.Provide(
-		fx.Annotated{
-			Group:  "handlers",
-			Target: v1.NewHandler,
-		},
-		fx.Annotated{
-			Group:  "handlers",
-			Target: v1.NewAuthHandler,
-		},
-		fx.Annotated{
-			Group:  "handlers",
-			Target: v1.NewContactAPI,
-		},
-		fx.Annotated{
-			Group:  "handlers",
-			Target: v1.NewSubscriptionAPI,
-		},
+		NewHandlers,
 	),
 
 	// Renderer
@@ -71,6 +59,31 @@ var Module = fx.Options(
 	// Lifecycle hooks
 	fx.Invoke(
 		registerDatabaseHooks,
+		func(handlers []handler.Handler, logger logging.Logger) {
+			logger.Info("registered handlers", logging.Int("count", len(handlers)))
+			for i, h := range handlers {
+				logger.Info("handler registered",
+					logging.Int("index", i),
+					logging.String("type", fmt.Sprintf("%T", h)),
+				)
+			}
+		},
+	),
+
+	// Logger dependencies
+	fx.Provide(
+		fx.Annotate(
+			func(cfg *config.Config) bool {
+				return cfg.App.Debug
+			},
+			fx.ResultTags(`name:"debug"`),
+		),
+		fx.Annotate(
+			func(cfg *config.Config) string {
+				return cfg.App.Name
+			},
+			fx.ResultTags(`name:"app_name"`),
+		),
 	),
 )
 
@@ -129,7 +142,7 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 	}
 }
 
-func registerDatabaseHooks(lc fx.Lifecycle, db *database.Database, logger logging.Logger) {
+func registerDatabaseHooks(lc fx.Lifecycle, db *sqlx.DB, logger logging.Logger) {
 	lc.Append(fx.Hook{
 		OnStop: func(ctx context.Context) error {
 			logger.Info("closing database connection")
