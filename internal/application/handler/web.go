@@ -6,19 +6,22 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
+	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
 // WebHandler handles web page requests
 type WebHandler struct {
 	Base
 	contactService contact.Service
+	renderer       *view.Renderer
 }
 
 // NewWebHandler creates a new web handler
-func NewWebHandler(logger logging.Logger, contactService contact.Service) *WebHandler {
+func NewWebHandler(logger logging.Logger, contactService contact.Service, renderer *view.Renderer) *WebHandler {
 	return &WebHandler{
 		Base:           Base{Logger: logger},
 		contactService: contactService,
+		renderer:       renderer,
 	}
 }
 
@@ -37,20 +40,20 @@ func (h *WebHandler) Register(e *echo.Echo) {
 
 // handleHome renders the home page
 func (h *WebHandler) handleHome(c echo.Context) error {
-	return pages.Home().Render(c.Request().Context(), c.Response().Writer)
+	return h.renderer.Render(c, pages.Home())
 }
 
 // handleContact renders the contact page
 func (h *WebHandler) handleContact(c echo.Context) error {
-	return pages.Contact().Render(c.Request().Context(), c.Response().Writer)
+	return h.renderer.Render(c, pages.Contact())
 }
 
 // handleSignup renders the signup page
 func (h *WebHandler) handleSignup(c echo.Context) error {
-	return pages.Signup().Render(c.Request().Context(), c.Response().Writer)
+	return h.renderer.Render(c, pages.Signup())
 }
 
 // handleLogin renders the login page
 func (h *WebHandler) handleLogin(c echo.Context) error {
-	return pages.Login().Render(c.Request().Context(), c.Response().Writer)
+	return h.renderer.Render(c, pages.Login())
 }

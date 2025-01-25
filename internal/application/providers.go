@@ -5,23 +5,10 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 )
 
 // RegisterRoutes registers all API routes
 func RegisterRoutes(e *echo.Echo, handlers ...interface{ Register(e *echo.Echo) }) {
-	// Register web routes (unprotected)
-	e.Static("/static", "static")
-	e.File("/favicon.ico", "static/favicon.ico")
-
-	// Web pages
-	e.GET("/", func(c echo.Context) error {
-		return pages.Home().Render(c.Request().Context(), c.Response().Writer)
-	})
-	e.GET("/contact", func(c echo.Context) error {
-		return pages.Contact().Render(c.Request().Context(), c.Response().Writer)
-	})
-
 	// Register API handlers
 	for _, handler := range handlers {
 		handler.Register(e)

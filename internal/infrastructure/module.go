@@ -14,6 +14,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
+	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
 // Module combines all infrastructure-level modules and providers
@@ -32,6 +33,7 @@ var Module = fx.Options(
 		server.New,
 		NewStores,
 		NewHandlers,
+		view.NewRenderer,
 	),
 
 	// Lifecycle hooks
@@ -48,6 +50,7 @@ type HandlerParams struct {
 	Config      *config.Config
 	Server      *server.Server
 	VersionInfo handler.VersionInfo `name:"version_info"`
+	Renderer    *view.Renderer
 
 	ContactService      contact.Service
 	SubscriptionService subscription.Service
@@ -68,7 +71,7 @@ func NewHandlers(p HandlerParams) HandlerResult {
 	return HandlerResult{
 		Handlers: []handler.Handler{
 			handler.NewVersionHandler(p.VersionInfo, base),
-			handler.NewWebHandler(p.Logger, p.ContactService),
+			handler.NewWebHandler(p.Logger, p.ContactService, p.Renderer),
 			handler.NewAuthHandler(p.Logger, p.UserService),
 			handler.NewContactHandler(p.Logger, p.ContactService),
 			handler.NewSubscriptionHandler(p.Logger, p.SubscriptionService),
