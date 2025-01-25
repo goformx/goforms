@@ -2,7 +2,6 @@ package infrastructure
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jmoiron/sqlx"
 	"go.uber.org/fx"
@@ -14,7 +13,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
@@ -48,26 +46,16 @@ var Module = fx.Options(
 
 	// Handlers
 	fx.Provide(
-		NewHandlers,
-	),
-
-	// Renderer
-	fx.Provide(
-		view.NewRenderer,
-	),
-
-	// Lifecycle hooks
-	fx.Invoke(
-		registerDatabaseHooks,
-		func(handlers []handler.Handler, logger logging.Logger) {
-			logger.Info("registered handlers", logging.Int("count", len(handlers)))
-			for i, h := range handlers {
-				logger.Info("handler registered",
-					logging.Int("index", i),
-					logging.String("type", fmt.Sprintf("%T", h)),
-				)
-			}
-		},
+		fx.Annotate(
+			func(p HandlerParams) []handler.Handler {
+				base := handler.Base{Logger: p.Logger}
+				return []handler.Handler{
+					handler.NewVersionHandler(p.VersionInfo, base),
+					handler.NewWebHandler(p.Logger, p.ContactService, p.Renderer),
+				}
+			},
+			fx.ResultTags(`group:"handlers"`),
+		),
 	),
 
 	// Logger dependencies
@@ -85,43 +73,21 @@ var Module = fx.Options(
 			fx.ResultTags(`name:"app_name"`),
 		),
 	),
+
+	// Lifecycle hooks
+	fx.Invoke(
+		registerDatabaseHooks,
+	),
 )
 
 // HandlerParams contains dependencies for creating handlers
 type HandlerParams struct {
 	fx.In
 
-	Logger      logging.Logger
-	Config      *config.Config
-	Server      *server.Server
-	VersionInfo handler.VersionInfo `name:"version_info"`
-	Renderer    *view.Renderer
-
-	ContactService      contact.Service
-	SubscriptionService subscription.Service
-	UserService         user.Service
-}
-
-// HandlerResult contains all HTTP handlers
-type HandlerResult struct {
-	fx.Out
-
-	Handlers []handler.Handler `group:"handlers"`
-}
-
-// NewHandlers creates all HTTP handlers
-func NewHandlers(p HandlerParams) HandlerResult {
-	base := handler.Base{Logger: p.Logger}
-
-	return HandlerResult{
-		Handlers: []handler.Handler{
-			handler.NewVersionHandler(p.VersionInfo, base),
-			handler.NewWebHandler(p.Logger, p.ContactService, p.Renderer),
-			handler.NewAuthHandler(p.Logger, p.UserService),
-			handler.NewContactHandler(p.Logger, p.ContactService),
-			handler.NewSubscriptionHandler(p.Logger, p.SubscriptionService),
-		},
-	}
+	Logger         logging.Logger
+	VersionInfo    handler.VersionInfo `name:"version_info"`
+	Renderer       *view.Renderer
+	ContactService contact.Service
 }
 
 // Stores groups all database store providers
