@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -19,6 +18,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
 //nolint:gochecknoglobals // These variables are populated by -ldflags at build time
@@ -51,22 +51,39 @@ func run() error {
 
 	// Create app with DI
 	app := fx.New(
+		// Version info first
+		fx.Provide(
+			func() handler.VersionInfo {
+				return versionInfo
+			},
+		),
+		// Core infrastructure next (config, logging, database)
 		infrastructure.Module,
+		// Domain services next
 		domain.Module,
+		// View module for rendering
+		view.Module,
+		// Local providers last
 		fx.Provide(
 			logging.NewFactory,
 			newServer,
-			// Provide version info
-			fx.Annotated{
-				Name: "version_info",
-				Target: func() handler.VersionInfo {
-					return versionInfo
-				},
-			},
 		),
 		fx.WithLogger(func(log logging.Logger) fxevent.Logger {
-			return &fxevent.ConsoleLogger{W: os.Stdout}
+			return &logging.FxEventLogger{Logger: log}
 		}),
+		// Add debug logging for dependency injection
+		fx.Invoke(func(log logging.Logger) {
+			log.Debug("checking module initialization")
+		}),
+		fx.Invoke(func(p infrastructure.HandlerParams) {
+			p.Logger.Debug("handler dependencies available",
+				logging.Bool("renderer_available", p.Renderer != nil),
+				logging.Bool("contact_service_available", p.ContactService != nil),
+				logging.Bool("subscription_service_available", p.SubscriptionService != nil),
+				logging.Bool("user_service_available", p.UserService != nil),
+			)
+		}),
+		// Start server last
 		fx.Invoke(startServer),
 	)
 
@@ -114,6 +131,17 @@ type ServerParams struct {
 }
 
 func startServer(p ServerParams) error {
+	p.Logger.Debug("starting server with handlers",
+		logging.Int("handler_count", len(p.Handlers)),
+	)
+
+	for i, h := range p.Handlers {
+		p.Logger.Debug("handler available",
+			logging.Int("index", i),
+			logging.String("type", fmt.Sprintf("%T", h)),
+		)
+	}
+
 	// Configure routes
 	router.Setup(p.Echo, &router.Config{
 		Handlers: p.Handlers,
@@ -121,6 +149,7 @@ func startServer(p ServerParams) error {
 			Path: "/static",
 			Root: "static",
 		},
+		Logger: p.Logger,
 	})
 
 	// Start server

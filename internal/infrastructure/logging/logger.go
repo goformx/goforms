@@ -35,6 +35,9 @@ func String(key string, value string) Field { return zap.String(key, value) }
 // Int creates an integer field
 func Int(key string, value int) Field { return zap.Int(key, value) }
 
+// Bool creates a boolean field
+func Bool(key string, value bool) Field { return zap.Bool(key, value) }
+
 // Error creates an error field
 func Error(err error) Field { return zap.Error(err) }
 

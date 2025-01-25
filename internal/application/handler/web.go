@@ -27,33 +27,91 @@ func NewWebHandler(logger logging.Logger, contactService contact.Service, render
 
 // Register registers the web routes
 func (h *WebHandler) Register(e *echo.Echo) {
+	h.Logger.Debug("registering web routes")
+
 	// Web pages
 	e.GET("/", h.handleHome)
+	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/"))
+
 	e.GET("/contact", h.handleContact)
+	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/contact"))
+
 	e.GET("/signup", h.handleSignup)
+	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/signup"))
+
 	e.GET("/login", h.handleLogin)
+	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/login"))
 
 	// Static files
 	e.Static("/static", "static")
+	h.Logger.Debug("registered static directory", logging.String("path", "/static"), logging.String("root", "static"))
+
 	e.File("/favicon.ico", "static/favicon.ico")
+	h.Logger.Debug("registered favicon", logging.String("path", "/favicon.ico"))
+
+	h.Logger.Debug("web routes registration complete")
 }
 
 // handleHome renders the home page
 func (h *WebHandler) handleHome(c echo.Context) error {
-	return h.renderer.Render(c, pages.Home())
+	h.Logger.Debug("handling home page request",
+		logging.String("path", c.Path()),
+		logging.String("method", c.Request().Method),
+	)
+	err := h.renderer.Render(c, pages.Home())
+	if err != nil {
+		h.Logger.Error("failed to render home page",
+			logging.String("path", c.Path()),
+			logging.Error(err),
+		)
+	}
+	return err
 }
 
 // handleContact renders the contact page
 func (h *WebHandler) handleContact(c echo.Context) error {
-	return h.renderer.Render(c, pages.Contact())
+	h.Logger.Debug("handling contact page request",
+		logging.String("path", c.Path()),
+		logging.String("method", c.Request().Method),
+	)
+	err := h.renderer.Render(c, pages.Contact())
+	if err != nil {
+		h.Logger.Error("failed to render contact page",
+			logging.String("path", c.Path()),
+			logging.Error(err),
+		)
+	}
+	return err
 }
 
 // handleSignup renders the signup page
 func (h *WebHandler) handleSignup(c echo.Context) error {
-	return h.renderer.Render(c, pages.Signup())
+	h.Logger.Debug("handling signup page request",
+		logging.String("path", c.Path()),
+		logging.String("method", c.Request().Method),
+	)
+	err := h.renderer.Render(c, pages.Signup())
+	if err != nil {
+		h.Logger.Error("failed to render signup page",
+			logging.String("path", c.Path()),
+			logging.Error(err),
+		)
+	}
+	return err
 }
 
 // handleLogin renders the login page
 func (h *WebHandler) handleLogin(c echo.Context) error {
-	return h.renderer.Render(c, pages.Login())
+	h.Logger.Debug("handling login page request",
+		logging.String("path", c.Path()),
+		logging.String("method", c.Request().Method),
+	)
+	err := h.renderer.Render(c, pages.Login())
+	if err != nil {
+		h.Logger.Error("failed to render login page",
+			logging.String("path", c.Path()),
+			logging.Error(err),
+		)
+	}
+	return err
 }
