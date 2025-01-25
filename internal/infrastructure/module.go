@@ -6,13 +6,25 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/auth"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 )
 
-// Stores groups all database store providers for better organization
+// Module provides infrastructure dependencies
+var Module = fx.Options(
+	fx.Provide(
+		config.New,
+		logging.New,
+		database.New,
+		auth.NewManager,
+		NewStores,
+	),
+)
+
+// Stores groups all database store providers
 type Stores struct {
 	fx.Out
 
@@ -22,19 +34,10 @@ type Stores struct {
 }
 
 // NewStores creates all database stores
-func NewStores(db *database.DB, log logging.Logger) Stores {
+func NewStores(db *database.DB, logger logging.Logger) Stores {
 	return Stores{
-		ContactStore:      database.NewContactStore(db, log),
-		SubscriptionStore: database.NewSubscriptionStore(db, log),
-		UserStore:         store.NewStore(db.DB, log),
+		ContactStore:      store.NewContactStore(db, logger),
+		SubscriptionStore: store.NewSubscriptionStore(db, logger),
+		UserStore:         store.NewUserStore(db, logger),
 	}
 }
-
-//nolint:gochecknoglobals // This is an intentional global following fx module pattern
-var Module = fx.Options(
-	fx.Provide(
-		config.New,
-		database.New,
-		NewStores, // Consolidated store providers
-	),
-)

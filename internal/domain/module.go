@@ -8,11 +8,20 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/user"
 )
 
-// Module combines all domain modules
-//
-//nolint:gochecknoglobals // fx modules are designed to be global
+// Module combines all domain services
 var Module = fx.Options(
-	contact.Module,
-	subscription.Module,
-	user.Module,
+	fx.Provide(
+		fx.Annotate(
+			contact.NewService,
+			fx.As(new(contact.Service)),
+		),
+		fx.Annotate(
+			subscription.NewService,
+			fx.As(new(subscription.Service)),
+		),
+		fx.Annotate(
+			user.NewService,
+			fx.As(new(user.Service)),
+		),
+	),
 )

@@ -1,11 +1,7 @@
 package main
 
 import (
-	"context"
 	"fmt"
-	"os"
-	"os/signal"
-	"syscall"
 
 	"github.com/joho/godotenv"
 	"go.uber.org/fx"
@@ -58,20 +54,6 @@ func main() {
 		}),
 	)
 
-	// Create a context that listens for the interrupt signal from the OS
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
-	// Start the application
-	if err := app.Start(ctx); err != nil {
-		os.Exit(1)
-	}
-
-	// Wait for interrupt signal
-	<-ctx.Done()
-
-	// Stop the application gracefully
-	if err := app.Stop(ctx); err != nil {
-		os.Exit(1)
-	}
+	// Let fx handle the application lifecycle
+	app.Run()
 }

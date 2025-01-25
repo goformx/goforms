@@ -3,6 +3,7 @@ package server
 import (
 	"context"
 	"fmt"
+	"net"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -49,43 +50,59 @@ func (s *Server) Echo() *echo.Echo {
 
 // Start initializes and starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info("starting HTTP server",
-		logging.String("host", s.config.App.Host),
-		logging.Int("port", s.config.App.Port),
+	addr := fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port)
+	s.logger.Info("starting server",
+		logging.String("addr", addr),
 		logging.String("env", s.config.App.Env),
 	)
 
 	s.server = &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port),
+		Addr:         addr,
 		Handler:      s.echo,
 		ReadTimeout:  s.config.Server.ReadTimeout,
 		WriteTimeout: s.config.Server.WriteTimeout,
 		IdleTimeout:  s.config.Server.IdleTimeout,
 	}
 
+	// Create a listener first
+	ln, err := net.Listen("tcp", addr)
+	if err != nil {
+		return fmt.Errorf("failed to create listener: %w", err)
+	}
+
 	// Start server in background
 	go func() {
-		s.logger.Info("server listening", logging.String("addr", s.server.Addr))
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+		s.logger.Info("server listening", logging.String("addr", addr))
+		if err := s.server.Serve(ln); err != nil && err != http.ErrServerClosed {
 			s.logger.Error("server error", logging.Error(err))
 		}
 	}()
 
-	return nil
+	// Signal that we're ready
+	s.logger.Info("server ready")
+
+	// Wait for context cancellation
+	<-ctx.Done()
+	return s.Stop(context.Background())
 }
 
 // Stop gracefully shuts down the HTTP server
 func (s *Server) Stop(ctx context.Context) error {
-	s.logger.Info("stopping HTTP server")
+	if s.server == nil {
+		return nil
+	}
+
+	s.logger.Info("shutting down server")
 
 	// Create shutdown context with timeout
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), s.config.Server.ShutdownTimeout)
+	shutdownCtx, cancel := context.WithTimeout(ctx, s.config.Server.ShutdownTimeout)
 	defer cancel()
 
 	if err := s.server.Shutdown(shutdownCtx); err != nil {
 		s.logger.Error("server shutdown error", logging.Error(err))
-		return fmt.Errorf("failed to stop server: %w", err)
+		return fmt.Errorf("server shutdown error: %w", err)
 	}
 
+	s.logger.Info("server stopped")
 	return nil
 }
