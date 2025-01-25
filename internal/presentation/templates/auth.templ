@@ -2,25 +2,80 @@ package view
 
 import (
     "github.com/jonesrussell/goforms/internal/domain/user"
+    "github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
     "github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
 templ SignupPage() {
-    @Layout("Sign Up", nil) {
-        @components.SignupForm()
-    }
+    @layouts.Layout(layouts.PageData{
+        Title: "Sign Up",
+        Content: signupContent(),
+    })
+}
+
+templ signupContent() {
+    <div class="content">
+        <h1>Create your account</h1>
+        <form action="/api/v1/auth/signup" method="POST" id="signupForm">
+            <div class="form-field">
+                <label for="name">FULL NAME</label>
+                <input id="name" name="name" type="text" required/>
+            </div>
+            <div class="form-field">
+                <label for="email">EMAIL ADDRESS</label>
+                <input id="email" name="email" type="email" autocomplete="email" required/>
+            </div>
+            <div class="form-field">
+                <label for="password">PASSWORD</label>
+                <input id="password" name="password" type="password" required/>
+            </div>
+            <button type="submit" class="button">Sign up</button>
+        </form>
+        <div class="alt-action">
+            <p>Already have an account? <a href="/login">Sign in</a></p>
+        </div>
+    </div>
 }
 
 templ LoginPage() {
-    @Layout("Sign In", nil) {
-        @components.LoginForm()
-    }
+    @layouts.Layout(layouts.PageData{
+        Title: "Sign In",
+        Content: loginContent(),
+    })
+}
+
+templ loginContent() {
+    <div class="content">
+        <h1>Sign in to your account</h1>
+        <form action="/api/v1/auth/login" method="POST" id="loginForm">
+            <div class="form-field">
+                <label for="email">EMAIL ADDRESS</label>
+                <input id="email" name="email" type="email" autocomplete="email" required/>
+            </div>
+            <div class="form-field">
+                <label for="password">PASSWORD</label>
+                <input id="password" name="password" type="password" required/>
+            </div>
+            <button type="submit" class="button">Sign in</button>
+        </form>
+        <div class="alt-action">
+            <p>Don't have an account? <a href="/signup">Sign up</a></p>
+        </div>
+    </div>
 }
 
 templ ProfilePage(user user.User) {
-    @Layout("Profile", &user) {
+    @layouts.Layout(layouts.PageData{
+        Title: "Profile",
+        Content: profileContent(user),
+    })
+}
+
+templ profileContent(user user.User) {
+    <div class="content">
+        <h1>Profile</h1>
         @components.UserProfile(user)
-    }
+    </div>
 }
 
 templ Layout(title string, currentUser *user.User) {

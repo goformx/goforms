@@ -16,6 +16,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/infrastructure"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	view "github.com/jonesrussell/goforms/internal/presentation/templates"
 )
 
 //nolint:gochecknoglobals // These variables are populated by -ldflags at build time
@@ -47,6 +48,9 @@ func main() {
 		// Application modules
 		application.Module,
 		http.Module,
+
+		// Presentation modules
+		view.Module,
 
 		// Configure logging
 		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {

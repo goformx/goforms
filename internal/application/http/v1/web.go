@@ -9,8 +9,8 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	view "github.com/jonesrussell/goforms/internal/presentation/templates"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
-	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
 // Handler handles web page requests
@@ -30,7 +30,8 @@ type Handler struct {
 // The handler implements web page endpoints:
 //   - GET / - Home page
 //   - GET /contact - Contact page
-//   - GET /subscribe - Subscription page
+//   - GET /signup - Signup page
+//   - GET /login - Login page
 func NewHandler(renderer *view.Renderer, logger logging.Logger, service contact.Service) *Handler {
 	return &Handler{
 		renderer: renderer,
@@ -43,6 +44,8 @@ func NewHandler(renderer *view.Renderer, logger logging.Logger, service contact.
 func (h *Handler) Register(e *echo.Echo) {
 	e.GET("/", h.Home)
 	e.GET("/contact", h.Contact)
+	e.GET("/signup", h.Signup)
+	e.GET("/login", h.Login)
 
 	// Configure static file serving with proper caching and security
 	e.Static("/static", "static")
@@ -96,6 +99,38 @@ func (h *Handler) Contact(c echo.Context) error {
 	if err := h.renderer.Render(c, pages.Contact()); err != nil {
 		h.logger.Error("failed to render contact page", logging.Error(err))
 		return h.wrapError(err, "failed to render contact page")
+	}
+	return nil
+}
+
+// Signup handles the signup page request
+// @Summary Render signup page
+// @Description Renders the signup page template
+// @Tags web
+// @Produce html
+// @Success 200 {string} string "HTML content"
+// @Failure 500 {object} response.ErrorResponse
+// @Router /signup [get]
+func (h *Handler) Signup(c echo.Context) error {
+	if err := h.renderer.Render(c, view.SignupPage()); err != nil {
+		h.logger.Error("failed to render signup page", logging.Error(err))
+		return h.wrapError(err, "failed to render signup page")
+	}
+	return nil
+}
+
+// Login handles the login page request
+// @Summary Render login page
+// @Description Renders the login page template
+// @Tags web
+// @Produce html
+// @Success 200 {string} string "HTML content"
+// @Failure 500 {object} response.ErrorResponse
+// @Router /login [get]
+func (h *Handler) Login(c echo.Context) error {
+	if err := h.renderer.Render(c, view.LoginPage()); err != nil {
+		h.logger.Error("failed to render login page", logging.Error(err))
+		return h.wrapError(err, "failed to render login page")
 	}
 	return nil
 }
