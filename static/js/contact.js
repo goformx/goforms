@@ -59,16 +59,24 @@ const formatDate = (dateStr) => {
 };
 
 const logDebug = (message, data) => {
-    console.debug(message, data ?? '');
+    const timestamp = new Date().toISOString();
+    console.debug(`[${timestamp}] ${message}`, data ?? '');
 };
 
 const logError = (message, error) => {
-    console.error(message, error);
-    if (error?.stack) console.error('Error stack:', error.stack);
+    const timestamp = new Date().toISOString();
+    console.error(`[${timestamp}] ${message}`, error);
+    if (error?.stack) console.error(`[${timestamp}] Error stack:`, error.stack);
 };
 
 // DOM Helpers
-const getElement = (id) => document.getElementById(id);
+const getElement = (id) => {
+    const element = document.getElementById(id);
+    if (!element) {
+        logDebug(`Element not found: ${id}`);
+    }
+    return element;
+};
 
 const updateElement = (id, content) => {
     const element = getElement(id);
@@ -137,36 +145,63 @@ class MessageDisplay {
 
 // API Functions
 const fetchMessages = async () => {
-    const response = await fetch(API.CONTACTS);
-    const { data: messages = [] } = await response.json();
-    return messages;
+    logDebug('Fetching messages from API...');
+    try {
+        logDebug('Making GET request to:', API.CONTACTS);
+        const response = await fetch(API.CONTACTS);
+        logDebug('Response status:', response.status);
+        
+        if (!response.ok) {
+            logError('Failed to fetch messages:', `HTTP ${response.status} - ${response.statusText}`);
+            return [];
+        }
+        
+        const responseData = await response.json();
+        logDebug('Response data:', responseData);
+        const messages = responseData.data || [];
+        logDebug('Extracted messages:', messages.length);
+        return messages;
+    } catch (err) {
+        logError('Failed to fetch messages:', err);
+        return [];
+    }
 };
 
 const submitContact = async (formData) => {
-    const response = await fetch(API.CONTACTS, {
-        method: 'POST',
-        headers: API.HEADERS,
-        body: JSON.stringify(formData)
-    });
-    
-    const data = await response.json();
-    return { ok: response.ok, data };
+    logDebug('Submitting contact form:', formData);
+    try {
+        const response = await fetch(API.CONTACTS, {
+            method: 'POST',
+            headers: API.HEADERS,
+            body: JSON.stringify(formData)
+        });
+        logDebug('Submit response status:', response.status);
+        
+        const data = await response.json();
+        logDebug('Submit response data:', data);
+        return { ok: response.ok, data };
+    } catch (err) {
+        logError('Submit request failed:', err);
+        throw err;
+    }
 };
 
 // Message Handling
-const sortMessagesByDate = (messages) => 
-    [...messages].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+const sortMessagesByDate = (messages) => {
+    logDebug('Sorting messages by date, count:', messages.length);
+    return [...messages].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+};
 
 const renderMessages = (messages) => {
     if (!messages?.length) {
-        logDebug('No messages found, showing empty state');
+        logDebug('No messages to render, showing empty state');
         return TEMPLATES.NO_MESSAGES;
     }
 
-    logDebug('Sorting and rendering messages...');
-    return sortMessagesByDate(messages)
-        .map(TEMPLATES.MESSAGE_CARD)
-        .join('');
+    logDebug('Rendering messages, count:', messages.length);
+    const sorted = sortMessagesByDate(messages);
+    logDebug('Messages sorted, rendering cards');
+    return sorted.map(TEMPLATES.MESSAGE_CARD).join('');
 };
 
 // Form Handler Component
@@ -222,13 +257,14 @@ class ContactForm {
 
 // Main Functions
 const loadMessages = async (display) => {
-    logDebug('Loading messages...');
+    logDebug('Starting message load...');
     try {
         const messages = await fetchMessages();
+        logDebug('Messages fetched successfully, updating display');
         display.setMessages(messages);
-        logDebug('Messages rendered successfully');
+        logDebug('Display updated with messages:', messages.length);
     } catch (err) {
-        logError('Failed to load messages:', err);
+        logError('Message load failed:', err);
         display.showError();
     }
 };

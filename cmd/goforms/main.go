@@ -15,7 +15,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/application/http"
 	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/infrastructure"
-	"github.com/jonesrussell/goforms/internal/infrastructure/auth"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
@@ -45,37 +44,30 @@ func main() {
 		// Domain modules
 		domain.Module,
 
-		// Authentication module
-		auth.Module,
-
-		// HTTP handlers
+		// Application modules
+		application.Module,
 		http.Module,
 
-		// Application module
-		application.Module,
-
-		// Configure fx to use our logger
+		// Configure logging
 		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
 			return &logging.FxEventLogger{Logger: logger}
 		}),
 	)
 
-	// In development mode, use fx.Start to keep the application running
-	if os.Getenv("APP_ENV") == "development" {
-		if err := app.Start(context.Background()); err != nil {
-			os.Exit(1)
-		}
+	// Create a context that listens for the interrupt signal from the OS
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
 
-		// Wait for interrupt signal
-		sigChan := make(chan os.Signal, 1)
-		signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-		<-sigChan
+	// Start the application
+	if err := app.Start(ctx); err != nil {
+		os.Exit(1)
+	}
 
-		// Gracefully shutdown
-		if err := app.Stop(context.Background()); err != nil {
-			os.Exit(1)
-		}
-	} else {
-		app.Run()
+	// Wait for interrupt signal
+	<-ctx.Done()
+
+	// Stop the application gracefully
+	if err := app.Stop(ctx); err != nil {
+		os.Exit(1)
 	}
 }

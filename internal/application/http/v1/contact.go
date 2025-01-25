@@ -38,29 +38,13 @@ func NewContactAPI(service contact.Service, logger logging.Logger) *ContactAPI {
 
 // Register registers the contact API routes with the given Echo instance
 func (api *ContactAPI) Register(e *echo.Echo) {
-	// Public routes
+	// All routes are public for demo
 	v1 := e.Group("/api/v1")
-	public := v1.Group("/contacts")
-	public.POST("", api.CreateContact) // Public contact form submission
-	public.GET("", api.ListContacts)   // Public messages list for demo
-
-	// Protected routes (separate group from public)
-	protected := v1.Group("/contacts", api.requireAuth())
-	protected.GET("/:id", api.GetContact)
-	protected.PUT("/:id/status", api.UpdateContactStatus)
-}
-
-// requireAuth returns middleware that requires authentication
-func (api *ContactAPI) requireAuth() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			auth := c.Request().Header.Get("Authorization")
-			if auth == "" {
-				return echo.NewHTTPError(http.StatusUnauthorized, "missing authorization header")
-			}
-			return next(c)
-		}
-	}
+	contacts := v1.Group("/contacts")
+	contacts.POST("", api.CreateContact)
+	contacts.GET("", api.ListContacts)
+	contacts.GET("/:id", api.GetContact)
+	contacts.PUT("/:id/status", api.UpdateContactStatus)
 }
 
 // wrapResponseError wraps errors from the response package
