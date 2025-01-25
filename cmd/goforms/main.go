@@ -4,10 +4,12 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"os"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
+	"go.uber.org/fx/fxevent"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
@@ -62,6 +64,9 @@ func run() error {
 				},
 			},
 		),
+		fx.WithLogger(func(log logging.Logger) fxevent.Logger {
+			return &fxevent.ConsoleLogger{W: os.Stdout}
+		}),
 		fx.Invoke(startServer),
 	)
 
@@ -120,6 +125,10 @@ func startServer(p ServerParams) error {
 
 	// Start server
 	addr := fmt.Sprintf("%s:%d", p.Config.Server.Host, p.Config.Server.Port)
+	if p.Config.Server.Port == 0 {
+		addr = fmt.Sprintf("%s:8090", p.Config.Server.Host) // Default to 8090 if port is not set
+	}
+
 	p.Logger.Info("Starting server",
 		logging.String("addr", addr),
 		logging.String("env", p.Config.App.Env),
