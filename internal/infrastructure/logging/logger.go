@@ -2,7 +2,6 @@
 package logging
 
 import (
-	"os"
 	"time"
 
 	"go.uber.org/zap"
@@ -47,61 +46,64 @@ func Duration(key string, value time.Duration) Field { return zap.Duration(key, 
 // Any creates a field with any value
 func Any(key string, value interface{}) Field { return zap.Any(key, value) }
 
-type zapLogger struct {
-	*zap.Logger
+// logger implements the Logger interface using zap
+type logger struct {
+	log *zap.Logger
 }
 
 // NewLogger creates a new logger instance
-func NewLogger(cfg *config.AppConfig) Logger {
-	// Set log level based on APP_DEBUG
-	var level zapcore.Level
-	if cfg.Debug {
-		level = zapcore.DebugLevel
-	} else {
-		level = zapcore.InfoLevel
-	}
-
-	logFormat := os.Getenv("LOG_FORMAT")
-	if logFormat == "" {
-		logFormat = "json"
-	}
-
-	// Configure encoder
-	encoderConfig := zap.NewProductionEncoderConfig()
-	encoderConfig.TimeKey = "ts"
+func NewLogger(cfg *config.Config) Logger {
+	// Create encoder config
+	encoderConfig := zap.NewDevelopmentEncoderConfig()
+	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
+	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 
-	var encoder zapcore.Encoder
-	if logFormat == "console" {
-		encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-		encoderConfig.EncodeTime = zapcore.TimeEncoderOfLayout("2006-01-02 15:04:05")
-		encoder = zapcore.NewConsoleEncoder(encoderConfig)
+	var zapLog *zap.Logger
+	if cfg.App.Debug {
+		// Development mode with colored output
+		config := zap.NewDevelopmentConfig()
+		config.EncoderConfig = encoderConfig
+		config.OutputPaths = []string{"stdout"}
+		config.Encoding = "console"
+
+		zapLog, _ = config.Build(
+			zap.AddCaller(),
+			zap.AddStacktrace(zapcore.ErrorLevel),
+			zap.Fields(
+				zap.String("app", cfg.App.Name),
+				zap.String("host", cfg.App.Host),
+				zap.Int("port", cfg.App.Port),
+				zap.String("env", cfg.App.Env),
+			),
+		)
 	} else {
-		encoder = zapcore.NewJSONEncoder(encoderConfig)
+		// Production mode with JSON output
+		zapLog, _ = zap.NewProduction(
+			zap.Fields(
+				zap.String("app", cfg.App.Name),
+				zap.String("host", cfg.App.Host),
+				zap.Int("port", cfg.App.Port),
+				zap.String("env", cfg.App.Env),
+			),
+		)
 	}
 
-	core := zapcore.NewCore(
-		encoder,
-		zapcore.AddSync(os.Stdout),
-		level,
-	)
-
-	logger := zap.New(core, zap.Fields(
-		zap.String("app", cfg.Name),
-		zap.String("env", cfg.Env),
-	))
-	return &zapLogger{logger}
+	return &logger{
+		log: zapLog,
+	}
 }
 
 // NewTestLogger creates a logger suitable for testing
 func NewTestLogger() Logger {
 	config := zap.NewDevelopmentConfig()
 	config.OutputPaths = []string{"stdout"}
-	logger, _ := config.Build()
-	return &zapLogger{logger}
+	zapLog, _ := config.Build()
+	return &logger{log: zapLog}
 }
 
-func (l *zapLogger) Info(msg string, fields ...Field)  { l.Logger.Info(msg, fields...) }
-func (l *zapLogger) Error(msg string, fields ...Field) { l.Logger.Error(msg, fields...) }
-func (l *zapLogger) Debug(msg string, fields ...Field) { l.Logger.Debug(msg, fields...) }
-func (l *zapLogger) Warn(msg string, fields ...Field)  { l.Logger.Warn(msg, fields...) }
+func (l *logger) Info(msg string, fields ...Field)  { l.log.Info(msg, fields...) }
+func (l *logger) Error(msg string, fields ...Field) { l.log.Error(msg, fields...) }
+func (l *logger) Debug(msg string, fields ...Field) { l.log.Debug(msg, fields...) }
+func (l *logger) Warn(msg string, fields ...Field)  { l.log.Warn(msg, fields...) }

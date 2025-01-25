@@ -17,7 +17,7 @@ type Result struct {
 
 // New constructs a new logger and its fx event logger.
 func New(cfg *config.Config) Result {
-	logger := NewLogger(&cfg.App)
+	logger := NewLogger(cfg)
 
 	// Create an fx event logger that uses our logger
 	fxLogger := &FxEventLogger{logger}

@@ -12,30 +12,91 @@ import (
 )
 
 func TestNewLogger(t *testing.T) {
-	// Create test config
-	cfg := &config.AppConfig{
-		Name:  "test-app",
-		Env:   "test",
-		Debug: true,
+	t.Run("creates logger with default config", func(t *testing.T) {
+		cfg := &config.Config{
+			App: config.AppConfig{
+				Name:  "test-app",
+				Env:   "development",
+				Debug: false,
+				Port:  8080,
+				Host:  "localhost",
+			},
+		}
+
+		logger := logging.NewLogger(cfg)
+		assert.NotNil(t, logger)
+	})
+
+	t.Run("creates logger with custom config", func(t *testing.T) {
+		cfg := &config.Config{
+			App: config.AppConfig{
+				Name:  "custom-app",
+				Env:   "production",
+				Debug: true,
+				Port:  9090,
+				Host:  "custom-host",
+			},
+		}
+
+		logger := logging.NewLogger(cfg)
+		assert.NotNil(t, logger)
+	})
+}
+
+func TestLogLevels(t *testing.T) {
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Name:  "test-app",
+			Env:   "test",
+			Debug: false,
+		},
 	}
 
-	// Create a new logger
 	logger := logging.NewLogger(cfg)
 
-	// Test that it's not nil
-	assert.NotNil(t, logger, "Logger should not be nil")
+	t.Run("logs at different levels", func(t *testing.T) {
+		// These should not panic
+		logger.Info("info message", logging.String("key", "value"))
+		logger.Error("error message", logging.Error(assert.AnError))
+		logger.Debug("debug message")
+		logger.Warn("warn message")
+	})
+}
 
-	// Test that each new instance is independent
-	logger2 := logging.NewLogger(cfg)
-	assert.NotNil(t, logger2, "Second logger should not be nil")
+func TestLoggerModes(t *testing.T) {
+	t.Run("development mode", func(t *testing.T) {
+		debugCfg := &config.Config{
+			App: config.AppConfig{
+				Name:  "debug-app",
+				Env:   "development",
+				Debug: true,
+			},
+		}
+		logger := logging.NewLogger(debugCfg)
+		assert.NotNil(t, logger)
+	})
+
+	t.Run("production mode", func(t *testing.T) {
+		nonDebugCfg := &config.Config{
+			App: config.AppConfig{
+				Name:  "prod-app",
+				Env:   "production",
+				Debug: false,
+			},
+		}
+		logger := logging.NewLogger(nonDebugCfg)
+		assert.NotNil(t, logger)
+	})
 }
 
 func TestLoggerFunctionality(t *testing.T) {
-	// Create test config
-	cfg := &config.AppConfig{
-		Name:  "test-app",
-		Env:   "test",
-		Debug: true,
+	// Create test config with full Config structure
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Name:  "test-app",
+			Env:   "test",
+			Debug: true,
+		},
 	}
 
 	logger := logging.NewLogger(cfg)
@@ -51,28 +112,6 @@ func TestLoggerFunctionality(t *testing.T) {
 		logger.Debug("test debug message")
 		logger.Warn("test warn message")
 	})
-}
-
-func TestLoggerDebugLevel(t *testing.T) {
-	// Test with debug enabled
-	debugCfg := &config.AppConfig{
-		Name:  "test-app",
-		Env:   "test",
-		Debug: true,
-	}
-	debugLogger := logging.NewLogger(debugCfg)
-
-	// Test with debug disabled
-	nonDebugCfg := &config.AppConfig{
-		Name:  "test-app",
-		Env:   "test",
-		Debug: false,
-	}
-	nonDebugLogger := logging.NewLogger(nonDebugCfg)
-
-	// Both loggers should be created successfully
-	assert.NotNil(t, debugLogger, "Debug logger should not be nil")
-	assert.NotNil(t, nonDebugLogger, "Non-debug logger should not be nil")
 }
 
 func TestMockLogger(t *testing.T) {

@@ -41,7 +41,7 @@ func NewSubscriptionAPI(service subscription.Service, logger logging.Logger) *Su
 func (api *SubscriptionAPI) Register(e *echo.Echo) {
 	// Public routes
 	v1 := e.Group("/api/v1")
-	v1.POST("/subscribe", api.CreateSubscription) // Public subscription endpoint
+	v1.POST("/subscribe", api.CreateSubscription)
 
 	// Protected routes
 	protected := v1.Group("/subscriptions", api.requireAuth())

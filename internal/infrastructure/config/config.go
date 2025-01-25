@@ -8,15 +8,6 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-// Config represents the complete application configuration
-type Config struct {
-	App       AppConfig
-	Server    ServerConfig
-	Database  DatabaseConfig
-	Security  SecurityConfig
-	RateLimit RateLimitConfig
-}
-
 // AppConfig holds application-level configuration
 type AppConfig struct {
 	Name  string `envconfig:"APP_NAME" default:"goforms"`
@@ -24,6 +15,15 @@ type AppConfig struct {
 	Debug bool   `envconfig:"APP_DEBUG" default:"false"`
 	Port  int    `envconfig:"APP_PORT" default:"8080"`
 	Host  string `envconfig:"APP_HOST" default:"localhost"`
+}
+
+// Config represents the complete application configuration
+type Config struct {
+	App       AppConfig
+	Server    ServerConfig
+	Database  DatabaseConfig
+	Security  SecurityConfig
+	RateLimit RateLimitConfig
 }
 
 // DatabaseConfig holds all database-related configuration
