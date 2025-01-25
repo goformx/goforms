@@ -10,12 +10,19 @@ import (
 
 // Module combines all application modules
 var Module = fx.Options(
-	infrastructure.Module, // DB, config, logging, auth
-	domain.Module,         // Business logic services
+	// Core infrastructure (DB, config, logging)
+	infrastructure.Module,
+
+	// Domain services
+	domain.Module,
+
+	// HTTP handlers
 	fx.Provide(
 		http.NewHandlers,
 	),
-	fx.Invoke(
-		registerServer, // Sets up and starts HTTP server
-	),
+
+	// Register routes
+	fx.Invoke(func(srv *infrastructure.Server, handlers *http.Handlers) {
+		handlers.Register(srv.Echo())
+	}),
 )

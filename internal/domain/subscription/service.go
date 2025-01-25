@@ -27,7 +27,7 @@ type ServiceImpl struct {
 }
 
 // NewService creates a new subscription service
-func NewService(store Store, logger logging.Logger) *ServiceImpl {
+func NewService(store Store, logger logging.Logger) Service {
 	return &ServiceImpl{
 		store:  store,
 		logger: logger,

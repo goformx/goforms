@@ -3,9 +3,11 @@ package infrastructure
 import (
 	"go.uber.org/fx"
 
+	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/http"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -15,17 +17,26 @@ import (
 
 // Module exports infrastructure components
 var Module = fx.Options(
+	// Core dependencies
 	fx.Provide(
 		config.New,
 		logging.NewLogger,
-		database.New,
-		NewStores,
-		server.New,
+		database.NewDB,
 	),
 
-	// Start the server
-	fx.Invoke(func(srv *server.Server) {
-		// Server will be started by fx lifecycle hooks
+	// Domain services
+	domain.Module,
+
+	// Infrastructure
+	fx.Provide(
+		NewStores,
+		server.New,
+		http.NewHandlers,
+	),
+
+	// Start the server and register routes
+	fx.Invoke(func(srv *server.Server, handlers *http.Handlers) {
+		handlers.Register(srv.Echo())
 	}),
 )
 
@@ -33,9 +44,9 @@ var Module = fx.Options(
 type Stores struct {
 	fx.Out
 
-	ContactStore      contact.Store
-	SubscriptionStore subscription.Store
-	UserStore         user.Store
+	ContactStore      contact.Store      `group:"stores"`
+	SubscriptionStore subscription.Store `group:"stores"`
+	UserStore         user.Store         `group:"stores"`
 }
 
 // NewStores creates all database stores

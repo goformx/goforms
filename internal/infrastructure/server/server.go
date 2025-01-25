@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
@@ -24,6 +25,13 @@ type Server struct {
 // New creates a new server instance with the provided dependencies
 func New(lc fx.Lifecycle, logger logging.Logger, config *config.Config) *Server {
 	e := echo.New()
+	e.HideBanner = true
+	e.HidePort = true
+
+	// Configure middleware
+	e.Use(middleware.Logger())
+	e.Use(middleware.Recover())
+
 	srv := &Server{
 		echo:   e,
 		logger: logger,
