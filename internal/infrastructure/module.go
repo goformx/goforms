@@ -1,6 +1,8 @@
 package infrastructure
 
 import (
+	"context"
+
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
@@ -19,7 +21,13 @@ var Module = fx.Options(
 	// Core dependencies
 	fx.Provide(
 		config.New,
-		logging.NewLogger,
+		// Provide logger with config values
+		fx.Annotate(
+			func(cfg *config.Config) logging.Logger {
+				return logging.NewLogger(cfg.App.Debug, cfg.App.Name)
+			},
+			fx.As(new(logging.Logger)),
+		),
 		database.NewDB,
 	),
 
@@ -30,11 +38,25 @@ var Module = fx.Options(
 		http.NewHandlers,
 	),
 
-	// Start the server and register routes
-	fx.Invoke(func(srv *server.Server, handlers *http.Handlers) {
-		handlers.Register(srv.Echo())
-	}),
+	// Lifecycle hooks
+	fx.Invoke(
+		registerHandlers,
+		registerDatabaseHooks,
+	),
 )
+
+func registerHandlers(srv *server.Server, handlers *http.Handlers) {
+	handlers.Register(srv.Echo())
+}
+
+func registerDatabaseHooks(lc fx.Lifecycle, db *database.Database, logger logging.Logger) {
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			logger.Info("closing database connection")
+			return db.Close()
+		},
+	})
+}
 
 // Stores groups all database store providers
 type Stores struct {

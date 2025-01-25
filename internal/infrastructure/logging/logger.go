@@ -6,8 +6,6 @@ import (
 
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
-
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
 
 // Logger defines the interface for logging operations
@@ -52,7 +50,7 @@ type logger struct {
 }
 
 // NewLogger creates a new logger instance
-func NewLogger(cfg *config.Config) Logger {
+func NewLogger(debug bool, appName string) Logger {
 	// Create encoder config
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -61,7 +59,7 @@ func NewLogger(cfg *config.Config) Logger {
 	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 
 	var zapLog *zap.Logger
-	if cfg.App.Debug {
+	if debug {
 		// Development mode with colored output
 		config := zap.NewDevelopmentConfig()
 		config.EncoderConfig = encoderConfig
@@ -72,27 +70,19 @@ func NewLogger(cfg *config.Config) Logger {
 			zap.AddCaller(),
 			zap.AddStacktrace(zapcore.ErrorLevel),
 			zap.Fields(
-				zap.String("app", cfg.App.Name),
-				zap.String("host", cfg.App.Host),
-				zap.Int("port", cfg.App.Port),
-				zap.String("env", cfg.App.Env),
+				zap.String("app", appName),
 			),
 		)
 	} else {
 		// Production mode with JSON output
 		zapLog, _ = zap.NewProduction(
 			zap.Fields(
-				zap.String("app", cfg.App.Name),
-				zap.String("host", cfg.App.Host),
-				zap.Int("port", cfg.App.Port),
-				zap.String("env", cfg.App.Env),
+				zap.String("app", appName),
 			),
 		)
 	}
 
-	return &logger{
-		log: zapLog,
-	}
+	return &logger{log: zapLog}
 }
 
 // NewTestLogger creates a logger suitable for testing

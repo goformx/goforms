@@ -6,53 +6,46 @@ import (
 
 	"github.com/stretchr/testify/assert"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
+func TestLogger(t *testing.T) {
+	t.Run("creates logger with debug mode", func(t *testing.T) {
+		logger := logging.NewLogger(true, "test-app")
+		assert.NotNil(t, logger)
+	})
+
+	t.Run("creates logger without debug mode", func(t *testing.T) {
+		logger := logging.NewLogger(false, "test-app")
+		assert.NotNil(t, logger)
+	})
+
+	t.Run("logs messages at different levels", func(t *testing.T) {
+		logger := logging.NewLogger(true, "test-app")
+
+		// Just verify no panics
+		logger.Info("info message")
+		logger.Error("error message")
+		logger.Debug("debug message")
+		logger.Warn("warn message")
+	})
+}
+
 func TestNewLogger(t *testing.T) {
 	t.Run("creates logger with default config", func(t *testing.T) {
-		cfg := &config.Config{
-			App: config.AppConfig{
-				Name:  "test-app",
-				Env:   "development",
-				Debug: false,
-				Port:  8080,
-				Host:  "localhost",
-			},
-		}
-
-		logger := logging.NewLogger(cfg)
+		logger := logging.NewLogger(false, "test-app")
 		assert.NotNil(t, logger)
 	})
 
 	t.Run("creates logger with custom config", func(t *testing.T) {
-		cfg := &config.Config{
-			App: config.AppConfig{
-				Name:  "custom-app",
-				Env:   "production",
-				Debug: true,
-				Port:  9090,
-				Host:  "custom-host",
-			},
-		}
-
-		logger := logging.NewLogger(cfg)
+		logger := logging.NewLogger(true, "custom-app")
 		assert.NotNil(t, logger)
 	})
 }
 
 func TestLogLevels(t *testing.T) {
-	cfg := &config.Config{
-		App: config.AppConfig{
-			Name:  "test-app",
-			Env:   "test",
-			Debug: false,
-		},
-	}
-
-	logger := logging.NewLogger(cfg)
+	logger := logging.NewLogger(false, "test-app")
 
 	t.Run("logs at different levels", func(t *testing.T) {
 		// These should not panic
@@ -65,41 +58,18 @@ func TestLogLevels(t *testing.T) {
 
 func TestLoggerModes(t *testing.T) {
 	t.Run("development mode", func(t *testing.T) {
-		debugCfg := &config.Config{
-			App: config.AppConfig{
-				Name:  "debug-app",
-				Env:   "development",
-				Debug: true,
-			},
-		}
-		logger := logging.NewLogger(debugCfg)
+		logger := logging.NewLogger(true, "debug-app")
 		assert.NotNil(t, logger)
 	})
 
 	t.Run("production mode", func(t *testing.T) {
-		nonDebugCfg := &config.Config{
-			App: config.AppConfig{
-				Name:  "prod-app",
-				Env:   "production",
-				Debug: false,
-			},
-		}
-		logger := logging.NewLogger(nonDebugCfg)
+		logger := logging.NewLogger(false, "prod-app")
 		assert.NotNil(t, logger)
 	})
 }
 
 func TestLoggerFunctionality(t *testing.T) {
-	// Create test config with full Config structure
-	cfg := &config.Config{
-		App: config.AppConfig{
-			Name:  "test-app",
-			Env:   "test",
-			Debug: true,
-		},
-	}
-
-	logger := logging.NewLogger(cfg)
+	logger := logging.NewLogger(true, "test-app")
 
 	// Test logging methods don't panic
 	assert.NotPanics(t, func() {

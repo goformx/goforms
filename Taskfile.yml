@@ -75,9 +75,13 @@ tasks:
     desc: Build the application
     deps: [generate]
     cmds:
-      - task: build:linux
-      - task: build:darwin
-      - task: build:windows
+      - >
+        go build -ldflags "
+        -X main.version={{.VERSION}}
+        -X main.buildTime={{.BUILD_TIME}}
+        -X main.gitCommit={{.GIT_COMMIT}}
+        -X main.goVersion={{.GO_VERSION}}
+        " -o bin/goforms cmd/goforms/main.go
 
   build:linux:
     desc: Build for Linux
