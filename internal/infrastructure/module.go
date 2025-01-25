@@ -6,6 +6,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
+	v1 "github.com/jonesrussell/goforms/internal/application/http/v1"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -21,18 +22,49 @@ import (
 //
 //nolint:gochecknoglobals // fx modules are designed to be global
 var Module = fx.Options(
+	// Core infrastructure
 	fx.Provide(
 		config.New,
-		fx.Annotate(
-			func(cfg *config.Config) logging.Logger {
-				return logging.NewLogger(cfg.App.Debug, cfg.App.Name)
-			},
-			fx.As(new(logging.Logger)),
-		),
-		database.NewDB,
-		server.New,
-		NewStores,
-		NewHandlers,
+		logging.NewLogger,
+		store.NewStore,
+	),
+
+	// Stores
+	fx.Provide(
+		store.NewUserStore,
+		store.NewContactStore,
+		store.NewSubscriptionStore,
+	),
+
+	// Services
+	fx.Provide(
+		user.NewService,
+		contact.NewService,
+		subscription.NewService,
+	),
+
+	// Handlers
+	fx.Provide(
+		fx.Annotated{
+			Group:  "handlers",
+			Target: v1.NewHandler,
+		},
+		fx.Annotated{
+			Group:  "handlers",
+			Target: v1.NewAuthHandler,
+		},
+		fx.Annotated{
+			Group:  "handlers",
+			Target: v1.NewContactAPI,
+		},
+		fx.Annotated{
+			Group:  "handlers",
+			Target: v1.NewSubscriptionAPI,
+		},
+	),
+
+	// Renderer
+	fx.Provide(
 		view.NewRenderer,
 	),
 

@@ -24,8 +24,9 @@ func NewAuthHandler(userService user.Service, log logging.Logger) *AuthHandler {
 	}
 }
 
-// RegisterRoutes registers the authentication routes
-func (h *AuthHandler) RegisterRoutes(g *echo.Group) {
+// Register registers the authentication routes
+func (h *AuthHandler) Register(e *echo.Echo) {
+	g := e.Group("/api/v1/auth")
 	g.POST("/signup", h.SignUp)
 	g.POST("/login", h.Login)
 	g.POST("/logout", h.Logout)
