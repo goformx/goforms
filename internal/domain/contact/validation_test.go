@@ -1,4 +1,4 @@
-package validation_test
+package contact_test
 
 import (
 	"testing"
@@ -6,10 +6,9 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
-	"github.com/jonesrussell/goforms/internal/infrastructure/validation"
 )
 
-func TestValidateContact(t *testing.T) {
+func TestValidateSubmission(t *testing.T) {
 	tests := []struct {
 		name    string
 		sub     *contact.Submission
@@ -71,7 +70,7 @@ func TestValidateContact(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			err := validation.ValidateContact(tt.sub)
+			err := contact.ValidateSubmission(tt.sub)
 			if tt.wantErr {
 				assert.Error(t, err)
 			} else {

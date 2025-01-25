@@ -165,8 +165,8 @@
 
 - [ ] Infrastructure Separation of Concerns
   - [ ] Move domain-specific validation
-    - [ ] Move contact validation to domain/contact/validation
-    - [ ] Update validation imports and tests
+    - [x] Move contact validation to domain/contact/validation
+    - [x] Update validation imports and tests
   - [ ] Reorganize store layer
     - [ ] Move stores to respective domain packages
     - [ ] Update store interfaces and implementations

@@ -1,3 +1,131 @@
+# Architecture Guidelines
+
+## Clean Architecture
+- Follow domain-driven design principles
+- Maintain clear separation of concerns:
+  - Domain layer: Business logic and interfaces
+  - Infrastructure layer: External implementations
+  - Application layer: Use case orchestration
+  - Presentation layer: UI/API concerns
+- Each package must have a README.md describing its purpose
+- Define interfaces in the domain layer
+- Implement interfaces in infrastructure layer
+
+## Dependency Injection
+- Use Uber's fx framework for DI
+- Define modules in dedicated module.go files
+- Use fx.Module for logical grouping
+- Use fx.Annotate for interface implementations
+- Use fx.As for dependency abstractions
+- Use fx.Provide with clear component lifecycles
+- Use fx.Invoke for startup/initialization logic
+
+## Package Organization
+- Group related functionality in modules
+- Keep packages focused and cohesive
+- Use interfaces for abstraction
+- Follow SOLID principles
+- Document public APIs
+- Write clear, concise comments
+- Use lowercase with underscores for directories
+- Favor named exports for functions
+
+## Error Handling
+- Define domain-specific error types
+- Use error wrapping with context
+- Implement consistent error response format
+- Log errors with stack traces
+- Return appropriate HTTP status codes
+- Validate inputs at domain boundaries
+- Handle all error cases explicitly
+
+## Logging Standards
+- Use Uber's zap for structured logging
+- Implement consistent field naming
+- Use appropriate log levels:
+  - Debug: Detailed information for debugging
+  - Info: General operational events
+  - Warn: Potentially harmful situations
+  - Error: Error events that might still allow the app to continue
+- Include request IDs for traceability
+- Add context fields for better debugging
+- Log entry/exit points for critical operations
+
+## Validation
+- Define validation in domain layer
+- Use domain-specific validation rules
+- Return descriptive validation errors
+- Implement consistent validation patterns
+- Validate at domain boundaries
+- Test validation logic thoroughly
+
+## Database Operations
+- Use MariaDB as primary database
+- Implement repository pattern for data access
+- Use sqlx for database operations
+- Implement proper connection pooling
+- Use transactions appropriately
+- Handle database errors with context
+- Log slow queries
+- Monitor connection pool metrics
+- Use golang-migrate for migrations
+
+## API Development
+- Use Echo framework for API endpoints
+- Implement consistent versioning (/v1)
+- Use proper rate limiting
+- Add OpenAPI/Swagger documentation
+- Use consistent response formats
+- Implement proper authentication/authorization
+- Handle CORS appropriately
+- Use method handlers with echo.Context
+- Return JSON responses for HTTP methods
+- Group related functionality into modules
+
+## Testing Strategy
+- Use testify for assertions and mocking
+- Write unit tests for domain logic
+- Write integration tests for infrastructure
+- Test error conditions thoroughly
+- Use table-driven tests
+- Mock external dependencies
+- Test concurrent operations
+- Include performance benchmarks
+- Test validation logic
+- Add API documentation tests
+- Test rate limiting behavior
+
+## Monitoring and Observability
+- Implement structured logging
+- Add request tracing with unique IDs
+- Monitor key metrics
+- Set up health check endpoints
+- Track error rates
+- Monitor performance
+- Add audit logging
+- Include detailed error reporting
+
+## Security
+- Implement proper authentication
+- Use secure password hashing
+- Implement rate limiting
+- Add CSRF protection
+- Use secure headers
+- Validate all inputs
+- Implement proper authorization
+- Use HTTPS
+- Handle sensitive data appropriately
+
+## Code Style
+- Write concise, idiomatic Go code
+- Use functional and declarative patterns
+- Avoid global variables
+- Use descriptive variable names
+- Structure files logically
+- Prefer interfaces over concrete types
+- Keep functions focused and small
+- Use meaningful package names
+
 General Guidelines
 - Use Uber's fx dependency injection.
 - Write correct, up-to-date, bug-free, fully functional, secure, and efficient Go 1.23 code.

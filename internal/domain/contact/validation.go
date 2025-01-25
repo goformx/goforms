@@ -1,14 +1,12 @@
-package validation
+package contact
 
 import (
 	"fmt"
 	"net/mail"
-
-	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
-// ValidateContact validates a contact form submission
-func ValidateContact(sub *contact.Submission) error {
+// ValidateSubmission validates a contact form submission
+func ValidateSubmission(sub *Submission) error {
 	if sub == nil {
 		return fmt.Errorf("submission cannot be nil")
 	}
