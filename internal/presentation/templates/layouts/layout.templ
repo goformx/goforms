@@ -2,6 +2,7 @@ package layouts
 
 import (
 	t "github.com/a-h/templ"
+	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
@@ -9,6 +10,7 @@ type PageData struct {
 	Title   string
 	Content t.Component
 	Styles  []string
+	User    *user.User
 }
 
 templ Layout(data PageData) {
@@ -38,4 +40,4 @@ templ Layout(data PageData) {
 		@components.Footer()
 	</body>
 	</html>
-} 
+}

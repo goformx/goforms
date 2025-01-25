@@ -1,0 +1,43 @@
+package view
+
+import (
+    "github.com/jonesrussell/goforms/internal/domain/user"
+    "github.com/jonesrussell/goforms/internal/presentation/components"
+)
+
+templ SignupPage() {
+    @Layout("Sign Up", nil) {
+        @components.SignupForm()
+    }
+}
+
+templ LoginPage() {
+    @Layout("Sign In", nil) {
+        @components.LoginForm()
+    }
+}
+
+templ ProfilePage(user user.User) {
+    @Layout("Profile", &user) {
+        @components.UserProfile(user)
+    }
+}
+
+templ Layout(title string, currentUser *user.User) {
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8"/>
+            <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+            <title>{ title } - GoForms</title>
+            <script src="https://cdn.tailwindcss.com"></script>
+        </head>
+        <body>
+            @components.Nav()
+            <main>
+                { children... }
+            </main>
+            @components.Footer()
+        </body>
+    </html>
+} 
