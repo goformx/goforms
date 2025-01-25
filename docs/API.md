@@ -183,3 +183,235 @@ Standard HTTP status codes are used:
 - [Subscription API](./subscription.md)
 - [Error Codes](./errors.md)
 - [Rate Limiting](./rate-limiting.md)
+
+## Form Builder API
+
+### Form Management
+
+#### Create Form
+```http
+POST /api/v1/forms
+```
+
+Request body:
+```json
+{
+  "name": "Contact Form",
+  "description": "A simple contact form",
+  "schema": {
+    "type": "object",
+    "properties": {
+      "name": {
+        "type": "string",
+        "title": "Name"
+      },
+      "email": {
+        "type": "string",
+        "format": "email",
+        "title": "Email"
+      },
+      "message": {
+        "type": "string",
+        "title": "Message"
+      }
+    },
+    "required": ["name", "email", "message"]
+  },
+  "ui_schema": {
+    "message": {
+      "ui:widget": "textarea"
+    }
+  },
+  "settings": {
+    "submitButtonText": "Send Message",
+    "successMessage": "Thank you for your message!",
+    "allowedOrigins": ["*"],
+    "notifications": {
+      "email": {
+        "to": "admin@example.com"
+      }
+    }
+  }
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "name": "Contact Form",
+  "description": "A simple contact form",
+  "schema": { ... },
+  "ui_schema": { ... },
+  "settings": { ... },
+  "version": 1,
+  "status": "draft",
+  "created_at": "2024-01-24T12:00:00Z",
+  "updated_at": "2024-01-24T12:00:00Z"
+}
+```
+
+#### List Forms
+```http
+GET /api/v1/forms
+```
+
+Response:
+```json
+{
+  "forms": [
+    {
+      "id": 1,
+      "name": "Contact Form",
+      "description": "A simple contact form",
+      "status": "published",
+      "version": 1,
+      "created_at": "2024-01-24T12:00:00Z",
+      "updated_at": "2024-01-24T12:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 10
+}
+```
+
+#### Get Form
+```http
+GET /api/v1/forms/{id}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "name": "Contact Form",
+  "description": "A simple contact form",
+  "schema": { ... },
+  "ui_schema": { ... },
+  "settings": { ... },
+  "version": 1,
+  "status": "published",
+  "created_at": "2024-01-24T12:00:00Z",
+  "updated_at": "2024-01-24T12:00:00Z"
+}
+```
+
+#### Update Form
+```http
+PUT /api/v1/forms/{id}
+```
+
+Request body: Same as Create Form
+
+#### Delete Form
+```http
+DELETE /api/v1/forms/{id}
+```
+
+### Form Submissions
+
+#### Submit Form Response
+```http
+POST /api/v1/forms/{id}/submissions
+```
+
+Request body:
+```json
+{
+  "data": {
+    "name": "John Doe",
+    "email": "john@example.com",
+    "message": "Hello, world!"
+  },
+  "metadata": {
+    "userAgent": "Mozilla/5.0...",
+    "ipAddress": "127.0.0.1"
+  }
+}
+```
+
+Response:
+```json
+{
+  "id": 1,
+  "form_id": 1,
+  "data": { ... },
+  "metadata": { ... },
+  "status": "success",
+  "created_at": "2024-01-24T12:00:00Z"
+}
+```
+
+#### List Form Submissions
+```http
+GET /api/v1/forms/{id}/submissions
+```
+
+Response:
+```json
+{
+  "submissions": [
+    {
+      "id": 1,
+      "form_id": 1,
+      "data": { ... },
+      "metadata": { ... },
+      "status": "success",
+      "created_at": "2024-01-24T12:00:00Z"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "per_page": 10
+}
+```
+
+### Form Settings
+
+#### Update Form Settings
+```http
+PUT /api/v1/forms/{id}/settings
+```
+
+Request body:
+```json
+{
+  "submitButtonText": "Send Message",
+  "successMessage": "Thank you for your message!",
+  "allowedOrigins": ["example.com"],
+  "notifications": {
+    "email": {
+      "to": "admin@example.com"
+    },
+    "webhook": {
+      "url": "https://example.com/webhook",
+      "secret": "your-webhook-secret"
+    }
+  },
+  "security": {
+    "captcha": true,
+    "rateLimit": {
+      "enabled": true,
+      "max": 100,
+      "window": "1h"
+    }
+  }
+}
+```
+
+### Form Deployment
+
+#### Get Form Embed Code
+```http
+GET /api/v1/forms/{id}/embed
+```
+
+Response:
+```json
+{
+  "html": "<div id=\"form-1\"></div>\n<script src=\"https://cdn.goforms.io/v1/forms.js\"></script>\n<script>GoForms.render('form-1', { formId: '1' });</script>",
+  "javascript": "GoForms.render('form-1', { formId: '1' })",
+  "url": "https://cdn.goforms.io/v1/forms.js"
+}
+```

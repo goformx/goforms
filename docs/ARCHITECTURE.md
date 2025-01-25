@@ -104,3 +104,101 @@ GoForms is built using a clean architecture approach with clear separation of co
 - Task automation with Taskfile
 - Comprehensive test suite
 - Linting and formatting rules
+
+## Form Builder Architecture
+
+### Overview
+The Form Builder system allows users to create, customize, and deploy forms using a JSON Schema-based approach. The system is divided into several components:
+
+### Components
+
+#### Form Schema Layer
+- JSON Schema-based form definitions
+- UI Schema for rendering configuration
+- Form settings and metadata storage
+- Version control system for forms
+
+#### Database Structure
+```sql
+-- Forms table
+CREATE TABLE forms (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    user_id BIGINT NOT NULL,
+    name VARCHAR(255) NOT NULL,
+    description TEXT,
+    schema JSON NOT NULL,
+    ui_schema JSON,
+    settings JSON,
+    version INT NOT NULL DEFAULT 1,
+    status VARCHAR(50) NOT NULL DEFAULT 'draft',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (user_id) REFERENCES users(id)
+);
+
+-- Form submissions
+CREATE TABLE form_submissions (
+    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    form_id BIGINT NOT NULL,
+    data JSON NOT NULL,
+    metadata JSON,
+    status VARCHAR(50) NOT NULL DEFAULT 'pending',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    FOREIGN KEY (form_id) REFERENCES forms(id)
+);
+```
+
+#### Form Builder UI
+- Schema Editor: Visual interface for form creation
+- Live Preview: Real-time form rendering
+- Settings Panel: Form configuration interface
+- Deployment Guide: Integration instructions
+
+#### JavaScript SDK
+- Form Renderer: Client-side form display
+- Validation Engine: JSON Schema validation
+- Submission Handler: API integration
+- Style System: Theme customization
+
+### Security
+
+- Origin Validation: Control allowed domains
+- Rate Limiting: Per-form submission limits
+- CAPTCHA: Bot protection
+- XSS Protection: Input sanitization
+- CORS: Cross-origin security
+
+### Integration System
+
+- Webhooks: Custom HTTP callbacks
+- Email Notifications: Automated alerts
+- Third-party Services: Slack, etc.
+- Custom Actions: Extensible handlers
+
+### Data Flow
+
+1. Form Creation:
+   - User creates form via builder UI
+   - Schema validated and stored
+   - Form settings configured
+   - Deployment code generated
+
+2. Form Deployment:
+   - SDK loaded on client site
+   - Form schema fetched
+   - Form rendered with custom styling
+   - Client-side validation enabled
+
+3. Form Submission:
+   - Data validated against schema
+   - Submission processed and stored
+   - Notifications triggered
+   - Integrations executed
+
+### Standards
+
+The system adheres to the following standards:
+- JSON Schema (json-schema.org)
+- OpenAPI 3.0
+- Web Content Accessibility Guidelines (WCAG)
+- General Data Protection Regulation (GDPR)
