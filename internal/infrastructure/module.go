@@ -9,17 +9,24 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 )
 
-// Module provides infrastructure dependencies
+// Module exports infrastructure components
 var Module = fx.Options(
 	fx.Provide(
 		config.New,
 		logging.NewLogger,
 		database.New,
 		NewStores,
+		server.New,
 	),
+
+	// Start the server
+	fx.Invoke(func(srv *server.Server) {
+		// Server will be started by fx lifecycle hooks
+	}),
 )
 
 // Stores groups all database store providers

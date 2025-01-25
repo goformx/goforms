@@ -13,7 +13,7 @@ type AppConfig struct {
 	Name  string `envconfig:"APP_NAME" default:"goforms"`
 	Env   string `envconfig:"APP_ENV" default:"development"`
 	Debug bool   `envconfig:"APP_DEBUG" default:"false"`
-	Port  int    `envconfig:"APP_PORT" default:"8080"`
+	Port  int    `envconfig:"APP_PORT" default:"9009"`
 	Host  string `envconfig:"APP_HOST" default:"localhost"`
 }
 

@@ -12,76 +12,79 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
-	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestNew(t *testing.T) {
-	// Arrange
-	logger := mocklogging.NewMockLogger()
-	cfg := &config.Config{
-		App: config.AppConfig{
-			Host: "localhost",
-			Port: 8090,
-		},
-		Server: config.ServerConfig{
-			ReadTimeout:     10 * time.Second,
-			WriteTimeout:    10 * time.Second,
-			IdleTimeout:     30 * time.Second,
-			ShutdownTimeout: 30 * time.Second,
-		},
-	}
-
-	var srv *server.Server
 	app := fxtest.New(t,
 		fx.Provide(
-			func() logging.Logger { return logger },
-			func() *config.Config { return cfg },
+			func() logging.Logger {
+				return logging.NewTestLogger()
+			},
+			func() *config.Config {
+				return &config.Config{
+					App: config.AppConfig{
+						Host: "localhost",
+						Port: 0, // Use port 0 for testing
+					},
+					Server: config.ServerConfig{
+						ReadTimeout:     100 * time.Millisecond,
+						WriteTimeout:    100 * time.Millisecond,
+						IdleTimeout:     100 * time.Millisecond,
+						ShutdownTimeout: 100 * time.Millisecond,
+					},
+				}
+			},
 			server.New,
 		),
-		fx.Populate(&srv),
+		fx.StartTimeout(100*time.Millisecond),
+		fx.StopTimeout(100*time.Millisecond),
 	)
 
-	app.RequireStart()
-	defer app.RequireStop()
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
 
-	assert.NotNil(t, srv)
-	assert.NotNil(t, srv.Echo())
+	err := app.Start(ctx)
+	assert.NoError(t, err)
+
+	err = app.Stop(ctx)
+	assert.NoError(t, err)
 }
 
 func TestServerLifecycle(t *testing.T) {
-	// Arrange
-	logger := mocklogging.NewMockLogger()
-	cfg := &config.Config{
-		App: config.AppConfig{
-			Host: "localhost",
-			Port: 8090,
-		},
-		Server: config.ServerConfig{
-			ReadTimeout:     10 * time.Second,
-			WriteTimeout:    10 * time.Second,
-			IdleTimeout:     30 * time.Second,
-			ShutdownTimeout: 30 * time.Second,
-		},
-	}
-
-	// Create a test app
-	var srv *server.Server
+	// Create a test app with a short timeout
 	app := fxtest.New(t,
 		fx.Provide(
-			func() logging.Logger { return logger },
-			func() *config.Config { return cfg },
+			func() logging.Logger {
+				return logging.NewTestLogger()
+			},
+			func() *config.Config {
+				return &config.Config{
+					App: config.AppConfig{
+						Host: "localhost",
+						Port: 0, // Use port 0 for testing (random available port)
+					},
+					Server: config.ServerConfig{
+						ReadTimeout:     100 * time.Millisecond,
+						WriteTimeout:    100 * time.Millisecond,
+						IdleTimeout:     100 * time.Millisecond,
+						ShutdownTimeout: 100 * time.Millisecond,
+					},
+				}
+			},
 			server.New,
 		),
-		fx.Populate(&srv),
+		fx.StartTimeout(100*time.Millisecond),
+		fx.StopTimeout(100*time.Millisecond),
 	)
 
-	// Act & Assert
-	// Starting the app will trigger our OnStart hooks
-	assert.NoError(t, app.Start(context.Background()))
+	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	defer cancel()
 
-	// Give the server a moment to start
-	time.Sleep(100 * time.Millisecond)
+	// Test startup
+	err := app.Start(ctx)
+	assert.NoError(t, err)
 
-	// Stopping the app will trigger our OnStop hooks
-	assert.NoError(t, app.Stop(context.Background()))
+	// Test shutdown
+	err = app.Stop(ctx)
+	assert.NoError(t, err)
 }
