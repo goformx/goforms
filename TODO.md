@@ -162,3 +162,19 @@
   - [ ] Error Tracking
   - [ ] Audit Logging
   - [ ] User Activity Tracking
+
+- [ ] Infrastructure Separation of Concerns
+  - [ ] Move domain-specific validation
+    - [ ] Move contact validation to domain/contact/validation
+    - [ ] Update validation imports and tests
+  - [ ] Reorganize store layer
+    - [ ] Move stores to respective domain packages
+    - [ ] Update store interfaces and implementations
+  - [ ] Clean up persistence layer
+    - [ ] Merge or remove redundant persistence package
+    - [ ] Update affected dependencies
+  - [ ] Package Documentation
+    - [x] Add README.md to each infrastructure package
+    - [ ] Document package responsibilities
+    - [ ] Document package interfaces
+    - [ ] Add usage examples

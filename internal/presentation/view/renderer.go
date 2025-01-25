@@ -6,7 +6,6 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
-	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
@@ -31,10 +30,3 @@ func (r *Renderer) Render(c echo.Context, t templ.Component) error {
 	}
 	return nil
 }
-
-//nolint:gochecknoglobals // This is an intentional global following fx module pattern
-var Module = fx.Options(
-	fx.Provide(
-		NewRenderer,
-	),
-)
