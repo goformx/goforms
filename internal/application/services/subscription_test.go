@@ -171,14 +171,14 @@ func TestSubscriptionService(t *testing.T) {
 }
 
 func TestSubscriptionService_Create(t *testing.T) {
-	mockStore := subscriptionmock.NewMockStore(t)
-	mockLogger := mocklogging.NewMockLogger()
+	t.Run("valid_subscription", func(t *testing.T) {
+		mockStore := subscriptionmock.NewMockStore(t) // Create new mocks for each subtest
+		mockLogger := mocklogging.NewMockLogger()
+		service := subscription.NewService(mockStore, mockLogger)
 
-	service := subscription.NewService(mockStore, mockLogger)
-
-	t.Run("valid subscription", func(t *testing.T) {
 		sub := &subscription.Subscription{
 			Email: "test@example.com",
+			Name:  "Test User",
 		}
 
 		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, nil)
@@ -186,17 +186,32 @@ func TestSubscriptionService_Create(t *testing.T) {
 
 		err := service.CreateSubscription(context.Background(), sub)
 		assert.NoError(t, err)
+		assert.NoError(t, mockStore.Verify())
+		assert.NoError(t, mockLogger.Verify())
 	})
 
-	t.Run("duplicate email", func(t *testing.T) {
+	t.Run("duplicate_email", func(t *testing.T) {
+		mockStore := subscriptionmock.NewMockStore(t) // Create new mocks for each subtest
+		mockLogger := mocklogging.NewMockLogger()
+		service := subscription.NewService(mockStore, mockLogger)
+
 		sub := &subscription.Subscription{
 			Email: "test@example.com",
+			Name:  "Test User",
 		}
 
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", &subscription.Subscription{}, nil)
+		existingSub := &subscription.Subscription{
+			ID:    1,
+			Email: "test@example.com",
+			Name:  "Existing User",
+		}
+
+		// Expect validation check first
+		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", existingSub, nil)
 
 		err := service.CreateSubscription(context.Background(), sub)
-		assert.Error(t, err)
-		assert.Equal(t, subscription.ErrEmailAlreadyExists, err)
+		assert.ErrorIs(t, err, subscription.ErrEmailAlreadyExists)
+		assert.NoError(t, mockStore.Verify())
+		assert.NoError(t, mockLogger.Verify())
 	})
 }
