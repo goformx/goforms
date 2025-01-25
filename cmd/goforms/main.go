@@ -98,10 +98,20 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 	return e, nil
 }
 
-func startServer(e *echo.Echo, handlers []handler.Handler, cfg *config.Config, logger logging.Logger) error {
+// ServerParams contains the dependencies for starting the server
+type ServerParams struct {
+	fx.In
+
+	Echo     *echo.Echo
+	Config   *config.Config
+	Logger   logging.Logger
+	Handlers []handler.Handler `group:"handlers"`
+}
+
+func startServer(p ServerParams) error {
 	// Configure routes
-	router.Setup(e, &router.Config{
-		Handlers: handlers,
+	router.Setup(p.Echo, &router.Config{
+		Handlers: p.Handlers,
 		Static: router.StaticConfig{
 			Path: "/static",
 			Root: "static",
@@ -109,13 +119,13 @@ func startServer(e *echo.Echo, handlers []handler.Handler, cfg *config.Config, l
 	})
 
 	// Start server
-	addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
-	logger.Info("Starting server",
+	addr := fmt.Sprintf("%s:%d", p.Config.Server.Host, p.Config.Server.Port)
+	p.Logger.Info("Starting server",
 		logging.String("addr", addr),
-		logging.String("env", cfg.App.Env),
+		logging.String("env", p.Config.App.Env),
 		logging.String("version", version),
 		logging.String("gitCommit", gitCommit),
 	)
 
-	return e.Start(addr)
+	return p.Echo.Start(addr)
 }
