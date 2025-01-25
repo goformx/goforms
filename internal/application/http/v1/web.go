@@ -112,7 +112,7 @@ func (h *Handler) Contact(c echo.Context) error {
 // @Failure 500 {object} response.ErrorResponse
 // @Router /signup [get]
 func (h *Handler) Signup(c echo.Context) error {
-	if err := h.renderer.Render(c, view.SignupPage()); err != nil {
+	if err := h.renderer.Render(c, pages.Signup()); err != nil {
 		h.logger.Error("failed to render signup page", logging.Error(err))
 		return h.wrapError(err, "failed to render signup page")
 	}
@@ -128,7 +128,7 @@ func (h *Handler) Signup(c echo.Context) error {
 // @Failure 500 {object} response.ErrorResponse
 // @Router /login [get]
 func (h *Handler) Login(c echo.Context) error {
-	if err := h.renderer.Render(c, view.LoginPage()); err != nil {
+	if err := h.renderer.Render(c, pages.Login()); err != nil {
 		h.logger.Error("failed to render login page", logging.Error(err))
 		return h.wrapError(err, "failed to render login page")
 	}
