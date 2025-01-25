@@ -14,25 +14,32 @@ templ SignupPage() {
 }
 
 templ signupContent() {
-    <div class="content">
-        <h1>Create your account</h1>
-        <form action="/api/v1/auth/signup" method="POST" id="signupForm">
-            <div class="form-field">
-                <label for="name">FULL NAME</label>
-                <input id="name" name="name" type="text" required/>
-            </div>
-            <div class="form-field">
-                <label for="email">EMAIL ADDRESS</label>
-                <input id="email" name="email" type="email" autocomplete="email" required/>
-            </div>
-            <div class="form-field">
-                <label for="password">PASSWORD</label>
-                <input id="password" name="password" type="password" required/>
-            </div>
-            <button type="submit" class="button">Sign up</button>
-        </form>
-        <div class="alt-action">
-            <p>Already have an account? <a href="/login">Sign in</a></p>
+    @components.Hero("Create your account", "Join Goforms to start managing your forms.", true)
+
+    <div class="contact-layout">
+        <div class="contact-grid">
+            <section class="form-section">
+                <div class="feature-card">
+                    <form id="signupForm" class="contact-form" action="/api/v1/auth/signup" method="POST">
+                        <div class="form-group">
+                            <label for="name" class="form-label">Name</label>
+                            <input type="text" id="name" name="name" class="form-input" required/>
+                        </div>
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" id="email" name="email" class="form-input" autocomplete="email" required/>
+                        </div>
+                        <div class="form-group">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" id="password" name="password" class="form-input" required/>
+                        </div>
+                        <button type="submit" class="button primary">Sign up</button>
+                    </form>
+                    <div class="alt-action">
+                        <p>Already have an account? <a href="/login">Sign in</a></p>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 }
@@ -45,21 +52,28 @@ templ LoginPage() {
 }
 
 templ loginContent() {
-    <div class="content">
-        <h1>Sign in to your account</h1>
-        <form action="/api/v1/auth/login" method="POST" id="loginForm">
-            <div class="form-field">
-                <label for="email">EMAIL ADDRESS</label>
-                <input id="email" name="email" type="email" autocomplete="email" required/>
-            </div>
-            <div class="form-field">
-                <label for="password">PASSWORD</label>
-                <input id="password" name="password" type="password" required/>
-            </div>
-            <button type="submit" class="button">Sign in</button>
-        </form>
-        <div class="alt-action">
-            <p>Don't have an account? <a href="/signup">Sign up</a></p>
+    @components.Hero("Sign in to your account", "Welcome back to Goforms.", true)
+
+    <div class="contact-layout">
+        <div class="contact-grid">
+            <section class="form-section">
+                <div class="feature-card">
+                    <form id="loginForm" class="contact-form" action="/api/v1/auth/login" method="POST">
+                        <div class="form-group">
+                            <label for="email" class="form-label">Email</label>
+                            <input type="email" id="email" name="email" class="form-input" autocomplete="email" required/>
+                        </div>
+                        <div class="form-group">
+                            <label for="password" class="form-label">Password</label>
+                            <input type="password" id="password" name="password" class="form-input" required/>
+                        </div>
+                        <button type="submit" class="button primary">Sign in</button>
+                    </form>
+                    <div class="alt-action">
+                        <p>Don't have an account? <a href="/signup">Sign up</a></p>
+                    </div>
+                </div>
+            </section>
         </div>
     </div>
 }
@@ -72,9 +86,16 @@ templ ProfilePage(user user.User) {
 }
 
 templ profileContent(user user.User) {
-    <div class="content">
-        <h1>Profile</h1>
-        @components.UserProfile(user)
+    @components.Hero("Profile", "Manage your account settings.", true)
+
+    <div class="contact-layout">
+        <div class="contact-grid">
+            <section class="form-section">
+                <div class="feature-card">
+                    @components.UserProfile(user)
+                </div>
+            </section>
+        </div>
     </div>
 }
 
