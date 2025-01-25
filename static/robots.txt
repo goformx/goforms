@@ -1,0 +1,16 @@
+# https://goforms.dev
+User-agent: *
+Allow: /
+Allow: /contact
+Allow: /signup
+Allow: /login
+
+# Disallow API endpoints
+Disallow: /api/
+
+# Disallow any potential admin paths
+Disallow: /admin/
+Disallow: /dashboard/
+
+# Add sitemap when implemented
+# Sitemap: https://goforms.dev/sitemap.xml 
