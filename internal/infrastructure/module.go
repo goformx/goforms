@@ -5,10 +5,10 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/http"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -16,12 +16,12 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 )
 
-// Module exports infrastructure components
+// Module combines all infrastructure-level modules and providers
+//
+//nolint:gochecknoglobals // fx modules are designed to be global
 var Module = fx.Options(
-	// Core dependencies
 	fx.Provide(
 		config.New,
-		// Provide logger with config values
 		fx.Annotate(
 			func(cfg *config.Config) logging.Logger {
 				return logging.NewLogger(cfg.App.Debug, cfg.App.Name)
@@ -29,33 +29,51 @@ var Module = fx.Options(
 			fx.As(new(logging.Logger)),
 		),
 		database.NewDB,
-	),
-
-	// Infrastructure
-	fx.Provide(
-		NewStores,
 		server.New,
-		http.NewHandlers,
+		NewStores,
+		NewHandlers,
 	),
 
 	// Lifecycle hooks
 	fx.Invoke(
-		registerHandlers,
 		registerDatabaseHooks,
 	),
 )
 
-func registerHandlers(srv *server.Server, handlers *http.Handlers) {
-	handlers.Register(srv.Echo())
+// HandlerParams contains dependencies for creating handlers
+type HandlerParams struct {
+	fx.In
+
+	Logger      logging.Logger
+	Config      *config.Config
+	Server      *server.Server
+	VersionInfo handler.VersionInfo `name:"version_info"`
+
+	ContactService      contact.Service
+	SubscriptionService subscription.Service
+	UserService         user.Service
 }
 
-func registerDatabaseHooks(lc fx.Lifecycle, db *database.Database, logger logging.Logger) {
-	lc.Append(fx.Hook{
-		OnStop: func(ctx context.Context) error {
-			logger.Info("closing database connection")
-			return db.Close()
+// HandlerResult contains all HTTP handlers
+type HandlerResult struct {
+	fx.Out
+
+	Handlers []handler.Handler `group:"handlers"`
+}
+
+// NewHandlers creates all HTTP handlers
+func NewHandlers(p HandlerParams) HandlerResult {
+	base := handler.Base{Logger: p.Logger}
+
+	return HandlerResult{
+		Handlers: []handler.Handler{
+			handler.NewVersionHandler(p.VersionInfo, base),
+			handler.NewWebHandler(p.Logger, p.ContactService),
+			handler.NewAuthHandler(p.Logger, p.UserService),
+			handler.NewContactHandler(p.Logger, p.ContactService),
+			handler.NewSubscriptionHandler(p.Logger, p.SubscriptionService),
 		},
-	})
+	}
 }
 
 // Stores groups all database store providers
@@ -74,4 +92,13 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 		SubscriptionStore: store.NewSubscriptionStore(db, logger),
 		UserStore:         store.NewUserStore(db, logger),
 	}
+}
+
+func registerDatabaseHooks(lc fx.Lifecycle, db *database.Database, logger logging.Logger) {
+	lc.Append(fx.Hook{
+		OnStop: func(ctx context.Context) error {
+			logger.Info("closing database connection")
+			return db.Close()
+		},
+	})
 }
