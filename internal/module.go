@@ -6,6 +6,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/http"
 	"github.com/jonesrussell/goforms/internal/infrastructure"
+	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 )
 
 // Module combines all application modules
@@ -22,7 +23,7 @@ var Module = fx.Options(
 	),
 
 	// Register routes
-	fx.Invoke(func(srv *infrastructure.Server, handlers *http.Handlers) {
+	fx.Invoke(func(srv *server.Server, handlers *http.Handlers) {
 		handlers.Register(srv.Echo())
 	}),
 )

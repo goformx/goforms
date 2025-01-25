@@ -3,7 +3,6 @@ package infrastructure
 import (
 	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -24,9 +23,6 @@ var Module = fx.Options(
 		database.NewDB,
 	),
 
-	// Domain services
-	domain.Module,
-
 	// Infrastructure
 	fx.Provide(
 		NewStores,
@@ -44,9 +40,9 @@ var Module = fx.Options(
 type Stores struct {
 	fx.Out
 
-	ContactStore      contact.Store      `group:"stores"`
-	SubscriptionStore subscription.Store `group:"stores"`
-	UserStore         user.Store         `group:"stores"`
+	ContactStore      contact.Store
+	SubscriptionStore subscription.Store
+	UserStore         user.Store
 }
 
 // NewStores creates all database stores

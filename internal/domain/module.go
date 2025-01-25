@@ -14,19 +14,16 @@ var Module = fx.Options(
 		// Contact service
 		fx.Annotate(
 			contact.NewService,
-			fx.ParamTags(`group:"stores"`, ``),
 			fx.As(new(contact.Service)),
 		),
 		// Subscription service
 		fx.Annotate(
 			subscription.NewService,
-			fx.ParamTags(`group:"stores"`, ``),
 			fx.As(new(subscription.Service)),
 		),
 		// User service
 		fx.Annotate(
 			user.NewService,
-			fx.ParamTags(`group:"stores"`, ``),
 			fx.As(new(user.Service)),
 		),
 	),
