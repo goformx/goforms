@@ -36,7 +36,7 @@
     }
 
     /* Responsive styles */
-    @media (max-width: 768px) {
+    @media (max-width: var(--breakpoint-md)) {
         .button {
             width: 100%;
             justify-content: center;

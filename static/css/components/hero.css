@@ -51,7 +51,7 @@
         justify-content: center;
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: var(--breakpoint-md)) {
         .hero {
             padding: 3rem 1rem;
         }

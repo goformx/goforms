@@ -204,7 +204,7 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    @media (max-width: 768px) {
+    @media (max-width: var(--breakpoint-md)) {
         .newsletter-layout {
             padding: 2rem 0;
         }

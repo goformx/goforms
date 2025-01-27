@@ -37,7 +37,7 @@
     }
 
     /* Responsive styles */
-    @media (max-width: 768px) {
+    @media (max-width: var(--breakpoint-md)) {
         .features .container {
             grid-template-columns: 1fr;
             padding: var(--features-padding-y-mobile) var(--container-padding-x-mobile);
