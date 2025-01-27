@@ -5,8 +5,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
@@ -17,7 +15,9 @@ func TestNewService(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
 
 	service := subscription.NewService(mockStore, mockLogger)
-	assert.NotNil(t, service)
+	if service == nil {
+		t.Error("expected service to be created")
+	}
 }
 
 func TestCreateSubscription(t *testing.T) {
@@ -39,7 +39,9 @@ func TestCreateSubscription(t *testing.T) {
 		}
 
 		err := service.CreateSubscription(context.Background(), sub)
-		assert.NoError(t, err)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -51,7 +53,14 @@ func TestCreateSubscription(t *testing.T) {
 	t.Run("duplicate_email", func(t *testing.T) {
 		mockStore := subscriptionmock.NewMockStore(t)
 		mockLogger := mocklogging.NewMockLogger()
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", &subscription.Subscription{}, nil)
+
+		existingSub := &subscription.Subscription{
+			ID:    1,
+			Email: "test@example.com",
+			Name:  "Existing User",
+		}
+
+		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", existingSub, nil)
 
 		service := subscription.NewService(mockStore, mockLogger)
 
@@ -61,7 +70,9 @@ func TestCreateSubscription(t *testing.T) {
 		}
 
 		err := service.CreateSubscription(context.Background(), sub)
-		assert.Error(t, err)
+		if !errors.Is(err, subscription.ErrEmailAlreadyExists) {
+			t.Errorf("expected error %v, got %v", subscription.ErrEmailAlreadyExists, err)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -84,8 +95,12 @@ func TestListSubscriptions(t *testing.T) {
 	service := subscription.NewService(mockStore, mockLogger)
 
 	subs, err := service.ListSubscriptions(context.Background())
-	assert.NoError(t, err)
-	assert.Equal(t, expected, subs)
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
+	if !subscriptionsEqual(subs, expected) {
+		t.Errorf("expected %v, got %v", expected, subs)
+	}
 	if err := mockStore.Verify(); err != nil {
 		t.Errorf("store expectations not met: %v", err)
 	}
@@ -109,8 +124,12 @@ func TestGetSubscription(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		sub, err := service.GetSubscription(context.Background(), 123)
-		assert.NoError(t, err)
-		assert.Equal(t, expected, sub)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if !subscriptionEqual(sub, expected) {
+			t.Errorf("expected %v, got %v", expected, sub)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -131,8 +150,12 @@ func TestGetSubscription(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		sub, err := service.GetSubscription(context.Background(), 123)
-		assert.Error(t, err)
-		assert.Nil(t, sub)
+		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
+		}
+		if sub != nil {
+			t.Errorf("expected nil subscription, got %v", sub)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -165,11 +188,10 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			wantErr: nil,
 		},
 		{
-			name:   "invalid status",
-			id:     1,
-			status: "invalid",
-			setup: func(store *subscriptionmock.MockStore) {
-			},
+			name:    "invalid status",
+			id:      1,
+			status:  "invalid",
+			setup:   func(store *subscriptionmock.MockStore) {},
 			wantErr: subscription.ErrInvalidStatus,
 		},
 	}
@@ -181,11 +203,8 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			tt.setup(mockStore)
 			err := service.UpdateSubscriptionStatus(context.Background(), tt.id, tt.status)
 
-			if tt.wantErr != nil {
-				assert.Error(t, err)
-				assert.True(t, errors.Is(err, tt.wantErr))
-			} else {
-				assert.NoError(t, err)
+			if !errors.Is(err, tt.wantErr) {
+				t.Errorf("expected error %v, got %v", tt.wantErr, err)
 			}
 
 			if err := mockStore.Verify(); err != nil {
@@ -208,7 +227,9 @@ func TestDeleteSubscription(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		err := service.DeleteSubscription(context.Background(), 1)
-		assert.NoError(t, err)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -229,8 +250,9 @@ func TestDeleteSubscription(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		err := service.DeleteSubscription(context.Background(), 1)
-		assert.Error(t, err)
-		assert.True(t, errors.Is(err, subscription.ErrSubscriptionNotFound))
+		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -256,8 +278,12 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
-		assert.NoError(t, err)
-		assert.Equal(t, expected, sub)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
+		if !subscriptionEqual(sub, expected) {
+			t.Errorf("expected %v, got %v", expected, sub)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -278,8 +304,12 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
-		assert.Error(t, err)
-		assert.Nil(t, sub)
+		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
+			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
+		}
+		if sub != nil {
+			t.Errorf("expected nil subscription, got %v", sub)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -300,9 +330,15 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
-		assert.Error(t, err)
-		assert.Equal(t, "failed to get subscription by email: database error", err.Error())
-		assert.Nil(t, sub)
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+		if err.Error() != "failed to get subscription by email: database error" {
+			t.Errorf("expected error message %q, got %q", "failed to get subscription by email: database error", err.Error())
+		}
+		if sub != nil {
+			t.Errorf("expected nil subscription, got %v", sub)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -318,9 +354,15 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		service := subscription.NewService(mockStore, mockLogger)
 
 		sub, err := service.GetSubscriptionByEmail(context.Background(), "")
-		assert.Error(t, err)
-		assert.Equal(t, "invalid input: email is required", err.Error())
-		assert.Nil(t, sub)
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+		if err.Error() != "invalid input: email is required" {
+			t.Errorf("expected error message %q, got %q", "invalid input: email is required", err.Error())
+		}
+		if sub != nil {
+			t.Errorf("expected nil subscription, got %v", sub)
+		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
 		}
@@ -328,4 +370,31 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 			t.Errorf("logger expectations not met: %v", err)
 		}
 	})
+}
+
+// Helper function to compare subscriptions
+func subscriptionEqual(a, b *subscription.Subscription) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.ID == b.ID &&
+		a.Name == b.Name &&
+		a.Email == b.Email &&
+		a.Status == b.Status
+}
+
+// Helper function to compare subscription slices
+func subscriptionsEqual(a, b []subscription.Subscription) bool {
+	if len(a) != len(b) {
+		return false
+	}
+	for i := range a {
+		if !subscriptionEqual(&a[i], &b[i]) {
+			return false
+		}
+	}
+	return true
 }

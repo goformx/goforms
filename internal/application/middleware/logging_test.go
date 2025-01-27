@@ -4,10 +4,8 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
-	"time"
 
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
@@ -27,7 +25,7 @@ func TestLoggingMiddleware(t *testing.T) {
 			"method":  "GET",
 			"path":    "/test",
 			"status":  http.StatusOK,
-			"latency": time.Duration(0),
+			"latency": mocklogging.AnyValue{},
 			"ip":      "192.0.2.1",
 		})
 
@@ -41,9 +39,10 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Execute middleware
 		err := mw(handler)(c)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 
-		// Assert
-		assert.NoError(t, err)
 		if err := mockLogger.Verify(); err != nil {
 			t.Errorf("logger expectations not met: %v", err)
 		}
@@ -62,7 +61,7 @@ func TestLoggingMiddleware(t *testing.T) {
 			"method":  "GET",
 			"path":    "/test",
 			"status":  http.StatusInternalServerError,
-			"latency": time.Duration(0),
+			"latency": mocklogging.AnyValue{},
 			"ip":      "192.0.2.1",
 		})
 
@@ -76,9 +75,10 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Execute middleware
 		err := mw(handler)(c)
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
 
-		// Assert
-		assert.Error(t, err)
 		if err := mockLogger.Verify(); err != nil {
 			t.Errorf("logger expectations not met: %v", err)
 		}
@@ -92,7 +92,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 		"method":  "GET",
 		"path":    "/test",
 		"status":  http.StatusOK,
-		"latency": time.Duration(0),
+		"latency": mocklogging.AnyValue{},
 		"ip":      "192.168.1.1",
 	})
 
@@ -110,7 +110,10 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	})
 
 	// Execute request
-	_ = handler(c)
+	err := handler(c)
+	if err != nil {
+		t.Errorf("expected no error, got %v", err)
+	}
 
 	// Verify logs
 	if err := mockLogger.Verify(); err != nil {

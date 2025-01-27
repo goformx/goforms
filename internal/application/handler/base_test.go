@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
@@ -13,12 +11,16 @@ func TestNewBase(t *testing.T) {
 	t.Run("creates base with logger", func(t *testing.T) {
 		logger := mocklogging.NewMockLogger()
 		base := NewBase(WithLogger(logger))
-		assert.Equal(t, logger, base.Logger)
+		if base.Logger != logger {
+			t.Errorf("expected logger to be set, got nil")
+		}
 	})
 
 	t.Run("creates base without logger", func(t *testing.T) {
 		base := NewBase()
-		assert.Nil(t, base.Logger)
+		if base.Logger != nil {
+			t.Errorf("expected nil logger, got %v", base.Logger)
+		}
 	})
 }
 
@@ -27,14 +29,20 @@ func TestBase_Validate(t *testing.T) {
 		logger := mocklogging.NewMockLogger()
 		base := NewBase(WithLogger(logger))
 		err := base.Validate()
-		assert.NoError(t, err)
+		if err != nil {
+			t.Errorf("expected no error, got %v", err)
+		}
 	})
 
 	t.Run("invalid when logger missing", func(t *testing.T) {
 		base := NewBase()
 		err := base.Validate()
-		assert.Error(t, err)
-		assert.Contains(t, err.Error(), "logger is required")
+		if err == nil {
+			t.Error("expected error, got nil")
+		}
+		if err != nil && err.Error() != "logger is required" {
+			t.Errorf("expected 'logger is required' error, got %v", err)
+		}
 	})
 }
 
@@ -45,14 +53,23 @@ func TestBase_WrapResponseError(t *testing.T) {
 	t.Run("wraps error with message", func(t *testing.T) {
 		originalErr := errors.New("original error")
 		wrappedErr := base.WrapResponseError(originalErr, "wrapped message")
-		assert.Error(t, wrappedErr)
-		assert.Contains(t, wrappedErr.Error(), "wrapped message")
-		assert.Contains(t, wrappedErr.Error(), originalErr.Error())
+		if wrappedErr == nil {
+			t.Error("expected error, got nil")
+		}
+		if !errors.Is(wrappedErr, originalErr) {
+			t.Errorf("expected wrapped error to contain original error")
+		}
+		expectedMsg := "wrapped message: original error"
+		if wrappedErr.Error() != expectedMsg {
+			t.Errorf("expected error message %q, got %q", expectedMsg, wrappedErr.Error())
+		}
 	})
 
 	t.Run("returns nil for nil error", func(t *testing.T) {
 		wrappedErr := base.WrapResponseError(nil, "wrapped message")
-		assert.NoError(t, wrappedErr)
+		if wrappedErr != nil {
+			t.Errorf("expected nil error, got %v", wrappedErr)
+		}
 	})
 }
 
@@ -62,8 +79,6 @@ func TestBase_LogError(t *testing.T) {
 		base := NewBase(WithLogger(logger))
 
 		err := errors.New("test error")
-
-		// Set expectation that Error will be called with message and fields
 		logger.ExpectError("test message").WithFields(map[string]interface{}{
 			"key":   "value",
 			"error": err.Error(),
@@ -71,6 +86,8 @@ func TestBase_LogError(t *testing.T) {
 
 		base.LogError("test message", err, mocklogging.String("key", "value"))
 
-		assert.NoError(t, logger.Verify())
+		if err := logger.Verify(); err != nil {
+			t.Errorf("logger expectations not met: %v", err)
+		}
 	})
 }

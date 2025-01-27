@@ -185,6 +185,21 @@ func TestGetSubmission(t *testing.T) {
 }
 
 // Helper function to compare submissions
+func submissionEqual(a, b *contact.Submission) bool {
+	if a == nil && b == nil {
+		return true
+	}
+	if a == nil || b == nil {
+		return false
+	}
+	return a.ID == b.ID &&
+		a.Name == b.Name &&
+		a.Email == b.Email &&
+		a.Message == b.Message &&
+		a.Status == b.Status
+}
+
+// Helper function to compare submission slices
 func submissionsEqual(a, b []contact.Submission) bool {
 	if len(a) != len(b) {
 		return false
@@ -195,15 +210,4 @@ func submissionsEqual(a, b []contact.Submission) bool {
 		}
 	}
 	return true
-}
-
-// Helper function to compare individual submissions
-func submissionEqual(a, b *contact.Submission) bool {
-	if a == nil && b == nil {
-		return true
-	}
-	if a == nil || b == nil {
-		return false
-	}
-	return a.ID == b.ID
 }
