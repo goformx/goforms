@@ -15,24 +15,26 @@ templ Login() {
 templ loginContent() {
 	@components.Hero("Sign in to your account", "Welcome back to Goforms.", true)
 
-	<div class="auth-layout">
-		<div class="auth-container">
-			<div class="auth-card">
-				<form id="loginForm" class="auth-form" action="/api/v1/auth/login" method="POST">
-					<div class="form-group">
-						<label for="email" class="form-label">Email</label>
-						<input type="email" id="email" name="email" class="form-input" autocomplete="email" required/>
+	<section class="auth-section">
+		<div class="auth-layout">
+			<div class="auth-container">
+				<div class="auth-card">
+					<form id="loginForm" class="auth-form" action="/api/v1/auth/login" method="POST">
+						<div class="form-group">
+							<label for="email" class="form-label">Email</label>
+							<input type="email" id="email" name="email" class="form-input" autocomplete="email" required/>
+						</div>
+						<div class="form-group">
+							<label for="password" class="form-label">Password</label>
+							<input type="password" id="password" name="password" class="form-input" required/>
+						</div>
+						<button type="submit" class="button primary">Sign in</button>
+					</form>
+					<div class="auth-alt-action">
+						<p>Don't have an account? <a href="/signup">Sign up</a></p>
 					</div>
-					<div class="form-group">
-						<label for="password" class="form-label">Password</label>
-						<input type="password" id="password" name="password" class="form-input" required/>
-					</div>
-					<button type="submit" class="button primary">Sign in</button>
-				</form>
-				<div class="auth-alt-action">
-					<p>Don't have an account? <a href="/signup">Sign up</a></p>
 				</div>
 			</div>
 		</div>
-	</div>
+	</section>
 } 
