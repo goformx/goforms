@@ -15,6 +15,22 @@
         --container-padding-x-mobile: 1rem;
         --container-margin: 0 auto;
 
+        /* Navigation */
+        --nav-height: 70px;
+        --nav-background: rgba(255, 255, 255, 0.8);
+        --nav-backdrop-blur: 10px;
+        --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --nav-z-index: 1000;
+        --nav-logo-size: 1.5rem;
+        --nav-logo-weight: 700;
+        --nav-link-gap: 2rem;
+        --nav-link-gap-mobile: 1rem;
+        --nav-link-weight: 500;
+        --nav-logo-opacity-hover: 0.8;
+        --nav-transition-duration: 0.2s;
+        --nav-transition-timing: ease;
+        --nav-logo-gradient-angle: 135deg;
+
         /* Other */
         --border-radius: 12px;
     }
