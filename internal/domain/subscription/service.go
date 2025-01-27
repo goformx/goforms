@@ -34,13 +34,6 @@ func NewService(store Store, logger logging.Logger) Service {
 	}
 }
 
-func (s *ServiceImpl) wrapError(err error, msg string) error {
-	if err == nil {
-		return nil
-	}
-	return fmt.Errorf("%s: %w", msg, err)
-}
-
 // CreateSubscription creates a new subscription
 func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subscription) error {
 	// Validate subscription
@@ -56,8 +49,10 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 	// Check if email already exists
 	existing, err := s.store.GetByEmail(ctx, subscription.Email)
 	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
-		s.logger.Error("failed to check existing subscription", logging.Error(err))
-		return s.wrapError(err, "failed to check existing subscription")
+		s.logger.Error("failed to check existing subscription",
+			logging.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to check existing subscription: %w", err)
 	}
 	if existing != nil {
 		return ErrEmailAlreadyExists
@@ -70,8 +65,10 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 
 	// Create subscription
 	if err := s.store.Create(ctx, subscription); err != nil {
-		s.logger.Error("failed to create subscription", logging.Error(err))
-		return s.wrapError(err, "failed to create subscription")
+		s.logger.Error("failed to create subscription",
+			logging.String("error", err.Error()),
+		)
+		return fmt.Errorf("failed to create subscription: %w", err)
 	}
 
 	return nil
@@ -88,8 +85,10 @@ func isValidEmail(email string) bool {
 func (s *ServiceImpl) ListSubscriptions(ctx context.Context) ([]Subscription, error) {
 	subscriptions, err := s.store.List(ctx)
 	if err != nil {
-		s.logger.Error("failed to list subscriptions", logging.Error(err))
-		return nil, s.wrapError(err, "failed to list subscriptions")
+		s.logger.Error("failed to list subscriptions",
+			logging.String("error", err.Error()),
+		)
+		return nil, fmt.Errorf("failed to list subscriptions: %w", err)
 	}
 
 	return subscriptions, nil
@@ -99,11 +98,16 @@ func (s *ServiceImpl) ListSubscriptions(ctx context.Context) ([]Subscription, er
 func (s *ServiceImpl) GetSubscription(ctx context.Context, id int64) (*Subscription, error) {
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to get subscription", logging.Error(err))
-		return nil, s.wrapError(err, "failed to get subscription")
+		s.logger.Error("failed to get subscription",
+			logging.String("error", err.Error()),
+		)
+		return nil, err
 	}
 
 	if subscription == nil {
+		s.logger.Error("failed to get subscription",
+			logging.String("error", ErrSubscriptionNotFound.Error()),
+		)
 		return nil, ErrSubscriptionNotFound
 	}
 
@@ -113,16 +117,21 @@ func (s *ServiceImpl) GetSubscription(ctx context.Context, id int64) (*Subscript
 // GetSubscriptionByEmail returns a subscription by email
 func (s *ServiceImpl) GetSubscriptionByEmail(ctx context.Context, email string) (*Subscription, error) {
 	if email == "" {
-		return nil, errors.New("invalid input: email is required")
+		return nil, fmt.Errorf("invalid input: email is required")
 	}
 
 	subscription, err := s.store.GetByEmail(ctx, email)
 	if err != nil {
-		s.logger.Error("failed to get subscription by email", logging.Error(err))
-		return nil, s.wrapError(err, "failed to get subscription by email")
+		s.logger.Error("failed to get subscription by email",
+			logging.String("error", err.Error()),
+		)
+		return nil, err
 	}
 
 	if subscription == nil {
+		s.logger.Error("failed to get subscription by email",
+			logging.String("error", ErrSubscriptionNotFound.Error()),
+		)
 		return nil, ErrSubscriptionNotFound
 	}
 
@@ -131,29 +140,32 @@ func (s *ServiceImpl) GetSubscriptionByEmail(ctx context.Context, email string) 
 
 // UpdateSubscriptionStatus updates the status of a subscription
 func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, status Status) error {
-	// Validate status
-	switch status {
-	case StatusPending, StatusActive, StatusCancelled:
-		// Valid status
-	default:
+	if !status.IsValid() {
 		return ErrInvalidStatus
 	}
 
 	// Check if subscription exists
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to get subscription", logging.Error(err))
-		return s.wrapError(err, "failed to get subscription")
+		s.logger.Error("failed to get subscription",
+			logging.String("error", err.Error()),
+		)
+		return err
 	}
 
 	if subscription == nil {
+		s.logger.Error("failed to get subscription",
+			logging.String("error", ErrSubscriptionNotFound.Error()),
+		)
 		return ErrSubscriptionNotFound
 	}
 
 	// Update status
 	if err := s.store.UpdateStatus(ctx, id, status); err != nil {
-		s.logger.Error("failed to update subscription status", logging.Error(err))
-		return s.wrapError(err, "failed to update subscription status")
+		s.logger.Error("failed to update subscription status",
+			logging.String("error", err.Error()),
+		)
+		return err
 	}
 
 	return nil
@@ -164,18 +176,25 @@ func (s *ServiceImpl) DeleteSubscription(ctx context.Context, id int64) error {
 	// Check if subscription exists
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
-		s.logger.Error("failed to get subscription", logging.Error(err))
-		return s.wrapError(err, "failed to get subscription")
+		s.logger.Error("failed to get subscription",
+			logging.String("error", err.Error()),
+		)
+		return err
 	}
 
 	if subscription == nil {
+		s.logger.Error("failed to get subscription",
+			logging.String("error", ErrSubscriptionNotFound.Error()),
+		)
 		return ErrSubscriptionNotFound
 	}
 
 	// Delete subscription
 	if err := s.store.Delete(ctx, id); err != nil {
-		s.logger.Error("failed to delete subscription", logging.Error(err))
-		return s.wrapError(err, "failed to delete subscription")
+		s.logger.Error("failed to delete subscription",
+			logging.String("error", err.Error()),
+		)
+		return err
 	}
 
 	return nil

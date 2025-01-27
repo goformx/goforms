@@ -81,7 +81,7 @@ func TestBase_LogError(t *testing.T) {
 		err := errors.New("test error")
 		logger.ExpectError("test message").WithFields(map[string]interface{}{
 			"key":   "value",
-			"error": err.Error(),
+			"error": err,
 		})
 
 		base.LogError("test message", err, mocklogging.String("key", "value"))

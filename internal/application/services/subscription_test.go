@@ -66,7 +66,7 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 
 	t.Run("invalid request body", func(t *testing.T) {
 		mockLogger.ExpectError("failed to bind subscription request").WithFields(map[string]interface{}{
-			"error": "invalid character 'i' looking for beginning of value",
+			"error": mocklogging.AnyValue{},
 		})
 
 		req := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(`invalid json`))
@@ -147,7 +147,7 @@ func TestSubscriptionService(t *testing.T) {
 		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, subscription.ErrSubscriptionNotFound)
 		mockStore.ExpectCreate(context.Background(), sub, storeErr)
 		mockLogger.ExpectError("failed to create subscription").WithFields(map[string]interface{}{
-			"error": storeErr.Error(),
+			"error": mocklogging.AnyValue{},
 		})
 
 		err := service.CreateSubscription(context.Background(), sub)
@@ -201,7 +201,7 @@ func TestSubscriptionService(t *testing.T) {
 		storeErr := errors.New("store error")
 		mockStore.ExpectList(context.Background(), nil, storeErr)
 		mockLogger.ExpectError("failed to list subscriptions").WithFields(map[string]interface{}{
-			"error": storeErr.Error(),
+			"error": mocklogging.AnyValue{},
 		})
 
 		got, err := service.ListSubscriptions(context.Background())

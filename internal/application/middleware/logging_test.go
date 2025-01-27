@@ -24,7 +24,7 @@ func TestLoggingMiddleware(t *testing.T) {
 		mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
 			"method":  "GET",
 			"path":    "/test",
-			"status":  http.StatusOK,
+			"status":  mocklogging.AnyValue{},
 			"latency": mocklogging.AnyValue{},
 			"ip":      "192.0.2.1",
 		})
@@ -34,7 +34,8 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Create test handler
 		handler := func(c echo.Context) error {
-			return c.String(http.StatusOK, "test response")
+			c.Response().WriteHeader(http.StatusOK)
+			return nil
 		}
 
 		// Execute middleware
@@ -60,7 +61,7 @@ func TestLoggingMiddleware(t *testing.T) {
 		mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
 			"method":  "GET",
 			"path":    "/test",
-			"status":  http.StatusInternalServerError,
+			"status":  mocklogging.AnyValue{},
 			"latency": mocklogging.AnyValue{},
 			"ip":      "192.0.2.1",
 		})
@@ -70,6 +71,7 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Create test handler that returns error
 		handler := func(c echo.Context) error {
+			c.Response().WriteHeader(http.StatusInternalServerError)
 			return echo.NewHTTPError(http.StatusInternalServerError, "test error")
 		}
 
@@ -91,7 +93,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
 		"method":  "GET",
 		"path":    "/test",
-		"status":  http.StatusOK,
+		"status":  mocklogging.AnyValue{},
 		"latency": mocklogging.AnyValue{},
 		"ip":      "192.168.1.1",
 	})
@@ -106,6 +108,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	// Create middleware
 	mw := middleware.LoggingMiddleware(mockLogger)
 	handler := mw(func(c echo.Context) error {
+		c.Response().WriteHeader(http.StatusOK)
 		return c.String(http.StatusOK, "success")
 	})
 

@@ -15,9 +15,21 @@ const (
 	StatusPending Status = "pending"
 	// StatusActive indicates an active subscription
 	StatusActive Status = "active"
+	// StatusInactive indicates an inactive subscription
+	StatusInactive Status = "inactive"
 	// StatusCancelled indicates a cancelled subscription
 	StatusCancelled Status = "cancelled"
 )
+
+// IsValid checks if the status is valid
+func (s Status) IsValid() bool {
+	switch s {
+	case StatusPending, StatusActive, StatusInactive, StatusCancelled:
+		return true
+	default:
+		return false
+	}
+}
 
 // Subscription represents a newsletter subscription
 type Subscription struct {

@@ -12,6 +12,8 @@ import (
 
 var errTest = errors.New("test error")
 
+type anyValue struct{}
+
 func TestSubmitContact(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -44,7 +46,7 @@ func TestSubmitContact(t *testing.T) {
 					return errTest
 				}
 				ml.ExpectError("failed to create submission").WithFields(map[string]interface{}{
-					"error": errTest.Error(),
+					"error": errTest,
 					"email": "test@example.com",
 				})
 			},

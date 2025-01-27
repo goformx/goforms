@@ -38,7 +38,11 @@ func (m *MockLogger) recordCall(level, message string, fields ...logging.Field) 
 	defer m.mu.Unlock()
 	fieldMap := make(map[string]interface{})
 	for _, field := range fields {
-		fieldMap[field.Key] = field.String
+		if field.Key == "error" {
+			fieldMap[field.Key] = field.Interface
+		} else {
+			fieldMap[field.Key] = field.String
+		}
 	}
 	m.calls = append(m.calls, logCall{level: level, message: message, fields: fieldMap})
 }
