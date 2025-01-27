@@ -108,9 +108,13 @@ var Module = fx.Options(
 		NewStores,
 
 		// Handlers - Each handler must be registered here with its required dependencies
-		// WebHandler - Requires logger, renderer, and contact service
-		AsHandler(func(logger logging.Logger, renderer *view.Renderer, contactService contact.Service) *handler.WebHandler {
-			return handler.NewWebHandler(logger, handler.WithRenderer(renderer), handler.WithContactService(contactService))
+		// WebHandler - Requires logger, renderer, contact service, and subscription service
+		AsHandler(func(logger logging.Logger, renderer *view.Renderer, contactService contact.Service, subscriptionService subscription.Service) *handler.WebHandler {
+			return handler.NewWebHandler(logger,
+				handler.WithRenderer(renderer),
+				handler.WithContactService(contactService),
+				handler.WithWebSubscriptionService(subscriptionService),
+			)
 		}),
 		// AuthHandler - Requires logger and user service
 		AsHandler(func(logger logging.Logger, userService user.Service) *handler.AuthHandler {
@@ -197,6 +201,7 @@ func NewHandlers(p HandlerParams) []handler.Handler {
 	webHandler := handler.NewWebHandler(p.Logger,
 		handler.WithRenderer(p.Renderer),
 		handler.WithContactService(p.ContactService),
+		handler.WithWebSubscriptionService(p.SubscriptionService),
 	)
 	p.Logger.Debug("web handler created", logging.Bool("handler_available", webHandler != nil))
 

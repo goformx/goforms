@@ -8,7 +8,8 @@ const API = {
 
 const DOM_IDS = {
     NEWSLETTER_FORM: 'newsletter-form',
-    API_RESPONSE: 'api-response'
+    API_RESPONSE: 'api-response',
+    MESSAGES_LIST: 'messages-list'
 };
 
 const TEMPLATES = {
@@ -106,6 +107,7 @@ class NewsletterForm {
     constructor(formId) {
         this.form = getElement(formId);
         this.apiResponse = new APIResponseDisplay(DOM_IDS.API_RESPONSE);
+        this.messagesList = getElement(DOM_IDS.MESSAGES_LIST);
         this.setupListeners();
     }
 
@@ -116,12 +118,11 @@ class NewsletterForm {
     }
 
     getFormData() {
-        return Object.fromEntries(
-            ['name', 'email'].map(id => [
-                id, 
-                this.form.querySelector(`#${id}`).value
-            ])
-        );
+        const formData = new FormData(this.form);
+        return {
+            name: formData.get('name'),
+            email: formData.get('email')
+        };
     }
 
     async handleSubmit(event) {
@@ -132,31 +133,116 @@ class NewsletterForm {
         logDebug('Form data:', formData);
 
         try {
-            const response = await fetch(API.SUBSCRIPTIONS, {
-                method: 'POST',
-                headers: API.HEADERS,
-                body: JSON.stringify(formData)
-            });
-            
-            const data = await response.json();
-            this.apiResponse.addResponse(response.ok ? 'success' : 'error', data);
-            
-            if (response.ok) {
-                logDebug('Subscription successful, resetting form');
-                this.form.reset();
-            } else {
-                logError('Subscription failed:', data);
-            }
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Add new submission to the list
+            this.addSubmissionToList(formData);
+
+            // Show success message
+            this.showMessage('success', 'Form submitted successfully! Check the submissions list.');
+            this.form.reset();
         } catch (err) {
             logError('Submit error:', err);
             this.apiResponse.addResponse('error', { 
                 error: err.message 
             });
+            this.showMessage('error', 'Failed to submit form. Please try again.');
         }
+    }
+
+    addSubmissionToList(submission) {
+        const item = document.createElement('div');
+        item.className = 'message-item';
+        item.innerHTML = `
+            <div class="message-header">
+                <strong>${submission.name}</strong>
+                <span class="timestamp">${submission.timestamp}</span>
+            </div>
+            <div class="message-content">
+                <span class="email">${submission.email}</span>
+            </div>
+        `;
+        this.messagesList.insertBefore(item, this.messagesList.firstChild);
+    }
+
+    showMessage(type, text) {
+        const message = document.createElement('div');
+        message.className = `alert alert-${type}`;
+        message.textContent = text;
+        this.form.parentNode.insertBefore(message, this.form);
+
+        setTimeout(() => {
+            message.remove();
+        }, 5000);
     }
 }
 
 // Initialize form handler when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    new NewsletterForm(DOM_IDS.NEWSLETTER_FORM);
+    const form = document.getElementById('newsletter-form');
+    const messagesList = document.getElementById('messages-list');
+
+    // Demo submissions to show in the list
+    const demoSubmissions = [
+        { name: 'John Smith', email: 'john@example.com', timestamp: '2 minutes ago' },
+        { name: 'Sarah Wilson', email: 's.wilson@example.com', timestamp: '5 minutes ago' },
+        { name: 'Mike Johnson', email: 'mike.j@example.com', timestamp: '10 minutes ago' }
+    ];
+
+    // Display demo submissions
+    demoSubmissions.forEach(submission => {
+        addSubmissionToList(submission);
+    });
+
+    form.addEventListener('submit', async (e) => {
+        e.preventDefault();
+
+        const formData = new FormData(form);
+        const data = {
+            name: formData.get('name'),
+            email: formData.get('email')
+        };
+
+        try {
+            // Simulate API call
+            await new Promise(resolve => setTimeout(resolve, 500));
+
+            // Add new submission to the list
+            addSubmissionToList(data);
+
+            // Show success message
+            showMessage('success', 'Form submitted successfully! Check the submissions list.');
+            form.reset();
+
+        } catch (error) {
+            showMessage('error', 'Failed to submit form. Please try again.');
+        }
+    });
+
+    function addSubmissionToList(submission) {
+        const item = document.createElement('div');
+        item.className = 'message-item';
+        item.innerHTML = `
+            <div class="message-header">
+                <strong>${submission.name}</strong>
+                <span class="timestamp">${submission.timestamp}</span>
+            </div>
+            <div class="message-content">
+                <span class="email">${submission.email}</span>
+            </div>
+        `;
+        messagesList.insertBefore(item, messagesList.firstChild);
+    }
+
+    function showMessage(type, text) {
+        const message = document.createElement('div');
+        message.className = `alert alert-${type}`;
+        message.textContent = text;
+        form.parentNode.insertBefore(message, form);
+
+        setTimeout(() => {
+            message.remove();
+        }, 5000);
+    }
 }); 
