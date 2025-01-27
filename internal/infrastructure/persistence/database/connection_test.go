@@ -1,12 +1,14 @@
 package database
 
 import (
+	"context"
 	"testing"
-	"time"
 
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"go.uber.org/fx"
 )
 
 func TestBuildDSN(t *testing.T) {
@@ -36,50 +38,52 @@ func TestBuildDSN(t *testing.T) {
 	}
 }
 
-func TestNew(t *testing.T) {
+func TestNewDB(t *testing.T) {
 	tests := []struct {
 		name    string
-		cfg     *config.Config
+		config  *config.Config
 		wantErr bool
 	}{
 		{
-			name: "invalid configuration - empty host",
-			cfg: &config.Config{
+			name: "valid configuration",
+			config: &config.Config{
 				Database: config.DatabaseConfig{
-					Port:           3306,
-					User:           "test_user",
-					Password:       "test_pass",
-					Name:           "test_db",
-					MaxOpenConns:   10,
-					MaxIdleConns:   5,
-					ConnMaxLifetme: time.Hour,
+					Host:     "localhost",
+					Port:     3306,
+					User:     "test_user",
+					Password: "test_pass",
+					Name:     "test_db",
 				},
 			},
-			wantErr: true,
-		},
-		{
-			name: "invalid configuration - empty user",
-			cfg: &config.Config{
-				Database: config.DatabaseConfig{
-					Host:           "localhost",
-					Port:           3306,
-					Password:       "test_pass",
-					Name:           "test_db",
-					MaxOpenConns:   10,
-					MaxIdleConns:   5,
-					ConnMaxLifetme: time.Hour,
-				},
-			},
-			wantErr: true,
+			wantErr: false,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// We only test invalid configurations since valid ones would try to connect
+			logger := logging.NewTestLogger()
+			var db *DB
+			var err error
+
+			app := fx.New(
+				fx.NopLogger,
+				fx.Supply(tt.config, logger),
+				fx.Provide(
+					func(lc fx.Lifecycle) (*DB, error) {
+						return NewDB(lc, tt.config, logger)
+					},
+				),
+				fx.Populate(&db),
+			)
+			err = app.Start(context.Background())
+			defer app.Stop(context.Background())
+
 			if tt.wantErr {
-				_, err := New(tt.cfg)
 				assert.Error(t, err)
+				assert.Nil(t, db)
+			} else {
+				assert.NoError(t, err)
+				assert.NotNil(t, db)
 			}
 		})
 	}

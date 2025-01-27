@@ -5,6 +5,7 @@ import (
 	"sync"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"go.uber.org/zap"
 )
 
 // logCall represents a single logging call
@@ -19,20 +20,6 @@ type MockLogger struct {
 	mu       sync.Mutex
 	calls    []logCall
 	expected []logCall
-}
-
-// LogCall represents a logging call
-type LogCall struct {
-	Method string
-	Msg    string
-	Fields []logging.Field
-}
-
-// LogExpectation represents an expected logging call
-type LogExpectation struct {
-	Method string
-	Msg    string
-	Fields []logging.Field
 }
 
 // NewMockLogger creates a new mock logger
@@ -60,6 +47,30 @@ func (m *MockLogger) Debug(message string, fields ...logging.Field) {
 
 func (m *MockLogger) Warn(message string, fields ...logging.Field) {
 	m.recordCall("warn", message, fields...)
+}
+
+func (m *MockLogger) Int64(key string, value int64) logging.Field {
+	return zap.Int64(key, value)
+}
+
+func (m *MockLogger) Int(key string, value int) logging.Field {
+	return zap.Int(key, value)
+}
+
+func (m *MockLogger) Int32(key string, value int32) logging.Field {
+	return zap.Int32(key, value)
+}
+
+func (m *MockLogger) Uint64(key string, value uint64) logging.Field {
+	return zap.Uint64(key, value)
+}
+
+func (m *MockLogger) Uint(key string, value uint) logging.Field {
+	return zap.Uint(key, value)
+}
+
+func (m *MockLogger) Uint32(key string, value uint32) logging.Field {
+	return zap.Uint32(key, value)
 }
 
 // ExpectInfo adds an expectation for an info message
@@ -103,6 +114,7 @@ func matchField(got, exp logging.Field) bool {
 	return exp.Interface == got.Interface
 }
 
+// Verify checks if all expected calls were made in order
 func (m *MockLogger) Verify() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()

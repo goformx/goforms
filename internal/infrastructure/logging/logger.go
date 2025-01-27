@@ -24,6 +24,18 @@ type Logger interface {
 	Debug(msg string, fields ...Field)
 	// Warn logs a message at warn level with optional fields
 	Warn(msg string, fields ...Field)
+	// Int64 adds an int64 field to the log entry
+	Int64(key string, value int64) Field
+	// Int adds an int field to the log entry
+	Int(key string, value int) Field
+	// Int32 adds an int32 field to the log entry
+	Int32(key string, value int32) Field
+	// Uint64 adds a uint64 field to the log entry
+	Uint64(key string, value uint64) Field
+	// Uint adds a uint field to the log entry
+	Uint(key string, value uint) Field
+	// Uint32 adds a uint32 field to the log entry
+	Uint32(key string, value uint32) Field
 }
 
 // Field represents a logging field
@@ -34,6 +46,12 @@ func String(key string, value string) Field { return zap.String(key, value) }
 
 // Int creates an integer field
 func Int(key string, value int) Field { return zap.Int(key, value) }
+
+// Int64 creates a 64-bit integer field
+func Int64(key string, value int64) Field { return zap.Int64(key, value) }
+
+// Uint creates an unsigned integer field
+func Uint(key string, value uint) Field { return zap.Uint(key, value) }
 
 // Bool creates a boolean field
 func Bool(key string, value bool) Field { return zap.Bool(key, value) }
@@ -100,3 +118,33 @@ func (l *logger) Info(msg string, fields ...Field)  { l.log.Info(msg, fields...)
 func (l *logger) Error(msg string, fields ...Field) { l.log.Error(msg, fields...) }
 func (l *logger) Debug(msg string, fields ...Field) { l.log.Debug(msg, fields...) }
 func (l *logger) Warn(msg string, fields ...Field)  { l.log.Warn(msg, fields...) }
+
+// Int64 adds an int64 field to the log entry
+func (l *logger) Int64(key string, value int64) Field {
+	return zap.Int64(key, value)
+}
+
+// Int adds an int field to the log entry
+func (l *logger) Int(key string, value int) Field {
+	return zap.Int(key, value)
+}
+
+// Int32 adds an int32 field to the log entry
+func (l *logger) Int32(key string, value int32) Field {
+	return zap.Int32(key, value)
+}
+
+// Uint64 adds a uint64 field to the log entry
+func (l *logger) Uint64(key string, value uint64) Field {
+	return zap.Uint64(key, value)
+}
+
+// Uint adds a uint field to the log entry
+func (l *logger) Uint(key string, value uint) Field {
+	return zap.Uint(key, value)
+}
+
+// Uint32 adds a uint32 field to the log entry
+func (l *logger) Uint32(key string, value uint32) Field {
+	return zap.Uint32(key, value)
+}
