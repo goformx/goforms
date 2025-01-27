@@ -1,46 +1,46 @@
 @layer components {
     .features {
-        padding: 5rem 0;
+        padding: var(--features-padding-y) 0;
         background: var(--background);
     }
 
     .features .container {
         display: grid;
         grid-template-columns: repeat(3, 1fr);
-        gap: 2rem;
+        gap: var(--features-gap);
     }
 
     .feature-card {
-        background: rgba(30, 41, 59, 0.5);
-        padding: 2rem;
+        background: var(--feature-card-bg);
+        padding: var(--feature-card-padding);
         border-radius: var(--border-radius);
     }
 
     .feature-card h3 {
-        font-size: 1.5rem;
-        font-weight: 600;
-        margin-bottom: 0.75rem;
+        font-size: var(--feature-card-title-size);
+        font-weight: var(--feature-card-title-weight);
+        margin-bottom: var(--feature-card-title-margin);
         display: flex;
         align-items: center;
-        gap: 0.75rem;
+        gap: var(--feature-card-title-gap);
         color: var(--text);
     }
 
     .feature-card h3 span {
-        font-size: 1.5rem;
+        font-size: var(--feature-card-title-size);
     }
 
     .feature-card p {
         color: var(--text-light);
-        font-size: 1rem;
-        line-height: 1.5;
+        font-size: var(--feature-card-text-size);
+        line-height: var(--feature-card-text-line-height);
     }
 
     /* Responsive styles */
     @media (max-width: 768px) {
         .features .container {
             grid-template-columns: 1fr;
-            padding: 3rem 1rem;
+            padding: var(--features-padding-y-mobile) var(--container-padding-x-mobile);
         }
     }
 } 

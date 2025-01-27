@@ -113,6 +113,19 @@
         --card-border: 1px solid var(--border-color);
         --card-backdrop-blur: 8px;
         --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+
+        /* Features */
+        --features-padding-y: 5rem;
+        --features-padding-y-mobile: 3rem;
+        --features-gap: 2rem;
+        --feature-card-bg: rgba(30, 41, 59, 0.5);
+        --feature-card-padding: 2rem;
+        --feature-card-title-size: 1.5rem;
+        --feature-card-title-weight: 600;
+        --feature-card-title-gap: 0.75rem;
+        --feature-card-title-margin: 0.75rem;
+        --feature-card-text-size: 1rem;
+        --feature-card-text-line-height: 1.5;
         
         /* Layout */
         --header-height: var(--nav-height);
