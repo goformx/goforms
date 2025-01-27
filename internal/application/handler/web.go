@@ -11,31 +11,57 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
-// WebHandlerOption defines a web handler option
+// WebHandlerOption defines a web handler option.
+// This type is used to implement the functional options pattern
+// for configuring the WebHandler.
 type WebHandlerOption func(*WebHandler)
 
-// WithContactService sets the contact service
+// WithContactService sets the contact service.
+// This is a required option for the WebHandler as it needs
+// the contact service to function properly.
+//
+// Example:
+//
+//	handler := NewWebHandler(logger, WithContactService(contactService))
 func WithContactService(svc contact.Service) WebHandlerOption {
 	return func(h *WebHandler) {
 		h.contactService = svc
 	}
 }
 
-// WithRenderer sets the view renderer
+// WithRenderer sets the view renderer.
+// This is a required option for the WebHandler as it needs
+// the renderer to display web pages.
+//
+// Example:
+//
+//	handler := NewWebHandler(logger, WithRenderer(renderer))
 func WithRenderer(renderer *view.Renderer) WebHandlerOption {
 	return func(h *WebHandler) {
 		h.renderer = renderer
 	}
 }
 
-// WebHandler handles web page requests
+// WebHandler handles web page requests.
+// It requires both a renderer and a contact service to function properly.
+// Use the functional options pattern to configure these dependencies.
 type WebHandler struct {
 	Base
 	contactService contact.Service
 	renderer       *view.Renderer
 }
 
-// NewWebHandler creates a new web handler
+// NewWebHandler creates a new web handler.
+// It uses the functional options pattern to configure the handler.
+// The logger is required as a direct parameter, while other dependencies
+// are provided through options.
+//
+// Example:
+//
+//	handler := NewWebHandler(logger,
+//	    WithRenderer(renderer),
+//	    WithContactService(contactService),
+//	)
 func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) *WebHandler {
 	h := &WebHandler{
 		Base: NewBase(WithLogger(logger)),
@@ -62,7 +88,10 @@ func (h *WebHandler) Validate() error {
 	return nil
 }
 
-// Register registers the web routes
+// Register registers the web routes.
+// This method sets up all web page routes and static file serving.
+// It validates that all required dependencies are available before
+// registering any routes.
 func (h *WebHandler) Register(e *echo.Echo) {
 	if err := h.Validate(); err != nil {
 		h.Logger.Error("failed to validate handler", logging.Error(err))
@@ -84,11 +113,11 @@ func (h *WebHandler) Register(e *echo.Echo) {
 	e.GET("/login", h.handleLogin)
 	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/login"))
 
-	// Static files
-	e.Static("/static", "static")
-	h.Logger.Debug("registered static directory", logging.String("path", "/static"), logging.String("root", "static"))
+	// Static files - Note: paths must be relative to the project root
+	e.Static("/static", "./static")
+	h.Logger.Debug("registered static directory", logging.String("path", "/static"), logging.String("root", "./static"))
 
-	e.File("/favicon.ico", "static/favicon.ico")
+	e.File("/favicon.ico", "./static/favicon.ico")
 	h.Logger.Debug("registered favicon", logging.String("path", "/favicon.ico"))
 
 	h.Logger.Debug("web routes registration complete")

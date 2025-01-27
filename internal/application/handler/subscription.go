@@ -11,20 +11,20 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
-// SubscriptionHandler handles subscription-related requests
-type SubscriptionHandler struct {
-	*Base
-	subscriptionService subscription.Service
-}
-
-// SubscriptionHandlerOption configures a SubscriptionHandler
+// SubscriptionHandlerOption defines a subscription handler option
 type SubscriptionHandlerOption func(*SubscriptionHandler)
 
-// WithSubscriptionService sets the subscription service for the handler
+// WithSubscriptionService sets the subscription service
 func WithSubscriptionService(svc subscription.Service) SubscriptionHandlerOption {
 	return func(h *SubscriptionHandler) {
 		h.subscriptionService = svc
 	}
+}
+
+// SubscriptionHandler handles subscription-related requests
+type SubscriptionHandler struct {
+	*Base
+	subscriptionService subscription.Service
 }
 
 // NewSubscriptionHandler creates a new SubscriptionHandler
