@@ -1,36 +1,67 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
-	"github.com/labstack/echo/v4"
-
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/labstack/echo/v4"
 )
 
 // ContactHandler handles contact form submissions
 type ContactHandler struct {
-	Base
+	*Base
 	contactService contact.Service
 }
 
-// NewContactHandler creates a new contact handler
-func NewContactHandler(logger logging.Logger, contactService contact.Service) *ContactHandler {
-	return &ContactHandler{
-		Base:           Base{Logger: logger},
-		contactService: contactService,
+// ContactHandlerOption configures a ContactHandler
+type ContactHandlerOption func(*ContactHandler)
+
+// WithContactServiceOpt sets the contact service for the handler
+func WithContactServiceOpt(svc contact.Service) ContactHandlerOption {
+	return func(h *ContactHandler) {
+		h.contactService = svc
 	}
+}
+
+// NewContactHandler creates a new ContactHandler
+func NewContactHandler(logger logging.Logger, opts ...ContactHandlerOption) *ContactHandler {
+	h := &ContactHandler{
+		Base: &Base{Logger: logger},
+	}
+
+	for _, opt := range opts {
+		opt(h)
+	}
+
+	return h
+}
+
+// Validate ensures all required dependencies are set
+func (h *ContactHandler) Validate() error {
+	if err := h.Base.Validate(); err != nil {
+		return err
+	}
+	if h.contactService == nil {
+		return fmt.Errorf("missing required dependency: contact service")
+	}
+	return nil
 }
 
 // Register registers the contact routes
 func (h *ContactHandler) Register(e *echo.Echo) {
+	if err := h.Validate(); err != nil {
+		h.Logger.Error("failed to validate handler", logging.Error(err))
+		return
+	}
+
 	g := e.Group("/api/v1/contact")
 	g.POST("", h.handleSubmit)
 	g.GET("", h.handleList)
 	g.GET("/:id", h.handleGet)
-	g.PUT("/:id/status", h.handleUpdateStatus)
+	g.PUT("/:id", h.handleUpdate)
 }
 
 // handleSubmit handles contact form submissions
@@ -108,7 +139,7 @@ func (h *ContactHandler) handleGet(c echo.Context) error {
 	return c.JSON(http.StatusOK, submission)
 }
 
-// handleUpdateStatus handles updating a submission's status
+// handleUpdate handles updating a submission's status
 // @Summary Update submission status
 // @Description Update the status of a contact form submission
 // @Tags contact
@@ -119,8 +150,8 @@ func (h *ContactHandler) handleGet(c echo.Context) error {
 // @Success 200 {object} contact.Submission
 // @Failure 400 {object} echo.HTTPError
 // @Failure 404 {object} echo.HTTPError
-// @Router /api/v1/contact/{id}/status [put]
-func (h *ContactHandler) handleUpdateStatus(c echo.Context) error {
+// @Router /api/v1/contact/{id} [put]
+func (h *ContactHandler) handleUpdate(c echo.Context) error {
 	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")

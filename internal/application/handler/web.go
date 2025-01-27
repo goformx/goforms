@@ -11,6 +11,23 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
+// WebHandlerOption defines a web handler option
+type WebHandlerOption func(*WebHandler)
+
+// WithContactService sets the contact service
+func WithContactService(svc contact.Service) WebHandlerOption {
+	return func(h *WebHandler) {
+		h.contactService = svc
+	}
+}
+
+// WithRenderer sets the view renderer
+func WithRenderer(renderer *view.Renderer) WebHandlerOption {
+	return func(h *WebHandler) {
+		h.renderer = renderer
+	}
+}
+
 // WebHandler handles web page requests
 type WebHandler struct {
 	Base
@@ -19,16 +36,39 @@ type WebHandler struct {
 }
 
 // NewWebHandler creates a new web handler
-func NewWebHandler(logger logging.Logger, contactService contact.Service, renderer *view.Renderer) *WebHandler {
-	return &WebHandler{
-		Base:           Base{Logger: logger},
-		contactService: contactService,
-		renderer:       renderer,
+func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) *WebHandler {
+	h := &WebHandler{
+		Base: NewBase(WithLogger(logger)),
 	}
+
+	for _, opt := range opts {
+		opt(h)
+	}
+
+	return h
+}
+
+// Validate validates that required dependencies are set
+func (h *WebHandler) Validate() error {
+	if err := h.Base.Validate(); err != nil {
+		return err
+	}
+	if h.renderer == nil {
+		return fmt.Errorf("renderer is required")
+	}
+	if h.contactService == nil {
+		return fmt.Errorf("contact service is required")
+	}
+	return nil
 }
 
 // Register registers the web routes
 func (h *WebHandler) Register(e *echo.Echo) {
+	if err := h.Validate(); err != nil {
+		h.Logger.Error("failed to validate handler", logging.Error(err))
+		return
+	}
+
 	h.Logger.Debug("registering web routes")
 
 	// Web pages
