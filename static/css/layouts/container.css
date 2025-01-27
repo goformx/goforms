@@ -59,24 +59,24 @@
     .contact-layout {
         max-width: var(--max-width);
         margin: 0 auto;
-        padding: 0 2rem;
+        padding: 0 1rem;
     }
 
     .contact-grid {
         display: grid;
-        grid-template-columns: var(--grid-columns-2);
+        grid-template-columns: var(--grid-columns-mobile);
         gap: var(--grid-gap);
         margin: 2rem 0;
     }
 
-    /* Responsive styles */
-    @media (max-width: var(--breakpoint-md)) {
+    /* Desktop styles */
+    @media (min-width: var(--breakpoint-md)) {
         .contact-layout {
-            padding: 1rem;
+            padding: 0 2rem;
         }
 
         .contact-grid {
-            grid-template-columns: var(--grid-columns-mobile);
+            grid-template-columns: var(--grid-columns-2);
         }
     }
 } 

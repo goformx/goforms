@@ -136,11 +136,12 @@
         --grid-columns-mobile: 1fr;
         
         /* Breakpoints */
-        --breakpoint-sm: 640px;
-        --breakpoint-md: 768px;
-        --breakpoint-lg: 1024px;
-        --breakpoint-xl: 1280px;
-        --breakpoint-2xl: 1536px;
+        --breakpoint-xs: 480px;  /* Mobile phones */
+        --breakpoint-sm: 576px;  /* Large phones/Small tablets */
+        --breakpoint-md: 768px;  /* Tablets */
+        --breakpoint-lg: 992px;  /* Laptops */
+        --breakpoint-xl: 1200px; /* Desktops */
+        --breakpoint-2xl: 1400px; /* Large desktops */
 
         /* Layout */
         --header-height: var(--nav-height);

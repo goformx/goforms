@@ -1,6 +1,6 @@
 @layer components {
     .newsletter-layout {
-        padding: 4rem 0;
+        padding: 2rem 0;
         background: var(--bg-darker);
         min-height: calc(100vh - var(--nav-height) - var(--hero-height));
     }
@@ -8,30 +8,30 @@
     .newsletter-layout .container {
         max-width: 1200px;
         margin: 0 auto;
-        padding: 0 2rem;
+        padding: 0 1rem;
     }
 
     .newsletter-grid {
         display: grid;
-        grid-template-columns: var(--grid-columns-2);
-        gap: var(--grid-gap-lg);
+        grid-template-columns: var(--grid-columns-mobile);
+        gap: var(--grid-gap);
     }
 
     .feature-card {
         background: var(--bg-darkest);
         border-radius: 1rem;
-        padding: 2.5rem;
+        padding: 1.5rem;
         box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
     }
 
     .demo-site-header {
-        margin-bottom: 2.5rem;
-        padding-bottom: 1.5rem;
+        margin-bottom: 2rem;
+        padding-bottom: 1.25rem;
         border-bottom: 1px solid var(--border-color);
     }
 
     .demo-site-header h2 {
-        font-size: 1.75rem;
+        font-size: 1.5rem;
         font-weight: 600;
         color: var(--text-bright);
         margin-bottom: 0.75rem;
@@ -204,40 +204,40 @@
         to { opacity: 1; transform: translateY(0); }
     }
 
-    @media (max-width: var(--breakpoint-md)) {
+    @media (min-width: var(--breakpoint-sm)) {
         .newsletter-layout {
-            padding: 2rem 0;
+            padding: 4rem 0;
         }
 
         .newsletter-layout .container {
-            padding: 0 1rem;
+            padding: 0 2rem;
         }
 
         .newsletter-grid {
-            grid-template-columns: var(--grid-columns-mobile);
-            gap: var(--grid-gap);
+            grid-template-columns: var(--grid-columns-2);
+            gap: var(--grid-gap-lg);
         }
 
         .feature-card {
-            padding: 1.5rem;
+            padding: 2.5rem;
         }
 
         .demo-site-header {
-            margin-bottom: 2rem;
-            padding-bottom: 1.25rem;
+            margin-bottom: 2.5rem;
+            padding-bottom: 1.5rem;
         }
 
         .demo-site-header h2 {
-            font-size: 1.5rem;
+            font-size: 1.75rem;
         }
 
         .code-example {
-            margin-top: 2.5rem;
-            padding: 1.5rem;
+            margin-top: 3.5rem;
+            padding: 2rem;
         }
 
         .code-example pre {
-            padding: 1.25rem;
+            padding: 1.5rem;
         }
     }
 } 
