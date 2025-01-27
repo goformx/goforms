@@ -15,30 +15,28 @@ templ Signup() {
 templ signupContent() {
 	@components.Hero("Create your account", "Join Goforms to start managing your forms.", true)
 
-	<div class="contact-layout">
-		<div class="contact-grid">
-			<section class="form-section">
-				<div class="feature-card">
-					<form id="signupForm" class="contact-form" action="/api/v1/auth/signup" method="POST">
-						<div class="form-group">
-							<label for="name" class="form-label">Name</label>
-							<input type="text" id="name" name="name" class="form-input" required/>
-						</div>
-						<div class="form-group">
-							<label for="email" class="form-label">Email</label>
-							<input type="email" id="email" name="email" class="form-input" autocomplete="email" required/>
-						</div>
-						<div class="form-group">
-							<label for="password" class="form-label">Password</label>
-							<input type="password" id="password" name="password" class="form-input" required/>
-						</div>
-						<button type="submit" class="button primary">Sign up</button>
-					</form>
-					<div class="alt-action">
-						<p>Already have an account? <a href="/login">Sign in</a></p>
+	<div class="auth-layout">
+		<div class="auth-container">
+			<div class="auth-card">
+				<form id="signupForm" class="auth-form" action="/api/v1/auth/signup" method="POST">
+					<div class="form-group">
+						<label for="name" class="form-label">Name</label>
+						<input type="text" id="name" name="name" class="form-input" required/>
 					</div>
+					<div class="form-group">
+						<label for="email" class="form-label">Email</label>
+						<input type="email" id="email" name="email" class="form-input" autocomplete="email" required/>
+					</div>
+					<div class="form-group">
+						<label for="password" class="form-label">Password</label>
+						<input type="password" id="password" name="password" class="form-input" required/>
+					</div>
+					<button type="submit" class="button primary">Sign up</button>
+				</form>
+				<div class="auth-alt-action">
+					<p>Already have an account? <a href="/login">Sign in</a></p>
 				</div>
-			</section>
+			</div>
 		</div>
 	</div>
 } 
