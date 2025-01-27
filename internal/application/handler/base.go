@@ -23,3 +23,11 @@ func (b *Base) WrapResponseError(err error, msg string) error {
 func (b *Base) LogError(msg string, err error, fields ...logging.Field) {
 	b.Logger.Error(msg, append(fields, logging.Error(err))...)
 }
+
+// Validate validates that required dependencies are set
+func (b *Base) Validate() error {
+	if b.Logger == nil {
+		return fmt.Errorf("logger is required")
+	}
+	return nil
+}

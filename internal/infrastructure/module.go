@@ -194,19 +194,28 @@ func NewHandlers(p HandlerParams) []handler.Handler {
 	)
 
 	p.Logger.Debug("creating web handler")
-	webHandler := handler.NewWebHandler(p.Logger, p.ContactService, p.Renderer)
+	webHandler := handler.NewWebHandler(p.Logger,
+		handler.WithRenderer(p.Renderer),
+		handler.WithContactService(p.ContactService),
+	)
 	p.Logger.Debug("web handler created", logging.Bool("handler_available", webHandler != nil))
 
 	p.Logger.Debug("creating auth handler")
-	authHandler := handler.NewAuthHandler(p.Logger, p.UserService)
+	authHandler := handler.NewAuthHandler(p.Logger,
+		handler.WithUserService(p.UserService),
+	)
 	p.Logger.Debug("auth handler created", logging.Bool("handler_available", authHandler != nil))
 
 	p.Logger.Debug("creating contact handler")
-	contactHandler := handler.NewContactHandler(p.Logger, p.ContactService)
+	contactHandler := handler.NewContactHandler(p.Logger,
+		handler.WithContactServiceOpt(p.ContactService),
+	)
 	p.Logger.Debug("contact handler created", logging.Bool("handler_available", contactHandler != nil))
 
 	p.Logger.Debug("creating subscription handler")
-	subscriptionHandler := handler.NewSubscriptionHandler(p.Logger, p.SubscriptionService)
+	subscriptionHandler := handler.NewSubscriptionHandler(p.Logger,
+		handler.WithSubscriptionService(p.SubscriptionService),
+	)
 	p.Logger.Debug("subscription handler created", logging.Bool("handler_available", subscriptionHandler != nil))
 
 	handlers := []handler.Handler{

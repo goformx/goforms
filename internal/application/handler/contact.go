@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -10,6 +11,16 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+// ContactHandlerOption defines a contact handler option
+type ContactHandlerOption func(*ContactHandler)
+
+// WithContactServiceOpt sets the contact service
+func WithContactServiceOpt(svc contact.Service) ContactHandlerOption {
+	return func(h *ContactHandler) {
+		h.contactService = svc
+	}
+}
+
 // ContactHandler handles contact form submissions
 type ContactHandler struct {
 	Base
@@ -17,15 +28,36 @@ type ContactHandler struct {
 }
 
 // NewContactHandler creates a new contact handler
-func NewContactHandler(logger logging.Logger, contactService contact.Service) *ContactHandler {
-	return &ContactHandler{
-		Base:           Base{Logger: logger},
-		contactService: contactService,
+func NewContactHandler(logger logging.Logger, opts ...ContactHandlerOption) *ContactHandler {
+	h := &ContactHandler{
+		Base: Base{Logger: logger},
 	}
+
+	for _, opt := range opts {
+		opt(h)
+	}
+
+	return h
+}
+
+// Validate validates that required dependencies are set
+func (h *ContactHandler) Validate() error {
+	if err := h.Base.Validate(); err != nil {
+		return err
+	}
+	if h.contactService == nil {
+		return fmt.Errorf("contact service is required")
+	}
+	return nil
 }
 
 // Register registers the contact routes
 func (h *ContactHandler) Register(e *echo.Echo) {
+	if err := h.Validate(); err != nil {
+		h.Logger.Error("failed to validate handler", logging.Error(err))
+		return
+	}
+
 	g := e.Group("/api/v1/contact")
 	g.POST("", h.handleSubmit)
 	g.GET("", h.handleList)

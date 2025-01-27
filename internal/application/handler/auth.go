@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -9,6 +10,16 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+// AuthHandlerOption defines an auth handler option
+type AuthHandlerOption func(*AuthHandler)
+
+// WithUserService sets the user service
+func WithUserService(svc user.Service) AuthHandlerOption {
+	return func(h *AuthHandler) {
+		h.userService = svc
+	}
+}
+
 // AuthHandler handles authentication related requests
 type AuthHandler struct {
 	Base
@@ -16,15 +27,36 @@ type AuthHandler struct {
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(logger logging.Logger, userService user.Service) *AuthHandler {
-	return &AuthHandler{
-		Base:        Base{Logger: logger},
-		userService: userService,
+func NewAuthHandler(logger logging.Logger, opts ...AuthHandlerOption) *AuthHandler {
+	h := &AuthHandler{
+		Base: Base{Logger: logger},
 	}
+
+	for _, opt := range opts {
+		opt(h)
+	}
+
+	return h
+}
+
+// Validate validates that required dependencies are set
+func (h *AuthHandler) Validate() error {
+	if err := h.Base.Validate(); err != nil {
+		return err
+	}
+	if h.userService == nil {
+		return fmt.Errorf("user service is required")
+	}
+	return nil
 }
 
 // Register registers the auth routes
 func (h *AuthHandler) Register(e *echo.Echo) {
+	if err := h.Validate(); err != nil {
+		h.Logger.Error("failed to validate handler", logging.Error(err))
+		return
+	}
+
 	g := e.Group("/api/v1/auth")
 	g.POST("/signup", h.handleSignup)
 	g.POST("/login", h.handleLogin)

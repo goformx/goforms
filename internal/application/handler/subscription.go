@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"fmt"
 	"net/http"
 	"strconv"
 
@@ -10,6 +11,16 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+// SubscriptionHandlerOption defines a subscription handler option
+type SubscriptionHandlerOption func(*SubscriptionHandler)
+
+// WithSubscriptionService sets the subscription service
+func WithSubscriptionService(svc subscription.Service) SubscriptionHandlerOption {
+	return func(h *SubscriptionHandler) {
+		h.subscriptionService = svc
+	}
+}
+
 // SubscriptionHandler handles subscription-related requests
 type SubscriptionHandler struct {
 	Base
@@ -17,15 +28,36 @@ type SubscriptionHandler struct {
 }
 
 // NewSubscriptionHandler creates a new subscription handler
-func NewSubscriptionHandler(logger logging.Logger, subscriptionService subscription.Service) *SubscriptionHandler {
-	return &SubscriptionHandler{
-		Base:                Base{Logger: logger},
-		subscriptionService: subscriptionService,
+func NewSubscriptionHandler(logger logging.Logger, opts ...SubscriptionHandlerOption) *SubscriptionHandler {
+	h := &SubscriptionHandler{
+		Base: Base{Logger: logger},
 	}
+
+	for _, opt := range opts {
+		opt(h)
+	}
+
+	return h
+}
+
+// Validate validates that required dependencies are set
+func (h *SubscriptionHandler) Validate() error {
+	if err := h.Base.Validate(); err != nil {
+		return err
+	}
+	if h.subscriptionService == nil {
+		return fmt.Errorf("subscription service is required")
+	}
+	return nil
 }
 
 // Register registers the subscription routes
 func (h *SubscriptionHandler) Register(e *echo.Echo) {
+	if err := h.Validate(); err != nil {
+		h.Logger.Error("failed to validate handler", logging.Error(err))
+		return
+	}
+
 	g := e.Group("/api/v1/subscriptions")
 	g.POST("", h.handleCreate)
 	g.GET("", h.handleList)
