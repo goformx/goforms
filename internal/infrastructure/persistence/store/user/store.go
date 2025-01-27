@@ -5,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
+
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
@@ -50,6 +51,11 @@ func (s *Store) Create(user *user.User) error {
 		id, err := result.LastInsertId()
 		if err != nil {
 			return fmt.Errorf("failed to get last insert ID: %w", err)
+		}
+
+		// Check for integer overflow before conversion
+		if id <= 0 || uint64(id) > uint64(^uint(0)) {
+			return fmt.Errorf("user ID %d is out of valid range", id)
 		}
 
 		user.ID = uint(id)

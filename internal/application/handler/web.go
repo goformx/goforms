@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
@@ -58,14 +60,14 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	err := h.renderer.Render(c, pages.Home())
-	if err != nil {
+	if err := h.renderer.Render(c, pages.Home()); err != nil {
 		h.Logger.Error("failed to render home page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
 		)
+		return fmt.Errorf("failed to render home page: %w", err)
 	}
-	return err
+	return nil
 }
 
 // handleContact renders the contact page
@@ -74,14 +76,14 @@ func (h *WebHandler) handleContact(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	err := h.renderer.Render(c, pages.Contact())
-	if err != nil {
+	if err := h.renderer.Render(c, pages.Contact()); err != nil {
 		h.Logger.Error("failed to render contact page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
 		)
+		return fmt.Errorf("failed to render contact page: %w", err)
 	}
-	return err
+	return nil
 }
 
 // handleSignup renders the signup page
@@ -90,14 +92,14 @@ func (h *WebHandler) handleSignup(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	err := h.renderer.Render(c, pages.Signup())
-	if err != nil {
+	if err := h.renderer.Render(c, pages.Signup()); err != nil {
 		h.Logger.Error("failed to render signup page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
 		)
+		return fmt.Errorf("failed to render signup page: %w", err)
 	}
-	return err
+	return nil
 }
 
 // handleLogin renders the login page
@@ -106,12 +108,12 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	err := h.renderer.Render(c, pages.Login())
-	if err != nil {
+	if err := h.renderer.Render(c, pages.Login()); err != nil {
 		h.Logger.Error("failed to render login page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
 		)
+		return fmt.Errorf("failed to render login page: %w", err)
 	}
-	return err
+	return nil
 }

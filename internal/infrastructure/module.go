@@ -128,7 +128,7 @@ func registerDatabaseHooks(lc fx.Lifecycle, db *database.Database, logger loggin
 			logger.Info("closing database connection")
 			if err := db.Close(); err != nil {
 				logger.Error("failed to close database connection", logging.Error(err))
-				return err
+				return fmt.Errorf("failed to close database connection: %w", err)
 			}
 			logger.Debug("database connection closed successfully")
 			return nil

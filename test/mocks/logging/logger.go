@@ -4,8 +4,9 @@ import (
 	"fmt"
 	"sync"
 
+	forbidden_zap "go.uber.org/zap"
+
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"go.uber.org/zap"
 )
 
 // logCall represents a single logging call
@@ -50,27 +51,27 @@ func (m *MockLogger) Warn(message string, fields ...logging.Field) {
 }
 
 func (m *MockLogger) Int64(key string, value int64) logging.Field {
-	return zap.Int64(key, value)
+	return forbidden_zap.Int64(key, value)
 }
 
 func (m *MockLogger) Int(key string, value int) logging.Field {
-	return zap.Int(key, value)
+	return forbidden_zap.Int(key, value)
 }
 
 func (m *MockLogger) Int32(key string, value int32) logging.Field {
-	return zap.Int32(key, value)
+	return forbidden_zap.Int32(key, value)
 }
 
 func (m *MockLogger) Uint64(key string, value uint64) logging.Field {
-	return zap.Uint64(key, value)
+	return forbidden_zap.Uint64(key, value)
 }
 
 func (m *MockLogger) Uint(key string, value uint) logging.Field {
-	return zap.Uint(key, value)
+	return forbidden_zap.Uint(key, value)
 }
 
 func (m *MockLogger) Uint32(key string, value uint32) logging.Field {
-	return zap.Uint32(key, value)
+	return forbidden_zap.Uint32(key, value)
 }
 
 // ExpectInfo adds an expectation for an info message

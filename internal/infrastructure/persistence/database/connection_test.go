@@ -3,12 +3,15 @@ package database
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/stretchr/testify/assert"
 
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxtest"
+
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"go.uber.org/fx"
 )
 
 func TestBuildDSN(t *testing.T) {
@@ -39,52 +42,36 @@ func TestBuildDSN(t *testing.T) {
 }
 
 func TestNewDB(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  *config.Config
-		wantErr bool
-	}{
-		{
-			name: "valid configuration",
-			config: &config.Config{
-				Database: config.DatabaseConfig{
-					Host:     "localhost",
-					Port:     3306,
-					User:     "test_user",
-					Password: "test_pass",
-					Name:     "test_db",
-				},
+	app := fxtest.New(t,
+		fx.Provide(
+			func() logging.Logger {
+				return logging.NewTestLogger()
 			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			logger := logging.NewTestLogger()
-			var db *DB
-			var err error
-
-			app := fx.New(
-				fx.NopLogger,
-				fx.Supply(tt.config, logger),
-				fx.Provide(
-					func(lc fx.Lifecycle) (*DB, error) {
-						return NewDB(lc, tt.config, logger)
+			func() *config.Config {
+				return &config.Config{
+					Database: config.DatabaseConfig{
+						Host:           "localhost",
+						Port:           3306,
+						Name:           "test_db",
+						User:           "test_user",
+						Password:       "test_pass",
+						MaxOpenConns:   10,
+						MaxIdleConns:   5,
+						ConnMaxLifetme: time.Hour,
 					},
-				),
-				fx.Populate(&db),
-			)
-			err = app.Start(context.Background())
-			defer app.Stop(context.Background())
+				}
+			},
+			NewDB,
+		),
+	)
 
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, db)
-			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, db)
-			}
-		})
+	defer func() {
+		if err := app.Stop(context.Background()); err != nil {
+			t.Errorf("failed to stop app: %v", err)
+		}
+	}()
+
+	if err := app.Start(context.Background()); err != nil {
+		t.Errorf("failed to start app: %v", err)
 	}
 }

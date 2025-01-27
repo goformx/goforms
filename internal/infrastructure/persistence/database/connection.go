@@ -6,10 +6,11 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
+
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 // DB wraps sqlx.DB with lifecycle management

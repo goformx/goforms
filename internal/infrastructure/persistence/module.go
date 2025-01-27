@@ -1,6 +1,8 @@
 package persistence
 
 import (
+	"go.uber.org/fx"
+
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -9,7 +11,6 @@ import (
 	contactstore "github.com/jonesrussell/goforms/internal/infrastructure/persistence/store/contact"
 	subscriptionstore "github.com/jonesrussell/goforms/internal/infrastructure/persistence/store/subscription"
 	userstore "github.com/jonesrussell/goforms/internal/infrastructure/persistence/store/user"
-	"go.uber.org/fx"
 )
 
 // Module provides persistence dependencies
