@@ -35,14 +35,13 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
-// HandlerOption defines a handler option function that can be used to configure
-// a Base handler. This follows the functional options pattern for clean and
-// flexible configuration.
-type HandlerOption func(*Base)
+// Option configures a Base handler. It follows the functional
+// options pattern for clean and type-safe dependency injection.
+type Option func(*Base)
 
-// WithLogger sets the logger for the handler. This is a required option as all
-// handlers need a logger for proper operation and debugging.
-func WithLogger(logger logging.Logger) HandlerOption {
+// WithLogger sets the logger for the handler.
+// This is a required dependency for all handlers.
+func WithLogger(logger logging.Logger) Option {
 	return func(b *Base) {
 		b.Logger = logger
 	}
@@ -58,7 +57,7 @@ type Base struct {
 // NewBase creates a new base handler with the provided options. The logger must
 // be explicitly provided using WithLogger option. There is no default logger to
 // ensure proper configuration.
-func NewBase(opts ...HandlerOption) Base {
+func NewBase(opts ...Option) Base {
 	var b Base
 
 	for _, opt := range opts {

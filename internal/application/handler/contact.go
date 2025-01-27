@@ -5,9 +5,10 @@ import (
 	"net/http"
 	"strconv"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 // ContactHandler handles contact form submissions. It implements the Handler interface
