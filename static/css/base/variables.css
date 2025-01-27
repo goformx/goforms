@@ -1,5 +1,6 @@
 @layer base {
     :root {
+        /* Colors */
         --primary: #2563eb;
         --primary-dark: #1d4ed8;
         --secondary: #4f46e5;
@@ -7,7 +8,14 @@
         --background: #ffffff;
         --text: #1f2937;
         --text-light: #6b7280;
-        --max-width: 1200px;
+
+        /* Container */
+        --container-max-width: 1200px;
+        --container-padding-x: 2rem;
+        --container-padding-x-mobile: 1rem;
+        --container-margin: 0 auto;
+
+        /* Other */
         --border-radius: 12px;
     }
 } 

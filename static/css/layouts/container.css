@@ -1,12 +1,58 @@
 @layer layouts {
+    /* Base container */
     .container {
-        max-width: var(--max-width);
-        margin: 0 auto;
-        padding: 0 2rem;
+        width: 100%;
+        max-width: var(--container-max-width);
+        margin: var(--container-margin);
+        padding-left: var(--container-padding-x);
+        padding-right: var(--container-padding-x);
+        box-sizing: border-box;
     }
 
+    /* Container size variants */
+    .container-sm {
+        max-width: 640px;
+    }
+
+    .container-md {
+        max-width: 768px;
+    }
+
+    .container-lg {
+        max-width: 1024px;
+    }
+
+    .container-xl {
+        max-width: 1280px;
+    }
+
+    /* Container padding variants */
+    .container-tight {
+        padding-left: calc(var(--container-padding-x) / 2);
+        padding-right: calc(var(--container-padding-x) / 2);
+    }
+
+    .container-flush {
+        padding-left: 0;
+        padding-right: 0;
+    }
+
+    /* Responsive adjustments */
+    @media (max-width: 768px) {
+        .container {
+            padding-left: var(--container-padding-x-mobile);
+            padding-right: var(--container-padding-x-mobile);
+        }
+
+        .container-tight {
+            padding-left: calc(var(--container-padding-x-mobile) / 2);
+            padding-right: calc(var(--container-padding-x-mobile) / 2);
+        }
+    }
+
+    /* Legacy support for main padding */
     main {
-        padding-top: 70px; /* Match the height of the nav */
+        padding-top: var(--nav-height, 70px);
     }
 
     /* Contact Page Layout */
