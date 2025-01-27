@@ -18,7 +18,15 @@ import (
 )
 
 // AsHandler annotates the given constructor to state that
-// it provides a handler to the "handlers" group
+// it provides a handler to the "handlers" group.
+// This is used to register handlers with the fx dependency injection container.
+// Each handler must be annotated with this function to be properly registered.
+//
+// Example:
+//
+//	AsHandler(func(logger logging.Logger, svc SomeService) *handler.SomeHandler {
+//	    return handler.NewSomeHandler(logger, handler.WithSomeService(svc))
+//	})
 func AsHandler(f any) any {
 	return fx.Annotate(
 		f,
@@ -27,7 +35,49 @@ func AsHandler(f any) any {
 	)
 }
 
-// Module combines all infrastructure-level modules and providers
+// HandlerParams contains dependencies for creating handlers.
+// This struct is used with fx.In to inject dependencies into handlers.
+// Each field represents a required dependency that must be provided
+// by the fx container.
+type HandlerParams struct {
+	fx.In
+
+	Logger              logging.Logger
+	VersionInfo         handler.VersionInfo
+	Renderer            *view.Renderer
+	ContactService      contact.Service
+	SubscriptionService subscription.Service
+	UserService         user.Service
+}
+
+// Stores groups all database store providers.
+// This struct is used with fx.Out to provide multiple stores
+// to the fx container in a single provider function.
+type Stores struct {
+	fx.Out
+
+	ContactStore      contact.Store
+	SubscriptionStore subscription.Store
+	UserStore         user.Store
+}
+
+// Module combines all infrastructure-level modules and providers.
+// This is the main dependency injection configuration for the application.
+// It follows a specific order of initialization:
+// 1. Configuration is loaded first
+// 2. Logger is set up
+// 3. Database connection is established
+// 4. Stores are created
+// 5. Handlers are registered with their required dependencies
+//
+// IMPORTANT: When adding new handlers, follow these guidelines:
+// 1. Use the AsHandler function to annotate the handler constructor
+// 2. Provide all required dependencies through functional options
+// 3. Follow the pattern:
+//
+//	AsHandler(func(logger logging.Logger, dependencies...) *handler.SomeHandler {
+//	    return handler.NewSomeHandler(logger, handler.WithDependency(dep)...)
+//	})
 //
 //nolint:gochecknoglobals // fx modules are designed to be global
 var Module = fx.Options(
@@ -57,41 +107,34 @@ var Module = fx.Options(
 		},
 		NewStores,
 
-		// Handlers
-		AsHandler(handler.NewWebHandler),
-		AsHandler(handler.NewAuthHandler),
-		AsHandler(handler.NewContactHandler),
-		AsHandler(handler.NewSubscriptionHandler),
+		// Handlers - Each handler must be registered here with its required dependencies
+		// WebHandler - Requires logger, renderer, and contact service
+		AsHandler(func(logger logging.Logger, renderer *view.Renderer, contactService contact.Service) *handler.WebHandler {
+			return handler.NewWebHandler(logger, handler.WithRenderer(renderer), handler.WithContactService(contactService))
+		}),
+		// AuthHandler - Requires logger and user service
+		AsHandler(func(logger logging.Logger, userService user.Service) *handler.AuthHandler {
+			return handler.NewAuthHandler(logger, handler.WithUserService(userService))
+		}),
+		// ContactHandler - Requires logger and contact service
+		AsHandler(func(logger logging.Logger, contactService contact.Service) *handler.ContactHandler {
+			return handler.NewContactHandler(logger, handler.WithContactServiceOpt(contactService))
+		}),
+		// SubscriptionHandler - Requires logger and subscription service
+		AsHandler(func(logger logging.Logger, subscriptionService subscription.Service) *handler.SubscriptionHandler {
+			return handler.NewSubscriptionHandler(logger, handler.WithSubscriptionService(subscriptionService))
+		}),
 	),
 
-	// Lifecycle hooks
+	// Lifecycle hooks for managing resource lifecycles
 	fx.Invoke(
 		registerDatabaseHooks,
 	),
 )
 
-// HandlerParams contains dependencies for creating handlers
-type HandlerParams struct {
-	fx.In
-
-	Logger              logging.Logger
-	VersionInfo         handler.VersionInfo
-	Renderer            *view.Renderer
-	ContactService      contact.Service
-	SubscriptionService subscription.Service
-	UserService         user.Service
-}
-
-// Stores groups all database store providers
-type Stores struct {
-	fx.Out
-
-	ContactStore      contact.Store
-	SubscriptionStore subscription.Store
-	UserStore         user.Store
-}
-
-// NewStores creates all database stores
+// NewStores creates all database stores.
+// This function is responsible for initializing all database stores
+// and providing them to the fx container.
 func NewStores(db *database.Database, logger logging.Logger) Stores {
 	logger.Debug("creating database stores",
 		logging.Bool("database_available", db != nil),
@@ -113,6 +156,8 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 	return stores
 }
 
+// registerDatabaseHooks sets up lifecycle hooks for the database connection.
+// This ensures proper database connection handling during application startup and shutdown.
 func registerDatabaseHooks(lc fx.Lifecycle, db *database.Database, logger logging.Logger) {
 	logger.Debug("registering database lifecycle hooks",
 		logging.Bool("database_available", db != nil),
