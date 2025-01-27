@@ -52,14 +52,14 @@ tasks:
     desc: Run tests
     deps: [generate]
     cmds:
-      - go test -v ./...
+      - go test -v ./internal/...
 
   test:cover:
     desc: Run tests with coverage
     deps: [generate]
     cmds:
       - mkdir -p coverage
-      - go test -v -race -coverprofile=coverage/coverage.out -covermode=atomic ./...
+      - go test -v -race -coverprofile=coverage/coverage.out -covermode=atomic ./internal/...
       - go tool cover -html=coverage/coverage.out -o coverage/coverage.html
       - go tool cover -func=coverage/coverage.out
     generates:

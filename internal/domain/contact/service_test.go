@@ -6,7 +6,6 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	contactmock "github.com/jonesrussell/goforms/test/mocks/contact/store"
 	loggingmock "github.com/jonesrussell/goforms/test/mocks/logging"
 )
@@ -26,10 +25,10 @@ func TestSubmitContact(t *testing.T) {
 				ms.CreateFunc = func(ctx context.Context, sub *contact.Submission) error {
 					return nil
 				}
-				ml.ExpectInfo("submission created",
-					logging.String("email", "test@example.com"),
-					logging.String("status", string(contact.StatusPending)),
-				)
+				ml.ExpectInfo("submission created").WithFields(map[string]interface{}{
+					"email":  "test@example.com",
+					"status": string(contact.StatusPending),
+				})
 			},
 			input: &contact.Submission{
 				Name:    "Test User",
@@ -44,10 +43,10 @@ func TestSubmitContact(t *testing.T) {
 				ms.CreateFunc = func(ctx context.Context, sub *contact.Submission) error {
 					return errTest
 				}
-				ml.ExpectError("failed to create submission",
-					logging.Error(errTest),
-					logging.String("email", "test@example.com"),
-				)
+				ml.ExpectError("failed to create submission").WithFields(map[string]interface{}{
+					"error": errTest.Error(),
+					"email": "test@example.com",
+				})
 			},
 			input: &contact.Submission{
 				Name:    "Test User",

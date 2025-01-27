@@ -16,6 +16,15 @@ func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 			// Call the next handler
 			err := next(c)
 
+			// Set status based on error
+			if err != nil {
+				if he, ok := err.(*echo.HTTPError); ok {
+					c.Response().Status = he.Code
+				} else {
+					c.Response().Status = echo.ErrInternalServerError.Code
+				}
+			}
+
 			// Log the request details
 			log.Info("http request",
 				logging.String("method", c.Request().Method),

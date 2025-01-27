@@ -14,7 +14,6 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/application/services"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	storemock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
 	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
@@ -34,9 +33,9 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 		}
 		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, subscription.ErrSubscriptionNotFound)
 		mockStore.ExpectCreate(context.Background(), sub, nil)
-		mockLogger.ExpectInfo("subscription created",
-			logging.String("email", "test@example.com"),
-		)
+		mockLogger.ExpectInfo("subscription created").WithFields(map[string]interface{}{
+			"email": "test@example.com",
+		})
 
 		req := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(`{"email":"test@example.com","name":"Test User"}`))
 		req.Header.Set("Content-Type", "application/json")
@@ -57,9 +56,9 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 	})
 
 	t.Run("invalid request body", func(t *testing.T) {
-		mockLogger.ExpectError("failed to bind subscription request",
-			logging.Error(errors.New("invalid character 'i' looking for beginning of value")),
-		)
+		mockLogger.ExpectError("failed to bind subscription request").WithFields(map[string]interface{}{
+			"error": "invalid character 'i' looking for beginning of value",
+		})
 
 		req := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(`invalid json`))
 		req.Header.Set("Content-Type", "application/json")
@@ -117,9 +116,9 @@ func TestSubscriptionService(t *testing.T) {
 		storeErr := errors.New("store error")
 		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, subscription.ErrSubscriptionNotFound)
 		mockStore.ExpectCreate(context.Background(), sub, storeErr)
-		mockLogger.ExpectError("failed to create subscription",
-			logging.Error(storeErr),
-		)
+		mockLogger.ExpectError("failed to create subscription").WithFields(map[string]interface{}{
+			"error": storeErr.Error(),
+		})
 
 		err := service.CreateSubscription(context.Background(), sub)
 		assert.Error(t, err)
@@ -155,9 +154,9 @@ func TestSubscriptionService(t *testing.T) {
 
 		storeErr := errors.New("store error")
 		mockStore.ExpectList(context.Background(), nil, storeErr)
-		mockLogger.ExpectError("failed to list subscriptions",
-			logging.Error(storeErr),
-		)
+		mockLogger.ExpectError("failed to list subscriptions").WithFields(map[string]interface{}{
+			"error": storeErr.Error(),
+		})
 
 		subs, err := service.ListSubscriptions(context.Background())
 		assert.Error(t, err)

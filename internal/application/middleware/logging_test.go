@@ -10,7 +10,6 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
@@ -24,13 +23,13 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Create mock logger
 		mockLogger := mocklogging.NewMockLogger()
-		mockLogger.ExpectInfo("http request",
-			logging.String("method", "GET"),
-			logging.String("path", "/test"),
-			logging.Int("status", http.StatusOK),
-			logging.Duration("latency", time.Duration(0)),
-			logging.String("ip", "192.0.2.1"),
-		)
+		mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
+			"method":  "GET",
+			"path":    "/test",
+			"status":  http.StatusOK,
+			"latency": time.Duration(0),
+			"ip":      "192.0.2.1",
+		})
 
 		// Create middleware
 		mw := middleware.LoggingMiddleware(mockLogger)
@@ -59,13 +58,13 @@ func TestLoggingMiddleware(t *testing.T) {
 
 		// Create mock logger
 		mockLogger := mocklogging.NewMockLogger()
-		mockLogger.ExpectInfo("http request",
-			logging.String("method", "GET"),
-			logging.String("path", "/test"),
-			logging.Int("status", http.StatusInternalServerError),
-			logging.Duration("latency", time.Duration(0)),
-			logging.String("ip", "192.0.2.1"),
-		)
+		mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
+			"method":  "GET",
+			"path":    "/test",
+			"status":  http.StatusInternalServerError,
+			"latency": time.Duration(0),
+			"ip":      "192.0.2.1",
+		})
 
 		// Create middleware
 		mw := middleware.LoggingMiddleware(mockLogger)
@@ -89,13 +88,13 @@ func TestLoggingMiddleware(t *testing.T) {
 func TestLoggingMiddleware_RealIP(t *testing.T) {
 	// Create a mock logger for testing
 	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("http request",
-		logging.String("method", "GET"),
-		logging.String("path", "/test"),
-		logging.Int("status", http.StatusOK),
-		logging.Duration("latency", time.Duration(0)),
-		logging.String("ip", "192.168.1.1"),
-	)
+	mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
+		"method":  "GET",
+		"path":    "/test",
+		"status":  http.StatusOK,
+		"latency": time.Duration(0),
+		"ip":      "192.168.1.1",
+	})
 
 	// Create Echo instance
 	e := echo.New()
