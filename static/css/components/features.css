@@ -6,8 +6,8 @@
 
     .features .container {
         display: grid;
-        grid-template-columns: repeat(3, 1fr);
-        gap: var(--features-gap);
+        grid-template-columns: var(--grid-columns-3);
+        gap: var(--grid-gap);
     }
 
     .feature-card {
@@ -39,7 +39,7 @@
     /* Responsive styles */
     @media (max-width: var(--breakpoint-md)) {
         .features .container {
-            grid-template-columns: 1fr;
+            grid-template-columns: var(--grid-columns-mobile);
             padding: var(--features-padding-y-mobile) var(--container-padding-x-mobile);
         }
     }

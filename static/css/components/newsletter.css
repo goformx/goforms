@@ -13,8 +13,8 @@
 
     .newsletter-grid {
         display: grid;
-        grid-template-columns: 3fr 2fr;
-        gap: 3rem;
+        grid-template-columns: var(--grid-columns-2);
+        gap: var(--grid-gap-lg);
     }
 
     .feature-card {
@@ -214,8 +214,8 @@
         }
 
         .newsletter-grid {
-            grid-template-columns: 1fr;
-            gap: 2rem;
+            grid-template-columns: var(--grid-columns-mobile);
+            gap: var(--grid-gap);
         }
 
         .feature-card {

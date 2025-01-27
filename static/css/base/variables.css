@@ -127,6 +127,14 @@
         --feature-card-text-size: 1rem;
         --feature-card-text-line-height: 1.5;
         
+        /* Grid */
+        --grid-gap: 2rem;
+        --grid-gap-lg: 3rem;
+        --grid-columns-2: repeat(2, 1fr);
+        --grid-columns-3: repeat(3, 1fr);
+        --grid-columns-4: repeat(4, 1fr);
+        --grid-columns-mobile: 1fr;
+        
         /* Breakpoints */
         --breakpoint-sm: 640px;
         --breakpoint-md: 768px;
