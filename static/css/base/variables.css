@@ -33,6 +33,29 @@
         --nav-transition-timing: ease;
         --nav-logo-gradient-angle: 135deg;
 
+        /* Buttons */
+        --button-padding-y: 1rem;
+        --button-padding-x: 2rem;
+        --button-radius: 0.75rem;
+        --button-font-weight: 600;
+        --button-font-size: 1.125rem;
+        --button-transition: all 0.2s ease;
+        --button-transform-hover: translateY(-2px);
+        
+        /* Primary Button */
+        --button-primary-gradient: linear-gradient(135deg, var(--primary), var(--accent));
+        --button-primary-color: white;
+        --button-primary-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -2px rgba(37, 99, 235, 0.1);
+        --button-primary-shadow-hover: 0 8px 12px -1px rgba(37, 99, 235, 0.3), 0 4px 8px -2px rgba(37, 99, 235, 0.2);
+        
+        /* Secondary Button */
+        --button-secondary-bg: rgba(255, 255, 255, 0.1);
+        --button-secondary-bg-hover: rgba(255, 255, 255, 0.15);
+        --button-secondary-border: 1px solid rgba(255, 255, 255, 0.2);
+        --button-secondary-color: var(--text);
+        --button-secondary-color-hover: var(--primary);
+        --button-secondary-blur: 10px;
+
         /* Hero */
         --hero-padding-y: 8rem;
         --hero-padding-y-mobile: 6rem;
