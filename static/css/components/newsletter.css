@@ -1,0 +1,96 @@
+@layer components {
+    .newsletter-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .newsletter-layout {
+        padding: 2rem 0;
+        min-height: calc(100vh - var(--nav-height) - var(--hero-height));
+        background: var(--bg-secondary);
+    }
+
+    .newsletter-grid {
+        display: grid;
+        grid-template-columns: 1fr;
+        gap: 2rem;
+        max-width: var(--max-width);
+        margin: 0 auto;
+        padding: 0 1rem;
+    }
+
+    @media (min-width: 768px) {
+        .newsletter-grid {
+            grid-template-columns: 2fr 1fr;
+        }
+    }
+
+    .api-response-section {
+        margin-top: 2rem;
+        padding-top: 2rem;
+        border-top: 1px solid var(--border-color);
+    }
+
+    .api-response-title {
+        font-size: 1.25rem;
+        font-weight: 600;
+        color: var(--text-primary);
+        margin-bottom: 1rem;
+    }
+
+    .api-response-container {
+        background: var(--bg-primary);
+        border-radius: 0.5rem;
+        overflow: hidden;
+    }
+
+    .api-response {
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .api-response:last-child {
+        border-bottom: none;
+    }
+
+    .api-response-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 0.75rem 1rem;
+        background: var(--bg-secondary);
+        border-bottom: 1px solid var(--border-color);
+    }
+
+    .api-response-type {
+        font-weight: 600;
+        font-size: 0.875rem;
+    }
+
+    .api-response-time {
+        font-size: 0.75rem;
+        color: var(--text-secondary);
+    }
+
+    .api-response-data {
+        padding: 1rem;
+        margin: 0;
+        font-family: monospace;
+        font-size: 0.875rem;
+        line-height: 1.5;
+        overflow-x: auto;
+        background: var(--bg-primary);
+    }
+
+    .api-response.success .api-response-type {
+        color: var(--success);
+    }
+
+    .api-response.error .api-response-type {
+        color: var(--error);
+    }
+
+    .api-response.default .api-response-type {
+        color: var(--text-secondary);
+    }
+} 

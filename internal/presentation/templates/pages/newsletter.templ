@@ -1,0 +1,31 @@
+package pages
+
+import (
+    "github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+    "github.com/jonesrussell/goforms/internal/presentation/components"
+)
+
+templ Newsletter() {
+    @layouts.Layout(layouts.PageData{
+        Title: "Newsletter Demo",
+        Content: newsletterContent(),
+    })
+}
+
+templ newsletterContent() {
+    @components.Hero("Newsletter Signup Demo", "This form demonstrates Goforms' subscription management capabilities.", true)
+
+    <div class="newsletter-layout">
+        <div class="newsletter-grid">
+            <section class="form-section">
+                <div class="feature-card">
+                    @components.NewsletterForm()
+                </div>
+            </section>
+
+            @components.Messages()
+        </div>
+    </div>
+
+    <script src="/static/js/newsletter.js"></script>
+} 

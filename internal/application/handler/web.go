@@ -6,6 +6,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
@@ -29,6 +30,19 @@ func WithContactService(svc contact.Service) WebHandlerOption {
 	}
 }
 
+// WithWebSubscriptionService sets the subscription service for the web handler.
+// This is a required option for the WebHandler as it needs the subscription
+// service to handle newsletter signups.
+//
+// Example:
+//
+//	handler := NewWebHandler(logger, WithWebSubscriptionService(subscriptionService))
+func WithWebSubscriptionService(svc subscription.Service) WebHandlerOption {
+	return func(h *WebHandler) {
+		h.subscriptionService = svc
+	}
+}
+
 // WithRenderer sets the view renderer.
 // This is a required option for the WebHandler as it needs
 // the renderer to display web pages.
@@ -43,12 +57,18 @@ func WithRenderer(renderer *view.Renderer) WebHandlerOption {
 }
 
 // WebHandler handles web page requests.
-// It requires both a renderer and a contact service to function properly.
+// It requires a renderer, contact service, and subscription service to function properly.
 // Use the functional options pattern to configure these dependencies.
+//
+// Dependencies:
+//   - renderer: Required for rendering web pages
+//   - contactService: Required for contact form functionality
+//   - subscriptionService: Required for newsletter subscription functionality
 type WebHandler struct {
 	Base
-	contactService contact.Service
-	renderer       *view.Renderer
+	contactService      contact.Service
+	subscriptionService subscription.Service
+	renderer            *view.Renderer
 }
 
 // NewWebHandler creates a new web handler.
@@ -61,6 +81,7 @@ type WebHandler struct {
 //	handler := NewWebHandler(logger,
 //	    WithRenderer(renderer),
 //	    WithContactService(contactService),
+//	    WithWebSubscriptionService(subscriptionService),
 //	)
 func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) *WebHandler {
 	h := &WebHandler{
@@ -74,7 +95,13 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) *WebHandler 
 	return h
 }
 
-// Validate validates that required dependencies are set
+// Validate validates that required dependencies are set.
+// Returns an error if any required dependency is missing.
+//
+// Required dependencies:
+//   - renderer
+//   - contactService
+//   - subscriptionService
 func (h *WebHandler) Validate() error {
 	if err := h.Base.Validate(); err != nil {
 		return err
@@ -84,6 +111,9 @@ func (h *WebHandler) Validate() error {
 	}
 	if h.contactService == nil {
 		return fmt.Errorf("contact service is required")
+	}
+	if h.subscriptionService == nil {
+		return fmt.Errorf("subscription service is required")
 	}
 	return nil
 }
@@ -104,8 +134,8 @@ func (h *WebHandler) Register(e *echo.Echo) {
 	e.GET("/", h.handleHome)
 	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/"))
 
-	e.GET("/contact", h.handleContact)
-	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/contact"))
+	e.GET("/newsletter", h.handleNewsletter)
+	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/newsletter"))
 
 	e.GET("/signup", h.handleSignup)
 	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/signup"))
@@ -139,18 +169,18 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 	return nil
 }
 
-// handleContact renders the contact page
-func (h *WebHandler) handleContact(c echo.Context) error {
-	h.Logger.Debug("handling contact page request",
+// handleNewsletter renders the newsletter page
+func (h *WebHandler) handleNewsletter(c echo.Context) error {
+	h.Logger.Debug("handling newsletter page request",
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	if err := h.renderer.Render(c, pages.Contact()); err != nil {
-		h.Logger.Error("failed to render contact page",
+	if err := h.renderer.Render(c, pages.Newsletter()); err != nil {
+		h.Logger.Error("failed to render newsletter page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
 		)
-		return fmt.Errorf("failed to render contact page: %w", err)
+		return fmt.Errorf("failed to render newsletter page: %w", err)
 	}
 	return nil
 }
