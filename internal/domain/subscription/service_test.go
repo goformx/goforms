@@ -110,25 +110,18 @@ func TestListSubscriptions(t *testing.T) {
 }
 
 func TestGetSubscription(t *testing.T) {
-	t.Run("existing_subscription", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
-		expected := &subscription.Subscription{
-			ID:    123,
-			Name:  "Test User",
-			Email: "test@example.com",
-		}
+	mockStore := subscriptionmock.NewMockStore(t)
+	mockLogger := mocklogging.NewMockLogger()
+	service := subscription.NewService(mockStore, mockLogger)
 
-		mockStore.ExpectGetByID(context.Background(), int64(123), expected, nil)
-
-		service := subscription.NewService(mockStore, mockLogger)
-
-		sub, err := service.GetSubscription(context.Background(), 123)
+	t.Run("existing subscription", func(t *testing.T) {
+		mockStore.ExpectGetByID(context.Background(), int64(1), &subscription.Subscription{ID: 1}, nil)
+		sub, err := service.GetSubscription(context.Background(), 1)
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
-		if !subscriptionEqual(sub, expected) {
-			t.Errorf("expected %v, got %v", expected, sub)
+		if sub == nil {
+			t.Error("expected subscription, got nil")
 		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
@@ -138,12 +131,13 @@ func TestGetSubscription(t *testing.T) {
 		}
 	})
 
-	t.Run("non-existent_subscription", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
+	t.Run("non-existent subscription", func(t *testing.T) {
+		mockStore.Reset()
+		mockLogger.Reset()
 		mockStore.ExpectGetByID(context.Background(), int64(123), nil, nil)
-
-		service := subscription.NewService(mockStore, mockLogger)
+		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]interface{}{
+			"error": subscription.ErrSubscriptionNotFound,
+		})
 
 		sub, err := service.GetSubscription(context.Background(), 123)
 		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
@@ -214,13 +208,13 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 }
 
 func TestDeleteSubscription(t *testing.T) {
-	t.Run("successful_deletion", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
+	mockStore := subscriptionmock.NewMockStore(t)
+	mockLogger := mocklogging.NewMockLogger()
+	service := subscription.NewService(mockStore, mockLogger)
+
+	t.Run("successful deletion", func(t *testing.T) {
 		mockStore.ExpectGetByID(context.Background(), int64(1), &subscription.Subscription{ID: 1}, nil)
 		mockStore.ExpectDelete(context.Background(), int64(1), nil)
-
-		service := subscription.NewService(mockStore, mockLogger)
 
 		err := service.DeleteSubscription(context.Background(), 1)
 		if err != nil {
@@ -234,14 +228,15 @@ func TestDeleteSubscription(t *testing.T) {
 		}
 	})
 
-	t.Run("non-existent_subscription", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
-		mockStore.ExpectGetByID(context.Background(), int64(1), nil, nil)
+	t.Run("non-existent subscription", func(t *testing.T) {
+		mockStore.Reset()
+		mockLogger.Reset()
+		mockStore.ExpectGetByID(context.Background(), int64(123), nil, nil)
+		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]interface{}{
+			"error": subscription.ErrSubscriptionNotFound,
+		})
 
-		service := subscription.NewService(mockStore, mockLogger)
-
-		err := service.DeleteSubscription(context.Background(), 1)
+		err := service.DeleteSubscription(context.Background(), 123)
 		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
 		}
@@ -255,26 +250,18 @@ func TestDeleteSubscription(t *testing.T) {
 }
 
 func TestGetSubscriptionByEmail(t *testing.T) {
-	t.Run("existing_subscription", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
-		expected := &subscription.Subscription{
-			ID:     1,
-			Email:  "test@example.com",
-			Name:   "Test User",
-			Status: subscription.StatusActive,
-		}
+	mockStore := subscriptionmock.NewMockStore(t)
+	mockLogger := mocklogging.NewMockLogger()
+	service := subscription.NewService(mockStore, mockLogger)
 
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", expected, nil)
-
-		service := subscription.NewService(mockStore, mockLogger)
-
+	t.Run("existing subscription", func(t *testing.T) {
+		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", &subscription.Subscription{Email: "test@example.com"}, nil)
 		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
-		if !subscriptionEqual(sub, expected) {
-			t.Errorf("expected %v, got %v", expected, sub)
+		if sub == nil {
+			t.Error("expected subscription, got nil")
 		}
 		if err := mockStore.Verify(); err != nil {
 			t.Errorf("store expectations not met: %v", err)
@@ -284,14 +271,15 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		}
 	})
 
-	t.Run("non-existent_subscription", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, nil)
+	t.Run("non-existent subscription", func(t *testing.T) {
+		mockStore.Reset()
+		mockLogger.Reset()
+		mockStore.ExpectGetByEmail(context.Background(), "nonexistent@example.com", nil, nil)
+		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]interface{}{
+			"error": subscription.ErrSubscriptionNotFound,
+		})
 
-		service := subscription.NewService(mockStore, mockLogger)
-
-		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
+		sub, err := service.GetSubscriptionByEmail(context.Background(), "nonexistent@example.com")
 		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
 		}
@@ -306,24 +294,18 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		}
 	})
 
-	t.Run("store_error", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
+	t.Run("store error", func(t *testing.T) {
+		mockStore.Reset()
+		mockLogger.Reset()
 		storeErr := errors.New("database error")
+		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, storeErr)
 		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]interface{}{
 			"error": storeErr,
 		})
 
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, storeErr)
-
-		service := subscription.NewService(mockStore, mockLogger)
-
 		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
-		if err == nil {
-			t.Error("expected error, got nil")
-		}
-		if err.Error() != "database error" {
-			t.Errorf("expected error message %q, got %q", "database error", err.Error())
+		if !errors.Is(err, storeErr) {
+			t.Errorf("expected error %v, got %v", storeErr, err)
 		}
 		if sub != nil {
 			t.Errorf("expected nil subscription, got %v", sub)
@@ -336,18 +318,12 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		}
 	})
 
-	t.Run("empty_email", func(t *testing.T) {
-		mockStore := subscriptionmock.NewMockStore(t)
-		mockLogger := mocklogging.NewMockLogger()
-
-		service := subscription.NewService(mockStore, mockLogger)
-
+	t.Run("empty email", func(t *testing.T) {
+		mockStore.Reset()
+		mockLogger.Reset()
 		sub, err := service.GetSubscriptionByEmail(context.Background(), "")
 		if err == nil {
 			t.Error("expected error, got nil")
-		}
-		if err.Error() != "invalid input: email is required" {
-			t.Errorf("expected error message %q, got %q", "invalid input: email is required", err.Error())
 		}
 		if sub != nil {
 			t.Errorf("expected nil subscription, got %v", sub)

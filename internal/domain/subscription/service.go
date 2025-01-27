@@ -50,7 +50,7 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 	existing, err := s.store.GetByEmail(ctx, subscription.Email)
 	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
 		s.logger.Error("failed to check existing subscription",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return fmt.Errorf("failed to check existing subscription: %w", err)
 	}
@@ -66,7 +66,7 @@ func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subs
 	// Create subscription
 	if err := s.store.Create(ctx, subscription); err != nil {
 		s.logger.Error("failed to create subscription",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return fmt.Errorf("failed to create subscription: %w", err)
 	}
@@ -86,7 +86,7 @@ func (s *ServiceImpl) ListSubscriptions(ctx context.Context) ([]Subscription, er
 	subscriptions, err := s.store.List(ctx)
 	if err != nil {
 		s.logger.Error("failed to list subscriptions",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return nil, fmt.Errorf("failed to list subscriptions: %w", err)
 	}
@@ -99,14 +99,14 @@ func (s *ServiceImpl) GetSubscription(ctx context.Context, id int64) (*Subscript
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Error("failed to get subscription",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return nil, err
 	}
 
 	if subscription == nil {
 		s.logger.Error("failed to get subscription",
-			logging.String("error", ErrSubscriptionNotFound.Error()),
+			logging.Error(ErrSubscriptionNotFound),
 		)
 		return nil, ErrSubscriptionNotFound
 	}
@@ -123,14 +123,14 @@ func (s *ServiceImpl) GetSubscriptionByEmail(ctx context.Context, email string) 
 	subscription, err := s.store.GetByEmail(ctx, email)
 	if err != nil {
 		s.logger.Error("failed to get subscription by email",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return nil, err
 	}
 
 	if subscription == nil {
 		s.logger.Error("failed to get subscription by email",
-			logging.String("error", ErrSubscriptionNotFound.Error()),
+			logging.Error(ErrSubscriptionNotFound),
 		)
 		return nil, ErrSubscriptionNotFound
 	}
@@ -148,14 +148,14 @@ func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, st
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Error("failed to get subscription",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return err
 	}
 
 	if subscription == nil {
 		s.logger.Error("failed to get subscription",
-			logging.String("error", ErrSubscriptionNotFound.Error()),
+			logging.Error(ErrSubscriptionNotFound),
 		)
 		return ErrSubscriptionNotFound
 	}
@@ -163,7 +163,7 @@ func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, st
 	// Update status
 	if err := s.store.UpdateStatus(ctx, id, status); err != nil {
 		s.logger.Error("failed to update subscription status",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return err
 	}
@@ -171,30 +171,28 @@ func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, st
 	return nil
 }
 
-// DeleteSubscription removes a subscription
+// DeleteSubscription deletes a subscription by ID
 func (s *ServiceImpl) DeleteSubscription(ctx context.Context, id int64) error {
-	// Check if subscription exists
 	subscription, err := s.store.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Error("failed to get subscription",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
 		return err
 	}
 
 	if subscription == nil {
 		s.logger.Error("failed to get subscription",
-			logging.String("error", ErrSubscriptionNotFound.Error()),
+			logging.Error(ErrSubscriptionNotFound),
 		)
 		return ErrSubscriptionNotFound
 	}
 
-	// Delete subscription
 	if err := s.store.Delete(ctx, id); err != nil {
 		s.logger.Error("failed to delete subscription",
-			logging.String("error", err.Error()),
+			logging.Error(err),
 		)
-		return err
+		return fmt.Errorf("failed to delete subscription: %w", err)
 	}
 
 	return nil
