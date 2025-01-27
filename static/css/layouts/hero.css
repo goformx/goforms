@@ -1,10 +1,10 @@
 @layer layouts {
     .hero {
-        padding: 8rem 0;
-        background: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%);
+        padding: var(--hero-padding-y) 0;
+        background: var(--hero-bg-gradient);
         text-align: center;
         position: relative;
-        min-height: calc(100vh - 70px);
+        min-height: var(--hero-min-height);
         display: flex;
         align-items: center;
         justify-content: center;
@@ -19,82 +19,82 @@
         right: 0;
         bottom: 0;
         background: 
-            radial-gradient(circle at 20% 30%, rgba(79, 70, 229, 0.15) 0%, transparent 50%),
-            radial-gradient(circle at 80% 70%, rgba(139, 92, 246, 0.15) 0%, transparent 50%);
+            radial-gradient(circle at 20% 30%, var(--hero-accent-1) 0%, transparent 50%),
+            radial-gradient(circle at 80% 70%, var(--hero-accent-2) 0%, transparent 50%);
         z-index: 0;
     }
 
     .hero .container {
         position: relative;
         z-index: 1;
-        max-width: 800px;
+        max-width: var(--hero-container-width);
     }
 
     .hero-title {
-        font-size: 4.5rem;
+        font-size: var(--hero-title-size);
         line-height: 1.1;
-        font-weight: 800;
-        background: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+        font-weight: var(--hero-title-weight);
+        background: var(--hero-title-gradient);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: 1.5rem;
-        letter-spacing: -0.02em;
+        margin-bottom: var(--hero-title-margin);
+        letter-spacing: var(--hero-title-spacing);
     }
 
     .hero-subtitle {
-        font-size: 1.5rem;
+        font-size: var(--hero-subtitle-size);
         color: var(--text-light);
-        max-width: 600px;
-        margin: 0 auto 3rem;
+        max-width: var(--hero-subtitle-width);
+        margin: 0 auto var(--hero-subtitle-margin);
         line-height: 1.5;
     }
 
     .hero-actions {
         display: flex;
-        gap: 1.5rem;
+        gap: var(--hero-actions-gap);
         justify-content: center;
-        animation: fadeIn 0.8s ease-out 0.4s backwards;
+        animation: fadeIn var(--animation-timing-fade) var(--animation-easing) var(--animation-delay-fade) backwards;
     }
 
     /* Compact hero variant */
     .hero-compact {
-        padding: 4rem 0;
+        padding: var(--hero-compact-padding-y) 0;
         min-height: auto;
     }
 
     .hero-compact .hero-title {
-        font-size: 3rem;
-        margin-bottom: 1rem;
+        font-size: var(--hero-compact-title-size);
+        margin-bottom: var(--hero-title-margin-mobile);
     }
 
     .hero-compact .hero-subtitle {
-        font-size: 1.25rem;
-        margin-bottom: 2rem;
+        font-size: var(--hero-compact-subtitle-size);
+        margin-bottom: var(--hero-subtitle-margin-mobile);
     }
 
     /* Responsive styles */
     @media (max-width: 768px) {
         .hero {
-            padding: 6rem 0;
+            padding: var(--hero-padding-y-mobile) 0;
             min-height: auto;
         }
 
         .hero-title {
-            font-size: 3rem;
-            margin-bottom: 1rem;
+            font-size: var(--hero-title-size-mobile);
+            margin-bottom: var(--hero-title-margin-mobile);
         }
 
         .hero-subtitle {
-            font-size: 1.25rem;
-            margin-bottom: 2rem;
-            padding: 0 1rem;
+            font-size: var(--hero-subtitle-size-mobile);
+            margin-bottom: var(--hero-subtitle-margin-mobile);
+            padding: 0 var(--container-padding-x-mobile);
         }
 
         .hero-actions {
             flex-direction: column;
-            gap: 1rem;
-            padding: 0 1rem;
+            gap: var(--hero-actions-gap-mobile);
+            padding: 0 var(--container-padding-x-mobile);
         }
     }
 } 

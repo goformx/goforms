@@ -21,15 +21,15 @@
         font-weight: var(--nav-logo-weight);
         color: var(--primary);
         text-decoration: none;
-        background: linear-gradient(135deg, var(--primary), var(--accent));
+        background: linear-gradient(var(--nav-logo-gradient-angle), var(--primary), var(--accent));
         background-clip: text;
         -webkit-background-clip: text;
         -webkit-text-fill-color: transparent;
-        transition: opacity 0.2s ease;
+        transition: opacity var(--nav-transition-duration) var(--nav-transition-timing);
     }
 
     .logo:hover {
-        opacity: 0.8;
+        opacity: var(--nav-logo-opacity-hover);
     }
 
     .nav-links {
@@ -41,7 +41,7 @@
         color: var(--text);
         text-decoration: none;
         font-weight: var(--nav-link-weight);
-        transition: color 0.2s ease;
+        transition: color var(--nav-transition-duration) var(--nav-transition-timing);
     }
 
     .nav-links a:hover {

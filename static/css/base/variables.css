@@ -8,6 +8,8 @@
         --background: #ffffff;
         --text: #1f2937;
         --text-light: #6b7280;
+        --text-primary: var(--text);
+        --border-color: #e5e7eb;
 
         /* Container */
         --container-max-width: 1200px;
@@ -30,6 +32,73 @@
         --nav-transition-duration: 0.2s;
         --nav-transition-timing: ease;
         --nav-logo-gradient-angle: 135deg;
+
+        /* Hero */
+        --hero-padding-y: 8rem;
+        --hero-padding-y-mobile: 6rem;
+        --hero-bg-gradient: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%);
+        --hero-min-height: calc(100vh - var(--nav-height));
+        --hero-container-width: 800px;
+        --hero-title-size: 4.5rem;
+        --hero-title-size-mobile: 3rem;
+        --hero-title-weight: 800;
+        --hero-title-spacing: -0.02em;
+        --hero-title-gradient: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
+        --hero-title-margin: 1.5rem;
+        --hero-title-margin-mobile: 1rem;
+        --hero-subtitle-size: 1.5rem;
+        --hero-subtitle-size-mobile: 1.25rem;
+        --hero-subtitle-width: 600px;
+        --hero-subtitle-margin: 3rem;
+        --hero-subtitle-margin-mobile: 2rem;
+        --hero-actions-gap: 1.5rem;
+        --hero-actions-gap-mobile: 1rem;
+        --hero-accent-1: rgba(79, 70, 229, 0.15);
+        --hero-accent-2: rgba(139, 92, 246, 0.15);
+        
+        /* Hero Compact */
+        --hero-compact-padding-y: 4rem;
+        --hero-compact-title-size: 3rem;
+        --hero-compact-subtitle-size: 1.25rem;
+
+        /* Forms & Inputs */
+        --form-gap: 1.5rem;
+        --form-group-gap: 0.5rem;
+        --form-label-weight: 500;
+        --form-label-size: 0.875rem;
+        --form-label-spacing: 0.05em;
+        --form-input-padding-y: 0.875rem;
+        --form-input-padding-x: 1rem;
+        --form-input-radius: 0.5rem;
+        --form-input-border: 1px solid rgba(255, 255, 255, 0.1);
+        --form-input-bg: rgba(15, 23, 42, 0.5);
+        --form-input-color: var(--text-primary);
+        --form-input-size: 1rem;
+        --form-transition-duration: 0.2s;
+        --form-transition-timing: ease;
+        --form-focus-border: var(--primary);
+        --form-focus-ring: rgba(66, 153, 225, 0.15);
+        --form-focus-ring-size: 3px;
+        --form-focus-bg: rgba(15, 23, 42, 0.7);
+        --form-textarea-min-height: 120px;
+
+        /* Cards */
+        --card-bg: #ffffff;
+        --card-padding: 2rem;
+        --card-padding-mobile: 1.5rem;
+        --card-radius: var(--border-radius);
+        --card-border: 1px solid var(--border-color);
+        --card-backdrop-blur: 8px;
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        
+        /* Layout */
+        --header-height: var(--nav-height);
+        --footer-height: 60px;
+
+        /* Animations */
+        --animation-timing-fade: 0.8s;
+        --animation-delay-fade: 0.4s;
+        --animation-easing: ease-out;
 
         /* Other */
         --border-radius: 12px;

@@ -2,46 +2,46 @@
     .contact-form {
         display: flex;
         flex-direction: column;
-        gap: 1.5rem;
+        gap: var(--form-gap);
     }
 
     .form-group {
         display: flex;
         flex-direction: column;
-        gap: 0.5rem;
+        gap: var(--form-group-gap);
     }
 
     .form-group label {
-        font-weight: 500;
+        font-weight: var(--form-label-weight);
         color: var(--text-primary);
-        font-size: 0.875rem;
+        font-size: var(--form-label-size);
         text-transform: uppercase;
-        letter-spacing: 0.05em;
+        letter-spacing: var(--form-label-spacing);
     }
 
     .form-group input,
     .form-group textarea {
-        padding: 0.875rem 1rem;
-        border-radius: 0.5rem;
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        background: rgba(15, 23, 42, 0.5);
-        color: var(--text-primary);
-        font-size: 1rem;
+        padding: var(--form-input-padding-y) var(--form-input-padding-x);
+        border-radius: var(--form-input-radius);
+        border: var(--form-input-border);
+        background: var(--form-input-bg);
+        color: var(--form-input-color);
+        font-size: var(--form-input-size);
         width: 100%;
-        transition: all 0.2s ease;
+        transition: all var(--form-transition-duration) var(--form-transition-timing);
     }
 
     .form-group input:focus,
     .form-group textarea:focus {
         outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 3px rgba(66, 153, 225, 0.15);
-        background: rgba(15, 23, 42, 0.7);
+        border-color: var(--form-focus-border);
+        box-shadow: 0 0 0 var(--form-focus-ring-size) var(--form-focus-ring);
+        background: var(--form-focus-bg);
     }
 
     .form-group textarea {
         resize: vertical;
-        min-height: 120px;
+        min-height: var(--form-textarea-min-height);
     }
 
     .form-section {
@@ -49,16 +49,16 @@
     }
 
     .form-section .feature-card {
-        background: rgba(30, 41, 59, 0.6);
-        border: 1px solid rgba(255, 255, 255, 0.1);
-        backdrop-filter: blur(8px);
-        padding: 2rem;
+        background: var(--card-bg);
+        border: var(--card-border);
+        backdrop-filter: blur(var(--card-backdrop-blur));
+        padding: var(--card-padding);
     }
 
     /* Responsive styles */
     @media (max-width: 768px) {
         .form-section .feature-card {
-            padding: 1.5rem;
+            padding: var(--card-padding-mobile);
         }
     }
 }
@@ -69,47 +69,47 @@
     justify-content: center;
     align-items: center;
     min-height: calc(100vh - var(--header-height) - var(--footer-height));
-    padding: 2rem;
+    padding: var(--card-padding);
 }
 
 .auth-container {
     width: 100%;
-    max-width: 400px;
+    max-width: var(--container-max-width);
 }
 
 .auth-card {
     background-color: var(--card-bg);
-    border-radius: var(--border-radius);
+    border-radius: var(--card-radius);
     box-shadow: var(--shadow-sm);
-    padding: 2rem;
+    padding: var(--card-padding);
 }
 
 .auth-form {
     display: flex;
     flex-direction: column;
-    gap: 1.5rem;
+    gap: var(--form-gap);
 }
 
 .auth-form .form-group {
-    margin-bottom: 1rem;
+    margin-bottom: var(--form-group-gap);
 }
 
 .auth-form .button {
-    margin-top: 1rem;
+    margin-top: var(--form-gap);
     width: 100%;
 }
 
 .auth-alt-action {
-    margin-top: 1.5rem;
+    margin-top: var(--form-gap);
     text-align: center;
-    padding-top: 1.5rem;
-    border-top: 1px solid var(--border-color);
+    padding-top: var(--form-gap);
+    border-top: var(--card-border);
 }
 
 .auth-alt-action a {
-    color: var(--primary-color);
+    color: var(--primary);
     text-decoration: none;
-    font-weight: 500;
+    font-weight: var(--form-label-weight);
 }
 
 .auth-alt-action a:hover {
