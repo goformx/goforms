@@ -20,45 +20,47 @@ templ newsletterContent() {
 	</section>
 
 	<div class="newsletter-layout">
-		<div class="newsletter-grid">
-			<section class="form-section">
-				<div class="feature-card">
-					<div class="demo-site-header">
-						<h2>coolstartup.io</h2>
-						<p class="demo-description">This simulates a form on your website. The form submits to Goforms' backend.</p>
+		<div class="container">
+			<div class="newsletter-grid">
+				<section class="form-section">
+					<div class="feature-card">
+						<div class="demo-site-header">
+							<h2>coolstartup.io</h2>
+							<p class="demo-description">This simulates a form on your website. The form submits to Goforms' backend.</p>
+						</div>
+						<form id="newsletter-form" class="newsletter-form" action="https://api.goforms.io/v1/forms/demo/submit">
+							<div class="form-group">
+								<label for="name" class="form-label">Name</label>
+								<input type="text" id="name" name="name" class="form-input" required placeholder="Enter your name"/>
+							</div>
+							<div class="form-group">
+								<label for="email" class="form-label">Email</label>
+								<input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
+							</div>
+							<button type="submit" class="button primary">Join Our Newsletter</button>
+						</form>
 					</div>
-					<form id="newsletter-form" class="newsletter-form" action="https://api.goforms.io/v1/forms/demo/submit">
-						<div class="form-group">
-							<label for="name" class="form-label">Name</label>
-							<input type="text" id="name" name="name" class="form-input" required placeholder="Enter your name"/>
-						</div>
-						<div class="form-group">
-							<label for="email" class="form-label">Email</label>
-							<input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
-						</div>
-						<button type="submit" class="button primary">Join Our Newsletter</button>
-					</form>
-				</div>
-				<div class="code-example">
-					<h3>Integration Code</h3>
-					<pre><code>
+					<div class="code-example">
+						<h3>Integration Code</h3>
+						<pre><code>
 &lt;form action="https://api.goforms.io/v1/forms/demo/submit" method="POST"&gt;
   &lt;input type="text" name="name" required&gt;
   &lt;input type="email" name="email" required&gt;
   &lt;button type="submit"&gt;Submit&lt;/button&gt;
 &lt;/form&gt;
-					</code></pre>
-				</div>
-			</section>
-			<section class="messages-section">
-				<div class="feature-card">
-					<h2 class="section-title">Form Submissions</h2>
-					<p class="section-description">All form submissions are instantly available in your dashboard.</p>
-					<div id="messages-list" class="messages-list">
-						<!-- Messages will be loaded here -->
+						</code></pre>
 					</div>
-				</div>
-			</section>
+				</section>
+				<section class="messages-section">
+					<div class="feature-card">
+						<h2 class="section-title">Form Submissions</h2>
+						<p class="section-description">All form submissions are instantly available in your dashboard.</p>
+						<div id="messages-list" class="messages-list">
+							<!-- Messages will be loaded here -->
+						</div>
+					</div>
+				</section>
+			</div>
 		</div>
 	</div>
 	<script src="/static/js/newsletter.js"></script>
