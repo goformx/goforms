@@ -10,23 +10,40 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// ContactHandler handles contact form submissions
+// ContactHandler handles contact form submissions. It implements the Handler interface
+// and follows the standard handler patterns:
+//
+// 1. Embeds Base for common functionality
+// 2. Uses options pattern for dependency injection
+// 3. Validates all required dependencies
+// 4. Provides clear API documentation
+//
+// Example Usage:
+//
+//	handler := NewContactHandler(logger,
+//	    WithContactServiceOpt(contactService),
+//	)
+//	handler.Register(e) // Register routes with Echo
 type ContactHandler struct {
 	*Base
 	contactService contact.Service
 }
 
-// ContactHandlerOption configures a ContactHandler
+// ContactHandlerOption configures a ContactHandler. It follows the functional
+// options pattern for clean and type-safe dependency injection.
 type ContactHandlerOption func(*ContactHandler)
 
-// WithContactServiceOpt sets the contact service for the handler
+// WithContactServiceOpt sets the contact service for the handler.
+// This is a required dependency for handling contact form operations.
 func WithContactServiceOpt(svc contact.Service) ContactHandlerOption {
 	return func(h *ContactHandler) {
 		h.contactService = svc
 	}
 }
 
-// NewContactHandler creates a new ContactHandler
+// NewContactHandler creates a new ContactHandler with the provided options.
+// The logger is required and must be provided. The contact service must be
+// provided using WithContactServiceOpt.
 func NewContactHandler(logger logging.Logger, opts ...ContactHandlerOption) *ContactHandler {
 	h := &ContactHandler{
 		Base: &Base{Logger: logger},
@@ -39,7 +56,9 @@ func NewContactHandler(logger logging.Logger, opts ...ContactHandlerOption) *Con
 	return h
 }
 
-// Validate ensures all required dependencies are set
+// Validate ensures all required dependencies are properly set.
+// It checks both the base handler requirements and ContactHandler-specific
+// dependencies.
 func (h *ContactHandler) Validate() error {
 	if err := h.Base.Validate(); err != nil {
 		return err
@@ -50,7 +69,9 @@ func (h *ContactHandler) Validate() error {
 	return nil
 }
 
-// Register registers the contact routes
+// Register registers the contact routes with the Echo instance.
+// It validates dependencies before registering routes to fail fast
+// if configuration is incomplete.
 func (h *ContactHandler) Register(e *echo.Echo) {
 	if err := h.Validate(); err != nil {
 		h.Logger.Error("failed to validate handler", logging.Error(err))
