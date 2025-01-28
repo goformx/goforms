@@ -7,21 +7,21 @@ type Feature struct {
 }
 
 templ FeatureCard(feature Feature) {
-    <div class="feature-card">
+    <div class="grid-item">
         <h3><span>{ feature.Icon }</span>{ feature.Title }</h3>
         <p>{ feature.Description }</p>
     </div>
 }
 
 templ Features(features []Feature) {
-    <section class="features">
-        @Grid(GridProps{
-            Columns: 0, // Use auto-fit
-            Items: toGridItems(features),
-            Render: func(item GridItem) templ.Component {
-                return FeatureCard(item.(Feature))
-            },
-        })
+    <section class="grid-section">
+        <div class="container">
+            <div class="grid grid-auto">
+                for _, feature := range features {
+                    @FeatureCard(feature)
+                }
+            </div>
+        </div>
     </section>
 }
 

@@ -14,7 +14,7 @@
 /* Component styles */
 @import url('components/nav.css') layer(components);
 @import url('components/buttons.css') layer(components);
-@import url('components/features.css') layer(components);
+@import url('components/grid-items.css') layer(components);
 @import url('components/forms.css') layer(components);
 @import url('components/messages.css') layer(components);
 @import url('components/api_response.css') layer(components);
@@ -22,7 +22,6 @@
 @import url('components/code.css') layer(components);
 
 /* Page styles */
-@import url('pages/newsletter/layout.css') layer(pages);
 @import url('pages/newsletter/sections.css') layer(pages);
 
 /* Utility styles */

@@ -1,11 +1,11 @@
 @layer components {
     /* Mobile first - base styles */
-    .features {
-        padding: var(--features-padding-y-mobile) 0;
+    .grid-section {
+        padding: var(--section-padding-y) 0;
         background: var(--background);
     }
 
-    .features .container {
+    .grid-section .container {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         gap: var(--grid-gap);
@@ -15,14 +15,14 @@
         margin: 0 auto;
     }
 
-    .feature-card {
+    .grid-item {
         background: var(--feature-card-bg);
         padding: var(--feature-card-padding);
         border-radius: var(--border-radius);
         width: 100%;
     }
 
-    .feature-card h3 {
+    .grid-item h3 {
         font-size: var(--feature-card-title-size);
         font-weight: var(--feature-card-title-weight);
         margin-bottom: var(--feature-card-title-margin);
@@ -32,30 +32,29 @@
         color: var(--text);
     }
 
-    .feature-card h3 span {
+    .grid-item h3 span {
         font-size: var(--feature-card-title-size);
     }
 
-    .feature-card p {
+    .grid-item p {
         color: var(--text-light);
         font-size: var(--feature-card-text-size);
-        line-height: var(--feature-card-text-line-height);
     }
 
     /* Tablet (md) and up */
     @media (min-width: var(--breakpoint-md)) {
-        .features {
-            padding: var(--features-padding-y) 0;
+        .grid-section {
+            padding: var(--section-padding-y) 0;
         }
 
-        .features .container {
+        .grid-section .container {
             padding: 0 var(--container-padding-x);
         }
     }
 
     /* Desktop (lg) and up */
     @media (min-width: var(--breakpoint-lg)) {
-        .features .container {
+        .grid-section .container {
             display: grid;
             grid-template-columns: repeat(3, calc((100% - (2 * var(--grid-gap))) / 3)); /* Three equal columns */
         }
