@@ -3,8 +3,6 @@ package contact_test
 import (
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
@@ -71,10 +69,11 @@ func TestValidateSubmission(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := contact.ValidateSubmission(tt.sub)
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
+			if tt.wantErr && err == nil {
+				t.Error("ValidateSubmission() error = nil, want error")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("ValidateSubmission() error = %v, want nil", err)
 			}
 		})
 	}

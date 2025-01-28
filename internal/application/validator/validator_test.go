@@ -4,7 +4,6 @@ import (
 	"testing"
 
 	"github.com/go-playground/validator/v10"
-	"github.com/stretchr/testify/assert"
 )
 
 type TestStruct struct {
@@ -15,8 +14,12 @@ type TestStruct struct {
 
 func TestNewValidator(t *testing.T) {
 	v := NewValidator()
-	assert.NotNil(t, v)
-	assert.IsType(t, &CustomValidator{}, v)
+	if v == nil {
+		t.Error("NewValidator() returned nil")
+	}
+	if _, ok := interface{}(v).(*CustomValidator); !ok {
+		t.Error("NewValidator() did not return *CustomValidator")
+	}
 }
 
 func TestValidate(t *testing.T) {
@@ -29,7 +32,9 @@ func TestValidate(t *testing.T) {
 			Age:   25,
 		}
 		err := v.Validate(test)
-		assert.NoError(t, err)
+		if err != nil {
+			t.Errorf("Validate() error = %v, want nil", err)
+		}
 	})
 
 	t.Run("invalid email", func(t *testing.T) {
@@ -39,10 +44,16 @@ func TestValidate(t *testing.T) {
 			Age:   25,
 		}
 		err := v.Validate(test)
-		assert.Error(t, err)
+		if err == nil {
+			t.Error("Validate() error = nil, want error")
+		}
 		validationErr, ok := err.(validator.ValidationErrors)
-		assert.True(t, ok)
-		assert.Contains(t, validationErr[0].Tag(), "email")
+		if !ok {
+			t.Error("Validate() error is not validator.ValidationErrors")
+		}
+		if !containsTag(validationErr[0].Tag(), "email") {
+			t.Error("Validate() error does not contain 'email' tag")
+		}
 	})
 
 	t.Run("missing required field", func(t *testing.T) {
@@ -51,10 +62,16 @@ func TestValidate(t *testing.T) {
 			Age:   25,
 		}
 		err := v.Validate(test)
-		assert.Error(t, err)
+		if err == nil {
+			t.Error("Validate() error = nil, want error")
+		}
 		validationErr, ok := err.(validator.ValidationErrors)
-		assert.True(t, ok)
-		assert.Contains(t, validationErr[0].Tag(), "required")
+		if !ok {
+			t.Error("Validate() error is not validator.ValidationErrors")
+		}
+		if !containsTag(validationErr[0].Tag(), "required") {
+			t.Error("Validate() error does not contain 'required' tag")
+		}
 	})
 
 	t.Run("age out of range", func(t *testing.T) {
@@ -64,14 +81,26 @@ func TestValidate(t *testing.T) {
 			Age:   150,
 		}
 		err := v.Validate(test)
-		assert.Error(t, err)
+		if err == nil {
+			t.Error("Validate() error = nil, want error")
+		}
 		validationErr, ok := err.(validator.ValidationErrors)
-		assert.True(t, ok)
-		assert.Contains(t, validationErr[0].Tag(), "lte")
+		if !ok {
+			t.Error("Validate() error is not validator.ValidationErrors")
+		}
+		if !containsTag(validationErr[0].Tag(), "lte") {
+			t.Error("Validate() error does not contain 'lte' tag")
+		}
 	})
 
 	t.Run("non-struct value", func(t *testing.T) {
 		err := v.Validate("not a struct")
-		assert.Error(t, err)
+		if err == nil {
+			t.Error("Validate() error = nil, want error")
+		}
 	})
+}
+
+func containsTag(tag, substr string) bool {
+	return tag == substr
 }

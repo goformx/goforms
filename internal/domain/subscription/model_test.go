@@ -2,8 +2,6 @@ package subscription
 
 import (
 	"testing"
-
-	"github.com/stretchr/testify/assert"
 )
 
 func TestSubscription_Validate(t *testing.T) {
@@ -57,10 +55,11 @@ func TestSubscription_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			err := tt.sub.Validate()
-			if tt.wantErr {
-				assert.Error(t, err)
-			} else {
-				assert.NoError(t, err)
+			if tt.wantErr && err == nil {
+				t.Error("Validate() error = nil, want error")
+			}
+			if !tt.wantErr && err != nil {
+				t.Errorf("Validate() error = %v, want nil", err)
 			}
 		})
 	}

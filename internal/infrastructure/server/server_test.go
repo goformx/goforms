@@ -5,7 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxtest"
 
@@ -44,10 +43,14 @@ func TestNew(t *testing.T) {
 	defer cancel()
 
 	err := app.Start(ctx)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("app.Start() error = %v, want nil", err)
+	}
 
 	err = app.Stop(ctx)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("app.Stop() error = %v, want nil", err)
+	}
 }
 
 func TestServerLifecycle(t *testing.T) {
@@ -82,9 +85,13 @@ func TestServerLifecycle(t *testing.T) {
 
 	// Test startup
 	err := app.Start(ctx)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("app.Start() error = %v, want nil", err)
+	}
 
 	// Test shutdown
 	err = app.Stop(ctx)
-	assert.NoError(t, err)
+	if err != nil {
+		t.Errorf("app.Stop() error = %v, want nil", err)
+	}
 }

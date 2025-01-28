@@ -7,10 +7,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-
 	mocklog "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/labstack/echo/v4"
 )
 
 type mockPingContexter struct {
@@ -70,17 +68,53 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 
 			// Assert
 			if tt.wantLogCall {
-				assert.Error(t, err)
+				if err == nil {
+					t.Error("HandleHealthCheck() error = nil, want error")
+				}
 			} else {
-				assert.NoError(t, err)
+				if err != nil {
+					t.Errorf("HandleHealthCheck() error = %v, want nil", err)
+				}
 			}
 
 			// Verify response
-			assert.Equal(t, tt.wantStatus, rec.Code)
+			if rec.Code != tt.wantStatus {
+				t.Errorf("HandleHealthCheck() status = %v, want %v", rec.Code, tt.wantStatus)
+			}
+
 			var gotBody map[string]interface{}
-			err = json.Unmarshal(rec.Body.Bytes(), &gotBody)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.wantBody, gotBody)
+			if err := json.Unmarshal(rec.Body.Bytes(), &gotBody); err != nil {
+				t.Fatalf("Failed to unmarshal response body: %v", err)
+			}
+
+			// Compare response bodies
+			if !deepEqual(t, tt.wantBody, gotBody) {
+				t.Errorf("HandleHealthCheck() body = %v, want %v", gotBody, tt.wantBody)
+			}
 		})
 	}
+}
+
+// deepEqual recursively compares two maps for equality
+func deepEqual(t *testing.T, want, got map[string]interface{}) bool {
+	if len(want) != len(got) {
+		return false
+	}
+	for key, wantVal := range want {
+		gotVal, exists := got[key]
+		if !exists {
+			return false
+		}
+		switch v := wantVal.(type) {
+		case map[string]interface{}:
+			if g, ok := gotVal.(map[string]interface{}); !ok || !deepEqual(t, v, g) {
+				return false
+			}
+		default:
+			if wantVal != gotVal {
+				return false
+			}
+		}
+	}
+	return true
 }

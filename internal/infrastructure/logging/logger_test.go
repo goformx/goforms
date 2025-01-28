@@ -4,8 +4,6 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/stretchr/testify/assert"
-
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
@@ -13,12 +11,16 @@ import (
 func TestLogger(t *testing.T) {
 	t.Run("creates logger with debug mode", func(t *testing.T) {
 		logger := logging.NewLogger(true, "test-app")
-		assert.NotNil(t, logger)
+		if logger == nil {
+			t.Error("NewLogger() returned nil")
+		}
 	})
 
 	t.Run("creates logger without debug mode", func(t *testing.T) {
 		logger := logging.NewLogger(false, "test-app")
-		assert.NotNil(t, logger)
+		if logger == nil {
+			t.Error("NewLogger() returned nil")
+		}
 	})
 
 	t.Run("logs messages at different levels", func(t *testing.T) {
@@ -35,12 +37,16 @@ func TestLogger(t *testing.T) {
 func TestNewLogger(t *testing.T) {
 	t.Run("creates logger with default config", func(t *testing.T) {
 		logger := logging.NewLogger(false, "test-app")
-		assert.NotNil(t, logger)
+		if logger == nil {
+			t.Error("NewLogger() returned nil")
+		}
 	})
 
 	t.Run("creates logger with custom config", func(t *testing.T) {
 		logger := logging.NewLogger(true, "custom-app")
-		assert.NotNil(t, logger)
+		if logger == nil {
+			t.Error("NewLogger() returned nil")
+		}
 	})
 }
 
@@ -49,22 +55,33 @@ func TestLogLevels(t *testing.T) {
 
 	t.Run("logs at different levels", func(t *testing.T) {
 		// These should not panic
-		logger.Info("info message", logging.String("key", "value"))
-		logger.Error("error message", logging.Error(assert.AnError))
-		logger.Debug("debug message")
-		logger.Warn("warn message")
+		func() {
+			defer func() {
+				if r := recover(); r != nil {
+					t.Errorf("Logging panicked: %v", r)
+				}
+			}()
+			logger.Info("info message", logging.String("key", "value"))
+			logger.Error("error message", logging.Error(errors.New("test error")))
+			logger.Debug("debug message")
+			logger.Warn("warn message")
+		}()
 	})
 }
 
 func TestLoggerModes(t *testing.T) {
 	t.Run("development mode", func(t *testing.T) {
 		logger := logging.NewLogger(true, "debug-app")
-		assert.NotNil(t, logger)
+		if logger == nil {
+			t.Error("NewLogger() returned nil")
+		}
 	})
 
 	t.Run("production mode", func(t *testing.T) {
 		logger := logging.NewLogger(false, "prod-app")
-		assert.NotNil(t, logger)
+		if logger == nil {
+			t.Error("NewLogger() returned nil")
+		}
 	})
 }
 
@@ -72,7 +89,12 @@ func TestLoggerFunctionality(t *testing.T) {
 	logger := logging.NewLogger(true, "test-app")
 
 	// Test logging methods don't panic
-	assert.NotPanics(t, func() {
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("Logging panicked: %v", r)
+			}
+		}()
 		logger.Info("test info message",
 			logging.String("key1", "value1"),
 			logging.Int("key2", 123),
@@ -81,7 +103,7 @@ func TestLoggerFunctionality(t *testing.T) {
 		logger.Error("test error message")
 		logger.Debug("test debug message")
 		logger.Warn("test warn message")
-	})
+	}()
 }
 
 func TestMockLogger(t *testing.T) {
@@ -104,13 +126,20 @@ func TestMockLogger(t *testing.T) {
 
 func TestNewTestLogger(t *testing.T) {
 	logger := logging.NewTestLogger()
-	assert.NotNil(t, logger, "Test logger should not be nil")
+	if logger == nil {
+		t.Error("NewTestLogger() returned nil")
+	}
 
 	// Test that logging methods don't panic in test mode
-	assert.NotPanics(t, func() {
+	func() {
+		defer func() {
+			if r := recover(); r != nil {
+				t.Errorf("Logging panicked: %v", r)
+			}
+		}()
 		logger.Info("test message")
 		logger.Error("test error")
 		logger.Debug("test debug")
 		logger.Warn("test warn")
-	})
+	}()
 }

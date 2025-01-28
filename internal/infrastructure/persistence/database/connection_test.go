@@ -5,8 +5,6 @@ import (
 	"testing"
 	"time"
 
-	"github.com/stretchr/testify/assert"
-
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxtest"
 
@@ -36,7 +34,9 @@ func TestBuildDSN(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			dsn := buildDSN(tt.config)
-			assert.Equal(t, tt.expected, dsn)
+			if dsn != tt.expected {
+				t.Errorf("buildDSN() = %v, want %v", dsn, tt.expected)
+			}
 		})
 	}
 }
