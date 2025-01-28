@@ -68,7 +68,7 @@ func (h *SubscriptionHandler) Register(e *echo.Echo) {
 
 // handleCreate handles creating a new subscription
 // @Summary Create subscription
-// @Description Create a new newsletter subscription
+// @Description Create a new demo form submission
 // @Tags subscription
 // @Accept json
 // @Produce json
@@ -96,7 +96,7 @@ func (h *SubscriptionHandler) handleCreate(c echo.Context) error {
 
 // handleList handles listing all subscriptions
 // @Summary List subscriptions
-// @Description Get a list of all newsletter subscriptions
+// @Description Get a list of all demo form submissions
 // @Tags subscription
 // @Produce json
 // @Success 200 {array} subscription.Subscription

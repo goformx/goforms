@@ -72,7 +72,7 @@ func WithWebDebug(debug bool) WebHandlerOption {
 // Dependencies:
 //   - renderer: Required for rendering web pages
 //   - contactService: Required for contact form functionality
-//   - subscriptionService: Required for newsletter subscription functionality
+//   - subscriptionService: Required for demo form submission functionality
 type WebHandler struct {
 	Base
 	contactService      contact.Service
@@ -144,8 +144,8 @@ func (h *WebHandler) Register(e *echo.Echo) {
 	e.GET("/", h.handleHome)
 	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/"))
 
-	e.GET("/newsletter", h.handleNewsletter)
-	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/newsletter"))
+	e.GET("/demo", h.handleDemo)
+	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/demo"))
 
 	e.GET("/signup", h.handleSignup)
 	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/signup"))
@@ -186,26 +186,28 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 	return nil
 }
 
-// handleNewsletter renders the newsletter page
-func (h *WebHandler) handleNewsletter(c echo.Context) error {
-	h.Logger.Debug("handling newsletter page request",
-		logging.String("path", c.Path()),
+// handleDemo renders the demo page
+func (h *WebHandler) handleDemo(c echo.Context) error {
+	h.Logger.Debug("handling demo page request",
 		logging.String("method", c.Request().Method),
+		logging.String("path", c.Path()),
 	)
 
 	data := layouts.PageData{
-		Title: "Newsletter Demo",
+		Title: "Demo",
 		Debug: h.Debug,
 	}
-	data.Content = pages.NewsletterContent()
+	data.Content = pages.DemoContent()
 
-	if err := h.renderer.Render(c, pages.Newsletter(data)); err != nil {
-		h.Logger.Error("failed to render newsletter page",
+	if err := h.renderer.Render(c, pages.Demo(data)); err != nil {
+		h.Logger.Error("failed to render demo page",
+			logging.String("error", err.Error()),
+			logging.String("method", c.Request().Method),
 			logging.String("path", c.Path()),
-			logging.Error(err),
 		)
-		return fmt.Errorf("failed to render newsletter page: %w", err)
+		return fmt.Errorf("failed to render demo page: %w", err)
 	}
+
 	return nil
 }
 

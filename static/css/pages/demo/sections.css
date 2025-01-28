@@ -20,12 +20,12 @@
     }
 
     /* Code section styles */
-    .newsletter-code h3 {
+    .demo-code h3 {
         font-size: 1rem;
         margin-bottom: 1rem;
     }
 
-    .newsletter-code pre {
+    .demo-code pre {
         padding: 1rem;
         font-size: 0.875rem;
         background: var(--bg-darker);
@@ -40,7 +40,7 @@
         color: var(--text-bright);
     }
 
-    .newsletter-code code {
+    .demo-code code {
         display: block;
         font-family: inherit;
     }
@@ -132,12 +132,12 @@
             font-size: 1rem;
         }
 
-        .newsletter-code h3 {
+        .demo-code h3 {
             font-size: 1.125rem;
             margin-bottom: 1.25rem;
         }
 
-        .newsletter-code pre {
+        .demo-code pre {
             padding: 1.5rem;
             font-size: 0.9rem;
         }

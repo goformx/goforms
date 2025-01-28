@@ -1,5 +1,5 @@
 @layer components {
-    .newsletter-form {
+    .demo-form {
         display: flex;
         flex-direction: column;
         gap: 1.5rem;
@@ -63,7 +63,7 @@
     }
 
     @media (min-width: var(--breakpoint-md)) {
-        .newsletter-form {
+        .demo-form {
             gap: 2rem;
         }
 

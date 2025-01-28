@@ -171,6 +171,67 @@ function logViewportDetails() {
             'widths': Array.from(featureCards).map(card => card.offsetWidth)
         });
     }
+
+    // Debug Demo Grid
+    const demoGrid = document.querySelector('.demo-grid');
+    if (demoGrid) {
+        const gridStyle = getComputedStyle(demoGrid);
+        console.log('Demo Grid:', {
+            'display': gridStyle.display,
+            'grid-template-columns': gridStyle.gridTemplateColumns,
+            'gap': gridStyle.gap,
+            'width': demoGrid.offsetWidth,
+            'height': demoGrid.offsetHeight,
+            'padding': gridStyle.padding,
+            'margin': gridStyle.margin,
+            'border': gridStyle.border
+        });
+
+        const sections = demoGrid.querySelectorAll('section');
+        console.log('Demo Sections:', {
+            'count': sections.length,
+            'first': sections[0]?.getBoundingClientRect(),
+            'last': sections[sections.length - 1]?.getBoundingClientRect()
+        });
+
+        const container = document.querySelector('.demo-layout .container');
+        if (container) {
+            console.log('Demo Container:', {
+                'width': container.offsetWidth,
+                'height': container.offsetHeight,
+                'padding': getComputedStyle(container).padding,
+                'margin': getComputedStyle(container).margin,
+                'border': getComputedStyle(container).border
+            });
+        }
+
+        const layout = document.querySelector('.demo-layout');
+        if (layout) {
+            console.log('Demo Layout:', {
+                'width': layout.offsetWidth,
+                'height': layout.offsetHeight,
+                'padding': getComputedStyle(layout).padding,
+                'margin': getComputedStyle(layout).margin,
+                'border': getComputedStyle(layout).border
+            });
+        }
+
+        const isHorizontallyOverflowing = demoGrid.scrollWidth > demoGrid.clientWidth;
+        const isVerticallyOverflowing = demoGrid.scrollHeight > demoGrid.clientHeight;
+        console.log('Demo Grid Overflow:', {
+            'isHorizontallyOverflowing': isHorizontallyOverflowing,
+            'isVerticallyOverflowing': isVerticallyOverflowing,
+            'scrollWidth': demoGrid.scrollWidth,
+            'clientWidth': demoGrid.clientWidth,
+            'scrollHeight': demoGrid.scrollHeight,
+            'clientHeight': demoGrid.clientHeight
+        });
+
+        console.log('Demo Grid Transitions:', {
+            'transition': gridStyle.transition,
+            'transform': gridStyle.transform
+        });
+    }
 }
 
 // Log on load and resize

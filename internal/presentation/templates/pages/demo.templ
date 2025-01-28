@@ -5,28 +5,28 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
-templ Newsletter(data layouts.PageData) {
+templ Demo(data layouts.PageData) {
 	@layouts.Layout(layouts.PageData{
 		Title: data.Title,
-		Content: NewsletterContent(),
+		Content: DemoContent(),
 		Styles: data.Styles,
 		User: data.User,
 		Debug: data.Debug,
 	})
 }
 
-templ NewsletterCard(content templ.Component) {
+templ DemoCard(content templ.Component) {
 	<div class="grid-item">
 		@content
 	</div>
 }
 
-templ DemoContent() {
+templ DemoFormContent() {
 	<div class="demo-site-header">
 		<h2>coolstartup.io</h2>
 		<p>This simulates a form on your website. The form submits to Goforms' backend.</p>
 	</div>
-	<form id="newsletter-form" class="newsletter-form" action="https://api.goforms.io/v1/forms/demo/submit">
+	<form id="demo-form" class="demo-form" action="https://api.goforms.io/v1/forms/demo/submit">
 		<div class="form-group">
 			<label for="name" class="form-label">Name</label>
 			<input type="text" id="name" name="name" class="form-input" required placeholder="Enter your name"/>
@@ -35,7 +35,7 @@ templ DemoContent() {
 			<label for="email" class="form-label">Email</label>
 			<input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
 		</div>
-		<button type="submit" class="btn btn-primary">Join Our Newsletter</button>
+		<button type="submit" class="btn btn-primary">Submit Form</button>
 	</form>
 }
 
@@ -56,16 +56,16 @@ templ SubmissionsContent() {
 	</div>
 }
 
-templ NewsletterContent() {
+templ DemoContent() {
 	@components.PageHero("Form Backend Demo", "See how easy it is to add Goforms to your website. No backend code required!")
 	<section class="grid-section">
 		<div class="container">
 			<div class="grid grid-auto">
-				@NewsletterCard(DemoContent())
-				@NewsletterCard(CodeContent())
-				@NewsletterCard(SubmissionsContent())
+				@DemoCard(DemoFormContent())
+				@DemoCard(CodeContent())
+				@DemoCard(SubmissionsContent())
 			</div>
 		</div>
 	</section>
-	<script src="/static/js/newsletter.js"></script>
+	<script src="/static/js/demo.js"></script>
 } 

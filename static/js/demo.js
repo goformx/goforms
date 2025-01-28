@@ -7,7 +7,7 @@ const API = {
 };
 
 const DOM_IDS = {
-    NEWSLETTER_FORM: 'newsletter-form',
+    DEMO_FORM: 'demo-form',
     API_RESPONSE: 'api-response',
     MESSAGES_LIST: 'messages-list'
 };
@@ -103,7 +103,7 @@ class APIResponseDisplay {
 }
 
 // Form Handler Component
-class NewsletterForm {
+class DemoForm {
     constructor(formId) {
         this.form = getElement(formId);
         this.apiResponse = new APIResponseDisplay(DOM_IDS.API_RESPONSE);
@@ -180,7 +180,7 @@ class NewsletterForm {
 
 // Initialize form handler when DOM is loaded
 document.addEventListener('DOMContentLoaded', () => {
-    const form = document.getElementById('newsletter-form');
+    const form = document.getElementById('demo-form');
     const messagesList = document.getElementById('messages-list');
 
     // Demo submissions to show in the list

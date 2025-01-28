@@ -18,11 +18,11 @@
 @import url('components/forms.css') layer(components);
 @import url('components/messages.css') layer(components);
 @import url('components/api_response.css') layer(components);
-@import url('components/newsletter_form.css') layer(components);
+@import url('components/demo_form.css') layer(components);
 @import url('components/code.css') layer(components);
 
 /* Page styles */
-@import url('pages/newsletter/sections.css') layer(pages);
+@import url('pages/demo/sections.css') layer(pages);
 
 /* Utility styles */
 @import url('utils/animations.css') layer(utils);

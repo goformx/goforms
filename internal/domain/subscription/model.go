@@ -31,7 +31,7 @@ func (s Status) IsValid() bool {
 	}
 }
 
-// Subscription represents a newsletter subscription
+// Subscription represents a demo form submission
 type Subscription struct {
 	ID        int64     `json:"id" db:"id"`
 	Email     string    `json:"email" db:"email" validate:"required,email"`
