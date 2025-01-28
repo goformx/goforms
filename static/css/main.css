@@ -1,21 +1,31 @@
 /* Define layer order (from lowest to highest specificity) */
-@layer base, layouts, components, utils, theme;
+@layer base, layouts, components, pages, utils, theme;
 
-/* Import stylesheets into their respective layers */
+/* Base styles */
 @import url('base/variables.css') layer(base);
 @import url('base/reset.css') layer(base);
 
+/* Layout styles */
 @import url('layouts/container.css') layer(layouts);
 @import url('layouts/hero.css') layer(layouts);
 @import url('layouts/footer.css') layer(layouts);
 
+/* Component styles */
 @import url('components/nav.css') layer(components);
 @import url('components/buttons.css') layer(components);
 @import url('components/features.css') layer(components);
 @import url('components/forms.css') layer(components);
 @import url('components/messages.css') layer(components);
 @import url('components/api_response.css') layer(components);
+@import url('components/newsletter_form.css') layer(components);
+@import url('components/code.css') layer(components);
 
+/* Page styles */
+@import url('pages/newsletter/layout.css') layer(pages);
+@import url('pages/newsletter/sections.css') layer(pages);
+
+/* Utility styles */
 @import url('utils/animations.css') layer(utils);
 
+/* Theme styles */
 @import url('themes/dark.css') layer(theme);

@@ -1,0 +1,69 @@
+@layer pages {
+    /* Mobile first - base styles */
+    .newsletter-layout {
+        padding: 2rem 0;
+        background: var(--bg-darker);
+        min-height: calc(100vh - var(--nav-height) - var(--hero-height));
+    }
+
+    .newsletter-layout .container {
+        max-width: var(--container-max-width);
+        margin: 0 auto;
+        padding: 0 var(--container-padding-x-mobile);
+        width: 100%;
+        box-sizing: border-box; /* Ensure padding is included in width */
+    }
+
+    .newsletter-grid {
+        display: grid;
+        grid-template-columns: minmax(0, 1fr);
+        gap: var(--grid-gap);
+        max-width: 100%; /* Ensure grid respects container */
+    }
+
+    /* Common styles for newsletter sections */
+    .newsletter-demo,
+    .newsletter-code,
+    .newsletter-submissions {
+        background: var(--bg-darkest);
+        border-radius: 1rem;
+        padding: 1.5rem;
+        box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.2), 0 2px 4px -1px rgba(0, 0, 0, 0.1);
+        box-sizing: border-box; /* Include padding in width calculation */
+    }
+
+    /* Tablet breakpoint */
+    @media (min-width: var(--breakpoint-md)) {
+        .newsletter-grid {
+            grid-template-columns: repeat(3, minmax(0, 1fr));
+            gap: var(--grid-gap-lg);
+        }
+
+        .newsletter-layout {
+            padding: 3rem 0;
+        }
+
+        .newsletter-layout .container {
+            padding: 0 var(--container-padding-x);
+        }
+
+        .newsletter-demo,
+        .newsletter-code,
+        .newsletter-submissions {
+            padding: 2rem;
+        }
+    }
+
+    /* Desktop breakpoint */
+    @media (min-width: var(--breakpoint-lg)) {
+        .newsletter-layout {
+            padding: 4rem 0;
+        }
+
+        .newsletter-demo,
+        .newsletter-code,
+        .newsletter-submissions {
+            padding: 2.5rem;
+        }
+    }
+} 

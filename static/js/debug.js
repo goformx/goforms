@@ -39,6 +39,75 @@ function logViewportDetails() {
         'above-2xl': isAbove2xl
     });
 
+    // Debug Newsletter Grid
+    const newsletterGrid = document.querySelector('.newsletter-grid');
+    if (newsletterGrid) {
+        const gridStyle = getComputedStyle(newsletterGrid);
+        console.log('Newsletter Grid:', {
+            'display': gridStyle.display,
+            'grid-template-columns': gridStyle.gridTemplateColumns,
+            'gap': gridStyle.gap,
+            'width': newsletterGrid.offsetWidth,
+            'computed-width': gridStyle.width,
+            'position': gridStyle.position,
+            'margin': gridStyle.margin,
+            'padding': gridStyle.padding
+        });
+
+        // Log individual section widths and styles
+        const sections = newsletterGrid.querySelectorAll('section');
+        console.log('Newsletter Sections:', {
+            'count': sections.length,
+            'widths': Array.from(sections).map(section => section.offsetWidth),
+            'classes': Array.from(sections).map(section => section.className)
+        });
+
+        // Log container details
+        const container = document.querySelector('.newsletter-layout .container');
+        if (container) {
+            const containerStyle = getComputedStyle(container);
+            console.log('Newsletter Container:', {
+                'width': container.offsetWidth,
+                'computed-width': containerStyle.width,
+                'max-width': containerStyle.maxWidth,
+                'margin': containerStyle.margin,
+                'padding': containerStyle.padding
+            });
+        }
+
+        // Log parent layout details
+        const layout = document.querySelector('.newsletter-layout');
+        if (layout) {
+            const layoutStyle = getComputedStyle(layout);
+            console.log('Newsletter Layout:', {
+                'width': layout.offsetWidth,
+                'computed-width': layoutStyle.width,
+                'padding': layoutStyle.padding,
+                'margin': layoutStyle.margin,
+                'background': layoutStyle.background
+            });
+        }
+
+        // Check for any overflowing content
+        const isHorizontallyOverflowing = newsletterGrid.scrollWidth > newsletterGrid.clientWidth;
+        const isVerticallyOverflowing = newsletterGrid.scrollHeight > newsletterGrid.clientHeight;
+        console.log('Newsletter Grid Overflow:', {
+            'horizontal': isHorizontallyOverflowing,
+            'vertical': isVerticallyOverflowing,
+            'scrollWidth': newsletterGrid.scrollWidth,
+            'clientWidth': newsletterGrid.clientWidth,
+            'scrollHeight': newsletterGrid.scrollHeight,
+            'clientHeight': newsletterGrid.clientHeight
+        });
+
+        // Log any CSS animations/transitions
+        console.log('Newsletter Grid Transitions:', {
+            'transition': gridStyle.transition,
+            'animation': gridStyle.animation,
+            'transform': gridStyle.transform
+        });
+    }
+
     // Check hero actions
     const heroActions = document.querySelector('.hero-actions');
     if (heroActions) {

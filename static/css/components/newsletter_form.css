@@ -1,0 +1,83 @@
+@layer components {
+    .newsletter-form {
+        display: flex;
+        flex-direction: column;
+        gap: 1.5rem;
+    }
+
+    .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: 0.5rem;
+    }
+
+    .form-label {
+        color: var(--text-bright);
+        font-size: 0.875rem;
+        font-weight: 500;
+        text-transform: uppercase;
+        letter-spacing: 0.05em;
+    }
+
+    .form-input {
+        background: var(--bg-darker);
+        border: 1px solid var(--border-color);
+        border-radius: 0.75rem;
+        padding: 1rem 1.25rem;
+        color: var(--text-bright);
+        font-size: 1rem;
+        line-height: 1.5;
+        transition: all 0.2s ease;
+    }
+
+    .form-input:hover {
+        border-color: var(--border-hover);
+    }
+
+    .form-input:focus {
+        border-color: var(--primary-color);
+        outline: none;
+        box-shadow: 0 0 0 3px var(--primary-color-alpha);
+    }
+
+    .form-input::placeholder {
+        color: var(--text-muted);
+    }
+
+    .api-response-section {
+        margin-top: 2rem;
+    }
+
+    .api-response-title {
+        font-size: 1rem;
+        font-weight: 600;
+        color: var(--text-bright);
+        margin-bottom: 1rem;
+    }
+
+    .api-response-container {
+        background: var(--bg-darker);
+        border-radius: 0.75rem;
+        padding: 1rem;
+        min-height: 100px;
+    }
+
+    @media (min-width: var(--breakpoint-md)) {
+        .newsletter-form {
+            gap: 2rem;
+        }
+
+        .form-group {
+            gap: 0.75rem;
+        }
+
+        .api-response-title {
+            font-size: 1.125rem;
+            margin-bottom: 1.25rem;
+        }
+
+        .api-response-container {
+            padding: 1.5rem;
+        }
+    }
+} 
