@@ -42,17 +42,36 @@ function logViewportDetails() {
     // Check hero actions
     const heroActions = document.querySelector('.hero-actions');
     if (heroActions) {
-        const actionStyle = getComputedStyle(heroActions);
-        console.log('Hero Actions:', {
-            'display': actionStyle.display,
-            'flex-direction': actionStyle.flexDirection,
-            'gap': actionStyle.gap,
-            'width': heroActions.offsetWidth,
-            'padding': actionStyle.padding,
-            'margin': actionStyle.margin,
-            'justify-content': actionStyle.justifyContent,
-            'align-items': actionStyle.alignItems
+        const computedStyle = window.getComputedStyle(heroActions);
+        console.log('Hero Actions Computed:', {
+            display: computedStyle.display,
+            flexDirection: computedStyle.flexDirection,
+            gap: computedStyle.gap,
+            width: heroActions.offsetWidth,
+            padding: computedStyle.padding,
+            margin: computedStyle.margin,
+            justifyContent: computedStyle.justifyContent,
+            alignItems: computedStyle.alignItems
         });
+
+        // Get all stylesheets affecting hero-actions
+        const sheets = document.styleSheets;
+        console.log('Stylesheets affecting hero-actions:');
+        for (let sheet of sheets) {
+            try {
+                const rules = sheet.cssRules || sheet.rules;
+                for (let rule of rules) {
+                    if (rule.selectorText && rule.selectorText.includes('hero-actions')) {
+                        console.log('Rule from:', sheet.href || 'inline', {
+                            selector: rule.selectorText,
+                            styles: rule.style.cssText
+                        });
+                    }
+                }
+            } catch (e) {
+                console.log('Could not read stylesheet:', sheet.href);
+            }
+        }
 
         // Log individual button widths
         const buttons = heroActions.querySelectorAll('.btn');
