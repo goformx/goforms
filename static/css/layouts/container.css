@@ -4,8 +4,8 @@
         width: 100%;
         max-width: var(--container-max-width);
         margin: var(--container-margin);
-        padding-left: var(--container-padding-x);
-        padding-right: var(--container-padding-x);
+        padding-left: var(--container-padding-x-mobile);
+        padding-right: var(--container-padding-x-mobile);
         box-sizing: border-box;
     }
 
@@ -28,8 +28,8 @@
 
     /* Container padding variants */
     .container-tight {
-        padding-left: calc(var(--container-padding-x) / 2);
-        padding-right: calc(var(--container-padding-x) / 2);
+        padding-left: calc(var(--container-padding-x-mobile) / 2);
+        padding-right: calc(var(--container-padding-x-mobile) / 2);
     }
 
     .container-flush {
@@ -37,16 +37,16 @@
         padding-right: 0;
     }
 
-    /* Responsive adjustments */
-    @media (max-width: var(--breakpoint-md)) {
+    /* Desktop styles */
+    @media (min-width: var(--breakpoint-md)) {
         .container {
-            padding-left: var(--container-padding-x-mobile);
-            padding-right: var(--container-padding-x-mobile);
+            padding-left: var(--container-padding-x);
+            padding-right: var(--container-padding-x);
         }
 
         .container-tight {
-            padding-left: calc(var(--container-padding-x-mobile) / 2);
-            padding-right: calc(var(--container-padding-x-mobile) / 2);
+            padding-left: calc(var(--container-padding-x) / 2);
+            padding-right: calc(var(--container-padding-x) / 2);
         }
     }
 

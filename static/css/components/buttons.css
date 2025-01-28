@@ -1,45 +1,114 @@
 @layer components {
-    .button {
+    .btn {
         display: inline-flex;
         align-items: center;
-        padding: var(--button-padding-y) var(--button-padding-x);
-        border-radius: var(--button-radius);
-        font-weight: var(--button-font-weight);
-        font-size: var(--button-font-size);
+        justify-content: center;
+        padding: var(--btn-padding-mobile);
+        font-size: var(--btn-font-size-mobile);
+        font-weight: var(--btn-font-weight);
+        line-height: var(--btn-line-height);
+        text-align: center;
         text-decoration: none;
-        transition: var(--button-transition);
+        border-radius: var(--btn-border-radius);
+        border: var(--btn-border);
+        cursor: pointer;
+        transition: all 0.2s;
+        min-width: var(--btn-min-width-mobile);
     }
 
-    .button.primary {
-        background: var(--button-primary-gradient);
-        color: var(--button-primary-color);
-        box-shadow: var(--button-primary-shadow);
+    /* Button variants */
+    .btn-primary {
+        background: var(--btn-primary-bg);
+        color: var(--btn-primary-color);
     }
 
-    .button.primary:hover {
-        transform: var(--button-transform-hover);
-        box-shadow: var(--button-primary-shadow-hover);
+    .btn-primary:hover {
+        background: var(--btn-primary-hover-bg);
     }
 
-    .button:not(.primary) {
-        background: var(--button-secondary-bg);
-        color: var(--button-secondary-color);
-        border: var(--button-secondary-border);
-        backdrop-filter: blur(var(--button-secondary-blur));
+    .btn-secondary {
+        background: var(--btn-secondary-bg);
+        color: var(--btn-secondary-color);
     }
 
-    .button:not(.primary):hover {
-        background: var(--button-secondary-bg-hover);
-        border-color: var(--primary);
-        color: var(--button-secondary-color-hover);
-        transform: var(--button-transform-hover);
+    .btn-secondary:hover {
+        background: var(--btn-secondary-hover-bg);
     }
 
-    /* Responsive styles */
-    @media (max-width: var(--breakpoint-md)) {
-        .button {
-            width: 100%;
-            justify-content: center;
+    .btn-outline {
+        background: transparent;
+        border: var(--btn-outline-border);
+        color: var(--btn-outline-color);
+    }
+
+    .btn-outline:hover {
+        background: var(--btn-outline-hover-bg);
+        color: var(--btn-outline-hover-color);
+    }
+
+    /* Button sizes */
+    .btn-sm {
+        padding: var(--btn-padding-sm-mobile);
+        font-size: var(--btn-font-size-sm-mobile);
+        min-width: var(--btn-min-width-sm-mobile);
+    }
+
+    .btn-lg {
+        padding: var(--btn-padding-lg-mobile);
+        font-size: var(--btn-font-size-lg-mobile);
+        min-width: var(--btn-min-width-lg-mobile);
+    }
+
+    /* Button states */
+    .btn:disabled,
+    .btn.disabled {
+        opacity: var(--btn-disabled-opacity);
+        cursor: not-allowed;
+    }
+
+    .btn-loading {
+        position: relative;
+        color: transparent;
+    }
+
+    .btn-loading::after {
+        content: "";
+        position: absolute;
+        width: var(--btn-loading-size-mobile);
+        height: var(--btn-loading-size-mobile);
+        border: var(--btn-loading-border);
+        border-radius: 50%;
+        animation: btn-loading 0.6s linear infinite;
+    }
+
+    /* Desktop styles */
+    @media (min-width: var(--breakpoint-md)) {
+        .btn {
+            padding: var(--btn-padding);
+            font-size: var(--btn-font-size);
+            min-width: var(--btn-min-width);
         }
+
+        .btn-sm {
+            padding: var(--btn-padding-sm);
+            font-size: var(--btn-font-size-sm);
+            min-width: var(--btn-min-width-sm);
+        }
+
+        .btn-lg {
+            padding: var(--btn-padding-lg);
+            font-size: var(--btn-font-size-lg);
+            min-width: var(--btn-min-width-lg);
+        }
+
+        .btn-loading::after {
+            width: var(--btn-loading-size);
+            height: var(--btn-loading-size);
+        }
+    }
+
+    @keyframes btn-loading {
+        0% { transform: rotate(0deg); }
+        100% { transform: rotate(360deg); }
     }
 } 

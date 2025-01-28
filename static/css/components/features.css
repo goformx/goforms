@@ -6,7 +6,7 @@
 
     .features .container {
         display: grid;
-        grid-template-columns: var(--grid-columns-mobile);
+        grid-template-columns: 1fr;  /* Mobile: single column */
         gap: var(--grid-gap);
         padding: 0 var(--container-padding-x-mobile);
     }
@@ -37,15 +37,18 @@
         line-height: var(--feature-card-text-line-height);
     }
 
-    /* Desktop styles */
+    /* Tablet and up */
+    @media (min-width: var(--breakpoint-sm)) {
+        .features .container {
+            grid-template-columns: repeat(3, 1fr);  /* Desktop: three equal columns */
+            padding: 0 var(--container-padding-x);
+        }
+    }
+
+    /* Desktop and up */
     @media (min-width: var(--breakpoint-md)) {
         .features {
             padding: var(--features-padding-y) 0;
-        }
-
-        .features .container {
-            grid-template-columns: var(--grid-columns-3);
-            padding: 0 var(--container-padding-x);
         }
     }
 } 
