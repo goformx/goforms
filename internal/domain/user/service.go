@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/golang-jwt/jwt/v5"
-
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
@@ -68,10 +67,10 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	existingUser, err := s.store.GetByEmail(signup.Email)
 	if err != nil {
 		s.logger.Error("failed to check existing user", logging.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 	if existingUser != nil {
-		return nil, ErrEmailAlreadyExists
+		return nil, fmt.Errorf("failed to create user: %w", ErrEmailAlreadyExists)
 	}
 
 	// Create new user
@@ -86,13 +85,14 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	// Set password
 	if err := user.SetPassword(signup.Password); err != nil {
 		s.logger.Error("failed to set password", logging.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	// Save user
-	if err := s.store.Create(user); err != nil {
+	err = s.store.Create(user)
+	if err != nil {
 		s.logger.Error("failed to create user", logging.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	return user, nil
@@ -103,20 +103,16 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, erro
 	user, err := s.store.GetByEmail(login.Email)
 	if err != nil {
 		s.logger.Error("failed to get user by email", logging.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to login: %w", err)
 	}
-	if user == nil {
-		return nil, ErrInvalidCredentials
-	}
-
-	if !user.CheckPassword(login.Password) {
-		return nil, ErrInvalidCredentials
+	if user == nil || !user.CheckPassword(login.Password) {
+		return nil, fmt.Errorf("failed to login: %w", ErrInvalidCredentials)
 	}
 
 	tokens, err := s.generateTokenPair(user)
 	if err != nil {
 		s.logger.Error("failed to generate token pair", logging.Error(err))
-		return nil, err
+		return nil, fmt.Errorf("failed to login: %w", err)
 	}
 
 	return tokens, nil
@@ -124,13 +120,13 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, erro
 
 // Logout blacklists the provided token
 func (s *ServiceImpl) Logout(ctx context.Context, token string) error {
-	// Validate token before blacklisting
-	if _, err := s.ValidateToken(token); err != nil {
-		return ErrInvalidToken
+	_, err := s.ValidateToken(token)
+	if err != nil {
+		s.logger.Error("failed to validate token", logging.Error(err))
+		return fmt.Errorf("failed to logout: %w", ErrInvalidToken)
 	}
 
-	// Add token to blacklist with expiry time from token claims
-	s.tokenBlacklist.Store(token, time.Now())
+	s.tokenBlacklist.Store(token, true)
 	return nil
 }
 
@@ -139,35 +135,35 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*T
 	// Validate refresh token
 	token, err := s.ValidateToken(refreshToken)
 	if err != nil {
-		return nil, ErrInvalidToken
+		return nil, fmt.Errorf("failed to refresh token: %w", ErrInvalidToken)
 	}
 
 	// Check if token is blacklisted
 	if s.IsTokenBlacklisted(refreshToken) {
-		return nil, ErrTokenBlacklisted
+		return nil, fmt.Errorf("failed to refresh token: %w", ErrTokenBlacklisted)
 	}
 
 	// Extract claims
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, ErrInvalidToken
+		return nil, fmt.Errorf("failed to refresh token: %w", ErrInvalidToken)
 	}
 
 	// Get user from claims
 	userID := uint(claims["user_id"].(float64))
 	user, err := s.GetUserByID(ctx, userID)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to refresh token: %w", err)
 	}
 
 	// Generate new token pair
 	tokenPair, err := s.generateTokenPair(user)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to refresh token: %w", err)
 	}
 
 	// Blacklist the old refresh token
-	s.tokenBlacklist.Store(refreshToken, time.Now())
+	s.tokenBlacklist.Store(refreshToken, true)
 
 	return tokenPair, nil
 }
@@ -182,11 +178,11 @@ func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
 	})
 
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to validate token: %w", err)
 	}
 
 	if !token.Valid {
-		return nil, ErrInvalidToken
+		return nil, fmt.Errorf("failed to validate token: %w", ErrInvalidToken)
 	}
 
 	return token, nil
@@ -219,12 +215,12 @@ func (s *ServiceImpl) generateTokenPair(user *User) (*TokenPair, error) {
 	// Sign tokens
 	accessTokenString, err := accessToken.SignedString(s.jwtSecret)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
 	refreshTokenString, err := refreshToken.SignedString(s.jwtSecret)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to generate token pair: %w", err)
 	}
 
 	return &TokenPair{
