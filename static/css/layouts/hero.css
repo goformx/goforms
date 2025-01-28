@@ -10,6 +10,7 @@
         align-items: center;
         justify-content: center;
         overflow: hidden;
+        margin-bottom: var(--section-spacing-mobile);
     }
 
     .hero::before {
@@ -71,6 +72,7 @@
     @media (min-width: var(--breakpoint-md)) {
         .hero {
             padding: var(--hero-padding-y) 0;
+            margin-bottom: var(--section-spacing);
         }
 
         .hero-title {

@@ -11,6 +11,10 @@
         --text-primary: var(--text);
         --border-color: #e5e7eb;
 
+        /* Spacing */
+        --section-spacing: 4rem;
+        --section-spacing-mobile: 3rem;
+
         /* Container */
         --container-max-width: 1200px;
         --container-padding-x: 2rem;
