@@ -16,6 +16,7 @@
 @import url('components/buttons.css') layer(components);
 @import url('components/grid-items.css') layer(components);
 @import url('components/forms.css') layer(components);
+@import url('components/auth.css') layer(components);
 @import url('components/messages.css') layer(components);
 @import url('components/api_response.css') layer(components);
 @import url('components/demo_form.css') layer(components);

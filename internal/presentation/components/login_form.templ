@@ -1,0 +1,29 @@
+package components
+
+templ LoginForm() {
+    <section class="auth-section">
+        <form class="auth-form" action="/api/v1/auth/login" method="POST" id="loginForm">
+            <div class="form-group">
+                <label for="email" class="form-label">
+                    Email address
+                </label>
+                <input id="email" name="email" type="email" autocomplete="email" required class="form-input"/>
+            </div>
+
+            <div class="form-group">
+                <label for="password" class="form-label">
+                    Password
+                </label>
+                <input id="password" name="password" type="password" required class="form-input"/>
+            </div>
+
+            <button type="submit" class="btn btn-primary">
+                Sign in
+            </button>
+
+            <div class="auth-alt-action">
+                <p>Don't have an account? <a href="/signup">Sign up</a></p>
+            </div>
+        </form>
+    </section>
+} 
