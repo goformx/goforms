@@ -1,0 +1,15 @@
+package components
+
+// HomeHero for homepage with full height and actions
+templ HomeHero(title string, subtitle string) {
+    <section class="hero hero-home">
+        <div class="container">
+            <h1 class="hero-title">{ title }</h1>
+            <p class="hero-subtitle">{ subtitle }</p>
+            <div class="hero-actions">
+                <a href="/newsletter" class="btn btn-primary">Try Demo</a>
+                <a href="https://github.com/jonesrussell/goforms" class="btn btn-outline">View on GitHub</a>
+            </div>
+        </div>
+    </section>
+} 

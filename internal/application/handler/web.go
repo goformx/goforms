@@ -8,6 +8,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
@@ -56,6 +57,14 @@ func WithRenderer(renderer *view.Renderer) WebHandlerOption {
 	}
 }
 
+// WithWebDebug sets the debug flag for the web handler.
+// When enabled, additional debug features like client-side debugging will be enabled.
+func WithWebDebug(debug bool) WebHandlerOption {
+	return func(h *WebHandler) {
+		h.Debug = debug
+	}
+}
+
 // WebHandler handles web page requests.
 // It requires a renderer, contact service, and subscription service to function properly.
 // Use the functional options pattern to configure these dependencies.
@@ -69,6 +78,7 @@ type WebHandler struct {
 	contactService      contact.Service
 	subscriptionService subscription.Service
 	renderer            *view.Renderer
+	Debug               bool
 }
 
 // NewWebHandler creates a new web handler.
@@ -159,7 +169,14 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	if err := h.renderer.Render(c, pages.Home()); err != nil {
+
+	data := layouts.PageData{
+		Title: "Home",
+		Debug: h.Debug,
+	}
+	data.Content = pages.HomeContent()
+
+	if err := h.renderer.Render(c, pages.Home(data)); err != nil {
 		h.Logger.Error("failed to render home page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
@@ -175,7 +192,14 @@ func (h *WebHandler) handleNewsletter(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	if err := h.renderer.Render(c, pages.Newsletter()); err != nil {
+
+	data := layouts.PageData{
+		Title: "Newsletter Demo",
+		Debug: h.Debug,
+	}
+	data.Content = pages.NewsletterContent()
+
+	if err := h.renderer.Render(c, pages.Newsletter(data)); err != nil {
 		h.Logger.Error("failed to render newsletter page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
@@ -191,7 +215,14 @@ func (h *WebHandler) handleSignup(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	if err := h.renderer.Render(c, pages.Signup()); err != nil {
+
+	data := layouts.PageData{
+		Title: "Sign Up",
+		Debug: h.Debug,
+	}
+	data.Content = pages.SignupContent()
+
+	if err := h.renderer.Render(c, pages.Signup(data)); err != nil {
 		h.Logger.Error("failed to render signup page",
 			logging.String("path", c.Path()),
 			logging.Error(err),
@@ -207,7 +238,14 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 		logging.String("path", c.Path()),
 		logging.String("method", c.Request().Method),
 	)
-	if err := h.renderer.Render(c, pages.Login()); err != nil {
+
+	data := layouts.PageData{
+		Title: "Sign In",
+		Debug: h.Debug,
+	}
+	data.Content = pages.LoginContent()
+
+	if err := h.renderer.Render(c, pages.Login(data)); err != nil {
 		h.Logger.Error("failed to render login page",
 			logging.String("path", c.Path()),
 			logging.Error(err),

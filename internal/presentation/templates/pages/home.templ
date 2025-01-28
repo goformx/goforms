@@ -5,16 +5,13 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
-templ Home() {
-	@layouts.Layout(layouts.PageData{
-		Title: "Home",
-		Content: homeContent(),
-	})
+templ Home(data layouts.PageData) {
+	@layouts.Layout(data)
 }
 
-templ homeContent() {
+templ HomeContent() {
 	<section class="hero-section">
-		@components.Hero("Free Form Backend Service", "Use our free hosted service or deploy your own. No dependencies, just Go.", false)
+		@components.HomeHero("Free Form Backend Service", "Use our free hosted service or deploy your own. No dependencies, just Go.")
 	</section>
 
 	<section class="features-section">

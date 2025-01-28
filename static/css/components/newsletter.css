@@ -13,7 +13,7 @@
 
     .newsletter-grid {
         display: grid;
-        grid-template-columns: var(--grid-columns-mobile);
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: var(--grid-gap);
     }
 
@@ -214,7 +214,6 @@
         }
 
         .newsletter-grid {
-            grid-template-columns: var(--grid-columns-2);
             gap: var(--grid-gap-lg);
         }
 

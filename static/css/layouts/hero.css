@@ -1,10 +1,11 @@
 @layer layouts {
+    /* Base hero styles (mobile-first) */
     .hero {
-        padding: var(--hero-padding-y) 0;
+        padding: var(--hero-padding-y-mobile) 0;
         background: var(--hero-bg-gradient);
         text-align: center;
         position: relative;
-        min-height: var(--hero-min-height);
+        min-height: auto;
         display: flex;
         align-items: center;
         justify-content: center;
@@ -31,30 +32,62 @@
     }
 
     .hero-title {
-        font-size: var(--hero-title-size);
+        font-size: var(--hero-title-size-mobile);
         line-height: 1.1;
         font-weight: var(--hero-title-weight);
         background: var(--hero-title-gradient);
         -webkit-background-clip: text;
         background-clip: text;
         -webkit-text-fill-color: transparent;
-        margin-bottom: var(--hero-title-margin);
+        margin-bottom: var(--hero-title-margin-mobile);
         letter-spacing: var(--hero-title-spacing);
     }
 
     .hero-subtitle {
-        font-size: var(--hero-subtitle-size);
+        font-size: var(--hero-subtitle-size-mobile);
         color: var(--text-light);
         max-width: var(--hero-subtitle-width);
-        margin: 0 auto var(--hero-subtitle-margin);
+        margin: 0 auto var(--hero-subtitle-margin-mobile);
         line-height: 1.5;
+        padding: 0 var(--container-padding-x-mobile);
     }
 
     .hero-actions {
         display: flex;
-        gap: var(--hero-actions-gap);
+        flex-direction: column;
+        gap: var(--hero-actions-gap-mobile);
         justify-content: center;
+        padding: 0 var(--container-padding-x-mobile);
         animation: fadeIn var(--animation-timing-fade) var(--animation-easing) var(--animation-delay-fade) backwards;
+    }
+
+    /* Desktop styles */
+    @media (min-width: var(--breakpoint-md)) {
+        .hero {
+            padding: var(--hero-padding-y) 0;
+        }
+
+        .hero-title {
+            font-size: var(--hero-title-size);
+            margin-bottom: var(--hero-title-margin);
+        }
+
+        .hero-subtitle {
+            font-size: var(--hero-subtitle-size);
+            margin-bottom: var(--hero-subtitle-margin);
+            padding: 0;
+        }
+
+        .hero-actions {
+            flex-direction: row;
+            gap: var(--hero-actions-gap);
+            padding: 0;
+        }
+
+        /* Homepage hero specific */
+        .hero-home {
+            min-height: var(--hero-min-height);
+        }
     }
 
     /* Compact hero variant */
@@ -71,30 +104,5 @@
     .hero-compact .hero-subtitle {
         font-size: var(--hero-compact-subtitle-size);
         margin-bottom: var(--hero-subtitle-margin-mobile);
-    }
-
-    /* Responsive styles */
-    @media (max-width: 768px) {
-        .hero {
-            padding: var(--hero-padding-y-mobile) 0;
-            min-height: auto;
-        }
-
-        .hero-title {
-            font-size: var(--hero-title-size-mobile);
-            margin-bottom: var(--hero-title-margin-mobile);
-        }
-
-        .hero-subtitle {
-            font-size: var(--hero-subtitle-size-mobile);
-            margin-bottom: var(--hero-subtitle-margin-mobile);
-            padding: 0 var(--container-padding-x-mobile);
-        }
-
-        .hero-actions {
-            flex-direction: column;
-            gap: var(--hero-actions-gap-mobile);
-            padding: 0 var(--container-padding-x-mobile);
-        }
     }
 } 

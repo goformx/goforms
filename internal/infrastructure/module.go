@@ -48,6 +48,7 @@ type HandlerParams struct {
 	ContactService      contact.Service
 	SubscriptionService subscription.Service
 	UserService         user.Service
+	Config              *config.Config
 }
 
 // Stores groups all database store providers.
@@ -109,11 +110,12 @@ var Module = fx.Options(
 
 		// Handlers - Each handler must be registered here with its required dependencies
 		// WebHandler - Requires logger, renderer, contact service, and subscription service
-		AsHandler(func(logger logging.Logger, renderer *view.Renderer, contactService contact.Service, subscriptionService subscription.Service) *handler.WebHandler {
+		AsHandler(func(logger logging.Logger, renderer *view.Renderer, contactService contact.Service, subscriptionService subscription.Service, cfg *config.Config) *handler.WebHandler {
 			return handler.NewWebHandler(logger,
 				handler.WithRenderer(renderer),
 				handler.WithContactService(contactService),
 				handler.WithWebSubscriptionService(subscriptionService),
+				handler.WithWebDebug(cfg.App.Debug),
 			)
 		}),
 		// AuthHandler - Requires logger and user service
@@ -202,6 +204,7 @@ func NewHandlers(p HandlerParams) []handler.Handler {
 		handler.WithRenderer(p.Renderer),
 		handler.WithContactService(p.ContactService),
 		handler.WithWebSubscriptionService(p.SubscriptionService),
+		handler.WithWebDebug(p.Config.App.Debug),
 	)
 	p.Logger.Debug("web handler created", logging.Bool("handler_available", webHandler != nil))
 

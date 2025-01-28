@@ -1,4 +1,5 @@
 @layer components {
+    /* Mobile first - base styles */
     .features {
         padding: var(--features-padding-y-mobile) 0;
         background: var(--background);
@@ -6,15 +7,19 @@
 
     .features .container {
         display: grid;
-        grid-template-columns: 1fr;  /* Mobile: single column */
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
         gap: var(--grid-gap);
         padding: 0 var(--container-padding-x-mobile);
+        width: 100%;
+        max-width: var(--container-max-width);
+        margin: 0 auto;
     }
 
     .feature-card {
         background: var(--feature-card-bg);
         padding: var(--feature-card-padding);
         border-radius: var(--border-radius);
+        width: 100%;
     }
 
     .feature-card h3 {
@@ -37,18 +42,22 @@
         line-height: var(--feature-card-text-line-height);
     }
 
-    /* Tablet and up */
-    @media (min-width: var(--breakpoint-sm)) {
+    /* Tablet (md) and up */
+    @media (min-width: var(--breakpoint-md)) {
+        .features {
+            padding: var(--features-padding-y) 0;
+        }
+
         .features .container {
-            grid-template-columns: repeat(3, 1fr);  /* Desktop: three equal columns */
             padding: 0 var(--container-padding-x);
         }
     }
 
-    /* Desktop and up */
-    @media (min-width: var(--breakpoint-md)) {
-        .features {
-            padding: var(--features-padding-y) 0;
+    /* Desktop (lg) and up */
+    @media (min-width: var(--breakpoint-lg)) {
+        .features .container {
+            display: grid;
+            grid-template-columns: repeat(3, calc((100% - (2 * var(--grid-gap))) / 3)); /* Three equal columns */
         }
     }
 } 

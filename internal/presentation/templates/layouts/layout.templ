@@ -11,6 +11,7 @@ type PageData struct {
 	Content t.Component
 	Styles  []string
 	User    *user.User
+	Debug   bool
 }
 
 templ Layout(data PageData) {
@@ -40,7 +41,9 @@ templ Layout(data PageData) {
 		@components.Footer()
 		
 		<!-- JavaScript Files -->
-		<script src="/static/js/main.js"></script>
+		if data.Debug {
+			<script src="/static/js/debug.js"></script>
+		}
 	</body>
 	</html>
 }

@@ -64,7 +64,7 @@
 
     .contact-grid {
         display: grid;
-        grid-template-columns: var(--grid-columns-mobile);
+        grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
         gap: var(--grid-gap);
         margin: 2rem 0;
     }
@@ -76,7 +76,7 @@
         }
 
         .contact-grid {
-            grid-template-columns: var(--grid-columns-2);
+            gap: var(--grid-gap-lg);
         }
     }
 } 

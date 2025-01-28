@@ -2,22 +2,15 @@ package pages
 
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
-templ Newsletter() {
-	@layouts.Layout(layouts.PageData{
-		Title: "Newsletter Demo - Goforms",
-		Content: newsletterContent(),
-	})
+templ Newsletter(data layouts.PageData) {
+	@layouts.Layout(data)
 }
 
-templ newsletterContent() {
-	<section class="hero hero-compact">
-		<div class="container">
-			<h1 class="hero-title">Form Backend Demo</h1>
-			<p class="hero-subtitle">See how easy it is to add Goforms to your website. No backend code required!</p>
-		</div>
-	</section>
+templ NewsletterContent() {
+	@components.PageHero("Form Backend Demo", "See how easy it is to add Goforms to your website. No backend code required!")
 
 	<div class="newsletter-layout">
 		<div class="container">
@@ -37,7 +30,7 @@ templ newsletterContent() {
 								<label for="email" class="form-label">Email</label>
 								<input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
 							</div>
-							<button type="submit" class="button primary">Join Our Newsletter</button>
+							<button type="submit" class="btn btn-primary">Join Our Newsletter</button>
 						</form>
 					</div>
 					<div class="code-example">

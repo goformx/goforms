@@ -5,15 +5,12 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
-templ Login() {
-	@layouts.Layout(layouts.PageData{
-		Title: "Sign In",
-		Content: loginContent(),
-	})
+templ Login(data layouts.PageData) {
+	@layouts.Layout(data)
 }
 
-templ loginContent() {
-	@components.Hero("Sign in to your account", "Welcome back to Goforms.", true)
+templ LoginContent() {
+	@components.PageHero("Sign in to your account", "Welcome back to Goforms.")
 
 	<section class="auth-section">
 		<div class="auth-layout">
@@ -28,7 +25,7 @@ templ loginContent() {
 							<label for="password" class="form-label">Password</label>
 							<input type="password" id="password" name="password" class="form-input" required/>
 						</div>
-						<button type="submit" class="button primary">Sign in</button>
+						<button type="submit" class="btn btn-primary">Sign in</button>
 					</form>
 					<div class="auth-alt-action">
 						<p>Don't have an account? <a href="/signup">Sign up</a></p>
