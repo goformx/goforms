@@ -175,4 +175,89 @@ function logViewportDetails() {
 
 // Log on load and resize
 window.addEventListener('load', logViewportDetails);
-window.addEventListener('resize', logViewportDetails); 
+window.addEventListener('resize', logViewportDetails);
+
+// Debug information for layout and styling
+document.addEventListener('DOMContentLoaded', () => {
+    // Viewport size
+    console.log('Viewport size:', `${window.innerWidth}px × ${window.innerHeight}px`);
+
+    // CSS Breakpoints
+    const breakpoints = {
+        '--breakpoint-xs': getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-xs'),
+        '--breakpoint-sm': getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-sm'),
+        '--breakpoint-md': getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-md'),
+        '--breakpoint-lg': getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-lg'),
+        '--breakpoint-xl': getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-xl'),
+        '--breakpoint-2xl': getComputedStyle(document.documentElement).getPropertyValue('--breakpoint-2xl')
+    };
+    console.log('CSS Breakpoints:', breakpoints);
+
+    // Media Query States
+    const mediaStates = {
+        'above-xs': window.matchMedia(`(min-width: ${breakpoints['--breakpoint-xs']})`).matches,
+        'above-sm': window.matchMedia(`(min-width: ${breakpoints['--breakpoint-sm']})`).matches,
+        'above-md': window.matchMedia(`(min-width: ${breakpoints['--breakpoint-md']})`).matches,
+        'above-lg': window.matchMedia(`(min-width: ${breakpoints['--breakpoint-lg']})`).matches,
+        'above-xl': window.matchMedia(`(min-width: ${breakpoints['--breakpoint-xl']})`).matches,
+        'above-2xl': window.matchMedia(`(min-width: ${breakpoints['--breakpoint-2xl']})`).matches
+    };
+    console.log('Media Query States:', mediaStates);
+
+    // Grid Container
+    const gridContainer = document.querySelector('.grid-container');
+    if (gridContainer) {
+        const gridStyles = getComputedStyle(gridContainer);
+        console.log('Grid Container:', {
+            display: gridStyles.display,
+            'grid-template-columns': gridStyles.gridTemplateColumns,
+            gap: gridStyles.gap,
+            width: gridContainer.offsetWidth,
+            'computed-width': gridStyles.width,
+            'max-width': gridStyles.maxWidth,
+            margin: gridStyles.margin,
+            padding: gridStyles.padding,
+            'box-sizing': gridStyles.boxSizing
+        });
+
+        // Grid Items
+        const gridItems = gridContainer.querySelectorAll('.grid-item');
+        console.log('Grid Items:', {
+            count: gridItems.length,
+            widths: Array.from(gridItems).map(item => item.offsetWidth),
+            heights: Array.from(gridItems).map(item => item.offsetHeight),
+            classes: Array.from(gridItems).map(item => Array.from(item.classList).filter(c => c !== 'grid-item')),
+            'min-widths': Array.from(gridItems).map(item => getComputedStyle(item).minWidth),
+            'box-sizing': Array.from(gridItems).map(item => getComputedStyle(item).boxSizing)
+        });
+
+        // Grid Layout
+        console.log('Grid Layout:', {
+            columns: gridStyles.gridTemplateColumns.split(' ').length,
+            'column-widths': gridStyles.gridTemplateColumns.split(' '),
+            'row-heights': gridStyles.gridTemplateRows.split(' '),
+            'auto-rows': gridStyles.gridAutoRows,
+            'auto-columns': gridStyles.gridAutoColumns,
+            'grid-areas': gridStyles.gridTemplateAreas
+        });
+
+        // Grid Overflow
+        console.log('Grid Overflow:', {
+            horizontal: gridContainer.scrollWidth > gridContainer.clientWidth,
+            vertical: gridContainer.scrollHeight > gridContainer.clientHeight,
+            scrollWidth: gridContainer.scrollWidth,
+            clientWidth: gridContainer.clientWidth,
+            scrollHeight: gridContainer.scrollHeight,
+            clientHeight: gridContainer.clientHeight,
+            'overflow-x': gridStyles.overflowX,
+            'overflow-y': gridStyles.overflowY
+        });
+
+        // Grid Transitions
+        console.log('Grid Transitions:', {
+            transition: gridStyles.transition,
+            animation: gridStyles.animation,
+            transform: gridStyles.transform
+        });
+    }
+}); 

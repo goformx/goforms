@@ -5,6 +5,10 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
+type NewsletterSection struct {
+	Content templ.Component
+}
+
 templ Newsletter(data layouts.PageData) {
 	@layouts.Layout(layouts.PageData{
 		Title: data.Title,
@@ -15,48 +19,62 @@ templ Newsletter(data layouts.PageData) {
 	})
 }
 
-templ NewsletterContent() {
-	@components.PageHero("Form Backend Demo", "See how easy it is to add Goforms to your website. No backend code required!")
+templ DemoSection() {
+	<section class="newsletter-demo" aria-labelledby="demo-title">
+		<div class="demo-site-header">
+			<h2 id="demo-title">coolstartup.io</h2>
+			<p class="demo-description">This simulates a form on your website. The form submits to Goforms' backend.</p>
+		</div>
+		<form id="newsletter-form" class="newsletter-form" action="https://api.goforms.io/v1/forms/demo/submit">
+			<div class="form-group">
+				<label for="name" class="form-label">Name</label>
+				<input type="text" id="name" name="name" class="form-input" required placeholder="Enter your name"/>
+			</div>
+			<div class="form-group">
+				<label for="email" class="form-label">Email</label>
+				<input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
+			</div>
+			<button type="submit" class="btn btn-primary">Join Our Newsletter</button>
+		</form>
+	</section>
+}
 
-	<div class="newsletter-layout">
-		<div class="container">
-			<div class="newsletter-grid">
-				<section class="newsletter-demo" aria-labelledby="demo-title">
-					<div class="demo-site-header">
-						<h2 id="demo-title">coolstartup.io</h2>
-						<p class="demo-description">This simulates a form on your website. The form submits to Goforms' backend.</p>
-					</div>
-					<form id="newsletter-form" class="newsletter-form" action="https://api.goforms.io/v1/forms/demo/submit">
-						<div class="form-group">
-							<label for="name" class="form-label">Name</label>
-							<input type="text" id="name" name="name" class="form-input" required placeholder="Enter your name"/>
-						</div>
-						<div class="form-group">
-							<label for="email" class="form-label">Email</label>
-							<input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
-						</div>
-						<button type="submit" class="btn btn-primary">Join Our Newsletter</button>
-					</form>
-				</section>
-
-				<section class="newsletter-code" aria-labelledby="code-title">
-					<h3 id="code-title">Integration Code</h3>
-					@components.CodeBlock(`<form action="https://api.goforms.io/v1/forms/demo/submit" method="POST">
+templ CodeSection() {
+	<section class="newsletter-code" aria-labelledby="code-title">
+		<h3 id="code-title">Integration Code</h3>
+		@components.CodeBlock(`<form action="https://api.goforms.io/v1/forms/demo/submit" method="POST">
   <input type="text" name="name" required>
   <input type="email" name="email" required>
   <button type="submit">Submit</button>
 </form>`)
-				</section>
+	</section>
+}
 
-				<section class="newsletter-submissions" aria-labelledby="submissions-title">
-					<h2 id="submissions-title" class="section-title">Form Submissions</h2>
-					<p class="section-description">All form submissions are instantly available in your dashboard.</p>
-					<div id="messages-list" class="messages-list">
-						<!-- Messages will be loaded here -->
-					</div>
-				</section>
-			</div>
+templ SubmissionsSection() {
+	<section class="newsletter-submissions" aria-labelledby="submissions-title">
+		<h2 id="submissions-title" class="section-title">Form Submissions</h2>
+		<p class="section-description">All form submissions are instantly available in your dashboard.</p>
+		<div id="messages-list" class="messages-list">
+			<!-- Messages will be loaded here -->
 		</div>
+	</section>
+}
+
+templ NewsletterContent() {
+	@components.PageHero("Form Backend Demo", "See how easy it is to add Goforms to your website. No backend code required!")
+
+	<div class="newsletter-layout">
+		@components.Grid(components.GridProps{
+			Columns: 3,
+			Items: []components.GridItem{
+				NewsletterSection{Content: DemoSection()},
+				NewsletterSection{Content: CodeSection()},
+				NewsletterSection{Content: SubmissionsSection()},
+			},
+			Render: func(item components.GridItem) templ.Component {
+				return item.(NewsletterSection).Content
+			},
+		})
 	</div>
 	<script src="/static/js/newsletter.js"></script>
 } 

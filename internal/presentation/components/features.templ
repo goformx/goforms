@@ -6,15 +6,29 @@ type Feature struct {
     Description string
 }
 
+templ FeatureCard(feature Feature) {
+    <div class="feature-card">
+        <h3><span>{ feature.Icon }</span>{ feature.Title }</h3>
+        <p>{ feature.Description }</p>
+    </div>
+}
+
 templ Features(features []Feature) {
     <section class="features">
-        <div class="container">
-            for _, feature := range features {
-                <div class="feature-card">
-                    <h3><span>{ feature.Icon }</span>{ feature.Title }</h3>
-                    <p>{ feature.Description }</p>
-                </div>
-            }
-        </div>
+        @Grid(GridProps{
+            Columns: 0, // Use auto-fit
+            Items: toGridItems(features),
+            Render: func(item GridItem) templ.Component {
+                return FeatureCard(item.(Feature))
+            },
+        })
     </section>
+}
+
+func toGridItems(features []Feature) []GridItem {
+    items := make([]GridItem, len(features))
+    for i, f := range features {
+        items[i] = f
+    }
+    return items
 } 
