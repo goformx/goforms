@@ -193,8 +193,19 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 }
 
 func TestRequestID(t *testing.T) {
-	// Create mock logger
 	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectDebug("processing request ID middleware").WithFields(map[string]any{
+		"request_id": "test-request-id",
+		"method":     "GET",
+		"path":       "/test",
+		"remote_addr": "127.0.0.1",
+	})
+	mockLogger.ExpectDebug("request ID middleware complete").WithFields(map[string]any{
+		"request_id": "test-request-id",
+	})
+
+	// Create mock logger
+	mockLogger = mocklogging.NewMockLogger()
 
 	// Create middleware manager
 	mw := middleware.New(mockLogger)
@@ -224,35 +235,97 @@ func TestRequestID(t *testing.T) {
 }
 
 func TestSecurityHeaders(t *testing.T) {
-	// Create mock logger
 	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectDebug("processing security headers").WithFields(map[string]any{
+		"path":   "/test",
+		"method": "GET",
+	})
+	mockLogger.ExpectDebug("built CSP directives").WithFields(map[string]any{
+		"csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-test'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "Content-Security-Policy",
+		"value":  "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-test'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "X-Content-Type-Options",
+		"value":  "nosniff",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "X-Frame-Options",
+		"value":  "SAMEORIGIN",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "X-XSS-Protection",
+		"value":  "1; mode=block",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "Referrer-Policy",
+		"value":  "strict-origin-when-cross-origin",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "Permissions-Policy",
+		"value":  "geolocation=(), microphone=(), camera=()",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "Cross-Origin-Opener-Policy",
+		"value":  "same-origin",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "Cross-Origin-Embedder-Policy",
+		"value":  "require-corp",
+	})
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
+		"header": "Cross-Origin-Resource-Policy",
+		"value":  "same-origin",
+	})
+	mockLogger.ExpectDebug("removed Server header")
+	mockLogger.ExpectDebug("security headers processing complete")
 
-	// Create middleware manager
-	mw := middleware.New(mockLogger)
-
-	// Create Echo instance
 	e := echo.New()
+	m := middleware.New(mockLogger)
 
 	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// Create handler
-	handler := func(c echo.Context) error {
-		return c.String(http.StatusOK, "test")
-	}
 
 	// Setup middleware
-	mw.Setup(e)
+	m.Setup(e)
 
-	// Test middleware chain
-	err := handler(c)
+	// Create test handler
+	e.GET("/", func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
+	})
 
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, "default-src 'self'", rec.Header().Get("Content-Security-Policy"))
-	assert.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
-	assert.Equal(t, "DENY", rec.Header().Get("X-Frame-Options"))
-	assert.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
+	// Process the request
+	e.ServeHTTP(rec, req)
+
+	// Check security headers
+	expectedHeaders := map[string]string{
+		"X-Content-Type-Options":       "nosniff",
+		"X-Frame-Options":              "SAMEORIGIN",
+		"X-XSS-Protection":             "1; mode=block",
+		"Referrer-Policy":              "strict-origin-when-cross-origin",
+		"Permissions-Policy":           "geolocation=(), microphone=(), camera=()",
+		"Cross-Origin-Opener-Policy":   "same-origin",
+		"Cross-Origin-Embedder-Policy": "require-corp",
+		"Cross-Origin-Resource-Policy": "same-origin",
+	}
+
+	for header, expected := range expectedHeaders {
+		got := rec.Header().Get(header)
+		if got != expected {
+			t.Errorf("expected %s header to be %q, got %q", header, expected, got)
+		}
+	}
+
+	// Check CSP header separately as it contains a dynamic nonce
+	csp := rec.Header().Get("Content-Security-Policy")
+	if !strings.Contains(csp, "default-src 'self'") {
+		t.Errorf("expected CSP to contain default-src 'self', got %q", csp)
+	}
+
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
 }

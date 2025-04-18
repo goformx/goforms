@@ -23,3 +23,9 @@ func (cv *CustomValidator) Validate(i interface{}) error {
 	}
 	return nil
 }
+
+type Validator interface {
+	Struct(any) error
+	Var(any, string) error
+	RegisterValidation(string, func(any) bool) error
+}

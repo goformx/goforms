@@ -24,6 +24,11 @@ var (
 	ErrTokenBlacklisted = errors.New("token is blacklisted")
 )
 
+const (
+	accessTokenExpiry  = 15 * time.Minute
+	refreshTokenExpiry = 7 * 24 * time.Hour
+)
+
 // TokenPair represents an access and refresh token pair
 type TokenPair struct {
 	AccessToken  string `json:"access_token"`
@@ -208,14 +213,14 @@ func (s *ServiceImpl) generateTokenPair(user *User) (*TokenPair, error) {
 		"email":   user.Email,
 		"role":    user.Role,
 		"type":    "access",
-		"exp":     time.Now().Add(15 * time.Minute).Unix(),
+		"exp":     time.Now().Add(accessTokenExpiry).Unix(),
 	})
 
 	// Generate refresh token with longer expiry
 	refreshToken := jwt.NewWithClaims(jwt.SigningMethodHS256, jwt.MapClaims{
 		"user_id": user.ID,
 		"type":    "refresh",
-		"exp":     time.Now().Add(7 * 24 * time.Hour).Unix(),
+		"exp":     time.Now().Add(refreshTokenExpiry).Unix(),
 	})
 
 	// Sign tokens

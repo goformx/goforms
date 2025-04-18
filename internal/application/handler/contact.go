@@ -222,18 +222,17 @@ func (h *ContactHandler) parseID(c echo.Context) (int64, error) {
 
 // UpdateSubmissionStatus updates the status of a contact form submission
 func (h *ContactHandler) UpdateSubmissionStatus(c echo.Context) error {
-	id, err := h.parseID(c)
-	if err != nil {
-		return err
+	id, idErr := h.parseID(c)
+	if idErr != nil {
+		return idErr
 	}
 
 	var status contact.Status
-	if err := c.Bind(&status); err != nil {
-		return fmt.Errorf("failed to bind status: %w", err)
+	if bindErr := c.Bind(&status); bindErr != nil {
+		return fmt.Errorf("failed to bind status: %w", bindErr)
 	}
 
-	updateErr := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status)
-	if updateErr != nil {
+	if updateErr := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status); updateErr != nil {
 		return fmt.Errorf("failed to update submission status: %w", updateErr)
 	}
 
