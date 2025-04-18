@@ -10,7 +10,7 @@ import (
 )
 
 // NewJSONRequest creates a new JSON request for testing
-func NewJSONRequest(method, path string, body interface{}) (*http.Request, error) {
+func NewJSONRequest(method, path string, body any) (*http.Request, error) {
 	var jsonBody []byte
 	var err error
 	if body != nil {
@@ -25,7 +25,7 @@ func NewJSONRequest(method, path string, body interface{}) (*http.Request, error
 }
 
 // ParseJSONResponse parses a JSON response from a test recorder
-func ParseJSONResponse(rec *httptest.ResponseRecorder, v interface{}) error {
+func ParseJSONResponse(rec *httptest.ResponseRecorder, v any) error {
 	return json.NewDecoder(rec.Body).Decode(v)
 }
 

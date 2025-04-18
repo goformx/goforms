@@ -25,7 +25,7 @@ func TestSubmitContact(t *testing.T) {
 				ms.CreateFunc = func(ctx context.Context, sub *contact.Submission) error {
 					return nil
 				}
-				ml.ExpectInfo("submission created").WithFields(map[string]interface{}{
+				ml.ExpectInfo("submission created").WithFields(map[string]any{
 					"email":  "test@example.com",
 					"status": string(contact.StatusPending),
 				})
@@ -43,7 +43,7 @@ func TestSubmitContact(t *testing.T) {
 				ms.CreateFunc = func(ctx context.Context, sub *contact.Submission) error {
 					return errTest
 				}
-				ml.ExpectError("failed to create submission").WithFields(map[string]interface{}{
+				ml.ExpectError("failed to create submission").WithFields(map[string]any{
 					"error": errTest,
 					"email": "test@example.com",
 				})

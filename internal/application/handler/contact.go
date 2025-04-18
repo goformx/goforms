@@ -183,28 +183,27 @@ func (h *ContactHandler) handleGet(c echo.Context) error {
 // @Failure 404 {object} echo.HTTPError
 // @Router /api/v1/contact/{id} [put]
 func (h *ContactHandler) handleUpdate(c echo.Context) error {
-	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, parseErr := h.parseID(c)
 	if parseErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid id format")
+		return parseErr
 	}
 
 	var status contact.Status
 	if bindErr := c.Bind(&status); bindErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "invalid status format")
+		return response.BadRequest(c, "invalid status")
 	}
 
 	if updateErr := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status); updateErr != nil {
-		return updateErr
+		return h.handleError(c, updateErr)
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return response.Success(c, nil)
 }
 
-// parseID extracts and validates the ID parameter from the context
 func (h *ContactHandler) parseID(c echo.Context) (int64, error) {
 	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
 	if parseErr != nil {
-		return 0, echo.NewHTTPError(http.StatusBadRequest, "invalid id format")
+		return 0, response.BadRequest(c, "invalid submission ID")
 	}
 	return id, nil
 }
@@ -226,4 +225,16 @@ func (h *ContactHandler) UpdateSubmissionStatus(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+func (h *ContactHandler) handleError(c echo.Context, err error) error {
+	h.Logger.Error("contact handler error", logging.Error(err))
+	switch err {
+	case contact.ErrSubmissionNotFound:
+		return response.NotFound(c, "submission not found")
+	case contact.ErrInvalidStatus:
+		return response.BadRequest(c, "invalid status")
+	default:
+		return response.InternalError(c, "internal server error")
+	}
 }

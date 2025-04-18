@@ -110,6 +110,6 @@ func ValidTestSubscription() *subscription.Subscription {
 }
 
 // ParseResponse parses the response body into the given interface
-func ParseResponse(rec *httptest.ResponseRecorder, v interface{}) error {
+func ParseResponse(rec *httptest.ResponseRecorder, v any) error {
 	return json.NewDecoder(rec.Body).Decode(v)
 }

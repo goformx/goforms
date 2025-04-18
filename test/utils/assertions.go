@@ -19,7 +19,7 @@ func AssertJSONResponse(t *testing.T, rec *httptest.ResponseRecorder, expectedSt
 func AssertErrorResponse(t *testing.T, rec *httptest.ResponseRecorder, expectedStatus int, expectedError string) {
 	t.Helper()
 	AssertJSONResponse(t, rec, expectedStatus)
-	var response map[string]interface{}
+	var response map[string]any
 	err := ParseJSONResponse(rec, &response)
 	assert.NoError(t, err)
 	assert.Contains(t, response, "error")
@@ -32,7 +32,7 @@ func AssertErrorResponse(t *testing.T, rec *httptest.ResponseRecorder, expectedS
 func AssertSuccessResponse(t *testing.T, rec *httptest.ResponseRecorder, expectedStatus int) {
 	t.Helper()
 	AssertJSONResponse(t, rec, expectedStatus)
-	var response map[string]interface{}
+	var response map[string]any
 	err := ParseJSONResponse(rec, &response)
 	assert.NoError(t, err)
 	assert.Contains(t, response, "data")

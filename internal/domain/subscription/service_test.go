@@ -133,7 +133,7 @@ func TestGetSubscription(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
 		mockStore.ExpectGetByID(t.Context(), int64(123), nil, nil)
-		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]interface{}{
+		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]any{
 			"error": subscription.ErrSubscriptionNotFound,
 		})
 
@@ -230,7 +230,7 @@ func TestDeleteSubscription(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
 		mockStore.ExpectGetByID(t.Context(), int64(123), nil, nil)
-		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]interface{}{
+		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]any{
 			"error": subscription.ErrSubscriptionNotFound,
 		})
 
@@ -273,7 +273,7 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
 		mockStore.ExpectGetByEmail(t.Context(), "nonexistent@example.com", nil, nil)
-		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]interface{}{
+		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]any{
 			"error": subscription.ErrSubscriptionNotFound,
 		})
 
@@ -297,7 +297,7 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		mockLogger.Reset()
 		storeErr := errors.New("database error")
 		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", nil, storeErr)
-		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]interface{}{
+		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]any{
 			"error": storeErr,
 		})
 

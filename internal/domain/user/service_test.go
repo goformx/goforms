@@ -103,7 +103,7 @@ func TestUserService(t *testing.T) {
 			LastName:  "User",
 		}
 
-		logger.ExpectInfo("user signed up").WithFields(map[string]interface{}{
+		logger.ExpectInfo("user signed up").WithFields(map[string]any{
 			"email": signup.Email,
 		})
 
@@ -122,7 +122,7 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
-		logger.ExpectInfo("user logged in").WithFields(map[string]interface{}{
+		logger.ExpectInfo("user logged in").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
@@ -139,14 +139,14 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
-		logger.ExpectInfo("user logged in").WithFields(map[string]interface{}{
+		logger.ExpectInfo("user logged in").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
 		tokens, err := service.Login(ctx, login)
 		require.NoError(t, err)
 
-		logger.ExpectInfo("user logged out").WithFields(map[string]interface{}{
+		logger.ExpectInfo("user logged out").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
@@ -163,14 +163,14 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
-		logger.ExpectInfo("user logged in").WithFields(map[string]interface{}{
+		logger.ExpectInfo("user logged in").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
 		tokens, err := service.Login(ctx, login)
 		require.NoError(t, err)
 
-		logger.ExpectInfo("token refreshed").WithFields(map[string]interface{}{
+		logger.ExpectInfo("token refreshed").WithFields(map[string]any{
 			"email": login.Email,
 		})
 

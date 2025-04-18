@@ -7,6 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/jonesrussell/goforms/internal/application/response"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
@@ -62,7 +63,7 @@ func (h *SubscriptionHandler) Register(e *echo.Echo) {
 	g.POST("", h.handleCreate)
 	g.GET("", h.handleList)
 	g.GET("/:id", h.handleGet)
-	g.PUT("/:id/status", h.handleUpdateStatus)
+	g.PUT("/:id/status", h.handleUpdate)
 	g.DELETE("/:id", h.handleDelete)
 }
 
@@ -141,7 +142,7 @@ func (h *SubscriptionHandler) handleGet(c echo.Context) error {
 	return c.JSON(http.StatusOK, sub)
 }
 
-// handleUpdateStatus handles updating a subscription's status
+// handleUpdate handles updating a subscription's status
 // @Summary Update subscription status
 // @Description Update the status of a subscription
 // @Tags subscription
@@ -153,23 +154,22 @@ func (h *SubscriptionHandler) handleGet(c echo.Context) error {
 // @Failure 400 {object} echo.HTTPError
 // @Failure 404 {object} echo.HTTPError
 // @Router /api/v1/subscriptions/{id}/status [put]
-func (h *SubscriptionHandler) handleUpdateStatus(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
+func (h *SubscriptionHandler) handleUpdate(c echo.Context) error {
+	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
+	if parseErr != nil {
+		return response.BadRequest(c, "invalid subscription ID")
 	}
 
 	var status subscription.Status
-	if err := c.Bind(&status); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid status format")
+	if bindErr := c.Bind(&status); bindErr != nil {
+		return response.BadRequest(c, "invalid status")
 	}
 
-	if err := h.subscriptionService.UpdateSubscriptionStatus(c.Request().Context(), id, status); err != nil {
-		h.LogError("failed to update subscription status", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update status")
+	if updateErr := h.subscriptionService.UpdateSubscriptionStatus(c.Request().Context(), id, status); updateErr != nil {
+		return h.handleError(c, updateErr)
 	}
 
-	return c.NoContent(http.StatusOK)
+	return response.Success(c, nil)
 }
 
 // handleDelete handles deleting a subscription
@@ -183,15 +183,26 @@ func (h *SubscriptionHandler) handleUpdateStatus(c echo.Context) error {
 // @Failure 404 {object} echo.HTTPError
 // @Router /api/v1/subscriptions/{id} [delete]
 func (h *SubscriptionHandler) handleDelete(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
+	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
+	if parseErr != nil {
+		return response.BadRequest(c, "invalid subscription ID")
 	}
 
-	if err := h.subscriptionService.DeleteSubscription(c.Request().Context(), id); err != nil {
-		h.LogError("failed to delete subscription", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete subscription")
+	if deleteErr := h.subscriptionService.DeleteSubscription(c.Request().Context(), id); deleteErr != nil {
+		return h.handleError(c, deleteErr)
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return response.Success(c, nil)
+}
+
+func (h *SubscriptionHandler) handleError(c echo.Context, err error) error {
+	h.Logger.Error("subscription handler error", logging.Error(err))
+	switch err {
+	case subscription.ErrSubscriptionNotFound:
+		return response.NotFound(c, "subscription not found")
+	case subscription.ErrInvalidStatus:
+		return response.BadRequest(c, "invalid status")
+	default:
+		return response.InternalError(c, "internal server error")
+	}
 }
