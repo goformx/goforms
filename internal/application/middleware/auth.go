@@ -131,17 +131,20 @@ func (m *JWTMiddleware) setUserContext(c echo.Context, claims jwt.MapClaims) err
 
 // checkRoleAccess verifies role-based access
 func (m *JWTMiddleware) checkRoleAccess(c echo.Context) error {
-	userRole := c.Get("role").(string)
+	role, ok := c.Get("role").(string)
+	if !ok {
+		return fmt.Errorf("invalid role type in context")
+	}
 	path := c.Path()
 
 	// Admin routes
-	if strings.HasPrefix(path, "/admin") && userRole != "admin" {
-		return errors.New("unauthorized: admin access required")
+	if strings.HasPrefix(path, "/admin") && role != "admin" {
+		return fmt.Errorf("unauthorized: admin access required")
 	}
 
 	// User routes
-	if strings.HasPrefix(path, "/user") && userRole != "user" && userRole != "admin" {
-		return errors.New("unauthorized: user access required")
+	if strings.HasPrefix(path, "/user") && role != "user" && role != "admin" {
+		return fmt.Errorf("unauthorized: user access required")
 	}
 
 	return nil
