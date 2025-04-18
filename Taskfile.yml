@@ -1,13 +1,10 @@
 version: '3'
 
-<<<<<<< HEAD
-=======
 dotenv: ['.env']
 
 # Environment Variables
 # - Database configuration for both app and test environments
 # - Separated into application and test database settings
->>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
 vars:
   # Version and Build Info
   VERSION:
@@ -41,13 +38,10 @@ tasks:
   # - Includes building, running, and managing the application lifecycle
   default:
     cmds:
-<<<<<<< HEAD
       - task: install
       - task: generate
-=======
       - task: build
       - task: migrate:up
->>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
       - task: run
 
   install:
@@ -63,11 +57,7 @@ tasks:
 
   run:
     desc: Run the application
-<<<<<<< HEAD
-    deps: [install, generate]
-=======
     deps: [build]
->>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
     cmds:
       - ./bin/server
 
@@ -78,16 +68,21 @@ tasks:
       - rm -f coverage.out
       - rm -f coverage.html
 
+  # Code Quality Tasks
+  # - Tasks for maintaining code quality and standards
+  # - Includes linting and static analysis tools
+  lint:
+    desc: Run linters
+    cmds:
+      - go vet ./...
+      - golangci-lint run
+
   # Testing Tasks
   # - Tasks for running tests and generating coverage reports
   # - Includes unit tests, integration tests, and test configuration
   test:
-<<<<<<< HEAD
-    desc: Run tests
-    deps: [generate]
-=======
     desc: Run all tests
->>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
+    deps: [generate]
     cmds:
       - go test -v ./internal/...
 
@@ -154,37 +149,9 @@ tasks:
     cmds:
       - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
 
-<<<<<<< HEAD
-  migrate:force:
-    desc: Force set migration version
-=======
-  # Code Quality Tasks
-  # - Tasks for maintaining code quality and standards
-  # - Includes linting and static analysis tools
-  lint:
-    desc: Run linters
->>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
-    cmds:
-      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations force {{.CLI_ARGS}}
-
-  migrate:version:
-    desc: Show current migration version
-    cmds:
-      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations version
-
-<<<<<<< HEAD
-  clean:
-    desc: Clean build artifacts
-    cmds:
-      - rm -rf bin/
-      - rm -rf coverage/
-      - go clean -cache -testcache
-
-=======
   # Production Logging Tasks
   # - Tasks for monitoring and debugging production environment
   # - Includes log viewing, filtering, and analysis capabilities
->>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
   logs:
     desc: Tail production logs
     cmds:
