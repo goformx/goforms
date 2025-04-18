@@ -79,18 +79,18 @@ func (s *MockStore) List() ([]user.User, error) {
 
 func TestUserService(t *testing.T) {
 	ctx := t.Context()
-	
+
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() {
 		err := os.Chdir(originalDir)
 		require.NoError(t, err)
 	}()
-	
+
 	testDir := filepath.Join(os.TempDir(), "goforms-test")
 	require.NoError(t, os.MkdirAll(testDir, 0755))
 	t.Chdir(testDir)
-	
+
 	store := NewMockStore()
 	logger := mocklogging.NewMockLogger()
 	service := user.NewService(store, logger)

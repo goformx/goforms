@@ -3,6 +3,7 @@ package database
 import (
 	"context"
 	"fmt"
+	"strconv"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jmoiron/sqlx"
@@ -24,7 +25,7 @@ type DB struct {
 func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, error) {
 	logger.Debug("initializing database connection",
 		logging.String("host", cfg.Database.Host),
-		logging.String("port", fmt.Sprintf("%d", cfg.Database.Port)),
+		logging.String("port", strconv.Itoa(cfg.Database.Port)),
 		logging.String("name", cfg.Database.Name),
 		logging.String("user", cfg.Database.User),
 	)
@@ -40,7 +41,7 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 		logger.Error("failed to connect to database",
 			logging.Error(err),
 			logging.String("host", cfg.Database.Host),
-			logging.String("port", fmt.Sprintf("%d", cfg.Database.Port)),
+			logging.String("port", strconv.Itoa(cfg.Database.Port)),
 		)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -83,7 +84,7 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 
 	logger.Info("successfully connected to database",
 		logging.String("host", cfg.Database.Host),
-		logging.String("port", fmt.Sprintf("%d", cfg.Database.Port)),
+		logging.String("port", strconv.Itoa(cfg.Database.Port)),
 		logging.String("name", cfg.Database.Name),
 	)
 
@@ -133,7 +134,7 @@ func (db *DB) WithTx(ctx context.Context, fn func(*sqlx.Tx) error) error {
 			db.logger.Error("failed to rollback transaction",
 				logging.Error(rbErr),
 			)
-			return fmt.Errorf("rollback failed: %v (original error: %w)", rbErr, err)
+			return fmt.Errorf("rollback failed: %w (original error: %w)", rbErr, err)
 		}
 		return err
 	}

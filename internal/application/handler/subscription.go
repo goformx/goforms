@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -46,7 +46,7 @@ func (h *SubscriptionHandler) Validate() error {
 		return err
 	}
 	if h.subscriptionService == nil {
-		return fmt.Errorf("missing required dependency: subscription service")
+		return errors.New("missing required dependency: subscription service")
 	}
 	return nil
 }

@@ -81,14 +81,14 @@ func TestUser_CheckPassword(t *testing.T) {
 func TestUser_Fields(t *testing.T) {
 	now := time.Now()
 	u := &user.User{
-		ID:             1,
-		Email:          "test@example.com",
-		FirstName:      "John",
-		LastName:       "Doe",
-		Role:           "user",
-		Active:         true,
-		CreatedAt:      now,
-		UpdatedAt:      now,
+		ID:        1,
+		Email:     "test@example.com",
+		FirstName: "John",
+		LastName:  "Doe",
+		Role:      "user",
+		Active:    true,
+		CreatedAt: now,
+		UpdatedAt: now,
 	}
 
 	if u.ID != 1 {

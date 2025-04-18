@@ -1,6 +1,7 @@
 package contact
 
 import (
+	"errors"
 	"fmt"
 	"net/mail"
 )
@@ -8,12 +9,12 @@ import (
 // ValidateSubmission validates a contact form submission
 func ValidateSubmission(sub *Submission) error {
 	if sub == nil {
-		return fmt.Errorf("submission cannot be nil")
+		return errors.New("submission cannot be nil")
 	}
 
 	// Validate email
 	if sub.Email == "" {
-		return fmt.Errorf("email is required")
+		return errors.New("email is required")
 	}
 	if _, err := mail.ParseAddress(sub.Email); err != nil {
 		return fmt.Errorf("invalid email format: %w", err)
@@ -21,12 +22,12 @@ func ValidateSubmission(sub *Submission) error {
 
 	// Validate name
 	if sub.Name == "" {
-		return fmt.Errorf("name is required")
+		return errors.New("name is required")
 	}
 
 	// Validate message
 	if sub.Message == "" {
-		return fmt.Errorf("message is required")
+		return errors.New("message is required")
 	}
 
 	return nil

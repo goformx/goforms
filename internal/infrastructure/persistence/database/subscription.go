@@ -76,7 +76,7 @@ func (s *SubscriptionStore) Get(ctx context.Context, id int64) (*subscription.Su
 	query := `SELECT * FROM subscriptions WHERE id = ?`
 
 	if err := s.db.GetContext(ctx, &sub, query, id); err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, subscription.ErrSubscriptionNotFound
 		}
 		s.logger.Error("failed to get subscription", logging.Error(err))

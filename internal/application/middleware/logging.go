@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -18,7 +19,8 @@ func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 
 			// Set status based on error
 			if err != nil {
-				if he, ok := err.(*echo.HTTPError); ok {
+				he := &echo.HTTPError{}
+				if errors.As(err, &he) {
 					c.Response().Status = he.Code
 				} else {
 					c.Response().Status = echo.ErrInternalServerError.Code

@@ -2,6 +2,7 @@ package services_test
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -158,7 +159,7 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			expectedStatus: http.StatusConflict,
 			expectedBody:   `{"status":"error","message":"Email already subscribed"}`,
 			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
-				store.ExpectGetByEmail(fmt.Errorf("email already subscribed"))
+				store.ExpectGetByEmail(errors.New("email already subscribed"))
 				logger.ExpectError("email already subscribed")
 			},
 		},

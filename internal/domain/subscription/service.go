@@ -117,7 +117,7 @@ func (s *ServiceImpl) GetSubscription(ctx context.Context, id int64) (*Subscript
 // GetSubscriptionByEmail returns a subscription by email
 func (s *ServiceImpl) GetSubscriptionByEmail(ctx context.Context, email string) (*Subscription, error) {
 	if email == "" {
-		return nil, fmt.Errorf("invalid input: email is required")
+		return nil, errors.New("invalid input: email is required")
 	}
 
 	subscription, err := s.store.GetByEmail(ctx, email)

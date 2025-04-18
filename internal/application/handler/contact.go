@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 	"strconv"
 
@@ -65,7 +65,7 @@ func (h *ContactHandler) Validate() error {
 		return err
 	}
 	if h.contactService == nil {
-		return fmt.Errorf("missing required dependency: contact service")
+		return errors.New("missing required dependency: contact service")
 	}
 	return nil
 }

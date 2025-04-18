@@ -3,6 +3,7 @@ package fixtures
 import (
 	"bytes"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -46,7 +47,8 @@ func (f *SubscriptionFixture) CreateSubscriptionRequest(email string) (*httptest
 	c := f.Echo.NewContext(req, rec)
 
 	if err := f.Handler(c); err != nil {
-		he, ok := err.(*echo.HTTPError)
+		he := &echo.HTTPError{}
+		ok := errors.As(err, &he)
 		if ok {
 			rec.Code = he.Code
 			_ = json.NewEncoder(rec.Body).Encode(map[string]string{
@@ -76,7 +78,8 @@ func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(email, origin 
 	c := f.Echo.NewContext(req, rec)
 
 	if err := f.Handler(c); err != nil {
-		he, ok := err.(*echo.HTTPError)
+		he := &echo.HTTPError{}
+		ok := errors.As(err, &he)
 		if ok {
 			rec.Code = he.Code
 			if err := json.NewEncoder(rec.Body).Encode(map[string]string{

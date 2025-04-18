@@ -1,7 +1,6 @@
 package subscription_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -25,8 +24,8 @@ func TestCreateSubscription(t *testing.T) {
 		mockStore := subscriptionmock.NewMockStore(t)
 		mockLogger := mocklogging.NewMockLogger()
 
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, nil)
-		mockStore.ExpectCreate(context.Background(), &subscription.Subscription{
+		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", nil, nil)
+		mockStore.ExpectCreate(t.Context(), &subscription.Subscription{
 			Name:  "Test User",
 			Email: "test@example.com",
 		}, nil)
@@ -38,7 +37,7 @@ func TestCreateSubscription(t *testing.T) {
 			Email: "test@example.com",
 		}
 
-		err := service.CreateSubscription(context.Background(), sub)
+		err := service.CreateSubscription(t.Context(), sub)
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -60,7 +59,7 @@ func TestCreateSubscription(t *testing.T) {
 			Name:  "Existing User",
 		}
 
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", existingSub, nil)
+		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", existingSub, nil)
 
 		service := subscription.NewService(mockStore, mockLogger)
 
@@ -69,7 +68,7 @@ func TestCreateSubscription(t *testing.T) {
 			Email: "test@example.com",
 		}
 
-		err := service.CreateSubscription(context.Background(), sub)
+		err := service.CreateSubscription(t.Context(), sub)
 		if !errors.Is(err, subscription.ErrEmailAlreadyExists) {
 			t.Errorf("expected error %v, got %v", subscription.ErrEmailAlreadyExists, err)
 		}
@@ -90,11 +89,11 @@ func TestListSubscriptions(t *testing.T) {
 		{ID: 2, Name: "Test User 2", Email: "test2@example.com"},
 	}
 
-	mockStore.ExpectList(context.Background(), expected, nil)
+	mockStore.ExpectList(t.Context(), expected, nil)
 
 	service := subscription.NewService(mockStore, mockLogger)
 
-	subs, err := service.ListSubscriptions(context.Background())
+	subs, err := service.ListSubscriptions(t.Context())
 	if err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
@@ -115,8 +114,8 @@ func TestGetSubscription(t *testing.T) {
 	service := subscription.NewService(mockStore, mockLogger)
 
 	t.Run("existing subscription", func(t *testing.T) {
-		mockStore.ExpectGetByID(context.Background(), int64(1), &subscription.Subscription{ID: 1}, nil)
-		sub, err := service.GetSubscription(context.Background(), 1)
+		mockStore.ExpectGetByID(t.Context(), int64(1), &subscription.Subscription{ID: 1}, nil)
+		sub, err := service.GetSubscription(t.Context(), 1)
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -134,12 +133,12 @@ func TestGetSubscription(t *testing.T) {
 	t.Run("non-existent subscription", func(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
-		mockStore.ExpectGetByID(context.Background(), int64(123), nil, nil)
+		mockStore.ExpectGetByID(t.Context(), int64(123), nil, nil)
 		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]interface{}{
 			"error": subscription.ErrSubscriptionNotFound,
 		})
 
-		sub, err := service.GetSubscription(context.Background(), 123)
+		sub, err := service.GetSubscription(t.Context(), 123)
 		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
 		}
@@ -172,8 +171,8 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			id:     1,
 			status: subscription.StatusActive,
 			setup: func(store *subscriptionmock.MockStore) {
-				store.ExpectGetByID(context.Background(), int64(1), &subscription.Subscription{ID: 1}, nil)
-				store.ExpectUpdateStatus(context.Background(), int64(1), subscription.StatusActive, nil)
+				store.ExpectGetByID(t.Context(), int64(1), &subscription.Subscription{ID: 1}, nil)
+				store.ExpectUpdateStatus(t.Context(), int64(1), subscription.StatusActive, nil)
 			},
 			wantErr: nil,
 		},
@@ -191,7 +190,7 @@ func TestUpdateSubscriptionStatus(t *testing.T) {
 			mockStore.Reset()
 			mockLogger.Reset()
 			tt.setup(mockStore)
-			err := service.UpdateSubscriptionStatus(context.Background(), tt.id, tt.status)
+			err := service.UpdateSubscriptionStatus(t.Context(), tt.id, tt.status)
 
 			if !errors.Is(err, tt.wantErr) {
 				t.Errorf("expected error %v, got %v", tt.wantErr, err)
@@ -213,10 +212,10 @@ func TestDeleteSubscription(t *testing.T) {
 	service := subscription.NewService(mockStore, mockLogger)
 
 	t.Run("successful deletion", func(t *testing.T) {
-		mockStore.ExpectGetByID(context.Background(), int64(1), &subscription.Subscription{ID: 1}, nil)
-		mockStore.ExpectDelete(context.Background(), int64(1), nil)
+		mockStore.ExpectGetByID(t.Context(), int64(1), &subscription.Subscription{ID: 1}, nil)
+		mockStore.ExpectDelete(t.Context(), int64(1), nil)
 
-		err := service.DeleteSubscription(context.Background(), 1)
+		err := service.DeleteSubscription(t.Context(), 1)
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -231,12 +230,12 @@ func TestDeleteSubscription(t *testing.T) {
 	t.Run("non-existent subscription", func(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
-		mockStore.ExpectGetByID(context.Background(), int64(123), nil, nil)
+		mockStore.ExpectGetByID(t.Context(), int64(123), nil, nil)
 		mockLogger.ExpectError("failed to get subscription").WithFields(map[string]interface{}{
 			"error": subscription.ErrSubscriptionNotFound,
 		})
 
-		err := service.DeleteSubscription(context.Background(), 123)
+		err := service.DeleteSubscription(t.Context(), 123)
 		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
 		}
@@ -255,8 +254,8 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 	service := subscription.NewService(mockStore, mockLogger)
 
 	t.Run("existing subscription", func(t *testing.T) {
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", &subscription.Subscription{Email: "test@example.com"}, nil)
-		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
+		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", &subscription.Subscription{Email: "test@example.com"}, nil)
+		sub, err := service.GetSubscriptionByEmail(t.Context(), "test@example.com")
 		if err != nil {
 			t.Errorf("expected no error, got %v", err)
 		}
@@ -274,12 +273,12 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 	t.Run("non-existent subscription", func(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
-		mockStore.ExpectGetByEmail(context.Background(), "nonexistent@example.com", nil, nil)
+		mockStore.ExpectGetByEmail(t.Context(), "nonexistent@example.com", nil, nil)
 		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]interface{}{
 			"error": subscription.ErrSubscriptionNotFound,
 		})
 
-		sub, err := service.GetSubscriptionByEmail(context.Background(), "nonexistent@example.com")
+		sub, err := service.GetSubscriptionByEmail(t.Context(), "nonexistent@example.com")
 		if !errors.Is(err, subscription.ErrSubscriptionNotFound) {
 			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, err)
 		}
@@ -298,12 +297,12 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
 		storeErr := errors.New("database error")
-		mockStore.ExpectGetByEmail(context.Background(), "test@example.com", nil, storeErr)
+		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", nil, storeErr)
 		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]interface{}{
 			"error": storeErr,
 		})
 
-		sub, err := service.GetSubscriptionByEmail(context.Background(), "test@example.com")
+		sub, err := service.GetSubscriptionByEmail(t.Context(), "test@example.com")
 		if !errors.Is(err, storeErr) {
 			t.Errorf("expected error %v, got %v", storeErr, err)
 		}
@@ -321,7 +320,7 @@ func TestGetSubscriptionByEmail(t *testing.T) {
 	t.Run("empty email", func(t *testing.T) {
 		mockStore.Reset()
 		mockLogger.Reset()
-		sub, err := service.GetSubscriptionByEmail(context.Background(), "")
+		sub, err := service.GetSubscriptionByEmail(t.Context(), "")
 		if err == nil {
 			t.Error("expected error, got nil")
 		}

@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/labstack/echo/v4"
@@ -117,13 +118,13 @@ func (h *WebHandler) Validate() error {
 		return err
 	}
 	if h.renderer == nil {
-		return fmt.Errorf("renderer is required")
+		return errors.New("renderer is required")
 	}
 	if h.contactService == nil {
-		return fmt.Errorf("contact service is required")
+		return errors.New("contact service is required")
 	}
 	if h.subscriptionService == nil {
-		return fmt.Errorf("subscription service is required")
+		return errors.New("subscription service is required")
 	}
 	return nil
 }

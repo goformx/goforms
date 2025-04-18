@@ -30,6 +30,7 @@
 package handler
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -90,7 +91,7 @@ func (b *Base) LogError(msg string, err error, fields ...logging.Field) {
 // to fail fast if configuration is incomplete.
 func (b *Base) Validate() error {
 	if b.Logger == nil {
-		return fmt.Errorf("logger is required")
+		return errors.New("logger is required")
 	}
 	return nil
 }

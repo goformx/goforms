@@ -39,7 +39,7 @@ func TestNew(t *testing.T) {
 		fx.StopTimeout(100*time.Millisecond),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 
 	err := app.Start(ctx)
@@ -80,7 +80,7 @@ func TestServerLifecycle(t *testing.T) {
 		fx.StopTimeout(100*time.Millisecond),
 	)
 
-	ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+	ctx, cancel := context.WithTimeout(t.Context(), 100*time.Millisecond)
 	defer cancel()
 
 	// Test startup

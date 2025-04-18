@@ -91,7 +91,7 @@ func (db *Database) Close() error {
 // Begin starts a new transaction with detailed logging
 func (db *Database) Begin() (*sqlx.Tx, error) {
 	db.logger.Debug("beginning database transaction")
-	tx, err := db.DB.Beginx()
+	tx, err := db.Beginx()
 	if err != nil {
 		db.logger.Error("failed to begin transaction", logging.Error(err))
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)

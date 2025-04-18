@@ -64,7 +64,7 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 			handler := services.NewHealthHandler(mockLogger, mockDB)
 
 			// Create request and recorder
-			req := httptest.NewRequest(http.MethodGet, "/health", nil)
+			req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := echo.New().NewContext(req, rec)
 
@@ -156,7 +156,7 @@ func TestHealthCheck(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			e := echo.New()
-			req := httptest.NewRequest(echo.GET, "/health", nil)
+			req := httptest.NewRequest(echo.GET, "/health", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 

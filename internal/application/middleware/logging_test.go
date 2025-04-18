@@ -15,7 +15,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	t.Run("logs request and response details", func(t *testing.T) {
 		// Setup
 		e := echo.New()
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
@@ -52,7 +52,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	t.Run("logs error when handler fails", func(t *testing.T) {
 		// Setup
 		e := echo.New()
-		req := httptest.NewRequest(http.MethodGet, "/test", nil)
+		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 		rec := httptest.NewRecorder()
 		c := e.NewContext(req, rec)
 
@@ -100,7 +100,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 
 	// Create Echo instance
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	req.Header.Set("X-Real-IP", "192.168.1.1")
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)

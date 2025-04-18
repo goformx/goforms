@@ -28,7 +28,7 @@ func TestMiddleware_Setup(t *testing.T) {
 	mw.Setup(e)
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -69,7 +69,7 @@ func TestRequestIDMiddleware(t *testing.T) {
 	m := middleware.New(mockLogger)
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	// Setup middleware
@@ -148,7 +148,7 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	m := middleware.New(mockLogger)
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	// Setup middleware
@@ -203,7 +203,7 @@ func TestRequestID(t *testing.T) {
 	e := echo.New()
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -234,7 +234,7 @@ func TestSecurityHeaders(t *testing.T) {
 	e := echo.New()
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 

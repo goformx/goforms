@@ -1,7 +1,7 @@
 package handler
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -45,7 +45,7 @@ func (h *AuthHandler) Validate() error {
 		return err
 	}
 	if h.userService == nil {
-		return fmt.Errorf("user service is required")
+		return errors.New("user service is required")
 	}
 	return nil
 }

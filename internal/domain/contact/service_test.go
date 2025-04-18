@@ -64,7 +64,7 @@ func TestSubmitContact(t *testing.T) {
 			tt.setup(mockStore, mockLogger)
 
 			svc := contact.NewService(mockStore, mockLogger)
-			err := svc.Submit(context.Background(), tt.input)
+			err := svc.Submit(t.Context(), tt.input)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Submit() error = %v, wantErr %v", err, tt.wantErr)
@@ -113,7 +113,7 @@ func TestListSubmissions(t *testing.T) {
 			tt.setup(mockStore, mockLogger)
 
 			svc := contact.NewService(mockStore, mockLogger)
-			got, err := svc.ListSubmissions(context.Background())
+			got, err := svc.ListSubmissions(t.Context())
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)
@@ -168,7 +168,7 @@ func TestGetSubmission(t *testing.T) {
 			tt.setup(mockStore, mockLogger)
 
 			svc := contact.NewService(mockStore, mockLogger)
-			got, err := svc.GetSubmission(context.Background(), tt.id)
+			got, err := svc.GetSubmission(t.Context(), tt.id)
 
 			if (err != nil) != tt.wantErr {
 				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
