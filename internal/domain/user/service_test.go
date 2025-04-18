@@ -26,52 +26,53 @@ func NewMockStore() *MockStore {
 }
 
 // Create implements Store.Create
-func (s *MockStore) Create(user *user.User) error {
-	s.users[user.ID] = user
-	s.email[user.Email] = user
+func (s *MockStore) Create(u *user.User) error {
+	s.users[u.ID] = u
+	s.email[u.Email] = u
 	return nil
 }
 
 // GetByID implements Store.GetByID
 func (s *MockStore) GetByID(id uint) (*user.User, error) {
-	if user, ok := s.users[id]; ok {
-		return user, nil
+	if u, ok := s.users[id]; ok {
+		return u, nil
 	}
-	return nil, nil
+	return nil, user.ErrUserNotFound
 }
 
 // GetByEmail implements Store.GetByEmail
 func (s *MockStore) GetByEmail(email string) (*user.User, error) {
-	if user, ok := s.email[email]; ok {
-		return user, nil
+	if u, ok := s.email[email]; ok {
+		return u, nil
 	}
-	return nil, nil
+	return nil, user.ErrUserNotFound
 }
 
 // Update implements Store.Update
-func (s *MockStore) Update(user *user.User) error {
-	if _, ok := s.users[user.ID]; !ok {
-		return nil
+func (s *MockStore) Update(u *user.User) error {
+	if _, ok := s.users[u.ID]; !ok {
+		return user.ErrUserNotFound
 	}
-	s.users[user.ID] = user
-	s.email[user.Email] = user
+	s.users[u.ID] = u
+	s.email[u.Email] = u
 	return nil
 }
 
 // Delete implements Store.Delete
 func (s *MockStore) Delete(id uint) error {
-	if user, ok := s.users[id]; ok {
+	if u, ok := s.users[id]; ok {
 		delete(s.users, id)
-		delete(s.email, user.Email)
+		delete(s.email, u.Email)
+		return nil
 	}
-	return nil
+	return user.ErrUserNotFound
 }
 
 // List implements Store.List
 func (s *MockStore) List() ([]user.User, error) {
 	users := make([]user.User, 0, len(s.users))
-	for _, user := range s.users {
-		users = append(users, *user)
+	for _, u := range s.users {
+		users = append(users, *u)
 	}
 	return users, nil
 }
@@ -96,10 +97,8 @@ func (l *MockLogger) Uint32(key string, val uint32) logging.Field { return loggi
 func (l *MockLogger) Uint64(key string, val uint64) logging.Field { return logging.Field{} }
 
 func TestUserService(t *testing.T) {
-	// Use new T.Context() for test context
 	ctx := t.Context()
 	
-	// Use new T.Chdir() for test directory management
 	originalDir, err := os.Getwd()
 	require.NoError(t, err)
 	defer func() {
@@ -107,26 +106,28 @@ func TestUserService(t *testing.T) {
 		require.NoError(t, err)
 	}()
 	
-	// Create a temporary test directory
 	testDir := filepath.Join(os.TempDir(), "goforms-test")
 	require.NoError(t, os.MkdirAll(testDir, 0755))
 	t.Chdir(testDir)
 	
-	// Test setup
 	store := NewMockStore()
 	logger := NewMockLogger()
 	service := user.NewService(store, logger)
 
 	t.Run("SignUp", func(t *testing.T) {
 		signup := &user.Signup{
-			Email:    "test@example.com",
-			Password: "password123",
+			Email:     "test@example.com",
+			Password:  "password123",
+			FirstName: "Test",
+			LastName:  "User",
 		}
 
-		user, err := service.SignUp(ctx, signup)
+		newUser, err := service.SignUp(ctx, signup)
 		require.NoError(t, err)
-		assert.NotNil(t, user)
-		assert.Equal(t, signup.Email, user.Email)
+		assert.NotNil(t, newUser)
+		assert.Equal(t, signup.Email, newUser.Email)
+		assert.Equal(t, signup.FirstName, newUser.FirstName)
+		assert.Equal(t, signup.LastName, newUser.LastName)
 	})
 
 	t.Run("Login", func(t *testing.T) {
@@ -153,7 +154,6 @@ func TestUserService(t *testing.T) {
 		err = service.Logout(ctx, tokens.AccessToken)
 		require.NoError(t, err)
 
-		// Verify token is blacklisted
 		assert.True(t, service.IsTokenBlacklisted(tokens.AccessToken))
 	})
 
