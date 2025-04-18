@@ -91,6 +91,9 @@ func (l *MockLogger) Error(msg string, fields ...logging.Field)  {}
 func (l *MockLogger) Int(key string, val int) logging.Field     { return logging.Field{} }
 func (l *MockLogger) Int32(key string, val int32) logging.Field { return logging.Field{} }
 func (l *MockLogger) Int64(key string, val int64) logging.Field { return logging.Field{} }
+func (l *MockLogger) Uint(key string, val uint) logging.Field   { return logging.Field{} }
+func (l *MockLogger) Uint32(key string, val uint32) logging.Field { return logging.Field{} }
+func (l *MockLogger) Uint64(key string, val uint64) logging.Field { return logging.Field{} }
 
 func TestUserService(t *testing.T) {
 	// Use new T.Context() for test context
