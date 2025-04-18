@@ -49,7 +49,7 @@
             }
         }
     },
-    "forwardPorts": [8090, 8099],
+    "forwardPorts": [8090, 8098],
     "mounts": [
         "type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/vscode/.ssh"
     ]

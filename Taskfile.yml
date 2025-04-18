@@ -2,11 +2,7 @@ version: '3'
 
 dotenv: ['.env']
 
-# Environment Variables
-# - Database configuration for both app and test environments
-# - Separated into application and test database settings
 vars:
-  # Version and Build Info
   VERSION:
     sh: git describe --tags --always --dirty
   BUILD_TIME:
@@ -16,16 +12,12 @@ vars:
   GO_VERSION:
     sh: go version | cut -d ' ' -f 3
   LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.buildTime={{.BUILD_TIME}} -X main.gitCommit={{.GIT_COMMIT}} -X main.goVersion={{.GO_VERSION}}
-
-  # Application DB
   DB_USER: '{{.DB_USER}}'
   DB_PASSWORD: '{{.DB_PASSWORD}}'
   DB_NAME: '{{.DB_NAME}}'
   DB_HOST: '{{.DB_HOST}}'
   DB_PORT: '{{.DB_PORT}}'
   DB_ROOT_PASSWORD: '{{.DB_ROOT_PASSWORD}}'
-  
-  # Test DB
   TEST_DB_USER: '{{.TEST_DB_USER}}'
   TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
   TEST_DB_NAME: '{{.TEST_DB_NAME}}'
@@ -33,9 +25,6 @@ vars:
   TEST_DB_PORT: '{{.TEST_DB_PORT}}'
 
 tasks:
-  # Core Development Tasks
-  # - These tasks are used for daily development workflow
-  # - Includes building, running, and managing the application lifecycle
   default:
     cmds:
       - task: install
@@ -49,11 +38,12 @@ tasks:
     cmds:
       - go mod tidy
       - go install github.com/a-h/templ/cmd/templ@latest
+      - export PATH=$PATH:$(go env GOPATH)/bin
 
   generate:
     desc: Generate code from templates
     cmds:
-      - templ generate ./internal/...
+      - $(go env GOPATH)/bin/templ generate ./internal/...
 
   run:
     desc: Run the application
@@ -68,18 +58,12 @@ tasks:
       - rm -f coverage.out
       - rm -f coverage.html
 
-  # Code Quality Tasks
-  # - Tasks for maintaining code quality and standards
-  # - Includes linting and static analysis tools
   lint:
     desc: Run linters
     cmds:
       - go vet ./...
       - golangci-lint run
 
-  # Testing Tasks
-  # - Tasks for running tests and generating coverage reports
-  # - Includes unit tests, integration tests, and test configuration
   test:
     desc: Run all tests
     deps: [generate]
@@ -127,31 +111,21 @@ tasks:
     cmds:
       - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/goforms
 
-  # Database Migration Tasks
-  # - Tasks for managing database schema changes
-  # - Includes creating, applying, and rolling back migrations
   migrate:up:
     desc: Run database migrations up
     cmds:
-      - |
-        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
-          -path migrations up
+      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations up
 
   migrate:down:
     desc: Run database migrations down
     cmds:
-      - |
-        migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
-          -path migrations down
+      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations down
 
   migrate:create:
     desc: Create a new migration
     cmds:
       - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
 
-  # Production Logging Tasks
-  # - Tasks for monitoring and debugging production environment
-  # - Includes log viewing, filtering, and analysis capabilities
   logs:
     desc: Tail production logs
     cmds:
@@ -165,10 +139,7 @@ tasks:
   logs:all:
     desc: Tail both production logs simultaneously (requires tmux)
     cmds:
-      - |
-        tmux new-session -d 'task logs' \; \
-        split-window -h 'task logs:err' \; \
-        attach \;
+      - tmux new-session -d 'task logs' \; split-window -h 'task logs:err' \; attach \;
 
   logs:cors:
     desc: Monitor CORS-related logs
