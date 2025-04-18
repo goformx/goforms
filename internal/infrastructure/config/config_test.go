@@ -1,8 +1,10 @@
-package config
+package config_test
 
 import (
 	"testing"
 	"time"
+
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
 
 func TestNew_ValidConfig(t *testing.T) {
@@ -26,7 +28,7 @@ func TestNew_ValidConfig(t *testing.T) {
 		t.Setenv(k, v)
 	}
 
-	cfg, err := New()
+	cfg, err := config.New()
 	if err != nil {
 		t.Fatalf("unexpected error: %v", err)
 	}
@@ -88,7 +90,7 @@ func TestNew_InvalidConfig(t *testing.T) {
 		t.Setenv(k, v)
 	}
 
-	_, err := New()
+	_, err := config.New()
 	if err == nil {
 		t.Error("expected error but got nil")
 	}
@@ -101,7 +103,7 @@ func TestSecurityConfig(t *testing.T) {
 		t.Setenv("DB_PASSWORD", "testpass")
 		t.Setenv("DB_NAME", "testdb")
 
-		config, err := New()
+		config, err := config.New()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -124,7 +126,7 @@ func TestSecurityConfig(t *testing.T) {
 		t.Setenv("DB_NAME", "testdb")
 		t.Setenv("CORS_ALLOWED_METHODS", "GET,POST")
 
-		config, err := New()
+		config, err := config.New()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -145,7 +147,7 @@ func TestRateLimitConfig(t *testing.T) {
 	tests := []struct {
 		name    string
 		envVars map[string]string
-		check   func(*testing.T, *Config)
+		check   func(*testing.T, *config.Config)
 	}{
 		{
 			name: "default rate limit settings",
@@ -155,7 +157,7 @@ func TestRateLimitConfig(t *testing.T) {
 				"DB_PASSWORD": "testpass",
 				"DB_NAME":     "testdb",
 			},
-			check: func(t *testing.T, cfg *Config) {
+			check: func(t *testing.T, cfg *config.Config) {
 				if !cfg.RateLimit.Enabled {
 					t.Error("expected RateLimit.Enabled to be true")
 				}
@@ -187,7 +189,7 @@ func TestRateLimitConfig(t *testing.T) {
 				"RATE_BURST":             "10",
 				"RATE_LIMIT_TIME_WINDOW": "2m",
 			},
-			check: func(t *testing.T, cfg *Config) {
+			check: func(t *testing.T, cfg *config.Config) {
 				if !cfg.RateLimit.Enabled {
 					t.Error("expected RateLimit.Enabled to be true")
 				}
@@ -214,7 +216,7 @@ func TestRateLimitConfig(t *testing.T) {
 				t.Setenv(k, v)
 			}
 
-			cfg, err := New()
+			cfg, err := config.New()
 			if err != nil {
 				t.Fatalf("unexpected error: %v", err)
 			}
