@@ -4,24 +4,35 @@ A modern Go web application for form management with MariaDB backend.
 
 ## Features
 
-✨ **Core Features**
+Current (MVP):
+- ✅ Email subscription system with validation
+- ✅ RESTful API using Echo framework
+- ✅ MariaDB database with migrations
+- ✅ Dependency injection using Uber FX
+- ✅ Structured logging with Zap
+- ✅ Rate limiting and CORS support
+- ✅ Comprehensive test coverage
+- ✅ Docker-based development environment
+- ✅ Health check monitoring
 
-- Form Management System
-  - Contact Form Submissions
-  - Email Subscription Management
-  - Status Tracking
-  - Validation
-- RESTful API
-  - OpenAPI/Swagger Documentation
-  - Versioned Endpoints (v1)
-  - Standardized Response Format
-- Modern UI
-  - Server-side Rendering
-  - Dark Mode Support
-  - Responsive Design
-- MariaDB Database
-  - Connection Pooling
-  - Migration System
+Coming in V2:
+- 🎯 Multi-tenant support
+  - API key authentication
+  - Per-tenant rate limiting
+  - Domain/CORS management
+- 🎯 Form Management
+  - Form builder
+  - Field validation
+  - Form versioning
+- 🎯 Submission Management
+  - Data storage
+  - Export capabilities
+
+Future Enhancements:
+- 🚧 Advanced Form Features (conditional logic, multi-page)
+- 🚧 Integration Features (webhooks, notifications)
+- 🚧 Analytics & Monitoring
+- 🚧 Administration Features
 
 🛠️ **Technical Features**
 
@@ -84,14 +95,45 @@ Implements infrastructure and technical concerns:
 └── view/        - View templates
 ```
 
-## Dependencies
+## API Versioning
 
-The project follows a strict dependency rule where dependencies point inward:
-- Core Domain: No external dependencies
-- Platform: Implements core interfaces
-- Application: Depends on core and platform
-- Infrastructure: Configures and connects components
-- Presentation: Consumes application services
+All new endpoints will be versioned under `/v1`:
+```
+POST /v1/forms
+GET  /v1/forms/{id}
+PUT  /v1/forms/{id}
+POST /v1/forms/{id}/submissions
+```
+
+### Development Guidelines
+
+- All new endpoints must include OpenAPI/Swagger annotations
+- Use fx.Module for feature grouping
+- Follow REST best practices for resource naming
+- Include rate limiting per endpoint
+- Add comprehensive test coverage
+
+### Architecture Overview
+- Echo web framework with middleware stack
+- MariaDB with connection pooling
+- Dependency injection with Uber FX
+- Structured logging with Zap
+
+### Technical Documentation
+Detailed technical documentation can be found in the `/docs` directory:
+- [Architecture Guide](docs/architecture.md)
+- [API Documentation](docs/api.md)
+- [Development Guide](docs/development.md)
+
+### Tech Stack
+
+- Go 1.23
+- MariaDB 10.11
+- Echo v4 web framework
+- Uber FX for dependency injection
+- Zap for structured logging
+- Testify for testing
+- Task for automation
 
 ## Project Structure
 
@@ -126,7 +168,6 @@ The project follows a strict dependency rule where dependencies point inward:
    ```bash
    git clone https://github.com/jonesrussell/goforms.git
    cd goforms
-   code .
    ```
 
 3. Start Development:
