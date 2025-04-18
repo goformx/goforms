@@ -16,7 +16,7 @@ import (
 func TestNew(t *testing.T) {
 	app := fxtest.New(t,
 		fx.Provide(
-			func() logging.Logger {
+			func() (logging.Logger, error) {
 				return logging.NewTestLogger()
 			},
 			func() *config.Config {
@@ -57,7 +57,7 @@ func TestServerLifecycle(t *testing.T) {
 	// Create a test app with a short timeout
 	app := fxtest.New(t,
 		fx.Provide(
-			func() logging.Logger {
+			func() (logging.Logger, error) {
 				return logging.NewTestLogger()
 			},
 			func() *config.Config {
