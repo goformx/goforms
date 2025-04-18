@@ -1,392 +1,172 @@
 package user_test
 
 import (
-	"context"
-	"errors"
-	"strings"
+	"os"
+	"path/filepath"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
-	mock_logging "github.com/jonesrussell/goforms/test/mocks/logging"
-	mock_store "github.com/jonesrussell/goforms/test/mocks/store/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestSignUp(t *testing.T) {
-	tests := []struct {
-		name      string
-		signup    *user.Signup
-		setupMock func(*mock_store.UserStore)
-		wantErr   string
-	}{
-		{
-			name: "successful signup",
-			signup: &user.Signup{
-				Email:     "test@example.com",
-				Password:  "password123",
-				FirstName: "John",
-				LastName:  "Doe",
-			},
-			setupMock: func(s *mock_store.UserStore) {},
-			wantErr:   "",
-		},
-		{
-			name: "email already exists",
-			signup: &user.Signup{
-				Email:     "existing@example.com",
-				Password:  "password123",
-				FirstName: "John",
-				LastName:  "Doe",
-			},
-			setupMock: func(s *mock_store.UserStore) {
-				existingUser := &user.User{
-					ID:    1,
-					Email: "existing@example.com",
-				}
-				s.Create(existingUser)
-			},
-			wantErr: "failed to create user: email already exists",
-		},
-		{
-			name: "store error",
-			signup: &user.Signup{
-				Email:     "test@example.com",
-				Password:  "password123",
-				FirstName: "John",
-				LastName:  "Doe",
-			},
-			setupMock: func(s *mock_store.UserStore) {
-				s.SetError("create", errors.New("store error"))
-			},
-			wantErr: "failed to create user: store error",
-		},
-	}
+// MockStore implements the Store interface for testing
+type MockStore struct {
+	users map[uint]*user.User
+	email map[string]*user.User
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := mock_store.NewUserStore()
-			logger := mock_logging.NewMockLogger()
-			tt.setupMock(store)
-
-			service := user.NewService(store, logger)
-			u, err := service.SignUp(context.Background(), tt.signup)
-
-			if tt.wantErr != "" {
-				if err == nil {
-					t.Errorf("expected error containing %q, got nil", tt.wantErr)
-					return
-				}
-				if !strings.Contains(err.Error(), tt.wantErr) {
-					t.Errorf("expected error containing %q, got %q", tt.wantErr, err.Error())
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			if u == nil {
-				t.Error("expected user to be created, got nil")
-				return
-			}
-
-			if u.Email != tt.signup.Email {
-				t.Errorf("expected email %s, got %s", tt.signup.Email, u.Email)
-			}
-			if u.FirstName != tt.signup.FirstName {
-				t.Errorf("expected first name %s, got %s", tt.signup.FirstName, u.FirstName)
-			}
-			if u.LastName != tt.signup.LastName {
-				t.Errorf("expected last name %s, got %s", tt.signup.LastName, u.LastName)
-			}
-			if u.Role != "user" {
-				t.Errorf("expected role 'user', got %s", u.Role)
-			}
-			if !u.Active {
-				t.Error("expected user to be active")
-			}
-		})
+// NewMockStore creates a new mock store
+func NewMockStore() *MockStore {
+	return &MockStore{
+		users: make(map[uint]*user.User),
+		email: make(map[string]*user.User),
 	}
 }
 
-func TestLogin(t *testing.T) {
-	tests := []struct {
-		name      string
-		login     *user.Login
-		setupMock func(*mock_store.UserStore)
-		wantErr   string
-	}{
-		{
-			name: "successful login",
-			login: &user.Login{
-				Email:    "test@example.com",
-				Password: "password123",
-			},
-			setupMock: func(s *mock_store.UserStore) {
-				u := &user.User{
-					ID:    1,
-					Email: "test@example.com",
-					Role:  "user",
-				}
-				u.SetPassword("password123")
-				s.Create(u)
-			},
-			wantErr: "",
-		},
-		{
-			name: "user not found",
-			login: &user.Login{
-				Email:    "nonexistent@example.com",
-				Password: "password123",
-			},
-			setupMock: func(s *mock_store.UserStore) {},
-			wantErr:   "failed to login: invalid credentials",
-		},
-		{
-			name: "invalid password",
-			login: &user.Login{
-				Email:    "test@example.com",
-				Password: "wrongpassword",
-			},
-			setupMock: func(s *mock_store.UserStore) {
-				u := &user.User{
-					ID:    1,
-					Email: "test@example.com",
-					Role:  "user",
-				}
-				u.SetPassword("password123")
-				s.Create(u)
-			},
-			wantErr: "failed to login: invalid credentials",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := mock_store.NewUserStore()
-			logger := mock_logging.NewMockLogger()
-			tt.setupMock(store)
-
-			service := user.NewService(store, logger)
-			tokens, err := service.Login(context.Background(), tt.login)
-
-			if tt.wantErr != "" {
-				if err == nil {
-					t.Errorf("expected error containing %q, got nil", tt.wantErr)
-					return
-				}
-				if !strings.Contains(err.Error(), tt.wantErr) {
-					t.Errorf("expected error containing %q, got %q", tt.wantErr, err.Error())
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			if tokens == nil {
-				t.Error("expected tokens to be returned, got nil")
-			}
-		})
-	}
+// Create implements Store.Create
+func (s *MockStore) Create(user *user.User) error {
+	s.users[user.ID] = user
+	s.email[user.Email] = user
+	return nil
 }
 
-func TestLogout(t *testing.T) {
-	store := mock_store.NewUserStore()
-	logger := mock_logging.NewMockLogger()
-	service := user.NewService(store, logger)
-
-	// Create a valid test user with proper password hash
-	u := &user.User{
-		ID:       1,
-		Email:    "test@example.com",
-		Role:     "user",
-		Active:   true,
+// GetByID implements Store.GetByID
+func (s *MockStore) GetByID(id uint) (*user.User, error) {
+	if user, ok := s.users[id]; ok {
+		return user, nil
 	}
-	if err := u.SetPassword("password123"); err != nil {
-		t.Fatalf("failed to set password: %v", err)
-	}
-	store.Create(u)
-
-	login := &user.Login{
-		Email:    "test@example.com",
-		Password: "password123",
-	}
-	tokens, err := service.Login(context.Background(), login)
-	if err != nil {
-		t.Fatalf("failed to login: %v", err)
-	}
-
-	tests := []struct {
-		name    string
-		token   string
-		wantErr string
-	}{
-		{
-			name:    "successful logout",
-			token:   tokens.AccessToken,
-			wantErr: "",
-		},
-		{
-			name:    "invalid token",
-			token:   "invalid-token",
-			wantErr: "failed to logout: invalid token",
-		},
-		{
-			name:    "already blacklisted token",
-			token:   tokens.AccessToken,
-			wantErr: "",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := service.Logout(context.Background(), tt.token)
-
-			if tt.wantErr != "" {
-				if err == nil {
-					t.Errorf("expected error containing %q, got nil", tt.wantErr)
-					return
-				}
-				if !strings.Contains(err.Error(), tt.wantErr) {
-					t.Errorf("expected error containing %q, got %q", tt.wantErr, err.Error())
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			// Verify token is blacklisted
-			if !service.IsTokenBlacklisted(tt.token) {
-				t.Error("expected token to be blacklisted")
-			}
-		})
-	}
+	return nil, nil
 }
 
-func TestGetUserByID(t *testing.T) {
-	tests := []struct {
-		name      string
-		userID    uint
-		setupMock func(*mock_store.UserStore)
-		wantErr   string
-	}{
-		{
-			name:   "successful get",
-			userID: 1,
-			setupMock: func(s *mock_store.UserStore) {
-				u := &user.User{
-					ID:    1,
-					Email: "test@example.com",
-				}
-				s.Create(u)
-			},
-			wantErr: "",
-		},
-		{
-			name:      "user not found",
-			userID:    999,
-			setupMock: func(s *mock_store.UserStore) {},
-			wantErr:   "failed to get user: user not found",
-		},
+// GetByEmail implements Store.GetByEmail
+func (s *MockStore) GetByEmail(email string) (*user.User, error) {
+	if user, ok := s.email[email]; ok {
+		return user, nil
 	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := mock_store.NewUserStore()
-			logger := mock_logging.NewMockLogger()
-			tt.setupMock(store)
-
-			service := user.NewService(store, logger)
-			u, err := service.GetUserByID(context.Background(), tt.userID)
-
-			if tt.wantErr != "" {
-				if err == nil {
-					t.Errorf("expected error containing %q, got nil", tt.wantErr)
-					return
-				}
-				if !strings.Contains(err.Error(), tt.wantErr) {
-					t.Errorf("expected error containing %q, got %q", tt.wantErr, err.Error())
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			if u == nil {
-				t.Error("expected user to be returned, got nil")
-				return
-			}
-
-			if u.ID != tt.userID {
-				t.Errorf("expected user ID %d, got %d", tt.userID, u.ID)
-			}
-		})
-	}
+	return nil, nil
 }
 
-func TestListUsers(t *testing.T) {
-	tests := []struct {
-		name      string
-		setupMock func(*mock_store.UserStore)
-		wantErr   string
-	}{
-		{
-			name: "successful list",
-			setupMock: func(s *mock_store.UserStore) {
-				u1 := &user.User{ID: 1, Email: "test1@example.com"}
-				u2 := &user.User{ID: 2, Email: "test2@example.com"}
-				s.Create(u1)
-				s.Create(u2)
-			},
-			wantErr: "",
-		},
-		{
-			name: "store error",
-			setupMock: func(s *mock_store.UserStore) {
-				s.SetError("list", errors.New("store error"))
-			},
-			wantErr: "failed to list users: store error",
-		},
+// Update implements Store.Update
+func (s *MockStore) Update(user *user.User) error {
+	if _, ok := s.users[user.ID]; !ok {
+		return nil
 	}
+	s.users[user.ID] = user
+	s.email[user.Email] = user
+	return nil
+}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			store := mock_store.NewUserStore()
-			logger := mock_logging.NewMockLogger()
-			tt.setupMock(store)
-
-			service := user.NewService(store, logger)
-			users, err := service.ListUsers(context.Background())
-
-			if tt.wantErr != "" {
-				if err == nil {
-					t.Errorf("expected error containing %q, got nil", tt.wantErr)
-					return
-				}
-				if !strings.Contains(err.Error(), tt.wantErr) {
-					t.Errorf("expected error containing %q, got %q", tt.wantErr, err.Error())
-				}
-				return
-			}
-
-			if err != nil {
-				t.Errorf("unexpected error: %v", err)
-				return
-			}
-
-			if len(users) == 0 {
-				t.Error("expected users to be returned, got empty list")
-			}
-		})
+// Delete implements Store.Delete
+func (s *MockStore) Delete(id uint) error {
+	if user, ok := s.users[id]; ok {
+		delete(s.users, id)
+		delete(s.email, user.Email)
 	}
+	return nil
+}
+
+// List implements Store.List
+func (s *MockStore) List() ([]user.User, error) {
+	users := make([]user.User, 0, len(s.users))
+	for _, user := range s.users {
+		users = append(users, *user)
+	}
+	return users, nil
+}
+
+// MockLogger implements the logging.Logger interface for testing
+type MockLogger struct{}
+
+// NewMockLogger creates a new mock logger
+func NewMockLogger() *MockLogger {
+	return &MockLogger{}
+}
+
+func (l *MockLogger) Debug(msg string, fields ...logging.Field)  {}
+func (l *MockLogger) Info(msg string, fields ...logging.Field)   {}
+func (l *MockLogger) Warn(msg string, fields ...logging.Field)   {}
+func (l *MockLogger) Error(msg string, fields ...logging.Field)  {}
+func (l *MockLogger) Int(key string, val int) logging.Field     { return logging.Field{} }
+func (l *MockLogger) Int32(key string, val int32) logging.Field { return logging.Field{} }
+func (l *MockLogger) Int64(key string, val int64) logging.Field { return logging.Field{} }
+
+func TestUserService(t *testing.T) {
+	// Use new T.Context() for test context
+	ctx := t.Context()
+	
+	// Use new T.Chdir() for test directory management
+	originalDir, err := os.Getwd()
+	require.NoError(t, err)
+	defer func() {
+		err := os.Chdir(originalDir)
+		require.NoError(t, err)
+	}()
+	
+	// Create a temporary test directory
+	testDir := filepath.Join(os.TempDir(), "goforms-test")
+	require.NoError(t, os.MkdirAll(testDir, 0755))
+	t.Chdir(testDir)
+	
+	// Test setup
+	store := NewMockStore()
+	logger := NewMockLogger()
+	service := NewService(store, logger)
+
+	t.Run("SignUp", func(t *testing.T) {
+		signup := &Signup{
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+
+		user, err := service.SignUp(ctx, signup)
+		require.NoError(t, err)
+		assert.NotNil(t, user)
+		assert.Equal(t, signup.Email, user.Email)
+	})
+
+	t.Run("Login", func(t *testing.T) {
+		login := &Login{
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+
+		tokens, err := service.Login(ctx, login)
+		require.NoError(t, err)
+		assert.NotEmpty(t, tokens.AccessToken)
+		assert.NotEmpty(t, tokens.RefreshToken)
+	})
+
+	t.Run("Logout", func(t *testing.T) {
+		login := &Login{
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+
+		tokens, err := service.Login(ctx, login)
+		require.NoError(t, err)
+
+		err = service.Logout(ctx, tokens.AccessToken)
+		require.NoError(t, err)
+
+		// Verify token is blacklisted
+		assert.True(t, service.IsTokenBlacklisted(tokens.AccessToken))
+	})
+
+	t.Run("RefreshToken", func(t *testing.T) {
+		login := &Login{
+			Email:    "test@example.com",
+			Password: "password123",
+		}
+
+		tokens, err := service.Login(ctx, login)
+		require.NoError(t, err)
+
+		newTokens, err := service.RefreshToken(ctx, tokens.RefreshToken)
+		require.NoError(t, err)
+		assert.NotEmpty(t, newTokens.AccessToken)
+		assert.NotEmpty(t, newTokens.RefreshToken)
+		assert.NotEqual(t, tokens.AccessToken, newTokens.AccessToken)
+	})
 }

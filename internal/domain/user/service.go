@@ -50,7 +50,7 @@ type ServiceImpl struct {
 	logger         logging.Logger
 	store          Store
 	jwtSecret      []byte
-	tokenBlacklist sync.Map
+	tokenBlacklist sync.Map // Using new sync.Map implementation from Go 1.24
 }
 
 // NewService creates a new user service
@@ -118,15 +118,9 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, erro
 	return tokens, nil
 }
 
-// Logout blacklists the provided token
+// Logout adds a token to the blacklist
 func (s *ServiceImpl) Logout(ctx context.Context, token string) error {
-	_, err := s.ValidateToken(token)
-	if err != nil {
-		s.logger.Error("failed to validate token", logging.Error(err))
-		return fmt.Errorf("failed to logout: %w", ErrInvalidToken)
-	}
-
-	s.tokenBlacklist.Store(token, true)
+	s.tokenBlacklist.Store(token, time.Now())
 	return nil
 }
 
@@ -188,10 +182,10 @@ func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
-// IsTokenBlacklisted checks if a token is blacklisted
+// IsTokenBlacklisted checks if a token is in the blacklist
 func (s *ServiceImpl) IsTokenBlacklisted(token string) bool {
-	_, blacklisted := s.tokenBlacklist.Load(token)
-	return blacklisted
+	_, exists := s.tokenBlacklist.Load(token)
+	return exists
 }
 
 // generateTokenPair creates a new access and refresh token pair

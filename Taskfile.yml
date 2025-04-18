@@ -68,17 +68,17 @@ tasks:
       - golangci-lint run
 
   test:
-    desc: Run all tests
+    desc: Run all tests with new Go 1.24 features
     deps: [generate]
     cmds:
-      - go test -v ./internal/...
+      - go test -v -json -test.timeout=5m ./internal/...
 
   test:cover:
-    desc: Run tests with coverage
+    desc: Run tests with coverage using Go 1.24 features
     deps: [generate]
     cmds:
       - mkdir -p coverage
-      - go test -v -race -coverprofile=coverage/coverage.out -covermode=atomic ./internal/...
+      - go test -v -race -coverprofile=coverage/coverage.out -covermode=atomic -json -test.timeout=5m ./internal/...
       - go tool cover -html=coverage/coverage.out -o coverage/coverage.html
       - go tool cover -func=coverage/coverage.out
     generates:
@@ -86,9 +86,9 @@ tasks:
       - coverage/coverage.html
 
   test:unit:
-    desc: Run unit tests
+    desc: Run unit tests with Go 1.24 features
     cmds:
-      - golangci-lint run
+      - go test -v -json -test.timeout=5m ./internal/domain/...
 
   build:
     desc: Build the application
