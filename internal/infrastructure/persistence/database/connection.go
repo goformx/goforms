@@ -121,7 +121,11 @@ func (db *DB) WithTx(ctx context.Context, fn func(*sqlx.Tx) error) error {
 			db.logger.Error("rolling back transaction due to panic",
 				logging.Any("panic", p),
 			)
-			_ = tx.Rollback()
+			if rbErr := tx.Rollback(); rbErr != nil {
+				db.logger.Error("failed to rollback transaction after panic",
+					logging.Error(rbErr),
+				)
+			}
 			panic(p) // re-throw panic after rollback
 		}
 	}()

@@ -21,8 +21,8 @@ type MockService struct {
 // mockCall represents a single method call
 type mockCall struct {
 	method string
-	args   []interface{}
-	ret    []interface{}
+	args   []any
+	ret    []any
 }
 
 // NewMockService creates a new mock service
@@ -31,7 +31,7 @@ func NewMockService() *MockService {
 }
 
 // recordCall records a method call
-func (m *MockService) recordCall(method string, args []interface{}) []interface{} {
+func (m *MockService) recordCall(method string, args []any) []any {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -48,7 +48,7 @@ func (m *MockService) recordCall(method string, args []interface{}) []interface{
 }
 
 // matchArgs compares two argument slices
-func matchArgs(exp, got []interface{}) bool {
+func matchArgs(exp, got []any) bool {
 	if len(exp) != len(got) {
 		return false
 	}
@@ -71,8 +71,8 @@ func (m *MockService) ExpectSubmit(ctx context.Context, sub *contact.Submission,
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "Submit",
-		args:   []interface{}{ctx, sub},
-		ret:    []interface{}{err},
+		args:   []any{ctx, sub},
+		ret:    []any{err},
 	})
 }
 
@@ -82,8 +82,8 @@ func (m *MockService) ExpectListSubmissions(ctx context.Context, ret []contact.S
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "ListSubmissions",
-		args:   []interface{}{ctx},
-		ret:    []interface{}{ret, err},
+		args:   []any{ctx},
+		ret:    []any{ret, err},
 	})
 }
 
@@ -93,8 +93,8 @@ func (m *MockService) ExpectGetSubmission(ctx context.Context, id int64, ret *co
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "GetSubmission",
-		args:   []interface{}{ctx, id},
-		ret:    []interface{}{ret, err},
+		args:   []any{ctx, id},
+		ret:    []any{ret, err},
 	})
 }
 
@@ -104,14 +104,14 @@ func (m *MockService) ExpectUpdateSubmissionStatus(ctx context.Context, id int64
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "UpdateSubmissionStatus",
-		args:   []interface{}{ctx, id, status},
-		ret:    []interface{}{err},
+		args:   []any{ctx, id, status},
+		ret:    []any{err},
 	})
 }
 
 // Submit mocks the Submit method
 func (m *MockService) Submit(ctx context.Context, sub *contact.Submission) error {
-	ret := m.recordCall("Submit", []interface{}{ctx, sub})
+	ret := m.recordCall("Submit", []any{ctx, sub})
 	if ret == nil || ret[0] == nil {
 		return nil
 	}
@@ -120,7 +120,7 @@ func (m *MockService) Submit(ctx context.Context, sub *contact.Submission) error
 
 // ListSubmissions mocks the ListSubmissions method
 func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission, error) {
-	ret := m.recordCall("ListSubmissions", []interface{}{ctx})
+	ret := m.recordCall("ListSubmissions", []any{ctx})
 	if ret == nil {
 		return nil, nil
 	}
@@ -137,7 +137,7 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 
 // GetSubmission mocks the GetSubmission method
 func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Submission, error) {
-	ret := m.recordCall("GetSubmission", []interface{}{ctx, id})
+	ret := m.recordCall("GetSubmission", []any{ctx, id})
 	if ret == nil {
 		return nil, nil
 	}
@@ -154,26 +154,26 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 
 // UpdateSubmissionStatus mocks the UpdateSubmissionStatus method
 func (m *MockService) UpdateSubmissionStatus(ctx context.Context, id int64, status contact.Status) error {
-	ret := m.recordCall("UpdateSubmissionStatus", []interface{}{ctx, id, status})
+	ret := m.recordCall("UpdateSubmissionStatus", []any{ctx, id, status})
 	if ret == nil || ret[0] == nil {
 		return nil
 	}
 	return ret[0].(error)
 }
 
-// Verify checks if all expectations were met
+// Verify checks if all expected calls were made
 func (m *MockService) Verify() error {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
-	if len(m.calls) != len(m.expected) {
+	if len(m.expected) != len(m.calls) {
 		return fmt.Errorf("expected %d calls but got %d", len(m.expected), len(m.calls))
 	}
 
 	for i, exp := range m.expected {
 		got := m.calls[i]
 		if exp.method != got.method {
-			return fmt.Errorf("call %d: expected method %s but got %s", i, exp.method, got.method)
+			return fmt.Errorf("call %d: expected method %q but got %q", i, exp.method, got.method)
 		}
 		if !matchArgs(exp.args, got.args) {
 			return fmt.Errorf("call %d: arguments do not match", i)
@@ -187,6 +187,6 @@ func (m *MockService) Verify() error {
 func (m *MockService) Reset() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	m.calls = m.calls[:0]
-	m.expected = m.expected[:0]
+	m.calls = nil
+	m.expected = nil
 }

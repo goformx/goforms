@@ -18,7 +18,7 @@ type AnyValue struct{}
 type logCall struct {
 	level   string
 	message string
-	fields  map[string]interface{}
+	fields  map[string]any
 }
 
 // MockLogger is a mock implementation of logging.Logger
@@ -36,7 +36,7 @@ func NewMockLogger() *MockLogger {
 func (m *MockLogger) recordCall(level, message string, fields ...logging.Field) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	fieldMap := make(map[string]interface{})
+	fieldMap := make(map[string]any)
 	for _, field := range fields {
 		if field.Key == "error" {
 			fieldMap[field.Key] = field.Interface
@@ -149,7 +149,7 @@ func Duration(key string, value time.Duration) logging.Field {
 func (m *MockLogger) ExpectInfo(message string) *logCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	call := logCall{level: "info", message: message, fields: make(map[string]interface{})}
+	call := logCall{level: "info", message: message, fields: make(map[string]any)}
 	m.expected = append(m.expected, call)
 	return &m.expected[len(m.expected)-1]
 }
@@ -158,7 +158,7 @@ func (m *MockLogger) ExpectInfo(message string) *logCall {
 func (m *MockLogger) ExpectError(message string) *logCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	call := logCall{level: "error", message: message, fields: make(map[string]interface{})}
+	call := logCall{level: "error", message: message, fields: make(map[string]any)}
 	m.expected = append(m.expected, call)
 	return &m.expected[len(m.expected)-1]
 }
@@ -167,7 +167,7 @@ func (m *MockLogger) ExpectError(message string) *logCall {
 func (m *MockLogger) ExpectDebug(message string) *logCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	call := logCall{level: "debug", message: message, fields: make(map[string]interface{})}
+	call := logCall{level: "debug", message: message, fields: make(map[string]any)}
 	m.expected = append(m.expected, call)
 	return &m.expected[len(m.expected)-1]
 }
@@ -176,13 +176,13 @@ func (m *MockLogger) ExpectDebug(message string) *logCall {
 func (m *MockLogger) ExpectWarn(message string) *logCall {
 	m.mu.Lock()
 	defer m.mu.Unlock()
-	call := logCall{level: "warn", message: message, fields: make(map[string]interface{})}
+	call := logCall{level: "warn", message: message, fields: make(map[string]any)}
 	m.expected = append(m.expected, call)
 	return &m.expected[len(m.expected)-1]
 }
 
 // WithFields adds field expectations to a log call
-func (c *logCall) WithFields(fields map[string]interface{}) *logCall {
+func (c *logCall) WithFields(fields map[string]any) *logCall {
 	c.fields = fields
 	return c
 }

@@ -37,15 +37,15 @@ func (h *HealthHandler) Register(e *echo.Echo) {
 func (h *HealthHandler) HandleHealthCheck(c echo.Context) error {
 	if err := h.db.PingContext(c); err != nil {
 		h.logger.Error("health check failed", logging.Error(err))
-		return fmt.Errorf("failed to check health status: %w",
-			response.InternalError(c, "Service is not healthy"))
+		return response.InternalError(c, "Service is not healthy")
 	}
 
-	err := response.Success(c, map[string]interface{}{
+	if err := response.Success(c, map[string]any{
 		"status": "healthy",
-	})
-	if err == nil {
-		return nil
+	}); err != nil {
+		h.logger.Error("failed to send health check response", logging.Error(err))
+		return fmt.Errorf("failed to send health check response: %w", err)
 	}
-	return fmt.Errorf("failed to send health check response: %w", err)
+
+	return nil
 }

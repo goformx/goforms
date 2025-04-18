@@ -2,11 +2,13 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 	"strconv"
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/jonesrussell/goforms/internal/application/response"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
@@ -99,19 +101,26 @@ func (h *ContactHandler) Register(e *echo.Echo) {
 func (h *ContactHandler) handleSubmit(c echo.Context) error {
 	var submission contact.Submission
 	if err := c.Bind(&submission); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
+		h.LogError("failed to bind submission", err)
+		return response.BadRequest(c, "Invalid request format")
 	}
 
 	if err := c.Validate(submission); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+		h.LogError("failed to validate submission", err)
+		return response.BadRequest(c, err.Error())
 	}
 
 	if err := h.contactService.Submit(c.Request().Context(), &submission); err != nil {
 		h.LogError("failed to submit contact form", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to submit contact form")
+		return response.InternalError(c, "Failed to submit contact form")
 	}
 
-	return c.JSON(http.StatusCreated, submission)
+	if err := response.Created(c, submission); err != nil {
+		h.LogError("failed to send created response", err)
+		return fmt.Errorf("failed to send created response: %w", err)
+	}
+
+	return nil
 }
 
 // handleList handles listing contact form submissions

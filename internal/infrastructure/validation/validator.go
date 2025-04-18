@@ -30,12 +30,12 @@ func New() interfaces.Validator {
 }
 
 // Struct implements validator.Struct
-func (v *validatorImpl) Struct(s interface{}) error {
+func (v *validatorImpl) Struct(s any) error {
 	return v.Validate.Struct(s)
 }
 
 // Var implements validator.Var
-func (v *validatorImpl) Var(field interface{}, tag string) error {
+func (v *validatorImpl) Var(field any, tag string) error {
 	return v.Validate.Var(field, tag)
 }
 
