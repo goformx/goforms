@@ -1,18 +1,20 @@
-package subscription
+package subscription_test
 
 import (
 	"testing"
+
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
 )
 
 func TestSubscription_Validate(t *testing.T) {
 	tests := []struct {
 		name    string
-		sub     *Subscription
+		sub     *subscription.Subscription
 		wantErr bool
 	}{
 		{
 			name: "valid subscription",
-			sub: &Subscription{
+			sub: &subscription.Subscription{
 				Email: "test@example.com",
 				Name:  "Test User",
 			},
@@ -20,14 +22,14 @@ func TestSubscription_Validate(t *testing.T) {
 		},
 		{
 			name: "missing email",
-			sub: &Subscription{
+			sub: &subscription.Subscription{
 				Name: "Test User",
 			},
 			wantErr: true,
 		},
 		{
 			name: "invalid email",
-			sub: &Subscription{
+			sub: &subscription.Subscription{
 				Email: "invalid-email",
 				Name:  "Test User",
 			},
@@ -35,14 +37,14 @@ func TestSubscription_Validate(t *testing.T) {
 		},
 		{
 			name: "missing name",
-			sub: &Subscription{
+			sub: &subscription.Subscription{
 				Email: "test@example.com",
 			},
 			wantErr: true,
 		},
 		{
 			name:    "empty subscription",
-			sub:     &Subscription{},
+			sub:     &subscription.Subscription{},
 			wantErr: true,
 		},
 		{

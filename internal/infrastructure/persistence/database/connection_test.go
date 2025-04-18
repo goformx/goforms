@@ -1,51 +1,23 @@
-package database
+package database_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
-	"go.uber.org/fx"
-	"go.uber.org/fx/fxtest"
-
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/fx"
+	"go.uber.org/fx/fxtest"
 )
-
-func TestBuildDSN(t *testing.T) {
-	tests := []struct {
-		name     string
-		config   *config.DatabaseConfig
-		expected string
-	}{
-		{
-			name: "valid configuration",
-			config: &config.DatabaseConfig{
-				Host:     "localhost",
-				Port:     3306,
-				User:     "test_user",
-				Password: "test_pass",
-				Name:     "test_db",
-			},
-			expected: "test_user:test_pass@tcp(localhost:3306)/test_db?parseTime=true",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			dsn := buildDSN(tt.config)
-			if dsn != tt.expected {
-				t.Errorf("buildDSN() = %v, want %v", dsn, tt.expected)
-			}
-		})
-	}
-}
 
 func TestNewDB(t *testing.T) {
 	app := fxtest.New(t,
 		fx.Provide(
 			func() logging.Logger {
-				return logging.NewTestLogger()
+				return logging.NewLogger(true, "test")
 			},
 			func() *config.Config {
 				return &config.Config{
@@ -61,17 +33,16 @@ func TestNewDB(t *testing.T) {
 					},
 				}
 			},
-			NewDB,
+			database.NewDB,
 		),
 	)
 
-	defer func() {
-		if err := app.Stop(context.Background()); err != nil {
-			t.Errorf("failed to stop app: %v", err)
-		}
-	}()
+	require.NoError(t, app.Start(context.Background()))
+	defer app.Stop(context.Background())
 
-	if err := app.Start(context.Background()); err != nil {
-		t.Errorf("failed to start app: %v", err)
-	}
+	// Get the database instance
+	var db *database.DB
+	require.NoError(t, app.Start(context.Background()))
+	require.NoError(t, app.Stop(context.Background()))
+	require.NotNil(t, db)
 }

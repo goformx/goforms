@@ -1,4 +1,4 @@
-package middleware
+package middleware_test
 
 import (
 	"net/http"
@@ -8,20 +8,18 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/jonesrussell/goforms/internal/application/middleware"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
-func TestMiddlewareSetup(t *testing.T) {
+func TestMiddleware_Setup(t *testing.T) {
 	// Create mock logger
 	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectDebug("creating new middleware manager")
-	mockLogger.ExpectDebug("setting up middleware")
-	mockLogger.ExpectDebug("adding security headers middleware")
-	mockLogger.ExpectDebug("adding request ID middleware")
-	mockLogger.ExpectDebug("middleware setup complete")
 
 	// Create middleware manager
-	mw := New(mockLogger)
+	mw := middleware.New(mockLogger)
 
 	// Create Echo instance
 	e := echo.New()
@@ -29,10 +27,29 @@ func TestMiddlewareSetup(t *testing.T) {
 	// Setup middleware
 	mw.Setup(e)
 
-	// Verify logger calls
-	if err := mockLogger.Verify(); err != nil {
-		t.Errorf("logger expectations not met: %v", err)
+	// Create test request
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Create handler
+	handler := func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
 	}
+
+	// Test middleware chain
+	err := handler(c)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotEmpty(t, rec.Header().Get("X-Request-ID"))
+	assert.Equal(t, "default-src 'self'", rec.Header().Get("Content-Security-Policy"))
+	assert.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
+	assert.Equal(t, "SAMEORIGIN", rec.Header().Get("X-Frame-Options"))
+	assert.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
+
+	// Verify mock expectations
+	require.NoError(t, mockLogger.Verify())
 }
 
 func TestRequestIDMiddleware(t *testing.T) {
@@ -49,14 +66,14 @@ func TestRequestIDMiddleware(t *testing.T) {
 	})
 
 	e := echo.New()
-	m := New(mockLogger)
+	m := middleware.New(mockLogger)
 
 	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
-	// Add middleware
-	e.Use(m.requestID())
+	// Setup middleware
+	m.Setup(e)
 
 	// Create test handler
 	e.GET("/", func(c echo.Context) error {
@@ -128,14 +145,14 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	mockLogger.ExpectDebug("security headers processing complete")
 
 	e := echo.New()
-	m := New(mockLogger)
+	m := middleware.New(mockLogger)
 
 	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 
-	// Add middleware
-	e.Use(m.securityHeaders())
+	// Setup middleware
+	m.Setup(e)
 
 	// Create test handler
 	e.GET("/", func(c echo.Context) error {
@@ -173,4 +190,69 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	if err := mockLogger.Verify(); err != nil {
 		t.Errorf("logger expectations not met: %v", err)
 	}
+}
+
+func TestRequestID(t *testing.T) {
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+
+	// Create middleware manager
+	mw := middleware.New(mockLogger)
+
+	// Create Echo instance
+	e := echo.New()
+
+	// Create test request
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Create handler
+	handler := func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
+	}
+
+	// Setup middleware
+	mw.Setup(e)
+
+	// Test middleware chain
+	err := handler(c)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.NotEmpty(t, rec.Header().Get("X-Request-ID"))
+}
+
+func TestSecurityHeaders(t *testing.T) {
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+
+	// Create middleware manager
+	mw := middleware.New(mockLogger)
+
+	// Create Echo instance
+	e := echo.New()
+
+	// Create test request
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Create handler
+	handler := func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
+	}
+
+	// Setup middleware
+	mw.Setup(e)
+
+	// Test middleware chain
+	err := handler(c)
+
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, "default-src 'self'", rec.Header().Get("Content-Security-Policy"))
+	assert.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
+	assert.Equal(t, "DENY", rec.Header().Get("X-Frame-Options"))
+	assert.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
 }

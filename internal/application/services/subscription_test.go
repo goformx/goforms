@@ -3,6 +3,7 @@ package services_test
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -41,7 +42,11 @@ func (m *MockStore) GetByID(ctx context.Context, id int64) (*subscription.Subscr
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*subscription.Subscription), args.Error(1)
+	sub, ok := args.Get(0).(*subscription.Subscription)
+	if !ok {
+		return nil, fmt.Errorf("invalid type returned from mock")
+	}
+	return sub, args.Error(1)
 }
 
 func (m *MockStore) GetByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
@@ -49,7 +54,11 @@ func (m *MockStore) GetByEmail(ctx context.Context, email string) (*subscription
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*subscription.Subscription), args.Error(1)
+	sub, ok := args.Get(0).(*subscription.Subscription)
+	if !ok {
+		return nil, fmt.Errorf("invalid type returned from mock")
+	}
+	return sub, args.Error(1)
 }
 
 func (m *MockStore) Delete(ctx context.Context, id int64) error {
@@ -62,12 +71,23 @@ func (m *MockStore) List(ctx context.Context) ([]subscription.Subscription, erro
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]subscription.Subscription), args.Error(1)
+	subs, ok := args.Get(0).([]subscription.Subscription)
+	if !ok {
+		return nil, fmt.Errorf("invalid type returned from mock")
+	}
+	return subs, args.Error(1)
 }
 
 func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status subscription.Status) error {
 	args := m.Called(ctx, id, status)
 	return args.Error(0)
+}
+
+func (m *MockStore) Verify(t *testing.T) error {
+	if !m.Mock.AssertExpectations(t) {
+		return fmt.Errorf("mock store expectations not met")
+	}
+	return nil
 }
 
 type MockLogger struct {
@@ -118,6 +138,13 @@ func (m *MockLogger) Uint32(key string, value uint32) logging.Field {
 func (m *MockLogger) Uint64(key string, value uint64) logging.Field {
 	args := m.Called(key, value)
 	return args.Get(0).(logging.Field)
+}
+
+func (m *MockLogger) Verify(t *testing.T) error {
+	if !m.Mock.AssertExpectations(t) {
+		return fmt.Errorf("mock logger expectations not met")
+	}
+	return nil
 }
 
 func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
@@ -196,9 +223,11 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup
+			// Setup mocks
 			store := new(MockStore)
 			logger := new(MockLogger)
+
+			// Create handler
 			handler := services.NewSubscriptionHandler(store, logger)
 
 			// Create request
@@ -231,8 +260,7 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			}
 
 			// Verify mock expectations
-			store.AssertExpectations(t)
-			logger.AssertExpectations(t)
+			mock.AssertExpectationsForObjects(t, store, logger)
 		})
 	}
 }
