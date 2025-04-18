@@ -178,22 +178,22 @@ func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
 
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, fmt.Errorf("invalid token claims")
+		return nil, errors.New("invalid token claims")
 	}
 
 	// Validate user_id claim exists and is a float64
 	if _, ok := claims["user_id"].(float64); !ok {
-		return nil, fmt.Errorf("invalid user_id claim")
+		return nil, errors.New("invalid user_id claim")
 	}
 
 	// Validate token expiration
 	exp, ok := claims["exp"].(float64)
 	if !ok {
-		return nil, fmt.Errorf("invalid exp claim")
+		return nil, errors.New("invalid exp claim")
 	}
 
 	if time.Now().Unix() > int64(exp) {
-		return nil, fmt.Errorf("token expired")
+		return nil, errors.New("token expired")
 	}
 
 	return token, nil

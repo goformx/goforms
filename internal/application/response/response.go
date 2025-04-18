@@ -1,7 +1,7 @@
 package response
 
 import (
-	"fmt"
+	"errors"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -135,7 +135,7 @@ func InternalError(c echo.Context, message string) error {
 func (r *Response) SetLogger(logger interface{}) error {
 	log, ok := logger.(logging.Logger)
 	if !ok {
-		return fmt.Errorf("invalid logger type")
+		return errors.New("invalid logger type")
 	}
 	r.logger = log
 	return nil

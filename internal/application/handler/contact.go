@@ -205,7 +205,7 @@ func (h *ContactHandler) handleUpdate(c echo.Context) error {
 func (h *ContactHandler) parseID(c echo.Context) (int64, error) {
 	idStr := c.Param("id")
 	if idStr == "" {
-		return 0, fmt.Errorf("missing id parameter")
+		return 0, errors.New("missing id parameter")
 	}
 
 	id, parseErr := strconv.ParseInt(idStr, 10, 64)
@@ -214,7 +214,7 @@ func (h *ContactHandler) parseID(c echo.Context) (int64, error) {
 	}
 
 	if id <= 0 {
-		return 0, fmt.Errorf("id must be positive")
+		return 0, errors.New("id must be positive")
 	}
 
 	return id, nil

@@ -2,7 +2,7 @@ package subscription
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -34,7 +34,7 @@ func (m *MockService) ListSubscriptions(ctx context.Context) ([]Subscription, er
 	}
 	subs, ok := args.Get(0).([]Subscription)
 	if !ok {
-		return nil, fmt.Errorf("invalid type assertion")
+		return nil, errors.New("invalid type assertion")
 	}
 	return subs, nil
 }
@@ -47,7 +47,7 @@ func (m *MockService) GetSubscription(ctx context.Context, id int64) (*Subscript
 	}
 	sub, ok := args.Get(0).(*Subscription)
 	if !ok {
-		return nil, fmt.Errorf("invalid type assertion")
+		return nil, errors.New("invalid type assertion")
 	}
 	return sub, nil
 }
@@ -60,7 +60,7 @@ func (m *MockService) GetSubscriptionByEmail(ctx context.Context, email string) 
 	}
 	sub, ok := args.Get(0).(*Subscription)
 	if !ok {
-		return nil, fmt.Errorf("invalid type assertion")
+		return nil, errors.New("invalid type assertion")
 	}
 	return sub, nil
 }
@@ -84,7 +84,7 @@ func (m *MockService) GetSubscriptionByID(ctx context.Context, id uint) (*Subscr
 	}
 	sub, ok := args.Get(0).(*Subscription)
 	if !ok {
-		return nil, fmt.Errorf("invalid type assertion")
+		return nil, errors.New("invalid type assertion")
 	}
 	return sub, nil
 }

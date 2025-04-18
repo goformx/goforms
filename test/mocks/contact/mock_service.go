@@ -2,6 +2,7 @@ package contactmock
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 
@@ -118,7 +119,7 @@ func (m *MockService) Submit(ctx context.Context, sub *contact.Submission) error
 	if err, ok := ret[0].(error); ok {
 		return err
 	}
-	return fmt.Errorf("invalid error type returned from mock")
+	return errors.New("invalid error type returned from mock")
 }
 
 // ListSubmissions mocks the ListSubmissions method
@@ -133,7 +134,7 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 		if s, ok := ret[0].([]contact.Submission); ok {
 			subs = s
 		} else {
-			return nil, fmt.Errorf("invalid submissions type returned from mock")
+			return nil, errors.New("invalid submissions type returned from mock")
 		}
 	}
 
@@ -142,7 +143,7 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 		if e, ok := ret[1].(error); ok {
 			err = e
 		} else {
-			return nil, fmt.Errorf("invalid error type returned from mock")
+			return nil, errors.New("invalid error type returned from mock")
 		}
 	}
 	return subs, err
@@ -160,7 +161,7 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 		if s, ok := ret[0].(*contact.Submission); ok {
 			sub = s
 		} else {
-			return nil, fmt.Errorf("invalid submission type returned from mock")
+			return nil, errors.New("invalid submission type returned from mock")
 		}
 	}
 
@@ -169,7 +170,7 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 		if e, ok := ret[1].(error); ok {
 			err = e
 		} else {
-			return nil, fmt.Errorf("invalid error type returned from mock")
+			return nil, errors.New("invalid error type returned from mock")
 		}
 	}
 	return sub, err
@@ -184,7 +185,7 @@ func (m *MockService) UpdateSubmissionStatus(ctx context.Context, id int64, stat
 	if err, ok := ret[0].(error); ok {
 		return err
 	}
-	return fmt.Errorf("invalid error type returned from mock")
+	return errors.New("invalid error type returned from mock")
 }
 
 // Verify checks if all expected calls were made
