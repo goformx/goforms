@@ -2,6 +2,7 @@
 package logging
 
 import (
+	"fmt"
 	"time"
 
 	"go.uber.org/zap"
@@ -63,7 +64,7 @@ func Error(err error) Field { return zap.Error(err) }
 func Duration(key string, value time.Duration) Field { return zap.Duration(key, value) }
 
 // Any creates a field with any value
-func Any(key string, value interface{}) Field { return zap.Any(key, value) }
+func Any(key string, value any) Field { return zap.Any(key, value) }
 
 // logger implements the Logger interface using zap
 type logger struct {
@@ -71,7 +72,7 @@ type logger struct {
 }
 
 // NewLogger creates a new logger instance
-func NewLogger(debug bool, appName string) Logger {
+func NewLogger(debug bool, appName string) (Logger, error) {
 	// Create encoder config
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -80,6 +81,8 @@ func NewLogger(debug bool, appName string) Logger {
 	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 
 	var zapLog *zap.Logger
+	var err error
+
 	if debug {
 		// Development mode with colored output
 		config := zap.NewDevelopmentConfig()
@@ -87,7 +90,7 @@ func NewLogger(debug bool, appName string) Logger {
 		config.OutputPaths = []string{"stdout"}
 		config.Encoding = "console"
 
-		zapLog, _ = config.Build(
+		zapLog, err = config.Build(
 			zap.AddCaller(),
 			zap.AddStacktrace(zapcore.ErrorLevel),
 			zap.Fields(
@@ -96,22 +99,33 @@ func NewLogger(debug bool, appName string) Logger {
 		)
 	} else {
 		// Production mode with JSON output
-		zapLog, _ = zap.NewProduction(
+		zapLog, err = zap.NewProduction(
 			zap.Fields(
 				zap.String("app", appName),
 			),
 		)
 	}
 
-	return &logger{log: zapLog}
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logger: %w", err)
+	}
+
+	return &logger{log: zapLog}, nil
 }
 
 // NewTestLogger creates a logger suitable for testing
-func NewTestLogger() Logger {
+func NewTestLogger() (Logger, error) {
 	config := zap.NewDevelopmentConfig()
 	config.OutputPaths = []string{"stdout"}
-	zapLog, _ := config.Build()
-	return &logger{log: zapLog}
+	zapLog, err := config.Build(
+		zap.Fields(
+			zap.String("app", "test"),
+		),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create test logger: %w", err)
+	}
+	return &logger{log: zapLog}, nil
 }
 
 func (l *logger) Info(msg string, fields ...Field)  { l.log.Info(msg, fields...) }
