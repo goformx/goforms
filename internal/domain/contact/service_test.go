@@ -12,8 +12,6 @@ import (
 
 var errTest = errors.New("test error")
 
-type anyValue struct{}
-
 func TestSubmitContact(t *testing.T) {
 	tests := []struct {
 		name    string

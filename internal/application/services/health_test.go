@@ -1,4 +1,4 @@
-package services
+package services_test
 
 import (
 	"encoding/json"
@@ -6,9 +6,14 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	mocklog "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/jonesrussell/goforms/internal/application/services"
 )
 
 type mockPingContexter struct {
@@ -24,16 +29,16 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 		name        string
 		pingError   error
 		wantStatus  int
-		wantBody    map[string]interface{}
+		wantBody    map[string]any
 		wantLogCall bool
 	}{
 		{
 			name:       "healthy service",
 			pingError:  nil,
 			wantStatus: http.StatusOK,
-			wantBody: map[string]interface{}{
+			wantBody: map[string]any{
 				"success": true,
-				"data": map[string]interface{}{
+				"data": map[string]any{
 					"status": "healthy",
 				},
 			},
@@ -43,7 +48,7 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 			name:       "unhealthy service",
 			pingError:  errors.New("db connection failed"),
 			wantStatus: http.StatusInternalServerError,
-			wantBody: map[string]interface{}{
+			wantBody: map[string]any{
 				"success": false,
 				"error":   "Service is not healthy",
 			},
@@ -56,7 +61,7 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 			// Setup
 			mockLogger := mocklog.NewMockLogger()
 			mockDB := &mockPingContexter{err: tt.pingError}
-			handler := NewHealthHandler(mockLogger, mockDB)
+			handler := services.NewHealthHandler(mockLogger, mockDB)
 
 			// Create request and recorder
 			req := httptest.NewRequest(http.MethodGet, "/health", nil)
@@ -82,7 +87,7 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 				t.Errorf("HandleHealthCheck() status = %v, want %v", rec.Code, tt.wantStatus)
 			}
 
-			var gotBody map[string]interface{}
+			var gotBody map[string]any
 			if err := json.Unmarshal(rec.Body.Bytes(), &gotBody); err != nil {
 				t.Fatalf("Failed to unmarshal response body: %v", err)
 			}
@@ -96,7 +101,7 @@ func TestHealthHandler_HandleHealthCheck(t *testing.T) {
 }
 
 // deepEqual recursively compares two maps for equality
-func deepEqual(t *testing.T, want, got map[string]interface{}) bool {
+func deepEqual(t *testing.T, want, got map[string]any) bool {
 	if len(want) != len(got) {
 		return false
 	}
@@ -106,8 +111,8 @@ func deepEqual(t *testing.T, want, got map[string]interface{}) bool {
 			return false
 		}
 		switch v := wantVal.(type) {
-		case map[string]interface{}:
-			if g, ok := gotVal.(map[string]interface{}); !ok || !deepEqual(t, v, g) {
+		case map[string]any:
+			if g, ok := gotVal.(map[string]any); !ok || !deepEqual(t, v, g) {
 				return false
 			}
 		default:
@@ -117,4 +122,63 @@ func deepEqual(t *testing.T, want, got map[string]interface{}) bool {
 		}
 	}
 	return true
+}
+
+func TestHealthCheck(t *testing.T) {
+	tests := []struct {
+		name      string
+		wantCode  int
+		wantBody  map[string]any
+		wantError bool
+	}{
+		{
+			name:     "healthy",
+			wantCode: 200,
+			wantBody: map[string]any{
+				"status": "ok",
+				"data": map[string]any{
+					"uptime": time.Duration(0),
+				},
+			},
+			wantError: false,
+		},
+		{
+			name:     "unhealthy",
+			wantCode: 503,
+			wantBody: map[string]any{
+				"status": "error",
+				"error":  "service unavailable",
+			},
+			wantError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			e := echo.New()
+			req := httptest.NewRequest(echo.GET, "/health", nil)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			mockLogger := mocklog.NewMockLogger()
+			mockDB := &mockPingContexter{err: nil}
+			if tt.wantError {
+				mockDB.err = errors.New("service unavailable")
+			}
+
+			h := services.NewHealthHandler(mockLogger, mockDB)
+			err := h.HandleHealthCheck(c)
+
+			if tt.wantError {
+				require.Error(t, err)
+				return
+			}
+
+			require.NoError(t, err)
+			var gotBody map[string]any
+			err = json.Unmarshal(rec.Body.Bytes(), &gotBody)
+			require.NoError(t, err)
+			assert.Equal(t, tt.wantBody, gotBody)
+		})
+	}
 }

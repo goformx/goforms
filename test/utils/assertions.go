@@ -5,6 +5,7 @@ import (
 	"testing"
 
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 // AssertJSONResponse asserts common JSON response properties
@@ -35,4 +36,12 @@ func AssertSuccessResponse(t *testing.T, rec *httptest.ResponseRecorder, expecte
 	err := ParseJSONResponse(rec, &response)
 	assert.NoError(t, err)
 	assert.Contains(t, response, "data")
+}
+
+func AssertNoError(t *testing.T, err error) {
+	require.NoError(t, err)
+}
+
+func AssertError(t *testing.T, err error) {
+	require.Error(t, err)
 }

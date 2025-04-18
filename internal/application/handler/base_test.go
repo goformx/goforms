@@ -1,93 +1,75 @@
-package handler
+package handler_test
 
 import (
 	"errors"
 	"testing"
 
+	"github.com/jonesrussell/goforms/internal/application/handler"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/stretchr/testify/assert"
 )
 
-func TestNewBase(t *testing.T) {
-	t.Run("creates base with logger", func(t *testing.T) {
+func TestBase(t *testing.T) {
+	t.Run("with logger", func(t *testing.T) {
 		logger := mocklogging.NewMockLogger()
-		base := NewBase(WithLogger(logger))
-		if base.Logger != logger {
-			t.Errorf("expected logger to be set, got nil")
-		}
+		base := handler.NewBase(handler.WithLogger(logger))
+		assert.NotNil(t, base)
+		assert.Equal(t, logger, base.Logger)
 	})
 
-	t.Run("creates base without logger", func(t *testing.T) {
-		base := NewBase()
-		if base.Logger != nil {
-			t.Errorf("expected nil logger, got %v", base.Logger)
-		}
+	t.Run("without logger", func(t *testing.T) {
+		base := handler.NewBase()
+		assert.NotNil(t, base)
+		assert.Nil(t, base.Logger)
 	})
 }
 
 func TestBase_Validate(t *testing.T) {
 	t.Run("valid when logger set", func(t *testing.T) {
 		logger := mocklogging.NewMockLogger()
-		base := NewBase(WithLogger(logger))
+		base := handler.NewBase(handler.WithLogger(logger))
 		err := base.Validate()
-		if err != nil {
-			t.Errorf("expected no error, got %v", err)
-		}
+		assert.NoError(t, err)
 	})
 
 	t.Run("invalid when logger missing", func(t *testing.T) {
-		base := NewBase()
+		base := handler.NewBase()
 		err := base.Validate()
-		if err == nil {
-			t.Error("expected error, got nil")
-		}
-		if err != nil && err.Error() != "logger is required" {
-			t.Errorf("expected 'logger is required' error, got %v", err)
-		}
+		assert.Error(t, err)
+		assert.Equal(t, "logger is required", err.Error())
 	})
 }
 
 func TestBase_WrapResponseError(t *testing.T) {
 	logger := mocklogging.NewMockLogger()
-	base := NewBase(WithLogger(logger))
+	base := handler.NewBase(handler.WithLogger(logger))
 
 	t.Run("wraps error with message", func(t *testing.T) {
 		originalErr := errors.New("original error")
 		wrappedErr := base.WrapResponseError(originalErr, "wrapped message")
-		if wrappedErr == nil {
-			t.Error("expected error, got nil")
-		}
-		if !errors.Is(wrappedErr, originalErr) {
-			t.Errorf("expected wrapped error to contain original error")
-		}
-		expectedMsg := "wrapped message: original error"
-		if wrappedErr.Error() != expectedMsg {
-			t.Errorf("expected error message %q, got %q", expectedMsg, wrappedErr.Error())
-		}
+		assert.Error(t, wrappedErr)
+		assert.ErrorIs(t, wrappedErr, originalErr)
+		assert.Equal(t, "wrapped message: original error", wrappedErr.Error())
 	})
 
 	t.Run("returns nil for nil error", func(t *testing.T) {
 		wrappedErr := base.WrapResponseError(nil, "wrapped message")
-		if wrappedErr != nil {
-			t.Errorf("expected nil error, got %v", wrappedErr)
-		}
+		assert.NoError(t, wrappedErr)
 	})
 }
 
 func TestBase_LogError(t *testing.T) {
 	t.Run("logs error with fields", func(t *testing.T) {
 		logger := mocklogging.NewMockLogger()
-		base := NewBase(WithLogger(logger))
+		base := handler.NewBase(handler.WithLogger(logger))
 
 		err := errors.New("test error")
-		logger.ExpectError("test message").WithFields(map[string]interface{}{
+		logger.ExpectError("test message").WithFields(map[string]any{
 			"key":   "value",
 			"error": err,
 		})
 
 		base.LogError("test message", err, mocklogging.String("key", "value"))
-
-		if err := logger.Verify(); err != nil {
-			t.Errorf("logger expectations not met: %v", err)
-		}
+		assert.NoError(t, logger.Verify())
 	})
 }

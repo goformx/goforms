@@ -49,6 +49,10 @@ func (s *Store) Create(u *user.User) error {
 		}
 	}
 
+	if err := rows.Err(); err != nil {
+		return err
+	}
+
 	return nil
 }
 
