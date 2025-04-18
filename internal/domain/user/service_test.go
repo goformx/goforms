@@ -112,10 +112,10 @@ func TestUserService(t *testing.T) {
 	// Test setup
 	store := NewMockStore()
 	logger := NewMockLogger()
-	service := NewService(store, logger)
+	service := user.NewService(store, logger)
 
 	t.Run("SignUp", func(t *testing.T) {
-		signup := &Signup{
+		signup := &user.Signup{
 			Email:    "test@example.com",
 			Password: "password123",
 		}
@@ -127,7 +127,7 @@ func TestUserService(t *testing.T) {
 	})
 
 	t.Run("Login", func(t *testing.T) {
-		login := &Login{
+		login := &user.Login{
 			Email:    "test@example.com",
 			Password: "password123",
 		}
@@ -139,7 +139,7 @@ func TestUserService(t *testing.T) {
 	})
 
 	t.Run("Logout", func(t *testing.T) {
-		login := &Login{
+		login := &user.Login{
 			Email:    "test@example.com",
 			Password: "password123",
 		}
@@ -155,7 +155,7 @@ func TestUserService(t *testing.T) {
 	})
 
 	t.Run("RefreshToken", func(t *testing.T) {
-		login := &Login{
+		login := &user.Login{
 			Email:    "test@example.com",
 			Password: "password123",
 		}
