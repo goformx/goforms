@@ -71,6 +71,14 @@ type logger struct {
 	log *zap.Logger
 }
 
+// NoopLogger is a logger that does nothing
+type noopLogger struct{}
+
+// NewNoopLogger creates a new no-op logger
+func NewNoopLogger() Logger {
+	return &noopLogger{}
+}
+
 // NewLogger creates a new logger instance
 func NewLogger(debug bool, appName string) (Logger, error) {
 	// Create encoder config
@@ -160,5 +168,34 @@ func (l *logger) Uint(key string, value uint) Field {
 
 // Uint32 adds a uint32 field to the log entry
 func (l *logger) Uint32(key string, value uint32) Field {
+	return zap.Uint32(key, value)
+}
+
+func (l *noopLogger) Info(msg string, fields ...Field)  {}
+func (l *noopLogger) Error(msg string, fields ...Field) {}
+func (l *noopLogger) Debug(msg string, fields ...Field) {}
+func (l *noopLogger) Warn(msg string, fields ...Field)  {}
+
+func (l *noopLogger) Int64(key string, value int64) Field {
+	return zap.Int64(key, value)
+}
+
+func (l *noopLogger) Int(key string, value int) Field {
+	return zap.Int(key, value)
+}
+
+func (l *noopLogger) Int32(key string, value int32) Field {
+	return zap.Int32(key, value)
+}
+
+func (l *noopLogger) Uint64(key string, value uint64) Field {
+	return zap.Uint64(key, value)
+}
+
+func (l *noopLogger) Uint(key string, value uint) Field {
+	return zap.Uint(key, value)
+}
+
+func (l *noopLogger) Uint32(key string, value uint32) Field {
 	return zap.Uint32(key, value)
 }

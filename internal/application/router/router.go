@@ -23,9 +23,13 @@ type StaticConfig struct {
 }
 
 // Setup configures all routes for an Echo instance
-func Setup(e *echo.Echo, cfg *Config) {
+func Setup(e *echo.Echo, cfg *Config) error {
 	if cfg.Logger == nil {
-		cfg.Logger = logging.NewTestLogger()
+		logger, err := logging.NewTestLogger()
+		if err != nil {
+			return fmt.Errorf("failed to create test logger: %w", err)
+		}
+		cfg.Logger = logger
 	}
 
 	cfg.Logger.Debug("setting up routes",
@@ -48,14 +52,13 @@ func Setup(e *echo.Echo, cfg *Config) {
 	}
 
 	// Configure static files
-	if cfg.Static.Path != "" {
+	if cfg.Static.Path != "" && cfg.Static.Root != "" {
 		cfg.Logger.Debug("configuring static files",
 			logging.String("path", cfg.Static.Path),
 			logging.String("root", cfg.Static.Root),
 		)
 		e.Static(cfg.Static.Path, cfg.Static.Root)
-		cfg.Logger.Debug("static files configured")
 	}
 
-	cfg.Logger.Debug("route setup complete")
+	return nil
 }

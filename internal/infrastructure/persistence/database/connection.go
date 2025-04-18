@@ -42,8 +42,16 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 			logging.Error(err),
 			logging.String("host", cfg.Database.Host),
 			logging.String("port", strconv.Itoa(cfg.Database.Port)),
+			logging.String("user", cfg.Database.User),
+			logging.String("database", cfg.Database.Name),
 		)
-		return nil, fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("failed to connect to database %s@%s:%d/%s: %w",
+			cfg.Database.User,
+			cfg.Database.Host,
+			cfg.Database.Port,
+			cfg.Database.Name,
+			err,
+		)
 	}
 
 	logger.Debug("setting database connection parameters",
@@ -60,8 +68,20 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 	// Verify connection
 	logger.Debug("pinging database to verify connection")
 	if err := db.Ping(); err != nil {
-		logger.Error("failed to ping database", logging.Error(err))
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		logger.Error("failed to ping database",
+			logging.Error(err),
+			logging.String("host", cfg.Database.Host),
+			logging.String("port", strconv.Itoa(cfg.Database.Port)),
+			logging.String("user", cfg.Database.User),
+			logging.String("database", cfg.Database.Name),
+		)
+		return nil, fmt.Errorf("failed to ping database %s@%s:%d/%s: %w",
+			cfg.Database.User,
+			cfg.Database.Host,
+			cfg.Database.Port,
+			cfg.Database.Name,
+			err,
+		)
 	}
 
 	wrappedDB := &DB{

@@ -15,7 +15,7 @@ import (
 func TestNewDB(t *testing.T) {
 	app := fxtest.New(t,
 		fx.Provide(
-			func() logging.Logger {
+			func() (logging.Logger, error) {
 				return logging.NewLogger(true, "test")
 			},
 			func() *config.Config {

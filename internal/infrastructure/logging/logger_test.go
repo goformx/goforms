@@ -10,21 +10,30 @@ import (
 
 func TestLogger(t *testing.T) {
 	t.Run("creates logger with debug mode", func(t *testing.T) {
-		logger := logging.NewLogger(true, "test-app")
+		logger, err := logging.NewLogger(true, "test-app")
+		if err != nil {
+			t.Fatalf("NewLogger() returned error: %v", err)
+		}
 		if logger == nil {
 			t.Error("NewLogger() returned nil")
 		}
 	})
 
 	t.Run("creates logger without debug mode", func(t *testing.T) {
-		logger := logging.NewLogger(false, "test-app")
+		logger, err := logging.NewLogger(false, "test-app")
+		if err != nil {
+			t.Fatalf("NewLogger() returned error: %v", err)
+		}
 		if logger == nil {
 			t.Error("NewLogger() returned nil")
 		}
 	})
 
 	t.Run("logs messages at different levels", func(t *testing.T) {
-		logger := logging.NewLogger(true, "test-app")
+		logger, err := logging.NewLogger(true, "test-app")
+		if err != nil {
+			t.Fatalf("NewLogger() returned error: %v", err)
+		}
 
 		// Just verify no panics
 		logger.Info("info message")
@@ -36,14 +45,20 @@ func TestLogger(t *testing.T) {
 
 func TestNewLogger(t *testing.T) {
 	t.Run("creates logger with default config", func(t *testing.T) {
-		logger := logging.NewLogger(false, "test-app")
+		logger, err := logging.NewLogger(false, "test-app")
+		if err != nil {
+			t.Fatalf("NewLogger() returned error: %v", err)
+		}
 		if logger == nil {
 			t.Error("NewLogger() returned nil")
 		}
 	})
 
 	t.Run("creates logger with custom config", func(t *testing.T) {
-		logger := logging.NewLogger(true, "custom-app")
+		logger, err := logging.NewLogger(true, "custom-app")
+		if err != nil {
+			t.Fatalf("NewLogger() returned error: %v", err)
+		}
 		if logger == nil {
 			t.Error("NewLogger() returned nil")
 		}
@@ -51,7 +66,10 @@ func TestNewLogger(t *testing.T) {
 }
 
 func TestLogLevels(t *testing.T) {
-	logger := logging.NewLogger(false, "test-app")
+	logger, err := logging.NewLogger(false, "test-app")
+	if err != nil {
+		t.Fatalf("NewLogger() returned error: %v", err)
+	}
 
 	t.Run("logs at different levels", func(t *testing.T) {
 		// These should not panic
@@ -71,14 +89,20 @@ func TestLogLevels(t *testing.T) {
 
 func TestLoggerModes(t *testing.T) {
 	t.Run("development mode", func(t *testing.T) {
-		logger := logging.NewLogger(true, "debug-app")
+		logger, err := logging.NewLogger(true, "debug-app")
+		if err != nil {
+			t.Fatalf("NewLogger() returned error: %v", err)
+		}
 		if logger == nil {
 			t.Error("NewLogger() returned nil")
 		}
 	})
 
 	t.Run("production mode", func(t *testing.T) {
-		logger := logging.NewLogger(false, "prod-app")
+		logger, err := logging.NewLogger(false, "prod-app")
+		if err != nil {
+			t.Fatalf("NewLogger() returned error: %v", err)
+		}
 		if logger == nil {
 			t.Error("NewLogger() returned nil")
 		}
@@ -86,7 +110,10 @@ func TestLoggerModes(t *testing.T) {
 }
 
 func TestLoggerFunctionality(t *testing.T) {
-	logger := logging.NewLogger(true, "test-app")
+	logger, err := logging.NewLogger(true, "test-app")
+	if err != nil {
+		t.Fatalf("NewLogger() returned error: %v", err)
+	}
 
 	// Test logging methods don't panic
 	func() {
@@ -125,7 +152,10 @@ func TestMockLogger(t *testing.T) {
 }
 
 func TestNewTestLogger(t *testing.T) {
-	logger := logging.NewTestLogger()
+	logger, err := logging.NewTestLogger()
+	if err != nil {
+		t.Fatalf("NewTestLogger() returned error: %v", err)
+	}
 	if logger == nil {
 		t.Error("NewTestLogger() returned nil")
 	}

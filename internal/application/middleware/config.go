@@ -26,7 +26,12 @@ func Setup(e *echo.Echo, cfg *Config) {
 
 	// Auth if secret provided
 	if cfg.JWTSecret != "" && cfg.UserService != nil {
-		e.Use(NewJWTMiddleware(cfg.UserService, cfg.JWTSecret))
+		middleware, err := NewJWTMiddleware(cfg.UserService, cfg.JWTSecret)
+		if err != nil {
+			cfg.Logger.Error("failed to create JWT middleware", logging.Error(err))
+			return
+		}
+		e.Use(middleware)
 	}
 
 	// CSRF if enabled

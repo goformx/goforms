@@ -102,7 +102,10 @@ func run() error {
 
 func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, error) {
 	// Create logger
-	logger := logFactory.CreateFromConfig(cfg)
+	logger, err := logFactory.CreateFromConfig(cfg)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logger: %w", err)
+	}
 
 	// Create Echo instance
 	e := echo.New()

@@ -21,13 +21,18 @@ type JWTMiddleware struct {
 }
 
 // NewJWTMiddleware creates a new JWT middleware
-func NewJWTMiddleware(userService user.Service, secret string) echo.MiddlewareFunc {
+func NewJWTMiddleware(userService user.Service, secret string) (echo.MiddlewareFunc, error) {
+	logger, err := logging.NewLogger(false, "auth")
+	if err != nil {
+		return nil, fmt.Errorf("failed to create auth logger: %w", err)
+	}
+
 	m := &JWTMiddleware{
 		userService: userService,
 		secret:      secret,
-		logger:      logging.NewLogger(false, "auth"),
+		logger:      logger,
 	}
-	return m.Handle
+	return m.Handle, nil
 }
 
 // Handle processes JWT authentication
