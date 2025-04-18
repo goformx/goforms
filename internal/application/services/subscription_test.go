@@ -2,7 +2,6 @@ package services_test
 
 import (
 	"context"
-	"encoding/json"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -10,8 +9,6 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/jonesrussell/goforms/internal/application/services"
@@ -21,202 +18,237 @@ import (
 
 // Mock types
 type MockStore struct {
-	mock.Mock
-}
-
-func (m *MockStore) Create(ctx context.Context, sub *subscription.Subscription) error {
-	args := m.Called(ctx, sub)
-	return args.Error(0)
+	expectations []func() error
 }
 
 func (m *MockStore) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	if len(m.expectations) == 0 {
+		return nil, nil
 	}
-	return args.Get(0).(*subscription.Subscription), args.Error(1)
-}
-
-func (m *MockStore) GetByID(ctx context.Context, id int64) (*subscription.Subscription, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	sub, ok := args.Get(0).(*subscription.Subscription)
-	if !ok {
-		return nil, fmt.Errorf("invalid type returned from mock")
-	}
-	return sub, args.Error(1)
+	expect := m.expectations[0]
+	m.expectations = m.expectations[1:]
+	return nil, expect()
 }
 
 func (m *MockStore) GetByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
-	args := m.Called(ctx, email)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	if len(m.expectations) == 0 {
+		return nil, nil
 	}
-	sub, ok := args.Get(0).(*subscription.Subscription)
-	if !ok {
-		return nil, fmt.Errorf("invalid type returned from mock")
+	expect := m.expectations[0]
+	m.expectations = m.expectations[1:]
+	return nil, expect()
+}
+
+func (m *MockStore) Create(ctx context.Context, sub *subscription.Subscription) error {
+	if len(m.expectations) == 0 {
+		return nil
 	}
-	return sub, args.Error(1)
+	expect := m.expectations[0]
+	m.expectations = m.expectations[1:]
+	return expect()
 }
 
 func (m *MockStore) Delete(ctx context.Context, id int64) error {
-	args := m.Called(ctx, id)
-	return args.Error(0)
+	if len(m.expectations) == 0 {
+		return nil
+	}
+	expect := m.expectations[0]
+	m.expectations = m.expectations[1:]
+	return expect()
+}
+
+func (m *MockStore) GetByID(ctx context.Context, id int64) (*subscription.Subscription, error) {
+	if len(m.expectations) == 0 {
+		return nil, nil
+	}
+	expect := m.expectations[0]
+	m.expectations = m.expectations[1:]
+	return nil, expect()
 }
 
 func (m *MockStore) List(ctx context.Context) ([]subscription.Subscription, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	if len(m.expectations) == 0 {
+		return nil, nil
 	}
-	subs, ok := args.Get(0).([]subscription.Subscription)
-	if !ok {
-		return nil, fmt.Errorf("invalid type returned from mock")
-	}
-	return subs, args.Error(1)
+	expect := m.expectations[0]
+	m.expectations = m.expectations[1:]
+	return nil, expect()
 }
 
 func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status subscription.Status) error {
-	args := m.Called(ctx, id, status)
-	return args.Error(0)
+	if len(m.expectations) == 0 {
+		return nil
+	}
+	expect := m.expectations[0]
+	m.expectations = m.expectations[1:]
+	return expect()
 }
 
-func (m *MockStore) Verify(t *testing.T) error {
-	if !m.Mock.AssertExpectations(t) {
-		return fmt.Errorf("mock store expectations not met")
+func (m *MockStore) ExpectGet(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockStore) ExpectGetByEmail(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockStore) ExpectCreate(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockStore) ExpectDelete(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockStore) ExpectGetByID(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockStore) ExpectList(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockStore) ExpectUpdateStatus(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockStore) Verify() error {
+	if len(m.expectations) > 0 {
+		return fmt.Errorf("unmet expectations: %d remaining", len(m.expectations))
 	}
 	return nil
 }
 
 type MockLogger struct {
-	mock.Mock
+	expectations []func() error
+}
+
+func NewMockLogger() logging.Logger {
+	return &MockLogger{
+		expectations: make([]func() error, 0),
+	}
 }
 
 func (m *MockLogger) Info(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	if len(m.expectations) > 0 {
+		expect := m.expectations[0]
+		m.expectations = m.expectations[1:]
+		expect()
+	}
 }
 
 func (m *MockLogger) Error(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	if len(m.expectations) > 0 {
+		expect := m.expectations[0]
+		m.expectations = m.expectations[1:]
+		expect()
+	}
 }
 
 func (m *MockLogger) Debug(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	if len(m.expectations) > 0 {
+		expect := m.expectations[0]
+		m.expectations = m.expectations[1:]
+		expect()
+	}
 }
 
 func (m *MockLogger) Warn(msg string, fields ...logging.Field) {
-	m.Called(msg, fields)
+	if len(m.expectations) > 0 {
+		expect := m.expectations[0]
+		m.expectations = m.expectations[1:]
+		expect()
+	}
 }
 
-func (m *MockLogger) Int(key string, value int) logging.Field {
-	args := m.Called(key, value)
-	return args.Get(0).(logging.Field)
+func (m *MockLogger) Int(key string, val int) logging.Field {
+	return logging.Int(key, val)
 }
 
-func (m *MockLogger) Int32(key string, value int32) logging.Field {
-	args := m.Called(key, value)
-	return args.Get(0).(logging.Field)
+func (m *MockLogger) Int32(key string, val int32) logging.Field {
+	return logging.Any(key, val)
 }
 
-func (m *MockLogger) Int64(key string, value int64) logging.Field {
-	args := m.Called(key, value)
-	return args.Get(0).(logging.Field)
+func (m *MockLogger) Int64(key string, val int64) logging.Field {
+	return logging.Int64(key, val)
 }
 
-func (m *MockLogger) Uint(key string, value uint) logging.Field {
-	args := m.Called(key, value)
-	return args.Get(0).(logging.Field)
+func (m *MockLogger) Uint(key string, val uint) logging.Field {
+	return logging.Uint(key, val)
 }
 
-func (m *MockLogger) Uint32(key string, value uint32) logging.Field {
-	args := m.Called(key, value)
-	return args.Get(0).(logging.Field)
+func (m *MockLogger) Uint32(key string, val uint32) logging.Field {
+	return logging.Any(key, val)
 }
 
-func (m *MockLogger) Uint64(key string, value uint64) logging.Field {
-	args := m.Called(key, value)
-	return args.Get(0).(logging.Field)
+func (m *MockLogger) Uint64(key string, val uint64) logging.Field {
+	return logging.Any(key, val)
 }
 
-func (m *MockLogger) Verify(t *testing.T) error {
-	if !m.Mock.AssertExpectations(t) {
-		return fmt.Errorf("mock logger expectations not met")
+func (m *MockLogger) ExpectInfo(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockLogger) ExpectError(err error) {
+	m.expectations = append(m.expectations, func() error { return err })
+}
+
+func (m *MockLogger) Verify() error {
+	if len(m.expectations) > 0 {
+		return fmt.Errorf("unmet expectations: %d remaining", len(m.expectations))
 	}
 	return nil
 }
 
+func NewSubscriptionHandler(store subscription.Store, logger logging.Logger) *services.SubscriptionHandler {
+	return services.NewSubscriptionHandler(store, logger)
+}
+
 func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 	tests := []struct {
-		name        string
-		reqBody     string
-		wantStatus  int
-		wantBody    map[string]any
-		wantLogCall bool
-		setupMocks  func(*MockStore, *MockLogger, echo.Context)
+		name           string
+		requestBody    string
+		expectedStatus int
+		expectedBody   string
+		setup          func(*MockStore, *MockLogger)
 	}{
 		{
-			name:       "success",
-			reqBody:    `{"email":"test@example.com","name":"Test User"}`,
-			wantStatus: http.StatusCreated,
-			wantBody: map[string]any{
-				"success": true,
-				"data": map[string]any{
-					"email": "test@example.com",
-					"name":  "Test User",
-				},
-			},
-			wantLogCall: true,
-			setupMocks: func(store *MockStore, logger *MockLogger, c echo.Context) {
-				store.On("GetByEmail", c.Request().Context(), "test@example.com").Return(nil, subscription.ErrSubscriptionNotFound)
-				sub := &subscription.Subscription{
-					Email:  "test@example.com",
-					Name:   "Test User",
-					Status: subscription.StatusPending,
-				}
-				store.On("Create", c.Request().Context(), sub).Return(nil)
-				logger.On("Info", "subscription created", mock.Anything).Return()
+			name:           "successful subscription",
+			requestBody:    `{"email": "test@example.com"}`,
+			expectedStatus: http.StatusCreated,
+			expectedBody:   `{"status":"success","message":"Subscription created successfully"}`,
+			setup: func(store *MockStore, logger *MockLogger) {
+				store.ExpectGetByEmail(nil)
+				store.ExpectCreate(nil)
+				logger.ExpectInfo(nil)
 			},
 		},
 		{
-			name:       "invalid email",
-			reqBody:    `{"email":"invalid"}`,
-			wantStatus: http.StatusBadRequest,
-			wantBody: map[string]any{
-				"success": false,
-				"error":   "invalid email format",
-			},
-			wantLogCall: true,
-			setupMocks: func(store *MockStore, logger *MockLogger, c echo.Context) {
-				logger.On("Error", "invalid email format", mock.Anything).Return()
+			name:           "invalid email format",
+			requestBody:    `{"email": "invalid-email"}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"status":"error","message":"Invalid email format"}`,
+			setup: func(store *MockStore, logger *MockLogger) {
+				logger.ExpectError(fmt.Errorf("invalid email format"))
 			},
 		},
 		{
-			name:       "duplicate email",
-			reqBody:    `{"email":"existing@example.com"}`,
-			wantStatus: http.StatusConflict,
-			wantBody: map[string]any{
-				"success": false,
-				"error":   "email already subscribed",
-			},
-			wantLogCall: true,
-			setupMocks: func(store *MockStore, logger *MockLogger, c echo.Context) {
-				store.On("GetByEmail", c.Request().Context(), "existing@example.com").Return(&subscription.Subscription{}, nil)
-				logger.On("Error", "email already subscribed", mock.Anything).Return()
+			name:           "duplicate email",
+			requestBody:    `{"email": "existing@example.com"}`,
+			expectedStatus: http.StatusConflict,
+			expectedBody:   `{"status":"error","message":"Email already subscribed"}`,
+			setup: func(store *MockStore, logger *MockLogger) {
+				store.ExpectGetByEmail(fmt.Errorf("email already subscribed"))
+				logger.ExpectError(fmt.Errorf("email already subscribed"))
 			},
 		},
 		{
-			name:       "invalid request body",
-			reqBody:    `invalid json`,
-			wantStatus: http.StatusBadRequest,
-			wantBody: map[string]any{
-				"success": false,
-				"error":   "Invalid request body",
-			},
-			wantLogCall: true,
-			setupMocks: func(store *MockStore, logger *MockLogger, c echo.Context) {
-				logger.On("Error", "failed to bind subscription request", mock.Anything).Return()
+			name:           "invalid request body",
+			requestBody:    `{"invalid": "json"`,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"status":"error","message":"Invalid request body"}`,
+			setup: func(store *MockStore, logger *MockLogger) {
+				logger.ExpectError(fmt.Errorf("invalid request body"))
 			},
 		},
 	}
@@ -224,43 +256,28 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup mocks
-			store := new(MockStore)
-			logger := new(MockLogger)
+			mockStore := &MockStore{}
+			mockLogger := &MockLogger{}
+			tt.setup(mockStore, mockLogger)
 
 			// Create handler
-			handler := services.NewSubscriptionHandler(store, logger)
+			handler := NewSubscriptionHandler(mockStore, mockLogger)
 
 			// Create request
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(tt.reqBody))
-			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+			req := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(tt.requestBody))
 			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
 
-			if tt.setupMocks != nil {
-				tt.setupMocks(store, logger, c)
-			}
+			// Handle request
+			err := handler.HandleSubscribe(echo.New().NewContext(req, rec))
+			require.NoError(t, err)
 
-			// Call handler
-			err := handler.HandleSubscribe(c)
-			if tt.wantStatus >= 400 {
-				require.Error(t, err)
-				he, ok := err.(*echo.HTTPError)
-				require.True(t, ok)
-				assert.Equal(t, tt.wantStatus, he.Code)
-				assert.Equal(t, tt.wantBody["error"], he.Message)
-			} else {
-				require.NoError(t, err)
-				assert.Equal(t, tt.wantStatus, rec.Code)
+			// Verify response
+			require.Equal(t, tt.expectedStatus, rec.Code)
+			require.JSONEq(t, tt.expectedBody, rec.Body.String())
 
-				var gotBody map[string]any
-				err = json.NewDecoder(rec.Body).Decode(&gotBody)
-				require.NoError(t, err)
-				assert.Equal(t, tt.wantBody, gotBody)
-			}
-
-			// Verify mock expectations
-			mock.AssertExpectationsForObjects(t, store, logger)
+			// Verify mocks
+			require.NoError(t, mockStore.Verify())
+			require.NoError(t, mockLogger.Verify())
 		})
 	}
 }

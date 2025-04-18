@@ -1,7 +1,6 @@
 package database_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
@@ -37,12 +36,12 @@ func TestNewDB(t *testing.T) {
 		),
 	)
 
-	require.NoError(t, app.Start(context.Background()))
-	defer app.Stop(context.Background())
+	require.NoError(t, app.Start(t.Context()))
+	defer app.Stop(t.Context())
 
 	// Get the database instance
 	var db *database.DB
-	require.NoError(t, app.Start(context.Background()))
-	require.NoError(t, app.Stop(context.Background()))
+	require.NoError(t, app.Start(t.Context()))
+	require.NoError(t, app.Stop(t.Context()))
 	require.NotNil(t, db)
 }
