@@ -25,10 +25,7 @@ func TestCreateSubscription(t *testing.T) {
 		mockLogger := mocklogging.NewMockLogger()
 
 		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", nil, nil)
-		mockStore.ExpectCreate(t.Context(), &subscription.Subscription{
-			Name:  "Test User",
-			Email: "test@example.com",
-		}, nil)
+		mockStore.ExpectCreate(t.Context(), &subscription.Subscription{Email: "test@example.com"}, nil, nil)
 
 		service := subscription.NewService(mockStore, mockLogger)
 

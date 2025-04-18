@@ -1,4 +1,4 @@
-package mock_user
+package usermock
 
 import (
 	"sync"

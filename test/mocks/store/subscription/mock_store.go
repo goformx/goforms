@@ -2,6 +2,7 @@ package subscriptionmock
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"sync"
 	"testing"
@@ -9,6 +10,10 @@ import (
 	"github.com/stretchr/testify/mock"
 
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
+)
+
+const (
+	expectedReturnValues = 2
 )
 
 // Ensure MockStore implements Store interface
@@ -26,8 +31,8 @@ type MockStore struct {
 // mockCall represents a single method call
 type mockCall struct {
 	method string
-	args   []interface{}
-	ret    []interface{}
+	args   []any
+	ret    []any
 }
 
 // NewMockStore creates a new instance of MockStore
@@ -36,7 +41,7 @@ func NewMockStore(t *testing.T) *MockStore {
 }
 
 // recordCall records a method call
-func (m *MockStore) recordCall(method string, args []interface{}) []interface{} {
+func (m *MockStore) recordCall(method string, args []any) []any {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -53,7 +58,7 @@ func (m *MockStore) recordCall(method string, args []interface{}) []interface{} 
 }
 
 // matchArgs compares two argument slices
-func matchArgs(exp, got []interface{}) bool {
+func matchArgs(exp, got []any) bool {
 	if len(exp) != len(got) {
 		return false
 	}
@@ -71,13 +76,13 @@ func matchArgs(exp, got []interface{}) bool {
 }
 
 // ExpectCreate sets up an expectation for Create method
-func (m *MockStore) ExpectCreate(ctx context.Context, sub *subscription.Subscription, ret error) {
+func (m *MockStore) ExpectCreate(ctx context.Context, sub *subscription.Subscription, ret *subscription.Subscription, err error) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "Create",
-		args:   []interface{}{ctx, sub},
-		ret:    []interface{}{ret},
+		args:   []any{ctx, sub},
+		ret:    []any{ret, err},
 	})
 }
 
@@ -87,8 +92,8 @@ func (m *MockStore) ExpectList(ctx context.Context, ret []subscription.Subscript
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "List",
-		args:   []interface{}{ctx},
-		ret:    []interface{}{ret, err},
+		args:   []any{ctx},
+		ret:    []any{ret, err},
 	})
 }
 
@@ -98,8 +103,8 @@ func (m *MockStore) ExpectGetByID(ctx context.Context, id int64, ret *subscripti
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "GetByID",
-		args:   []interface{}{ctx, id},
-		ret:    []interface{}{ret, err},
+		args:   []any{ctx, id},
+		ret:    []any{ret, err},
 	})
 }
 
@@ -109,8 +114,8 @@ func (m *MockStore) ExpectGetByEmail(ctx context.Context, email string, ret *sub
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "GetByEmail",
-		args:   []interface{}{ctx, email},
-		ret:    []interface{}{ret, err},
+		args:   []any{ctx, email},
+		ret:    []any{ret, err},
 	})
 }
 
@@ -120,8 +125,8 @@ func (m *MockStore) ExpectUpdateStatus(ctx context.Context, id int64, status sub
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "UpdateStatus",
-		args:   []interface{}{ctx, id, status},
-		ret:    []interface{}{err},
+		args:   []any{ctx, id, status},
+		ret:    []any{err},
 	})
 }
 
@@ -131,87 +136,126 @@ func (m *MockStore) ExpectDelete(ctx context.Context, id int64, err error) {
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{
 		method: "Delete",
-		args:   []interface{}{ctx, id},
-		ret:    []interface{}{err},
+		args:   []any{ctx, id},
+		ret:    []any{err},
 	})
 }
 
 // Create mocks the Create method
 func (m *MockStore) Create(ctx context.Context, sub *subscription.Subscription) error {
-	ret := m.recordCall("Create", []interface{}{ctx, sub})
-	if ret == nil || ret[0] == nil {
+	ret := m.recordCall("Create", []any{ctx, sub})
+	if len(ret) == 0 || ret[0] == nil {
 		return nil
 	}
-	return ret[0].(error)
+	if err, ok := ret[0].(error); ok {
+		return err
+	}
+	return errors.New("invalid error type returned from mock")
 }
 
 // List mocks the List method
 func (m *MockStore) List(ctx context.Context) ([]subscription.Subscription, error) {
-	ret := m.recordCall("List", []interface{}{ctx})
-	if ret == nil {
-		return nil, nil
+	ret := m.recordCall("List", []any{ctx})
+	if len(ret) < expectedReturnValues {
+		return nil, errors.New("no return values from mock")
 	}
+
 	var subs []subscription.Subscription
-	var err error
 	if ret[0] != nil {
-		subs = ret[0].([]subscription.Subscription)
+		if s, ok := ret[0].([]subscription.Subscription); ok {
+			subs = s
+		} else {
+			return nil, errors.New("invalid subscriptions type returned from mock")
+		}
 	}
+
+	var err error
 	if ret[1] != nil {
-		err = ret[1].(error)
+		if e, ok := ret[1].(error); ok {
+			err = e
+		} else {
+			return nil, errors.New("invalid error type returned from mock")
+		}
 	}
 	return subs, err
 }
 
 // GetByID mocks the GetByID method
 func (m *MockStore) GetByID(ctx context.Context, id int64) (*subscription.Subscription, error) {
-	ret := m.recordCall("GetByID", []interface{}{ctx, id})
-	if ret == nil {
-		return nil, nil
+	ret := m.recordCall("GetByID", []any{ctx, id})
+	if len(ret) < expectedReturnValues {
+		return nil, errors.New("no return values from mock")
 	}
+
 	var sub *subscription.Subscription
-	var err error
 	if ret[0] != nil {
-		sub = ret[0].(*subscription.Subscription)
+		if s, ok := ret[0].(*subscription.Subscription); ok {
+			sub = s
+		} else {
+			return nil, errors.New("invalid subscription type returned from mock")
+		}
 	}
+
+	var err error
 	if ret[1] != nil {
-		err = ret[1].(error)
+		if e, ok := ret[1].(error); ok {
+			err = e
+		} else {
+			return nil, errors.New("invalid error type returned from mock")
+		}
 	}
 	return sub, err
 }
 
 // GetByEmail mocks the GetByEmail method
 func (m *MockStore) GetByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
-	ret := m.recordCall("GetByEmail", []interface{}{ctx, email})
-	if ret == nil {
-		return nil, nil
+	ret := m.recordCall("GetByEmail", []any{ctx, email})
+	if len(ret) < expectedReturnValues {
+		return nil, errors.New("no return values from mock")
 	}
+
 	var sub *subscription.Subscription
-	var err error
 	if ret[0] != nil {
-		sub = ret[0].(*subscription.Subscription)
+		if s, ok := ret[0].(*subscription.Subscription); ok {
+			sub = s
+		} else {
+			return nil, errors.New("invalid subscription type returned from mock")
+		}
 	}
+
+	var err error
 	if ret[1] != nil {
-		err = ret[1].(error)
+		if e, ok := ret[1].(error); ok {
+			err = e
+		} else {
+			return nil, errors.New("invalid error type returned from mock")
+		}
 	}
 	return sub, err
 }
 
 // UpdateStatus mocks the UpdateStatus method
 func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status subscription.Status) error {
-	ret := m.recordCall("UpdateStatus", []interface{}{ctx, id, status})
-	if ret == nil || ret[0] == nil {
+	ret := m.recordCall("UpdateStatus", []any{ctx, id, status})
+	if len(ret) == 0 || ret[0] == nil {
 		return nil
 	}
-	return ret[0].(error)
+	if err, ok := ret[0].(error); ok {
+		return err
+	}
+	return errors.New("invalid error type returned from mock")
 }
 
 // Delete mocks the Delete method
 func (m *MockStore) Delete(ctx context.Context, id int64) error {
-	ret := m.recordCall("Delete", []interface{}{ctx, id})
-	if ret == nil || ret[0] == nil {
+	ret := m.recordCall("Delete", []any{ctx, id})
+	if len(ret) == 0 || ret[0] == nil {
 		return nil
 	}
-	return ret[0].(error)
+	if err, ok := ret[0].(error); ok {
+		return err
+	}
+	return errors.New("invalid error type returned from mock")
 }
 
 // Verify checks if all expectations were met
@@ -226,7 +270,7 @@ func (m *MockStore) Verify() error {
 	for i, exp := range m.expected {
 		got := m.calls[i]
 		if exp.method != got.method {
-			return fmt.Errorf("call %d: expected method %s but got %s", i, exp.method, got.method)
+			return fmt.Errorf("call %d: expected method %q but got %q", i, exp.method, got.method)
 		}
 		if !matchArgs(exp.args, got.args) {
 			return fmt.Errorf("call %d: arguments do not match", i)

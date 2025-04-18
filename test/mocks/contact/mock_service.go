@@ -9,6 +9,14 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
+const (
+	expectedReturnValues = 2
+)
+
+var (
+	ErrNoReturnValues = errors.New("no return values from mock")
+)
+
 // Ensure MockService implements contact.Service interface
 var _ contact.Service = (*MockService)(nil)
 
@@ -125,8 +133,8 @@ func (m *MockService) Submit(ctx context.Context, sub *contact.Submission) error
 // ListSubmissions mocks the ListSubmissions method
 func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission, error) {
 	ret := m.recordCall("ListSubmissions", []any{ctx})
-	if len(ret) < 2 {
-		return nil, nil
+	if len(ret) < expectedReturnValues {
+		return nil, ErrNoReturnValues
 	}
 
 	var subs []contact.Submission
@@ -152,8 +160,8 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 // GetSubmission mocks the GetSubmission method
 func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Submission, error) {
 	ret := m.recordCall("GetSubmission", []any{ctx, id})
-	if len(ret) < 2 {
-		return nil, nil
+	if len(ret) < expectedReturnValues {
+		return nil, ErrNoReturnValues
 	}
 
 	var sub *contact.Submission

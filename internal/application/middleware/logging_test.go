@@ -6,96 +6,137 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
-	t.Run("logs request and response details", func(t *testing.T) {
-		// Setup
-		e := echo.New()
-		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
-
-		// Create mock logger
-		mockLogger := mocklogging.NewMockLogger()
-		mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
-			"method":  "GET",
-			"path":    "/test",
-			"status":  mocklogging.AnyValue{},
-			"latency": mocklogging.AnyValue{},
-			"ip":      "192.0.2.1",
-		})
-
-		// Create middleware
-		mw := middleware.LoggingMiddleware(mockLogger)
-
-		// Create test handler
-		handler := func(c echo.Context) error {
-			c.Response().WriteHeader(http.StatusOK)
-			return nil
-		}
-
-		// Execute middleware
-		err := mw(handler)(c)
-		if err != nil {
-			t.Errorf("expected no error, got %v", err)
-		}
-
-		if err := mockLogger.Verify(); err != nil {
-			t.Errorf("logger expectations not met: %v", err)
-		}
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("http request").WithFields(map[string]any{
+		"method":      "GET",
+		"path":        "/",
+		"status":      200,
+		"latency":     mocklogging.AnyValue{},
+		"remote_addr": mocklogging.AnyValue{},
+		"user_agent":  "",
 	})
 
-	t.Run("logs error when handler fails", func(t *testing.T) {
-		// Setup
-		e := echo.New()
-		req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
-		rec := httptest.NewRecorder()
-		c := e.NewContext(req, rec)
+	// Create Echo instance
+	e := echo.New()
 
-		// Create mock logger
-		mockLogger := mocklogging.NewMockLogger()
-		mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
-			"method":  "GET",
-			"path":    "/test",
-			"status":  mocklogging.AnyValue{},
-			"latency": mocklogging.AnyValue{},
-			"ip":      "192.0.2.1",
-		})
+	// Create test request
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
 
-		// Create middleware
-		mw := middleware.LoggingMiddleware(mockLogger)
+	// Create handler
+	handler := func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
+	}
 
-		// Create test handler that returns error
-		handler := func(c echo.Context) error {
-			c.Response().WriteHeader(http.StatusInternalServerError)
-			return echo.NewHTTPError(http.StatusInternalServerError, "test error")
-		}
+	// Create middleware and wrap handler
+	h := middleware.LoggingMiddleware(mockLogger)(handler)
 
-		// Execute middleware
-		err := mw(handler)(c)
-		if err == nil {
-			t.Error("expected error, got nil")
-		}
+	// Test middleware
+	err := h(c)
 
-		if err := mockLogger.Verify(); err != nil {
-			t.Errorf("logger expectations not met: %v", err)
-		}
+	// Assert
+	assert.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "test", rec.Body.String())
+
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
+}
+
+func TestLoggingMiddlewareWithError(t *testing.T) {
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("http request").WithFields(map[string]any{
+		"method":      "GET",
+		"path":        "/",
+		"status":      500,
+		"latency":     mocklogging.AnyValue{},
+		"remote_addr": mocklogging.AnyValue{},
+		"user_agent":  "",
+		"error":       "test error",
 	})
+
+	// Create Echo instance
+	e := echo.New()
+
+	// Create test request
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Create handler that returns an error
+	handler := func(c echo.Context) error {
+		return echo.NewHTTPError(http.StatusInternalServerError, "test error")
+	}
+
+	// Create middleware and wrap handler
+	h := middleware.LoggingMiddleware(mockLogger)(handler)
+
+	// Test middleware
+	_ = h(c)
+
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
+}
+
+func TestLoggingMiddlewareWithPanic(t *testing.T) {
+	// Create mock logger
+	mockLogger := mocklogging.NewMockLogger()
+	mockLogger.ExpectInfo("http request").WithFields(map[string]any{
+		"method":      "GET",
+		"path":        "/",
+		"status":      500,
+		"latency":     mocklogging.AnyValue{},
+		"remote_addr": mocklogging.AnyValue{},
+		"user_agent":  "",
+		"panic":       "test panic",
+	})
+
+	// Create Echo instance
+	e := echo.New()
+
+	// Create test request
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Create handler that panics
+	handler := func(c echo.Context) error {
+		panic("test panic")
+	}
+
+	// Create middleware and wrap handler
+	h := middleware.LoggingMiddleware(mockLogger)(handler)
+
+	// Test middleware
+	_ = h(c)
+
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
 }
 
 func TestLoggingMiddleware_RealIP(t *testing.T) {
 	// Create a mock logger for testing
 	mockLogger := mocklogging.NewMockLogger()
-	mockLogger.ExpectInfo("http request").WithFields(map[string]interface{}{
-		"method":  "GET",
-		"path":    "/test",
-		"status":  mocklogging.AnyValue{},
-		"latency": mocklogging.AnyValue{},
-		"ip":      "192.168.1.1",
+	mockLogger.ExpectInfo("http request").WithFields(map[string]any{
+		"method":      "GET",
+		"path":        "/test",
+		"status":      200,
+		"latency":     mocklogging.AnyValue{},
+		"remote_addr": mocklogging.AnyValue{},
+		"user_agent":  "",
 	})
 
 	// Create Echo instance
