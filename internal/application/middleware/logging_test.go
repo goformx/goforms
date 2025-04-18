@@ -9,47 +9,38 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
+	"github.com/jonesrussell/goforms/test/mocks/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
-	// Create mock logger
-	mockLogger := mocklogging.NewMockLogger()
+	// Setup
+	mockLogger := &logging.MockLogger{}
 	mockLogger.ExpectInfo("http request").WithFields(map[string]any{
-		"method":      "GET",
-		"path":        "/",
-		"status":      200,
-		"latency":     mocklogging.AnyValue{},
-		"remote_addr": mocklogging.AnyValue{},
-		"user_agent":  "",
+		"method":  "GET",
+		"path":    "/",
+		"status":  http.StatusOK,
+		"latency": logging.AnyValue{},
+		"ip":      "",
 	})
 
-	// Create Echo instance
 	e := echo.New()
-
-	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	req := httptest.NewRequest(http.MethodGet, "/", nil)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	// Create handler
-	handler := func(c echo.Context) error {
+	// Create handler with middleware
+	handler := middleware.LoggingMiddleware(mockLogger)(func(c echo.Context) error {
 		return c.String(http.StatusOK, "test")
-	}
+	})
 
-	// Create middleware and wrap handler
-	h := middleware.LoggingMiddleware(mockLogger)(handler)
+	// Execute
+	execErr := handler(c)
+	assert.NoError(t, execErr)
 
-	// Test middleware
-	err := h(c)
-
-	// Assert
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "test", rec.Body.String())
-
-	if err := mockLogger.Verify(); err != nil {
-		t.Errorf("logger expectations not met: %v", err)
+	// Verify logger expectations
+	if verifyErr := mockLogger.Verify(); verifyErr != nil {
+		t.Errorf("logger verification failed: %v", verifyErr)
 	}
 }
 

@@ -36,39 +36,14 @@ func NewService(store Store, logger logging.Logger) Service {
 
 // CreateSubscription creates a new subscription
 func (s *ServiceImpl) CreateSubscription(ctx context.Context, subscription *Subscription) error {
-	// Validate subscription
-	if err := subscription.Validate(); err != nil {
-		return err
+	if validateErr := s.validateSubscription(ctx, subscription); validateErr != nil {
+		s.logger.Error("failed to validate subscription", logging.Error(validateErr))
+		return validateErr
 	}
 
-	// Validate email format
-	if !isValidEmail(subscription.Email) {
-		return ErrInvalidEmail
-	}
-
-	// Check if email already exists
-	existing, err := s.store.GetByEmail(ctx, subscription.Email)
-	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
-		s.logger.Error("failed to check existing subscription",
-			logging.Error(err),
-		)
-		return fmt.Errorf("failed to check existing subscription: %w", err)
-	}
-	if existing != nil {
-		return ErrEmailAlreadyExists
-	}
-
-	// Set default values
-	subscription.Status = StatusPending
-	subscription.CreatedAt = time.Now()
-	subscription.UpdatedAt = time.Now()
-
-	// Create subscription
-	if err := s.store.Create(ctx, subscription); err != nil {
-		s.logger.Error("failed to create subscription",
-			logging.Error(err),
-		)
-		return fmt.Errorf("failed to create subscription: %w", err)
+	if storeErr := s.store.Create(ctx, subscription); storeErr != nil {
+		s.logger.Error("failed to create subscription", logging.Error(storeErr))
+		return storeErr
 	}
 
 	return nil
@@ -140,32 +115,14 @@ func (s *ServiceImpl) GetSubscriptionByEmail(ctx context.Context, email string) 
 
 // UpdateSubscriptionStatus updates the status of a subscription
 func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, status Status) error {
-	if !status.IsValid() {
-		return ErrInvalidStatus
+	if validateErr := s.validateStatus(status); validateErr != nil {
+		s.logger.Error("failed to validate status", logging.Error(validateErr))
+		return validateErr
 	}
 
-	// Check if subscription exists
-	subscription, err := s.store.GetByID(ctx, id)
-	if err != nil {
-		s.logger.Error("failed to get subscription",
-			logging.Error(err),
-		)
-		return err
-	}
-
-	if subscription == nil {
-		s.logger.Error("failed to get subscription",
-			logging.Error(ErrSubscriptionNotFound),
-		)
-		return ErrSubscriptionNotFound
-	}
-
-	// Update status
-	if err := s.store.UpdateStatus(ctx, id, status); err != nil {
-		s.logger.Error("failed to update subscription status",
-			logging.Error(err),
-		)
-		return err
+	if storeErr := s.store.UpdateStatus(ctx, id, status); storeErr != nil {
+		s.logger.Error("failed to update subscription status", logging.Error(storeErr))
+		return storeErr
 	}
 
 	return nil
@@ -173,27 +130,45 @@ func (s *ServiceImpl) UpdateSubscriptionStatus(ctx context.Context, id int64, st
 
 // DeleteSubscription deletes a subscription by ID
 func (s *ServiceImpl) DeleteSubscription(ctx context.Context, id int64) error {
-	subscription, err := s.store.GetByID(ctx, id)
-	if err != nil {
-		s.logger.Error("failed to get subscription",
-			logging.Error(err),
-		)
+	if storeErr := s.store.Delete(ctx, id); storeErr != nil {
+		s.logger.Error("failed to delete subscription", logging.Error(storeErr))
+		return storeErr
+	}
+
+	return nil
+}
+
+func (s *ServiceImpl) validateSubscription(ctx context.Context, subscription *Subscription) error {
+	// Validate subscription
+	if err := subscription.Validate(); err != nil {
 		return err
 	}
 
-	if subscription == nil {
-		s.logger.Error("failed to get subscription",
-			logging.Error(ErrSubscriptionNotFound),
-		)
-		return ErrSubscriptionNotFound
+	// Validate email format
+	if !isValidEmail(subscription.Email) {
+		return ErrInvalidEmail
 	}
 
-	if err := s.store.Delete(ctx, id); err != nil {
-		s.logger.Error("failed to delete subscription",
-			logging.Error(err),
-		)
-		return fmt.Errorf("failed to delete subscription: %w", err)
+	// Check if email already exists
+	existing, err := s.store.GetByEmail(ctx, subscription.Email)
+	if err != nil && !errors.Is(err, ErrSubscriptionNotFound) {
+		return fmt.Errorf("failed to check existing subscription: %w", err)
+	}
+	if existing != nil {
+		return ErrEmailAlreadyExists
 	}
 
+	// Set default values
+	subscription.Status = StatusPending
+	subscription.CreatedAt = time.Now()
+	subscription.UpdatedAt = time.Now()
+
+	return nil
+}
+
+func (s *ServiceImpl) validateStatus(status Status) error {
+	if !status.IsValid() {
+		return ErrInvalidStatus
+	}
 	return nil
 }

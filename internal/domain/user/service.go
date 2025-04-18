@@ -69,10 +69,10 @@ func NewService(store Store, logger logging.Logger) Service {
 // SignUp registers a new user
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
 	// Check if email already exists
-	existingUser, err := s.store.GetByEmail(signup.Email)
-	if err != nil {
-		s.logger.Error("failed to check existing user", logging.Error(err))
-		return nil, fmt.Errorf("failed to create user: %w", err)
+	existingUser, lookupErr := s.store.GetByEmail(signup.Email)
+	if lookupErr != nil {
+		s.logger.Error("failed to check existing user", logging.Error(lookupErr))
+		return nil, fmt.Errorf("failed to create user: %w", lookupErr)
 	}
 	if existingUser != nil {
 		return nil, fmt.Errorf("failed to create user: %w", ErrEmailAlreadyExists)
@@ -88,16 +88,15 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	}
 
 	// Set password
-	if err := user.SetPassword(signup.Password); err != nil {
-		s.logger.Error("failed to set password", logging.Error(err))
-		return nil, fmt.Errorf("failed to create user: %w", err)
+	if hashErr := user.SetPassword(signup.Password); hashErr != nil {
+		s.logger.Error("failed to set password", logging.Error(hashErr))
+		return nil, fmt.Errorf("failed to create user: %w", hashErr)
 	}
 
 	// Save user
-	err = s.store.Create(user)
-	if err != nil {
-		s.logger.Error("failed to create user", logging.Error(err))
-		return nil, fmt.Errorf("failed to create user: %w", err)
+	if createErr := s.store.Create(user); createErr != nil {
+		s.logger.Error("failed to create user", logging.Error(createErr))
+		return nil, fmt.Errorf("failed to create user: %w", createErr)
 	}
 
 	return user, nil
@@ -132,8 +131,8 @@ func (s *ServiceImpl) Logout(ctx context.Context, token string) error {
 // RefreshToken generates a new token pair using a refresh token
 func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*TokenPair, error) {
 	// Validate refresh token
-	token, err := s.ValidateToken(refreshToken)
-	if err != nil {
+	token, validateErr := s.ValidateToken(refreshToken)
+	if validateErr != nil {
 		return nil, fmt.Errorf("failed to refresh token: %w", ErrInvalidToken)
 	}
 
@@ -150,15 +149,15 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*T
 
 	// Get user from claims
 	userID := uint(claims["user_id"].(float64))
-	user, err := s.GetUserByID(ctx, userID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to refresh token: %w", err)
+	user, lookupErr := s.GetUserByID(ctx, userID)
+	if lookupErr != nil {
+		return nil, fmt.Errorf("failed to refresh token: %w", lookupErr)
 	}
 
 	// Generate new token pair
-	tokenPair, err := s.generateTokenPair(user)
-	if err != nil {
-		return nil, fmt.Errorf("failed to refresh token: %w", err)
+	tokenPair, genErr := s.generateTokenPair(user)
+	if genErr != nil {
+		return nil, fmt.Errorf("failed to refresh token: %w", genErr)
 	}
 
 	// Blacklist the old refresh token
