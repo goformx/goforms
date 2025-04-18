@@ -1,37 +1,11 @@
 package config
 
 import (
-	"os"
 	"testing"
 	"time"
 )
 
 func TestNew(t *testing.T) {
-	// Save original env vars
-	originalEnv := map[string]string{
-		"APP_NAME":    os.Getenv("APP_NAME"),
-		"APP_ENV":     os.Getenv("APP_ENV"),
-		"APP_DEBUG":   os.Getenv("APP_DEBUG"),
-		"DB_USER":     os.Getenv("DB_USER"),
-		"DB_PASSWORD": os.Getenv("DB_PASSWORD"),
-		"DB_NAME":     os.Getenv("DB_NAME"),
-		"DB_HOST":     os.Getenv("DB_HOST"),
-		"DB_PORT":     os.Getenv("DB_PORT"),
-		"APP_PORT":    os.Getenv("APP_PORT"),
-		"APP_HOST":    os.Getenv("APP_HOST"),
-	}
-
-	// Cleanup function to restore original env vars
-	defer func() {
-		for k, v := range originalEnv {
-			if v != "" {
-				os.Setenv(k, v)
-			} else {
-				os.Unsetenv(k)
-			}
-		}
-	}()
-
 	tests := []struct {
 		name      string
 		envVars   map[string]string
@@ -75,14 +49,9 @@ func TestNew(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear existing env vars first
-			for k := range originalEnv {
-				os.Unsetenv(k)
-			}
-
 			// Set environment variables for test
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
 
 			cfg, err := New()
@@ -140,16 +109,9 @@ func TestNew(t *testing.T) {
 func TestSecurityConfig(t *testing.T) {
 	t.Run("default_security_settings", func(t *testing.T) {
 		// Set required database config
-		os.Setenv("DB_USER", "testuser")
-		os.Setenv("DB_PASSWORD", "testpass")
-		os.Setenv("DB_NAME", "testdb")
-
-		// Clean up after test
-		defer func() {
-			os.Unsetenv("DB_USER")
-			os.Unsetenv("DB_PASSWORD")
-			os.Unsetenv("DB_NAME")
-		}()
+		t.Setenv("DB_USER", "testuser")
+		t.Setenv("DB_PASSWORD", "testpass")
+		t.Setenv("DB_NAME", "testdb")
 
 		config, err := New()
 		if err != nil {
@@ -169,20 +131,10 @@ func TestSecurityConfig(t *testing.T) {
 
 	t.Run("custom_security_settings", func(t *testing.T) {
 		// Set required database config
-		os.Setenv("DB_USER", "testuser")
-		os.Setenv("DB_PASSWORD", "testpass")
-		os.Setenv("DB_NAME", "testdb")
-
-		// Set custom security values
-		os.Setenv("CORS_ALLOWED_METHODS", "GET,POST")
-
-		// Clean up after test
-		defer func() {
-			os.Unsetenv("DB_USER")
-			os.Unsetenv("DB_PASSWORD")
-			os.Unsetenv("DB_NAME")
-			os.Unsetenv("CORS_ALLOWED_METHODS")
-		}()
+		t.Setenv("DB_USER", "testuser")
+		t.Setenv("DB_PASSWORD", "testpass")
+		t.Setenv("DB_NAME", "testdb")
+		t.Setenv("CORS_ALLOWED_METHODS", "GET,POST")
 
 		config, err := New()
 		if err != nil {
@@ -269,16 +221,10 @@ func TestRateLimitConfig(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Clear environment
-			os.Clearenv()
-
 			// Set environment variables
 			for k, v := range tt.envVars {
-				os.Setenv(k, v)
+				t.Setenv(k, v)
 			}
-
-			// Clean up after test
-			defer os.Clearenv()
 
 			cfg, err := New()
 			if err != nil {
