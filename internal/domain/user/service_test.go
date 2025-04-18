@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -77,25 +77,6 @@ func (s *MockStore) List() ([]user.User, error) {
 	return users, nil
 }
 
-// MockLogger implements the logging.Logger interface for testing
-type MockLogger struct{}
-
-// NewMockLogger creates a new mock logger
-func NewMockLogger() *MockLogger {
-	return &MockLogger{}
-}
-
-func (l *MockLogger) Debug(msg string, fields ...logging.Field)  {}
-func (l *MockLogger) Info(msg string, fields ...logging.Field)   {}
-func (l *MockLogger) Warn(msg string, fields ...logging.Field)   {}
-func (l *MockLogger) Error(msg string, fields ...logging.Field)  {}
-func (l *MockLogger) Int(key string, val int) logging.Field     { return logging.Field{} }
-func (l *MockLogger) Int32(key string, val int32) logging.Field { return logging.Field{} }
-func (l *MockLogger) Int64(key string, val int64) logging.Field { return logging.Field{} }
-func (l *MockLogger) Uint(key string, val uint) logging.Field   { return logging.Field{} }
-func (l *MockLogger) Uint32(key string, val uint32) logging.Field { return logging.Field{} }
-func (l *MockLogger) Uint64(key string, val uint64) logging.Field { return logging.Field{} }
-
 func TestUserService(t *testing.T) {
 	ctx := t.Context()
 	
@@ -111,7 +92,7 @@ func TestUserService(t *testing.T) {
 	t.Chdir(testDir)
 	
 	store := NewMockStore()
-	logger := NewMockLogger()
+	logger := mocklogging.NewMockLogger()
 	service := user.NewService(store, logger)
 
 	t.Run("SignUp", func(t *testing.T) {
@@ -122,12 +103,17 @@ func TestUserService(t *testing.T) {
 			LastName:  "User",
 		}
 
+		logger.ExpectInfo("user signed up").WithFields(map[string]interface{}{
+			"email": signup.Email,
+		})
+
 		newUser, err := service.SignUp(ctx, signup)
 		require.NoError(t, err)
 		assert.NotNil(t, newUser)
 		assert.Equal(t, signup.Email, newUser.Email)
 		assert.Equal(t, signup.FirstName, newUser.FirstName)
 		assert.Equal(t, signup.LastName, newUser.LastName)
+		require.NoError(t, logger.Verify())
 	})
 
 	t.Run("Login", func(t *testing.T) {
@@ -136,10 +122,15 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
+		logger.ExpectInfo("user logged in").WithFields(map[string]interface{}{
+			"email": login.Email,
+		})
+
 		tokens, err := service.Login(ctx, login)
 		require.NoError(t, err)
 		assert.NotEmpty(t, tokens.AccessToken)
 		assert.NotEmpty(t, tokens.RefreshToken)
+		require.NoError(t, logger.Verify())
 	})
 
 	t.Run("Logout", func(t *testing.T) {
@@ -148,13 +139,22 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
+		logger.ExpectInfo("user logged in").WithFields(map[string]interface{}{
+			"email": login.Email,
+		})
+
 		tokens, err := service.Login(ctx, login)
 		require.NoError(t, err)
+
+		logger.ExpectInfo("user logged out").WithFields(map[string]interface{}{
+			"email": login.Email,
+		})
 
 		err = service.Logout(ctx, tokens.AccessToken)
 		require.NoError(t, err)
 
 		assert.True(t, service.IsTokenBlacklisted(tokens.AccessToken))
+		require.NoError(t, logger.Verify())
 	})
 
 	t.Run("RefreshToken", func(t *testing.T) {
@@ -163,13 +163,22 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
+		logger.ExpectInfo("user logged in").WithFields(map[string]interface{}{
+			"email": login.Email,
+		})
+
 		tokens, err := service.Login(ctx, login)
 		require.NoError(t, err)
+
+		logger.ExpectInfo("token refreshed").WithFields(map[string]interface{}{
+			"email": login.Email,
+		})
 
 		newTokens, err := service.RefreshToken(ctx, tokens.RefreshToken)
 		require.NoError(t, err)
 		assert.NotEmpty(t, newTokens.AccessToken)
 		assert.NotEmpty(t, newTokens.RefreshToken)
 		assert.NotEqual(t, tokens.AccessToken, newTokens.AccessToken)
+		require.NoError(t, logger.Verify())
 	})
 }

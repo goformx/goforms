@@ -14,6 +14,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/application/services"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 // Mock types
@@ -119,87 +120,6 @@ func (m *MockStore) Verify() error {
 	return nil
 }
 
-type MockLogger struct {
-	expectations []func() error
-}
-
-func NewMockLogger() logging.Logger {
-	return &MockLogger{
-		expectations: make([]func() error, 0),
-	}
-}
-
-func (m *MockLogger) Info(msg string, fields ...logging.Field) {
-	if len(m.expectations) > 0 {
-		expect := m.expectations[0]
-		m.expectations = m.expectations[1:]
-		expect()
-	}
-}
-
-func (m *MockLogger) Error(msg string, fields ...logging.Field) {
-	if len(m.expectations) > 0 {
-		expect := m.expectations[0]
-		m.expectations = m.expectations[1:]
-		expect()
-	}
-}
-
-func (m *MockLogger) Debug(msg string, fields ...logging.Field) {
-	if len(m.expectations) > 0 {
-		expect := m.expectations[0]
-		m.expectations = m.expectations[1:]
-		expect()
-	}
-}
-
-func (m *MockLogger) Warn(msg string, fields ...logging.Field) {
-	if len(m.expectations) > 0 {
-		expect := m.expectations[0]
-		m.expectations = m.expectations[1:]
-		expect()
-	}
-}
-
-func (m *MockLogger) Int(key string, val int) logging.Field {
-	return logging.Int(key, val)
-}
-
-func (m *MockLogger) Int32(key string, val int32) logging.Field {
-	return logging.Any(key, val)
-}
-
-func (m *MockLogger) Int64(key string, val int64) logging.Field {
-	return logging.Int64(key, val)
-}
-
-func (m *MockLogger) Uint(key string, val uint) logging.Field {
-	return logging.Uint(key, val)
-}
-
-func (m *MockLogger) Uint32(key string, val uint32) logging.Field {
-	return logging.Any(key, val)
-}
-
-func (m *MockLogger) Uint64(key string, val uint64) logging.Field {
-	return logging.Any(key, val)
-}
-
-func (m *MockLogger) ExpectInfo(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockLogger) ExpectError(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockLogger) Verify() error {
-	if len(m.expectations) > 0 {
-		return fmt.Errorf("unmet expectations: %d remaining", len(m.expectations))
-	}
-	return nil
-}
-
 func NewSubscriptionHandler(store subscription.Store, logger logging.Logger) *services.SubscriptionHandler {
 	return services.NewSubscriptionHandler(store, logger)
 }
@@ -210,17 +130,17 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 		requestBody    string
 		expectedStatus int
 		expectedBody   string
-		setup          func(*MockStore, *MockLogger)
+		setup          func(*MockStore, *mocklogging.MockLogger)
 	}{
 		{
 			name:           "successful subscription",
 			requestBody:    `{"email": "test@example.com"}`,
 			expectedStatus: http.StatusCreated,
 			expectedBody:   `{"status":"success","message":"Subscription created successfully"}`,
-			setup: func(store *MockStore, logger *MockLogger) {
+			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
 				store.ExpectGetByEmail(nil)
 				store.ExpectCreate(nil)
-				logger.ExpectInfo(nil)
+				logger.ExpectInfo("subscription created")
 			},
 		},
 		{
@@ -228,8 +148,8 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			requestBody:    `{"email": "invalid-email"}`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"status":"error","message":"Invalid email format"}`,
-			setup: func(store *MockStore, logger *MockLogger) {
-				logger.ExpectError(fmt.Errorf("invalid email format"))
+			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
+				logger.ExpectError("invalid email format")
 			},
 		},
 		{
@@ -237,9 +157,9 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			requestBody:    `{"email": "existing@example.com"}`,
 			expectedStatus: http.StatusConflict,
 			expectedBody:   `{"status":"error","message":"Email already subscribed"}`,
-			setup: func(store *MockStore, logger *MockLogger) {
+			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
 				store.ExpectGetByEmail(fmt.Errorf("email already subscribed"))
-				logger.ExpectError(fmt.Errorf("email already subscribed"))
+				logger.ExpectError("email already subscribed")
 			},
 		},
 		{
@@ -247,8 +167,8 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			requestBody:    `{"invalid": "json"`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"status":"error","message":"Invalid request body"}`,
-			setup: func(store *MockStore, logger *MockLogger) {
-				logger.ExpectError(fmt.Errorf("invalid request body"))
+			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
+				logger.ExpectError("invalid request body")
 			},
 		},
 	}
@@ -257,7 +177,7 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			// Setup mocks
 			mockStore := &MockStore{}
-			mockLogger := &MockLogger{}
+			mockLogger := mocklogging.NewMockLogger()
 			tt.setup(mockStore, mockLogger)
 
 			// Create handler
