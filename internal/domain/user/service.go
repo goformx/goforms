@@ -169,34 +169,67 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*T
 
 // ValidateToken validates a JWT token
 func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
+	token, err := s.parseToken(tokenString)
+	if err != nil {
+		return nil, err
+	}
+
+	if err := s.validateTokenClaims(token); err != nil {
+		return nil, err
+	}
+
+	return token, nil
+}
+
+// parseToken parses and validates the JWT token
+func (s *ServiceImpl) parseToken(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return s.jwtSecret, nil
 	})
 	if err != nil {
 		return nil, fmt.Errorf("invalid token: %w", err)
 	}
+	return token, nil
+}
 
+// validateTokenClaims validates the token claims
+func (s *ServiceImpl) validateTokenClaims(token *jwt.Token) error {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
-		return nil, errors.New("invalid token claims")
+		return errors.New("invalid token claims")
 	}
 
-	// Validate user_id claim exists and is a float64
+	if err := s.validateUserIDClaim(claims); err != nil {
+		return err
+	}
+
+	if err := s.validateExpirationClaim(claims); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateUserIDClaim validates the user_id claim
+func (s *ServiceImpl) validateUserIDClaim(claims jwt.MapClaims) error {
 	if _, ok := claims["user_id"].(float64); !ok {
-		return nil, errors.New("invalid user_id claim")
+		return errors.New("invalid user_id claim")
 	}
+	return nil
+}
 
-	// Validate token expiration
+// validateExpirationClaim validates the exp claim
+func (s *ServiceImpl) validateExpirationClaim(claims jwt.MapClaims) error {
 	exp, ok := claims["exp"].(float64)
 	if !ok {
-		return nil, errors.New("invalid exp claim")
+		return errors.New("invalid exp claim")
 	}
 
 	if time.Now().Unix() > int64(exp) {
-		return nil, errors.New("token expired")
+		return errors.New("token expired")
 	}
 
-	return token, nil
+	return nil
 }
 
 // IsTokenBlacklisted checks if a token is in the blacklist

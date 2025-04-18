@@ -130,39 +130,72 @@ func (db *DB) PingContext(c echo.Context) error {
 func (db *DB) WithTx(ctx context.Context, fn func(*sqlx.Tx) error) error {
 	db.logger.Debug("beginning database transaction")
 
-	tx, err := db.BeginTxx(ctx, nil)
+	tx, err := db.beginTransaction(ctx)
 	if err != nil {
-		db.logger.Error("failed to begin transaction", logging.Error(err))
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-
-	defer func() {
-		if p := recover(); p != nil {
-			db.logger.Error("rolling back transaction due to panic",
-				logging.Any("panic", p),
-			)
-			if rbErr := tx.Rollback(); rbErr != nil {
-				db.logger.Error("failed to rollback transaction after panic",
-					logging.Error(rbErr),
-				)
-			}
-			panic(p) // re-throw panic after rollback
-		}
-	}()
-
-	if err := fn(tx); err != nil {
-		db.logger.Error("rolling back transaction due to error",
-			logging.Error(err),
-		)
-		if rbErr := tx.Rollback(); rbErr != nil {
-			db.logger.Error("failed to rollback transaction",
-				logging.Error(rbErr),
-			)
-			return fmt.Errorf("rollback failed: %w (original error: %w)", rbErr, err)
-		}
 		return err
 	}
 
+	// Handle panics and errors
+	return db.executeInTransaction(tx, fn)
+}
+
+// beginTransaction starts a new database transaction
+func (db *DB) beginTransaction(ctx context.Context) (*sqlx.Tx, error) {
+	tx, err := db.BeginTxx(ctx, nil)
+	if err != nil {
+		db.logger.Error("failed to begin transaction", logging.Error(err))
+		return nil, fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	return tx, nil
+}
+
+// executeInTransaction executes the function within the transaction
+func (db *DB) executeInTransaction(tx *sqlx.Tx, fn func(*sqlx.Tx) error) error {
+	// Handle panics
+	defer func() {
+		if p := recover(); p != nil {
+			db.handlePanic(tx, p)
+		}
+	}()
+
+	// Execute the function
+	if err := fn(tx); err != nil {
+		return db.handleTransactionError(tx, err)
+	}
+
+	// Commit the transaction
+	return db.commitTransaction(tx)
+}
+
+// handlePanic handles transaction panics
+func (db *DB) handlePanic(tx *sqlx.Tx, p any) {
+	db.logger.Error("rolling back transaction due to panic",
+		logging.Any("panic", p),
+	)
+	if rbErr := tx.Rollback(); rbErr != nil {
+		db.logger.Error("failed to rollback transaction after panic",
+			logging.Error(rbErr),
+		)
+	}
+	panic(p) // re-throw panic after rollback
+}
+
+// handleTransactionError handles transaction errors
+func (db *DB) handleTransactionError(tx *sqlx.Tx, err error) error {
+	db.logger.Error("rolling back transaction due to error",
+		logging.Error(err),
+	)
+	if rbErr := tx.Rollback(); rbErr != nil {
+		db.logger.Error("failed to rollback transaction",
+			logging.Error(rbErr),
+		)
+		return fmt.Errorf("rollback failed: %w (original error: %w)", rbErr, err)
+	}
+	return err
+}
+
+// commitTransaction commits the transaction
+func (db *DB) commitTransaction(tx *sqlx.Tx) error {
 	db.logger.Debug("committing transaction")
 	if err := tx.Commit(); err != nil {
 		db.logger.Error("failed to commit transaction",
@@ -170,7 +203,6 @@ func (db *DB) WithTx(ctx context.Context, fn func(*sqlx.Tx) error) error {
 		)
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
-
 	db.logger.Debug("transaction completed successfully")
 	return nil
 }

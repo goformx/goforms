@@ -40,7 +40,7 @@ func NewMockService() *MockService {
 }
 
 // recordCall records a method call
-func (m *MockService) recordCall(method string, args []any) []any {
+func (m *MockService) recordCall(method string, args ...any) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 
@@ -50,10 +50,9 @@ func (m *MockService) recordCall(method string, args []any) []any {
 	// Find matching expectation
 	for _, exp := range m.expected {
 		if exp.method == method && matchArgs(exp.args, args) {
-			return exp.ret
+			exp.ret = args[len(args)-1:]
 		}
 	}
-	return nil
 }
 
 // matchArgs compares two argument slices
@@ -119,81 +118,55 @@ func (m *MockService) ExpectUpdateSubmissionStatus(ctx context.Context, id int64
 }
 
 // Submit mocks the Submit method
-func (m *MockService) Submit(ctx context.Context, sub *contact.Submission) error {
-	ret := m.recordCall("Submit", []any{ctx, sub})
-	if len(ret) == 0 || ret[0] == nil {
+func (m *MockService) Submit(ctx context.Context, submission *contact.Submission) error {
+	m.recordCall("Submit", ctx, submission)
+	ret := m.getReturn("Submit")
+	if ret == nil || len(ret) == 0 {
 		return nil
 	}
 	if err, ok := ret[0].(error); ok {
 		return err
 	}
-	return errors.New("invalid error type returned from mock")
+	return nil
 }
 
 // ListSubmissions mocks the ListSubmissions method
 func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission, error) {
-	ret := m.recordCall("ListSubmissions", []any{ctx})
-	if len(ret) < expectedReturnValues {
-		return nil, ErrNoReturnValues
+	m.recordCall("ListSubmissions", ctx)
+	ret := m.getReturn("ListSubmissions")
+	if ret == nil || len(ret) == 0 {
+		return nil, nil
 	}
-
-	var subs []contact.Submission
-	if ret[0] != nil {
-		if s, ok := ret[0].([]contact.Submission); ok {
-			subs = s
-		} else {
-			return nil, errors.New("invalid submissions type returned from mock")
-		}
+	if subs, ok := ret[0].([]contact.Submission); ok {
+		return subs, nil
 	}
-
-	var err error
-	if ret[1] != nil {
-		if e, ok := ret[1].(error); ok {
-			err = e
-		} else {
-			return nil, errors.New("invalid error type returned from mock")
-		}
-	}
-	return subs, err
+	return nil, fmt.Errorf("invalid return type for ListSubmissions")
 }
 
 // GetSubmission mocks the GetSubmission method
 func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Submission, error) {
-	ret := m.recordCall("GetSubmission", []any{ctx, id})
-	if len(ret) < expectedReturnValues {
-		return nil, ErrNoReturnValues
+	m.recordCall("GetSubmission", ctx, id)
+	ret := m.getReturn("GetSubmission")
+	if ret == nil || len(ret) == 0 {
+		return nil, nil
 	}
-
-	var sub *contact.Submission
-	if ret[0] != nil {
-		if s, ok := ret[0].(*contact.Submission); ok {
-			sub = s
-		} else {
-			return nil, errors.New("invalid submission type returned from mock")
-		}
+	if sub, ok := ret[0].(*contact.Submission); ok {
+		return sub, nil
 	}
-
-	var err error
-	if ret[1] != nil {
-		if e, ok := ret[1].(error); ok {
-			err = e
-		} else {
-			return nil, errors.New("invalid error type returned from mock")
-		}
-	}
-	return sub, err
+	return nil, fmt.Errorf("invalid return type for GetSubmission")
 }
 
 // UpdateSubmissionStatus mocks the UpdateSubmissionStatus method
 func (m *MockService) UpdateSubmissionStatus(ctx context.Context, id int64, status contact.Status) error {
-	ret := m.recordCall("UpdateSubmissionStatus", []any{ctx, id, status})
-	if len(ret) == 0 || ret[0] == nil {
+	m.recordCall("UpdateSubmissionStatus", ctx, id, status)
+	ret := m.getReturn("UpdateSubmissionStatus")
+	if ret == nil || len(ret) == 0 {
 		return nil
 	}
 	if err, ok := ret[0].(error); ok {
 		return err
 	}
-	return errors.New("invalid error type returned from mock")
+	return nil
 }
 
 // Verify checks if all expected calls were made
@@ -224,4 +197,13 @@ func (m *MockService) Reset() {
 	defer m.mu.Unlock()
 	m.calls = nil
 	m.expected = nil
+}
+
+func (m *MockService) getReturn(method string) []any {
+	for _, call := range m.calls {
+		if call.method == method {
+			return call.ret
+		}
+	}
+	return nil
 }

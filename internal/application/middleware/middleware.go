@@ -47,69 +47,84 @@ func (m *Manager) securityHeaders() echo.MiddlewareFunc {
 				logging.String("method", c.Request().Method),
 			)
 
-			// Generate nonce for CSP
-			nonce := make([]byte, nonceSize)
-			if _, err := rand.Read(nonce); err != nil {
-				m.logger.Error("failed to generate nonce",
-					logging.Error(err),
-				)
+			// Generate and set nonce
+			nonceStr, err := m.generateNonce()
+			if err != nil {
 				return err
 			}
-			nonceStr := base64.StdEncoding.EncodeToString(nonce)
-			m.logger.Debug("generated nonce for request")
-
-			// Add nonce to context for use in templates
 			c.Set("csp-nonce", nonceStr)
-			m.logger.Debug("added nonce to request context")
 
-			// Build CSP directives
-			csp := fmt.Sprintf(
-				"default-src 'self'; "+
-					"style-src 'self' 'unsafe-inline'; "+
-					"script-src 'self' 'nonce-%s'; "+
-					"img-src 'self' data:; "+
-					"font-src 'self'; "+
-					"connect-src 'self'; "+
-					"base-uri 'self'; "+
-					"form-action 'self'",
-				nonceStr,
-			)
+			// Build and set CSP
+			csp := m.buildCSP(nonceStr)
 			m.logger.Debug("built CSP directives",
 				logging.String("csp", csp),
 			)
 
-			// Set security headers in a specific order
-			headers := []struct {
-				key   string
-				value string
-			}{
-				{"Content-Security-Policy", csp},
-				{"X-Content-Type-Options", "nosniff"},
-				{"X-Frame-Options", "SAMEORIGIN"},
-				{"X-XSS-Protection", "1; mode=block"},
-				{"Referrer-Policy", "strict-origin-when-cross-origin"},
-				{"Permissions-Policy", "geolocation=(), microphone=(), camera=()"},
-				{"Cross-Origin-Opener-Policy", "same-origin"},
-				{"Cross-Origin-Embedder-Policy", "require-corp"},
-				{"Cross-Origin-Resource-Policy", "same-origin"},
-			}
+			// Set security headers
+			m.setSecurityHeaders(c, csp)
 
-			for _, header := range headers {
-				m.logger.Debug("set security header",
-					logging.String("header", header.key),
-					logging.String("value", header.value),
-				)
-				c.Response().Header().Set(header.key, header.value)
-			}
-
-			// Remove Server header
-			c.Response().Header().Del("Server")
-			m.logger.Debug("removed Server header")
-
-			m.logger.Debug("security headers processing complete")
 			return next(c)
 		}
 	}
+}
+
+// generateNonce generates a random nonce for CSP
+func (m *Manager) generateNonce() (string, error) {
+	nonce := make([]byte, nonceSize)
+	if _, err := rand.Read(nonce); err != nil {
+		m.logger.Error("failed to generate nonce",
+			logging.Error(err),
+		)
+		return "", err
+	}
+	m.logger.Debug("generated nonce for request")
+	return base64.StdEncoding.EncodeToString(nonce), nil
+}
+
+// buildCSP builds the Content Security Policy string
+func (m *Manager) buildCSP(nonce string) string {
+	return fmt.Sprintf(
+		"default-src 'self'; "+
+			"style-src 'self' 'unsafe-inline'; "+
+			"script-src 'self' 'nonce-%s'; "+
+			"img-src 'self' data:; "+
+			"font-src 'self'; "+
+			"connect-src 'self'; "+
+			"base-uri 'self'; "+
+			"form-action 'self'",
+		nonce,
+	)
+}
+
+// setSecurityHeaders sets all security-related headers
+func (m *Manager) setSecurityHeaders(c echo.Context, csp string) {
+	headers := []struct {
+		key   string
+		value string
+	}{
+		{"Content-Security-Policy", csp},
+		{"X-Content-Type-Options", "nosniff"},
+		{"X-Frame-Options", "SAMEORIGIN"},
+		{"X-XSS-Protection", "1; mode=block"},
+		{"Referrer-Policy", "strict-origin-when-cross-origin"},
+		{"Permissions-Policy", "geolocation=(), microphone=(), camera=()"},
+		{"Cross-Origin-Opener-Policy", "same-origin"},
+		{"Cross-Origin-Embedder-Policy", "require-corp"},
+		{"Cross-Origin-Resource-Policy", "same-origin"},
+	}
+
+	for _, header := range headers {
+		m.logger.Debug("set security header",
+			logging.String("header", header.key),
+			logging.String("value", header.value),
+		)
+		c.Response().Header().Set(header.key, header.value)
+	}
+
+	// Remove Server header
+	c.Response().Header().Del("Server")
+	m.logger.Debug("removed Server header")
+	m.logger.Debug("security headers processing complete")
 }
 
 // requestID adds a unique request ID to each request

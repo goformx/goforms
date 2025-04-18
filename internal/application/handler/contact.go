@@ -185,55 +185,44 @@ func (h *ContactHandler) handleGet(c echo.Context) error {
 func (h *ContactHandler) handleUpdate(c echo.Context) error {
 	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
 	if parseErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid id format")
 	}
 
 	var status contact.Status
 	if bindErr := c.Bind(&status); bindErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid status format")
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid status format")
 	}
 
 	if updateErr := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status); updateErr != nil {
-		h.LogError("failed to update submission status", updateErr)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update status")
+		return updateErr
 	}
 
-	return c.NoContent(http.StatusOK)
+	return c.NoContent(http.StatusNoContent)
 }
 
 // parseID extracts and validates the ID parameter from the context
 func (h *ContactHandler) parseID(c echo.Context) (int64, error) {
-	idStr := c.Param("id")
-	if idStr == "" {
-		return 0, errors.New("missing id parameter")
-	}
-
-	id, parseErr := strconv.ParseInt(idStr, 10, 64)
+	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
 	if parseErr != nil {
-		return 0, fmt.Errorf("invalid id format: %w", parseErr)
+		return 0, echo.NewHTTPError(http.StatusBadRequest, "invalid id format")
 	}
-
-	if id <= 0 {
-		return 0, errors.New("id must be positive")
-	}
-
 	return id, nil
 }
 
 // UpdateSubmissionStatus updates the status of a contact form submission
 func (h *ContactHandler) UpdateSubmissionStatus(c echo.Context) error {
-	id, idErr := h.parseID(c)
-	if idErr != nil {
-		return idErr
+	id, parseErr := h.parseID(c)
+	if parseErr != nil {
+		return parseErr
 	}
 
 	var status contact.Status
 	if bindErr := c.Bind(&status); bindErr != nil {
-		return fmt.Errorf("failed to bind status: %w", bindErr)
+		return echo.NewHTTPError(http.StatusBadRequest, "invalid status format")
 	}
 
 	if updateErr := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status); updateErr != nil {
-		return fmt.Errorf("failed to update submission status: %w", updateErr)
+		return updateErr
 	}
 
 	return c.NoContent(http.StatusNoContent)
