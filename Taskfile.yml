@@ -107,25 +107,25 @@ tasks:
     desc: Build the application
     deps: [generate]
     cmds:
-      - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/server
+      - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
 
   build:linux:
     desc: Build for Linux
     deps: [generate]
     cmds:
-      - GOOS=linux GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-linux-amd64 ./cmd/server
+      - GOOS=linux GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-linux-amd64 ./cmd/goforms
 
   build:darwin:
     desc: Build for macOS
     deps: [generate]
     cmds:
-      - GOOS=darwin GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-darwin-amd64 ./cmd/server
+      - GOOS=darwin GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-darwin-amd64 ./cmd/goforms
 
   build:windows:
     desc: Build for Windows
     deps: [generate]
     cmds:
-      - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/server
+      - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/goforms
 
   # Database Migration Tasks
   # - Tasks for managing database schema changes

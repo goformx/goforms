@@ -1,4 +1,22 @@
-FROM mcr.microsoft.com/devcontainers/go:1-1.23-bookworm
+# Base image for Go 1.24
+FROM debian:bookworm
+
+# Install prerequisites and Go 1.24
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get install -y --no-install-recommends \
+        wget \
+        curl \
+        tar \
+        ca-certificates \
+    && wget https://go.dev/dl/go1.24.2.linux-amd64.tar.gz \
+    && rm -rf /usr/local/go \
+    && tar -C /usr/local -xzf go1.24.2.linux-amd64.tar.gz \
+    && rm go1.24.2.linux-amd64.tar.gz \
+    && apt-get clean \
+    && rm -rf /var/lib/apt/lists/*
+
+# Set Go environment variables
+ENV PATH="/usr/local/go/bin:${PATH}"
 
 # Install MariaDB client tools, golang-migrate, and go-task
 RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
@@ -17,8 +35,10 @@ RUN curl -L "https://github.com/docker/compose/releases/download/2.32.4/docker-c
 # Install act for local GitHub Actions testing
 RUN curl -s https://raw.githubusercontent.com/nektos/act/master/install.sh | bash
 
-# Fix permissions for the Go modules directory
-RUN mkdir -p /go/pkg && chown -R vscode:vscode /go/pkg
+# Create vscode user and set up Go directories
+RUN groupadd -r vscode && useradd -r -g vscode -m -s /bin/bash vscode \
+    && mkdir -p /go/pkg \
+    && chown -R vscode:vscode /go
 
 # Switch to vscode user for subsequent operations
 USER vscode
