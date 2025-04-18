@@ -55,13 +55,13 @@ func TestMiddleware_Setup(t *testing.T) {
 func TestRequestIDMiddleware(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
 	mockLogger.ExpectDebug("creating new middleware manager")
-	mockLogger.ExpectDebug("processing request ID middleware").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("processing request ID middleware").WithFields(map[string]any{
 		"request_id":  mocklogging.AnyValue{},
 		"method":      "GET",
 		"path":        "/",
 		"remote_addr": mocklogging.AnyValue{},
 	})
-	mockLogger.ExpectDebug("request ID middleware complete").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("request ID middleware complete").WithFields(map[string]any{
 		"request_id": mocklogging.AnyValue{},
 	})
 
@@ -96,48 +96,48 @@ func TestRequestIDMiddleware(t *testing.T) {
 func TestSecurityHeadersMiddleware(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
 	mockLogger.ExpectDebug("creating new middleware manager")
-	mockLogger.ExpectDebug("processing security headers").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("processing security headers").WithFields(map[string]any{
 		"path":   "/",
 		"method": "GET",
 	})
 	mockLogger.ExpectDebug("generated nonce for request")
 	mockLogger.ExpectDebug("added nonce to request context")
-	mockLogger.ExpectDebug("built CSP directives").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("built CSP directives").WithFields(map[string]any{
 		"csp": mocklogging.AnyValue{},
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "Content-Security-Policy",
 		"value":  mocklogging.AnyValue{},
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "X-Content-Type-Options",
 		"value":  "nosniff",
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "X-Frame-Options",
 		"value":  "SAMEORIGIN",
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "X-XSS-Protection",
 		"value":  "1; mode=block",
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "Referrer-Policy",
 		"value":  "strict-origin-when-cross-origin",
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "Permissions-Policy",
 		"value":  "geolocation=(), microphone=(), camera=()",
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "Cross-Origin-Opener-Policy",
 		"value":  "same-origin",
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "Cross-Origin-Embedder-Policy",
 		"value":  "require-corp",
 	})
-	mockLogger.ExpectDebug("set security header").WithFields(map[string]interface{}{
+	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "Cross-Origin-Resource-Policy",
 		"value":  "same-origin",
 	})
@@ -198,40 +198,38 @@ func TestRequestID(t *testing.T) {
 		"request_id": "test-request-id",
 		"method":     "GET",
 		"path":       "/test",
-		"remote_addr": "127.0.0.1",
 	})
 	mockLogger.ExpectDebug("request ID middleware complete").WithFields(map[string]any{
 		"request_id": "test-request-id",
 	})
 
-	// Create mock logger
-	mockLogger = mocklogging.NewMockLogger()
-
-	// Create middleware manager
-	mw := middleware.New(mockLogger)
-
-	// Create Echo instance
 	e := echo.New()
+	m := middleware.New(mockLogger)
 
-	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	// Create test request with custom request ID
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
+	req.Header.Set(echo.HeaderXRequestID, "test-request-id")
 	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// Create handler
-	handler := func(c echo.Context) error {
-		return c.String(http.StatusOK, "test")
-	}
 
 	// Setup middleware
-	mw.Setup(e)
+	m.Setup(e)
 
-	// Test middleware chain
-	err := handler(c)
+	// Create test handler
+	e.GET("/test", func(c echo.Context) error {
+		return c.String(http.StatusOK, "test")
+	})
 
-	// Assert
-	assert.NoError(t, err)
-	assert.NotEmpty(t, rec.Header().Get("X-Request-ID"))
+	// Process the request
+	e.ServeHTTP(rec, req)
+
+	// Assert response
+	if rec.Code != http.StatusOK {
+		t.Errorf("expected status code %d, got %d", http.StatusOK, rec.Code)
+	}
+
+	if err := mockLogger.Verify(); err != nil {
+		t.Errorf("logger expectations not met: %v", err)
+	}
 }
 
 func TestSecurityHeaders(t *testing.T) {

@@ -183,18 +183,18 @@ func (h *ContactHandler) handleGet(c echo.Context) error {
 // @Failure 404 {object} echo.HTTPError
 // @Router /api/v1/contact/{id} [put]
 func (h *ContactHandler) handleUpdate(c echo.Context) error {
-	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
-	if err != nil {
+	id, parseErr := strconv.ParseInt(c.Param("id"), 10, 64)
+	if parseErr != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid ID format")
 	}
 
 	var status contact.Status
-	if err := c.Bind(&status); err != nil {
+	if bindErr := c.Bind(&status); bindErr != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid status format")
 	}
 
-	if err := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status); err != nil {
-		h.LogError("failed to update submission status", err)
+	if updateErr := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status); updateErr != nil {
+		h.LogError("failed to update submission status", updateErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update status")
 	}
 
@@ -208,9 +208,9 @@ func (h *ContactHandler) parseID(c echo.Context) (int64, error) {
 		return 0, fmt.Errorf("missing id parameter")
 	}
 
-	id, err := strconv.ParseInt(idStr, 10, 64)
-	if err != nil {
-		return 0, fmt.Errorf("invalid id format: %w", err)
+	id, parseErr := strconv.ParseInt(idStr, 10, 64)
+	if parseErr != nil {
+		return 0, fmt.Errorf("invalid id format: %w", parseErr)
 	}
 
 	if id <= 0 {

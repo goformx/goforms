@@ -112,25 +112,38 @@ func (m *MockService) ExpectUpdateSubmissionStatus(ctx context.Context, id int64
 // Submit mocks the Submit method
 func (m *MockService) Submit(ctx context.Context, sub *contact.Submission) error {
 	ret := m.recordCall("Submit", []any{ctx, sub})
-	if ret == nil || ret[0] == nil {
+	if len(ret) == 0 || ret[0] == nil {
 		return nil
 	}
-	return ret[0].(error)
+	if err, ok := ret[0].(error); ok {
+		return err
+	}
+	return fmt.Errorf("invalid error type returned from mock")
 }
 
 // ListSubmissions mocks the ListSubmissions method
 func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission, error) {
 	ret := m.recordCall("ListSubmissions", []any{ctx})
-	if ret == nil {
+	if len(ret) < 2 {
 		return nil, nil
 	}
+	
 	var subs []contact.Submission
 	if ret[0] != nil {
-		subs = ret[0].([]contact.Submission)
+		if s, ok := ret[0].([]contact.Submission); ok {
+			subs = s
+		} else {
+			return nil, fmt.Errorf("invalid submissions type returned from mock")
+		}
 	}
+	
 	var err error
 	if ret[1] != nil {
-		err = ret[1].(error)
+		if e, ok := ret[1].(error); ok {
+			err = e
+		} else {
+			return nil, fmt.Errorf("invalid error type returned from mock")
+		}
 	}
 	return subs, err
 }
@@ -138,16 +151,26 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 // GetSubmission mocks the GetSubmission method
 func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Submission, error) {
 	ret := m.recordCall("GetSubmission", []any{ctx, id})
-	if ret == nil {
+	if len(ret) < 2 {
 		return nil, nil
 	}
+	
 	var sub *contact.Submission
 	if ret[0] != nil {
-		sub = ret[0].(*contact.Submission)
+		if s, ok := ret[0].(*contact.Submission); ok {
+			sub = s
+		} else {
+			return nil, fmt.Errorf("invalid submission type returned from mock")
+		}
 	}
+	
 	var err error
 	if ret[1] != nil {
-		err = ret[1].(error)
+		if e, ok := ret[1].(error); ok {
+			err = e
+		} else {
+			return nil, fmt.Errorf("invalid error type returned from mock")
+		}
 	}
 	return sub, err
 }
@@ -155,10 +178,13 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 // UpdateSubmissionStatus mocks the UpdateSubmissionStatus method
 func (m *MockService) UpdateSubmissionStatus(ctx context.Context, id int64, status contact.Status) error {
 	ret := m.recordCall("UpdateSubmissionStatus", []any{ctx, id, status})
-	if ret == nil || ret[0] == nil {
+	if len(ret) == 0 || ret[0] == nil {
 		return nil
 	}
-	return ret[0].(error)
+	if err, ok := ret[0].(error); ok {
+		return err
+	}
+	return fmt.Errorf("invalid error type returned from mock")
 }
 
 // Verify checks if all expected calls were made
