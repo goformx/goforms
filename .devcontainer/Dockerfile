@@ -7,9 +7,9 @@ FROM mcr.microsoft.com/devcontainers/go:${VARIANT}
 
 # [Optional] Uncomment the next lines to use go get to install anything else you need
 USER vscode
-RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@v2.1.2 && \
-    go install github.com/golang-migrate/migrate/v4/cmd/migrate@v4.15.2 && \
-    go install github.com/a-h/templ/cmd/templ@v0.2.1
+RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest && \
+    go install github.com/golang-migrate/migrate/v4/cmd/migrate@latest && \
+    go install github.com/a-h/templ/cmd/templ@latest
 USER root
 
 # [Optional] Uncomment this line to install global node packages.
