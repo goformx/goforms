@@ -1,6 +1,12 @@
 # Project TODO List
 
-## Completed
+## Completed: Email Subscription MVP ✅
+- [x] 1. Project Setup
+  - [x] Initialize Go module
+  - [x] Create basic directory structure
+  - [x] Add .gitignore
+  - [x] Add .env.example
+  - [x] Set up configuration management
 
 - [x] Core Domain Implementation
   - [x] Contact Submissions
@@ -69,40 +75,52 @@
     - [ ] Ensure consistent DI usage
     - [ ] Document dependency requirements
 
-- [ ] Security
-  - [ ] Authentication System
-    - [ ] Logout Functionality
-    - [ ] Password Reset Flow
-    - [ ] Email Verification
-    - [ ] Session Management
-    - [ ] Token Refresh Mechanism
-  - [ ] Role-based Access Control
-    - [ ] Role Definitions
-    - [ ] Permission System
-    - [ ] Role Assignment
-    - [ ] Access Control Middleware
-  - [ ] API Security
-    - [ ] Rate Limiting
-    - [ ] API Key Management
-    - [ ] CORS Configuration
-    - [ ] Security Headers
+## Current Sprint: MVP Stabilization 🚀
+- [ ] 1. Deployment Readiness
+  - [ ] Production Docker setup
+  - [ ] Deployment documentation
+  - [ ] Environment configuration guide
+  - [ ] Logging setup review
+  - [ ] Monitoring configuration
 
-- [ ] Documentation
-  - [ ] API Documentation
-    - [ ] OpenAPI/Swagger Specs
-    - [ ] API Usage Examples
-    - [ ] Error Response Guide
-    - [ ] Authentication Guide
-  - [ ] Development Guides
-    - [ ] Setup Instructions
-    - [ ] Testing Guide
-    - [ ] Contributing Guide
-  - [ ] Architecture Documentation
-    - [ ] Component Overview
-    - [ ] Data Flow Diagrams
-    - [ ] Design Decisions
+- [ ] 2. Code Quality
+  - [ ] Complete test coverage
+  - [ ] API documentation
+  - [ ] Error handling review
+  - [ ] Performance testing
 
-## Upcoming
+## V2 Sprint: Multi-tenant Forms Platform 🎯
+- [ ] 1. Multi-tenant Foundation
+  - [ ] Create tenant table migration
+    - [ ] ID, name, api_key fields
+    - [ ] Domain whitelist
+    - [ ] Rate limit configs
+  - [ ] Tenant authentication system
+  - [ ] Per-tenant rate limiting
+  - [ ] Per-tenant CORS management
+
+- [ ] 2. Form Management
+  - [ ] Create forms table migration
+    - [ ] ID, title, description, created_at, updated_at
+    - [ ] Status (draft, published, archived)
+    - [ ] Validation rules
+  - [ ] Create form_fields table migration
+    - [ ] Field types (text, number, email, etc.)
+    - [ ] Validation rules
+    - [ ] Required/optional status
+  - [ ] Form CRUD endpoints
+  - [ ] Field configuration
+  - [ ] Input sanitization
+  - [ ] API versioning (v1)
+  - [ ] OpenAPI/Swagger annotations
+
+- [ ] 3. Submission Management
+  - [ ] Create form_submissions table migration
+    - [ ] Submission data (JSON)
+    - [ ] Metadata (IP, timestamp, etc.)
+  - [ ] Form submission handling
+  - [ ] Submission retrieval API
+  - [ ] Export capabilities
 
 - [ ] Form Management System
   - [ ] Form Schema Implementation
@@ -139,12 +157,6 @@
     - [ ] Webhook support
     - [ ] Email notifications
     - [ ] Slack integration
-    - [ ] Custom action handlers
-  - [ ] Analytics & Monitoring
-    - [ ] Submission tracking
-    - [ ] Error monitoring
-    - [ ] Performance metrics
-    - [ ] Usage statistics
 
 - [ ] Testing Improvements
   - [ ] Integration Tests
