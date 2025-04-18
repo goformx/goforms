@@ -23,6 +23,9 @@ vars:
   TEST_DB_NAME: '{{.TEST_DB_NAME}}'
   TEST_DB_HOST: '{{.TEST_DB_HOST}}'
   TEST_DB_PORT: '{{.TEST_DB_PORT}}'
+  PROD_USER: '{{.PROD_USER}}'
+  PROD_SERVER: '{{.PROD_SERVER}}'
+  PROD_LOG_PATH: '{{.PROD_LOG_PATH}}'
 
 tasks:
   default:
@@ -129,12 +132,12 @@ tasks:
   logs:
     desc: Tail production logs
     cmds:
-      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.out.log"
+      - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.out.log"
 
   logs:err:
     desc: Tail production error logs
     cmds:
-      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.err.log"
+      - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.err.log"
 
   logs:all:
     desc: Tail both production logs simultaneously (requires tmux)
@@ -144,4 +147,4 @@ tasks:
   logs:cors:
     desc: Monitor CORS-related logs
     cmds:
-      - ssh russell@goforms.streetcode.net "tail -f -n 100 /opt/goforms/logs/goforms.{out,err}.log | grep -i 'origin\|cors'"
+      - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.{out,err}.log | grep -i 'origin\|cors'"
