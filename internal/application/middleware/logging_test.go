@@ -9,18 +9,17 @@ import (
 	"github.com/stretchr/testify/assert"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/test/mocks/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
 	// Setup
-	mockLogger := &logging.MockLogger{}
+	mockLogger := &mocklogging.MockLogger{}
 	mockLogger.ExpectInfo("http request").WithFields(map[string]any{
 		"method":  "GET",
 		"path":    "/",
 		"status":  http.StatusOK,
-		"latency": logging.AnyValue{},
+		"latency": mocklogging.AnyValue{},
 		"ip":      "",
 	})
 

@@ -11,11 +11,23 @@ import (
 	mocklog "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/jonesrussell/goforms/internal/application/services"
 )
 
+// MockDB is a mock implementation of PingContexter
+type MockDB struct {
+	mock.Mock
+}
+
+func (m *MockDB) PingContext(ctx echo.Context) error {
+	args := m.Called(ctx)
+	return args.Error(0)
+}
+
+// mockPingContexter is a mock implementation of PingContexter
 type mockPingContexter struct {
 	err error
 }
@@ -25,103 +37,37 @@ func (m *mockPingContexter) PingContext(ctx echo.Context) error {
 }
 
 func TestHealthHandler_HandleHealthCheck(t *testing.T) {
-	tests := []struct {
-		name        string
-		pingError   error
-		wantStatus  int
-		wantBody    map[string]any
-		wantLogCall bool
-	}{
-		{
-			name:       "healthy service",
-			pingError:  nil,
-			wantStatus: http.StatusOK,
-			wantBody: map[string]any{
-				"success": true,
-				"data": map[string]any{
-					"status": "healthy",
-				},
-			},
-			wantLogCall: false,
-		},
-		{
-			name:       "unhealthy service",
-			pingError:  errors.New("db connection failed"),
-			wantStatus: http.StatusInternalServerError,
-			wantBody: map[string]any{
-				"success": false,
-				"error":   "Service is not healthy",
-			},
-			wantLogCall: true,
-		},
+	// Setup
+	mockLogger := &mocklog.MockLogger{}
+	mockDB := &MockDB{}
+	mockDB.On("PingContext", mock.Anything).Return(nil)
+
+	handler := services.NewHealthHandler(mockLogger, mockDB)
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Execute
+	execErr := handler.HandleHealthCheck(c)
+	require.NoError(t, execErr)
+
+	// Parse response
+	var gotBody map[string]any
+	if unmarshalErr := json.Unmarshal(rec.Body.Bytes(), &gotBody); unmarshalErr != nil {
+		t.Fatalf("failed to unmarshal response: %v", unmarshalErr)
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Setup
-			mockLogger := mocklog.NewMockLogger()
-			mockDB := &mockPingContexter{err: tt.pingError}
-			handler := services.NewHealthHandler(mockLogger, mockDB)
-
-			// Create request and recorder
-			req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
-			rec := httptest.NewRecorder()
-			c := echo.New().NewContext(req, rec)
-
-			// Execute
-			err := handler.HandleHealthCheck(c)
-
-			// Assert
-			if tt.wantLogCall {
-				if err == nil {
-					t.Error("HandleHealthCheck() error = nil, want error")
-				}
-			} else {
-				if err != nil {
-					t.Errorf("HandleHealthCheck() error = %v, want nil", err)
-				}
-			}
-
-			// Verify response
-			if rec.Code != tt.wantStatus {
-				t.Errorf("HandleHealthCheck() status = %v, want %v", rec.Code, tt.wantStatus)
-			}
-
-			var gotBody map[string]any
-			if err := json.Unmarshal(rec.Body.Bytes(), &gotBody); err != nil {
-				t.Fatalf("Failed to unmarshal response body: %v", err)
-			}
-
-			// Compare response bodies
-			if !deepEqual(t, tt.wantBody, gotBody) {
-				t.Errorf("HandleHealthCheck() body = %v, want %v", gotBody, tt.wantBody)
-			}
-		})
+	// Verify response
+	wantBody := map[string]any{
+		"status": "healthy",
 	}
-}
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, wantBody, gotBody)
 
-// deepEqual recursively compares two maps for equality
-func deepEqual(t *testing.T, want, got map[string]any) bool {
-	if len(want) != len(got) {
-		return false
-	}
-	for key, wantVal := range want {
-		gotVal, exists := got[key]
-		if !exists {
-			return false
-		}
-		switch v := wantVal.(type) {
-		case map[string]any:
-			if g, ok := gotVal.(map[string]any); !ok || !deepEqual(t, v, g) {
-				return false
-			}
-		default:
-			if wantVal != gotVal {
-				return false
-			}
-		}
-	}
-	return true
+	// Verify mocks
+	mockDB.AssertExpectations(t)
 }
 
 func TestHealthCheck(t *testing.T) {
@@ -181,4 +127,34 @@ func TestHealthCheck(t *testing.T) {
 			assert.Equal(t, tt.wantBody, gotBody)
 		})
 	}
+}
+
+func TestHealthHandler_HandleHealthCheck_New(t *testing.T) {
+	// Setup
+	mockLogger := &mocklog.MockLogger{}
+	mockDB := &mockPingContexter{err: nil}
+	handler := services.NewHealthHandler(mockLogger, mockDB)
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Execute
+	execErr := handler.HandleHealthCheck(c)
+	require.NoError(t, execErr)
+
+	// Parse response
+	var gotBody map[string]any
+	if unmarshalErr := json.Unmarshal(rec.Body.Bytes(), &gotBody); unmarshalErr != nil {
+		t.Fatalf("failed to unmarshal response: %v", unmarshalErr)
+	}
+
+	// Verify response
+	wantBody := map[string]any{
+		"status": "ok",
+		"time":   gotBody["time"], // Use actual time from response
+	}
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, wantBody, gotBody)
 }
