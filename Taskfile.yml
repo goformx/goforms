@@ -1,5 +1,13 @@
 version: '3'
 
+<<<<<<< HEAD
+=======
+dotenv: ['.env']
+
+# Environment Variables
+# - Database configuration for both app and test environments
+# - Separated into application and test database settings
+>>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
 vars:
   # Version and Build Info
   VERSION:
@@ -28,16 +36,23 @@ vars:
   TEST_DB_PORT: '{{.TEST_DB_PORT}}'
 
 tasks:
+  # Core Development Tasks
+  # - These tasks are used for daily development workflow
+  # - Includes building, running, and managing the application lifecycle
   default:
     cmds:
+<<<<<<< HEAD
       - task: install
       - task: generate
+=======
+      - task: build
+      - task: migrate:up
+>>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
       - task: run
 
   install:
     desc: Install project dependencies
     cmds:
-      - go mod download
       - go mod tidy
       - go install github.com/a-h/templ/cmd/templ@latest
 
@@ -48,24 +63,31 @@ tasks:
 
   run:
     desc: Run the application
+<<<<<<< HEAD
     deps: [install, generate]
+=======
+    deps: [build]
+>>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
     cmds:
-      - go run ./cmd/server
+      - ./bin/server
 
-  test:setup-db:
-    desc: Create and setup test database
+  clean:
+    desc: Clean build artifacts
     cmds:
-      - echo "Database setup should be handled by migrations"
-    env:
-      TEST_DB_USER: '{{.TEST_DB_USER}}'
-      TEST_DB_PASSWORD: '{{.TEST_DB_PASSWORD}}'
-      TEST_DB_NAME: '{{.TEST_DB_NAME}}'
-      TEST_DB_HOST: '{{.TEST_DB_HOST}}'
-      TEST_DB_PORT: '{{.TEST_DB_PORT}}'
+      - rm -rf bin/
+      - rm -f coverage.out
+      - rm -f coverage.html
 
+  # Testing Tasks
+  # - Tasks for running tests and generating coverage reports
+  # - Includes unit tests, integration tests, and test configuration
   test:
+<<<<<<< HEAD
     desc: Run tests
     deps: [generate]
+=======
+    desc: Run all tests
+>>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
     cmds:
       - go test -v ./internal/...
 
@@ -110,6 +132,9 @@ tasks:
     cmds:
       - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/server
 
+  # Database Migration Tasks
+  # - Tasks for managing database schema changes
+  # - Includes creating, applying, and rolling back migrations
   migrate:up:
     desc: Run database migrations up
     cmds:
@@ -124,13 +149,21 @@ tasks:
         migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" \
           -path migrations down
 
-  migrate:new:
+  migrate:create:
     desc: Create a new migration
     cmds:
       - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
 
+<<<<<<< HEAD
   migrate:force:
     desc: Force set migration version
+=======
+  # Code Quality Tasks
+  # - Tasks for maintaining code quality and standards
+  # - Includes linting and static analysis tools
+  lint:
+    desc: Run linters
+>>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
     cmds:
       - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations force {{.CLI_ARGS}}
 
@@ -139,6 +172,7 @@ tasks:
     cmds:
       - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations version
 
+<<<<<<< HEAD
   clean:
     desc: Clean build artifacts
     cmds:
@@ -146,6 +180,11 @@ tasks:
       - rm -rf coverage/
       - go clean -cache -testcache
 
+=======
+  # Production Logging Tasks
+  # - Tasks for monitoring and debugging production environment
+  # - Includes log viewing, filtering, and analysis capabilities
+>>>>>>> a171ffd (Refactor Taskfile.yml to enhance organization and clarity)
   logs:
     desc: Tail production logs
     cmds:
