@@ -240,12 +240,22 @@ func TestSecurityHeaders(t *testing.T) {
 		"path":   "/test",
 		"method": "GET",
 	})
+	
+	csp := "default-src 'self'; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"script-src 'self' 'nonce-test'; " +
+		"img-src 'self' data:; " +
+		"font-src 'self'; " +
+		"connect-src 'self'; " +
+		"base-uri 'self'; " +
+		"form-action 'self'"
+
 	mockLogger.ExpectDebug("built CSP directives").WithFields(map[string]any{
-		"csp": "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-test'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'",
+		"csp": csp,
 	})
 	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "Content-Security-Policy",
-		"value":  "default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-test'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'",
+		"value":  csp,
 	})
 	mockLogger.ExpectDebug("set security header").WithFields(map[string]any{
 		"header": "X-Content-Type-Options",
@@ -320,7 +330,7 @@ func TestSecurityHeaders(t *testing.T) {
 	}
 
 	// Check CSP header separately as it contains a dynamic nonce
-	csp := rec.Header().Get("Content-Security-Policy")
+	csp = rec.Header().Get("Content-Security-Policy")
 	if !strings.Contains(csp, "default-src 'self'") {
 		t.Errorf("expected CSP to contain default-src 'self', got %q", csp)
 	}

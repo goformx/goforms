@@ -2,6 +2,7 @@ package subscription
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/stretchr/testify/mock"
 )
@@ -31,16 +32,24 @@ func (m *MockService) ListSubscriptions(ctx context.Context) ([]Subscription, er
 	if err := args.Error(1); err != nil {
 		return nil, err
 	}
-	return args.Get(0).([]Subscription), nil
+	subs, ok := args.Get(0).([]Subscription)
+	if !ok {
+		return nil, fmt.Errorf("invalid type assertion")
+	}
+	return subs, nil
 }
 
 // GetSubscription mocks the GetSubscription method
 func (m *MockService) GetSubscription(ctx context.Context, id int64) (*Subscription, error) {
 	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
+	if err := args.Error(1); err != nil {
+		return nil, err
 	}
-	return args.Get(0).(*Subscription), args.Error(1)
+	sub, ok := args.Get(0).(*Subscription)
+	if !ok {
+		return nil, fmt.Errorf("invalid type assertion")
+	}
+	return sub, nil
 }
 
 // GetSubscriptionByEmail mocks the GetSubscriptionByEmail method
@@ -49,7 +58,11 @@ func (m *MockService) GetSubscriptionByEmail(ctx context.Context, email string) 
 	if err := args.Error(1); err != nil {
 		return nil, err
 	}
-	return args.Get(0).(*Subscription), nil
+	sub, ok := args.Get(0).(*Subscription)
+	if !ok {
+		return nil, fmt.Errorf("invalid type assertion")
+	}
+	return sub, nil
 }
 
 // UpdateSubscriptionStatus mocks the UpdateSubscriptionStatus method
@@ -69,5 +82,9 @@ func (m *MockService) GetSubscriptionByID(ctx context.Context, id uint) (*Subscr
 	if err := args.Error(1); err != nil {
 		return nil, err
 	}
-	return args.Get(0).(*Subscription), nil
+	sub, ok := args.Get(0).(*Subscription)
+	if !ok {
+		return nil, fmt.Errorf("invalid type assertion")
+	}
+	return sub, nil
 }
