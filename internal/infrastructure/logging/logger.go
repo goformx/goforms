@@ -43,7 +43,7 @@ type Logger interface {
 type Field = zap.Field
 
 // String creates a string field
-func String(key string, value string) Field { return zap.String(key, value) }
+func String(key, value string) Field { return zap.String(key, value) }
 
 // Int creates an integer field
 func Int(key string, value int) Field { return zap.Int(key, value) }

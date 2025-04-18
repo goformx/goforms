@@ -56,13 +56,13 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// Set user context
-		if err := m.setUserContext(c, claims); err != nil {
-			return m.handleAuthError(c, err)
+		if setErr := m.setUserContext(c, claims); setErr != nil {
+			return setErr
 		}
 
 		// Check role-based access
-		if err := m.checkRoleAccess(c); err != nil {
-			return m.handleAuthError(c, err)
+		if roleErr := m.checkRoleAccess(c); roleErr != nil {
+			return roleErr
 		}
 
 		return next(c)

@@ -59,7 +59,10 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 			logging.Error(err),
 			logging.String("email", sub.Email),
 		)
-		return h.wrapResponseError(response.InternalError(c, "Failed to create subscription"), "failed to check existing subscription")
+		return h.wrapResponseError(
+			response.InternalError(c, "Failed to create subscription"),
+			"failed to check existing subscription",
+		)
 	}
 	if existing != nil {
 		return h.wrapResponseError(response.BadRequest(c, "Email already subscribed"), "duplicate subscription")
@@ -73,7 +76,10 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 			logging.Error(err),
 			logging.String("email", sub.Email),
 		)
-		return h.wrapResponseError(response.InternalError(c, "Failed to create subscription"), "failed to create subscription")
+		return h.wrapResponseError(
+			response.InternalError(c, "Failed to create subscription"),
+			"failed to create subscription",
+		)
 	}
 
 	h.logger.Info("subscription created",

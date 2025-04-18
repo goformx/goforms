@@ -142,7 +142,7 @@ func InternalError(c echo.Context, message string) error {
 	return nil
 }
 
-func (r *Response) SetLogger(logger interface{}) error {
+func (r *Response) SetLogger(logger any) error {
 	log, ok := logger.(logging.Logger)
 	if !ok {
 		return errors.New("invalid logger type")
