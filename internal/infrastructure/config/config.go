@@ -82,7 +82,7 @@ func New() (*Config, error) {
 
 	// Simple debug output without logger dependency
 	if os.Getenv("APP_DEBUG") == "true" {
-		fmt.Println("Loading configuration...")
+		fmt.Fprintln(os.Stdout, "Loading configuration...")
 	}
 
 	if err := envconfig.Process("", &cfg); err != nil {

@@ -7,6 +7,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestBase(t *testing.T) {
@@ -47,8 +48,8 @@ func TestBase_WrapResponseError(t *testing.T) {
 	t.Run("wraps error with message", func(t *testing.T) {
 		originalErr := errors.New("original error")
 		wrappedErr := base.WrapResponseError(originalErr, "wrapped message")
-		assert.Error(t, wrappedErr)
-		assert.ErrorIs(t, wrappedErr, originalErr)
+		require.Error(t, wrappedErr)
+		require.ErrorIs(t, wrappedErr, originalErr)
 		assert.Equal(t, "wrapped message: original error", wrappedErr.Error())
 	})
 
