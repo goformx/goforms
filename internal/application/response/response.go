@@ -24,7 +24,7 @@ func getLogger(c echo.Context) logging.Logger {
 		// Fallback to echo's logger if our logger is not set
 		return logging.NewTestLogger()
 	}
-	
+
 	log, ok := logger.(logging.Logger)
 	if !ok {
 		return logging.NewTestLogger()

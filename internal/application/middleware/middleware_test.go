@@ -238,7 +238,7 @@ func TestSecurityHeaders(t *testing.T) {
 		"path":   "/test",
 		"method": "GET",
 	})
-	
+
 	csp := "default-src 'self'; " +
 		"style-src 'self' 'unsafe-inline'; " +
 		"script-src 'self' 'nonce-test'; " +

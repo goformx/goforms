@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	nonceSize = 32
+	nonceSize     = 32
 	requestIDSize = 16
 )
 

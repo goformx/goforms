@@ -127,7 +127,7 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 	if len(ret) < 2 {
 		return nil, nil
 	}
-	
+
 	var subs []contact.Submission
 	if ret[0] != nil {
 		if s, ok := ret[0].([]contact.Submission); ok {
@@ -136,7 +136,7 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 			return nil, fmt.Errorf("invalid submissions type returned from mock")
 		}
 	}
-	
+
 	var err error
 	if ret[1] != nil {
 		if e, ok := ret[1].(error); ok {
@@ -154,7 +154,7 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 	if len(ret) < 2 {
 		return nil, nil
 	}
-	
+
 	var sub *contact.Submission
 	if ret[0] != nil {
 		if s, ok := ret[0].(*contact.Submission); ok {
@@ -163,7 +163,7 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 			return nil, fmt.Errorf("invalid submission type returned from mock")
 		}
 	}
-	
+
 	var err error
 	if ret[1] != nil {
 		if e, ok := ret[1].(error); ok {
