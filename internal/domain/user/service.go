@@ -164,19 +164,31 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*T
 
 // ValidateToken validates a JWT token
 func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
-	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
-		}
+	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		return s.jwtSecret, nil
 	})
-
 	if err != nil {
-		return nil, fmt.Errorf("failed to validate token: %w", err)
+		return nil, fmt.Errorf("invalid token: %w", err)
 	}
 
-	if !token.Valid {
-		return nil, fmt.Errorf("failed to validate token: %w", ErrInvalidToken)
+	claims, ok := token.Claims.(jwt.MapClaims)
+	if !ok {
+		return nil, fmt.Errorf("invalid token claims")
+	}
+
+	// Validate user_id claim exists and is a float64
+	if _, ok := claims["user_id"].(float64); !ok {
+		return nil, fmt.Errorf("invalid user_id claim")
+	}
+
+	// Validate token expiration
+	exp, ok := claims["exp"].(float64)
+	if !ok {
+		return nil, fmt.Errorf("invalid exp claim")
+	}
+
+	if time.Now().Unix() > int64(exp) {
+		return nil, fmt.Errorf("token expired")
 	}
 
 	return token, nil

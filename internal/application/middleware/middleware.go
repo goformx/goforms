@@ -10,6 +10,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+const (
+	nonceSize = 32
+	requestIDSize = 16
+)
+
 // Manager handles middleware configuration and setup
 type Manager struct {
 	logger logging.Logger
@@ -43,7 +48,7 @@ func (m *Manager) securityHeaders() echo.MiddlewareFunc {
 			)
 
 			// Generate nonce for CSP
-			nonce := make([]byte, 32)
+			nonce := make([]byte, nonceSize)
 			if _, err := rand.Read(nonce); err != nil {
 				m.logger.Error("failed to generate nonce",
 					logging.Error(err),
@@ -58,7 +63,17 @@ func (m *Manager) securityHeaders() echo.MiddlewareFunc {
 			m.logger.Debug("added nonce to request context")
 
 			// Build CSP directives
-			csp := fmt.Sprintf("default-src 'self'; style-src 'self' 'unsafe-inline'; script-src 'self' 'nonce-%s'; img-src 'self' data:; font-src 'self'; connect-src 'self'; base-uri 'self'; form-action 'self'", nonceStr)
+			csp := fmt.Sprintf(
+				"default-src 'self'; "+
+					"style-src 'self' 'unsafe-inline'; "+
+					"script-src 'self' 'nonce-%s'; "+
+					"img-src 'self' data:; "+
+					"font-src 'self'; "+
+					"connect-src 'self'; "+
+					"base-uri 'self'; "+
+					"form-action 'self'",
+				nonceStr,
+			)
 			m.logger.Debug("built CSP directives",
 				logging.String("csp", csp),
 			)
@@ -126,9 +141,8 @@ func (m *Manager) requestID() echo.MiddlewareFunc {
 }
 
 func generateRequestID() string {
-	b := make([]byte, 16)
-	_, err := rand.Read(b)
-	if err != nil {
+	b := make([]byte, requestIDSize)
+	if _, err := rand.Read(b); err != nil {
 		return "error-generating-request-id"
 	}
 	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])

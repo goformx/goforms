@@ -1,6 +1,7 @@
 package response
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -13,6 +14,7 @@ type Response struct {
 	Success bool   `json:"success"`
 	Data    any    `json:"data,omitempty"`
 	Error   string `json:"error,omitempty"`
+	logger  logging.Logger
 }
 
 // getLogger retrieves the logger from the context
@@ -122,5 +124,14 @@ func InternalError(c echo.Context, message string) error {
 		logger.Error("failed to send internal error response", logging.Error(err))
 		return err
 	}
+	return nil
+}
+
+func (r *Response) SetLogger(logger interface{}) error {
+	log, ok := logger.(logging.Logger)
+	if !ok {
+		return fmt.Errorf("invalid logger type")
+	}
+	r.logger = log
 	return nil
 }

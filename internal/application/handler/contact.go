@@ -200,3 +200,42 @@ func (h *ContactHandler) handleUpdate(c echo.Context) error {
 
 	return c.NoContent(http.StatusOK)
 }
+
+// parseID extracts and validates the ID parameter from the context
+func (h *ContactHandler) parseID(c echo.Context) (int64, error) {
+	idStr := c.Param("id")
+	if idStr == "" {
+		return 0, fmt.Errorf("missing id parameter")
+	}
+
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return 0, fmt.Errorf("invalid id format: %w", err)
+	}
+
+	if id <= 0 {
+		return 0, fmt.Errorf("id must be positive")
+	}
+
+	return id, nil
+}
+
+// UpdateSubmissionStatus updates the status of a contact form submission
+func (h *ContactHandler) UpdateSubmissionStatus(c echo.Context) error {
+	id, err := h.parseID(c)
+	if err != nil {
+		return err
+	}
+
+	var status contact.Status
+	if err := c.Bind(&status); err != nil {
+		return fmt.Errorf("failed to bind status: %w", err)
+	}
+
+	updateErr := h.contactService.UpdateSubmissionStatus(c.Request().Context(), id, status)
+	if updateErr != nil {
+		return fmt.Errorf("failed to update submission status: %w", updateErr)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
