@@ -119,44 +119,63 @@ func ParseResponse(rec *httptest.ResponseRecorder, v any) error {
 
 func (f *SubscriptionFixture) CreateSubscription(email string) (*httptest.ResponseRecorder, error) {
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", strings.NewReader(fmt.Sprintf(`{"email":%q}`, email)))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/subscriptions",
+		strings.NewReader(fmt.Sprintf(`{"email":%q}`, email)),
+	)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	c := f.Echo.NewContext(req, rec)
 
-	if handlerErr := f.Handler(c); handlerErr != nil {
+	if err := f.Handler(c); err != nil {
 		var he *echo.HTTPError
-		if errors.As(handlerErr, &he) {
-			if encodeErr := json.NewEncoder(rec.Body).Encode(handleError(he)); encodeErr != nil {
-				return nil, fmt.Errorf("failed to encode error response: %w", encodeErr)
+		if errors.As(err, &he) {
+			errResp, err := handleError(he)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.NewEncoder(rec.Body).Encode(errResp); err != nil {
+				return nil, fmt.Errorf("failed to encode error response: %w", err)
 			}
 		}
-		return rec, handlerErr
+		return rec, err
 	}
 	return rec, nil
 }
 
 func (f *SubscriptionFixture) CreateSubscriptionWithOrigin(email, origin string) (*httptest.ResponseRecorder, error) {
 	rec := httptest.NewRecorder()
-	req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", strings.NewReader(fmt.Sprintf(`{"email":%q}`, email)))
+	req := httptest.NewRequest(
+		http.MethodPost,
+		"/api/v1/subscriptions",
+		strings.NewReader(fmt.Sprintf(`{"email":%q}`, email)),
+	)
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	req.Header.Set(echo.HeaderOrigin, origin)
 	c := f.Echo.NewContext(req, rec)
 
-	if handlerErr := f.Handler(c); handlerErr != nil {
+	if err := f.Handler(c); err != nil {
 		var he *echo.HTTPError
-		if errors.As(handlerErr, &he) {
-			if encodeErr := json.NewEncoder(rec.Body).Encode(handleError(he)); encodeErr != nil {
-				return nil, fmt.Errorf("failed to encode error response: %w", encodeErr)
+		if errors.As(err, &he) {
+			errResp, err := handleError(he)
+			if err != nil {
+				return nil, err
+			}
+			if err := json.NewEncoder(rec.Body).Encode(errResp); err != nil {
+				return nil, fmt.Errorf("failed to encode error response: %w", err)
 			}
 		}
-		return rec, handlerErr
+		return rec, err
 	}
 	return rec, nil
 }
 
-func handleError(he *echo.HTTPError) map[string]string {
-	msg := he.Message.(string)
+func handleError(he *echo.HTTPError) (map[string]string, error) {
+	msg, ok := he.Message.(string)
+	if !ok {
+		return nil, errors.New("invalid error message type")
+	}
 	return map[string]string{
 		"error": msg,
-	}
+	}, nil
 }
