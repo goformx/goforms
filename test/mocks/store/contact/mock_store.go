@@ -1,61 +1,139 @@
-package contactmock
+package contact
 
 import (
 	"context"
 	"errors"
 
-	"github.com/stretchr/testify/mock"
-
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
-// Ensure MockStore implements contact.Store interface
-var _ contact.Store = (*MockStore)(nil)
-
-// MockStore is a mock implementation of contact.Store
 type MockStore struct {
-	mock.Mock
+	expectations []expectation
 }
 
-// Create mocks the Create method
-func (m *MockStore) Create(ctx context.Context, sub *contact.Submission) error {
-	args := m.Called(ctx, sub)
-	return args.Error(0)
+type expectation struct {
+	method   string
+	args     []interface{}
+	returns  []interface{}
+	executed bool
 }
 
-// List mocks the List method
-func (m *MockStore) List(ctx context.Context) ([]contact.Submission, error) {
-	args := m.Called(ctx)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	subs, ok := args.Get(0).([]contact.Submission)
-	if !ok {
-		return nil, errors.New("invalid return type for List")
-	}
-	return subs, args.Error(1)
-}
-
-// Get mocks the Get method
-func (m *MockStore) Get(ctx context.Context, id int64) (*contact.Submission, error) {
-	args := m.Called(ctx, id)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	sub, ok := args.Get(0).(*contact.Submission)
-	if !ok {
-		return nil, errors.New("invalid return type for Get")
-	}
-	return sub, args.Error(1)
-}
-
-// UpdateStatus mocks the UpdateStatus method
-func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status contact.Status) error {
-	args := m.Called(ctx, id, status)
-	return args.Error(0)
-}
-
-// NewMockStore creates a new mock store
 func NewMockStore() *MockStore {
 	return &MockStore{}
+}
+
+func (m *MockStore) Create(ctx context.Context, sub *contact.Submission) error {
+	if len(m.expectations) == 0 {
+		return errors.New("no expectations set")
+	}
+
+	e := m.expectations[0]
+	if e.method != "Create" {
+		return errors.New("unexpected method call")
+	}
+
+	m.expectations = m.expectations[1:]
+	e.executed = true
+
+	if len(e.returns) > 0 {
+		if err, ok := e.returns[0].(error); ok {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *MockStore) List(ctx context.Context) ([]contact.Submission, error) {
+	if len(m.expectations) == 0 {
+		return nil, errors.New("no expectations set")
+	}
+
+	e := m.expectations[0]
+	if e.method != "List" {
+		return nil, errors.New("unexpected method call")
+	}
+
+	m.expectations = m.expectations[1:]
+	e.executed = true
+
+	if len(e.returns) > 0 {
+		if submissions, ok := e.returns[0].([]contact.Submission); ok {
+			return submissions, nil
+		}
+		return nil, errors.New("invalid return type")
+	}
+
+	return nil, nil
+}
+
+func (m *MockStore) Get(ctx context.Context, id int64) (*contact.Submission, error) {
+	if len(m.expectations) == 0 {
+		return nil, errors.New("no expectations set")
+	}
+
+	e := m.expectations[0]
+	if e.method != "Get" {
+		return nil, errors.New("unexpected method call")
+	}
+
+	m.expectations = m.expectations[1:]
+	e.executed = true
+
+	if len(e.returns) > 0 {
+		if submission, ok := e.returns[0].(*contact.Submission); ok {
+			return submission, nil
+		}
+		return nil, errors.New("invalid return type")
+	}
+
+	return nil, nil
+}
+
+func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status contact.Status) error {
+	if len(m.expectations) == 0 {
+		return errors.New("no expectations set")
+	}
+
+	e := m.expectations[0]
+	if e.method != "UpdateStatus" {
+		return errors.New("unexpected method call")
+	}
+
+	m.expectations = m.expectations[1:]
+	e.executed = true
+
+	if len(e.returns) > 0 {
+		if err, ok := e.returns[0].(error); ok {
+			return err
+		}
+	}
+
+	return nil
+}
+
+func (m *MockStore) Expect(method string, args ...interface{}) *MockStore {
+	m.expectations = append(m.expectations, expectation{
+		method:   method,
+		args:     args,
+		executed: false,
+	})
+	return m
+}
+
+func (m *MockStore) Return(returns ...interface{}) *MockStore {
+	if len(m.expectations) == 0 {
+		return m
+	}
+	m.expectations[len(m.expectations)-1].returns = returns
+	return m
+}
+
+func (m *MockStore) ExpectationsWereMet() error {
+	for _, e := range m.expectations {
+		if !e.executed {
+			return errors.New("not all expectations were met")
+		}
+	}
+	return nil
 }
