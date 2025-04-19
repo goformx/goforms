@@ -80,7 +80,11 @@ func matchArgs(exp, got []any) bool {
 }
 
 // ExpectCreate sets up an expectation for Create method
-func (m *MockStore) ExpectCreate(ctx context.Context, sub *subscription.Subscription, ret *subscription.Subscription, err error) {
+func (m *MockStore) ExpectCreate(
+	ctx context.Context,
+	sub, ret *subscription.Subscription,
+	err error,
+) {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.expected = append(m.expected, mockCall{

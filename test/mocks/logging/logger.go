@@ -88,7 +88,8 @@ func (m *MockLogger) Uint32(key string, value uint32) logging.Field {
 	return zap.Uint32(key, value)
 }
 
-func (m *MockLogger) String(key string, value string) logging.Field {
+// String creates a string field
+func (m *MockLogger) String(key, value string) logging.Field {
 	return zap.String(key, value)
 }
 
@@ -129,7 +130,8 @@ func Uint32(key string, value uint32) logging.Field {
 	return zap.Uint32(key, value)
 }
 
-func String(key string, value string) logging.Field {
+// String creates a string field
+func String(key, value string) logging.Field {
 	return zap.String(key, value)
 }
 

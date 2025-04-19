@@ -46,18 +46,20 @@ func (m *MockStore) Create(ctx context.Context, submission *contact.Submission) 
 	return args.Error(0)
 }
 
-// UpdateStatus updates a submission status based on expectations
-func (m *MockStore) UpdateStatus(ctx context.Context, id string, status string) error {
+// UpdateStatus updates the status of a contact submission
+func (m *MockStore) UpdateStatus(ctx context.Context, id, status string) error {
 	args := m.Called(ctx, id, status)
 	return args.Error(0)
 }
 
-func (m *MockStore) Expect(method string, args ...interface{}) *MockStore {
+// Expect sets up an expectation for a method call
+func (m *MockStore) Expect(method string, args ...any) *MockStore {
 	m.Mock.On(method, args...)
 	return m
 }
 
-func (m *MockStore) Return(method string, returns ...interface{}) *MockStore {
+// Return sets up return values for a method call
+func (m *MockStore) Return(method string, returns ...any) *MockStore {
 	m.Mock.On(method, returns...)
 	return m
 }

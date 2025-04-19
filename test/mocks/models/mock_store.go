@@ -69,10 +69,14 @@ func (m *MockSubscriptionStore) GetByID(ctx context.Context, id int64) (*subscri
 // GetByEmail implements subscription.Store
 func (m *MockSubscriptionStore) GetByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
 	args := m.Called(ctx, email)
-	if sub := args.Get(0); sub != nil {
-		return sub.(*subscription.Subscription), args.Error(1)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-	return nil, args.Error(1)
+	sub, ok := args.Get(0).(*subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscription")
+	}
+	return sub, args.Error(1)
 }
 
 // UpdateStatus implements subscription.Store

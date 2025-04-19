@@ -1,7 +1,6 @@
 package infrastructure
 
 import (
-	"context"
 	"fmt"
 
 	"go.uber.org/fx"
@@ -97,33 +96,6 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 	)
 
 	return stores
-}
-
-// registerDatabaseHooks sets up lifecycle hooks for the database connection.
-// This ensures proper database connection handling during application startup and shutdown.
-func registerDatabaseHooks(lc fx.Lifecycle, db *database.Database, logger logging.Logger) {
-	logger.Debug("registering database lifecycle hooks",
-		logging.Bool("database_available", db != nil),
-		logging.Bool("lifecycle_available", lc != nil),
-	)
-
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			logger.Debug("database starting")
-			return nil
-		},
-		OnStop: func(ctx context.Context) error {
-			logger.Info("closing database connection")
-			if err := db.Close(); err != nil {
-				logger.Error("failed to close database connection", logging.Error(err))
-				return fmt.Errorf("failed to close database connection: %w", err)
-			}
-			logger.Debug("database connection closed successfully")
-			return nil
-		},
-	})
-
-	logger.Debug("database lifecycle hooks registered successfully")
 }
 
 // NewHandlers creates all application handlers

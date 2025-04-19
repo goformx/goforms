@@ -42,8 +42,9 @@ func AssertResponseCode(t *testing.T, rec *httptest.ResponseRecorder, expectedCo
 	require.Equal(t, expectedCode, rec.Code)
 }
 
-func AssertResponseBody(t *testing.T, rec *httptest.ResponseRecorder, expected interface{}) {
-	var actual interface{}
+// AssertResponseBody asserts that the response body matches the expected value
+func AssertResponseBody(t *testing.T, rec *httptest.ResponseRecorder, expected any) {
+	var actual any
 	err := json.NewDecoder(rec.Body).Decode(&actual)
 	require.NoError(t, err)
 	require.Equal(t, expected, actual)
