@@ -41,22 +41,22 @@ func (s *Store) Create(u *user.User) error {
 	u.CreatedAt = time.Now()
 	u.UpdatedAt = time.Now()
 
-	rows, err := s.db.NamedQuery(query, u)
-	if err != nil {
-		s.log.Error("failed to create user", logging.Error(err))
-		return err
+	rows, queryErr := s.db.NamedQuery(query, u)
+	if queryErr != nil {
+		s.log.Error("failed to create user", logging.Error(queryErr))
+		return queryErr
 	}
 	defer rows.Close()
 
 	if rows.Next() {
-		if err := rows.Scan(&u.ID); err != nil {
-			s.log.Error("failed to scan user id", logging.Error(err))
-			return err
+		if scanErr := rows.Scan(&u.ID); scanErr != nil {
+			s.log.Error("failed to scan user id", logging.Error(scanErr))
+			return scanErr
 		}
 	}
 
-	if err := rows.Err(); err != nil {
-		return err
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return rowsErr
 	}
 
 	return nil

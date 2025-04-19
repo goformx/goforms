@@ -1,7 +1,6 @@
 package contact_test
 
 import (
-	"context"
 	"errors"
 	"testing"
 
@@ -61,14 +60,14 @@ func TestSubmitContact(t *testing.T) {
 			tt.setup(mockStore, mockLogger)
 
 			svc := contact.NewService(mockStore, mockLogger)
-			err := svc.Submit(t.Context(), tt.input)
+			submitErr := svc.Submit(t.Context(), tt.input)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Submit() error = %v, wantErr %v", err, tt.wantErr)
+			if (submitErr != nil) != tt.wantErr {
+				t.Errorf("Submit() error = %v, wantErr %v", submitErr, tt.wantErr)
 			}
 
-			if err := mockLogger.Verify(); err != nil {
-				t.Errorf("logger expectations not met: %v", err)
+			if verifyErr := mockLogger.Verify(); verifyErr != nil {
+				t.Errorf("logger expectations not met: %v", verifyErr)
 			}
 		})
 	}
@@ -106,17 +105,17 @@ func TestListSubmissions(t *testing.T) {
 			tt.setup(mockStore, mockLogger)
 
 			svc := contact.NewService(mockStore, mockLogger)
-			got, err := svc.ListSubmissions(t.Context())
+			got, listErr := svc.ListSubmissions(t.Context())
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("List() error = %v, wantErr %v", err, tt.wantErr)
+			if (listErr != nil) != tt.wantErr {
+				t.Errorf("List() error = %v, wantErr %v", listErr, tt.wantErr)
 			}
 			if !tt.wantErr && !submissionsEqual(got, tt.want) {
 				t.Errorf("List() = %v, want %v", got, tt.want)
 			}
 
-			if err := mockLogger.Verify(); err != nil {
-				t.Errorf("logger expectations not met: %v", err)
+			if verifyErr := mockLogger.Verify(); verifyErr != nil {
+				t.Errorf("logger expectations not met: %v", verifyErr)
 			}
 		})
 	}
@@ -157,17 +156,17 @@ func TestGetSubmission(t *testing.T) {
 			tt.setup(mockStore, mockLogger)
 
 			svc := contact.NewService(mockStore, mockLogger)
-			got, err := svc.GetSubmission(t.Context(), tt.id)
+			got, getErr := svc.GetSubmission(t.Context(), tt.id)
 
-			if (err != nil) != tt.wantErr {
-				t.Errorf("Get() error = %v, wantErr %v", err, tt.wantErr)
+			if (getErr != nil) != tt.wantErr {
+				t.Errorf("Get() error = %v, wantErr %v", getErr, tt.wantErr)
 			}
 			if !tt.wantErr && !submissionEqual(got, tt.want) {
 				t.Errorf("Get() = %v, want %v", got, tt.want)
 			}
 
-			if err := mockLogger.Verify(); err != nil {
-				t.Errorf("logger expectations not met: %v", err)
+			if verifyErr := mockLogger.Verify(); verifyErr != nil {
+				t.Errorf("logger expectations not met: %v", verifyErr)
 			}
 		})
 	}
@@ -215,7 +214,7 @@ func TestContactService(t *testing.T) {
 		mockStore.On("Create", mock.Anything, submission).Return(nil)
 		mockLogger.ExpectInfo("contact submission created")
 
-		if err := service.Submit(context.Background(), submission); err != nil {
+		if err := service.Submit(t.Context(), submission); err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
@@ -243,7 +242,7 @@ func TestContactService(t *testing.T) {
 		mockStore.On("List", mock.Anything).Return(submissions, nil)
 		mockLogger.ExpectInfo("contact submissions listed")
 
-		result, err := service.ListSubmissions(context.Background())
+		result, err := service.ListSubmissions(t.Context())
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
@@ -271,7 +270,7 @@ func TestContactService(t *testing.T) {
 		mockStore.On("Get", mock.Anything, int64(1)).Return(submission, nil)
 		mockLogger.ExpectInfo("contact submission retrieved")
 
-		result, err := service.GetSubmission(context.Background(), 1)
+		result, err := service.GetSubmission(t.Context(), 1)
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}

@@ -25,6 +25,8 @@ var (
 	ErrTokenBlacklisted = errors.New("token is blacklisted")
 	// ErrInvalidUserIDClaim indicates that the user_id claim type is invalid
 	ErrInvalidUserIDClaim = errors.New("invalid user_id claim type")
+	// ErrInvalidUserID indicates that the user_id claim type is invalid
+	ErrInvalidUserID = errors.New("invalid user_id claim type")
 )
 
 const (
@@ -221,7 +223,7 @@ func (s *ServiceImpl) validateTokenClaims(token *jwt.Token) error {
 // validateUserIDClaim validates the user_id claim
 func (s *ServiceImpl) validateUserIDClaim(claims jwt.MapClaims) error {
 	if _, ok := claims["user_id"].(float64); !ok {
-		return errors.New("invalid user_id claim type")
+		return ErrInvalidUserIDClaim
 	}
 	return nil
 }
@@ -352,11 +354,11 @@ func (s *ServiceImpl) GetUserIDFromToken(token string) (string, error) {
 // GetByID retrieves a user by ID
 func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*User, error) {
 	if id == "" {
-		return nil, errors.New("invalid user_id claim type")
+		return nil, ErrInvalidUserID
 	}
 	userID, err := strconv.ParseUint(id, 10, 64)
 	if err != nil {
-		return nil, errors.New("invalid user_id claim type")
+		return nil, ErrInvalidUserID
 	}
 	return s.store.GetByID(uint(userID))
 }

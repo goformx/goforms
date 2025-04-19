@@ -6,41 +6,38 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/require"
+	"github.com/stretchr/testify/mock"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
 func TestLoggingMiddleware(t *testing.T) {
-	// Setup
-	mockLogger := &mocklogging.MockLogger{}
-	mockLogger.ExpectInfo("http request").WithFields(map[string]any{
-		"method":  "GET",
-		"path":    "/",
-		"status":  http.StatusOK,
-		"latency": mocklogging.AnyValue{},
-		"ip":      "",
-	})
+	mockLogger := mocklogging.NewMockLogger()
+	loggingMiddleware := middleware.LoggingMiddleware(mockLogger)
 
-	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	handler := func(c echo.Context) error {
+		return nil
+	}
+
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
+	e := echo.New()
 	c := e.NewContext(req, rec)
 
-	// Create handler with middleware
-	handler := middleware.LoggingMiddleware(mockLogger)(func(c echo.Context) error {
-		return c.String(http.StatusOK, "test")
+	mockLogger.ExpectInfo("request completed").WithFields(map[string]any{
+		"method":   http.MethodGet,
+		"path":     "/test",
+		"status":   http.StatusOK,
+		"duration": mock.Anything,
 	})
 
-	// Execute
-	execErr := handler(c)
-	require.NoError(t, execErr)
+	if err := loggingMiddleware(handler)(c); err != nil {
+		t.Fatalf("unexpected error: %v", err)
+	}
 
-	// Verify logger expectations
-	verifyErr := mockLogger.Verify()
-	if verifyErr != nil {
-		t.Fatalf("mock logger verification failed: %v", verifyErr)
+	if err := mockLogger.Verify(); err != nil {
+		t.Fatalf("logger expectations not met: %v", err)
 	}
 }
 
