@@ -150,7 +150,7 @@ func TestRateLimitConfig(t *testing.T) {
 		expected config.RateLimitConfig
 	}{
 		{
-			name: "default values",
+			name:    "default values",
 			envVars: map[string]string{},
 			expected: config.RateLimitConfig{
 				Enabled: true,

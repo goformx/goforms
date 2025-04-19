@@ -2,6 +2,7 @@ package subscriptionmock
 
 import (
 	"context"
+	"errors"
 
 	"github.com/stretchr/testify/mock"
 
@@ -25,7 +26,11 @@ func (m *MockStore) List(ctx context.Context) ([]subscription.Subscription, erro
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]subscription.Subscription), args.Error(1)
+	subs, ok := args.Get(0).([]subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscriptions")
+	}
+	return subs, args.Error(1)
 }
 
 // GetByID mocks the GetByID method
@@ -34,7 +39,11 @@ func (m *MockStore) GetByID(ctx context.Context, id int64) (*subscription.Subscr
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*subscription.Subscription), args.Error(1)
+	sub, ok := args.Get(0).(*subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscription")
+	}
+	return sub, args.Error(1)
 }
 
 // GetByEmail mocks the GetByEmail method
@@ -43,7 +52,11 @@ func (m *MockStore) GetByEmail(ctx context.Context, email string) (*subscription
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*subscription.Subscription), args.Error(1)
+	sub, ok := args.Get(0).(*subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscription")
+	}
+	return sub, args.Error(1)
 }
 
 // UpdateStatus mocks the UpdateStatus method

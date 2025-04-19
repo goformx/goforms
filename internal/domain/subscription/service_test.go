@@ -250,11 +250,11 @@ func TestDeleteSubscription(t *testing.T) {
 
 func TestGetSubscriptionByEmail(t *testing.T) {
 	tests := []struct {
-		name           string
-		email          string
-		expectedSub    *subscription.Subscription
-		expectedError  error
-		setupMock      func(*subscriptionmock.MockStore)
+		name          string
+		email         string
+		expectedSub   *subscription.Subscription
+		expectedError error
+		setupMock     func(*subscriptionmock.MockStore)
 	}{
 		{
 			name:          "subscription found",

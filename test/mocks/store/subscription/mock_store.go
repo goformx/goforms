@@ -267,8 +267,12 @@ func (m *MockStore) Reset() {
 // Get implements subscription.Store
 func (m *MockStore) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
 	args := m.Called(ctx, id)
-	if sub := args.Get(0); sub != nil {
-		return sub.(*subscription.Subscription), args.Error(1)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-	return nil, args.Error(1)
+	sub, ok := args.Get(0).(*subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscription")
+	}
+	return sub, args.Error(1)
 }

@@ -2,6 +2,7 @@ package mocks
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/stretchr/testify/mock"
@@ -31,7 +32,11 @@ func (m *SubscriptionStore) List(ctx context.Context) ([]subscription.Subscripti
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]subscription.Subscription), args.Error(1)
+	subs, ok := args.Get(0).([]subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscriptions")
+	}
+	return subs, args.Error(1)
 }
 
 // GetByID implements subscription.Store

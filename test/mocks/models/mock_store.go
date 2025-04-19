@@ -39,17 +39,24 @@ var (
 func (m *MockSubscriptionStore) List(ctx context.Context) ([]subscription.Subscription, error) {
 	args := m.Called(ctx)
 	if args.Get(0) == nil {
-		return nil, ErrInvalidReturnType
+		return nil, args.Error(1)
 	}
-	return args.Get(0).([]subscription.Subscription), args.Error(1)
+	subs, ok := args.Get(0).([]subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscriptions")
+	}
+	return subs, args.Error(1)
 }
 
 // Get implements subscription.Store
 func (m *MockSubscriptionStore) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
 	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
 	sub, ok := args.Get(0).(*subscription.Subscription)
 	if !ok {
-		return nil, errors.New("invalid return type for Get")
+		return nil, errors.New("invalid type assertion for subscription")
 	}
 	return sub, args.Error(1)
 }
