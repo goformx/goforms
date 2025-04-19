@@ -142,13 +142,12 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	})
 
 	// Execute request
-	err := handler(c)
-	if err != nil {
+	if err := handler(c); err != nil {
 		t.Errorf("expected no error, got %v", err)
 	}
 
 	// Verify logs
-	if err := mockLogger.Verify(); err != nil {
-		t.Errorf("logger expectations not met: %v", err)
+	if verifyErr := mockLogger.Verify(); verifyErr != nil {
+		t.Errorf("logger expectations not met: %v", verifyErr)
 	}
 }

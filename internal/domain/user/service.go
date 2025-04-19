@@ -157,7 +157,7 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*T
 	// Get user from claims
 	userID, ok := claims["user_id"].(float64)
 	if !ok {
-		return nil, fmt.Errorf("invalid user_id claim type")
+		return nil, ErrInvalidUserIDClaim
 	}
 	user, lookupErr := s.GetUserByID(ctx, uint(userID))
 	if lookupErr != nil {
