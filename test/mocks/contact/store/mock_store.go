@@ -4,50 +4,53 @@ import (
 	"context"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/stretchr/testify/mock"
 )
 
-// MockStore is a mock implementation of contact.Store
+// MockStore is a mock implementation of the contact store
 type MockStore struct {
-	CreateFunc       func(ctx context.Context, sub *contact.Submission) error
-	ListFunc         func(ctx context.Context) ([]contact.Submission, error)
-	GetFunc          func(ctx context.Context, id int64) (*contact.Submission, error)
-	UpdateStatusFunc func(ctx context.Context, id int64, status contact.Status) error
+	mock.Mock
 }
 
 // NewMockStore creates a new mock store
 func NewMockStore() *MockStore {
-	return &MockStore{
-		CreateFunc: func(ctx context.Context, sub *contact.Submission) error {
-			return nil
-		},
-		ListFunc: func(ctx context.Context) ([]contact.Submission, error) {
-			return nil, nil
-		},
-		GetFunc: func(ctx context.Context, id int64) (*contact.Submission, error) {
-			return nil, nil
-		},
-		UpdateStatusFunc: func(ctx context.Context, id int64, status contact.Status) error {
-			return nil
-		},
-	}
+	return &MockStore{}
 }
 
-// Create implements contact.Store
-func (m *MockStore) Create(ctx context.Context, sub *contact.Submission) error {
-	return m.CreateFunc(ctx, sub)
+// Create creates a new contact submission
+func (m *MockStore) Create(ctx context.Context, submission *contact.Submission) error {
+	args := m.Called(ctx, submission)
+	return args.Error(0)
 }
 
-// List implements contact.Store
-func (m *MockStore) List(ctx context.Context) ([]contact.Submission, error) {
-	return m.ListFunc(ctx)
-}
-
-// Get implements contact.Store
+// Get gets a contact submission by ID
 func (m *MockStore) Get(ctx context.Context, id int64) (*contact.Submission, error) {
-	return m.GetFunc(ctx, id)
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	submission, ok := args.Get(0).(*contact.Submission)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return submission, args.Error(1)
 }
 
-// UpdateStatus implements contact.Store
+// List lists all contact submissions
+func (m *MockStore) List(ctx context.Context) ([]contact.Submission, error) {
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
+	}
+	submissions, ok := args.Get(0).([]contact.Submission)
+	if !ok {
+		return nil, args.Error(1)
+	}
+	return submissions, args.Error(1)
+}
+
+// UpdateStatus updates a submission's status
 func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status contact.Status) error {
-	return m.UpdateStatusFunc(ctx, id, status)
+	args := m.Called(ctx, id, status)
+	return args.Error(0)
 }

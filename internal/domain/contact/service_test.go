@@ -8,6 +8,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	contactmock "github.com/jonesrussell/goforms/test/mocks/contact/store"
 	loggingmock "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/stretchr/testify/mock"
 )
 
 var errTest = errors.New("test error")
@@ -22,9 +23,7 @@ func TestSubmitContact(t *testing.T) {
 		{
 			name: "valid_submission",
 			setup: func(ms *contactmock.MockStore, ml *loggingmock.MockLogger) {
-				ms.CreateFunc = func(ctx context.Context, sub *contact.Submission) error {
-					return nil
-				}
+				ms.On("Create", mock.Anything, mock.AnythingOfType("*contact.Submission")).Return(nil)
 				ml.ExpectInfo("submission created").WithFields(map[string]any{
 					"email":  "test@example.com",
 					"status": string(contact.StatusPending),
@@ -40,9 +39,7 @@ func TestSubmitContact(t *testing.T) {
 		{
 			name: "store_error",
 			setup: func(ms *contactmock.MockStore, ml *loggingmock.MockLogger) {
-				ms.CreateFunc = func(ctx context.Context, sub *contact.Submission) error {
-					return errTest
-				}
+				ms.On("Create", mock.Anything, mock.AnythingOfType("*contact.Submission")).Return(errTest)
 				ml.ExpectError("failed to create submission").WithFields(map[string]any{
 					"error": errTest,
 					"email": "test@example.com",
@@ -87,9 +84,7 @@ func TestListSubmissions(t *testing.T) {
 		{
 			name: "success",
 			setup: func(ms *contactmock.MockStore, ml *loggingmock.MockLogger) {
-				ms.ListFunc = func(ctx context.Context) ([]contact.Submission, error) {
-					return []contact.Submission{{ID: 1}}, nil
-				}
+				ms.On("List", mock.Anything).Return([]contact.Submission{{ID: 1}}, nil)
 			},
 			want:    []contact.Submission{{ID: 1}},
 			wantErr: false,
@@ -97,9 +92,7 @@ func TestListSubmissions(t *testing.T) {
 		{
 			name: "store_error",
 			setup: func(ms *contactmock.MockStore, ml *loggingmock.MockLogger) {
-				ms.ListFunc = func(ctx context.Context) ([]contact.Submission, error) {
-					return nil, errTest
-				}
+				ms.On("List", mock.Anything).Return(nil, errTest)
 			},
 			want:    nil,
 			wantErr: true,
@@ -140,9 +133,7 @@ func TestGetSubmission(t *testing.T) {
 		{
 			name: "success",
 			setup: func(ms *contactmock.MockStore, ml *loggingmock.MockLogger) {
-				ms.GetFunc = func(ctx context.Context, id int64) (*contact.Submission, error) {
-					return &contact.Submission{ID: id}, nil
-				}
+				ms.On("Get", mock.Anything, int64(1)).Return(&contact.Submission{ID: 1}, nil)
 			},
 			id:      1,
 			want:    &contact.Submission{ID: 1},
@@ -151,9 +142,7 @@ func TestGetSubmission(t *testing.T) {
 		{
 			name: "store_error",
 			setup: func(ms *contactmock.MockStore, ml *loggingmock.MockLogger) {
-				ms.GetFunc = func(ctx context.Context, id int64) (*contact.Submission, error) {
-					return nil, errTest
-				}
+				ms.On("Get", mock.Anything, int64(1)).Return(nil, errTest)
 			},
 			id:      1,
 			want:    nil,
@@ -210,4 +199,89 @@ func submissionsEqual(a, b []contact.Submission) bool {
 		}
 	}
 	return true
+}
+
+func TestContactService(t *testing.T) {
+	t.Run("Submit", func(t *testing.T) {
+		mockLogger := loggingmock.NewMockLogger()
+		mockStore := contactmock.NewMockStore()
+		service := contact.NewService(mockStore, mockLogger)
+
+		submission := &contact.Submission{
+			Email:   "test@example.com",
+			Message: "Test message",
+		}
+
+		mockStore.On("Create", mock.Anything, submission).Return(nil)
+		mockLogger.ExpectInfo("contact submission created")
+
+		if err := service.Submit(context.Background(), submission); err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if verifyErr := mockLogger.Verify(); verifyErr != nil {
+			t.Fatalf("unexpected error: %v", verifyErr)
+		}
+	})
+
+	t.Run("ListSubmissions", func(t *testing.T) {
+		mockLogger := loggingmock.NewMockLogger()
+		mockStore := contactmock.NewMockStore()
+		service := contact.NewService(mockStore, mockLogger)
+
+		submissions := []contact.Submission{
+			{
+				Email:   "test1@example.com",
+				Message: "Test message 1",
+			},
+			{
+				Email:   "test2@example.com",
+				Message: "Test message 2",
+			},
+		}
+
+		mockStore.On("List", mock.Anything).Return(submissions, nil)
+		mockLogger.ExpectInfo("contact submissions listed")
+
+		result, err := service.ListSubmissions(context.Background())
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if len(result) != len(submissions) {
+			t.Fatalf("expected %d submissions, got %d", len(submissions), len(result))
+		}
+
+		if verifyErr := mockLogger.Verify(); verifyErr != nil {
+			t.Fatalf("unexpected error: %v", verifyErr)
+		}
+	})
+
+	t.Run("GetSubmission", func(t *testing.T) {
+		mockLogger := loggingmock.NewMockLogger()
+		mockStore := contactmock.NewMockStore()
+		service := contact.NewService(mockStore, mockLogger)
+
+		submission := &contact.Submission{
+			ID:      1,
+			Email:   "test@example.com",
+			Message: "Test message",
+		}
+
+		mockStore.On("Get", mock.Anything, int64(1)).Return(submission, nil)
+		mockLogger.ExpectInfo("contact submission retrieved")
+
+		result, err := service.GetSubmission(context.Background(), 1)
+		if err != nil {
+			t.Fatalf("unexpected error: %v", err)
+		}
+
+		if result.ID != submission.ID {
+			t.Fatalf("expected submission ID %d, got %d", submission.ID, result.ID)
+		}
+
+		if verifyErr := mockLogger.Verify(); verifyErr != nil {
+			t.Fatalf("unexpected error: %v", verifyErr)
+		}
+	})
 }
