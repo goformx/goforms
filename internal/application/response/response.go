@@ -22,22 +22,22 @@ func getLogger(c echo.Context) logging.Logger {
 	logger := c.Get("logger")
 	if logger == nil {
 		// Fallback to echo's logger if our logger is not set
-		log, err := logging.NewTestLogger()
+		logger, err := logging.NewTestLogger()
 		if err != nil {
 			// If we can't create a test logger, return a no-op logger
 			return logging.NewNoopLogger()
 		}
-		return log
+		return logger
 	}
 
 	log, ok := logger.(logging.Logger)
 	if !ok {
-		log, err := logging.NewTestLogger()
+		logger, err := logging.NewTestLogger()
 		if err != nil {
 			// If we can't create a test logger, return a no-op logger
 			return logging.NewNoopLogger()
 		}
-		return log
+		return logger
 	}
 	return log
 }

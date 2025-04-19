@@ -18,6 +18,10 @@ import (
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
 
+var (
+	ErrNotFound = errors.New("not found")
+)
+
 // Mock types
 type MockStore struct {
 	expectations []func() error
@@ -25,7 +29,7 @@ type MockStore struct {
 
 func (m *MockStore) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
 	if len(m.expectations) == 0 {
-		return nil, nil
+		return nil, ErrNotFound
 	}
 	expect := m.expectations[0]
 	m.expectations = m.expectations[1:]

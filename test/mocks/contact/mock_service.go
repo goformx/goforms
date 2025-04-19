@@ -9,10 +9,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 )
 
-const (
-	expectedReturnValues = 2
-)
-
 var (
 	ErrNoReturnValues = errors.New("no return values from mock")
 )
@@ -134,7 +130,7 @@ func (m *MockService) Submit(ctx context.Context, submission *contact.Submission
 func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission, error) {
 	m.recordCall("ListSubmissions", ctx)
 	ret := m.getReturn("ListSubmissions")
-	if ret == nil || len(ret) == 0 {
+	if len(ret) == 0 {
 		return nil, nil
 	}
 	if subs, ok := ret[0].([]contact.Submission); ok {
