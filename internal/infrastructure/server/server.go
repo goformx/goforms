@@ -20,6 +20,7 @@ type Server struct {
 	logger logging.Logger
 	config *config.Config
 	server *http.Server
+	addr   string
 }
 
 // New creates a new server instance with the provided dependencies
@@ -58,40 +59,33 @@ func (s *Server) Echo() *echo.Echo {
 
 // Start initializes and starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
-	addr := fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port)
+	s.addr = fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port)
 	s.logger.Info("starting server",
-		logging.String("addr", addr),
+		logging.String("addr", s.addr),
 		logging.String("env", s.config.App.Env),
 	)
 
 	s.server = &http.Server{
-		Addr:         addr,
+		Addr:         s.addr,
 		Handler:      s.echo,
 		ReadTimeout:  s.config.Server.ReadTimeout,
 		WriteTimeout: s.config.Server.WriteTimeout,
 		IdleTimeout:  s.config.Server.IdleTimeout,
 	}
 
-	// Create a listener first
-	ln, err := net.Listen("tcp", addr)
-	if err != nil {
-		return fmt.Errorf("failed to create listener: %w", err)
+	ln, listenErr := net.Listen("tcp", s.addr)
+	if listenErr != nil {
+		return fmt.Errorf("failed to listen on %s: %w", s.addr, listenErr)
 	}
 
-	// Start server in background
 	go func() {
-		s.logger.Info("server listening", logging.String("addr", addr))
-		if err := s.server.Serve(ln); err != nil && err != http.ErrServerClosed {
-			s.logger.Error("server error", logging.Error(err))
+		s.logger.Info("server listening", logging.String("addr", s.addr))
+		if serveErr := s.server.Serve(ln); serveErr != nil && serveErr != http.ErrServerClosed {
+			s.logger.Error("server error", logging.Error(serveErr))
 		}
 	}()
 
-	// Signal that we're ready
-	s.logger.Info("server ready")
-
-	// Wait for context cancellation
-	<-ctx.Done()
-	return s.Stop(context.Background())
+	return nil
 }
 
 // Stop gracefully shuts down the HTTP server
@@ -102,7 +96,6 @@ func (s *Server) Stop(ctx context.Context) error {
 
 	s.logger.Info("shutting down server")
 
-	// Create shutdown context with timeout
 	shutdownCtx, cancel := context.WithTimeout(ctx, s.config.Server.ShutdownTimeout)
 	defer cancel()
 

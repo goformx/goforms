@@ -13,6 +13,8 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/infrastructure/persistence"
+	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
@@ -62,79 +64,14 @@ type Stores struct {
 	UserStore         user.Store
 }
 
-// Module combines all infrastructure-level modules and providers.
-// This is the main dependency injection configuration for the application.
-// It follows a specific order of initialization:
-// 1. Configuration is loaded first
-// 2. Logger is set up
-// 3. Database connection is established
-// 4. Stores are created
-// 5. Handlers are registered with their required dependencies
-//
-// IMPORTANT: When adding new handlers, follow these guidelines:
-// 1. Use the AsHandler function to annotate the handler constructor
-// 2. Provide all required dependencies through functional options
-// 3. Follow the pattern:
-//
-//	AsHandler(func(logger logging.Logger, dependencies...) *handler.SomeHandler {
-//	    return handler.NewSomeHandler(logger, handler.WithDependency(dep)...)
-//	})
-//
-//nolint:gochecknoglobals // fx modules are designed to be global
-var Module = fx.Options(
-	// Core infrastructure
+// Module combines all infrastructure-level modules and providers
+var Module = fx.Module("infrastructure",
 	fx.Provide(
-		// Config must be provided first
 		config.New,
-
-		// Logger setup
-		func(cfg *config.Config) bool {
-			return cfg.App.Debug
-		},
-		func(cfg *config.Config) string {
-			return cfg.App.Name
-		},
 		logging.NewLogger,
-
-		// Database setup
-		func(cfg *config.Config, logger logging.Logger) (*database.Database, error) {
-			logger.Debug("initializing database",
-				logging.String("host", cfg.Database.Host),
-				logging.Int("port", cfg.Database.Port),
-				logging.String("name", cfg.Database.Name),
-				logging.String("user", cfg.Database.User),
-			)
-			return database.NewDB(cfg, logger)
-		},
-		NewStores,
-
-		// Handlers - Each handler must be registered here with its required dependencies
-		// WebHandler - Requires logger, renderer, contact service, and subscription service
-		AsHandler(func(logger logging.Logger, renderer *view.Renderer, contactService contact.Service, subscriptionService subscription.Service, cfg *config.Config) *handler.WebHandler {
-			return handler.NewWebHandler(logger,
-				handler.WithRenderer(renderer),
-				handler.WithContactService(contactService),
-				handler.WithWebSubscriptionService(subscriptionService),
-				handler.WithWebDebug(cfg.App.Debug),
-			)
-		}),
-		// AuthHandler - Requires logger and user service
-		AsHandler(func(logger logging.Logger, userService user.Service) *handler.AuthHandler {
-			return handler.NewAuthHandler(logger, handler.WithUserService(userService))
-		}),
-		// ContactHandler - Requires logger and contact service
-		AsHandler(func(logger logging.Logger, contactService contact.Service) *handler.ContactHandler {
-			return handler.NewContactHandler(logger, handler.WithContactServiceOpt(contactService))
-		}),
-		// SubscriptionHandler - Requires logger and subscription service
-		AsHandler(func(logger logging.Logger, subscriptionService subscription.Service) *handler.SubscriptionHandler {
-			return handler.NewSubscriptionHandler(logger, handler.WithSubscriptionService(subscriptionService))
-		}),
-	),
-
-	// Lifecycle hooks for managing resource lifecycles
-	fx.Invoke(
-		registerDatabaseHooks,
+		database.NewDB,
+		persistence.NewStores,
+		server.New,
 	),
 )
 
