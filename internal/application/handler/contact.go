@@ -229,10 +229,10 @@ func (h *ContactHandler) UpdateSubmissionStatus(c echo.Context) error {
 
 func (h *ContactHandler) handleError(c echo.Context, err error) error {
 	h.Logger.Error("contact handler error", logging.Error(err))
-	switch err {
-	case contact.ErrSubmissionNotFound:
+	switch {
+	case errors.Is(err, contact.ErrSubmissionNotFound):
 		return response.NotFound(c, "submission not found")
-	case contact.ErrInvalidStatus:
+	case errors.Is(err, contact.ErrInvalidStatus):
 		return response.BadRequest(c, "invalid status")
 	default:
 		return response.InternalError(c, "internal server error")

@@ -36,7 +36,7 @@ func TestBase_Validate(t *testing.T) {
 	t.Run("invalid when logger missing", func(t *testing.T) {
 		base := handler.NewBase()
 		err := base.Validate()
-		assert.Error(t, err)
+		require.Error(t, err)
 		assert.Equal(t, "logger is required", err.Error())
 	})
 }

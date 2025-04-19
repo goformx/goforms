@@ -197,10 +197,10 @@ func (h *SubscriptionHandler) handleDelete(c echo.Context) error {
 
 func (h *SubscriptionHandler) handleError(c echo.Context, err error) error {
 	h.Logger.Error("subscription handler error", logging.Error(err))
-	switch err {
-	case subscription.ErrSubscriptionNotFound:
+	switch {
+	case errors.Is(err, subscription.ErrSubscriptionNotFound):
 		return response.NotFound(c, "subscription not found")
-	case subscription.ErrInvalidStatus:
+	case errors.Is(err, subscription.ErrInvalidStatus):
 		return response.BadRequest(c, "invalid status")
 	default:
 		return response.InternalError(c, "internal server error")

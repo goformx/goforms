@@ -140,7 +140,7 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 	if subs, ok := ret[0].([]contact.Submission); ok {
 		return subs, nil
 	}
-	return nil, fmt.Errorf("invalid return type for ListSubmissions")
+	return nil, errors.New("invalid return type for ListSubmissions")
 }
 
 // GetSubmission mocks the GetSubmission method
@@ -153,7 +153,7 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 	if sub, ok := ret[0].(*contact.Submission); ok {
 		return sub, nil
 	}
-	return nil, fmt.Errorf("invalid return type for GetSubmission")
+	return nil, errors.New("invalid return type for GetSubmission")
 }
 
 // UpdateSubmissionStatus mocks the UpdateSubmissionStatus method

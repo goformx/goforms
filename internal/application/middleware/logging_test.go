@@ -6,7 +6,7 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
@@ -24,7 +24,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	})
 
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -35,7 +35,7 @@ func TestLoggingMiddleware(t *testing.T) {
 
 	// Execute
 	execErr := handler(c)
-	assert.NoError(t, execErr)
+	require.NoError(t, execErr)
 
 	// Verify logger expectations
 	if verifyErr := mockLogger.Verify(); verifyErr != nil {
