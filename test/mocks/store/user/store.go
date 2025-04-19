@@ -10,6 +10,7 @@ import (
 
 var (
 	ErrNotFound = errors.New("user not found")
+	ErrNoValue  = errors.New("no value returned")
 )
 
 // UserStore is a mock implementation of user.Store interface
@@ -79,7 +80,7 @@ func (m *UserStore) GetByID(id uint) (*user.User, error) {
 func (m *UserStore) GetByEmail(email string) (*user.User, error) {
 	args := m.Called(email)
 	if args.Get(0) == nil {
-		return nil, nil
+		return nil, ErrNoValue
 	}
 	u, ok := args.Get(0).(*user.User)
 	if !ok {

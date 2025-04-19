@@ -3,7 +3,6 @@ package contactmock
 import (
 	"context"
 	"errors"
-	"sync"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/stretchr/testify/mock"
@@ -20,7 +19,6 @@ var _ contact.Service = (*MockService)(nil)
 // MockService is a mock implementation of the contact service
 type MockService struct {
 	mock.Mock
-	mu sync.Mutex
 }
 
 // NewMockService creates a new mock service

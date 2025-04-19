@@ -61,8 +61,11 @@ func (f *SubscriptionFixture) CreateSubscriptionRequest(email string) (*httptest
 	return rec, nil
 }
 
-// CreateSubscriptionRequestWithOrigin creates a test request with custom origin
-func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(email, origin string) (*httptest.ResponseRecorder, error) {
+// CreateSubscriptionRequestWithOrigin creates a subscription request with origin
+func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(
+	email string,
+	origin string,
+) (*httptest.ResponseRecorder, error) {
 	requestBody := map[string]string{
 		"email": email,
 	}

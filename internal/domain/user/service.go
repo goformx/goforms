@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strconv"
 	"sync"
 	"time"
 
@@ -343,5 +344,5 @@ func (s *ServiceImpl) GetUserIDFromToken(token string) (string, error) {
 		return "", ErrInvalidUserIDClaim
 	}
 
-	return fmt.Sprintf("%d", int64(userID)), nil
+	return strconv.FormatInt(int64(userID), 10), nil
 }

@@ -2,6 +2,7 @@ package response_test
 
 import (
 	"encoding/json"
+	"net/http"
 	"net/http/httptest"
 	"testing"
 
@@ -10,39 +11,46 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func TestResponse(t *testing.T) {
+func TestSuccess(t *testing.T) {
 	t.Run("success response", func(t *testing.T) {
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
-		c := echo.New().NewContext(nil, rec)
+		c := e.NewContext(req, rec)
 
-		err := response.Success(c, map[string]interface{}{
-			"message": "success",
-			"data": map[string]interface{}{
+		err := response.Success(c, map[string]any{
+			"status": "success",
+			"data": map[string]any{
 				"key": "value",
 			},
 		})
-		require.NoError(t, err)
 
-		var resp map[string]interface{}
+		require.NoError(t, err)
+		require.Equal(t, http.StatusOK, rec.Code)
+
+		var resp map[string]any
 		err = json.NewDecoder(rec.Body).Decode(&resp)
 		require.NoError(t, err)
 
-		require.Equal(t, "success", resp["message"])
-		require.Equal(t, "value", resp["data"].(map[string]interface{})["key"])
+		require.Equal(t, "success", resp["status"])
+		require.Equal(t, "value", resp["data"].(map[string]any)["key"])
 	})
 
 	t.Run("error response", func(t *testing.T) {
+		e := echo.New()
+		req := httptest.NewRequest(http.MethodGet, "/", nil)
 		rec := httptest.NewRecorder()
-		c := echo.New().NewContext(nil, rec)
+		c := e.NewContext(req, rec)
 
-		err := response.BadRequest(c, "error")
+		err := response.BadRequest(c, "test error")
 		require.NoError(t, err)
+		require.Equal(t, http.StatusBadRequest, rec.Code)
 
-		var resp map[string]interface{}
+		var resp map[string]any
 		err = json.NewDecoder(rec.Body).Decode(&resp)
 		require.NoError(t, err)
 
-		require.Equal(t, "error", resp["error"])
-		require.False(t, resp["success"].(bool))
+		require.Equal(t, "error", resp["status"])
+		require.Equal(t, "test error", resp["message"])
 	})
 }
