@@ -181,13 +181,13 @@ func TestRateLimitConfig(t *testing.T) {
 			}
 
 			// Create config instance
-			configInstance, err := config.New()
+			cfg, err := config.New()
 			require.NoError(t, err)
 
 			// Verify rate limit config
-			require.Equal(t, tt.expected.Enabled, configInstance.RateLimit.Enabled)
-			require.Equal(t, tt.expected.Rate, configInstance.RateLimit.Rate)
-			require.Equal(t, tt.expected.Burst, configInstance.RateLimit.Burst)
+			require.Equal(t, tt.expected.Enabled, cfg.RateLimit.Enabled)
+			require.Equal(t, tt.expected.Rate, cfg.RateLimit.Rate)
+			require.Equal(t, tt.expected.Burst, cfg.RateLimit.Burst)
 		})
 	}
 }

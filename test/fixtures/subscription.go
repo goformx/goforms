@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
+	"github.com/pkg/errors"
 )
 
 // SubscriptionFixture contains test data and helpers for subscription tests
@@ -46,10 +47,11 @@ func (f *SubscriptionFixture) CreateSubscriptionRequest(email string) (*httptest
 	c := f.Echo.NewContext(req, rec)
 
 	if err := f.Handler(c); err != nil {
-		if he, ok := err.(*echo.HTTPError); ok {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
 			msg, ok := he.Message.(string)
 			if !ok {
-				return nil, fmt.Errorf("invalid error message type")
+				return nil, errors.New("invalid error message type")
 			}
 			rec.Body.WriteString(fmt.Sprintf(`{"error": "%s"}`, msg))
 		}
@@ -76,10 +78,11 @@ func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(email, origin 
 	c := f.Echo.NewContext(req, rec)
 
 	if err := f.Handler(c); err != nil {
-		if he, ok := err.(*echo.HTTPError); ok {
+		var he *echo.HTTPError
+		if errors.As(err, &he) {
 			msg, ok := he.Message.(string)
 			if !ok {
-				return nil, fmt.Errorf("invalid error message type")
+				return nil, errors.New("invalid error message type")
 			}
 			rec.Body.WriteString(fmt.Sprintf(`{"error": "%s"}`, msg))
 		} else {

@@ -2,6 +2,7 @@ package models
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/labstack/echo/v4"
@@ -46,7 +47,7 @@ func (m *MockSubscriptionStore) Get(ctx context.Context, id int64) (*subscriptio
 	args := m.Called(ctx, id)
 	sub, ok := args.Get(0).(*subscription.Subscription)
 	if !ok {
-		return nil, fmt.Errorf("invalid return type for Get")
+		return nil, errors.New("invalid return type for Get")
 	}
 	return sub, args.Error(1)
 }
