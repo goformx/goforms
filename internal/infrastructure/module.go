@@ -94,9 +94,7 @@ var Module = fx.Options(
 		func(cfg *config.Config) string {
 			return cfg.App.Name
 		},
-		func(debug bool, appName string) (logging.Logger, error) {
-			return logging.NewLogger(debug, appName)
-		},
+		logging.NewLogger,
 
 		// Database setup
 		func(cfg *config.Config, logger logging.Logger) (*database.Database, error) {

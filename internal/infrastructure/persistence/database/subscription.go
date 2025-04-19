@@ -13,6 +13,10 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+var (
+	ErrSubscriptionNotFound = errors.New("subscription not found")
+)
+
 // SubscriptionStore implements subscription.Store
 type SubscriptionStore struct {
 	db     *sqlx.DB
@@ -103,9 +107,9 @@ func (s *SubscriptionStore) GetByEmail(ctx context.Context, email string) (*subs
 	err := s.db.GetContext(ctx, &sub, query, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, ErrSubscriptionNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get subscription: %w", err)
 	}
 
 	return &sub, nil

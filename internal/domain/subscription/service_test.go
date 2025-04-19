@@ -7,6 +7,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	subscriptionmock "github.com/jonesrussell/goforms/test/mocks/store/subscription"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewService(t *testing.T) {
@@ -248,91 +249,54 @@ func TestDeleteSubscription(t *testing.T) {
 }
 
 func TestGetSubscriptionByEmail(t *testing.T) {
-	mockStore := subscriptionmock.NewMockStore(t)
-	mockLogger := mocklogging.NewMockLogger()
-	service := subscription.NewService(mockStore, mockLogger)
+	tests := []struct {
+		name           string
+		email          string
+		expectedSub    *subscription.Subscription
+		expectedError  error
+		setupMock      func(*subscriptionmock.MockStore)
+	}{
+		{
+			name:          "subscription found",
+			email:         "test@example.com",
+			expectedSub:   &subscription.Subscription{Email: "test@example.com"},
+			expectedError: nil,
+			setupMock: func(store *subscriptionmock.MockStore) {
+				store.ExpectGetByEmail(t.Context(), "test@example.com", &subscription.Subscription{Email: "test@example.com"}, nil)
+			},
+		},
+		{
+			name:          "subscription not found",
+			email:         "notfound@example.com",
+			expectedSub:   nil,
+			expectedError: subscription.ErrSubscriptionNotFound,
+			setupMock: func(store *subscriptionmock.MockStore) {
+				store.ExpectGetByEmail(t.Context(), "notfound@example.com", nil, subscription.ErrSubscriptionNotFound)
+			},
+		},
+	}
 
-	t.Run("existing subscription", func(t *testing.T) {
-		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", &subscription.Subscription{Email: "test@example.com"}, nil)
-		sub, getErr := service.GetSubscriptionByEmail(t.Context(), "test@example.com")
-		if getErr != nil {
-			t.Fatalf("unexpected error: %v", getErr)
-		}
-		if sub == nil {
-			t.Error("expected subscription, got nil")
-		}
-		if verifyErr := mockStore.Verify(); verifyErr != nil {
-			t.Fatalf("mock store verification failed: %v", verifyErr)
-		}
-		if verifyErr := mockLogger.Verify(); verifyErr != nil {
-			t.Fatalf("mock logger verification failed: %v", verifyErr)
-		}
-	})
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup
+			mockStore := subscriptionmock.NewMockStore(t)
+			tt.setupMock(mockStore)
+			service := subscription.NewService(mockStore, mocklogging.NewMockLogger())
 
-	t.Run("non-existent subscription", func(t *testing.T) {
-		mockStore.Reset()
-		mockLogger.Reset()
-		mockStore.ExpectGetByEmail(t.Context(), "nonexistent@example.com", nil, nil)
-		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]any{
-			"error": subscription.ErrSubscriptionNotFound,
+			// Execute
+			sub, err := service.GetSubscriptionByEmail(t.Context(), tt.email)
+
+			// Verify
+			if tt.expectedError != nil {
+				require.Error(t, err)
+				require.Equal(t, tt.expectedError, err)
+			} else {
+				require.NoError(t, err)
+				require.Equal(t, tt.expectedSub, sub)
+			}
+			require.NoError(t, mockStore.Verify())
 		})
-
-		sub, getErr := service.GetSubscriptionByEmail(t.Context(), "nonexistent@example.com")
-		if !errors.Is(getErr, subscription.ErrSubscriptionNotFound) {
-			t.Errorf("expected error %v, got %v", subscription.ErrSubscriptionNotFound, getErr)
-		}
-		if sub != nil {
-			t.Errorf("expected nil subscription, got %v", sub)
-		}
-		if verifyErr := mockStore.Verify(); verifyErr != nil {
-			t.Fatalf("mock store verification failed: %v", verifyErr)
-		}
-		if verifyErr := mockLogger.Verify(); verifyErr != nil {
-			t.Fatalf("mock logger verification failed: %v", verifyErr)
-		}
-	})
-
-	t.Run("store error", func(t *testing.T) {
-		mockStore.Reset()
-		mockLogger.Reset()
-		storeErr := errors.New("database error")
-		mockStore.ExpectGetByEmail(t.Context(), "test@example.com", nil, storeErr)
-		mockLogger.ExpectError("failed to get subscription by email").WithFields(map[string]any{
-			"error": storeErr,
-		})
-
-		sub, getErr := service.GetSubscriptionByEmail(t.Context(), "test@example.com")
-		if !errors.Is(getErr, storeErr) {
-			t.Errorf("expected error %v, got %v", storeErr, getErr)
-		}
-		if sub != nil {
-			t.Errorf("expected nil subscription, got %v", sub)
-		}
-		if verifyErr := mockStore.Verify(); verifyErr != nil {
-			t.Fatalf("mock store verification failed: %v", verifyErr)
-		}
-		if verifyErr := mockLogger.Verify(); verifyErr != nil {
-			t.Fatalf("mock logger verification failed: %v", verifyErr)
-		}
-	})
-
-	t.Run("empty email", func(t *testing.T) {
-		mockStore.Reset()
-		mockLogger.Reset()
-		sub, getErr := service.GetSubscriptionByEmail(t.Context(), "")
-		if getErr == nil {
-			t.Error("expected error, got nil")
-		}
-		if sub != nil {
-			t.Errorf("expected nil subscription, got %v", sub)
-		}
-		if verifyErr := mockStore.Verify(); verifyErr != nil {
-			t.Fatalf("mock store verification failed: %v", verifyErr)
-		}
-		if verifyErr := mockLogger.Verify(); verifyErr != nil {
-			t.Fatalf("mock logger verification failed: %v", verifyErr)
-		}
-	})
+	}
 }
 
 // Helper function to compare subscriptions

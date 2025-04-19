@@ -2,6 +2,7 @@ package contactmock
 
 import (
 	"context"
+	"errors"
 
 	"github.com/stretchr/testify/mock"
 
@@ -28,7 +29,11 @@ func (m *MockStore) List(ctx context.Context) ([]contact.Submission, error) {
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]contact.Submission), args.Error(1)
+	subs, ok := args.Get(0).([]contact.Submission)
+	if !ok {
+		return nil, errors.New("invalid return type for List")
+	}
+	return subs, args.Error(1)
 }
 
 // Get mocks the Get method
@@ -37,7 +42,11 @@ func (m *MockStore) Get(ctx context.Context, id int64) (*contact.Submission, err
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*contact.Submission), args.Error(1)
+	sub, ok := args.Get(0).(*contact.Submission)
+	if !ok {
+		return nil, errors.New("invalid return type for Get")
+	}
+	return sub, args.Error(1)
 }
 
 // UpdateStatus mocks the UpdateStatus method

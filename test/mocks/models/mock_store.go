@@ -3,7 +3,6 @@ package models
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/mock"
@@ -32,14 +31,17 @@ func (m *MockSubscriptionStore) Create(ctx context.Context, sub *subscription.Su
 	return args.Error(0)
 }
 
+var (
+	ErrInvalidReturnType = errors.New("invalid return type for List")
+)
+
 // List implements subscription.Store
 func (m *MockSubscriptionStore) List(ctx context.Context) ([]subscription.Subscription, error) {
 	args := m.Called(ctx)
-	subs, ok := args.Get(0).([]subscription.Subscription)
-	if !ok {
-		return nil, fmt.Errorf("invalid return type for List")
+	if args.Get(0) == nil {
+		return nil, ErrInvalidReturnType
 	}
-	return subs, args.Error(1)
+	return args.Get(0).([]subscription.Subscription), args.Error(1)
 }
 
 // Get implements subscription.Store
