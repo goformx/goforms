@@ -3,7 +3,6 @@ package fixtures
 import (
 	"bytes"
 	"encoding/json"
-	"errors"
 	"fmt"
 	"net/http"
 	"net/http/httptest"
@@ -47,13 +46,12 @@ func (f *SubscriptionFixture) CreateSubscriptionRequest(email string) (*httptest
 	c := f.Echo.NewContext(req, rec)
 
 	if err := f.Handler(c); err != nil {
-		he := &echo.HTTPError{}
-		ok := errors.As(err, &he)
-		if ok {
-			rec.Code = he.Code
-			_ = json.NewEncoder(rec.Body).Encode(map[string]string{
-				"error": he.Message.(string),
-			})
+		if he, ok := err.(*echo.HTTPError); ok {
+			msg, ok := he.Message.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid error message type")
+			}
+			rec.Body.WriteString(fmt.Sprintf(`{"error": "%s"}`, msg))
 		}
 	}
 
@@ -78,15 +76,12 @@ func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(email, origin 
 	c := f.Echo.NewContext(req, rec)
 
 	if err := f.Handler(c); err != nil {
-		he := &echo.HTTPError{}
-		ok := errors.As(err, &he)
-		if ok {
-			rec.Code = he.Code
-			if err := json.NewEncoder(rec.Body).Encode(map[string]string{
-				"error": he.Message.(string),
-			}); err != nil {
-				return nil, fmt.Errorf("failed to encode error response: %w", err)
+		if he, ok := err.(*echo.HTTPError); ok {
+			msg, ok := he.Message.(string)
+			if !ok {
+				return nil, fmt.Errorf("invalid error message type")
 			}
+			rec.Body.WriteString(fmt.Sprintf(`{"error": "%s"}`, msg))
 		} else {
 			// Handle non-HTTP errors
 			rec.Code = http.StatusInternalServerError

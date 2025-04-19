@@ -55,7 +55,7 @@ type SecurityConfig struct {
 	CSRF                 CSRFConfig
 	CorsAllowedOrigins   []string      `envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
 	CorsAllowedMethods   []string      `envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	CorsAllowedHeaders   []string      `envconfig:"CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept,Authorization"`
+	CorsAllowedHeaders   []string      `envconfig:"CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept"`
 	CorsMaxAge           int           `envconfig:"CORS_MAX_AGE" default:"3600"`
 	CorsAllowCredentials bool          `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
 	RequestTimeout       time.Duration `envconfig:"REQUEST_TIMEOUT" default:"30s"`

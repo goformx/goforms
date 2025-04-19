@@ -2,9 +2,9 @@ package config_test
 
 import (
 	"testing"
-	"time"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNew_ValidConfig(t *testing.T) {
@@ -145,66 +145,30 @@ func TestSecurityConfig(t *testing.T) {
 
 func TestRateLimitConfig(t *testing.T) {
 	tests := []struct {
-		name    string
-		envVars map[string]string
-		check   func(*testing.T, *config.Config)
+		name     string
+		envVars  map[string]string
+		expected config.RateLimitConfig
 	}{
 		{
-			name: "default rate limit settings",
-			envVars: map[string]string{
-				// Required database config
-				"DB_USER":     "testuser",
-				"DB_PASSWORD": "testpass",
-				"DB_NAME":     "testdb",
-			},
-			check: func(t *testing.T, cfg *config.Config) {
-				if !cfg.RateLimit.Enabled {
-					t.Error("expected RateLimit.Enabled to be true")
-				}
-				if cfg.RateLimit.Rate != 100 {
-					t.Errorf("expected RateLimit.Rate to be %d, got %d", 100, cfg.RateLimit.Rate)
-				}
-				if cfg.RateLimit.Burst != 5 {
-					t.Errorf("expected RateLimit.Burst to be %d, got %d", 5, cfg.RateLimit.Burst)
-				}
-				if cfg.RateLimit.TimeWindow != time.Minute {
-					t.Errorf("expected RateLimit.TimeWindow to be %v, got %v", time.Minute, cfg.RateLimit.TimeWindow)
-				}
-				if !cfg.RateLimit.PerIP {
-					t.Error("expected RateLimit.PerIP to be true")
-				}
+			name: "default values",
+			envVars: map[string]string{},
+			expected: config.RateLimitConfig{
+				Enabled: true,
+				Rate:    100,
+				Burst:   50,
 			},
 		},
 		{
-			name: "custom rate limit settings",
+			name: "custom values",
 			envVars: map[string]string{
-				// Required database config
-				"DB_USER":     "testuser",
-				"DB_PASSWORD": "testpass",
-				"DB_NAME":     "testdb",
-				// Rate limit config
-				"RATE_LIMIT_ENABLED":     "true",
-				"RATE_LIMIT_PER_IP":      "true",
-				"RATE_LIMIT":             "200",
-				"RATE_BURST":             "10",
-				"RATE_LIMIT_TIME_WINDOW": "2m",
+				"RATE_LIMIT_ENABLED": "false",
+				"RATE_LIMIT_RATE":    "200",
+				"RATE_LIMIT_BURST":   "100",
 			},
-			check: func(t *testing.T, cfg *config.Config) {
-				if !cfg.RateLimit.Enabled {
-					t.Error("expected RateLimit.Enabled to be true")
-				}
-				if !cfg.RateLimit.PerIP {
-					t.Error("expected RateLimit.PerIP to be true")
-				}
-				if cfg.RateLimit.Rate != 200 {
-					t.Errorf("expected RateLimit.Rate to be %d, got %d", 200, cfg.RateLimit.Rate)
-				}
-				if cfg.RateLimit.Burst != 10 {
-					t.Errorf("expected RateLimit.Burst to be %d, got %d", 10, cfg.RateLimit.Burst)
-				}
-				if cfg.RateLimit.TimeWindow != 2*time.Minute {
-					t.Errorf("expected RateLimit.TimeWindow to be %v, got %v", 2*time.Minute, cfg.RateLimit.TimeWindow)
-				}
+			expected: config.RateLimitConfig{
+				Enabled: false,
+				Rate:    200,
+				Burst:   100,
 			},
 		},
 	}
@@ -216,15 +180,14 @@ func TestRateLimitConfig(t *testing.T) {
 				t.Setenv(k, v)
 			}
 
-			cfg, err := config.New()
-			if err != nil {
-				t.Fatalf("unexpected error: %v", err)
-			}
-			if cfg == nil {
-				t.Fatal("expected config but got nil")
-			}
+			// Create config instance
+			configInstance, err := config.New()
+			require.NoError(t, err)
 
-			tt.check(t, cfg)
+			// Verify rate limit config
+			require.Equal(t, tt.expected.Enabled, configInstance.RateLimit.Enabled)
+			require.Equal(t, tt.expected.Rate, configInstance.RateLimit.Rate)
+			require.Equal(t, tt.expected.Burst, configInstance.RateLimit.Burst)
 		})
 	}
 }

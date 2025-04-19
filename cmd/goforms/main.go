@@ -146,14 +146,16 @@ func startServer(p ServerParams) error {
 	}
 
 	// Configure routes
-	router.Setup(p.Echo, &router.Config{
+	if err := router.Setup(p.Echo, &router.Config{
 		Handlers: p.Handlers,
 		Static: router.StaticConfig{
 			Path: "/static",
 			Root: "static",
 		},
 		Logger: p.Logger,
-	})
+	}); err != nil {
+		return fmt.Errorf("failed to setup router: %w", err)
+	}
 
 	// Start server
 	addr := fmt.Sprintf("%s:%d", p.Config.Server.Host, p.Config.Server.Port)
