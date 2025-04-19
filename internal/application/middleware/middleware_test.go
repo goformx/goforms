@@ -10,7 +10,6 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
 
@@ -41,12 +40,12 @@ func TestMiddleware_Setup(t *testing.T) {
 	err := handler(c)
 
 	// Assert
-	assert.NoError(t, err)
-	assert.NotEmpty(t, rec.Header().Get("X-Request-ID"))
-	assert.Equal(t, "default-src 'self'", rec.Header().Get("Content-Security-Policy"))
-	assert.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
-	assert.Equal(t, "SAMEORIGIN", rec.Header().Get("X-Frame-Options"))
-	assert.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
+	require.NoError(t, err, "unexpected error")
+	require.NotEmpty(t, rec.Header().Get("X-Request-ID"))
+	require.Equal(t, "default-src 'self'", rec.Header().Get("Content-Security-Policy"))
+	require.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
+	require.Equal(t, "SAMEORIGIN", rec.Header().Get("X-Frame-Options"))
+	require.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
 
 	// Verify mock expectations
 	require.NoError(t, mockLogger.Verify(), "unexpected error")
