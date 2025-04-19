@@ -22,6 +22,8 @@ var (
 	ErrInvalidToken = errors.New("invalid token")
 	// ErrTokenBlacklisted indicates that the token has been blacklisted
 	ErrTokenBlacklisted = errors.New("token is blacklisted")
+	// ErrInvalidUserIDClaim indicates that the user_id claim type is invalid
+	ErrInvalidUserIDClaim = errors.New("invalid user_id claim type")
 )
 
 const (
@@ -48,6 +50,7 @@ type Service interface {
 	ListUsers(ctx context.Context) ([]User, error)
 	ValidateToken(token string) (*jwt.Token, error)
 	IsTokenBlacklisted(token string) bool
+	GetUserIDFromToken(token string) (string, error)
 }
 
 // ServiceImpl implements the Service interface
@@ -321,4 +324,24 @@ func (s *ServiceImpl) ListUsers(ctx context.Context) ([]User, error) {
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
 	return users, nil
+}
+
+// GetUserIDFromToken retrieves the user ID from a token
+func (s *ServiceImpl) GetUserIDFromToken(token string) (string, error) {
+	parsedToken, err := s.parseToken(token)
+	if err != nil {
+		return "", fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	claims, ok := parsedToken.Claims.(jwt.MapClaims)
+	if !ok {
+		return "", ErrInvalidUserIDClaim
+	}
+
+	userID, ok := claims["user_id"].(float64)
+	if !ok {
+		return "", ErrInvalidUserIDClaim
+	}
+
+	return fmt.Sprintf("%d", int64(userID)), nil
 }
