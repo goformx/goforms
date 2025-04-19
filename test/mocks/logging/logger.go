@@ -191,7 +191,7 @@ func (c *logCall) WithFields(fields map[string]any) *logCall {
 
 // Verify checks if all expected calls were made
 func (m *MockLogger) Verify() error {
-	m.Mock.AssertExpectations(mock.TestingT(nil))
+	m.AssertExpectations(mock.TestingT(nil))
 	return nil
 }
 

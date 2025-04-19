@@ -68,3 +68,11 @@ func (m *MockStore) ExpectationsWereMet(t mock.TestingT) error {
 	m.Mock.AssertExpectations(t)
 	return nil
 }
+
+func (m *MockStore) On(method string, args ...any) *mock.Call {
+	return m.Mock.On(method, args...)
+}
+
+func (m *MockStore) AssertExpectations(t mock.TestingT) bool {
+	return m.Mock.AssertExpectations(t)
+}

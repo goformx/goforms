@@ -25,7 +25,7 @@ func (cv *CustomValidator) Validate(i any) error {
 	}
 
 	t := v.Type()
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := t.Field(i)
 		value := v.Field(i)
 

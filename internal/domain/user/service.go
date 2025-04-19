@@ -52,6 +52,7 @@ type Service interface {
 	ValidateToken(token string) (*jwt.Token, error)
 	IsTokenBlacklisted(token string) bool
 	GetUserIDFromToken(token string) (string, error)
+	GetByID(ctx context.Context, id string) (*User, error)
 }
 
 // ServiceImpl implements the Service interface
@@ -346,4 +347,16 @@ func (s *ServiceImpl) GetUserIDFromToken(token string) (string, error) {
 	}
 
 	return strconv.FormatInt(int64(userID), 10), nil
+}
+
+// GetByID retrieves a user by ID
+func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*User, error) {
+	if id == "" {
+		return nil, errors.New("invalid user_id claim type")
+	}
+	userID, err := strconv.ParseUint(id, 10, 64)
+	if err != nil {
+		return nil, errors.New("invalid user_id claim type")
+	}
+	return s.store.GetByID(uint(userID))
 }
