@@ -66,7 +66,7 @@ func (m *MockService) UpdateSubmissionStatus(ctx context.Context, id int64, stat
 
 // Verify checks if all expected calls were made
 func (m *MockService) Verify() error {
-	AssertExpectations(mock.TestingT(nil))
+	m.Mock.AssertExpectations(mock.TestingT(nil))
 	return nil
 }
 

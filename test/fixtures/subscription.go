@@ -18,6 +18,9 @@ import (
 type SubscriptionFixture struct {
 	Echo    *echo.Echo
 	Handler echo.HandlerFunc
+	Method  string
+	URL     string
+	Body    *bytes.Buffer
 }
 
 const ValidOrigin = "https://jonesrussell.github.io/me"
@@ -27,6 +30,9 @@ func NewSubscriptionFixture(handler echo.HandlerFunc) *SubscriptionFixture {
 	return &SubscriptionFixture{
 		Echo:    echo.New(),
 		Handler: handler,
+		Method:  http.MethodPost,
+		URL:     "/api/v1/subscriptions",
+		Body:    bytes.NewBuffer(nil),
 	}
 }
 
@@ -189,4 +195,30 @@ func handleError(he *echo.HTTPError) (map[string]string, error) {
 	return map[string]string{
 		"error": msg,
 	}, nil
+}
+
+func (f *SubscriptionFixture) Execute() (*http.Response, error) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(f.Method, f.URL, f.Body)
+	c := f.Echo.NewContext(req, rec)
+
+	if err := f.Handler(c); err != nil {
+		if httpErr, ok := err.(*echo.HTTPError); ok {
+			rec.Code = httpErr.Code
+			if msg, ok := httpErr.Message.(string); ok {
+				if _, writeErr := fmt.Fprintf(rec.Body, `{"error": %q}`, msg); writeErr != nil {
+					return nil, writeErr
+				}
+			} else {
+				if encodeErr := json.NewEncoder(rec.Body).Encode(map[string]string{
+					"error": "unknown error",
+				}); encodeErr != nil {
+					return nil, encodeErr
+				}
+			}
+		}
+		return rec.Result(), err
+	}
+
+	return rec.Result(), nil
 }

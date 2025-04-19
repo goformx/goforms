@@ -1,14 +1,13 @@
 package logging
 
 import (
-	"fmt"
-	"strings"
 	"sync"
 	"time"
 
 	"go.uber.org/zap"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/stretchr/testify/mock"
 )
 
 // AnyValue is a placeholder for any field value
@@ -21,11 +20,12 @@ type logCall struct {
 	fields  map[string]any
 }
 
-// MockLogger is a mock implementation of logging.Logger
+// MockLogger is a mock implementation of the Logger interface
 type MockLogger struct {
+	mock.Mock
 	mu       sync.Mutex
-	calls    []logCall
 	expected []logCall
+	calls    []logCall
 }
 
 // NewMockLogger creates a new mock logger
@@ -191,34 +191,7 @@ func (c *logCall) WithFields(fields map[string]any) *logCall {
 
 // Verify checks if all expected calls were made
 func (m *MockLogger) Verify() error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if len(m.expected) != len(m.calls) {
-		return fmt.Errorf("expected %d calls but got %d", len(m.expected), len(m.calls))
-	}
-
-	for i, exp := range m.expected {
-		got := m.calls[i]
-		if exp.level != got.level {
-			return fmt.Errorf("call %d: expected level %q but got %q", i, exp.level, got.level)
-		}
-		if !strings.Contains(got.message, exp.message) {
-			return fmt.Errorf("call %d: expected message %q but got %q", i, exp.message, got.message)
-		}
-
-		// Check fields
-		for key, expValue := range exp.fields {
-			gotValue, ok := got.fields[key]
-			if !ok {
-				return fmt.Errorf("call %d: missing field %q", i, key)
-			}
-			if _, isAny := expValue.(AnyValue); !isAny && expValue != gotValue {
-				return fmt.Errorf("call %d: field %q expected %v but got %v", i, key, expValue, gotValue)
-			}
-		}
-	}
-
+	m.Mock.AssertExpectations(mock.TestingT(nil))
 	return nil
 }
 
