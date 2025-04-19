@@ -49,7 +49,7 @@ func TestMiddleware_Setup(t *testing.T) {
 	assert.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
 
 	// Verify mock expectations
-	require.NoError(t, mockLogger.Verify())
+	require.NoError(t, mockLogger.Verify(), "unexpected error")
 }
 
 func TestRequestIDMiddleware(t *testing.T) {

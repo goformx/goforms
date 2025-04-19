@@ -33,7 +33,10 @@ func (m *MockStore) Get(ctx context.Context, id int64) (*subscription.Subscripti
 	}
 	expect := m.expectations[0]
 	m.expectations = m.expectations[1:]
-	return nil, expect()
+	if err := expect(); err != nil {
+		return nil, err
+	}
+	return &subscription.Subscription{}, nil
 }
 
 func (m *MockStore) GetByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
