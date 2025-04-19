@@ -1,13 +1,20 @@
 package usermock
 
 import (
+	"errors"
 	"sync"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/stretchr/testify/mock"
+)
+
+var (
+	ErrNotFound = errors.New("user not found")
 )
 
 // UserStore is a mock implementation of user.Store interface
 type UserStore struct {
+	mock.Mock
 	users     map[uint]*user.User
 	emailMap  map[string]uint
 	mu        sync.RWMutex
@@ -51,130 +58,45 @@ func (m *UserStore) SetError(op string, err error) {
 
 // Create implements Store.Create
 func (m *UserStore) Create(u *user.User) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.createErr != nil {
-		return m.createErr
-	}
-
-	if _, exists := m.emailMap[u.Email]; exists {
-		return user.ErrEmailAlreadyExists
-	}
-
-	u.ID = m.nextID
-	m.nextID++
-
-	// Create deep copy to prevent external modifications
-	userCopy := *u
-	m.users[u.ID] = &userCopy
-	m.emailMap[u.Email] = u.ID
-
-	return nil
+	args := m.Called(u)
+	return args.Error(0)
 }
 
 // GetByID implements Store.GetByID
 func (m *UserStore) GetByID(id uint) (*user.User, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if m.getErr != nil {
-		return nil, m.getErr
-	}
-
-	u, exists := m.users[id]
-	if !exists {
+	args := m.Called(id)
+	if args.Get(0) == nil {
 		return nil, user.ErrUserNotFound
 	}
-
-	// Return copy to prevent external modifications
-	userCopy := *u
-	return &userCopy, nil
+	return args.Get(0).(*user.User), args.Error(1)
 }
 
 // GetByEmail implements Store.GetByEmail
 func (m *UserStore) GetByEmail(email string) (*user.User, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if m.getErr != nil {
-		return nil, m.getErr
-	}
-
-	id, exists := m.emailMap[email]
-	if !exists {
+	args := m.Called(email)
+	if args.Get(0) == nil {
 		return nil, nil
 	}
-
-	u := m.users[id]
-	// Return copy to prevent external modifications
-	userCopy := *u
-	return &userCopy, nil
+	return args.Get(0).(*user.User), args.Error(1)
 }
 
 // Update implements Store.Update
 func (m *UserStore) Update(u *user.User) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.updateErr != nil {
-		return m.updateErr
-	}
-
-	if _, exists := m.users[u.ID]; !exists {
-		return user.ErrUserNotFound
-	}
-
-	// If email is being changed, update email map
-	oldUser := m.users[u.ID]
-	if oldUser.Email != u.Email {
-		if _, exists := m.emailMap[u.Email]; exists {
-			return user.ErrEmailAlreadyExists
-		}
-		delete(m.emailMap, oldUser.Email)
-		m.emailMap[u.Email] = u.ID
-	}
-
-	// Create deep copy to prevent external modifications
-	userCopy := *u
-	m.users[u.ID] = &userCopy
-
-	return nil
+	args := m.Called(u)
+	return args.Error(0)
 }
 
 // Delete implements Store.Delete
 func (m *UserStore) Delete(id uint) error {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-
-	if m.deleteErr != nil {
-		return m.deleteErr
-	}
-
-	u, exists := m.users[id]
-	if !exists {
-		return user.ErrUserNotFound
-	}
-
-	delete(m.users, id)
-	delete(m.emailMap, u.Email)
-
-	return nil
+	args := m.Called(id)
+	return args.Error(0)
 }
 
 // List implements Store.List
 func (m *UserStore) List() ([]user.User, error) {
-	m.mu.RLock()
-	defer m.mu.RUnlock()
-
-	if m.listErr != nil {
-		return nil, m.listErr
+	args := m.Called()
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-
-	users := make([]user.User, 0, len(m.users))
-	for _, u := range m.users {
-		users = append(users, *u)
-	}
-
-	return users, nil
+	return args.Get(0).([]user.User), args.Error(1)
 }
