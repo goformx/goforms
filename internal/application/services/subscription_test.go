@@ -3,13 +3,13 @@ package services_test
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
 	"testing"
 
 	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/mock"
 	"github.com/stretchr/testify/require"
 
 	"github.com/jonesrussell/goforms/internal/application/services"
@@ -19,117 +19,58 @@ import (
 )
 
 var (
-	ErrNotFound = errors.New("not found")
+	ErrNotFound = errors.New("subscription not found")
 )
 
-// Mock types
 type MockStore struct {
-	expectations []func() error
+	mock.Mock
 }
 
 func (m *MockStore) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
-	if len(m.expectations) == 0 {
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
 		return nil, ErrNotFound
 	}
-	expect := m.expectations[0]
-	m.expectations = m.expectations[1:]
-	if err := expect(); err != nil {
-		return nil, err
-	}
-	return &subscription.Subscription{
-		ID:     id,
-		Email:  "test@example.com",
-		Status: subscription.StatusActive,
-	}, nil
+	return args.Get(0).(*subscription.Subscription), args.Error(1)
 }
 
 func (m *MockStore) GetByEmail(ctx context.Context, email string) (*subscription.Subscription, error) {
-	if len(m.expectations) == 0 {
-		return nil, nil
+	args := m.Called(ctx, email)
+	if args.Get(0) == nil {
+		return nil, ErrNotFound
 	}
-	expect := m.expectations[0]
-	m.expectations = m.expectations[1:]
-	return nil, expect()
+	return args.Get(0).(*subscription.Subscription), args.Error(1)
 }
 
 func (m *MockStore) Create(ctx context.Context, sub *subscription.Subscription) error {
-	if len(m.expectations) == 0 {
-		return nil
-	}
-	expect := m.expectations[0]
-	m.expectations = m.expectations[1:]
-	return expect()
+	args := m.Called(ctx, sub)
+	return args.Error(0)
 }
 
 func (m *MockStore) Delete(ctx context.Context, id int64) error {
-	if len(m.expectations) == 0 {
-		return nil
-	}
-	expect := m.expectations[0]
-	m.expectations = m.expectations[1:]
-	return expect()
+	args := m.Called(ctx, id)
+	return args.Error(0)
 }
 
 func (m *MockStore) GetByID(ctx context.Context, id int64) (*subscription.Subscription, error) {
-	if len(m.expectations) == 0 {
-		return nil, nil
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, ErrNotFound
 	}
-	expect := m.expectations[0]
-	m.expectations = m.expectations[1:]
-	return nil, expect()
+	return args.Get(0).(*subscription.Subscription), args.Error(1)
 }
 
 func (m *MockStore) List(ctx context.Context) ([]subscription.Subscription, error) {
-	if len(m.expectations) == 0 {
-		return nil, nil
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-	expect := m.expectations[0]
-	m.expectations = m.expectations[1:]
-	return nil, expect()
+	return args.Get(0).([]subscription.Subscription), args.Error(1)
 }
 
 func (m *MockStore) UpdateStatus(ctx context.Context, id int64, status subscription.Status) error {
-	if len(m.expectations) == 0 {
-		return nil
-	}
-	expect := m.expectations[0]
-	m.expectations = m.expectations[1:]
-	return expect()
-}
-
-func (m *MockStore) ExpectGet(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockStore) ExpectGetByEmail(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockStore) ExpectCreate(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockStore) ExpectDelete(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockStore) ExpectGetByID(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockStore) ExpectList(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockStore) ExpectUpdateStatus(err error) {
-	m.expectations = append(m.expectations, func() error { return err })
-}
-
-func (m *MockStore) Verify() error {
-	if len(m.expectations) > 0 {
-		return fmt.Errorf("unmet expectations: %d remaining", len(m.expectations))
-	}
-	return nil
+	args := m.Called(ctx, id, status)
+	return args.Error(0)
 }
 
 func NewSubscriptionHandler(store subscription.Store, logger logging.Logger) *services.SubscriptionHandler {
@@ -150,8 +91,8 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			expectedStatus: http.StatusCreated,
 			expectedBody:   `{"status":"success","message":"Subscription created successfully"}`,
 			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
-				store.ExpectGetByEmail(nil)
-				store.ExpectCreate(nil)
+				store.On("GetByEmail", mock.Anything, "test@example.com").Return(nil, nil)
+				store.On("Create", mock.Anything, mock.Anything).Return(nil)
 				logger.ExpectInfo("subscription created")
 			},
 		},
@@ -170,13 +111,31 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 			expectedStatus: http.StatusConflict,
 			expectedBody:   `{"status":"error","message":"Email already subscribed"}`,
 			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
-				store.ExpectGetByEmail(errors.New("email already subscribed"))
+				store.On("GetByEmail", mock.Anything, "existing@example.com").Return(&subscription.Subscription{}, nil)
 				logger.ExpectError("email already subscribed")
 			},
 		},
 		{
-			name:           "invalid request body",
-			requestBody:    `{"invalid": "json"`,
+			name:           "empty email",
+			requestBody:    `{"email": ""}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"status":"error","message":"Email is required"}`,
+			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
+				logger.ExpectError("email is required")
+			},
+		},
+		{
+			name:           "missing email",
+			requestBody:    `{}`,
+			expectedStatus: http.StatusBadRequest,
+			expectedBody:   `{"status":"error","message":"Email is required"}`,
+			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
+				logger.ExpectError("email is required")
+			},
+		},
+		{
+			name:           "invalid json",
+			requestBody:    `{`,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   `{"status":"error","message":"Invalid request body"}`,
 			setup: func(store *MockStore, logger *mocklogging.MockLogger) {
@@ -187,28 +146,27 @@ func TestSubscriptionHandler_HandleSubscribe(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			// Setup mocks
+			// Setup
 			mockStore := &MockStore{}
 			mockLogger := mocklogging.NewMockLogger()
 			tt.setup(mockStore, mockLogger)
 
-			// Create handler
 			handler := NewSubscriptionHandler(mockStore, mockLogger)
 
 			// Create request
-			req := httptest.NewRequest(http.MethodPost, "/subscribe", strings.NewReader(tt.requestBody))
+			req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", strings.NewReader(tt.requestBody))
+			req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 			rec := httptest.NewRecorder()
+			c := echo.New().NewContext(req, rec)
 
-			// Handle request
-			err := handler.HandleSubscribe(echo.New().NewContext(req, rec))
+			// Execute
+			err := handler.HandleSubscribe(c)
+
+			// Assert
 			require.NoError(t, err)
-
-			// Verify response
 			require.Equal(t, tt.expectedStatus, rec.Code)
 			require.JSONEq(t, tt.expectedBody, rec.Body.String())
-
-			// Verify mocks
-			require.NoError(t, mockStore.Verify())
+			mockStore.AssertExpectations(t)
 			require.NoError(t, mockLogger.Verify())
 		})
 	}
