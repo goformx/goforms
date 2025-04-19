@@ -103,18 +103,18 @@ func TestSecurityConfig(t *testing.T) {
 		t.Setenv("DB_PASSWORD", "testpass")
 		t.Setenv("DB_NAME", "testdb")
 
-		config, err := config.New()
+		cfg, err := config.New()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		expectedMethods := []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-		if len(config.Security.CorsAllowedMethods) != len(expectedMethods) {
-			t.Errorf("expected %d methods, got %d", len(expectedMethods), len(config.Security.CorsAllowedMethods))
+		if len(cfg.Security.CorsAllowedMethods) != len(expectedMethods) {
+			t.Errorf("expected %d methods, got %d", len(expectedMethods), len(cfg.Security.CorsAllowedMethods))
 		}
 		for i, method := range expectedMethods {
-			if config.Security.CorsAllowedMethods[i] != method {
-				t.Errorf("expected method %q at index %d, got %q", method, i, config.Security.CorsAllowedMethods[i])
+			if cfg.Security.CorsAllowedMethods[i] != method {
+				t.Errorf("expected method %q at index %d, got %q", method, i, cfg.Security.CorsAllowedMethods[i])
 			}
 		}
 	})
@@ -126,18 +126,18 @@ func TestSecurityConfig(t *testing.T) {
 		t.Setenv("DB_NAME", "testdb")
 		t.Setenv("CORS_ALLOWED_METHODS", "GET,POST")
 
-		config, err := config.New()
+		cfg, err := config.New()
 		if err != nil {
 			t.Fatalf("unexpected error: %v", err)
 		}
 
 		expectedMethods := []string{"GET", "POST"}
-		if len(config.Security.CorsAllowedMethods) != len(expectedMethods) {
-			t.Errorf("expected %d methods, got %d", len(expectedMethods), len(config.Security.CorsAllowedMethods))
+		if len(cfg.Security.CorsAllowedMethods) != len(expectedMethods) {
+			t.Errorf("expected %d methods, got %d", len(expectedMethods), len(cfg.Security.CorsAllowedMethods))
 		}
 		for i, method := range expectedMethods {
-			if config.Security.CorsAllowedMethods[i] != method {
-				t.Errorf("expected method %q at index %d, got %q", method, i, config.Security.CorsAllowedMethods[i])
+			if cfg.Security.CorsAllowedMethods[i] != method {
+				t.Errorf("expected method %q at index %d, got %q", method, i, cfg.Security.CorsAllowedMethods[i])
 			}
 		}
 	})

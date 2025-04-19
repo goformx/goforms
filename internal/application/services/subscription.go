@@ -3,6 +3,7 @@ package services
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 
@@ -71,15 +72,13 @@ func (h *SubscriptionHandler) HandleSubscribe(c echo.Context) error {
 	// Set initial status to pending
 	sub.Status = subscription.StatusPending
 
-	if err := h.store.Create(c.Request().Context(), &sub); err != nil {
+	createErr := h.store.Create(c.Request().Context(), &sub)
+	if createErr != nil {
 		h.logger.Error("failed to create subscription",
-			logging.Error(err),
+			logging.Error(createErr),
 			logging.String("email", sub.Email),
 		)
-		return h.wrapResponseError(
-			response.InternalError(c, "Failed to create subscription"),
-			"failed to create subscription",
-		)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create subscription")
 	}
 
 	h.logger.Info("subscription created",

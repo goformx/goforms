@@ -60,9 +60,12 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 
 	// Verify connection
 	logger.Debug("pinging database to verify connection")
-	if err := db.Ping(); err != nil {
-		logger.Error("failed to ping database", logging.Error(err))
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+	pingErr := db.Ping()
+	if pingErr != nil {
+		logger.Error("failed to ping database",
+			logging.Error(pingErr),
+		)
+		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	logger.Info("successfully connected to database",

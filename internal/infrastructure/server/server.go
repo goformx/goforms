@@ -24,7 +24,7 @@ type Server struct {
 }
 
 // New creates a new server instance with the provided dependencies
-func New(lc fx.Lifecycle, logger logging.Logger, config *config.Config) *Server {
+func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config) *Server {
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
@@ -36,7 +36,7 @@ func New(lc fx.Lifecycle, logger logging.Logger, config *config.Config) *Server 
 	srv := &Server{
 		echo:   e,
 		logger: logger,
-		config: config,
+		config: cfg,
 	}
 
 	// Setup server lifecycle hooks

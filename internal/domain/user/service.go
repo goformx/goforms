@@ -180,8 +180,9 @@ func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
 		return nil, err
 	}
 
-	if err := s.validateTokenClaims(token); err != nil {
-		return nil, err
+	validateErr := s.validateTokenClaims(token)
+	if validateErr != nil {
+		return nil, validateErr
 	}
 
 	return token, nil
@@ -219,7 +220,7 @@ func (s *ServiceImpl) validateTokenClaims(token *jwt.Token) error {
 // validateUserIDClaim validates the user_id claim
 func (s *ServiceImpl) validateUserIDClaim(claims jwt.MapClaims) error {
 	if _, ok := claims["user_id"].(float64); !ok {
-		return errors.New("invalid user_id claim")
+		return errors.New("invalid user_id claim type")
 	}
 	return nil
 }

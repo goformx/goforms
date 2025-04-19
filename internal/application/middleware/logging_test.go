@@ -38,8 +38,9 @@ func TestLoggingMiddleware(t *testing.T) {
 	require.NoError(t, execErr)
 
 	// Verify logger expectations
-	if verifyErr := mockLogger.Verify(); verifyErr != nil {
-		t.Errorf("logger verification failed: %v", verifyErr)
+	verifyErr := mockLogger.Verify()
+	if verifyErr != nil {
+		t.Fatalf("mock logger verification failed: %v", verifyErr)
 	}
 }
 

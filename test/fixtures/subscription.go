@@ -50,9 +50,11 @@ func (f *SubscriptionFixture) CreateSubscriptionRequest(email string) (*httptest
 	if err := f.Handler(c); err != nil {
 		var he *echo.HTTPError
 		if errors.As(err, &he) {
-			msg := he.Message.(string)
-			_, err := fmt.Fprintf(rec.Body, `{"error": %q}`, msg)
-			if err != nil {
+			msg, ok := he.Message.(string)
+			if !ok {
+				return nil, errors.New("invalid error message type")
+			}
+			if _, err := fmt.Fprintf(rec.Body, `{"error": %q}`, msg); err != nil {
 				return nil, fmt.Errorf("failed to write error response: %w", err)
 			}
 		}
@@ -85,9 +87,11 @@ func (f *SubscriptionFixture) CreateSubscriptionRequestWithOrigin(
 	if err := f.Handler(c); err != nil {
 		var he *echo.HTTPError
 		if errors.As(err, &he) {
-			msg := he.Message.(string)
-			_, err := fmt.Fprintf(rec.Body, `{"error": %q}`, msg)
-			if err != nil {
+			msg, ok := he.Message.(string)
+			if !ok {
+				return nil, errors.New("invalid error message type")
+			}
+			if _, err := fmt.Fprintf(rec.Body, `{"error": %q}`, msg); err != nil {
 				return nil, fmt.Errorf("failed to write error response: %w", err)
 			}
 		} else {
@@ -117,6 +121,25 @@ func ParseResponse(rec *httptest.ResponseRecorder, v any) error {
 	return json.NewDecoder(rec.Body).Decode(v)
 }
 
+func handleHTTPError(rec *httptest.ResponseRecorder, err error) error {
+	var he *echo.HTTPError
+	if !errors.As(err, &he) {
+		return err
+	}
+
+	errResp, handleErr := handleError(he)
+	if handleErr != nil {
+		return handleErr
+	}
+
+	encodeErr := json.NewEncoder(rec.Body).Encode(errResp)
+	if encodeErr != nil {
+		return fmt.Errorf("failed to encode error response: %w", encodeErr)
+	}
+
+	return err
+}
+
 func (f *SubscriptionFixture) CreateSubscription(email string) (*httptest.ResponseRecorder, error) {
 	rec := httptest.NewRecorder()
 	req := httptest.NewRequest(
@@ -127,18 +150,12 @@ func (f *SubscriptionFixture) CreateSubscription(email string) (*httptest.Respon
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	c := f.Echo.NewContext(req, rec)
 
-	if err := f.Handler(c); err != nil {
-		var he *echo.HTTPError
-		if errors.As(err, &he) {
-			errResp, err := handleError(he)
-			if err != nil {
-				return nil, err
-			}
-			if err := json.NewEncoder(rec.Body).Encode(errResp); err != nil {
-				return nil, fmt.Errorf("failed to encode error response: %w", err)
-			}
+	handlerErr := f.Handler(c)
+	if handlerErr != nil {
+		if err := handleHTTPError(rec, handlerErr); err != nil {
+			return nil, err
 		}
-		return rec, err
+		return rec, handlerErr
 	}
 	return rec, nil
 }
@@ -154,18 +171,12 @@ func (f *SubscriptionFixture) CreateSubscriptionWithOrigin(email, origin string)
 	req.Header.Set(echo.HeaderOrigin, origin)
 	c := f.Echo.NewContext(req, rec)
 
-	if err := f.Handler(c); err != nil {
-		var he *echo.HTTPError
-		if errors.As(err, &he) {
-			errResp, err := handleError(he)
-			if err != nil {
-				return nil, err
-			}
-			if err := json.NewEncoder(rec.Body).Encode(errResp); err != nil {
-				return nil, fmt.Errorf("failed to encode error response: %w", err)
-			}
+	handlerErr := f.Handler(c)
+	if handlerErr != nil {
+		if err := handleHTTPError(rec, handlerErr); err != nil {
+			return nil, err
 		}
-		return rec, err
+		return rec, handlerErr
 	}
 	return rec, nil
 }

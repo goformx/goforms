@@ -29,20 +29,20 @@ func NewStore(db *database.DB, logger logging.Logger) user.Store {
 }
 
 // Create stores a new user
-func (s *Store) Create(user *user.User) error {
+func (s *Store) Create(u *user.User) error {
 	query := `
 		INSERT INTO users (email, hashed_password, created_at, updated_at)
 		VALUES (?, ?, NOW(), NOW())
 	`
 
 	s.logger.Debug("creating user",
-		logging.String("email", user.Email),
+		logging.String("email", u.Email),
 	)
 
 	err := s.db.WithTx(context.Background(), func(tx *sqlx.Tx) error {
 		result, err := tx.Exec(query,
-			user.Email,
-			user.HashedPassword,
+			u.Email,
+			u.HashedPassword,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to insert user: %w", err)
@@ -58,21 +58,21 @@ func (s *Store) Create(user *user.User) error {
 			return fmt.Errorf("user ID %d is out of valid range", id)
 		}
 
-		user.ID = uint(id)
+		u.ID = uint(id)
 		return nil
 	})
 
 	if err != nil {
 		s.logger.Error("failed to create user",
 			logging.Error(err),
-			logging.String("email", user.Email),
+			logging.String("email", u.Email),
 		)
 		return fmt.Errorf("failed to create user: %w", err)
 	}
 
 	s.logger.Info("user created",
-		logging.Uint("id", user.ID),
-		logging.String("email", user.Email),
+		logging.Uint("id", u.ID),
+		logging.String("email", u.Email),
 	)
 
 	return nil
@@ -137,7 +137,7 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 }
 
 // Update updates user information
-func (s *Store) Update(user *user.User) error {
+func (s *Store) Update(u *user.User) error {
 	query := `
 		UPDATE users
 		SET email = ?, hashed_password = ?, updated_at = NOW()
@@ -145,15 +145,15 @@ func (s *Store) Update(user *user.User) error {
 	`
 
 	s.logger.Debug("updating user",
-		logging.Uint("id", user.ID),
-		logging.String("email", user.Email),
+		logging.Uint("id", u.ID),
+		logging.String("email", u.Email),
 	)
 
 	err := s.db.WithTx(context.Background(), func(tx *sqlx.Tx) error {
 		result, err := tx.Exec(query,
-			user.Email,
-			user.HashedPassword,
-			user.ID,
+			u.Email,
+			u.HashedPassword,
+			u.ID,
 		)
 		if err != nil {
 			return fmt.Errorf("failed to update user: %w", err)
@@ -165,7 +165,7 @@ func (s *Store) Update(user *user.User) error {
 		}
 
 		if rows == 0 {
-			return fmt.Errorf("user not found: %d", user.ID)
+			return fmt.Errorf("user not found: %d", u.ID)
 		}
 
 		return nil
@@ -174,15 +174,15 @@ func (s *Store) Update(user *user.User) error {
 	if err != nil {
 		s.logger.Error("failed to update user",
 			logging.Error(err),
-			logging.Uint("id", user.ID),
-			logging.String("email", user.Email),
+			logging.Uint("id", u.ID),
+			logging.String("email", u.Email),
 		)
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
 	s.logger.Info("user updated",
-		logging.Uint("id", user.ID),
-		logging.String("email", user.Email),
+		logging.Uint("id", u.ID),
+		logging.String("email", u.Email),
 	)
 
 	return nil
