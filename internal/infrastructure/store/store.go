@@ -1,8 +1,10 @@
 package store
 
 import (
+	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
@@ -16,6 +18,10 @@ type Store struct {
 	db  *sqlx.DB
 	log logging.Logger
 }
+
+var (
+	ErrUserNotFound = errors.New("user not found")
+)
 
 // NewStore creates a new user store
 func NewStore(db *sqlx.DB, log logging.Logger) user.Store {
@@ -56,27 +62,29 @@ func (s *Store) Create(u *user.User) error {
 	return nil
 }
 
-// GetByID retrieves a user by their ID
+// GetByID retrieves a user by ID
 func (s *Store) GetByID(id uint) (*user.User, error) {
+	query := `SELECT * FROM users WHERE id = $1`
 	var u user.User
-	err := s.db.Get(&u, "SELECT * FROM users WHERE id = $1", id)
+	err := s.db.Get(&u, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, ErrUserNotFound
 		}
-		s.log.Error("failed to get user by id", logging.Error(err))
+		s.log.Error("failed to get user by ID", logging.Error(err))
 		return nil, err
 	}
 	return &u, nil
 }
 
-// GetByEmail retrieves a user by their email address
+// GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(email string) (*user.User, error) {
+	query := `SELECT * FROM users WHERE email = $1`
 	var u user.User
-	err := s.db.Get(&u, "SELECT * FROM users WHERE email = $1", email)
+	err := s.db.Get(&u, query, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, ErrUserNotFound
 		}
 		s.log.Error("failed to get user by email", logging.Error(err))
 		return nil, err
@@ -148,4 +156,30 @@ func (s *Store) List() ([]user.User, error) {
 		return nil, err
 	}
 	return users, nil
+}
+
+func (s *Store) GetUserIDs(ctx context.Context) ([]string, error) {
+	query := "SELECT id FROM users"
+	rows, queryErr := s.db.QueryContext(ctx, query)
+	if queryErr != nil {
+		return nil, fmt.Errorf("failed to query user IDs: %w", queryErr)
+	}
+	defer rows.Close()
+
+	var userIDs []string
+	for rows.Next() {
+		var u struct {
+			ID string
+		}
+		if scanErr := rows.Scan(&u.ID); scanErr != nil {
+			return nil, fmt.Errorf("failed to scan user ID: %w", scanErr)
+		}
+		userIDs = append(userIDs, u.ID)
+	}
+
+	if rowErr := rows.Err(); rowErr != nil {
+		return nil, fmt.Errorf("error iterating rows: %w", rowErr)
+	}
+
+	return userIDs, nil
 }

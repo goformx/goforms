@@ -4,12 +4,17 @@ import (
 	"context"
 	"database/sql"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/jmoiron/sqlx"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+)
+
+var (
+	ErrContactNotFound = errors.New("contact not found")
 )
 
 // ContactStore implements contact.Store
@@ -82,9 +87,9 @@ func (s *ContactStore) Get(ctx context.Context, id int64) (*contact.Submission, 
 	err := s.db.GetContext(ctx, &sub, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, nil
+			return nil, ErrContactNotFound
 		}
-		return nil, err
+		return nil, fmt.Errorf("failed to get contact submission: %w", err)
 	}
 
 	return &sub, nil
@@ -113,4 +118,16 @@ func (s *ContactStore) UpdateStatus(ctx context.Context, id int64, status contac
 	}
 
 	return nil
+}
+
+func (s *ContactStore) GetByID(ctx context.Context, id string) (*contact.Submission, error) {
+	var c contact.Submission
+	err := s.db.GetContext(ctx, &c, "SELECT * FROM contacts WHERE id = ?", id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, ErrContactNotFound
+		}
+		return nil, fmt.Errorf("failed to get contact: %w", err)
+	}
+	return &c, nil
 }
