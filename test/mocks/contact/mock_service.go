@@ -40,7 +40,11 @@ func (m *MockService) ListSubmissions(ctx context.Context) ([]contact.Submission
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]contact.Submission), args.Error(1)
+	submissions, ok := args.Get(0).([]contact.Submission)
+	if !ok {
+		return nil, errors.New("invalid type assertion for submissions")
+	}
+	return submissions, args.Error(1)
 }
 
 // GetSubmission gets a contact submission by ID
@@ -49,7 +53,11 @@ func (m *MockService) GetSubmission(ctx context.Context, id int64) (*contact.Sub
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).(*contact.Submission), args.Error(1)
+	submission, ok := args.Get(0).(*contact.Submission)
+	if !ok {
+		return nil, errors.New("invalid type assertion for submission")
+	}
+	return submission, args.Error(1)
 }
 
 // UpdateSubmissionStatus updates a submission's status
@@ -69,20 +77,30 @@ func (m *MockService) Reset() {
 	m.Mock = mock.Mock{}
 }
 
+// GetByID gets a contact submission by ID
 func (m *MockService) GetByID(ctx context.Context, id string) (*contact.Submission, error) {
 	ret := m.Called(ctx, id)
 	if len(ret) == 0 {
 		return nil, ErrNoReturnValues
 	}
-	return ret[0].(*contact.Submission), ret.Error(1)
+	submission, ok := ret[0].(*contact.Submission)
+	if !ok {
+		return nil, errors.New("invalid type assertion for submission")
+	}
+	return submission, ret.Error(1)
 }
 
+// List lists all contact submissions
 func (m *MockService) List(ctx context.Context) ([]*contact.Submission, error) {
 	ret := m.Called(ctx)
 	if len(ret) == 0 {
 		return nil, ErrNoReturnValues
 	}
-	return ret[0].([]*contact.Submission), ret.Error(1)
+	submissions, ok := ret[0].([]*contact.Submission)
+	if !ok {
+		return nil, errors.New("invalid type assertion for submissions")
+	}
+	return submissions, ret.Error(1)
 }
 
 func (m *MockService) Create(ctx context.Context, submission *contact.Submission) error {

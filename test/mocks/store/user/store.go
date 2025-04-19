@@ -68,7 +68,11 @@ func (m *UserStore) GetByID(id uint) (*user.User, error) {
 	if args.Get(0) == nil {
 		return nil, user.ErrUserNotFound
 	}
-	return args.Get(0).(*user.User), args.Error(1)
+	u, ok := args.Get(0).(*user.User)
+	if !ok {
+		return nil, errors.New("invalid type assertion for user")
+	}
+	return u, args.Error(1)
 }
 
 // GetByEmail implements Store.GetByEmail
@@ -77,7 +81,11 @@ func (m *UserStore) GetByEmail(email string) (*user.User, error) {
 	if args.Get(0) == nil {
 		return nil, nil
 	}
-	return args.Get(0).(*user.User), args.Error(1)
+	u, ok := args.Get(0).(*user.User)
+	if !ok {
+		return nil, errors.New("invalid type assertion for user")
+	}
+	return u, args.Error(1)
 }
 
 // Update implements Store.Update
@@ -98,5 +106,9 @@ func (m *UserStore) List() ([]user.User, error) {
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
-	return args.Get(0).([]user.User), args.Error(1)
+	users, ok := args.Get(0).([]user.User)
+	if !ok {
+		return nil, errors.New("invalid type assertion for users")
+	}
+	return users, args.Error(1)
 }

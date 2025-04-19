@@ -16,6 +16,10 @@ const (
 	expectedReturnValues = 2
 )
 
+var (
+	ErrNotFound = errors.New("subscription not found")
+)
+
 // Ensure MockStore implements Store interface
 var _ subscription.Store = (*MockStore)(nil)
 
@@ -155,56 +159,28 @@ func (m *MockStore) Create(ctx context.Context, sub *subscription.Subscription) 
 
 // List mocks the List method
 func (m *MockStore) List(ctx context.Context) ([]subscription.Subscription, error) {
-	ret := m.recordCall("List", []any{ctx})
-	if len(ret) < expectedReturnValues {
-		return nil, errors.New("no return values from mock")
+	args := m.Called(ctx)
+	if args.Get(0) == nil {
+		return nil, args.Error(1)
 	}
-
-	var subs []subscription.Subscription
-	if ret[0] != nil {
-		if s, ok := ret[0].([]subscription.Subscription); ok {
-			subs = s
-		} else {
-			return nil, errors.New("invalid subscriptions type returned from mock")
-		}
+	subs, ok := args.Get(0).([]subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscriptions")
 	}
-
-	var err error
-	if ret[1] != nil {
-		if e, ok := ret[1].(error); ok {
-			err = e
-		} else {
-			return nil, errors.New("invalid error type returned from mock")
-		}
-	}
-	return subs, err
+	return subs, args.Error(1)
 }
 
 // GetByID mocks the GetByID method
 func (m *MockStore) GetByID(ctx context.Context, id int64) (*subscription.Subscription, error) {
-	ret := m.recordCall("GetByID", []any{ctx, id})
-	if len(ret) < expectedReturnValues {
-		return nil, errors.New("no return values from mock")
+	args := m.Called(ctx, id)
+	if args.Get(0) == nil {
+		return nil, ErrNotFound
 	}
-
-	var sub *subscription.Subscription
-	if ret[0] != nil {
-		if s, ok := ret[0].(*subscription.Subscription); ok {
-			sub = s
-		} else {
-			return nil, errors.New("invalid subscription type returned from mock")
-		}
+	sub, ok := args.Get(0).(*subscription.Subscription)
+	if !ok {
+		return nil, errors.New("invalid type assertion for subscription")
 	}
-
-	var err error
-	if ret[1] != nil {
-		if e, ok := ret[1].(error); ok {
-			err = e
-		} else {
-			return nil, errors.New("invalid error type returned from mock")
-		}
-	}
-	return sub, err
+	return sub, args.Error(1)
 }
 
 // GetByEmail mocks the GetByEmail method
