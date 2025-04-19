@@ -1,7 +1,6 @@
 package user_test
 
 import (
-	"context"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -77,7 +76,7 @@ func (s *MockStore) List() ([]user.User, error) {
 }
 
 func TestUserService(t *testing.T) {
-	ctx := context.Background()
+	ctx := t.Context()
 	mockStore := NewMockStore()
 	mockLogger := mocklogging.NewMockLogger()
 	service := user.NewService(mockStore, mockLogger)
