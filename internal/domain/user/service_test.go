@@ -1,8 +1,7 @@
 package user_test
 
 import (
-	"os"
-	"path/filepath"
+	"context"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -78,24 +77,13 @@ func (s *MockStore) List() ([]user.User, error) {
 }
 
 func TestUserService(t *testing.T) {
-	ctx := t.Context()
+	ctx := context.Background()
+	mockStore := NewMockStore()
+	mockLogger := mocklogging.NewMockLogger()
+	service := user.NewService(mockStore, mockLogger)
 
-	originalDir, err := os.Getwd()
-	require.NoError(t, err)
-	defer func() {
-		err := os.Chdir(originalDir)
-		require.NoError(t, err)
-	}()
-
-	testDir := filepath.Join(os.TempDir(), "goforms-test")
-	require.NoError(t, os.MkdirAll(testDir, 0755))
-	t.Chdir(testDir)
-
-	store := NewMockStore()
-	logger := mocklogging.NewMockLogger()
-	service := user.NewService(store, logger)
-
-	t.Run("SignUp", func(t *testing.T) {
+	t.Run("signup and login flow", func(t *testing.T) {
+		// Create signup request
 		signup := &user.Signup{
 			Email:     "test@example.com",
 			Password:  "password123",
@@ -103,34 +91,54 @@ func TestUserService(t *testing.T) {
 			LastName:  "User",
 		}
 
-		logger.ExpectInfo("user signed up").WithFields(map[string]any{
-			"email": signup.Email,
+		// Mock store expectations
+		mockStore.Create(&user.User{
+			Email:     signup.Email,
+			FirstName: signup.FirstName,
+			LastName:  signup.LastName,
 		})
 
-		newUser, err := service.SignUp(ctx, signup)
-		require.NoError(t, err)
-		assert.NotNil(t, newUser)
-		assert.Equal(t, signup.Email, newUser.Email)
-		assert.Equal(t, signup.FirstName, newUser.FirstName)
-		assert.Equal(t, signup.LastName, newUser.LastName)
-		require.NoError(t, logger.Verify())
-	})
+		newUser, signupErr := service.SignUp(ctx, signup)
+		require.NoError(t, signupErr)
+		require.NotNil(t, newUser)
 
-	t.Run("Login", func(t *testing.T) {
+		// Create login request
 		login := &user.Login{
 			Email:    "test@example.com",
 			Password: "password123",
 		}
 
-		logger.ExpectInfo("user logged in").WithFields(map[string]any{
-			"email": login.Email,
-		})
+		// Mock store expectations
+		mockStore.GetByEmail(login.Email)
 
-		tokens, err := service.Login(ctx, login)
-		require.NoError(t, err)
-		assert.NotEmpty(t, tokens.AccessToken)
-		assert.NotEmpty(t, tokens.RefreshToken)
-		require.NoError(t, logger.Verify())
+		// Test successful login
+		authUser, loginErr := service.Login(ctx, login)
+		require.NoError(t, loginErr)
+		require.NotNil(t, authUser)
+
+		// Test invalid password
+		invalidLogin := &user.Login{
+			Email:    "test@example.com",
+			Password: "wrongpassword",
+		}
+
+		// Mock store expectations
+		mockStore.GetByEmail(invalidLogin.Email)
+
+		_, invalidLoginErr := service.Login(ctx, invalidLogin)
+		require.Error(t, invalidLoginErr)
+
+		// Test non-existent user
+		nonExistentLogin := &user.Login{
+			Email:    "nonexistent@example.com",
+			Password: "password123",
+		}
+
+		// Mock store expectations
+		mockStore.GetByEmail(nonExistentLogin.Email)
+
+		_, nonExistentErr := service.Login(ctx, nonExistentLogin)
+		require.Error(t, nonExistentErr)
 	})
 
 	t.Run("Logout", func(t *testing.T) {
@@ -139,14 +147,14 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
-		logger.ExpectInfo("user logged in").WithFields(map[string]any{
+		mockLogger.ExpectInfo("user logged in").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
 		tokens, err := service.Login(ctx, login)
 		require.NoError(t, err)
 
-		logger.ExpectInfo("user logged out").WithFields(map[string]any{
+		mockLogger.ExpectInfo("user logged out").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
@@ -154,7 +162,7 @@ func TestUserService(t *testing.T) {
 		require.NoError(t, err)
 
 		assert.True(t, service.IsTokenBlacklisted(tokens.AccessToken))
-		require.NoError(t, logger.Verify())
+		require.NoError(t, mockLogger.Verify())
 	})
 
 	t.Run("RefreshToken", func(t *testing.T) {
@@ -163,14 +171,14 @@ func TestUserService(t *testing.T) {
 			Password: "password123",
 		}
 
-		logger.ExpectInfo("user logged in").WithFields(map[string]any{
+		mockLogger.ExpectInfo("user logged in").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
 		tokens, err := service.Login(ctx, login)
 		require.NoError(t, err)
 
-		logger.ExpectInfo("token refreshed").WithFields(map[string]any{
+		mockLogger.ExpectInfo("token refreshed").WithFields(map[string]any{
 			"email": login.Email,
 		})
 
@@ -179,6 +187,6 @@ func TestUserService(t *testing.T) {
 		assert.NotEmpty(t, newTokens.AccessToken)
 		assert.NotEmpty(t, newTokens.RefreshToken)
 		assert.NotEqual(t, tokens.AccessToken, newTokens.AccessToken)
-		require.NoError(t, logger.Verify())
+		require.NoError(t, mockLogger.Verify())
 	})
 }

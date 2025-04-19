@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 	"net/http/httptest"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -110,4 +111,45 @@ func ValidTestSubscription() *subscription.Subscription {
 // ParseResponse parses the response body into the given interface
 func ParseResponse(rec *httptest.ResponseRecorder, v any) error {
 	return json.NewDecoder(rec.Body).Decode(v)
+}
+
+func (f *SubscriptionFixture) CreateSubscription(email string) (*httptest.ResponseRecorder, error) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", strings.NewReader(fmt.Sprintf(`{"email":"%s"}`, email)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	c := f.Echo.NewContext(req, rec)
+
+	if handlerErr := f.Handler(c); handlerErr != nil {
+		var he *echo.HTTPError
+		if errors.As(handlerErr, &he) {
+			if encodeErr := json.NewEncoder(rec.Body).Encode(map[string]string{
+				"error": he.Message.(string),
+			}); encodeErr != nil {
+				return nil, fmt.Errorf("failed to encode error response: %w", encodeErr)
+			}
+		}
+		return rec, handlerErr
+	}
+	return rec, nil
+}
+
+func (f *SubscriptionFixture) CreateSubscriptionWithOrigin(email, origin string) (*httptest.ResponseRecorder, error) {
+	rec := httptest.NewRecorder()
+	req := httptest.NewRequest(http.MethodPost, "/api/v1/subscriptions", strings.NewReader(fmt.Sprintf(`{"email":"%s"}`, email)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	req.Header.Set(echo.HeaderOrigin, origin)
+	c := f.Echo.NewContext(req, rec)
+
+	if handlerErr := f.Handler(c); handlerErr != nil {
+		var he *echo.HTTPError
+		if errors.As(handlerErr, &he) {
+			if encodeErr := json.NewEncoder(rec.Body).Encode(map[string]string{
+				"error": he.Message.(string),
+			}); encodeErr != nil {
+				return nil, fmt.Errorf("failed to encode error response: %w", encodeErr)
+			}
+		}
+		return rec, handlerErr
+	}
+	return rec, nil
 }

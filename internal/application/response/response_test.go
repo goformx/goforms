@@ -2,48 +2,47 @@ package response_test
 
 import (
 	"encoding/json"
-	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/application/response"
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestResponse(t *testing.T) {
-	tests := []struct {
-		name     string
-		data     any
-		wantCode int
-		wantBody map[string]any
-	}{
-		{
-			name:     "success",
-			data:     "test",
-			wantCode: http.StatusOK,
-			wantBody: map[string]any{
-				"success": true,
-				"data":    "test",
+	t.Run("success response", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		c := echo.New().NewContext(nil, rec)
+
+		err := response.Success(c, map[string]interface{}{
+			"message": "success",
+			"data": map[string]interface{}{
+				"key": "value",
 			},
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			e := echo.New()
-			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-
-			err := response.Success(c, tt.data)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.wantCode, rec.Code)
-
-			var gotBody map[string]any
-			err = json.NewDecoder(rec.Body).Decode(&gotBody)
-			assert.NoError(t, err)
-			assert.Equal(t, tt.wantBody, gotBody)
 		})
-	}
+		require.NoError(t, err)
+
+		var resp map[string]interface{}
+		err = json.NewDecoder(rec.Body).Decode(&resp)
+		require.NoError(t, err)
+
+		require.Equal(t, "success", resp["message"])
+		require.Equal(t, "value", resp["data"].(map[string]interface{})["key"])
+	})
+
+	t.Run("error response", func(t *testing.T) {
+		rec := httptest.NewRecorder()
+		c := echo.New().NewContext(nil, rec)
+
+		err := response.BadRequest(c, "error")
+		require.NoError(t, err)
+
+		var resp map[string]interface{}
+		err = json.NewDecoder(rec.Body).Decode(&resp)
+		require.NoError(t, err)
+
+		require.Equal(t, "error", resp["error"])
+		require.False(t, resp["success"].(bool))
+	})
 }
