@@ -79,7 +79,7 @@ func TestUserService(t *testing.T) {
 	ctx := t.Context()
 	mockStore := NewMockStore()
 	mockLogger := mocklogging.NewMockLogger()
-	service := user.NewService(mockStore, mockLogger)
+	service := user.NewService(mockStore, mockLogger, "test-jwt-secret")
 
 	t.Run("signup and login flow", func(t *testing.T) {
 		// Create signup request
