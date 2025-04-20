@@ -1,47 +1,64 @@
 package main
 
 import (
+	"database/sql"
+	"flag"
+	"fmt"
 	"log"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/golang-migrate/migrate/v4"
-	_ "github.com/golang-migrate/migrate/v4/database/mysql"
+	"github.com/golang-migrate/migrate/v4/database/mysql"
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 )
 
+const (
+	defaultDBURL = "mysql://root:${DB_PASSWORD}@tcp(db:3306)/goforms"
+)
+
 func main() {
+	var dbURL string
+	flag.StringVar(&dbURL, "db-url", os.ExpandEnv(defaultDBURL), "Database URL")
+	flag.Parse()
+
 	if len(os.Args) < 2 {
-		log.Fatal("Usage: migrate <up|down>")
+		log.Fatal("Please provide a migration command (up/down)")
 	}
 
-	// Get database URL from environment
-	dbURL := os.Getenv("DATABASE_URL")
-	if dbURL == "" {
-		dbURL = "mysql://root:root@tcp(db:3306)/goforms"
+	db, err := sql.Open("mysql", dbURL)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	driver, err := mysql.WithInstance(db, &mysql.Config{})
+	if err != nil {
+		log.Fatal(err)
 	}
 
-	// Create migration instance
-	m, err := migrate.New(
+	m, err := migrate.NewWithDatabaseInstance(
 		"file://migrations",
-		dbURL,
+		"mysql",
+		driver,
 	)
 	if err != nil {
-		log.Fatalf("Error creating migration: %v", err)
+		log.Fatal(err)
 	}
 	defer m.Close()
 
-	// Execute migration
-	switch os.Args[1] {
+	if err := runMigration(m, os.Args[1]); err != nil {
+		log.Fatal(err)
+	}
+}
+
+func runMigration(m *migrate.Migrate, command string) error {
+	switch command {
 	case "up":
-		if err := m.Up(); err != nil && err != migrate.ErrNoChange {
-			log.Fatalf("Error running migration up: %v", err)
-		}
+		return m.Up()
 	case "down":
-		if err := m.Down(); err != nil && err != migrate.ErrNoChange {
-			log.Fatalf("Error running migration down: %v", err)
-		}
+		return m.Down()
 	default:
-		log.Fatal("Usage: migrate <up|down>")
+		return fmt.Errorf("unknown command: %s", command)
 	}
 } 

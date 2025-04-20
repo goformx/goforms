@@ -2,9 +2,10 @@ package router
 
 import (
 	"fmt"
+	"slices"
+	"strings"
 
 	"github.com/labstack/echo/v4"
-	"golang.org/x/exp/slices"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -41,9 +42,9 @@ func Setup(e *echo.Echo, cfg *Config) error {
 
 	// Use slices package for efficient handler management
 	handlers := slices.Clone(cfg.Handlers)
-	slices.SortFunc(handlers, func(a, b handler.Handler) bool {
+	slices.SortFunc(handlers, func(a, b handler.Handler) int {
 		// Sort by handler type name for consistent registration order
-		return fmt.Sprintf("%T", a) < fmt.Sprintf("%T", b)
+		return strings.Compare(fmt.Sprintf("%T", a), fmt.Sprintf("%T", b))
 	})
 
 	// Register API handlers

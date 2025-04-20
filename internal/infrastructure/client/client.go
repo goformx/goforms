@@ -44,11 +44,11 @@ func (c *Client) SignUp(ctx context.Context, signup *user.Signup) (*user.User, e
 	}
 	defer resp.Body.Close()
 
-	var user user.User
-	if err := json.NewDecoder(resp.Body).Decode(&user); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	var newUser user.User
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&newUser); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
-	return &user, nil
+	return &newUser, nil
 }
 
 // Login authenticates a user and returns JWT tokens
@@ -60,11 +60,11 @@ func (c *Client) Login(ctx context.Context, login *user.Login) (*user.TokenPair,
 	}
 	defer resp.Body.Close()
 
-	var tokens user.TokenPair
-	if err := json.NewDecoder(resp.Body).Decode(&tokens); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	var tokenPair user.TokenPair
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&tokenPair); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
-	return &tokens, nil
+	return &tokenPair, nil
 }
 
 // Logout invalidates the user's tokens
@@ -259,24 +259,24 @@ type VersionInfo struct {
 
 // Helper methods
 
-func (c *Client) doRequest(ctx context.Context, method, url string, body interface{}) (*http.Response, error) {
+func (c *Client) doRequest(ctx context.Context, method, url string, body any) (*http.Response, error) {
 	var reqBody []byte
 	if body != nil {
-		var err error
-		reqBody, err = json.Marshal(body)
-		if err != nil {
-			return nil, fmt.Errorf("failed to marshal request body: %w", err)
+		var marshalErr error
+		reqBody, marshalErr = json.Marshal(body)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", marshalErr)
 		}
 	}
 
-	req, err := http.NewRequestWithContext(ctx, method, url, nil)
+	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create request: %w", err)
 	}
 
 	if body != nil {
 		req.Header.Set("Content-Type", "application/json")
-		req.Body = http.NoBody // Reset body
+		req.Body = http.NoBody
 		req.GetBody = func() (io.ReadCloser, error) {
 			return io.NopCloser(bytes.NewReader(reqBody)), nil
 		}

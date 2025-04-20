@@ -99,15 +99,15 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	}
 
 	// Set password
-	if err := user.SetPassword(signup.Password); err != nil {
-		s.logger.Error("failed to set password", logging.Error(err))
-		return nil, fmt.Errorf("failed to create user: %w", err)
+	if setErr := user.SetPassword(signup.Password); setErr != nil {
+		s.logger.Error("failed to set password", logging.Error(setErr))
+		return nil, fmt.Errorf("failed to create user: %w", setErr)
 	}
 
 	// Save user
-	if err := s.store.Create(user); err != nil {
-		s.logger.Error("failed to create user", logging.Error(err))
-		return nil, fmt.Errorf("failed to create user: %w", err)
+	if createErr := s.store.Create(user); createErr != nil {
+		s.logger.Error("failed to create user", logging.Error(createErr))
+		return nil, fmt.Errorf("failed to create user: %w", createErr)
 	}
 
 	return user, nil

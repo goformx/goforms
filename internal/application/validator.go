@@ -1,9 +1,40 @@
 package application
 
 import (
+	"errors"
 	"fmt"
 	"reflect"
+
+	"github.com/go-playground/validator/v10"
 )
+
+// Validator provides validation functionality
+type Validator struct {
+	validate *validator.Validate
+}
+
+// NewValidator creates a new validator instance
+func NewValidator() *Validator {
+	return &Validator{
+		validate: validator.New(),
+	}
+}
+
+// ValidateStruct validates a struct
+func (v *Validator) ValidateStruct(s interface{}) error {
+	if err := v.validate.Struct(s); err != nil {
+		return errors.New("invalid value")
+	}
+	return nil
+}
+
+// ValidateField validates a field
+func (v *Validator) ValidateField(field interface{}, tag string) error {
+	if err := v.validate.Var(field, tag); err != nil {
+		return errors.New("field is required")
+	}
+	return nil
+}
 
 // CustomValidator implements echo.Validator interface
 type CustomValidator struct{}

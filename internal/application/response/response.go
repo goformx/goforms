@@ -20,11 +20,11 @@ type Response struct {
 
 // MapResponse represents a map response
 type MapResponse struct {
-	Data map[string]interface{} `json:"data"`
+	Data map[string]any `json:"data"`
 }
 
 // NewMapResponse creates a new map response
-func NewMapResponse(data map[string]interface{}) *MapResponse {
+func NewMapResponse(data map[string]any) *MapResponse {
 	return &MapResponse{
 		Data: data,
 	}

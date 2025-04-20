@@ -2,6 +2,8 @@ package user
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -142,32 +144,13 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 
 // GetByID returns a user by ID
 func (s *Store) GetByID(id uint) (*user.User, error) {
-	query := `
-		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
-		FROM users
-		WHERE id = ?
-	`
-
-	s.logger.Debug("getting user by ID",
-		logging.Uint("id", id),
-	)
-
 	var u user.User
-	if err := s.db.Get(&u, query, id); err != nil {
-		s.logger.Error("failed to get user by ID",
-			logging.Error(err),
-			logging.Uint("id", id),
-		)
-		return nil, fmt.Errorf("failed to get user by ID: %w", err)
+	if err := s.db.Get(&u, "SELECT * FROM users WHERE id = ?", id); err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, user.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
-
-	s.logger.Debug("user retrieved",
-		logging.Uint("id", u.ID),
-		logging.String("email", u.Email),
-		logging.String("role", u.Role),
-		logging.Bool("active", u.Active),
-	)
-
 	return &u, nil
 }
 
