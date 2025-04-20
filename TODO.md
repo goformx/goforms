@@ -42,151 +42,97 @@
     - [x] Signup Endpoint
     - [x] Middleware Protection
 
-## In Progress
+## Current Sprint: Code Refactoring and Modernization 🚀
 
-- [ ] Contact Form Demo
-  - [x] Basic Form Implementation
-  - [x] API Response Display
-  - [x] Message History Display
-  - [ ] Form Validation
-  - [ ] Error Handling Improvements
-  - [ ] Loading States
-  - [ ] Success Feedback
-  - [ ] Message Filtering
-  - [ ] Message Sorting Options
-  - [ ] Responsive Design
-  - [ ] Accessibility Improvements
+### 1. Go 1.24 Feature Adoption
+- [ ] Core Language Features
+  - [ ] Implement new `slices` package for array operations
+  - [ ] Use new `maps` package for map operations
+  - [ ] Adopt new `cmp` package for comparisons
+  - [ ] Implement new `iter` package for iteration patterns
+  - [ ] Use new `context` package features
 
-- [ ] Dependency Injection Improvements
-  - [x] Logger Consistency
-    - [x] Consolidate logger initialization
-    - [x] Replace direct GetLogger calls with DI
-    - [x] Add logger interface documentation
-  - [x] Configuration Management
-    - [x] Move server config to infrastructure layer
-    - [x] Create unified config structure
-    - [x] Add config validation
-  - [x] Database Access
-    - [x] Group store providers
-    - [x] Ensure consistent store initialization
-    - [x] Add store interfaces documentation
-  - [ ] Handler Dependencies
-    - [ ] Audit handler constructors
-    - [ ] Ensure consistent DI usage
-    - [ ] Document dependency requirements
+- [ ] Standard Library Updates
+  - [ ] Implement new `net/http` package features
+  - [ ] Use new `testing` package features
+  - [ ] Update error handling patterns
 
-## Current Sprint: MVP Stabilization 🚀
-- [ ] 1. Deployment Readiness
-  - [ ] Production Docker setup
-  - [ ] Deployment documentation
-  - [ ] Environment configuration guide
-  - [ ] Logging setup review
-  - [ ] Monitoring configuration
+### 2. Architecture Improvements
+- [ ] Dependency Injection
+  - [ ] Audit and standardize fx.Module usage
+  - [ ] Implement consistent module naming
+  - [ ] Document module dependencies and lifecycles
+  - [ ] Implement proper cleanup in modules
 
-- [ ] 2. Code Quality
-  - [ ] Complete test coverage
-  - [ ] API documentation
-  - [ ] Error handling review
-  - [ ] Performance testing
+- [ ] Domain Layer
+  - [ ] Implement domain-specific error types
+  - [ ] Add error wrapping with context
+  - [ ] Standardize error response format
+  - [ ] Improve validation patterns
+  - [ ] Add domain event handling
 
-## V2 Sprint: Multi-tenant Forms Platform 🎯
+- [ ] Logging Improvements
+  - [ ] Standardize zap field naming conventions
+  - [ ] Implement consistent log levels across services
+  - [ ] Add request tracing with correlation IDs
+  - [ ] Improve log context for better debugging
+  - [ ] Add performance logging for critical paths
+
+### 3. Infrastructure Layer
+- [ ] Database Layer
+  - [ ] Implement connection pooling improvements
+  - [ ] Add query caching
+  - [ ] Optimize transaction handling
+  - [ ] Add slow query logging
+  - [ ] Implement connection health checks
+
+- [ ] API Layer
+  - [ ] Implement response compression
+  - [ ] Add request caching
+  - [ ] Optimize middleware chain
+  - [ ] Implement proper rate limiting
+  - [ ] Add API performance monitoring
+
+### 4. Testing and Documentation
+- [ ] Testing Infrastructure
+  - [ ] Implement table-driven tests
+  - [ ] Add benchmark tests
+  - [ ] Improve test coverage
+  - [ ] Add integration tests
+  - [ ] Implement proper test isolation
+
+- [ ] Documentation
+  - [ ] Add API documentation
+  - [ ] Improve code comments
+  - [ ] Add package documentation
+  - [ ] Document testing strategy
+  - [ ] Add performance benchmarks
+
+## Future Sprints
+
+### V2: Multi-tenant Forms Platform 🎯
 - [ ] 1. Multi-tenant Foundation
   - [ ] Create tenant table migration
-    - [ ] ID, name, api_key fields
-    - [ ] Domain whitelist
-    - [ ] Rate limit configs
   - [ ] Tenant authentication system
   - [ ] Per-tenant rate limiting
   - [ ] Per-tenant CORS management
 
 - [ ] 2. Form Management
   - [ ] Create forms table migration
-    - [ ] ID, title, description, created_at, updated_at
-    - [ ] Status (draft, published, archived)
-    - [ ] Validation rules
-  - [ ] Create form_fields table migration
-    - [ ] Field types (text, number, email, etc.)
-    - [ ] Validation rules
-    - [ ] Required/optional status
   - [ ] Form CRUD endpoints
   - [ ] Field configuration
   - [ ] Input sanitization
   - [ ] API versioning (v1)
-  - [ ] OpenAPI/Swagger annotations
 
 - [ ] 3. Submission Management
   - [ ] Create form_submissions table migration
-    - [ ] Submission data (JSON)
-    - [ ] Metadata (IP, timestamp, etc.)
   - [ ] Form submission handling
   - [ ] Submission retrieval API
   - [ ] Export capabilities
 
-- [ ] Form Management System
-  - [ ] Form Schema Implementation
-    - [ ] JSON Schema-based form definition
-    - [ ] UI Schema for rendering configuration
-    - [ ] Form settings and metadata
-    - [ ] Version control for forms
-  - [ ] Database Implementation
-    - [ ] Forms table migration
-    - [ ] Form submissions table migration
-    - [ ] JSON validation functions
-    - [ ] Form versioning system
-  - [ ] Form Builder UI
-    - [ ] Schema editor component
-    - [ ] Live form preview
-    - [ ] Settings configuration panel
-    - [ ] Deployment instructions view
-  - [ ] Form API Endpoints
-    - [ ] Form CRUD operations
-    - [ ] Form submission handling
-    - [ ] Form analytics endpoints
-    - [ ] Form embedding endpoints
-  - [ ] JavaScript SDK
-    - [ ] Form rendering library
-    - [ ] Form submission handling
-    - [ ] Validation implementation
-    - [ ] Custom styling support
-  - [ ] Security Features
-    - [ ] Origin validation
-    - [ ] Rate limiting per form
-    - [ ] CAPTCHA integration
-    - [ ] XSS protection
-  - [ ] Integration System
-    - [ ] Webhook support
-    - [ ] Email notifications
-    - [ ] Slack integration
-
-- [ ] Testing Improvements
-  - [ ] Integration Tests
-  - [ ] Performance Tests
-  - [ ] Load Tests
-  - [ ] API Contract Tests
-- [ ] Features
-  - [ ] Form Versioning
-  - [ ] Export/Import
-  - [ ] Webhook Integration
-  - [ ] Email Notifications
-- [ ] Monitoring
-  - [ ] Metrics Collection
-  - [ ] Performance Monitoring
-  - [ ] Error Tracking
-  - [ ] Audit Logging
-  - [ ] User Activity Tracking
-
-- [ ] Infrastructure Separation of Concerns
-  - [ ] Move domain-specific validation
-    - [x] Move contact validation to domain/contact/validation
-    - [x] Update validation imports and tests
-  - [ ] Reorganize store layer
-    - [ ] Move stores to respective domain packages
-    - [ ] Update store interfaces and implementations
-  - [ ] Clean up persistence layer
-    - [ ] Merge or remove redundant persistence package
-    - [ ] Update affected dependencies
-  - [ ] Package Documentation
-    - [x] Add README.md to each infrastructure package
-    - [ ] Document package responsibilities
-    - [ ] Document package interfaces
-    - [ ] Add usage examples
+### V3: Advanced Features
+- [ ] Form Builder UI
+- [ ] JavaScript SDK
+- [ ] Webhook Integration
+- [ ] Email Notifications
+- [ ] Analytics Dashboard
