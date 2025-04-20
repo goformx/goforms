@@ -73,6 +73,29 @@ var Module = fx.Module("infrastructure",
 		database.NewDB,
 		persistence.NewStores,
 		server.New,
+		AsHandler(func(p HandlerParams) *handler.WebHandler {
+			return handler.NewWebHandler(p.Logger,
+				handler.WithRenderer(p.Renderer),
+				handler.WithContactService(p.ContactService),
+				handler.WithWebSubscriptionService(p.SubscriptionService),
+				handler.WithWebDebug(p.Config.App.Debug),
+			)
+		}),
+		AsHandler(func(p HandlerParams) *handler.AuthHandler {
+			return handler.NewAuthHandler(p.Logger,
+				handler.WithUserService(p.UserService),
+			)
+		}),
+		AsHandler(func(p HandlerParams) *handler.ContactHandler {
+			return handler.NewContactHandler(p.Logger,
+				handler.WithContactServiceOpt(p.ContactService),
+			)
+		}),
+		AsHandler(func(p HandlerParams) *handler.SubscriptionHandler {
+			return handler.NewSubscriptionHandler(p.Logger,
+				handler.WithSubscriptionService(p.SubscriptionService),
+			)
+		}),
 	),
 )
 

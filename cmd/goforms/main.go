@@ -112,6 +112,9 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 	e.HideBanner = true
 	e.HidePort = true
 
+	// Register validator
+	e.Validator = middleware.NewValidator()
+
 	// Configure middleware
 	middleware.Setup(e, &middleware.Config{
 		Logger:      logger,

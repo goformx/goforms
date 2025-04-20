@@ -87,6 +87,9 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 	newUser, err := h.userService.SignUp(c.Request().Context(), &signup)
 	if err != nil {
 		h.LogError("failed to create user", err)
+		if errors.Is(err, user.ErrEmailAlreadyExists) {
+			return echo.NewHTTPError(http.StatusConflict, "Email already exists")
+		}
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user")
 	}
 

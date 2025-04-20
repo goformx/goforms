@@ -117,6 +117,12 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 
 	var u user.User
 	if err := s.db.Get(&u, query, email); err != nil {
+		if err.Error() == "sql: no rows in result set" {
+			s.logger.Debug("user not found",
+				logging.String("email", email),
+			)
+			return nil, nil
+		}
 		s.logger.Error("failed to get user by email",
 			logging.Error(err),
 			logging.String("email", email),

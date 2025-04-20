@@ -67,23 +67,24 @@ type ServiceImpl struct {
 }
 
 // NewService creates a new user service
-func NewService(store Store, logger logging.Logger) Service {
+func NewService(store Store, logger logging.Logger, jwtSecret string) Service {
 	return &ServiceImpl{
-		store:  store,
-		logger: logger,
+		store:     store,
+		logger:    logger,
+		jwtSecret: []byte(jwtSecret),
 	}
 }
 
 // SignUp registers a new user
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
 	// Check if email already exists
-	existingUser, lookupErr := s.store.GetByEmail(signup.Email)
-	if lookupErr != nil {
-		s.logger.Error("failed to check existing user", logging.Error(lookupErr))
-		return nil, fmt.Errorf("failed to create user: %w", lookupErr)
+	existingUser, err := s.store.GetByEmail(signup.Email)
+	if err != nil {
+		s.logger.Error("failed to check existing user", logging.Error(err))
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 	if existingUser != nil {
-		return nil, fmt.Errorf("failed to create user: %w", ErrEmailAlreadyExists)
+		return nil, ErrEmailAlreadyExists
 	}
 
 	// Create new user
@@ -93,18 +94,20 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 		LastName:  signup.LastName,
 		Role:      "user",
 		Active:    true,
+		CreatedAt: time.Now(),
+		UpdatedAt: time.Now(),
 	}
 
 	// Set password
-	if hashErr := user.SetPassword(signup.Password); hashErr != nil {
-		s.logger.Error("failed to set password", logging.Error(hashErr))
-		return nil, fmt.Errorf("failed to create user: %w", hashErr)
+	if err := user.SetPassword(signup.Password); err != nil {
+		s.logger.Error("failed to set password", logging.Error(err))
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	// Save user
-	if createErr := s.store.Create(user); createErr != nil {
-		s.logger.Error("failed to create user", logging.Error(createErr))
-		return nil, fmt.Errorf("failed to create user: %w", createErr)
+	if err := s.store.Create(user); err != nil {
+		s.logger.Error("failed to create user", logging.Error(err))
+		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	return user, nil
