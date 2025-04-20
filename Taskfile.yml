@@ -41,6 +41,7 @@ tasks:
     cmds:
       - go mod tidy
       - go install github.com/a-h/templ/cmd/templ@latest
+      - go install github.com/cosmtrek/air@latest
       - export PATH=$PATH:$(go env GOPATH)/bin
 
   generate:
@@ -53,6 +54,12 @@ tasks:
     deps: [build]
     cmds:
       - ./bin/server
+
+  dev:
+    desc: Run the application with hot reloading
+    deps: [generate]
+    cmds:
+      - air
 
   clean:
     desc: Clean build artifacts
