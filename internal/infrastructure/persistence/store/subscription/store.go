@@ -4,21 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
-
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
+	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
 )
 
 // Store implements subscription.Store interface
 type Store struct {
-	db     *database.DB
+	db     *database.Database
 	logger logging.Logger
 }
 
 // NewStore creates a new subscription store
-func NewStore(db *database.DB, logger logging.Logger) subscription.Store {
+func NewStore(db *database.Database, logger logging.Logger) subscription.Store {
 	logger.Debug("creating subscription store",
 		logging.Bool("db_available", db != nil),
 	)
@@ -31,8 +29,8 @@ func NewStore(db *database.DB, logger logging.Logger) subscription.Store {
 // Create stores a new subscription
 func (s *Store) Create(ctx context.Context, sub *subscription.Subscription) error {
 	query := `
-		INSERT INTO subscriptions (name, email, status, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?)
+		INSERT INTO subscriptions (email, status, created_at, updated_at)
+		VALUES (?, ?, ?, ?)
 	`
 
 	s.logger.Debug("creating subscription",
@@ -40,26 +38,42 @@ func (s *Store) Create(ctx context.Context, sub *subscription.Subscription) erro
 		logging.String("status", string(sub.Status)),
 	)
 
-	err := s.db.WithTx(ctx, func(tx *sqlx.Tx) error {
-		result, err := tx.ExecContext(ctx, query,
-			sub.Name,
-			sub.Email,
-			sub.Status,
-			sub.CreatedAt,
-			sub.UpdatedAt,
-		)
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
 		if err != nil {
-			return fmt.Errorf("failed to insert subscription: %w", err)
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
 		}
-
-		id, err := result.LastInsertId()
-		if err != nil {
-			return fmt.Errorf("failed to get last insert ID: %w", err)
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
 		}
+	}()
 
-		sub.ID = id
-		return nil
-	})
+	result, err := tx.ExecContext(ctx, query,
+		sub.Email,
+		sub.Status,
+		sub.CreatedAt,
+		sub.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert subscription: %w", err)
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+
+	sub.ID = id
 
 	if err != nil {
 		s.logger.Error("failed to create subscription",
@@ -81,7 +95,7 @@ func (s *Store) Create(ctx context.Context, sub *subscription.Subscription) erro
 // List returns all subscriptions
 func (s *Store) List(ctx context.Context) ([]subscription.Subscription, error) {
 	query := `
-		SELECT id, name, email, status, created_at, updated_at
+		SELECT id, email, status, created_at, updated_at
 		FROM subscriptions
 		ORDER BY created_at DESC
 	`
@@ -103,10 +117,10 @@ func (s *Store) List(ctx context.Context) ([]subscription.Subscription, error) {
 	return subscriptions, nil
 }
 
-// Get returns a specific subscription by ID
+// Get returns a specific subscription
 func (s *Store) Get(ctx context.Context, id int64) (*subscription.Subscription, error) {
 	query := `
-		SELECT id, name, email, status, created_at, updated_at
+		SELECT id, email, status, created_at, updated_at
 		FROM subscriptions
 		WHERE id = ?
 	`
@@ -181,31 +195,38 @@ func (s *Store) UpdateStatus(ctx context.Context, id int64, status subscription.
 		logging.String("status", string(status)),
 	)
 
-	err := s.db.WithTx(ctx, func(tx *sqlx.Tx) error {
-		result, err := tx.ExecContext(ctx, query, status, id)
-		if err != nil {
-			return fmt.Errorf("failed to update subscription status: %w", err)
-		}
-
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("failed to get rows affected: %w", err)
-		}
-
-		if rows == 0 {
-			return fmt.Errorf("subscription not found: %d", id)
-		}
-
-		return nil
-	})
-
+	tx, err := s.db.Begin()
 	if err != nil {
-		s.logger.Error("failed to update subscription status",
-			logging.Error(err),
-			logging.Int64("id", id),
-			logging.String("status", string(status)),
-		)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
+		}
+	}()
+
+	result, err := tx.ExecContext(ctx, query, status, id)
+	if err != nil {
 		return fmt.Errorf("failed to update subscription status: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("subscription not found: %d", id)
 	}
 
 	s.logger.Info("subscription status updated",
@@ -227,30 +248,38 @@ func (s *Store) Delete(ctx context.Context, id int64) error {
 		logging.Int64("id", id),
 	)
 
-	err := s.db.WithTx(ctx, func(tx *sqlx.Tx) error {
-		result, err := tx.ExecContext(ctx, query, id)
-		if err != nil {
-			return fmt.Errorf("failed to delete subscription: %w", err)
-		}
-
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("failed to get rows affected: %w", err)
-		}
-
-		if rows == 0 {
-			return fmt.Errorf("subscription not found: %d", id)
-		}
-
-		return nil
-	})
-
+	tx, err := s.db.Begin()
 	if err != nil {
-		s.logger.Error("failed to delete subscription",
-			logging.Error(err),
-			logging.Int64("id", id),
-		)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
+		}
+	}()
+
+	result, err := tx.ExecContext(ctx, query, id)
+	if err != nil {
 		return fmt.Errorf("failed to delete subscription: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("subscription not found: %d", id)
 	}
 
 	s.logger.Info("subscription deleted",

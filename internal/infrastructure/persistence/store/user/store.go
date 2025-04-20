@@ -4,21 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
-
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
 )
 
 // Store implements user.Store interface
 type Store struct {
-	db     *database.DB
+	db     *database.Database
 	logger logging.Logger
 }
 
 // NewStore creates a new user store
-func NewStore(db *database.DB, logger logging.Logger) user.Store {
+func NewStore(db *database.Database, logger logging.Logger) user.Store {
 	logger.Debug("creating user store",
 		logging.Bool("db_available", db != nil),
 	)
@@ -31,36 +29,61 @@ func NewStore(db *database.DB, logger logging.Logger) user.Store {
 // Create stores a new user
 func (s *Store) Create(u *user.User) error {
 	query := `
-		INSERT INTO users (email, hashed_password, created_at, updated_at)
-		VALUES (?, ?, NOW(), NOW())
+		INSERT INTO users (email, hashed_password, first_name, last_name, role, active, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	s.logger.Debug("creating user",
 		logging.String("email", u.Email),
+		logging.String("role", u.Role),
+		logging.Bool("active", u.Active),
 	)
 
-	err := s.db.WithTx(context.Background(), func(tx *sqlx.Tx) error {
-		result, err := tx.Exec(query,
-			u.Email,
-			u.HashedPassword,
-		)
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
 		if err != nil {
-			return fmt.Errorf("failed to insert user: %w", err)
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
 		}
-
-		id, err := result.LastInsertId()
-		if err != nil {
-			return fmt.Errorf("failed to get last insert ID: %w", err)
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
 		}
+	}()
 
-		// Check for integer overflow before conversion
-		if id <= 0 || uint64(id) > uint64(^uint(0)) {
-			return fmt.Errorf("user ID %d is out of valid range", id)
-		}
+	result, err := tx.ExecContext(context.Background(), query,
+		u.Email,
+		u.HashedPassword,
+		u.FirstName,
+		u.LastName,
+		u.Role,
+		u.Active,
+		u.CreatedAt,
+		u.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert user: %w", err)
+	}
 
-		u.ID = uint(id)
-		return nil
-	})
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+
+	// Check for integer overflow before conversion
+	if id <= 0 || uint64(id) > uint64(^uint(0)) {
+		return fmt.Errorf("user ID %d is out of valid range", id)
+	}
+
+	u.ID = uint(id)
 
 	if err != nil {
 		s.logger.Error("failed to create user",
@@ -73,44 +96,17 @@ func (s *Store) Create(u *user.User) error {
 	s.logger.Info("user created",
 		logging.Uint("id", u.ID),
 		logging.String("email", u.Email),
+		logging.String("role", u.Role),
+		logging.Bool("active", u.Active),
 	)
 
 	return nil
 }
 
-// GetByID returns a user by ID
-func (s *Store) GetByID(id uint) (*user.User, error) {
-	query := `
-		SELECT id, email, hashed_password, created_at, updated_at
-		FROM users
-		WHERE id = ?
-	`
-
-	s.logger.Debug("getting user by ID",
-		logging.Uint("id", id),
-	)
-
-	var u user.User
-	if err := s.db.Get(&u, query, id); err != nil {
-		s.logger.Error("failed to get user by ID",
-			logging.Error(err),
-			logging.Uint("id", id),
-		)
-		return nil, fmt.Errorf("failed to get user by ID: %w", err)
-	}
-
-	s.logger.Debug("user retrieved",
-		logging.Uint("id", u.ID),
-		logging.String("email", u.Email),
-	)
-
-	return &u, nil
-}
-
 // GetByEmail returns a user by email
 func (s *Store) GetByEmail(email string) (*user.User, error) {
 	query := `
-		SELECT id, email, hashed_password, created_at, updated_at
+		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
 		FROM users
 		WHERE email = ?
 	`
@@ -131,64 +127,113 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 	s.logger.Debug("user retrieved",
 		logging.Uint("id", u.ID),
 		logging.String("email", u.Email),
+		logging.String("role", u.Role),
+		logging.Bool("active", u.Active),
 	)
 
 	return &u, nil
 }
 
-// Update updates user information
+// GetByID returns a user by ID
+func (s *Store) GetByID(id uint) (*user.User, error) {
+	query := `
+		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
+		FROM users
+		WHERE id = ?
+	`
+
+	s.logger.Debug("getting user by ID",
+		logging.Uint("id", id),
+	)
+
+	var u user.User
+	if err := s.db.Get(&u, query, id); err != nil {
+		s.logger.Error("failed to get user by ID",
+			logging.Error(err),
+			logging.Uint("id", id),
+		)
+		return nil, fmt.Errorf("failed to get user by ID: %w", err)
+	}
+
+	s.logger.Debug("user retrieved",
+		logging.Uint("id", u.ID),
+		logging.String("email", u.Email),
+		logging.String("role", u.Role),
+		logging.Bool("active", u.Active),
+	)
+
+	return &u, nil
+}
+
+// Update updates a user
 func (s *Store) Update(u *user.User) error {
 	query := `
 		UPDATE users
-		SET email = ?, hashed_password = ?, updated_at = NOW()
+		SET email = ?, hashed_password = ?, first_name = ?, last_name = ?, role = ?, active = ?, updated_at = ?
 		WHERE id = ?
 	`
 
 	s.logger.Debug("updating user",
 		logging.Uint("id", u.ID),
 		logging.String("email", u.Email),
+		logging.String("role", u.Role),
+		logging.Bool("active", u.Active),
 	)
 
-	err := s.db.WithTx(context.Background(), func(tx *sqlx.Tx) error {
-		result, err := tx.Exec(query,
-			u.Email,
-			u.HashedPassword,
-			u.ID,
-		)
-		if err != nil {
-			return fmt.Errorf("failed to update user: %w", err)
-		}
-
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("failed to get rows affected: %w", err)
-		}
-
-		if rows == 0 {
-			return fmt.Errorf("user not found: %d", u.ID)
-		}
-
-		return nil
-	})
-
+	tx, err := s.db.Begin()
 	if err != nil {
-		s.logger.Error("failed to update user",
-			logging.Error(err),
-			logging.Uint("id", u.ID),
-			logging.String("email", u.Email),
-		)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
+		}
+	}()
+
+	result, err := tx.ExecContext(context.Background(), query,
+		u.Email,
+		u.HashedPassword,
+		u.FirstName,
+		u.LastName,
+		u.Role,
+		u.Active,
+		u.UpdatedAt,
+		u.ID,
+	)
+	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("user not found: %d", u.ID)
 	}
 
 	s.logger.Info("user updated",
 		logging.Uint("id", u.ID),
 		logging.String("email", u.Email),
+		logging.String("role", u.Role),
+		logging.Bool("active", u.Active),
 	)
 
 	return nil
 }
 
-// Delete removes a user
+// Delete deletes a user
 func (s *Store) Delete(id uint) error {
 	query := `
 		DELETE FROM users
@@ -199,30 +244,38 @@ func (s *Store) Delete(id uint) error {
 		logging.Uint("id", id),
 	)
 
-	err := s.db.WithTx(context.Background(), func(tx *sqlx.Tx) error {
-		result, err := tx.Exec(query, id)
-		if err != nil {
-			return fmt.Errorf("failed to delete user: %w", err)
-		}
-
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("failed to get rows affected: %w", err)
-		}
-
-		if rows == 0 {
-			return fmt.Errorf("user not found: %d", id)
-		}
-
-		return nil
-	})
-
+	tx, err := s.db.Begin()
 	if err != nil {
-		s.logger.Error("failed to delete user",
-			logging.Error(err),
-			logging.Uint("id", id),
-		)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
+		}
+	}()
+
+	result, err := tx.ExecContext(context.Background(), query, id)
+	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("user not found: %d", id)
 	}
 
 	s.logger.Info("user deleted",
@@ -235,7 +288,7 @@ func (s *Store) Delete(id uint) error {
 // List returns all users
 func (s *Store) List() ([]user.User, error) {
 	query := `
-		SELECT id, email, hashed_password, created_at, updated_at
+		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
 		FROM users
 		ORDER BY created_at DESC
 	`

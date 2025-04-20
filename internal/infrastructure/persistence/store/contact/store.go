@@ -4,21 +4,19 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/jmoiron/sqlx"
-
 	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
 )
 
 // Store implements contact.Store interface
 type Store struct {
-	db     *database.DB
+	db     *database.Database
 	logger logging.Logger
 }
 
 // NewStore creates a new contact store
-func NewStore(db *database.DB, logger logging.Logger) contact.Store {
+func NewStore(db *database.Database, logger logging.Logger) contact.Store {
 	logger.Debug("creating contact store",
 		logging.Bool("db_available", db != nil),
 	)
@@ -40,27 +38,44 @@ func (s *Store) Create(ctx context.Context, sub *contact.Submission) error {
 		logging.String("status", string(sub.Status)),
 	)
 
-	err := s.db.WithTx(ctx, func(tx *sqlx.Tx) error {
-		result, err := tx.ExecContext(ctx, query,
-			sub.Name,
-			sub.Email,
-			sub.Message,
-			sub.Status,
-			sub.CreatedAt,
-			sub.UpdatedAt,
-		)
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
 		if err != nil {
-			return fmt.Errorf("failed to insert contact submission: %w", err)
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
 		}
-
-		id, err := result.LastInsertId()
-		if err != nil {
-			return fmt.Errorf("failed to get last insert ID: %w", err)
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
 		}
+	}()
 
-		sub.ID = id
-		return nil
-	})
+	result, err := tx.ExecContext(ctx, query,
+		sub.Name,
+		sub.Email,
+		sub.Message,
+		sub.Status,
+		sub.CreatedAt,
+		sub.UpdatedAt,
+	)
+	if err != nil {
+		return fmt.Errorf("failed to insert contact submission: %w", err)
+	}
+
+	id, err := result.LastInsertId()
+	if err != nil {
+		return fmt.Errorf("failed to get last insert ID: %w", err)
+	}
+
+	sub.ID = id
 
 	if err != nil {
 		s.logger.Error("failed to create contact submission",
@@ -147,31 +162,38 @@ func (s *Store) UpdateStatus(ctx context.Context, id int64, status contact.Statu
 		logging.String("status", string(status)),
 	)
 
-	err := s.db.WithTx(ctx, func(tx *sqlx.Tx) error {
-		result, err := tx.ExecContext(ctx, query, status, id)
-		if err != nil {
-			return fmt.Errorf("failed to update contact submission status: %w", err)
-		}
-
-		rows, err := result.RowsAffected()
-		if err != nil {
-			return fmt.Errorf("failed to get rows affected: %w", err)
-		}
-
-		if rows == 0 {
-			return fmt.Errorf("contact submission not found: %d", id)
-		}
-
-		return nil
-	})
-
+	tx, err := s.db.Begin()
 	if err != nil {
-		s.logger.Error("failed to update contact submission status",
-			logging.Error(err),
-			logging.Int64("id", id),
-			logging.String("status", string(status)),
-		)
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer func() {
+		if err != nil {
+			if rbErr := tx.Rollback(); rbErr != nil {
+				s.logger.Error("failed to rollback transaction",
+					logging.Error(rbErr),
+				)
+			}
+			return
+		}
+		if err = tx.Commit(); err != nil {
+			s.logger.Error("failed to commit transaction",
+				logging.Error(err),
+			)
+		}
+	}()
+
+	result, err := tx.ExecContext(ctx, query, status, id)
+	if err != nil {
 		return fmt.Errorf("failed to update contact submission status: %w", err)
+	}
+
+	rows, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rows == 0 {
+		return fmt.Errorf("contact submission not found: %d", id)
 	}
 
 	s.logger.Info("contact submission status updated",

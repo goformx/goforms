@@ -6,8 +6,8 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/persistence/database"
 	contactstore "github.com/jonesrussell/goforms/internal/infrastructure/persistence/store/contact"
 	subscriptionstore "github.com/jonesrussell/goforms/internal/infrastructure/persistence/store/subscription"
 	userstore "github.com/jonesrussell/goforms/internal/infrastructure/persistence/store/user"
@@ -17,12 +17,12 @@ import (
 var Module = fx.Module("persistence",
 	// Database
 	fx.Provide(
-		database.NewConfig,
 		database.NewDB,
 	),
 
 	// Stores
 	fx.Provide(
+		NewStores,
 		fx.Annotate(
 			contactstore.NewStore,
 			fx.As(new(contact.Store)),
@@ -42,14 +42,19 @@ var Module = fx.Module("persistence",
 type StoreParams struct {
 	fx.In
 
-	DB     *database.DB
+	DB     *database.Database
 	Logger logging.Logger
 }
 
 // NewStores creates all database stores
-func NewStores(p StoreParams) error {
+func NewStores(p StoreParams) (contact.Store, subscription.Store, user.Store, error) {
 	p.Logger.Debug("creating database stores",
 		logging.Bool("db_available", p.DB != nil),
 	)
-	return nil
+
+	contactStore := contactstore.NewStore(p.DB, p.Logger)
+	subscriptionStore := subscriptionstore.NewStore(p.DB, p.Logger)
+	userStore := userstore.NewStore(p.DB, p.Logger)
+
+	return contactStore, subscriptionStore, userStore, nil
 }

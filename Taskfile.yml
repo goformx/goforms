@@ -117,12 +117,12 @@ tasks:
   migrate:up:
     desc: Run database migrations up
     cmds:
-      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations up
+      - go run cmd/migrate/main.go up
 
   migrate:down:
     desc: Run database migrations down
     cmds:
-      - migrate -database "mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}" -path migrations down
+      - go run cmd/migrate/main.go down
 
   migrate:create:
     desc: Create a new migration

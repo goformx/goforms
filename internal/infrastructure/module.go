@@ -67,7 +67,9 @@ type Stores struct {
 var Module = fx.Module("infrastructure",
 	fx.Provide(
 		config.New,
-		logging.NewLogger,
+		func(cfg *config.Config) (logging.Logger, error) {
+			return logging.NewLogger(cfg.App.Debug, cfg.App.Name)
+		},
 		database.NewDB,
 		persistence.NewStores,
 		server.New,
