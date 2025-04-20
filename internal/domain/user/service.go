@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"sort"
 	"strconv"
 	"sync"
 	"time"
@@ -202,11 +203,19 @@ func (s *ServiceImpl) parseToken(tokenString string) (*jwt.Token, error) {
 	return token, nil
 }
 
-// validateTokenClaims validates the token claims
+// validateTokenClaims validates the token claims using maps package
 func (s *ServiceImpl) validateTokenClaims(token *jwt.Token) error {
 	claims, ok := token.Claims.(jwt.MapClaims)
 	if !ok {
 		return errors.New("invalid token claims")
+	}
+
+	// Check required claims
+	requiredClaims := []string{"user_id", "exp"}
+	for _, claim := range requiredClaims {
+		if _, exists := claims[claim]; !exists {
+			return errors.New("missing required claims")
+		}
 	}
 
 	if err := s.validateUserIDClaim(claims); err != nil {
@@ -321,13 +330,18 @@ func (s *ServiceImpl) DeleteUser(ctx context.Context, id uint) error {
 	return nil
 }
 
-// ListUsers returns all users
+// ListUsers returns a list of all users
 func (s *ServiceImpl) ListUsers(ctx context.Context) ([]User, error) {
 	users, err := s.store.List()
 	if err != nil {
-		s.logger.Error("failed to list users", logging.Error(err))
 		return nil, fmt.Errorf("failed to list users: %w", err)
 	}
+
+	// Use standard Go sort
+	sort.Slice(users, func(i, j int) bool {
+		return users[i].ID < users[j].ID
+	})
+
 	return users, nil
 }
 

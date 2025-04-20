@@ -4,6 +4,7 @@ import (
 	"fmt"
 
 	"github.com/labstack/echo/v4"
+	"golang.org/x/exp/slices"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -38,8 +39,15 @@ func Setup(e *echo.Echo, cfg *Config) error {
 		logging.String("static_root", cfg.Static.Root),
 	)
 
+	// Use slices package for efficient handler management
+	handlers := slices.Clone(cfg.Handlers)
+	slices.SortFunc(handlers, func(a, b handler.Handler) bool {
+		// Sort by handler type name for consistent registration order
+		return fmt.Sprintf("%T", a) < fmt.Sprintf("%T", b)
+	})
+
 	// Register API handlers
-	for i, h := range cfg.Handlers {
+	for i, h := range handlers {
 		cfg.Logger.Debug("registering handler",
 			logging.Int("index", i),
 			logging.String("type", fmt.Sprintf("%T", h)),

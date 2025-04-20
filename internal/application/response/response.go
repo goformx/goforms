@@ -4,6 +4,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -15,6 +16,18 @@ type Response struct {
 	Data    any    `json:"data,omitempty"`
 	Error   string `json:"error,omitempty"`
 	logger  logging.Logger
+}
+
+// MapResponse represents a map response
+type MapResponse struct {
+	Data map[string]interface{} `json:"data"`
+}
+
+// NewMapResponse creates a new map response
+func NewMapResponse(data map[string]interface{}) *MapResponse {
+	return &MapResponse{
+		Data: data,
+	}
 }
 
 // getLogger retrieves the logger from the context
@@ -51,6 +64,11 @@ func Success(c echo.Context, data any) error {
 		logging.Int("status", http.StatusOK),
 		logging.Any("data", data),
 	)
+
+	// Use cmp package for better comparison
+	if cmp.Equal(data, nil) {
+		data = struct{}{}
+	}
 
 	if err := c.JSON(http.StatusOK, Response{
 		Success: true,
@@ -149,4 +167,12 @@ func (r *Response) SetLogger(logger any) error {
 	}
 	r.logger = log
 	return nil
+}
+
+// Equal compares two responses for equality
+func (r *Response) Equal(other *Response) bool {
+	if r == nil || other == nil {
+		return r == other
+	}
+	return r.Success == other.Success && r.Error == other.Error
 }

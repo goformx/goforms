@@ -25,13 +25,13 @@ func (cv *CustomValidator) Validate(i any) error {
 	}
 
 	t := v.Type()
-	for i := range v.NumField() {
-		field := t.Field(i)
+	for i := 0; i < t.NumField(); i++ {
+		f := t.Field(i)
 		value := v.Field(i)
 
-		if tag := field.Tag.Get("validate"); tag != "" {
+		if tag := f.Tag.Get("validate"); tag != "" {
 			if err := cv.validateField(value, tag); err != nil {
-				return fmt.Errorf("validator: %s: %w", field.Name, err)
+				return fmt.Errorf("validator: %s: %w", f.Name, err)
 			}
 		}
 	}
@@ -41,6 +41,13 @@ func (cv *CustomValidator) Validate(i any) error {
 
 // validateField validates a single field based on its tag
 func (cv *CustomValidator) validateField(value reflect.Value, tag string) error {
-	// Implementation of field validation
+	if !value.IsValid() {
+		return fmt.Errorf("invalid value")
+	}
+
+	if tag == "required" && value.IsZero() {
+		return fmt.Errorf("field is required")
+	}
+
 	return nil
 }
