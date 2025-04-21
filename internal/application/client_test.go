@@ -1,10 +1,10 @@
-package application
+package application_test
 
 import (
-	"context"
 	"testing"
 	"time"
 
+	"github.com/jonesrussell/goforms/internal/application"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -38,12 +38,12 @@ func TestClient_SubmitForm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			err := c.SubmitForm(context.Background(), tt.form)
+			c := application.NewClient()
+			err := c.SubmitForm(t.Context(), tt.form)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -69,22 +69,22 @@ func TestClient_GetForm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			form, err := c.GetForm(context.Background(), tt.formID)
+			c := application.NewClient()
+			result, err := c.GetForm(t.Context(), tt.formID)
 			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, form)
+				require.Error(t, err)
+				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, form)
+				require.NoError(t, err)
+				assert.NotNil(t, result)
 			}
 		})
 	}
 }
 
 func TestClient_ListForms(t *testing.T) {
-	c := NewClient()
-	forms, err := c.ListForms(context.Background())
+	c := application.NewClient()
+	forms, err := c.ListForms(t.Context())
 	require.NoError(t, err)
 	assert.NotNil(t, forms)
 }
@@ -109,12 +109,12 @@ func TestClient_DeleteForm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			err := c.DeleteForm(context.Background(), tt.formID)
+			c := application.NewClient()
+			err := c.DeleteForm(t.Context(), tt.formID)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -147,12 +147,12 @@ func TestClient_UpdateForm(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			err := c.UpdateForm(context.Background(), tt.formID, tt.form)
+			c := application.NewClient()
+			err := c.UpdateForm(t.Context(), tt.formID, tt.form)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -160,37 +160,37 @@ func TestClient_UpdateForm(t *testing.T) {
 
 func TestClient_SubmitResponse(t *testing.T) {
 	tests := []struct {
-		name      string
-		formID    string
-		response  form.Response
-		wantErr   bool
+		name     string
+		formID   string
+		response form.Response
+		wantErr  bool
 	}{
 		{
 			name:   "valid response",
 			formID: "test-form",
 			response: form.Response{
-				FormID:     "test-form",
-				Values:     map[string]interface{}{"field1": "value1"},
+				FormID:      "test-form",
+				Values:      map[string]any{"field1": "value1"},
 				SubmittedAt: time.Now(),
 			},
 			wantErr: false,
 		},
 		{
-			name:      "invalid form ID",
-			formID:    "",
-			response:  form.Response{},
-			wantErr:   true,
+			name:     "invalid form ID",
+			formID:   "",
+			response: form.Response{},
+			wantErr:  true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			err := c.SubmitResponse(context.Background(), tt.formID, tt.response)
+			c := application.NewClient()
+			err := c.SubmitResponse(t.Context(), tt.formID, tt.response)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -216,14 +216,14 @@ func TestClient_GetResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			response, err := c.GetResponse(context.Background(), tt.responseID)
+			c := application.NewClient()
+			result, err := c.GetResponse(t.Context(), tt.responseID)
 			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Nil(t, response)
+				require.Error(t, err)
+				assert.Nil(t, result)
 			} else {
-				assert.NoError(t, err)
-				assert.NotNil(t, response)
+				require.NoError(t, err)
+				assert.NotNil(t, result)
 			}
 		})
 	}
@@ -249,13 +249,13 @@ func TestClient_ListResponses(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			responses, err := c.ListResponses(context.Background(), tt.formID)
+			c := application.NewClient()
+			responses, err := c.ListResponses(t.Context(), tt.formID)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 				assert.Nil(t, responses)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.NotNil(t, responses)
 			}
 		})
@@ -282,13 +282,13 @@ func TestClient_DeleteResponse(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := NewClient()
-			err := c.DeleteResponse(context.Background(), tt.responseID)
+			c := application.NewClient()
+			err := c.DeleteResponse(t.Context(), tt.responseID)
 			if tt.wantErr {
-				assert.Error(t, err)
+				require.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
-} 
+}

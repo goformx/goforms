@@ -20,4 +20,4 @@ func NewValidator() echo.Validator {
 // Validate validates the provided struct
 func (cv *CustomValidator) Validate(i any) error {
 	return cv.validator.Struct(i)
-} 
+}

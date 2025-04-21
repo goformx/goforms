@@ -203,4 +203,4 @@ func TestClient(t *testing.T) {
 		assert.Equal(t, "abc123", info.GitCommit)
 		assert.Equal(t, "1.24", info.GoVersion)
 	})
-} 
+}

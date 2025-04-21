@@ -61,4 +61,4 @@ func runMigration(m *migrate.Migrate, command string) error {
 	default:
 		return fmt.Errorf("unknown command: %s", command)
 	}
-} 
+}

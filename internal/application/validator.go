@@ -21,7 +21,7 @@ func NewValidator() *Validator {
 }
 
 // ValidateStruct validates a struct
-func (v *Validator) ValidateStruct(s interface{}) error {
+func (v *Validator) ValidateStruct(s any) error {
 	if err := v.validate.Struct(s); err != nil {
 		return errors.New("invalid value")
 	}
@@ -29,7 +29,7 @@ func (v *Validator) ValidateStruct(s interface{}) error {
 }
 
 // ValidateField validates a field
-func (v *Validator) ValidateField(field interface{}, tag string) error {
+func (v *Validator) ValidateField(field any, tag string) error {
 	if err := v.validate.Var(field, tag); err != nil {
 		return errors.New("field is required")
 	}
@@ -73,11 +73,11 @@ func (cv *CustomValidator) Validate(i any) error {
 // validateField validates a single field based on its tag
 func (cv *CustomValidator) validateField(value reflect.Value, tag string) error {
 	if !value.IsValid() {
-		return fmt.Errorf("invalid value")
+		return errors.New("invalid value")
 	}
 
 	if tag == "required" && value.IsZero() {
-		return fmt.Errorf("field is required")
+		return errors.New("field is required")
 	}
 
 	return nil

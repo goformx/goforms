@@ -2,8 +2,16 @@ package application
 
 import (
 	"context"
+	"errors"
 
 	"github.com/jonesrussell/goforms/internal/domain/form"
+)
+
+var (
+	// ErrFormNotFound is returned when a form is not found
+	ErrFormNotFound = errors.New("form not found")
+	// ErrResponseNotFound is returned when a response is not found
+	ErrResponseNotFound = errors.New("response not found")
 )
 
 // Client implements the form.Client interface
@@ -17,7 +25,7 @@ func NewClient() *Client {
 }
 
 // SubmitForm submits a new form
-func (c *Client) SubmitForm(ctx context.Context, form form.Form) error {
+func (c *Client) SubmitForm(ctx context.Context, f form.Form) error {
 	// TODO: Implement form submission
 	return nil
 }
@@ -25,13 +33,13 @@ func (c *Client) SubmitForm(ctx context.Context, form form.Form) error {
 // GetForm retrieves a form by ID
 func (c *Client) GetForm(ctx context.Context, formID string) (*form.Form, error) {
 	// TODO: Implement form retrieval
-	return nil, nil
+	return nil, ErrFormNotFound
 }
 
 // ListForms lists all forms
 func (c *Client) ListForms(ctx context.Context) ([]form.Form, error) {
 	// TODO: Implement form listing
-	return nil, nil
+	return []form.Form{}, nil
 }
 
 // DeleteForm deletes a form by ID
@@ -41,7 +49,7 @@ func (c *Client) DeleteForm(ctx context.Context, formID string) error {
 }
 
 // UpdateForm updates an existing form
-func (c *Client) UpdateForm(ctx context.Context, formID string, form form.Form) error {
+func (c *Client) UpdateForm(ctx context.Context, formID string, f form.Form) error {
 	// TODO: Implement form update
 	return nil
 }
@@ -55,17 +63,17 @@ func (c *Client) SubmitResponse(ctx context.Context, formID string, response for
 // GetResponse retrieves a response by ID
 func (c *Client) GetResponse(ctx context.Context, responseID string) (*form.Response, error) {
 	// TODO: Implement response retrieval
-	return nil, nil
+	return nil, ErrResponseNotFound
 }
 
 // ListResponses lists all responses for a form
 func (c *Client) ListResponses(ctx context.Context, formID string) ([]form.Response, error) {
 	// TODO: Implement response listing
-	return nil, nil
+	return []form.Response{}, nil
 }
 
 // DeleteResponse deletes a response by ID
 func (c *Client) DeleteResponse(ctx context.Context, responseID string) error {
 	// TODO: Implement response deletion
 	return nil
-} 
+}

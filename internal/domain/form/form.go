@@ -26,7 +26,7 @@ type FormOptions struct {
 // Response represents a form submission response
 type Response struct {
 	FormID      string
-	Values      map[string]interface{}
+	Values      map[string]any
 	SubmittedAt time.Time
 }
 
@@ -41,4 +41,4 @@ type Client interface {
 	GetResponse(ctx context.Context, responseID string) (*Response, error)
 	ListResponses(ctx context.Context, formID string) ([]Response, error)
 	DeleteResponse(ctx context.Context, responseID string) error
-} 
+}

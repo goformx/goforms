@@ -70,7 +70,7 @@ func (c *Client) Login(ctx context.Context, login *user.Login) (*user.TokenPair,
 // Logout invalidates the user's tokens
 func (c *Client) Logout(ctx context.Context, token string) error {
 	url := fmt.Sprintf("%s/api/v1/auth/logout", c.baseURL)
-	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, nil)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, http.NoBody)
 	if err != nil {
 		return fmt.Errorf("failed to create request: %w", err)
 	}
@@ -293,4 +293,4 @@ func (c *Client) doRequest(ctx context.Context, method, url string, body any) (*
 	}
 
 	return resp, nil
-} 
+}
