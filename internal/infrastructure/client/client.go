@@ -115,8 +115,8 @@ func (c *Client) ListContactSubmissions(ctx context.Context) ([]contact.Submissi
 	defer resp.Body.Close()
 
 	var submissions []contact.Submission
-	if err := json.NewDecoder(resp.Body).Decode(&submissions); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&submissions); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 	return submissions, nil
 }
@@ -131,8 +131,8 @@ func (c *Client) GetContactSubmission(ctx context.Context, id int64) (*contact.S
 	defer resp.Body.Close()
 
 	var submission contact.Submission
-	if err := json.NewDecoder(resp.Body).Decode(&submission); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&submission); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 	return &submission, nil
 }
@@ -179,8 +179,8 @@ func (c *Client) ListSubscriptions(ctx context.Context) ([]subscription.Subscrip
 	defer resp.Body.Close()
 
 	var subs []subscription.Subscription
-	if err := json.NewDecoder(resp.Body).Decode(&subs); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&subs); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 	return subs, nil
 }
@@ -195,8 +195,8 @@ func (c *Client) GetSubscription(ctx context.Context, id int64) (*subscription.S
 	defer resp.Body.Close()
 
 	var sub subscription.Subscription
-	if err := json.NewDecoder(resp.Body).Decode(&sub); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&sub); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 	return &sub, nil
 }
@@ -243,8 +243,8 @@ func (c *Client) GetVersion(ctx context.Context) (*VersionInfo, error) {
 	defer resp.Body.Close()
 
 	var info VersionInfo
-	if err := json.NewDecoder(resp.Body).Decode(&info); err != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", err)
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&info); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
 	}
 	return &info, nil
 }

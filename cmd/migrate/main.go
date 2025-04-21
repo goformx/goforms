@@ -14,7 +14,10 @@ import (
 )
 
 const (
+	// defaultDBURL is the default database URL with a placeholder for the password
 	defaultDBURL = "mysql://root:${DB_PASSWORD}@tcp(db:3306)/goforms"
+	// minArgs is the minimum number of arguments required
+	minArgs = 2
 )
 
 func main() {
@@ -22,7 +25,7 @@ func main() {
 	flag.StringVar(&dbURL, "db-url", os.ExpandEnv(defaultDBURL), "Database URL")
 	flag.Parse()
 
-	if len(os.Args) < 2 {
+	if len(os.Args) < minArgs {
 		log.Fatal("Please provide a migration command (up/down)")
 	}
 
@@ -47,7 +50,8 @@ func main() {
 	}
 	defer m.Close()
 
-	if err := runMigration(m, os.Args[1]); err != nil {
+	cmd := os.Args[1]
+	if err := runMigration(m, cmd); err != nil {
 		log.Fatal(err)
 	}
 }

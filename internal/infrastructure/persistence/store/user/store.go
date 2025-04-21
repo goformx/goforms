@@ -123,7 +123,7 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 			s.logger.Debug("user not found",
 				logging.String("email", email),
 			)
-			return nil, nil
+			return nil, user.ErrUserNotFound
 		}
 		s.logger.Error("failed to get user by email",
 			logging.Error(err),
