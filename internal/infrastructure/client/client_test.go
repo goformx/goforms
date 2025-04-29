@@ -16,85 +16,89 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
-func setupTestServer() *httptest.Server {
-	return httptest.NewServer(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		switch r.URL.Path {
-		case "/api/v1/auth/signup":
-			if r.Method == http.MethodPost {
-				w.WriteHeader(http.StatusCreated)
-				json.NewEncoder(w).Encode(&user.User{ID: 1, Email: "test@example.com"})
-				return
-			}
-		case "/api/v1/auth/login":
-			if r.Method == http.MethodPost {
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&user.TokenPair{AccessToken: "token"})
-				return
-			}
-		case "/api/v1/auth/logout":
-			if r.Method == http.MethodPost {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-		case "/api/v1/contact":
-			if r.Method == http.MethodPost {
-				w.WriteHeader(http.StatusCreated)
-				return
-			}
-			if r.Method == http.MethodGet {
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode([]contact.Submission{{ID: 1}})
-				return
-			}
-		case "/api/v1/contact/1":
-			if r.Method == http.MethodGet {
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&contact.Submission{ID: 1})
-				return
-			}
-			if r.Method == http.MethodPut {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-		case "/api/v1/subscriptions":
-			if r.Method == http.MethodPost {
-				w.WriteHeader(http.StatusCreated)
-				return
-			}
-			if r.Method == http.MethodGet {
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode([]subscription.Subscription{{ID: 1}})
-				return
-			}
-		case "/api/v1/subscriptions/1":
-			if r.Method == http.MethodGet {
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&subscription.Subscription{ID: 1})
-				return
-			}
-			if r.Method == http.MethodDelete {
-				w.WriteHeader(http.StatusNoContent)
-				return
-			}
-		case "/api/v1/subscriptions/1/status":
-			if r.Method == http.MethodPut {
-				w.WriteHeader(http.StatusOK)
-				return
-			}
-		case "/v1/version":
-			if r.Method == http.MethodGet {
-				w.WriteHeader(http.StatusOK)
-				json.NewEncoder(w).Encode(&client.VersionInfo{
-					Version:   "1.0.0",
-					BuildTime: time.Now().Format(time.RFC3339),
-					GitCommit: "abc123",
-					GoVersion: "1.24",
-				})
-				return
-			}
-		}
+type testHandler struct {
+	statusCode int
+	response   any
+	headers    map[string]string
+	method     string
+}
+
+func (h *testHandler) ServeHTTP(w http.ResponseWriter, r *http.Request) {
+	if h.method != "" && r.Method != h.method {
 		w.WriteHeader(http.StatusMethodNotAllowed)
-	}))
+		return
+	}
+
+	for key, value := range h.headers {
+		w.Header().Set(key, value)
+	}
+	w.WriteHeader(h.statusCode)
+	if h.response != nil {
+		json.NewEncoder(w).Encode(h.response)
+	}
+}
+
+func setupTestServer() *httptest.Server {
+	mux := http.NewServeMux()
+
+	// Setup routes with their respective handlers
+	routes := map[string]testHandler{
+		"/api/v1/auth/signup": {
+			method:     http.MethodPost,
+			statusCode: http.StatusCreated,
+			response:   &user.User{ID: 1, Email: "test@example.com"},
+		},
+		"/api/v1/auth/login": {
+			method:     http.MethodPost,
+			statusCode: http.StatusOK,
+			response:   &user.TokenPair{AccessToken: "token"},
+		},
+		"/api/v1/auth/logout": {
+			method:     http.MethodPost,
+			statusCode: http.StatusOK,
+		},
+		"/api/v1/contact": {
+			method:     http.MethodPost,
+			statusCode: http.StatusCreated,
+		},
+		"/api/v1/contact/1": {
+			method:     http.MethodGet,
+			statusCode: http.StatusOK,
+			response:   &contact.Submission{ID: 1},
+		},
+		"/api/v1/subscriptions": {
+			method:     http.MethodGet,
+			statusCode: http.StatusOK,
+			response:   []subscription.Subscription{{ID: 1}},
+		},
+		"/api/v1/subscriptions/1": {
+			method:     http.MethodGet,
+			statusCode: http.StatusOK,
+			response:   &subscription.Subscription{ID: 1},
+		},
+		"/api/v1/subscriptions/1/status": {
+			method:     http.MethodPut,
+			statusCode: http.StatusOK,
+		},
+		"/v1/version": {
+			method:     http.MethodGet,
+			statusCode: http.StatusOK,
+			response: &client.VersionInfo{
+				Version:   "1.0.0",
+				BuildTime: time.Now().Format(time.RFC3339),
+				GitCommit: "abc123",
+				GoVersion: "1.24",
+			},
+		},
+	}
+
+	// Register routes
+	for path, handler := range routes {
+		h := handler // Create a new variable to avoid closure issues
+		mux.Handle(path, &h)
+	}
+
+	return httptest.NewServer(mux)
 }
 
 func TestAuthAPI(t *testing.T) {

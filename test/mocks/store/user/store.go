@@ -1,6 +1,7 @@
 package usermock
 
 import (
+	"context"
 	"errors"
 	"sync"
 
@@ -58,14 +59,14 @@ func (m *UserStore) SetError(op string, err error) {
 }
 
 // Create implements Store.Create
-func (m *UserStore) Create(u *user.User) error {
-	args := m.Called(u)
+func (m *UserStore) Create(ctx context.Context, u *user.User) error {
+	args := m.Called(ctx, u)
 	return args.Error(0)
 }
 
 // GetByID implements Store.GetByID
-func (m *UserStore) GetByID(id uint) (*user.User, error) {
-	args := m.Called(id)
+func (m *UserStore) GetByID(ctx context.Context, id uint) (*user.User, error) {
+	args := m.Called(ctx, id)
 	if args.Get(0) == nil {
 		return nil, user.ErrUserNotFound
 	}
@@ -77,8 +78,8 @@ func (m *UserStore) GetByID(id uint) (*user.User, error) {
 }
 
 // GetByEmail implements Store.GetByEmail
-func (m *UserStore) GetByEmail(email string) (*user.User, error) {
-	args := m.Called(email)
+func (m *UserStore) GetByEmail(ctx context.Context, email string) (*user.User, error) {
+	args := m.Called(ctx, email)
 	if args.Get(0) == nil {
 		return nil, ErrNoValue
 	}
@@ -90,20 +91,20 @@ func (m *UserStore) GetByEmail(email string) (*user.User, error) {
 }
 
 // Update implements Store.Update
-func (m *UserStore) Update(u *user.User) error {
-	args := m.Called(u)
+func (m *UserStore) Update(ctx context.Context, u *user.User) error {
+	args := m.Called(ctx, u)
 	return args.Error(0)
 }
 
 // Delete implements Store.Delete
-func (m *UserStore) Delete(id uint) error {
-	args := m.Called(id)
+func (m *UserStore) Delete(ctx context.Context, id uint) error {
+	args := m.Called(ctx, id)
 	return args.Error(0)
 }
 
 // List implements Store.List
-func (m *UserStore) List() ([]user.User, error) {
-	args := m.Called()
+func (m *UserStore) List(ctx context.Context) ([]user.User, error) {
+	args := m.Called(ctx)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}

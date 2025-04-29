@@ -1,6 +1,7 @@
 package user
 
 import (
+	"context"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
@@ -35,12 +36,12 @@ type Login struct {
 
 // Store defines the interface for user data operations
 type Store interface {
-	Create(user *User) error
-	GetByID(id uint) (*User, error)
-	GetByEmail(email string) (*User, error)
-	Update(user *User) error
-	Delete(id uint) error
-	List() ([]User, error)
+	Create(ctx context.Context, user *User) error
+	GetByID(ctx context.Context, id uint) (*User, error)
+	GetByEmail(ctx context.Context, email string) (*User, error)
+	Update(ctx context.Context, user *User) error
+	Delete(ctx context.Context, id uint) error
+	List(ctx context.Context) ([]User, error)
 }
 
 // SetPassword hashes and sets the user's password

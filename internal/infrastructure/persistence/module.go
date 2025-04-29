@@ -46,8 +46,13 @@ type StoreParams struct {
 	Logger logging.Logger
 }
 
-// NewStores creates all database stores
-func NewStores(p StoreParams) (contactStore contact.Store, subscriptionStore subscription.Store, userStore user.Store, err error) {
+// NewStores creates and returns all required stores
+func NewStores(p StoreParams) (
+	contactStore contact.Store,
+	subscriptionStore subscription.Store,
+	userStore user.Store,
+	err error,
+) {
 	p.Logger.Debug("creating database stores",
 		logging.Bool("db_available", p.DB != nil),
 	)

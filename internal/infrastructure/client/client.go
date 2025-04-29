@@ -15,6 +15,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+const (
+	// defaultTimeout is the default HTTP client timeout in seconds
+	defaultTimeout = 30
+)
+
 // Client represents an HTTP client for interacting with the API
 type Client struct {
 	baseURL    string
@@ -27,7 +32,7 @@ func NewClient(baseURL string, logger logging.Logger) *Client {
 	return &Client{
 		baseURL: baseURL,
 		httpClient: &http.Client{
-			Timeout: 30 * time.Second,
+			Timeout: defaultTimeout * time.Second,
 		},
 		logger: logger,
 	}

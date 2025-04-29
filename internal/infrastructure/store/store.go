@@ -32,7 +32,7 @@ func NewStore(db *sqlx.DB, log logging.Logger) user.Store {
 }
 
 // Create inserts a new user into the database
-func (s *Store) Create(u *user.User) error {
+func (s *Store) Create(ctx context.Context, u *user.User) error {
 	query := `
 		INSERT INTO users (email, hashed_password, first_name, last_name, role, active, created_at, updated_at)
 		VALUES (:email, :hashed_password, :first_name, :last_name, :role, :active, :created_at, :updated_at)
@@ -41,7 +41,7 @@ func (s *Store) Create(u *user.User) error {
 	u.CreatedAt = time.Now()
 	u.UpdatedAt = time.Now()
 
-	rows, queryErr := s.db.NamedQuery(query, u)
+	rows, queryErr := s.db.NamedQueryContext(ctx, query, u)
 	if queryErr != nil {
 		s.log.Error("failed to create user", logging.Error(queryErr))
 		return queryErr
@@ -63,10 +63,10 @@ func (s *Store) Create(u *user.User) error {
 }
 
 // GetByID retrieves a user by ID
-func (s *Store) GetByID(id uint) (*user.User, error) {
+func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	query := `SELECT * FROM users WHERE id = $1`
 	var u user.User
-	err := s.db.Get(&u, query, id)
+	err := s.db.GetContext(ctx, &u, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -78,10 +78,10 @@ func (s *Store) GetByID(id uint) (*user.User, error) {
 }
 
 // GetByEmail retrieves a user by email
-func (s *Store) GetByEmail(email string) (*user.User, error) {
+func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	query := `SELECT * FROM users WHERE email = $1`
 	var u user.User
-	err := s.db.Get(&u, query, email)
+	err := s.db.GetContext(ctx, &u, query, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
@@ -93,7 +93,7 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 }
 
 // Update modifies an existing user in the database
-func (s *Store) Update(u *user.User) error {
+func (s *Store) Update(ctx context.Context, u *user.User) error {
 	query := `
 		UPDATE users
 		SET email = :email,
@@ -107,7 +107,7 @@ func (s *Store) Update(u *user.User) error {
 
 	u.UpdatedAt = time.Now()
 
-	result, err := s.db.NamedExec(query, u)
+	result, err := s.db.NamedExecContext(ctx, query, u)
 	if err != nil {
 		s.log.Error("failed to update user", logging.Error(err))
 		return err
@@ -127,8 +127,8 @@ func (s *Store) Update(u *user.User) error {
 }
 
 // Delete removes a user from the database
-func (s *Store) Delete(id uint) error {
-	result, err := s.db.Exec("DELETE FROM users WHERE id = $1", id)
+func (s *Store) Delete(ctx context.Context, id uint) error {
+	result, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
 	if err != nil {
 		s.log.Error("failed to delete user", logging.Error(err))
 		return err
@@ -148,9 +148,9 @@ func (s *Store) Delete(id uint) error {
 }
 
 // List returns all users from the database
-func (s *Store) List() ([]user.User, error) {
+func (s *Store) List(ctx context.Context) ([]user.User, error) {
 	var users []user.User
-	err := s.db.Select(&users, "SELECT * FROM users")
+	err := s.db.SelectContext(ctx, &users, "SELECT * FROM users")
 	if err != nil {
 		s.log.Error("failed to list users", logging.Error(err))
 		return nil, err
