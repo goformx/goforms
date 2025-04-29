@@ -29,8 +29,8 @@ export function setupSignupForm() {
           window.location.href = '/login';
         } else {
           const error = await response.json();
-          if (error.error === 'Email already registered') {
-            validation.showError('email', error.error);
+          if (response.status === 409) {
+            validation.showError('email', 'This email is already registered. Please use a different email or try logging in.');
           } else {
             validation.showError('form', error.error || 'An error occurred during signup');
           }
