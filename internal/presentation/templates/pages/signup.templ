@@ -11,14 +11,15 @@ templ Signup(data shared.PageData) {
 }
 
 templ signupContent(data shared.PageData) {
-	<div class="min-h-screen flex items-center justify-center">
-		<div class="max-w-md w-full space-y-8">
-			<div>
-				<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-					Sign up for an account
-				</h2>
+	<div class="auth-page">
+		<div class="auth-container">
+			<div class="auth-card">
+				<div class="auth-header">
+					<h2 class="auth-title">Create your account</h2>
+					<p class="auth-subtitle">Join us to get started with your forms</p>
+				</div>
+				@components.SignupForm(data)
 			</div>
-			@components.SignupForm(data)
 		</div>
 	</div>
 }
