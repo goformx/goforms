@@ -11,14 +11,14 @@ templ Login(data shared.PageData) {
 }
 
 templ loginContent(data shared.PageData) {
-	<div class="min-h-screen flex items-center justify-center">
-		<div class="max-w-md w-full space-y-8">
-			<div>
-				<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
-					Sign in to your account
-				</h2>
+	<div class="auth-page">
+		<div class="auth-container">
+			<div class="auth-card">
+				<div class="auth-header">
+					<h2 class="auth-title">Sign in to your account</h2>
+				</div>
+				@components.LoginForm(data)
 			</div>
-			@components.LoginForm(data)
 		</div>
 	</div>
 }
