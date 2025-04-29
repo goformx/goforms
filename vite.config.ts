@@ -35,5 +35,10 @@ export default defineConfig({
   },
   esbuild: {
     format: 'esm'
+  },
+  optimizeDeps: {
+    esbuildOptions: {
+      format: 'esm'
+    }
   }
 }); 

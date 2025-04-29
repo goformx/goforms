@@ -23,7 +23,7 @@ type AssetManifest struct {
 // GetAssetPath returns the hashed filename for a given asset
 func GetAssetPath(assetName string) string {
 	manifestPath := filepath.Join("static", "dist", "manifest.json")
-	
+
 	// Read manifest file
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
@@ -44,4 +44,4 @@ func GetAssetPath(assetName string) string {
 	default:
 		return assetName
 	}
-} 
+}

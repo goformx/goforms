@@ -49,7 +49,6 @@ tasks:
     desc: Generate code from templates and frontend assets
     cmds:
       - $(go env GOPATH)/bin/templ generate ./internal/...
-      - npm run build
 
   run:
     desc: Run the application

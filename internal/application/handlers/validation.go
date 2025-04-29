@@ -15,7 +15,7 @@ func NewValidationHandler() *ValidationHandler {
 
 func (h *ValidationHandler) GetValidationRules(c echo.Context) error {
 	schemaName := c.Param("schema")
-	
+
 	var schema validation.ValidationSchema
 	switch schemaName {
 	case "signup":
@@ -27,4 +27,4 @@ func (h *ValidationHandler) GetValidationRules(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, schema)
-} 
+}

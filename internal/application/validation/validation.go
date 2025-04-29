@@ -120,4 +120,3 @@ func GetValidationErrors(err error) map[string]string {
 	}
 	return errs
 }
- 

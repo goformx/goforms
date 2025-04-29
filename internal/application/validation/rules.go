@@ -2,10 +2,10 @@ package validation
 
 // ValidationRule represents a single validation rule
 type ValidationRule struct {
-	Field    string
-	Type     string
-	Params   map[string]interface{}
-	Message  string
+	Field   string
+	Type    string
+	Params  map[string]interface{}
+	Message string
 }
 
 // ValidationSchema represents a collection of validation rules for a form
@@ -63,4 +63,4 @@ func GetLoginSchema() ValidationSchema {
 			},
 		},
 	}
-} 
+}
