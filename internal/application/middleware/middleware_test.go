@@ -18,7 +18,9 @@ func TestMiddleware_Setup(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger()
 
 	// Create middleware manager
-	mw := middleware.New(mockLogger)
+	mw := middleware.New(&middleware.ManagerConfig{
+		Logger: mockLogger,
+	})
 
 	// Create Echo instance
 	e := echo.New()
@@ -65,7 +67,9 @@ func TestRequestIDMiddleware(t *testing.T) {
 	})
 
 	e := echo.New()
-	m := middleware.New(mockLogger)
+	m := middleware.New(&middleware.ManagerConfig{
+		Logger: mockLogger,
+	})
 
 	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
@@ -144,7 +148,9 @@ func TestSecurityHeadersMiddleware(t *testing.T) {
 	mockLogger.ExpectDebug("security headers processing complete")
 
 	e := echo.New()
-	m := middleware.New(mockLogger)
+	m := middleware.New(&middleware.ManagerConfig{
+		Logger: mockLogger,
+	})
 
 	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
@@ -203,7 +209,9 @@ func TestRequestID(t *testing.T) {
 	})
 
 	e := echo.New()
-	m := middleware.New(mockLogger)
+	m := middleware.New(&middleware.ManagerConfig{
+		Logger: mockLogger,
+	})
 
 	// Create test request with custom request ID
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
@@ -290,7 +298,9 @@ func TestSecurityHeaders(t *testing.T) {
 	mockLogger.ExpectDebug("security headers processing complete")
 
 	e := echo.New()
-	m := middleware.New(mockLogger)
+	m := middleware.New(&middleware.ManagerConfig{
+		Logger: mockLogger,
+	})
 
 	// Create test request
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)

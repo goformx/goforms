@@ -1,15 +1,13 @@
 package middleware
 
 import (
-	"crypto/rand"
-	"encoding/base64"
-	"fmt"
 	"net/http"
-	"strings"
 
 	"github.com/gorilla/csrf"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
+
+	"strings"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
@@ -21,8 +19,9 @@ const (
 
 // Manager handles middleware configuration and setup
 type Manager struct {
-	logger logging.Logger
-	config *ManagerConfig
+	logger      logging.Logger
+	config      *ManagerConfig
+	securityMgr *SecurityManager
 }
 
 // ManagerConfig holds middleware configuration
@@ -32,79 +31,28 @@ type ManagerConfig struct {
 	UserService any
 	EnableCSRF  bool
 	CSRF        CSRFMiddlewareConfig
+	Security    SecurityConfig // New security configuration
 }
 
 // New creates a new middleware manager
-func New(logger logging.Logger) *Manager {
+func New(config *ManagerConfig) *Manager {
+	if config.Logger == nil {
+		panic("logger is required for Manager")
+	}
+
+	// Initialize security manager with configuration
+	securityMgr := NewSecurityManager(SecurityConfig{
+		Logger:           config.Logger,
+		CSPConfig:        getDefaultCSPConfig(),
+		HeadersConfig:    getDefaultSecurityHeaders(),
+		DangerousHeaders: getDefaultDangerousHeaders(),
+	})
+
 	return &Manager{
-		logger: logger,
+		logger:      config.Logger,
+		config:      config,
+		securityMgr: securityMgr,
 	}
-}
-
-// generateNonce creates a cryptographically secure random nonce
-func (m *Manager) generateNonce() (string, error) {
-	nonceBytes := make([]byte, NonceSize)
-	if _, err := rand.Read(nonceBytes); err != nil {
-		m.logger.Error("failed to generate nonce", logging.Error(err))
-		return "", fmt.Errorf("failed to generate nonce: %w", err)
-	}
-	return base64.URLEncoding.EncodeToString(nonceBytes), nil
-}
-
-// isStaticAsset checks if the request is for a static asset
-func isStaticAsset(path string) bool {
-	return strings.HasPrefix(path, "/static/") ||
-		strings.HasPrefix(path, "/favicon.ico") ||
-		strings.HasSuffix(path, ".js") ||
-		strings.HasSuffix(path, ".css") ||
-		strings.HasSuffix(path, ".png") ||
-		strings.HasSuffix(path, ".jpg") ||
-		strings.HasSuffix(path, ".jpeg") ||
-		strings.HasSuffix(path, ".gif") ||
-		strings.HasSuffix(path, ".svg") ||
-		strings.HasSuffix(path, ".ico")
-}
-
-// buildStaticCSP builds a Content Security Policy for static assets following OWASP recommendations
-func (m *Manager) buildStaticCSP() string {
-	return strings.Join([]string{
-		"default-src 'self'",                    // Only allow resources from same origin
-		"script-src 'self'",                     // Only allow scripts from same origin
-		"style-src 'self' 'unsafe-inline'",      // Allow inline styles and from same origin
-		"img-src 'self' data:",                  // Allow images from same origin and data URIs
-		"font-src 'self'",                       // Only allow fonts from same origin
-		"connect-src 'self'",                    // Only allow XHR/WebSocket to same origin
-		"media-src 'self'",                      // Only allow media from same origin
-		"object-src 'none'",                     // Disable plugins
-		"child-src 'none'",                      // Disable child iframes
-		"frame-ancestors 'none'",                // Disable framing
-		"form-action 'self'",                    // Only allow forms to submit to same origin
-		"base-uri 'self'",                       // Restrict base tag to same origin
-		"manifest-src 'self'",                   // Restrict manifest files
-		"upgrade-insecure-requests",             // Upgrade HTTP to HTTPS
-		"block-all-mixed-content",               // Block mixed content
-	}, "; ")
-}
-
-// buildCSP builds a Content Security Policy with nonce for dynamic content
-func (m *Manager) buildCSP(nonce string) string {
-	return strings.Join([]string{
-		"default-src 'self'",                    // Only allow resources from same origin
-		fmt.Sprintf("script-src 'self' 'nonce-%s'", nonce), // Scripts from same origin + nonce
-		"style-src 'self' 'unsafe-inline'",      // Allow inline styles and from same origin
-		"img-src 'self' data:",                  // Allow images from same origin and data URIs
-		"font-src 'self'",                       // Only allow fonts from same origin
-		"connect-src 'self'",                    // Only allow XHR/WebSocket to same origin
-		"media-src 'self'",                      // Only allow media from same origin
-		"object-src 'none'",                     // Disable plugins
-		"child-src 'none'",                      // Disable child iframes
-		"frame-ancestors 'none'",                // Disable framing
-		"form-action 'self'",                    // Only allow forms to submit to same origin
-		"base-uri 'self'",                       // Restrict base tag to same origin
-		"manifest-src 'self'",                   // Restrict manifest files
-		"upgrade-insecure-requests",             // Upgrade HTTP to HTTPS
-		"block-all-mixed-content",               // Block mixed content
-	}, "; ")
 }
 
 // Setup configures all middleware for an Echo instance
@@ -136,37 +84,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 		},
 	}))
 
-	// Security headers with nonce generation
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-			var csp string
-
-			if isStaticAsset(path) {
-				// Use static CSP without nonce for static assets
-				m.logger.Debug("using static CSP for asset",
-					logging.String("path", path))
-				csp = m.buildStaticCSP()
-			} else {
-				// Generate nonce for dynamic content
-				nonce, err := m.generateNonce()
-				if err != nil {
-					m.logger.Error("failed to generate nonce", logging.Error(err))
-					return echo.NewHTTPError(http.StatusInternalServerError, "Failed to generate security nonce")
-				}
-
-				m.logger.Debug("generated nonce for dynamic content",
-					logging.String("request_id", c.Response().Header().Get(echo.HeaderXRequestID)),
-					logging.String("path", path))
-
-				c.Set("nonce", nonce)
-				csp = m.buildCSP(nonce)
-			}
-
-			m.setSecurityHeaders(c, csp)
-			return next(c)
-		}
-	})
+	// Security headers and CSP
+	e.Use(m.securityMgr.SecurityMiddleware())
 
 	// CSRF if enabled
 	if m.config != nil && m.config.EnableCSRF {
@@ -224,45 +143,58 @@ type CSRFConfig struct {
 	Secure    bool
 }
 
-// setSecurityHeaders sets all security-related headers following OWASP recommendations
-func (m *Manager) setSecurityHeaders(c echo.Context, csp string) {
-	headers := []struct {
-		key   string
-		value string
-	}{
-		{"Content-Security-Policy", csp},
-		{"X-Content-Type-Options", "nosniff"},
-		{"X-Frame-Options", "DENY"},
-		{"X-XSS-Protection", "1; mode=block"},
-		{"Referrer-Policy", "strict-origin-when-cross-origin"},
-		{"Permissions-Policy", "accelerometer=(), camera=(), geolocation=(), gyroscope=(), magnetometer=(), microphone=(), payment=(), usb=()"},
-		{"Cross-Origin-Opener-Policy", "same-origin"},
-		{"Cross-Origin-Embedder-Policy", "require-corp"},
-		{"Cross-Origin-Resource-Policy", "same-origin"},
-		{"Strict-Transport-Security", "max-age=31536000; includeSubDomains"},
-		{"Cache-Control", "no-store, max-age=0"},
-		{"Clear-Site-Data", "\"cache\",\"cookies\",\"storage\""},
-	}
+// Helper functions to provide default configurations
 
-	for _, header := range headers {
-		m.logger.Debug("set security header",
-			logging.String("header", header.key),
-			logging.String("value", header.value),
-		)
-		c.Response().Header().Set(header.key, header.value)
+func getDefaultCSPConfig() CSPConfig {
+	return CSPConfig{
+		DefaultSrc:     []string{"'self'"},
+		ScriptSrc:      []string{"'self'"},
+		StyleSrc:       []string{"'self'", "'unsafe-inline'"},
+		ImgSrc:         []string{"'self'", "data:"},
+		FontSrc:        []string{"'self'"},
+		ConnectSrc:     []string{"'self'"},
+		MediaSrc:       []string{"'self'"},
+		ObjectSrc:      []string{"'none'"},
+		ChildSrc:       []string{"'none'"},
+		FrameAncestors: []string{"'none'"},
+		FormAction:     []string{"'self'"},
+		BaseURI:        []string{"'self'"},
+		ManifestSrc:    []string{"'self'"},
+		Upgrades:       true,
+		BlockMixed:     true,
 	}
+}
 
-	// Remove potentially dangerous headers
-	dangerousHeaders := []string{
+func getDefaultSecurityHeaders() map[string]string {
+	return map[string]string{
+		"X-Content-Type-Options": "nosniff",
+		"X-Frame-Options":        "DENY",
+		"X-XSS-Protection":       "1; mode=block",
+		"Referrer-Policy":        "strict-origin-when-cross-origin",
+		"Permissions-Policy": strings.Join([]string{
+			"accelerometer=()",
+			"camera=()",
+			"geolocation=()",
+			"gyroscope=()",
+			"magnetometer=()",
+			"microphone=()",
+			"payment=()",
+			"usb=()",
+		}, ", "),
+		"Cross-Origin-Opener-Policy":   "same-origin",
+		"Cross-Origin-Embedder-Policy": "require-corp",
+		"Cross-Origin-Resource-Policy": "same-origin",
+		"Strict-Transport-Security":    "max-age=31536000; includeSubDomains",
+		"Cache-Control":                "no-store, max-age=0",
+		"Clear-Site-Data":              "\"cache\",\"cookies\",\"storage\"",
+	}
+}
+
+func getDefaultDangerousHeaders() []string {
+	return []string{
 		"Server",
 		"X-Powered-By",
 		"X-AspNet-Version",
 		"X-AspNetMvc-Version",
 	}
-	for _, header := range dangerousHeaders {
-		c.Response().Header().Del(header)
-		m.logger.Debug("removed dangerous header", logging.String("header", header))
-	}
-
-	m.logger.Debug("security headers processing complete")
 }

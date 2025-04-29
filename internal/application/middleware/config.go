@@ -18,7 +18,12 @@ type Config struct {
 // Setup configures all middleware for an Echo instance
 func Setup(e *echo.Echo, cfg *Config) {
 	// Security
-	m := New(cfg.Logger)
+	m := New(&ManagerConfig{
+		Logger:      cfg.Logger,
+		JWTSecret:   cfg.JWTSecret,
+		UserService: cfg.UserService,
+		EnableCSRF:  cfg.EnableCSRF,
+	})
 	m.Setup(e)
 
 	// Logging
