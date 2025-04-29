@@ -2,54 +2,63 @@
     nav {
         background: var(--nav-background);
         backdrop-filter: blur(var(--nav-backdrop-blur));
-        position: fixed;
-        width: 100%;
-        top: 0;
-        z-index: var(--nav-z-index);
         box-shadow: var(--nav-shadow);
+        position: fixed;
+        top: 0;
+        left: 0;
+        right: 0;
+        height: var(--nav-height);
+        z-index: var(--nav-z-index);
     }
 
     nav .container {
+        max-width: var(--container-max-width);
+        margin: 0 auto;
+        padding: 0 var(--container-padding-x);
+        height: 100%;
         display: flex;
         justify-content: space-between;
         align-items: center;
-        height: var(--nav-height);
-        max-width: var(--container-max-width);
-        margin: var(--container-margin);
-        padding: 0 var(--container-padding-x);
     }
 
-    .logo {
+    nav .logo {
         font-size: var(--nav-logo-size);
         font-weight: var(--nav-logo-weight);
-        color: var(--primary);
+        color: var(--text);
         text-decoration: none;
-        background: linear-gradient(var(--nav-logo-gradient-angle), var(--primary), var(--accent));
-        background-clip: text;
-        -webkit-background-clip: text;
-        -webkit-text-fill-color: transparent;
+        opacity: 1;
         transition: opacity var(--nav-transition-duration) var(--nav-transition-timing);
     }
 
-    .logo:hover {
+    nav .logo:hover {
         opacity: var(--nav-logo-opacity-hover);
     }
 
-    .nav-links {
+    nav .nav-links {
         display: flex;
-        gap: var(--nav-link-gap);
         align-items: center;
+        gap: var(--nav-link-gap);
+        height: 100%;
     }
 
-    .nav-links a {
+    nav .nav-links a {
         color: var(--text);
         text-decoration: none;
         font-weight: var(--nav-link-weight);
         transition: color var(--nav-transition-duration) var(--nav-transition-timing);
+        display: flex;
+        align-items: center;
+        height: 100%;
     }
 
-    .nav-links a:hover {
+    nav .nav-links a:hover {
         color: var(--primary);
+    }
+
+    nav .nav-links svg {
+        width: var(--spacing-6);
+        height: var(--spacing-6);
+        display: block;
     }
 
     .nav-links button {
@@ -71,12 +80,12 @@
 
     /* Responsive styles */
     @media (max-width: 768px) {
-        .nav-links {
-            gap: var(--nav-link-gap-mobile);
-        }
-        
         nav .container {
             padding: 0 var(--container-padding-x-mobile);
+        }
+
+        nav .nav-links {
+            gap: var(--nav-link-gap-mobile);
         }
     }
 } 
