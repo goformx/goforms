@@ -10,6 +10,34 @@ import (
 	"github.com/stretchr/testify/require"
 )
 
+func setupTestForm(t *testing.T, c *application.Client) string {
+	testForm := form.Form{
+		Name:    "Test Form",
+		Fields:  []form.Field{{Name: "field1", Type: "text"}},
+		Options: form.FormOptions{},
+	}
+	err := c.SubmitForm(t.Context(), testForm)
+	require.NoError(t, err)
+	forms, err := c.ListForms(t.Context())
+	require.NoError(t, err)
+	require.Len(t, forms, 1)
+	return forms[0].ID
+}
+
+func setupTestResponse(t *testing.T, c *application.Client, formID string) string {
+	testResponse := form.Response{
+		FormID:      formID,
+		Values:      map[string]any{"field1": "value1"},
+		SubmittedAt: time.Now(),
+	}
+	err := c.SubmitResponse(t.Context(), formID, testResponse)
+	require.NoError(t, err)
+	responses, err := c.ListResponses(t.Context(), formID)
+	require.NoError(t, err)
+	require.Len(t, responses, 1)
+	return responses[0].ID
+}
+
 func TestClient_SubmitForm(t *testing.T) {
 	tests := []struct {
 		name    string
@@ -53,16 +81,18 @@ func TestClient_GetForm(t *testing.T) {
 	tests := []struct {
 		name    string
 		formID  string
+		setup   bool
 		wantErr bool
 	}{
 		{
 			name:    "valid form ID",
-			formID:  "test-form",
+			setup:   true,
 			wantErr: false,
 		},
 		{
 			name:    "invalid form ID",
 			formID:  "",
+			setup:   false,
 			wantErr: true,
 		},
 	}
@@ -70,7 +100,13 @@ func TestClient_GetForm(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := application.NewClient()
-			result, err := c.GetForm(t.Context(), tt.formID)
+			var formID string
+			if tt.setup {
+				formID = setupTestForm(t, c)
+			} else {
+				formID = tt.formID
+			}
+			result, err := c.GetForm(t.Context(), formID)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, result)
@@ -84,25 +120,28 @@ func TestClient_GetForm(t *testing.T) {
 
 func TestClient_ListForms(t *testing.T) {
 	c := application.NewClient()
+	setupTestForm(t, c)
 	forms, err := c.ListForms(t.Context())
 	require.NoError(t, err)
-	assert.NotNil(t, forms)
+	assert.NotEmpty(t, forms)
 }
 
 func TestClient_DeleteForm(t *testing.T) {
 	tests := []struct {
 		name    string
 		formID  string
+		setup   bool
 		wantErr bool
 	}{
 		{
 			name:    "valid form ID",
-			formID:  "test-form",
+			setup:   true,
 			wantErr: false,
 		},
 		{
 			name:    "invalid form ID",
 			formID:  "",
+			setup:   false,
 			wantErr: true,
 		},
 	}
@@ -110,7 +149,13 @@ func TestClient_DeleteForm(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := application.NewClient()
-			err := c.DeleteForm(t.Context(), tt.formID)
+			var formID string
+			if tt.setup {
+				formID = setupTestForm(t, c)
+			} else {
+				formID = tt.formID
+			}
+			err := c.DeleteForm(t.Context(), formID)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -125,11 +170,12 @@ func TestClient_UpdateForm(t *testing.T) {
 		name    string
 		formID  string
 		form    form.Form
+		setup   bool
 		wantErr bool
 	}{
 		{
-			name:   "valid form update",
-			formID: "test-form",
+			name:  "valid form update",
+			setup: true,
 			form: form.Form{
 				Name:    "Updated Form",
 				Fields:  []form.Field{{Name: "field1", Type: "text"}},
@@ -141,6 +187,7 @@ func TestClient_UpdateForm(t *testing.T) {
 			name:    "invalid form ID",
 			formID:  "",
 			form:    form.Form{},
+			setup:   false,
 			wantErr: true,
 		},
 	}
@@ -148,7 +195,13 @@ func TestClient_UpdateForm(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := application.NewClient()
-			err := c.UpdateForm(t.Context(), tt.formID, tt.form)
+			var formID string
+			if tt.setup {
+				formID = setupTestForm(t, c)
+			} else {
+				formID = tt.formID
+			}
+			err := c.UpdateForm(t.Context(), formID, tt.form)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -163,13 +216,13 @@ func TestClient_SubmitResponse(t *testing.T) {
 		name     string
 		formID   string
 		response form.Response
+		setup    bool
 		wantErr  bool
 	}{
 		{
-			name:   "valid response",
-			formID: "test-form",
+			name:  "valid response",
+			setup: true,
 			response: form.Response{
-				FormID:      "test-form",
 				Values:      map[string]any{"field1": "value1"},
 				SubmittedAt: time.Now(),
 			},
@@ -179,6 +232,7 @@ func TestClient_SubmitResponse(t *testing.T) {
 			name:     "invalid form ID",
 			formID:   "",
 			response: form.Response{},
+			setup:    false,
 			wantErr:  true,
 		},
 	}
@@ -186,7 +240,14 @@ func TestClient_SubmitResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := application.NewClient()
-			err := c.SubmitResponse(t.Context(), tt.formID, tt.response)
+			var formID string
+			if tt.setup {
+				formID = setupTestForm(t, c)
+				tt.response.FormID = formID
+			} else {
+				formID = tt.formID
+			}
+			err := c.SubmitResponse(t.Context(), formID, tt.response)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {
@@ -200,16 +261,18 @@ func TestClient_GetResponse(t *testing.T) {
 	tests := []struct {
 		name       string
 		responseID string
+		setup      bool
 		wantErr    bool
 	}{
 		{
-			name:       "valid response ID",
-			responseID: "test-response",
-			wantErr:    false,
+			name:    "valid response ID",
+			setup:   true,
+			wantErr: false,
 		},
 		{
 			name:       "invalid response ID",
 			responseID: "",
+			setup:      false,
 			wantErr:    true,
 		},
 	}
@@ -217,7 +280,14 @@ func TestClient_GetResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := application.NewClient()
-			result, err := c.GetResponse(t.Context(), tt.responseID)
+			var responseID string
+			if tt.setup {
+				formID := setupTestForm(t, c)
+				responseID = setupTestResponse(t, c, formID)
+			} else {
+				responseID = tt.responseID
+			}
+			result, err := c.GetResponse(t.Context(), responseID)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, result)
@@ -233,16 +303,18 @@ func TestClient_ListResponses(t *testing.T) {
 	tests := []struct {
 		name    string
 		formID  string
+		setup   bool
 		wantErr bool
 	}{
 		{
 			name:    "valid form ID",
-			formID:  "test-form",
+			setup:   true,
 			wantErr: false,
 		},
 		{
 			name:    "invalid form ID",
 			formID:  "",
+			setup:   false,
 			wantErr: true,
 		},
 	}
@@ -250,13 +322,20 @@ func TestClient_ListResponses(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := application.NewClient()
-			responses, err := c.ListResponses(t.Context(), tt.formID)
+			var formID string
+			if tt.setup {
+				formID = setupTestForm(t, c)
+				_ = setupTestResponse(t, c, formID)
+			} else {
+				formID = tt.formID
+			}
+			responses, err := c.ListResponses(t.Context(), formID)
 			if tt.wantErr {
 				require.Error(t, err)
 				assert.Nil(t, responses)
 			} else {
 				require.NoError(t, err)
-				assert.NotNil(t, responses)
+				assert.NotEmpty(t, responses)
 			}
 		})
 	}
@@ -266,16 +345,18 @@ func TestClient_DeleteResponse(t *testing.T) {
 	tests := []struct {
 		name       string
 		responseID string
+		setup      bool
 		wantErr    bool
 	}{
 		{
-			name:       "valid response ID",
-			responseID: "test-response",
-			wantErr:    false,
+			name:    "valid response ID",
+			setup:   true,
+			wantErr: false,
 		},
 		{
 			name:       "invalid response ID",
 			responseID: "",
+			setup:      false,
 			wantErr:    true,
 		},
 	}
@@ -283,7 +364,14 @@ func TestClient_DeleteResponse(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := application.NewClient()
-			err := c.DeleteResponse(t.Context(), tt.responseID)
+			var responseID string
+			if tt.setup {
+				formID := setupTestForm(t, c)
+				responseID = setupTestResponse(t, c, formID)
+			} else {
+				responseID = tt.responseID
+			}
+			err := c.DeleteResponse(t.Context(), responseID)
 			if tt.wantErr {
 				require.Error(t, err)
 			} else {

@@ -78,7 +78,7 @@ tasks:
     desc: Run all tests with new Go 1.24 features
     deps: [generate]
     cmds:
-      - go test -v -json -test.timeout=5m ./internal/...
+      - go test -v -test.timeout=5m ./internal/...
 
   test:cover:
     desc: Run tests with coverage using Go 1.24 features

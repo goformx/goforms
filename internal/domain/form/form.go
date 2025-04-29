@@ -7,6 +7,7 @@ import (
 
 // Form represents a form in the system
 type Form struct {
+	ID      string
 	Name    string
 	Fields  []Field
 	Options FormOptions
@@ -25,6 +26,7 @@ type FormOptions struct {
 
 // Response represents a form submission response
 type Response struct {
+	ID          string
 	FormID      string
 	Values      map[string]any
 	SubmittedAt time.Time
