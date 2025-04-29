@@ -100,3 +100,103 @@ This project uses testify for testing and mocking. Follow these guidelines for a
    ```bash
    go test -race ./...
    ```
+
+## Test Context
+- Always use `t.Context()` instead of `context.Background()` in tests
+- This ensures proper test lifecycle management and cleanup
+```go
+func TestExample(t *testing.T) {
+    ctx := t.Context()
+    // Use ctx for the test
+}
+```
+
+## Resource Cleanup
+- Avoid unnecessary defer statements just before returns
+- Clean up resources explicitly when they're the last operation
+- Use defer for cleanup that must happen regardless of test outcome
+```go
+// Bad - unnecessary defer
+func TestDB(t *testing.T) {
+    // ... test setup ...
+    defer cleanup()
+    return
+}
+
+// Good - explicit cleanup
+func TestDB(t *testing.T) {
+    // ... test setup ...
+    cleanup()
+}
+
+// Good - necessary defer
+func TestDB(t *testing.T) {
+    db, err := setupDB()
+    require.NoError(t, err)
+    defer db.Close() // This should run even if test fails
+    // ... rest of test ...
+}
+```
+
+## Variable Shadowing
+- Avoid shadowing variables in test functions
+- Use unique names for error variables in sequential operations
+```go
+// Bad
+func TestConnection(t *testing.T) {
+    conn, err := connect()
+    if err != nil {
+        t.Fatal(err)
+    }
+    if err := conn.Do(); err != nil { // shadows previous err
+        t.Fatal(err)
+    }
+}
+
+// Good
+func TestConnection(t *testing.T) {
+    conn, err := connect()
+    if err != nil {
+        t.Fatal(err)
+    }
+    doErr := conn.Do()
+    if doErr != nil {
+        t.Fatal(doErr)
+    }
+}
+```
+
+## Integration Tests
+- Use testcontainers for database and external service tests
+- Properly manage container lifecycle
+- Example: [internal/infrastructure/persistence/database/connection_test.go](mdc:internal/infrastructure/persistence/database/connection_test.go)
+
+## Test Structure
+1. Arrange - Set up test data and conditions
+2. Act - Execute the code under test
+3. Assert - Verify the results
+```go
+func TestSubmission(t *testing.T) {
+    // Arrange
+    data := map[string]any{
+        "field": "value",
+    }
+    
+    // Act
+    submission, err := NewFormSubmission("form1", data, nil)
+    
+    // Assert
+    require.NoError(t, err)
+    require.NotNil(t, submission)
+    require.Equal(t, "value", submission.Data["field"])
+}
+```
+
+## Test Utilities
+- Use `require` package for assertions
+- Use table-driven tests for multiple test cases
+- Create test helpers for common setup/teardown
+
+## Reference Files
+- [internal/infrastructure/persistence/database/connection_test.go](mdc:internal/infrastructure/persistence/database/connection_test.go)
+- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go)

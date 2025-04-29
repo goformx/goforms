@@ -159,3 +159,123 @@ This project uses golangci-lint with strict rules. Follow these guidelines to ma
        assert.ErrorIs(t, err, ErrInvalidInput)
    })
    ```
+
+## Code Formatting
+- All Go files must be formatted using `gofmt`
+- Run `task lint` before committing changes
+- Fix all linting issues before merging code
+
+## Common Issues and Solutions
+
+### Variable Shadowing
+- Avoid shadowing variables in nested scopes
+- Use unique variable names when handling errors in sequence
+```go
+// Bad
+if err := doSomething(); err != nil {
+    return err
+}
+if err := doSomethingElse(); err != nil { // shadows previous err
+    return err
+}
+
+// Good
+if err := doSomething(); err != nil {
+    return err
+}
+someErr := doSomethingElse()
+if someErr != nil {
+    return someErr
+}
+```
+
+### Unnecessary Defer
+- Don't use defer just before returning
+- Directly call cleanup functions if they're the last operation
+```go
+// Bad
+func test() {
+    // ... code ...
+    defer cleanup()
+    return
+}
+
+// Good
+func test() {
+    // ... code ...
+    cleanup()
+    return
+}
+```
+
+### Type Modernization
+- Use `any` instead of `interface{}` (Go 1.18+)
+- Update existing code during refactoring
+```go
+// Bad
+type Data struct {
+    Values map[string]interface{} `json:"values"`
+}
+
+// Good
+type Data struct {
+    Values map[string]any `json:"values"`
+}
+```
+
+### Struct Field Alignment
+- Align struct fields for better readability
+- Keep tags aligned in a consistent format
+```go
+// Bad
+type User struct {
+    ID string `json:"id" validate:"required"`
+        Name string `json:"name"`
+    CreatedAt time.Time `json:"created_at" validate:"required"`
+}
+
+// Good
+type User struct {
+    ID        string    `json:"id" validate:"required"`
+    Name      string    `json:"name"`
+    CreatedAt time.Time `json:"created_at" validate:"required"`
+}
+```
+
+### Test Context
+- Use `t.Context()` instead of `context.Background()` in tests
+```go
+// Bad
+func TestSomething(t *testing.T) {
+    ctx := context.Background()
+    // ... test code ...
+}
+
+// Good
+func TestSomething(t *testing.T) {
+    ctx := t.Context()
+    // ... test code ...
+}
+```
+
+## Linting Tools
+- golangci-lint
+- go vet
+- gofmt
+- revive
+- gosec
+
+## Configuration
+Linting configuration is defined in:
+- `.golangci.yml`
+- `Taskfile.yml`
+
+## Enforcement
+- CI pipeline enforces linting rules
+- PRs cannot be merged with linting errors
+- Run `task lint` locally before pushing changes
+
+## Reference Files
+- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go)
+- [internal/infrastructure/persistence/database/connection_test.go](mdc:internal/infrastructure/persistence/database/connection_test.go)
+- [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go)
