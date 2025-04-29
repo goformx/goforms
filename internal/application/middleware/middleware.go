@@ -1,87 +1,135 @@
 package middleware
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"fmt"
+	"net/http"
 
+	"github.com/gorilla/csrf"
 	"github.com/labstack/echo/v4"
+	echomw "github.com/labstack/echo/v4/middleware"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-)
-
-const (
-	nonceSize     = 32
-	requestIDSize = 16
 )
 
 // Manager handles middleware configuration and setup
 type Manager struct {
 	logger logging.Logger
+	config *ManagerConfig
+}
+
+// ManagerConfig holds middleware configuration
+type ManagerConfig struct {
+	Logger      logging.Logger
+	JWTSecret   string
+	UserService any
+	EnableCSRF  bool
+	CSRF        CSRFMiddlewareConfig
 }
 
 // New creates a new middleware manager
 func New(logger logging.Logger) *Manager {
-	logger.Debug("creating new middleware manager")
 	return &Manager{
 		logger: logger,
 	}
 }
 
-// Setup configures middleware for the Echo instance
+// Setup configures all middleware for an Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Debug("setting up middleware")
-	m.logger.Debug("adding security headers middleware")
-	e.Use(m.securityHeaders())
-	m.logger.Debug("adding request ID middleware")
-	e.Use(m.requestID())
+
+	// Basic middleware
+	e.Use(echomw.Recover())
+	e.Use(echomw.RequestID())
+	e.Use(echomw.Secure())
+	e.Use(echomw.BodyLimit("2M"))
+
+	// CORS
+	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+		AllowOrigins: []string{"*"},
+		AllowMethods: []string{
+			http.MethodGet,
+			http.MethodPost,
+			http.MethodPut,
+			http.MethodDelete,
+			http.MethodOptions,
+		},
+		AllowHeaders: []string{
+			echo.HeaderOrigin,
+			echo.HeaderContentType,
+			echo.HeaderAccept,
+			echo.HeaderAuthorization,
+			"X-CSRF-Token",
+		},
+	}))
+
+	// Security headers
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			nonce, ok := c.Get("nonce").(string)
+			if !ok {
+				return echo.NewHTTPError(http.StatusInternalServerError, "nonce not found")
+			}
+			m.setSecurityHeaders(c, m.buildCSP(nonce))
+			return next(c)
+		}
+	})
+
+	// CSRF if enabled
+	if m.config != nil && m.config.EnableCSRF {
+		csrfConfig := m.config.CSRF
+		if csrfConfig.Logger == nil {
+			csrfConfig.Logger = m.logger
+		}
+		e.Use(CSRF(csrfConfig))
+		e.Use(CSRFToken())
+	}
+
 	m.logger.Debug("middleware setup complete")
 }
 
-// securityHeaders adds security headers to all responses
-func (m *Manager) securityHeaders() echo.MiddlewareFunc {
+// CSRF returns CSRF middleware with the given configuration
+func (m *Manager) CSRF(config CSRFConfig) echo.MiddlewareFunc {
+	m.logger.Debug("creating CSRF middleware",
+		logging.Bool("secure", config.Secure),
+		logging.String("cookie_name", "csrf_token"),
+	)
+
+	csrfMiddleware := csrf.Protect(
+		[]byte(config.SecretKey),
+		csrf.Secure(config.Secure),
+		csrf.Path("/"),
+		csrf.SameSite(csrf.SameSiteStrictMode),
+		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
+			m.logger.Error("CSRF validation failed",
+				logging.String("path", r.URL.Path),
+				logging.String("method", r.Method),
+			)
+			http.Error(w, "CSRF validation failed", http.StatusForbidden)
+		})),
+	)
+
+	return echo.WrapMiddleware(func(next http.Handler) http.Handler {
+		return csrfMiddleware(next)
+	})
+}
+
+// CSRFToken returns middleware to add CSRF token to templates
+func (m *Manager) CSRFToken() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			m.logger.Debug("processing security headers",
-				logging.String("path", c.Request().URL.Path),
-				logging.String("method", c.Request().Method),
-			)
-
-			// Generate and set nonce
-			nonceStr, err := m.generateNonce()
-			if err != nil {
-				return err
-			}
-			c.Set("csp-nonce", nonceStr)
-
-			// Build and set CSP
-			csp := m.buildCSP(nonceStr)
-			m.logger.Debug("built CSP directives",
-				logging.String("csp", csp),
-			)
-
-			// Set security headers
-			m.setSecurityHeaders(c, csp)
-
+			token := csrf.Token(c.Request())
+			c.Set("csrf", token)
 			return next(c)
 		}
 	}
 }
 
-// generateNonce generates a random nonce for CSP
-func (m *Manager) generateNonce() (string, error) {
-	nonce := make([]byte, nonceSize)
-	if _, err := rand.Read(nonce); err != nil {
-		m.logger.Error("failed to generate nonce",
-			logging.Error(err),
-		)
-		return "", err
-	}
-	m.logger.Debug("generated nonce for request")
-	return base64.StdEncoding.EncodeToString(nonce), nil
+// CSRFConfig holds configuration for CSRF middleware
+type CSRFConfig struct {
+	SecretKey string
+	Secure    bool
 }
 
-// buildCSP builds the Content Security Policy string
 func (m *Manager) buildCSP(nonce string) string {
 	return fmt.Sprintf(
 		"default-src 'self'; "+
@@ -125,40 +173,4 @@ func (m *Manager) setSecurityHeaders(c echo.Context, csp string) {
 	c.Response().Header().Del("Server")
 	m.logger.Debug("removed Server header")
 	m.logger.Debug("security headers processing complete")
-}
-
-// requestID adds a unique request ID to each request
-func (m *Manager) requestID() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			requestID := c.Request().Header.Get(echo.HeaderXRequestID)
-			if requestID == "" {
-				requestID = generateRequestID()
-			}
-
-			m.logger.Debug("processing request ID middleware",
-				logging.String("request_id", requestID),
-				logging.String("method", c.Request().Method),
-				logging.String("path", c.Request().URL.Path),
-				logging.String("remote_addr", c.Request().RemoteAddr),
-			)
-
-			c.Response().Header().Set(echo.HeaderXRequestID, requestID)
-			c.Set("request_id", requestID)
-
-			m.logger.Debug("request ID middleware complete",
-				logging.String("request_id", requestID),
-			)
-
-			return next(c)
-		}
-	}
-}
-
-func generateRequestID() string {
-	b := make([]byte, requestIDSize)
-	if _, err := rand.Read(b); err != nil {
-		return "error-generating-request-id"
-	}
-	return fmt.Sprintf("%x-%x-%x-%x-%x", b[0:4], b[4:6], b[6:8], b[8:10], b[10:])
 }

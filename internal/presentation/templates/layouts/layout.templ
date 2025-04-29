@@ -7,11 +7,12 @@ import (
 )
 
 type PageData struct {
-	Title   string
-	Content t.Component
-	Styles  []string
-	User    *user.User
-	Debug   bool
+	Title     string
+	Content   t.Component
+	Styles    []string
+	User      *user.User
+	Debug     bool
+	CSRFToken string
 }
 
 templ Layout(data PageData) {
@@ -23,6 +24,7 @@ templ Layout(data PageData) {
 		<meta name="description" content="Goforms - A self-hosted form backend service built with Go"/>
 		<meta name="keywords" content="forms, golang, backend, self-hosted"/>
 		<meta name="color-scheme" content="light dark"/>
+		<meta name="csrf-token" content={ data.CSRFToken }/>
 		<title>{ data.Title } - Goforms</title>
 		
 		<!-- CSS Files -->
@@ -41,6 +43,8 @@ templ Layout(data PageData) {
 		@components.Footer()
 		
 		<!-- JavaScript Files -->
+		<script src="https://cdn.jsdelivr.net/npm/zod@3.22.4/lib/index.umd.min.js"></script>
+		<script src="/static/js/validation.js"></script>
 		if data.Debug {
 			<script src="/static/js/debug.js"></script>
 		}
