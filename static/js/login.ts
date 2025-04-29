@@ -6,6 +6,14 @@ export function setupLoginForm() {
     return;
   }
 
+  // Handle logout
+  const logoutForm = document.querySelector('form[action="/logout"]') as HTMLFormElement;
+  if (logoutForm) {
+    logoutForm.addEventListener('submit', () => {
+      validation.clearJWTToken();
+    });
+  }
+
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
   if (!loginForm) {
     console.warn('Login form not found on login page');
@@ -42,6 +50,10 @@ export function setupLoginForm() {
         
         if (response.ok) {
           console.log('Login successful, redirecting...');
+          const data = await response.json();
+          if (data.access_token) {
+            validation.setJWTToken(data.access_token);
+          }
           window.location.href = '/';
         } else {
           const error = await response.json();

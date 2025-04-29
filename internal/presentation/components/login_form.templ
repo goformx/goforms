@@ -2,9 +2,10 @@ package components
 
 import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
-templ LoginForm(loginJsPath string) {
+templ LoginForm(data shared.PageData) {
     <section class="auth-section">
         <form class="auth-form" id="login-form">
             <div class="form-group">

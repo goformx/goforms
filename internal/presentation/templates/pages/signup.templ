@@ -3,13 +3,26 @@ package pages
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
-	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
-templ Signup(data layouts.PageData) {
-	@layouts.Layout(data)
+templ Signup(data shared.PageData) {
+	@layouts.Layout(data, signupContent(data))
 }
 
-templ SignupPage() {
-	@components.SignupForm(web.GetViteAssetPath("signup.js"))
+templ signupContent(data shared.PageData) {
+	<div class="min-h-screen flex items-center justify-center">
+		<div class="max-w-md w-full space-y-8">
+			<div>
+				<h2 class="mt-6 text-center text-3xl font-extrabold text-gray-900">
+					Sign up for an account
+				</h2>
+			</div>
+			@components.SignupForm(data)
+		</div>
+	</div>
+}
+
+templ SignupPage(data shared.PageData) {
+	@components.SignupForm(data)
 } 

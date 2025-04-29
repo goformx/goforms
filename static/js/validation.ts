@@ -176,15 +176,37 @@ export const validation = {
       throw new Error('CSRF token not found');
     }
 
+    const jwtToken = validation.getJWTToken();
+    const headers: Record<string, string> = {
+      'X-CSRF-Token': csrfToken,
+      'Content-Type': 'application/json',
+      'Accept': 'application/json',
+    };
+
+    if (jwtToken) {
+      headers['Authorization'] = `Bearer ${jwtToken}`;
+    }
+
     return fetch(url, {
       ...options,
       headers: {
         ...options.headers,
-        'X-CSRF-Token': csrfToken,
-        'Content-Type': 'application/json',
-        'Accept': 'application/json',
+        ...headers,
       },
       credentials: 'include',
     });
+  },
+
+  // JWT token management
+  setJWTToken(token: string): void {
+    localStorage.setItem('jwt_token', token);
+  },
+
+  getJWTToken(): string | null {
+    return localStorage.getItem('jwt_token');
+  },
+
+  clearJWTToken(): void {
+    localStorage.removeItem('jwt_token');
   }
 }; 

@@ -11,9 +11,10 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
+	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
@@ -83,6 +84,7 @@ type WebHandler struct {
 	subscriptionService subscription.Service
 	renderer            *view.Renderer
 	Debug               bool
+	userService         user.Service
 }
 
 // NewWebHandler creates a new web handler.
@@ -188,12 +190,22 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 		token = ""
 	}
 
-	data := layouts.PageData{
-		Title: "Home",
-		Debug: h.Debug,
-		CSRFToken: token,
+	// Get user from context
+	var user *user.User
+	if userID, ok := c.Get("user_id").(uint); ok {
+		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
+		if err != nil {
+			h.Logger.Error("failed to get user", logging.Error(err))
+		} else {
+			user = u
+		}
 	}
-	data.Content = pages.HomeContent()
+
+	data := shared.PageData{
+		Title:     "Home",
+		CSRFToken: token,
+		User:      user,
+	}
 
 	if err := h.renderer.Render(c, pages.Home(data)); err != nil {
 		h.Logger.Error("failed to render home page",
@@ -218,12 +230,22 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 		token = ""
 	}
 
-	data := layouts.PageData{
-		Title: "Demo",
-		Debug: h.Debug,
-		CSRFToken: token,
+	// Get user from context
+	var user *user.User
+	if userID, ok := c.Get("user_id").(uint); ok {
+		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
+		if err != nil {
+			h.Logger.Error("failed to get user", logging.Error(err))
+		} else {
+			user = u
+		}
 	}
-	data.Content = pages.DemoContent()
+
+	data := shared.PageData{
+		Title:     "Demo",
+		CSRFToken: token,
+		User:      user,
+	}
 
 	if err := h.renderer.Render(c, pages.Demo(data)); err != nil {
 		h.Logger.Error("failed to render demo page",
@@ -259,12 +281,22 @@ func (h *WebHandler) handleSignup(c echo.Context) error {
 		c.Set("csrf", token)
 	}
 
-	data := layouts.PageData{
-		Title: "Sign Up",
-		Debug: h.Debug,
-		CSRFToken: token.(string),
+	// Get user from context
+	var user *user.User
+	if userID, ok := c.Get("user_id").(uint); ok {
+		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
+		if err != nil {
+			h.Logger.Error("failed to get user", logging.Error(err))
+		} else {
+			user = u
+		}
 	}
-	data.Content = pages.SignupPage()
+
+	data := shared.PageData{
+		Title:     "Sign Up",
+		CSRFToken: token.(string),
+		User:      user,
+	}
 
 	if err := h.renderer.Render(c, pages.Signup(data)); err != nil {
 		h.Logger.Error("failed to render signup page",
@@ -291,12 +323,22 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 		c.Set("csrf", token)
 	}
 
-	data := layouts.PageData{
-		Title: "Sign In",
-		Debug: h.Debug,
-		CSRFToken: token.(string),
+	// Get user from context
+	var user *user.User
+	if userID, ok := c.Get("user_id").(uint); ok {
+		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
+		if err != nil {
+			h.Logger.Error("failed to get user", logging.Error(err))
+		} else {
+			user = u
+		}
 	}
-	data.Content = pages.LoginPage()
+
+	data := shared.PageData{
+		Title:     "Sign In",
+		CSRFToken: token.(string),
+		User:      user,
+	}
 
 	if err := h.renderer.Render(c, pages.Login(data)); err != nil {
 		h.Logger.Error("failed to render login page",
@@ -311,44 +353,44 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 // handleValidationSchema returns the validation schema for a given form
 func (h *WebHandler) handleValidationSchema(c echo.Context) error {
 	schemaName := c.Param("schema")
-	
+
 	var schema any
 	switch schemaName {
 	case "signup":
 		schema = map[string]any{
 			"first_name": map[string]any{
-				"type": "string",
-				"min": 1,
+				"type":    "string",
+				"min":     1,
 				"message": "First name is required",
 			},
 			"last_name": map[string]any{
-				"type": "string",
-				"min": 1,
+				"type":    "string",
+				"min":     1,
 				"message": "Last name is required",
 			},
 			"email": map[string]any{
-				"type": "email",
+				"type":    "email",
 				"message": "Please enter a valid email address",
 			},
 			"password": map[string]any{
-				"type": "password",
-				"min": 8,
+				"type":    "password",
+				"min":     8,
 				"message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
 			},
 			"confirm_password": map[string]any{
-				"type": "match",
+				"type":       "match",
 				"matchField": "password",
-				"message": "Passwords do not match",
+				"message":    "Passwords do not match",
 			},
 		}
 	case "login":
 		schema = map[string]any{
 			"email": map[string]any{
-				"type": "email",
+				"type":    "email",
 				"message": "Please enter a valid email address",
 			},
 			"password": map[string]any{
-				"type": "required",
+				"type":    "required",
 				"message": "Password is required",
 			},
 		}

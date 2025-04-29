@@ -42,12 +42,12 @@ func DefaultCSRFConfig() CSRFMiddlewareConfig {
 // CSRF returns middleware for CSRF protection
 func CSRF() echo.MiddlewareFunc {
 	return middleware.CSRFWithConfig(middleware.CSRFConfig{
-		TokenLength:  32,
-		TokenLookup:  "header:X-CSRF-Token,form:_csrf",
-		ContextKey:   "csrf",
-		CookieName:   "_csrf",
-		CookiePath:   "/",
-		CookieSecure: true,
+		TokenLength:    32,
+		TokenLookup:    "header:X-CSRF-Token,form:_csrf",
+		ContextKey:     "csrf",
+		CookieName:     "_csrf",
+		CookiePath:     "/",
+		CookieSecure:   true,
 		CookieHTTPOnly: true,
 		CookieSameSite: http.SameSiteStrictMode,
 		ErrorHandler: func(err error, c echo.Context) error {

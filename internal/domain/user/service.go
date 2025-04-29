@@ -78,7 +78,7 @@ func NewService(store Store, logger logging.Logger, jwtSecret string) Service {
 
 // SignUp registers a new user
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
-	s.logger.Debug("starting signup process", 
+	s.logger.Debug("starting signup process",
 		logging.String("email", signup.Email),
 		logging.String("first_name", signup.FirstName),
 		logging.String("last_name", signup.LastName),
@@ -88,7 +88,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	existingUser, err := s.store.GetByEmail(ctx, signup.Email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			s.logger.Debug("user not found, proceeding with signup", 
+			s.logger.Debug("user not found, proceeding with signup",
 				logging.String("email", signup.Email),
 			)
 		}
@@ -98,7 +98,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 		return nil, ErrUserExists
 	}
 
-	s.logger.Debug("proceeding with signup", 
+	s.logger.Debug("proceeding with signup",
 		logging.String("email", signup.Email),
 		logging.String("first_name", signup.FirstName),
 		logging.String("last_name", signup.LastName),
@@ -129,7 +129,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 		return nil, fmt.Errorf("failed to create user: %w", createErr)
 	}
 
-	s.logger.Debug("user created successfully", 
+	s.logger.Debug("user created successfully",
 		logging.Uint("id", user.ID),
 		logging.String("email", user.Email),
 	)
@@ -139,14 +139,14 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 
 // Login authenticates a user and returns a token pair
 func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, error) {
-	s.logger.Debug("attempting login", 
+	s.logger.Debug("attempting login",
 		logging.String("email", login.Email),
 		logging.Bool("has_password", login.Password != ""),
 	)
 
 	user, err := s.store.GetByEmail(ctx, login.Email)
 	if err != nil {
-		s.logger.Error("failed to get user by email", 
+		s.logger.Error("failed to get user by email",
 			logging.Error(err),
 			logging.String("email", login.Email),
 		)
@@ -157,7 +157,7 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, erro
 		return nil, ErrInvalidCredentials
 	}
 
-	s.logger.Debug("user found", 
+	s.logger.Debug("user found",
 		logging.String("email", user.Email),
 		logging.Bool("active", user.Active),
 	)
@@ -169,7 +169,7 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, erro
 
 	tokenPair, err := s.generateTokenPair(user)
 	if err != nil {
-		s.logger.Error("failed to generate token pair", 
+		s.logger.Error("failed to generate token pair",
 			logging.Error(err),
 			logging.String("email", login.Email),
 		)

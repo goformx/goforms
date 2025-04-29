@@ -3,10 +3,11 @@ package pages
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
-templ Home(data layouts.PageData) {
-	@layouts.Layout(data)
+templ Home(data shared.PageData) {
+	@layouts.Layout(data, HomeContent())
 }
 
 templ HomeContent() {

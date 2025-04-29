@@ -81,7 +81,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
-	h.Logger.Debug("received signup request", 
+	h.Logger.Debug("received signup request",
 		logging.String("email", signup.Email),
 		logging.String("first_name", signup.FirstName),
 		logging.String("last_name", signup.LastName),
@@ -96,7 +96,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 	newUser, err := h.userService.SignUp(c.Request().Context(), &signup)
 	if err != nil {
 		h.Logger.Debug("SignUp returned error", logging.Error(err))
-		
+
 		switch {
 		case errors.Is(err, user.ErrUserExists):
 			return echo.NewHTTPError(http.StatusConflict, "Email already exists")
@@ -106,7 +106,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		}
 	}
 
-	h.Logger.Debug("signup successful", 
+	h.Logger.Debug("signup successful",
 		logging.Uint("user_id", newUser.ID),
 		logging.String("email", newUser.Email),
 	)
@@ -131,7 +131,7 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
-	h.Logger.Debug("login attempt", 
+	h.Logger.Debug("login attempt",
 		logging.String("email", login.Email),
 		logging.Bool("has_password", login.Password != ""),
 	)
@@ -143,7 +143,7 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 
 	tokens, err := h.userService.Login(c.Request().Context(), &login)
 	if err != nil {
-		h.Logger.Error("login failed", 
+		h.Logger.Error("login failed",
 			logging.Error(err),
 			logging.String("email", login.Email),
 		)

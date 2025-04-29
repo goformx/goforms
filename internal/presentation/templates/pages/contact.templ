@@ -4,13 +4,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
-templ Contact() {
-	@layouts.Layout(layouts.PageData{
-		Title: "Contact Demo",
-		Content: contactContent(),
-	})
+templ Contact(data shared.PageData) {
+	@layouts.Layout(data, contactContent())
 }
 
 templ contactContent() {

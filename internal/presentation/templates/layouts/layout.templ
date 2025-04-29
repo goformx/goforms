@@ -1,21 +1,12 @@
 package layouts
 
 import (
-	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/components"
 	"github.com/jonesrussell/goforms/internal/infrastructure/web"
-	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
-type PageData struct {
-	Title     string
-	Content   templ.Component
-	Styles    []string
-	User      *user.User
-	Debug     bool
-	CSRFToken string
-}
-
-templ Layout(data PageData) {
+templ Layout(data shared.PageData, content templ.Component) {
 	<!DOCTYPE html>
 	<html lang="en">
 	<head>
@@ -29,15 +20,14 @@ templ Layout(data PageData) {
 		
 		<!-- CSS Files -->
 		<link rel="stylesheet" href="/static/css/main.css"/>
-		for _, style := range data.Styles {
-			<link rel="stylesheet" href={ style }/>
-		}
+		<link href="/static/css/styles.css" rel="stylesheet"/>
+		<script src="/static/js/validation.js" defer></script>
 	</head>
-	<body>
-		@components.Nav()
+	<body class="bg-gray-100">
+		@components.Nav(data)
 
-		<main>
-			@data.Content
+		<main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+			@content
 		</main>
 
 		@components.Footer()
