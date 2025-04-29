@@ -9,7 +9,7 @@
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "lint": "eslint . --ext ts --report-unused-disable-directives --max-warnings 0",
-    "format": "prettier --write \"**/*.{ts}\""
+    "format": "prettier --write \"**/*.{ts,css}\""
   },
   "dependencies": {
     "zod": "^3.24.3"
@@ -18,7 +18,12 @@
     "@types/node": "^20.11.19",
     "@typescript-eslint/eslint-plugin": "^7.0.1",
     "@typescript-eslint/parser": "^7.0.1",
+    "autoprefixer": "^10.4.17",
+    "cssnano": "^6.0.3",
     "eslint": "^8.56.0",
+    "postcss": "^8.4.35",
+    "postcss-import": "^16.0.0",
+    "postcss-nested": "^6.0.1",
     "prettier": "^3.2.5",
     "typescript": "^5.3.3",
     "vite": "^5.1.3"

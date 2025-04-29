@@ -4,6 +4,12 @@ import { resolve } from 'path';
 export default defineConfig({
   root: 'static',
   publicDir: 'public',
+  css: {
+    devSourcemap: true,
+    modules: {
+      localsConvention: 'camelCase'
+    }
+  },
   build: {
     outDir: '../static/dist',
     emptyOutDir: true,
@@ -13,12 +19,19 @@ export default defineConfig({
         main: resolve(__dirname, 'static/js/main.ts'),
         validation: resolve(__dirname, 'static/js/validation.ts'),
         signup: resolve(__dirname, 'static/js/signup.ts'),
-        login: resolve(__dirname, 'static/js/login.ts')
+        login: resolve(__dirname, 'static/js/login.ts'),
+        styles: resolve(__dirname, 'static/css/main.css')
       },
       output: {
         entryFileNames: 'js/[name].[hash].js',
         chunkFileNames: 'js/[name].[hash].js',
-        assetFileNames: 'assets/[name].[hash].[ext]'
+        assetFileNames: (assetInfo) => {
+          const name = assetInfo.names?.[0] || '';
+          if (name.endsWith('.css')) {
+            return 'css/[name].[hash][extname]';
+          }
+          return 'assets/[name].[hash][extname]';
+        }
       }
     }
   },
