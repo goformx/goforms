@@ -10,11 +10,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
-// Response represents a standardized API response
+// Response represents the standard API response format
 type Response struct {
-	Success bool   `json:"success"`
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
 	Data    any    `json:"data,omitempty"`
-	Error   string `json:"error,omitempty"`
 	logger  logging.Logger
 }
 
@@ -55,7 +55,7 @@ func getLogger(c echo.Context) logging.Logger {
 	return log
 }
 
-// Success returns a successful response with data
+// Success sends a successful response with data
 func Success(c echo.Context, data any) error {
 	logger := getLogger(c)
 	logger.Debug("sending success response",
@@ -71,8 +71,8 @@ func Success(c echo.Context, data any) error {
 	}
 
 	if err := c.JSON(http.StatusOK, Response{
-		Success: true,
-		Data:    data,
+		Status: "success",
+		Data:   data,
 	}); err != nil {
 		logger.Error("failed to send success response", logging.Error(err))
 		return err
@@ -80,7 +80,7 @@ func Success(c echo.Context, data any) error {
 	return nil
 }
 
-// Created returns a 201 response with data
+// Created sends a 201 response with data
 func Created(c echo.Context, data any) error {
 	logger := getLogger(c)
 	logger.Debug("sending created response",
@@ -91,8 +91,8 @@ func Created(c echo.Context, data any) error {
 	)
 
 	if err := c.JSON(http.StatusCreated, Response{
-		Success: true,
-		Data:    data,
+		Status: "success",
+		Data:   data,
 	}); err != nil {
 		logger.Error("failed to send created response", logging.Error(err))
 		return err
@@ -100,7 +100,7 @@ func Created(c echo.Context, data any) error {
 	return nil
 }
 
-// BadRequest returns a 400 response with error message
+// BadRequest sends a 400 response with error message
 func BadRequest(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Debug("sending bad request response",
@@ -111,8 +111,8 @@ func BadRequest(c echo.Context, message string) error {
 	)
 
 	if err := c.JSON(http.StatusBadRequest, Response{
-		Success: false,
-		Error:   message,
+		Status:  "error",
+		Message: message,
 	}); err != nil {
 		logger.Error("failed to send bad request response", logging.Error(err))
 		return err
@@ -120,7 +120,7 @@ func BadRequest(c echo.Context, message string) error {
 	return nil
 }
 
-// NotFound returns a 404 response with error message
+// NotFound sends a 404 response with error message
 func NotFound(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Debug("sending not found response",
@@ -131,8 +131,8 @@ func NotFound(c echo.Context, message string) error {
 	)
 
 	if err := c.JSON(http.StatusNotFound, Response{
-		Success: false,
-		Error:   message,
+		Status:  "error",
+		Message: message,
 	}); err != nil {
 		logger.Error("failed to send not found response", logging.Error(err))
 		return err
@@ -140,7 +140,7 @@ func NotFound(c echo.Context, message string) error {
 	return nil
 }
 
-// InternalError returns a 500 response with error message
+// InternalError sends a 500 response with error message
 func InternalError(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Error("sending internal error response",
@@ -151,13 +151,29 @@ func InternalError(c echo.Context, message string) error {
 	)
 
 	if err := c.JSON(http.StatusInternalServerError, Response{
-		Success: false,
-		Error:   message,
+		Status:  "error",
+		Message: message,
 	}); err != nil {
 		logger.Error("failed to send internal error response", logging.Error(err))
 		return err
 	}
 	return nil
+}
+
+// Unauthorized sends a 401 response with error message
+func Unauthorized(c echo.Context, message string) error {
+	return c.JSON(http.StatusUnauthorized, Response{
+		Status:  "error",
+		Message: message,
+	})
+}
+
+// Forbidden sends a 403 response with error message
+func Forbidden(c echo.Context, message string) error {
+	return c.JSON(http.StatusForbidden, Response{
+		Status:  "error",
+		Message: message,
+	})
 }
 
 func (r *Response) SetLogger(logger any) error {
@@ -174,5 +190,5 @@ func (r *Response) Equal(other *Response) bool {
 	if r == nil || other == nil {
 		return r == other
 	}
-	return r.Success == other.Success && r.Error == other.Error
+	return r.Status == other.Status && r.Message == other.Message && r.Data == other.Data
 }
