@@ -283,16 +283,18 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 		logging.String("method", c.Request().Method),
 	)
 
-	token, ok := c.Get("csrf").(string)
-	if !ok {
-		h.Logger.Error("csrf token not found in context")
-		token = ""
+	// Generate a new CSRF token for GET requests
+	token := c.Get("csrf")
+	if token == nil {
+		// If no token exists, generate a new one
+		token = generateToken()
+		c.Set("csrf", token)
 	}
 
 	data := layouts.PageData{
 		Title: "Sign In",
 		Debug: h.Debug,
-		CSRFToken: token,
+		CSRFToken: token.(string),
 	}
 	data.Content = pages.LoginPage()
 

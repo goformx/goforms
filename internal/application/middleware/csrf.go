@@ -7,6 +7,9 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
 
+	"encoding/base64"
+	"math/rand"
+
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
@@ -36,8 +39,6 @@ func DefaultCSRFConfig() CSRFMiddlewareConfig {
 	}
 }
 
-
-
 // CSRF returns middleware for CSRF protection
 func CSRF() echo.MiddlewareFunc {
 	return middleware.CSRFWithConfig(middleware.CSRFConfig{
@@ -63,16 +64,29 @@ func CSRF() echo.MiddlewareFunc {
 func CSRFToken() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			token, ok := c.Get("csrf").(string)
-			if !ok {
-				// If token is not found, just continue without it
-				c.Logger().Warn("CSRF token not found in context")
-				c.Set("csrf", "") // Set empty token in templates
+			// Always generate a new token for GET requests
+			if c.Request().Method == http.MethodGet {
+				token := generateToken()
+				c.Set("csrf", token)
+				c.Response().Header().Set(echo.HeaderXCSRFToken, token)
 				return next(c)
 			}
+
+			// For other methods, use existing token or generate new one
+			token, ok := c.Get("csrf").(string)
+			if !ok || token == "" {
+				token = generateToken()
+				c.Set("csrf", token)
+			}
 			c.Response().Header().Set(echo.HeaderXCSRFToken, token)
-			c.Set("csrf", token) // Make token available to templates
 			return next(c)
 		}
 	}
+}
+
+// generateToken generates a random token
+func generateToken() string {
+	b := make([]byte, DefaultCSRFTokenLength)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
 }

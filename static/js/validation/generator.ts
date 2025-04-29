@@ -26,13 +26,19 @@ interface ApiValidationSchema {
 }
 
 export async function getValidationSchema(schemaName: string): Promise<z.ZodType<any>> {
-  const response = await fetch(`/api/validation/${schemaName}`);
-  if (!response.ok) {
-    throw new Error('Failed to fetch validation schema');
+  try {
+    const response = await fetch(`/api/validation/${schemaName}`);
+    if (!response.ok) {
+      console.error(`Failed to fetch validation schema for ${schemaName}:`, response.status);
+      throw new Error('Failed to fetch validation schema');
+    }
+    
+    const schema: ApiValidationSchema = await response.json();
+    return generateZodSchema(schema);
+  } catch (error) {
+    console.error(`Error fetching validation schema for ${schemaName}:`, error);
+    throw error;
   }
-  
-  const schema: ApiValidationSchema = await response.json();
-  return generateZodSchema(schema);
 }
 
 function generateZodSchema(schema: ApiValidationSchema): z.ZodType<any> {

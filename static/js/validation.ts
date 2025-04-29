@@ -51,6 +51,10 @@ export const validation = {
     if (errorElement) {
       errorElement.textContent = '';
     }
+    const input = document.getElementById(fieldId) as HTMLInputElement;
+    if (input) {
+      input.classList.remove('error');
+    }
   },
 
   showError(fieldId: string, message: string): void {
@@ -58,13 +62,18 @@ export const validation = {
     if (errorElement) {
       errorElement.textContent = message;
     }
+    const input = document.getElementById(fieldId) as HTMLInputElement;
+    if (input) {
+      input.classList.add('error');
+    }
   },
 
   clearAllErrors(): void {
     document.querySelectorAll('.error-message').forEach(el => {
-      if (el instanceof HTMLElement) {
-        el.textContent = '';
-      }
+      el.textContent = '';
+    });
+    document.querySelectorAll('.error').forEach(el => {
+      el.classList.remove('error');
     });
   },
 

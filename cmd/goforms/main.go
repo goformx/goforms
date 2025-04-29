@@ -123,6 +123,11 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 		EnableCSRF:  cfg.Security.CSRF.Enabled,
 	})
 
+	// Add CSRF token middleware if CSRF is enabled
+	if cfg.Security.CSRF.Enabled {
+		e.Use(middleware.CSRFToken())
+	}
+
 	return e, nil
 }
 
