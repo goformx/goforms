@@ -7,8 +7,6 @@ import (
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 
-	"strings"
-
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
@@ -19,9 +17,8 @@ const (
 
 // Manager handles middleware configuration and setup
 type Manager struct {
-	logger      logging.Logger
-	config      *ManagerConfig
-	securityMgr *SecurityManager
+	logger logging.Logger
+	config *ManagerConfig
 }
 
 // ManagerConfig holds middleware configuration
@@ -31,7 +28,6 @@ type ManagerConfig struct {
 	UserService any
 	EnableCSRF  bool
 	CSRF        CSRFMiddlewareConfig
-	Security    SecurityConfig // New security configuration
 }
 
 // New creates a new middleware manager
@@ -40,18 +36,9 @@ func New(config *ManagerConfig) *Manager {
 		panic("logger is required for Manager")
 	}
 
-	// Initialize security manager with configuration
-	securityMgr := NewSecurityManager(SecurityConfig{
-		Logger:           config.Logger,
-		CSPConfig:        getDefaultCSPConfig(),
-		HeadersConfig:    getDefaultSecurityHeaders(),
-		DangerousHeaders: getDefaultDangerousHeaders(),
-	})
-
 	return &Manager{
-		logger:      config.Logger,
-		config:      config,
-		securityMgr: securityMgr,
+		logger: config.Logger,
+		config: config,
 	}
 }
 
@@ -64,6 +51,17 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(echomw.RequestID())
 	e.Use(echomw.Secure())
 	e.Use(echomw.BodyLimit("2M"))
+
+	// Security middleware with comprehensive configuration
+	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "DENY",
+		HSTSMaxAge:           31536000,
+		HSTSExcludeSubdomains: false,
+		ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'",
+		ReferrerPolicy:        "strict-origin-when-cross-origin",
+	}))
 
 	// CORS
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
@@ -84,9 +82,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 		},
 	}))
 
-	// Security headers and CSP
-	e.Use(m.securityMgr.SecurityMiddleware())
-
 	// CSRF if enabled
 	if m.config != nil && m.config.EnableCSRF {
 		csrfConfig := m.config.CSRF
@@ -98,6 +93,12 @@ func (m *Manager) Setup(e *echo.Echo) {
 	}
 
 	m.logger.Debug("middleware setup complete")
+}
+
+// CSRFConfig holds configuration for CSRF middleware
+type CSRFConfig struct {
+	SecretKey string
+	Secure    bool
 }
 
 // CSRF returns CSRF middleware with the given configuration
@@ -134,67 +135,5 @@ func (m *Manager) CSRFToken() echo.MiddlewareFunc {
 			c.Set("csrf", token)
 			return next(c)
 		}
-	}
-}
-
-// CSRFConfig holds configuration for CSRF middleware
-type CSRFConfig struct {
-	SecretKey string
-	Secure    bool
-}
-
-// Helper functions to provide default configurations
-
-func getDefaultCSPConfig() CSPConfig {
-	return CSPConfig{
-		DefaultSrc:     []string{"'self'"},
-		ScriptSrc:      []string{"'self'", "https://cdn.jsdelivr.net"},
-		StyleSrc:       []string{"'self'", "'unsafe-inline'"},
-		ImgSrc:         []string{"'self'", "data:"},
-		FontSrc:        []string{"'self'"},
-		ConnectSrc:     []string{"'self'"},
-		MediaSrc:       []string{"'self'"},
-		ObjectSrc:      []string{"'none'"},
-		ChildSrc:       []string{"'none'"},
-		FrameAncestors: []string{"'none'"},
-		FormAction:     []string{"'self'"},
-		BaseURI:        []string{"'self'"},
-		ManifestSrc:    []string{"'self'"},
-		Upgrades:       true,
-		BlockMixed:     true,
-	}
-}
-
-func getDefaultSecurityHeaders() map[string]string {
-	return map[string]string{
-		"X-Content-Type-Options": "nosniff",
-		"X-Frame-Options":        "DENY",
-		"X-XSS-Protection":       "1; mode=block",
-		"Referrer-Policy":        "strict-origin-when-cross-origin",
-		"Permissions-Policy": strings.Join([]string{
-			"accelerometer=()",
-			"camera=()",
-			"geolocation=()",
-			"gyroscope=()",
-			"magnetometer=()",
-			"microphone=()",
-			"payment=()",
-			"usb=()",
-		}, ", "),
-		"Cross-Origin-Opener-Policy":   "same-origin",
-		"Cross-Origin-Embedder-Policy": "require-corp",
-		"Cross-Origin-Resource-Policy": "same-origin",
-		"Strict-Transport-Security":    "max-age=31536000; includeSubDomains",
-		"Cache-Control":                "no-store, max-age=0",
-		"Clear-Site-Data":              "\"cache\",\"cookies\",\"storage\"",
-	}
-}
-
-func getDefaultDangerousHeaders() []string {
-	return []string{
-		"Server",
-		"X-Powered-By",
-		"X-AspNet-Version",
-		"X-AspNetMvc-Version",
 	}
 }
