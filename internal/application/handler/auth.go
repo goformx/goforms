@@ -2,6 +2,7 @@ package handler
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -77,10 +78,18 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 func (h *AuthHandler) handleSignup(c echo.Context) error {
 	var signup user.Signup
 	if err := c.Bind(&signup); err != nil {
+		h.Logger.Error("failed to bind signup request", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
+	h.Logger.Debug("signup attempt", 
+		logging.String("email", signup.Email),
+		logging.String("first_name", signup.FirstName),
+		logging.String("last_name", signup.LastName),
+	)
+
 	if err := c.Validate(signup); err != nil {
+		h.Logger.Error("signup validation failed", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
@@ -90,7 +99,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		if errors.Is(err, user.ErrEmailAlreadyExists) {
 			return echo.NewHTTPError(http.StatusConflict, "Email already exists")
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user")
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to create user: %v", err))
 	}
 
 	return c.JSON(http.StatusCreated, newUser)
@@ -110,19 +119,30 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 func (h *AuthHandler) handleLogin(c echo.Context) error {
 	var login user.Login
 	if err := c.Bind(&login); err != nil {
+		h.Logger.Error("failed to bind login request", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
+	h.Logger.Debug("login attempt", 
+		logging.String("email", login.Email),
+		logging.Bool("has_password", login.Password != ""),
+	)
+
 	if err := c.Validate(login); err != nil {
+		h.Logger.Error("login validation failed", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	tokens, err := h.userService.Login(c.Request().Context(), &login)
 	if err != nil {
-		h.LogError("failed to authenticate user", err)
+		h.Logger.Error("login failed", 
+			logging.Error(err),
+			logging.String("email", login.Email),
+		)
 		return echo.NewHTTPError(http.StatusUnauthorized, "Invalid credentials")
 	}
 
+	h.Logger.Debug("login successful", logging.String("email", login.Email))
 	return c.JSON(http.StatusOK, tokens)
 }
 

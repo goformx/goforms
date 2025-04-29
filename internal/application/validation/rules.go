@@ -20,10 +20,16 @@ func GetSignupSchema() ValidationSchema {
 		Name: "signup",
 		Rules: []ValidationRule{
 			{
-				Field:   "username",
+				Field:   "first_name",
 				Type:    "string",
-				Params:  map[string]any{"min": 3, "max": 50, "pattern": "^[a-zA-Z0-9_]+$"},
-				Message: "Username must be 3-50 characters and can only contain letters, numbers, and underscores",
+				Params:  map[string]any{"min": 1},
+				Message: "First name is required",
+			},
+			{
+				Field:   "last_name",
+				Type:    "string",
+				Params:  map[string]any{"min": 1},
+				Message: "Last name is required",
 			},
 			{
 				Field:   "email",
@@ -37,7 +43,7 @@ func GetSignupSchema() ValidationSchema {
 				Message: "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
 			},
 			{
-				Field:   "confirmPassword",
+				Field:   "confirm_password",
 				Type:    "match",
 				Params:  map[string]any{"field": "password"},
 				Message: "Passwords do not match",

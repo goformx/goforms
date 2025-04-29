@@ -1,6 +1,8 @@
 package handler
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
@@ -180,9 +182,16 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 		logging.String("method", c.Request().Method),
 	)
 
+	token, ok := c.Get("csrf").(string)
+	if !ok {
+		h.Logger.Error("csrf token not found in context")
+		token = ""
+	}
+
 	data := layouts.PageData{
 		Title: "Home",
 		Debug: h.Debug,
+		CSRFToken: token,
 	}
 	data.Content = pages.HomeContent()
 
@@ -203,9 +212,16 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 		logging.String("path", c.Path()),
 	)
 
+	token, ok := c.Get("csrf").(string)
+	if !ok {
+		h.Logger.Error("csrf token not found in context")
+		token = ""
+	}
+
 	data := layouts.PageData{
 		Title: "Demo",
 		Debug: h.Debug,
+		CSRFToken: token,
 	}
 	data.Content = pages.DemoContent()
 
@@ -221,6 +237,13 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 	return nil
 }
 
+// generateToken generates a random token
+func generateToken() string {
+	b := make([]byte, 32)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
+}
+
 // handleSignup renders the signup page
 func (h *WebHandler) handleSignup(c echo.Context) error {
 	h.Logger.Debug("handling signup page request",
@@ -228,9 +251,18 @@ func (h *WebHandler) handleSignup(c echo.Context) error {
 		logging.String("method", c.Request().Method),
 	)
 
+	// Generate a new CSRF token for GET requests
+	token := c.Get("csrf")
+	if token == nil {
+		// If no token exists, generate a new one
+		token = generateToken()
+		c.Set("csrf", token)
+	}
+
 	data := layouts.PageData{
 		Title: "Sign Up",
 		Debug: h.Debug,
+		CSRFToken: token.(string),
 	}
 	data.Content = pages.SignupPage()
 
@@ -251,9 +283,16 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 		logging.String("method", c.Request().Method),
 	)
 
+	token, ok := c.Get("csrf").(string)
+	if !ok {
+		h.Logger.Error("csrf token not found in context")
+		token = ""
+	}
+
 	data := layouts.PageData{
 		Title: "Sign In",
 		Debug: h.Debug,
+		CSRFToken: token,
 	}
 	data.Content = pages.LoginPage()
 
@@ -275,12 +314,15 @@ func (h *WebHandler) handleValidationSchema(c echo.Context) error {
 	switch schemaName {
 	case "signup":
 		schema = map[string]any{
-			"username": map[string]any{
+			"first_name": map[string]any{
 				"type": "string",
-				"min": 3,
-				"max": 50,
-				"pattern": "^[a-zA-Z0-9_]+$",
-				"message": "Username must be 3-50 characters and can only contain letters, numbers, and underscores",
+				"min": 1,
+				"message": "First name is required",
+			},
+			"last_name": map[string]any{
+				"type": "string",
+				"min": 1,
+				"message": "Last name is required",
 			},
 			"email": map[string]any{
 				"type": "email",
@@ -291,7 +333,7 @@ func (h *WebHandler) handleValidationSchema(c echo.Context) error {
 				"min": 8,
 				"message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
 			},
-			"confirmPassword": map[string]any{
+			"confirm_password": map[string]any{
 				"type": "match",
 				"matchField": "password",
 				"message": "Passwords do not match",

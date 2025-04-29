@@ -39,6 +39,14 @@ templ SignupForm(signupJsPath string) {
                 <span class="error-message" id="password_error"></span>
             </div>
 
+            <div class="form-group">
+                <label for="confirm_password" class="form-label">
+                    Confirm Password
+                </label>
+                <input id="confirm_password" name="confirm_password" type="password" required class="form-input"/>
+                <span class="error-message" id="confirm_password_error"></span>
+            </div>
+
             <button type="submit" class="btn btn-primary">
                 Sign up
             </button>

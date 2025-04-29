@@ -38,12 +38,4 @@ func Setup(e *echo.Echo, cfg *Config) {
 		}
 		e.Use(middleware)
 	}
-
-	// CSRF if enabled
-	if cfg.EnableCSRF {
-		csrfConfig := DefaultCSRFConfig()
-		csrfConfig.Logger = cfg.Logger
-		e.Use(CSRF(csrfConfig))
-		e.Use(CSRFToken())
-	}
 }

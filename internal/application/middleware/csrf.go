@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"net/http"
 	"time"
 
@@ -36,30 +38,32 @@ func DefaultCSRFConfig() CSRFMiddlewareConfig {
 	}
 }
 
-// CSRF returns middleware for CSRF protection
-func CSRF(cfg CSRFMiddlewareConfig) echo.MiddlewareFunc {
-	if cfg.Logger != nil {
-		cfg.Logger.Debug("creating CSRF middleware",
-			logging.String("cookie_name", cfg.CookieName),
-			logging.String("cookie_path", cfg.CookiePath),
-			logging.Int("cookie_max_age", cfg.CookieMaxAge),
-			logging.Bool("secure", cfg.Secure),
-		)
-	}
+// generateToken generates a random token of the specified length
+func generateToken(length uint8) string {
+	b := make([]byte, length)
+	rand.Read(b)
+	return base64.StdEncoding.EncodeToString(b)
+}
 
-	config := middleware.CSRFConfig{
-		TokenLength:    DefaultCSRFTokenLength,
-		TokenLookup:    "header:X-CSRF-Token,form:_csrf",
-		ContextKey:     "csrf",
-		CookieName:     cfg.CookieName,
-		CookiePath:     cfg.CookiePath,
-		CookieMaxAge:   cfg.CookieMaxAge,
-		CookieSecure:   cfg.Secure,
+// CSRF returns middleware for CSRF protection
+func CSRF() echo.MiddlewareFunc {
+	return middleware.CSRFWithConfig(middleware.CSRFConfig{
+		TokenLength:  32,
+		TokenLookup:  "header:X-CSRF-Token,form:_csrf",
+		ContextKey:   "csrf",
+		CookieName:   "_csrf",
+		CookiePath:   "/",
+		CookieSecure: true,
 		CookieHTTPOnly: true,
 		CookieSameSite: http.SameSiteStrictMode,
-	}
-
-	return middleware.CSRFWithConfig(config)
+		ErrorHandler: func(err error, c echo.Context) error {
+			return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
+		},
+		// Skip CSRF for GET requests
+		Skipper: func(c echo.Context) bool {
+			return c.Request().Method == http.MethodGet
+		},
+	})
 }
 
 // CSRFToken returns middleware to add CSRF token to templates
@@ -68,10 +72,13 @@ func CSRFToken() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			token, ok := c.Get("csrf").(string)
 			if !ok {
-				return echo.NewHTTPError(http.StatusInternalServerError, "CSRF token not found")
+				// If token is not found, just continue without it
+				c.Logger().Warn("CSRF token not found in context")
+				c.Set("csrf", "") // Set empty token in templates
+				return next(c)
 			}
 			c.Response().Header().Set(echo.HeaderXCSRFToken, token)
-			c.Set("csrf_token", token) // Make token available to templates
+			c.Set("csrf", token) // Make token available to templates
 			return next(c)
 		}
 	}

@@ -80,7 +80,7 @@ func NewService(store Store, logger logging.Logger, jwtSecret string) Service {
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
 	// Check if email already exists
 	existingUser, err := s.store.GetByEmail(ctx, signup.Email)
-	if err != nil {
+	if err != nil && !errors.Is(err, ErrUserNotFound) {
 		return nil, fmt.Errorf("failed to check user existence: %w", err)
 	}
 	if existingUser != nil {
@@ -113,25 +113,44 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 
 // Login authenticates a user and returns a token pair
 func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*TokenPair, error) {
+	s.logger.Debug("attempting login", 
+		logging.String("email", login.Email),
+		logging.Bool("has_password", login.Password != ""),
+	)
+
 	user, err := s.store.GetByEmail(ctx, login.Email)
 	if err != nil {
-		s.logger.Error("failed to get user by email", logging.Error(err))
+		s.logger.Error("failed to get user by email", 
+			logging.Error(err),
+			logging.String("email", login.Email),
+		)
 		return nil, ErrInvalidCredentials
 	}
 	if user == nil {
+		s.logger.Error("user not found", logging.String("email", login.Email))
 		return nil, ErrInvalidCredentials
 	}
 
+	s.logger.Debug("user found", 
+		logging.String("email", user.Email),
+		logging.Bool("active", user.Active),
+	)
+
 	if !user.CheckPassword(login.Password) {
+		s.logger.Error("password mismatch", logging.String("email", login.Email))
 		return nil, ErrInvalidCredentials
 	}
 
 	tokenPair, err := s.generateTokenPair(user)
 	if err != nil {
-		s.logger.Error("failed to generate token pair", logging.Error(err))
+		s.logger.Error("failed to generate token pair", 
+			logging.Error(err),
+			logging.String("email", login.Email),
+		)
 		return nil, fmt.Errorf("failed to generate tokens: %w", err)
 	}
 
+	s.logger.Debug("login successful", logging.String("email", login.Email))
 	return tokenPair, nil
 }
 

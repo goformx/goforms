@@ -11,12 +11,15 @@ export function setupLoginForm() {
     validation.clearAllErrors();
     
     const formData = new FormData(loginForm);
-    const data = Object.fromEntries(formData.entries()) as Record<string, string>;
+    const data = {
+      email: formData.get('email') as string,
+      password: formData.get('password') as string
+    };
     
     const result = await validation.validateForm(loginForm, 'login');
     if (result.success) {
       try {
-        const response = await validation.fetchWithCSRF('/auth/login', {
+        const response = await validation.fetchWithCSRF('/api/v1/auth/login', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',

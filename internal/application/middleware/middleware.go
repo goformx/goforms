@@ -29,7 +29,6 @@ type ManagerConfig struct {
 	JWTSecret   string
 	UserService any
 	EnableCSRF  bool
-	CSRF        CSRFMiddlewareConfig
 }
 
 // New creates a new middleware manager
@@ -91,12 +90,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// CSRF if enabled
 	if m.config != nil && m.config.EnableCSRF {
-		csrfConfig := m.config.CSRF
-		if csrfConfig.Logger == nil {
-			csrfConfig.Logger = m.logger
-		}
-		e.Use(CSRF(csrfConfig))
-		e.Use(CSRFToken())
+		e.Use(CSRF())
 	}
 
 	m.logger.Debug("middleware setup complete")

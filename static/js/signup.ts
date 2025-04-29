@@ -16,21 +16,27 @@ export function setupSignupForm() {
     const result = await validation.validateForm(signupForm, 'signup');
     if (result.success) {
       try {
-        const response = await validation.fetchWithCSRF('/auth/signup', {
+        const response = await validation.fetchWithCSRF('/api/v1/auth/signup', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
+            'Accept': 'application/json',
           },
           body: JSON.stringify(data)
         });
         
         if (response.ok) {
-          window.location.href = '/auth/login';
+          window.location.href = '/login';
         } else {
           const error = await response.json();
-          validation.showError('form', error.message || 'An error occurred during signup');
+          if (error.error === 'Email already registered') {
+            validation.showError('email', error.error);
+          } else {
+            validation.showError('form', error.error || 'An error occurred during signup');
+          }
         }
       } catch (error) {
+        console.error('Signup error:', error);
         validation.showError('form', 'An error occurred during signup');
       }
     } else if (result.error) {
