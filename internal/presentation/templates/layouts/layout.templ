@@ -21,10 +21,10 @@ templ Layout(data shared.PageData, content templ.Component) {
 		<!-- CSS Files -->
 		<link rel="stylesheet" href={ "/static/dist/" + web.GetViteAssetPath("css/main.css") }/>
 	</head>
-	<body class="bg-gray-100">
+	<body class="min-h-screen flex flex-col">
 		@components.Nav(data)
 
-		<main class="max-w-7xl mx-auto py-6 sm:px-6 lg:px-8">
+		<main class="flex-1">
 			@content
 		</main>
 

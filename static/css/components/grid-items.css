@@ -1,8 +1,9 @@
 @layer components {
     /* Mobile first - base styles */
     .grid-section {
-        padding: var(--section-padding-y) 0;
+        padding: var(--features-padding-y-mobile) 0;
         background: var(--background);
+        margin-bottom: var(--spacing-12);
     }
 
     .grid-section .container {
@@ -44,7 +45,8 @@
     /* Tablet (md) and up */
     @media (min-width: var(--breakpoint-md)) {
         .grid-section {
-            padding: var(--section-padding-y) 0;
+            padding: var(--features-padding-y) 0;
+            margin-bottom: var(--spacing-16);
         }
 
         .grid-section .container {

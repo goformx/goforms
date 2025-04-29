@@ -21,6 +21,7 @@
 @import url('components/api_response.css') layer(components);
 @import url('components/demo_form.css') layer(components);
 @import url('components/code.css') layer(components);
+@import url('components/footer.css') layer(components);
 
 /* Page styles */
 @import url('pages/demo/sections.css') layer(pages);
