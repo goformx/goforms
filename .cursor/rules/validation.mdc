@@ -1,0 +1,77 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Validation Guidelines
+
+This project implements a comprehensive validation system in the domain layer.
+
+## Core Validation System
+The validation system is defined in [internal/domain/common/validation/validator.go](mdc:internal/domain/common/validation/validator.go):
+
+### Key Components
+
+1. **Validator**
+   - Validates structs and fields
+   - Supports custom rules
+   - Thread-safe operation
+
+2. **ValidationRule**
+   - Function type for validation rules
+   - Supports rule parameters
+   - Returns descriptive errors
+
+3. **Default Rules**
+   - Required fields
+   - Email format
+   - Minimum length
+
+## Form Validation
+Form submissions are validated in [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go):
+
+### Validation Rules
+1. **Required Fields**
+   - ID
+   - FormID
+   - Data
+   - SubmittedAt
+   - Status
+
+2. **Data Validation**
+   - Non-nil check
+   - Non-empty check
+   - Type validation
+
+## Best Practices
+
+1. **Struct Validation**
+   ```go
+   type User struct {
+       Email    string `validate:"required,email"`
+       Password string `validate:"required,min=8"`
+   }
+   ```
+
+2. **Custom Rules**
+   ```go
+   validator.RegisterRule("custom", func(value interface{}, ruleValue string) error {
+       // Custom validation logic
+       return nil
+   })
+   ```
+
+3. **Error Handling**
+   - Use domain-specific errors
+   - Include field context
+   - Return descriptive messages
+
+4. **Validation Location**
+   - Validate at domain boundaries
+   - Validate in constructors
+   - Validate before persistence
+
+5. **Performance**
+   - Cache validator instances
+   - Use efficient validation rules
+   - Validate only when necessary

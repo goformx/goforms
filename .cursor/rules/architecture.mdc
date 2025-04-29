@@ -52,3 +52,49 @@ internal/infrastructure/persistence/store/
 ├── store.go       # Store implementation
 └── README.md      # Package documentation
 ```
+
+# Clean Architecture Implementation
+
+This project follows clean architecture principles with clear separation of concerns across layers.
+
+## Domain Layer
+The core business logic resides in the domain layer under `internal/domain/`:
+
+### Common Packages
+- [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go): Central error handling
+- [internal/domain/common/validation/validator.go](mdc:internal/domain/common/validation/validator.go): Domain validation
+- [internal/domain/common/events/events.go](mdc:internal/domain/common/events/events.go): Domain events
+
+### Form Domain
+- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go): Form submission model
+- [internal/domain/form/events/form_events.go](mdc:internal/domain/form/events/form_events.go): Form-specific events
+
+## Layer Guidelines
+
+### Domain Layer Rules
+1. Contains business logic and interfaces
+2. No dependencies on external packages
+3. Uses domain events for cross-cutting concerns
+4. Implements proper validation
+5. Defines clear error types
+
+### Application Layer Rules
+1. Orchestrates use cases
+2. Depends on domain interfaces
+3. Handles transaction boundaries
+4. Manages event dispatching
+5. Implements proper logging
+
+### Infrastructure Layer Rules
+1. Implements domain interfaces
+2. Handles external dependencies
+3. Manages database connections
+4. Implements proper logging
+5. Handles security concerns
+
+### Presentation Layer Rules
+1. Handles HTTP/API concerns
+2. Uses Echo framework
+3. Implements proper validation
+4. Returns consistent responses
+5. Handles proper error responses
