@@ -3,12 +3,13 @@ package pages
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
 templ Signup(data layouts.PageData) {
 	@layouts.Layout(data)
 }
 
-templ SignupContent() {
-	@components.SignupForm()
+templ SignupPage() {
+	@components.SignupForm(web.GetViteAssetPath("signup.js"))
 } 

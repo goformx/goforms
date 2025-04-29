@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"fmt"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 
@@ -154,9 +155,17 @@ func (h *WebHandler) Register(e *echo.Echo) {
 	e.GET("/login", h.handleLogin)
 	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/login"))
 
+	// Validation endpoints
+	e.GET("/api/validation/:schema", h.handleValidationSchema)
+	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/api/validation/:schema"))
+
 	// Static files - Note: paths must be relative to the project root
 	e.Static("/static", "./static")
 	h.Logger.Debug("registered static directory", logging.String("path", "/static"), logging.String("root", "./static"))
+
+	// Vite-built files
+	e.Static("/static/dist", "./static/dist")
+	h.Logger.Debug("registered static directory", logging.String("path", "/static/dist"), logging.String("root", "./static/dist"))
 
 	e.File("/favicon.ico", "./static/favicon.ico")
 	h.Logger.Debug("registered favicon", logging.String("path", "/favicon.ico"))
@@ -223,7 +232,7 @@ func (h *WebHandler) handleSignup(c echo.Context) error {
 		Title: "Sign Up",
 		Debug: h.Debug,
 	}
-	data.Content = pages.SignupContent()
+	data.Content = pages.SignupPage()
 
 	if err := h.renderer.Render(c, pages.Signup(data)); err != nil {
 		h.Logger.Error("failed to render signup page",
@@ -246,7 +255,7 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 		Title: "Sign In",
 		Debug: h.Debug,
 	}
-	data.Content = pages.LoginContent()
+	data.Content = pages.LoginPage()
 
 	if err := h.renderer.Render(c, pages.Login(data)); err != nil {
 		h.Logger.Error("failed to render login page",
@@ -256,4 +265,52 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 		return fmt.Errorf("failed to render login page: %w", err)
 	}
 	return nil
+}
+
+// handleValidationSchema returns the validation schema for a given form
+func (h *WebHandler) handleValidationSchema(c echo.Context) error {
+	schemaName := c.Param("schema")
+	
+	var schema any
+	switch schemaName {
+	case "signup":
+		schema = map[string]any{
+			"username": map[string]any{
+				"type": "string",
+				"min": 3,
+				"max": 50,
+				"pattern": "^[a-zA-Z0-9_]+$",
+				"message": "Username must be 3-50 characters and can only contain letters, numbers, and underscores",
+			},
+			"email": map[string]any{
+				"type": "email",
+				"message": "Please enter a valid email address",
+			},
+			"password": map[string]any{
+				"type": "password",
+				"min": 8,
+				"message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
+			},
+			"confirmPassword": map[string]any{
+				"type": "match",
+				"matchField": "password",
+				"message": "Passwords do not match",
+			},
+		}
+	case "login":
+		schema = map[string]any{
+			"email": map[string]any{
+				"type": "email",
+				"message": "Please enter a valid email address",
+			},
+			"password": map[string]any{
+				"type": "required",
+				"message": "Password is required",
+			},
+		}
+	default:
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "Schema not found"})
+	}
+
+	return c.JSON(http.StatusOK, schema)
 }

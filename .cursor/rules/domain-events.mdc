@@ -15,7 +15,7 @@ The base event system is defined in [internal/domain/common/events/events.go](md
    - EventID() string
    - EventType() string
    - Timestamp() time.Time
-   - Data() interface{}
+   - Data() any
 
 2. **EventHandler Interface**
    - Handle(ctx context.Context, event Event) error

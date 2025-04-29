@@ -20,28 +20,46 @@ type AssetManifest struct {
 	} `json:"validation"`
 }
 
+type ViteManifest map[string]struct {
+	File    string   `json:"file"`
+	Src     string   `json:"src,omitempty"`
+	CSS     []string `json:"css,omitempty"`
+	Imports []string `json:"imports,omitempty"`
+}
+
+var manifest ViteManifest
+
+func init() {
+	// Load the Vite manifest file
+	manifestPath := filepath.Join("static", "dist", ".vite", "manifest.json")
+	manifestData, err := os.ReadFile(manifestPath)
+	if err != nil {
+		// In development, files are served directly
+		return
+	}
+
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+		// Handle error gracefully in production
+		return
+	}
+}
+
 // GetAssetPath returns the hashed filename for a given asset
 func GetAssetPath(assetName string) string {
-	manifestPath := filepath.Join("static", "dist", "manifest.json")
+	return GetViteAssetPath(assetName)
+}
 
-	// Read manifest file
-	data, err := os.ReadFile(manifestPath)
-	if err != nil {
-		return assetName // Fallback to original name if manifest not found
+// GetViteAssetPath returns the correct path for a Vite asset
+func GetViteAssetPath(path string) string {
+	if manifest == nil {
+		// In development, return the path as is
+		return path
 	}
 
-	var manifest AssetManifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		return assetName // Fallback to original name if manifest is invalid
+	// In production, get the hashed filename from the manifest
+	if entry, ok := manifest[path]; ok {
+		return entry.File
 	}
 
-	// Return the hashed filename based on the asset name
-	switch assetName {
-	case "main.js":
-		return filepath.Join("dist", manifest.Main.File)
-	case "validation.js":
-		return filepath.Join("dist", manifest.Validation.File)
-	default:
-		return assetName
-	}
+	return path
 }

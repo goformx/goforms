@@ -1,8 +1,12 @@
 package components
 
-templ SignupForm() {
+import (
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+)
+
+templ SignupForm(signupJsPath string) {
     <section class="auth-section">
-        <form class="auth-form" id="signupForm" onsubmit="handleSignup(event)">
+        <form class="auth-form" id="signup-form">
             <div class="form-group">
                 <label for="first_name" class="form-label">
                     First Name
@@ -44,60 +48,6 @@ templ SignupForm() {
             </div>
         </form>
 
-        <script type="module">
-            import { validation, validationSchemas } from '/static/js/validation.js';
-            
-            // Setup real-time validation
-            validation.setupRealTimeValidation('signupForm', validationSchemas.signup);
-
-            async function handleSignup(event) {
-                event.preventDefault();
-                validation.clearAllErrors();
-                
-                const formData = {
-                    first_name: document.getElementById('first_name').value,
-                    last_name: document.getElementById('last_name').value,
-                    email: document.getElementById('email').value,
-                    password: document.getElementById('password').value
-                };
-
-                // Validate form data
-                if (!validation.validateForm(formData, validationSchemas.signup)) {
-                    return;
-                }
-
-                try {
-                    const response = await validation.fetchWithCSRF('/api/v1/auth/signup', {
-                        method: 'POST',
-                        body: JSON.stringify(formData)
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        if (errorData.message) {
-                            // Handle server-side validation errors
-                            const validationErrors = errorData.message.split('\n');
-                            validationErrors.forEach(error => {
-                                const match = error.match(/Key: '(\w+)'/);
-                                if (match) {
-                                    const field = match[1].toLowerCase();
-                                    validation.showError(field, error.split('Error:')[1].trim());
-                                }
-                            });
-                        } else {
-                            throw new Error('Signup failed');
-                        }
-                        return;
-                    }
-
-                    // Successful signup
-                    const data = await response.json();
-                    window.location.href = '/login?signup=success';
-                } catch (error) {
-                    console.error('Signup error:', error);
-                    alert('An error occurred during signup. Please try again.');
-                }
-            }
-        </script>
+        <script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/signup.ts") }></script>
     </section>
 } 

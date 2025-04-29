@@ -1,8 +1,12 @@
 package components
 
-templ LoginForm() {
+import (
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+)
+
+templ LoginForm(loginJsPath string) {
     <section class="auth-section">
-        <form class="auth-form" id="loginForm" onsubmit="handleLogin(event)">
+        <form class="auth-form" id="login-form">
             <div class="form-group">
                 <label for="email" class="form-label">
                     Email address
@@ -29,56 +33,6 @@ templ LoginForm() {
             </div>
         </form>
 
-        <script>
-            // Setup real-time validation
-            validation.setupRealTimeValidation('loginForm', validationSchemas.login);
-
-            async function handleLogin(event) {
-                event.preventDefault();
-                validation.clearAllErrors();
-                
-                const formData = {
-                    email: document.getElementById('email').value,
-                    password: document.getElementById('password').value
-                };
-
-                // Validate form data
-                if (!validation.validateForm(formData, validationSchemas.login)) {
-                    return;
-                }
-
-                try {
-                    const response = await validation.fetchWithCSRF('/api/v1/auth/login', {
-                        method: 'POST',
-                        body: JSON.stringify(formData)
-                    });
-
-                    if (!response.ok) {
-                        const errorData = await response.json();
-                        if (errorData.message) {
-                            // Handle server-side validation errors
-                            const validationErrors = errorData.message.split('\n');
-                            validationErrors.forEach(error => {
-                                const match = error.match(/Key: '(\w+)'/);
-                                if (match) {
-                                    const field = match[1].toLowerCase();
-                                    validation.showError(field, error.split('Error:')[1].trim());
-                                }
-                            });
-                        } else {
-                            throw new Error('Login failed');
-                        }
-                        return;
-                    }
-
-                    // Successful login
-                    const data = await response.json();
-                    window.location.href = '/dashboard';
-                } catch (error) {
-                    console.error('Login error:', error);
-                    alert('An error occurred during login. Please try again.');
-                }
-            }
-        </script>
+        <script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/login.ts") }></script>
     </section>
-} 
+}

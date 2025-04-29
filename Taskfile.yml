@@ -52,7 +52,6 @@ tasks:
 
   run:
     desc: Run the application
-    deps: [build]
     cmds:
       - ./bin/server
 
@@ -120,12 +119,13 @@ tasks:
 
   build:
     desc: Build the application
-    deps: [generate, build:frontend]
+    deps: [generate]
     cmds:
+      - task: build:frontend
       - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
 
   build:frontend:
-    desc: Build frontend assets for production
+    desc: Build frontend assets
     cmds:
       - npm run build
 

@@ -209,12 +209,12 @@ func test() {
 ```
 
 ### Type Modernization
-- Use `any` instead of `interface{}` (Go 1.18+)
+- Use `any` instead of `any` (Go 1.18+)
 - Update existing code during refactoring
 ```go
 // Bad
 type Data struct {
-    Values map[string]interface{} `json:"values"`
+    Values map[string]any `json:"values"`
 }
 
 // Good

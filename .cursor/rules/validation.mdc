@@ -55,7 +55,7 @@ Form submissions are validated in [internal/domain/form/model/form_submission.go
 
 2. **Custom Rules**
    ```go
-   validator.RegisterRule("custom", func(value interface{}, ruleValue string) error {
+   validator.RegisterRule("custom", func(value any, ruleValue string) error {
        // Custom validation logic
        return nil
    })

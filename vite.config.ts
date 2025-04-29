@@ -11,7 +11,9 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: resolve(__dirname, 'static/js/main.ts'),
-        validation: resolve(__dirname, 'static/js/validation.ts')
+        validation: resolve(__dirname, 'static/js/validation.ts'),
+        signup: resolve(__dirname, 'static/js/signup.ts'),
+        login: resolve(__dirname, 'static/js/login.ts')
       },
       output: {
         entryFileNames: 'js/[name].[hash].js',

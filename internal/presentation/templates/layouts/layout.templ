@@ -1,14 +1,14 @@
 package layouts
 
 import (
-	t "github.com/a-h/templ"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 )
 
 type PageData struct {
 	Title     string
-	Content   t.Component
+	Content   templ.Component
 	Styles    []string
 	User      *user.User
 	Debug     bool
@@ -43,13 +43,7 @@ templ Layout(data PageData) {
 		@components.Footer()
 		
 		<!-- JavaScript Files -->
-		<script type="module">
-			// Import validation module
-			import '/static/dist/js/validation.js';
-		</script>
-		if data.Debug {
-			<script type="module" src="/static/dist/js/debug.js"></script>
-		}
+		<script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/main.ts") }></script>
 	</body>
 	</html>
 }

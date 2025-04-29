@@ -4,7 +4,7 @@ package validation
 type ValidationRule struct {
 	Field   string
 	Type    string
-	Params  map[string]interface{}
+	Params  map[string]any
 	Message string
 }
 
@@ -22,7 +22,7 @@ func GetSignupSchema() ValidationSchema {
 			{
 				Field:   "username",
 				Type:    "string",
-				Params:  map[string]interface{}{"min": 3, "max": 50, "pattern": "^[a-zA-Z0-9_]+$"},
+				Params:  map[string]any{"min": 3, "max": 50, "pattern": "^[a-zA-Z0-9_]+$"},
 				Message: "Username must be 3-50 characters and can only contain letters, numbers, and underscores",
 			},
 			{
@@ -33,13 +33,13 @@ func GetSignupSchema() ValidationSchema {
 			{
 				Field:   "password",
 				Type:    "password",
-				Params:  map[string]interface{}{"min": 8},
+				Params:  map[string]any{"min": 8},
 				Message: "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
 			},
 			{
 				Field:   "confirmPassword",
 				Type:    "match",
-				Params:  map[string]interface{}{"field": "password"},
+				Params:  map[string]any{"field": "password"},
 				Message: "Passwords do not match",
 			},
 		},

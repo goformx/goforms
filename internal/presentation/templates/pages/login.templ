@@ -3,12 +3,13 @@ package pages
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
 templ Login(data layouts.PageData) {
 	@layouts.Layout(data)
 }
 
-templ LoginContent() {
-	@components.LoginForm()
+templ LoginPage() {
+	@components.LoginForm("/static/dist/js/" + web.GetViteAssetPath("login.js"))
 } 
