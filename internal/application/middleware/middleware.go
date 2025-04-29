@@ -148,7 +148,7 @@ type CSRFConfig struct {
 func getDefaultCSPConfig() CSPConfig {
 	return CSPConfig{
 		DefaultSrc:     []string{"'self'"},
-		ScriptSrc:      []string{"'self'"},
+		ScriptSrc:      []string{"'self'", "https://cdn.jsdelivr.net"},
 		StyleSrc:       []string{"'self'", "'unsafe-inline'"},
 		ImgSrc:         []string{"'self'", "data:"},
 		FontSrc:        []string{"'self'"},
