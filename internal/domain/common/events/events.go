@@ -153,4 +153,4 @@ func (s *InMemoryEventStore) Load(ctx context.Context, aggregateID string) ([]Ev
 	}
 
 	return events, nil
-} 
+}

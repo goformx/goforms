@@ -192,3 +192,50 @@ func (r *Response) Equal(other *Response) bool {
 	}
 	return r.Status == other.Status && r.Message == other.Message && r.Data == other.Data
 }
+
+// JSON sends a JSON response with the given status code and data
+func JSON(c echo.Context, status int, data any) error {
+	return c.JSON(status, data)
+}
+
+// JSONError sends a JSON error response
+func JSONError(c echo.Context, status int, message string) error {
+	return c.JSON(status, map[string]string{
+		"error": message,
+	})
+}
+
+// JSONSuccess sends a JSON success response
+func JSONSuccess(c echo.Context, message string) error {
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": message,
+	})
+}
+
+// JSONCreated sends a JSON created response
+func JSONCreated(c echo.Context, message string) error {
+	return c.JSON(http.StatusCreated, map[string]string{
+		"message": message,
+	})
+}
+
+// JSONNotFound sends a JSON not found response
+func JSONNotFound(c echo.Context, message string) error {
+	return c.JSON(http.StatusNotFound, map[string]string{
+		"error": message,
+	})
+}
+
+// JSONUnauthorized sends a JSON unauthorized response
+func JSONUnauthorized(c echo.Context, message string) error {
+	return c.JSON(http.StatusUnauthorized, map[string]string{
+		"error": message,
+	})
+}
+
+// JSONForbidden sends a JSON forbidden response
+func JSONForbidden(c echo.Context, message string) error {
+	return c.JSON(http.StatusForbidden, map[string]string{
+		"error": message,
+	})
+}

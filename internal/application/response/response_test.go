@@ -1,143 +1,139 @@
-package response
+package response_test
 
 import (
-	"encoding/json"
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+
+	"github.com/jonesrussell/goforms/internal/application/response"
 )
 
-func TestSuccess(t *testing.T) {
+func TestJSON(t *testing.T) {
 	// Setup
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	// Test success response
-	err := Success(c, "value")
-	assert.NoError(t, err)
+	// Test
+	err := response.JSON(c, http.StatusOK, map[string]string{"message": "test"})
+	require.NoError(t, err)
 
-	var response Response
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "success", response.Status)
-	assert.Equal(t, "value", response.Data)
-
-	// Test error response
-	rec = httptest.NewRecorder()
-	c = e.NewContext(req, rec)
-
-	err = BadRequest(c, "test error")
-	assert.NoError(t, err)
-
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "error", response.Status)
-	assert.Equal(t, "test error", response.Message)
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "application/json; charset=UTF-8", rec.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"message":"test"}`, rec.Body.String())
 }
 
-func TestCreated(t *testing.T) {
+func TestJSONError(t *testing.T) {
+	// Setup
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodPost, "/", nil)
+	req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	err := Created(c, "value")
-	assert.NoError(t, err)
+	// Test
+	err := response.JSONError(c, http.StatusBadRequest, "test error")
+	require.NoError(t, err)
 
-	var response Response
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "success", response.Status)
-	assert.Equal(t, "value", response.Data)
-	assert.Equal(t, http.StatusCreated, rec.Code)
-}
-
-func TestBadRequest(t *testing.T) {
-	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := BadRequest(c, "invalid input")
-	assert.NoError(t, err)
-
-	var response Response
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "error", response.Status)
-	assert.Equal(t, "invalid input", response.Message)
+	// Assert
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, "application/json; charset=UTF-8", rec.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"error":"test error"}`, rec.Body.String())
 }
 
-func TestNotFound(t *testing.T) {
+func TestJSONSuccess(t *testing.T) {
+	// Setup
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	err := NotFound(c, "resource not found")
-	assert.NoError(t, err)
+	// Test
+	err := response.JSONSuccess(c, "test success")
+	require.NoError(t, err)
 
-	var response Response
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "error", response.Status)
-	assert.Equal(t, "resource not found", response.Message)
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "application/json; charset=UTF-8", rec.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"message":"test success"}`, rec.Body.String())
+}
+
+func TestJSONCreated(t *testing.T) {
+	// Setup
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Test
+	err := response.JSONCreated(c, "test created")
+	require.NoError(t, err)
+
+	// Assert
+	require.NoError(t, err)
+	assert.Equal(t, http.StatusCreated, rec.Code)
+	assert.Equal(t, "application/json; charset=UTF-8", rec.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"message":"test created"}`, rec.Body.String())
+}
+
+func TestJSONNotFound(t *testing.T) {
+	// Setup
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Test
+	err := response.JSONNotFound(c, "test not found")
+	require.NoError(t, err)
+
+	// Assert
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Equal(t, "application/json; charset=UTF-8", rec.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"error":"test not found"}`, rec.Body.String())
 }
 
-func TestInternalError(t *testing.T) {
+func TestJSONUnauthorized(t *testing.T) {
+	// Setup
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	err := InternalError(c, "server error")
-	assert.NoError(t, err)
+	// Test
+	err := response.JSONUnauthorized(c, "test unauthorized")
+	require.NoError(t, err)
 
-	var response Response
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "error", response.Status)
-	assert.Equal(t, "server error", response.Message)
-	assert.Equal(t, http.StatusInternalServerError, rec.Code)
-}
-
-func TestUnauthorized(t *testing.T) {
-	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	err := Unauthorized(c, "unauthorized access")
-	assert.NoError(t, err)
-
-	var response Response
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "error", response.Status)
-	assert.Equal(t, "unauthorized access", response.Message)
+	// Assert
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusUnauthorized, rec.Code)
+	assert.Equal(t, "application/json; charset=UTF-8", rec.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"error":"test unauthorized"}`, rec.Body.String())
 }
 
-func TestForbidden(t *testing.T) {
+func TestJSONForbidden(t *testing.T) {
+	// Setup
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	err := Forbidden(c, "access denied")
-	assert.NoError(t, err)
+	// Test
+	err := response.JSONForbidden(c, "test forbidden")
+	require.NoError(t, err)
 
-	var response Response
-	err = json.Unmarshal(rec.Body.Bytes(), &response)
-	assert.NoError(t, err)
-	assert.Equal(t, "error", response.Status)
-	assert.Equal(t, "access denied", response.Message)
+	// Assert
+	require.NoError(t, err)
 	assert.Equal(t, http.StatusForbidden, rec.Code)
+	assert.Equal(t, "application/json; charset=UTF-8", rec.Header().Get("Content-Type"))
+	assert.JSONEq(t, `{"error":"test forbidden"}`, rec.Body.String())
 }

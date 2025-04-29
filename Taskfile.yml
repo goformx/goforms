@@ -97,6 +97,12 @@ tasks:
     cmds:
       - go test -v -json -test.timeout=5m ./internal/domain/...
 
+  test:integration:
+    desc: Run integration tests with Go 1.24 features
+    deps: [generate]
+    cmds:
+      - go test -v -json -test.timeout=5m ./internal/infrastructure/...
+
   build:
     desc: Build the application
     deps: [generate]

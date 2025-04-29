@@ -55,7 +55,12 @@ type FormValidatedEvent struct {
 }
 
 // NewFormValidatedEvent creates a new form validated event
-func NewFormValidatedEvent(formID string, submission *model.FormSubmission, isValid bool, errors []error) *FormValidatedEvent {
+func NewFormValidatedEvent(
+	formID string,
+	submission *model.FormSubmission,
+	isValid bool,
+	errors []error,
+) *FormValidatedEvent {
 	return &FormValidatedEvent{
 		BaseEvent:   events.NewBaseEvent(string(FormValidatedEventType)),
 		FormID:      formID,
@@ -110,22 +115,22 @@ func (e *FormProcessedEvent) Data() any {
 // FormErrorEvent represents a form error event
 type FormErrorEvent struct {
 	events.BaseEvent
-	FormID      string
-	Submission  *model.FormSubmission
-	Error       error
-	OccurredAt  time.Time
-	ErrorType   string
+	FormID     string
+	Submission *model.FormSubmission
+	Error      error
+	OccurredAt time.Time
+	ErrorType  string
 }
 
 // NewFormErrorEvent creates a new form error event
 func NewFormErrorEvent(formID string, submission *model.FormSubmission, err error, errorType string) *FormErrorEvent {
 	return &FormErrorEvent{
-		BaseEvent:   events.NewBaseEvent(string(FormErrorEventType)),
-		FormID:      formID,
-		Submission:  submission,
-		Error:       err,
-		OccurredAt:  time.Now(),
-		ErrorType:   errorType,
+		BaseEvent:  events.NewBaseEvent(string(FormErrorEventType)),
+		FormID:     formID,
+		Submission: submission,
+		Error:      err,
+		OccurredAt: time.Now(),
+		ErrorType:  errorType,
 	}
 }
 
@@ -138,4 +143,4 @@ func (e *FormErrorEvent) Data() any {
 		"occurred_at": e.OccurredAt,
 		"error_type":  e.ErrorType,
 	}
-} 
+}

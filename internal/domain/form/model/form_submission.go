@@ -9,12 +9,12 @@ import (
 
 // FormSubmission represents a form submission
 type FormSubmission struct {
-	ID          string                 `json:"id" validate:"required"`
-	FormID      string                 `json:"form_id" validate:"required"`
-	Data        map[string]any `json:"data" validate:"required"`
-	SubmittedAt time.Time             `json:"submitted_at" validate:"required"`
-	Status      SubmissionStatus      `json:"status" validate:"required"`
-	Metadata    map[string]string     `json:"metadata"`
+	ID          string            `json:"id" validate:"required"`
+	FormID      string            `json:"form_id" validate:"required"`
+	Data        map[string]any    `json:"data" validate:"required"`
+	SubmittedAt time.Time         `json:"submitted_at" validate:"required"`
+	Status      SubmissionStatus  `json:"status" validate:"required"`
+	Metadata    map[string]string `json:"metadata"`
 }
 
 // SubmissionStatus represents the status of a form submission
@@ -91,4 +91,4 @@ func (s *FormSubmission) GetMetadata(key string) string {
 // generateSubmissionID generates a unique submission ID
 func generateSubmissionID() string {
 	return time.Now().Format("20060102150405.000000000")
-} 
+}

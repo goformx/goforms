@@ -9,30 +9,33 @@ type ErrorCode string
 
 const (
 	// Validation errors
-	ErrCodeValidation        ErrorCode = "VALIDATION_ERROR"
-	ErrCodeRequiredField     ErrorCode = "REQUIRED_FIELD"
-	ErrCodeInvalidFormat     ErrorCode = "INVALID_FORMAT"
-	ErrCodeInvalidValue      ErrorCode = "INVALID_VALUE"
+	ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
+	ErrCodeRequiredField ErrorCode = "REQUIRED_FIELD"
+	ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
+	ErrCodeInvalidValue  ErrorCode = "INVALID_VALUE"
 
 	// Authentication errors
-	ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
-	ErrCodeInvalidToken     ErrorCode = "INVALID_TOKEN"
-	ErrCodeTokenExpired     ErrorCode = "TOKEN_EXPIRED"
-	ErrCodeInvalidCredentials ErrorCode = "INVALID_CREDENTIALS"
+	ErrCodeUnauthorized   ErrorCode = "UNAUTHORIZED"
+	ErrCodeInvalidToken   ErrorCode = "INVALID_TOKEN"
+	ErrCodeTokenExpired   ErrorCode = "TOKEN_EXPIRED"
+	ErrCodeAuthentication ErrorCode = "AUTHENTICATION_ERROR"
 
 	// Authorization errors
 	ErrCodeForbidden        ErrorCode = "FORBIDDEN"
 	ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
 
 	// Resource errors
-	ErrCodeNotFound         ErrorCode = "NOT_FOUND"
-	ErrCodeAlreadyExists    ErrorCode = "ALREADY_EXISTS"
-	ErrCodeConflict         ErrorCode = "CONFLICT"
+	ErrCodeNotFound      ErrorCode = "NOT_FOUND"
+	ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
+	ErrCodeConflict      ErrorCode = "CONFLICT"
 
 	// System errors
-	ErrCodeInternal         ErrorCode = "INTERNAL_ERROR"
-	ErrCodeDatabase         ErrorCode = "DATABASE_ERROR"
-	ErrCodeTimeout          ErrorCode = "TIMEOUT"
+	ErrCodeInternal ErrorCode = "INTERNAL_ERROR"
+	ErrCodeDatabase ErrorCode = "DATABASE_ERROR"
+	ErrCodeTimeout  ErrorCode = "TIMEOUT"
+
+	// New error codes
+	ErrCodeInvalidInput ErrorCode = "INVALID_INPUT"
 )
 
 // DomainError represents a domain-specific error
@@ -94,18 +97,18 @@ func (e *DomainError) Is(target error) bool {
 
 // Validation errors
 var (
-	ErrValidation        = New(ErrCodeValidation, "validation error")
-	ErrRequiredField     = New(ErrCodeRequiredField, "field is required")
-	ErrInvalidFormat     = New(ErrCodeInvalidFormat, "invalid format")
-	ErrInvalidValue      = New(ErrCodeInvalidValue, "invalid value")
+	ErrValidation    = New(ErrCodeValidation, "validation error")
+	ErrRequiredField = New(ErrCodeRequiredField, "field is required")
+	ErrInvalidFormat = New(ErrCodeInvalidFormat, "invalid format")
+	ErrInvalidValue  = New(ErrCodeInvalidValue, "invalid value")
 )
 
 // Authentication errors
 var (
-	ErrUnauthorized     = New(ErrCodeUnauthorized, "unauthorized")
-	ErrInvalidToken     = New(ErrCodeInvalidToken, "invalid token")
-	ErrTokenExpired     = New(ErrCodeTokenExpired, "token expired")
-	ErrInvalidCredentials = New(ErrCodeInvalidCredentials, "invalid credentials")
+	ErrUnauthorized   = New(ErrCodeUnauthorized, "unauthorized")
+	ErrInvalidToken   = New(ErrCodeInvalidToken, "invalid token")
+	ErrTokenExpired   = New(ErrCodeTokenExpired, "token expired")
+	ErrAuthentication = New(ErrCodeAuthentication, "authentication error")
 )
 
 // Authorization errors
@@ -116,14 +119,14 @@ var (
 
 // Resource errors
 var (
-	ErrNotFound         = New(ErrCodeNotFound, "resource not found")
-	ErrAlreadyExists    = New(ErrCodeAlreadyExists, "resource already exists")
-	ErrConflict         = New(ErrCodeConflict, "resource conflict")
+	ErrNotFound      = New(ErrCodeNotFound, "resource not found")
+	ErrAlreadyExists = New(ErrCodeAlreadyExists, "resource already exists")
+	ErrConflict      = New(ErrCodeConflict, "resource conflict")
 )
 
 // System errors
 var (
-	ErrInternal         = New(ErrCodeInternal, "internal error")
-	ErrDatabase         = New(ErrCodeDatabase, "database error")
-	ErrTimeout          = New(ErrCodeTimeout, "operation timed out")
-) 
+	ErrInternal = New(ErrCodeInternal, "internal error")
+	ErrDatabase = New(ErrCodeDatabase, "database error")
+	ErrTimeout  = New(ErrCodeTimeout, "operation timed out")
+)
