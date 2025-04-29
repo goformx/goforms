@@ -1,15 +1,59 @@
 @layer base {
     :root {
-        /* Colors */
+        /* Color System */
         --primary: #2563eb;
         --primary-dark: #1d4ed8;
         --secondary: #4f46e5;
         --accent: #8b5cf6;
+        
+        /* Light Mode (default) */
         --background: #ffffff;
+        --background-alt: #f8fafc;
         --text: #1f2937;
         --text-light: #6b7280;
-        --text-primary: var(--text);
+        --text-muted: #9ca3af;
         --border-color: #e5e7eb;
+        --card-bg: #ffffff;
+        --card-border: 1px solid var(--border-color);
+        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+        
+        /* Dark Mode */
+        @media (prefers-color-scheme: dark) {
+            --background: #0f172a;
+            --background-alt: #1e293b;
+            --text: #f1f5f9;
+            --text-light: #94a3b8;
+            --text-muted: #64748b;
+            --border-color: #334155;
+            --card-bg: #1e293b;
+            --card-border: 1px solid var(--border-color);
+            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+        }
+
+        /* Typography */
+        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
+        --font-size-xs: 0.75rem;
+        --font-size-sm: 0.875rem;
+        --font-size-base: 1rem;
+        --font-size-lg: 1.125rem;
+        --font-size-xl: 1.25rem;
+        --font-size-2xl: 1.5rem;
+        --font-size-3xl: 1.875rem;
+        --font-size-4xl: 2.25rem;
+        --font-size-5xl: 3rem;
+        --font-weight-normal: 400;
+        --font-weight-medium: 500;
+        --font-weight-semibold: 600;
+        --font-weight-bold: 700;
+        --line-height-none: 1;
+        --line-height-tight: 1.25;
+        --line-height-snug: 1.375;
+        --line-height-normal: 1.5;
+        --line-height-relaxed: 1.625;
+        --line-height-loose: 2;
 
         /* Spacing */
         --spacing-1: 0.25rem;
@@ -38,9 +82,9 @@
 
         /* Navigation */
         --nav-height: 70px;
-        --nav-background: rgba(255, 255, 255, 0.8);
+        --nav-background: var(--background);
         --nav-backdrop-blur: 10px;
-        --nav-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+        --nav-shadow: var(--shadow-sm);
         --nav-z-index: 1000;
         --nav-logo-size: 1.5rem;
         --nav-logo-weight: 700;
@@ -112,26 +156,23 @@
         --form-input-padding-y: 0.875rem;
         --form-input-padding-x: 1rem;
         --form-input-radius: 0.5rem;
-        --form-input-border: 1px solid rgba(255, 255, 255, 0.1);
-        --form-input-bg: rgba(15, 23, 42, 0.5);
-        --form-input-color: var(--text-primary);
+        --form-input-border: 1px solid var(--border-color);
+        --form-input-bg: var(--background);
+        --form-input-color: var(--text);
         --form-input-size: 1rem;
         --form-transition-duration: 0.2s;
         --form-transition-timing: ease;
         --form-focus-border: var(--primary);
         --form-focus-ring: rgba(66, 153, 225, 0.15);
         --form-focus-ring-size: 3px;
-        --form-focus-bg: rgba(15, 23, 42, 0.7);
+        --form-focus-bg: var(--background-alt);
         --form-textarea-min-height: 120px;
 
         /* Cards */
-        --card-bg: #ffffff;
         --card-padding: 2rem;
         --card-padding-mobile: 1.5rem;
-        --card-radius: var(--border-radius);
-        --card-border: 1px solid var(--border-color);
+        --card-radius: 12px;
         --card-backdrop-blur: 8px;
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
 
         /* Features */
         --features-padding-y: 5rem;
