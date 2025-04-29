@@ -3,6 +3,8 @@ package pages
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
+	t "github.com/a-h/templ"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
 templ Demo(data layouts.PageData) {
@@ -67,5 +69,5 @@ templ DemoContent() {
 			</div>
 		</div>
 	</section>
-	<script src="/static/js/demo.js"></script>
+	<script src={ "/static/" + web.GetAssetPath("demo.js") }></script>
 } 

@@ -1,0 +1,17 @@
+{
+  "js/main.ts": {
+    "file": "js/main.0hOjEHIP.js",
+    "name": "main",
+    "src": "js/main.ts",
+    "isEntry": true,
+    "imports": [
+      "js/validation.ts"
+    ]
+  },
+  "js/validation.ts": {
+    "file": "js/validation.Bn33lLXd.js",
+    "name": "validation",
+    "src": "js/validation.ts",
+    "isEntry": true
+  }
+}

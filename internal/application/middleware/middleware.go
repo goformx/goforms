@@ -13,6 +13,8 @@ import (
 const (
 	// NonceSize is the size of the nonce in bytes (32 bytes = 256 bits)
 	NonceSize = 32
+	// HSTSOneYear is the number of seconds in one year
+	HSTSOneYear = 31536000
 )
 
 // Manager handles middleware configuration and setup
@@ -57,10 +59,15 @@ func (m *Manager) Setup(e *echo.Echo) {
 		XSSProtection:         "1; mode=block",
 		ContentTypeNosniff:    "nosniff",
 		XFrameOptions:         "DENY",
-		HSTSMaxAge:           31536000,
+		HSTSMaxAge:            HSTSOneYear,
 		HSTSExcludeSubdomains: false,
-		ContentSecurityPolicy: "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data:; font-src 'self'; connect-src 'self'",
-		ReferrerPolicy:        "strict-origin-when-cross-origin",
+		ContentSecurityPolicy: "default-src 'self'; " +
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
+			"style-src 'self' 'unsafe-inline'; " +
+			"img-src 'self' data:; " +
+			"font-src 'self'; " +
+			"connect-src 'self'",
+		ReferrerPolicy: "strict-origin-when-cross-origin",
 	}))
 
 	// CORS

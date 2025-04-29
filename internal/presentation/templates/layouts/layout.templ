@@ -43,10 +43,12 @@ templ Layout(data PageData) {
 		@components.Footer()
 		
 		<!-- JavaScript Files -->
-		<script src="https://cdn.jsdelivr.net/npm/zod@3.22.4/lib/index.umd.min.js"></script>
-		<script src="/static/js/validation.js"></script>
+		<script type="module">
+			// Import validation module
+			import '/static/js/validation.js';
+		</script>
 		if data.Debug {
-			<script src="/static/js/debug.js"></script>
+			<script type="module" src="/static/js/debug.js"></script>
 		}
 	</body>
 	</html>

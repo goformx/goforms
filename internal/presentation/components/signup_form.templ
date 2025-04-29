@@ -44,7 +44,9 @@ templ SignupForm() {
             </div>
         </form>
 
-        <script>
+        <script type="module">
+            import { validation, validationSchemas } from '/static/js/validation.js';
+            
             // Setup real-time validation
             validation.setupRealTimeValidation('signupForm', validationSchemas.signup);
 

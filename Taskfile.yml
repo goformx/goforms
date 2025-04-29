@@ -43,11 +43,13 @@ tasks:
       - go install github.com/a-h/templ/cmd/templ@latest
       - go install github.com/air-verse/air@latest
       - export PATH=$PATH:$(go env GOPATH)/bin
+      - npm install
 
   generate:
-    desc: Generate code from templates
+    desc: Generate code from templates and frontend assets
     cmds:
       - $(go env GOPATH)/bin/templ generate ./internal/...
+      - npm run build
 
   run:
     desc: Run the application
@@ -61,16 +63,30 @@ tasks:
     cmds:
       - air
 
+  dev:frontend:
+    desc: Run Vite development server
+    cmds:
+      - npm run dev
+
+  dev:all:
+    desc: Run both backend and frontend in development mode
+    cmds:
+      - task: dev
+      - task: dev:frontend
+
   clean:
     desc: Clean build artifacts
     cmds:
       - rm -rf bin/
       - rm -f coverage.out
       - rm -f coverage.html
+      - rm -rf dist/
+      - rm -rf node_modules/
 
   lint:
     desc: Run linters
     cmds:
+      - golangci-lint fmt ./...
       - go vet ./...
       - golangci-lint run
 
@@ -105,25 +121,30 @@ tasks:
 
   build:
     desc: Build the application
-    deps: [generate]
+    deps: [generate, build:frontend]
     cmds:
       - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
 
+  build:frontend:
+    desc: Build frontend assets for production
+    cmds:
+      - npm run build
+
   build:linux:
     desc: Build for Linux
-    deps: [generate]
+    deps: [generate, build:frontend]
     cmds:
       - GOOS=linux GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-linux-amd64 ./cmd/goforms
 
   build:darwin:
     desc: Build for macOS
-    deps: [generate]
+    deps: [generate, build:frontend]
     cmds:
       - GOOS=darwin GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-darwin-amd64 ./cmd/goforms
 
   build:windows:
     desc: Build for Windows
-    deps: [generate]
+    deps: [generate, build:frontend]
     cmds:
       - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/goforms
 
