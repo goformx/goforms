@@ -1,0 +1,112 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# API Development Guidelines
+
+This project uses Echo framework for API development. All endpoints should follow these guidelines.
+
+## API Structure
+1. **Route Organization**
+   - Group routes by feature
+   - Use /v1 prefix for all endpoints
+   - Example:
+   ```go
+   v1 := e.Group("/v1")
+   users := v1.Group("/users")
+   users.POST("", h.CreateUser)
+   users.GET("/:id", h.GetUser)
+   ```
+
+2. **Handler Structure**
+   ```go
+   func (h *Handler) CreateUser(c echo.Context) error {
+       ctx := c.Request().Context()
+       var req CreateUserRequest
+       
+       if err := c.Bind(&req); err != nil {
+           return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+       }
+       
+       if err := h.validator.ValidateStruct(req); err != nil {
+           return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+       }
+       
+       user, err := h.service.CreateUser(ctx, req)
+       if err != nil {
+           return h.handleError(err)
+       }
+       
+       return c.JSON(http.StatusCreated, user)
+   }
+   ```
+
+## Request/Response Handling
+1. **Request Validation**
+   - Use struct tags for validation
+   - Example: [internal/domain/user/model.go](mdc:internal/domain/user/model.go)
+   ```go
+   type CreateUserRequest struct {
+       Email     string `json:"email" validate:"required,email"`
+       Password  string `json:"password" validate:"required,min=8"`
+       FirstName string `json:"first_name" validate:"required"`
+       LastName  string `json:"last_name" validate:"required"`
+   }
+   ```
+
+2. **Error Responses**
+   - Use consistent error format
+   - Include appropriate status codes
+   - Example:
+   ```go
+   type ErrorResponse struct {
+       Code    int    `json:"code"`
+       Message string `json:"message"`
+   }
+   ```
+
+## Authentication/Authorization
+1. **JWT Authentication**
+   - Use JWT for stateless authentication
+   - Include proper token validation
+   - Example: [internal/domain/user/service.go](mdc:internal/domain/user/service.go)
+
+2. **Middleware**
+   ```go
+   func AuthMiddleware(next echo.HandlerFunc) echo.HandlerFunc {
+       return func(c echo.Context) error {
+           token := c.Request().Header.Get("Authorization")
+           // Validate token
+           return next(c)
+       }
+   }
+   ```
+
+## Documentation
+1. **OpenAPI/Swagger**
+   - Document all endpoints
+   - Include request/response examples
+   - Example:
+   ```go
+   // @Summary Create user
+   // @Description Create a new user
+   // @Tags users
+   // @Accept json
+   // @Produce json
+   // @Param user body CreateUserRequest true "User info"
+   // @Success 201 {object} User
+   // @Failure 400 {object} ErrorResponse
+   // @Router /v1/users [post]
+   ```
+
+## Rate Limiting
+```go
+config := middleware.RateLimiterConfig{
+    Store: middleware.NewRateLimiterMemoryStore(20),
+    IdentifierExtractor: func(ctx echo.Context) (string, error) {
+        return ctx.RealIP(), nil
+    },
+}
+e.Use(middleware.RateLimiterWithConfig(config))
+```

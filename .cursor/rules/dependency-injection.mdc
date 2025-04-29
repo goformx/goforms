@@ -1,0 +1,70 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Dependency Injection Guidelines
+
+This project uses Uber's fx framework for dependency injection. All components should follow these guidelines:
+
+## Module Organization
+- Each logical group of components should have a `module.go` file
+- Use `fx.Module` to group related components
+- Example module structure:
+```go
+fx.Module("user",
+    fx.Provide(
+        NewUserService,
+        fx.Annotate(
+            NewUserStore,
+            fx.As(new(user.Store)),
+        ),
+    ),
+)
+```
+
+## Key Principles
+1. **Component Definition**
+   - Define clear component lifecycles
+   - Use constructor injection
+   - Return interfaces instead of concrete types
+   - Example:
+   ```go
+   func NewUserService(store user.Store, logger logging.Logger) user.Service {
+       return &ServiceImpl{...}
+   }
+   ```
+
+2. **Interface Abstraction**
+   - Use `fx.As` to bind implementations to interfaces
+   - Example:
+   ```go
+   fx.Provide(
+       fx.Annotate(
+           NewUserStore,
+           fx.As(new(user.Store)),
+       ),
+   )
+   ```
+
+3. **Lifecycle Management**
+   - Use `fx.Invoke` for initialization logic
+   - Handle startup/shutdown gracefully
+   - Example:
+   ```go
+   fx.Invoke(func(lc fx.Lifecycle, server *http.Server) {
+       lc.Append(fx.Hook{
+           OnStart: func(ctx context.Context) error {
+               return server.Start()
+           },
+           OnStop: func(ctx context.Context) error {
+               return server.Shutdown(ctx)
+           },
+       })
+   })
+   ```
+
+## Module Examples
+1. **Database Module** [internal/infrastructure/database/module.go](mdc:internal/infrastructure/database/module.go)
+2. **User Module** [internal/domain/user/module.go](mdc:internal/domain/user/module.go)
+3. **Store Module** [internal/infrastructure/persistence/store/module.go](mdc:internal/infrastructure/persistence/store/module.go)

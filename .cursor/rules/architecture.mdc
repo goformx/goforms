@@ -1,0 +1,54 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Clean Architecture Guidelines
+
+This project follows a strict clean architecture approach with clear separation of concerns:
+
+## Layer Organization
+- **Domain Layer**: Contains business logic and interfaces
+  - Located in [internal/domain](mdc:internal/domain)
+  - Defines core business rules and interfaces
+  - No external dependencies allowed
+
+- **Infrastructure Layer**: Contains external implementations
+  - Located in [internal/infrastructure](mdc:internal/infrastructure)
+  - Implements domain interfaces
+  - Handles external concerns (database, logging, etc.)
+
+- **Application Layer**: Handles use case orchestration
+  - Located in [internal/application](mdc:internal/application)
+  - Coordinates between domain and infrastructure
+  - Manages business workflows
+
+- **Presentation Layer**: Handles UI/API concerns
+  - Located in [internal/presentation](mdc:internal/presentation)
+  - Implements HTTP handlers and API endpoints
+  - Uses Echo framework for routing
+
+## Key Principles
+1. Dependencies flow inward (domain ← application ← infrastructure/presentation)
+2. Domain layer has no external dependencies
+3. Each package must have a README.md describing its purpose
+4. Interfaces are defined in domain layer
+5. Implementations reside in infrastructure layer
+
+## Package Structure
+Example domain package structure:
+```
+internal/domain/user/
+├── model.go       # Domain entities and interfaces
+├── service.go     # Business logic implementation
+├── errors.go      # Domain-specific errors
+└── README.md      # Package documentation
+```
+
+Example infrastructure package structure:
+```
+internal/infrastructure/persistence/store/
+├── module.go      # DI module definition
+├── store.go       # Store implementation
+└── README.md      # Package documentation
+```
