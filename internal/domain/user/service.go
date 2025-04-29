@@ -78,14 +78,33 @@ func NewService(store Store, logger logging.Logger, jwtSecret string) Service {
 
 // SignUp registers a new user
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
+	s.logger.Debug("starting signup process", 
+		logging.String("email", signup.Email),
+		logging.String("first_name", signup.FirstName),
+		logging.String("last_name", signup.LastName),
+	)
+
 	// Check if email already exists
 	existingUser, err := s.store.GetByEmail(ctx, signup.Email)
-	if err != nil && !errors.Is(err, ErrUserNotFound) {
-		return nil, fmt.Errorf("failed to check user existence: %w", err)
+	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			s.logger.Debug("user not found, proceeding with signup", 
+				logging.String("email", signup.Email),
+			)
+		}
 	}
 	if existingUser != nil {
+		s.logger.Debug("user already exists", logging.String("email", existingUser.Email))
 		return nil, ErrUserExists
 	}
+
+	s.logger.Debug("proceeding with signup", 
+		logging.String("email", signup.Email),
+		logging.String("first_name", signup.FirstName),
+		logging.String("last_name", signup.LastName),
+	)
+
+	s.logger.Debug("creating new user")
 
 	// Create user
 	user := &User{
@@ -100,13 +119,20 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 
 	// Set password
 	if pwErr := user.SetPassword(signup.Password); pwErr != nil {
+		s.logger.Error("failed to set password", logging.Error(pwErr))
 		return nil, fmt.Errorf("failed to set password: %w", pwErr)
 	}
 
 	// Save user
 	if createErr := s.store.Create(ctx, user); createErr != nil {
+		s.logger.Error("failed to create user in store", logging.Error(createErr))
 		return nil, fmt.Errorf("failed to create user: %w", createErr)
 	}
+
+	s.logger.Debug("user created successfully", 
+		logging.Uint("id", user.ID),
+		logging.String("email", user.Email),
+	)
 
 	return user, nil
 }
@@ -333,11 +359,11 @@ func (s *ServiceImpl) GetUserByID(ctx context.Context, id uint) (*User, error) {
 func (s *ServiceImpl) GetUserByEmail(ctx context.Context, email string) (*User, error) {
 	user, err := s.store.GetByEmail(ctx, email)
 	if err != nil {
+		if errors.Is(err, ErrUserNotFound) {
+			return nil, ErrUserNotFound
+		}
 		s.logger.Error("failed to get user by email", logging.Error(err))
 		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-	if user == nil {
-		return nil, ErrUserNotFound
 	}
 	return user, nil
 }

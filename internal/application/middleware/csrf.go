@@ -1,8 +1,6 @@
 package middleware
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"net/http"
 	"time"
 
@@ -38,12 +36,7 @@ func DefaultCSRFConfig() CSRFMiddlewareConfig {
 	}
 }
 
-// generateToken generates a random token of the specified length
-func generateToken(length uint8) string {
-	b := make([]byte, length)
-	rand.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
-}
+
 
 // CSRF returns middleware for CSRF protection
 func CSRF() echo.MiddlewareFunc {

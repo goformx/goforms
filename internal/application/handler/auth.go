@@ -2,7 +2,6 @@ package handler
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -82,7 +81,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
-	h.Logger.Debug("signup attempt", 
+	h.Logger.Debug("received signup request", 
 		logging.String("email", signup.Email),
 		logging.String("first_name", signup.FirstName),
 		logging.String("last_name", signup.LastName),
@@ -93,15 +92,24 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	h.Logger.Debug("calling user service SignUp")
 	newUser, err := h.userService.SignUp(c.Request().Context(), &signup)
 	if err != nil {
-		h.LogError("failed to create user", err)
-		if errors.Is(err, user.ErrEmailAlreadyExists) {
+		h.Logger.Debug("SignUp returned error", logging.Error(err))
+		
+		switch {
+		case errors.Is(err, user.ErrUserExists):
 			return echo.NewHTTPError(http.StatusConflict, "Email already exists")
+		default:
+			h.Logger.Error("unexpected error during signup", logging.Error(err))
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user")
 		}
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("Failed to create user: %v", err))
 	}
 
+	h.Logger.Debug("signup successful", 
+		logging.Uint("user_id", newUser.ID),
+		logging.String("email", newUser.Email),
+	)
 	return c.JSON(http.StatusCreated, newUser)
 }
 

@@ -108,6 +108,10 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 		WHERE email = ?
 	`
 
+	s.logger.Debug("getting user by email", 
+		logging.String("email", email),
+	)
+
 	var u user.User
 	err := s.db.QueryRowContext(ctx, query, email).Scan(
 		&u.ID,
@@ -122,12 +126,23 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 	)
 
 	if err == sql.ErrNoRows {
+		s.logger.Debug("user not found by email", 
+			logging.String("email", email),
+		)
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
+		s.logger.Error("failed to get user by email", 
+			logging.Error(err),
+			logging.String("email", email),
+		)
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
+	s.logger.Debug("user found by email", 
+		logging.Uint("id", u.ID),
+		logging.String("email", u.Email),
+	)
 	return &u, nil
 }
 
