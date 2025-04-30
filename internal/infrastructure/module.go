@@ -94,42 +94,65 @@ var Module = fx.Options(
 	AsHandler(func(p HandlerParams) *ah.DashboardHandler {
 		return ah.NewDashboardHandler(p.Logger, p.Renderer, p.UserService, p.FormService)
 	}),
-	AsHandler(func(p HandlerParams) *handler.WebHandler {
+	AsHandler(func(p HandlerParams) (h.Handler, error) {
 		handler, err := handler.NewWebHandler(p.Logger,
 			handler.WithRenderer(p.Renderer),
 			handler.WithContactService(p.ContactService),
 			handler.WithWebSubscriptionService(p.SubscriptionService),
 		)
 		if err != nil {
-			p.Logger.Error("failed to create web handler", logging.Error(err))
-			return nil
+			return nil, fmt.Errorf("failed to create web handler: %w", err)
 		}
-		return handler
+		return handler, nil
 	}),
 )
 
 // NewStores creates all database stores.
 // This function is responsible for initializing all database stores
 // and providing them to the fx container.
-func NewStores(db *database.Database, logger logging.Logger) Stores {
-	logger.Debug("creating database stores",
-		logging.Bool("database_available", db != nil),
+func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
+	if db == nil {
+		return Stores{}, fmt.Errorf("database connection is nil")
+	}
+
+	logger.Debug("initializing database stores",
 		logging.String("database_type", fmt.Sprintf("%T", db)),
 	)
 
-	stores := Stores{
-		ContactStore:      store.NewContactStore(db, logger),
-		SubscriptionStore: store.NewSubscriptionStore(db, logger),
-		UserStore:         store.NewUserStore(db, logger),
-		FormStore:         formstore.NewStore(db, logger),
+	// Create stores with error handling
+	contactStore := store.NewContactStore(db, logger)
+	if contactStore == nil {
+		return Stores{}, fmt.Errorf("failed to create contact store")
 	}
 
-	logger.Debug("database stores created",
-		logging.Bool("contact_store_available", stores.ContactStore != nil),
-		logging.Bool("subscription_store_available", stores.SubscriptionStore != nil),
-		logging.Bool("user_store_available", stores.UserStore != nil),
-		logging.Bool("form_store_available", stores.FormStore != nil),
+	subscriptionStore := store.NewSubscriptionStore(db, logger)
+	if subscriptionStore == nil {
+		return Stores{}, fmt.Errorf("failed to create subscription store")
+	}
+
+	userStore := store.NewUserStore(db, logger)
+	if userStore == nil {
+		return Stores{}, fmt.Errorf("failed to create user store")
+	}
+
+	formStore := formstore.NewStore(db, logger)
+	if formStore == nil {
+		return Stores{}, fmt.Errorf("failed to create form store")
+	}
+
+	stores := Stores{
+		ContactStore:      contactStore,
+		SubscriptionStore: subscriptionStore,
+		UserStore:         userStore,
+		FormStore:         formStore,
+	}
+
+	logger.Debug("successfully initialized all database stores",
+		logging.String("contact_store_type", fmt.Sprintf("%T", stores.ContactStore)),
+		logging.String("subscription_store_type", fmt.Sprintf("%T", stores.SubscriptionStore)),
+		logging.String("user_store_type", fmt.Sprintf("%T", stores.UserStore)),
+		logging.String("form_store_type", fmt.Sprintf("%T", stores.FormStore)),
 	)
 
-	return stores
+	return stores, nil
 }
