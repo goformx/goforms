@@ -131,12 +131,13 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 	// Set up request validation
 	e.Validator = middleware.NewValidator()
 
-	// Configure middleware stack
-	middleware.Setup(e, &middleware.Config{
+	// Configure middleware stack using Manager pattern
+	mwManager := middleware.New(&middleware.ManagerConfig{
 		Logger:      logger,
 		UserService: userService,
 		Security:    &cfg.Security,
 	})
+	mwManager.Setup(e)
 
 	return e, nil
 }

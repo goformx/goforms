@@ -1,0 +1,172 @@
+package handler
+
+import (
+	"net/http"
+	"strconv"
+
+	"github.com/labstack/echo/v4"
+
+	"github.com/jonesrussell/goforms/internal/domain/form"
+	"github.com/jonesrussell/goforms/internal/domain/form/model"
+	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/presentation/middleware"
+)
+
+// FormHandler handles form-related requests
+type FormHandler struct {
+	base           Base
+	formService    form.Service
+	formClient     form.Client
+	authMiddleware *middleware.AuthMiddleware
+}
+
+// NewFormHandler creates a new FormHandler
+func NewFormHandler(logger logging.Logger, formService form.Service, formClient form.Client, userService user.Service) *FormHandler {
+	return &FormHandler{
+		base: Base{
+			Logger: logger,
+		},
+		formService:    formService,
+		formClient:     formClient,
+		authMiddleware: middleware.NewAuthMiddleware(userService),
+	}
+}
+
+// Register sets up the routes for the form handler
+func (h *FormHandler) Register(e *echo.Echo) {
+	// Public form submission endpoints
+	formGroup := e.Group("/v1/forms")
+	formGroup.POST("/:formID/submit", h.handleFormSubmission)
+
+	// Protected admin endpoints
+	adminGroup := e.Group("/v1/forms")
+	adminGroup.Use(h.authMiddleware.RequireAuth)
+	adminGroup.GET("", h.handleListForms)
+	adminGroup.POST("", h.handleCreateForm)
+	adminGroup.GET("/:formID", h.handleGetForm)
+	adminGroup.DELETE("/:formID", h.handleDeleteForm)
+}
+
+// handleFormSubmission handles form submissions from external websites
+func (h *FormHandler) handleFormSubmission(c echo.Context) error {
+	formID := c.Param("formID")
+	if formID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
+	}
+
+	// Get form data from request body
+	var formData map[string]interface{}
+	if err := c.Bind(&formData); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
+	}
+
+	// Get metadata (IP, User-Agent, etc.)
+	metadata := map[string]string{
+		"ip":         c.RealIP(),
+		"user_agent": c.Request().UserAgent(),
+		"origin":     c.Request().Header.Get("Origin"),
+	}
+
+	// Create form submission
+	submission, err := model.NewFormSubmission(formID, formData, metadata)
+	if err != nil {
+		h.base.LogError("failed to create form submission", err)
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form submission")
+	}
+
+	// Create form response
+	response := form.Response{
+		ID:          submission.ID,
+		FormID:      submission.FormID,
+		Values:      submission.Data,
+		SubmittedAt: submission.SubmittedAt,
+	}
+
+	// Submit response using client
+	if err := h.formClient.SubmitResponse(c.Request().Context(), formID, response); err != nil {
+		h.base.LogError("failed to submit form response", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process form submission")
+	}
+
+	return c.JSON(http.StatusOK, submission)
+}
+
+// handleListForms handles listing all forms for the authenticated user
+func (h *FormHandler) handleListForms(c echo.Context) error {
+	userID := c.Get("user_id").(uint)
+	forms, err := h.formService.GetUserForms(userID)
+	if err != nil {
+		h.base.LogError("failed to list forms", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to list forms")
+	}
+	return c.JSON(http.StatusOK, forms)
+}
+
+// handleCreateForm handles creating a new form
+func (h *FormHandler) handleCreateForm(c echo.Context) error {
+	userID := c.Get("user_id").(uint)
+	
+	var formData struct {
+		Title       string         `json:"title"`
+		Description string         `json:"description"`
+		Schema      form.JSON      `json:"schema"`
+	}
+	
+	if err := c.Bind(&formData); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
+	}
+
+	createdForm, err := h.formService.CreateForm(userID, formData.Title, formData.Description, formData.Schema)
+	if err != nil {
+		h.base.LogError("failed to create form", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create form")
+	}
+
+	return c.JSON(http.StatusCreated, createdForm)
+}
+
+// handleGetForm handles getting a single form
+func (h *FormHandler) handleGetForm(c echo.Context) error {
+	formID := c.Param("formID")
+	if formID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
+	}
+
+	id, err := strconv.ParseUint(formID, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
+	}
+
+	form, err := h.formService.GetForm(uint(id))
+	if err != nil {
+		h.base.LogError("failed to get form", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form")
+	}
+
+	if form == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+	}
+
+	return c.JSON(http.StatusOK, form)
+}
+
+// handleDeleteForm handles deleting a form
+func (h *FormHandler) handleDeleteForm(c echo.Context) error {
+	formID := c.Param("formID")
+	if formID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
+	}
+
+	id, err := strconv.ParseUint(formID, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
+	}
+
+	if err := h.formService.DeleteForm(uint(id)); err != nil {
+		h.base.LogError("failed to delete form", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete form")
+	}
+
+	return c.NoContent(http.StatusNoContent)
+} 

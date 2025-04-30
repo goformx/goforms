@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
+	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/application/validation"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
@@ -150,11 +151,18 @@ func (h *WebHandler) Validate() error {
 
 // getCSRFToken retrieves the CSRF token from the context
 func (h *WebHandler) getCSRFToken(c echo.Context) string {
-	token := c.Get("csrf")
+	h.Logger.Debug("attempting to get CSRF token from context",
+		logging.String("path", c.Request().URL.Path),
+		logging.String("method", c.Request().Method),
+		logging.String("content_type", c.Request().Header.Get("Content-Type")))
+
+	// First try to get the token from the context key (set by middleware)
+	token := c.Get(middleware.CSRFContextKey)
 	if token == nil {
 		h.Logger.Debug("CSRF token not found in context", 
 			logging.String("path", c.Request().URL.Path),
-			logging.String("method", c.Request().Method))
+			logging.String("method", c.Request().Method),
+			logging.String("context_keys", fmt.Sprintf("%v", c.Get(""))))
 		return ""
 	}
 
@@ -177,7 +185,8 @@ func (h *WebHandler) getCSRFToken(c echo.Context) string {
 	h.Logger.Debug("CSRF token found", 
 		logging.String("path", c.Request().URL.Path),
 		logging.String("method", c.Request().Method),
-		logging.String("token_prefix", tokenStr[:8]))
+		logging.String("token_prefix", tokenStr[:8]),
+		logging.String("token_length", fmt.Sprintf("%d", len(tokenStr))))
 	return tokenStr
 }
 
@@ -199,19 +208,16 @@ func (h *WebHandler) renderPage(
 	title string,
 	template func(shared.PageData) templ.Component,
 ) error {
+	h.Logger.Debug("starting page render",
+		logging.String("path", c.Request().URL.Path),
+		logging.String("method", c.Request().Method),
+		logging.String("title", title))
+
 	token := h.getCSRFToken(c)
 	if token == "" {
 		h.Logger.Debug("no CSRF token found in context", 
-			logging.String("path", c.Request().URL.Path))
-		// Try to get the token from the context again
-		if csrfToken := c.Get("csrf"); csrfToken != nil {
-			if tokenStr, ok := csrfToken.(string); ok {
-				token = tokenStr
-				h.Logger.Debug("retrieved CSRF token from context", 
-					logging.String("path", c.Request().URL.Path),
-					logging.String("token_prefix", token[:8]))
-			}
-		}
+			logging.String("path", c.Request().URL.Path),
+			logging.String("method", c.Request().Method))
 	}
 
 	currentUser, err := getCurrentUser(c, h.userService)
@@ -225,6 +231,21 @@ func (h *WebHandler) renderPage(
 		Title:     title,
 		CSRFToken: token,
 		User:      currentUser,
+	}
+
+	h.Logger.Debug("preparing page data",
+		logging.String("path", c.Request().URL.Path),
+		logging.String("title", title),
+		logging.Bool("has_csrf_token", token != ""),
+		logging.Bool("has_user", currentUser != nil))
+
+	if token != "" {
+		h.Logger.Debug("rendering page with CSRF token", 
+			logging.String("path", c.Request().URL.Path),
+			logging.String("token_prefix", token[:8]))
+	} else {
+		h.Logger.Debug("rendering page without CSRF token", 
+			logging.String("path", c.Request().URL.Path))
 	}
 
 	return h.renderer.Render(c, template(data))
@@ -281,9 +302,9 @@ func (h *WebHandler) Register(e *echo.Echo) {
 // handleHome renders the home page
 func (h *WebHandler) handleHome(c echo.Context) error {
 	h.Logger.Debug("handling home page request",
-		logging.String("path", c.Path()),
+		logging.String("path", c.Request().URL.Path),
 		logging.String("method", c.Request().Method),
-	)
+		logging.String("user_agent", c.Request().UserAgent()))
 
 	return h.renderPage(c, "Home", pages.Home)
 }
@@ -291,20 +312,30 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 // handleDemo renders the demo page
 func (h *WebHandler) handleDemo(c echo.Context) error {
 	h.Logger.Debug("handling demo page request",
+		logging.String("path", c.Request().URL.Path),
 		logging.String("method", c.Request().Method),
-		logging.String("path", c.Path()),
-	)
+		logging.String("user_agent", c.Request().UserAgent()))
 
 	return h.renderPage(c, "Demo", pages.Demo)
 }
 
 // handleSignup renders the signup page
 func (h *WebHandler) handleSignup(c echo.Context) error {
+	h.Logger.Debug("handling signup page request",
+		logging.String("path", c.Request().URL.Path),
+		logging.String("method", c.Request().Method),
+		logging.String("user_agent", c.Request().UserAgent()))
+
 	return h.renderPage(c, "Sign Up", pages.Signup)
 }
 
 // handleLogin renders the login page
 func (h *WebHandler) handleLogin(c echo.Context) error {
+	h.Logger.Debug("handling login page request",
+		logging.String("path", c.Request().URL.Path),
+		logging.String("method", c.Request().Method),
+		logging.String("user_agent", c.Request().UserAgent()))
+
 	return h.renderPage(c, "Login", pages.Login)
 }
 

@@ -174,6 +174,7 @@ export const validation = {
   async fetchWithCSRF(url: string, options: RequestInit = {}): Promise<Response> {
     const csrfToken = validation.getCSRFToken();
     if (!csrfToken) {
+      console.error('CSRF token not found');
       throw new Error('CSRF token not found');
     }
 

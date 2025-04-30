@@ -96,6 +96,13 @@ type SecurityConfig struct {
 	CorsMaxAge           int                  `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
 	CorsAllowCredentials bool                 `envconfig:"GOFORMS_CORS_ALLOW_CREDENTIALS" default:"true"`
 	RequestTimeout       time.Duration        `envconfig:"GOFORMS_REQUEST_TIMEOUT" default:"30s"`
+	
+	// Form-specific CORS settings
+	FormCorsAllowedOrigins   CORSOriginsDecoder   `envconfig:"GOFORMS_FORM_CORS_ALLOWED_ORIGINS"`
+	FormCorsAllowedMethods   CORSMethodsDecoder   `envconfig:"GOFORMS_FORM_CORS_ALLOWED_METHODS"`
+	FormCorsAllowedHeaders   CORSHeadersDecoder   `envconfig:"GOFORMS_FORM_CORS_ALLOWED_HEADERS"`
+	FormRateLimit           int                  `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"20"`
+	FormRateLimitWindow     time.Duration        `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1m"`
 }
 
 // CSRFConfig holds CSRF-related configuration
