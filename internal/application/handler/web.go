@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
+	"github.com/jonesrussell/goforms/internal/application/validation"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -97,7 +98,7 @@ type WebHandler struct {
 //	    WithContactService(contactService),
 //	    WithWebSubscriptionService(subscriptionService),
 //	)
-func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) *WebHandler {
+func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler, error) {
 	h := &WebHandler{
 		Base: NewBase(WithLogger(logger)),
 	}
@@ -106,7 +107,18 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) *WebHandler 
 		opt(h)
 	}
 
-	return h
+	// Validate critical dependencies during construction
+	if h.renderer == nil {
+		return nil, errors.New("renderer is required")
+	}
+	if h.contactService == nil {
+		return nil, errors.New("contact service is required")
+	}
+	if h.subscriptionService == nil {
+		return nil, errors.New("subscription service is required")
+	}
+
+	return h, nil
 }
 
 // Validate validates that required dependencies are set.
@@ -132,52 +144,103 @@ func (h *WebHandler) Validate() error {
 	return nil
 }
 
-// Register registers the web routes.
-// This method sets up all web page routes and static file serving.
-// It validates that all required dependencies are available before
-// registering any routes.
+// getCSRFToken retrieves the CSRF token from the context
+func getCSRFToken(c echo.Context) string {
+	token, ok := c.Get("csrf").(string)
+	if !ok {
+		return ""
+	}
+	return token
+}
+
+// getCurrentUser retrieves the current user from the context
+func getCurrentUser(c echo.Context, userService user.Service) (*user.User, error) {
+	if userID, exists := c.Get("user_id").(uint); exists {
+		u, err := userService.GetUserByID(c.Request().Context(), userID)
+		if err != nil {
+			return nil, fmt.Errorf("failed to get user: %w", err)
+		}
+		return u, nil
+	}
+	return nil, nil
+}
+
+// renderPage renders a page with the given template and data
+func (h *WebHandler) renderPage(
+	c echo.Context,
+	title string,
+	template func(shared.PageData) templ.Component,
+) error {
+	token := getCSRFToken(c)
+	user, err := getCurrentUser(c, h.userService)
+	if err != nil {
+		h.Logger.Error("failed to get current user", logging.Error(err))
+	}
+
+	data := shared.PageData{
+		Title:     title,
+		CSRFToken: token,
+		User:      user,
+	}
+
+	return h.renderer.Render(c, template(data))
+}
+
+// logRoute logs route registration
+func (h *WebHandler) logRoute(method, path string) {
+	h.Logger.Debug("registered route",
+		logging.String("method", method),
+		logging.String("path", path),
+	)
+}
+
+// registerRoute registers a route with logging
+func (h *WebHandler) registerRoute(e *echo.Echo, method, path string, handler echo.HandlerFunc) {
+	switch method {
+	case "GET":
+		e.GET(path, handler)
+	case "POST":
+		e.POST(path, handler)
+	case "PUT":
+		e.PUT(path, handler)
+	case "DELETE":
+		e.DELETE(path, handler)
+	}
+	h.logRoute(method, path)
+}
+
+// registerRoutes registers all web routes
+func (h *WebHandler) registerRoutes(e *echo.Echo) {
+	// Web pages
+	h.registerRoute(e, "GET", "/", h.handleHome)
+	h.registerRoute(e, "GET", "/demo", h.handleDemo)
+	h.registerRoute(e, "GET", "/signup", h.handleSignup)
+	h.registerRoute(e, "GET", "/login", h.handleLogin)
+
+	// Validation endpoints
+	h.registerRoute(e, "GET", "/api/validation/:schema", h.handleValidationSchema)
+
+	// Static files
+	e.Static("/static", "./static")
+	h.logRoute("GET", "/static/*")
+
+	e.Static("/static/dist", "./static/dist")
+	h.logRoute("GET", "/static/dist/*")
+
+	e.File("/favicon.ico", "./static/favicon.ico")
+	h.logRoute("GET", "/favicon.ico")
+}
+
+// Register registers the web routes
 func (h *WebHandler) Register(e *echo.Echo) {
-	if err := h.Validate(); err != nil {
-		h.Logger.Error("failed to validate handler", logging.Error(err))
+	// Validate base dependencies
+	if err := h.Base.Validate(); err != nil {
+		h.Logger.Error("failed to validate base handler", logging.Error(err))
 		return
 	}
 
 	h.Logger.Debug("registering web routes")
-
-	// Web pages
-	e.GET("/", h.handleHome)
-	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/"))
-
-	e.GET("/demo", h.handleDemo)
-	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/demo"))
-
-	e.GET("/signup", h.handleSignup)
-	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/signup"))
-
-	e.GET("/login", h.handleLogin)
-	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/login"))
-
-	// Validation endpoints
-	e.GET("/api/validation/:schema", h.handleValidationSchema)
-	h.Logger.Debug("registered route", logging.String("method", "GET"), logging.String("path", "/api/validation/:schema"))
-
-	// Static files - Note: paths must be relative to the project root
-	e.Static("/static", "./static")
-	h.Logger.Debug("registered static directory",
-		logging.String("path", "/static"),
-		logging.String("root", "./static"),
-	)
-
-	// Vite-built files
-	e.Static("/static/dist", "./static/dist")
-	h.Logger.Debug("registered static directory",
-		logging.String("path", "/static/dist"),
-		logging.String("root", "./static/dist"),
-	)
-
-	e.File("/favicon.ico", "./static/favicon.ico")
-	h.Logger.Debug("registered favicon", logging.String("path", "/favicon.ico"))
-
+	h.registerRoutes(e)
 	h.Logger.Debug("web routes registration complete")
 }
 
@@ -188,37 +251,7 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 		logging.String("method", c.Request().Method),
 	)
 
-	token, ok := c.Get("csrf").(string)
-	if !ok {
-		h.Logger.Error("csrf token not found in context")
-		token = ""
-	}
-
-	// Get user from context
-	var currentUser *user.User
-	if userID, exists := c.Get("user_id").(uint); exists {
-		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
-		if err != nil {
-			h.Logger.Error("failed to get user", logging.Error(err))
-		} else {
-			currentUser = u
-		}
-	}
-
-	data := shared.PageData{
-		Title:     "Home",
-		CSRFToken: token,
-		User:      currentUser,
-	}
-
-	if err := h.renderer.Render(c, pages.Home(data)); err != nil {
-		h.Logger.Error("failed to render home page",
-			logging.String("path", c.Path()),
-			logging.Error(err),
-		)
-		return fmt.Errorf("failed to render home page: %w", err)
-	}
-	return nil
+	return h.renderPage(c, "Home", pages.Home)
 }
 
 // handleDemo renders the demo page
@@ -228,119 +261,25 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 		logging.String("path", c.Path()),
 	)
 
-	token, ok := c.Get("csrf").(string)
-	if !ok {
-		h.Logger.Error("csrf token not found in context")
-		token = ""
-	}
-
-	// Get user from context
-	var currentUser *user.User
-	if userID, exists := c.Get("user_id").(uint); exists {
-		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
-		if err != nil {
-			h.Logger.Error("failed to get user", logging.Error(err))
-		} else {
-			currentUser = u
-		}
-	}
-
-	data := shared.PageData{
-		Title:     "Demo",
-		CSRFToken: token,
-		User:      currentUser,
-	}
-
-	if err := h.renderer.Render(c, pages.Demo(data)); err != nil {
-		h.Logger.Error("failed to render demo page",
-			logging.String("error", err.Error()),
-			logging.String("method", c.Request().Method),
-			logging.String("path", c.Path()),
-		)
-		return fmt.Errorf("failed to render demo page: %w", err)
-	}
-
-	return nil
+	return h.renderPage(c, "Demo", pages.Demo)
 }
 
-// handleAuthPage handles authentication pages (login/signup)
-func (h *WebHandler) handleAuthPage(
-	c echo.Context,
-	title string,
-	template func(shared.PageData) templ.Component,
-) error {
-	token, ok := c.Get("csrf").(string)
-	if !ok {
-		h.Logger.Error("csrf token not found in context")
-		token = ""
-	}
-
-	data := shared.PageData{
-		Title:     title,
-		CSRFToken: token,
-	}
-
-	return h.renderer.Render(c, template(data))
-}
-
+// handleSignup renders the signup page
 func (h *WebHandler) handleSignup(c echo.Context) error {
-	return h.handleAuthPage(c, "Sign Up", pages.Signup)
+	return h.renderPage(c, "Sign Up", pages.Signup)
 }
 
+// handleLogin renders the login page
 func (h *WebHandler) handleLogin(c echo.Context) error {
-	return h.handleAuthPage(c, "Login", pages.Login)
+	return h.renderPage(c, "Login", pages.Login)
 }
 
 // handleValidationSchema returns the validation schema for a given form
 func (h *WebHandler) handleValidationSchema(c echo.Context) error {
-	const (
-		minPasswordLength = 8
-	)
-
 	schemaName := c.Param("schema")
-
-	var schema any
-	switch schemaName {
-	case "signup":
-		schema = map[string]any{
-			"first_name": map[string]any{
-				"type":    "string",
-				"min":     1,
-				"message": "First name is required",
-			},
-			"last_name": map[string]any{
-				"type":    "string",
-				"min":     1,
-				"message": "Last name is required",
-			},
-			"email": map[string]any{
-				"type":    "email",
-				"message": "Please enter a valid email address",
-			},
-			"password": map[string]any{
-				"type":    "password",
-				"min":     minPasswordLength,
-				"message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
-			},
-			"confirm_password": map[string]any{
-				"type":       "match",
-				"matchField": "password",
-				"message":    "Passwords do not match",
-			},
-		}
-	case "login":
-		schema = map[string]any{
-			"email": map[string]any{
-				"type":    "email",
-				"message": "Please enter a valid email address",
-			},
-			"password": map[string]any{
-				"type":    "required",
-				"message": "Password is required",
-			},
-		}
-	default:
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "Schema not found"})
+	schema, err := validation.GetSchema(schemaName)
+	if err != nil {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": err.Error()})
 	}
 
 	return c.JSON(http.StatusOK, schema)

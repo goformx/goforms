@@ -18,24 +18,16 @@ import (
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
 	"github.com/jonesrussell/goforms/internal/presentation/handlers"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
+	"github.com/labstack/echo/v4"
 )
 
-// AsHandler annotates the given constructor to state that
-// it provides a handler to the "handlers" group.
-// This is used to register handlers with the fx dependency injection container.
-// Each handler must be annotated with this function to be properly registered.
-//
-// Example:
-//
-//	AsHandler(func(logger logging.Logger, svc SomeService) *handler.SomeHandler {
-//	    return handler.NewSomeHandler(logger, handler.WithSomeService(svc))
-//	})
-func AsHandler(f any) any {
-	return fx.Annotate(
-		f,
+// AsHandler marks a provider as a handler
+func AsHandler(fn any) fx.Option {
+	return fx.Provide(fx.Annotate(
+		fn,
 		fx.As(new(handler.Handler)),
 		fx.ResultTags(`group:"handlers"`),
-	)
+	))
 }
 
 // HandlerParams contains dependencies for creating handlers.
@@ -67,6 +59,23 @@ type Stores struct {
 	FormStore         form.Store
 }
 
+// WebHandlerParams contains the dependencies for the web handler
+type WebHandlerParams struct {
+	fx.In
+
+	Logger           logging.Logger
+	Renderer         *view.Renderer
+	ContactService   contact.Service
+	SubscriptionService subscription.Service
+	Config           *config.Config
+}
+
+// NoopHandler is a handler that does nothing
+type NoopHandler struct{}
+
+// Register implements the Handler interface
+func (h *NoopHandler) Register(e *echo.Echo) {}
+
 // Module combines all infrastructure-level modules and providers
 var Module = fx.Options(
 	// Core infrastructure
@@ -92,13 +101,19 @@ var Module = fx.Options(
 				handler.WithUserService(p.UserService),
 			)
 		}),
-		AsHandler(func(p HandlerParams) *handler.WebHandler {
-			return handler.NewWebHandler(p.Logger,
-				handler.WithRenderer(p.Renderer),
-				handler.WithContactService(p.ContactService),
-				handler.WithWebSubscriptionService(p.SubscriptionService),
-				handler.WithWebDebug(p.Config.App.Debug),
+		AsHandler(func(params WebHandlerParams) (handler.Handler, error) {
+			webHandler, err := handler.NewWebHandler(
+				params.Logger,
+				handler.WithRenderer(params.Renderer),
+				handler.WithContactService(params.ContactService),
+				handler.WithWebSubscriptionService(params.SubscriptionService),
+				handler.WithWebDebug(params.Config.App.Debug),
 			)
+			if err != nil {
+				params.Logger.Error("Failed to create web handler", logging.Error(err))
+				return &NoopHandler{}, nil
+			}
+			return webHandler, nil
 		}),
 		AsHandler(func(p HandlerParams) *handler.ContactHandler {
 			return handler.NewContactHandler(p.Logger,
@@ -143,24 +158,40 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 }
 
 // NewHandlers creates all application handlers
-func NewHandlers(params HandlerParams) []handler.Handler {
+func NewHandlers(params HandlerParams) ([]handler.Handler, error) {
+	webHandler, err := handler.NewWebHandler(
+		params.Logger,
+		handler.WithRenderer(params.Renderer),
+		handler.WithContactService(params.ContactService),
+		handler.WithWebSubscriptionService(params.SubscriptionService),
+		handler.WithWebDebug(params.Config.App.Debug),
+	)
+	if err != nil {
+		return nil, err
+	}
+
 	routeHandlers := []handler.Handler{
 		handler.NewAuthHandler(
 			params.Logger,
 			handler.WithUserService(params.UserService),
 		),
-		handler.NewWebHandler(
-			params.Logger,
-			handler.WithRenderer(params.Renderer),
-			handler.WithContactService(params.ContactService),
-			handler.WithWebSubscriptionService(params.SubscriptionService),
-			handler.WithWebDebug(params.Config.App.Debug),
-		),
+		webHandler,
 		handlers.NewDashboardHandler(
 			params.UserService,
 			params.FormService,
 		),
 	}
 
-	return routeHandlers
+	return routeHandlers, nil
+}
+
+// ProvideWebHandler provides the web handler
+func ProvideWebHandler(params WebHandlerParams) (*handler.WebHandler, error) {
+	return handler.NewWebHandler(
+		params.Logger,
+		handler.WithRenderer(params.Renderer),
+		handler.WithContactService(params.ContactService),
+		handler.WithWebSubscriptionService(params.SubscriptionService),
+		handler.WithWebDebug(params.Config.App.Debug),
+	)
 }
