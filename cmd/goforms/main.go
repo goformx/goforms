@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"log"
 	"os"
@@ -118,11 +117,6 @@ func handleSignals(cancel context.CancelFunc) {
 // newServer creates and configures a new Echo server instance.
 // It sets up middleware, logging, and security features.
 func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, error) {
-	// Validate critical configuration settings
-	if err := validateConfig(cfg); err != nil {
-		return nil, fmt.Errorf("invalid configuration: %w", err)
-	}
-
 	// Create logger instance
 	logger, err := logFactory.CreateFromConfig(cfg)
 	if err != nil {
@@ -146,18 +140,6 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 	})
 
 	return e, nil
-}
-
-// validateConfig checks critical configuration settings.
-// It ensures required security settings are present and valid.
-func validateConfig(cfg *config.Config) error {
-	if cfg.Security.JWTSecret == "" {
-		return errors.New("JWT secret is required")
-	}
-	if cfg.Security.CSRF.Enabled && cfg.Security.CSRF.Secret == "" {
-		return errors.New("CSRF secret is required when CSRF is enabled")
-	}
-	return nil
 }
 
 // ServerParams contains the dependencies required for starting the server.
