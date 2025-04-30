@@ -149,12 +149,36 @@ func (h *WebHandler) Validate() error {
 }
 
 // getCSRFToken retrieves the CSRF token from the context
-func getCSRFToken(c echo.Context) string {
-	token, ok := c.Get("csrf").(string)
-	if !ok {
+func (h *WebHandler) getCSRFToken(c echo.Context) string {
+	token := c.Get("csrf")
+	if token == nil {
+		h.Logger.Debug("CSRF token not found in context", 
+			logging.String("path", c.Request().URL.Path),
+			logging.String("method", c.Request().Method))
 		return ""
 	}
-	return token
+
+	tokenStr, ok := token.(string)
+	if !ok {
+		h.Logger.Error("CSRF token is not a string", 
+			logging.String("path", c.Request().URL.Path),
+			logging.String("method", c.Request().Method),
+			logging.String("token_type", fmt.Sprintf("%T", token)))
+		return ""
+	}
+
+	if tokenStr == "" {
+		h.Logger.Debug("CSRF token is empty string", 
+			logging.String("path", c.Request().URL.Path),
+			logging.String("method", c.Request().Method))
+		return ""
+	}
+
+	h.Logger.Debug("CSRF token found", 
+		logging.String("path", c.Request().URL.Path),
+		logging.String("method", c.Request().Method),
+		logging.String("token_prefix", tokenStr[:8]))
+	return tokenStr
 }
 
 // getCurrentUser retrieves the current user from the context
@@ -175,10 +199,26 @@ func (h *WebHandler) renderPage(
 	title string,
 	template func(shared.PageData) templ.Component,
 ) error {
-	token := getCSRFToken(c)
+	token := h.getCSRFToken(c)
+	if token == "" {
+		h.Logger.Debug("no CSRF token found in context", 
+			logging.String("path", c.Request().URL.Path))
+		// Try to get the token from the context again
+		if csrfToken := c.Get("csrf"); csrfToken != nil {
+			if tokenStr, ok := csrfToken.(string); ok {
+				token = tokenStr
+				h.Logger.Debug("retrieved CSRF token from context", 
+					logging.String("path", c.Request().URL.Path),
+					logging.String("token_prefix", token[:8]))
+			}
+		}
+	}
+
 	currentUser, err := getCurrentUser(c, h.userService)
 	if err != nil {
-		h.Logger.Debug("no current user found", logging.Error(err))
+		h.Logger.Debug("no current user found", 
+			logging.Error(err),
+			logging.String("path", c.Request().URL.Path))
 	}
 
 	data := shared.PageData{
