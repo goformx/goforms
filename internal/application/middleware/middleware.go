@@ -302,3 +302,27 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	m.logger.Debug("middleware setup complete")
 }
+
+// ValidateCSRFToken validates the CSRF token in the request
+func ValidateCSRFToken(c echo.Context) error {
+	token := c.Get(CSRFContextKey)
+	if token == nil {
+		return echo.NewHTTPError(http.StatusForbidden, "CSRF token not found")
+	}
+
+	// Get token from request
+	reqToken := c.Request().Header.Get(echo.HeaderXCSRFToken)
+	if reqToken == "" {
+		reqToken = c.FormValue("_csrf")
+	}
+	if reqToken == "" {
+		return echo.NewHTTPError(http.StatusForbidden, "CSRF token not provided")
+	}
+
+	// Compare tokens
+	if reqToken != token.(string) {
+		return echo.NewHTTPError(http.StatusForbidden, "CSRF token mismatch")
+	}
+
+	return nil
+}

@@ -48,11 +48,18 @@ func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch forms")
 	}
 
+	// Get CSRF token from context
+	csrfToken, ok := c.Get(amw.CSRFContextKey).(string)
+	if !ok {
+		csrfToken = "" // Set empty string if token not found
+	}
+
 	// Create page data
 	data := shared.PageData{
-		Title: "Dashboard - GoForms",
-		User:  currentUser,
-		Forms: forms,
+		Title:     "Dashboard - GoForms",
+		User:      currentUser,
+		Forms:     forms,
+		CSRFToken: csrfToken,
 	}
 
 	// Render dashboard page

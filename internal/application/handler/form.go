@@ -64,6 +64,12 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		h.base.Logger.Debug("CSRF token found in request", 
 			logging.String("path", c.Request().URL.Path),
 			logging.String("method", c.Request().Method))
+
+		// Validate CSRF token
+		if err := amw.ValidateCSRFToken(c); err != nil {
+			h.base.LogError("CSRF token validation failed", err)
+			return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
+		}
 	}
 
 	// Get form data from request body
@@ -98,16 +104,24 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	// Submit response using client
 	if err := h.formClient.SubmitResponse(c.Request().Context(), formID, response); err != nil {
 		h.base.LogError("failed to submit form response", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process form submission")
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to submit form response")
 	}
 
-	// Set security headers in response
+	// Set security headers
 	c.Response().Header().Set("X-Content-Type-Options", "nosniff")
 	c.Response().Header().Set("X-Frame-Options", "DENY")
 	c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
 	c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-	return c.JSON(http.StatusOK, submission)
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Form submitted successfully",
+		"data": map[string]interface{}{
+			"submission_id": submission.ID,
+			"form_id":      submission.FormID,
+			"submitted_at": submission.SubmittedAt,
+		},
+	})
 }
 
 // handleListForms handles listing all forms for the authenticated user

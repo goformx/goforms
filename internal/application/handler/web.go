@@ -74,6 +74,13 @@ func WithWebDebug(debug bool) WebHandlerOption {
 	}
 }
 
+// WithMiddlewareManager sets the middleware manager for the web handler.
+func WithMiddlewareManager(manager *amw.Manager) WebHandlerOption {
+	return func(h *WebHandler) {
+		h.middlewareManager = manager
+	}
+}
+
 // WebHandler handles web page requests.
 // It requires a renderer, contact service, and subscription service to function properly.
 // Use the functional options pattern to configure these dependencies.
@@ -89,6 +96,7 @@ type WebHandler struct {
 	renderer            *view.Renderer
 	Debug               bool
 	userService         user.Service
+	middlewareManager   *amw.Manager
 }
 
 // NewWebHandler creates a new web handler.
@@ -262,6 +270,7 @@ func (h *WebHandler) logRoute(method, path string) {
 // registerRoute registers a route with logging
 func (h *WebHandler) registerRoute(e *echo.Echo, path string, handler echo.HandlerFunc) {
 	e.GET(path, handler)
+	h.logRoute("GET", path)
 }
 
 // registerRoutes registers all web routes
