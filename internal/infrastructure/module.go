@@ -23,13 +23,16 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-// AsHandler marks a provider as a handler
-func AsHandler(fn any) fx.Option {
-	return fx.Provide(fx.Annotate(
-		fn,
-		fx.As(new(h.Handler)),
-		fx.ResultTags(`group:"handlers"`),
-	))
+// AnnotateHandler is a helper function that simplifies the creation of handler providers.
+// It wraps the common fx.Provide and fx.Annotate pattern used for handlers.
+func AnnotateHandler(fn any) fx.Option {
+	return fx.Provide(
+		fx.Annotate(
+			fn,
+			fx.As(new(h.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+	)
 }
 
 // CoreParams contains core infrastructure dependencies that are commonly needed by handlers.
@@ -89,16 +92,16 @@ var StoreModule = fx.Options(
 // This module is responsible for setting up route handlers and their dependencies.
 var HandlerModule = fx.Options(
 	// Web handlers
-	AsHandler(func(core CoreParams) *wh.HomeHandler {
+	AnnotateHandler(func(core CoreParams) *wh.HomeHandler {
 		return wh.NewHomeHandler(core.Logger, core.Renderer)
 	}),
-	AsHandler(func(core CoreParams, services ServiceParams) *wh.DemoHandler {
+	AnnotateHandler(func(core CoreParams, services ServiceParams) *wh.DemoHandler {
 		return wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
 	}),
-	AsHandler(func(core CoreParams, services ServiceParams) *ah.DashboardHandler {
+	AnnotateHandler(func(core CoreParams, services ServiceParams) *ah.DashboardHandler {
 		return ah.NewDashboardHandler(core.Logger, core.Renderer, services.UserService, services.FormService)
 	}),
-	AsHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
 		handler, err := handler.NewWebHandler(core.Logger,
 			handler.WithRenderer(core.Renderer),
 			handler.WithContactService(services.ContactService),
