@@ -20,19 +20,18 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
-// AnnotateHandler is a helper function that simplifies the creation of handler providers.
-// It wraps the common fx.Provide and fx.Annotate pattern used for handlers.
-func AnnotateHandler(fn any) fx.Option {
-	return fx.Provide(
-		fx.Annotate(
-			fn,
-			fx.As(new(h.Handler)),
-			fx.ResultTags(`group:"handlers"`),
-		),
-	)
+// Stores groups all database store providers.
+// This struct is used with fx.Out to provide multiple stores
+// to the fx container in a single provider function.
+type Stores struct {
+	fx.Out
+
+	ContactStore      contact.Store
+	SubscriptionStore subscription.Store
+	UserStore         user.Store
+	FormStore         form.Store
 }
 
 // CoreParams contains core infrastructure dependencies that are commonly needed by handlers.
@@ -55,23 +54,17 @@ type ServiceParams struct {
 	FormService         form.Service
 }
 
-// Stores groups all database store providers.
-// This struct is used with fx.Out to provide multiple stores
-// to the fx container in a single provider function.
-type Stores struct {
-	fx.Out
-
-	ContactStore      contact.Store
-	SubscriptionStore subscription.Store
-	UserStore         user.Store
-	FormStore         form.Store
+// AnnotateHandler is a helper function that simplifies the creation of handler providers.
+// It wraps the common fx.Provide and fx.Annotate pattern used for handlers.
+func AnnotateHandler(fn any) fx.Option {
+	return fx.Provide(
+		fx.Annotate(
+			fn,
+			fx.As(new(h.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+	)
 }
-
-// NoopHandler is a handler that does nothing
-type NoopHandler struct{}
-
-// Register implements the Handler interface
-func (nh *NoopHandler) Register(e *echo.Echo) {}
 
 // InfrastructureModule provides core infrastructure dependencies.
 // This module includes configuration and database setup.
@@ -134,31 +127,56 @@ var Module = fx.Options(
 // and providing them to the fx container.
 func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 	if db == nil {
+		logger.Error("database connection is nil",
+			logging.String("operation", "store_initialization"),
+			logging.String("error_type", "nil_database"),
+		)
 		return Stores{}, fmt.Errorf("database connection is nil")
 	}
 
 	logger.Debug("initializing database stores",
 		logging.String("database_type", fmt.Sprintf("%T", db)),
+		logging.String("operation", "store_initialization"),
 	)
 
-	// Create stores with error handling
+	// Create stores with error handling and diagnostics
 	contactStore := store.NewContactStore(db, logger)
 	if contactStore == nil {
+		logger.Error("failed to create contact store",
+			logging.String("operation", "store_initialization"),
+			logging.String("store_type", "contact"),
+			logging.String("error_type", "nil_store"),
+		)
 		return Stores{}, fmt.Errorf("failed to create contact store")
 	}
 
 	subscriptionStore := store.NewSubscriptionStore(db, logger)
 	if subscriptionStore == nil {
+		logger.Error("failed to create subscription store",
+			logging.String("operation", "store_initialization"),
+			logging.String("store_type", "subscription"),
+			logging.String("error_type", "nil_store"),
+		)
 		return Stores{}, fmt.Errorf("failed to create subscription store")
 	}
 
 	userStore := store.NewUserStore(db, logger)
 	if userStore == nil {
+		logger.Error("failed to create user store",
+			logging.String("operation", "store_initialization"),
+			logging.String("store_type", "user"),
+			logging.String("error_type", "nil_store"),
+		)
 		return Stores{}, fmt.Errorf("failed to create user store")
 	}
 
 	formStore := formstore.NewStore(db, logger)
 	if formStore == nil {
+		logger.Error("failed to create form store",
+			logging.String("operation", "store_initialization"),
+			logging.String("store_type", "form"),
+			logging.String("error_type", "nil_store"),
+		)
 		return Stores{}, fmt.Errorf("failed to create form store")
 	}
 
@@ -169,11 +187,14 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 		FormStore:         formStore,
 	}
 
-	logger.Debug("successfully initialized all database stores",
+	// Log successful initialization with detailed diagnostics
+	logger.Info("successfully initialized all database stores",
+		logging.String("operation", "store_initialization"),
 		logging.String("contact_store_type", fmt.Sprintf("%T", stores.ContactStore)),
 		logging.String("subscription_store_type", fmt.Sprintf("%T", stores.SubscriptionStore)),
 		logging.String("user_store_type", fmt.Sprintf("%T", stores.UserStore)),
 		logging.String("form_store_type", fmt.Sprintf("%T", stores.FormStore)),
+		logging.Int("total_stores", 4),
 	)
 
 	return stores, nil
