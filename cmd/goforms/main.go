@@ -5,6 +5,10 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
@@ -34,9 +38,23 @@ func run() error {
 	if err := loadEnvironment(); err != nil {
 		return err
 	}
-	
+
+	// Create context with cancellation
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Handle termination signals
+	go handleSignals(cancel)
+
 	app := createApp()
-	return runApp(app)
+	return runApp(ctx, app)
+}
+
+func handleSignals(cancel context.CancelFunc) {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	<-signalChan
+	cancel()
 }
 
 func loadEnvironment() error {
@@ -75,14 +93,19 @@ func createApp() *fx.App {
 	)
 }
 
-func runApp(app *fx.App) error {
-	ctx := context.Background()
+func runApp(ctx context.Context, app *fx.App) error {
 	if err := app.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start application: %w", err)
 	}
 
-	<-app.Done()
-	if err := app.Stop(ctx); err != nil {
+	// Wait for context cancellation
+	<-ctx.Done()
+
+	// Create a new context for shutdown
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	defer cancel()
+
+	if err := app.Stop(shutdownCtx); err != nil {
 		return fmt.Errorf("failed to stop application: %w", err)
 	}
 	return nil
