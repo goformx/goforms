@@ -10,7 +10,6 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
-	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/application/router"
 	"github.com/jonesrussell/goforms/internal/domain"
@@ -20,15 +19,8 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
+	"github.com/jonesrussell/goforms/internal/infrastructure/version"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
-)
-
-//nolint:gochecknoglobals // These variables are populated by -ldflags at build time
-var (
-	version   = "dev"
-	buildTime = "unknown"
-	gitCommit = "unknown"
-	goVersion = "unknown"
 )
 
 func main() {
@@ -43,20 +35,12 @@ func run() error {
 		log.Printf("Warning: Error loading .env file: %v\n", err)
 	}
 
-	// Create version info
-	versionInfo := handler.VersionInfo{
-		Version:   version,
-		BuildTime: buildTime,
-		GitCommit: gitCommit,
-		GoVersion: goVersion,
-	}
-
 	// Create app with DI
 	app := fx.New(
 		// Core dependencies
 		fx.Provide(
-			func() handler.VersionInfo {
-				return versionInfo
+			func() version.VersionInfo {
+				return version.Info()
 			},
 			logging.NewFactory,
 			func(cfg *config.Config, logFactory *logging.Factory) (logging.Logger, error) {
