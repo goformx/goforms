@@ -3,19 +3,47 @@ package config
 import (
 	"fmt"
 	"os"
+	"strings"
 	"time"
 
 	"github.com/go-playground/validator/v10"
 	"github.com/kelseyhightower/envconfig"
 )
 
-// AppConfig holds application-level configuration
-type AppConfig struct {
-	Name  string `envconfig:"APP_NAME" default:"goforms"`
-	Env   string `envconfig:"APP_ENV" default:"development"`
-	Debug bool   `envconfig:"APP_DEBUG" default:"false"`
-	Port  int    `envconfig:"APP_PORT" default:"9009"`
-	Host  string `envconfig:"APP_HOST" default:"localhost"`
+// CORSOriginsDecoder handles parsing of CORS allowed origins
+type CORSOriginsDecoder []string
+
+func (c *CORSOriginsDecoder) Decode(value string) error {
+	if value == "" {
+		*c = []string{"http://localhost:3000"}
+		return nil
+	}
+	*c = strings.Split(value, ",")
+	return nil
+}
+
+// CORSMethodsDecoder handles parsing of CORS allowed methods
+type CORSMethodsDecoder []string
+
+func (c *CORSMethodsDecoder) Decode(value string) error {
+	if value == "" {
+		*c = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
+		return nil
+	}
+	*c = strings.Split(value, ",")
+	return nil
+}
+
+// CORSHeadersDecoder handles parsing of CORS allowed headers
+type CORSHeadersDecoder []string
+
+func (c *CORSHeadersDecoder) Decode(value string) error {
+	if value == "" {
+		*c = []string{"Origin", "Content-Type", "Accept"}
+		return nil
+	}
+	*c = strings.Split(value, ",")
+	return nil
 }
 
 // Config represents the complete application configuration
@@ -27,13 +55,22 @@ type Config struct {
 	RateLimit RateLimitConfig
 }
 
+// AppConfig holds application-level configuration
+type AppConfig struct {
+	Name  string `envconfig:"APP_NAME" default:"GoForms"`
+	Env   string `envconfig:"APP_ENV" default:"production"`
+	Debug bool   `envconfig:"APP_DEBUG" default:"false"`
+	Port  int    `envconfig:"APP_PORT" default:"9009"`
+	Host  string `envconfig:"APP_HOST" default:"localhost"`
+}
+
 // DatabaseConfig holds all database-related configuration
 type DatabaseConfig struct {
 	Host           string        `envconfig:"DB_HOST" validate:"required" default:"localhost"`
 	Port           int           `envconfig:"DB_PORT" validate:"required" default:"3306"`
-	User           string        `envconfig:"DB_USER" validate:"required" default:"goforms"`
-	Password       string        `envconfig:"DB_PASSWORD" validate:"required" default:"goforms"`
-	Name           string        `envconfig:"DB_NAME" validate:"required" default:"goforms"`
+	User           string        `envconfig:"DB_USER" validate:"required"`
+	Password       string        `envconfig:"DB_PASSWORD" validate:"required"`
+	Name           string        `envconfig:"DB_NAME" validate:"required"`
 	MaxOpenConns   int           `envconfig:"DB_MAX_OPEN_CONNS" default:"25"`
 	MaxIdleConns   int           `envconfig:"DB_MAX_IDLE_CONNS" default:"25"`
 	ConnMaxLifetme time.Duration `envconfig:"DB_CONN_MAX_LIFETIME" default:"5m"`
@@ -53,12 +90,12 @@ type ServerConfig struct {
 type SecurityConfig struct {
 	JWTSecret            string `envconfig:"JWT_SECRET" validate:"required"`
 	CSRF                 CSRFConfig
-	CorsAllowedOrigins   []string      `envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
-	CorsAllowedMethods   []string      `envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	CorsAllowedHeaders   []string      `envconfig:"CORS_ALLOWED_HEADERS" default:"Origin,Content-Type,Accept"`
-	CorsMaxAge           int           `envconfig:"CORS_MAX_AGE" default:"3600"`
-	CorsAllowCredentials bool          `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
-	RequestTimeout       time.Duration `envconfig:"REQUEST_TIMEOUT" default:"30s"`
+	CorsAllowedOrigins   CORSOriginsDecoder   `envconfig:"CORS_ALLOWED_ORIGINS"`
+	CorsAllowedMethods   CORSMethodsDecoder   `envconfig:"CORS_ALLOWED_METHODS"`
+	CorsAllowedHeaders   CORSHeadersDecoder   `envconfig:"CORS_ALLOWED_HEADERS"`
+	CorsMaxAge           int                  `envconfig:"CORS_MAX_AGE" default:"3600"`
+	CorsAllowCredentials bool                 `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
+	RequestTimeout       time.Duration        `envconfig:"REQUEST_TIMEOUT" default:"30s"`
 }
 
 // CSRFConfig holds CSRF-related configuration
