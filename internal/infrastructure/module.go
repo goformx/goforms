@@ -7,6 +7,7 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
@@ -50,6 +51,7 @@ type HandlerParams struct {
 	ContactService      contact.Service
 	SubscriptionService subscription.Service
 	UserService         user.Service
+	FormService         form.Service
 	Config              *config.Config
 }
 
@@ -62,6 +64,7 @@ type Stores struct {
 	ContactStore      contact.Store
 	SubscriptionStore subscription.Store
 	UserStore         user.Store
+	FormStore         form.Store
 }
 
 // Module combines all infrastructure-level modules and providers
@@ -74,6 +77,24 @@ var Module = fx.Module("infrastructure",
 		database.NewDB,
 		persistence.NewStores,
 		server.New,
+		// Services
+		fx.Annotate(
+			contact.NewService,
+			fx.As(new(contact.Service)),
+		),
+		fx.Annotate(
+			subscription.NewService,
+			fx.As(new(subscription.Service)),
+		),
+		fx.Annotate(
+			user.NewService,
+			fx.As(new(user.Service)),
+		),
+		fx.Annotate(
+			form.NewService,
+			fx.As(new(form.Service)),
+		),
+		// Handlers
 		AsHandler(func(p HandlerParams) *handler.WebHandler {
 			return handler.NewWebHandler(p.Logger,
 				handler.WithRenderer(p.Renderer),
@@ -98,7 +119,7 @@ var Module = fx.Module("infrastructure",
 			)
 		}),
 		AsHandler(func(p HandlerParams) *handlers.DashboardHandler {
-			return handlers.NewDashboardHandler(p.UserService)
+			return handlers.NewDashboardHandler(p.UserService, p.FormService)
 		}),
 	),
 )
@@ -116,12 +137,14 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 		ContactStore:      store.NewContactStore(db, logger),
 		SubscriptionStore: store.NewSubscriptionStore(db, logger),
 		UserStore:         store.NewUserStore(db, logger),
+		FormStore:         store.NewFormStore(db, logger),
 	}
 
 	logger.Debug("database stores created",
 		logging.Bool("contact_store_available", stores.ContactStore != nil),
 		logging.Bool("subscription_store_available", stores.SubscriptionStore != nil),
 		logging.Bool("user_store_available", stores.UserStore != nil),
+		logging.Bool("form_store_available", stores.FormStore != nil),
 	)
 
 	return stores
@@ -135,6 +158,7 @@ func NewHandlers(p HandlerParams) []handler.Handler {
 		logging.Bool("contact_service_available", p.ContactService != nil),
 		logging.Bool("subscription_service_available", p.SubscriptionService != nil),
 		logging.Bool("user_service_available", p.UserService != nil),
+		logging.Bool("form_service_available", p.FormService != nil),
 	)
 
 	p.Logger.Debug("creating web handler")
@@ -165,7 +189,7 @@ func NewHandlers(p HandlerParams) []handler.Handler {
 	p.Logger.Debug("subscription handler created", logging.Bool("handler_available", subscriptionHandler != nil))
 
 	p.Logger.Debug("creating dashboard handler")
-	dashboardHandler := handlers.NewDashboardHandler(p.UserService)
+	dashboardHandler := handlers.NewDashboardHandler(p.UserService, p.FormService)
 	p.Logger.Debug("dashboard handler created", logging.Bool("handler_available", dashboardHandler != nil))
 
 	handlers := []handler.Handler{

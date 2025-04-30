@@ -3,6 +3,7 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/presentation/middleware"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
@@ -12,11 +13,13 @@ import (
 
 type DashboardHandler struct {
 	authMiddleware *middleware.AuthMiddleware
+	formService    form.Service
 }
 
-func NewDashboardHandler(userService user.Service) *DashboardHandler {
+func NewDashboardHandler(userService user.Service, formService form.Service) *DashboardHandler {
 	return &DashboardHandler{
 		authMiddleware: middleware.NewAuthMiddleware(userService),
+		formService:    formService,
 	}
 }
 
@@ -35,10 +38,17 @@ func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
 	}
 
+	// Get user's forms
+	forms, err := h.formService.GetUserForms(user.ID)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch forms")
+	}
+
 	// Create page data
 	data := shared.PageData{
 		Title: "Dashboard - GoForms",
 		User:  user,
+		Forms: forms,
 	}
 
 	// Render dashboard page

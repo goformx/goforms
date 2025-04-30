@@ -1,6 +1,7 @@
 package application_test
 
 import (
+	"fmt"
 	"testing"
 	"time"
 
@@ -12,16 +13,16 @@ import (
 
 func setupTestForm(t *testing.T, c *application.Client) string {
 	testForm := form.Form{
-		Name:    "Test Form",
-		Fields:  []form.Field{{Name: "field1", Type: "text"}},
-		Options: form.FormOptions{},
+		Title:       "Test Form",
+		Description: "Test Description",
+		Schema:      form.JSON{"fields": []map[string]any{{"name": "field1", "type": "text"}}},
 	}
 	err := c.SubmitForm(t.Context(), testForm)
 	require.NoError(t, err)
 	forms, err := c.ListForms(t.Context())
 	require.NoError(t, err)
 	require.Len(t, forms, 1)
-	return forms[0].ID
+	return fmt.Sprintf("%d", forms[0].ID)
 }
 
 func setupTestResponse(t *testing.T, c *application.Client, formID string) string {
@@ -47,18 +48,27 @@ func TestClient_SubmitForm(t *testing.T) {
 		{
 			name: "valid form",
 			form: form.Form{
-				Name:    "Test Form",
-				Fields:  []form.Field{{Name: "field1", Type: "text"}},
-				Options: form.FormOptions{},
+				Title:       "Test Form",
+				Description: "Test Description",
+				Schema:      form.JSON{"fields": []map[string]any{{"name": "field1", "type": "text"}}},
 			},
 			wantErr: false,
 		},
 		{
-			name: "invalid form",
+			name: "invalid form - missing title",
 			form: form.Form{
-				Name:    "",
-				Fields:  []form.Field{},
-				Options: form.FormOptions{},
+				Title:       "",
+				Description: "Test Description",
+				Schema:      form.JSON{"fields": []map[string]any{{"name": "field1", "type": "text"}}},
+			},
+			wantErr: true,
+		},
+		{
+			name: "invalid form - missing schema",
+			form: form.Form{
+				Title:       "Test Form",
+				Description: "Test Description",
+				Schema:      nil,
 			},
 			wantErr: true,
 		},
@@ -78,41 +88,41 @@ func TestClient_SubmitForm(t *testing.T) {
 }
 
 func TestClient_GetForm(t *testing.T) {
+	c := application.NewClient()
+	formID := setupTestForm(t, c)
+
 	tests := []struct {
 		name    string
 		formID  string
-		setup   bool
 		wantErr bool
 	}{
 		{
 			name:    "valid form ID",
-			setup:   true,
+			formID:  formID,
 			wantErr: false,
 		},
 		{
 			name:    "invalid form ID",
 			formID:  "",
-			setup:   false,
+			wantErr: true,
+		},
+		{
+			name:    "non-existent form ID",
+			formID:  "999",
 			wantErr: true,
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			c := application.NewClient()
-			var formID string
-			if tt.setup {
-				formID = setupTestForm(t, c)
-			} else {
-				formID = tt.formID
-			}
-			result, err := c.GetForm(t.Context(), formID)
+			f, err := c.GetForm(t.Context(), tt.formID)
 			if tt.wantErr {
 				require.Error(t, err)
-				assert.Nil(t, result)
+				require.Nil(t, f)
 			} else {
 				require.NoError(t, err)
-				assert.NotNil(t, result)
+				require.NotNil(t, f)
+				assert.Equal(t, formID, fmt.Sprintf("%d", f.ID))
 			}
 		})
 	}
@@ -120,263 +130,97 @@ func TestClient_GetForm(t *testing.T) {
 
 func TestClient_ListForms(t *testing.T) {
 	c := application.NewClient()
-	setupTestForm(t, c)
+	formID := setupTestForm(t, c)
+
 	forms, err := c.ListForms(t.Context())
 	require.NoError(t, err)
-	assert.NotEmpty(t, forms)
+	require.Len(t, forms, 1)
+	assert.Equal(t, formID, fmt.Sprintf("%d", forms[0].ID))
 }
 
 func TestClient_DeleteForm(t *testing.T) {
-	tests := []struct {
-		name    string
-		formID  string
-		setup   bool
-		wantErr bool
-	}{
-		{
-			name:    "valid form ID",
-			setup:   true,
-			wantErr: false,
-		},
-		{
-			name:    "invalid form ID",
-			formID:  "",
-			setup:   false,
-			wantErr: true,
-		},
-	}
+	c := application.NewClient()
+	formID := setupTestForm(t, c)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := application.NewClient()
-			var formID string
-			if tt.setup {
-				formID = setupTestForm(t, c)
-			} else {
-				formID = tt.formID
-			}
-			err := c.DeleteForm(t.Context(), formID)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	err := c.DeleteForm(t.Context(), formID)
+	require.NoError(t, err)
+
+	forms, err := c.ListForms(t.Context())
+	require.NoError(t, err)
+	require.Empty(t, forms)
 }
 
 func TestClient_UpdateForm(t *testing.T) {
-	tests := []struct {
-		name    string
-		formID  string
-		form    form.Form
-		setup   bool
-		wantErr bool
-	}{
-		{
-			name:  "valid form update",
-			setup: true,
-			form: form.Form{
-				Name:    "Updated Form",
-				Fields:  []form.Field{{Name: "field1", Type: "text"}},
-				Options: form.FormOptions{},
-			},
-			wantErr: false,
-		},
-		{
-			name:    "invalid form ID",
-			formID:  "",
-			form:    form.Form{},
-			setup:   false,
-			wantErr: true,
-		},
+	c := application.NewClient()
+	formID := setupTestForm(t, c)
+
+	updatedForm := form.Form{
+		Title:       "Updated Form",
+		Description: "Updated Description",
+		Schema:      form.JSON{"fields": []map[string]any{{"name": "field2", "type": "number"}}},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := application.NewClient()
-			var formID string
-			if tt.setup {
-				formID = setupTestForm(t, c)
-			} else {
-				formID = tt.formID
-			}
-			err := c.UpdateForm(t.Context(), formID, tt.form)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	err := c.UpdateForm(t.Context(), formID, updatedForm)
+	require.NoError(t, err)
+
+	f, err := c.GetForm(t.Context(), formID)
+	require.NoError(t, err)
+	require.NotNil(t, f)
+	assert.Equal(t, "Updated Form", f.Title)
+	assert.Equal(t, "Updated Description", f.Description)
 }
 
 func TestClient_SubmitResponse(t *testing.T) {
-	tests := []struct {
-		name     string
-		formID   string
-		response form.Response
-		setup    bool
-		wantErr  bool
-	}{
-		{
-			name:  "valid response",
-			setup: true,
-			response: form.Response{
-				Values:      map[string]any{"field1": "value1"},
-				SubmittedAt: time.Now(),
-			},
-			wantErr: false,
-		},
-		{
-			name:     "invalid form ID",
-			formID:   "",
-			response: form.Response{},
-			setup:    false,
-			wantErr:  true,
-		},
+	c := application.NewClient()
+	formID := setupTestForm(t, c)
+
+	testResponse := form.Response{
+		Values: map[string]any{"field1": "value1"},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := application.NewClient()
-			var formID string
-			if tt.setup {
-				formID = setupTestForm(t, c)
-				tt.response.FormID = formID
-			} else {
-				formID = tt.formID
-			}
-			err := c.SubmitResponse(t.Context(), formID, tt.response)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	err := c.SubmitResponse(t.Context(), formID, testResponse)
+	require.NoError(t, err)
+
+	responses, err := c.ListResponses(t.Context(), formID)
+	require.NoError(t, err)
+	require.Len(t, responses, 1)
+	assert.Equal(t, formID, responses[0].FormID)
+	assert.Equal(t, "value1", responses[0].Values["field1"])
 }
 
 func TestClient_GetResponse(t *testing.T) {
-	tests := []struct {
-		name       string
-		responseID string
-		setup      bool
-		wantErr    bool
-	}{
-		{
-			name:    "valid response ID",
-			setup:   true,
-			wantErr: false,
-		},
-		{
-			name:       "invalid response ID",
-			responseID: "",
-			setup:      false,
-			wantErr:    true,
-		},
-	}
+	c := application.NewClient()
+	formID := setupTestForm(t, c)
+	responseID := setupTestResponse(t, c, formID)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := application.NewClient()
-			var responseID string
-			if tt.setup {
-				formID := setupTestForm(t, c)
-				responseID = setupTestResponse(t, c, formID)
-			} else {
-				responseID = tt.responseID
-			}
-			result, err := c.GetResponse(t.Context(), responseID)
-			if tt.wantErr {
-				require.Error(t, err)
-				assert.Nil(t, result)
-			} else {
-				require.NoError(t, err)
-				assert.NotNil(t, result)
-			}
-		})
-	}
+	r, err := c.GetResponse(t.Context(), responseID)
+	require.NoError(t, err)
+	require.NotNil(t, r)
+	assert.Equal(t, formID, r.FormID)
+	assert.Equal(t, "value1", r.Values["field1"])
 }
 
 func TestClient_ListResponses(t *testing.T) {
-	tests := []struct {
-		name    string
-		formID  string
-		setup   bool
-		wantErr bool
-	}{
-		{
-			name:    "valid form ID",
-			setup:   true,
-			wantErr: false,
-		},
-		{
-			name:    "invalid form ID",
-			formID:  "",
-			setup:   false,
-			wantErr: true,
-		},
-	}
+	c := application.NewClient()
+	formID := setupTestForm(t, c)
+	setupTestResponse(t, c, formID)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := application.NewClient()
-			var formID string
-			if tt.setup {
-				formID = setupTestForm(t, c)
-				_ = setupTestResponse(t, c, formID)
-			} else {
-				formID = tt.formID
-			}
-			responses, err := c.ListResponses(t.Context(), formID)
-			if tt.wantErr {
-				require.Error(t, err)
-				assert.Nil(t, responses)
-			} else {
-				require.NoError(t, err)
-				assert.NotEmpty(t, responses)
-			}
-		})
-	}
+	responses, err := c.ListResponses(t.Context(), formID)
+	require.NoError(t, err)
+	require.Len(t, responses, 1)
+	assert.Equal(t, formID, responses[0].FormID)
+	assert.Equal(t, "value1", responses[0].Values["field1"])
 }
 
 func TestClient_DeleteResponse(t *testing.T) {
-	tests := []struct {
-		name       string
-		responseID string
-		setup      bool
-		wantErr    bool
-	}{
-		{
-			name:    "valid response ID",
-			setup:   true,
-			wantErr: false,
-		},
-		{
-			name:       "invalid response ID",
-			responseID: "",
-			setup:      false,
-			wantErr:    true,
-		},
-	}
+	c := application.NewClient()
+	formID := setupTestForm(t, c)
+	responseID := setupTestResponse(t, c, formID)
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			c := application.NewClient()
-			var responseID string
-			if tt.setup {
-				formID := setupTestForm(t, c)
-				responseID = setupTestResponse(t, c, formID)
-			} else {
-				responseID = tt.responseID
-			}
-			err := c.DeleteResponse(t.Context(), responseID)
-			if tt.wantErr {
-				require.Error(t, err)
-			} else {
-				require.NoError(t, err)
-			}
-		})
-	}
+	err := c.DeleteResponse(t.Context(), responseID)
+	require.NoError(t, err)
+
+	responses, err := c.ListResponses(t.Context(), formID)
+	require.NoError(t, err)
+	require.Empty(t, responses)
 }

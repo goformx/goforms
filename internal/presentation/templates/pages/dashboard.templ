@@ -21,9 +21,18 @@ templ dashboardContent(data shared.PageData) {
 			</div>
 
 			<div class="dashboard-grid">
-				@components.FormCard("Contact Form", "A simple contact form for your website", "Last updated 2 days ago")
-				@components.FormCard("Survey Form", "Customer satisfaction survey", "Last updated 1 week ago")
-				@components.FormCard("Registration Form", "Event registration form", "Last updated 3 days ago")
+				if len(data.Forms) == 0 {
+					<div class="dashboard-empty">
+						<p>You haven't created any forms yet.</p>
+						<button class="button button-primary" onclick="window.location.href='/forms/new'">
+							Create Your First Form
+						</button>
+					</div>
+				} else {
+					for _, form := range data.Forms {
+						@components.FormCard(form.Title, form.Description, form.UpdatedAt.Format("Last updated Jan 2, 2006"))
+					}
+				}
 			</div>
 		</div>
 	</div>
