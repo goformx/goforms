@@ -2,6 +2,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"log"
 
@@ -88,6 +89,11 @@ func runApp(app *fx.App) error {
 }
 
 func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, error) {
+	// Validate configuration
+	if err := validateConfig(cfg); err != nil {
+		return nil, fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	// Create logger
 	logger, err := logFactory.CreateFromConfig(cfg)
 	if err != nil {
@@ -111,6 +117,16 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 	})
 
 	return e, nil
+}
+
+func validateConfig(cfg *config.Config) error {
+	if cfg.Security.JWTSecret == "" {
+		return errors.New("JWT secret is required")
+	}
+	if cfg.Security.CSRF.Enabled && cfg.Security.CSRF.Secret == "" {
+		return errors.New("CSRF secret is required when CSRF is enabled")
+	}
+	return nil
 }
 
 // ServerParams contains the dependencies for starting the server
