@@ -3,7 +3,6 @@ package middleware
 import (
 	"net/http"
 
-	"github.com/gorilla/csrf"
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 
@@ -90,51 +89,23 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// CSRF if enabled
 	if m.config != nil && m.config.EnableCSRF {
-		e.Use(CSRF(DefaultCSRFConfig()))
+		e.Use(echomw.CSRFWithConfig(echomw.CSRFConfig{
+			TokenLength:   32,
+			TokenLookup:   "header:X-CSRF-Token",
+			ContextKey:    "csrf",
+			CookieName:    "csrf_token",
+			CookiePath:    "/",
+			CookieSecure:  true,
+			CookieHTTPOnly: true,
+			CookieSameSite: http.SameSiteStrictMode,
+			ErrorHandler: func(err error, c echo.Context) error {
+				return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
+			},
+			Skipper: func(c echo.Context) bool {
+				return c.Request().Method == http.MethodGet
+			},
+		}))
 	}
 
 	m.logger.Debug("middleware setup complete")
-}
-
-// CSRFConfig holds configuration for CSRF middleware
-type CSRFConfig struct {
-	SecretKey string
-	Secure    bool
-}
-
-// CSRF returns CSRF middleware with the given configuration
-func (m *Manager) CSRF(cfg CSRFConfig) echo.MiddlewareFunc {
-	m.logger.Debug("creating CSRF middleware",
-		logging.Bool("secure", cfg.Secure),
-		logging.String("cookie_name", "csrf_token"),
-	)
-
-	csrfMiddleware := csrf.Protect(
-		[]byte(cfg.SecretKey),
-		csrf.Secure(cfg.Secure),
-		csrf.Path("/"),
-		csrf.SameSite(csrf.SameSiteStrictMode),
-		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-			m.logger.Error("CSRF validation failed",
-				logging.String("path", r.URL.Path),
-				logging.String("method", r.Method),
-			)
-			http.Error(w, "CSRF validation failed", http.StatusForbidden)
-		})),
-	)
-
-	return echo.WrapMiddleware(func(next http.Handler) http.Handler {
-		return csrfMiddleware(next)
-	})
-}
-
-// CSRFToken returns middleware to add CSRF token to templates
-func (m *Manager) CSRFToken() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			token := csrf.Token(c.Request())
-			c.Set("csrf", token)
-			return next(c)
-		}
-	}
 }
