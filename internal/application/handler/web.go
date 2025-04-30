@@ -178,10 +178,7 @@ func (h *WebHandler) renderPage(
 	token := getCSRFToken(c)
 	currentUser, err := getCurrentUser(c, h.userService)
 	if err != nil {
-		h.Logger.Error("failed to get current user", logging.Error(err))
-	}
-	if currentUser == nil {
-		return nil
+		h.Logger.Debug("no current user found", logging.Error(err))
 	}
 
 	data := shared.PageData{
