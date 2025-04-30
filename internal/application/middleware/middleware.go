@@ -169,6 +169,14 @@ func (m *Manager) Setup(e *echo.Echo) {
 				method := c.Request().Method
 				headers := c.Request().Header
 
+				// Check if CSRF should be skipped
+				if skip, ok := c.Get("skip_csrf").(bool); ok && skip {
+					m.logger.Debug("CSRF skipped: skip_csrf flag set", 
+						logging.String("path", path),
+						logging.String("reason", "skip_csrf flag"))
+					return true
+				}
+
 				m.logger.Debug("CSRF middleware evaluating request", 
 					logging.String("path", path),
 					logging.String("method", method),
@@ -181,11 +189,22 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 				// Skip for static content
 				if strings.HasPrefix(path, "/static/") || 
-				   strings.HasPrefix(path, "/favicon.ico") ||
-				   strings.HasPrefix(path, "/robots.txt") {
+				   path == "/favicon.ico" ||
+				   path == "/robots.txt" {
 					m.logger.Debug("CSRF skipped: static content", 
 						logging.String("path", path),
 						logging.String("reason", "static content path"))
+					return true
+				}
+
+				// Skip for GET, HEAD, OPTIONS requests
+				if method == http.MethodGet || 
+				   method == http.MethodHead || 
+				   method == http.MethodOptions {
+					m.logger.Debug("CSRF skipped: safe HTTP method", 
+						logging.String("path", path),
+						logging.String("method", method),
+						logging.String("reason", "safe HTTP method"))
 					return true
 				}
 
@@ -254,7 +273,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 			},
 		})
 
-		m.logger.Info("CSRF middleware created, adding to Echo instance")
+		m.logger.Debug("CSRF middleware created, adding to Echo instance")
 		e.Use(csrfMiddleware)
 
 		// Add logging middleware after CSRF
@@ -361,7 +380,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 			}
 		})
 	} else {
-		m.logger.Info("CSRF middleware is disabled", 
+		m.logger.Debug("CSRF middleware is disabled", 
 			logging.Bool("config_enabled", m.config.Security.CSRF.Enabled),
 			logging.String("reason", "CSRF disabled in config"))
 	}
@@ -377,7 +396,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Use(middleware)
 	}
 
-	m.logger.Info("middleware setup complete")
+	m.logger.Debug("middleware setup complete")
 }
 
 // ValidateCSRFToken validates the CSRF token in the request
