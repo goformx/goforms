@@ -135,11 +135,8 @@ func startServer(p ServerParams) error {
 		logging.String("handler_types", fmt.Sprintf("%v", handlerTypes)),
 	)
 
-	// Register static files first
-	p.Server.Echo().Static("/static", "static")
-	p.Server.Echo().Static("/static/dist", "static/dist")
-	p.Server.Echo().File("/favicon.ico", "static/favicon.ico")
-	p.Server.Echo().File("/robots.txt", "static/robots.txt")
+	// Register static files
+	registerStaticFiles(p.Server.Echo())
 
 	// Configure routes
 	if err := router.Setup(p.Server.Echo(), &router.Config{
@@ -154,4 +151,11 @@ func startServer(p ServerParams) error {
 	}
 
 	return nil
+}
+
+func registerStaticFiles(e *echo.Echo) {
+	e.Static("/static", "static")
+	e.Static("/static/dist", "static/dist")
+	e.File("/favicon.ico", "static/favicon.ico")
+	e.File("/robots.txt", "static/robots.txt")
 }
