@@ -30,13 +30,23 @@ func main() {
 }
 
 func run() error {
-	// Load environment
+	if err := loadEnvironment(); err != nil {
+		return err
+	}
+	
+	app := createApp()
+	return runApp(app)
+}
+
+func loadEnvironment() error {
 	if err := godotenv.Load(); err != nil {
 		log.Printf("Warning: Error loading .env file: %v\n", err)
 	}
+	return nil
+}
 
-	// Create app with DI
-	app := fx.New(
+func createApp() *fx.App {
+	return fx.New(
 		// Core dependencies
 		fx.Provide(
 			func() version.VersionInfo {
@@ -62,8 +72,9 @@ func run() error {
 		// Start server
 		fx.Invoke(startServer),
 	)
+}
 
-	// Run app
+func runApp(app *fx.App) error {
 	ctx := context.Background()
 	if err := app.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start application: %w", err)
