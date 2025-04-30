@@ -90,12 +90,12 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// CSRF if enabled
 	if m.config != nil && m.config.EnableCSRF {
 		e.Use(echomw.CSRFWithConfig(echomw.CSRFConfig{
-			TokenLength:   32,
-			TokenLookup:   "header:X-CSRF-Token",
-			ContextKey:    "csrf",
-			CookieName:    "csrf_token",
-			CookiePath:    "/",
-			CookieSecure:  true,
+			TokenLength:    32,
+			TokenLookup:    "header:X-CSRF-Token",
+			ContextKey:     "csrf",
+			CookieName:     "csrf_token",
+			CookiePath:     "/",
+			CookieSecure:   true,
 			CookieHTTPOnly: true,
 			CookieSameSite: http.SameSiteStrictMode,
 			ErrorHandler: func(err error, c echo.Context) error {

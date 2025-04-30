@@ -13,8 +13,8 @@ import (
 
 // DashboardHandler handles the admin dashboard routes
 type DashboardHandler struct {
-	base handlers.Base
-	Renderer *view.Renderer
+	base        handlers.Base
+	Renderer    *view.Renderer
 	UserService user.Service
 	FormService form.Service
 }
@@ -30,7 +30,7 @@ func NewDashboardHandler(
 		base: handlers.Base{
 			Logger: logger,
 		},
-		Renderer: renderer,
+		Renderer:    renderer,
 		UserService: userService,
 		FormService: formService,
 	}
@@ -61,9 +61,9 @@ func (h *DashboardHandler) showDashboard(c echo.Context) error {
 
 	data := shared.PageData{
 		Title: "Dashboard - GoForms",
-		User: currentUser,
+		User:  currentUser,
 		Forms: forms,
 	}
 
 	return h.Renderer.Render(c, pages.Dashboard(data))
-} 
+}

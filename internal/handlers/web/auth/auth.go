@@ -13,7 +13,7 @@ import (
 )
 
 type AuthHandler struct {
-	base handlers.Base
+	base     handlers.Base
 	userRepo repositories.UserRepository
 }
 
@@ -96,4 +96,4 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	// TODO: Generate JWT token and set cookie
 	// For now, just return success
 	return c.JSON(http.StatusOK, map[string]string{"message": "Login successful"})
-} 
+}

@@ -39,4 +39,4 @@ func (h *ValidationHandler) GetValidationRules(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, schema)
-} 
+}

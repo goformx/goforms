@@ -11,7 +11,7 @@ import (
 
 // HomeHandler handles the homepage routes
 type HomeHandler struct {
-	base handlers.Base
+	base     handlers.Base
 	Renderer *view.Renderer
 }
 
@@ -39,4 +39,4 @@ func (h *HomeHandler) handleHome(c echo.Context) error {
 	}
 
 	return h.Renderer.Render(c, pages.Home(data))
-} 
+}

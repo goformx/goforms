@@ -12,8 +12,8 @@ import (
 
 // DemoHandler handles the demo page routes
 type DemoHandler struct {
-	base handlers.Base
-	Renderer *view.Renderer
+	base                handlers.Base
+	Renderer            *view.Renderer
 	SubscriptionService subscription.Service
 }
 
@@ -27,7 +27,7 @@ func NewDemoHandler(
 		base: handlers.Base{
 			Logger: logger,
 		},
-		Renderer: renderer,
+		Renderer:            renderer,
 		SubscriptionService: subscriptionService,
 	}
 }
@@ -46,4 +46,4 @@ func (h *DemoHandler) handleDemo(c echo.Context) error {
 	}
 
 	return h.Renderer.Render(c, pages.Demo(data))
-} 
+}

@@ -61,4 +61,4 @@ func GetSchema(schemaName string) (any, error) {
 // RegisterSchema adds a new schema to the registry
 func RegisterSchema(name string, provider SchemaProvider) {
 	schemaRegistry[name] = provider
-} 
+}
