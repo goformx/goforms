@@ -180,6 +180,11 @@ var HandlerModule = fx.Options(
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
 		}
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "HomeHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+		)
 		return handler, nil
 	}),
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
@@ -188,6 +193,12 @@ var HandlerModule = fx.Options(
 			return nil, fmt.Errorf("failed to create demo handler: renderer=%T, subscription_service=%T",
 				core.Renderer, services.SubscriptionService)
 		}
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "DemoHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+			logging.String("subscription_service_type", fmt.Sprintf("%T", services.SubscriptionService)),
+		)
 		return handler, nil
 	}),
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
@@ -196,9 +207,17 @@ var HandlerModule = fx.Options(
 			return nil, fmt.Errorf("failed to create dashboard handler: renderer=%T, user_service=%T, form_service=%T",
 				core.Renderer, services.UserService, services.FormService)
 		}
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "DashboardHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+			logging.String("user_service_type", fmt.Sprintf("%T", services.UserService)),
+			logging.String("form_service_type", fmt.Sprintf("%T", services.FormService)),
+		)
 		return handler, nil
 	}),
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+		startTime := time.Now()
 		handler, err := handler.NewWebHandler(core.Logger,
 			handler.WithRenderer(core.Renderer),
 			handler.WithContactService(services.ContactService),
@@ -211,6 +230,15 @@ var HandlerModule = fx.Options(
 			return nil, fmt.Errorf("web handler is nil after creation: renderer=%T, contact_service=%T, subscription_service=%T",
 				core.Renderer, services.ContactService, services.SubscriptionService)
 		}
+
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "WebHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+			logging.String("contact_service_type", fmt.Sprintf("%T", services.ContactService)),
+			logging.String("subscription_service_type", fmt.Sprintf("%T", services.SubscriptionService)),
+			logging.Duration("init_duration", time.Since(startTime)),
+		)
 		return handler, nil
 	}),
 )
