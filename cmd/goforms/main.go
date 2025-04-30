@@ -134,9 +134,8 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 	// Configure middleware stack
 	middleware.Setup(e, &middleware.Config{
 		Logger:      logger,
-		JWTSecret:   cfg.Security.JWTSecret,
 		UserService: userService,
-		EnableCSRF:  cfg.Security.CSRF.Enabled,
+		Security:    &cfg.Security,
 	})
 
 	return e, nil
