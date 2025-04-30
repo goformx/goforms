@@ -1,0 +1,104 @@
+@layer pages {
+    .dashboard-page {
+        min-height: calc(100vh - var(--nav-height));
+        padding: var(--spacing-8) 0;
+        background: var(--background);
+        color: var(--text);
+    }
+
+    .dashboard-container {
+        width: 100%;
+        max-width: var(--container-max-width);
+        margin: var(--container-margin);
+        padding: 0 var(--container-padding-x);
+    }
+
+    .dashboard-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        margin-bottom: var(--spacing-8);
+    }
+
+    .dashboard-title {
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--text);
+        line-height: var(--line-height-tight);
+    }
+
+    .dashboard-grid {
+        display: grid;
+        grid-template-columns: var(--grid-columns-3);
+        gap: var(--grid-gap);
+    }
+
+    .form-card {
+        background: var(--card-bg);
+        border: var(--card-border);
+        border-radius: var(--card-radius);
+        padding: var(--card-padding);
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-4);
+        transition: transform var(--form-transition-duration) var(--form-transition-timing),
+                    box-shadow var(--form-transition-duration) var(--form-transition-timing);
+    }
+
+    .form-card:hover {
+        transform: translateY(-2px);
+        box-shadow: var(--shadow-md);
+    }
+
+    .form-card-content {
+        flex: 1;
+    }
+
+    .form-card-title {
+        font-size: var(--font-size-xl);
+        font-weight: var(--font-weight-semibold);
+        color: var(--text);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .form-card-description {
+        font-size: var(--font-size-base);
+        color: var(--text-light);
+        margin-bottom: var(--spacing-4);
+        line-height: var(--line-height-normal);
+    }
+
+    .form-card-meta {
+        font-size: var(--font-size-sm);
+        color: var(--text-muted);
+    }
+
+    .form-card-actions {
+        display: flex;
+        gap: var(--spacing-3);
+        margin-top: auto;
+    }
+
+    /* Responsive styles */
+    @media (max-width: var(--breakpoint-lg)) {
+        .dashboard-grid {
+            grid-template-columns: var(--grid-columns-2);
+        }
+    }
+
+    @media (max-width: var(--breakpoint-md)) {
+        .dashboard-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--spacing-4);
+        }
+
+        .dashboard-grid {
+            grid-template-columns: var(--grid-columns-mobile);
+        }
+
+        .form-card-actions {
+            flex-direction: column;
+        }
+    }
+} 

@@ -1,0 +1,30 @@
+package pages
+
+import (
+	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/components"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+)
+
+templ Dashboard(data shared.PageData) {
+	@layouts.Layout(data, dashboardContent(data))
+}
+
+templ dashboardContent(data shared.PageData) {
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-header">
+				<h1 class="dashboard-title">My Forms</h1>
+				<button class="button button-primary" onclick="window.location.href='/forms/new'">
+					Create New Form
+				</button>
+			</div>
+
+			<div class="dashboard-grid">
+				@components.FormCard("Contact Form", "A simple contact form for your website", "Last updated 2 days ago")
+				@components.FormCard("Survey Form", "Customer satisfaction survey", "Last updated 1 week ago")
+				@components.FormCard("Registration Form", "Event registration form", "Last updated 3 days ago")
+			</div>
+		</div>
+	</div>
+} 

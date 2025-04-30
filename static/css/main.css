@@ -24,6 +24,7 @@
 @import url('components/footer.css') layer(components);
 
 /* Page styles */
+@import url('pages/dashboard.css') layer(pages);
 @import url('pages/demo/sections.css') layer(pages);
 
 /* Utility styles */
