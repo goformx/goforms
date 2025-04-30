@@ -151,62 +151,24 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 }
 
 // NewHandlers creates all application handlers
-func NewHandlers(p HandlerParams) []handler.Handler {
-	p.Logger.Debug("creating handlers",
-		logging.String("version", p.VersionInfo.Version),
-		logging.Bool("renderer_available", p.Renderer != nil),
-		logging.Bool("contact_service_available", p.ContactService != nil),
-		logging.Bool("subscription_service_available", p.SubscriptionService != nil),
-		logging.Bool("user_service_available", p.UserService != nil),
-		logging.Bool("form_service_available", p.FormService != nil),
-	)
-
-	p.Logger.Debug("creating web handler")
-	webHandler := handler.NewWebHandler(p.Logger,
-		handler.WithRenderer(p.Renderer),
-		handler.WithContactService(p.ContactService),
-		handler.WithWebSubscriptionService(p.SubscriptionService),
-		handler.WithWebDebug(p.Config.App.Debug),
-	)
-	p.Logger.Debug("web handler created", logging.Bool("handler_available", webHandler != nil))
-
-	p.Logger.Debug("creating auth handler")
-	authHandler := handler.NewAuthHandler(p.Logger,
-		handler.WithUserService(p.UserService),
-	)
-	p.Logger.Debug("auth handler created", logging.Bool("handler_available", authHandler != nil))
-
-	p.Logger.Debug("creating contact handler")
-	contactHandler := handler.NewContactHandler(p.Logger,
-		handler.WithContactServiceOpt(p.ContactService),
-	)
-	p.Logger.Debug("contact handler created", logging.Bool("handler_available", contactHandler != nil))
-
-	p.Logger.Debug("creating subscription handler")
-	subscriptionHandler := handler.NewSubscriptionHandler(p.Logger,
-		handler.WithSubscriptionService(p.SubscriptionService),
-	)
-	p.Logger.Debug("subscription handler created", logging.Bool("handler_available", subscriptionHandler != nil))
-
-	p.Logger.Debug("creating dashboard handler")
-	dashboardHandler := handlers.NewDashboardHandler(p.UserService, p.FormService)
-	p.Logger.Debug("dashboard handler created", logging.Bool("handler_available", dashboardHandler != nil))
-
-	handlers := []handler.Handler{
-		webHandler,
-		authHandler,
-		contactHandler,
-		subscriptionHandler,
-		dashboardHandler,
+func NewHandlers(params HandlerParams) []handler.Handler {
+	routeHandlers := []handler.Handler{
+		handler.NewAuthHandler(
+			params.Logger,
+			handler.WithUserService(params.UserService),
+		),
+		handler.NewWebHandler(
+			params.Logger,
+			handler.WithRenderer(params.Renderer),
+			handler.WithContactService(params.ContactService),
+			handler.WithWebSubscriptionService(params.SubscriptionService),
+			handler.WithWebDebug(params.Config.App.Debug),
+		),
+		handlers.NewDashboardHandler(
+			params.UserService,
+			params.FormService,
+		),
 	}
 
-	for i, h := range handlers {
-		p.Logger.Debug("registered handler",
-			logging.Int("index", i),
-			logging.String("type", fmt.Sprintf("%T", h)),
-		)
-	}
-
-	p.Logger.Debug("all handlers created", logging.Int("count", len(handlers)))
-	return handlers
+	return routeHandlers
 }

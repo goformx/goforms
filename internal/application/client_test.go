@@ -1,7 +1,7 @@
 package application_test
 
 import (
-	"fmt"
+	"strconv"
 	"testing"
 	"time"
 
@@ -22,7 +22,7 @@ func setupTestForm(t *testing.T, c *application.Client) string {
 	forms, err := c.ListForms(t.Context())
 	require.NoError(t, err)
 	require.Len(t, forms, 1)
-	return fmt.Sprintf("%d", forms[0].ID)
+	return strconv.FormatUint(uint64(forms[0].ID), 10)
 }
 
 func setupTestResponse(t *testing.T, c *application.Client, formID string) string {
@@ -122,7 +122,7 @@ func TestClient_GetForm(t *testing.T) {
 			} else {
 				require.NoError(t, err)
 				require.NotNil(t, f)
-				assert.Equal(t, formID, fmt.Sprintf("%d", f.ID))
+				assert.Equal(t, formID, strconv.FormatUint(uint64(f.ID), 10))
 			}
 		})
 	}
@@ -135,7 +135,7 @@ func TestClient_ListForms(t *testing.T) {
 	forms, err := c.ListForms(t.Context())
 	require.NoError(t, err)
 	require.Len(t, forms, 1)
-	assert.Equal(t, formID, fmt.Sprintf("%d", forms[0].ID))
+	assert.Equal(t, formID, strconv.FormatUint(uint64(forms[0].ID), 10))
 }
 
 func TestClient_DeleteForm(t *testing.T) {

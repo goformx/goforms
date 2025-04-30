@@ -60,35 +60,6 @@ func (s *service) GetUserForms(userID uint) ([]*Form, error) {
 	return forms, nil
 }
 
-func (s *service) UpdateForm(id uint, title, description string, schema JSON) (*Form, error) {
-	form, err := s.store.GetByID(id)
-	if err != nil {
-		return nil, err
-	}
-
-	if form == nil {
-		return nil, errors.New("form not found")
-	}
-
-	if title != "" {
-		form.Title = title
-	}
-
-	if description != "" {
-		form.Description = description
-	}
-
-	if schema != nil {
-		form.Schema = schema
-	}
-
-	if err := s.store.Update(form); err != nil {
-		return nil, err
-	}
-
-	return form, nil
-}
-
 func (s *service) DeleteForm(id uint) error {
 	return s.store.Delete(id)
 }

@@ -32,14 +32,13 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 }
 
 func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
-	// Get user from context (set by auth middleware)
-	user, ok := c.Get("user").(*user.User)
+	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Unauthorized")
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
 	}
 
 	// Get user's forms
-	forms, err := h.formService.GetUserForms(user.ID)
+	forms, err := h.formService.GetUserForms(currentUser.ID)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch forms")
 	}
@@ -47,7 +46,7 @@ func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
 	// Create page data
 	data := shared.PageData{
 		Title: "Dashboard - GoForms",
-		User:  user,
+		User:  currentUser,
 		Forms: forms,
 	}
 

@@ -3,12 +3,18 @@ package store
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
+	"fmt"
+	"math"
 	"time"
 
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
+
+// ErrFormNotFound is returned when a form is not found
+var ErrFormNotFound = errors.New("form not found")
 
 type FormStore struct {
 	db     *database.Database
@@ -25,22 +31,26 @@ func NewFormStore(db *database.Database, logger logging.Logger) form.Store {
 func (s *FormStore) Create(f *form.Form) error {
 	query := `
 		INSERT INTO forms (user_id, title, description, schema, active)
-		VALUES (?, ?, ?, ?, ?)
+		VALUES ($1, $2, $3, $4, $5)
+		RETURNING id
 	`
 
-	schemaJSON, err := json.Marshal(f.Schema)
+	var id int64
+	err := s.db.QueryRow(
+		query,
+		f.UserID,
+		f.Title,
+		f.Description,
+		f.Schema,
+		f.Active,
+	).Scan(&id)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to create form: %w", err)
 	}
 
-	result, err := s.db.Exec(query, f.UserID, f.Title, f.Description, schemaJSON, f.Active)
-	if err != nil {
-		return err
-	}
-
-	id, err := result.LastInsertId()
-	if err != nil {
-		return err
+	// Check for integer overflow
+	if id < 0 || id > math.MaxUint32 {
+		return fmt.Errorf("form ID out of range: %d", id)
 	}
 
 	f.ID = uint(id)
@@ -70,13 +80,14 @@ func (s *FormStore) GetByID(id uint) (*form.Form, error) {
 	)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, nil
+			return nil, ErrFormNotFound
 		}
 		return nil, err
 	}
 
-	if err := json.Unmarshal(schemaJSON, &f.Schema); err != nil {
-		return nil, err
+	unmarshalErr := json.Unmarshal(schemaJSON, &f.Schema)
+	if unmarshalErr != nil {
+		return nil, unmarshalErr
 	}
 
 	f.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
@@ -93,9 +104,9 @@ func (s *FormStore) GetByUserID(userID uint) ([]*form.Form, error) {
 		ORDER BY created_at DESC
 	`
 
-	rows, err := s.db.Query(query, userID)
-	if err != nil {
-		return nil, err
+	rows, queryErr := s.db.Query(query, userID)
+	if queryErr != nil {
+		return nil, queryErr
 	}
 	defer rows.Close()
 
@@ -105,7 +116,7 @@ func (s *FormStore) GetByUserID(userID uint) ([]*form.Form, error) {
 		var schemaJSON []byte
 		var createdAt, updatedAt string
 
-		err := rows.Scan(
+		scanErr := rows.Scan(
 			&f.ID,
 			&f.UserID,
 			&f.Title,
@@ -115,18 +126,23 @@ func (s *FormStore) GetByUserID(userID uint) ([]*form.Form, error) {
 			&createdAt,
 			&updatedAt,
 		)
-		if err != nil {
-			return nil, err
+		if scanErr != nil {
+			return nil, scanErr
 		}
 
-		if err := json.Unmarshal(schemaJSON, &f.Schema); err != nil {
-			return nil, err
+		unmarshalErr := json.Unmarshal(schemaJSON, &f.Schema)
+		if unmarshalErr != nil {
+			return nil, unmarshalErr
 		}
 
 		f.CreatedAt, _ = time.Parse("2006-01-02 15:04:05", createdAt)
 		f.UpdatedAt, _ = time.Parse("2006-01-02 15:04:05", updatedAt)
 
 		forms = append(forms, &f)
+	}
+
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("error iterating over rows: %w", rowsErr)
 	}
 
 	return forms, nil

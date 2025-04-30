@@ -1,5 +1,9 @@
 package validation
 
+const (
+	MinPasswordLength = 8
+)
+
 // ValidationRule represents a single validation rule
 type ValidationRule struct {
 	Field   string
@@ -39,7 +43,7 @@ func GetSignupSchema() ValidationSchema {
 			{
 				Field:   "password",
 				Type:    "password",
-				Params:  map[string]any{"min": 8},
+				Params:  map[string]any{"min": MinPasswordLength},
 				Message: "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
 			},
 			{

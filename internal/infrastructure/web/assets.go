@@ -38,7 +38,8 @@ func init() {
 		return
 	}
 
-	if err := json.Unmarshal(manifestData, &manifest); err != nil {
+	unmarshalErr := json.Unmarshal(manifestData, &manifest)
+	if unmarshalErr != nil {
 		// Handle error gracefully in production
 		return
 	}

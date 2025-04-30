@@ -11,6 +11,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
+const (
+	// CookieExpiryMinutes is the number of minutes before a cookie expires
+	CookieExpiryMinutes = 15
+)
+
 // AuthHandlerOption defines an auth handler option
 type AuthHandlerOption func(*AuthHandler)
 
@@ -155,7 +160,7 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	cookie := new(http.Cookie)
 	cookie.Name = "token"
 	cookie.Value = tokens.AccessToken
-	cookie.Expires = time.Now().Add(15 * time.Minute) // Same as access token expiry
+	cookie.Expires = time.Now().Add(CookieExpiryMinutes * time.Minute)
 	cookie.Path = "/"
 	cookie.HttpOnly = true
 	cookie.Secure = true
@@ -191,8 +196,9 @@ func (h *AuthHandler) handleLogout(c echo.Context) error {
 	token, err := c.Cookie("token")
 	if err == nil && token.Value != "" {
 		// Blacklist the token
-		if err := h.userService.Logout(c.Request().Context(), token.Value); err != nil {
-			h.Logger.Error("failed to blacklist token", logging.Error(err))
+		logoutErr := h.userService.Logout(c.Request().Context(), token.Value)
+		if logoutErr != nil {
+			h.Logger.Error("failed to blacklist token", logging.Error(logoutErr))
 		}
 	}
 

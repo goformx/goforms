@@ -90,7 +90,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// CSRF if enabled
 	if m.config != nil && m.config.EnableCSRF {
-		e.Use(CSRF())
+		e.Use(CSRF(DefaultCSRFConfig()))
 	}
 
 	m.logger.Debug("middleware setup complete")

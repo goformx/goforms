@@ -5,7 +5,10 @@ import (
 	"time"
 )
 
-// Form represents a form created by a user
+// JSON represents a JSON object
+type JSON map[string]any
+
+// Form represents a form in the system
 type Form struct {
 	ID          uint      `json:"id"`
 	UserID      uint      `json:"user_id"`
@@ -17,24 +20,19 @@ type Form struct {
 	UpdatedAt   time.Time `json:"updated_at"`
 }
 
-// JSON is a type alias for the form schema
-type JSON map[string]any
-
-// Store defines the interface for form persistence
+// Store defines the interface for form storage operations
 type Store interface {
-	Create(form *Form) error
+	Create(f *Form) error
 	GetByID(id uint) (*Form, error)
 	GetByUserID(userID uint) ([]*Form, error)
-	Update(form *Form) error
 	Delete(id uint) error
 }
 
-// Service defines the interface for form business logic
+// Service defines the interface for form operations
 type Service interface {
 	CreateForm(userID uint, title, description string, schema JSON) (*Form, error)
 	GetForm(id uint) (*Form, error)
 	GetUserForms(userID uint) ([]*Form, error)
-	UpdateForm(id uint, title, description string, schema JSON) (*Form, error)
 	DeleteForm(id uint) error
 }
 

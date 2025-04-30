@@ -31,33 +31,27 @@ func (m *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 		// Get token from cookie
 		token, err := getTokenFromCookie(c)
 		if err != nil {
-			return c.Redirect(http.StatusSeeOther, "/login")
+			return echo.NewHTTPError(http.StatusUnauthorized, "Missing token")
 		}
 
 		// Validate token
-		if _, err := m.userService.ValidateToken(token); err != nil {
-			return c.Redirect(http.StatusSeeOther, "/login")
-		}
-
-		// Check if token is blacklisted
-		if m.userService.IsTokenBlacklisted(token) {
-			return c.Redirect(http.StatusSeeOther, "/login")
+		if _, validateErr := m.userService.ValidateToken(token); validateErr != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 		}
 
 		// Get user ID from token
-		userID, err := m.userService.GetUserIDFromToken(token)
-		if err != nil {
-			return c.Redirect(http.StatusSeeOther, "/login")
+		userID, idErr := m.userService.GetUserIDFromToken(token)
+		if idErr != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 		}
 
-		// Get user by ID
-		user, err := m.userService.GetByID(c.Request().Context(), userID)
-		if err != nil {
-			return c.Redirect(http.StatusSeeOther, "/login")
+		// Get user
+		currentUser, userErr := m.userService.GetByID(c.Request().Context(), userID)
+		if userErr != nil {
+			return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
 		}
 
-		// Set user in context
-		c.Set("user", user)
+		c.Set("user", currentUser)
 		return next(c)
 	}
 }
@@ -69,7 +63,8 @@ func (m *AuthMiddleware) RequireNoAuth(next echo.HandlerFunc) echo.HandlerFunc {
 		token, err := getTokenFromCookie(c)
 		if err == nil && token != "" {
 			// Validate token
-			if _, err := m.userService.ValidateToken(token); err == nil {
+			_, validateErr := m.userService.ValidateToken(token)
+			if validateErr == nil {
 				// Check if token is blacklisted
 				if !m.userService.IsTokenBlacklisted(token) {
 					return c.Redirect(http.StatusSeeOther, "/dashboard")
@@ -104,4 +99,62 @@ func getTokenFromCookie(c echo.Context) (string, error) {
 		return "", err
 	}
 	return cookie.Value, nil
+}
+
+func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Skip auth for public routes
+		if isPublicRoute(c.Path()) {
+			return next(c)
+		}
+
+		token, err := c.Cookie("token")
+		if err != nil {
+			return next(c)
+		}
+
+		// Validate token
+		if _, validateErr := m.userService.ValidateToken(token.Value); validateErr != nil {
+			return next(c)
+		}
+
+		// Get user ID from token
+		userID, idErr := m.userService.GetUserIDFromToken(token.Value)
+		if idErr != nil {
+			return next(c)
+		}
+
+		// Get user
+		currentUser, userErr := m.userService.GetByID(c.Request().Context(), userID)
+		if userErr != nil {
+			return next(c)
+		}
+
+		c.Set("user", currentUser)
+		return next(c)
+	}
+}
+
+func (m *AuthMiddleware) RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		token, err := c.Cookie("token")
+		if err != nil {
+			return next(c)
+		}
+
+		// Validate token
+		if _, validateErr := m.userService.ValidateToken(token.Value); validateErr == nil {
+			// Token is still valid, get user ID
+			userID, idErr := m.userService.GetUserIDFromToken(token.Value)
+			if idErr == nil {
+				// Get user
+				currentUser, userErr := m.userService.GetByID(c.Request().Context(), userID)
+				if userErr == nil {
+					c.Set("user", currentUser)
+				}
+			}
+		}
+
+		return next(c)
+	}
 }

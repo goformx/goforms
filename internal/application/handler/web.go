@@ -1,14 +1,11 @@
 package handler
 
 import (
-	"crypto/rand"
-	"encoding/base64"
 	"errors"
 	"fmt"
 	"net/http"
 
-	"github.com/labstack/echo/v4"
-
+	"github.com/a-h/templ"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -16,6 +13,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
+	"github.com/labstack/echo/v4"
 )
 
 // WebHandlerOption defines a web handler option.
@@ -165,11 +163,17 @@ func (h *WebHandler) Register(e *echo.Echo) {
 
 	// Static files - Note: paths must be relative to the project root
 	e.Static("/static", "./static")
-	h.Logger.Debug("registered static directory", logging.String("path", "/static"), logging.String("root", "./static"))
+	h.Logger.Debug("registered static directory",
+		logging.String("path", "/static"),
+		logging.String("root", "./static"),
+	)
 
 	// Vite-built files
 	e.Static("/static/dist", "./static/dist")
-	h.Logger.Debug("registered static directory", logging.String("path", "/static/dist"), logging.String("root", "./static/dist"))
+	h.Logger.Debug("registered static directory",
+		logging.String("path", "/static/dist"),
+		logging.String("root", "./static/dist"),
+	)
 
 	e.File("/favicon.ico", "./static/favicon.ico")
 	h.Logger.Debug("registered favicon", logging.String("path", "/favicon.ico"))
@@ -191,20 +195,20 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 	}
 
 	// Get user from context
-	var user *user.User
-	if userID, ok := c.Get("user_id").(uint); ok {
+	var currentUser *user.User
+	if userID, exists := c.Get("user_id").(uint); exists {
 		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
 		if err != nil {
 			h.Logger.Error("failed to get user", logging.Error(err))
 		} else {
-			user = u
+			currentUser = u
 		}
 	}
 
 	data := shared.PageData{
 		Title:     "Home",
 		CSRFToken: token,
-		User:      user,
+		User:      currentUser,
 	}
 
 	if err := h.renderer.Render(c, pages.Home(data)); err != nil {
@@ -231,20 +235,20 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 	}
 
 	// Get user from context
-	var user *user.User
-	if userID, ok := c.Get("user_id").(uint); ok {
+	var currentUser *user.User
+	if userID, exists := c.Get("user_id").(uint); exists {
 		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
 		if err != nil {
 			h.Logger.Error("failed to get user", logging.Error(err))
 		} else {
-			user = u
+			currentUser = u
 		}
 	}
 
 	data := shared.PageData{
 		Title:     "Demo",
 		CSRFToken: token,
-		User:      user,
+		User:      currentUser,
 	}
 
 	if err := h.renderer.Render(c, pages.Demo(data)); err != nil {
@@ -259,99 +263,40 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 	return nil
 }
 
-// generateToken generates a random token
-func generateToken() string {
-	b := make([]byte, 32)
-	rand.Read(b)
-	return base64.StdEncoding.EncodeToString(b)
+// handleAuthPage handles authentication pages (login/signup)
+func (h *WebHandler) handleAuthPage(
+	c echo.Context,
+	title string,
+	template func(shared.PageData) templ.Component,
+) error {
+	token, ok := c.Get("csrf").(string)
+	if !ok {
+		h.Logger.Error("csrf token not found in context")
+		token = ""
+	}
+
+	data := shared.PageData{
+		Title:     title,
+		CSRFToken: token,
+	}
+
+	return h.renderer.Render(c, template(data))
 }
 
-// handleSignup renders the signup page
 func (h *WebHandler) handleSignup(c echo.Context) error {
-	h.Logger.Debug("handling signup page request",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-	)
-
-	// Generate a new CSRF token for GET requests
-	token := c.Get("csrf")
-	if token == nil {
-		// If no token exists, generate a new one
-		token = generateToken()
-		c.Set("csrf", token)
-	}
-
-	// Get user from context
-	var user *user.User
-	if userID, ok := c.Get("user_id").(uint); ok {
-		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
-		if err != nil {
-			h.Logger.Error("failed to get user", logging.Error(err))
-		} else {
-			user = u
-		}
-	}
-
-	data := shared.PageData{
-		Title:     "Sign Up",
-		CSRFToken: token.(string),
-		User:      user,
-	}
-
-	if err := h.renderer.Render(c, pages.Signup(data)); err != nil {
-		h.Logger.Error("failed to render signup page",
-			logging.String("path", c.Path()),
-			logging.Error(err),
-		)
-		return fmt.Errorf("failed to render signup page: %w", err)
-	}
-	return nil
+	return h.handleAuthPage(c, "Sign Up", pages.Signup)
 }
 
-// handleLogin renders the login page
 func (h *WebHandler) handleLogin(c echo.Context) error {
-	h.Logger.Debug("handling login page request",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-	)
-
-	// Generate a new CSRF token for GET requests
-	token := c.Get("csrf")
-	if token == nil {
-		// If no token exists, generate a new one
-		token = generateToken()
-		c.Set("csrf", token)
-	}
-
-	// Get user from context
-	var user *user.User
-	if userID, ok := c.Get("user_id").(uint); ok {
-		u, err := h.userService.GetUserByID(c.Request().Context(), userID)
-		if err != nil {
-			h.Logger.Error("failed to get user", logging.Error(err))
-		} else {
-			user = u
-		}
-	}
-
-	data := shared.PageData{
-		Title:     "Sign In",
-		CSRFToken: token.(string),
-		User:      user,
-	}
-
-	if err := h.renderer.Render(c, pages.Login(data)); err != nil {
-		h.Logger.Error("failed to render login page",
-			logging.String("path", c.Path()),
-			logging.Error(err),
-		)
-		return fmt.Errorf("failed to render login page: %w", err)
-	}
-	return nil
+	return h.handleAuthPage(c, "Login", pages.Login)
 }
 
 // handleValidationSchema returns the validation schema for a given form
 func (h *WebHandler) handleValidationSchema(c echo.Context) error {
+	const (
+		minPasswordLength = 8
+	)
+
 	schemaName := c.Param("schema")
 
 	var schema any
@@ -374,7 +319,7 @@ func (h *WebHandler) handleValidationSchema(c echo.Context) error {
 			},
 			"password": map[string]any{
 				"type":    "password",
-				"min":     8,
+				"min":     minPasswordLength,
 				"message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
 			},
 			"confirm_password": map[string]any{
