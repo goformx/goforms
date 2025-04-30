@@ -18,6 +18,7 @@ const (
 	// TokenCookieName is the name of the CSRF token cookie
 	TokenCookieName = "csrf_token"
 	// TokenHeaderName is the name of the CSRF token header
+	// #nosec G101 -- This is not a credential, just a header name
 	TokenHeaderName = "X-CSRF-Token"
 	// DefaultCSRFCookieMaxAge is the default max age for CSRF cookies (24 hours)
 	DefaultCSRFCookieMaxAge = 24 * time.Hour
