@@ -59,7 +59,7 @@ func (s *Server) Echo() *echo.Echo {
 
 // Start initializes and starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
-	s.addr = fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port)
+	s.addr = fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
 	s.logger.Info("starting server",
 		logging.String("addr", s.addr),
 		logging.String("env", s.config.App.Env),

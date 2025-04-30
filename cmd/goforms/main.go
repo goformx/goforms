@@ -15,9 +15,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/application/router"
 	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/infrastructure"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
@@ -120,10 +122,10 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 type ServerParams struct {
 	fx.In
 
-	Echo     *echo.Echo
+	Server   *server.Server
 	Config   *config.Config
 	Logger   logging.Logger
-	Handlers []handler.Handler `group:"handlers"`
+	Handlers []handlers.Handler `group:"handlers"`
 }
 
 func startServer(p ServerParams) error {
@@ -138,8 +140,14 @@ func startServer(p ServerParams) error {
 		)
 	}
 
+	// Register static files first
+	p.Server.Echo().Static("/static", "static")
+	p.Server.Echo().Static("/static/dist", "static/dist")
+	p.Server.Echo().File("/favicon.ico", "static/favicon.ico")
+	p.Server.Echo().File("/robots.txt", "static/robots.txt")
+
 	// Configure routes
-	if err := router.Setup(p.Echo, &router.Config{
+	if err := router.Setup(p.Server.Echo(), &router.Config{
 		Handlers: p.Handlers,
 		Static: router.StaticConfig{
 			Path: "/static",
@@ -150,18 +158,5 @@ func startServer(p ServerParams) error {
 		return fmt.Errorf("failed to setup router: %w", err)
 	}
 
-	// Start server
-	addr := fmt.Sprintf("%s:%d", p.Config.Server.Host, p.Config.Server.Port)
-	if p.Config.Server.Port == 0 {
-		addr = fmt.Sprintf("%s:8090", p.Config.Server.Host) // Default to 8090 if port is not set
-	}
-
-	p.Logger.Info("Starting server",
-		logging.String("addr", addr),
-		logging.String("env", p.Config.App.Env),
-		logging.String("version", version),
-		logging.String("gitCommit", gitCommit),
-	)
-
-	return p.Echo.Start(addr)
+	return nil
 }

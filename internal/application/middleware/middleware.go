@@ -13,7 +13,8 @@ const (
 	// NonceSize is the size of the nonce in bytes (32 bytes = 256 bits)
 	NonceSize = 32
 	// HSTSOneYear is the number of seconds in one year
-	HSTSOneYear = 31536000
+	HSTSOneYear        = 31536000
+	DefaultTokenLength = 32
 )
 
 // Manager handles middleware configuration and setup
@@ -90,7 +91,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// CSRF if enabled
 	if m.config != nil && m.config.EnableCSRF {
 		e.Use(echomw.CSRFWithConfig(echomw.CSRFConfig{
-			TokenLength:    32,
+			TokenLength:    DefaultTokenLength,
 			TokenLookup:    "header:X-CSRF-Token",
 			ContextKey:     "csrf",
 			CookieName:     "csrf_token",

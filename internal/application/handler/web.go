@@ -17,6 +17,10 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+var (
+	ErrNoCurrentUser = errors.New("no current user found")
+)
+
 // WebHandlerOption defines a web handler option.
 // This type is used to implement the functional options pattern
 // for configuring the WebHandler.
@@ -162,7 +166,7 @@ func getCurrentUser(c echo.Context, userService user.Service) (*user.User, error
 		}
 		return u, nil
 	}
-	return nil, nil
+	return nil, ErrNoCurrentUser
 }
 
 // renderPage renders a page with the given template and data
@@ -172,15 +176,18 @@ func (h *WebHandler) renderPage(
 	template func(shared.PageData) templ.Component,
 ) error {
 	token := getCSRFToken(c)
-	user, err := getCurrentUser(c, h.userService)
+	currentUser, err := getCurrentUser(c, h.userService)
 	if err != nil {
 		h.Logger.Error("failed to get current user", logging.Error(err))
+	}
+	if currentUser == nil {
+		return nil
 	}
 
 	data := shared.PageData{
 		Title:     title,
 		CSRFToken: token,
-		User:      user,
+		User:      currentUser,
 	}
 
 	return h.renderer.Render(c, template(data))
@@ -195,30 +202,20 @@ func (h *WebHandler) logRoute(method, path string) {
 }
 
 // registerRoute registers a route with logging
-func (h *WebHandler) registerRoute(e *echo.Echo, method, path string, handler echo.HandlerFunc) {
-	switch method {
-	case "GET":
-		e.GET(path, handler)
-	case "POST":
-		e.POST(path, handler)
-	case "PUT":
-		e.PUT(path, handler)
-	case "DELETE":
-		e.DELETE(path, handler)
-	}
-	h.logRoute(method, path)
+func (h *WebHandler) registerRoute(e *echo.Echo, path string, handler echo.HandlerFunc) {
+	e.GET(path, handler)
 }
 
 // registerRoutes registers all web routes
 func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	// Web pages
-	h.registerRoute(e, "GET", "/", h.handleHome)
-	h.registerRoute(e, "GET", "/demo", h.handleDemo)
-	h.registerRoute(e, "GET", "/signup", h.handleSignup)
-	h.registerRoute(e, "GET", "/login", h.handleLogin)
+	h.registerRoute(e, "/", h.handleHome)
+	h.registerRoute(e, "/demo", h.handleDemo)
+	h.registerRoute(e, "/signup", h.handleSignup)
+	h.registerRoute(e, "/login", h.handleLogin)
 
 	// Validation endpoints
-	h.registerRoute(e, "GET", "/api/validation/:schema", h.handleValidationSchema)
+	h.registerRoute(e, "/api/validation/:schema", h.handleValidationSchema)
 
 	// Static files
 	e.Static("/static", "./static")

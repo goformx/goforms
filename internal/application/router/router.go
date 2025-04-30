@@ -2,18 +2,16 @@ package router
 
 import (
 	"fmt"
-	"slices"
-	"strings"
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/application/handler"
+	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 // Config holds router configuration
 type Config struct {
-	Handlers []handler.Handler
+	Handlers []handlers.Handler
 	Static   StaticConfig
 	Logger   logging.Logger
 }
@@ -40,15 +38,8 @@ func Setup(e *echo.Echo, cfg *Config) error {
 		logging.String("static_root", cfg.Static.Root),
 	)
 
-	// Use slices package for efficient handler management
-	handlers := slices.Clone(cfg.Handlers)
-	slices.SortFunc(handlers, func(a, b handler.Handler) int {
-		// Sort by handler type name for consistent registration order
-		return strings.Compare(fmt.Sprintf("%T", a), fmt.Sprintf("%T", b))
-	})
-
 	// Register API handlers
-	for i, h := range handlers {
+	for i, h := range cfg.Handlers {
 		cfg.Logger.Debug("registering handler",
 			logging.Int("index", i),
 			logging.String("type", fmt.Sprintf("%T", h)),

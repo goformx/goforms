@@ -11,6 +11,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	UnauthorizedErrorCode   = 401
+	InternalServerErrorCode = 500
+)
+
 // DashboardHandler handles the admin dashboard routes
 type DashboardHandler struct {
 	base        handlers.Base
@@ -47,7 +52,7 @@ func (h *DashboardHandler) showDashboard(c echo.Context) error {
 
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
-		return echo.NewHTTPError(401, "User not authenticated")
+		return echo.NewHTTPError(UnauthorizedErrorCode, "User not authenticated")
 	}
 
 	forms, err := h.FormService.GetUserForms(currentUser.ID)
@@ -56,7 +61,7 @@ func (h *DashboardHandler) showDashboard(c echo.Context) error {
 			logging.Error(err),
 			logging.Uint("user_id", currentUser.ID),
 		)
-		return echo.NewHTTPError(500, "Failed to get forms")
+		return echo.NewHTTPError(InternalServerErrorCode, "Failed to get forms")
 	}
 
 	data := shared.PageData{

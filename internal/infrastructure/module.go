@@ -63,7 +63,7 @@ type Stores struct {
 type NoopHandler struct{}
 
 // Register implements the Handler interface
-func (h *NoopHandler) Register(e *echo.Echo) {}
+func (nh *NoopHandler) Register(e *echo.Echo) {}
 
 // Module combines all infrastructure-level modules and providers
 var Module = fx.Options(
@@ -84,17 +84,15 @@ var Module = fx.Options(
 	),
 
 	// Handlers
-	fx.Provide(
-		AsHandler(func(p HandlerParams) *wh.HomeHandler {
-			return wh.NewHomeHandler(p.Logger, p.Renderer)
-		}),
-		AsHandler(func(p HandlerParams) *wh.DemoHandler {
-			return wh.NewDemoHandler(p.Logger, p.Renderer, p.SubscriptionService)
-		}),
-		AsHandler(func(p HandlerParams) *ah.DashboardHandler {
-			return ah.NewDashboardHandler(p.Logger, p.Renderer, p.UserService, p.FormService)
-		}),
-	),
+	AsHandler(func(p HandlerParams) *wh.HomeHandler {
+		return wh.NewHomeHandler(p.Logger, p.Renderer)
+	}),
+	AsHandler(func(p HandlerParams) *wh.DemoHandler {
+		return wh.NewDemoHandler(p.Logger, p.Renderer, p.SubscriptionService)
+	}),
+	AsHandler(func(p HandlerParams) *ah.DashboardHandler {
+		return ah.NewDashboardHandler(p.Logger, p.Renderer, p.UserService, p.FormService)
+	}),
 )
 
 // NewStores creates all database stores.

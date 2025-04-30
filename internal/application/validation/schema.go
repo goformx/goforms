@@ -25,7 +25,7 @@ var schemaRegistry = map[string]SchemaProvider{
 			},
 			"password": map[string]any{
 				"type":    "password",
-				"min":     8,
+				"min":     MinPasswordLength,
 				"message": "Password must be at least 8 characters and contain uppercase, lowercase, number, and special character",
 			},
 			"confirm_password": map[string]any{
