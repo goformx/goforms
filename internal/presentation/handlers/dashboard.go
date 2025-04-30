@@ -3,24 +3,29 @@ package handlers
 import (
 	"net/http"
 
+	amw "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/presentation/middleware"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
 )
 
 type DashboardHandler struct {
-	authMiddleware *middleware.AuthMiddleware
+	authMiddleware *amw.CookieAuthMiddleware
 	formService    form.Service
 }
 
-func NewDashboardHandler(userService user.Service, formService form.Service) *DashboardHandler {
-	return &DashboardHandler{
-		authMiddleware: middleware.NewAuthMiddleware(userService),
-		formService:    formService,
+func NewDashboardHandler(userService user.Service, formService form.Service) (*DashboardHandler, error) {
+	authMiddleware, err := amw.NewCookieAuthMiddleware(userService)
+	if err != nil {
+		return nil, err
 	}
+
+	return &DashboardHandler{
+		authMiddleware: authMiddleware,
+		formService:    formService,
+	}, nil
 }
 
 func (h *DashboardHandler) Register(e *echo.Echo) {

@@ -5,23 +5,31 @@ import (
 	"strings"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 )
 
-// AuthMiddleware handles authentication
-type AuthMiddleware struct {
+// CookieAuthMiddleware handles cookie-based authentication
+type CookieAuthMiddleware struct {
 	userService user.Service
+	logger      logging.Logger
 }
 
-// NewAuthMiddleware creates a new auth middleware
-func NewAuthMiddleware(userService user.Service) *AuthMiddleware {
-	return &AuthMiddleware{
-		userService: userService,
+// NewCookieAuthMiddleware creates a new cookie auth middleware
+func NewCookieAuthMiddleware(userService user.Service) (*CookieAuthMiddleware, error) {
+	logger, err := logging.NewLogger(false, "cookie_auth")
+	if err != nil {
+		return nil, err
 	}
+
+	return &CookieAuthMiddleware{
+		userService: userService,
+		logger:      logger,
+	}, nil
 }
 
 // RequireAuth middleware ensures the user is authenticated
-func (m *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
+func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// Skip auth for public routes
 		if isPublicRoute(c.Path()) {
@@ -31,23 +39,27 @@ func (m *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 		// Get token from cookie
 		token, err := getTokenFromCookie(c)
 		if err != nil {
+			m.logger.Error("missing token", logging.Error(err))
 			return echo.NewHTTPError(http.StatusUnauthorized, "Missing token")
 		}
 
 		// Validate token
 		if _, validateErr := m.userService.ValidateToken(token); validateErr != nil {
+			m.logger.Error("invalid token", logging.Error(validateErr))
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 		}
 
 		// Get user ID from token
 		userID, idErr := m.userService.GetUserIDFromToken(token)
 		if idErr != nil {
+			m.logger.Error("invalid token", logging.Error(idErr))
 			return echo.NewHTTPError(http.StatusUnauthorized, "Invalid token")
 		}
 
 		// Get user
 		currentUser, userErr := m.userService.GetByID(c.Request().Context(), userID)
 		if userErr != nil {
+			m.logger.Error("user not found", logging.Error(userErr))
 			return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
 		}
 
@@ -57,7 +69,7 @@ func (m *AuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 }
 
 // RequireNoAuth middleware ensures the user is not authenticated
-func (m *AuthMiddleware) RequireNoAuth(next echo.HandlerFunc) echo.HandlerFunc {
+func (m *CookieAuthMiddleware) RequireNoAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// Get token from cookie
 		token, err := getTokenFromCookie(c)
@@ -75,33 +87,8 @@ func (m *AuthMiddleware) RequireNoAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-// isPublicRoute checks if the route is public
-func isPublicRoute(path string) bool {
-	publicRoutes := []string{
-		"/health",
-		"/login",
-		"/signup",
-		"/api/v1/contact",
-		"/api/v1/subscription",
-	}
-	for _, route := range publicRoutes {
-		if strings.HasPrefix(path, route) {
-			return true
-		}
-	}
-	return false
-}
-
-// getTokenFromCookie extracts token from cookie
-func getTokenFromCookie(c echo.Context) (string, error) {
-	cookie, err := c.Cookie("token")
-	if err != nil {
-		return "", err
-	}
-	return cookie.Value, nil
-}
-
-func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
+// Authenticate middleware attempts to authenticate the user
+func (m *CookieAuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		// Skip auth for public routes
 		if isPublicRoute(c.Path()) {
@@ -135,7 +122,8 @@ func (m *AuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-func (m *AuthMiddleware) RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
+// RefreshToken middleware attempts to refresh the token
+func (m *CookieAuthMiddleware) RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		token, err := c.Cookie("token")
 		if err != nil {
@@ -158,3 +146,29 @@ func (m *AuthMiddleware) RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 		return next(c)
 	}
 }
+
+// isPublicRoute checks if the route is public
+func isPublicRoute(path string) bool {
+	publicRoutes := []string{
+		"/health",
+		"/login",
+		"/signup",
+		"/api/v1/contact",
+		"/api/v1/subscription",
+	}
+	for _, route := range publicRoutes {
+		if strings.HasPrefix(path, route) {
+			return true
+		}
+	}
+	return false
+}
+
+// getTokenFromCookie extracts token from cookie
+func getTokenFromCookie(c echo.Context) (string, error) {
+	cookie, err := c.Cookie("token")
+	if err != nil {
+		return "", err
+	}
+	return cookie.Value, nil
+} 

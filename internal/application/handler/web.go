@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/a-h/templ"
-	"github.com/jonesrussell/goforms/internal/application/middleware"
+	amw "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/application/validation"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
@@ -157,7 +157,7 @@ func (h *WebHandler) getCSRFToken(c echo.Context) string {
 		logging.String("content_type", c.Request().Header.Get("Content-Type")))
 
 	// First try to get the token from the context key (set by middleware)
-	token := c.Get(middleware.CSRFContextKey)
+	token := c.Get(amw.CSRFContextKey)
 	if token == nil {
 		h.Logger.Debug("CSRF token not found in context", 
 			logging.String("path", c.Request().URL.Path),

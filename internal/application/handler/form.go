@@ -6,11 +6,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	amw "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/form/model"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/presentation/middleware"
 )
 
 // FormHandler handles form-related requests
@@ -18,19 +18,22 @@ type FormHandler struct {
 	base           Base
 	formService    form.Service
 	formClient     form.Client
-	authMiddleware *middleware.AuthMiddleware
+	authMiddleware *amw.CookieAuthMiddleware
 }
 
 // NewFormHandler creates a new FormHandler
-func NewFormHandler(logger logging.Logger, formService form.Service, formClient form.Client, userService user.Service) *FormHandler {
+func NewFormHandler(logger logging.Logger, formService form.Service, formClient form.Client, userService user.Service) (*FormHandler, error) {
+	authMiddleware, err := amw.NewCookieAuthMiddleware(userService)
+	if err != nil {
+		return nil, err
+	}
+
 	return &FormHandler{
-		base: Base{
-			Logger: logger,
-		},
+		base:           NewBase(WithLogger(logger)),
 		formService:    formService,
 		formClient:     formClient,
-		authMiddleware: middleware.NewAuthMiddleware(userService),
-	}
+		authMiddleware: authMiddleware,
+	}, nil
 }
 
 // Register sets up the routes for the form handler
@@ -55,6 +58,14 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
 	}
 
+	// Verify CSRF token if enabled
+	if csrfToken := c.Get(amw.CSRFContextKey); csrfToken != nil {
+		// Log CSRF token presence for debugging
+		h.base.Logger.Debug("CSRF token found in request", 
+			logging.String("path", c.Request().URL.Path),
+			logging.String("method", c.Request().Method))
+	}
+
 	// Get form data from request body
 	var formData map[string]interface{}
 	if err := c.Bind(&formData); err != nil {
@@ -66,6 +77,7 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		"ip":         c.RealIP(),
 		"user_agent": c.Request().UserAgent(),
 		"origin":     c.Request().Header.Get("Origin"),
+		"referer":    c.Request().Header.Get("Referer"),
 	}
 
 	// Create form submission
@@ -88,6 +100,12 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		h.base.LogError("failed to submit form response", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to process form submission")
 	}
+
+	// Set security headers in response
+	c.Response().Header().Set("X-Content-Type-Options", "nosniff")
+	c.Response().Header().Set("X-Frame-Options", "DENY")
+	c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
+	c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
 	return c.JSON(http.StatusOK, submission)
 }

@@ -6,7 +6,6 @@ import (
 	"strings"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	echomw "github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
 
@@ -104,8 +103,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Rate limiting for form submissions
 	formGroup.Use(echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
-		Store: middleware.NewRateLimiterMemoryStoreWithConfig(
-			middleware.RateLimiterMemoryStoreConfig{
+		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
+			echomw.RateLimiterMemoryStoreConfig{
 				Rate:      rate.Limit(m.config.Security.FormRateLimit),
 				Burst:     5,
 				ExpiresIn: m.config.Security.FormRateLimitWindow,
@@ -225,7 +224,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 				// Log all context keys before CSRF processing
 				keys := make([]string, 0)
-				for k := range c.Get("").(map[string]interface{}) {
+				for k := range c.Get("").(map[string]any) {
 					keys = append(keys, k)
 				}
 				m.logger.Debug("Context keys before CSRF processing",
@@ -238,7 +237,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 				// Log all context keys after CSRF processing
 				keys = make([]string, 0)
-				for k := range c.Get("").(map[string]interface{}) {
+				for k := range c.Get("").(map[string]any) {
 					keys = append(keys, k)
 				}
 				m.logger.Debug("Context keys after CSRF processing",
