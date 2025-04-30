@@ -82,8 +82,8 @@ func (s *store) GetByID(id uint) (*form.Form, error) {
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
 
-	if err := json.Unmarshal(schemaJSON, &f.Schema); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal schema: %w", err)
+	if unmarshalErr := json.Unmarshal(schemaJSON, &f.Schema); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to unmarshal schema: %w", unmarshalErr)
 	}
 
 	return f, nil

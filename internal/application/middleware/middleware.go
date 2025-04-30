@@ -32,14 +32,14 @@ type ManagerConfig struct {
 }
 
 // New creates a new middleware manager
-func New(config *ManagerConfig) *Manager {
-	if config.Logger == nil {
+func New(cfg *ManagerConfig) *Manager {
+	if cfg.Logger == nil {
 		panic("logger is required for Manager")
 	}
 
 	return &Manager{
-		logger: config.Logger,
-		config: config,
+		logger: cfg.Logger,
+		config: cfg,
 	}
 }
 
@@ -103,15 +103,15 @@ type CSRFConfig struct {
 }
 
 // CSRF returns CSRF middleware with the given configuration
-func (m *Manager) CSRF(config CSRFConfig) echo.MiddlewareFunc {
+func (m *Manager) CSRF(cfg CSRFConfig) echo.MiddlewareFunc {
 	m.logger.Debug("creating CSRF middleware",
-		logging.Bool("secure", config.Secure),
+		logging.Bool("secure", cfg.Secure),
 		logging.String("cookie_name", "csrf_token"),
 	)
 
 	csrfMiddleware := csrf.Protect(
-		[]byte(config.SecretKey),
-		csrf.Secure(config.Secure),
+		[]byte(cfg.SecretKey),
+		csrf.Secure(cfg.Secure),
 		csrf.Path("/"),
 		csrf.SameSite(csrf.SameSiteStrictMode),
 		csrf.ErrorHandler(http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
