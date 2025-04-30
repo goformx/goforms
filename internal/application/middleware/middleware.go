@@ -45,15 +45,17 @@ func New(cfg *ManagerConfig) *Manager {
 
 // Setup configures all middleware for an Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Debug("setting up middleware")
+	m.logger.Debug("setting up middleware manager")
 
 	// Basic middleware
+	m.logger.Debug("adding basic middleware")
 	e.Use(echomw.Recover())
 	e.Use(echomw.RequestID())
 	e.Use(echomw.Secure())
 	e.Use(echomw.BodyLimit("2M"))
 
 	// Security middleware with comprehensive configuration
+	m.logger.Debug("adding security headers middleware")
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
 		XSSProtection:         "1; mode=block",
 		ContentTypeNosniff:    "nosniff",
@@ -70,6 +72,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	}))
 
 	// CORS
+	m.logger.Debug("adding CORS middleware")
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
 		AllowOrigins: []string{"*"},
 		AllowMethods: []string{
@@ -88,25 +91,5 @@ func (m *Manager) Setup(e *echo.Echo) {
 		},
 	}))
 
-	// CSRF if enabled
-	if m.config != nil && m.config.EnableCSRF {
-		e.Use(echomw.CSRFWithConfig(echomw.CSRFConfig{
-			TokenLength:    DefaultTokenLength,
-			TokenLookup:    "header:X-CSRF-Token",
-			ContextKey:     "csrf",
-			CookieName:     "csrf_token",
-			CookiePath:     "/",
-			CookieSecure:   true,
-			CookieHTTPOnly: true,
-			CookieSameSite: http.SameSiteStrictMode,
-			ErrorHandler: func(err error, c echo.Context) error {
-				return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
-			},
-			Skipper: func(c echo.Context) bool {
-				return c.Request().Method == http.MethodGet
-			},
-		}))
-	}
-
-	m.logger.Debug("middleware setup complete")
+	m.logger.Debug("middleware manager setup complete")
 }
