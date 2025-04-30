@@ -3,6 +3,7 @@ package infrastructure
 import (
 	"fmt"
 	"strings"
+	"sync"
 	"time"
 
 	"go.uber.org/fx"
@@ -258,6 +259,20 @@ var Module = fx.Options(
 	HandlerModule,
 )
 
+// wrapCreator creates a type-safe wrapper for store creation functions
+func wrapCreator[T any](creator func(*database.Database, logging.Logger) T) func(*database.Database, logging.Logger) any {
+	return func(db *database.Database, l logging.Logger) any {
+		return creator(db, l)
+	}
+}
+
+// wrapAssigner creates a type-safe wrapper for store assignment functions
+func wrapAssigner[T any](assigner func(*Stores, T)) func(*Stores, any) {
+	return func(s *Stores, instance any) {
+		assigner(s, instance.(T))
+	}
+}
+
 // NewStores creates all database stores.
 // This function is responsible for initializing all database stores
 // and providing them to the fx container.
@@ -270,94 +285,96 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 		return Stores{}, fmt.Errorf("database connection is nil")
 	}
 
-	dbInfo := map[string]any{
-		"driver": db.DriverName(),
-		"stats":  db.Stats(),
-	}
-
 	startTime := time.Now()
 
-	logger.Debug("initializing database stores",
-		logging.String("database_type", fmt.Sprintf("%T", db)),
-		logging.String("operation", "store_initialization"),
-		logging.Any("database_info", dbInfo),
-	)
-
-	// Define store creators
+	// Map of store creators
 	storeCreators := map[string]struct {
-		creator func(*database.Database, logging.Logger) any
-		setter  func(*Stores, any)
+		create func(*database.Database, logging.Logger) any
+		assign func(*Stores, any)
 	}{
 		"contact": {
-			creator: func(db *database.Database, l logging.Logger) any {
-				return store.NewContactStore(db, l)
-			},
-			setter: func(s *Stores, store any) {
-				s.ContactStore = store.(contact.Store)
-			},
+			create: wrapCreator(store.NewContactStore),
+			assign: wrapAssigner(func(s *Stores, v contact.Store) { s.ContactStore = v }),
 		},
 		"subscription": {
-			creator: func(db *database.Database, l logging.Logger) any {
-				return store.NewSubscriptionStore(db, l)
-			},
-			setter: func(s *Stores, store any) {
-				s.SubscriptionStore = store.(subscription.Store)
-			},
+			create: wrapCreator(store.NewSubscriptionStore),
+			assign: wrapAssigner(func(s *Stores, v subscription.Store) { s.SubscriptionStore = v }),
 		},
 		"user": {
-			creator: func(db *database.Database, l logging.Logger) any {
-				return store.NewUserStore(db, l)
-			},
-			setter: func(s *Stores, store any) {
-				s.UserStore = store.(user.Store)
-			},
+			create: wrapCreator(store.NewUserStore),
+			assign: wrapAssigner(func(s *Stores, v user.Store) { s.UserStore = v }),
 		},
 		"form": {
-			creator: func(db *database.Database, l logging.Logger) any {
-				return formstore.NewStore(db, l)
-			},
-			setter: func(s *Stores, store any) {
-				s.FormStore = store.(form.Store)
-			},
+			create: wrapCreator(formstore.NewStore),
+			assign: wrapAssigner(func(s *Stores, v form.Store) { s.FormStore = v }),
 		},
 	}
 
-	// Initialize stores
 	var stores Stores
-	createdStores := make(map[string]any)
+	var wg sync.WaitGroup
+	var mu sync.Mutex
+	failedStores := make(chan string, len(storeCreators))
+	results := make(chan struct {
+		name     string
+		instance any
+	}, len(storeCreators))
 
+	// Initialize stores concurrently
 	for name, creator := range storeCreators {
-		storeInstance := creator.creator(db, logger)
-		if storeInstance == nil {
-			logger.Error("failed to create store",
-				logging.String("operation", "store_initialization"),
-				logging.String("store_type", name),
-				logging.String("error_type", "nil_store"),
-				logging.Any("database_info", dbInfo),
-			)
-			return Stores{}, fmt.Errorf("failed to create %s store: driver=%v, stats=%+v",
-				name, db.DriverName(), db.Stats())
-		}
+		wg.Add(1)
+		go func(name string, creator struct {
+			create func(*database.Database, logging.Logger) any
+			assign func(*Stores, any)
+		}) {
+			defer wg.Done()
 
-		creator.setter(&stores, storeInstance)
-		createdStores[name] = storeInstance
+			// Create store instance
+			instance := creator.create(db, logger)
+			if instance == nil {
+				logger.Error("store creation failed",
+					logging.String("store_type", name),
+					logging.String("operation", "store_initialization"),
+					logging.String("error_type", "nil_instance"),
+				)
+				failedStores <- name
+				return
+			}
+
+			results <- struct {
+				name     string
+				instance any
+			}{name, instance}
+		}(name, creator)
 	}
 
-	// Calculate initialization metrics
-	initDuration := time.Since(startTime)
-	totalStores := len(createdStores)
+	// Wait for all goroutines to complete
+	wg.Wait()
+	close(failedStores)
+	close(results)
 
-	// Log successful initialization with detailed metrics
-	logger.Info("store initialization complete",
+	// Collect failed stores
+	var failedStoreNames []string
+	for name := range failedStores {
+		failedStoreNames = append(failedStoreNames, name)
+	}
+
+	// Handle initialization errors
+	if len(failedStoreNames) > 0 {
+		return Stores{}, fmt.Errorf("failed to initialize the following stores: %s", strings.Join(failedStoreNames, ", "))
+	}
+
+	// Assign successful stores
+	for result := range results {
+		mu.Lock()
+		storeCreators[result.name].assign(&stores, result.instance)
+		mu.Unlock()
+	}
+
+	// Log successful initialization metrics
+	logger.Info("all database stores initialized successfully",
 		logging.String("operation", "store_initialization"),
-		logging.Int("total_stores_created", totalStores),
-		logging.Duration("init_duration_ms", initDuration),
-		logging.String("contact_store_type", fmt.Sprintf("%T", stores.ContactStore)),
-		logging.String("subscription_store_type", fmt.Sprintf("%T", stores.SubscriptionStore)),
-		logging.String("user_store_type", fmt.Sprintf("%T", stores.UserStore)),
-		logging.String("form_store_type", fmt.Sprintf("%T", stores.FormStore)),
-		logging.Bool("all_stores_initialized", totalStores == len(storeCreators)),
-		logging.Any("database_info", dbInfo),
+		logging.Duration("init_duration", time.Since(startTime)),
+		logging.Int("total_stores_initialized", len(storeCreators)),
 	)
 
 	return stores, nil
