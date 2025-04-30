@@ -7,6 +7,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
+	"github.com/labstack/gommon/log"
 	"golang.org/x/time/rate"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -49,7 +50,14 @@ func New(cfg *ManagerConfig) *Manager {
 
 // Setup configures all middleware for an Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Debug("setting up middleware manager")
+	m.logger.Info("starting middleware setup")
+
+	// Enable debug mode and set log level
+	e.Debug = true
+	if l, ok := e.Logger.(*log.Logger); ok {
+		l.SetLevel(log.DEBUG)
+		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
+	}
 
 	// Basic middleware
 	m.logger.Debug("adding basic middleware")
@@ -130,18 +138,27 @@ func (m *Manager) Setup(e *echo.Echo) {
 		},
 	}))
 
+	m.logger.Info("CSRF middleware enabled", logging.Bool("enabled", m.config.Security.CSRF.Enabled))
+	
 	// CSRF if enabled
 	if m.config.Security.CSRF.Enabled {
-		m.logger.Debug("adding CSRF middleware", 
+		m.logger.Info("initializing CSRF middleware", 
 			logging.Bool("config_enabled", m.config.Security.CSRF.Enabled),
-			logging.String("secret_length", fmt.Sprintf("%d", len(m.config.Security.CSRF.Secret))))
+			logging.String("secret_length", fmt.Sprintf("%d", len(m.config.Security.CSRF.Secret))),
+			logging.String("token_lookup", "header:X-CSRF-Token,form:csrf_token,cookie:csrf_token"),
+			logging.String("cookie_name", "_csrf"),
+			logging.String("cookie_path", "/"),
+			logging.Bool("cookie_secure", true),
+			logging.Bool("cookie_http_only", true),
+			logging.String("cookie_same_site", "Strict"),
+			logging.Int("cookie_max_age", 86400))
 		
 		// Create CSRF middleware with logging
 		csrfMiddleware := echomw.CSRFWithConfig(echomw.CSRFConfig{
 			TokenLength:    DefaultTokenLength,
 			TokenLookup:    "header:X-CSRF-Token,form:csrf_token,cookie:csrf_token",
-			ContextKey:     CSRFContextKey,
-			CookieName:     "csrf_token",
+			ContextKey:     "csrf",  // Using Echo's default context key
+			CookieName:     "_csrf", // Using Echo's default cookie name
 			CookiePath:     "/",
 			CookieSecure:   true,
 			CookieHTTPOnly: true,
@@ -150,24 +167,33 @@ func (m *Manager) Setup(e *echo.Echo) {
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
 				method := c.Request().Method
+				headers := c.Request().Header
 
 				m.logger.Debug("CSRF middleware evaluating request", 
 					logging.String("path", path),
-					logging.String("method", method))
+					logging.String("method", method),
+					logging.String("content_type", headers.Get("Content-Type")),
+					logging.String("user_agent", headers.Get("User-Agent")),
+					logging.String("referer", headers.Get("Referer")),
+					logging.String("origin", headers.Get("Origin")),
+					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
+					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")))
 
 				// Skip for static content
 				if strings.HasPrefix(path, "/static/") || 
 				   strings.HasPrefix(path, "/favicon.ico") ||
 				   strings.HasPrefix(path, "/robots.txt") {
 					m.logger.Debug("CSRF skipped: static content", 
-						logging.String("path", path))
+						logging.String("path", path),
+						logging.String("reason", "static content path"))
 					return true
 				}
 
 				// Skip for form submission endpoints
 				if strings.HasPrefix(path, "/v1/forms/") {
 					m.logger.Debug("CSRF skipped: form submission endpoint", 
-						logging.String("path", path))
+						logging.String("path", path),
+						logging.String("reason", "form submission endpoint"))
 					return true
 				}
 
@@ -176,7 +202,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 					authHeader := c.Request().Header.Get("Authorization")
 					if authHeader != "" {
 						m.logger.Debug("CSRF skipped: authenticated API route", 
-							logging.String("path", path))
+							logging.String("path", path),
+							logging.String("reason", "authenticated API route"),
+							logging.String("auth_header_prefix", authHeader[:10]))
 						return true
 					}
 				}
@@ -189,102 +217,151 @@ func (m *Manager) Setup(e *echo.Echo) {
 				   strings.HasPrefix(path, "/demo") {
 					m.logger.Debug("CSRF not skipped: page with form", 
 						logging.String("path", path),
-						logging.String("method", method))
+						logging.String("method", method),
+						logging.String("reason", "page contains form"))
 					return false
 				}
 
 				// Generate tokens for all other pages by default
 				m.logger.Debug("CSRF not skipped: default case", 
 					logging.String("path", path),
-					logging.String("method", method))
+					logging.String("method", method),
+					logging.String("reason", "default case - generating token"))
 				return false
 			},
 			ErrorHandler: func(err error, c echo.Context) error {
+				headers := c.Request().Header
 				m.logger.Error("CSRF token validation failed", 
 					logging.Error(err),
 					logging.String("path", c.Request().URL.Path),
 					logging.String("method", c.Request().Method),
-					logging.String("token", c.Get(CSRFContextKey).(string)))
+					logging.String("content_type", headers.Get("Content-Type")),
+					logging.String("user_agent", headers.Get("User-Agent")),
+					logging.String("referer", headers.Get("Referer")),
+					logging.String("origin", headers.Get("Origin")),
+					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
+					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")),
+					logging.String("form_csrf_token", c.FormValue("csrf_token")))
+				
+				if cookie, err := c.Cookie("_csrf"); err == nil {
+					m.logger.Error("CSRF token validation failed - cookie value", 
+						logging.String("cookie_value", cookie.Value))
+				}
+				
+				m.logger.Error("CSRF token validation failed - context token", 
+					logging.String("context_token", fmt.Sprintf("%v", c.Get("csrf"))))
 				return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
 			},
 		})
 
-		m.logger.Debug("CSRF middleware created, adding to Echo instance")
+		m.logger.Info("CSRF middleware created, adding to Echo instance")
 		e.Use(csrfMiddleware)
 
 		// Add logging middleware after CSRF
 		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 			return func(c echo.Context) error {
+				headers := c.Request().Header
 				// Log request details
 				m.logger.Debug("CSRF middleware processing request",
 					logging.String("path", c.Request().URL.Path),
 					logging.String("method", c.Request().Method),
-					logging.String("content_type", c.Request().Header.Get("Content-Type")),
-					logging.String("user_agent", c.Request().UserAgent()))
-
-				// Log all context keys before CSRF processing
-				keys := make([]string, 0)
-				for k := range c.Get("").(map[string]any) {
-					keys = append(keys, k)
+					logging.String("content_type", headers.Get("Content-Type")),
+					logging.String("user_agent", headers.Get("User-Agent")),
+					logging.String("referer", headers.Get("Referer")),
+					logging.String("origin", headers.Get("Origin")),
+					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
+					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")),
+					logging.String("form_csrf_token", c.FormValue("csrf_token")))
+				
+				if cookie, err := c.Cookie("_csrf"); err == nil {
+					m.logger.Debug("CSRF middleware processing request - cookie value", 
+						logging.String("cookie_value", cookie.Value))
 				}
-				m.logger.Debug("Context keys before CSRF processing",
-					logging.String("path", c.Request().URL.Path),
-					logging.String("method", c.Request().Method),
-					logging.String("keys", fmt.Sprintf("%v", keys)))
 
 				// Call next middleware
 				err := next(c)
 
-				// Log all context keys after CSRF processing
-				keys = make([]string, 0)
-				for k := range c.Get("").(map[string]any) {
-					keys = append(keys, k)
+				// Get the token from the context
+				if token := c.Get("csrf"); token != nil {
+					if tokenStr, ok := token.(string); ok && tokenStr != "" {
+						// Set the token in the context for templates using the same key
+						c.Set("csrf", tokenStr)
+						m.logger.Debug("CSRF token set in context", 
+							logging.String("path", c.Request().URL.Path),
+							logging.String("method", c.Request().Method),
+							logging.String("token_prefix", tokenStr[:8]),
+							logging.String("token_length", fmt.Sprintf("%d", len(tokenStr))),
+							logging.String("token_type", fmt.Sprintf("%T", token)))
+					} else {
+						m.logger.Error("CSRF token in context is not a string or is empty",
+							logging.String("path", c.Request().URL.Path),
+							logging.String("method", c.Request().Method),
+							logging.String("token_type", fmt.Sprintf("%T", token)),
+							logging.String("token_value", fmt.Sprintf("%v", token)))
+					}
+				} else {
+					m.logger.Error("CSRF token not found in context after middleware",
+						logging.String("path", c.Request().URL.Path),
+						logging.String("method", c.Request().Method),
+						logging.String("context_keys", fmt.Sprintf("%v", c.Get("csrf"))))
 				}
-				m.logger.Debug("Context keys after CSRF processing",
+
+				return err
+			}
+		})
+
+		// Add logging middleware before CSRF to track token generation
+		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				headers := c.Request().Header
+				// Log request details before CSRF middleware
+				m.logger.Debug("Before CSRF middleware",
 					logging.String("path", c.Request().URL.Path),
 					logging.String("method", c.Request().Method),
-					logging.String("keys", fmt.Sprintf("%v", keys)))
+					logging.String("content_type", headers.Get("Content-Type")),
+					logging.String("user_agent", headers.Get("User-Agent")),
+					logging.String("referer", headers.Get("Referer")),
+					logging.String("origin", headers.Get("Origin")),
+					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
+					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")),
+					logging.String("form_csrf_token", c.FormValue("csrf_token")))
+				
+				if cookie, err := c.Cookie("_csrf"); err == nil {
+					m.logger.Debug("Before CSRF middleware - cookie value", 
+						logging.String("cookie_value", cookie.Value))
+				}
 
-				// Log the generated token if one exists
-				if token := c.Get(CSRFContextKey); token != nil {
+				// Call next middleware
+				err := next(c)
+
+				// Get the token from the context after CSRF middleware
+				if token := c.Get("csrf"); token != nil {
 					if tokenStr, ok := token.(string); ok && tokenStr != "" {
-						// Determine token source
-						var tokenSource string
-						if c.Request().Header.Get("X-CSRF-Token") != "" {
-							tokenSource = "header"
-						} else if c.Request().FormValue("csrf_token") != "" {
-							tokenSource = "form"
-						} else {
-							tokenSource = "cookie"
-						}
-
 						m.logger.Debug("CSRF token generated", 
 							logging.String("path", c.Request().URL.Path),
 							logging.String("method", c.Request().Method),
 							logging.String("token_prefix", tokenStr[:8]),
-							logging.String("token_source", tokenSource),
-							logging.String("token_length", fmt.Sprintf("%d", len(tokenStr))))
-
-						// Set the token in the context for templates using the same key
-						c.Set(CSRFContextKey, tokenStr)
+							logging.String("token_length", fmt.Sprintf("%d", len(tokenStr))),
+							logging.String("token_type", fmt.Sprintf("%T", token)))
 					} else {
-						m.logger.Debug("CSRF token exists in context but is not a string",
+						m.logger.Error("CSRF token in context is not a string or is empty after generation",
 							logging.String("path", c.Request().URL.Path),
 							logging.String("method", c.Request().Method),
-							logging.String("token_type", fmt.Sprintf("%T", token)))
+							logging.String("token_type", fmt.Sprintf("%T", token)),
+							logging.String("token_value", fmt.Sprintf("%v", token)))
 					}
 				} else {
-					m.logger.Debug("No CSRF token in context after middleware", 
+					m.logger.Error("CSRF token not found in context after generation",
 						logging.String("path", c.Request().URL.Path),
 						logging.String("method", c.Request().Method),
-						logging.String("keys", fmt.Sprintf("%v", keys)))
+						logging.String("context_keys", fmt.Sprintf("%v", c.Get("csrf"))))
 				}
 
 				return err
 			}
 		})
 	} else {
-		m.logger.Debug("CSRF middleware is disabled", 
+		m.logger.Info("CSRF middleware is disabled", 
 			logging.Bool("config_enabled", m.config.Security.CSRF.Enabled),
 			logging.String("reason", "CSRF disabled in config"))
 	}
@@ -300,7 +377,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Use(middleware)
 	}
 
-	m.logger.Debug("middleware setup complete")
+	m.logger.Info("middleware setup complete")
 }
 
 // ValidateCSRFToken validates the CSRF token in the request

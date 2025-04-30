@@ -8,6 +8,8 @@ import (
 templ SignupForm(data shared.PageData) {
     <section class="auth-section">
         <form class="auth-form" id="signup-form">
+            <input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+            
             <div class="form-group">
                 <label for="first_name" class="form-label">
                     First Name

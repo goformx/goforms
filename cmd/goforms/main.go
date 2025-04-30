@@ -73,7 +73,9 @@ func createApp() *fx.App {
 		// View module for template rendering
 		view.Module,
 		// Server setup with Echo framework
-		fx.Provide(newServer),
+		fx.Provide(
+			newServer,
+		),
 		// Custom logger for fx events
 		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
 			return &logging.FxEventLogger{Logger: logger}
@@ -167,9 +169,6 @@ func startServer(p ServerParams) error {
 		logging.String("handler_types", fmt.Sprintf("%v", handlerTypes)),
 	)
 
-	// Register static file routes
-	registerStaticFiles(p.Server.Echo())
-
 	// Configure application routes
 	if err := router.Setup(p.Server.Echo(), &router.Config{
 		Handlers: p.Handlers,
@@ -183,13 +182,4 @@ func startServer(p ServerParams) error {
 	}
 
 	return nil
-}
-
-// registerStaticFiles sets up static file serving for the application.
-// It configures routes for static assets, favicon, and robots.txt.
-func registerStaticFiles(e *echo.Echo) {
-	e.Static("/static", "static")
-	e.Static("/static/dist", "static/dist")
-	e.File("/favicon.ico", "static/favicon.ico")
-	e.File("/robots.txt", "static/robots.txt")
 }

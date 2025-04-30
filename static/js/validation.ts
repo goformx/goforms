@@ -172,36 +172,28 @@ export const validation = {
 
   // Common fetch with CSRF
   async fetchWithCSRF(url: string, options: RequestInit = {}): Promise<Response> {
-    const csrfToken = validation.getCSRFToken();
-    if (!csrfToken) {
-      console.error('CSRF token not found');
+    // Get CSRF token from meta tag
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (!metaTag) {
+      console.error('CSRF token meta tag not found');
       throw new Error('CSRF token not found');
     }
 
-    const jwtToken = validation.getJWTToken();
-    const headers: Record<string, string> = {
-      'X-CSRF-Token': csrfToken,
-      'Content-Type': 'application/json',
-      'Accept': 'application/json',
-    };
-
-    if (jwtToken) {
-      headers['Authorization'] = `Bearer ${jwtToken}`;
+    const csrfToken = metaTag.getAttribute('content');
+    if (!csrfToken) {
+      console.error('CSRF token content is empty');
+      throw new Error('CSRF token is empty');
     }
 
-    console.debug('Making request with CSRF token:', {
-      url,
-      headers,
-      method: options.method || 'GET'
-    });
+    // Add CSRF token to headers
+    const headers = new Headers(options.headers);
+    headers.set('X-CSRF-Token', csrfToken);
 
+    // Make request with CSRF token
     return fetch(url, {
       ...options,
-      headers: {
-        ...options.headers,
-        ...headers,
-      },
-      credentials: 'include',
+      headers,
+      credentials: 'same-origin'
     });
   },
 
@@ -217,4 +209,11 @@ export const validation = {
   clearJWTToken(): void {
     localStorage.removeItem('jwt_token');
   }
-}; 
+};
+
+function getCookie(name: string): string | null {
+  const value = `; ${document.cookie}`;
+  const parts = value.split(`; ${name}=`);
+  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
+  return null;
+} 

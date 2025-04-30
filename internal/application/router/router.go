@@ -58,6 +58,14 @@ func Setup(e *echo.Echo, cfg *Config) error {
 			logging.String("root", cfg.Static.Root),
 		)
 		e.Static(cfg.Static.Path, cfg.Static.Root)
+		e.Static(cfg.Static.Path+"/dist", cfg.Static.Root+"/dist")
+		
+		// Configure special files
+		e.File("/favicon.ico", cfg.Static.Root+"/favicon.ico")
+		e.File("/robots.txt", cfg.Static.Root+"/robots.txt")
+		
+		cfg.Logger.Debug("static file configuration complete",
+			logging.String("additional_paths", "/dist, /favicon.ico, /robots.txt"))
 	}
 
 	return nil

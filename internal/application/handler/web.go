@@ -10,7 +10,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/application/validation"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
-	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
@@ -95,7 +94,6 @@ type WebHandler struct {
 	subscriptionService subscription.Service
 	renderer            *view.Renderer
 	Debug               bool
-	userService         user.Service
 	middlewareManager   *amw.Manager
 }
 
@@ -198,65 +196,24 @@ func (h *WebHandler) getCSRFToken(c echo.Context) string {
 	return tokenStr
 }
 
-// getCurrentUser retrieves the current user from the context
-func getCurrentUser(c echo.Context, userService user.Service) (*user.User, error) {
-	if userID, exists := c.Get("user_id").(uint); exists {
-		u, err := userService.GetUserByID(c.Request().Context(), userID)
-		if err != nil {
-			return nil, fmt.Errorf("failed to get user: %w", err)
-		}
-		return u, nil
-	}
-	return nil, ErrNoCurrentUser
-}
-
-// renderPage renders a page with the given template and data
-func (h *WebHandler) renderPage(
-	c echo.Context,
-	title string,
-	template func(shared.PageData) templ.Component,
-) error {
-	h.Logger.Debug("starting page render",
+// renderPage renders a page with the given title and content
+func (h *WebHandler) renderPage(c echo.Context, title string, template func(shared.PageData) templ.Component) error {
+	h.Logger.Debug("rendering page",
+		logging.String("title", title),
 		logging.String("path", c.Request().URL.Path),
-		logging.String("method", c.Request().Method),
-		logging.String("title", title))
+		logging.String("method", c.Request().Method))
 
-	token := h.getCSRFToken(c)
-	if token == "" {
-		h.Logger.Debug("no CSRF token found in context", 
-			logging.String("path", c.Request().URL.Path),
-			logging.String("method", c.Request().Method))
-	}
+	// Get CSRF token from context
+	csrfToken := h.getCSRFToken(c)
 
-	currentUser, err := getCurrentUser(c, h.userService)
-	if err != nil {
-		h.Logger.Debug("no current user found", 
-			logging.Error(err),
-			logging.String("path", c.Request().URL.Path))
-	}
-
+	// Create page data
 	data := shared.PageData{
 		Title:     title,
-		CSRFToken: token,
-		User:      currentUser,
+		CSRFToken: csrfToken,
 	}
 
-	h.Logger.Debug("preparing page data",
-		logging.String("path", c.Request().URL.Path),
-		logging.String("title", title),
-		logging.Bool("has_csrf_token", token != ""),
-		logging.Bool("has_user", currentUser != nil))
-
-	if token != "" {
-		h.Logger.Debug("rendering page with CSRF token", 
-			logging.String("path", c.Request().URL.Path),
-			logging.String("token_prefix", token[:8]))
-	} else {
-		h.Logger.Debug("rendering page without CSRF token", 
-			logging.String("path", c.Request().URL.Path))
-	}
-
-	return h.renderer.Render(c, template(data))
+	// Render page
+	return template(data).Render(c.Request().Context(), c.Response().Writer)
 }
 
 // logRoute logs route registration
