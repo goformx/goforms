@@ -49,29 +49,21 @@ export function setupLoginForm() {
         });
         
         if (response.ok) {
-          console.log('Login successful, redirecting...');
-          const data = await response.json();
-          if (data.access_token) {
-            validation.setJWTToken(data.access_token);
-          }
-          window.location.href = '/';
+          // Store tokens in localStorage for API calls
+          const tokens = await response.json();
+          validation.setJWTToken(tokens.access_token);
+          
+          // Redirect to dashboard
+          window.location.href = '/dashboard';
         } else {
           const error = await response.json();
-          console.error('Login failed:', error);
-          if (response.status === 401) {
-            // Show the error under both email and password fields for invalid credentials
-            validation.showError('email', 'Invalid email or password');
-            validation.showError('password', 'Invalid email or password');
-          } else {
-            validation.showError('form', error.error || 'An error occurred during login');
-          }
+          validation.showError('form', error.error || 'Invalid credentials');
         }
       } catch (error) {
         console.error('Login error:', error);
         validation.showError('form', 'An error occurred during login');
       }
     } else if (result.error) {
-      console.error('Validation errors:', result.error);
       result.error.errors.forEach(err => {
         validation.showError(err.path[0], err.message);
       });

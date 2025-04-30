@@ -20,7 +20,7 @@ func NewDashboardHandler(userService user.Service) *DashboardHandler {
 	}
 }
 
-func (h *DashboardHandler) RegisterRoutes(e *echo.Echo) {
+func (h *DashboardHandler) Register(e *echo.Echo) {
 	// Dashboard routes
 	dashboard := e.Group("/dashboard")
 	dashboard.Use(h.authMiddleware.RequireAuth) // Middleware to ensure user is authenticated
@@ -43,4 +43,4 @@ func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
 
 	// Render dashboard page
 	return pages.Dashboard(data).Render(c.Request().Context(), c.Response().Writer)
-} 
+}

@@ -15,6 +15,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/persistence"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
+	"github.com/jonesrussell/goforms/internal/presentation/handlers"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
@@ -96,6 +97,9 @@ var Module = fx.Module("infrastructure",
 				handler.WithSubscriptionService(p.SubscriptionService),
 			)
 		}),
+		AsHandler(func(p HandlerParams) *handlers.DashboardHandler {
+			return handlers.NewDashboardHandler(p.UserService)
+		}),
 	),
 )
 
@@ -160,11 +164,16 @@ func NewHandlers(p HandlerParams) []handler.Handler {
 	)
 	p.Logger.Debug("subscription handler created", logging.Bool("handler_available", subscriptionHandler != nil))
 
+	p.Logger.Debug("creating dashboard handler")
+	dashboardHandler := handlers.NewDashboardHandler(p.UserService)
+	p.Logger.Debug("dashboard handler created", logging.Bool("handler_available", dashboardHandler != nil))
+
 	handlers := []handler.Handler{
 		webHandler,
 		authHandler,
 		contactHandler,
 		subscriptionHandler,
+		dashboardHandler,
 	}
 
 	for i, h := range handlers {

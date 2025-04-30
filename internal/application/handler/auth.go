@@ -3,6 +3,7 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -150,7 +151,28 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "Invalid credentials")
 	}
 
-	h.Logger.Debug("login successful", logging.String("email", login.Email))
+	// Set access token in cookie
+	cookie := new(http.Cookie)
+	cookie.Name = "token"
+	cookie.Value = tokens.AccessToken
+	cookie.Expires = time.Now().Add(15 * time.Minute) // Same as access token expiry
+	cookie.Path = "/"
+	cookie.HttpOnly = true
+	cookie.Secure = true
+	cookie.SameSite = http.SameSiteStrictMode
+	c.SetCookie(cookie)
+
+	// Set refresh token in cookie
+	refreshCookie := new(http.Cookie)
+	refreshCookie.Name = "refresh_token"
+	refreshCookie.Value = tokens.RefreshToken
+	refreshCookie.Expires = time.Now().Add(7 * 24 * time.Hour) // Same as refresh token expiry
+	refreshCookie.Path = "/"
+	refreshCookie.HttpOnly = true
+	refreshCookie.Secure = true
+	refreshCookie.SameSite = http.SameSiteStrictMode
+	c.SetCookie(refreshCookie)
+
 	return c.JSON(http.StatusOK, tokens)
 }
 
@@ -165,15 +187,35 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 // @Failure 401 {object} echo.HTTPError
 // @Router /api/v1/auth/logout [post]
 func (h *AuthHandler) handleLogout(c echo.Context) error {
-	token := c.Request().Header.Get("Authorization")
-	if token == "" {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Missing authorization token")
+	// Get token from cookie
+	token, err := c.Cookie("token")
+	if err == nil && token.Value != "" {
+		// Blacklist the token
+		if err := h.userService.Logout(c.Request().Context(), token.Value); err != nil {
+			h.Logger.Error("failed to blacklist token", logging.Error(err))
+		}
 	}
 
-	if err := h.userService.Logout(c.Request().Context(), token); err != nil {
-		h.LogError("failed to logout user", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to logout")
-	}
+	// Clear cookies
+	c.SetCookie(&http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "Successfully logged out"})
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	return c.NoContent(http.StatusOK)
 }
