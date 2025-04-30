@@ -113,16 +113,16 @@ type ServerParams struct {
 }
 
 func startServer(p ServerParams) error {
+	// Get handler types for logging
+	handlerTypes := make([]string, len(p.Handlers))
+	for i, h := range p.Handlers {
+		handlerTypes[i] = fmt.Sprintf("%T", h)
+	}
+
 	p.Logger.Debug("starting server with handlers",
 		logging.Int("handler_count", len(p.Handlers)),
+		logging.String("handler_types", fmt.Sprintf("%v", handlerTypes)),
 	)
-
-	for i, h := range p.Handlers {
-		p.Logger.Debug("handler available",
-			logging.Int("index", i),
-			logging.String("type", fmt.Sprintf("%T", h)),
-		)
-	}
 
 	// Register static files first
 	p.Server.Echo().Static("/static", "static")
