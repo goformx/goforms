@@ -57,73 +57,73 @@ type Config struct {
 
 // AppConfig holds application-level configuration
 type AppConfig struct {
-	Name  string `envconfig:"APP_NAME" default:"GoForms"`
-	Env   string `envconfig:"APP_ENV" default:"production"`
-	Debug bool   `envconfig:"APP_DEBUG" default:"false"`
-	Port  int    `envconfig:"APP_PORT" default:"9009"`
-	Host  string `envconfig:"APP_HOST" default:"localhost"`
+	Name  string `envconfig:"GOFORMS_APP_NAME" default:"GoForms"`
+	Env   string `envconfig:"GOFORMS_APP_ENV" default:"production"`
+	Debug bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
+	Port  int    `envconfig:"GOFORMS_APP_PORT" default:"9009"`
+	Host  string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
 }
 
 // DatabaseConfig holds all database-related configuration
 type DatabaseConfig struct {
-	Host           string        `envconfig:"DB_HOST" validate:"required" default:"localhost"`
-	Port           int           `envconfig:"DB_PORT" validate:"required" default:"3306"`
-	User           string        `envconfig:"DB_USER" validate:"required"`
-	Password       string        `envconfig:"DB_PASSWORD" validate:"required"`
-	Name           string        `envconfig:"DB_NAME" validate:"required"`
-	MaxOpenConns   int           `envconfig:"DB_MAX_OPEN_CONNS" default:"25"`
-	MaxIdleConns   int           `envconfig:"DB_MAX_IDLE_CONNS" default:"25"`
-	ConnMaxLifetme time.Duration `envconfig:"DB_CONN_MAX_LIFETIME" default:"5m"`
+	Host           string        `envconfig:"GOFORMS_DB_HOST" validate:"required"`
+	Port           int           `envconfig:"GOFORMS_DB_PORT" validate:"required"`
+	User           string        `envconfig:"GOFORMS_DB_USER" validate:"required"`
+	Password       string        `envconfig:"GOFORMS_DB_PASSWORD" validate:"required"`
+	Name           string        `envconfig:"GOFORMS_DB_NAME" validate:"required"`
+	MaxOpenConns   int           `envconfig:"GOFORMS_DB_MAX_OPEN_CONNS" default:"25"`
+	MaxIdleConns   int           `envconfig:"GOFORMS_DB_MAX_IDLE_CONNS" default:"25"`
+	ConnMaxLifetme time.Duration `envconfig:"GOFORMS_DB_CONN_MAX_LIFETIME" default:"5m"`
 }
 
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
-	Host            string        `envconfig:"APP_HOST" default:"localhost"`
-	Port            int           `envconfig:"APP_PORT" default:"8090"`
-	ReadTimeout     time.Duration `envconfig:"READ_TIMEOUT" default:"5s"`
-	WriteTimeout    time.Duration `envconfig:"WRITE_TIMEOUT" default:"10s"`
-	IdleTimeout     time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
-	ShutdownTimeout time.Duration `envconfig:"SHUTDOWN_TIMEOUT" default:"30s"`
+	Host            string        `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
+	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
+	ReadTimeout     time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
+	WriteTimeout    time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout     time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
+	ShutdownTimeout time.Duration `envconfig:"GOFORMS_SHUTDOWN_TIMEOUT" default:"30s"`
 }
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	JWTSecret            string `envconfig:"JWT_SECRET" validate:"required"`
+	JWTSecret            string `envconfig:"GOFORMS_JWT_SECRET" validate:"required"`
 	CSRF                 CSRFConfig
-	CorsAllowedOrigins   CORSOriginsDecoder   `envconfig:"CORS_ALLOWED_ORIGINS"`
-	CorsAllowedMethods   CORSMethodsDecoder   `envconfig:"CORS_ALLOWED_METHODS"`
-	CorsAllowedHeaders   CORSHeadersDecoder   `envconfig:"CORS_ALLOWED_HEADERS"`
-	CorsMaxAge           int                  `envconfig:"CORS_MAX_AGE" default:"3600"`
-	CorsAllowCredentials bool                 `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
-	RequestTimeout       time.Duration        `envconfig:"REQUEST_TIMEOUT" default:"30s"`
+	CorsAllowedOrigins   CORSOriginsDecoder   `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS"`
+	CorsAllowedMethods   CORSMethodsDecoder   `envconfig:"GOFORMS_CORS_ALLOWED_METHODS"`
+	CorsAllowedHeaders   CORSHeadersDecoder   `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS"`
+	CorsMaxAge           int                  `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
+	CorsAllowCredentials bool                 `envconfig:"GOFORMS_CORS_ALLOW_CREDENTIALS" default:"true"`
+	RequestTimeout       time.Duration        `envconfig:"GOFORMS_REQUEST_TIMEOUT" default:"30s"`
 }
 
 // CSRFConfig holds CSRF-related configuration
 type CSRFConfig struct {
-	Enabled bool   `envconfig:"CSRF_ENABLED" default:"true"`
-	Secret  string `envconfig:"CSRF_SECRET" validate:"required"`
+	Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
+	Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
 }
 
 // RateLimitConfig contains rate limiting settings
 type RateLimitConfig struct {
-	Enabled    bool          `envconfig:"RATE_LIMIT_ENABLED" default:"true"`
-	Rate       int           `envconfig:"RATE_LIMIT" default:"100"`
-	Burst      int           `envconfig:"RATE_BURST" default:"5"`
-	TimeWindow time.Duration `envconfig:"RATE_LIMIT_TIME_WINDOW" default:"1m"`
-	PerIP      bool          `envconfig:"RATE_LIMIT_PER_IP" default:"true"`
+	Enabled    bool          `envconfig:"GOFORMS_RATE_LIMIT_ENABLED" default:"true"`
+	Rate       int           `envconfig:"GOFORMS_RATE_LIMIT" default:"100"`
+	Burst      int           `envconfig:"GOFORMS_RATE_BURST" default:"5"`
+	TimeWindow time.Duration `envconfig:"GOFORMS_RATE_LIMIT_TIME_WINDOW" default:"1m"`
+	PerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
 }
 
 // New creates a new Config with default values
 func New() (*Config, error) {
 	var cfg Config
 
-	// Simple debug output without logger dependency
-	if os.Getenv("APP_DEBUG") == "true" {
-		fmt.Fprintln(os.Stdout, "Loading configuration...")
-	}
-
 	if err := envconfig.Process("GOFORMS", &cfg); err != nil {
 		return nil, fmt.Errorf("failed to process config: %w", err)
+	}
+
+	// Debug output after configuration is loaded
+	if cfg.App.Debug {
+		fmt.Fprintln(os.Stdout, "Loading configuration...")
 	}
 
 	validate := validator.New()
