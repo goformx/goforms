@@ -41,6 +41,15 @@ export default defineConfig({
         target: 'http://localhost:8090',
         changeOrigin: true
       }
+    },
+    hmr: {
+      protocol: 'ws',
+      host: 'localhost',
+      port: 3000
+    },
+    watch: {
+      usePolling: true,
+      ignored: ['**/node_modules/**', '**/dist/**']
     }
   },
   resolve: {

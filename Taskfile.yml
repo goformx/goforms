@@ -55,8 +55,8 @@ tasks:
     cmds:
       - ./bin/server
 
-  dev:
-    desc: Run the application with hot reloading
+  dev:backend:
+    desc: Run the backend with hot reloading
     deps: [generate]
     cmds:
       - air
@@ -66,11 +66,9 @@ tasks:
     cmds:
       - npm run dev
 
-  dev:all:
+  dev:
     desc: Run both backend and frontend in development mode
-    cmds:
-      - task: dev
-      - task: dev:frontend
+    deps: [dev:backend, dev:frontend]
 
   clean:
     desc: Clean build artifacts
