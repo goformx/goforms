@@ -30,7 +30,6 @@ func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config) *Server {
 	e.HidePort = true
 
 	// Configure middleware
-	e.Use(middleware.Logger())
 	e.Use(middleware.Recover())
 
 	srv := &Server{

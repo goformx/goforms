@@ -26,7 +26,7 @@ func Setup(e *echo.Echo, cfg *Config) {
 	})
 	m.Setup(e)
 
-	// Logging
+	// Logging must be first to capture all requests
 	e.Use(LoggingMiddleware(cfg.Logger))
 
 	// Auth if secret provided

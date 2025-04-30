@@ -46,26 +46,20 @@ func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 				}
 			}
 
-			// Log the request details
-			log.Info("http request",
+			// Log the request details using structured logging
+			fields := []logging.Field{
 				logging.String("method", c.Request().Method),
 				logging.String("path", c.Request().URL.Path),
 				logging.Int("status", c.Response().Status),
 				logging.Duration("latency", time.Since(start)),
-				logging.String("remote_addr", c.RealIP()),
+				logging.String("remote_ip", c.RealIP()),
 				logging.String("user_agent", c.Request().UserAgent()),
-			)
+			}
 
 			if err != nil {
-				log.Error("request error",
-					logging.String("method", c.Request().Method),
-					logging.String("path", c.Request().URL.Path),
-					logging.Int("status", c.Response().Status),
-					logging.Duration("latency", time.Since(start)),
-					logging.String("remote_addr", c.RealIP()),
-					logging.String("user_agent", c.Request().UserAgent()),
-					logging.Error(err),
-				)
+				log.Error("request error", append(fields, logging.Error(err))...)
+			} else {
+				log.Info("request", fields...)
 			}
 
 			return err

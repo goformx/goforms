@@ -5,6 +5,7 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
@@ -92,6 +93,18 @@ var Module = fx.Options(
 	}),
 	AsHandler(func(p HandlerParams) *ah.DashboardHandler {
 		return ah.NewDashboardHandler(p.Logger, p.Renderer, p.UserService, p.FormService)
+	}),
+	AsHandler(func(p HandlerParams) *handler.WebHandler {
+		handler, err := handler.NewWebHandler(p.Logger,
+			handler.WithRenderer(p.Renderer),
+			handler.WithContactService(p.ContactService),
+			handler.WithWebSubscriptionService(p.SubscriptionService),
+		)
+		if err != nil {
+			p.Logger.Error("failed to create web handler", logging.Error(err))
+			return nil
+		}
+		return handler
 	}),
 )
 
