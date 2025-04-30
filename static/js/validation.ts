@@ -166,6 +166,7 @@ export const validation = {
       console.error('CSRF token content is empty');
       return null;
     }
+    console.debug('CSRF token found:', token);
     return token;
   },
 
@@ -186,6 +187,12 @@ export const validation = {
     if (jwtToken) {
       headers['Authorization'] = `Bearer ${jwtToken}`;
     }
+
+    console.debug('Making request with CSRF token:', {
+      url,
+      headers,
+      method: options.method || 'GET'
+    });
 
     return fetch(url, {
       ...options,
