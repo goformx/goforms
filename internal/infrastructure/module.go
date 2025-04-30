@@ -2,6 +2,8 @@ package infrastructure
 
 import (
 	"fmt"
+	"strings"
+	"time"
 
 	"go.uber.org/fx"
 
@@ -66,11 +68,99 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
+// validateConfig performs validation of critical configuration settings.
+// It ensures all required settings are present and valid before initialization.
+func validateConfig(cfg *config.Config) error {
+	if cfg == nil {
+		return fmt.Errorf("configuration is nil")
+	}
+
+	var errors []string
+
+	// Database configuration
+	if cfg.Database.Host == "" {
+		errors = append(errors, "database host is required")
+	}
+	if cfg.Database.Port <= 0 {
+		errors = append(errors, "database port must be a positive number")
+	}
+	if cfg.Database.User == "" {
+		errors = append(errors, "database user is required")
+	}
+	if cfg.Database.Password == "" {
+		errors = append(errors, "database password is required")
+	}
+	if cfg.Database.Name == "" {
+		errors = append(errors, "database name is required")
+	}
+	if cfg.Database.MaxOpenConns <= 0 {
+		errors = append(errors, "database max open connections must be a positive number")
+	}
+	if cfg.Database.MaxIdleConns <= 0 {
+		errors = append(errors, "database max idle connections must be a positive number")
+	}
+	if cfg.Database.ConnMaxLifetme <= 0 {
+		errors = append(errors, "database connection max lifetime must be a positive duration")
+	}
+
+	// Security configuration
+	if cfg.Security.JWTSecret == "" {
+		errors = append(errors, "JWT secret is required")
+	}
+	if len(cfg.Security.JWTSecret) < 32 {
+		errors = append(errors, "JWT secret must be at least 32 characters long")
+	}
+	if cfg.Security.CSRF.Enabled {
+		if cfg.Security.CSRF.Secret == "" {
+			errors = append(errors, "CSRF secret is required when CSRF is enabled")
+		}
+		if len(cfg.Security.CSRF.Secret) < 32 {
+			errors = append(errors, "CSRF secret must be at least 32 characters long")
+		}
+	}
+
+	// Server configuration
+	if cfg.Server.Port <= 0 {
+		errors = append(errors, "server port must be a positive number")
+	}
+	if cfg.Server.Host == "" {
+		errors = append(errors, "server host is required")
+	}
+	if cfg.Server.ReadTimeout <= 0 {
+		errors = append(errors, "server read timeout must be a positive duration")
+	}
+	if cfg.Server.WriteTimeout <= 0 {
+		errors = append(errors, "server write timeout must be a positive duration")
+	}
+	if cfg.Server.IdleTimeout <= 0 {
+		errors = append(errors, "server idle timeout must be a positive duration")
+	}
+	if cfg.Server.ShutdownTimeout <= 0 {
+		errors = append(errors, "server shutdown timeout must be a positive duration")
+	}
+
+	// If any validation errors occurred, return them all
+	if len(errors) > 0 {
+		return fmt.Errorf("configuration validation failed: %s", strings.Join(errors, "; "))
+	}
+
+	return nil
+}
+
 // InfrastructureModule provides core infrastructure dependencies.
 // This module includes configuration and database setup.
 var InfrastructureModule = fx.Options(
 	fx.Provide(
-		config.New,
+		func() (*config.Config, error) {
+			cfg, err := config.New()
+			if err != nil {
+				return nil, fmt.Errorf("failed to load configuration: %w", err)
+			}
+			if err := validateConfig(cfg); err != nil {
+				return nil, err
+			}
+			return cfg, nil
+		},
 		database.NewDB,
 	),
 )
@@ -85,14 +175,28 @@ var StoreModule = fx.Options(
 // This module is responsible for setting up route handlers and their dependencies.
 var HandlerModule = fx.Options(
 	// Web handlers
-	AnnotateHandler(func(core CoreParams) *wh.HomeHandler {
-		return wh.NewHomeHandler(core.Logger, core.Renderer)
+	AnnotateHandler(func(core CoreParams) (h.Handler, error) {
+		handler := wh.NewHomeHandler(core.Logger, core.Renderer)
+		if handler == nil {
+			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
+		}
+		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, services ServiceParams) *wh.DemoHandler {
-		return wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+		handler := wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
+		if handler == nil {
+			return nil, fmt.Errorf("failed to create demo handler: renderer=%T, subscription_service=%T",
+				core.Renderer, services.SubscriptionService)
+		}
+		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, services ServiceParams) *ah.DashboardHandler {
-		return ah.NewDashboardHandler(core.Logger, core.Renderer, services.UserService, services.FormService)
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+		handler := ah.NewDashboardHandler(core.Logger, core.Renderer, services.UserService, services.FormService)
+		if handler == nil {
+			return nil, fmt.Errorf("failed to create dashboard handler: renderer=%T, user_service=%T, form_service=%T",
+				core.Renderer, services.UserService, services.FormService)
+		}
+		return handler, nil
 	}),
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
 		handler, err := handler.NewWebHandler(core.Logger,
@@ -102,6 +206,10 @@ var HandlerModule = fx.Options(
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create web handler: %w", err)
+		}
+		if handler == nil {
+			return nil, fmt.Errorf("web handler is nil after creation: renderer=%T, contact_service=%T, subscription_service=%T",
+				core.Renderer, services.ContactService, services.SubscriptionService)
 		}
 		return handler, nil
 	}),
@@ -134,67 +242,94 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 		return Stores{}, fmt.Errorf("database connection is nil")
 	}
 
+	dbInfo := map[string]any{
+		"driver": db.DriverName(),
+		"stats":  db.Stats(),
+	}
+
+	startTime := time.Now()
+
 	logger.Debug("initializing database stores",
 		logging.String("database_type", fmt.Sprintf("%T", db)),
 		logging.String("operation", "store_initialization"),
+		logging.Any("database_info", dbInfo),
 	)
 
-	// Create stores with error handling and diagnostics
-	contactStore := store.NewContactStore(db, logger)
-	if contactStore == nil {
-		logger.Error("failed to create contact store",
-			logging.String("operation", "store_initialization"),
-			logging.String("store_type", "contact"),
-			logging.String("error_type", "nil_store"),
-		)
-		return Stores{}, fmt.Errorf("failed to create contact store")
+	// Define store creators
+	storeCreators := map[string]struct {
+		creator func(*database.Database, logging.Logger) any
+		setter  func(*Stores, any)
+	}{
+		"contact": {
+			creator: func(db *database.Database, l logging.Logger) any {
+				return store.NewContactStore(db, l)
+			},
+			setter: func(s *Stores, store any) {
+				s.ContactStore = store.(contact.Store)
+			},
+		},
+		"subscription": {
+			creator: func(db *database.Database, l logging.Logger) any {
+				return store.NewSubscriptionStore(db, l)
+			},
+			setter: func(s *Stores, store any) {
+				s.SubscriptionStore = store.(subscription.Store)
+			},
+		},
+		"user": {
+			creator: func(db *database.Database, l logging.Logger) any {
+				return store.NewUserStore(db, l)
+			},
+			setter: func(s *Stores, store any) {
+				s.UserStore = store.(user.Store)
+			},
+		},
+		"form": {
+			creator: func(db *database.Database, l logging.Logger) any {
+				return formstore.NewStore(db, l)
+			},
+			setter: func(s *Stores, store any) {
+				s.FormStore = store.(form.Store)
+			},
+		},
 	}
 
-	subscriptionStore := store.NewSubscriptionStore(db, logger)
-	if subscriptionStore == nil {
-		logger.Error("failed to create subscription store",
-			logging.String("operation", "store_initialization"),
-			logging.String("store_type", "subscription"),
-			logging.String("error_type", "nil_store"),
-		)
-		return Stores{}, fmt.Errorf("failed to create subscription store")
+	// Initialize stores
+	var stores Stores
+	createdStores := make(map[string]any)
+
+	for name, creator := range storeCreators {
+		storeInstance := creator.creator(db, logger)
+		if storeInstance == nil {
+			logger.Error("failed to create store",
+				logging.String("operation", "store_initialization"),
+				logging.String("store_type", name),
+				logging.String("error_type", "nil_store"),
+				logging.Any("database_info", dbInfo),
+			)
+			return Stores{}, fmt.Errorf("failed to create %s store: driver=%v, stats=%+v",
+				name, db.DriverName(), db.Stats())
+		}
+
+		creator.setter(&stores, storeInstance)
+		createdStores[name] = storeInstance
 	}
 
-	userStore := store.NewUserStore(db, logger)
-	if userStore == nil {
-		logger.Error("failed to create user store",
-			logging.String("operation", "store_initialization"),
-			logging.String("store_type", "user"),
-			logging.String("error_type", "nil_store"),
-		)
-		return Stores{}, fmt.Errorf("failed to create user store")
-	}
+	// Calculate initialization metrics
+	initDuration := time.Since(startTime)
+	totalStores := len(createdStores)
 
-	formStore := formstore.NewStore(db, logger)
-	if formStore == nil {
-		logger.Error("failed to create form store",
-			logging.String("operation", "store_initialization"),
-			logging.String("store_type", "form"),
-			logging.String("error_type", "nil_store"),
-		)
-		return Stores{}, fmt.Errorf("failed to create form store")
-	}
-
-	stores := Stores{
-		ContactStore:      contactStore,
-		SubscriptionStore: subscriptionStore,
-		UserStore:         userStore,
-		FormStore:         formStore,
-	}
-
-	// Log successful initialization with detailed diagnostics
-	logger.Info("successfully initialized all database stores",
+	// Log successful initialization with detailed metrics
+	logger.Info("store initialization complete",
 		logging.String("operation", "store_initialization"),
+		logging.Int("total_stores_created", totalStores),
+		logging.Duration("init_duration_ms", initDuration),
 		logging.String("contact_store_type", fmt.Sprintf("%T", stores.ContactStore)),
 		logging.String("subscription_store_type", fmt.Sprintf("%T", stores.SubscriptionStore)),
 		logging.String("user_store_type", fmt.Sprintf("%T", stores.UserStore)),
 		logging.String("form_store_type", fmt.Sprintf("%T", stores.FormStore)),
-		logging.Int("total_stores", 4),
+		logging.Bool("all_stores_initialized", totalStores == len(storeCreators)),
+		logging.Any("database_info", dbInfo),
 	)
 
 	return stores, nil
