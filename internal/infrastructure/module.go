@@ -16,6 +16,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/persistence"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
+	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
 	"github.com/jonesrussell/goforms/internal/presentation/handlers"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
@@ -79,18 +80,6 @@ var Module = fx.Module("infrastructure",
 		server.New,
 		// Services
 		fx.Annotate(
-			contact.NewService,
-			fx.As(new(contact.Service)),
-		),
-		fx.Annotate(
-			subscription.NewService,
-			fx.As(new(subscription.Service)),
-		),
-		fx.Annotate(
-			user.NewService,
-			fx.As(new(user.Service)),
-		),
-		fx.Annotate(
 			form.NewService,
 			fx.As(new(form.Service)),
 		),
@@ -137,7 +126,7 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 		ContactStore:      store.NewContactStore(db, logger),
 		SubscriptionStore: store.NewSubscriptionStore(db, logger),
 		UserStore:         store.NewUserStore(db, logger),
-		FormStore:         store.NewFormStore(db, logger),
+		FormStore:         formstore.NewStore(db, logger),
 	}
 
 	logger.Debug("database stores created",
