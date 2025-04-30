@@ -51,39 +51,29 @@ func run() error {
 
 	// Create app with DI
 	app := fx.New(
-		// Version info first
+		// Core dependencies
 		fx.Provide(
 			func() handler.VersionInfo {
 				return versionInfo
 			},
-		),
-		// Core infrastructure next (config, logging, database)
-		infrastructure.Module,
-		// Domain services next
-		domain.Module,
-		// View module for rendering
-		view.Module,
-		// Local providers last
-		fx.Provide(
 			logging.NewFactory,
-			newServer,
+			func(cfg *config.Config, logFactory *logging.Factory) (logging.Logger, error) {
+				return logFactory.CreateFromConfig(cfg)
+			},
 		),
-		fx.WithLogger(func(log logging.Logger) fxevent.Logger {
-			return &logging.FxEventLogger{Logger: log}
+		// Infrastructure module
+		infrastructure.Module,
+		// Domain module
+		domain.Module,
+		// View module
+		view.Module,
+		// Server setup
+		fx.Provide(newServer),
+		// Logger setup
+		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
+			return &logging.FxEventLogger{Logger: logger}
 		}),
-		// Add debug logging for dependency injection
-		fx.Invoke(func(log logging.Logger) {
-			log.Debug("checking module initialization")
-		}),
-		fx.Invoke(func(p infrastructure.HandlerParams) {
-			p.Logger.Debug("handler dependencies available",
-				logging.Bool("renderer_available", p.Renderer != nil),
-				logging.Bool("contact_service_available", p.ContactService != nil),
-				logging.Bool("subscription_service_available", p.SubscriptionService != nil),
-				logging.Bool("user_service_available", p.UserService != nil),
-			)
-		}),
-		// Start server last
+		// Start server
 		fx.Invoke(startServer),
 	)
 

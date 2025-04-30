@@ -13,7 +13,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/persistence"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
@@ -69,32 +68,36 @@ type Stores struct {
 }
 
 // Module combines all infrastructure-level modules and providers
-var Module = fx.Module("infrastructure",
+var Module = fx.Options(
+	// Core infrastructure
 	fx.Provide(
 		config.New,
-		func(cfg *config.Config) (logging.Logger, error) {
-			return logging.NewLogger(cfg.App.Debug, cfg.App.Name)
-		},
 		database.NewDB,
-		persistence.NewStores,
+	),
+
+	// Stores
+	fx.Provide(
+		NewStores,
+	),
+
+	// Presentation
+	fx.Provide(
 		server.New,
-		// Services
-		fx.Annotate(
-			form.NewService,
-			fx.As(new(form.Service)),
-		),
-		// Handlers
+	),
+
+	// Handlers
+	fx.Provide(
+		AsHandler(func(p HandlerParams) *handler.AuthHandler {
+			return handler.NewAuthHandler(p.Logger,
+				handler.WithUserService(p.UserService),
+			)
+		}),
 		AsHandler(func(p HandlerParams) *handler.WebHandler {
 			return handler.NewWebHandler(p.Logger,
 				handler.WithRenderer(p.Renderer),
 				handler.WithContactService(p.ContactService),
 				handler.WithWebSubscriptionService(p.SubscriptionService),
 				handler.WithWebDebug(p.Config.App.Debug),
-			)
-		}),
-		AsHandler(func(p HandlerParams) *handler.AuthHandler {
-			return handler.NewAuthHandler(p.Logger,
-				handler.WithUserService(p.UserService),
 			)
 		}),
 		AsHandler(func(p HandlerParams) *handler.ContactHandler {

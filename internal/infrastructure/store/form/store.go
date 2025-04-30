@@ -3,6 +3,7 @@ package form
 import (
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"log"
 
@@ -76,7 +77,7 @@ func (s *store) GetByID(id uint) (*form.Form, error) {
 
 	if err != nil {
 		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("form not found")
+			return nil, errors.New("form not found")
 		}
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
@@ -106,7 +107,7 @@ func (s *store) GetByUserID(userID uint) ([]*form.Form, error) {
 		var schemaJSON []byte
 		f := &form.Form{}
 
-		err := rows.Scan(
+		scanErr := rows.Scan(
 			&f.ID,
 			&f.UserID,
 			&f.Title,
@@ -116,21 +117,21 @@ func (s *store) GetByUserID(userID uint) ([]*form.Form, error) {
 			&f.CreatedAt,
 			&f.UpdatedAt,
 		)
-		if err != nil {
-			log.Printf("Error scanning form row: %v", err)
+		if scanErr != nil {
+			log.Printf("Error scanning form row: %v", scanErr)
 			continue
 		}
 
-		if err := json.Unmarshal(schemaJSON, &f.Schema); err != nil {
-			log.Printf("Error unmarshaling schema: %v", err)
+		if unmarshalErr := json.Unmarshal(schemaJSON, &f.Schema); unmarshalErr != nil {
+			log.Printf("Error unmarshaling schema: %v", unmarshalErr)
 			continue
 		}
 
 		forms = append(forms, f)
 	}
 
-	if err := rows.Err(); err != nil {
-		return nil, fmt.Errorf("error iterating forms: %w", err)
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("error iterating forms: %w", rowsErr)
 	}
 
 	return forms, nil
@@ -150,8 +151,8 @@ func (s *store) Delete(id uint) error {
 	}
 
 	if rowsAffected == 0 {
-		return fmt.Errorf("form not found")
+		return errors.New("form not found")
 	}
 
 	return nil
-} 
+}
