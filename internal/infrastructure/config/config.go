@@ -41,8 +41,8 @@ type DatabaseConfig struct {
 
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
-	Host            string        `env:"APP_HOST" envDefault:"localhost"`
-	Port            int           `env:"APP_PORT" envDefault:"8090"`
+	Host            string        `envconfig:"APP_HOST" default:"localhost"`
+	Port            int           `envconfig:"APP_PORT" default:"8090"`
 	ReadTimeout     time.Duration `envconfig:"READ_TIMEOUT" default:"5s"`
 	WriteTimeout    time.Duration `envconfig:"WRITE_TIMEOUT" default:"10s"`
 	IdleTimeout     time.Duration `envconfig:"IDLE_TIMEOUT" default:"120s"`
@@ -51,7 +51,7 @@ type ServerConfig struct {
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	JWTSecret            string `env:"JWT_SECRET" envDefault:"your-secret-key"`
+	JWTSecret            string `envconfig:"JWT_SECRET" validate:"required"`
 	CSRF                 CSRFConfig
 	CorsAllowedOrigins   []string      `envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
 	CorsAllowedMethods   []string      `envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
@@ -63,8 +63,8 @@ type SecurityConfig struct {
 
 // CSRFConfig holds CSRF-related configuration
 type CSRFConfig struct {
-	Enabled bool   `env:"CSRF_ENABLED" envDefault:"true"`
-	Secret  string `env:"CSRF_SECRET" envDefault:"csrf-secret-key"`
+	Enabled bool   `envconfig:"CSRF_ENABLED" default:"true"`
+	Secret  string `envconfig:"CSRF_SECRET" validate:"required"`
 }
 
 // RateLimitConfig contains rate limiting settings
@@ -85,7 +85,7 @@ func New() (*Config, error) {
 		fmt.Fprintln(os.Stdout, "Loading configuration...")
 	}
 
-	if err := envconfig.Process("", &cfg); err != nil {
+	if err := envconfig.Process("GOFORMS", &cfg); err != nil {
 		return nil, fmt.Errorf("failed to process config: %w", err)
 	}
 
