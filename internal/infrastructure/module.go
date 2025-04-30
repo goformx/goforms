@@ -32,20 +32,24 @@ func AsHandler(fn any) fx.Option {
 	))
 }
 
-// HandlerParams contains dependencies for creating handlers.
-// This struct is used with fx.In to inject dependencies into handlers.
-// Each field represents a required dependency that must be provided
-// by the fx container.
-type HandlerParams struct {
+// CoreParams contains core infrastructure dependencies that are commonly needed by handlers.
+// These are typically required for basic handler functionality like logging and rendering.
+type CoreParams struct {
 	fx.In
+	Logger   logging.Logger
+	Renderer *view.Renderer
+	Config   *config.Config
+}
 
-	Logger              logging.Logger
-	Renderer            *view.Renderer
+// ServiceParams contains all service dependencies that handlers might need.
+// This separation makes it easier to manage service dependencies and allows for
+// more granular dependency injection.
+type ServiceParams struct {
+	fx.In
 	ContactService      contact.Service
 	SubscriptionService subscription.Service
 	UserService         user.Service
 	FormService         form.Service
-	Config              *config.Config
 }
 
 // Stores groups all database store providers.
@@ -66,45 +70,60 @@ type NoopHandler struct{}
 // Register implements the Handler interface
 func (nh *NoopHandler) Register(e *echo.Echo) {}
 
-// Module combines all infrastructure-level modules and providers
-var Module = fx.Options(
-	// Core infrastructure
+// InfrastructureModule provides core infrastructure dependencies.
+// This module includes configuration and database setup.
+var InfrastructureModule = fx.Options(
 	fx.Provide(
 		config.New,
 		database.NewDB,
 	),
+)
 
-	// Stores
-	fx.Provide(
-		NewStores,
-	),
+// StoreModule provides all database store implementations.
+// This module is responsible for creating and managing database stores.
+var StoreModule = fx.Options(
+	fx.Provide(NewStores),
+)
 
-	// Presentation
-	fx.Provide(
-		server.New,
-	),
-
-	// Handlers
-	AsHandler(func(p HandlerParams) *wh.HomeHandler {
-		return wh.NewHomeHandler(p.Logger, p.Renderer)
+// HandlerModule provides all HTTP handlers for the application.
+// This module is responsible for setting up route handlers and their dependencies.
+var HandlerModule = fx.Options(
+	// Web handlers
+	AsHandler(func(core CoreParams) *wh.HomeHandler {
+		return wh.NewHomeHandler(core.Logger, core.Renderer)
 	}),
-	AsHandler(func(p HandlerParams) *wh.DemoHandler {
-		return wh.NewDemoHandler(p.Logger, p.Renderer, p.SubscriptionService)
+	AsHandler(func(core CoreParams, services ServiceParams) *wh.DemoHandler {
+		return wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
 	}),
-	AsHandler(func(p HandlerParams) *ah.DashboardHandler {
-		return ah.NewDashboardHandler(p.Logger, p.Renderer, p.UserService, p.FormService)
+	AsHandler(func(core CoreParams, services ServiceParams) *ah.DashboardHandler {
+		return ah.NewDashboardHandler(core.Logger, core.Renderer, services.UserService, services.FormService)
 	}),
-	AsHandler(func(p HandlerParams) (h.Handler, error) {
-		handler, err := handler.NewWebHandler(p.Logger,
-			handler.WithRenderer(p.Renderer),
-			handler.WithContactService(p.ContactService),
-			handler.WithWebSubscriptionService(p.SubscriptionService),
+	AsHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+		handler, err := handler.NewWebHandler(core.Logger,
+			handler.WithRenderer(core.Renderer),
+			handler.WithContactService(services.ContactService),
+			handler.WithWebSubscriptionService(services.SubscriptionService),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create web handler: %w", err)
 		}
 		return handler, nil
 	}),
+)
+
+// ServerModule provides the HTTP server setup.
+// This module is responsible for creating and configuring the Echo server.
+var ServerModule = fx.Options(
+	fx.Provide(server.New),
+)
+
+// Module combines all infrastructure-level modules into a single module.
+// This is the main entry point for infrastructure dependencies.
+var Module = fx.Options(
+	InfrastructureModule,
+	StoreModule,
+	ServerModule,
+	HandlerModule,
 )
 
 // NewStores creates all database stores.
