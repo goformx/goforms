@@ -5,18 +5,19 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	h "github.com/jonesrussell/goforms/internal/handlers"
+	wh "github.com/jonesrussell/goforms/internal/handlers/web"
+	ah "github.com/jonesrussell/goforms/internal/handlers/web/admin"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
-	"github.com/jonesrussell/goforms/internal/presentation/handlers"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
@@ -25,7 +26,7 @@ import (
 func AsHandler(fn any) fx.Option {
 	return fx.Provide(fx.Annotate(
 		fn,
-		fx.As(new(handler.Handler)),
+		fx.As(new(h.Handler)),
 		fx.ResultTags(`group:"handlers"`),
 	))
 }
@@ -38,7 +39,6 @@ type HandlerParams struct {
 	fx.In
 
 	Logger              logging.Logger
-	VersionInfo         handler.VersionInfo
 	Renderer            *view.Renderer
 	ContactService      contact.Service
 	SubscriptionService subscription.Service
@@ -57,17 +57,6 @@ type Stores struct {
 	SubscriptionStore subscription.Store
 	UserStore         user.Store
 	FormStore         form.Store
-}
-
-// WebHandlerParams contains the dependencies for the web handler
-type WebHandlerParams struct {
-	fx.In
-
-	Logger           logging.Logger
-	Renderer         *view.Renderer
-	ContactService   contact.Service
-	SubscriptionService subscription.Service
-	Config           *config.Config
 }
 
 // NoopHandler is a handler that does nothing
@@ -96,37 +85,14 @@ var Module = fx.Options(
 
 	// Handlers
 	fx.Provide(
-		AsHandler(func(p HandlerParams) *handler.AuthHandler {
-			return handler.NewAuthHandler(p.Logger,
-				handler.WithUserService(p.UserService),
-			)
+		AsHandler(func(p HandlerParams) *wh.HomeHandler {
+			return wh.NewHomeHandler(p.Logger, p.Renderer)
 		}),
-		AsHandler(func(params WebHandlerParams) (handler.Handler, error) {
-			webHandler, err := handler.NewWebHandler(
-				params.Logger,
-				handler.WithRenderer(params.Renderer),
-				handler.WithContactService(params.ContactService),
-				handler.WithWebSubscriptionService(params.SubscriptionService),
-				handler.WithWebDebug(params.Config.App.Debug),
-			)
-			if err != nil {
-				params.Logger.Error("Failed to create web handler", logging.Error(err))
-				return &NoopHandler{}, nil
-			}
-			return webHandler, nil
+		AsHandler(func(p HandlerParams) *wh.DemoHandler {
+			return wh.NewDemoHandler(p.Logger, p.Renderer, p.SubscriptionService)
 		}),
-		AsHandler(func(p HandlerParams) *handler.ContactHandler {
-			return handler.NewContactHandler(p.Logger,
-				handler.WithContactServiceOpt(p.ContactService),
-			)
-		}),
-		AsHandler(func(p HandlerParams) *handler.SubscriptionHandler {
-			return handler.NewSubscriptionHandler(p.Logger,
-				handler.WithSubscriptionService(p.SubscriptionService),
-			)
-		}),
-		AsHandler(func(p HandlerParams) *handlers.DashboardHandler {
-			return handlers.NewDashboardHandler(p.UserService, p.FormService)
+		AsHandler(func(p HandlerParams) *ah.DashboardHandler {
+			return ah.NewDashboardHandler(p.Logger, p.Renderer, p.UserService, p.FormService)
 		}),
 	),
 )
@@ -155,43 +121,4 @@ func NewStores(db *database.Database, logger logging.Logger) Stores {
 	)
 
 	return stores
-}
-
-// NewHandlers creates all application handlers
-func NewHandlers(params HandlerParams) ([]handler.Handler, error) {
-	webHandler, err := handler.NewWebHandler(
-		params.Logger,
-		handler.WithRenderer(params.Renderer),
-		handler.WithContactService(params.ContactService),
-		handler.WithWebSubscriptionService(params.SubscriptionService),
-		handler.WithWebDebug(params.Config.App.Debug),
-	)
-	if err != nil {
-		return nil, err
-	}
-
-	routeHandlers := []handler.Handler{
-		handler.NewAuthHandler(
-			params.Logger,
-			handler.WithUserService(params.UserService),
-		),
-		webHandler,
-		handlers.NewDashboardHandler(
-			params.UserService,
-			params.FormService,
-		),
-	}
-
-	return routeHandlers, nil
-}
-
-// ProvideWebHandler provides the web handler
-func ProvideWebHandler(params WebHandlerParams) (*handler.WebHandler, error) {
-	return handler.NewWebHandler(
-		params.Logger,
-		handler.WithRenderer(params.Renderer),
-		handler.WithContactService(params.ContactService),
-		handler.WithWebSubscriptionService(params.SubscriptionService),
-		handler.WithWebDebug(params.Config.App.Debug),
-	)
 }

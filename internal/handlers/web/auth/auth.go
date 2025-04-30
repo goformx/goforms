@@ -1,4 +1,4 @@
-package handlers
+package auth
 
 import (
 	"net/http"
@@ -6,19 +6,32 @@ import (
 	"github.com/jonesrussell/goforms/internal/application/validation"
 	"github.com/jonesrussell/goforms/internal/domain/entities"
 	"github.com/jonesrussell/goforms/internal/domain/repositories"
-
+	"github.com/jonesrussell/goforms/internal/handlers"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )
 
 type AuthHandler struct {
+	base handlers.Base
 	userRepo repositories.UserRepository
 }
 
-func NewAuthHandler(userRepo repositories.UserRepository) *AuthHandler {
+func NewAuthHandler(
+	logger logging.Logger,
+	userRepo repositories.UserRepository,
+) *AuthHandler {
 	return &AuthHandler{
+		base: handlers.Base{
+			Logger: logger,
+		},
 		userRepo: userRepo,
 	}
+}
+
+func (h *AuthHandler) Register(e *echo.Echo) {
+	h.base.RegisterRoute(e, "POST", "/auth/signup", h.Signup)
+	h.base.RegisterRoute(e, "POST", "/auth/login", h.Login)
 }
 
 func (h *AuthHandler) Signup(c echo.Context) error {
@@ -83,4 +96,4 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	// TODO: Generate JWT token and set cookie
 	// For now, just return success
 	return c.JSON(http.StatusOK, map[string]string{"message": "Login successful"})
-}
+} 
