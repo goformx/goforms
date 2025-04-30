@@ -13,7 +13,6 @@ import (
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -40,13 +39,8 @@ func main() {
 }
 
 // run orchestrates the application startup process.
-// It loads environment variables, sets up signal handling, and starts the application.
+// It sets up signal handling and starts the application.
 func run() error {
-	// Load environment variables from .env file
-	if err := loadEnvironment(); err != nil {
-		return err
-	}
-
 	// Create a cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -57,15 +51,6 @@ func run() error {
 	// Create and run the application
 	app := createApp()
 	return runApp(ctx, app)
-}
-
-// loadEnvironment loads environment variables from the .env file.
-// It logs a warning but continues if the .env file is not found.
-func loadEnvironment() error {
-	if err := godotenv.Load(); err != nil {
-		log.Printf("Warning: Error loading .env file: %v\n", err)
-	}
-	return nil
 }
 
 // createApp sets up the dependency injection container using fx.
