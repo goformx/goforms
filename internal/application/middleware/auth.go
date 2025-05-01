@@ -53,7 +53,8 @@ func (m *JWTMiddleware) isPublicPage(path string) bool {
 		strings.HasPrefix(path, "/signup") ||
 		strings.HasPrefix(path, "/forgot-password") ||
 		strings.HasPrefix(path, "/contact") ||
-		strings.HasPrefix(path, "/demo")
+		strings.HasPrefix(path, "/demo") ||
+		strings.HasPrefix(path, "/api/v1/auth/login")
 }
 
 // Handle processes JWT authentication

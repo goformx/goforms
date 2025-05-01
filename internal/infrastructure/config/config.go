@@ -7,6 +7,7 @@ import (
 	"time"
 
 	"github.com/go-playground/validator/v10"
+	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -122,6 +123,14 @@ type RateLimitConfig struct {
 
 // New creates a new Config with default values
 func New() (*Config, error) {
+	// Load .env file
+	if err := godotenv.Load(); err != nil {
+		// Don't return error if .env file doesn't exist
+		if !os.IsNotExist(err) {
+			return nil, fmt.Errorf("failed to load .env file: %w", err)
+		}
+	}
+
 	var cfg Config
 
 	// Debug environment variables
@@ -148,14 +157,14 @@ func New() (*Config, error) {
 		fmt.Fprintf(os.Stdout, "  Debug: %v\n", cfg.App.Debug)
 		fmt.Fprintf(os.Stdout, "  Port: %d\n", cfg.App.Port)
 		fmt.Fprintf(os.Stdout, "  Host: %s\n", cfg.App.Host)
-		
+
 		fmt.Fprintf(os.Stdout, "\nServer Configuration:\n")
 		fmt.Fprintf(os.Stdout, "  Host: %s\n", cfg.Server.Host)
 		fmt.Fprintf(os.Stdout, "  Port: %d\n", cfg.Server.Port)
 		fmt.Fprintf(os.Stdout, "  Read Timeout: %v\n", cfg.Server.ReadTimeout)
 		fmt.Fprintf(os.Stdout, "  Write Timeout: %v\n", cfg.Server.WriteTimeout)
 		fmt.Fprintf(os.Stdout, "  Idle Timeout: %v\n", cfg.Server.IdleTimeout)
-		
+
 		fmt.Fprintf(os.Stdout, "\nDatabase Configuration:\n")
 		fmt.Fprintf(os.Stdout, "  Host: %s\n", cfg.Database.Host)
 		fmt.Fprintf(os.Stdout, "  Port: %d\n", cfg.Database.Port)
@@ -164,7 +173,7 @@ func New() (*Config, error) {
 		fmt.Fprintf(os.Stdout, "  Max Open Connections: %d\n", cfg.Database.MaxOpenConns)
 		fmt.Fprintf(os.Stdout, "  Max Idle Connections: %d\n", cfg.Database.MaxIdleConns)
 		fmt.Fprintf(os.Stdout, "  Connection Max Lifetime: %v\n", cfg.Database.ConnMaxLifetme)
-		
+
 		fmt.Fprintf(os.Stdout, "\nSecurity Configuration:\n")
 		fmt.Fprintf(os.Stdout, "  CSRF Enabled: %v\n", cfg.Security.CSRF.Enabled)
 		fmt.Fprintf(os.Stdout, "  CORS Allowed Origins: %v\n", cfg.Security.CorsAllowedOrigins)
@@ -172,7 +181,7 @@ func New() (*Config, error) {
 		fmt.Fprintf(os.Stdout, "  CORS Allowed Headers: %v\n", cfg.Security.CorsAllowedHeaders)
 		fmt.Fprintf(os.Stdout, "  CORS Max Age: %d\n", cfg.Security.CorsMaxAge)
 		fmt.Fprintf(os.Stdout, "  CORS Allow Credentials: %v\n", cfg.Security.CorsAllowCredentials)
-		
+
 		fmt.Fprintf(os.Stdout, "\nRate Limit Configuration:\n")
 		fmt.Fprintf(os.Stdout, "  Enabled: %v\n", cfg.RateLimit.Enabled)
 		fmt.Fprintf(os.Stdout, "  Rate: %d\n", cfg.RateLimit.Rate)
