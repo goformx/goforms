@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -38,121 +37,81 @@ func NewJWTMiddleware(userService user.Service, secret string) (echo.MiddlewareF
 // Handle processes JWT authentication
 func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Skip auth for public routes
-		if m.isPublicRoute(c.Path()) {
+		path := c.Request().URL.Path
+		method := c.Request().Method
+
+		// Skip authentication for static files and special files
+		if strings.HasPrefix(path, "/static/") || 
+		   path == "/favicon.ico" ||
+		   path == "/robots.txt" {
+			m.logger.Debug("JWT skipped: static content", 
+				logging.String("path", path),
+				logging.String("reason", "static content path"))
+			return next(c)
+		}
+
+		// Skip authentication for validation API endpoints
+		if strings.HasPrefix(path, "/api/validation/") {
+			m.logger.Debug("JWT skipped: validation API", 
+				logging.String("path", path),
+				logging.String("reason", "validation API endpoint"))
+			return next(c)
+		}
+
+		// Skip authentication for GET requests to public pages
+		if method == http.MethodGet && (
+			strings.HasPrefix(path, "/login") ||
+			strings.HasPrefix(path, "/signup") ||
+			strings.HasPrefix(path, "/forgot-password") ||
+			strings.HasPrefix(path, "/contact") ||
+			strings.HasPrefix(path, "/demo")) {
+			m.logger.Debug("JWT skipped: public page", 
+				logging.String("path", path),
+				logging.String("method", method),
+				logging.String("reason", "public page"))
 			return next(c)
 		}
 
 		// Get token from header
-		token, err := m.getTokenFromHeader(c)
+		authHeader := c.Request().Header.Get(echo.HeaderAuthorization)
+		if authHeader == "" {
+			return m.handleAuthError(c, fmt.Errorf("missing authorization header"))
+		}
+
+		// Parse token
+		token, err := m.parseToken(authHeader)
 		if err != nil {
 			return m.handleAuthError(c, err)
 		}
 
 		// Validate token
-		claims, err := m.validateToken(token)
+		if !token.Valid {
+			return m.handleAuthError(c, fmt.Errorf("invalid token"))
+		}
+
+		// Get user from token
+		claims, ok := token.Claims.(jwt.MapClaims)
+		if !ok {
+			return m.handleAuthError(c, fmt.Errorf("invalid token claims"))
+		}
+
+		// Get user ID from claims
+		userID, ok := claims["sub"].(string)
+		if !ok {
+			return m.handleAuthError(c, fmt.Errorf("invalid user ID in token"))
+		}
+
+		// Get user from service
+		user, err := m.userService.GetByID(c.Request().Context(), userID)
 		if err != nil {
-			return m.handleAuthError(c, err)
+			return m.handleAuthError(c, fmt.Errorf("user not found: %w", err))
 		}
 
-		// Set user context
-		if setErr := m.setUserContext(c, claims); setErr != nil {
-			return setErr
-		}
-
-		// Check role-based access
-		if roleErr := m.checkRoleAccess(c); roleErr != nil {
-			return roleErr
-		}
+		// Set user in context
+		c.Set("user", user)
 
 		return next(c)
 	}
-}
-
-// isPublicRoute checks if the route is public
-func (m *JWTMiddleware) isPublicRoute(path string) bool {
-	publicRoutes := []string{
-		"/health",
-		"/login",
-		"/signup",
-		"/api/v1/contact",
-		"/api/v1/subscription",
-	}
-	for _, route := range publicRoutes {
-		if strings.HasPrefix(path, route) {
-			return true
-		}
-	}
-	return false
-}
-
-// getTokenFromHeader extracts token from Authorization header
-func (m *JWTMiddleware) getTokenFromHeader(c echo.Context) (string, error) {
-	auth := c.Request().Header.Get("Authorization")
-	if auth == "" {
-		return "", errors.New("missing authorization header")
-	}
-	if !strings.HasPrefix(auth, "Bearer ") {
-		return "", errors.New("invalid authorization header format")
-	}
-	return strings.TrimPrefix(auth, "Bearer "), nil
-}
-
-// validateToken validates the JWT token
-func (m *JWTMiddleware) validateToken(token string) (jwt.MapClaims, error) {
-	tokenObj, err := m.userService.ValidateToken(token)
-	if err != nil {
-		return nil, fmt.Errorf("invalid token: %w", err)
-	}
-
-	claims, ok := tokenObj.Claims.(jwt.MapClaims)
-	if !ok {
-		return nil, errors.New("invalid token claims")
-	}
-
-	return claims, nil
-}
-
-// setUserContext sets user information in the context
-func (m *JWTMiddleware) setUserContext(c echo.Context, claims jwt.MapClaims) error {
-	userID, ok := claims["user_id"].(float64)
-	if !ok {
-		return errors.New("invalid user_id claim")
-	}
-	email, ok := claims["email"].(string)
-	if !ok {
-		return errors.New("invalid email claim")
-	}
-	role, ok := claims["role"].(string)
-	if !ok {
-		return errors.New("invalid role claim")
-	}
-
-	c.Set("user_id", uint(userID))
-	c.Set("email", email)
-	c.Set("role", role)
-	return nil
-}
-
-// checkRoleAccess verifies role-based access
-func (m *JWTMiddleware) checkRoleAccess(c echo.Context) error {
-	role, ok := c.Get("role").(string)
-	if !ok {
-		return errors.New("invalid role type in context")
-	}
-	path := c.Path()
-
-	// Admin routes
-	if strings.HasPrefix(path, "/admin") && role != "admin" {
-		return errors.New("unauthorized: admin access required")
-	}
-
-	// User routes
-	if strings.HasPrefix(path, "/user") && role != "user" && role != "admin" {
-		return errors.New("unauthorized: user access required")
-	}
-
-	return nil
 }
 
 // handleAuthError handles authentication errors
@@ -163,4 +122,28 @@ func (m *JWTMiddleware) handleAuthError(c echo.Context, err error) error {
 		logging.Error(err),
 	)
 	return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+}
+
+// parseToken parses and validates a JWT token
+func (m *JWTMiddleware) parseToken(authHeader string) (*jwt.Token, error) {
+	// Extract token from header
+	parts := strings.Split(authHeader, " ")
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		return nil, fmt.Errorf("invalid authorization header format")
+	}
+
+	// Parse token
+	token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
+		// Validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
+		return []byte(m.secret), nil
+	})
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse token: %w", err)
+	}
+
+	return token, nil
 }

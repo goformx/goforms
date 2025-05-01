@@ -163,7 +163,7 @@ func (h *WebHandler) getCSRFToken(c echo.Context) string {
 		logging.String("content_type", c.Request().Header.Get("Content-Type")))
 
 	// First try to get the token from the context key (set by middleware)
-	token := c.Get(amw.CSRFContextKey)
+	token := c.Get("csrf")
 	if token == nil {
 		h.Logger.Debug("CSRF token not found in context", 
 			logging.String("path", c.Request().URL.Path),

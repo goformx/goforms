@@ -59,7 +59,7 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	}
 
 	// Verify CSRF token if enabled
-	if csrfToken := c.Get(amw.CSRFContextKey); csrfToken != nil {
+	if csrfToken := c.Get("csrf"); csrfToken != nil {
 		// Log CSRF token presence for debugging
 		h.base.Logger.Debug("CSRF token found in request", 
 			logging.String("path", c.Request().URL.Path),

@@ -40,50 +40,59 @@ func Setup(e *echo.Echo, cfg *Config) error {
 	)
 
 	// Add MIME type middleware first
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
-			if strings.HasPrefix(path, cfg.Static.Path) {
-				if strings.HasSuffix(path, ".css") {
-					c.Response().Header().Set(echo.HeaderContentType, "text/css")
-				} else if strings.HasSuffix(path, ".js") {
-					c.Response().Header().Set(echo.HeaderContentType, "application/javascript")
-				} else if path == "/favicon.ico" {
-					c.Response().Header().Set(echo.HeaderContentType, "image/x-icon")
-				} else if path == "/robots.txt" {
-					c.Response().Header().Set(echo.HeaderContentType, "text/plain")
-				}
+			if strings.HasSuffix(path, ".css") {
+				c.Response().Header().Set("Content-Type", "text/css")
+			} else if strings.HasSuffix(path, ".js") {
+				c.Response().Header().Set("Content-Type", "application/javascript")
+			} else if path == "/favicon.ico" {
+				c.Response().Header().Set("Content-Type", "image/x-icon")
+			} else if path == "/robots.txt" {
+				c.Response().Header().Set("Content-Type", "text/plain")
 			}
 			return next(c)
 		}
 	})
 
-	// Configure static files before any other routes
-	if cfg.Static.Path != "" && cfg.Static.Root != "" {
-		cfg.Logger.Debug("configuring static files",
-			logging.String("path", cfg.Static.Path),
-			logging.String("root", cfg.Static.Root),
-		)
-		
-		// Create a group for static files that bypasses CSRF
-		staticGroup := e.Group("")
-		staticGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-			return func(c echo.Context) error {
-				// Set a flag to skip CSRF for static files
+	// Create static group that sets skip_csrf flag
+	staticGroup := e.Group("")
+	staticGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			if strings.HasPrefix(path, "/static/") || 
+			   path == "/favicon.ico" ||
+			   path == "/robots.txt" {
 				c.Set("skip_csrf", true)
-				return next(c)
+				c.Set("skip_auth", true)
 			}
-		})
-		
-		// Configure static routes in the static group
-		staticGroup.Static(cfg.Static.Path, cfg.Static.Root)
-		staticGroup.Static(cfg.Static.Path+"/dist", cfg.Static.Root+"/dist")
-		staticGroup.File("/favicon.ico", cfg.Static.Root+"/favicon.ico")
-		staticGroup.File("/robots.txt", cfg.Static.Root+"/robots.txt")
-		
-		cfg.Logger.Debug("static file configuration complete",
-			logging.String("additional_paths", "/dist, /favicon.ico, /robots.txt"))
-	}
+			return next(c)
+		}
+	})
+
+	// Configure static routes
+	staticGroup.Static(cfg.Static.Path, cfg.Static.Root)
+	staticGroup.Static("/static/dist", "./static/dist")
+	staticGroup.File("/favicon.ico", "./static/favicon.ico")
+	staticGroup.File("/robots.txt", "./static/robots.txt")
+
+	// Create form group that ensures CSRF tokens are generated
+	formGroup := e.Group("")
+	formGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			if strings.HasPrefix(path, "/login") || 
+			   strings.HasPrefix(path, "/signup") || 
+			   strings.HasPrefix(path, "/forgot-password") ||
+			   strings.HasPrefix(path, "/contact") ||
+			   strings.HasPrefix(path, "/demo") {
+				// Ensure CSRF tokens are generated for form pages
+				c.Set("skip_csrf", false)
+			}
+			return next(c)
+		}
+	})
 
 	// Register API handlers
 	for i, h := range cfg.Handlers {

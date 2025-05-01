@@ -49,7 +49,7 @@ func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
 	}
 
 	// Get CSRF token from context
-	csrfToken, ok := c.Get(amw.CSRFContextKey).(string)
+	csrfToken, ok := c.Get("csrf").(string)
 	if !ok {
 		csrfToken = "" // Set empty string if token not found
 	}
