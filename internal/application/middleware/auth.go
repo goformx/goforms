@@ -79,8 +79,8 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 			return next(c)
 		}
 
-		// Skip authentication for GET requests to public pages
-		if method == http.MethodGet && m.isPublicPage(path) {
+		// Skip authentication for public pages
+		if m.isPublicPage(path) {
 			m.logger.Debug("JWT skipped: public page",
 				logging.String("path", path),
 				logging.String("method", method),
