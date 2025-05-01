@@ -60,7 +60,7 @@ type AppConfig struct {
 	Name  string `envconfig:"GOFORMS_APP_NAME" default:"GoForms"`
 	Env   string `envconfig:"GOFORMS_APP_ENV" default:"production"`
 	Debug bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
-	Port  int    `envconfig:"GOFORMS_APP_PORT" default:"9009"`
+	Port  int    `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	Host  string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
 }
 
@@ -79,7 +79,7 @@ type DatabaseConfig struct {
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
 	Host            string        `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
-	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
+	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8099"`
 	ReadTimeout     time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
 	WriteTimeout    time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
 	IdleTimeout     time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
@@ -124,13 +124,62 @@ type RateLimitConfig struct {
 func New() (*Config, error) {
 	var cfg Config
 
+	// Debug environment variables
+	if os.Getenv("GOFORMS_APP_DEBUG") == "true" {
+		fmt.Fprintln(os.Stdout, "\n=== Environment Variables ===")
+		for _, env := range os.Environ() {
+			if strings.HasPrefix(env, "GOFORMS_") {
+				fmt.Fprintln(os.Stdout, env)
+			}
+		}
+		fmt.Fprintln(os.Stdout, "===========================\n")
+	}
+
 	if err := envconfig.Process("GOFORMS", &cfg); err != nil {
 		return nil, fmt.Errorf("failed to process config: %w", err)
 	}
 
 	// Debug output after configuration is loaded
 	if cfg.App.Debug {
-		fmt.Fprintln(os.Stdout, "Loading configuration...")
+		fmt.Fprintln(os.Stdout, "\n=== Loaded Configuration ===")
+		fmt.Fprintf(os.Stdout, "App Configuration:\n")
+		fmt.Fprintf(os.Stdout, "  Name: %s\n", cfg.App.Name)
+		fmt.Fprintf(os.Stdout, "  Env: %s\n", cfg.App.Env)
+		fmt.Fprintf(os.Stdout, "  Debug: %v\n", cfg.App.Debug)
+		fmt.Fprintf(os.Stdout, "  Port: %d\n", cfg.App.Port)
+		fmt.Fprintf(os.Stdout, "  Host: %s\n", cfg.App.Host)
+		
+		fmt.Fprintf(os.Stdout, "\nServer Configuration:\n")
+		fmt.Fprintf(os.Stdout, "  Host: %s\n", cfg.Server.Host)
+		fmt.Fprintf(os.Stdout, "  Port: %d\n", cfg.Server.Port)
+		fmt.Fprintf(os.Stdout, "  Read Timeout: %v\n", cfg.Server.ReadTimeout)
+		fmt.Fprintf(os.Stdout, "  Write Timeout: %v\n", cfg.Server.WriteTimeout)
+		fmt.Fprintf(os.Stdout, "  Idle Timeout: %v\n", cfg.Server.IdleTimeout)
+		
+		fmt.Fprintf(os.Stdout, "\nDatabase Configuration:\n")
+		fmt.Fprintf(os.Stdout, "  Host: %s\n", cfg.Database.Host)
+		fmt.Fprintf(os.Stdout, "  Port: %d\n", cfg.Database.Port)
+		fmt.Fprintf(os.Stdout, "  Name: %s\n", cfg.Database.Name)
+		fmt.Fprintf(os.Stdout, "  User: %s\n", cfg.Database.User)
+		fmt.Fprintf(os.Stdout, "  Max Open Connections: %d\n", cfg.Database.MaxOpenConns)
+		fmt.Fprintf(os.Stdout, "  Max Idle Connections: %d\n", cfg.Database.MaxIdleConns)
+		fmt.Fprintf(os.Stdout, "  Connection Max Lifetime: %v\n", cfg.Database.ConnMaxLifetme)
+		
+		fmt.Fprintf(os.Stdout, "\nSecurity Configuration:\n")
+		fmt.Fprintf(os.Stdout, "  CSRF Enabled: %v\n", cfg.Security.CSRF.Enabled)
+		fmt.Fprintf(os.Stdout, "  CORS Allowed Origins: %v\n", cfg.Security.CorsAllowedOrigins)
+		fmt.Fprintf(os.Stdout, "  CORS Allowed Methods: %v\n", cfg.Security.CorsAllowedMethods)
+		fmt.Fprintf(os.Stdout, "  CORS Allowed Headers: %v\n", cfg.Security.CorsAllowedHeaders)
+		fmt.Fprintf(os.Stdout, "  CORS Max Age: %d\n", cfg.Security.CorsMaxAge)
+		fmt.Fprintf(os.Stdout, "  CORS Allow Credentials: %v\n", cfg.Security.CorsAllowCredentials)
+		
+		fmt.Fprintf(os.Stdout, "\nRate Limit Configuration:\n")
+		fmt.Fprintf(os.Stdout, "  Enabled: %v\n", cfg.RateLimit.Enabled)
+		fmt.Fprintf(os.Stdout, "  Rate: %d\n", cfg.RateLimit.Rate)
+		fmt.Fprintf(os.Stdout, "  Burst: %d\n", cfg.RateLimit.Burst)
+		fmt.Fprintf(os.Stdout, "  Time Window: %v\n", cfg.RateLimit.TimeWindow)
+		fmt.Fprintf(os.Stdout, "  Per IP: %v\n", cfg.RateLimit.PerIP)
+		fmt.Fprintln(os.Stdout, "===========================\n")
 	}
 
 	validate := validator.New()

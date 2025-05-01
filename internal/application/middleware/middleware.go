@@ -313,7 +313,14 @@ func (m *Manager) Setup(e *echo.Echo) {
 			m.logger.Error("failed to create JWT middleware", logging.Error(err))
 			return
 		}
-		e.Use(middleware)
+
+		// Create protected routes group
+		protected := e.Group("/api/v1")
+		protected.Use(middleware)
+
+		// Create admin routes group
+		admin := e.Group("/dashboard")
+		admin.Use(middleware)
 	}
 
 	m.logger.Info("middleware setup complete")

@@ -15,8 +15,8 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
+	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/application/router"
 	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/handlers"
@@ -83,7 +83,7 @@ func createApp() *fx.App {
 		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
 			return &logging.FxEventLogger{Logger: logger}
 		}),
-		// Start the server after all dependencies are ready
+		// Start the server using fx.Invoke
 		fx.Invoke(startServer),
 	)
 }
@@ -121,11 +121,11 @@ func handleSignals(cancel context.CancelFunc) {
 
 // newServer creates and configures a new Echo server instance.
 // It sets up middleware, logging, and security features.
-func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, error) {
+func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, *middleware.Manager, error) {
 	// Create logger instance
 	logger, err := logFactory.CreateFromConfig(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
+		return nil, nil, fmt.Errorf("failed to create logger: %w", err)
 	}
 
 	// Initialize Echo server
@@ -144,7 +144,7 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 	})
 	mwManager.Setup(e)
 
-	return e, nil
+	return e, mwManager, nil
 }
 
 // ServerParams contains the dependencies required for starting the server.
@@ -152,36 +152,22 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 type ServerParams struct {
 	fx.In
 
-	Server   *server.Server
-	Config   *config.Config
-	Logger   logging.Logger
-	Handlers []handlers.Handler `group:"handlers"`
+	Server           *server.Server
+	Config          *config.Config
+	Logger          logging.Logger
+	Handlers        []handlers.Handler `group:"handlers"`
+	MiddlewareManager *middleware.Manager
 }
 
-// startServer configures and starts the HTTP server.
-// It sets up static file serving and routes.
-func startServer(p ServerParams) error {
-	// Log handler types for debugging
-	handlerTypes := make([]string, len(p.Handlers))
-	for i, h := range p.Handlers {
-		handlerTypes[i] = fmt.Sprintf("%T", h)
-	}
-
-	p.Logger.Debug("starting server with handlers",
-		logging.Int("handler_count", len(p.Handlers)),
-		logging.String("handler_types", fmt.Sprintf("%v", handlerTypes)),
-	)
-
-	// Configure application routes
-	if err := router.Setup(p.Server.Echo(), &router.Config{
-		Handlers: p.Handlers,
-		Static: router.StaticConfig{
-			Path: "/static",
-			Root: "static",
-		},
-		Logger: p.Logger,
-	}); err != nil {
-		return fmt.Errorf("failed to setup router: %w", err)
+// startServer registers all handlers with the server.
+// It uses fx.In to automatically inject dependencies.
+func startServer(params ServerParams) error {
+	// Register all handlers with the middleware manager
+	for _, h := range params.Handlers {
+		if webHandler, ok := h.(*handler.WebHandler); ok {
+			handler.WithMiddlewareManager(params.MiddlewareManager)(webHandler)
+		}
+		h.Register(params.Server.Echo())
 	}
 
 	return nil

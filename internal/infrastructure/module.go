@@ -10,13 +10,13 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
+	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	h "github.com/jonesrussell/goforms/internal/handlers"
 	wh "github.com/jonesrussell/goforms/internal/handlers/web"
-	ah "github.com/jonesrussell/goforms/internal/handlers/web/admin"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -176,7 +176,7 @@ var StoreModule = fx.Options(
 // This module is responsible for setting up route handlers and their dependencies.
 var HandlerModule = fx.Options(
 	// Web handlers
-	AnnotateHandler(func(core CoreParams) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, middlewareManager *middleware.Manager) (h.Handler, error) {
 		handler := wh.NewHomeHandler(core.Logger, core.Renderer)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
@@ -188,7 +188,7 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, services ServiceParams, middlewareManager *middleware.Manager) (h.Handler, error) {
 		handler := wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create demo handler: renderer=%T, subscription_service=%T",
@@ -202,43 +202,20 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
-		handler := ah.NewDashboardHandler(core.Logger, core.Renderer, services.UserService, services.FormService)
-		if handler == nil {
-			return nil, fmt.Errorf("failed to create dashboard handler: renderer=%T, user_service=%T, form_service=%T",
-				core.Renderer, services.UserService, services.FormService)
-		}
-		core.Logger.Debug("registered handler",
-			logging.String("handler_name", "DashboardHandler"),
-			logging.String("handler_type", fmt.Sprintf("%T", handler)),
-			logging.String("operation", "handler_registration"),
-			logging.String("user_service_type", fmt.Sprintf("%T", services.UserService)),
-			logging.String("form_service_type", fmt.Sprintf("%T", services.FormService)),
-		)
-		return handler, nil
-	}),
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
-		startTime := time.Now()
+	AnnotateHandler(func(core CoreParams, services ServiceParams, middlewareManager *middleware.Manager) (h.Handler, error) {
 		handler, err := handler.NewWebHandler(core.Logger,
 			handler.WithRenderer(core.Renderer),
 			handler.WithContactService(services.ContactService),
 			handler.WithWebSubscriptionService(services.SubscriptionService),
+			handler.WithMiddlewareManager(middlewareManager),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create web handler: %w", err)
 		}
-		if handler == nil {
-			return nil, fmt.Errorf("web handler is nil after creation: renderer=%T, contact_service=%T, subscription_service=%T",
-				core.Renderer, services.ContactService, services.SubscriptionService)
-		}
-
 		core.Logger.Debug("registered handler",
 			logging.String("handler_name", "WebHandler"),
 			logging.String("handler_type", fmt.Sprintf("%T", handler)),
 			logging.String("operation", "handler_registration"),
-			logging.String("contact_service_type", fmt.Sprintf("%T", services.ContactService)),
-			logging.String("subscription_service_type", fmt.Sprintf("%T", services.SubscriptionService)),
-			logging.Duration("init_duration", time.Since(startTime)),
 		)
 		return handler, nil
 	}),
