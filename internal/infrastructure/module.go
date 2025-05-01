@@ -198,7 +198,6 @@ var HandlerModule = fx.Options(
 			logging.String("handler_name", "DemoHandler"),
 			logging.String("handler_type", fmt.Sprintf("%T", handler)),
 			logging.String("operation", "handler_registration"),
-			logging.String("subscription_service_type", fmt.Sprintf("%T", services.SubscriptionService)),
 		)
 		return handler, nil
 	}),
@@ -214,6 +213,19 @@ var HandlerModule = fx.Options(
 		}
 		core.Logger.Debug("registered handler",
 			logging.String("handler_name", "WebHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+		)
+		return handler, nil
+	}),
+	// Auth handler
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+		handler := handler.NewAuthHandler(core.Logger, handler.WithUserService(services.UserService))
+		if handler == nil {
+			return nil, fmt.Errorf("failed to create auth handler: user_service=%T", services.UserService)
+		}
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "AuthHandler"),
 			logging.String("handler_type", fmt.Sprintf("%T", handler)),
 			logging.String("operation", "handler_registration"),
 		)

@@ -314,7 +314,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 			return
 		}
 
-		// Create protected routes group
+		// Create protected routes group (with JWT middleware)
 		protected := e.Group("/api/v1")
 		protected.Use(middleware)
 

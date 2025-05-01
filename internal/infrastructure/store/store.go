@@ -64,7 +64,7 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 
 // GetByID retrieves a user by ID
 func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
-	query := `SELECT * FROM users WHERE id = $1`
+	query := `SELECT * FROM users WHERE id = ?`
 	var u user.User
 	err := s.db.GetContext(ctx, &u, query, id)
 	if err != nil {
@@ -79,7 +79,7 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 
 // GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
-	query := `SELECT * FROM users WHERE email = $1`
+	query := `SELECT * FROM users WHERE email = ?`
 	var u user.User
 	err := s.db.GetContext(ctx, &u, query, email)
 	if err != nil {
@@ -128,7 +128,7 @@ func (s *Store) Update(ctx context.Context, u *user.User) error {
 
 // Delete removes a user from the database
 func (s *Store) Delete(ctx context.Context, id uint) error {
-	result, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = $1", id)
+	result, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = ?", id)
 	if err != nil {
 		s.log.Error("failed to delete user", logging.Error(err))
 		return err
