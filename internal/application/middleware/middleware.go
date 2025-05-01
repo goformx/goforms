@@ -92,6 +92,26 @@ func retrieveCSRFToken(c echo.Context) (string, error) {
 	return tokenStr, nil
 }
 
+// isStaticFile checks if the given path is a static file
+func isStaticFile(path string) bool {
+	return strings.HasPrefix(path, "/static/") ||
+		path == StaticFileFavicon ||
+		path == StaticFileRobots
+}
+
+// setupStaticFileMiddleware creates middleware to handle static files
+func setupStaticFileMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if isStaticFile(c.Request().URL.Path) {
+				c.Set("skip_csrf", true)
+				c.Set("skip_auth", true)
+			}
+			return next(c)
+		}
+	}
+}
+
 // setupCSRF creates and configures CSRF middleware
 func setupCSRF() echo.MiddlewareFunc {
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
@@ -113,9 +133,7 @@ func setupCSRF() echo.MiddlewareFunc {
 				return true
 			}
 
-			if strings.HasPrefix(path, "/static/") ||
-				path == StaticFileFavicon ||
-				path == StaticFileRobots {
+			if isStaticFile(path) {
 				return true
 			}
 
@@ -200,6 +218,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// MIME type middleware (must be before other middleware)
 	e.Pre(setupMIMETypeMiddleware())
+
+	// Static file middleware (must be before CSRF and auth)
+	e.Use(setupStaticFileMiddleware())
 
 	// Basic middleware
 	e.Use(echomw.Recover())
