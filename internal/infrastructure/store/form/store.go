@@ -27,7 +27,7 @@ func NewStore(db *database.Database, logger logging.Logger) form.Store {
 func (s *store) Create(f *form.Form) error {
 	query := `
 		INSERT INTO forms (user_id, title, description, schema, active, created_at, updated_at)
-		VALUES ($1, $2, $3, $4, $5, $6, $7)
+		VALUES (?, ?, ?, ?, ?, ?, ?)
 		RETURNING id
 	`
 
@@ -58,7 +58,7 @@ func (s *store) GetByID(id uint) (*form.Form, error) {
 	query := `
 		SELECT id, user_id, title, description, schema, active, created_at, updated_at
 		FROM forms
-		WHERE id = $1
+		WHERE id = ?
 	`
 
 	var schemaJSON []byte
@@ -93,7 +93,7 @@ func (s *store) GetByUserID(userID uint) ([]*form.Form, error) {
 	query := `
 		SELECT id, user_id, title, description, schema, active, created_at, updated_at
 		FROM forms
-		WHERE user_id = $1
+		WHERE user_id = ?
 	`
 
 	rows, err := s.db.Query(query, userID)
@@ -138,7 +138,7 @@ func (s *store) GetByUserID(userID uint) ([]*form.Form, error) {
 }
 
 func (s *store) Delete(id uint) error {
-	query := `DELETE FROM forms WHERE id = $1`
+	query := `DELETE FROM forms WHERE id = ?`
 
 	result, err := s.db.Exec(query, id)
 	if err != nil {
