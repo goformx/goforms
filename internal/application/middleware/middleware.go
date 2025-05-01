@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -63,7 +64,13 @@ func New(cfg *ManagerConfig) *Manager {
 }
 
 // corsConfig creates a CORS configuration with the given parameters
-func corsConfig(allowedOrigins []string, allowedMethods []string, allowedHeaders []string, allowCredentials bool, maxAge int) echomw.CORSConfig {
+func corsConfig(
+	allowedOrigins,
+	allowedMethods,
+	allowedHeaders []string,
+	allowCredentials bool,
+	maxAge int,
+) echomw.CORSConfig {
 	return echomw.CORSConfig{
 		AllowOrigins:     allowedOrigins,
 		AllowMethods:     allowedMethods,
@@ -77,16 +84,16 @@ func corsConfig(allowedOrigins []string, allowedMethods []string, allowedHeaders
 func retrieveCSRFToken(c echo.Context) (string, error) {
 	token := c.Get("csrf")
 	if token == nil {
-		return "", fmt.Errorf("CSRF token not found in context")
+		return "", errors.New("CSRF token not found in context")
 	}
 
 	tokenStr, ok := token.(string)
 	if !ok {
-		return "", fmt.Errorf("CSRF token type is invalid")
+		return "", errors.New("CSRF token type is invalid")
 	}
 
 	if tokenStr == "" {
-		return "", fmt.Errorf("CSRF token is empty")
+		return "", errors.New("CSRF token is empty")
 	}
 
 	return tokenStr, nil
@@ -154,13 +161,13 @@ func setupCSRF() echo.MiddlewareFunc {
 }
 
 // setupRateLimiter creates and configures rate limiter middleware
-func setupRateLimiter(config *config.SecurityConfig) echo.MiddlewareFunc {
+func setupRateLimiter(securityConfig *config.SecurityConfig) echo.MiddlewareFunc {
 	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
 		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
 			echomw.RateLimiterMemoryStoreConfig{
-				Rate:      rate.Limit(config.FormRateLimit),
+				Rate:      rate.Limit(securityConfig.FormRateLimit),
 				Burst:     RateLimitBurst,
-				ExpiresIn: config.FormRateLimitWindow,
+				ExpiresIn: securityConfig.FormRateLimitWindow,
 			},
 		),
 		IdentifierExtractor: func(c echo.Context) (string, error) {

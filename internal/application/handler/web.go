@@ -207,11 +207,11 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 	}
 
 	// Render page
-	if err := template(data).Render(c.Request().Context(), c.Response().Writer); err != nil {
+	if renderErr := template(data).Render(c.Request().Context(), c.Response().Writer); renderErr != nil {
 		h.Logger.Error("failed to render page",
 			logging.String("title", title),
 			logging.String("path", c.Request().URL.Path),
-			logging.Error(err))
+			logging.Error(renderErr))
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to render page")
 	}
 

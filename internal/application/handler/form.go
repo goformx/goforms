@@ -21,8 +21,13 @@ type FormHandler struct {
 	authMiddleware *amw.CookieAuthMiddleware
 }
 
-// NewFormHandler creates a new FormHandler
-func NewFormHandler(logger logging.Logger, formService form.Service, formClient form.Client, userService user.Service) (*FormHandler, error) {
+// NewFormHandler creates a new form handler
+func NewFormHandler(
+	logger logging.Logger,
+	formService form.Service,
+	formClient form.Client,
+	userService user.Service,
+) (*FormHandler, error) {
 	authMiddleware, err := amw.NewCookieAuthMiddleware(userService)
 	if err != nil {
 		return nil, err
@@ -102,8 +107,8 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	}
 
 	// Submit response using client
-	if err := h.formClient.SubmitResponse(c.Request().Context(), formID, response); err != nil {
-		h.base.LogError("failed to submit form response", err)
+	if submitErr := h.formClient.SubmitResponse(c.Request().Context(), formID, response); submitErr != nil {
+		h.base.LogError("failed to submit form response", submitErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to submit form response")
 	}
 

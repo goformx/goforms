@@ -35,6 +35,27 @@ func NewJWTMiddleware(userService user.Service, secret string) (echo.MiddlewareF
 	return m.Handle, nil
 }
 
+// isStaticPath checks if the path is for static content
+func (m *JWTMiddleware) isStaticPath(path string) bool {
+	return strings.HasPrefix(path, "/static/") ||
+		path == "/favicon.ico" ||
+		path == "/robots.txt"
+}
+
+// isValidationAPI checks if the path is for validation API
+func (m *JWTMiddleware) isValidationAPI(path string) bool {
+	return strings.HasPrefix(path, "/api/validation/")
+}
+
+// isPublicPage checks if the path is for a public page
+func (m *JWTMiddleware) isPublicPage(path string) bool {
+	return strings.HasPrefix(path, "/login") ||
+		strings.HasPrefix(path, "/signup") ||
+		strings.HasPrefix(path, "/forgot-password") ||
+		strings.HasPrefix(path, "/contact") ||
+		strings.HasPrefix(path, "/demo")
+}
+
 // Handle processes JWT authentication
 func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -42,9 +63,7 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		method := c.Request().Method
 
 		// Skip authentication for static files and special files
-		if strings.HasPrefix(path, "/static/") ||
-			path == "/favicon.ico" ||
-			path == "/robots.txt" {
+		if m.isStaticPath(path) {
 			m.logger.Debug("JWT skipped: static content",
 				logging.String("path", path),
 				logging.String("reason", "static content path"))
@@ -52,7 +71,7 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// Skip authentication for validation API endpoints
-		if strings.HasPrefix(path, "/api/validation/") {
+		if m.isValidationAPI(path) {
 			m.logger.Debug("JWT skipped: validation API",
 				logging.String("path", path),
 				logging.String("reason", "validation API endpoint"))
@@ -60,11 +79,7 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// Skip authentication for GET requests to public pages
-		if method == http.MethodGet && (strings.HasPrefix(path, "/login") ||
-			strings.HasPrefix(path, "/signup") ||
-			strings.HasPrefix(path, "/forgot-password") ||
-			strings.HasPrefix(path, "/contact") ||
-			strings.HasPrefix(path, "/demo")) {
+		if method == http.MethodGet && m.isPublicPage(path) {
 			m.logger.Debug("JWT skipped: public page",
 				logging.String("path", path),
 				logging.String("method", method),

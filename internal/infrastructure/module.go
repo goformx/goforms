@@ -75,8 +75,55 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
-// validateConfig performs validation of critical configuration settings.
-// It ensures all required settings are present and valid before initialization.
+// validateDatabaseConfig validates database configuration
+func validateDatabaseConfig(cfg *config.DatabaseConfig) []string {
+	var validationErrors []string
+	if cfg.MaxOpenConns <= 0 {
+		validationErrors = append(validationErrors, "database max open connections must be a positive number")
+	}
+	if cfg.MaxIdleConns <= 0 {
+		validationErrors = append(validationErrors, "database max idle connections must be a positive number")
+	}
+	if cfg.ConnMaxLifetme <= 0 {
+		validationErrors = append(validationErrors, "database connection max lifetime must be a positive duration")
+	}
+	return validationErrors
+}
+
+// validateSecurityConfig validates security configuration
+func validateSecurityConfig(cfg *config.SecurityConfig) []string {
+	var validationErrors []string
+	if len(cfg.JWTSecret) < MinSecretLength {
+		validationErrors = append(validationErrors, "JWT secret must be at least 32 characters long")
+	}
+	if cfg.CSRF.Enabled && len(cfg.CSRF.Secret) < MinSecretLength {
+		validationErrors = append(validationErrors, "CSRF secret must be at least 32 characters long")
+	}
+	return validationErrors
+}
+
+// validateServerConfig validates server configuration
+func validateServerConfig(cfg *config.ServerConfig) []string {
+	var validationErrors []string
+	if cfg.Port <= 0 {
+		validationErrors = append(validationErrors, "server port must be a positive number")
+	}
+	if cfg.ReadTimeout <= 0 {
+		validationErrors = append(validationErrors, "server read timeout must be a positive duration")
+	}
+	if cfg.WriteTimeout <= 0 {
+		validationErrors = append(validationErrors, "server write timeout must be a positive duration")
+	}
+	if cfg.IdleTimeout <= 0 {
+		validationErrors = append(validationErrors, "server idle timeout must be a positive duration")
+	}
+	if cfg.ShutdownTimeout <= 0 {
+		validationErrors = append(validationErrors, "server shutdown timeout must be a positive duration")
+	}
+	return validationErrors
+}
+
+// validateConfig performs validation of critical configuration settings
 func validateConfig(cfg *config.Config) error {
 	if cfg == nil {
 		return errors.New("configuration is nil")
@@ -84,67 +131,14 @@ func validateConfig(cfg *config.Config) error {
 
 	var validationErrors []string
 
-	// Database configuration
-	if cfg.Database.Host == "" {
-		validationErrors = append(validationErrors, "database host is required")
-	}
-	if cfg.Database.Port <= 0 {
-		validationErrors = append(validationErrors, "database port must be a positive number")
-	}
-	if cfg.Database.User == "" {
-		validationErrors = append(validationErrors, "database user is required")
-	}
-	if cfg.Database.Password == "" {
-		validationErrors = append(validationErrors, "database password is required")
-	}
-	if cfg.Database.Name == "" {
-		validationErrors = append(validationErrors, "database name is required")
-	}
-	if cfg.Database.MaxOpenConns <= 0 {
-		validationErrors = append(validationErrors, "database max open connections must be a positive number")
-	}
-	if cfg.Database.MaxIdleConns <= 0 {
-		validationErrors = append(validationErrors, "database max idle connections must be a positive number")
-	}
-	if cfg.Database.ConnMaxLifetme <= 0 {
-		validationErrors = append(validationErrors, "database connection max lifetime must be a positive duration")
-	}
+	// Validate database configuration
+	validationErrors = append(validationErrors, validateDatabaseConfig(&cfg.Database)...)
 
-	// Security configuration
-	if cfg.Security.JWTSecret == "" {
-		validationErrors = append(validationErrors, "JWT secret is required")
-	}
-	if len(cfg.Security.JWTSecret) < MinSecretLength {
-		validationErrors = append(validationErrors, "JWT secret must be at least 32 characters long")
-	}
-	if cfg.Security.CSRF.Enabled {
-		if cfg.Security.CSRF.Secret == "" {
-			validationErrors = append(validationErrors, "CSRF secret is required when CSRF is enabled")
-		}
-		if len(cfg.Security.CSRF.Secret) < MinSecretLength {
-			validationErrors = append(validationErrors, "CSRF secret must be at least 32 characters long")
-		}
-	}
+	// Validate security configuration
+	validationErrors = append(validationErrors, validateSecurityConfig(&cfg.Security)...)
 
-	// Server configuration
-	if cfg.Server.Port <= 0 {
-		validationErrors = append(validationErrors, "server port must be a positive number")
-	}
-	if cfg.Server.Host == "" {
-		validationErrors = append(validationErrors, "server host is required")
-	}
-	if cfg.Server.ReadTimeout <= 0 {
-		validationErrors = append(validationErrors, "server read timeout must be a positive duration")
-	}
-	if cfg.Server.WriteTimeout <= 0 {
-		validationErrors = append(validationErrors, "server write timeout must be a positive duration")
-	}
-	if cfg.Server.IdleTimeout <= 0 {
-		validationErrors = append(validationErrors, "server idle timeout must be a positive duration")
-	}
-	if cfg.Server.ShutdownTimeout <= 0 {
-		validationErrors = append(validationErrors, "server shutdown timeout must be a positive duration")
-	}
+	// Validate server configuration
+	validationErrors = append(validationErrors, validateServerConfig(&cfg.Server)...)
 
 	// If any validation errors occurred, return them all
 	if len(validationErrors) > 0 {
@@ -159,12 +153,12 @@ func validateConfig(cfg *config.Config) error {
 var InfrastructureModule = fx.Options(
 	fx.Provide(
 		func() (*config.Config, error) {
-			cfg, err := config.New()
-			if err != nil {
-				return nil, fmt.Errorf("failed to load configuration: %w", err)
+			cfg, cfgErr := config.New()
+			if cfgErr != nil {
+				return nil, fmt.Errorf("failed to load configuration: %w", cfgErr)
 			}
-			if err := validateConfig(cfg); err != nil {
-				return nil, err
+			if validationErr := validateConfig(cfg); validationErr != nil {
+				return nil, validationErr
 			}
 			return cfg, nil
 		},
@@ -266,7 +260,9 @@ var Module = fx.Options(
 )
 
 // wrapCreator creates a type-safe wrapper for store creation functions
-func wrapCreator[T any](creator func(*database.Database, logging.Logger) T) func(*database.Database, logging.Logger) any {
+func wrapCreator[T any](
+	creator func(*database.Database, logging.Logger) T,
+) func(*database.Database, logging.Logger) any {
 	return func(db *database.Database, logger logging.Logger) any {
 		return creator(db, logger)
 	}

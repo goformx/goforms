@@ -1,6 +1,7 @@
 package router
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 
@@ -70,8 +71,8 @@ func setupStaticRoutes(group interface {
 }
 
 // registerHandlers registers all API handlers
-func registerHandlers(e *echo.Echo, handlers []handlers.Handler, logger logging.Logger) {
-	for i, h := range handlers {
+func registerHandlers(e *echo.Echo, handlerList []handlers.Handler, logger logging.Logger) {
+	for i, h := range handlerList {
 		logHandlerRegistration(logger, i, fmt.Sprintf("%T", h))
 		h.Register(e)
 		logger.Debug("handler registered",
@@ -84,7 +85,7 @@ func registerHandlers(e *echo.Echo, handlers []handlers.Handler, logger logging.
 // validateConfig checks if the configuration is valid
 func validateConfig(cfg *Config) error {
 	if cfg.Static.Path == "" || cfg.Static.Root == "" {
-		return fmt.Errorf("static config must include both path and root")
+		return errors.New("static config must include both path and root")
 	}
 	return nil
 }

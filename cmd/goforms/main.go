@@ -63,9 +63,7 @@ func createApp() *fx.App {
 	return fx.New(
 		// Core dependencies that are required for basic functionality
 		fx.Provide(
-			func() version.VersionInfo {
-				return version.Info()
-			},
+			GetVersion,
 			logging.NewFactory,
 			func(cfg *config.Config, logFactory *logging.Factory) (logging.Logger, error) {
 				return logFactory.CreateFromConfig(cfg)
@@ -187,4 +185,9 @@ func startServer(p ServerParams) error {
 	}
 
 	return nil
+}
+
+// GetVersion returns the version information
+func GetVersion() version.VersionInfo {
+	return version.Info()
 }
