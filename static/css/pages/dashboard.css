@@ -21,9 +21,9 @@
     }
 
     .dashboard-title {
-        font-size: var(--font-size-3xl);
+        font-size: var(--font-size-2xl);
         font-weight: var(--font-weight-bold);
-        color: var(--color-gray-900);
+        color: var(--text);
     }
 
     .dashboard-grid {
@@ -33,16 +33,16 @@
     }
 
     .dashboard-empty {
-        grid-column: 1 / -1;
         text-align: center;
         padding: var(--spacing-12);
         background-color: var(--color-gray-50);
         border-radius: var(--border-radius-lg);
+        margin-top: var(--spacing-8);
     }
 
     .dashboard-empty p {
         font-size: var(--font-size-lg);
-        color: var(--color-gray-600);
+        color: var(--text-light);
         margin-bottom: var(--spacing-4);
     }
 
@@ -101,7 +101,11 @@
         }
 
         .dashboard-title {
-            font-size: var(--font-size-2xl);
+            font-size: var(--font-size-xl);
+        }
+
+        .dashboard-empty {
+            padding: var(--spacing-8);
         }
 
         .dashboard-grid {

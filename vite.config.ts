@@ -1,5 +1,9 @@
 import { defineConfig } from 'vite';
 import { resolve } from 'path';
+import autoprefixer from 'autoprefixer';
+import postcssImport from 'postcss-import';
+import postcssNested from 'postcss-nested';
+import cssnano from 'cssnano';
 
 export default defineConfig({
   root: 'static',
@@ -8,6 +12,16 @@ export default defineConfig({
     devSourcemap: true,
     modules: {
       localsConvention: 'camelCase'
+    },
+    postcss: {
+      plugins: [
+        autoprefixer,
+        postcssImport,
+        postcssNested,
+        cssnano({
+          preset: 'default'
+        })
+      ]
     }
   },
   build: {

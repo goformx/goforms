@@ -1,8 +1,9 @@
 package pages
 
 import (
+	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
-	"github.com/jonesrussell/goforms/internal/presentation/templates/components"
+	"github.com/jonesrussell/goforms/internal/presentation/components"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
@@ -11,29 +12,40 @@ templ Dashboard(data shared.PageData) {
 }
 
 templ dashboardContent(data shared.PageData) {
-	<div class="dashboard-page">
-		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<h1 class="dashboard-title">My Forms</h1>
-				<button class="button button-primary" onclick="window.location.href='/forms/new'">
-					Create New Form
-				</button>
-			</div>
+	@components.PageHero("Dashboard", "Manage your forms and submissions")
 
-			<div class="dashboard-grid">
-				if len(data.Forms) == 0 {
-					<div class="dashboard-empty">
-						<p>You haven't created any forms yet.</p>
-						<button class="button button-primary" onclick="window.location.href='/forms/new'">
-							Create Your First Form
-						</button>
-					</div>
-				} else {
-					for _, form := range data.Forms {
-						@components.FormCard(form.Title, form.Description, form.UpdatedAt.Format("Last updated Jan 2, 2006"))
-					}
-				}
-			</div>
+	<div class="container">
+		<div class="dashboard-header">
+			<h2 class="dashboard-title">My Forms</h2>
+			<a href="/forms/new" class="btn btn-primary">Create New Form</a>
 		</div>
+
+		if len(data.Forms) == 0 {
+			<div class="dashboard-empty">
+				<p>You haven't created any forms yet.</p>
+				<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
+			</div>
+		} else {
+			@components.Grid(components.GridProps{
+				Columns: 0, // Auto-fit
+				Items: toGridItems(data.Forms),
+				Render: func(item components.GridItem) templ.Component {
+					f := item.(*form.Form)
+					return components.FeatureCard(components.Feature{
+						Icon: "📝",
+						Title: f.Title,
+						Description: f.Description,
+					})
+				},
+			})
+		}
 	</div>
+}
+
+func toGridItems(forms []*form.Form) []components.GridItem {
+	items := make([]components.GridItem, len(forms))
+	for i, f := range forms {
+		items[i] = f
+	}
+	return items
 } 
