@@ -61,7 +61,7 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	// Verify CSRF token if enabled
 	if csrfToken := c.Get("csrf"); csrfToken != nil {
 		// Log CSRF token presence for debugging
-		h.base.Logger.Debug("CSRF token found in request", 
+		h.base.Logger.Debug("CSRF token found in request",
 			logging.String("path", c.Request().URL.Path),
 			logging.String("method", c.Request().Method))
 
@@ -118,8 +118,8 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		"message": "Form submitted successfully",
 		"data": map[string]interface{}{
 			"submission_id": submission.ID,
-			"form_id":      submission.FormID,
-			"submitted_at": submission.SubmittedAt,
+			"form_id":       submission.FormID,
+			"submitted_at":  submission.SubmittedAt,
 		},
 	})
 }
@@ -138,13 +138,13 @@ func (h *FormHandler) handleListForms(c echo.Context) error {
 // handleCreateForm handles creating a new form
 func (h *FormHandler) handleCreateForm(c echo.Context) error {
 	userID := c.Get("user_id").(uint)
-	
+
 	var formData struct {
-		Title       string         `json:"title"`
-		Description string         `json:"description"`
-		Schema      form.JSON      `json:"schema"`
+		Title       string    `json:"title"`
+		Description string    `json:"description"`
+		Schema      form.JSON `json:"schema"`
 	}
-	
+
 	if err := c.Bind(&formData); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
 	}
@@ -201,4 +201,4 @@ func (h *FormHandler) handleDeleteForm(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
-} 
+}

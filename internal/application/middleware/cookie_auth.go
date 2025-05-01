@@ -171,4 +171,4 @@ func getTokenFromCookie(c echo.Context) (string, error) {
 		return "", err
 	}
 	return cookie.Value, nil
-} 
+}

@@ -24,4 +24,4 @@ func Info() VersionInfo {
 		GitCommit: GitCommit,
 		GoVersion: GoVersion,
 	}
-} 
+}

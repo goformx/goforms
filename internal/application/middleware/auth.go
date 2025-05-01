@@ -41,10 +41,10 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		method := c.Request().Method
 
 		// Skip authentication for static files and special files
-		if strings.HasPrefix(path, "/static/") || 
-		   path == "/favicon.ico" ||
-		   path == "/robots.txt" {
-			m.logger.Debug("JWT skipped: static content", 
+		if strings.HasPrefix(path, "/static/") ||
+			path == "/favicon.ico" ||
+			path == "/robots.txt" {
+			m.logger.Debug("JWT skipped: static content",
 				logging.String("path", path),
 				logging.String("reason", "static content path"))
 			return next(c)
@@ -52,20 +52,19 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// Skip authentication for validation API endpoints
 		if strings.HasPrefix(path, "/api/validation/") {
-			m.logger.Debug("JWT skipped: validation API", 
+			m.logger.Debug("JWT skipped: validation API",
 				logging.String("path", path),
 				logging.String("reason", "validation API endpoint"))
 			return next(c)
 		}
 
 		// Skip authentication for GET requests to public pages
-		if method == http.MethodGet && (
-			strings.HasPrefix(path, "/login") ||
+		if method == http.MethodGet && (strings.HasPrefix(path, "/login") ||
 			strings.HasPrefix(path, "/signup") ||
 			strings.HasPrefix(path, "/forgot-password") ||
 			strings.HasPrefix(path, "/contact") ||
 			strings.HasPrefix(path, "/demo")) {
-			m.logger.Debug("JWT skipped: public page", 
+			m.logger.Debug("JWT skipped: public page",
 				logging.String("path", path),
 				logging.String("method", method),
 				logging.String("reason", "public page"))

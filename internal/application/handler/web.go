@@ -165,7 +165,7 @@ func (h *WebHandler) getCSRFToken(c echo.Context) string {
 	// First try to get the token from the context key (set by middleware)
 	token := c.Get("csrf")
 	if token == nil {
-		h.Logger.Debug("CSRF token not found in context", 
+		h.Logger.Debug("CSRF token not found in context",
 			logging.String("path", c.Request().URL.Path),
 			logging.String("method", c.Request().Method),
 			logging.String("context_keys", fmt.Sprintf("%v", c.Get(""))))
@@ -174,7 +174,7 @@ func (h *WebHandler) getCSRFToken(c echo.Context) string {
 
 	tokenStr, ok := token.(string)
 	if !ok {
-		h.Logger.Error("CSRF token is not a string", 
+		h.Logger.Error("CSRF token is not a string",
 			logging.String("path", c.Request().URL.Path),
 			logging.String("method", c.Request().Method),
 			logging.String("token_type", fmt.Sprintf("%T", token)))
@@ -182,13 +182,13 @@ func (h *WebHandler) getCSRFToken(c echo.Context) string {
 	}
 
 	if tokenStr == "" {
-		h.Logger.Debug("CSRF token is empty string", 
+		h.Logger.Debug("CSRF token is empty string",
 			logging.String("path", c.Request().URL.Path),
 			logging.String("method", c.Request().Method))
 		return ""
 	}
 
-	h.Logger.Debug("CSRF token found", 
+	h.Logger.Debug("CSRF token found",
 		logging.String("path", c.Request().URL.Path),
 		logging.String("method", c.Request().Method),
 		logging.String("token_prefix", tokenStr[:8]),

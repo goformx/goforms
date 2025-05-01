@@ -61,9 +61,9 @@ func Setup(e *echo.Echo, cfg *Config) error {
 	staticGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
-			if strings.HasPrefix(path, "/static/") || 
-			   path == "/favicon.ico" ||
-			   path == "/robots.txt" {
+			if strings.HasPrefix(path, "/static/") ||
+				path == "/favicon.ico" ||
+				path == "/robots.txt" {
 				c.Set("skip_csrf", true)
 				c.Set("skip_auth", true)
 			}
@@ -82,11 +82,11 @@ func Setup(e *echo.Echo, cfg *Config) error {
 	formGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
-			if strings.HasPrefix(path, "/login") || 
-			   strings.HasPrefix(path, "/signup") || 
-			   strings.HasPrefix(path, "/forgot-password") ||
-			   strings.HasPrefix(path, "/contact") ||
-			   strings.HasPrefix(path, "/demo") {
+			if strings.HasPrefix(path, "/login") ||
+				strings.HasPrefix(path, "/signup") ||
+				strings.HasPrefix(path, "/forgot-password") ||
+				strings.HasPrefix(path, "/contact") ||
+				strings.HasPrefix(path, "/demo") {
 				// Ensure CSRF tokens are generated for form pages
 				c.Set("skip_csrf", false)
 			}

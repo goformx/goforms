@@ -99,7 +99,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Form submission routes group with specific middleware
 	formGroup := e.Group("/v1/forms")
-	
+
 	// Form-specific CORS
 	formGroup.Use(echomw.CORSWithConfig(echomw.CORSConfig{
 		AllowOrigins:     m.config.Security.FormCorsAllowedOrigins,
@@ -139,10 +139,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 	}))
 
 	m.logger.Info("CSRF middleware enabled", logging.Bool("enabled", m.config.Security.CSRF.Enabled))
-	
+
 	// CSRF if enabled
 	if m.config.Security.CSRF.Enabled {
-		m.logger.Info("initializing CSRF middleware", 
+		m.logger.Info("initializing CSRF middleware",
 			logging.Bool("config_enabled", m.config.Security.CSRF.Enabled),
 			logging.String("secret_length", fmt.Sprintf("%d", len(m.config.Security.CSRF.Secret))),
 			logging.String("token_lookup", "header:X-CSRF-Token,form:csrf_token,cookie:_csrf"),
@@ -152,7 +152,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 			logging.Bool("cookie_http_only", true),
 			logging.String("cookie_same_site", "Strict"),
 			logging.Int("cookie_max_age", 86400))
-		
+
 		// Create CSRF middleware with logging
 		csrfMiddleware := echomw.CSRFWithConfig(echomw.CSRFConfig{
 			TokenLength:    DefaultTokenLength,
@@ -171,17 +171,17 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 				// Check if CSRF should be skipped
 				if skip, ok := c.Get("skip_csrf").(bool); ok && skip {
-					m.logger.Debug("CSRF skipped: skip_csrf flag set", 
+					m.logger.Debug("CSRF skipped: skip_csrf flag set",
 						logging.String("path", path),
 						logging.String("reason", "skip_csrf flag"))
 					return true
 				}
 
 				// Skip for static content
-				if strings.HasPrefix(path, "/static/") || 
-				   path == "/favicon.ico" ||
-				   path == "/robots.txt" {
-					m.logger.Debug("CSRF skipped: static content", 
+				if strings.HasPrefix(path, "/static/") ||
+					path == "/favicon.ico" ||
+					path == "/robots.txt" {
+					m.logger.Debug("CSRF skipped: static content",
 						logging.String("path", path),
 						logging.String("reason", "static content path"))
 					return true
@@ -189,7 +189,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 				// Skip for safe HTTP methods
 				if method == http.MethodHead || method == http.MethodOptions {
-					m.logger.Debug("CSRF skipped: safe HTTP method", 
+					m.logger.Debug("CSRF skipped: safe HTTP method",
 						logging.String("path", path),
 						logging.String("method", method),
 						logging.String("reason", "safe HTTP method"))
@@ -200,7 +200,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 				if strings.HasPrefix(path, "/api/") {
 					authHeader := c.Request().Header.Get("Authorization")
 					if authHeader != "" {
-						m.logger.Debug("CSRF skipped: authenticated API route", 
+						m.logger.Debug("CSRF skipped: authenticated API route",
 							logging.String("path", path),
 							logging.String("reason", "authenticated API route"))
 						return true
@@ -208,12 +208,12 @@ func (m *Manager) Setup(e *echo.Echo) {
 				}
 
 				// Always generate tokens for pages with forms
-				if strings.HasPrefix(path, "/login") || 
-				   strings.HasPrefix(path, "/signup") || 
-				   strings.HasPrefix(path, "/forgot-password") ||
-				   strings.HasPrefix(path, "/contact") ||
-				   strings.HasPrefix(path, "/demo") {
-					m.logger.Debug("CSRF not skipped: page with form", 
+				if strings.HasPrefix(path, "/login") ||
+					strings.HasPrefix(path, "/signup") ||
+					strings.HasPrefix(path, "/forgot-password") ||
+					strings.HasPrefix(path, "/contact") ||
+					strings.HasPrefix(path, "/demo") {
+					m.logger.Debug("CSRF not skipped: page with form",
 						logging.String("path", path),
 						logging.String("method", method),
 						logging.String("reason", "page contains form"))
@@ -221,7 +221,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 				}
 
 				// Generate tokens for all other pages by default
-				m.logger.Debug("CSRF not skipped: default case", 
+				m.logger.Debug("CSRF not skipped: default case",
 					logging.String("path", path),
 					logging.String("method", method),
 					logging.String("reason", "default case - generating token"))
@@ -237,9 +237,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 			return func(c echo.Context) error {
 				// Skip logging for static files
 				path := c.Request().URL.Path
-				if strings.HasPrefix(path, "/static/") || 
-				   path == "/favicon.ico" ||
-				   path == "/robots.txt" {
+				if strings.HasPrefix(path, "/static/") ||
+					path == "/favicon.ico" ||
+					path == "/robots.txt" {
 					return next(c)
 				}
 
@@ -255,9 +255,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
 					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")),
 					logging.String("form_csrf_token", c.FormValue("csrf_token")))
-				
+
 				if cookie, err := c.Cookie("_csrf"); err == nil {
-					m.logger.Debug("CSRF middleware processing request - cookie value", 
+					m.logger.Debug("CSRF middleware processing request - cookie value",
 						logging.String("cookie_value", cookie.Value))
 				}
 
@@ -266,7 +266,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 					if tokenStr, ok := token.(string); ok && tokenStr != "" {
 						// Set the token in the context for templates using the same key
 						c.Set("csrf", tokenStr)
-						m.logger.Debug("CSRF token set in context", 
+						m.logger.Debug("CSRF token set in context",
 							logging.String("path", path),
 							logging.String("method", c.Request().Method),
 							logging.String("token_prefix", tokenStr[:8]),
@@ -284,9 +284,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 			return func(c echo.Context) error {
 				// Skip logging for static files
 				path := c.Request().URL.Path
-				if strings.HasPrefix(path, "/static/") || 
-				   path == "/favicon.ico" ||
-				   path == "/robots.txt" {
+				if strings.HasPrefix(path, "/static/") ||
+					path == "/favicon.ico" ||
+					path == "/robots.txt" {
 					return next(c)
 				}
 
@@ -302,9 +302,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
 					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")),
 					logging.String("form_csrf_token", c.FormValue("csrf_token")))
-				
+
 				if cookie, err := c.Cookie("_csrf"); err == nil {
-					m.logger.Debug("Before CSRF middleware - cookie value", 
+					m.logger.Debug("Before CSRF middleware - cookie value",
 						logging.String("cookie_value", cookie.Value))
 				}
 
@@ -314,7 +314,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 				// Get the token from the context after CSRF middleware
 				if token := c.Get("csrf"); token != nil {
 					if tokenStr, ok := token.(string); ok && tokenStr != "" {
-						m.logger.Debug("CSRF token generated", 
+						m.logger.Debug("CSRF token generated",
 							logging.String("path", path),
 							logging.String("method", c.Request().Method),
 							logging.String("token_prefix", tokenStr[:8]),
@@ -326,7 +326,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 			}
 		})
 	} else {
-		m.logger.Debug("CSRF middleware is disabled", 
+		m.logger.Debug("CSRF middleware is disabled",
 			logging.Bool("config_enabled", m.config.Security.CSRF.Enabled),
 			logging.String("reason", "CSRF disabled in config"))
 	}
