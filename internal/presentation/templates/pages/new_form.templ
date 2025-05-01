@@ -1,0 +1,40 @@
+package pages
+
+import (
+	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+)
+
+templ NewForm(data shared.PageData) {
+	@layouts.Layout(data, newFormContent(data))
+}
+
+templ newFormContent(data shared.PageData) {
+	<div class="new-form-page">
+		<div class="new-form-container">
+			<div class="new-form-header">
+				<h1 class="new-form-title">Create New Form</h1>
+				<p class="new-form-subtitle">Start building your form by providing basic information</p>
+			</div>
+
+			<form class="new-form" method="POST" action="/dashboard/forms">
+				<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+
+				<div class="form-group">
+					<label for="title">Form Title</label>
+					<input type="text" id="title" name="title" required placeholder="Enter form title" />
+				</div>
+
+				<div class="form-group">
+					<label for="description">Description</label>
+					<textarea id="description" name="description" rows="3" placeholder="Enter form description"></textarea>
+				</div>
+
+				<div class="form-actions">
+					<a href="/dashboard" class="btn btn-outline">Cancel</a>
+					<button type="submit" class="btn btn-primary">Create Form</button>
+				</div>
+			</form>
+		</div>
+	</div>
+} 

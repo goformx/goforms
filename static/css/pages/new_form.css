@@ -1,0 +1,102 @@
+@layer pages {
+    .new-form-page {
+        min-height: calc(100vh - var(--nav-height));
+        padding: var(--spacing-8) 0;
+        background: var(--background);
+        color: var(--text);
+    }
+
+    .new-form-container {
+        width: 100%;
+        max-width: var(--container-md);
+        margin: 0 auto;
+        padding: 0 var(--spacing-4);
+    }
+
+    .new-form-header {
+        margin-bottom: var(--spacing-8);
+    }
+
+    .new-form-title {
+        font-size: var(--font-size-3xl);
+        font-weight: var(--font-weight-bold);
+        color: var(--text);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .new-form-subtitle {
+        font-size: var(--font-size-lg);
+        color: var(--text-light);
+    }
+
+    .new-form {
+        background: var(--card-bg);
+        border: var(--card-border);
+        border-radius: var(--card-radius);
+        padding: var(--spacing-8);
+    }
+
+    .form-group {
+        margin-bottom: var(--spacing-6);
+    }
+
+    .form-group label {
+        display: block;
+        font-size: var(--font-size-sm);
+        font-weight: var(--font-weight-medium);
+        color: var(--text);
+        margin-bottom: var(--spacing-2);
+    }
+
+    .form-group input,
+    .form-group textarea {
+        width: 100%;
+        padding: var(--spacing-3) var(--spacing-4);
+        border: 1px solid var(--border-color);
+        border-radius: var(--border-radius);
+        background: var(--background);
+        color: var(--text);
+        font-size: var(--font-size-base);
+    }
+
+    .form-group input:focus,
+    .form-group textarea:focus {
+        outline: none;
+        border-color: var(--primary);
+        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+    }
+
+    .form-actions {
+        display: flex;
+        justify-content: flex-end;
+        gap: var(--spacing-4);
+        margin-top: var(--spacing-8);
+    }
+
+    /* Responsive styles */
+    @media (max-width: 768px) {
+        .new-form-container {
+            padding: 0 var(--spacing-4);
+        }
+
+        .new-form-title {
+            font-size: var(--font-size-2xl);
+        }
+
+        .new-form-subtitle {
+            font-size: var(--font-size-base);
+        }
+
+        .new-form {
+            padding: var(--spacing-6);
+        }
+
+        .form-actions {
+            flex-direction: column;
+        }
+
+        .form-actions .btn {
+            width: 100%;
+        }
+    }
+} 
