@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"sync"
@@ -23,6 +24,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
+)
+
+const (
+	// MinSecretLength is the minimum length required for security secrets
+	MinSecretLength = 32
 )
 
 // Stores groups all database store providers.
@@ -73,76 +79,76 @@ func AnnotateHandler(fn any) fx.Option {
 // It ensures all required settings are present and valid before initialization.
 func validateConfig(cfg *config.Config) error {
 	if cfg == nil {
-		return fmt.Errorf("configuration is nil")
+		return errors.New("configuration is nil")
 	}
 
-	var errors []string
+	var validationErrors []string
 
 	// Database configuration
 	if cfg.Database.Host == "" {
-		errors = append(errors, "database host is required")
+		validationErrors = append(validationErrors, "database host is required")
 	}
 	if cfg.Database.Port <= 0 {
-		errors = append(errors, "database port must be a positive number")
+		validationErrors = append(validationErrors, "database port must be a positive number")
 	}
 	if cfg.Database.User == "" {
-		errors = append(errors, "database user is required")
+		validationErrors = append(validationErrors, "database user is required")
 	}
 	if cfg.Database.Password == "" {
-		errors = append(errors, "database password is required")
+		validationErrors = append(validationErrors, "database password is required")
 	}
 	if cfg.Database.Name == "" {
-		errors = append(errors, "database name is required")
+		validationErrors = append(validationErrors, "database name is required")
 	}
 	if cfg.Database.MaxOpenConns <= 0 {
-		errors = append(errors, "database max open connections must be a positive number")
+		validationErrors = append(validationErrors, "database max open connections must be a positive number")
 	}
 	if cfg.Database.MaxIdleConns <= 0 {
-		errors = append(errors, "database max idle connections must be a positive number")
+		validationErrors = append(validationErrors, "database max idle connections must be a positive number")
 	}
 	if cfg.Database.ConnMaxLifetme <= 0 {
-		errors = append(errors, "database connection max lifetime must be a positive duration")
+		validationErrors = append(validationErrors, "database connection max lifetime must be a positive duration")
 	}
 
 	// Security configuration
 	if cfg.Security.JWTSecret == "" {
-		errors = append(errors, "JWT secret is required")
+		validationErrors = append(validationErrors, "JWT secret is required")
 	}
-	if len(cfg.Security.JWTSecret) < 32 {
-		errors = append(errors, "JWT secret must be at least 32 characters long")
+	if len(cfg.Security.JWTSecret) < MinSecretLength {
+		validationErrors = append(validationErrors, "JWT secret must be at least 32 characters long")
 	}
 	if cfg.Security.CSRF.Enabled {
 		if cfg.Security.CSRF.Secret == "" {
-			errors = append(errors, "CSRF secret is required when CSRF is enabled")
+			validationErrors = append(validationErrors, "CSRF secret is required when CSRF is enabled")
 		}
-		if len(cfg.Security.CSRF.Secret) < 32 {
-			errors = append(errors, "CSRF secret must be at least 32 characters long")
+		if len(cfg.Security.CSRF.Secret) < MinSecretLength {
+			validationErrors = append(validationErrors, "CSRF secret must be at least 32 characters long")
 		}
 	}
 
 	// Server configuration
 	if cfg.Server.Port <= 0 {
-		errors = append(errors, "server port must be a positive number")
+		validationErrors = append(validationErrors, "server port must be a positive number")
 	}
 	if cfg.Server.Host == "" {
-		errors = append(errors, "server host is required")
+		validationErrors = append(validationErrors, "server host is required")
 	}
 	if cfg.Server.ReadTimeout <= 0 {
-		errors = append(errors, "server read timeout must be a positive duration")
+		validationErrors = append(validationErrors, "server read timeout must be a positive duration")
 	}
 	if cfg.Server.WriteTimeout <= 0 {
-		errors = append(errors, "server write timeout must be a positive duration")
+		validationErrors = append(validationErrors, "server write timeout must be a positive duration")
 	}
 	if cfg.Server.IdleTimeout <= 0 {
-		errors = append(errors, "server idle timeout must be a positive duration")
+		validationErrors = append(validationErrors, "server idle timeout must be a positive duration")
 	}
 	if cfg.Server.ShutdownTimeout <= 0 {
-		errors = append(errors, "server shutdown timeout must be a positive duration")
+		validationErrors = append(validationErrors, "server shutdown timeout must be a positive duration")
 	}
 
 	// If any validation errors occurred, return them all
-	if len(errors) > 0 {
-		return fmt.Errorf("configuration validation failed: %s", strings.Join(errors, "; "))
+	if len(validationErrors) > 0 {
+		return fmt.Errorf("configuration validation failed: %s", strings.Join(validationErrors, "; "))
 	}
 
 	return nil
@@ -261,15 +267,22 @@ var Module = fx.Options(
 
 // wrapCreator creates a type-safe wrapper for store creation functions
 func wrapCreator[T any](creator func(*database.Database, logging.Logger) T) func(*database.Database, logging.Logger) any {
-	return func(db *database.Database, l logging.Logger) any {
-		return creator(db, l)
+	return func(db *database.Database, logger logging.Logger) any {
+		return creator(db, logger)
 	}
 }
 
 // wrapAssigner creates a type-safe wrapper for store assignment functions
 func wrapAssigner[T any](assigner func(*Stores, T)) func(*Stores, any) {
 	return func(s *Stores, instance any) {
-		assigner(s, instance.(T))
+		if s == nil {
+			panic(errors.New("database connection is nil"))
+		}
+		typedInstance, ok := instance.(T)
+		if !ok {
+			panic(errors.New("invalid instance type"))
+		}
+		assigner(s, typedInstance)
 	}
 }
 
@@ -282,7 +295,7 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 			logging.String("operation", "store_initialization"),
 			logging.String("error_type", "nil_database"),
 		)
-		return Stores{}, fmt.Errorf("database connection is nil")
+		return Stores{}, errors.New("database connection is nil")
 	}
 
 	startTime := time.Now()

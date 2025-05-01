@@ -3,6 +3,7 @@ package middleware
 import (
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -21,6 +22,14 @@ const (
 	// HSTSOneYear is the number of seconds in one year
 	HSTSOneYear        = 31536000
 	DefaultTokenLength = 32
+	// RateLimitBurst is the number of requests allowed in a burst
+	RateLimitBurst = 5
+	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
+	CookieMaxAge = 86400
+	// StaticFileFavicon is the path to the favicon
+	StaticFileFavicon = "/favicon.ico"
+	// StaticFileRobots is the path to the robots.txt file
+	StaticFileRobots = "/robots.txt"
 )
 
 // Manager handles middleware configuration and setup
@@ -114,7 +123,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
 			echomw.RateLimiterMemoryStoreConfig{
 				Rate:      rate.Limit(m.config.Security.FormRateLimit),
-				Burst:     5,
+				Burst:     RateLimitBurst,
 				ExpiresIn: m.config.Security.FormRateLimitWindow,
 			},
 		),
@@ -144,19 +153,19 @@ func (m *Manager) Setup(e *echo.Echo) {
 	if m.config.Security.CSRF.Enabled {
 		m.logger.Info("initializing CSRF middleware",
 			logging.Bool("config_enabled", m.config.Security.CSRF.Enabled),
-			logging.String("secret_length", fmt.Sprintf("%d", len(m.config.Security.CSRF.Secret))),
-			logging.String("token_lookup", "header:X-CSRF-Token,form:csrf_token,cookie:_csrf"),
+			logging.String("secret_length", strconv.Itoa(len(m.config.Security.CSRF.Secret))),
+			logging.String("token_lookup", "header:X-Csrf-Token,form:csrf_token,cookie:_csrf"),
 			logging.String("cookie_name", "_csrf"),
 			logging.String("cookie_path", "/"),
 			logging.Bool("cookie_secure", true),
 			logging.Bool("cookie_http_only", true),
 			logging.String("cookie_same_site", "Strict"),
-			logging.Int("cookie_max_age", 86400))
+			logging.Int("cookie_max_age", CookieMaxAge))
 
 		// Create CSRF middleware with logging
 		csrfMiddleware := echomw.CSRFWithConfig(echomw.CSRFConfig{
 			TokenLength:    DefaultTokenLength,
-			TokenLookup:    "header:X-CSRF-Token,form:csrf_token,cookie:_csrf",
+			TokenLookup:    "header:X-Csrf-Token,form:csrf_token,cookie:_csrf",
 			ContextKey:     "csrf",
 			CookieName:     "_csrf",
 			CookiePath:     "/",
@@ -164,7 +173,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 			CookieSecure:   true,
 			CookieHTTPOnly: true,
 			CookieSameSite: http.SameSiteStrictMode,
-			CookieMaxAge:   86400,
+			CookieMaxAge:   CookieMaxAge,
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
 				method := c.Request().Method
@@ -179,8 +188,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 				// Skip for static content
 				if strings.HasPrefix(path, "/static/") ||
-					path == "/favicon.ico" ||
-					path == "/robots.txt" {
+					path == StaticFileFavicon ||
+					path == StaticFileRobots {
 					m.logger.Debug("CSRF skipped: static content",
 						logging.String("path", path),
 						logging.String("reason", "static content path"))
@@ -238,8 +247,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 				// Skip logging for static files
 				path := c.Request().URL.Path
 				if strings.HasPrefix(path, "/static/") ||
-					path == "/favicon.ico" ||
-					path == "/robots.txt" {
+					path == StaticFileFavicon ||
+					path == StaticFileRobots {
 					return next(c)
 				}
 
@@ -252,8 +261,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 					logging.String("user_agent", headers.Get("User-Agent")),
 					logging.String("referer", headers.Get("Referer")),
 					logging.String("origin", headers.Get("Origin")),
-					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
-					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")),
+					logging.String("x_csrf_token", headers.Get("X-Csrf-Token")),
+					logging.String("x_xsrf_token", headers.Get("X-Xsrf-Token")),
 					logging.String("form_csrf_token", c.FormValue("csrf_token")))
 
 				if cookie, err := c.Cookie("_csrf"); err == nil {
@@ -270,7 +279,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 							logging.String("path", path),
 							logging.String("method", c.Request().Method),
 							logging.String("token_prefix", tokenStr[:8]),
-							logging.String("token_length", fmt.Sprintf("%d", len(tokenStr))))
+							logging.String("token_length", strconv.Itoa(len(tokenStr))))
 					}
 				}
 
@@ -285,8 +294,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 				// Skip logging for static files
 				path := c.Request().URL.Path
 				if strings.HasPrefix(path, "/static/") ||
-					path == "/favicon.ico" ||
-					path == "/robots.txt" {
+					path == StaticFileFavicon ||
+					path == StaticFileRobots {
 					return next(c)
 				}
 
@@ -299,8 +308,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 					logging.String("user_agent", headers.Get("User-Agent")),
 					logging.String("referer", headers.Get("Referer")),
 					logging.String("origin", headers.Get("Origin")),
-					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
-					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")),
+					logging.String("x_csrf_token", headers.Get("X-Csrf-Token")),
+					logging.String("x_xsrf_token", headers.Get("X-Xsrf-Token")),
 					logging.String("form_csrf_token", c.FormValue("csrf_token")))
 
 				if cookie, err := c.Cookie("_csrf"); err == nil {
@@ -318,7 +327,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 							logging.String("path", path),
 							logging.String("method", c.Request().Method),
 							logging.String("token_prefix", tokenStr[:8]),
-							logging.String("token_length", fmt.Sprintf("%d", len(tokenStr))))
+							logging.String("token_length", strconv.Itoa(len(tokenStr))))
 					}
 				}
 
@@ -352,6 +361,11 @@ func ValidateCSRFToken(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "CSRF token not found")
 	}
 
+	tokenStr, ok := token.(string)
+	if !ok {
+		return echo.NewHTTPError(http.StatusForbidden, "invalid CSRF token type")
+	}
+
 	// Get token from request
 	reqToken := c.Request().Header.Get(echo.HeaderXCSRFToken)
 	if reqToken == "" {
@@ -362,7 +376,7 @@ func ValidateCSRFToken(c echo.Context) error {
 	}
 
 	// Compare tokens
-	if reqToken != token.(string) {
+	if reqToken != tokenStr {
 		return echo.NewHTTPError(http.StatusForbidden, "CSRF token mismatch")
 	}
 

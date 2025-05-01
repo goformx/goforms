@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -72,42 +73,41 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// Get token from header
-		authHeader := c.Request().Header.Get(echo.HeaderAuthorization)
+		authHeader := c.Request().Header.Get("Authorization")
 		if authHeader == "" {
-			return m.handleAuthError(c, fmt.Errorf("missing authorization header"))
+			return m.handleAuthError(c, errors.New("missing authorization header"))
 		}
 
 		// Parse token
 		token, err := m.parseToken(authHeader)
 		if err != nil {
-			return m.handleAuthError(c, err)
+			return m.handleAuthError(c, errors.New("invalid token"))
 		}
 
-		// Validate token
+		// Validate token claims
 		if !token.Valid {
-			return m.handleAuthError(c, fmt.Errorf("invalid token"))
-		}
-
-		// Get user from token
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			return m.handleAuthError(c, fmt.Errorf("invalid token claims"))
+			return m.handleAuthError(c, errors.New("invalid token claims"))
 		}
 
 		// Get user ID from claims
-		userID, ok := claims["sub"].(string)
+		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			return m.handleAuthError(c, fmt.Errorf("invalid user ID in token"))
+			return m.handleAuthError(c, errors.New("invalid token claims"))
+		}
+
+		userID, ok := claims["user_id"].(float64)
+		if !ok {
+			return echo.NewHTTPError(http.StatusUnauthorized, "invalid user ID in token")
 		}
 
 		// Get user from service
-		user, err := m.userService.GetByID(c.Request().Context(), userID)
+		userData, err := m.userService.GetByID(c.Request().Context(), fmt.Sprintf("%v", userID))
 		if err != nil {
-			return m.handleAuthError(c, fmt.Errorf("user not found: %w", err))
+			return echo.NewHTTPError(http.StatusUnauthorized, "invalid user")
 		}
 
 		// Set user in context
-		c.Set("user", user)
+		c.Set("user", userData)
 
 		return next(c)
 	}
@@ -125,14 +125,14 @@ func (m *JWTMiddleware) handleAuthError(c echo.Context, err error) error {
 
 // parseToken parses and validates a JWT token
 func (m *JWTMiddleware) parseToken(authHeader string) (*jwt.Token, error) {
-	// Extract token from header
+	// Parse token from authorization header
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return nil, fmt.Errorf("invalid authorization header format")
+		return nil, errors.New("invalid authorization header format")
 	}
 
 	// Parse token
-	token, err := jwt.Parse(parts[1], func(token *jwt.Token) (interface{}, error) {
+	token, err := jwt.Parse(parts[1], func(token *jwt.Token) (any, error) {
 		// Validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])

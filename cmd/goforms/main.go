@@ -28,6 +28,11 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
+const (
+	// ShutdownTimeout is the maximum time to wait for graceful shutdown
+	ShutdownTimeout = 5 * time.Second
+)
+
 // main is the entry point of the application.
 // It calls run() and handles any fatal errors that occur during startup.
 func main() {
@@ -97,7 +102,7 @@ func runApp(ctx context.Context, app *fx.App) error {
 	<-ctx.Done()
 
 	// Create a new context with timeout for graceful shutdown
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
 	defer cancel()
 
 	// Stop the application with the shutdown context

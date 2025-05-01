@@ -73,7 +73,7 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	}
 
 	// Get form data from request body
-	var formData map[string]interface{}
+	var formData map[string]any
 	if err := c.Bind(&formData); err != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
 	}
@@ -113,20 +113,23 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
 	c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"success": true,
-		"message": "Form submitted successfully",
-		"data": map[string]interface{}{
-			"submission_id": submission.ID,
-			"form_id":       submission.FormID,
-			"submitted_at":  submission.SubmittedAt,
+		"data": map[string]any{
+			"id":           submission.ID,
+			"form_id":      submission.FormID,
+			"values":       submission.Data,
+			"submitted_at": submission.SubmittedAt,
 		},
 	})
 }
 
 // handleListForms handles listing all forms for the authenticated user
 func (h *FormHandler) handleListForms(c echo.Context) error {
-	userID := c.Get("user_id").(uint)
+	userID, ok := c.Get("user_id").(uint)
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid user ID type")
+	}
 	forms, err := h.formService.GetUserForms(userID)
 	if err != nil {
 		h.base.LogError("failed to list forms", err)
@@ -137,7 +140,10 @@ func (h *FormHandler) handleListForms(c echo.Context) error {
 
 // handleCreateForm handles creating a new form
 func (h *FormHandler) handleCreateForm(c echo.Context) error {
-	userID := c.Get("user_id").(uint)
+	userID, ok := c.Get("user_id").(uint)
+	if !ok {
+		return echo.NewHTTPError(http.StatusInternalServerError, "invalid user ID type")
+	}
 
 	var formData struct {
 		Title       string    `json:"title"`
@@ -170,17 +176,17 @@ func (h *FormHandler) handleGetForm(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
 	}
 
-	form, err := h.formService.GetForm(uint(id))
+	formData, err := h.formService.GetForm(uint(id))
 	if err != nil {
 		h.base.LogError("failed to get form", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form")
 	}
 
-	if form == nil {
+	if formData == nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
-	return c.JSON(http.StatusOK, form)
+	return c.JSON(http.StatusOK, formData)
 }
 
 // handleDeleteForm handles deleting a form
@@ -195,8 +201,9 @@ func (h *FormHandler) handleDeleteForm(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
 	}
 
-	if err := h.formService.DeleteForm(uint(id)); err != nil {
-		h.base.LogError("failed to delete form", err)
+	deleteErr := h.formService.DeleteForm(uint(id))
+	if deleteErr != nil {
+		h.base.LogError("failed to delete form", deleteErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete form")
 	}
 
