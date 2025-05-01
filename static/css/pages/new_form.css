@@ -8,13 +8,20 @@
 
     .new-form-container {
         width: 100%;
-        max-width: var(--container-md);
+        max-width: var(--container-xl);
         margin: 0 auto;
         padding: 0 var(--spacing-4);
     }
 
     .new-form-header {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
         margin-bottom: var(--spacing-8);
+    }
+
+    .new-form-header-left {
+        flex: 1;
     }
 
     .new-form-title {
@@ -34,6 +41,7 @@
         border: var(--card-border);
         border-radius: var(--card-radius);
         padding: var(--spacing-8);
+        box-shadow: var(--card-shadow);
     }
 
     .form-group {
@@ -57,6 +65,7 @@
         background: var(--background);
         color: var(--text);
         font-size: var(--font-size-base);
+        transition: all 0.2s ease;
     }
 
     .form-group input:focus,
@@ -64,6 +73,11 @@
         outline: none;
         border-color: var(--primary);
         box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+    }
+
+    .form-group input::placeholder,
+    .form-group textarea::placeholder {
+        color: var(--text-light);
     }
 
     .form-actions {
@@ -75,8 +89,19 @@
 
     /* Responsive styles */
     @media (max-width: 768px) {
+        .new-form-page {
+            padding: var(--spacing-6) 0;
+        }
+
         .new-form-container {
             padding: 0 var(--spacing-4);
+        }
+
+        .new-form-header {
+            flex-direction: column;
+            align-items: flex-start;
+            gap: var(--spacing-4);
+            margin-bottom: var(--spacing-6);
         }
 
         .new-form-title {
@@ -93,10 +118,33 @@
 
         .form-actions {
             flex-direction: column;
+            gap: var(--spacing-3);
         }
 
         .form-actions .btn {
             width: 100%;
+        }
+    }
+
+    @media (max-width: 480px) {
+        .new-form-page {
+            padding: var(--spacing-4) 0;
+        }
+
+        .new-form-container {
+            padding: 0 var(--spacing-3);
+        }
+
+        .new-form {
+            padding: var(--spacing-4);
+        }
+
+        .form-group {
+            margin-bottom: var(--spacing-4);
+        }
+
+        .form-actions {
+            margin-top: var(--spacing-6);
         }
     }
 } 

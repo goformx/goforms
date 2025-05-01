@@ -18,13 +18,13 @@ templ dashboardContent(data shared.PageData) {
 					<h1 class="dashboard-title">Forms</h1>
 					<p class="dashboard-subtitle">Manage your forms and submissions</p>
 				</div>
-				<a href="/forms/new" class="btn btn-primary">Create New Form</a>
+				<a href="/dashboard/forms/new" class="btn btn-primary">Create New Form</a>
 			</div>
 
 			if len(data.Forms) == 0 {
 				<div class="dashboard-empty">
 					<p>You haven't created any forms yet.</p>
-					<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
+					<a href="/dashboard/forms/new" class="btn btn-primary">Create Your First Form</a>
 				</div>
 			} else {
 				<div class="dashboard-content">

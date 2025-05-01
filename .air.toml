@@ -12,7 +12,7 @@ tmp_dir = "tmp"
   # Full binary path
   full_bin = ""
   # Watch these filename extensions
-  include_ext = ["go", "tpl", "tmpl", "html"]
+  include_ext = ["go", "tpl", "tmpl", "html", "templ"]
   # Ignore these directories
   exclude_dir = ["assets", "tmp", "vendor", "test", "node_modules", "static", "docker", "bin", "deployments", "docs"]
   # Watch these directories if you specified
@@ -32,7 +32,7 @@ tmp_dir = "tmp"
   # Delay after sending Interrupt signal (ms)
   kill_delay = 500
   # Delay before triggering rebuild on file changes (ms)
-  delay = 1000
+  delay = 2000
   # Follow symlinks
   follow_symlink = false
 
