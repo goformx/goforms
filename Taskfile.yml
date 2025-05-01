@@ -64,7 +64,7 @@ tasks:
   dev:frontend:
     desc: Run Vite development server
     cmds:
-      - npm run dev
+      - npm run dev -- --host
 
   dev:
     desc: Run both backend and frontend in development mode

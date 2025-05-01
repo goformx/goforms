@@ -145,7 +145,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		m.logger.Info("initializing CSRF middleware", 
 			logging.Bool("config_enabled", m.config.Security.CSRF.Enabled),
 			logging.String("secret_length", fmt.Sprintf("%d", len(m.config.Security.CSRF.Secret))),
-			logging.String("token_lookup", "header:X-CSRF-Token,form:csrf_token,cookie:csrf_token"),
+			logging.String("token_lookup", "header:X-CSRF-Token,form:csrf_token,cookie:_csrf"),
 			logging.String("cookie_name", "_csrf"),
 			logging.String("cookie_path", "/"),
 			logging.Bool("cookie_secure", true),
@@ -156,18 +156,18 @@ func (m *Manager) Setup(e *echo.Echo) {
 		// Create CSRF middleware with logging
 		csrfMiddleware := echomw.CSRFWithConfig(echomw.CSRFConfig{
 			TokenLength:    DefaultTokenLength,
-			TokenLookup:    "header:X-CSRF-Token,form:csrf_token,cookie:csrf_token",
-			ContextKey:     "csrf",  // Using Echo's default context key
-			CookieName:     "_csrf", // Using Echo's default cookie name
+			TokenLookup:    "header:X-CSRF-Token,form:csrf_token,cookie:_csrf",
+			ContextKey:     "csrf",
+			CookieName:     "_csrf",
 			CookiePath:     "/",
+			CookieDomain:   "",
 			CookieSecure:   true,
 			CookieHTTPOnly: true,
 			CookieSameSite: http.SameSiteStrictMode,
-			CookieMaxAge:   86400, // 24 hours
+			CookieMaxAge:   86400,
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
 				method := c.Request().Method
-				headers := c.Request().Header
 
 				// Check if CSRF should be skipped
 				if skip, ok := c.Get("skip_csrf").(bool); ok && skip {
@@ -176,16 +176,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 						logging.String("reason", "skip_csrf flag"))
 					return true
 				}
-
-				m.logger.Debug("CSRF middleware evaluating request", 
-					logging.String("path", path),
-					logging.String("method", method),
-					logging.String("content_type", headers.Get("Content-Type")),
-					logging.String("user_agent", headers.Get("User-Agent")),
-					logging.String("referer", headers.Get("Referer")),
-					logging.String("origin", headers.Get("Origin")),
-					logging.String("x_csrf_token", headers.Get("X-CSRF-Token")),
-					logging.String("x_xsrf_token", headers.Get("X-XSRF-TOKEN")))
 
 				// Skip for static content
 				if strings.HasPrefix(path, "/static/") || 
@@ -197,7 +187,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 					return true
 				}
 
-				// Skip for GET, HEAD, OPTIONS requests
+				// Skip for safe HTTP methods
 				if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
 					m.logger.Debug("CSRF skipped: safe HTTP method", 
 						logging.String("path", path),
@@ -212,8 +202,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 					if authHeader != "" {
 						m.logger.Debug("CSRF skipped: authenticated API route", 
 							logging.String("path", path),
-							logging.String("reason", "authenticated API route"),
-							logging.String("auth_header_prefix", authHeader[:10]))
+							logging.String("reason", "authenticated API route"))
 						return true
 					}
 				}

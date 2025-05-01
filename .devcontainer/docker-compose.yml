@@ -5,9 +5,14 @@ services:
       dockerfile: Dockerfile
     volumes:
       - ../..:/workspaces:cached
+    env_file:
+      - ../.env
     command: sleep infinity
     networks:
       - app-net
+    ports:
+      - "8090:8090"
+      - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
