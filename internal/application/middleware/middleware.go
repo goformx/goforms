@@ -205,6 +205,13 @@ func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 	}
 }
 
+// logMiddlewareRegistration logs middleware registration details
+func logMiddlewareRegistration(logger logging.Logger, middlewareType string) {
+	logger.Debug("registering middleware",
+		logging.String("type", middlewareType),
+	)
+}
+
 // Setup configures all middleware for an Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Info("starting middleware setup")
@@ -217,21 +224,32 @@ func (m *Manager) Setup(e *echo.Echo) {
 	}
 
 	// MIME type middleware (must be before other middleware)
+	logMiddlewareRegistration(m.logger, "MIME type")
 	e.Pre(setupMIMETypeMiddleware())
 
 	// Static file middleware (must be before CSRF and auth)
+	logMiddlewareRegistration(m.logger, "static file")
 	e.Use(setupStaticFileMiddleware())
 
 	// Basic middleware
+	logMiddlewareRegistration(m.logger, "recovery")
 	e.Use(echomw.Recover())
+
+	logMiddlewareRegistration(m.logger, "request ID")
 	e.Use(echomw.RequestID())
+
+	logMiddlewareRegistration(m.logger, "secure headers")
 	e.Use(echomw.Secure())
+
+	logMiddlewareRegistration(m.logger, "body limit")
 	e.Use(echomw.BodyLimit("2M"))
 
 	// Request logging middleware
+	logMiddlewareRegistration(m.logger, "request logging")
 	e.Use(LoggingMiddleware(m.logger))
 
 	// Security middleware with comprehensive configuration
+	logMiddlewareRegistration(m.logger, "security headers")
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
 		XSSProtection:         "1; mode=block",
 		ContentTypeNosniff:    "nosniff",
@@ -248,6 +266,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	}))
 
 	// CORS for admin/dashboard routes
+	logMiddlewareRegistration(m.logger, "CORS")
 	e.Use(echomw.CORSWithConfig(corsConfig(
 		m.config.Security.CorsAllowedOrigins,
 		m.config.Security.CorsAllowedMethods,
@@ -260,6 +279,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	formGroup := e.Group("/v1/forms")
 
 	// Form-specific CORS
+	logMiddlewareRegistration(m.logger, "form CORS")
 	formGroup.Use(echomw.CORSWithConfig(corsConfig(
 		m.config.Security.FormCorsAllowedOrigins,
 		m.config.Security.FormCorsAllowedMethods,
@@ -269,15 +289,18 @@ func (m *Manager) Setup(e *echo.Echo) {
 	)))
 
 	// Rate limiting for form submissions
+	logMiddlewareRegistration(m.logger, "rate limiter")
 	formGroup.Use(setupRateLimiter(m.config.Security))
 
 	// CSRF if enabled
 	if m.config.Security.CSRF.Enabled {
+		logMiddlewareRegistration(m.logger, "CSRF")
 		e.Use(setupCSRF())
 	}
 
 	// Auth if user service provided
 	if m.config.UserService != nil {
+		logMiddlewareRegistration(m.logger, "JWT")
 		middleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret)
 		if err != nil {
 			m.logger.Error("failed to create JWT middleware", logging.Error(err))
