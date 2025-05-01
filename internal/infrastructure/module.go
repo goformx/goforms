@@ -23,6 +23,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
+	ph "github.com/jonesrussell/goforms/internal/presentation/handlers"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
@@ -226,6 +227,19 @@ var HandlerModule = fx.Options(
 		}
 		core.Logger.Debug("registered handler",
 			logging.String("handler_name", "AuthHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+		)
+		return handler, nil
+	}),
+	// Dashboard handler
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+		handler, err := ph.NewDashboardHandler(services.UserService, services.FormService)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
+		}
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "DashboardHandler"),
 			logging.String("handler_type", fmt.Sprintf("%T", handler)),
 			logging.String("operation", "handler_registration"),
 		)

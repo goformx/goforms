@@ -307,20 +307,27 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Auth if user service provided
 	if m.config.UserService != nil {
-		logMiddlewareRegistration(m.logger, "JWT")
-		middleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret)
+		// Create cookie auth middleware for dashboard/admin routes
+		cookieAuth, err := NewCookieAuthMiddleware(m.config.UserService)
+		if err != nil {
+			m.logger.Error("failed to create cookie auth middleware", logging.Error(err))
+			return
+		}
+
+		// Create JWT middleware for API routes
+		jwtMiddleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret)
 		if err != nil {
 			m.logger.Error("failed to create JWT middleware", logging.Error(err))
 			return
 		}
 
-		// Create protected routes group (with JWT middleware)
+		// Create protected API routes group (with JWT middleware)
 		protected := e.Group("/api/v1")
-		protected.Use(middleware)
+		protected.Use(jwtMiddleware)
 
-		// Create admin routes group
+		// Create admin/dashboard routes group (with cookie auth)
 		admin := e.Group("/dashboard")
-		admin.Use(middleware)
+		admin.Use(cookieAuth.RequireAuth)
 	}
 
 	m.logger.Info("middleware setup complete")

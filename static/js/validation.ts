@@ -189,6 +189,12 @@ export const validation = {
     const headers = new Headers(options.headers);
     headers.set('X-CSRF-Token', csrfToken);
 
+    // Add JWT token to Authorization header if available
+    const jwtToken = this.getJWTToken();
+    if (jwtToken) {
+      headers.set('Authorization', `Bearer ${jwtToken}`);
+    }
+
     // Make request with CSRF token
     return fetch(url, {
       ...options,
