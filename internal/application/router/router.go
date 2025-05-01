@@ -23,6 +23,72 @@ type StaticConfig struct {
 	Root string
 }
 
+// isStaticFile determines if a path corresponds to a static file
+func isStaticFile(path string) bool {
+	return strings.HasPrefix(path, "/static/") ||
+		path == "/favicon.ico" ||
+		path == "/robots.txt"
+}
+
+// setupMIMETypeMiddleware creates middleware for setting appropriate MIME types
+func setupMIMETypeMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			switch {
+			case strings.HasSuffix(path, ".css"):
+				c.Response().Header().Set("Content-Type", "text/css")
+			case strings.HasSuffix(path, ".js"):
+				c.Response().Header().Set("Content-Type", "application/javascript")
+			case path == "/favicon.ico":
+				c.Response().Header().Set("Content-Type", "image/x-icon")
+			case path == "/robots.txt":
+				c.Response().Header().Set("Content-Type", "text/plain")
+			}
+			return next(c)
+		}
+	}
+}
+
+// logHandlerRegistration logs handler registration details
+func logHandlerRegistration(logger logging.Logger, index int, handlerType string) {
+	logger.Debug("registering handler",
+		logging.Int("index", index),
+		logging.String("type", handlerType),
+	)
+}
+
+// setupStaticRoutes configures static file routes
+func setupStaticRoutes(group interface {
+	Static(prefix, root string)
+	File(path, file string)
+}, cfg *StaticConfig) {
+	group.Static(cfg.Path, cfg.Root)
+	group.Static("/static/dist", "./static/dist")
+	group.File("/favicon.ico", "./static/favicon.ico")
+	group.File("/robots.txt", "./static/robots.txt")
+}
+
+// registerHandlers registers all API handlers
+func registerHandlers(e *echo.Echo, handlers []handlers.Handler, logger logging.Logger) {
+	for i, h := range handlers {
+		logHandlerRegistration(logger, i, fmt.Sprintf("%T", h))
+		h.Register(e)
+		logger.Debug("handler registered",
+			logging.Int("index", i),
+			logging.String("type", fmt.Sprintf("%T", h)),
+		)
+	}
+}
+
+// validateConfig checks if the configuration is valid
+func validateConfig(cfg *Config) error {
+	if cfg.Static.Path == "" || cfg.Static.Root == "" {
+		return fmt.Errorf("static config must include both path and root")
+	}
+	return nil
+}
+
 // Setup configures all routes for an Echo instance
 func Setup(e *echo.Echo, cfg *Config) error {
 	if cfg.Logger == nil {
@@ -33,37 +99,24 @@ func Setup(e *echo.Echo, cfg *Config) error {
 		cfg.Logger = logger
 	}
 
+	if err := validateConfig(cfg); err != nil {
+		return fmt.Errorf("invalid configuration: %w", err)
+	}
+
 	cfg.Logger.Debug("setting up routes",
 		logging.Int("handler_count", len(cfg.Handlers)),
 		logging.String("static_path", cfg.Static.Path),
 		logging.String("static_root", cfg.Static.Root),
 	)
 
-	// Add MIME type middleware first
-	e.Pre(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-			if strings.HasSuffix(path, ".css") {
-				c.Response().Header().Set("Content-Type", "text/css")
-			} else if strings.HasSuffix(path, ".js") {
-				c.Response().Header().Set("Content-Type", "application/javascript")
-			} else if path == "/favicon.ico" {
-				c.Response().Header().Set("Content-Type", "image/x-icon")
-			} else if path == "/robots.txt" {
-				c.Response().Header().Set("Content-Type", "text/plain")
-			}
-			return next(c)
-		}
-	})
+	// Setup middleware
+	e.Pre(setupMIMETypeMiddleware())
 
 	// Create static group that sets skip_csrf flag
 	staticGroup := e.Group("")
 	staticGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-			if strings.HasPrefix(path, "/static/") ||
-				path == "/favicon.ico" ||
-				path == "/robots.txt" {
+			if isStaticFile(c.Request().URL.Path) {
 				c.Set("skip_csrf", true)
 				c.Set("skip_auth", true)
 			}
@@ -71,41 +124,11 @@ func Setup(e *echo.Echo, cfg *Config) error {
 		}
 	})
 
-	// Configure static routes
-	staticGroup.Static(cfg.Static.Path, cfg.Static.Root)
-	staticGroup.Static("/static/dist", "./static/dist")
-	staticGroup.File("/favicon.ico", "./static/favicon.ico")
-	staticGroup.File("/robots.txt", "./static/robots.txt")
-
-	// Create form group that ensures CSRF tokens are generated
-	formGroup := e.Group("")
-	formGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-			if strings.HasPrefix(path, "/login") ||
-				strings.HasPrefix(path, "/signup") ||
-				strings.HasPrefix(path, "/forgot-password") ||
-				strings.HasPrefix(path, "/contact") ||
-				strings.HasPrefix(path, "/demo") {
-				// Ensure CSRF tokens are generated for form pages
-				c.Set("skip_csrf", false)
-			}
-			return next(c)
-		}
-	})
+	// Setup routes
+	setupStaticRoutes(staticGroup, &cfg.Static)
 
 	// Register API handlers
-	for i, h := range cfg.Handlers {
-		cfg.Logger.Debug("registering handler",
-			logging.Int("index", i),
-			logging.String("type", fmt.Sprintf("%T", h)),
-		)
-		h.Register(e)
-		cfg.Logger.Debug("handler registered",
-			logging.Int("index", i),
-			logging.String("type", fmt.Sprintf("%T", h)),
-		)
-	}
+	registerHandlers(e, cfg.Handlers, cfg.Logger)
 
 	return nil
 }
