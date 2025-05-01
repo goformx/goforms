@@ -1,10 +1,9 @@
 package pages
 
 import (
-	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
-	"github.com/jonesrussell/goforms/internal/presentation/components"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"strconv"
 )
 
 templ Dashboard(data shared.PageData) {
@@ -12,40 +11,68 @@ templ Dashboard(data shared.PageData) {
 }
 
 templ dashboardContent(data shared.PageData) {
-	@components.PageHero("Dashboard", "Manage your forms and submissions")
-
-	<div class="container">
-		<div class="dashboard-header">
-			<h2 class="dashboard-title">My Forms</h2>
-			<a href="/forms/new" class="btn btn-primary">Create New Form</a>
-		</div>
-
-		if len(data.Forms) == 0 {
-			<div class="dashboard-empty">
-				<p>You haven't created any forms yet.</p>
-				<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-header">
+				<div class="dashboard-header-left">
+					<h1 class="dashboard-title">Forms</h1>
+					<p class="dashboard-subtitle">Manage your forms and submissions</p>
+				</div>
+				<a href="/forms/new" class="btn btn-primary">Create New Form</a>
 			</div>
-		} else {
-			@components.Grid(components.GridProps{
-				Columns: 0, // Auto-fit
-				Items: toGridItems(data.Forms),
-				Render: func(item components.GridItem) templ.Component {
-					f := item.(*form.Form)
-					return components.FeatureCard(components.Feature{
-						Icon: "📝",
-						Title: f.Title,
-						Description: f.Description,
-					})
-				},
-			})
-		}
-	</div>
-}
 
-func toGridItems(forms []*form.Form) []components.GridItem {
-	items := make([]components.GridItem, len(forms))
-	for i, f := range forms {
-		items[i] = f
-	}
-	return items
+			if len(data.Forms) == 0 {
+				<div class="dashboard-empty">
+					<p>You haven't created any forms yet.</p>
+					<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
+				</div>
+			} else {
+				<div class="dashboard-content">
+					<div class="dashboard-stats">
+						<div class="stat-card">
+							<span class="stat-value">{ strconv.Itoa(len(data.Forms)) }</span>
+							<span class="stat-label">Total Forms</span>
+						</div>
+						<div class="stat-card">
+							<span class="stat-value">0</span>
+							<span class="stat-label">Active Submissions</span>
+						</div>
+					</div>
+
+					<div class="dashboard-table">
+						<table>
+							<thead>
+								<tr>
+									<th>Title</th>
+									<th>Description</th>
+									<th>Created</th>
+									<th>Status</th>
+									<th>Actions</th>
+								</tr>
+							</thead>
+							<tbody>
+								for _, f := range data.Forms {
+									<tr>
+										<td>{ f.Title }</td>
+										<td>{ f.Description }</td>
+										<td>{ f.CreatedAt.Format("Jan 02, 2006") }</td>
+										<td>
+											<span class="status-badge status-active">Active</span>
+										</td>
+										<td>
+											<div class="table-actions">
+												<a href={ templ.URL("/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/edit") } class="btn btn-sm btn-outline">Edit</a>
+												<a href={ templ.URL("/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/submissions") } class="btn btn-sm btn-outline">View Submissions</a>
+												<button class="btn btn-sm btn-danger" onclick="deleteForm('{ strconv.FormatUint(uint64(f.ID), 10) }')">Delete</button>
+											</div>
+										</td>
+									</tr>
+								}
+							</tbody>
+						</table>
+					</div>
+				</div>
+			}
+		</div>
+	</div>
 } 
