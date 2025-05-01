@@ -188,7 +188,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 				}
 
 				// Skip for safe HTTP methods
-				if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
+				if method == http.MethodHead || method == http.MethodOptions {
 					m.logger.Debug("CSRF skipped: safe HTTP method", 
 						logging.String("path", path),
 						logging.String("method", method),
