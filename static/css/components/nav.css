@@ -12,13 +12,15 @@
     }
 
     nav .container {
-        max-width: var(--container-max-width);
-        margin: 0 auto;
-        padding: 0 var(--container-padding-x);
-        height: 100%;
         display: flex;
         justify-content: space-between;
         align-items: center;
+        height: 100%;
+        width: 100%;
+        max-width: var(--container-xl);
+        margin: var(--container-margin);
+        padding-left: var(--container-padding-x-mobile);
+        padding-right: var(--container-padding-x-mobile);
     }
 
     nav .logo {
@@ -79,13 +81,14 @@
     }
 
     /* Responsive styles */
-    @media (max-width: 768px) {
+    @media (min-width: var(--breakpoint-md)) {
         nav .container {
-            padding: 0 var(--container-padding-x-mobile);
+            padding-left: var(--container-padding-x);
+            padding-right: var(--container-padding-x);
         }
 
         nav .nav-links {
-            gap: var(--nav-link-gap-mobile);
+            gap: var(--nav-link-gap);
         }
     }
 } 

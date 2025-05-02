@@ -74,11 +74,18 @@
         --spacing-56: 14rem;
         --spacing-64: 16rem;
 
-        /* Container */
-        --container-max-width: 1200px;
-        --container-padding-x: 2rem;
-        --container-padding-x-mobile: 1rem;
+        /* Container System */
+        --container-max-width: var(--breakpoint-xl);  /* Default to xl breakpoint */
+        --container-padding-x: var(--spacing-8);      /* 2rem on desktop */
+        --container-padding-x-mobile: var(--spacing-4); /* 1rem on mobile */
         --container-margin: 0 auto;
+        
+        /* Container Size Variants */
+        --container-sm: var(--breakpoint-sm);
+        --container-md: var(--breakpoint-md);
+        --container-lg: var(--breakpoint-lg);
+        --container-xl: var(--breakpoint-xl);
+        --container-2xl: var(--breakpoint-2xl);
 
         /* Navigation */
         --nav-height: 70px;

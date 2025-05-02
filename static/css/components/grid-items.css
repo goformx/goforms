@@ -13,7 +13,7 @@
         padding: 0 var(--container-padding-x-mobile);
         width: 100%;
         max-width: var(--container-max-width);
-        margin: 0 auto;
+        margin: var(--container-margin);
     }
 
     .grid-item {

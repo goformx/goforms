@@ -36,34 +36,34 @@ func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFu
 			return next(c)
 		}
 
-		// Get token from cookie
-		token, err := getTokenFromCookie(c)
+		token, err := c.Cookie("token")
 		if err != nil {
 			m.logger.Error("missing token", logging.Error(err))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
 		// Validate token
-		if _, validateErr := m.userService.ValidateToken(token); validateErr != nil {
-			m.logger.Error("invalid token", logging.Error(validateErr))
+		if _, err := m.userService.ValidateToken(token.Value); err != nil {
+			m.logger.Error("invalid token", logging.Error(err))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
 		// Get user ID from token
-		userID, idErr := m.userService.GetUserIDFromToken(token)
-		if idErr != nil {
-			m.logger.Error("invalid token", logging.Error(idErr))
+		userID, err := m.userService.GetUserIDFromToken(token.Value)
+		if err != nil {
+			m.logger.Error("invalid token claims", logging.Error(err))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
 		// Get user
-		currentUser, userErr := m.userService.GetByID(c.Request().Context(), userID)
-		if userErr != nil {
-			m.logger.Error("user not found", logging.Error(userErr))
+		user, err := m.userService.GetByID(c.Request().Context(), userID)
+		if err != nil {
+			m.logger.Error("user not found", logging.Error(err))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
-		c.Set("user", currentUser)
+		// Set user in context
+		c.Set("user", user)
 		return next(c)
 	}
 }

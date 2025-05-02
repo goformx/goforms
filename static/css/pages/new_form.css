@@ -6,29 +6,23 @@
         color: var(--text);
     }
 
-    .new-form-container {
-        width: 100%;
-        max-width: var(--container-xl);
-        margin: 0 auto;
-        padding: 0 var(--spacing-4);
-    }
-
     .new-form-header {
         display: flex;
         justify-content: space-between;
-        align-items: center;
+        align-items: flex-start;
         margin-bottom: var(--spacing-8);
     }
 
     .new-form-header-left {
-        flex: 1;
+        display: flex;
+        flex-direction: column;
+        gap: var(--spacing-2);
     }
 
     .new-form-title {
         font-size: var(--font-size-3xl);
         font-weight: var(--font-weight-bold);
         color: var(--text);
-        margin-bottom: var(--spacing-2);
     }
 
     .new-form-subtitle {
@@ -41,43 +35,47 @@
         border: var(--card-border);
         border-radius: var(--card-radius);
         padding: var(--spacing-8);
-        box-shadow: var(--card-shadow);
+        box-shadow: var(--shadow-md);
     }
 
     .form-group {
+        display: flex;
+        flex-direction: column;
+        gap: var(--form-group-gap);
         margin-bottom: var(--spacing-6);
     }
 
     .form-group label {
-        display: block;
-        font-size: var(--font-size-sm);
-        font-weight: var(--font-weight-medium);
+        font-weight: var(--form-label-weight);
         color: var(--text);
-        margin-bottom: var(--spacing-2);
+        font-size: var(--form-label-size);
+        text-transform: uppercase;
+        letter-spacing: var(--form-label-spacing);
     }
 
     .form-group input,
     .form-group textarea {
+        padding: var(--form-input-padding-y) var(--form-input-padding-x);
+        border-radius: var(--form-input-radius);
+        border: var(--form-input-border);
+        background: var(--form-input-bg);
+        color: var(--form-input-color);
+        font-size: var(--form-input-size);
         width: 100%;
-        padding: var(--spacing-3) var(--spacing-4);
-        border: 1px solid var(--border-color);
-        border-radius: var(--border-radius);
-        background: var(--background);
-        color: var(--text);
-        font-size: var(--font-size-base);
-        transition: all 0.2s ease;
+        transition: all var(--form-transition-duration) var(--form-transition-timing);
     }
 
     .form-group input:focus,
     .form-group textarea:focus {
         outline: none;
-        border-color: var(--primary);
-        box-shadow: 0 0 0 2px rgba(var(--primary-rgb), 0.1);
+        border-color: var(--form-focus-border);
+        box-shadow: 0 0 0 var(--form-focus-ring-size) var(--form-focus-ring);
+        background: var(--form-focus-bg);
     }
 
-    .form-group input::placeholder,
-    .form-group textarea::placeholder {
-        color: var(--text-light);
+    .form-group textarea {
+        resize: vertical;
+        min-height: var(--form-textarea-min-height);
     }
 
     .form-actions {
@@ -91,10 +89,6 @@
     @media (max-width: 768px) {
         .new-form-page {
             padding: var(--spacing-6) 0;
-        }
-
-        .new-form-container {
-            padding: 0 var(--spacing-4);
         }
 
         .new-form-header {
@@ -129,10 +123,6 @@
     @media (max-width: 480px) {
         .new-form-page {
             padding: var(--spacing-4) 0;
-        }
-
-        .new-form-container {
-            padding: 0 var(--spacing-3);
         }
 
         .new-form {

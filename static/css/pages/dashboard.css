@@ -9,8 +9,9 @@
     .dashboard-container {
         width: 100%;
         max-width: var(--container-xl);
-        margin: 0 auto;
-        padding: 0 var(--spacing-4);
+        margin: var(--container-margin);
+        padding-left: var(--container-padding-x-mobile);
+        padding-right: var(--container-padding-x-mobile);
     }
 
     .dashboard-header {
@@ -174,6 +175,13 @@
 
         .table-actions {
             flex-direction: column;
+        }
+    }
+
+    @media (min-width: var(--breakpoint-md)) {
+        .dashboard-container {
+            padding-left: var(--container-padding-x);
+            padding-right: var(--container-padding-x);
         }
     }
 } 
