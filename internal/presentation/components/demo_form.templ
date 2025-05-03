@@ -1,14 +1,17 @@
 package components
 
 templ DemoForm() {
-    <form id="demo-form" class="demo-form">
+    <form id="demo-form" class="demo-form" data-validate="demo">
+        <div id="form_error" class="form-error"></div>
         <div class="form-group">
             <label for="name" class="form-label">Name</label>
-            <input type="text" id="name" class="form-input" required placeholder="Enter your name"/>
+            <input type="text" id="name" name="name" class="form-input" required placeholder="Enter your name"/>
+            <div id="name_error" class="error-message"></div>
         </div>
         <div class="form-group">
             <label for="email" class="form-label">Email</label>
-            <input type="email" id="email" class="form-input" required placeholder="Enter your email"/>
+            <input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
+            <div id="email_error" class="error-message"></div>
         </div>
         <button type="submit" class="button primary">Submit Form</button>
     </form>

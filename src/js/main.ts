@@ -8,11 +8,11 @@ document.addEventListener('DOMContentLoaded', () => {
   setupSignupForm();
   setupLoginForm();
   
-  // Setup validation for forms
+  // Setup real-time validation for forms
   const forms = document.querySelectorAll('form[data-validate]');
   forms.forEach(form => {
     const schemaName = form.getAttribute('data-validate');
-    if (schemaName) {
+    if (schemaName && (schemaName === 'signup' || schemaName === 'login')) {
       validation.setupRealTimeValidation(form.id, schemaName);
     }
   });

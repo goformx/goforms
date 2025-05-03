@@ -47,6 +47,47 @@ export const validationSchemas = {
       .email('Invalid email address'),
     password: z.string()
       .min(1, 'Password is required')
+  }),
+
+  contact: z.object({
+    name: z.string()
+      .min(2, 'Name must be at least 2 characters')
+      .max(100, 'Name must be less than 100 characters'),
+    email: z.string()
+      .email('Please enter a valid email address')
+      .min(5, 'Email must be at least 5 characters')
+      .max(100, 'Email must be less than 100 characters'),
+    message: z.string()
+      .min(10, 'Message must be at least 10 characters')
+      .max(1000, 'Message must be less than 1000 characters')
+  }),
+
+  demo: z.object({
+    name: z.string()
+      .min(2, 'Name must be at least 2 characters')
+      .max(100, 'Name must be less than 100 characters'),
+    email: z.string()
+      .email('Please enter a valid email address')
+      .min(5, 'Email must be at least 5 characters')
+      .max(100, 'Email must be less than 100 characters')
+  }),
+
+  editForm: z.object({
+    title: z.string()
+      .min(3, 'Title must be at least 3 characters')
+      .max(255, 'Title must be less than 255 characters'),
+    description: z.string()
+      .max(1000, 'Description must be less than 1000 characters')
+      .optional()
+  }),
+
+  newForm: z.object({
+    title: z.string()
+      .min(3, 'Title must be at least 3 characters')
+      .max(255, 'Title must be less than 255 characters'),
+    description: z.string()
+      .max(1000, 'Description must be less than 1000 characters')
+      .optional()
   })
 } as const;
 
@@ -80,6 +121,56 @@ export const validation = {
     });
     document.querySelectorAll('.error').forEach(el => {
       el.classList.remove('error');
+    });
+  },
+
+  setupRealTimeValidation(formId: string, schemaName: SchemaName): void {
+    const form = document.getElementById(formId);
+    if (!form) return;
+
+    const schema = validationSchemas[schemaName];
+    if (!schema || !(schema instanceof z.ZodObject)) return;
+
+    const schemaFields = schema.shape as Record<string, z.ZodType>;
+    Object.keys(schemaFields).forEach(fieldId => {
+      const input = document.getElementById(fieldId);
+      if (!input) return;
+
+      input.addEventListener('input', () => {
+        validation.clearError(fieldId);
+        const value = (input as HTMLInputElement).value;
+        const fieldSchema = schemaFields[fieldId];
+        
+        // Special handling for confirm_password
+        if (fieldId === 'confirm_password') {
+          const passwordInput = document.getElementById('password') as HTMLInputElement;
+          if (passwordInput && value !== passwordInput.value) {
+            validation.showError(fieldId, "Passwords don't match");
+            return;
+          }
+        }
+        
+        if (fieldSchema instanceof z.ZodType) {
+          const result = fieldSchema.safeParse(value);
+          if (!result.success) {
+            validation.showError(fieldId, result.error.errors[0].message);
+          }
+        }
+      });
+
+      // For password field, also validate confirm_password when password changes
+      if (fieldId === 'password') {
+        input.addEventListener('input', () => {
+          const confirmInput = document.getElementById('confirm_password') as HTMLInputElement;
+          if (confirmInput && confirmInput.value) {
+            if (confirmInput.value !== (input as HTMLInputElement).value) {
+              validation.showError('confirm_password', "Passwords don't match");
+            } else {
+              validation.clearError('confirm_password');
+            }
+          }
+        });
+      }
     });
   },
 
