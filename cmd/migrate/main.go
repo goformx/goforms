@@ -91,8 +91,8 @@ func performMigration(sourceURL, command string) error {
 		if version > uint(math.MaxInt) {
 			return fmt.Errorf("version value %d overflows int", version)
 		}
-		if err := m.Force(int(version)); err != nil {
-			return fmt.Errorf("failed to force version: %w", err)
+		if forceErr := m.Force(int(version)); forceErr != nil {
+			return fmt.Errorf("failed to force version: %w", forceErr)
 		}
 		log.Printf("Successfully forced version %d", version)
 	}

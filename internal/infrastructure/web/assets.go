@@ -69,7 +69,7 @@ func GetAssetPath(src string) string {
 	}
 
 	if entry, ok := manifest[src]; ok {
-		path := filepath.Join("/static/dist", entry.File)
+		path := filepath.Join("static", "dist", entry.File)
 		log.Printf("Found manifest entry: %s -> %s", src, path)
 		return path
 	}

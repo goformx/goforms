@@ -30,7 +30,7 @@ func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler 
 func (h *StaticHandler) Register(e *echo.Echo) {
 	// Handle Chrome DevTools well-known route
 	e.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c echo.Context) error {
-		return c.JSON(200, map[string]any{
+		return c.JSON(http.StatusOK, map[string]any{
 			"devtoolsFrontendUrl":  "",
 			"faviconUrl":           "/favicon.ico",
 			"id":                   "goforms",
@@ -44,60 +44,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 	// In development mode, proxy static requests to Vite dev server
 	if h.config.App.IsDevelopment() {
 		h.logger.Info("development mode: proxying static files to Vite dev server")
-		e.GET("/static/*", func(c echo.Context) error {
-			path := c.Param("*")
-
-			// Special handling for Vite's client and node_modules
-			var url string
-			if path == "@vite/client" {
-				url = "http://localhost:3000/@vite/client"
-			} else if strings.HasPrefix(path, "node_modules/") {
-				url = "http://localhost:3000/" + path
-			} else if strings.HasPrefix(path, "src/") {
-				url = "http://localhost:3000/" + path
-			} else {
-				url = "http://localhost:3000/" + path
-			}
-
-			h.logger.Info("proxying request to Vite dev server",
-				logging.String("path", path),
-				logging.String("url", url),
-			)
-
-			// Create a new request
-			req, err := http.NewRequest("GET", url, http.NoBody)
-			if err != nil {
-				h.logger.Error("failed to create request",
-					logging.Error(err),
-				)
-				return echo.NewHTTPError(http.StatusInternalServerError, "failed to create request")
-			}
-
-			// Copy headers from the original request
-			for k, v := range c.Request().Header {
-				req.Header[k] = v
-			}
-
-			// Make the request
-			client := &http.Client{}
-			resp, err := client.Do(req)
-			if err != nil {
-				h.logger.Error("failed to proxy request",
-					logging.Error(err),
-					logging.String("url", url),
-				)
-				return echo.NewHTTPError(http.StatusNotFound, "file not found")
-			}
-			defer resp.Body.Close()
-
-			// Copy headers from the response
-			for k, v := range resp.Header {
-				c.Response().Header()[k] = v
-			}
-
-			// Copy response body
-			return c.Stream(resp.StatusCode, resp.Header.Get("Content-Type"), resp.Body)
-		})
+		e.GET("/static/*", h.proxyToViteDevServer)
 		return
 	}
 
@@ -163,4 +110,45 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 	}
 
 	return c.File(foundFile)
+}
+
+// proxyToViteDevServer proxies static requests to Vite dev server
+func (h *StaticHandler) proxyToViteDevServer(c echo.Context) error {
+	path := c.Param("*")
+	var url string
+	if path == "@vite/client" {
+		url = "http://localhost:3000/@vite/client"
+	} else if strings.HasPrefix(path, "node_modules/") {
+		url = "http://localhost:3000/" + path
+	} else {
+		url = "http://localhost:3000/" + path
+	}
+	h.logger.Info("proxying request to Vite dev server",
+		logging.String("path", path),
+		logging.String("url", url),
+	)
+	req, err := http.NewRequestWithContext(c.Request().Context(), "GET", url, http.NoBody)
+	if err != nil {
+		h.logger.Error("failed to create request",
+			logging.Error(err),
+		)
+		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create request")
+	}
+	for k, v := range c.Request().Header {
+		req.Header[k] = v
+	}
+	client := &http.Client{}
+	resp, err := client.Do(req)
+	if err != nil {
+		h.logger.Error("failed to proxy request",
+			logging.Error(err),
+			logging.String("url", url),
+		)
+		return echo.NewHTTPError(http.StatusNotFound, "file not found")
+	}
+	defer resp.Body.Close()
+	for k, v := range resp.Header {
+		c.Response().Header()[k] = v
+	}
+	return c.Stream(resp.StatusCode, resp.Header.Get("Content-Type"), resp.Body)
 }

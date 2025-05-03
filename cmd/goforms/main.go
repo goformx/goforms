@@ -121,7 +121,15 @@ func handleSignals(cancel context.CancelFunc) {
 
 // newServer creates and configures a new Echo server instance.
 // It sets up middleware, logging, and security features.
-func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, *middleware.Manager, error) {
+func newServer(
+	cfg *config.Config,
+	logFactory *logging.Factory,
+	userService user.Service,
+) (
+	*echo.Echo,
+	*middleware.Manager,
+	error,
+) {
 	// Create logger instance
 	logger, err := logFactory.CreateFromConfig(cfg)
 	if err != nil {
