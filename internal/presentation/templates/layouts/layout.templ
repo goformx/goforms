@@ -16,17 +16,10 @@ templ Layout(data shared.PageData, content templ.Component) {
 	<meta name="description" content="Goforms - A self-hosted form backend service built with Go" />
 	<meta name="keywords" content="forms, golang, backend, self-hosted" />
 	<meta name="color-scheme" content="light dark" />
-	<meta name="csrf-token" content={ data.CSRFToken } />
 	<title>{ data.Title } - Goforms</title>
 
-	if data.IsDevelopment {
-		<script type="module" src="http://localhost:3000/@vite/client"></script>
-		<script type="module" src="http://localhost:3000/src/js/main.ts"></script>
-		<link rel="stylesheet" href="http://localhost:3000/src/css/main.css" type="text/css"/>
-	} else {
-		<script type="module" src={ web.GetAssetPath("src/js/main.ts") }></script>
-		<link rel="stylesheet" href={ web.GetAssetPath("src/css/main.css") } type="text/css"/>
-	}
+	<script type="module" src={ web.GetAssetPath("src/js/main.ts") }></script>
+	<link rel="stylesheet" href={ web.GetAssetPath("src/css/main.css") } type="text/css"/>
 
 </head>
 
@@ -39,15 +32,9 @@ templ Layout(data shared.PageData, content templ.Component) {
 
 	@components.Footer()
 
-	if data.IsDevelopment {
-		<script type="module" src="http://localhost:3000/src/js/login.ts"></script>
-		<script type="module" src="http://localhost:3000/src/js/signup.ts"></script>
-		<script type="module" src="http://localhost:3000/src/js/validation.ts"></script>
-	} else {
-		<script type="module" src={ web.GetAssetPath("src/js/login.ts") }></script>
-		<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
-		<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
-	}
+	<script type="module" src={ web.GetAssetPath("src/js/login.ts") }></script>
+	<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
+	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
 </body>
 
 </html>

@@ -283,12 +283,12 @@ func (m *Manager) Setup(e *echo.Echo) {
 		XFrameOptions:         "DENY",
 		HSTSMaxAge:            HSTSOneYear,
 		HSTSExcludeSubdomains: false,
-		ContentSecurityPolicy: "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; " +
-			"style-src 'self' 'unsafe-inline'; " +
-			"img-src 'self' data:; " +
-			"font-src 'self'; " +
-			"connect-src 'self' *;",
+		ContentSecurityPolicy: "default-src 'self' http://localhost:3000; " +
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; " +
+			"style-src 'self' 'unsafe-inline' http://localhost:3000; " +
+			"img-src 'self' data: http://localhost:3000; " +
+			"font-src 'self' http://localhost:3000; " +
+			"connect-src 'self' http://localhost:3000 ws://localhost:3000;",
 		ReferrerPolicy: "strict-origin-when-cross-origin",
 	}))
 

@@ -7,7 +7,7 @@
 
     .form-group label {
         font-weight: var(--form-label-weight);
-        color: var(--text-primary);
+        color: var(--text);
         font-size: var(--form-label-size);
         text-transform: uppercase;
         letter-spacing: var(--form-label-spacing);

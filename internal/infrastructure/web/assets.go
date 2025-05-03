@@ -2,8 +2,11 @@ package web
 
 import (
 	"encoding/json"
+	"log"
 	"os"
 	"path/filepath"
+
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
 
 // ManifestEntry represents a single entry in the Vite manifest file
@@ -17,47 +20,60 @@ type ManifestEntry struct {
 // Manifest represents the entire Vite manifest file
 type Manifest map[string]ManifestEntry
 
-var manifest Manifest
+var (
+	manifest Manifest
+	cfg      *config.Config
+)
 
 func init() {
-	// Load the Vite manifest file
-	manifestPath := filepath.Join("static", "dist", ".vite", "manifest.json")
-	manifestData, err := os.ReadFile(manifestPath)
+	var err error
+	cfg, err = config.New()
 	if err != nil {
-		// In development, files are served directly
+		log.Printf("Warning: Could not load config: %v", err)
 		return
 	}
 
-	if err := json.Unmarshal(manifestData, &manifest); err != nil {
-		// Handle error gracefully in production
-		return
+	// Only load manifest in production mode
+	if !cfg.App.IsDevelopment() {
+		// Load the Vite manifest file
+		manifestPath := filepath.Join("static", "dist", ".vite", "manifest.json")
+		log.Printf("Attempting to load manifest from: %s", manifestPath)
+
+		manifestData, err := os.ReadFile(manifestPath)
+		if err != nil {
+			log.Printf("Warning: Could not read manifest file at %s: %v", manifestPath, err)
+			return
+		}
+
+		if err := json.Unmarshal(manifestData, &manifest); err != nil {
+			log.Printf("Warning: Could not parse manifest file: %v", err)
+			return
+		}
+
+		log.Printf("Successfully loaded manifest with %d entries", len(manifest))
+		for key, entry := range manifest {
+			log.Printf("Manifest entry: %s -> %s", key, entry.File)
+		}
 	}
 }
 
-// GetAssetPath returns the hashed path for a given source file
-// If the manifest can't be read or the file isn't found, it returns a default path
+// GetAssetPath returns the path for a given source file
+// In development mode, it returns the Vite dev server URL
+// In production mode, it returns the hashed path from the manifest
 func GetAssetPath(src string) string {
-	if manifest == nil {
-		// Return a default path if manifest can't be read
-		switch src {
-		case "src/css/main.css":
-			return "/static/dist/css/styles.1OrqC9gA.css"
-		case "src/js/main.ts":
-			return "/static/dist/js/app.ChKofpG5.js"
-		case "src/js/login.ts":
-			return "/static/dist/js/login.CBkkGgj2.js"
-		case "src/js/signup.ts":
-			return "/static/dist/js/signup.BFv0nUSD.js"
-		case "src/js/validation.ts":
-			return "/static/dist/js/validation.Cyw-oOUb.js"
-		default:
-			return ""
-		}
+	log.Printf("Getting asset path for: %s", src)
+
+	if cfg != nil && cfg.App.IsDevelopment() {
+		// In development, return the Vite dev server URL
+		return "http://localhost:3000/" + src
 	}
 
 	if entry, ok := manifest[src]; ok {
-		return filepath.Join("/static/dist", entry.File)
+		path := filepath.Join("/static/dist", entry.File)
+		log.Printf("Found manifest entry: %s -> %s", src, path)
+		return path
 	}
 
+	log.Printf("No manifest entry found for: %s", src)
 	return ""
 }

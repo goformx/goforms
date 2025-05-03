@@ -67,7 +67,7 @@ export default defineConfig({
     middlewareMode: false,
     fs: {
       strict: true,
-      allow: ['src', 'static/dist']
+      allow: ['src', 'static/dist', 'node_modules']
     },
     watch: {
       usePolling: false,
@@ -79,11 +79,11 @@ export default defineConfig({
       port: 3000,
       clientPort: 3000,
       timeout: 5000,
-      overlay: false
+      overlay: true
     },
     proxy: {
-      // Proxy all requests except for Vite's own endpoints and static files
-      '^(?!/@vite|/node_modules|/src|/static/dist).*': {
+      // Proxy all API requests to the Go server
+      '/api': {
         target: 'http://localhost:8090',
         changeOrigin: true,
         secure: false,

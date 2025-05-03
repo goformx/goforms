@@ -33,12 +33,6 @@
 /* Theme styles */
 @import url('themes/dark.css') layer(theme);
 
-/* Test style to verify CSS processing */
-body {
-  background-color: #f0f0f0;
-  font-family: system-ui, -apple-system, sans-serif;
-}
-
 h1 {
   color: var(--primary-color);
   margin-bottom: 20px;
