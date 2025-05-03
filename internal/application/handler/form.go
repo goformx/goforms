@@ -77,15 +77,15 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 			logging.String("method", c.Request().Method))
 
 		// Validate CSRF token
-		if err := amw.ValidateCSRFToken(c); err != nil {
-			h.base.LogError("CSRF token validation failed", err)
+		if csrfErr := amw.ValidateCSRFToken(c); csrfErr != nil {
+			h.base.LogError("CSRF token validation failed", csrfErr)
 			return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
 		}
 	}
 
 	// Get form data from request body
 	var formData map[string]any
-	if err := c.Bind(&formData); err != nil {
+	if bindErr := c.Bind(&formData); bindErr != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
 	}
 

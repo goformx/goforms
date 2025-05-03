@@ -43,8 +43,8 @@ func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFu
 		}
 
 		// Validate token
-		if _, err := m.userService.ValidateToken(token.Value); err != nil {
-			m.logger.Error("invalid token", logging.Error(err))
+		if _, tokenErr := m.userService.ValidateToken(token.Value); tokenErr != nil {
+			m.logger.Error("invalid token", logging.Error(tokenErr))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
@@ -56,14 +56,14 @@ func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFu
 		}
 
 		// Get user
-		user, err := m.userService.GetByID(c.Request().Context(), userID)
-		if err != nil {
-			m.logger.Error("user not found", logging.Error(err))
+		userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
+		if userErr != nil {
+			m.logger.Error("user not found", logging.Error(userErr))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
 		// Set user in context
-		c.Set("user", user)
+		c.Set("user", userObj)
 		return next(c)
 	}
 }
@@ -101,7 +101,7 @@ func (m *CookieAuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerF
 		}
 
 		// Validate token
-		if _, validateErr := m.userService.ValidateToken(token.Value); validateErr != nil {
+		if _, tokenErr := m.userService.ValidateToken(token.Value); tokenErr != nil {
 			return next(c)
 		}
 
@@ -112,12 +112,12 @@ func (m *CookieAuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerF
 		}
 
 		// Get user
-		currentUser, userErr := m.userService.GetByID(c.Request().Context(), userID)
+		userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
 		if userErr != nil {
 			return next(c)
 		}
 
-		c.Set("user", currentUser)
+		c.Set("user", userObj)
 		return next(c)
 	}
 }
@@ -136,9 +136,9 @@ func (m *CookieAuthMiddleware) RefreshToken(next echo.HandlerFunc) echo.HandlerF
 			userID, idErr := m.userService.GetUserIDFromToken(token.Value)
 			if idErr == nil {
 				// Get user
-				currentUser, userErr := m.userService.GetByID(c.Request().Context(), userID)
+				userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
 				if userErr == nil {
-					c.Set("user", currentUser)
+					c.Set("user", userObj)
 				}
 			}
 		}

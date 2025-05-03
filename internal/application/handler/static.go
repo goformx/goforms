@@ -30,7 +30,7 @@ func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler 
 func (h *StaticHandler) Register(e *echo.Echo) {
 	// Handle Chrome DevTools well-known route
 	e.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c echo.Context) error {
-		return c.JSON(200, map[string]interface{}{
+		return c.JSON(200, map[string]any{
 			"devtoolsFrontendUrl":  "",
 			"faviconUrl":           "/favicon.ico",
 			"id":                   "goforms",
@@ -65,7 +65,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 			)
 
 			// Create a new request
-			req, err := http.NewRequest("GET", url, nil)
+			req, err := http.NewRequest("GET", url, http.NoBody)
 			if err != nil {
 				h.logger.Error("failed to create request",
 					logging.Error(err),

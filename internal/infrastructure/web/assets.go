@@ -39,14 +39,14 @@ func init() {
 		manifestPath := filepath.Join("static", "dist", ".vite", "manifest.json")
 		log.Printf("Attempting to load manifest from: %s", manifestPath)
 
-		manifestData, err := os.ReadFile(manifestPath)
-		if err != nil {
-			log.Printf("Warning: Could not read manifest file at %s: %v", manifestPath, err)
+		manifestData, readErr := os.ReadFile(manifestPath)
+		if readErr != nil {
+			log.Printf("Warning: Could not read manifest file at %s: %v", manifestPath, readErr)
 			return
 		}
 
-		if err := json.Unmarshal(manifestData, &manifest); err != nil {
-			log.Printf("Warning: Could not parse manifest file: %v", err)
+		if unmarshalErr := json.Unmarshal(manifestData, &manifest); unmarshalErr != nil {
+			log.Printf("Warning: Could not parse manifest file: %v", unmarshalErr)
 			return
 		}
 

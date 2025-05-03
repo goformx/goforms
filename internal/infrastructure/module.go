@@ -181,7 +181,7 @@ var HandlerModule = fx.Options(
 	AnnotateHandler(func(core CoreParams) (h.Handler, error) {
 		handler := handler.NewStaticHandler(core.Logger, core.Config)
 		if handler == nil {
-			return nil, fmt.Errorf("failed to create static handler")
+			return nil, errors.New("failed to create static handler")
 		}
 		core.Logger.Debug("registered handler",
 			logging.String("handler_name", "StaticHandler"),

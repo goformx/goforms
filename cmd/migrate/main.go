@@ -5,6 +5,7 @@ import (
 	"flag"
 	"fmt"
 	"log"
+	"math"
 	"os"
 
 	_ "github.com/go-sql-driver/mysql"
@@ -87,6 +88,9 @@ func performMigration(sourceURL, command string) error {
 	// If database is dirty, try to fix it
 	if dirty {
 		log.Printf("Database is dirty at version %d, attempting to fix...", version)
+		if version > uint(math.MaxInt) {
+			return fmt.Errorf("version value %d overflows int", version)
+		}
 		if err := m.Force(int(version)); err != nil {
 			return fmt.Errorf("failed to force version: %w", err)
 		}

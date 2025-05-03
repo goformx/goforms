@@ -132,13 +132,13 @@ func (h *DashboardHandler) CreateForm(c echo.Context) error {
 	}
 
 	// Create the form
-	form, err := h.formService.CreateForm(currentUser.ID, formData.Title, formData.Description, defaultSchema)
+	formObj, err := h.formService.CreateForm(currentUser.ID, formData.Title, formData.Description, defaultSchema)
 	if err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create form")
 	}
 
 	// Redirect to the form edit page
-	return c.Redirect(http.StatusSeeOther, "/dashboard/forms/"+strconv.FormatUint(uint64(form.ID), 10)+"/edit")
+	return c.Redirect(http.StatusSeeOther, "/dashboard/forms/"+strconv.FormatUint(uint64(formObj.ID), 10)+"/edit")
 }
 
 func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
@@ -154,13 +154,13 @@ func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
 	}
 
 	// Get form from service
-	form, err := h.formService.GetForm(uint(formID))
+	formObj, err := h.formService.GetForm(uint(formID))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
 	// Verify form belongs to current user
-	if form.UserID != currentUser.ID {
+	if formObj.UserID != currentUser.ID {
 		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
 	}
 
@@ -174,7 +174,7 @@ func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
 	data := shared.PageData{
 		Title:     "Edit Form - GoForms",
 		User:      currentUser,
-		Form:      form,
+		Form:      formObj,
 		CSRFToken: csrfToken,
 		AssetPath: web.GetAssetPath,
 	}
@@ -200,13 +200,13 @@ func (h *DashboardHandler) ShowFormSubmissions(c echo.Context) error {
 	}
 
 	// Get form from service
-	form, err := h.formService.GetForm(uint(formID))
+	formObj, err := h.formService.GetForm(uint(formID))
 	if err != nil {
 		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
 	// Verify form belongs to current user
-	if form.UserID != currentUser.ID {
+	if formObj.UserID != currentUser.ID {
 		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
 	}
 
@@ -226,7 +226,7 @@ func (h *DashboardHandler) ShowFormSubmissions(c echo.Context) error {
 	data := shared.PageData{
 		Title:       "Form Submissions - GoForms",
 		User:        currentUser,
-		Form:        form,
+		Form:        formObj,
 		Submissions: submissions,
 		CSRFToken:   csrfToken,
 		AssetPath:   web.GetAssetPath,
