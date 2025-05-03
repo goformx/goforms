@@ -1,174 +1,179 @@
+// Package main is the entry point for the GoForms application.
+// It sets up the application using dependency injection (via fx),
+// configures the server, and manages the application lifecycle.
 package main
 
 import (
 	"context"
 	"fmt"
-	"log"
+	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/application/router"
 	"github.com/jonesrussell/goforms/internal/domain"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/infrastructure"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/infrastructure/server"
+	"github.com/jonesrussell/goforms/internal/infrastructure/version"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
-//nolint:gochecknoglobals // These variables are populated by -ldflags at build time
-var (
-	version   = "dev"
-	buildTime = "unknown"
-	gitCommit = "unknown"
-	goVersion = "unknown"
+const (
+	// ShutdownTimeout is the maximum time to wait for graceful shutdown
+	ShutdownTimeout = 5 * time.Second
 )
 
+// main is the entry point of the application.
+// It calls run() and handles any fatal errors that occur during startup.
 func main() {
 	if err := run(); err != nil {
-		log.Fatal(err)
+		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		os.Exit(1)
 	}
 }
 
+// run orchestrates the application startup process.
+// It sets up signal handling and starts the application.
 func run() error {
-	// Load environment
-	if err := godotenv.Load(); err != nil {
-		log.Printf("Warning: Error loading .env file: %v\n", err)
-	}
+	// Create a cancellable context for graceful shutdown
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
 
-	// Create version info
-	versionInfo := handler.VersionInfo{
-		Version:   version,
-		BuildTime: buildTime,
-		GitCommit: gitCommit,
-		GoVersion: goVersion,
-	}
+	// Start a goroutine to handle termination signals
+	go handleSignals(cancel)
 
-	// Create app with DI
-	app := fx.New(
-		// Version info first
+	// Create and run the application
+	app := createApp()
+	return runApp(ctx, app)
+}
+
+// createApp sets up the dependency injection container using fx.
+// It provides all necessary dependencies and modules for the application.
+func createApp() *fx.App {
+	return fx.New(
+		// Core dependencies that are required for basic functionality
 		fx.Provide(
-			func() handler.VersionInfo {
-				return versionInfo
+			GetVersion,
+			logging.NewFactory,
+			func(cfg *config.Config, logFactory *logging.Factory) (logging.Logger, error) {
+				return logFactory.CreateFromConfig(cfg)
 			},
 		),
-		// Core infrastructure next (config, logging, database)
+		// Infrastructure module for database, cache, etc.
 		infrastructure.Module,
-		// Domain services next
+		// Domain module containing business logic
 		domain.Module,
-		// View module for rendering
+		// View module for template rendering
 		view.Module,
-		// Local providers last
+		// Server setup with Echo framework
 		fx.Provide(
-			logging.NewFactory,
 			newServer,
 		),
-		fx.WithLogger(func(log logging.Logger) fxevent.Logger {
-			return &logging.FxEventLogger{Logger: log}
+		// Custom logger for fx events
+		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
+			return &logging.FxEventLogger{Logger: logger}
 		}),
-		// Add debug logging for dependency injection
-		fx.Invoke(func(log logging.Logger) {
-			log.Debug("checking module initialization")
-		}),
-		fx.Invoke(func(p infrastructure.HandlerParams) {
-			p.Logger.Debug("handler dependencies available",
-				logging.Bool("renderer_available", p.Renderer != nil),
-				logging.Bool("contact_service_available", p.ContactService != nil),
-				logging.Bool("subscription_service_available", p.SubscriptionService != nil),
-				logging.Bool("user_service_available", p.UserService != nil),
-			)
-		}),
-		// Start server last
+		// Start the server using fx.Invoke
 		fx.Invoke(startServer),
 	)
+}
 
-	// Run app
-	ctx := context.Background()
+// runApp manages the application lifecycle.
+// It starts the application, waits for termination signals, and performs graceful shutdown.
+func runApp(ctx context.Context, app *fx.App) error {
+	// Start the application with the provided context
 	if err := app.Start(ctx); err != nil {
 		return fmt.Errorf("failed to start application: %w", err)
 	}
 
-	<-app.Done()
-	if err := app.Stop(ctx); err != nil {
+	// Wait for context cancellation (triggered by termination signals)
+	<-ctx.Done()
+
+	// Create a new context with timeout for graceful shutdown
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
+	defer cancel()
+
+	// Stop the application with the shutdown context
+	if err := app.Stop(shutdownCtx); err != nil {
 		return fmt.Errorf("failed to stop application: %w", err)
 	}
 	return nil
 }
 
-func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, error) {
-	// Create logger
+// handleSignals sets up signal handling for graceful shutdown.
+// It listens for SIGINT (Ctrl+C) and SIGTERM signals.
+func handleSignals(cancel context.CancelFunc) {
+	signalChan := make(chan os.Signal, 1)
+	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+	<-signalChan
+	cancel()
+}
+
+// newServer creates and configures a new Echo server instance.
+// It sets up middleware, logging, and security features.
+func newServer(cfg *config.Config, logFactory *logging.Factory, userService user.Service) (*echo.Echo, *middleware.Manager, error) {
+	// Create logger instance
 	logger, err := logFactory.CreateFromConfig(cfg)
 	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
+		return nil, nil, fmt.Errorf("failed to create logger: %w", err)
 	}
 
-	// Create Echo instance
+	// Initialize Echo server
 	e := echo.New()
 	e.HideBanner = true
 	e.HidePort = true
 
-	// Configure middleware
-	middleware.Setup(e, &middleware.Config{
-		Logger:      logger,
-		JWTSecret:   cfg.Security.JWTSecret,
-		UserService: userService,
-		EnableCSRF:  cfg.Security.CSRF.Enabled,
-	})
+	// Set up request validation
+	e.Validator = middleware.NewValidator()
 
-	return e, nil
+	// Configure middleware stack using Manager pattern
+	mwManager := middleware.New(&middleware.ManagerConfig{
+		Logger:      logger,
+		UserService: userService,
+		Security:    &cfg.Security,
+	})
+	mwManager.Setup(e)
+
+	return e, mwManager, nil
 }
 
-// ServerParams contains the dependencies for starting the server
+// ServerParams contains the dependencies required for starting the server.
+// It uses fx.In to automatically inject dependencies.
 type ServerParams struct {
 	fx.In
 
-	Echo     *echo.Echo
-	Config   *config.Config
-	Logger   logging.Logger
-	Handlers []handler.Handler `group:"handlers"`
+	Server           *server.Server
+	Config          *config.Config
+	Logger          logging.Logger
+	Handlers        []handlers.Handler `group:"handlers"`
+	MiddlewareManager *middleware.Manager
 }
 
-func startServer(p ServerParams) error {
-	p.Logger.Debug("starting server with handlers",
-		logging.Int("handler_count", len(p.Handlers)),
-	)
-
-	for i, h := range p.Handlers {
-		p.Logger.Debug("handler available",
-			logging.Int("index", i),
-			logging.String("type", fmt.Sprintf("%T", h)),
-		)
+// startServer registers all handlers with the server.
+// It uses fx.In to automatically inject dependencies.
+func startServer(params ServerParams) error {
+	// Register all handlers with the middleware manager
+	for _, h := range params.Handlers {
+		if webHandler, ok := h.(*handler.WebHandler); ok {
+			handler.WithMiddlewareManager(params.MiddlewareManager)(webHandler)
+		}
+		h.Register(params.Server.Echo())
 	}
 
-	// Configure routes
-	if err := router.Setup(p.Echo, &router.Config{
-		Handlers: p.Handlers,
-		Static: router.StaticConfig{
-			Path: "/static",
-			Root: "static",
-		},
-		Logger: p.Logger,
-	}); err != nil {
-		return fmt.Errorf("failed to setup router: %w", err)
-	}
+	return nil
+}
 
-	// Start server
-	addr := fmt.Sprintf("%s:%d", p.Config.Server.Host, p.Config.Server.Port)
-	if p.Config.Server.Port == 0 {
-		addr = fmt.Sprintf("%s:8090", p.Config.Server.Host) // Default to 8090 if port is not set
-	}
-
-	p.Logger.Info("Starting server",
-		logging.String("addr", addr),
-		logging.String("env", p.Config.App.Env),
-		logging.String("version", version),
-		logging.String("gitCommit", gitCommit),
-	)
-
-	return p.Echo.Start(addr)
+// GetVersion returns the version information
+func GetVersion() version.VersionInfo {
+	return version.Info()
 }

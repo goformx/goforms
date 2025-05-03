@@ -4,17 +4,30 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
-// Response represents a standardized API response
+// Response represents the standard API response format
 type Response struct {
-	Success bool   `json:"success"`
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
 	Data    any    `json:"data,omitempty"`
-	Error   string `json:"error,omitempty"`
 	logger  logging.Logger
+}
+
+// MapResponse represents a map response
+type MapResponse struct {
+	Data map[string]any `json:"data"`
+}
+
+// NewMapResponse creates a new map response
+func NewMapResponse(data map[string]any) *MapResponse {
+	return &MapResponse{
+		Data: data,
+	}
 }
 
 // getLogger retrieves the logger from the context
@@ -42,7 +55,7 @@ func getLogger(c echo.Context) logging.Logger {
 	return log
 }
 
-// Success returns a successful response with data
+// Success sends a successful response with data
 func Success(c echo.Context, data any) error {
 	logger := getLogger(c)
 	logger.Debug("sending success response",
@@ -52,9 +65,14 @@ func Success(c echo.Context, data any) error {
 		logging.Any("data", data),
 	)
 
+	// Use cmp package for better comparison
+	if cmp.Equal(data, nil) {
+		data = struct{}{}
+	}
+
 	if err := c.JSON(http.StatusOK, Response{
-		Success: true,
-		Data:    data,
+		Status: "success",
+		Data:   data,
 	}); err != nil {
 		logger.Error("failed to send success response", logging.Error(err))
 		return err
@@ -62,7 +80,7 @@ func Success(c echo.Context, data any) error {
 	return nil
 }
 
-// Created returns a 201 response with data
+// Created sends a 201 response with data
 func Created(c echo.Context, data any) error {
 	logger := getLogger(c)
 	logger.Debug("sending created response",
@@ -73,8 +91,8 @@ func Created(c echo.Context, data any) error {
 	)
 
 	if err := c.JSON(http.StatusCreated, Response{
-		Success: true,
-		Data:    data,
+		Status: "success",
+		Data:   data,
 	}); err != nil {
 		logger.Error("failed to send created response", logging.Error(err))
 		return err
@@ -82,7 +100,7 @@ func Created(c echo.Context, data any) error {
 	return nil
 }
 
-// BadRequest returns a 400 response with error message
+// BadRequest sends a 400 response with error message
 func BadRequest(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Debug("sending bad request response",
@@ -93,8 +111,8 @@ func BadRequest(c echo.Context, message string) error {
 	)
 
 	if err := c.JSON(http.StatusBadRequest, Response{
-		Success: false,
-		Error:   message,
+		Status:  "error",
+		Message: message,
 	}); err != nil {
 		logger.Error("failed to send bad request response", logging.Error(err))
 		return err
@@ -102,7 +120,7 @@ func BadRequest(c echo.Context, message string) error {
 	return nil
 }
 
-// NotFound returns a 404 response with error message
+// NotFound sends a 404 response with error message
 func NotFound(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Debug("sending not found response",
@@ -113,8 +131,8 @@ func NotFound(c echo.Context, message string) error {
 	)
 
 	if err := c.JSON(http.StatusNotFound, Response{
-		Success: false,
-		Error:   message,
+		Status:  "error",
+		Message: message,
 	}); err != nil {
 		logger.Error("failed to send not found response", logging.Error(err))
 		return err
@@ -122,7 +140,7 @@ func NotFound(c echo.Context, message string) error {
 	return nil
 }
 
-// InternalError returns a 500 response with error message
+// InternalError sends a 500 response with error message
 func InternalError(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Error("sending internal error response",
@@ -133,13 +151,29 @@ func InternalError(c echo.Context, message string) error {
 	)
 
 	if err := c.JSON(http.StatusInternalServerError, Response{
-		Success: false,
-		Error:   message,
+		Status:  "error",
+		Message: message,
 	}); err != nil {
 		logger.Error("failed to send internal error response", logging.Error(err))
 		return err
 	}
 	return nil
+}
+
+// Unauthorized sends a 401 response with error message
+func Unauthorized(c echo.Context, message string) error {
+	return c.JSON(http.StatusUnauthorized, Response{
+		Status:  "error",
+		Message: message,
+	})
+}
+
+// Forbidden sends a 403 response with error message
+func Forbidden(c echo.Context, message string) error {
+	return c.JSON(http.StatusForbidden, Response{
+		Status:  "error",
+		Message: message,
+	})
 }
 
 func (r *Response) SetLogger(logger any) error {
@@ -149,4 +183,59 @@ func (r *Response) SetLogger(logger any) error {
 	}
 	r.logger = log
 	return nil
+}
+
+// Equal compares two responses for equality
+func (r *Response) Equal(other *Response) bool {
+	if r == nil || other == nil {
+		return r == other
+	}
+	return r.Status == other.Status && r.Message == other.Message && r.Data == other.Data
+}
+
+// JSON sends a JSON response with the given status code and data
+func JSON(c echo.Context, status int, data any) error {
+	return c.JSON(status, data)
+}
+
+// JSONError sends a JSON error response
+func JSONError(c echo.Context, status int, message string) error {
+	return c.JSON(status, map[string]string{
+		"error": message,
+	})
+}
+
+// JSONSuccess sends a JSON success response
+func JSONSuccess(c echo.Context, message string) error {
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": message,
+	})
+}
+
+// JSONCreated sends a JSON created response
+func JSONCreated(c echo.Context, message string) error {
+	return c.JSON(http.StatusCreated, map[string]string{
+		"message": message,
+	})
+}
+
+// JSONNotFound sends a JSON not found response
+func JSONNotFound(c echo.Context, message string) error {
+	return c.JSON(http.StatusNotFound, map[string]string{
+		"error": message,
+	})
+}
+
+// JSONUnauthorized sends a JSON unauthorized response
+func JSONUnauthorized(c echo.Context, message string) error {
+	return c.JSON(http.StatusUnauthorized, map[string]string{
+		"error": message,
+	})
+}
+
+// JSONForbidden sends a JSON forbidden response
+func JSONForbidden(c echo.Context, message string) error {
+	return c.JSON(http.StatusForbidden, map[string]string{
+		"error": message,
+	})
 }

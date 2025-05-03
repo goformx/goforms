@@ -1,0 +1,281 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Linting Guidelines
+
+This project uses golangci-lint with strict rules. Follow these guidelines to maintain code quality.
+
+## Error Handling
+1. **Error Wrapping**
+   - Use `errors.Is()` for error comparison
+   - Never compare errors directly with `==` or `!=`
+   - Example:
+   ```go
+   // ❌ Bad
+   if err == ErrNotFound {
+       return nil
+   }
+   
+   // ✅ Good
+   if errors.Is(err, ErrNotFound) {
+       return nil
+   }
+   ```
+
+2. **Sentinel Errors**
+   - Don't return `nil, nil` for not found cases
+   - Use domain-specific sentinel errors
+   - Example: [internal/domain/user/service.go](mdc:internal/domain/user/service.go)
+   ```go
+   var (
+       ErrUserNotFound = errors.New("user not found")
+       ErrInvalidCredentials = errors.New("invalid credentials")
+   )
+   ```
+
+3. **Error Shadowing**
+   - Avoid shadowing error variables
+   - Use unique names or reuse existing err variable
+   ```go
+   // ❌ Bad
+   if err := doSomething(); err != nil {
+       if err := cleanup(); err != nil {
+           return err
+       }
+       return err
+   }
+   
+   // ✅ Good
+   if err := doSomething(); err != nil {
+       if cleanupErr := cleanup(); cleanupErr != nil {
+           return fmt.Errorf("cleanup after error: %w", cleanupErr)
+       }
+       return err
+   }
+   ```
+
+## Code Complexity
+1. **Cognitive Complexity**
+   - Keep function complexity below 20
+   - Break down complex functions
+   - Use helper functions for clarity
+   ```go
+   // ❌ Bad
+   func complexFunction() {
+       // Many nested conditions and loops
+   }
+   
+   // ✅ Good
+   func processData() {
+       validateInput()
+       transformData()
+       saveResults()
+   }
+   ```
+
+2. **Line Length**
+   - Maximum line length: 120 characters
+   - Break long lines logically
+   ```go
+   // ❌ Bad
+   func NewStores(p StoreParams) (contactStore contact.Store, subscriptionStore subscription.Store, userStore user.Store, err error) {
+   
+   // ✅ Good
+   type Stores struct {
+       Contact contact.Store
+       Subscription subscription.Store
+       User user.Store
+   }
+   
+   func NewStores(p StoreParams) (*Stores, error) {
+   ```
+
+## Resource Management
+1. **Defer Usage**
+   - Don't use `log.Fatal` after defer
+   - Ensure cleanup code runs
+   ```go
+   // ❌ Bad
+   defer db.Close()
+   if err != nil {
+       log.Fatal(err)  // Will prevent defer from running
+   }
+   
+   // ✅ Good
+   if err != nil {
+       db.Close()
+       log.Fatal(err)
+   }
+   ```
+
+2. **Magic Numbers**
+   - Define constants for magic numbers
+   - Use meaningful names
+   ```go
+   // ❌ Bad
+   client := &http.Client{
+       Timeout: 30 * time.Second,
+   }
+   
+   // ✅ Good
+   const defaultClientTimeout = 30 * time.Second
+   
+   client := &http.Client{
+       Timeout: defaultClientTimeout,
+   }
+   ```
+
+## Testing
+1. **Table Tests**
+   ```go
+   func TestValidation(t *testing.T) {
+       tests := []struct{
+           name string
+           input string
+           want error
+       }{
+           {
+               name: "valid input",
+               input: "test@example.com",
+               want: nil,
+           },
+       }
+       
+       for _, tt := range tests {
+           t.Run(tt.name, func(t *testing.T) {
+               got := validate(tt.input)
+               assert.Equal(t, tt.want, got)
+           })
+       }
+   }
+   ```
+
+2. **Error Testing**
+   ```go
+   t.Run("error case", func(t *testing.T) {
+       _, err := process("")
+       assert.ErrorIs(t, err, ErrInvalidInput)
+   })
+   ```
+
+## Code Formatting
+- All Go files must be formatted using `gofmt`
+- Run `task lint` before committing changes
+- Fix all linting issues before merging code
+
+## Common Issues and Solutions
+
+### Variable Shadowing
+- Avoid shadowing variables in nested scopes
+- Use unique variable names when handling errors in sequence
+```go
+// Bad
+if err := doSomething(); err != nil {
+    return err
+}
+if err := doSomethingElse(); err != nil { // shadows previous err
+    return err
+}
+
+// Good
+if err := doSomething(); err != nil {
+    return err
+}
+someErr := doSomethingElse()
+if someErr != nil {
+    return someErr
+}
+```
+
+### Unnecessary Defer
+- Don't use defer just before returning
+- Directly call cleanup functions if they're the last operation
+```go
+// Bad
+func test() {
+    // ... code ...
+    defer cleanup()
+    return
+}
+
+// Good
+func test() {
+    // ... code ...
+    cleanup()
+    return
+}
+```
+
+### Type Modernization
+- Use `any` instead of `any` (Go 1.18+)
+- Update existing code during refactoring
+```go
+// Bad
+type Data struct {
+    Values map[string]any `json:"values"`
+}
+
+// Good
+type Data struct {
+    Values map[string]any `json:"values"`
+}
+```
+
+### Struct Field Alignment
+- Align struct fields for better readability
+- Keep tags aligned in a consistent format
+```go
+// Bad
+type User struct {
+    ID string `json:"id" validate:"required"`
+        Name string `json:"name"`
+    CreatedAt time.Time `json:"created_at" validate:"required"`
+}
+
+// Good
+type User struct {
+    ID        string    `json:"id" validate:"required"`
+    Name      string    `json:"name"`
+    CreatedAt time.Time `json:"created_at" validate:"required"`
+}
+```
+
+### Test Context
+- Use `t.Context()` instead of `context.Background()` in tests
+```go
+// Bad
+func TestSomething(t *testing.T) {
+    ctx := context.Background()
+    // ... test code ...
+}
+
+// Good
+func TestSomething(t *testing.T) {
+    ctx := t.Context()
+    // ... test code ...
+}
+```
+
+## Linting Tools
+- golangci-lint
+- go vet
+- gofmt
+- revive
+- gosec
+
+## Configuration
+Linting configuration is defined in:
+- `.golangci.yml`
+- `Taskfile.yml`
+
+## Enforcement
+- CI pipeline enforces linting rules
+- PRs cannot be merged with linting errors
+- Run `task lint` locally before pushing changes
+
+## Reference Files
+- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go)
+- [internal/infrastructure/persistence/database/connection_test.go](mdc:internal/infrastructure/persistence/database/connection_test.go)
+- [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go)

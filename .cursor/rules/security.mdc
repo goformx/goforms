@@ -1,0 +1,58 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Security Implementation Guide
+
+## CSRF Protection
+CSRF protection is implemented in [internal/application/middleware/csrf.go](mdc:internal/application/middleware/csrf.go) with the following requirements:
+
+### Configuration
+- Token length must be 32 characters (DefaultCSRFTokenLength)
+- Cookies must use SameSite=Strict mode
+- HTTP-only flag must be enabled
+- Secure flag should be enabled in production
+
+### Implementation
+- Use the CSRF middleware for all forms
+- Include CSRF token in templates
+- Validate tokens on all POST/PUT/DELETE requests
+- Handle validation errors appropriately
+
+## Security Headers
+Security headers are configured in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go):
+
+### Required Headers
+- Content-Security-Policy
+- X-Content-Type-Options
+- X-Frame-Options
+- X-XSS-Protection
+- Referrer-Policy
+- Permissions-Policy
+- Cross-Origin-Opener-Policy
+- Cross-Origin-Embedder-Policy
+- Cross-Origin-Resource-Policy
+
+### CSP Configuration
+Content Security Policy must be configured with:
+- default-src 'self'
+- style-src with minimal unsafe-inline
+- script-src with nonce
+- strict resource policies
+- form-action restrictions
+
+## Error Handling
+1. Always validate type assertions
+2. Return appropriate HTTP status codes
+3. Log security-related errors
+4. Don't expose internal errors to clients
+5. Implement proper error middleware
+
+## Authentication
+When implementing authentication:
+1. Use the JWT middleware configuration
+2. Implement proper token validation
+3. Set secure cookie attributes
+4. Use proper password hashing
+5. Implement rate limiting

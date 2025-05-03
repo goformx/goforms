@@ -1,0 +1,65 @@
+package components
+
+import (
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+)
+
+templ SignupForm(data shared.PageData) {
+	<form class="auth-form" method="POST" action="/signup">
+		<div class="form-group">
+			<label for="name" class="form-label">Name</label>
+			<input
+				type="text"
+				id="name"
+				name="name"
+				class="form-input"
+				required
+				placeholder="Enter your name"
+			/>
+		</div>
+
+		<div class="form-group">
+			<label for="email" class="form-label">Email</label>
+			<input
+				type="email"
+				id="email"
+				name="email"
+				class="form-input"
+				required
+				placeholder="Enter your email"
+			/>
+		</div>
+
+		<div class="form-group">
+			<label for="password" class="form-label">Password</label>
+			<input
+				type="password"
+				id="password"
+				name="password"
+				class="form-input"
+				required
+				placeholder="Create a password"
+			/>
+		</div>
+
+		<div class="form-group">
+			<label for="confirm_password" class="form-label">Confirm Password</label>
+			<input
+				type="password"
+				id="confirm_password"
+				name="confirm_password"
+				class="form-input"
+				required
+				placeholder="Confirm your password"
+			/>
+		</div>
+
+		<button type="submit" class="button button-primary">
+			Create Account
+		</button>
+
+		<div class="auth-alt-action">
+			Already have an account? <a href="/login">Sign in</a>
+		</div>
+	</form>
+} 

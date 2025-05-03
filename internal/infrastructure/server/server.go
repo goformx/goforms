@@ -7,7 +7,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
@@ -24,15 +23,7 @@ type Server struct {
 }
 
 // New creates a new server instance with the provided dependencies
-func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config) *Server {
-	e := echo.New()
-	e.HideBanner = true
-	e.HidePort = true
-
-	// Configure middleware
-	e.Use(middleware.Logger())
-	e.Use(middleware.Recover())
-
+func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Echo) *Server {
 	srv := &Server{
 		echo:   e,
 		logger: logger,
@@ -59,7 +50,7 @@ func (s *Server) Echo() *echo.Echo {
 
 // Start initializes and starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
-	s.addr = fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port)
+	s.addr = fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
 	s.logger.Info("starting server",
 		logging.String("addr", s.addr),
 		logging.String("env", s.config.App.Env),

@@ -1,0 +1,47 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Middleware Architecture
+
+## Overview
+The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go).
+
+## Core Components
+
+### Manager
+The `Manager` struct in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go) handles middleware configuration and setup. It uses dependency injection for logging and configuration.
+
+### CSRF Protection
+CSRF middleware is implemented in [internal/application/middleware/csrf.go](mdc:internal/application/middleware/csrf.go) with the following features:
+- Configurable cookie settings
+- Secure token generation
+- Template integration
+- SameSite strict mode
+- HTTP-only cookies
+
+### Configuration
+Middleware configuration is managed through [internal/application/middleware/config.go](mdc:internal/application/middleware/config.go) which provides:
+- Centralized configuration
+- Feature toggles (e.g., CSRF, JWT)
+- Logging integration
+- Service dependencies
+
+## Best Practices
+1. Use the `Manager` for middleware setup
+2. Configure security headers appropriately
+3. Enable CSRF protection for forms
+4. Use proper error handling for type assertions
+5. Follow the constant naming conventions
+6. Use structured logging with proper context
+7. Implement rate limiting where appropriate
+
+## Security Guidelines
+1. Always enable CSRF protection for forms
+2. Use secure cookie settings
+3. Implement proper Content Security Policy
+4. Set appropriate security headers
+5. Use SameSite strict mode for cookies
+6. Enable HTTP-only flag for sensitive cookies
+7. Implement proper token validation

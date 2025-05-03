@@ -1,0 +1,65 @@
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  # Commands to run before building
+  pre_cmd = ["task generate"]
+  # Build command
+  cmd = "go build -o ./tmp/main ./cmd/goforms"
+  # Binary file yields from `cmd`
+  bin = "tmp/main"
+  # Full binary path
+  full_bin = ""
+  # Watch these filename extensions
+  include_ext = ["go", "tpl", "tmpl", "html", "templ"]
+  # Ignore these directories
+  exclude_dir = ["assets", "tmp", "vendor", "test", "node_modules", "static", "docker", "bin", "deployments", "docs"]
+  # Watch these directories if you specified
+  include_dir = []
+  # Exclude files
+  exclude_file = []
+  # Exclude unchanged files
+  exclude_unchanged = true
+  # Exclude files matching these regular expressions
+  exclude_regex = ["_test.go", "_templ.go"]
+  # This log file places in your tmp_dir
+  log = "air_errors.log"
+  # Stop running old binary when build errors occur
+  stop_on_error = true
+  # Send Interrupt signal before killing process
+  send_interrupt = true
+  # Delay after sending Interrupt signal (ms)
+  kill_delay = 500
+  # Delay before triggering rebuild on file changes (ms)
+  delay = 2000
+  # Follow symlinks
+  follow_symlink = false
+
+[color]
+  # Customize each part's color
+  main = "magenta"
+  watcher = "cyan"
+  build = "yellow"
+  runner = "green"
+
+[log]
+  # Show log time
+  time = false
+  # Show file changes
+  main_only = false
+
+[misc]
+  # Delete tmp directory on exit
+  clean_on_exit = true
+
+[proxy]
+  app_port = 0
+  enabled = false
+  proxy_port = 0
+
+[screen]
+  # Clear terminal screen on rebuild
+  clear_on_rebuild = true
+  # Keep scroll position when clearing screen
+  keep_scroll = true

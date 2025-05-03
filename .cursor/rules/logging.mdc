@@ -1,0 +1,51 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Logging Standards
+
+## Overview
+Logging is implemented using Uber's zap logger throughout the application. The logging configuration is managed through the middleware and infrastructure layers.
+
+## Implementation
+The main logging implementation is referenced in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go) and [internal/application/middleware/csrf.go](mdc:internal/application/middleware/csrf.go).
+
+### Required Fields
+All log entries should include:
+- Request ID (when available)
+- Component name
+- Action being performed
+- Relevant context data
+- Error details (when applicable)
+
+### Log Levels
+Use appropriate log levels:
+1. Debug: Detailed information for debugging
+2. Info: General operational events
+3. Warn: Potentially harmful situations
+4. Error: Error events that might still allow the app to continue
+
+### Middleware Logging
+When implementing middleware logging:
+1. Log middleware initialization
+2. Log configuration details
+3. Log security-related events
+4. Include relevant request context
+5. Use structured logging fields
+
+### Error Logging
+For error logging:
+1. Include stack traces
+2. Add context information
+3. Use appropriate error levels
+4. Don't log sensitive data
+5. Include request IDs for correlation
+
+### Performance Logging
+When logging performance metrics:
+1. Include timing information
+2. Log slow operations
+3. Monitor resource usage
+4. Track middleware performance
+5. Log rate limiting events

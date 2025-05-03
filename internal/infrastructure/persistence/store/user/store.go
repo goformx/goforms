@@ -2,11 +2,19 @@ package user
 
 import (
 	"context"
+	"database/sql"
+	"errors"
 	"fmt"
+	"time"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+)
+
+var (
+	// ErrUserNotFound is returned when a user cannot be found
+	ErrUserNotFound = errors.New("user not found")
 )
 
 // Store implements user.Store interface
@@ -27,7 +35,7 @@ func NewStore(db *database.Database, logger logging.Logger) user.Store {
 }
 
 // Create stores a new user
-func (s *Store) Create(u *user.User) error {
+func (s *Store) Create(ctx context.Context, u *user.User) error {
 	query := `
 		INSERT INTO users (email, hashed_password, first_name, last_name, role, active, created_at, updated_at)
 		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
@@ -39,7 +47,7 @@ func (s *Store) Create(u *user.User) error {
 		logging.Bool("active", u.Active),
 	)
 
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -59,7 +67,7 @@ func (s *Store) Create(u *user.User) error {
 		}
 	}()
 
-	result, err := tx.ExecContext(context.Background(), query,
+	result, err := tx.ExecContext(ctx, query,
 		u.Email,
 		u.HashedPassword,
 		u.FirstName,
@@ -78,33 +86,22 @@ func (s *Store) Create(u *user.User) error {
 		return fmt.Errorf("failed to get last insert ID: %w", err)
 	}
 
-	// Check for integer overflow before conversion
 	if id <= 0 || uint64(id) > uint64(^uint(0)) {
 		return fmt.Errorf("user ID %d is out of valid range", id)
 	}
 
 	u.ID = uint(id)
 
-	if err != nil {
-		s.logger.Error("failed to create user",
-			logging.Error(err),
-			logging.String("email", u.Email),
-		)
-		return fmt.Errorf("failed to create user: %w", err)
-	}
-
 	s.logger.Info("user created",
 		logging.Uint("id", u.ID),
 		logging.String("email", u.Email),
-		logging.String("role", u.Role),
-		logging.Bool("active", u.Active),
 	)
 
 	return nil
 }
 
-// GetByEmail returns a user by email
-func (s *Store) GetByEmail(email string) (*user.User, error) {
+// GetByEmail retrieves a user by email
+func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	query := `
 		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
 		FROM users
@@ -116,7 +113,25 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 	)
 
 	var u user.User
-	if err := s.db.Get(&u, query, email); err != nil {
+	err := s.db.QueryRowContext(ctx, query, email).Scan(
+		&u.ID,
+		&u.Email,
+		&u.HashedPassword,
+		&u.FirstName,
+		&u.LastName,
+		&u.Role,
+		&u.Active,
+		&u.CreatedAt,
+		&u.UpdatedAt,
+	)
+
+	if err == sql.ErrNoRows {
+		s.logger.Debug("user not found by email",
+			logging.String("email", email),
+		)
+		return nil, ErrUserNotFound
+	}
+	if err != nil {
 		s.logger.Error("failed to get user by email",
 			logging.Error(err),
 			logging.String("email", email),
@@ -124,63 +139,53 @@ func (s *Store) GetByEmail(email string) (*user.User, error) {
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
-	s.logger.Debug("user retrieved",
+	s.logger.Debug("user found by email",
 		logging.Uint("id", u.ID),
 		logging.String("email", u.Email),
-		logging.String("role", u.Role),
-		logging.Bool("active", u.Active),
 	)
-
 	return &u, nil
 }
 
-// GetByID returns a user by ID
-func (s *Store) GetByID(id uint) (*user.User, error) {
+// GetByID retrieves a user by ID
+func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	query := `
 		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
 		FROM users
 		WHERE id = ?
 	`
 
-	s.logger.Debug("getting user by ID",
-		logging.Uint("id", id),
-	)
-
 	var u user.User
-	if err := s.db.Get(&u, query, id); err != nil {
-		s.logger.Error("failed to get user by ID",
-			logging.Error(err),
-			logging.Uint("id", id),
-		)
-		return nil, fmt.Errorf("failed to get user by ID: %w", err)
-	}
-
-	s.logger.Debug("user retrieved",
-		logging.Uint("id", u.ID),
-		logging.String("email", u.Email),
-		logging.String("role", u.Role),
-		logging.Bool("active", u.Active),
+	err := s.db.QueryRowContext(ctx, query, id).Scan(
+		&u.ID,
+		&u.Email,
+		&u.HashedPassword,
+		&u.FirstName,
+		&u.LastName,
+		&u.Role,
+		&u.Active,
+		&u.CreatedAt,
+		&u.UpdatedAt,
 	)
+
+	if err == sql.ErrNoRows {
+		return nil, user.ErrUserNotFound
+	}
+	if err != nil {
+		return nil, fmt.Errorf("failed to get user by id: %w", err)
+	}
 
 	return &u, nil
 }
 
-// Update updates a user
-func (s *Store) Update(u *user.User) error {
+// Update updates an existing user
+func (s *Store) Update(ctx context.Context, u *user.User) error {
 	query := `
 		UPDATE users
 		SET email = ?, hashed_password = ?, first_name = ?, last_name = ?, role = ?, active = ?, updated_at = ?
 		WHERE id = ?
 	`
 
-	s.logger.Debug("updating user",
-		logging.Uint("id", u.ID),
-		logging.String("email", u.Email),
-		logging.String("role", u.Role),
-		logging.Bool("active", u.Active),
-	)
-
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -200,51 +205,42 @@ func (s *Store) Update(u *user.User) error {
 		}
 	}()
 
-	result, err := tx.ExecContext(context.Background(), query,
+	result, err := tx.ExecContext(ctx, query,
 		u.Email,
 		u.HashedPassword,
 		u.FirstName,
 		u.LastName,
 		u.Role,
 		u.Active,
-		u.UpdatedAt,
+		time.Now(),
 		u.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 
-	if rows == 0 {
-		return fmt.Errorf("user not found: %d", u.ID)
+	if rowsAffected == 0 {
+		return user.ErrUserNotFound
 	}
 
 	s.logger.Info("user updated",
 		logging.Uint("id", u.ID),
 		logging.String("email", u.Email),
-		logging.String("role", u.Role),
-		logging.Bool("active", u.Active),
 	)
 
 	return nil
 }
 
-// Delete deletes a user
-func (s *Store) Delete(id uint) error {
-	query := `
-		DELETE FROM users
-		WHERE id = ?
-	`
+// Delete removes a user by ID
+func (s *Store) Delete(ctx context.Context, id uint) error {
+	query := `DELETE FROM users WHERE id = ?`
 
-	s.logger.Debug("deleting user",
-		logging.Uint("id", id),
-	)
-
-	tx, err := s.db.Begin()
+	tx, err := s.db.BeginTx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
@@ -264,48 +260,62 @@ func (s *Store) Delete(id uint) error {
 		}
 	}()
 
-	result, err := tx.ExecContext(context.Background(), query, id)
+	result, err := tx.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
 
-	rows, err := result.RowsAffected()
+	rowsAffected, err := result.RowsAffected()
 	if err != nil {
 		return fmt.Errorf("failed to get rows affected: %w", err)
 	}
 
-	if rows == 0 {
-		return fmt.Errorf("user not found: %d", id)
+	if rowsAffected == 0 {
+		return user.ErrUserNotFound
 	}
 
-	s.logger.Info("user deleted",
-		logging.Uint("id", id),
-	)
+	s.logger.Info("user deleted", logging.Uint("id", id))
 
 	return nil
 }
 
 // List returns all users
-func (s *Store) List() ([]user.User, error) {
+func (s *Store) List(ctx context.Context) ([]user.User, error) {
 	query := `
 		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
 		FROM users
-		ORDER BY created_at DESC
+		ORDER BY id
 	`
 
-	s.logger.Debug("listing users")
+	rows, queryErr := s.db.QueryContext(ctx, query)
+	if queryErr != nil {
+		return nil, fmt.Errorf("failed to list users: %w", queryErr)
+	}
+	defer rows.Close()
 
 	var users []user.User
-	if err := s.db.Select(&users, query); err != nil {
-		s.logger.Error("failed to list users",
-			logging.Error(err),
+	for rows.Next() {
+		var u user.User
+		scanErr := rows.Scan(
+			&u.ID,
+			&u.Email,
+			&u.HashedPassword,
+			&u.FirstName,
+			&u.LastName,
+			&u.Role,
+			&u.Active,
+			&u.CreatedAt,
+			&u.UpdatedAt,
 		)
-		return nil, fmt.Errorf("failed to list users: %w", err)
+		if scanErr != nil {
+			return nil, fmt.Errorf("failed to scan user: %w", scanErr)
+		}
+		users = append(users, u)
 	}
 
-	s.logger.Debug("users retrieved",
-		logging.Int("count", len(users)),
-	)
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("error iterating users: %w", rowsErr)
+	}
 
 	return users, nil
 }

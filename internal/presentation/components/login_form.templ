@@ -1,29 +1,32 @@
 package components
 
-templ LoginForm() {
-    <section class="auth-section">
-        <form class="auth-form" action="/api/v1/auth/login" method="POST" id="loginForm">
-            <div class="form-group">
-                <label for="email" class="form-label">
-                    Email address
-                </label>
-                <input id="email" name="email" type="email" autocomplete="email" required class="form-input"/>
-            </div>
+import (
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+)
 
-            <div class="form-group">
-                <label for="password" class="form-label">
-                    Password
-                </label>
-                <input id="password" name="password" type="password" required class="form-input"/>
-            </div>
+templ LoginForm(data shared.PageData) {
+	<form id="login-form" class="auth-form" data-validate="login" onsubmit="return false;">
+		<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+		<div id="form_error" class="form-error"></div>
+		<div class="form-group">
+			<label for="email" class="form-label">Email</label>
+			<input type="email" id="email" name="email" required class="form-input" placeholder="Enter your email" />
+			<div id="email_error" class="error-message"></div>
+		</div>
+		<div class="form-group">
+			<label for="password" class="form-label">Password</label>
+			<input type="password" id="password" name="password" required class="form-input" placeholder="Enter your password" />
+			<div id="password_error" class="error-message"></div>
+		</div>
+		<div class="form-group">
+			<button type="submit" class="btn btn-primary">Sign In</button>
+		</div>
+		<div class="auth-alt-action">
+			<p>Don't have an account? <a href="/signup">Sign up</a></p>
+			<p><a href="/forgot-password">Forgot password?</a></p>
+		</div>
+	</form>
 
-            <button type="submit" class="btn btn-primary">
-                Sign in
-            </button>
-
-            <div class="auth-alt-action">
-                <p>Don't have an account? <a href="/signup">Sign up</a></p>
-            </div>
-        </form>
-    </section>
-} 
+	<script type="module" src={ web.GetAssetPath("src/js/login.ts") }></script>
+}

@@ -1,0 +1,22 @@
+package components
+
+templ FormCard(title, description, lastUpdated string) {
+	<div class="form-card">
+		<div class="form-card-content">
+			<h3 class="form-card-title">{ title }</h3>
+			<p class="form-card-description">{ description }</p>
+			<p class="form-card-meta">{ lastUpdated }</p>
+		</div>
+		<div class="form-card-actions">
+			<button class="button button-secondary" onclick="window.location.href='/forms/edit'">
+				Edit
+			</button>
+			<button class="button button-secondary" onclick="window.location.href='/forms/preview'">
+				Preview
+			</button>
+			<button class="button button-secondary" onclick="window.location.href='/forms/responses'">
+				Responses
+			</button>
+		</div>
+	</div>
+} 

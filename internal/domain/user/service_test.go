@@ -1,6 +1,7 @@
 package user_test
 
 import (
+	"context"
 	"testing"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -24,14 +25,14 @@ func NewMockStore() *MockStore {
 }
 
 // Create implements Store.Create
-func (s *MockStore) Create(u *user.User) error {
+func (s *MockStore) Create(ctx context.Context, u *user.User) error {
 	s.users[u.ID] = u
 	s.email[u.Email] = u
 	return nil
 }
 
 // GetByID implements Store.GetByID
-func (s *MockStore) GetByID(id uint) (*user.User, error) {
+func (s *MockStore) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	if u, ok := s.users[id]; ok {
 		return u, nil
 	}
@@ -39,7 +40,7 @@ func (s *MockStore) GetByID(id uint) (*user.User, error) {
 }
 
 // GetByEmail implements Store.GetByEmail
-func (s *MockStore) GetByEmail(email string) (*user.User, error) {
+func (s *MockStore) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	if u, ok := s.email[email]; ok {
 		return u, nil
 	}
@@ -47,7 +48,7 @@ func (s *MockStore) GetByEmail(email string) (*user.User, error) {
 }
 
 // Update implements Store.Update
-func (s *MockStore) Update(u *user.User) error {
+func (s *MockStore) Update(ctx context.Context, u *user.User) error {
 	if _, ok := s.users[u.ID]; !ok {
 		return user.ErrUserNotFound
 	}
@@ -57,7 +58,7 @@ func (s *MockStore) Update(u *user.User) error {
 }
 
 // Delete implements Store.Delete
-func (s *MockStore) Delete(id uint) error {
+func (s *MockStore) Delete(ctx context.Context, id uint) error {
 	if u, ok := s.users[id]; ok {
 		delete(s.users, id)
 		delete(s.email, u.Email)
@@ -67,7 +68,7 @@ func (s *MockStore) Delete(id uint) error {
 }
 
 // List implements Store.List
-func (s *MockStore) List() ([]user.User, error) {
+func (s *MockStore) List(ctx context.Context) ([]user.User, error) {
 	users := make([]user.User, 0, len(s.users))
 	for _, u := range s.users {
 		users = append(users, *u)
@@ -79,7 +80,7 @@ func TestUserService(t *testing.T) {
 	ctx := t.Context()
 	mockStore := NewMockStore()
 	mockLogger := mocklogging.NewMockLogger()
-	service := user.NewService(mockStore, mockLogger)
+	service := user.NewService(mockStore, mockLogger, "test-jwt-secret")
 
 	t.Run("signup and login flow", func(t *testing.T) {
 		// Create signup request
@@ -90,13 +91,7 @@ func TestUserService(t *testing.T) {
 			LastName:  "User",
 		}
 
-		// Mock store expectations
-		mockStore.Create(&user.User{
-			Email:     signup.Email,
-			FirstName: signup.FirstName,
-			LastName:  signup.LastName,
-		})
-
+		// Test signup
 		newUser, signupErr := service.SignUp(ctx, signup)
 		require.NoError(t, signupErr)
 		require.NotNil(t, newUser)
@@ -106,9 +101,6 @@ func TestUserService(t *testing.T) {
 			Email:    "test@example.com",
 			Password: "password123",
 		}
-
-		// Mock store expectations
-		mockStore.GetByEmail(login.Email)
 
 		// Test successful login
 		authUser, loginErr := service.Login(ctx, login)
@@ -121,9 +113,6 @@ func TestUserService(t *testing.T) {
 			Password: "wrongpassword",
 		}
 
-		// Mock store expectations
-		mockStore.GetByEmail(invalidLogin.Email)
-
 		_, invalidLoginErr := service.Login(ctx, invalidLogin)
 		require.Error(t, invalidLoginErr)
 
@@ -132,9 +121,6 @@ func TestUserService(t *testing.T) {
 			Email:    "nonexistent@example.com",
 			Password: "password123",
 		}
-
-		// Mock store expectations
-		mockStore.GetByEmail(nonExistentLogin.Email)
 
 		_, nonExistentErr := service.Login(ctx, nonExistentLogin)
 		require.Error(t, nonExistentErr)

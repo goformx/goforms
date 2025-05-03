@@ -32,3 +32,6 @@ air.log
 # Task checksum
 .task/
 coverage/coverage.html
+
+node_modules/
+static/dist/

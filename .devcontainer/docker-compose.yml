@@ -8,6 +8,9 @@ services:
     command: sleep infinity
     networks:
       - app-net
+    ports:
+      - "8090:8090"
+      - "3000:3000"
     depends_on:
       db:
         condition: service_healthy
@@ -19,12 +22,12 @@ services:
       - mariadb-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
     env_file:
-      - .env
+      - ../.env
     environment:
-      - MARIADB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
-      - MARIADB_USER=${DB_USER}
-      - MARIADB_PASSWORD=${DB_PASSWORD}
-      - MARIADB_DATABASE=${DB_NAME}
+      - MARIADB_ROOT_PASSWORD=${GOFORMS_DB_ROOT_PASSWORD}
+      - MARIADB_USER=${GOFORMS_DB_USER}
+      - MARIADB_PASSWORD=${GOFORMS_DB_PASSWORD}
+      - MARIADB_DATABASE=${GOFORMS_DB_NAME}
     ports:
       - "3306:3306"
       - "8098:8080"  # For adminer

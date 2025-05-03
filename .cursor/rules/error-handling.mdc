@@ -1,0 +1,83 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Error Handling Guidelines
+
+This project implements a comprehensive error handling system using domain-specific errors.
+
+## Error Types
+The central error package [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go) defines:
+
+1. **Validation Errors**
+   - ErrCodeValidation
+   - ErrCodeRequiredField
+   - ErrCodeInvalidFormat
+   - ErrCodeInvalidValue
+
+2. **Authentication Errors**
+   - ErrCodeUnauthorized
+   - ErrCodeInvalidToken
+   - ErrCodeTokenExpired
+   - ErrCodeInvalidCredentials
+
+3. **Authorization Errors**
+   - ErrCodeForbidden
+   - ErrCodeInsufficientRole
+
+4. **Resource Errors**
+   - ErrCodeNotFound
+   - ErrCodeAlreadyExists
+   - ErrCodeConflict
+
+5. **System Errors**
+   - ErrCodeInternal
+   - ErrCodeDatabase
+   - ErrCodeTimeout
+
+## Error Creation
+
+### Creating New Errors
+```go
+err := errors.New(errors.ErrCodeValidation, "validation failed")
+```
+
+### Wrapping Errors
+```go
+err := errors.Wrap(originalErr, errors.ErrCodeDatabase, "database operation failed")
+```
+
+### Adding Context
+```go
+err := errors.New(errors.ErrCodeValidation, "validation failed").
+    WithContext("field", "email").
+    WithContext("value", "invalid@email")
+```
+
+## Error Handling Best Practices
+
+1. **Use Domain-Specific Errors**
+   - Create appropriate error types
+   - Use meaningful error codes
+   - Add relevant context
+
+2. **Error Wrapping**
+   - Wrap errors at boundaries
+   - Preserve error context
+   - Add meaningful messages
+
+3. **Error Response**
+   - Return appropriate HTTP status codes
+   - Include error details in response
+   - Log errors appropriately
+
+4. **Validation Errors**
+   - Use validation package
+   - Return descriptive messages
+   - Include field context
+
+5. **System Errors**
+   - Log with stack traces
+   - Don't expose internals
+   - Use appropriate error codes

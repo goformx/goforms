@@ -46,15 +46,20 @@ type StoreParams struct {
 	Logger logging.Logger
 }
 
-// NewStores creates all database stores
-func NewStores(p StoreParams) (contact.Store, subscription.Store, user.Store, error) {
+// NewStores creates and returns all required stores
+func NewStores(p StoreParams) (
+	contactStore contact.Store,
+	subscriptionStore subscription.Store,
+	userStore user.Store,
+	err error,
+) {
 	p.Logger.Debug("creating database stores",
 		logging.Bool("db_available", p.DB != nil),
 	)
 
-	contactStore := contactstore.NewStore(p.DB, p.Logger)
-	subscriptionStore := subscriptionstore.NewStore(p.DB, p.Logger)
-	userStore := userstore.NewStore(p.DB, p.Logger)
+	contactStore = contactstore.NewStore(p.DB, p.Logger)
+	subscriptionStore = subscriptionstore.NewStore(p.DB, p.Logger)
+	userStore = userstore.NewStore(p.DB, p.Logger)
 
 	return contactStore, subscriptionStore, userStore, nil
 }

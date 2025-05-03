@@ -1,0 +1,78 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Database Guidelines
+
+This project uses MariaDB as the primary database with sqlx for database operations.
+
+## Key Components
+1. **Database Connection** [internal/infrastructure/database/database.go](mdc:internal/infrastructure/database/database.go)
+   - Uses sqlx for enhanced database operations
+   - Implements proper connection pooling
+   - Handles context propagation
+
+2. **Store Implementation** [internal/infrastructure/persistence/store/user/store.go](mdc:internal/infrastructure/persistence/store/user/store.go)
+   - Implements repository pattern
+   - Uses prepared statements
+   - Handles transactions properly
+   - Includes proper error handling
+
+## Best Practices
+1. **Context Usage**
+   - Always use context-aware methods:
+   ```go
+   db.QueryContext(ctx, query)
+   db.ExecContext(ctx, query)
+   db.GetContext(ctx, &dest, query)
+   db.SelectContext(ctx, &dest, query)
+   ```
+
+2. **Transaction Handling**
+   ```go
+   tx, err := db.BeginTx(ctx, nil)
+   if err != nil {
+       return fmt.Errorf("begin transaction: %w", err)
+   }
+   defer func() {
+       if err != nil {
+           tx.Rollback()
+           return
+       }
+       err = tx.Commit()
+   }()
+   ```
+
+3. **Error Handling**
+   - Use domain-specific errors
+   - Wrap database errors with context
+   - Handle no rows case explicitly
+   ```go
+   if errors.Is(err, sql.ErrNoRows) {
+       return nil, domain.ErrNotFound
+   }
+   ```
+
+4. **Query Organization**
+   - Use named parameters for safety
+   - Keep SQL queries readable
+   - Example:
+   ```go
+   query := `
+       SELECT id, name, email 
+       FROM users 
+       WHERE status = :status
+   `
+   ```
+
+## Migration Management
+- Use golang-migrate for database migrations
+- Store migrations in [migrations](mdc:migrations) directory
+- Version migrations sequentially
+- Include both up and down migrations
+- Example migration naming:
+  ```
+  000001_create_users_table.up.sql
+  000001_create_users_table.down.sql
+  ```

@@ -3,12 +3,27 @@ package pages
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
-templ Signup(data layouts.PageData) {
-	@layouts.Layout(data)
+templ Signup(data shared.PageData) {
+	@layouts.Layout(data, signupContent(data))
 }
 
-templ SignupContent() {
-	@components.SignupForm()
+templ signupContent(data shared.PageData) {
+	<div class="auth-page">
+		<div class="auth-container">
+			<div class="auth-card">
+				<div class="auth-header">
+					<h2 class="auth-title">Create your account</h2>
+					<p class="auth-subtitle">Join us to get started with your forms</p>
+				</div>
+				@components.SignupForm(data)
+			</div>
+		</div>
+	</div>
+
+	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
+	<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
 } 

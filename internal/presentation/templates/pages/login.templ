@@ -3,12 +3,26 @@ package pages
 import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
-templ Login(data layouts.PageData) {
-	@layouts.Layout(data)
+templ Login(data shared.PageData) {
+	@layouts.Layout(data, loginContent(data))
 }
 
-templ LoginContent() {
-	@components.LoginForm()
+templ loginContent(data shared.PageData) {
+	<div class="auth-page">
+		<div class="auth-container">
+			<div class="auth-card">
+				<div class="auth-header">
+					<h2 class="auth-title">Sign in to your account</h2>
+				</div>
+				@components.LoginForm(data)
+			</div>
+		</div>
+	</div>
+}
+
+templ LoginPage(data shared.PageData) {
+	@components.LoginForm(data)
 } 

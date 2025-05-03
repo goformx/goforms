@@ -3,11 +3,17 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+)
+
+const (
+	// CookieExpiryMinutes is the number of minutes before a cookie expires
+	CookieExpiryMinutes = 15
 )
 
 // AuthHandlerOption defines an auth handler option
@@ -77,19 +83,39 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 func (h *AuthHandler) handleSignup(c echo.Context) error {
 	var signup user.Signup
 	if err := c.Bind(&signup); err != nil {
+		h.Logger.Error("failed to bind signup request", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
+	h.Logger.Debug("received signup request",
+		logging.String("email", signup.Email),
+		logging.String("first_name", signup.FirstName),
+		logging.String("last_name", signup.LastName),
+	)
+
 	if err := c.Validate(signup); err != nil {
+		h.Logger.Error("signup validation failed", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
+	h.Logger.Debug("calling user service SignUp")
 	newUser, err := h.userService.SignUp(c.Request().Context(), &signup)
 	if err != nil {
-		h.LogError("failed to create user", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user")
+		h.Logger.Debug("SignUp returned error", logging.Error(err))
+
+		switch {
+		case errors.Is(err, user.ErrUserExists):
+			return echo.NewHTTPError(http.StatusConflict, "Email already exists")
+		default:
+			h.Logger.Error("unexpected error during signup", logging.Error(err))
+			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user")
+		}
 	}
 
+	h.Logger.Debug("signup successful",
+		logging.Uint("user_id", newUser.ID),
+		logging.String("email", newUser.Email),
+	)
 	return c.JSON(http.StatusCreated, newUser)
 }
 
@@ -107,18 +133,50 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 func (h *AuthHandler) handleLogin(c echo.Context) error {
 	var login user.Login
 	if err := c.Bind(&login); err != nil {
+		h.Logger.Error("failed to bind login request", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
+	h.Logger.Debug("login attempt",
+		logging.String("email", login.Email),
+		logging.Bool("has_password", login.Password != ""),
+	)
+
 	if err := c.Validate(login); err != nil {
+		h.Logger.Error("login validation failed", logging.Error(err))
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	tokens, err := h.userService.Login(c.Request().Context(), &login)
 	if err != nil {
-		h.LogError("failed to authenticate user", err)
+		h.Logger.Error("login failed",
+			logging.Error(err),
+			logging.String("email", login.Email),
+		)
 		return echo.NewHTTPError(http.StatusUnauthorized, "Invalid credentials")
 	}
+
+	// Set access token in cookie
+	cookie := new(http.Cookie)
+	cookie.Name = "token"
+	cookie.Value = tokens.AccessToken
+	cookie.Expires = time.Now().Add(CookieExpiryMinutes * time.Minute)
+	cookie.Path = "/"
+	cookie.HttpOnly = true
+	cookie.Secure = true
+	cookie.SameSite = http.SameSiteStrictMode
+	c.SetCookie(cookie)
+
+	// Set refresh token in cookie
+	refreshCookie := new(http.Cookie)
+	refreshCookie.Name = "refresh_token"
+	refreshCookie.Value = tokens.RefreshToken
+	refreshCookie.Expires = time.Now().Add(7 * 24 * time.Hour) // Same as refresh token expiry
+	refreshCookie.Path = "/"
+	refreshCookie.HttpOnly = true
+	refreshCookie.Secure = true
+	refreshCookie.SameSite = http.SameSiteStrictMode
+	c.SetCookie(refreshCookie)
 
 	return c.JSON(http.StatusOK, tokens)
 }
@@ -134,15 +192,36 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 // @Failure 401 {object} echo.HTTPError
 // @Router /api/v1/auth/logout [post]
 func (h *AuthHandler) handleLogout(c echo.Context) error {
-	token := c.Request().Header.Get("Authorization")
-	if token == "" {
-		return echo.NewHTTPError(http.StatusUnauthorized, "Missing authorization token")
+	// Get token from cookie
+	token, err := c.Cookie("token")
+	if err == nil && token.Value != "" {
+		// Blacklist the token
+		logoutErr := h.userService.Logout(c.Request().Context(), token.Value)
+		if logoutErr != nil {
+			h.Logger.Error("failed to blacklist token", logging.Error(logoutErr))
+		}
 	}
 
-	if err := h.userService.Logout(c.Request().Context(), token); err != nil {
-		h.LogError("failed to logout user", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to logout")
-	}
+	// Clear cookies
+	c.SetCookie(&http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
 
-	return c.JSON(http.StatusOK, map[string]string{"message": "Successfully logged out"})
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+	})
+
+	return c.NoContent(http.StatusOK)
 }

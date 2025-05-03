@@ -1,0 +1,77 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Dependency Injection Guidelines
+
+This project uses Uber's fx framework for dependency injection with the following organization:
+
+## Module Structure
+Each domain area should have its own module.go file:
+```go
+fx.Module("domain", 
+  fx.Provide(
+    NewService,
+    NewRepository,
+  ),
+  fx.Invoke(
+    RegisterHandlers,
+  ),
+)
+```
+
+## Component Guidelines
+
+### Service Components
+1. Define interfaces in domain layer
+2. Implement in infrastructure layer
+3. Use fx.Annotate for interface bindings
+4. Provide clear lifecycle hooks
+
+### Repository Components
+1. Define interfaces in domain layer
+2. Implement in infrastructure layer
+3. Use proper connection pooling
+4. Handle transactions appropriately
+
+### Handler Components
+1. Register routes in fx.Invoke
+2. Use echo.Context
+3. Implement proper validation
+4. Return consistent responses
+
+## Best Practices
+
+1. Group related components in modules
+2. Use clear, descriptive module names
+3. Handle component lifecycle properly
+4. Use proper error handling
+5. Implement proper logging
+
+## Example Modules
+
+### Form Module
+```go
+fx.Module("form",
+  fx.Provide(
+    NewFormService,
+    NewFormRepository,
+    NewFormEventHandler,
+  ),
+  fx.Invoke(
+    RegisterFormHandlers,
+  ),
+)
+```
+
+### Infrastructure Module
+```go
+fx.Module("infrastructure",
+  fx.Provide(
+    NewDBConnection,
+    NewLogger,
+    NewEventDispatcher,
+  ),
+)
+```

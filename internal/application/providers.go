@@ -22,7 +22,9 @@ func NewEcho(log logging.Logger) *echo.Echo {
 	e.HidePort = true
 
 	// Setup middleware
-	mw := middleware.New(log)
+	mw := middleware.New(&middleware.ManagerConfig{
+		Logger: log,
+	})
 	mw.Setup(e)
 
 	return e

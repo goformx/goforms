@@ -1,18 +1,14 @@
 package pages
 
 import (
-	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
-templ Demo(data layouts.PageData) {
-	@layouts.Layout(layouts.PageData{
-		Title: data.Title,
-		Content: DemoContent(),
-		Styles: data.Styles,
-		User: data.User,
-		Debug: data.Debug,
-	})
+templ Demo(data shared.PageData) {
+	@layouts.Layout(data, DemoContent())
 }
 
 templ DemoCard(content templ.Component) {
@@ -67,5 +63,5 @@ templ DemoContent() {
 			</div>
 		</div>
 	</section>
-	<script src="/static/js/demo.js"></script>
+	<script src={ "/static/" + web.GetAssetPath("demo.js") }></script>
 } 

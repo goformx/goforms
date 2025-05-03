@@ -1,0 +1,301 @@
+package client
+
+import (
+	"bytes"
+	"context"
+	"encoding/json"
+	"fmt"
+	"io"
+	"net/http"
+	"time"
+
+	"github.com/jonesrussell/goforms/internal/domain/contact"
+	"github.com/jonesrussell/goforms/internal/domain/subscription"
+	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+)
+
+const (
+	// defaultTimeout is the default HTTP client timeout in seconds
+	defaultTimeout = 30
+)
+
+// Client represents an HTTP client for interacting with the API
+type Client struct {
+	baseURL    string
+	httpClient *http.Client
+	logger     logging.Logger
+}
+
+// NewClient creates a new API client
+func NewClient(baseURL string, logger logging.Logger) *Client {
+	return &Client{
+		baseURL: baseURL,
+		httpClient: &http.Client{
+			Timeout: defaultTimeout * time.Second,
+		},
+		logger: logger,
+	}
+}
+
+// Auth API
+
+// SignUp creates a new user account
+func (c *Client) SignUp(ctx context.Context, signup *user.Signup) (*user.User, error) {
+	url := fmt.Sprintf("%s/api/v1/auth/signup", c.baseURL)
+	resp, err := c.doRequest(ctx, http.MethodPost, url, signup)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var newUser user.User
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&newUser); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
+	}
+	return &newUser, nil
+}
+
+// Login authenticates a user and returns JWT tokens
+func (c *Client) Login(ctx context.Context, login *user.Login) (*user.TokenPair, error) {
+	url := fmt.Sprintf("%s/api/v1/auth/login", c.baseURL)
+	resp, err := c.doRequest(ctx, http.MethodPost, url, login)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var tokenPair user.TokenPair
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&tokenPair); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
+	}
+	return &tokenPair, nil
+}
+
+// Logout invalidates the user's tokens
+func (c *Client) Logout(ctx context.Context, token string) error {
+	url := fmt.Sprintf("%s/api/v1/auth/logout", c.baseURL)
+	req, err := http.NewRequestWithContext(ctx, http.MethodPost, url, http.NoBody)
+	if err != nil {
+		return fmt.Errorf("failed to create request: %w", err)
+	}
+	req.Header.Set("Authorization", token)
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return fmt.Errorf("failed to send request: %w", err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// Contact API
+
+// SubmitContactForm submits a new contact form
+func (c *Client) SubmitContactForm(ctx context.Context, submission *contact.Submission) error {
+	url := fmt.Sprintf("%s/api/v1/contact", c.baseURL)
+	resp, err := c.doRequest(ctx, http.MethodPost, url, submission)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// ListContactSubmissions retrieves all contact form submissions
+func (c *Client) ListContactSubmissions(ctx context.Context) ([]contact.Submission, error) {
+	url := fmt.Sprintf("%s/api/v1/contact", c.baseURL)
+	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var submissions []contact.Submission
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&submissions); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
+	}
+	return submissions, nil
+}
+
+// GetContactSubmission retrieves a specific contact form submission
+func (c *Client) GetContactSubmission(ctx context.Context, id int64) (*contact.Submission, error) {
+	url := fmt.Sprintf("%s/api/v1/contact/%d", c.baseURL, id)
+	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var submission contact.Submission
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&submission); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
+	}
+	return &submission, nil
+}
+
+// UpdateContactSubmissionStatus updates the status of a contact form submission
+func (c *Client) UpdateContactSubmissionStatus(ctx context.Context, id int64, status contact.Status) error {
+	url := fmt.Sprintf("%s/api/v1/contact/%d", c.baseURL, id)
+	resp, err := c.doRequest(ctx, http.MethodPut, url, status)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// Subscription API
+
+// CreateSubscription creates a new subscription
+func (c *Client) CreateSubscription(ctx context.Context, sub *subscription.Subscription) error {
+	url := fmt.Sprintf("%s/api/v1/subscriptions", c.baseURL)
+	resp, err := c.doRequest(ctx, http.MethodPost, url, sub)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusCreated {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// ListSubscriptions retrieves all subscriptions
+func (c *Client) ListSubscriptions(ctx context.Context) ([]subscription.Subscription, error) {
+	url := fmt.Sprintf("%s/api/v1/subscriptions", c.baseURL)
+	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var subs []subscription.Subscription
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&subs); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
+	}
+	return subs, nil
+}
+
+// GetSubscription retrieves a specific subscription
+func (c *Client) GetSubscription(ctx context.Context, id int64) (*subscription.Subscription, error) {
+	url := fmt.Sprintf("%s/api/v1/subscriptions/%d", c.baseURL, id)
+	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var sub subscription.Subscription
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&sub); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
+	}
+	return &sub, nil
+}
+
+// UpdateSubscriptionStatus updates the status of a subscription
+func (c *Client) UpdateSubscriptionStatus(ctx context.Context, id int64, status subscription.Status) error {
+	url := fmt.Sprintf("%s/api/v1/subscriptions/%d/status", c.baseURL, id)
+	resp, err := c.doRequest(ctx, http.MethodPut, url, status)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// DeleteSubscription deletes a subscription
+func (c *Client) DeleteSubscription(ctx context.Context, id int64) error {
+	url := fmt.Sprintf("%s/api/v1/subscriptions/%d", c.baseURL, id)
+	resp, err := c.doRequest(ctx, http.MethodDelete, url, nil)
+	if err != nil {
+		return err
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusNoContent {
+		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+	return nil
+}
+
+// Version API
+
+// GetVersion retrieves the application version information
+func (c *Client) GetVersion(ctx context.Context) (*VersionInfo, error) {
+	url := fmt.Sprintf("%s/v1/version", c.baseURL)
+	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
+	if err != nil {
+		return nil, err
+	}
+	defer resp.Body.Close()
+
+	var info VersionInfo
+	if decodeErr := json.NewDecoder(resp.Body).Decode(&info); decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
+	}
+	return &info, nil
+}
+
+// VersionInfo represents the application version information
+type VersionInfo struct {
+	Version   string `json:"version"`
+	BuildTime string `json:"buildTime"`
+	GitCommit string `json:"gitCommit"`
+	GoVersion string `json:"goVersion"`
+}
+
+// Helper methods
+
+func (c *Client) doRequest(ctx context.Context, method, url string, body any) (*http.Response, error) {
+	var reqBody []byte
+	if body != nil {
+		var marshalErr error
+		reqBody, marshalErr = json.Marshal(body)
+		if marshalErr != nil {
+			return nil, fmt.Errorf("failed to marshal request body: %w", marshalErr)
+		}
+	}
+
+	req, err := http.NewRequestWithContext(ctx, method, url, http.NoBody)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create request: %w", err)
+	}
+
+	if body != nil {
+		req.Header.Set("Content-Type", "application/json")
+		req.Body = http.NoBody
+		req.GetBody = func() (io.ReadCloser, error) {
+			return io.NopCloser(bytes.NewReader(reqBody)), nil
+		}
+		req.Body, _ = req.GetBody()
+	}
+
+	resp, err := c.httpClient.Do(req)
+	if err != nil {
+		return nil, fmt.Errorf("failed to send request: %w", err)
+	}
+
+	if resp.StatusCode >= http.StatusBadRequest {
+		return nil, fmt.Errorf("unexpected status code: %d", resp.StatusCode)
+	}
+
+	return resp, nil
+}

@@ -136,6 +136,11 @@ func NewTestLogger() (Logger, error) {
 	return &logger{log: zapLog}, nil
 }
 
+// NewZapLogger creates a new logger from a zap logger
+func NewZapLogger(zapLog *zap.Logger) Logger {
+	return &logger{log: zapLog}
+}
+
 func (l *logger) Info(msg string, fields ...Field)  { l.log.Info(msg, fields...) }
 func (l *logger) Error(msg string, fields ...Field) { l.log.Error(msg, fields...) }
 func (l *logger) Debug(msg string, fields ...Field) { l.log.Debug(msg, fields...) }

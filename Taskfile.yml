@@ -41,18 +41,43 @@ tasks:
     cmds:
       - go mod tidy
       - go install github.com/a-h/templ/cmd/templ@latest
+      - go install github.com/air-verse/air@latest
       - export PATH=$PATH:$(go env GOPATH)/bin
+      - npm install
 
   generate:
-    desc: Generate code from templates
+    desc: Generate code from templates and frontend assets
     cmds:
       - $(go env GOPATH)/bin/templ generate ./internal/...
 
   run:
     desc: Run the application
-    deps: [build]
     cmds:
       - ./bin/server
+
+  dev:backend:
+    desc: Run the backend with hot reloading
+    deps: [generate]
+    cmds:
+      - air
+
+  dev:frontend:
+    desc: Run Vite development server
+    deps: [build:frontend]
+    cmds:
+      - echo "Starting Vite development server..."
+      - echo "Vite will be available at http://localhost:3000"
+      - echo "HMR is enabled with WebSocket connection"
+      - npx vite --host 0.0.0.0 --port 3000 --logLevel debug
+
+  dev:
+    desc: Run both backend and frontend in development mode
+    deps: [dev:backend, dev:frontend]
+    cmds:
+      - echo "Starting development environment..."
+      - echo "Backend will be available at http://localhost:8080"
+      - echo "Frontend will be available at http://localhost:3000"
+      - echo "Press Ctrl+C to stop both servers"
 
   clean:
     desc: Clean build artifacts
@@ -60,10 +85,13 @@ tasks:
       - rm -rf bin/
       - rm -f coverage.out
       - rm -f coverage.html
+      - rm -rf dist/
+      - rm -rf node_modules/
 
   lint:
     desc: Run linters
     cmds:
+      - golangci-lint fmt ./...
       - go vet ./...
       - golangci-lint run
 
@@ -71,7 +99,7 @@ tasks:
     desc: Run all tests with new Go 1.24 features
     deps: [generate]
     cmds:
-      - go test -v -json -test.timeout=5m ./internal/...
+      - go test -v -test.timeout=5m ./internal/...
 
   test:cover:
     desc: Run tests with coverage using Go 1.24 features
@@ -90,27 +118,41 @@ tasks:
     cmds:
       - go test -v -json -test.timeout=5m ./internal/domain/...
 
+  test:integration:
+    desc: Run integration tests with Go 1.24 features
+    deps: [generate]
+    cmds:
+      - go test -v -json -test.timeout=5m ./internal/infrastructure/...
+
   build:
     desc: Build the application
     deps: [generate]
     cmds:
+      - task: build:frontend
       - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
+
+  build:frontend:
+    desc: Build frontend assets
+    cmds:
+      - echo "Building frontend assets..."
+      - npm run build
+      - echo "Frontend build complete"
 
   build:linux:
     desc: Build for Linux
-    deps: [generate]
+    deps: [generate, build:frontend]
     cmds:
       - GOOS=linux GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-linux-amd64 ./cmd/goforms
 
   build:darwin:
     desc: Build for macOS
-    deps: [generate]
+    deps: [generate, build:frontend]
     cmds:
       - GOOS=darwin GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-darwin-amd64 ./cmd/goforms
 
   build:windows:
     desc: Build for Windows
-    deps: [generate]
+    deps: [generate, build:frontend]
     cmds:
       - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/goforms
 

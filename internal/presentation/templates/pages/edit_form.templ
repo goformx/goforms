@@ -1,0 +1,49 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+)
+
+templ EditForm(data shared.PageData) {
+	@layouts.Dashboard(data)
+}
+
+templ EditFormContent(data shared.PageData) {
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-header">
+				<div class="dashboard-header-left">
+					<h1 class="dashboard-title">Edit Form</h1>
+					<p class="dashboard-subtitle">Configure your form settings and fields</p>
+				</div>
+			</div>
+
+			<div class="dashboard-content">
+				<form id="edit-form" class="auth-form" method="POST" action={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(data.Form.ID), 10)) } data-validate="editForm">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+					<div id="form_error" class="form-error"></div>
+
+					<div class="form-group">
+						<label for="title" class="form-label">Form Title</label>
+						<input type="text" id="title" name="title" required class="form-input" value={ data.Form.Title } placeholder="Enter form title" />
+						<div id="title_error" class="error-message"></div>
+					</div>
+
+					<div class="form-group">
+						<label for="description" class="form-label">Description</label>
+						<textarea id="description" name="description" rows="3" class="form-input" placeholder="Enter form description">{ data.Form.Description }</textarea>
+						<div id="description_error" class="error-message"></div>
+					</div>
+
+					<div class="form-actions">
+						<a href="/dashboard" class="btn btn-outline">Cancel</a>
+						<button type="submit" class="btn btn-primary">Save Changes</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+} 
