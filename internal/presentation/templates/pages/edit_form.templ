@@ -1,41 +1,43 @@
 package pages
 
 import (
+	"strconv"
+
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
-templ NewForm(data shared.PageData) {
-	@layouts.Layout(data, newFormContent(data))
+templ EditForm(data shared.PageData) {
+	@layouts.Layout(data, editFormContent(data))
 }
 
-templ newFormContent(data shared.PageData) {
+templ editFormContent(data shared.PageData) {
 	<div class="dashboard-page">
 		<div class="dashboard-container">
 			<div class="dashboard-header">
 				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Create New Form</h1>
-					<p class="dashboard-subtitle">Start building your form by providing basic information</p>
+					<h1 class="dashboard-title">Edit Form</h1>
+					<p class="dashboard-subtitle">Configure your form settings and fields</p>
 				</div>
 			</div>
 
 			<div class="dashboard-content">
-				<form class="auth-form" method="POST" action="/dashboard/forms">
+				<form class="auth-form" method="POST" action={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(data.Form.ID), 10)) }>
 					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 
 					<div class="form-group">
 						<label for="title" class="form-label">Form Title</label>
-						<input type="text" id="title" name="title" required class="form-input" placeholder="Enter form title" />
+						<input type="text" id="title" name="title" required class="form-input" value={ data.Form.Title } placeholder="Enter form title" />
 					</div>
 
 					<div class="form-group">
 						<label for="description" class="form-label">Description</label>
-						<textarea id="description" name="description" rows="3" class="form-input" placeholder="Enter form description"></textarea>
+						<textarea id="description" name="description" rows="3" class="form-input" placeholder="Enter form description">{ data.Form.Description }</textarea>
 					</div>
 
 					<div class="form-actions">
 						<a href="/dashboard" class="btn btn-outline">Cancel</a>
-						<button type="submit" class="btn btn-primary">Create Form</button>
+						<button type="submit" class="btn btn-primary">Save Changes</button>
 					</div>
 				</form>
 			</div>

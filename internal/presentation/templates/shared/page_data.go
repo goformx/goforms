@@ -9,6 +9,7 @@ type PageData struct {
 	Title         string
 	User          *user.User
 	Forms         []*form.Form
+	Form          *form.Form
 	CSRFToken     string
 	IsDevelopment bool
 }
