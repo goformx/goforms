@@ -8,6 +8,7 @@ import (
 	"log"
 
 	"github.com/jonesrussell/goforms/internal/domain/form"
+	"github.com/jonesrussell/goforms/internal/domain/form/model"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
@@ -155,4 +156,59 @@ func (s *store) Delete(id uint) error {
 	}
 
 	return nil
+}
+
+func (s *store) GetFormSubmissions(formID uint) ([]*model.FormSubmission, error) {
+	query := `
+		SELECT id, form_id, data, submitted_at, status, metadata
+		FROM form_submissions
+		WHERE form_id = ?
+		ORDER BY submitted_at DESC
+	`
+
+	rows, err := s.db.Query(query, formID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to query form submissions: %w", err)
+	}
+	defer rows.Close()
+
+	var submissions []*model.FormSubmission
+	for rows.Next() {
+		var (
+			dataJSON     []byte
+			metadataJSON []byte
+			submission   = &model.FormSubmission{}
+		)
+
+		scanErr := rows.Scan(
+			&submission.ID,
+			&submission.FormID,
+			&dataJSON,
+			&submission.SubmittedAt,
+			&submission.Status,
+			&metadataJSON,
+		)
+		if scanErr != nil {
+			s.logger.Error("Error scanning form submission row", logging.Error(scanErr))
+			continue
+		}
+
+		if unmarshalErr := json.Unmarshal(dataJSON, &submission.Data); unmarshalErr != nil {
+			s.logger.Error("Error unmarshaling submission data", logging.Error(unmarshalErr))
+			continue
+		}
+
+		if unmarshalErr := json.Unmarshal(metadataJSON, &submission.Metadata); unmarshalErr != nil {
+			s.logger.Error("Error unmarshaling submission metadata", logging.Error(unmarshalErr))
+			continue
+		}
+
+		submissions = append(submissions, submission)
+	}
+
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return nil, fmt.Errorf("error iterating form submissions: %w", rowsErr)
+	}
+
+	return submissions, nil
 }

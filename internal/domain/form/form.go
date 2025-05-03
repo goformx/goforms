@@ -3,6 +3,8 @@ package form
 import (
 	"context"
 	"time"
+
+	"github.com/jonesrussell/goforms/internal/domain/form/model"
 )
 
 // JSON represents a JSON object
@@ -26,6 +28,7 @@ type Store interface {
 	GetByID(id uint) (*Form, error)
 	GetByUserID(userID uint) ([]*Form, error)
 	Delete(id uint) error
+	GetFormSubmissions(formID uint) ([]*model.FormSubmission, error)
 }
 
 // Service defines the interface for form operations
@@ -33,7 +36,9 @@ type Service interface {
 	CreateForm(userID uint, title, description string, schema JSON) (*Form, error)
 	GetForm(id uint) (*Form, error)
 	GetUserForms(userID uint) ([]*Form, error)
+	UpdateForm(form *Form) error
 	DeleteForm(id uint) error
+	GetFormSubmissions(formID uint) ([]*model.FormSubmission, error)
 }
 
 // Field represents a form field

@@ -9,11 +9,11 @@ import (
 
 // FormSubmission represents a form submission
 type FormSubmission struct {
-	ID          string            `json:"id" validate:"required"`
-	FormID      string            `json:"form_id" validate:"required"`
-	Data        map[string]any    `json:"data" validate:"required"`
-	SubmittedAt time.Time         `json:"submitted_at" validate:"required"`
-	Status      SubmissionStatus  `json:"status" validate:"required"`
+	ID          string            `json:"id"`
+	FormID      uint              `json:"form_id"`
+	Data        map[string]any    `json:"data"`
+	SubmittedAt time.Time         `json:"submitted_at"`
+	Status      SubmissionStatus  `json:"status"`
 	Metadata    map[string]string `json:"metadata"`
 }
 
@@ -32,7 +32,7 @@ const (
 )
 
 // NewFormSubmission creates a new form submission
-func NewFormSubmission(formID string, data map[string]any, metadata map[string]string) (*FormSubmission, error) {
+func NewFormSubmission(formID uint, data map[string]any, metadata map[string]string) (*FormSubmission, error) {
 	submission := &FormSubmission{
 		ID:          generateSubmissionID(),
 		FormID:      formID,

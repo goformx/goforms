@@ -63,6 +63,12 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
 	}
 
+	// Parse formID to uint
+	id, err := strconv.ParseUint(formID, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
+	}
+
 	// Verify CSRF token if enabled
 	if csrfToken := c.Get("csrf"); csrfToken != nil {
 		// Log CSRF token presence for debugging
@@ -92,7 +98,7 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	}
 
 	// Create form submission
-	submission, err := model.NewFormSubmission(formID, formData, metadata)
+	submission, err := model.NewFormSubmission(uint(id), formData, metadata)
 	if err != nil {
 		h.base.LogError("failed to create form submission", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form submission")
@@ -101,7 +107,7 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	// Create form response
 	response := form.Response{
 		ID:          submission.ID,
-		FormID:      submission.FormID,
+		FormID:      formID,
 		Values:      submission.Data,
 		SubmittedAt: submission.SubmittedAt,
 	}

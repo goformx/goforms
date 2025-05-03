@@ -2,6 +2,8 @@ package form
 
 import (
 	"errors"
+
+	"github.com/jonesrussell/goforms/internal/domain/form/model"
 )
 
 type service struct {
@@ -62,4 +64,14 @@ func (s *service) GetUserForms(userID uint) ([]*Form, error) {
 
 func (s *service) DeleteForm(id uint) error {
 	return s.store.Delete(id)
+}
+
+func (s *service) UpdateForm(form *Form) error {
+	// TODO: Implement form update
+	return errors.New("not implemented")
+}
+
+// GetFormSubmissions returns all submissions for a form
+func (s *service) GetFormSubmissions(formID uint) ([]*model.FormSubmission, error) {
+	return s.store.GetFormSubmissions(formID)
 }

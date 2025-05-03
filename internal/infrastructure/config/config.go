@@ -139,13 +139,13 @@ func New() (*Config, error) {
 
 	// Debug environment variables
 	if os.Getenv("GOFORMS_APP_DEBUG") == "true" {
-		fmt.Fprintln(os.Stdout, "\n=== Environment Variables ===")
+		fmt.Fprintln(os.Stdout, "=== Environment Variables ===")
 		for _, env := range os.Environ() {
 			if strings.HasPrefix(env, "GOFORMS_") {
 				fmt.Fprintln(os.Stdout, env)
 			}
 		}
-		fmt.Fprintln(os.Stdout, "===========================\n")
+		fmt.Fprintln(os.Stdout, "===========================")
 	}
 
 	if err := envconfig.Process("GOFORMS", &cfg); err != nil {
@@ -154,7 +154,7 @@ func New() (*Config, error) {
 
 	// Debug output after configuration is loaded
 	if cfg.App.Debug {
-		fmt.Fprintln(os.Stdout, "\n=== Loaded Configuration ===")
+		fmt.Fprintln(os.Stdout, "=== Loaded Configuration ===")
 		fmt.Fprintf(os.Stdout, "App Configuration:\n")
 		fmt.Fprintf(os.Stdout, "  Name: %s\n", cfg.App.Name)
 		fmt.Fprintf(os.Stdout, "  Env: %s\n", cfg.App.Env)
@@ -192,7 +192,7 @@ func New() (*Config, error) {
 		fmt.Fprintf(os.Stdout, "  Burst: %d\n", cfg.RateLimit.Burst)
 		fmt.Fprintf(os.Stdout, "  Time Window: %v\n", cfg.RateLimit.TimeWindow)
 		fmt.Fprintf(os.Stdout, "  Per IP: %v\n", cfg.RateLimit.PerIP)
-		fmt.Fprintln(os.Stdout, "===========================\n")
+		fmt.Fprintln(os.Stdout, "===========================")
 	}
 
 	validate := validator.New()

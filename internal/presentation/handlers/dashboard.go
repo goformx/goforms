@@ -39,6 +39,7 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 	dashboard.GET("/forms/new", h.ShowNewForm)
 	dashboard.POST("/forms", h.CreateForm)
 	dashboard.GET("/forms/:id/edit", h.ShowEditForm)
+	dashboard.GET("/forms/:id/submissions", h.ShowFormSubmissions)
 }
 
 func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
@@ -183,4 +184,57 @@ func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
 
 	// Render edit form page
 	return pages.EditForm(data).Render(c.Request().Context(), c.Response().Writer)
+}
+
+// ShowFormSubmissions handles viewing form submissions
+func (h *DashboardHandler) ShowFormSubmissions(c echo.Context) error {
+	currentUser, ok := c.Get("user").(*user.User)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	}
+
+	// Get form ID from URL parameter
+	formID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
+	}
+
+	// Get form from service
+	form, err := h.formService.GetForm(uint(formID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+	}
+
+	// Verify form belongs to current user
+	if form.UserID != currentUser.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	}
+
+	// Get form submissions
+	submissions, err := h.formService.GetFormSubmissions(uint(formID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch submissions")
+	}
+
+	// Get CSRF token from context
+	csrfToken, ok := c.Get("csrf").(string)
+	if !ok {
+		csrfToken = "" // Set empty string if token not found
+	}
+
+	// Create page data
+	data := shared.PageData{
+		Title:       "Form Submissions - GoForms",
+		User:        currentUser,
+		Form:        form,
+		Submissions: submissions,
+		CSRFToken:   csrfToken,
+		AssetPath:   web.GetAssetPath,
+	}
+
+	// Set content
+	data.Content = pages.FormSubmissionsContent(data)
+
+	// Render form submissions page
+	return pages.FormSubmissions(data).Render(c.Request().Context(), c.Response().Writer)
 }

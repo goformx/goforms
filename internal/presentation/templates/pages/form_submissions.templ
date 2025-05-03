@@ -1,0 +1,64 @@
+package pages
+
+import (
+	"strconv"
+
+	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+)
+
+templ FormSubmissions(data shared.PageData) {
+	@layouts.Dashboard(data)
+}
+
+templ FormSubmissionsContent(data shared.PageData) {
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-header">
+				<div class="dashboard-header-left">
+					<h1 class="dashboard-title">Form Submissions</h1>
+					<p class="dashboard-subtitle">View and manage submissions for { data.Form.Title }</p>
+				</div>
+				<a href={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(data.Form.ID), 10) + "/edit") } class="btn btn-outline">Back to Form</a>
+			</div>
+
+			<div class="dashboard-content">
+				<div class="dashboard-table">
+					<table>
+						<thead>
+							<tr>
+								<th>ID</th>
+								<th>Submitted At</th>
+								<th>Status</th>
+								<th>Actions</th>
+							</tr>
+						</thead>
+						<tbody>
+							if len(data.Submissions) == 0 {
+								<tr>
+									<td colspan="4" class="text-center">No submissions yet</td>
+								</tr>
+							} else {
+								for _, submission := range data.Submissions {
+									<tr>
+										<td>{ submission.ID }</td>
+										<td>{ submission.SubmittedAt.Format("Jan 02, 2006 15:04:05") }</td>
+										<td>
+											<span class="status-badge status-{ string(submission.Status) }">{ string(submission.Status) }</span>
+										</td>
+										<td>
+											<div class="table-actions">
+												<button class="btn btn-sm btn-outline" onclick="viewSubmission('{ submission.ID }')">View</button>
+												<button class="btn btn-sm btn-danger" onclick="deleteSubmission('{ submission.ID }')">Delete</button>
+											</div>
+										</td>
+									</tr>
+								}
+							}
+						</tbody>
+					</table>
+				</div>
+			</div>
+		</div>
+	</div>
+} 
