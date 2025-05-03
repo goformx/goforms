@@ -101,16 +101,30 @@ func retrieveCSRFToken(c echo.Context) (string, error) {
 
 // isStaticFile checks if the given path is a static file
 func isStaticFile(path string) bool {
+	// Skip TypeScript files in development mode
+	if strings.HasSuffix(path, ".ts") {
+		return false
+	}
+
+	// Skip dist files in development mode
+	if strings.HasPrefix(path, "/static/dist/") {
+		return false
+	}
+
 	return strings.HasPrefix(path, "/static/") ||
 		path == StaticFileFavicon ||
-		path == StaticFileRobots
+		path == StaticFileRobots ||
+		strings.HasPrefix(path, "/@vite/") ||
+		strings.HasSuffix(path, ".js") ||
+		strings.HasSuffix(path, ".css")
 }
 
 // setupStaticFileMiddleware creates middleware to handle static files
 func setupStaticFileMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if isStaticFile(c.Request().URL.Path) {
+			path := c.Request().URL.Path
+			if isStaticFile(path) {
 				c.Set("skip_csrf", true)
 				c.Set("skip_auth", true)
 			}
@@ -210,6 +224,8 @@ func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 				c.Response().Header().Set("Content-Type", "image/x-icon")
 			case path == StaticFileRobots:
 				c.Response().Header().Set("Content-Type", "text/plain")
+			case strings.HasPrefix(path, "/@vite/"):
+				c.Response().Header().Set("Content-Type", "application/javascript")
 			}
 			return next(c)
 		}
@@ -234,14 +250,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
 	}
 
-	// MIME type middleware (must be before other middleware)
-	logMiddlewareRegistration(m.logger, "MIME type")
-	e.Pre(setupMIMETypeMiddleware())
-
-	// Static file middleware (must be before CSRF and auth)
-	logMiddlewareRegistration(m.logger, "static file")
-	e.Use(setupStaticFileMiddleware())
-
 	// Basic middleware
 	logMiddlewareRegistration(m.logger, "recovery")
 	e.Use(echomw.Recover())
@@ -258,6 +266,14 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Request logging middleware
 	logMiddlewareRegistration(m.logger, "request logging")
 	e.Use(LoggingMiddleware(m.logger))
+
+	// MIME type middleware (must be before static file middleware)
+	logMiddlewareRegistration(m.logger, "MIME type")
+	e.Use(setupMIMETypeMiddleware())
+
+	// Static file middleware (must be after MIME type middleware)
+	logMiddlewareRegistration(m.logger, "static file")
+	e.Use(setupStaticFileMiddleware())
 
 	// Security middleware with comprehensive configuration
 	logMiddlewareRegistration(m.logger, "security headers")

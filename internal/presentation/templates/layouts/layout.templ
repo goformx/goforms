@@ -7,41 +7,48 @@ import (
 )
 
 templ Layout(data shared.PageData, content templ.Component) {
-	<!DOCTYPE html>
-	<html lang="en">
-	<head>
-		<meta charset="UTF-8"/>
-		<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
-		<meta name="description" content="Goforms - A self-hosted form backend service built with Go"/>
-		<meta name="keywords" content="forms, golang, backend, self-hosted"/>
-		<meta name="color-scheme" content="light dark"/>
-		<meta name="csrf-token" content={ data.CSRFToken }/>
-		<title>{ data.Title } - Goforms</title>
-		
-		if data.IsDevelopment {
-			<script type="module" src="http://localhost:3000/@vite/client"></script>
-			<!-- Development mode - load assets directly -->
-			<link rel="stylesheet" href="http://localhost:3000/static/css/main.css"/>
-		} else {
-			<!-- Production mode - load hashed assets -->
-			<link rel="stylesheet" href={ "/static/dist/" + web.GetViteAssetPath("css/main.css") }/>
-		}
-	</head>
-	<body class="min-h-screen flex flex-col">
-		@components.Nav(data)
+<!DOCTYPE html>
+<html lang="en">
 
-		<main class="flex-1">
-			@content
-		</main>
+<head>
+	<meta charset="UTF-8" />
+	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+	<meta name="description" content="Goforms - A self-hosted form backend service built with Go" />
+	<meta name="keywords" content="forms, golang, backend, self-hosted" />
+	<meta name="color-scheme" content="light dark" />
+	<meta name="csrf-token" content={ data.CSRFToken } />
+	<title>{ data.Title } - Goforms</title>
 
-		@components.Footer()
-		
-		<!-- JavaScript Files -->
-		if data.IsDevelopment {
-			<script type="module" src="http://localhost:3000/static/js/main.ts"></script>
-		} else {
-			<script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/main.js") }></script>
-		}
-	</body>
-	</html>
+	if data.IsDevelopment {
+		<script type="module" src="http://localhost:3000/@vite/client"></script>
+		<script type="module" src="http://localhost:3000/src/js/main.ts"></script>
+		<link rel="stylesheet" href="http://localhost:3000/src/css/main.css" type="text/css"/>
+	} else {
+		<script type="module" src={ web.GetAssetPath("src/js/main.ts") }></script>
+		<link rel="stylesheet" href={ web.GetAssetPath("src/css/main.css") } type="text/css"/>
+	}
+
+</head>
+
+<body class="min-h-screen flex flex-col">
+	@components.Nav(data)
+
+	<main class="flex-1">
+		@content
+	</main>
+
+	@components.Footer()
+
+	if data.IsDevelopment {
+		<script type="module" src="http://localhost:3000/src/js/login.ts"></script>
+		<script type="module" src="http://localhost:3000/src/js/signup.ts"></script>
+		<script type="module" src="http://localhost:3000/src/js/validation.ts"></script>
+	} else {
+		<script type="module" src={ web.GetAssetPath("src/js/login.ts") }></script>
+		<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
+		<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
+	}
+</body>
+
+</html>
 }

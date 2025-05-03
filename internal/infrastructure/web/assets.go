@@ -6,28 +6,18 @@ import (
 	"path/filepath"
 )
 
-// AssetManifest represents the structure of Vite's manifest.json
-type AssetManifest struct {
-	Main struct {
-		File    string   `json:"file"`
-		CSS     []string `json:"css,omitempty"`
-		Imports []string `json:"imports,omitempty"`
-	} `json:"main"`
-	Validation struct {
-		File    string   `json:"file"`
-		CSS     []string `json:"css,omitempty"`
-		Imports []string `json:"imports,omitempty"`
-	} `json:"validation"`
-}
-
-type ViteManifest map[string]struct {
+// ManifestEntry represents a single entry in the Vite manifest file
+type ManifestEntry struct {
 	File    string   `json:"file"`
 	Src     string   `json:"src,omitempty"`
 	CSS     []string `json:"css,omitempty"`
 	Imports []string `json:"imports,omitempty"`
 }
 
-var manifest ViteManifest
+// Manifest represents the entire Vite manifest file
+type Manifest map[string]ManifestEntry
+
+var manifest Manifest
 
 func init() {
 	// Load the Vite manifest file
@@ -38,29 +28,36 @@ func init() {
 		return
 	}
 
-	unmarshalErr := json.Unmarshal(manifestData, &manifest)
-	if unmarshalErr != nil {
+	if err := json.Unmarshal(manifestData, &manifest); err != nil {
 		// Handle error gracefully in production
 		return
 	}
 }
 
-// GetAssetPath returns the hashed filename for a given asset
-func GetAssetPath(assetName string) string {
-	return GetViteAssetPath(assetName)
-}
-
-// GetViteAssetPath returns the correct path for a Vite asset
-func GetViteAssetPath(path string) string {
+// GetAssetPath returns the hashed path for a given source file
+// If the manifest can't be read or the file isn't found, it returns a default path
+func GetAssetPath(src string) string {
 	if manifest == nil {
-		// In development, return the path as is
-		return path
+		// Return a default path if manifest can't be read
+		switch src {
+		case "src/css/main.css":
+			return "/static/dist/css/styles.1OrqC9gA.css"
+		case "src/js/main.ts":
+			return "/static/dist/js/app.ChKofpG5.js"
+		case "src/js/login.ts":
+			return "/static/dist/js/login.CBkkGgj2.js"
+		case "src/js/signup.ts":
+			return "/static/dist/js/signup.BFv0nUSD.js"
+		case "src/js/validation.ts":
+			return "/static/dist/js/validation.Cyw-oOUb.js"
+		default:
+			return ""
+		}
 	}
 
-	// In production, get the hashed filename from the manifest
-	if entry, ok := manifest[path]; ok {
-		return entry.File
+	if entry, ok := manifest[src]; ok {
+		return filepath.Join("/static/dist", entry.File)
 	}
 
-	return path
+	return ""
 }

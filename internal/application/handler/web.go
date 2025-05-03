@@ -11,6 +11,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
@@ -68,9 +69,10 @@ func WithRenderer(renderer *view.Renderer) WebHandlerOption {
 
 // WithWebDebug sets the debug flag for the web handler.
 // When enabled, additional debug features like client-side debugging will be enabled.
+// Deprecated: Use the config's IsDevelopment() method instead.
 func WithWebDebug(debug bool) WebHandlerOption {
 	return func(h *WebHandler) {
-		h.Debug = debug
+		// This option is deprecated and does nothing
 	}
 }
 
@@ -78,6 +80,13 @@ func WithWebDebug(debug bool) WebHandlerOption {
 func WithMiddlewareManager(manager *amw.Manager) WebHandlerOption {
 	return func(h *WebHandler) {
 		h.middlewareManager = manager
+	}
+}
+
+// WithConfig sets the config for the web handler.
+func WithConfig(cfg *config.Config) WebHandlerOption {
+	return func(h *WebHandler) {
+		h.config = cfg
 	}
 }
 
@@ -90,13 +99,14 @@ func WithMiddlewareManager(manager *amw.Manager) WebHandlerOption {
 //   - contactService: Required for contact form functionality
 //   - subscriptionService: Required for demo form submission functionality
 //   - middlewareManager: Required for security and request processing
+//   - config: Required for configuration
 type WebHandler struct {
 	Base
 	contactService      contact.Service
 	subscriptionService subscription.Service
 	renderer            *view.Renderer
-	Debug               bool
 	middlewareManager   *amw.Manager
+	config              *config.Config
 }
 
 // NewWebHandler creates a new web handler.
@@ -110,6 +120,7 @@ type WebHandler struct {
 //	    WithRenderer(renderer),
 //	    WithContactService(contactService),
 //	    WithWebSubscriptionService(subscriptionService),
+//	    WithConfig(config),
 //	)
 func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler, error) {
 	h := &WebHandler{
@@ -133,6 +144,9 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 	if h.middlewareManager == nil {
 		return nil, errors.New("WebHandler initialization failed: middleware manager is required")
 	}
+	if h.config == nil {
+		return nil, errors.New("WebHandler initialization failed: config is required")
+	}
 
 	return h, nil
 }
@@ -145,6 +159,7 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 //   - contactService
 //   - subscriptionService
 //   - middlewareManager
+//   - config
 func (h *WebHandler) Validate() error {
 	if err := h.Base.Validate(); err != nil {
 		return fmt.Errorf("WebHandler validation failed: %w", err)
@@ -160,6 +175,9 @@ func (h *WebHandler) Validate() error {
 	}
 	if h.middlewareManager == nil {
 		return errors.New("WebHandler validation failed: middleware manager is required")
+	}
+	if h.config == nil {
+		return errors.New("WebHandler validation failed: config is required")
 	}
 	return nil
 }
@@ -204,7 +222,7 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 		Title:         title,
 		CSRFToken:     csrfToken,
 		User:          userData,
-		IsDevelopment: h.Debug,
+		IsDevelopment: h.config.App.IsDevelopment(),
 	}
 
 	// Render page
@@ -222,7 +240,7 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 // registerAndLogRoute registers a GET route and logs the registration
 func (h *WebHandler) registerAndLogRoute(e *echo.Echo, path string, handler echo.HandlerFunc) {
 	e.GET(path, handler)
-	if h.Debug {
+	if h.config.App.IsDevelopment() {
 		h.Logger.Debug("registered route",
 			logging.String("method", http.MethodGet),
 			logging.String("path", path))
@@ -254,11 +272,11 @@ func (h *WebHandler) Register(e *echo.Echo) {
 		return
 	}
 
-	if h.Debug {
+	if h.config.App.IsDevelopment() {
 		h.Logger.Debug("registering web routes")
 	}
 	h.registerRoutes(e)
-	if h.Debug {
+	if h.config.App.IsDevelopment() {
 		h.Logger.Debug("web routes registration complete")
 	}
 }

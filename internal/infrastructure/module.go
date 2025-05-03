@@ -17,6 +17,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	h "github.com/jonesrussell/goforms/internal/handlers"
 	wh "github.com/jonesrussell/goforms/internal/handlers/web"
+	wh_auth "github.com/jonesrussell/goforms/internal/handlers/web/auth"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -176,6 +177,19 @@ var StoreModule = fx.Options(
 // HandlerModule provides all HTTP handlers for the application.
 // This module is responsible for setting up route handlers and their dependencies.
 var HandlerModule = fx.Options(
+	// Static file handler (must be first)
+	AnnotateHandler(func(core CoreParams) (h.Handler, error) {
+		handler := handler.NewStaticHandler(core.Logger, core.Config)
+		if handler == nil {
+			return nil, fmt.Errorf("failed to create static handler")
+		}
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "StaticHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+		)
+		return handler, nil
+	}),
 	// Web handlers
 	AnnotateHandler(func(core CoreParams, middlewareManager *middleware.Manager) (h.Handler, error) {
 		handler := wh.NewHomeHandler(core.Logger, core.Renderer)
@@ -184,6 +198,18 @@ var HandlerModule = fx.Options(
 		}
 		core.Logger.Debug("registered handler",
 			logging.String("handler_name", "HomeHandler"),
+			logging.String("handler_type", fmt.Sprintf("%T", handler)),
+			logging.String("operation", "handler_registration"),
+		)
+		return handler, nil
+	}),
+	AnnotateHandler(func(core CoreParams, middlewareManager *middleware.Manager) (h.Handler, error) {
+		handler := wh_auth.NewWebLoginHandler(core.Logger, core.Renderer)
+		if handler == nil {
+			return nil, fmt.Errorf("failed to create web login handler: renderer=%T", core.Renderer)
+		}
+		core.Logger.Debug("registered handler",
+			logging.String("handler_name", "WebLoginHandler"),
 			logging.String("handler_type", fmt.Sprintf("%T", handler)),
 			logging.String("operation", "handler_registration"),
 		)
@@ -208,7 +234,7 @@ var HandlerModule = fx.Options(
 			handler.WithContactService(services.ContactService),
 			handler.WithWebSubscriptionService(services.SubscriptionService),
 			handler.WithMiddlewareManager(middlewareManager),
-			handler.WithWebDebug(core.Config.App.Debug),
+			handler.WithConfig(core.Config),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create web handler: %w", err)

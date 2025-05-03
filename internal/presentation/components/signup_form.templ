@@ -1,60 +1,42 @@
 package components
 
 import (
-	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
 templ SignupForm(data shared.PageData) {
-    <section class="auth-section">
-        <form class="auth-form" id="signup-form">
-            <input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-            
-            <div class="form-group">
-                <label for="name" class="form-label">
-                    Full Name
-                </label>
-                <input id="name" name="name" type="text" required class="form-input" value="Russell Jones"/>
-                <span class="error-message" id="name_error"></span>
-            </div>
+	<form id="signup-form" class="space-y-4" method="POST" action="/api/auth/signup">
+		<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+		<div>
+			<label for="name" class="block text-sm font-medium text-gray-700">Name</label>
+			<input type="text" id="name" name="name" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+		</div>
+		<div>
+			<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+			<input type="email" id="email" name="email" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+		</div>
+		<div>
+			<label for="password" class="block text-sm font-medium text-gray-700">Password</label>
+			<input type="password" id="password" name="password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+		</div>
+		<div>
+			<label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm Password</label>
+			<input type="password" id="confirm_password" name="confirm_password" required class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500 sm:text-sm" />
+		</div>
+		<div>
+			<button type="submit" class="w-full flex justify-center py-2 px-4 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-indigo-600 hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-indigo-500">
+				Sign Up
+			</button>
+		</div>
+		<div class="text-sm text-center">
+			<p>Already have an account? <a href="/login" class="text-indigo-600 hover:text-indigo-500">Sign in</a></p>
+		</div>
+	</form>
 
-            <div class="form-group">
-                <label for="email" class="form-label">
-                    Email address
-                </label>
-                <input id="email" name="email" type="email" autocomplete="email" required class="form-input" value="russell@123example.com"/>
-                <span class="error-message" id="email_error"></span>
-            </div>
-
-            <div class="form-group">
-                <label for="password" class="form-label">
-                    Password
-                </label>
-                <input id="password" name="password" type="password" required class="form-input" value="Test123!"/>
-                <span class="error-message" id="password_error"></span>
-            </div>
-
-            <div class="form-group">
-                <label for="confirm_password" class="form-label">
-                    Confirm Password
-                </label>
-                <input id="confirm_password" name="confirm_password" type="password" required class="form-input" value="Test123!"/>
-                <span class="error-message" id="confirm_password_error"></span>
-            </div>
-
-            <button type="submit" class="btn btn-primary">
-                Sign up
-            </button>
-
-            <div class="auth-alt-action">
-                <p>Already have an account? <a href="/login">Sign in</a></p>
-            </div>
-        </form>
-
-        if data.IsDevelopment {
-            <script type="module" src="http://localhost:3000/static/js/signup.ts"></script>
-        } else {
-            <script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/signup.js") }></script>
-        }
-    </section>
+	if data.IsDevelopment {
+		<script type="module" src="http://localhost:3000/src/js/signup.ts"></script>
+	} else {
+		<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
+	}
 } 

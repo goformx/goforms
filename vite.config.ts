@@ -6,8 +6,8 @@ import postcssNested from 'postcss-nested';
 import cssnano from 'cssnano';
 
 export default defineConfig({
-  root: 'static',
-  publicDir: 'public',
+  root: '.',
+  publicDir: 'static/public',
   appType: 'custom',
   base: '/',
   css: {
@@ -27,7 +27,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'dist',
+    outDir: 'static/dist',
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
@@ -41,11 +41,11 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        styles: resolve(__dirname, 'static/css/main.css'),
-        app: resolve(__dirname, 'static/js/main.ts'),
-        validation: resolve(__dirname, 'static/js/validation.ts'),
-        signup: resolve(__dirname, 'static/js/signup.ts'),
-        login: resolve(__dirname, 'static/js/login.ts')
+        styles: resolve(__dirname, 'src/css/main.css'),
+        app: resolve(__dirname, 'src/js/main.ts'),
+        validation: resolve(__dirname, 'src/js/validation.ts'),
+        signup: resolve(__dirname, 'src/js/signup.ts'),
+        login: resolve(__dirname, 'src/js/login.ts')
       },
       output: {
         entryFileNames: 'js/[name].[hash].js',
@@ -66,12 +66,12 @@ export default defineConfig({
     host: true,
     middlewareMode: false,
     fs: {
-      strict: false,
-      allow: ['.']
+      strict: true,
+      allow: ['src', 'static/dist']
     },
     watch: {
-      usePolling: true,
-      interval: 100
+      usePolling: false,
+      interval: 1000
     },
     hmr: {
       protocol: 'ws',
@@ -79,25 +79,21 @@ export default defineConfig({
       port: 3000,
       clientPort: 3000,
       timeout: 5000,
-      overlay: true
+      overlay: false
     },
     proxy: {
-      // Proxy all non-asset requests to Go backend, but exclude WebSocket connections
-      '^(?!/[@]|/js/|/css/|/assets/|/public/|/ws).*': {
+      // Proxy all requests except for Vite's own endpoints and static files
+      '^(?!/@vite|/node_modules|/src|/static/dist).*': {
         target: 'http://localhost:8090',
         changeOrigin: true,
         secure: false,
-        ws: false, // Disable WebSocket proxying
-        rewrite: (path) => path
+        ws: true
       }
-    },
-    headers: {
-      'Content-Type': 'application/javascript'
     }
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'static')
+      '@': resolve(__dirname, 'src')
     },
     extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
   },
