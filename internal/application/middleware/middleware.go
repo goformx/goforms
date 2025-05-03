@@ -202,6 +202,10 @@ func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 				c.Response().Header().Set("Content-Type", "text/css")
 			case strings.HasSuffix(path, ".js"):
 				c.Response().Header().Set("Content-Type", "application/javascript")
+			case strings.HasSuffix(path, ".ts"):
+				c.Response().Header().Set("Content-Type", "application/javascript")
+			case strings.HasSuffix(path, ".mjs"):
+				c.Response().Header().Set("Content-Type", "application/javascript")
 			case path == StaticFileFavicon:
 				c.Response().Header().Set("Content-Type", "image/x-icon")
 			case path == StaticFileRobots:

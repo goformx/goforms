@@ -18,8 +18,14 @@ templ Layout(data shared.PageData, content templ.Component) {
 		<meta name="csrf-token" content={ data.CSRFToken }/>
 		<title>{ data.Title } - Goforms</title>
 		
-		<!-- CSS Files -->
-		<link rel="stylesheet" href={ "/static/dist/" + web.GetViteAssetPath("css/main.css") }/>
+		if data.IsDevelopment {
+			<script type="module" src="http://localhost:3000/@vite/client"></script>
+			<!-- Development mode - load assets directly -->
+			<link rel="stylesheet" href="http://localhost:3000/static/css/main.css"/>
+		} else {
+			<!-- Production mode - load hashed assets -->
+			<link rel="stylesheet" href={ "/static/dist/" + web.GetViteAssetPath("css/main.css") }/>
+		}
 	</head>
 	<body class="min-h-screen flex flex-col">
 		@components.Nav(data)
@@ -31,7 +37,11 @@ templ Layout(data shared.PageData, content templ.Component) {
 		@components.Footer()
 		
 		<!-- JavaScript Files -->
-		<script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/main.ts") }></script>
+		if data.IsDevelopment {
+			<script type="module" src="http://localhost:3000/static/js/main.ts"></script>
+		} else {
+			<script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/main.js") }></script>
+		}
 	</body>
 	</html>
 }

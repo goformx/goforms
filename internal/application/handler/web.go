@@ -201,9 +201,10 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 
 	// Create page data
 	data := shared.PageData{
-		Title:     title,
-		CSRFToken: csrfToken,
-		User:      userData,
+		Title:         title,
+		CSRFToken:     csrfToken,
+		User:          userData,
+		IsDevelopment: h.Debug,
 	}
 
 	// Render page

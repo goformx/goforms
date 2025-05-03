@@ -16,7 +16,6 @@ type CORSOriginsDecoder []string
 
 func (c *CORSOriginsDecoder) Decode(value string) error {
 	if value == "" {
-		*c = []string{"http://localhost:3000"}
 		return nil
 	}
 	*c = strings.Split(value, ",")
@@ -91,7 +90,7 @@ type ServerConfig struct {
 type SecurityConfig struct {
 	JWTSecret            string `envconfig:"GOFORMS_JWT_SECRET" validate:"required"`
 	CSRF                 CSRFConfig
-	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS"`
+	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
 	CorsAllowedMethods   CORSMethodsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_METHODS"`
 	CorsAllowedHeaders   CORSHeadersDecoder `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS"`
 	CorsMaxAge           int                `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
@@ -119,6 +118,11 @@ type RateLimitConfig struct {
 	Burst      int           `envconfig:"GOFORMS_RATE_BURST" default:"5"`
 	TimeWindow time.Duration `envconfig:"GOFORMS_RATE_LIMIT_TIME_WINDOW" default:"1m"`
 	PerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
+}
+
+// IsDevelopment returns true if the application is running in development mode
+func (c *AppConfig) IsDevelopment() bool {
+	return strings.ToLower(c.Env) == "development"
 }
 
 // New creates a new Config with default values

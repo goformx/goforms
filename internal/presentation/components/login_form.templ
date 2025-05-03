@@ -34,6 +34,10 @@ templ LoginForm(data shared.PageData) {
             </div>
         </form>
 
-        <script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/login.ts") }></script>
+        if data.IsDevelopment {
+            <script type="module" src="http://localhost:3000/static/js/login.ts"></script>
+        } else {
+            <script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/login.js") }></script>
+        }
     </section>
 }

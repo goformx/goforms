@@ -208,6 +208,7 @@ var HandlerModule = fx.Options(
 			handler.WithContactService(services.ContactService),
 			handler.WithWebSubscriptionService(services.SubscriptionService),
 			handler.WithMiddlewareManager(middlewareManager),
+			handler.WithWebDebug(core.Config.App.Debug),
 		)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create web handler: %w", err)

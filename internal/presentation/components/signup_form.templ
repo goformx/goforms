@@ -11,19 +11,11 @@ templ SignupForm(data shared.PageData) {
             <input type="hidden" name="csrf_token" value={ data.CSRFToken } />
             
             <div class="form-group">
-                <label for="first_name" class="form-label">
-                    First Name
+                <label for="name" class="form-label">
+                    Full Name
                 </label>
-                <input id="first_name" name="first_name" type="text" required class="form-input" value="Russell"/>
-                <span class="error-message" id="first_name_error"></span>
-            </div>
-
-            <div class="form-group">
-                <label for="last_name" class="form-label">
-                    Last Name
-                </label>
-                <input id="last_name" name="last_name" type="text" required class="form-input" value="Jones"/>
-                <span class="error-message" id="last_name_error"></span>
+                <input id="name" name="name" type="text" required class="form-input" value="Russell Jones"/>
+                <span class="error-message" id="name_error"></span>
             </div>
 
             <div class="form-group">
@@ -59,6 +51,10 @@ templ SignupForm(data shared.PageData) {
             </div>
         </form>
 
-        <script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/signup.ts") }></script>
+        if data.IsDevelopment {
+            <script type="module" src="http://localhost:3000/static/js/signup.ts"></script>
+        } else {
+            <script type="module" src={ "/static/dist/" + web.GetViteAssetPath("js/signup.js") }></script>
+        }
     </section>
 } 

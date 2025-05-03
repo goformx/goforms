@@ -6,8 +6,9 @@ import (
 )
 
 type PageData struct {
-	Title     string
-	User      *user.User
-	Forms     []*form.Form
-	CSRFToken string
+	Title         string
+	User          *user.User
+	Forms         []*form.Form
+	CSRFToken     string
+	IsDevelopment bool
 }

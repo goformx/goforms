@@ -19,4 +19,23 @@ document.addEventListener('DOMContentLoaded', () => {
 
   // Any other global initialization code can go here
   console.log('Application initialized');
-}); 
+});
+
+// Enable HMR
+if (import.meta.hot) {
+  import.meta.hot.accept()
+}
+
+console.log('Development server is running!')
+
+// Add a simple function to demonstrate TypeScript
+function init() {
+  const app = document.getElementById('app')
+  if (app) {
+    const timestamp = document.createElement('p')
+    timestamp.textContent = `Page loaded at: ${new Date().toLocaleTimeString()}`
+    app.appendChild(timestamp)
+  }
+}
+
+init() 
