@@ -7,7 +7,6 @@ import (
 
 	"github.com/a-h/templ"
 	amw "github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/application/validation"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -294,18 +293,5 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 
 // handleValidationSchema returns the validation schema for a given form
 func (h *WebHandler) handleValidationSchema(c echo.Context) error {
-	schemaName := c.Param("schema")
-	if schemaName == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{"error": "schema name is required"})
-	}
-
-	schema, err := validation.GetSchema(schemaName)
-	if err != nil {
-		h.Logger.Error("failed to get validation schema",
-			logging.String("schema", schemaName),
-			logging.Error(err))
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "schema not found"})
-	}
-
-	return c.JSON(http.StatusOK, schema)
+	return c.JSON(http.StatusNotFound, map[string]string{"error": "validation schemas are not available"})
 }
