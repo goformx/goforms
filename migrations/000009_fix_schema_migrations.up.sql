@@ -1,0 +1,1 @@
+UPDATE schema_migrations SET dirty = 0 WHERE version = 8; 

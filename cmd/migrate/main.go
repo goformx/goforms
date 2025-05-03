@@ -84,6 +84,15 @@ func performMigration(sourceURL, command string) error {
 	}
 	log.Printf("Current migration version: %d, dirty: %v", version, dirty)
 
+	// If database is dirty, try to fix it
+	if dirty {
+		log.Printf("Database is dirty at version %d, attempting to fix...", version)
+		if err := m.Force(int(version)); err != nil {
+			return fmt.Errorf("failed to force version: %w", err)
+		}
+		log.Printf("Successfully forced version %d", version)
+	}
+
 	migrationErr := runMigration(m, command)
 	if migrationErr != nil && !errors.Is(migrationErr, migrate.ErrNilVersion) {
 		return fmt.Errorf("migration failed: %w", migrationErr)
