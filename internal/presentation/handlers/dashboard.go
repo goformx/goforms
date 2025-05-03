@@ -7,6 +7,7 @@ import (
 	amw "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -64,7 +65,11 @@ func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
 		User:      currentUser,
 		Forms:     forms,
 		CSRFToken: csrfToken,
+		AssetPath: web.GetAssetPath,
 	}
+
+	// Set content
+	data.Content = pages.DashboardContent(data)
 
 	// Render dashboard page
 	return pages.Dashboard(data).Render(c.Request().Context(), c.Response().Writer)
@@ -87,7 +92,11 @@ func (h *DashboardHandler) ShowNewForm(c echo.Context) error {
 		Title:     "Create New Form - GoForms",
 		User:      currentUser,
 		CSRFToken: csrfToken,
+		AssetPath: web.GetAssetPath,
 	}
+
+	// Set content
+	data.Content = pages.NewFormContent(data)
 
 	// Render new form page
 	return pages.NewForm(data).Render(c.Request().Context(), c.Response().Writer)
@@ -166,7 +175,11 @@ func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
 		User:      currentUser,
 		Form:      form,
 		CSRFToken: csrfToken,
+		AssetPath: web.GetAssetPath,
 	}
+
+	// Set content
+	data.Content = pages.EditFormContent(data)
 
 	// Render edit form page
 	return pages.EditForm(data).Render(c.Request().Context(), c.Response().Writer)

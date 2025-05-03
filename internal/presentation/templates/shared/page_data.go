@@ -1,6 +1,7 @@
 package shared
 
 import (
+	"github.com/a-h/templ"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 )
@@ -12,4 +13,6 @@ type PageData struct {
 	Form          *form.Form
 	CSRFToken     string
 	IsDevelopment bool
+	AssetPath     func(string) string
+	Content       templ.Component
 }

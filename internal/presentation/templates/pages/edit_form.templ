@@ -8,10 +8,10 @@ import (
 )
 
 templ EditForm(data shared.PageData) {
-	@layouts.Layout(data, editFormContent(data))
+	@layouts.Dashboard(data)
 }
 
-templ editFormContent(data shared.PageData) {
+templ EditFormContent(data shared.PageData) {
 	<div class="dashboard-page">
 		<div class="dashboard-container">
 			<div class="dashboard-header">

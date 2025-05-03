@@ -169,6 +169,11 @@ func setupCSRF() echo.MiddlewareFunc {
 				}
 			}
 
+			// Don't skip CSRF for login page
+			if path == "/login" {
+				return false
+			}
+
 			return false
 		},
 	})

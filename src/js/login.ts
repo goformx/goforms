@@ -2,21 +2,12 @@ import { validation } from './validation';
 
 export function setupLoginForm() {
   // Only run on login page
-  if (!window.location.pathname.includes('/login')) {
+  if (!document.getElementById('login-form')) {
     return;
-  }
-
-  // Handle logout
-  const logoutForm = document.querySelector('form[action="/logout"]') as HTMLFormElement;
-  if (logoutForm) {
-    logoutForm.addEventListener('submit', () => {
-      validation.clearJWTToken();
-    });
   }
 
   const loginForm = document.getElementById('login-form') as HTMLFormElement;
   if (!loginForm) {
-    console.warn('Login form not found on login page');
     return;
   }
 
@@ -25,7 +16,8 @@ export function setupLoginForm() {
     .catch(error => {
       console.error('Failed to setup real-time validation:', error);
     });
-  
+
+  // Handle form submission
   loginForm.addEventListener('submit', async (e) => {
     e.preventDefault();
     console.log('Login form submitted');

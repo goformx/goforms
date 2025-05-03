@@ -7,10 +7,10 @@ import (
 )
 
 templ Dashboard(data shared.PageData) {
-	@layouts.Layout(data, dashboardContent(data))
+	@layouts.Dashboard(data)
 }
 
-templ dashboardContent(data shared.PageData) {
+templ DashboardContent(data shared.PageData) {
 	<div class="dashboard-page">
 		<div class="dashboard-container">
 			<div class="dashboard-header">
@@ -61,8 +61,8 @@ templ dashboardContent(data shared.PageData) {
 										</td>
 										<td>
 											<div class="table-actions">
-												<a href={ templ.URL("/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/edit") } class="btn btn-sm btn-outline">Edit</a>
-												<a href={ templ.URL("/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/submissions") } class="btn btn-sm btn-outline">View Submissions</a>
+												<a href={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/edit") } class="btn btn-sm btn-outline">Edit</a>
+												<a href={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/submissions") } class="btn btn-sm btn-outline">View Submissions</a>
 												<button class="btn btn-sm btn-danger" onclick="deleteForm('{ strconv.FormatUint(uint64(f.ID), 10) }')">Delete</button>
 											</div>
 										</td>

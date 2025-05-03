@@ -214,6 +214,18 @@ export const validation = {
 
   clearJWTToken(): void {
     localStorage.removeItem('jwt_token');
+  },
+
+  // Form method override
+  overrideMethod(form: HTMLFormElement): void {
+    const method = form.getAttribute('method')?.toUpperCase() || 'GET';
+    if (method === 'GET') return;
+
+    const input = document.createElement('input');
+    input.type = 'hidden';
+    input.name = '_method';
+    input.value = method;
+    form.appendChild(input);
   }
 };
 

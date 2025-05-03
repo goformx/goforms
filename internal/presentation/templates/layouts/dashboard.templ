@@ -1,0 +1,24 @@
+package layouts
+
+import (
+    "github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+    "github.com/jonesrussell/goforms/internal/presentation/templates/components"
+)
+
+templ Dashboard(data shared.PageData) {
+    <!DOCTYPE html>
+    <html lang="en">
+        <head>
+            <meta charset="UTF-8">
+            <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <title>{ data.Title }</title>
+            <link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css"/>
+        </head>
+        <body>
+            @components.DashboardNav(data)
+            <main class="dashboard-main">
+                @data.Content
+            </main>
+        </body>
+    </html>
+} 

@@ -6,10 +6,10 @@ import (
 )
 
 templ NewForm(data shared.PageData) {
-	@layouts.Layout(data, newFormContent(data))
+	@layouts.Dashboard(data)
 }
 
-templ newFormContent(data shared.PageData) {
+templ NewFormContent(data shared.PageData) {
 	<div class="dashboard-page">
 		<div class="dashboard-container">
 			<div class="dashboard-header">
