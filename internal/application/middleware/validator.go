@@ -1,23 +1,22 @@
 package middleware
 
 import (
-	"github.com/go-playground/validator/v10"
-	"github.com/labstack/echo/v4"
+	"github.com/jonesrussell/goforms/internal/domain/common/validation"
 )
 
-// CustomValidator holds the validator instance
-type CustomValidator struct {
-	validator *validator.Validate
+// echoValidator wraps the domain validator to implement Echo's Validator interface.
+type echoValidator struct {
+	validator *validation.Validator
 }
 
-// NewValidator creates a new validator instance
-func NewValidator() echo.Validator {
-	return &CustomValidator{
-		validator: validator.New(),
+// NewValidator returns an Echo-compatible validator using the domain validation system.
+func NewValidator() *echoValidator {
+	return &echoValidator{
+		validator: validation.New(),
 	}
 }
 
-// Validate validates the provided struct
-func (cv *CustomValidator) Validate(i any) error {
-	return cv.validator.Struct(i)
+// Validate implements echo.Validator interface.
+func (v *echoValidator) Validate(i any) error {
+	return v.validator.ValidateStruct(i)
 }

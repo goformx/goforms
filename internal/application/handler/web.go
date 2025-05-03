@@ -67,15 +67,6 @@ func WithRenderer(renderer *view.Renderer) WebHandlerOption {
 	}
 }
 
-// WithWebDebug sets the debug flag for the web handler.
-// When enabled, additional debug features like client-side debugging will be enabled.
-// Deprecated: Use the config's IsDevelopment() method instead.
-func WithWebDebug(debug bool) WebHandlerOption {
-	return func(h *WebHandler) {
-		// This option is deprecated and does nothing
-	}
-}
-
 // WithMiddlewareManager sets the middleware manager for the web handler.
 func WithMiddlewareManager(manager *amw.Manager) WebHandlerOption {
 	return func(h *WebHandler) {

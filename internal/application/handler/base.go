@@ -34,7 +34,6 @@ import (
 	"fmt"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 // Option configures a Base handler. It follows the functional
@@ -95,32 +94,4 @@ func (b *Base) Validate() error {
 		return errors.New("logger is required")
 	}
 	return nil
-}
-
-// BaseHandler provides common functionality for all handlers
-type BaseHandler struct {
-	Logger logging.Logger
-}
-
-// RegisterRoute is a helper method to register routes with middleware
-func (h *BaseHandler) RegisterRoute(
-	e *echo.Echo,
-	method, path string,
-	handler echo.HandlerFunc,
-	middleware ...echo.MiddlewareFunc,
-) {
-	switch method {
-	case "GET":
-		e.GET(path, handler, middleware...)
-	case "POST":
-		e.POST(path, handler, middleware...)
-	case "PUT":
-		e.PUT(path, handler, middleware...)
-	case "DELETE":
-		e.DELETE(path, handler, middleware...)
-	}
-	h.Logger.Debug("registered route",
-		logging.String("method", method),
-		logging.String("path", path),
-	)
 }

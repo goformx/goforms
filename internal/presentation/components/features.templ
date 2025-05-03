@@ -23,12 +23,4 @@ templ Features(features []Feature) {
             </div>
         </div>
     </section>
-}
-
-func toGridItems(features []Feature) []GridItem {
-    items := make([]GridItem, len(features))
-    for i, f := range features {
-        items[i] = f
-    }
-    return items
 } 
