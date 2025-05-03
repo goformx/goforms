@@ -172,16 +172,16 @@ export const validation = {
 
   // Common fetch with CSRF
   async fetchWithCSRF(url: string, options: RequestInit = {}): Promise<Response> {
-    // Get CSRF token from meta tag
-    const metaTag = document.querySelector('meta[name="csrf-token"]');
-    if (!metaTag) {
-      console.error('CSRF token meta tag not found');
+    // Get CSRF token from form's hidden input
+    const csrfInput = document.querySelector('input[name="csrf_token"]') as HTMLInputElement;
+    if (!csrfInput) {
+      console.error('CSRF token input not found');
       throw new Error('CSRF token not found');
     }
 
-    const csrfToken = metaTag.getAttribute('content');
+    const csrfToken = csrfInput.value;
     if (!csrfToken) {
-      console.error('CSRF token content is empty');
+      console.error('CSRF token value is empty');
       throw new Error('CSRF token is empty');
     }
 
