@@ -30,18 +30,38 @@ func NewAuthHandler(
 }
 
 func (h *AuthHandler) Register(e *echo.Echo) {
-	h.base.RegisterRoute(e, "POST", "/auth/signup", h.Signup)
-	h.base.RegisterRoute(e, "POST", "/auth/login", h.Login)
+	h.base.RegisterRoute(e, "POST", "/api/v1/auth/signup", h.Signup)
+	h.base.RegisterRoute(e, "POST", "/api/v1/auth/login", h.Login)
 }
 
 func (h *AuthHandler) Signup(c echo.Context) error {
-	var req validation.SignupRequest
+	var req struct {
+		FirstName       string `json:"first_name"`
+		LastName        string `json:"last_name"`
+		Email           string `json:"email"`
+		Password        string `json:"password"`
+		ConfirmPassword string `json:"confirm_password"`
+	}
+
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
-	if err := validation.ValidateSignup(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, validation.GetValidationErrors(err))
+	// Validate request
+	if req.FirstName == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "First name is required"})
+	}
+	if req.LastName == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Last name is required"})
+	}
+	if req.Email == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Email is required"})
+	}
+	if req.Password == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Password is required"})
+	}
+	if req.Password != req.ConfirmPassword {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Passwords do not match"})
 	}
 
 	// Check if user already exists
@@ -58,7 +78,7 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 
 	// Create new user
 	user := &entities.User{
-		Username: req.Username,
+		Username: req.FirstName + " " + req.LastName,
 		Email:    req.Email,
 		Password: string(hashedPassword),
 	}

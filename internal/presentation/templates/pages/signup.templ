@@ -4,6 +4,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
 templ Signup(data shared.PageData) {
@@ -22,8 +23,7 @@ templ signupContent(data shared.PageData) {
 			</div>
 		</div>
 	</div>
-}
 
-templ SignupPage(data shared.PageData) {
-	@components.SignupForm(data)
+	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
+	<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
 } 
