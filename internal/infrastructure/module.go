@@ -215,7 +215,11 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, services ServiceParams, middlewareManager *middleware.Manager) (h.Handler, error) {
+	AnnotateHandler(func(
+		core CoreParams,
+		services ServiceParams,
+		middlewareManager *middleware.Manager,
+	) (h.Handler, error) {
 		handler := wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create demo handler: renderer=%T, subscription_service=%T",
@@ -229,8 +233,13 @@ var HandlerModule = fx.Options(
 		return handler, nil
 	}),
 	AnnotateHandler(
-		func(core CoreParams, services ServiceParams, middlewareManager *middleware.Manager) (h.Handler, error) {
-			handler, err := handler.NewWebHandler(core.Logger,
+		func(
+			core CoreParams,
+			services ServiceParams,
+			middlewareManager *middleware.Manager,
+		) (h.Handler, error) {
+			handler, err := handler.NewWebHandler(
+				core.Logger,
 				handler.WithRenderer(core.Renderer),
 				handler.WithContactService(services.ContactService),
 				handler.WithWebSubscriptionService(services.SubscriptionService),
@@ -240,7 +249,8 @@ var HandlerModule = fx.Options(
 			if err != nil {
 				return nil, fmt.Errorf("failed to create web handler: %w", err)
 			}
-			core.Logger.Debug("registered handler",
+			core.Logger.Debug(
+				"registered handler",
 				logging.String("handler_name", "WebHandler"),
 				logging.String("handler_type", fmt.Sprintf("%T", handler)),
 				logging.String("operation", "handler_registration"),

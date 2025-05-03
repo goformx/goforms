@@ -118,8 +118,6 @@ func (h *StaticHandler) proxyToViteDevServer(c echo.Context) error {
 	var url string
 	if path == "@vite/client" {
 		url = "http://localhost:3000/@vite/client"
-	} else if strings.HasPrefix(path, "node_modules/") {
-		url = "http://localhost:3000/" + path
 	} else {
 		url = "http://localhost:3000/" + path
 	}
@@ -127,7 +125,7 @@ func (h *StaticHandler) proxyToViteDevServer(c echo.Context) error {
 		logging.String("path", path),
 		logging.String("url", url),
 	)
-	req, err := http.NewRequestWithContext(c.Request().Context(), "GET", url, http.NoBody)
+	req, err := http.NewRequestWithContext(c.Request().Context(), http.MethodGet, url, http.NoBody)
 	if err != nil {
 		h.logger.Error("failed to create request",
 			logging.Error(err),
