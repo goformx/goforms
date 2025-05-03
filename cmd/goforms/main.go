@@ -152,10 +152,10 @@ func newServer(cfg *config.Config, logFactory *logging.Factory, userService user
 type ServerParams struct {
 	fx.In
 
-	Server           *server.Server
-	Config          *config.Config
-	Logger          logging.Logger
-	Handlers        []handlers.Handler `group:"handlers"`
+	Server            *server.Server
+	Config            *config.Config
+	Logger            logging.Logger
+	Handlers          []handlers.Handler `group:"handlers"`
 	MiddlewareManager *middleware.Manager
 }
 
