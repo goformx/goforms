@@ -37,4 +37,33 @@
         resize: vertical;
         min-height: var(--form-textarea-min-height);
     }
+
+    .error-message {
+        color: #dc2626;
+        font-size: 0.875rem;
+        margin-top: 0.25rem;
+    }
+
+    .form-error {
+        color: #dc2626;
+        font-size: 0.875rem;
+        margin-bottom: 1rem;
+        padding: 0.5rem;
+        background-color: #fee2e2;
+        border-radius: 0.375rem;
+        display: none;
+    }
+
+    .form-error:not(:empty) {
+        display: block;
+    }
+
+    .form-input.error {
+        border-color: #dc2626;
+    }
+
+    .form-input.error:focus {
+        border-color: #dc2626;
+        box-shadow: 0 0 0 1px #dc2626;
+    }
 } 

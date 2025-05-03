@@ -8,13 +8,16 @@ import (
 templ LoginForm(data shared.PageData) {
 	<form id="login-form" class="auth-form" method="POST" action="/api/auth/login">
 		<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+		<div id="form_error" class="form-error"></div>
 		<div class="form-group">
 			<label for="email" class="form-label">Email</label>
 			<input type="email" id="email" name="email" required class="form-input" />
+			<div id="email_error" class="error-message"></div>
 		</div>
 		<div class="form-group">
 			<label for="password" class="form-label">Password</label>
 			<input type="password" id="password" name="password" required class="form-input" />
+			<div id="password_error" class="error-message"></div>
 		</div>
 		<div class="form-group">
 			<button type="submit" class="btn btn-primary">Sign In</button>

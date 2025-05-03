@@ -1,5 +1,4 @@
 import { z } from 'zod';
-import { getValidationSchema } from './validation/generator';
 
 // Types
 export type FormData = Record<string, string>;
@@ -14,23 +13,30 @@ export type ValidationResult = {
   };
 };
 
+// Schema names type
+export type SchemaName = keyof typeof validationSchemas;
+
 // Common validation schemas
 export const validationSchemas = {
   signup: z.object({
     first_name: z.string()
-      .min(1, 'First name is required'),
+      .min(2, 'First name must be at least 2 characters')
+      .max(50, 'First name must be less than 50 characters'),
     last_name: z.string()
-      .min(1, 'Last name is required'),
+      .min(2, 'Last name must be at least 2 characters')
+      .max(50, 'Last name must be less than 50 characters'),
     email: z.string()
-      .email('Invalid email address'),
+      .email('Please enter a valid email address')
+      .min(5, 'Email must be at least 5 characters')
+      .max(100, 'Email must be less than 100 characters'),
     password: z.string()
       .min(8, 'Password must be at least 8 characters')
+      .max(100, 'Password must be less than 100 characters')
       .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
       .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
       .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[!@#$%^&*()_+\-=\[\]{};':"\\|,.<>\/?]/, 'Password must contain at least one special character'),
+      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
     confirm_password: z.string()
-      .min(1, 'Please confirm your password')
   }).refine((data) => data.password === data.confirm_password, {
     message: "Passwords don't match",
     path: ["confirm_password"]
@@ -77,39 +83,13 @@ export const validation = {
     });
   },
 
-  async setupRealTimeValidation(formId: string, schemaName: string): Promise<void> {
-    const form = document.getElementById(formId);
-    if (!form) return;
-
-    const schema = await getValidationSchema(schemaName);
-    if (!schema) return;
-
-    const schemaFields = schema instanceof z.ZodObject ? schema.shape : {};
-    Object.keys(schemaFields).forEach(fieldId => {
-      const input = document.getElementById(fieldId);
-      if (!input) return;
-
-      input.addEventListener('input', () => {
-        validation.clearError(fieldId);
-        const value = (input as HTMLInputElement).value;
-        const fieldSchema = schemaFields[fieldId];
-        if (fieldSchema instanceof z.ZodType) {
-          const result = fieldSchema.safeParse(value);
-          if (!result.success) {
-            validation.showError(fieldId, result.error.errors[0].message);
-          }
-        }
-      });
-    });
-  },
-
-  async validateForm(form: HTMLFormElement, schemaName: string): Promise<ValidationResult> {
-    const schema = await getValidationSchema(schemaName);
+  async validateForm(form: HTMLFormElement, schemaName: SchemaName): Promise<ValidationResult> {
+    const schema = validationSchemas[schemaName];
     if (!schema) {
       return { 
         success: false, 
         error: { 
-          errors: [{ path: [], message: 'Failed to load validation schema' }] 
+          errors: [{ path: [], message: 'Invalid schema name' }] 
         } 
       };
     }
@@ -214,24 +194,8 @@ export const validation = {
 
   clearJWTToken(): void {
     localStorage.removeItem('jwt_token');
-  },
-
-  // Form method override
-  overrideMethod(form: HTMLFormElement): void {
-    const method = form.getAttribute('method')?.toUpperCase() || 'GET';
-    if (method === 'GET') return;
-
-    const input = document.createElement('input');
-    input.type = 'hidden';
-    input.name = '_method';
-    input.value = method;
-    form.appendChild(input);
   }
 };
 
-function getCookie(name: string): string | null {
-  const value = `; ${document.cookie}`;
-  const parts = value.split(`; ${name}=`);
-  if (parts.length === 2) return parts.pop()?.split(';').shift() || null;
-  return null;
-} 
+// Export types for external use
+export type SignupFormData = z.infer<typeof validationSchemas.signup>; 

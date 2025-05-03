@@ -32,13 +32,3 @@
 
 /* Theme styles */
 @import url('themes/dark.css') layer(theme);
-
-h1 {
-  color: var(--primary-color);
-  margin-bottom: 20px;
-}
-
-p {
-  line-height: 1.6;
-}
-

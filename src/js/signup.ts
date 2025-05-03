@@ -1,45 +1,44 @@
-import { validation } from './validation';
+import { validation, type SchemaName } from './validation';
 
-export function setupSignupForm() {
-  const signupForm = document.getElementById('signup-form') as HTMLFormElement;
-  if (!signupForm) return;
+const form = document.getElementById('signup-form') as HTMLFormElement;
+const formError = document.getElementById('form_error') as HTMLDivElement;
 
-  validation.setupRealTimeValidation('signup-form', 'signup');
-  
-  signupForm.addEventListener('submit', async (e) => {
+if (form) {
+  form.addEventListener('submit', async (e) => {
     e.preventDefault();
+    
+    // Clear previous errors
     validation.clearAllErrors();
     
-    const formData = new FormData(signupForm);
-    const data = Object.fromEntries(formData.entries()) as Record<string, string>;
-    
-    const result = await validation.validateForm(signupForm, 'signup');
+    const result = await validation.validateForm(form, 'signup');
     if (result.success) {
       try {
         const response = await validation.fetchWithCSRF('/api/v1/auth/signup', {
           method: 'POST',
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json'
+            'Content-Type': 'application/json'
           },
-          body: JSON.stringify(data)
+          body: JSON.stringify(result.data)
         });
-        
+
         if (response.ok) {
-          window.location.href = '/login';
+          window.location.href = '/dashboard';
         } else {
           const error = await response.json();
-          if (response.status === 409) {
-            validation.showError('email', 'This email is already registered. Please use a different email or try logging in.');
+          if (error.errors) {
+            // Display field-specific errors
+            Object.entries(error.errors).forEach(([field, message]) => {
+              validation.showError(field, message as string);
+            });
           } else {
-            validation.showError('form', error.error || 'An error occurred during signup');
+            formError.textContent = error.message || 'An error occurred during signup';
           }
         }
       } catch (error) {
-        console.error('Signup error:', error);
-        validation.showError('form', 'An error occurred during signup');
+        formError.textContent = 'An unexpected error occurred';
       }
     } else if (result.error) {
+      // Display validation errors
       result.error.errors.forEach(err => {
         validation.showError(err.path[0], err.message);
       });

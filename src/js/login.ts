@@ -49,11 +49,20 @@ export function setupLoginForm() {
           window.location.href = '/dashboard';
         } else {
           const error = await response.json();
-          validation.showError('form', error.error || 'Invalid credentials');
+          if (response.status === 401) {
+            validation.showError('form', 'Invalid email or password');
+          } else if (error.errors) {
+            // Handle field-specific errors
+            Object.entries(error.errors).forEach(([field, message]) => {
+              validation.showError(field, message as string);
+            });
+          } else {
+            validation.showError('form', error.error || 'An error occurred during login');
+          }
         }
       } catch (error) {
         console.error('Login error:', error);
-        validation.showError('form', 'An error occurred during login');
+        validation.showError('form', 'An error occurred during login. Please try again.');
       }
     } else if (result.error) {
       result.error.errors.forEach(err => {
