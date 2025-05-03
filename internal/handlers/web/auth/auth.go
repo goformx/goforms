@@ -3,7 +3,6 @@ package auth
 import (
 	"net/http"
 
-	"github.com/jonesrussell/goforms/internal/application/validation"
 	"github.com/jonesrussell/goforms/internal/domain/entities"
 	"github.com/jonesrussell/goforms/internal/domain/repositories"
 	"github.com/jonesrussell/goforms/internal/handlers"
@@ -92,13 +91,18 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 }
 
 func (h *AuthHandler) Login(c echo.Context) error {
-	var req validation.LoginRequest
+	var req struct {
+		Email    string `json:"email"`
+		Password string `json:"password"`
+	}
 	if err := c.Bind(&req); err != nil {
 		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Invalid request"})
 	}
 
-	if err := validation.ValidateLogin(&req); err != nil {
-		return c.JSON(http.StatusBadRequest, validation.GetValidationErrors(err))
+	// TODO: Add validation logic or use domain validator if needed
+	// For now, just check for empty email or password
+	if req.Email == "" || req.Password == "" {
+		return c.JSON(http.StatusBadRequest, map[string]string{"error": "Email and password are required"})
 	}
 
 	// Get user by email
