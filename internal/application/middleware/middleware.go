@@ -244,45 +244,32 @@ func logMiddlewareRegistration(logger logging.Logger, middlewareType string) {
 	)
 }
 
-// Setup configures all middleware for an Echo instance
-func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Info("starting middleware setup")
+// Helper to log and apply middleware
+func (m *Manager) useWithLog(e *echo.Echo, middlewareType string, mw echo.MiddlewareFunc) {
+	logMiddlewareRegistration(m.logger, middlewareType)
+	e.Use(mw)
+}
 
-	// Enable debug mode and set log level
-	e.Debug = true
-	if l, ok := e.Logger.(*log.Logger); ok {
-		l.SetLevel(log.DEBUG)
-		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
-	}
+// Helper to log and apply group middleware
+func (m *Manager) useGroupWithLog(g *echo.Group, middlewareType string, mw echo.MiddlewareFunc) {
+	logMiddlewareRegistration(m.logger, middlewareType)
+	g.Use(mw)
+}
 
-	// Basic middleware
-	logMiddlewareRegistration(m.logger, "recovery")
-	e.Use(echomw.Recover())
+// Setup basic middleware (recovery, request ID, secure headers, body limit, logging, MIME type, static files)
+func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
+	m.useWithLog(e, "recovery", echomw.Recover())
+	m.useWithLog(e, "request ID", echomw.RequestID())
+	m.useWithLog(e, "secure headers", echomw.Secure())
+	m.useWithLog(e, "body limit", echomw.BodyLimit("2M"))
+	m.useWithLog(e, "request logging", LoggingMiddleware(m.logger))
+	m.useWithLog(e, "MIME type", setupMIMETypeMiddleware())
+	m.useWithLog(e, "static file", setupStaticFileMiddleware())
+}
 
-	logMiddlewareRegistration(m.logger, "request ID")
-	e.Use(echomw.RequestID())
-
-	logMiddlewareRegistration(m.logger, "secure headers")
-	e.Use(echomw.Secure())
-
-	logMiddlewareRegistration(m.logger, "body limit")
-	e.Use(echomw.BodyLimit("2M"))
-
-	// Request logging middleware
-	logMiddlewareRegistration(m.logger, "request logging")
-	e.Use(LoggingMiddleware(m.logger))
-
-	// MIME type middleware (must be before static file middleware)
-	logMiddlewareRegistration(m.logger, "MIME type")
-	e.Use(setupMIMETypeMiddleware())
-
-	// Static file middleware (must be after MIME type middleware)
-	logMiddlewareRegistration(m.logger, "static file")
-	e.Use(setupStaticFileMiddleware())
-
-	// Security middleware with comprehensive configuration
-	logMiddlewareRegistration(m.logger, "security headers")
-	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
+// Setup security middleware (secure headers, CORS, CSRF, rate limiting)
+func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
+	m.useWithLog(e, "security headers", echomw.SecureWithConfig(echomw.SecureConfig{
 		XSSProtection:         "1; mode=block",
 		ContentTypeNosniff:    "nosniff",
 		XFrameOptions:         "DENY",
@@ -299,10 +286,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		}, ""),
 		ReferrerPolicy: "strict-origin-when-cross-origin",
 	}))
-
-	// CORS for admin/dashboard routes
-	logMiddlewareRegistration(m.logger, "CORS")
-	e.Use(echomw.CORSWithConfig(corsConfig(
+	m.useWithLog(e, "CORS", echomw.CORSWithConfig(corsConfig(
 		m.config.Security.CorsAllowedOrigins,
 		m.config.Security.CorsAllowedMethods,
 		m.config.Security.CorsAllowedHeaders,
@@ -312,28 +296,22 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Form submission routes group with specific middleware
 	formGroup := e.Group("/v1/forms")
-
-	// Form-specific CORS
-	logMiddlewareRegistration(m.logger, "form CORS")
-	formGroup.Use(echomw.CORSWithConfig(corsConfig(
+	m.useGroupWithLog(formGroup, "form CORS", echomw.CORSWithConfig(corsConfig(
 		m.config.Security.FormCorsAllowedOrigins,
 		m.config.Security.FormCorsAllowedMethods,
 		m.config.Security.FormCorsAllowedHeaders,
 		false,
 		m.config.Security.CorsMaxAge,
 	)))
+	m.useGroupWithLog(formGroup, "rate limiter", setupRateLimiter(m.config.Security))
 
-	// Rate limiting for form submissions
-	logMiddlewareRegistration(m.logger, "rate limiter")
-	formGroup.Use(setupRateLimiter(m.config.Security))
-
-	// CSRF if enabled
 	if m.config.Security.CSRF.Enabled {
-		logMiddlewareRegistration(m.logger, "CSRF")
-		e.Use(setupCSRF())
+		m.useWithLog(e, "CSRF", setupCSRF())
 	}
+}
 
-	// Auth if user service provided
+// Setup authentication middleware (cookie auth, JWT auth, protected/admin groups)
+func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 	if m.config.UserService != nil {
 		// Create cookie auth middleware for dashboard/admin routes
 		cookieAuth, err := NewCookieAuthMiddleware(m.config.UserService)
@@ -357,6 +335,22 @@ func (m *Manager) Setup(e *echo.Echo) {
 		admin := e.Group("/dashboard")
 		admin.Use(cookieAuth.RequireAuth)
 	}
+}
+
+// Main Setup function
+func (m *Manager) Setup(e *echo.Echo) {
+	m.logger.Info("starting middleware setup")
+
+	// Enable debug mode and set log level
+	e.Debug = true
+	if l, ok := e.Logger.(*log.Logger); ok {
+		l.SetLevel(log.DEBUG)
+		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
+	}
+
+	m.setupBasicMiddleware(e)
+	m.setupSecurityMiddleware(e)
+	m.setupAuthMiddleware(e)
 
 	m.logger.Info("middleware setup complete")
 }
