@@ -1,4 +1,5 @@
 import { z } from 'zod';
+import { getValidationSchema } from './validation/generator';
 
 // Types
 export type FormData = Record<string, string>;
@@ -13,85 +14,9 @@ export type ValidationResult = {
   };
 };
 
-// Schema names type
-export type SchemaName = keyof typeof validationSchemas;
+// Schema cache
+const schemaCache: Record<string, z.ZodType<any>> = {};
 
-// Common validation schemas
-export const validationSchemas = {
-  signup: z.object({
-    first_name: z.string()
-      .min(2, 'First name must be at least 2 characters')
-      .max(50, 'First name must be less than 50 characters'),
-    last_name: z.string()
-      .min(2, 'Last name must be at least 2 characters')
-      .max(50, 'Last name must be less than 50 characters'),
-    email: z.string()
-      .email('Please enter a valid email address')
-      .min(5, 'Email must be at least 5 characters')
-      .max(100, 'Email must be less than 100 characters'),
-    password: z.string()
-      .min(8, 'Password must be at least 8 characters')
-      .max(100, 'Password must be less than 100 characters')
-      .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-      .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-      .regex(/[0-9]/, 'Password must contain at least one number')
-      .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character'),
-    confirm_password: z.string()
-  }).refine((data) => data.password === data.confirm_password, {
-    message: "Passwords don't match",
-    path: ["confirm_password"]
-  }),
-
-  login: z.object({
-    email: z.string()
-      .email('Invalid email address'),
-    password: z.string()
-      .min(1, 'Password is required')
-  }),
-
-  contact: z.object({
-    name: z.string()
-      .min(2, 'Name must be at least 2 characters')
-      .max(100, 'Name must be less than 100 characters'),
-    email: z.string()
-      .email('Please enter a valid email address')
-      .min(5, 'Email must be at least 5 characters')
-      .max(100, 'Email must be less than 100 characters'),
-    message: z.string()
-      .min(10, 'Message must be at least 10 characters')
-      .max(1000, 'Message must be less than 1000 characters')
-  }),
-
-  demo: z.object({
-    name: z.string()
-      .min(2, 'Name must be at least 2 characters')
-      .max(100, 'Name must be less than 100 characters'),
-    email: z.string()
-      .email('Please enter a valid email address')
-      .min(5, 'Email must be at least 5 characters')
-      .max(100, 'Email must be less than 100 characters')
-  }),
-
-  editForm: z.object({
-    title: z.string()
-      .min(3, 'Title must be at least 3 characters')
-      .max(255, 'Title must be less than 255 characters'),
-    description: z.string()
-      .max(1000, 'Description must be less than 1000 characters')
-      .optional()
-  }),
-
-  newForm: z.object({
-    title: z.string()
-      .min(3, 'Title must be at least 3 characters')
-      .max(255, 'Title must be less than 255 characters'),
-    description: z.string()
-      .max(1000, 'Description must be less than 1000 characters')
-      .optional()
-  })
-} as const;
-
-// Validation utilities
 export const validation = {
   clearError(fieldId: string): void {
     const errorElement = document.getElementById(`${fieldId}_error`);
@@ -124,11 +49,15 @@ export const validation = {
     });
   },
 
-  setupRealTimeValidation(formId: string, schemaName: SchemaName): void {
+  async setupRealTimeValidation(formId: string, schemaName: string): Promise<void> {
     const form = document.getElementById(formId);
     if (!form) return;
 
-    const schema = validationSchemas[schemaName];
+    let schema = schemaCache[schemaName];
+    if (!schema) {
+      schema = await getValidationSchema(schemaName);
+      schemaCache[schemaName] = schema;
+    }
     if (!schema || !(schema instanceof z.ZodObject)) return;
 
     const schemaFields = schema.shape as Record<string, z.ZodType>;
@@ -140,7 +69,6 @@ export const validation = {
         validation.clearError(fieldId);
         const value = (input as HTMLInputElement).value;
         const fieldSchema = schemaFields[fieldId];
-        
         // Special handling for confirm_password
         if (fieldId === 'confirm_password') {
           const passwordInput = document.getElementById('password') as HTMLInputElement;
@@ -149,7 +77,6 @@ export const validation = {
             return;
           }
         }
-        
         if (fieldSchema instanceof z.ZodType) {
           const result = fieldSchema.safeParse(value);
           if (!result.success) {
@@ -157,7 +84,6 @@ export const validation = {
           }
         }
       });
-
       // For password field, also validate confirm_password when password changes
       if (fieldId === 'password') {
         input.addEventListener('input', () => {
@@ -174,28 +100,30 @@ export const validation = {
     });
   },
 
-  async validateForm(form: HTMLFormElement, schemaName: SchemaName): Promise<ValidationResult> {
-    const schema = validationSchemas[schemaName];
+  async validateForm(form: HTMLFormElement, schemaName: string): Promise<ValidationResult> {
+    let schema = schemaCache[schemaName];
     if (!schema) {
-      return { 
-        success: false, 
-        error: { 
-          errors: [{ path: [], message: 'Invalid schema name' }] 
-        } 
+      schema = await getValidationSchema(schemaName);
+      schemaCache[schemaName] = schema;
+    }
+    if (!schema) {
+      return {
+        success: false,
+        error: {
+          errors: [{ path: [], message: 'Invalid schema name' }]
+        }
       };
     }
-
     const formData = new FormData(form);
     const data = Object.fromEntries(formData.entries());
-    
     try {
       const result = schema.parse(data);
       return { success: true, data: result };
     } catch (error) {
       if (error instanceof z.ZodError) {
-        return { 
-          success: false, 
-          error: { 
+        return {
+          success: false,
+          error: {
             errors: error.errors.map(err => ({
               path: err.path.map(p => String(p)),
               message: err.message
@@ -245,14 +173,12 @@ export const validation = {
   async fetchWithCSRF(url: string, options: RequestInit = {}): Promise<Response> {
     // Get CSRF token from meta tag
     const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
-    
     // Prepare headers
     const headers = new Headers(options.headers || {});
     if (csrfToken) {
       headers.set('X-CSRF-Token', csrfToken);
     }
     headers.set('Content-Type', 'application/json');
-
     // Make request with CSRF token and credentials
     return fetch(url, {
       ...options,
@@ -273,7 +199,4 @@ export const validation = {
   clearJWTToken(): void {
     localStorage.removeItem('jwt_token');
   }
-};
-
-// Export types for external use
-export type SignupFormData = z.infer<typeof validationSchemas.signup>; 
+}; 

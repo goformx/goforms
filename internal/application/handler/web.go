@@ -269,5 +269,40 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 
 // handleValidationSchema returns the validation schema for a given form
 func (h *WebHandler) handleValidationSchema(c echo.Context) error {
-	return c.JSON(http.StatusNotFound, map[string]string{"error": "validation schemas are not available"})
+	schemaName := c.Param("schema")
+	if schemaName == "signup" {
+		// Return a JSON schema for signup fields
+		return c.JSON(200, map[string]any{
+			"first_name": map[string]any{
+				"type":    "string",
+				"min":     2,
+				"max":     50,
+				"message": "First name must be between 2 and 50 characters",
+			},
+			"last_name": map[string]any{
+				"type":    "string",
+				"min":     2,
+				"max":     50,
+				"message": "Last name must be between 2 and 50 characters",
+			},
+			"email": map[string]any{
+				"type":    "email",
+				"min":     5,
+				"max":     100,
+				"message": "Please enter a valid email address",
+			},
+			"password": map[string]any{
+				"type":    "password",
+				"min":     8,
+				"max":     100,
+				"message": "Password must be at least 8 characters and contain upper, lower, number, special",
+			},
+			"confirm_password": map[string]any{
+				"type":       "match",
+				"matchField": "password",
+				"message":    "Passwords don't match",
+			},
+		})
+	}
+	return c.JSON(404, map[string]string{"error": "validation schema not found"})
 }
