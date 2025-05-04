@@ -125,20 +125,10 @@ func (h *DashboardHandler) CreateForm(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	// Create a default schema for the form
+	// Create a minimal Form.io schema for the form
 	defaultSchema := form.JSON{
-		"id":    0,
-		"name":  "form",
-		"title": formData.Title,
-		"pages": []map[string]any{
-			{
-				"id":       "page1",
-				"name":     "page1",
-				"title":    "Page 1",
-				"elements": []map[string]any{},
-			},
-		},
-		"version": 1,
+		"display":    "form",
+		"components": []interface{}{},
 	}
 
 	// Create the form
@@ -280,23 +270,8 @@ func (h *DashboardHandler) GetFormSchema(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
 	}
 
-	// Convert the form schema to the expected format
-	schema := map[string]interface{}{
-		"id":      formData.ID,
-		"name":    formData.Title,
-		"title":   formData.Title,
-		"pages":   []interface{}{}, // Default to empty pages array if schema is nil
-		"version": 1,
-	}
-
-	// If schema exists and has pages, use them
-	if formData.Schema != nil {
-		if pages, ok := formData.Schema["pages"].([]interface{}); ok {
-			schema["pages"] = pages
-		}
-	}
-
-	return c.JSON(http.StatusOK, schema)
+	// Return the Form.io schema directly
+	return c.JSON(http.StatusOK, formData.Schema)
 }
 
 // UpdateFormSchema handles updating a form's schema
@@ -337,7 +312,7 @@ func (h *DashboardHandler) UpdateFormSchema(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid schema format")
 	}
 
-	// Update the form's schema
+	// Update the form's schema directly
 	formData.Schema = form.JSON(newSchema)
 	if err := h.formService.UpdateForm(formData); err != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form schema")

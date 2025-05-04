@@ -290,6 +290,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		HSTSExcludeSubdomains: false,
 		ContentSecurityPolicy: "default-src 'self' http://localhost:3000; " +
 			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 https://cdn.form.io; " +
+			"worker-src 'self' blob:; " +
 			"style-src 'self' 'unsafe-inline' http://localhost:3000 https://fonts.googleapis.com https://cdn.form.io https://cdnjs.cloudflare.com; " +
 			"img-src 'self' data: http://localhost:3000; " +
 			"font-src 'self' http://localhost:3000 https://fonts.googleapis.com https://fonts.gstatic.com; " +

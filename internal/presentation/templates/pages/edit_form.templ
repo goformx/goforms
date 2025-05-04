@@ -66,6 +66,10 @@ templ EditFormContent(data shared.PageData) {
 					<h2>Form Fields</h2>
 					<p class="section-subtitle">Design your form by adding and configuring fields. Click "Save Fields" to save your changes.</p>
 					<div id="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
+					<div class="form-actions">
+						<button id="save-fields-btn" class="btn btn-primary" type="button">Save Fields</button>
+						<span id="schema-save-feedback" style="margin-left:1em;"></span>
+					</div>
 				</div>
 			</div>
 		</div>
@@ -109,5 +113,24 @@ templ EditFormContent(data shared.PageData) {
 				errorDiv.style.display = 'block';
 			}
 		});
+
+		// Save Fields button logic
+		const saveBtn = document.getElementById('save-fields-btn');
+		const feedback = document.getElementById('schema-save-feedback');
+		if (saveBtn) {
+			saveBtn.addEventListener('click', async () => {
+				feedback.textContent = 'Saving...';
+				saveBtn.disabled = true;
+				try {
+					const ok = await window.formBuilderInstance.saveSchema();
+					feedback.textContent = ok ? 'Schema saved successfully.' : 'Failed to save schema.';
+				} catch (e) {
+					feedback.textContent = 'Error saving schema.';
+				} finally {
+					saveBtn.disabled = false;
+					setTimeout(() => (feedback.textContent = ''), 3000);
+				}
+			});
+		}
 	</script>
 } 
