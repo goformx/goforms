@@ -36,7 +36,7 @@ func init() {
 	// Only load manifest in production mode
 	if !cfg.App.IsDevelopment() {
 		// Load the Vite manifest file
-		manifestPath := filepath.Join("static", "dist", ".vite", "manifest.json")
+		manifestPath := filepath.Join("dist", ".vite", "manifest.json")
 		log.Printf("Attempting to load manifest from: %s", manifestPath)
 
 		manifestData, readErr := os.ReadFile(manifestPath)
@@ -64,8 +64,8 @@ func GetAssetPath(src string) string {
 	log.Printf("Getting asset path for: %s", src)
 
 	if cfg != nil && cfg.App.IsDevelopment() {
-		// In development, return the Vite dev server URL
-		return "http://localhost:3000/" + src
+		// In development, return the proxied path
+		return "/" + src
 	}
 
 	if entry, ok := manifest[src]; ok {
