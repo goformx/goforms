@@ -6,6 +6,64 @@ import { validation } from './validation';
 // Types for form fields
 export type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'submit';
 
+export interface FieldConfig {
+  type: FieldType;
+  label: string;
+  hasOptions?: boolean;
+  hasPlaceholder?: boolean;
+  hasRequired?: boolean;
+  hasButtonText?: boolean;
+}
+
+const FIELD_CONFIGS: FieldConfig[] = [
+  {
+    type: 'text',
+    label: 'Text',
+    hasPlaceholder: true,
+    hasRequired: true
+  },
+  {
+    type: 'email',
+    label: 'Email',
+    hasPlaceholder: true,
+    hasRequired: true
+  },
+  {
+    type: 'number',
+    label: 'Number',
+    hasPlaceholder: true,
+    hasRequired: true
+  },
+  {
+    type: 'textarea',
+    label: 'Textarea',
+    hasPlaceholder: true,
+    hasRequired: true
+  },
+  {
+    type: 'select',
+    label: 'Select',
+    hasOptions: true,
+    hasRequired: true
+  },
+  {
+    type: 'checkbox',
+    label: 'Checkbox',
+    hasRequired: true
+  },
+  {
+    type: 'radio',
+    label: 'Radio',
+    hasOptions: true,
+    hasRequired: true
+  },
+  {
+    type: 'submit',
+    label: 'Submit Button',
+    hasButtonText: true
+  }
+];
+
 export interface FormField {
   id: string;
   name: string;
@@ -131,19 +189,18 @@ export class FormBuilder {
           <div class="form-group">
             <label>Type</label>
             <select name="type" required class="form-input" id="field-type">
-              <option value="text">Text</option>
-              <option value="email">Email</option>
-              <option value="number">Number</option>
-              <option value="textarea">Textarea</option>
-              <option value="select">Select</option>
-              <option value="checkbox">Checkbox</option>
-              <option value="radio">Radio</option>
-              <option value="submit">Submit Button</option>
+              ${FIELD_CONFIGS.map(config => `
+                <option value="${config.type}">${config.label}</option>
+              `).join('')}
             </select>
           </div>
           <div class="form-group" id="button-text-group" style="display: none;">
             <label>Button Text</label>
             <input type="text" name="buttonText" class="form-input" placeholder="Submit" />
+          </div>
+          <div class="form-group" id="options-group" style="display: none;">
+            <label>Options (one per line)</label>
+            <textarea name="options" class="form-input" rows="4"></textarea>
           </div>
           <div class="form-group" id="required-group">
             <label>
@@ -168,16 +225,20 @@ export class FormBuilder {
     // Show/hide fields based on type selection
     const typeSelect = dialog.querySelector('#field-type');
     const buttonTextGroup = dialog.querySelector('#button-text-group') as HTMLDivElement;
+    const optionsGroup = dialog.querySelector('#options-group') as HTMLDivElement;
     const placeholderGroup = dialog.querySelector('#placeholder-group') as HTMLDivElement;
     const requiredGroup = dialog.querySelector('#required-group') as HTMLDivElement;
     
-    if (typeSelect && buttonTextGroup && placeholderGroup && requiredGroup) {
+    if (typeSelect && buttonTextGroup && optionsGroup && placeholderGroup && requiredGroup) {
       typeSelect.addEventListener('change', (e) => {
         const target = e.target as HTMLSelectElement;
-        const isSubmit = target.value === 'submit';
-        buttonTextGroup.style.display = isSubmit ? 'block' : 'none';
-        placeholderGroup.style.display = isSubmit ? 'none' : 'block';
-        requiredGroup.style.display = isSubmit ? 'none' : 'block';
+        const config = FIELD_CONFIGS.find(c => c.type === target.value);
+        if (config) {
+          buttonTextGroup.style.display = config.hasButtonText ? 'block' : 'none';
+          optionsGroup.style.display = config.hasOptions ? 'block' : 'none';
+          placeholderGroup.style.display = config.hasPlaceholder ? 'block' : 'none';
+          requiredGroup.style.display = config.hasRequired ? 'block' : 'none';
+        }
       });
     }
 
@@ -187,19 +248,32 @@ export class FormBuilder {
         e.preventDefault();
         const formData = new FormData(form);
         const fieldType = formData.get('type') as FieldType;
+        const config = FIELD_CONFIGS.find(c => c.type === fieldType);
+        
         const field: FormField = {
           id: crypto.randomUUID(),
           name: formData.get('name') as string,
           label: formData.get('label') as string,
           type: fieldType,
-          required: fieldType === 'submit' ? false : formData.get('required') === 'on',
-          placeholder: formData.get('placeholder') as string
+          required: config?.hasRequired ? formData.get('required') === 'on' : false
         };
 
+        // Add options for select/radio fields
+        if (config?.hasOptions) {
+          const optionsText = formData.get('options') as string;
+          field.options = optionsText.split('\n')
+            .map(opt => opt.trim())
+            .filter(opt => opt.length > 0);
+        }
+
+        // Add placeholder if supported
+        if (config?.hasPlaceholder) {
+          field.placeholder = formData.get('placeholder') as string;
+        }
+
         // Add button text for submit buttons
-        if (field.type === 'submit') {
+        if (config?.hasButtonText) {
           field.buttonText = formData.get('buttonText') as string || 'Submit';
-          delete field.placeholder; // Remove placeholder for submit buttons
         }
 
         this.addField(field);
