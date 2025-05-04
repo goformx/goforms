@@ -1,11 +1,14 @@
 package form
 
 import (
+	"errors"
 	"sync"
 	"time"
 
 	"github.com/jonesrussell/goforms/internal/domain/form/model"
 )
+
+var ErrFormSchemaNotFound = errors.New("form schema not found")
 
 // FormSchemaRepository defines CRUD operations for FormSchema
 // In production, this would be backed by a database.
@@ -59,7 +62,7 @@ func (r *InMemoryFormSchemaRepo) Get(id uint) (*model.FormSchema, error) {
 	defer r.mu.Unlock()
 	s, ok := r.schemas[id]
 	if !ok {
-		return nil, nil
+		return nil, ErrFormSchemaNotFound
 	}
 	return s, nil
 }
@@ -69,7 +72,7 @@ func (r *InMemoryFormSchemaRepo) Update(id uint, schema *model.FormSchema) (*mod
 	defer r.mu.Unlock()
 	existing, ok := r.schemas[id]
 	if !ok {
-		return nil, nil
+		return nil, ErrFormSchemaNotFound
 	}
 	schema.ID = id
 	schema.CreatedAt = existing.CreatedAt

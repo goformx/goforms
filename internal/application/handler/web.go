@@ -8,7 +8,6 @@ import (
 	"github.com/a-h/templ"
 	amw "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
-	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -37,19 +36,6 @@ type WebHandlerOption func(*WebHandler)
 func WithContactService(svc contact.Service) WebHandlerOption {
 	return func(h *WebHandler) {
 		h.contactService = svc
-	}
-}
-
-// WithWebSubscriptionService sets the subscription service for the web handler.
-// This is a required option for the WebHandler as it needs the subscription
-// service to handle newsletter signups.
-//
-// Example:
-//
-//	handler := NewWebHandler(logger, WithWebSubscriptionService(subscriptionService))
-func WithWebSubscriptionService(svc subscription.Service) WebHandlerOption {
-	return func(h *WebHandler) {
-		h.subscriptionService = svc
 	}
 }
 
@@ -87,16 +73,14 @@ func WithConfig(cfg *config.Config) WebHandlerOption {
 // Dependencies:
 //   - renderer: Required for rendering web pages
 //   - contactService: Required for contact form functionality
-//   - subscriptionService: Required for demo form submission functionality
 //   - middlewareManager: Required for security and request processing
 //   - config: Required for configuration
 type WebHandler struct {
 	Base
-	contactService      contact.Service
-	subscriptionService subscription.Service
-	renderer            *view.Renderer
-	middlewareManager   *amw.Manager
-	config              *config.Config
+	contactService    contact.Service
+	renderer          *view.Renderer
+	middlewareManager *amw.Manager
+	config            *config.Config
 }
 
 // NewWebHandler creates a new web handler.
@@ -109,7 +93,6 @@ type WebHandler struct {
 //	handler := NewWebHandler(logger,
 //	    WithRenderer(renderer),
 //	    WithContactService(contactService),
-//	    WithWebSubscriptionService(subscriptionService),
 //	    WithConfig(config),
 //	)
 func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler, error) {
@@ -128,9 +111,6 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 	if h.contactService == nil {
 		return nil, errors.New("WebHandler initialization failed: contact service is required")
 	}
-	if h.subscriptionService == nil {
-		return nil, errors.New("WebHandler initialization failed: subscription service is required")
-	}
 	if h.middlewareManager == nil {
 		return nil, errors.New("WebHandler initialization failed: middleware manager is required")
 	}
@@ -147,7 +127,6 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 // Required dependencies:
 //   - renderer
 //   - contactService
-//   - subscriptionService
 //   - middlewareManager
 //   - config
 func (h *WebHandler) Validate() error {
@@ -159,9 +138,6 @@ func (h *WebHandler) Validate() error {
 	}
 	if h.contactService == nil {
 		return errors.New("WebHandler validation failed: contact service is required")
-	}
-	if h.subscriptionService == nil {
-		return errors.New("WebHandler validation failed: subscription service is required")
 	}
 	if h.middlewareManager == nil {
 		return errors.New("WebHandler validation failed: middleware manager is required")

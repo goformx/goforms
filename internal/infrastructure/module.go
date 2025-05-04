@@ -13,7 +13,6 @@ import (
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/form"
-	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	h "github.com/jonesrussell/goforms/internal/handlers"
 	wh "github.com/jonesrussell/goforms/internal/handlers/web"
@@ -39,10 +38,9 @@ const (
 type Stores struct {
 	fx.Out
 
-	ContactStore      contact.Store
-	SubscriptionStore subscription.Store
-	UserStore         user.Store
-	FormStore         form.Store
+	ContactStore contact.Store
+	UserStore    user.Store
+	FormStore    form.Store
 }
 
 // CoreParams contains core infrastructure dependencies that are commonly needed by handlers.
@@ -59,10 +57,9 @@ type CoreParams struct {
 // more granular dependency injection.
 type ServiceParams struct {
 	fx.In
-	ContactService      contact.Service
-	SubscriptionService subscription.Service
-	UserService         user.Service
-	FormService         form.Service
+	ContactService contact.Service
+	UserService    user.Service
+	FormService    form.Service
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -215,23 +212,6 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(func(
-		core CoreParams,
-		services ServiceParams,
-		middlewareManager *middleware.Manager,
-	) (h.Handler, error) {
-		handler := wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
-		if handler == nil {
-			return nil, fmt.Errorf("failed to create demo handler: renderer=%T, subscription_service=%T",
-				core.Renderer, services.SubscriptionService)
-		}
-		core.Logger.Debug("registered handler",
-			logging.String("handler_name", "DemoHandler"),
-			logging.String("handler_type", fmt.Sprintf("%T", handler)),
-			logging.String("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
 	AnnotateHandler(
 		func(
 			core CoreParams,
@@ -242,7 +222,6 @@ var HandlerModule = fx.Options(
 				core.Logger,
 				handler.WithRenderer(core.Renderer),
 				handler.WithContactService(services.ContactService),
-				handler.WithWebSubscriptionService(services.SubscriptionService),
 				handler.WithMiddlewareManager(middlewareManager),
 				handler.WithConfig(core.Config),
 			)
@@ -346,10 +325,6 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 		"contact": {
 			create: wrapCreator(store.NewContactStore),
 			assign: wrapAssigner(func(s *Stores, v contact.Store) { s.ContactStore = v }),
-		},
-		"subscription": {
-			create: wrapCreator(store.NewSubscriptionStore),
-			assign: wrapAssigner(func(s *Stores, v subscription.Store) { s.SubscriptionStore = v }),
 		},
 		"user": {
 			create: wrapCreator(store.NewUserStore),

@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/jonesrussell/goforms/internal/domain/contact"
-	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
@@ -152,85 +151,6 @@ func (c *Client) UpdateContactSubmissionStatus(ctx context.Context, id int64, st
 	defer resp.Body.Close()
 
 	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// Subscription API
-
-// CreateSubscription creates a new subscription
-func (c *Client) CreateSubscription(ctx context.Context, sub *subscription.Subscription) error {
-	url := fmt.Sprintf("%s/api/v1/subscriptions", c.baseURL)
-	resp, err := c.doRequest(ctx, http.MethodPost, url, sub)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// ListSubscriptions retrieves all subscriptions
-func (c *Client) ListSubscriptions(ctx context.Context) ([]subscription.Subscription, error) {
-	url := fmt.Sprintf("%s/api/v1/subscriptions", c.baseURL)
-	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var subs []subscription.Subscription
-	if decodeErr := json.NewDecoder(resp.Body).Decode(&subs); decodeErr != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
-	}
-	return subs, nil
-}
-
-// GetSubscription retrieves a specific subscription
-func (c *Client) GetSubscription(ctx context.Context, id int64) (*subscription.Subscription, error) {
-	url := fmt.Sprintf("%s/api/v1/subscriptions/%d", c.baseURL, id)
-	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var sub subscription.Subscription
-	if decodeErr := json.NewDecoder(resp.Body).Decode(&sub); decodeErr != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
-	}
-	return &sub, nil
-}
-
-// UpdateSubscriptionStatus updates the status of a subscription
-func (c *Client) UpdateSubscriptionStatus(ctx context.Context, id int64, status subscription.Status) error {
-	url := fmt.Sprintf("%s/api/v1/subscriptions/%d/status", c.baseURL, id)
-	resp, err := c.doRequest(ctx, http.MethodPut, url, status)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// DeleteSubscription deletes a subscription
-func (c *Client) DeleteSubscription(ctx context.Context, id int64) error {
-	url := fmt.Sprintf("%s/api/v1/subscriptions/%d", c.baseURL, id)
-	resp, err := c.doRequest(ctx, http.MethodDelete, url, nil)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusNoContent {
 		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
 	}
 	return nil

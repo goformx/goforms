@@ -1,7 +1,6 @@
 package web
 
 import (
-	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/handlers"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
@@ -12,23 +11,20 @@ import (
 
 // DemoHandler handles the demo page routes
 type DemoHandler struct {
-	base                handlers.Base
-	Renderer            *view.Renderer
-	SubscriptionService subscription.Service
+	base     handlers.Base
+	Renderer *view.Renderer
 }
 
 // NewDemoHandler creates a new DemoHandler
 func NewDemoHandler(
 	logger logging.Logger,
 	renderer *view.Renderer,
-	subscriptionService subscription.Service,
 ) *DemoHandler {
 	return &DemoHandler{
 		base: handlers.Base{
 			Logger: logger,
 		},
-		Renderer:            renderer,
-		SubscriptionService: subscriptionService,
+		Renderer: renderer,
 	}
 }
 
