@@ -43,19 +43,18 @@ func NewFormHandler(
 
 // Register sets up the routes for the form handler
 func (h *FormHandler) Register(e *echo.Echo) {
-	// Public form submission endpoints
+	// Create base form group
 	formGroup := e.Group("/api/v1/forms")
+
+	// Public form submission endpoints
 	formGroup.POST("/:formID/submit", h.handleFormSubmission)
 
-	// Protected admin endpoints
-	adminGroup := e.Group("/api/v1/forms")
-	adminGroup.Use(h.authMiddleware.RequireAuth)
+	// Protected admin endpoints - apply auth middleware to a subgroup
+	adminGroup := formGroup.Group("", h.authMiddleware.RequireAuth)
 	adminGroup.GET("", h.handleListForms)
 	adminGroup.POST("", h.handleCreateForm)
 	adminGroup.GET("/:formID", h.handleGetForm)
 	adminGroup.DELETE("/:formID", h.handleDeleteForm)
-	adminGroup.GET("/:formID/schema", h.handleGetFormSchema)
-	adminGroup.PUT("/:formID/schema", h.handleUpdateFormSchema)
 }
 
 // handleFormSubmission handles form submissions from external websites
@@ -221,103 +220,4 @@ func (h *FormHandler) handleDeleteForm(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
-}
-
-// handleGetFormSchema handles getting a form's schema
-func (h *FormHandler) handleGetFormSchema(c echo.Context) error {
-	// Get user from context
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("formID")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
-	}
-
-	formData, err := h.formService.GetForm(uint(id))
-	if err != nil {
-		h.base.LogError("failed to get form", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form")
-	}
-
-	if formData == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
-	}
-
-	// Verify form belongs to current user
-	if formData.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
-	}
-
-	// Convert the form schema to the expected format
-	schema := map[string]interface{}{
-		"id":     formData.ID,
-		"fields": []interface{}{}, // Default to empty fields array if schema is nil
-	}
-
-	// If schema exists and has fields, use them
-	if formData.Schema != nil {
-		if fields, ok := formData.Schema["fields"].([]interface{}); ok {
-			schema["fields"] = fields
-		}
-	}
-
-	return c.JSON(http.StatusOK, schema)
-}
-
-// handleUpdateFormSchema handles updating a form's schema
-func (h *FormHandler) handleUpdateFormSchema(c echo.Context) error {
-	// Get user from context
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("formID")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
-	}
-
-	// Get existing form
-	formData, err := h.formService.GetForm(uint(id))
-	if err != nil {
-		h.base.LogError("failed to get form", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form")
-	}
-
-	if formData == nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
-	}
-
-	// Verify form belongs to current user
-	if formData.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
-	}
-
-	// Parse the new schema from request body
-	var newSchema map[string]interface{}
-	if err := c.Bind(&newSchema); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid schema format")
-	}
-
-	// Update the form's schema
-	formData.Schema = form.JSON(newSchema)
-	if err := h.formService.UpdateForm(formData); err != nil {
-		h.base.LogError("failed to update form schema", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form schema")
-	}
-
-	return c.JSON(http.StatusOK, newSchema)
 }

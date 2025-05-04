@@ -5,10 +5,21 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
 templ EditForm(data shared.PageData) {
-	@layouts.Dashboard(data)
+	@layouts.Dashboard(shared.PageData{
+		Title: data.Title,
+		User: data.User,
+		Forms: data.Forms,
+		Form: data.Form,
+		Submissions: data.Submissions,
+		CSRFToken: data.CSRFToken,
+		IsDevelopment: data.IsDevelopment,
+		AssetPath: data.AssetPath,
+		Content: EditFormContent(data),
+	})
 }
 
 templ EditFormContent(data shared.PageData) {
@@ -54,5 +65,5 @@ templ EditFormContent(data shared.PageData) {
 	</div>
 
 	<script type="module" src="http://localhost:3000/@vite/client"></script>
-	<script type="module" src="http://localhost:3000/src/js/form-builder.ts"></script>
+	<script type="module" src={ web.GetAssetPath("src/js/form-builder.ts") }></script>
 } 

@@ -40,6 +40,8 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 	dashboard.POST("/forms", h.CreateForm)
 	dashboard.GET("/forms/:id/edit", h.ShowEditForm)
 	dashboard.GET("/forms/:id/submissions", h.ShowFormSubmissions)
+	dashboard.GET("/forms/:id/schema", h.GetFormSchema)
+	dashboard.PUT("/forms/:id/schema", h.UpdateFormSchema)
 }
 
 func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
@@ -237,4 +239,98 @@ func (h *DashboardHandler) ShowFormSubmissions(c echo.Context) error {
 
 	// Render form submissions page
 	return pages.FormSubmissions(data).Render(c.Request().Context(), c.Response().Writer)
+}
+
+// GetFormSchema handles getting a form's schema
+func (h *DashboardHandler) GetFormSchema(c echo.Context) error {
+	currentUser, ok := c.Get("user").(*user.User)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	}
+
+	formID := c.Param("id")
+	if formID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
+	}
+
+	id, err := strconv.ParseUint(formID, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
+	}
+
+	formData, err := h.formService.GetForm(uint(id))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form")
+	}
+
+	if formData == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+	}
+
+	// Verify form belongs to current user
+	if formData.UserID != currentUser.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	}
+
+	// Convert the form schema to the expected format
+	schema := map[string]interface{}{
+		"id":     formData.ID,
+		"fields": []interface{}{}, // Default to empty fields array if schema is nil
+	}
+
+	// If schema exists and has fields, use them
+	if formData.Schema != nil {
+		if fields, ok := formData.Schema["fields"].([]interface{}); ok {
+			schema["fields"] = fields
+		}
+	}
+
+	return c.JSON(http.StatusOK, schema)
+}
+
+// UpdateFormSchema handles updating a form's schema
+func (h *DashboardHandler) UpdateFormSchema(c echo.Context) error {
+	currentUser, ok := c.Get("user").(*user.User)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	}
+
+	formID := c.Param("id")
+	if formID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
+	}
+
+	id, err := strconv.ParseUint(formID, 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
+	}
+
+	// Get existing form
+	formData, err := h.formService.GetForm(uint(id))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form")
+	}
+
+	if formData == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+	}
+
+	// Verify form belongs to current user
+	if formData.UserID != currentUser.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	}
+
+	// Parse the new schema from request body
+	var newSchema map[string]interface{}
+	if err := c.Bind(&newSchema); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid schema format")
+	}
+
+	// Update the form's schema
+	formData.Schema = form.JSON(newSchema)
+	if err := h.formService.UpdateForm(formData); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form schema")
+	}
+
+	return c.JSON(http.StatusOK, newSchema)
 }

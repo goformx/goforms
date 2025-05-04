@@ -11,6 +11,7 @@ templ Dashboard(data shared.PageData) {
         <head>
             <meta charset="UTF-8">
             <meta name="viewport" content="width=device-width, initial-scale=1.0">
+            <meta name="csrf-token" content={ data.CSRFToken } />
             <title>{ data.Title }</title>
             <link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css"/>
         </head>

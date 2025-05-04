@@ -16,6 +16,7 @@ templ Layout(data shared.PageData, content templ.Component) {
 	<meta name="description" content="Goforms - A self-hosted form backend service built with Go" />
 	<meta name="keywords" content="forms, golang, backend, self-hosted" />
 	<meta name="color-scheme" content="light dark" />
+	<meta name="csrf-token" content={ data.CSRFToken } />
 	<title>{ data.Title } - Goforms</title>
 
 	<script type="module" src={ web.GetAssetPath("src/js/main.ts") }></script>

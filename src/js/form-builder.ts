@@ -60,11 +60,26 @@ export class FormBuilder {
 
   private async loadExistingSchema() {
     try {
-      const response = await validation.fetchWithCSRF(`/api/v1/forms/${this.formId}/schema`);
+      console.log('Loading form schema for form ID:', this.formId);
+      const response = await validation.fetchWithCSRF(`/dashboard/forms/${this.formId}/schema`, {
+        method: 'GET',
+        headers: {
+          'Content-Type': 'application/json'
+        }
+      });
+      
       if (response.ok) {
         const schema = await response.json();
+        console.log('Loaded form schema:', schema);
         this.fields = schema.fields;
         this.renderFields();
+      } else {
+        if (response.status === 401) {
+          console.error('Not authenticated, redirecting to login');
+          window.location.href = '/login';
+        } else {
+          console.error('Failed to load form schema:', response.status, response.statusText);
+        }
       }
     } catch (error) {
       console.error('Failed to load form schema:', error);
@@ -238,12 +253,12 @@ export class FormBuilder {
       const schema = { id: this.formId, fields: this.fields };
       const validSchema = formSchemaSchema.parse(schema);
       
-      await validation.fetchWithCSRF(`/api/v1/forms/${this.formId}/schema`, {
+      await validation.fetchWithCSRF(`/dashboard/forms/${this.formId}/schema`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify(validSchema),
+        body: JSON.stringify(validSchema)
       });
     } catch (error) {
       console.error('Failed to save form schema:', error);
@@ -252,22 +267,15 @@ export class FormBuilder {
 }
 
 // Initialize form builder when the module is loaded
-document.addEventListener('DOMContentLoaded', () => {
-  console.log('FormBuilder: Initializing...');
-  const formSchemaBuilder = document.getElementById('form-schema-builder');
-  if (formSchemaBuilder) {
-    console.log('FormBuilder: Found form-schema-builder element', formSchemaBuilder);
-    const formIdAttr = formSchemaBuilder.getAttribute('data-form-id');
-    console.log('FormBuilder: data-form-id attribute value:', formIdAttr);
-    const formId = parseInt(formIdAttr || '', 10);
-    console.log('FormBuilder: Parsed formId:', formId);
+const formSchemaBuilder = document.getElementById('form-schema-builder');
+if (formSchemaBuilder) {
+  const formIdAttr = formSchemaBuilder.getAttribute('data-form-id');
+  if (formIdAttr) {
+    const formId = parseInt(formIdAttr, 10);
     if (!isNaN(formId)) {
-      console.log('FormBuilder: Creating new instance with formId:', formId);
       new FormBuilder('form-schema-builder', formId);
     } else {
       console.error('FormBuilder: Invalid form ID:', formIdAttr);
     }
-  } else {
-    console.log('FormBuilder: form-schema-builder element not found');
   }
-}); 
+} 

@@ -245,6 +245,10 @@ func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
 // parseToken parses and validates the JWT token
 func (s *ServiceImpl) parseToken(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
+		// Validate signing method
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+		}
 		return s.jwtSecret, nil
 	})
 	if err != nil {

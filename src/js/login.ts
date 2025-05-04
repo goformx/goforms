@@ -66,7 +66,12 @@ export function setupLoginForm() {
           });
 
           if (response.ok) {
-            console.log('Login successful, redirecting to dashboard');
+            console.log('Login successful');
+            const tokens = await response.json();
+            console.log('Login response tokens:', tokens);
+            validation.setJWTToken(tokens.AccessToken);
+            console.log('JWT token stored:', validation.getJWTToken());
+            console.log('JWT token stored, redirecting to dashboard');
             window.location.href = '/dashboard';
           } else {
             console.log('Login failed with status:', response.status);

@@ -63,10 +63,14 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 		return
 	}
 
+	// API routes
 	g := e.Group("/api/v1/auth")
 	g.POST("/signup", h.handleSignup)
 	g.POST("/login", h.handleLogin)
 	g.POST("/logout", h.handleLogout)
+
+	// Web routes - logout only via POST for security
+	e.POST("/logout", h.handleWebLogout)
 }
 
 // handleSignup handles user registration
@@ -163,8 +167,8 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	cookie.Expires = time.Now().Add(CookieExpiryMinutes * time.Minute)
 	cookie.Path = "/"
 	cookie.HttpOnly = true
-	cookie.Secure = true
-	cookie.SameSite = http.SameSiteStrictMode
+	cookie.Secure = false                  // Allow HTTP in development
+	cookie.SameSite = http.SameSiteLaxMode // Less strict for development
 	c.SetCookie(cookie)
 
 	// Set refresh token in cookie
@@ -174,8 +178,8 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	refreshCookie.Expires = time.Now().Add(7 * 24 * time.Hour) // Same as refresh token expiry
 	refreshCookie.Path = "/"
 	refreshCookie.HttpOnly = true
-	refreshCookie.Secure = true
-	refreshCookie.SameSite = http.SameSiteStrictMode
+	refreshCookie.Secure = false                  // Allow HTTP in development
+	refreshCookie.SameSite = http.SameSiteLaxMode // Less strict for development
 	c.SetCookie(refreshCookie)
 
 	return c.JSON(http.StatusOK, tokens)
@@ -224,4 +228,41 @@ func (h *AuthHandler) handleLogout(c echo.Context) error {
 	})
 
 	return c.NoContent(http.StatusOK)
+}
+
+// handleWebLogout handles web-based logout
+func (h *AuthHandler) handleWebLogout(c echo.Context) error {
+	// Clear cookies
+	c.SetCookie(&http.Cookie{
+		Name:     "token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false, // Allow HTTP in development
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    "",
+		Path:     "/",
+		MaxAge:   -1,
+		HttpOnly: true,
+		Secure:   false, // Allow HTTP in development
+		SameSite: http.SameSiteLaxMode,
+	})
+
+	// Get token from cookie before clearing
+	token, err := c.Cookie("token")
+	if err == nil && token.Value != "" {
+		// Blacklist the token
+		logoutErr := h.userService.Logout(c.Request().Context(), token.Value)
+		if logoutErr != nil {
+			h.Logger.Error("failed to blacklist token", logging.Error(logoutErr))
+		}
+	}
+
+	// Redirect to login page
+	return c.Redirect(http.StatusSeeOther, "/login")
 }

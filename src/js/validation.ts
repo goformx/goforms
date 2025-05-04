@@ -243,44 +243,31 @@ export const validation = {
 
   // Common fetch with CSRF
   async fetchWithCSRF(url: string, options: RequestInit = {}): Promise<Response> {
-    // Get CSRF token from form's hidden input
-    const csrfInput = document.querySelector('input[name="csrf_token"]') as HTMLInputElement;
-    if (!csrfInput) {
-      console.error('CSRF token input not found');
-      throw new Error('CSRF token not found');
+    // Get CSRF token from meta tag
+    const csrfToken = document.querySelector('meta[name="csrf-token"]')?.getAttribute('content');
+    
+    // Prepare headers
+    const headers = new Headers(options.headers || {});
+    if (csrfToken) {
+      headers.set('X-CSRF-Token', csrfToken);
     }
+    headers.set('Content-Type', 'application/json');
 
-    const csrfToken = csrfInput.value;
-    if (!csrfToken) {
-      console.error('CSRF token value is empty');
-      throw new Error('CSRF token is empty');
-    }
-
-    // Add CSRF token to headers
-    const headers = new Headers(options.headers);
-    headers.set('X-CSRF-Token', csrfToken);
-
-    // Add JWT token to Authorization header if available
-    const jwtToken = this.getJWTToken();
-    if (jwtToken) {
-      headers.set('Authorization', `Bearer ${jwtToken}`);
-    }
-
-    // Make request with CSRF token
+    // Make request with CSRF token and credentials
     return fetch(url, {
       ...options,
       headers,
-      credentials: 'same-origin'
+      credentials: 'include'
     });
   },
 
   // JWT token management
-  setJWTToken(token: string): void {
-    localStorage.setItem('jwt_token', token);
-  },
-
   getJWTToken(): string | null {
     return localStorage.getItem('jwt_token');
+  },
+
+  setJWTToken(token: string): void {
+    localStorage.setItem('jwt_token', token);
   },
 
   clearJWTToken(): void {
