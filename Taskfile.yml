@@ -89,6 +89,7 @@ tasks:
       - rm -f coverage.html
       - rm -rf dist/
       - rm -rf node_modules/
+      - find internal/ -name '*_templ.go' -delete
 
   lint:
     desc: Run linters

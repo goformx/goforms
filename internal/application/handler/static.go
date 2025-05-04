@@ -14,16 +14,33 @@ import (
 
 // StaticHandler handles serving static files
 type StaticHandler struct {
-	logger logging.Logger
-	config *config.Config
+	logger    logging.Logger
+	config    *config.Config
+	fileIndex map[string]string // base name -> full path
 }
 
 // NewStaticHandler creates a new static file handler
 func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler {
-	return &StaticHandler{
-		logger: logger,
-		config: cfg,
+	handler := &StaticHandler{
+		logger:    logger,
+		config:    cfg,
+		fileIndex: make(map[string]string),
 	}
+	// Build file index for dist directory
+	distDir := cfg.Static.DistDir
+	if _, err := os.Stat(distDir); err == nil {
+		filepath.Walk(distDir, func(walkPath string, info os.FileInfo, err error) error {
+			if err != nil {
+				return err
+			}
+			if !info.IsDir() {
+				baseName := strings.Split(info.Name(), ".")[0]
+				handler.fileIndex[baseName] = walkPath
+			}
+			return nil
+		})
+	}
+	return handler
 }
 
 // Register sets up routes for static file serving
@@ -41,13 +58,6 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 		})
 	})
 
-	// In development mode, proxy static requests to Vite dev server
-	if h.config.App.IsDevelopment() {
-		h.logger.Info("development mode: proxying static files to Vite dev server")
-		e.GET("/static/*", h.proxyToViteDevServer)
-		return
-	}
-
 	// In production, serve from the dist directory
 	distDir := h.config.Static.DistDir
 	if _, err := os.Stat(distDir); err == nil {
@@ -57,9 +67,6 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 		// Use a wildcard route to handle hashed filenames
 		e.GET("/dist/*", h.HandleStatic)
 	}
-
-	// Always serve static files from the public directory
-	e.Static("/public", "public")
 }
 
 // HandleStatic serves static files
@@ -70,32 +77,22 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 	}
 
 	// In production, serve from the dist directory
-	distDir := h.config.Static.DistDir
-
-	// Walk the dist directory to find the file with the matching base name
-	var foundFile string
-	err := filepath.Walk(distDir, func(walkPath string, info os.FileInfo, err error) error {
-		if err != nil {
-			return err
-		}
-		if !info.IsDir() {
-			// Check if the file matches the requested path (ignoring the hash)
-			baseName := strings.Split(info.Name(), ".")[0]
-			requestBaseName := strings.Split(filepath.Base(path), ".")[0]
-			if baseName == requestBaseName {
-				foundFile = walkPath
-				return filepath.SkipDir
-			}
-		}
-		return nil
-	})
-
-	if err != nil || foundFile == "" {
+	requestBaseName := strings.Split(filepath.Base(path), ".")[0]
+	foundFile, ok := h.fileIndex[requestBaseName]
+	if !ok {
 		h.logger.Error("file not found",
 			logging.String("path", path),
-			logging.String("distDir", distDir),
+			logging.String("distDir", h.config.Static.DistDir),
 		)
-		return echo.NewHTTPError(http.StatusNotFound, "file not found")
+		accept := c.Request().Header.Get("Accept")
+		if strings.Contains(accept, "text/html") {
+			// Try to serve a custom 404 page
+			notFoundPage := filepath.Join(h.config.Static.DistDir, "404.html")
+			if _, err := os.Stat(notFoundPage); err == nil {
+				return c.File(notFoundPage)
+			}
+		}
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "file not found"})
 	}
 
 	// Set appropriate content type based on file extension
@@ -109,44 +106,16 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 		c.Response().Header().Set("Content-Type", "application/json")
 	}
 
-	return c.File(foundFile)
-}
-
-// proxyToViteDevServer proxies static requests to Vite dev server
-func (h *StaticHandler) proxyToViteDevServer(c echo.Context) error {
-	path := c.Param("*")
-	var url string
-	if path == "@vite/client" {
-		url = "http://localhost:3000/@vite/client"
+	// Set cache headers
+	// If the file name contains a hash (e.g., main.abc123.js), set a long cache
+	parts := strings.Split(filepath.Base(foundFile), ".")
+	if len(parts) >= 3 {
+		// Assume hashed file: name.hash.ext
+		c.Response().Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	} else {
-		url = "http://localhost:3000/" + path
+		// Shorter cache for non-hashed
+		c.Response().Header().Set("Cache-Control", "public, max-age=3600")
 	}
-	h.logger.Info("proxying request to Vite dev server",
-		logging.String("path", path),
-		logging.String("url", url),
-	)
-	req, err := http.NewRequestWithContext(c.Request().Context(), http.MethodGet, url, http.NoBody)
-	if err != nil {
-		h.logger.Error("failed to create request",
-			logging.Error(err),
-		)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to create request")
-	}
-	for k, v := range c.Request().Header {
-		req.Header[k] = v
-	}
-	client := &http.Client{}
-	resp, err := client.Do(req)
-	if err != nil {
-		h.logger.Error("failed to proxy request",
-			logging.Error(err),
-			logging.String("url", url),
-		)
-		return echo.NewHTTPError(http.StatusNotFound, "file not found")
-	}
-	defer resp.Body.Close()
-	for k, v := range resp.Header {
-		c.Response().Header()[k] = v
-	}
-	return c.Stream(resp.StatusCode, resp.Header.Get("Content-Type"), resp.Body)
+
+	return c.File(foundFile)
 }
