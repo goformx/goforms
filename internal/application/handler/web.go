@@ -7,7 +7,6 @@ import (
 
 	"github.com/a-h/templ"
 	amw "github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -21,23 +20,22 @@ var (
 	ErrNoCurrentUser = errors.New("no current user found")
 )
 
+// Signup validation constants
+const (
+	SignupFirstNameMin = 2
+	SignupFirstNameMax = 50
+	SignupLastNameMin  = 2
+	SignupLastNameMax  = 50
+	SignupEmailMin     = 5
+	SignupEmailMax     = 100
+	SignupPasswordMin  = 8
+	SignupPasswordMax  = 100
+)
+
 // WebHandlerOption defines a web handler option.
 // This type is used to implement the functional options pattern
 // for configuring the WebHandler.
 type WebHandlerOption func(*WebHandler)
-
-// WithContactService sets the contact service.
-// This is a required option for the WebHandler as it needs
-// the contact service to function properly.
-//
-// Example:
-//
-//	handler := NewWebHandler(logger, WithContactService(contactService))
-func WithContactService(svc contact.Service) WebHandlerOption {
-	return func(h *WebHandler) {
-		h.contactService = svc
-	}
-}
 
 // WithRenderer sets the view renderer.
 // This is a required option for the WebHandler as it needs
@@ -67,17 +65,15 @@ func WithConfig(cfg *config.Config) WebHandlerOption {
 }
 
 // WebHandler handles web page requests.
-// It requires a renderer, contact service, and subscription service to function properly.
+// It requires a renderer, and subscription service to function properly.
 // Use the functional options pattern to configure these dependencies.
 //
 // Dependencies:
 //   - renderer: Required for rendering web pages
-//   - contactService: Required for contact form functionality
 //   - middlewareManager: Required for security and request processing
 //   - config: Required for configuration
 type WebHandler struct {
 	Base
-	contactService    contact.Service
 	renderer          *view.Renderer
 	middlewareManager *amw.Manager
 	config            *config.Config
@@ -92,7 +88,6 @@ type WebHandler struct {
 //
 //	handler := NewWebHandler(logger,
 //	    WithRenderer(renderer),
-//	    WithContactService(contactService),
 //	    WithConfig(config),
 //	)
 func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler, error) {
@@ -107,9 +102,6 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 	// Validate critical dependencies during construction
 	if h.renderer == nil {
 		return nil, errors.New("WebHandler initialization failed: renderer is required")
-	}
-	if h.contactService == nil {
-		return nil, errors.New("WebHandler initialization failed: contact service is required")
 	}
 	if h.middlewareManager == nil {
 		return nil, errors.New("WebHandler initialization failed: middleware manager is required")
@@ -126,7 +118,6 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 //
 // Required dependencies:
 //   - renderer
-//   - contactService
 //   - middlewareManager
 //   - config
 func (h *WebHandler) Validate() error {
@@ -135,9 +126,6 @@ func (h *WebHandler) Validate() error {
 	}
 	if h.renderer == nil {
 		return errors.New("WebHandler validation failed: renderer is required")
-	}
-	if h.contactService == nil {
-		return errors.New("WebHandler validation failed: contact service is required")
 	}
 	if h.middlewareManager == nil {
 		return errors.New("WebHandler validation failed: middleware manager is required")
@@ -272,29 +260,29 @@ func (h *WebHandler) handleValidationSchema(c echo.Context) error {
 	schemaName := c.Param("schema")
 	if schemaName == "signup" {
 		// Return a JSON schema for signup fields
-		return c.JSON(200, map[string]any{
+		return c.JSON(http.StatusOK, map[string]any{
 			"first_name": map[string]any{
 				"type":    "string",
-				"min":     2,
-				"max":     50,
+				"min":     SignupFirstNameMin,
+				"max":     SignupFirstNameMax,
 				"message": "First name must be between 2 and 50 characters",
 			},
 			"last_name": map[string]any{
 				"type":    "string",
-				"min":     2,
-				"max":     50,
+				"min":     SignupLastNameMin,
+				"max":     SignupLastNameMax,
 				"message": "Last name must be between 2 and 50 characters",
 			},
 			"email": map[string]any{
 				"type":    "email",
-				"min":     5,
-				"max":     100,
+				"min":     SignupEmailMin,
+				"max":     SignupEmailMax,
 				"message": "Please enter a valid email address",
 			},
 			"password": map[string]any{
 				"type":    "password",
-				"min":     8,
-				"max":     100,
+				"min":     SignupPasswordMin,
+				"max":     SignupPasswordMax,
 				"message": "Password must be at least 8 characters and contain upper, lower, number, special",
 			},
 			"confirm_password": map[string]any{
@@ -304,5 +292,5 @@ func (h *WebHandler) handleValidationSchema(c echo.Context) error {
 			},
 		})
 	}
-	return c.JSON(404, map[string]string{"error": "validation schema not found"})
+	return c.JSON(http.StatusNotFound, map[string]string{"error": "validation schema not found"})
 }
