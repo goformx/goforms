@@ -39,6 +39,7 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 	dashboard.GET("/forms/new", h.ShowNewForm)
 	dashboard.POST("/forms", h.CreateForm)
 	dashboard.GET("/forms/:id/edit", h.ShowEditForm)
+	dashboard.PUT("/forms/:id", h.UpdateForm)
 	dashboard.GET("/forms/:id/submissions", h.ShowFormSubmissions)
 	dashboard.GET("/forms/:id/schema", h.GetFormSchema)
 	dashboard.PUT("/forms/:id/schema", h.UpdateFormSchema)
@@ -333,4 +334,51 @@ func (h *DashboardHandler) UpdateFormSchema(c echo.Context) error {
 	}
 
 	return c.JSON(http.StatusOK, newSchema)
+}
+
+// UpdateForm handles updating a form's basic details
+func (h *DashboardHandler) UpdateForm(c echo.Context) error {
+	currentUser, ok := c.Get("user").(*user.User)
+	if !ok {
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	}
+
+	formID, err := strconv.ParseUint(c.Param("id"), 10, 64)
+	if err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
+	}
+
+	// Get existing form
+	formObj, err := h.formService.GetForm(uint(formID))
+	if err != nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+	}
+
+	// Verify form belongs to current user
+	if formObj.UserID != currentUser.ID {
+		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	}
+
+	var formData struct {
+		Title       string `json:"title" form:"title"`
+		Description string `json:"description" form:"description"`
+	}
+
+	if err := c.Bind(&formData); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
+	}
+
+	if err := c.Validate(formData); err != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	}
+
+	// Update form details
+	formObj.Title = formData.Title
+	formObj.Description = formData.Description
+
+	if err := h.formService.UpdateForm(formObj); err != nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form")
+	}
+
+	return c.JSON(http.StatusOK, formObj)
 }

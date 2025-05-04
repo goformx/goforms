@@ -33,31 +33,38 @@ templ EditFormContent(data shared.PageData) {
 			</div>
 
 			<div class="dashboard-content">
-				<form id="edit-form" class="auth-form" method="POST" action={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(data.Form.ID), 10)) } data-validate="editForm">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-					<div id="form_error" class="form-error"></div>
+				<!-- Form Details Section -->
+				<div class="form-section">
+					<h2>Form Details</h2>
+					<p class="section-subtitle">Update the basic information about your form</p>
+					
+					<form id="edit-form" class="auth-form" method="POST" data-validate="editForm">
+						<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+						<div id="form_error" class="form-error"></div>
 
-					<div class="form-group">
-						<label for="title" class="form-label">Form Title</label>
-						<input type="text" id="title" name="title" required class="form-input" value={ data.Form.Title } placeholder="Enter form title" />
-						<div id="title_error" class="error-message"></div>
-					</div>
+						<div class="form-group">
+							<label for="title" class="form-label">Form Title</label>
+							<input type="text" id="title" name="title" required class="form-input" value={ data.Form.Title } placeholder="Enter form title" />
+							<div id="title_error" class="error-message"></div>
+						</div>
 
-					<div class="form-group">
-						<label for="description" class="form-label">Description</label>
-						<textarea id="description" name="description" rows="3" class="form-input" placeholder="Enter form description">{ data.Form.Description }</textarea>
-						<div id="description_error" class="error-message"></div>
-					</div>
+						<div class="form-group">
+							<label for="description" class="form-label">Description</label>
+							<textarea id="description" name="description" rows="3" class="form-input" placeholder="Enter form description">{ data.Form.Description }</textarea>
+							<div id="description_error" class="error-message"></div>
+						</div>
 
-					<div class="form-actions">
-						<a href="/dashboard" class="btn btn-outline">Cancel</a>
-						<button type="submit" class="btn btn-primary">Save Changes</button>
-					</div>
-				</form>
+						<div class="form-actions">
+							<a href="/dashboard" class="btn btn-outline">Cancel</a>
+							<button type="submit" class="btn btn-primary">Update Details</button>
+						</div>
+					</form>
+				</div>
 
-				<!-- Form Schema Builder UI -->
-				<div class="form-schema-builder-section">
+				<!-- Form Fields Builder Section -->
+				<div class="form-section form-schema-builder-section">
 					<h2>Form Fields</h2>
+					<p class="section-subtitle">Design your form by adding and configuring fields. Changes are saved automatically.</p>
 					<div id="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
 				</div>
 			</div>
@@ -66,4 +73,41 @@ templ EditFormContent(data shared.PageData) {
 
 	<script type="module" src="http://localhost:3000/@vite/client"></script>
 	<script type="module" src={ web.GetAssetPath("src/js/form-builder.ts") }></script>
+	<script type="module">
+		// Handle form submission
+		document.getElementById('edit-form').addEventListener('submit', async (e) => {
+			e.preventDefault();
+			const form = e.target;
+			const formData = new FormData(form);
+			const formId = document.getElementById('form-schema-builder').getAttribute('data-form-id');
+
+			try {
+				const response = await fetch(`/dashboard/forms/${formId}`, {
+					method: 'PUT',
+					headers: {
+						'Content-Type': 'application/json',
+						'X-CSRF-Token': formData.get('csrf_token')
+					},
+					body: JSON.stringify({
+						title: formData.get('title'),
+						description: formData.get('description')
+					})
+				});
+
+				if (response.ok) {
+					window.location.href = '/dashboard';
+				} else {
+					const error = await response.json();
+					const errorDiv = document.getElementById('form_error');
+					errorDiv.textContent = error.message || 'Failed to update form';
+					errorDiv.style.display = 'block';
+				}
+			} catch (error) {
+				console.error('Failed to update form:', error);
+				const errorDiv = document.getElementById('form_error');
+				errorDiv.textContent = 'Failed to update form. Please try again.';
+				errorDiv.style.display = 'block';
+			}
+		});
+	</script>
 } 
