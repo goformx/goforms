@@ -9,7 +9,6 @@ import (
 	"net/http"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
@@ -83,70 +82,6 @@ func (c *Client) Logout(ctx context.Context, token string) error {
 	resp, err := c.httpClient.Do(req)
 	if err != nil {
 		return fmt.Errorf("failed to send request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// Contact API
-
-// SubmitContactForm submits a new contact form
-func (c *Client) SubmitContactForm(ctx context.Context, submission *contact.Submission) error {
-	url := fmt.Sprintf("%s/api/v1/contact", c.baseURL)
-	resp, err := c.doRequest(ctx, http.MethodPost, url, submission)
-	if err != nil {
-		return err
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusCreated {
-		return fmt.Errorf("unexpected status code: %d", resp.StatusCode)
-	}
-	return nil
-}
-
-// ListContactSubmissions retrieves all contact form submissions
-func (c *Client) ListContactSubmissions(ctx context.Context) ([]contact.Submission, error) {
-	url := fmt.Sprintf("%s/api/v1/contact", c.baseURL)
-	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var submissions []contact.Submission
-	if decodeErr := json.NewDecoder(resp.Body).Decode(&submissions); decodeErr != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
-	}
-	return submissions, nil
-}
-
-// GetContactSubmission retrieves a specific contact form submission
-func (c *Client) GetContactSubmission(ctx context.Context, id int64) (*contact.Submission, error) {
-	url := fmt.Sprintf("%s/api/v1/contact/%d", c.baseURL, id)
-	resp, err := c.doRequest(ctx, http.MethodGet, url, nil)
-	if err != nil {
-		return nil, err
-	}
-	defer resp.Body.Close()
-
-	var submission contact.Submission
-	if decodeErr := json.NewDecoder(resp.Body).Decode(&submission); decodeErr != nil {
-		return nil, fmt.Errorf("failed to decode response: %w", decodeErr)
-	}
-	return &submission, nil
-}
-
-// UpdateContactSubmissionStatus updates the status of a contact form submission
-func (c *Client) UpdateContactSubmissionStatus(ctx context.Context, id int64, status contact.Status) error {
-	url := fmt.Sprintf("%s/api/v1/contact/%d", c.baseURL, id)
-	resp, err := c.doRequest(ctx, http.MethodPut, url, status)
-	if err != nil {
-		return err
 	}
 	defer resp.Body.Close()
 

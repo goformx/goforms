@@ -11,7 +11,6 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/domain/contact"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	h "github.com/jonesrussell/goforms/internal/handlers"
@@ -38,9 +37,8 @@ const (
 type Stores struct {
 	fx.Out
 
-	ContactStore contact.Store
-	UserStore    user.Store
-	FormStore    form.Store
+	UserStore user.Store
+	FormStore form.Store
 }
 
 // CoreParams contains core infrastructure dependencies that are commonly needed by handlers.
@@ -57,9 +55,8 @@ type CoreParams struct {
 // more granular dependency injection.
 type ServiceParams struct {
 	fx.In
-	ContactService contact.Service
-	UserService    user.Service
-	FormService    form.Service
+	UserService user.Service
+	FormService form.Service
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -221,7 +218,6 @@ var HandlerModule = fx.Options(
 			handler, err := handler.NewWebHandler(
 				core.Logger,
 				handler.WithRenderer(core.Renderer),
-				handler.WithContactService(services.ContactService),
 				handler.WithMiddlewareManager(middlewareManager),
 				handler.WithConfig(core.Config),
 			)
@@ -322,10 +318,6 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 		create func(*database.Database, logging.Logger) any
 		assign func(*Stores, any)
 	}{
-		"contact": {
-			create: wrapCreator(store.NewContactStore),
-			assign: wrapAssigner(func(s *Stores, v contact.Store) { s.ContactStore = v }),
-		},
 		"user": {
 			create: wrapCreator(store.NewUserStore),
 			assign: wrapAssigner(func(s *Stores, v user.Store) { s.UserStore = v }),
