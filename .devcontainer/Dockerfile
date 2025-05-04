@@ -13,6 +13,9 @@ RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest && 
     go install github.com/a-h/templ/cmd/templ@latest && \
     go install github.com/air-verse/air@latest
 
+# Install dependencies and build the template package
+RUN cd /workspaces/goforms-template && npm install && npm run build && npm link || true
+
 USER root
 
 # [Optional] Uncomment this line to install global node packages.

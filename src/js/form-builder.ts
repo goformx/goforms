@@ -1,11 +1,14 @@
 console.log('form-builder.ts');
 
+import goforms from 'goforms-template';
 import { Formio } from '@formio/js';
 import type { FormSchema } from './schema/form-schema';
 import { validation } from './validation';
 
 // Import Form.io styles
 import '@formio/js/dist/formio.full.min.css';
+
+Formio.use(goforms);
 
 export interface FormBuilderOptions {
   disabled?: string[];
