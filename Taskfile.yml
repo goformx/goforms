@@ -1,4 +1,5 @@
 version: '3'
+output: 'prefixed'
 
 # Add interval at root level for watch mode
 interval: 500ms
@@ -75,11 +76,7 @@ tasks:
 
   dev:
     desc: Run both backend and frontend in development mode
-    cmds:
-      - echo "Starting development environment..."
-      - echo "Backend will be available at http://localhost:8090"
-      - echo "Frontend will be available at http://localhost:3000"
-      - task dev:backend & task dev:frontend
+    deps: [dev:backend, dev:frontend]
 
   clean:
     desc: Clean build artifacts
