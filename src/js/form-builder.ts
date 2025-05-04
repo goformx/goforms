@@ -7,6 +7,22 @@ import { validation } from './validation';
 // Import Form.io styles
 import '@formio/js/dist/formio.full.min.css';
 
+export interface FormBuilderOptions {
+  disabled?: string[];
+  noNewEdit?: boolean;
+  noDefaultSubmitButton?: boolean;
+  alwaysConfirmComponentRemoval?: boolean;
+  formConfig?: object;
+  resourceTag?: string;
+  editForm?: any;
+  language?: string;
+  builder?: object;
+  display?: 'form' | 'wizard' | 'pdf';
+  resourceFilter?: string;
+  noSource?: boolean;
+  showFullJsonSchema?: boolean;
+}
+
 export class FormBuilder {
   private container: HTMLElement;
   private builder: any; // Form.io builder instance
@@ -26,31 +42,16 @@ export class FormBuilder {
   }
 
   private init() {
-    const builderOptions = {
+    const builderOptions: FormBuilderOptions = {
       display: 'form',
       noDefaultSubmitButton: true,
       builder: {
-        basic: {
-          title: 'Basic Components',
-          default: true,
-          weight: 0,
-          components: {
-            textfield: true,
-            textarea: true,
-            email: true,
-            phoneNumber: true,
-            number: true,
-            password: true,
-            checkbox: true,
-            selectboxes: true,
-            select: true,
-            radio: true,
-            button: true,
-          }
-        },
-        advanced: false,
+        basic: {},
+        advanced: {},
+        layout: {},
+        data: false,
         premium: false,
-        resource: false
+        resource: {}
       }
     };
 
@@ -126,4 +127,8 @@ if (formSchemaBuilder) {
       console.error('FormBuilder: Invalid form ID:', formIdAttr);
     }
   }
-} 
+}
+
+console.log('Basic components in Form.io:', Object.values(Formio.Components.components)
+  .filter(c => (c as any).builderInfo && (c as any).builderInfo.group === 'basic')
+  .map(c => (c as any).builderInfo)); 

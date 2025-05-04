@@ -6,7 +6,7 @@
 @import url('base/reset.css') layer(base);
 
 /* Minimal Bootstrap-like CSS */
-@import "./bootstrap-minimal.css" layer(base);
+@import "./formio-custom.css" layer(components);
 
 /* Layout styles */
 @import url('layouts/container.css') layer(layouts);
