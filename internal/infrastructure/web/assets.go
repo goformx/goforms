@@ -5,6 +5,7 @@ import (
 	"log"
 	"os"
 	"path/filepath"
+	"strconv"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
@@ -17,11 +18,11 @@ type ManifestEntry struct {
 	Imports []string `json:"imports,omitempty"`
 }
 
-// Manifest represents the entire Vite manifest file
-type Manifest map[string]ManifestEntry
+// ViteManifest represents the entire Vite manifest file
+type ViteManifest map[string]ManifestEntry
 
 var (
-	manifest Manifest
+	Manifest ViteManifest
 	cfg      *config.Config
 )
 
@@ -45,13 +46,13 @@ func init() {
 			return
 		}
 
-		if unmarshalErr := json.Unmarshal(manifestData, &manifest); unmarshalErr != nil {
+		if unmarshalErr := json.Unmarshal(manifestData, &Manifest); unmarshalErr != nil {
 			log.Printf("Warning: Could not parse manifest file: %v", unmarshalErr)
 			return
 		}
 
-		log.Printf("Successfully loaded manifest with %d entries", len(manifest))
-		for key, entry := range manifest {
+		log.Printf("Successfully loaded manifest with %d entries", len(Manifest))
+		for key, entry := range Manifest {
 			log.Printf("Manifest entry: %s -> %s", key, entry.File)
 		}
 	}
@@ -67,7 +68,7 @@ func GetAssetPath(src string) string {
 		return "http://" + cfg.App.ViteDevHost + ":" + cfg.App.ViteDevPort + "/" + src
 	}
 
-	if entry, ok := manifest[src]; ok {
+	if entry, ok := Manifest[src]; ok {
 		path := filepath.Join("dist", entry.File)
 		log.Printf("Found manifest entry: %s -> %s", src, path)
 		return path
@@ -75,4 +76,9 @@ func GetAssetPath(src string) string {
 
 	log.Printf("No manifest entry found for: %s", src)
 	return ""
+}
+
+// GetQuotedAssetPath returns the asset path as a quoted string for use in JS
+func GetQuotedAssetPath(src string) string {
+	return strconv.Quote(GetAssetPath(src))
 }

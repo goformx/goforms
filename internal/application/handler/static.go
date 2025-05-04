@@ -10,6 +10,7 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 )
 
 // StaticHandler handles serving static files
@@ -110,15 +111,12 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 		c.Response().Header().Set("Content-Type", "application/json")
 	}
 
-	// Set cache headers
-	// If the file name contains a hash (e.g., main.abc123.js), set a long cache
-	parts := strings.Split(filepath.Base(foundFile), ".")
-	const hashedFileParts = 3
-	if len(parts) >= hashedFileParts {
-		// Assume hashed file: name.hash.ext
+	// Set cache headers based on manifest presence
+	if _, manifestOk := web.Manifest[path]; manifestOk {
+		// File is in the manifest, safe to cache long-term
 		c.Response().Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	} else {
-		// Shorter cache for non-hashed
+		// Not in manifest, use a short cache
 		c.Response().Header().Set("Cache-Control", "public, max-age=3600")
 	}
 

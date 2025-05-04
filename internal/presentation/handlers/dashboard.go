@@ -172,11 +172,12 @@ func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
 
 	// Create page data
 	data := shared.PageData{
-		Title:     "Edit Form - GoForms",
-		User:      currentUser,
-		Form:      formObj,
-		CSRFToken: csrfToken,
-		AssetPath: web.GetAssetPath,
+		Title:                "Edit Form - GoForms",
+		User:                 currentUser,
+		Form:                 formObj,
+		CSRFToken:            csrfToken,
+		AssetPath:            web.GetAssetPath,
+		FormBuilderAssetPath: web.GetAssetPath("src/js/form-builder.ts"),
 	}
 
 	// Set content

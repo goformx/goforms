@@ -74,16 +74,22 @@ templ EditFormContent(data shared.PageData) {
 		</div>
 	</div>
 
-	<!-- Dynamically import form-builder only if needed, using environment-aware path -->
-	<script type="module">
-	  if (document.getElementById('form-schema-builder')) {
-	    const isDev = { if data.IsDevelopment }true{ else }false{ end };
-	    const path = isDev
-	      ? '/src/js/form-builder.ts'
-	      : '{ web.GetAssetPath("src/js/form-builder.ts") }';
-	    import(path);
-	  }
-	</script>
+	@templ.JSONScript("form-builder-data", data.FormBuilderAssetPath)
+	if data.IsDevelopment {
+		<script type="module">
+			if (document.getElementById('form-schema-builder')) {
+				const path = "/src/js/form-builder.ts";
+				import(path);
+			}
+		</script>
+	} else {
+		<script type="module">
+			const path = JSON.parse(document.getElementById('form-builder-data').textContent);
+			if (document.getElementById('form-schema-builder')) {
+				import(path);
+			}
+		</script>
+	}
 	<script type="module">
 		// Handle form submission
 		document.getElementById('edit-form').addEventListener('submit', async (e) => {
