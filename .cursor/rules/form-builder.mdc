@@ -1,0 +1,64 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Form Builder Implementation
+
+The form builder is implemented using Form.io with a custom integration that maintains our own schema format.
+
+## Key Files
+- [src/js/form-builder.ts](mdc:src/js/form-builder.ts): Main form builder implementation
+- [src/js/schema/form-schema.ts](mdc:src/js/schema/form-schema.ts): Form schema type definitions
+- [internal/presentation/templates/pages/edit_form.templ](mdc:internal/presentation/templates/pages/edit_form.templ): Form builder page template
+
+## Architecture
+- Form builder is mounted in a div with `id="form-schema-builder"`
+- Uses Form.io builder with customized component sets
+- Maintains own schema format with conversion to/from Form.io format
+- CSRF protection implemented for all API calls
+
+## API Endpoints
+- GET `/dashboard/forms/{id}/schema`: Load form schema
+- PUT `/dashboard/forms/{id}/schema`: Save form schema
+- PUT `/dashboard/forms/{id}`: Update form details
+
+## Component Configuration
+Basic components:
+- textfield
+- textarea
+- email
+- phoneNumber
+- number
+- password
+- checkbox
+- selectboxes
+- select
+- radio
+- button
+
+Advanced components:
+- file
+- signature
+- container
+- dataGrid
+- datetime
+- day
+- time
+- currency
+- survey
+- panel
+
+## Schema Format
+Our schema format is defined in [src/js/schema/form-schema.ts](mdc:src/js/schema/form-schema.ts) and includes:
+- Form metadata (id, name, title)
+- Pages array with form elements
+- Support for nested panels and fields
+- Custom validation rules
+
+## Testing Requirements
+1. Form Builder UI initialization
+2. Component rendering and configuration
+3. Schema conversion (Form.io ↔ App Schema)
+4. Data persistence with CSRF
+5. Form details management
