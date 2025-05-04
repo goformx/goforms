@@ -4,7 +4,7 @@ import { z } from 'zod';
 import { validation } from './validation';
 
 // Types for form fields
-export type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio';
+export type FieldType = 'text' | 'email' | 'number' | 'textarea' | 'select' | 'checkbox' | 'radio' | 'submit';
 
 export interface FormField {
   id: string;
@@ -14,6 +14,7 @@ export interface FormField {
   required: boolean;
   options?: string[]; // For select/radio fields
   placeholder?: string;
+  buttonText?: string; // For submit buttons
 }
 
 export interface FormSchema {
@@ -91,6 +92,7 @@ export class FormBuilder {
       <div class="form-builder">
         <div class="form-builder-toolbar">
           <button type="button" class="btn btn-primary" id="add-field-btn">Add Field</button>
+          <button type="button" class="btn btn-primary" id="save-fields-btn">Save Fields</button>
         </div>
         <div class="form-builder-fields"></div>
         <div class="form-builder-preview">
@@ -102,8 +104,12 @@ export class FormBuilder {
 
     const addButton = this.container.querySelector('#add-field-btn');
     if (addButton) {
-      console.log('addButton', addButton);
       addButton.addEventListener('click', () => this.showAddFieldDialog());
+    }
+
+    const saveButton = this.container.querySelector('#save-fields-btn');
+    if (saveButton) {
+      saveButton.addEventListener('click', () => this.saveSchema());
     }
   }
 
@@ -124,7 +130,7 @@ export class FormBuilder {
           </div>
           <div class="form-group">
             <label>Type</label>
-            <select name="type" required class="form-input">
+            <select name="type" required class="form-input" id="field-type">
               <option value="text">Text</option>
               <option value="email">Email</option>
               <option value="number">Number</option>
@@ -132,15 +138,20 @@ export class FormBuilder {
               <option value="select">Select</option>
               <option value="checkbox">Checkbox</option>
               <option value="radio">Radio</option>
+              <option value="submit">Submit Button</option>
             </select>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="button-text-group" style="display: none;">
+            <label>Button Text</label>
+            <input type="text" name="buttonText" class="form-input" placeholder="Submit" />
+          </div>
+          <div class="form-group" id="required-group">
             <label>
               <input type="checkbox" name="required" />
               Required
             </label>
           </div>
-          <div class="form-group">
+          <div class="form-group" id="placeholder-group">
             <label>Placeholder</label>
             <input type="text" name="placeholder" class="form-input" />
           </div>
@@ -154,19 +165,42 @@ export class FormBuilder {
 
     this.container.appendChild(dialog);
 
+    // Show/hide fields based on type selection
+    const typeSelect = dialog.querySelector('#field-type');
+    const buttonTextGroup = dialog.querySelector('#button-text-group') as HTMLDivElement;
+    const placeholderGroup = dialog.querySelector('#placeholder-group') as HTMLDivElement;
+    const requiredGroup = dialog.querySelector('#required-group') as HTMLDivElement;
+    
+    if (typeSelect && buttonTextGroup && placeholderGroup && requiredGroup) {
+      typeSelect.addEventListener('change', (e) => {
+        const target = e.target as HTMLSelectElement;
+        const isSubmit = target.value === 'submit';
+        buttonTextGroup.style.display = isSubmit ? 'block' : 'none';
+        placeholderGroup.style.display = isSubmit ? 'none' : 'block';
+        requiredGroup.style.display = isSubmit ? 'none' : 'block';
+      });
+    }
+
     const form = dialog.querySelector('form');
     if (form) {
       form.addEventListener('submit', (e) => {
         e.preventDefault();
         const formData = new FormData(form);
+        const fieldType = formData.get('type') as FieldType;
         const field: FormField = {
           id: crypto.randomUUID(),
           name: formData.get('name') as string,
           label: formData.get('label') as string,
-          type: formData.get('type') as FieldType,
-          required: formData.get('required') === 'on',
+          type: fieldType,
+          required: fieldType === 'submit' ? false : formData.get('required') === 'on',
           placeholder: formData.get('placeholder') as string
         };
+
+        // Add button text for submit buttons
+        if (field.type === 'submit') {
+          field.buttonText = formData.get('buttonText') as string || 'Submit';
+          delete field.placeholder; // Remove placeholder for submit buttons
+        }
 
         this.addField(field);
         dialog.remove();
@@ -177,7 +211,6 @@ export class FormBuilder {
   private addField(field: FormField) {
     this.fields.push(field);
     this.renderFields();
-    this.saveSchema();
   }
 
   private renderFields() {
@@ -232,8 +265,16 @@ export class FormBuilder {
             </label>
           `).join('');
           break;
+        case 'submit':
+          input = `<button type="submit" class="btn btn-primary">${field.buttonText || 'Submit'}</button>`;
+          break;
         default:
           input = `<input type="${field.type}" name="${field.name}" class="form-input" ${field.required ? 'required' : ''} placeholder="${field.placeholder || ''}" />`;
+      }
+
+      // Don't wrap submit buttons in form-group
+      if (field.type === 'submit') {
+        return `<div class="form-actions">${input}</div>`;
       }
 
       return `
@@ -253,15 +294,41 @@ export class FormBuilder {
       const schema = { id: this.formId, fields: this.fields };
       const validSchema = formSchemaSchema.parse(schema);
       
-      await validation.fetchWithCSRF(`/dashboard/forms/${this.formId}/schema`, {
+      const saveButton = this.container.querySelector('#save-fields-btn') as HTMLButtonElement;
+      if (saveButton) {
+        saveButton.disabled = true;
+        saveButton.textContent = 'Saving...';
+      }
+
+      const response = await validation.fetchWithCSRF(`/dashboard/forms/${this.formId}/schema`, {
         method: 'PUT',
         headers: {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify(validSchema)
       });
+
+      if (response.ok) {
+        if (saveButton) {
+          saveButton.textContent = 'Saved!';
+          setTimeout(() => {
+            saveButton.disabled = false;
+            saveButton.textContent = 'Save Fields';
+          }, 2000);
+        }
+      } else {
+        throw new Error('Failed to save schema');
+      }
     } catch (error) {
       console.error('Failed to save form schema:', error);
+      const saveButton = this.container.querySelector('#save-fields-btn') as HTMLButtonElement;
+      if (saveButton) {
+        saveButton.disabled = false;
+        saveButton.textContent = 'Save Failed';
+        setTimeout(() => {
+          saveButton.textContent = 'Save Fields';
+        }, 2000);
+      }
     }
   }
 }
