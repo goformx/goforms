@@ -80,7 +80,7 @@ func NewNoopLogger() Logger {
 }
 
 // NewLogger creates a new logger instance
-func NewLogger(logLevel string, appName string) (Logger, error) {
+func NewLogger(logLevel, appName string) (Logger, error) {
 	// Create encoder config
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -89,11 +89,11 @@ func NewLogger(logLevel string, appName string) (Logger, error) {
 	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
 
 	var zapLog *zap.Logger
-	var err error
 
 	// Parse log level
 	var level zapcore.Level
-	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
+	levelErr := level.UnmarshalText([]byte(logLevel))
+	if levelErr != nil {
 		level = zapcore.InfoLevel // fallback
 	}
 
@@ -108,7 +108,7 @@ func NewLogger(logLevel string, appName string) (Logger, error) {
 		config.Encoding = "json"
 	}
 
-	zapLog, err = config.Build(
+	zapLog, err := config.Build(
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),
 		zap.Fields(

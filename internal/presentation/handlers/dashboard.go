@@ -19,7 +19,11 @@ type DashboardHandler struct {
 	formService    form.Service
 }
 
-func NewDashboardHandler(userService user.Service, formService form.Service, logger logging.Logger) (*DashboardHandler, error) {
+func NewDashboardHandler(
+	userService user.Service,
+	formService form.Service,
+	logger logging.Logger,
+) (*DashboardHandler, error) {
 	cookieAuth := amw.NewCookieAuthMiddleware(userService, logger)
 
 	return &DashboardHandler{

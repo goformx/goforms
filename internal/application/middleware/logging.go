@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -10,6 +11,45 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
+
+func handlePanic(c echo.Context, log logging.Logger, start time.Time, r any) {
+	err := fmt.Errorf("panic: %v", r)
+	c.Response().Status = echo.ErrInternalServerError.Code
+	log.Error("request panic",
+		logging.String("method", c.Request().Method),
+		logging.String("path", c.Request().URL.Path),
+		logging.Int("status", c.Response().Status),
+		logging.Duration("latency", time.Since(start)),
+		logging.String("ip", c.RealIP()),
+		logging.String("user_agent", c.Request().UserAgent()),
+		logging.Any("panic", r),
+	)
+	c.Error(err)
+}
+
+// extractFields builds the log fields for a request
+func extractFields(c echo.Context, start time.Time) []logging.Field {
+	return []logging.Field{
+		logging.String("method", c.Request().Method),
+		logging.String("path", c.Request().URL.Path),
+		logging.Int("status", c.Response().Status),
+		logging.Duration("latency", time.Since(start)),
+		logging.String("remote_ip", c.RealIP()),
+		logging.String("user_agent", c.Request().UserAgent()),
+	}
+}
+
+// handleErrorStatus sets the response status based on error
+func handleErrorStatus(c echo.Context, err error) {
+	if err != nil {
+		he := &echo.HTTPError{}
+		if errors.As(err, &he) {
+			c.Response().Status = he.Code
+		} else {
+			c.Response().Status = echo.ErrInternalServerError.Code
+		}
+	}
+}
 
 func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -19,18 +59,7 @@ func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 
 			defer func() {
 				if r := recover(); r != nil {
-					err = fmt.Errorf("panic: %v", r)
-					c.Response().Status = echo.ErrInternalServerError.Code
-					log.Error("request panic",
-						logging.String("method", c.Request().Method),
-						logging.String("path", c.Request().URL.Path),
-						logging.Int("status", c.Response().Status),
-						logging.Duration("latency", time.Since(start)),
-						logging.String("ip", c.RealIP()),
-						logging.String("user_agent", c.Request().UserAgent()),
-						logging.Any("panic", r),
-					)
-					c.Error(err)
+					handlePanic(c, log, start, r)
 				}
 			}()
 
@@ -38,29 +67,15 @@ func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 			err = next(c)
 
 			// Set status based on error
-			if err != nil {
-				he := &echo.HTTPError{}
-				if errors.As(err, &he) {
-					c.Response().Status = he.Code
-				} else {
-					c.Response().Status = echo.ErrInternalServerError.Code
-				}
-			}
+			handleErrorStatus(c, err)
 
 			// Log the request details using structured logging
-			fields := []logging.Field{
-				logging.String("method", c.Request().Method),
-				logging.String("path", c.Request().URL.Path),
-				logging.Int("status", c.Response().Status),
-				logging.Duration("latency", time.Since(start)),
-				logging.String("remote_ip", c.RealIP()),
-				logging.String("user_agent", c.Request().UserAgent()),
-			}
+			fields := extractFields(c, start)
 
 			if err != nil {
 				status := c.Response().Status
 				path := c.Request().URL.Path
-				isStatic404 := status == 404 && (strings.HasPrefix(path, "/node_modules/") ||
+				isStatic404 := status == http.StatusNotFound && (strings.HasPrefix(path, "/node_modules/") ||
 					strings.HasPrefix(path, "/dist/") ||
 					strings.HasPrefix(path, "/public/") ||
 					strings.HasSuffix(path, ".woff2") ||

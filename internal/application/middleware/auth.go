@@ -23,7 +23,12 @@ type JWTMiddleware struct {
 }
 
 // NewJWTMiddleware creates a new JWT middleware
-func NewJWTMiddleware(userService user.Service, secret string, logger logging.Logger, cfg *config.Config) (echo.MiddlewareFunc, error) {
+func NewJWTMiddleware(
+	userService user.Service,
+	secret string,
+	logger logging.Logger,
+	cfg *config.Config,
+) (echo.MiddlewareFunc, error) {
 	m := &JWTMiddleware{
 		userService: userService,
 		secret:      secret,
