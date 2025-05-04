@@ -63,11 +63,13 @@ type Config struct {
 
 // AppConfig holds application-level configuration
 type AppConfig struct {
-	Name  string `envconfig:"GOFORMS_APP_NAME" default:"GoForms"`
-	Env   string `envconfig:"GOFORMS_APP_ENV" default:"production"`
-	Debug bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
-	Port  int    `envconfig:"GOFORMS_APP_PORT" default:"8090"`
-	Host  string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
+	Name        string `envconfig:"GOFORMS_APP_NAME" default:"GoForms"`
+	Env         string `envconfig:"GOFORMS_APP_ENV" default:"production"`
+	Debug       bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
+	Port        int    `envconfig:"GOFORMS_APP_PORT" default:"8090"`
+	Host        string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
+	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
+	ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"3000"`
 }
 
 // DatabaseConfig holds all database-related configuration

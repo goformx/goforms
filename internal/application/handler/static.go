@@ -28,10 +28,10 @@ func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler 
 	}
 	// Build file index for dist directory
 	distDir := cfg.Static.DistDir
-	if _, err := os.Stat(distDir); err == nil {
-		filepath.Walk(distDir, func(walkPath string, info os.FileInfo, err error) error {
-			if err != nil {
-				return err
+	if _, statErr := os.Stat(distDir); statErr == nil {
+		walkErr := filepath.Walk(distDir, func(walkPath string, info os.FileInfo, walkErr error) error {
+			if walkErr != nil {
+				return walkErr
 			}
 			if !info.IsDir() {
 				baseName := strings.Split(info.Name(), ".")[0]
@@ -39,6 +39,9 @@ func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler 
 			}
 			return nil
 		})
+		if walkErr != nil {
+			logger.Error("error walking distDir", logging.Error(walkErr))
+		}
 	}
 	return handler
 }
@@ -65,7 +68,8 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 			logging.String("dir", distDir),
 		)
 		// Use a wildcard route to handle hashed filenames
-		e.GET("/dist/*", h.HandleStatic)
+		prefix := "/" + distDir + "/*"
+		e.GET(prefix, h.HandleStatic)
 	}
 }
 
@@ -109,7 +113,8 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 	// Set cache headers
 	// If the file name contains a hash (e.g., main.abc123.js), set a long cache
 	parts := strings.Split(filepath.Base(foundFile), ".")
-	if len(parts) >= 3 {
+	const hashedFileParts = 3
+	if len(parts) >= hashedFileParts {
 		// Assume hashed file: name.hash.ext
 		c.Response().Header().Set("Cache-Control", "public, max-age=31536000, immutable")
 	} else {

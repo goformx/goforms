@@ -36,7 +36,7 @@ func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Ech
 	if cfg.App.IsDevelopment() {
 		viteProxy := httputil.NewSingleHostReverseProxy(&url.URL{
 			Scheme: "http",
-			Host:   "localhost:3000",
+			Host:   cfg.App.ViteDevHost + ":" + cfg.App.ViteDevPort,
 		})
 		e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
 		e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))

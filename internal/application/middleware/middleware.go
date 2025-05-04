@@ -43,6 +43,7 @@ type ManagerConfig struct {
 	Logger      logging.Logger
 	UserService user.Service
 	Security    *config.SecurityConfig
+	Config      *config.Config
 }
 
 // New creates a new middleware manager
@@ -321,7 +322,7 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 		}
 
 		// Create JWT middleware for API routes
-		jwtMiddleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret)
+		jwtMiddleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.config.Config)
 		if err != nil {
 			m.logger.Error("failed to create JWT middleware", logging.Error(err))
 			return

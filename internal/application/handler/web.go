@@ -240,7 +240,7 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	}
 	// Static files
 	e.Static("/public", "./public")
-	e.Static("/dist", h.config.Static.DistDir)
+	e.Static("/"+h.config.Static.DistDir, h.config.Static.DistDir)
 	e.File("/favicon.ico", "./public/favicon.ico")
 }
 

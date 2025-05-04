@@ -64,12 +64,11 @@ func GetAssetPath(src string) string {
 	log.Printf("Getting asset path for: %s", src)
 
 	if cfg != nil && cfg.App.IsDevelopment() {
-		// In development, return the proxied path
-		return "/" + src
+		return "http://" + cfg.App.ViteDevHost + ":" + cfg.App.ViteDevPort + "/" + src
 	}
 
 	if entry, ok := manifest[src]; ok {
-		path := filepath.Join("static", "dist", entry.File)
+		path := filepath.Join("dist", entry.File)
 		log.Printf("Found manifest entry: %s -> %s", src, path)
 		return path
 	}

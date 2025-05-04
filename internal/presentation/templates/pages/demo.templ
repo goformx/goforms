@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
@@ -63,5 +62,8 @@ templ DemoContent() {
 			</div>
 		</div>
 	</section>
-	<script src={ "/static/" + web.GetAssetPath("demo.js") }></script>
+	<script type="module">
+		const path = { if data.IsDevelopment }"/src/js/demo.ts"{ else }{ web.GetAssetPath("src/js/demo.ts") }{ end };
+		import(path);
+	</script>
 } 
