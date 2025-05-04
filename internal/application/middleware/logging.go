@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -57,7 +58,25 @@ func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 			}
 
 			if err != nil {
-				log.Error("request error", append(fields, logging.Error(err))...)
+				status := c.Response().Status
+				path := c.Request().URL.Path
+				isStatic404 := status == 404 && (strings.HasPrefix(path, "/node_modules/") ||
+					strings.HasPrefix(path, "/dist/") ||
+					strings.HasPrefix(path, "/public/") ||
+					strings.HasSuffix(path, ".woff2") ||
+					strings.HasSuffix(path, ".woff") ||
+					strings.HasSuffix(path, ".ttf") ||
+					strings.HasSuffix(path, ".eot") ||
+					strings.HasSuffix(path, ".svg") ||
+					strings.HasSuffix(path, ".png") ||
+					strings.HasSuffix(path, ".jpg") ||
+					strings.HasSuffix(path, ".jpeg") ||
+					strings.HasSuffix(path, ".gif"))
+				if isStatic404 {
+					log.Info("static asset not found", fields...)
+				} else {
+					log.Error("request error", append(fields, logging.Error(err))...)
+				}
 			} else {
 				log.Info("request", fields...)
 			}

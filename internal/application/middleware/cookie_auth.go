@@ -16,16 +16,11 @@ type CookieAuthMiddleware struct {
 }
 
 // NewCookieAuthMiddleware creates a new cookie auth middleware
-func NewCookieAuthMiddleware(userService user.Service) (*CookieAuthMiddleware, error) {
-	logger, err := logging.NewLogger(false, "cookie_auth")
-	if err != nil {
-		return nil, err
-	}
-
+func NewCookieAuthMiddleware(userService user.Service, logger logging.Logger) *CookieAuthMiddleware {
 	return &CookieAuthMiddleware{
 		userService: userService,
 		logger:      logger,
-	}, nil
+	}
 }
 
 // RequireAuth middleware ensures the user is authenticated

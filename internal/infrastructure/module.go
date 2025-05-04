@@ -248,7 +248,7 @@ var HandlerModule = fx.Options(
 	}),
 	// Dashboard handler
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
-		handler, err := ph.NewDashboardHandler(services.UserService, services.FormService)
+		handler, err := ph.NewDashboardHandler(services.UserService, services.FormService, core.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
 		}

@@ -80,7 +80,7 @@ func NewNoopLogger() Logger {
 }
 
 // NewLogger creates a new logger instance
-func NewLogger(debug bool, appName string) (Logger, error) {
+func NewLogger(logLevel string, appName string) (Logger, error) {
 	// Create encoder config
 	encoderConfig := zap.NewDevelopmentEncoderConfig()
 	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
@@ -91,28 +91,30 @@ func NewLogger(debug bool, appName string) (Logger, error) {
 	var zapLog *zap.Logger
 	var err error
 
-	if debug {
-		// Development mode with colored output
-		config := zap.NewDevelopmentConfig()
-		config.EncoderConfig = encoderConfig
-		config.OutputPaths = []string{"stdout"}
-		config.Encoding = "console"
-
-		zapLog, err = config.Build(
-			zap.AddCaller(),
-			zap.AddStacktrace(zapcore.ErrorLevel),
-			zap.Fields(
-				zap.String("app", appName),
-			),
-		)
-	} else {
-		// Production mode with JSON output
-		zapLog, err = zap.NewProduction(
-			zap.Fields(
-				zap.String("app", appName),
-			),
-		)
+	// Parse log level
+	var level zapcore.Level
+	if err := level.UnmarshalText([]byte(logLevel)); err != nil {
+		level = zapcore.InfoLevel // fallback
 	}
+
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig = encoderConfig
+	config.OutputPaths = []string{"stdout"}
+	config.Encoding = "console"
+	config.Level = zap.NewAtomicLevelAt(level)
+
+	// Use JSON encoding for production
+	if level >= zapcore.WarnLevel {
+		config.Encoding = "json"
+	}
+
+	zapLog, err = config.Build(
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+		zap.Fields(
+			zap.String("app", appName),
+		),
+	)
 
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)

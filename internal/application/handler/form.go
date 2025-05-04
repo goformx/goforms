@@ -28,16 +28,13 @@ func NewFormHandler(
 	formClient form.Client,
 	userService user.Service,
 ) (*FormHandler, error) {
-	authMiddleware, err := amw.NewCookieAuthMiddleware(userService)
-	if err != nil {
-		return nil, err
-	}
+	cookieAuth := amw.NewCookieAuthMiddleware(userService, logger)
 
 	return &FormHandler{
 		base:           NewBase(WithLogger(logger)),
 		formService:    formService,
 		formClient:     formClient,
-		authMiddleware: authMiddleware,
+		authMiddleware: cookieAuth,
 	}, nil
 }
 

@@ -315,14 +315,10 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 	if m.config.UserService != nil {
 		// Create cookie auth middleware for dashboard/admin routes
-		cookieAuth, err := NewCookieAuthMiddleware(m.config.UserService)
-		if err != nil {
-			m.logger.Error("failed to create cookie auth middleware", logging.Error(err))
-			return
-		}
+		cookieAuth := NewCookieAuthMiddleware(m.config.UserService, m.logger)
 
 		// Create JWT middleware for API routes
-		jwtMiddleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.config.Config)
+		jwtMiddleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.logger, m.config.Config)
 		if err != nil {
 			m.logger.Error("failed to create JWT middleware", logging.Error(err))
 			return

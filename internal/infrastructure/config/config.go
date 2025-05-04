@@ -66,6 +66,7 @@ type AppConfig struct {
 	Name        string `envconfig:"GOFORMS_APP_NAME" default:"GoForms"`
 	Env         string `envconfig:"GOFORMS_APP_ENV" default:"production"`
 	Debug       bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
+	LogLevel    string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
 	Port        int    `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	Host        string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`

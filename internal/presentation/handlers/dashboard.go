@@ -7,6 +7,7 @@ import (
 	amw "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
@@ -18,14 +19,11 @@ type DashboardHandler struct {
 	formService    form.Service
 }
 
-func NewDashboardHandler(userService user.Service, formService form.Service) (*DashboardHandler, error) {
-	authMiddleware, err := amw.NewCookieAuthMiddleware(userService)
-	if err != nil {
-		return nil, err
-	}
+func NewDashboardHandler(userService user.Service, formService form.Service, logger logging.Logger) (*DashboardHandler, error) {
+	cookieAuth := amw.NewCookieAuthMiddleware(userService, logger)
 
 	return &DashboardHandler{
-		authMiddleware: authMiddleware,
+		authMiddleware: cookieAuth,
 		formService:    formService,
 	}, nil
 }
