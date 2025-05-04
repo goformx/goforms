@@ -212,3 +212,32 @@ func (s *store) GetFormSubmissions(formID uint) ([]*model.FormSubmission, error)
 
 	return submissions, nil
 }
+
+func (s *store) Update(f *form.Form) error {
+	query := `
+		UPDATE forms 
+		SET title = ?, description = ?, schema = ?, active = ?, updated_at = CURRENT_TIMESTAMP
+		WHERE id = ?
+	`
+
+	schemaJSON, err := json.Marshal(f.Schema)
+	if err != nil {
+		return fmt.Errorf("failed to marshal schema: %w", err)
+	}
+
+	result, err := s.db.Exec(query, f.Title, f.Description, schemaJSON, f.Active, f.ID)
+	if err != nil {
+		return fmt.Errorf("failed to update form: %w", err)
+	}
+
+	rowsAffected, err := result.RowsAffected()
+	if err != nil {
+		return fmt.Errorf("failed to get rows affected: %w", err)
+	}
+
+	if rowsAffected == 0 {
+		return errors.New("form not found")
+	}
+
+	return nil
+}

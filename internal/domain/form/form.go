@@ -28,6 +28,7 @@ type Store interface {
 	GetByID(id uint) (*Form, error)
 	GetByUserID(userID uint) ([]*Form, error)
 	Delete(id uint) error
+	Update(f *Form) error
 	GetFormSubmissions(formID uint) ([]*model.FormSubmission, error)
 }
 

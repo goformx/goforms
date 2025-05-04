@@ -27,7 +27,7 @@ export default defineConfig({
     }
   },
   build: {
-    outDir: 'static/dist',
+    outDir: 'dist',
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
@@ -45,7 +45,8 @@ export default defineConfig({
         app: resolve(__dirname, 'src/js/main.ts'),
         validation: resolve(__dirname, 'src/js/validation.ts'),
         signup: resolve(__dirname, 'src/js/signup.ts'),
-        login: resolve(__dirname, 'src/js/login.ts')
+        login: resolve(__dirname, 'src/js/login.ts'),
+        formBuilder: resolve(__dirname, 'src/js/form-builder.ts')
       },
       output: {
         entryFileNames: 'js/[name].[hash].js',
@@ -67,7 +68,7 @@ export default defineConfig({
     middlewareMode: false,
     fs: {
       strict: true,
-      allow: ['src', 'static/dist', 'node_modules']
+      allow: ['src', 'dist', 'node_modules']
     },
     watch: {
       usePolling: false,

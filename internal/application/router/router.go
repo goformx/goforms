@@ -63,11 +63,11 @@ func logHandlerRegistration(logger logging.Logger, index int, handlerType string
 func setupStaticRoutes(group interface {
 	Static(prefix, root string)
 	File(path, file string)
-}, cfg *StaticConfig) {
-	group.Static(cfg.Path, cfg.Root)
-	group.Static("/static/dist", "./static/dist")
-	group.File("/favicon.ico", "./static/favicon.ico")
-	group.File("/robots.txt", "./static/robots.txt")
+}, distDir string) {
+	group.Static("/public", "public")
+	group.Static("/dist", distDir)
+	group.File("/favicon.ico", "./public/favicon.ico")
+	group.File("/robots.txt", "./public/robots.txt")
 }
 
 // registerHandlers registers all API handlers
@@ -126,7 +126,12 @@ func Setup(e *echo.Echo, cfg *Config) error {
 	})
 
 	// Setup routes
-	setupStaticRoutes(staticGroup, &cfg.Static)
+	// Pass the distDir from config, fallback to default if not present
+	distDir := "dist"
+	if cfg.Static.Root != "" {
+		distDir = cfg.Static.Root
+	}
+	setupStaticRoutes(staticGroup, distDir)
 
 	// Register API handlers
 	registerHandlers(e, cfg.Handlers, cfg.Logger)

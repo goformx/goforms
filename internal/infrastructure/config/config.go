@@ -46,6 +46,11 @@ func (c *CORSHeadersDecoder) Decode(value string) error {
 	return nil
 }
 
+// StaticConfig holds static file serving configuration
+type StaticConfig struct {
+	DistDir string `envconfig:"GOFORMS_STATIC_DIST_DIR" default:"dist"`
+}
+
 // Config represents the complete application configuration
 type Config struct {
 	App       AppConfig
@@ -53,6 +58,7 @@ type Config struct {
 	Database  DatabaseConfig
 	Security  SecurityConfig
 	RateLimit RateLimitConfig
+	Static    StaticConfig
 }
 
 // AppConfig holds application-level configuration
@@ -208,6 +214,8 @@ func printDebugConfig(cfg Config) {
 	fmt.Fprintf(os.Stdout, "  Burst: %d\n", cfg.RateLimit.Burst)
 	fmt.Fprintf(os.Stdout, "  Time Window: %v\n", cfg.RateLimit.TimeWindow)
 	fmt.Fprintf(os.Stdout, "  Per IP: %v\n", cfg.RateLimit.PerIP)
+	fmt.Fprintf(os.Stdout, "\nStatic Configuration:\n")
+	fmt.Fprintf(os.Stdout, "  DistDir: %s\n", cfg.Static.DistDir)
 	fmt.Fprintln(os.Stdout, "===========================")
 }
 

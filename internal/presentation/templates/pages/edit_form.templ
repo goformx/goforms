@@ -43,7 +43,16 @@ templ EditFormContent(data shared.PageData) {
 						<button type="submit" class="btn btn-primary">Save Changes</button>
 					</div>
 				</form>
+
+				<!-- Form Schema Builder UI -->
+				<div class="form-schema-builder-section">
+					<h2>Form Fields</h2>
+					<div id="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
+				</div>
 			</div>
 		</div>
 	</div>
+
+	<script type="module" src="http://localhost:3000/@vite/client"></script>
+	<script type="module" src="http://localhost:3000/src/js/form-builder.ts"></script>
 } 

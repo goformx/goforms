@@ -34,4 +34,4 @@ air.log
 coverage/coverage.html
 
 node_modules/
-static/dist/
+dist/

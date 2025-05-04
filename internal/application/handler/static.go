@@ -49,17 +49,17 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 	}
 
 	// In production, serve from the dist directory
-	distDir := filepath.Join("static", "dist")
+	distDir := h.config.Static.DistDir
 	if _, err := os.Stat(distDir); err == nil {
 		h.logger.Info("serving static files from dist directory",
 			logging.String("dir", distDir),
 		)
 		// Use a wildcard route to handle hashed filenames
-		e.GET("/static/dist/*", h.HandleStatic)
+		e.GET("/dist/*", h.HandleStatic)
 	}
 
-	// Always serve static files from the static directory
-	e.Static("/static", "static")
+	// Always serve static files from the public directory
+	e.Static("/public", "public")
 }
 
 // HandleStatic serves static files
@@ -70,7 +70,7 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 	}
 
 	// In production, serve from the dist directory
-	distDir := filepath.Join("static", "dist")
+	distDir := h.config.Static.DistDir
 
 	// Walk the dist directory to find the file with the matching base name
 	var foundFile string

@@ -67,8 +67,26 @@ func (s *service) DeleteForm(id uint) error {
 }
 
 func (s *service) UpdateForm(form *Form) error {
-	// TODO: Implement form update
-	return errors.New("not implemented")
+	if form == nil {
+		return errors.New("form is required")
+	}
+
+	if form.ID == 0 {
+		return errors.New("form ID is required")
+	}
+
+	// Verify the form exists
+	existingForm, err := s.store.GetByID(form.ID)
+	if err != nil {
+		return err
+	}
+
+	if existingForm == nil {
+		return errors.New("form not found")
+	}
+
+	// Update the form in the store
+	return s.store.Update(form)
 }
 
 // GetFormSubmissions returns all submissions for a form

@@ -249,9 +249,9 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	h.registerAndLogRoute(e, "/api/validation/:schema", h.handleValidationSchema)
 
 	// Static files
-	e.Static("/static", "./static")
-	e.Static("/static/dist", "./static/dist")
-	e.File("/favicon.ico", "./static/favicon.ico")
+	e.Static("/public", "./public")
+	e.Static("/dist", h.config.Static.DistDir)
+	e.File("/favicon.ico", "./public/favicon.ico")
 }
 
 // Register registers the web routes

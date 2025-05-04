@@ -106,12 +106,12 @@ func isStaticFile(path string) bool {
 		return false
 	}
 
-	// Skip dist files in development mode
-	if strings.HasPrefix(path, "/static/dist/") {
+	// TODO: Use config.Static.DistDir here if it becomes dynamic at runtime
+	if strings.HasPrefix(path, "/dist/") {
 		return false
 	}
 
-	return strings.HasPrefix(path, "/static/") ||
+	return strings.HasPrefix(path, "/public/") ||
 		path == StaticFileFavicon ||
 		path == StaticFileRobots ||
 		strings.HasPrefix(path, "/@vite/") ||
