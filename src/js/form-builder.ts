@@ -33,6 +33,7 @@ export class FormBuilder {
     // Create the form builder with options
     const builderOptions = {
       display: 'form',
+      noDefaultSubmitButton: true,
       builder: {
         basic: {
           title: 'Basic Components',
@@ -52,22 +53,9 @@ export class FormBuilder {
             button: true,
           }
         },
-        advanced: {
-          title: 'Advanced',
-          weight: 10,
-          components: {
-            file: true,
-            signature: true,
-            container: true,
-            dataGrid: true,
-            datetime: true,
-            day: true,
-            time: true,
-            currency: true,
-            survey: true,
-            panel: true,
-          }
-        }
+        advanced: false,
+        premium: false,
+        resource: false
       }
     };
 
