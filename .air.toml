@@ -14,7 +14,7 @@ tmp_dir = "tmp"
   # Watch these filename extensions
   include_ext = ["go", "tpl", "tmpl", "html", "templ"]
   # Ignore these directories
-  exclude_dir = ["assets", "tmp", "vendor", "test", "node_modules", "static", "docker", "bin", "deployments", "docs"]
+  exclude_dir = ["assets", "tmp", "vendor", "test", "node_modules", "static", "docker", "bin", "deployments", "docs", "dist"]
   # Watch these directories if you specified
   include_dir = []
   # Exclude files

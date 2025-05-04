@@ -7,7 +7,7 @@ import cssnano from 'cssnano';
 
 export default defineConfig({
   root: '.',
-  publicDir: 'static/public',
+  publicDir: 'public',
   appType: 'custom',
   base: '/',
   css: {
@@ -68,7 +68,7 @@ export default defineConfig({
     middlewareMode: false,
     fs: {
       strict: true,
-      allow: ['src', 'dist', 'node_modules']
+      allow: ['src', 'node_modules']
     },
     watch: {
       usePolling: false,

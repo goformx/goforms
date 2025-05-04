@@ -127,11 +127,18 @@ func (h *DashboardHandler) CreateForm(c echo.Context) error {
 
 	// Create a default schema for the form
 	defaultSchema := form.JSON{
-		"type": "object",
-		"properties": map[string]any{
-			"fields": []map[string]any{},
+		"id":    0,
+		"name":  "form",
+		"title": formData.Title,
+		"pages": []map[string]any{
+			{
+				"id":       "page1",
+				"name":     "page1",
+				"title":    "Page 1",
+				"elements": []map[string]any{},
+			},
 		},
-		"required": []string{},
+		"version": 1,
 	}
 
 	// Create the form
@@ -275,14 +282,17 @@ func (h *DashboardHandler) GetFormSchema(c echo.Context) error {
 
 	// Convert the form schema to the expected format
 	schema := map[string]interface{}{
-		"id":     formData.ID,
-		"fields": []interface{}{}, // Default to empty fields array if schema is nil
+		"id":      formData.ID,
+		"name":    formData.Title,
+		"title":   formData.Title,
+		"pages":   []interface{}{}, // Default to empty pages array if schema is nil
+		"version": 1,
 	}
 
-	// If schema exists and has fields, use them
+	// If schema exists and has pages, use them
 	if formData.Schema != nil {
-		if fields, ok := formData.Schema["fields"].([]interface{}); ok {
-			schema["fields"] = fields
+		if pages, ok := formData.Schema["pages"].([]interface{}); ok {
+			schema["pages"] = pages
 		}
 	}
 
