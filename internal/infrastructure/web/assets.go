@@ -5,7 +5,6 @@ import (
 	"log"
 	"os"
 	"path/filepath"
-	"strconv"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
@@ -76,9 +75,4 @@ func GetAssetPath(src string) string {
 
 	log.Printf("No manifest entry found for: %s", src)
 	return ""
-}
-
-// GetQuotedAssetPath returns the asset path as a quoted string for use in JS
-func GetQuotedAssetPath(src string) string {
-	return strconv.Quote(GetAssetPath(src))
 }

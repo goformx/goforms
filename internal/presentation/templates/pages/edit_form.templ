@@ -7,6 +7,67 @@ import (
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
 
+// Reusable card section for forms using a slot (content func())
+templ FormSectionCard(title string, subtitle string, content templ.Component) {
+	<div class="form-section card">
+		<h2>{ title }</h2>
+		if subtitle != "" {
+			<p class="section-subtitle">{ subtitle }</p>
+		}
+		@content
+	</div>
+}
+
+// Reusable form field group
+templ FormFieldGroup(label string, id string, input templ.Component, errorId string) {
+	<div class="form-group">
+		<label for={ id } class="form-label">{ label }</label>
+		@input
+		<div id={ errorId } class="error-message"></div>
+	</div>
+}
+
+templ FormTitleInput(data shared.PageData) {
+	<input type="text" id="title" name="title" required class="form-input" value={ data.Form.Title } placeholder="Enter form title" />
+}
+
+templ FormDescriptionInput(data shared.PageData) {
+	<textarea id="description" name="description" rows="3" class="form-input" placeholder="Enter form description">{ data.Form.Description }</textarea>
+}
+
+templ FormDetailsContent(data shared.PageData) {
+	<form id="edit-form" class="auth-form" method="POST" data-validate="editForm">
+		<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+		<div id="form_error" class="form-error"></div>
+		@FormFieldGroup("Form Title", "title", FormTitleInput(data), "title_error")
+		@FormFieldGroup("Description", "description", FormDescriptionInput(data), "description_error")
+		<div class="form-actions">
+			<a href="/dashboard" class="btn btn-outline">Cancel</a>
+			<button type="submit" class="btn btn-primary">Update Details</button>
+		</div>
+	</form>
+}
+
+templ FormFieldsContent(data shared.PageData) {
+	<div>
+		<div class="form-fields-toolbar">
+			<!-- Removed search input -->
+			<!-- Add filter/sort options here if needed -->
+		</div>
+		<div class="form-fields-palette scrollable" id="form-fields-palette">
+			<!-- Field palette rendered by JS (Form.io) -->
+		</div>
+		<div id="form-schema-builder" class="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
+		<div class="form-actions">
+			<button id="save-fields-btn" class="btn btn-primary btn-lg" type="button">
+				<span class="spinner" style="display:none;"></span>
+				<span>Save Fields</span>
+			</button>
+			<span id="schema-save-feedback" style="margin-left:1em;"></span>
+		</div>
+	</div>
+}
+
 templ EditForm(data shared.PageData) {
 	@layouts.Dashboard(shared.PageData{
 		Title: data.Title,
@@ -31,45 +92,9 @@ templ EditFormContent(data shared.PageData) {
 				</div>
 			</div>
 
-			<div class="dashboard-content">
-				<!-- Form Details Section -->
-				<div class="form-section">
-					<h2>Form Details</h2>
-					<p class="section-subtitle">Update the basic information about your form</p>
-					
-					<form id="edit-form" class="auth-form" method="POST" data-validate="editForm">
-						<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-						<div id="form_error" class="form-error"></div>
-
-						<div class="form-group">
-							<label for="title" class="form-label">Form Title</label>
-							<input type="text" id="title" name="title" required class="form-input" value={ data.Form.Title } placeholder="Enter form title" />
-							<div id="title_error" class="error-message"></div>
-						</div>
-
-						<div class="form-group">
-							<label for="description" class="form-label">Description</label>
-							<textarea id="description" name="description" rows="3" class="form-input" placeholder="Enter form description">{ data.Form.Description }</textarea>
-							<div id="description_error" class="error-message"></div>
-						</div>
-
-						<div class="form-actions">
-							<a href="/dashboard" class="btn btn-outline">Cancel</a>
-							<button type="submit" class="btn btn-primary">Update Details</button>
-						</div>
-					</form>
-				</div>
-
-				<!-- Form Fields Builder Section -->
-				<div class="form-section form-schema-builder-section">
-					<h2>Form Fields</h2>
-					<p class="section-subtitle">Design your form by adding and configuring fields. Click "Save Fields" to save your changes.</p>
-					<div id="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
-					<div class="form-actions">
-						<button id="save-fields-btn" class="btn btn-primary" type="button">Save Fields</button>
-						<span id="schema-save-feedback" style="margin-left:1em;"></span>
-					</div>
-				</div>
+			<div class="dashboard-content form-builder-content">
+				@FormSectionCard("Form Details", "Update the basic information about your form", FormDetailsContent(data))
+				@FormSectionCard("Form Fields", "Design your form by adding and configuring fields. Click \"Save Fields\" to save your changes.", FormFieldsContent(data))
 			</div>
 		</div>
 	</div>
@@ -134,6 +159,7 @@ templ EditFormContent(data shared.PageData) {
 			saveBtn.addEventListener('click', async () => {
 				feedback.textContent = 'Saving...';
 				saveBtn.disabled = true;
+				saveBtn.querySelector('.spinner').style.display = 'inline-block';
 				try {
 					const ok = await window.formBuilderInstance.saveSchema();
 					feedback.textContent = ok ? 'Schema saved successfully.' : 'Failed to save schema.';
@@ -141,6 +167,7 @@ templ EditFormContent(data shared.PageData) {
 					feedback.textContent = 'Error saving schema.';
 				} finally {
 					saveBtn.disabled = false;
+					saveBtn.querySelector('.spinner').style.display = 'none';
 					setTimeout(() => (feedback.textContent = ''), 3000);
 				}
 			});

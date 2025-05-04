@@ -5,6 +5,9 @@
 @import url('base/variables.css') layer(base);
 @import url('base/reset.css') layer(base);
 
+/* Minimal Bootstrap-like CSS */
+@import "./bootstrap-minimal.css" layer(base);
+
 /* Layout styles */
 @import url('layouts/container.css') layer(layouts);
 @import url('layouts/grid.css') layer(layouts);

@@ -221,5 +221,10 @@
 
         /* Other */
         --border-radius: 12px;
+
+        /* Sidebar Sizing */
+        --sidebar-width: 320px;
+        --sidebar-min-width: 280px;
+        --sidebar-max-width: 380px;
     }
 } 
