@@ -1,9 +1,6 @@
 version: '3'
 output: 'prefixed'
 
-# Add interval at root level for watch mode
-interval: 500ms
-
 dotenv: ['.env']
 
 vars:
@@ -50,111 +47,49 @@ tasks:
       - npm install
 
   generate:
-    desc: Generate code from templates and frontend assets
+    desc: Generate code from templates
     cmds:
-      - $(go env GOPATH)/bin/templ generate ./internal/...
+      - templ generate ./internal/...
+
+  build:
+    desc: Build the application
+    deps: [generate]
+    cmds:
+      - npm run build
+      - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
 
   run:
     desc: Run the application
     cmds:
       - ./bin/server
 
+  dev:
+    desc: Run development environment
+    deps: [dev:backend, dev:frontend]
+
   dev:backend:
-    desc: Run the backend with hot reloading
+    desc: Run backend with hot reload
     deps: [generate]
     cmds:
       - air
 
   dev:frontend:
-    desc: Run Vite development server
-    deps: [build:frontend]
+    desc: Run frontend development server
     cmds:
-      - echo "Starting Vite development server..."
-      - echo "Vite will be available at http://localhost:3000"
-      - echo "HMR is enabled with WebSocket connection"
-      - npx vite --host 0.0.0.0 --port 3000 --logLevel info
-
-  dev:
-    desc: Run both backend and frontend in development mode
-    deps: [dev:backend, dev:frontend]
+      - npx vite --host 0.0.0.0 --port 3000
 
   clean:
     desc: Clean build artifacts
     cmds:
-      - rm -rf bin/
-      - rm -f coverage.out
-      - rm -f coverage.html
-      - rm -rf dist/
-      - rm -rf node_modules/
+      - rm -rf bin/ dist/ node_modules/ coverage/
       - find internal/ -name '*_templ.go' -delete
 
-  lint:
-    desc: Run linters
-    cmds:
-      - golangci-lint fmt ./...
-      - go vet ./...
-      - golangci-lint run
-
   test:
-    desc: Run all tests with new Go 1.24 features
+    desc: Run all tests
     deps: [generate]
     cmds:
-      - go test -v -test.timeout=5m ./internal/...
-
-  test:cover:
-    desc: Run tests with coverage using Go 1.24 features
-    deps: [generate]
-    cmds:
-      - mkdir -p coverage
-      - go test -v -race -coverprofile=coverage/coverage.out -covermode=atomic -json -test.timeout=5m ./internal/...
-      - go tool cover -html=coverage/coverage.out -o coverage/coverage.html
-      - go tool cover -func=coverage/coverage.out
-    generates:
-      - coverage/coverage.out
-      - coverage/coverage.html
-
-  test:unit:
-    desc: Run unit tests with Go 1.24 features
-    cmds:
-      - go test -v -json -test.timeout=5m ./internal/domain/...
-
-  test:integration:
-    desc: Run integration tests with Go 1.24 features
-    deps: [generate]
-    cmds:
-      - go test -v -json -test.timeout=5m ./internal/infrastructure/...
-
-  build:
-    desc: Build the application
-    deps: [generate]
-    cmds:
-      - task: build:frontend
-      - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
-
-  build:frontend:
-    desc: Build frontend assets
-    cmds:
-      - echo "Building frontend assets..."
-      - npm run build
-      - echo "Frontend build complete"
-
-  build:linux:
-    desc: Build for Linux
-    deps: [generate, build:frontend]
-    cmds:
-      - GOOS=linux GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-linux-amd64 ./cmd/goforms
-
-  build:darwin:
-    desc: Build for macOS
-    deps: [generate, build:frontend]
-    cmds:
-      - GOOS=darwin GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-darwin-amd64 ./cmd/goforms
-
-  build:windows:
-    desc: Build for Windows
-    deps: [generate, build:frontend]
-    cmds:
-      - GOOS=windows GOARCH=amd64 go build -ldflags "{{.LDFLAGS}}" -o bin/server-windows-amd64.exe ./cmd/goforms
+      - go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
+      - go tool cover -html=coverage.out -o coverage.html
 
   migrate:up:
     desc: Run database migrations up
@@ -166,27 +101,7 @@ tasks:
     cmds:
       - go run cmd/migrate/main.go down
 
-  migrate:create:
-    desc: Create a new migration
-    cmds:
-      - migrate create -ext sql -dir migrations -seq {{.CLI_ARGS}}
-
   logs:
-    desc: Tail production logs
+    desc: View production logs
     cmds:
-      - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.out.log"
-
-  logs:err:
-    desc: Tail production error logs
-    cmds:
-      - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.err.log"
-
-  logs:all:
-    desc: Tail both production logs simultaneously (requires tmux)
-    cmds:
-      - tmux new-session -d 'task logs' \; split-window -h 'task logs:err' \; attach \;
-
-  logs:cors:
-    desc: Monitor CORS-related logs
-    cmds:
-      - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.{out,err}.log | grep -i 'origin\|cors'"
+      - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.{out,err}.log"

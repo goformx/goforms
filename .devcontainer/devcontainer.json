@@ -34,7 +34,8 @@
                 "SanjulaGanepola.github-local-actions",
                 "humao.rest-client",
                 "docker.docker",
-                "a-h.templ"
+                "a-h.templ",
+                "cweijan.vscode-mysql-client2"
             ],
             "[go]": {
                 "editor.defaultFormatter": "golang.go"

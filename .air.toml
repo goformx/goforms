@@ -47,7 +47,7 @@ tmp_dir = "tmp"
   # Show log time
   time = false
   # Show file changes
-  main_only = false
+  main_only = true
 
 [misc]
   # Delete tmp directory on exit
