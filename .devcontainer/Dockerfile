@@ -1,4 +1,4 @@
-ARG VARIANT=1-1-bookworm
+ARG VARIANT=1.24-bookworm
 FROM mcr.microsoft.com/devcontainers/go:${VARIANT}
 
 # [Optional] Uncomment this section to install additional OS packages.
