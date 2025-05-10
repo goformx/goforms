@@ -7,7 +7,6 @@
     "dev": "vite",
     "build": "vite build",
     "preview": "vite preview",
-    "lint": "eslint . --ext .ts,.js --fix",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,css}\""
   },
@@ -15,22 +14,21 @@
     "@formio/js": "^5.1.1",
     "@fortawesome/fontawesome-free": "^6.7.2",
     "ace-builds": "^1.41.0",
-    "zod": "^3.24.3"
+    "zod": "^3.24.4"
   },
   "devDependencies": {
-    "@types/node": "^20.11.19",
+   
+    "@types/node": "^22.15.17",
     "@types/postcss-import": "^14.0.3",
-    "@typescript-eslint/eslint-plugin": "^7.0.1",
-    "@typescript-eslint/parser": "^7.0.1",
-    "autoprefixer": "^10.4.17",
-    "cssnano": "^6.0.3",
-    "eslint": "^8.56.0",
-    "postcss": "^8.4.35",
-    "postcss-import": "^16.0.0",
-    "postcss-nested": "^6.0.1",
-    "prettier": "^3.2.5",
+    "autoprefixer": "^10.4.21",
+    "cssnano": "^7.0.7",
+    "globals": "^16.1.0",
+    "postcss": "^8.5.3",
+    "postcss-import": "^16.1.0",
+    "postcss-nested": "^7.0.2",
+    "prettier": "^3.5.3",
     "terser": "^5.39.0",
-    "typescript": "^5.3.3",
-    "vite": "^6.3.4"
+    "typescript": "^5.8.3",
+    "vite": "^6.3.5"
   }
 }
