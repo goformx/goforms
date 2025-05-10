@@ -1,4 +1,4 @@
-import { z } from 'zod';
+import { z } from "zod";
 
 interface ValidationRule {
   field: string;
@@ -7,7 +7,7 @@ interface ValidationRule {
   message: string;
 }
 
-interface ValidationSchema {
+interface _ValidationSchema {
   name: string;
   rules: ValidationRule[];
 }
@@ -25,14 +25,19 @@ interface ApiValidationSchema {
   [field: string]: ApiValidationRule;
 }
 
-export async function getValidationSchema(schemaName: string): Promise<z.ZodType<any>> {
+export async function getValidationSchema(
+  schemaName: string,
+): Promise<z.ZodType<any>> {
   try {
     const response = await fetch(`/api/validation/${schemaName}`);
     if (!response.ok) {
-      console.error(`Failed to fetch validation schema for ${schemaName}:`, response.status);
-      throw new Error('Failed to fetch validation schema');
+      console.error(
+        `Failed to fetch validation schema for ${schemaName}:`,
+        response.status,
+      );
+      throw new Error("Failed to fetch validation schema");
     }
-    
+
     const schema: ApiValidationSchema = await response.json();
     return generateZodSchema(schema);
   } catch (error) {
@@ -43,19 +48,20 @@ export async function getValidationSchema(schemaName: string): Promise<z.ZodType
 
 function generateZodSchema(schema: ApiValidationSchema): z.ZodType<any> {
   const shape: Record<string, z.ZodType<any>> = {};
-  
+
   for (const [field, rule] of Object.entries(schema)) {
     shape[field] = generateZodRule(rule);
   }
-  
+
   return z.object(shape);
 }
 
 function generateZodRule(rule: ApiValidationRule): z.ZodType<any> {
-  let zodRule: z.ZodString | z.ZodEffects<z.ZodString, string, string> = z.string();
-  
+  let zodRule: z.ZodString | z.ZodEffects<z.ZodString, string, string> =
+    z.string();
+
   switch (rule.type) {
-    case 'string':
+    case "string":
       if (rule.min !== undefined) {
         zodRule = zodRule.min(rule.min, rule.message);
       }
@@ -66,35 +72,43 @@ function generateZodRule(rule: ApiValidationRule): z.ZodType<any> {
         zodRule = zodRule.regex(new RegExp(rule.pattern), rule.message);
       }
       break;
-      
-    case 'email':
+
+    case "email":
       zodRule = zodRule.email(rule.message);
       break;
-      
-    case 'password':
+
+    case "password":
       zodRule = zodRule
         .min(rule.min || 8, rule.message)
-        .regex(/[A-Z]/, 'Password must contain at least one uppercase letter')
-        .regex(/[a-z]/, 'Password must contain at least one lowercase letter')
-        .regex(/[0-9]/, 'Password must contain at least one number')
-        .regex(/[^A-Za-z0-9]/, 'Password must contain at least one special character');
+        .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+        .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+        .regex(/[0-9]/, "Password must contain at least one number")
+        .regex(
+          /[^A-Za-z0-9]/,
+          "Password must contain at least one special character",
+        );
       break;
-      
-    case 'match':
+
+    case "match":
       if (rule.matchField) {
-        zodRule = zodRule.refine((val: string) => {
-          const matchField = document.getElementById(rule.matchField!) as HTMLInputElement;
-          return val === matchField?.value;
-        }, {
-          message: rule.message
-        });
+        zodRule = zodRule.refine(
+          (val: string) => {
+            const matchField = document.getElementById(
+              rule.matchField!,
+            ) as HTMLInputElement;
+            return val === matchField?.value;
+          },
+          {
+            message: rule.message,
+          },
+        );
       }
       break;
-      
-    case 'required':
+
+    case "required":
       zodRule = zodRule.min(1, rule.message);
       break;
   }
-  
+
   return zodRule;
-} 
+}

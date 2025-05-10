@@ -6,35 +6,35 @@ export interface FormField {
   type: string;
   title: string;
   description?: string;
-  
+
   // Validation and behavior
   isRequired?: boolean;
   isReadOnly?: boolean;
   isHidden?: boolean;
   validators?: FieldValidator[];
-  
+
   // UI/UX properties
   placeholder?: string;
   cssClasses?: string;
   defaultValue?: any;
-  
+
   // Options for choice-based fields
   choices?: FieldChoice[];
   hasOther?: boolean;
   otherText?: string;
-  
+
   // Layout properties
   startWithNewLine?: boolean;
   indent?: number;
   width?: string | number;
-  
+
   // Advanced properties
   visibleIf?: string;
   enableIf?: string;
   requiredIf?: string;
   defaultValueExpression?: string;
   calculatedValue?: string;
-  
+
   // Custom properties
   customProperties?: Record<string, any>;
 }
@@ -85,30 +85,30 @@ export interface FormSchema {
   name: string;
   title: string;
   description?: string;
-  
+
   // Core properties
   pages: FormPage[];
   showProgressBar?: "top" | "bottom" | "both" | "off";
   progressBarType?: "pages" | "questions";
-  
+
   // Behavior
   mode?: "edit" | "display" | "preview";
   completedHtml?: string;
-  
+
   // Validation
   checkErrorsMode?: "onNextPage" | "onValueChanged" | "onComplete";
-  
+
   // Customization
   questionStartIndex?: string | number;
   requiredText?: string;
   questionErrorLocation?: "top" | "bottom";
-  
+
   // Custom properties
   customProperties?: Record<string, any>;
-  
+
   // Metadata
   createdAt?: string;
   updatedAt?: string;
   version?: number;
   tags?: string[];
-} 
+}
