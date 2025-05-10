@@ -51,5 +51,5 @@
     "mounts": [
         "type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/vscode/.ssh"
     ],
-    "postCreateCommand": "echo $PATH && go mod download"
+    "postCreateCommand": "go mod download"
 }
