@@ -1,5 +1,5 @@
 ---
-description: 
+description: Editing middleware, http, echo, gin, api
 globs: 
 alwaysApply: false
 ---

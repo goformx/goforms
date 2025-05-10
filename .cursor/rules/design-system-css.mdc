@@ -1,7 +1,7 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: src/css/**/*,src/js/**/*
+alwaysApply: false
 ---
 # GoForms Design System CSS & Class Naming
 
