@@ -1,3 +1,4 @@
+import '@fortawesome/fontawesome-free/css/all.min.css';
 import { validation } from './validation';
 
 // Main entry point for global initialization

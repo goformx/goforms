@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
@@ -18,26 +19,28 @@ type JWTMiddleware struct {
 	userService user.Service
 	secret      string
 	logger      logging.Logger
+	config      *config.Config
 }
 
 // NewJWTMiddleware creates a new JWT middleware
-func NewJWTMiddleware(userService user.Service, secret string) (echo.MiddlewareFunc, error) {
-	logger, err := logging.NewLogger(false, "auth")
-	if err != nil {
-		return nil, fmt.Errorf("failed to create auth logger: %w", err)
-	}
-
+func NewJWTMiddleware(
+	userService user.Service,
+	secret string,
+	logger logging.Logger,
+	cfg *config.Config,
+) (echo.MiddlewareFunc, error) {
 	m := &JWTMiddleware{
 		userService: userService,
 		secret:      secret,
 		logger:      logger,
+		config:      cfg,
 	}
 	return m.Handle, nil
 }
 
 // isStaticPath checks if the path is for static content
 func (m *JWTMiddleware) isStaticPath(path string) bool {
-	return strings.HasPrefix(path, "/static/") ||
+	return strings.HasPrefix(path, "/"+m.config.Static.DistDir+"/") ||
 		path == "/favicon.ico" ||
 		path == "/robots.txt"
 }

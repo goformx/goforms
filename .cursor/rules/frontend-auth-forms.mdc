@@ -3,7 +3,59 @@ description: Working with forms
 globs: 
 alwaysApply: false
 ---
-# Frontend Authentication Forms Structure and Integration
+# Frontend Authentication and Forms
+
+## Form Handling
+Forms in the frontend follow these principles:
+
+1. CSRF Protection:
+- All forms include a CSRF token from the backend
+- Token is included in form submissions and API calls
+- Implemented in [src/js/validation.ts](mdc:src/js/validation.ts)
+
+2. Form Validation:
+- Client-side validation before submission
+- Server-side validation as backup
+- Error messages displayed inline
+- Form-wide error messages at the top
+
+3. Form Submission:
+- Async submission using fetch API
+- Proper error handling and user feedback
+- Redirect on success when appropriate
+- Loading states during submission
+
+4. Authentication Forms:
+- Login form with remember me option
+- Registration form with email verification
+- Password reset flow
+- Session management
+
+## Form Builder Integration
+1. Form Builder Page:
+- Mounted in dashboard layout
+- Full-width editor interface
+- Autosave capability
+- Preview mode
+
+2. Form Management:
+- List/grid view of forms
+- Create/edit/delete operations
+- Form status (active/inactive)
+- Form analytics and submissions
+
+3. User Experience:
+- Responsive design
+- Drag-and-drop interface
+- Real-time validation
+- Undo/redo support
+
+## Security Considerations
+- XSS prevention
+- CSRF protection
+- Input sanitization
+- Rate limiting
+- Session handling
 
 ## Signup Form
 - The signup form template is defined in [internal/presentation/components/signup_form.templ](mdc:internal/presentation/components/signup_form.templ).

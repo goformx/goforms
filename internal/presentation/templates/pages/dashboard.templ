@@ -18,13 +18,13 @@ templ DashboardContent(data shared.PageData) {
 					<h1 class="dashboard-title">Forms</h1>
 					<p class="dashboard-subtitle">Manage your forms and submissions</p>
 				</div>
-				<a href="/dashboard/forms/new" class="btn btn-primary">Create New Form</a>
+				<a href="/dashboard/forms/new" class="gf-button gf-button--primary">Create New Form</a>
 			</div>
 
 			if len(data.Forms) == 0 {
 				<div class="dashboard-empty">
 					<p>You haven't created any forms yet.</p>
-					<a href="/dashboard/forms/new" class="btn btn-primary">Create Your First Form</a>
+					<a href="/dashboard/forms/new" class="gf-button gf-button--primary">Create Your First Form</a>
 				</div>
 			} else {
 				<div class="dashboard-content">
@@ -61,9 +61,9 @@ templ DashboardContent(data shared.PageData) {
 										</td>
 										<td>
 											<div class="table-actions">
-												<a href={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/edit") } class="btn btn-sm btn-outline">Edit</a>
-												<a href={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/submissions") } class="btn btn-sm btn-outline">View Submissions</a>
-												<button class="btn btn-sm btn-danger" onclick="deleteForm('{ strconv.FormatUint(uint64(f.ID), 10) }')">Delete</button>
+												<a href={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/edit") } class="gf-button gf-button--sm gf-button--outline">Edit</a>
+												<a href={ templ.URL("/dashboard/forms/" + strconv.FormatUint(uint64(f.ID), 10) + "/submissions") } class="gf-button gf-button--sm gf-button--outline">View Submissions</a>
+												<button class="gf-button gf-button--sm gf-button--danger" onclick="deleteForm('{ strconv.FormatUint(uint64(f.ID), 10) }')">Delete</button>
 											</div>
 										</td>
 									</tr>

@@ -7,6 +7,7 @@ import (
 	amw "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
@@ -18,14 +19,15 @@ type DashboardHandler struct {
 	formService    form.Service
 }
 
-func NewDashboardHandler(userService user.Service, formService form.Service) (*DashboardHandler, error) {
-	authMiddleware, err := amw.NewCookieAuthMiddleware(userService)
-	if err != nil {
-		return nil, err
-	}
+func NewDashboardHandler(
+	userService user.Service,
+	formService form.Service,
+	logger logging.Logger,
+) (*DashboardHandler, error) {
+	cookieAuth := amw.NewCookieAuthMiddleware(userService, logger)
 
 	return &DashboardHandler{
-		authMiddleware: authMiddleware,
+		authMiddleware: cookieAuth,
 		formService:    formService,
 	}, nil
 }
@@ -125,13 +127,10 @@ func (h *DashboardHandler) CreateForm(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
-	// Create a default schema for the form
+	// Create a minimal Form.io schema for the form
 	defaultSchema := form.JSON{
-		"type": "object",
-		"properties": map[string]any{
-			"fields": []map[string]any{},
-		},
-		"required": []string{},
+		"display":    "form",
+		"components": []any{},
 	}
 
 	// Create the form
@@ -175,11 +174,12 @@ func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
 
 	// Create page data
 	data := shared.PageData{
-		Title:     "Edit Form - GoForms",
-		User:      currentUser,
-		Form:      formObj,
-		CSRFToken: csrfToken,
-		AssetPath: web.GetAssetPath,
+		Title:                "Edit Form - GoForms",
+		User:                 currentUser,
+		Form:                 formObj,
+		CSRFToken:            csrfToken,
+		AssetPath:            web.GetAssetPath,
+		FormBuilderAssetPath: web.GetAssetPath("src/js/form-builder.ts"),
 	}
 
 	// Set content
@@ -273,20 +273,8 @@ func (h *DashboardHandler) GetFormSchema(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
 	}
 
-	// Convert the form schema to the expected format
-	schema := map[string]interface{}{
-		"id":     formData.ID,
-		"fields": []interface{}{}, // Default to empty fields array if schema is nil
-	}
-
-	// If schema exists and has fields, use them
-	if formData.Schema != nil {
-		if fields, ok := formData.Schema["fields"].([]interface{}); ok {
-			schema["fields"] = fields
-		}
-	}
-
-	return c.JSON(http.StatusOK, schema)
+	// Return the Form.io schema directly
+	return c.JSON(http.StatusOK, formData.Schema)
 }
 
 // UpdateFormSchema handles updating a form's schema
@@ -322,14 +310,14 @@ func (h *DashboardHandler) UpdateFormSchema(c echo.Context) error {
 	}
 
 	// Parse the new schema from request body
-	var newSchema map[string]interface{}
-	if err := c.Bind(&newSchema); err != nil {
+	var newSchema map[string]any
+	if bindErr := c.Bind(&newSchema); bindErr != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid schema format")
 	}
 
-	// Update the form's schema
+	// Update the form's schema directly
 	formData.Schema = form.JSON(newSchema)
-	if err := h.formService.UpdateForm(formData); err != nil {
+	if updateErr := h.formService.UpdateForm(formData); updateErr != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form schema")
 	}
 
@@ -364,19 +352,19 @@ func (h *DashboardHandler) UpdateForm(c echo.Context) error {
 		Description string `json:"description" form:"description"`
 	}
 
-	if err := c.Bind(&formData); err != nil {
+	if bindErr := c.Bind(&formData); bindErr != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
 	}
 
-	if err := c.Validate(formData); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if validateErr := c.Validate(formData); validateErr != nil {
+		return echo.NewHTTPError(http.StatusBadRequest, validateErr.Error())
 	}
 
 	// Update form details
 	formObj.Title = formData.Title
 	formObj.Description = formData.Description
 
-	if err := h.formService.UpdateForm(formObj); err != nil {
+	if updateErr := h.formService.UpdateForm(formObj); updateErr != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form")
 	}
 

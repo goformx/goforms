@@ -9,51 +9,40 @@
             "configureZshAsDefaultShell": true,
             "installOhMyZsh": true,
             "installOhMyZshConfig": true,
-            "username": "automatic",
-            "userUid": "automatic",
-            "userGid": "automatic"
+            "username": "vscode",
+            "userUid": "1000",
+            "userGid": "1000"
         },
-        "ghcr.io/devcontainers/features/github-cli:1": {
-            "installDirectlyFromGitHubRelease": true,
-            "version": "latest"
-        },
-        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {
-            "moby": true,
-            "installDockerBuildx": true,
-            "installDockerComposeSwitch": true,
-            "version": "latest",
-            "dockerDashComposeVersion": "v2"
-        },
-        "ghcr.io/devcontainers-extra/features/act:1": {
-            "version": "latest"
-        },
+        "ghcr.io/devcontainers/features/github-cli:1": {},
+        "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
+        "ghcr.io/devcontainers-extra/features/act:latest": {},
         "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {},
-        "ghcr.io/devcontainers-extra/features/go-task:1": {
-            "version": "latest"
-        },
+        "ghcr.io/devcontainers-extra/features/go-task:1": {},
         "ghcr.io/devcontainers/features/node:1": {
-            "nodeGypDependencies": true,
-            "version": "lts",
-            "pnpmVersion": "latest",
-            "nvmVersion": "latest"
+            "nodeGypDependencies": false,
+            "version": "22.12.0",
+            "pnpmVersion": "none",
+            "nvmVersion": "none"
         },
-        "ghcr.io/devcontainers-extra/features/typescript:2": {
-            "version": "latest"
-        }
+        "ghcr.io/devcontainers-extra/features/typescript:2": {}
     },
     "customizations": {
         "vscode": {
             "extensions": [
-                "ms-azuretools.vscode-docker",
                 "github.vscode-github-actions",
                 "golang.go",
-                "eamodio.gitlens",
-                "davidanson.vscode-markdownlint",
                 "SanjulaGanepola.github-local-actions",
                 "humao.rest-client",
+                "docker.docker",
                 "a-h.templ",
-                "ms-vscode.go-debug"
+                "cweijan.vscode-mysql-client2"
             ],
+            "[go]": {
+                "editor.defaultFormatter": "golang.go"
+            },
+            "[docker]": {
+                "editor.defaultFormatter": "docker.docker"
+            },
             "[templ]": {
                 "editor.defaultFormatter": "a-h.templ"
             }

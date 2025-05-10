@@ -105,6 +105,10 @@ func performMigration(sourceURL, command string) error {
 	// Check new version
 	version, dirty, versionErr = m.Version()
 	if versionErr != nil {
+		if errors.Is(versionErr, migrate.ErrNilVersion) {
+			log.Printf("New migration version: none (database is at base state), dirty: %v", dirty)
+			return nil
+		}
 		return fmt.Errorf("failed to get final migration version: %w", versionErr)
 	}
 	log.Printf("New migration version: %d, dirty: %v", version, dirty)
@@ -120,6 +124,17 @@ func runMigration(m *migrate.Migrate, cmd string) error {
 		migrationErr = m.Up()
 	case "down":
 		migrationErr = m.Down()
+	case "down all":
+		for {
+			migrationErr = m.Down()
+			if migrationErr != nil {
+				if errors.Is(migrationErr, migrate.ErrNoChange) {
+					log.Printf("All migrations reverted")
+					return nil
+				}
+				return fmt.Errorf("migration error: %w", migrationErr)
+			}
+		}
 	default:
 		return fmt.Errorf("unknown command: %s", cmd)
 	}

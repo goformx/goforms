@@ -3,15 +3,14 @@ package validation
 import (
 	"fmt"
 	"reflect"
-	"regexp"
 	"strconv"
 	"strings"
 	"time"
 
+	"net/mail"
+
 	"github.com/jonesrussell/goforms/internal/domain/common/errors"
 )
-
-var emailRegex = regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`)
 
 // Validator provides validation functionality
 type Validator struct {
@@ -87,19 +86,43 @@ func (v *Validator) validateField(value any, tag string) error {
 
 // registerDefaultRules registers the default validation rules
 func (v *Validator) registerDefaultRules() {
-	v.registerStringRules()
-	v.registerNumericRules()
-	v.registerTimeRules()
-	v.registerArrayRules()
-	v.registerMapRules()
-}
-
-// registerStringRules registers string validation rules
-func (v *Validator) registerStringRules() {
+	v.RegisterRule("min", v.dispatchMin)
+	v.RegisterRule("max", v.dispatchMax)
 	v.RegisterRule("required", v.validateRequired)
 	v.RegisterRule("email", v.validateEmail)
-	v.RegisterRule("min", v.validateStringMin)
-	v.RegisterRule("max", v.validateStringMax)
+	v.registerTimeRules()
+}
+
+// dispatchMin dispatches min validation based on value type
+func (v *Validator) dispatchMin(value any, params ...string) error {
+	switch val := value.(type) {
+	case string:
+		return v.validateStringMin(val, params...)
+	case int, float64:
+		return v.validateNumericMin(val, params...)
+	case []any:
+		return v.validateArrayMin(val, params...)
+	case map[string]any:
+		return v.validateMapMin(val, params...)
+	default:
+		return nil
+	}
+}
+
+// dispatchMax dispatches max validation based on value type
+func (v *Validator) dispatchMax(value any, params ...string) error {
+	switch val := value.(type) {
+	case string:
+		return v.validateStringMax(val, params...)
+	case int, float64:
+		return v.validateNumericMax(val, params...)
+	case []any:
+		return v.validateArrayMax(val, params...)
+	case map[string]any:
+		return v.validateMapMax(val, params...)
+	default:
+		return nil
+	}
 }
 
 // validateRequired validates that a field is not empty
@@ -119,7 +142,7 @@ func (v *Validator) validateEmail(value any, params ...string) error {
 	if !ok {
 		return errors.New(errors.ErrCodeValidation, "value must be a string")
 	}
-	if !emailRegex.MatchString(str) {
+	if _, err := mail.ParseAddress(str); err != nil {
 		return errors.New(errors.ErrCodeValidation, "invalid email format")
 	}
 	return nil
@@ -161,12 +184,6 @@ func (v *Validator) validateStringMax(value any, params ...string) error {
 		return errors.New(errors.ErrCodeValidation, fmt.Sprintf("string length must be at most %d", maxLength))
 	}
 	return nil
-}
-
-// registerNumericRules registers numeric validation rules
-func (v *Validator) registerNumericRules() {
-	v.RegisterRule("min", v.validateNumericMin)
-	v.RegisterRule("max", v.validateNumericMax)
 }
 
 // validateNumericMin validates minimum numeric value
@@ -256,12 +273,6 @@ func (v *Validator) registerTimeRules() {
 	})
 }
 
-// registerArrayRules registers array validation rules
-func (v *Validator) registerArrayRules() {
-	v.RegisterRule("min", v.validateArrayMin)
-	v.RegisterRule("max", v.validateArrayMax)
-}
-
 // validateArrayMin validates minimum array length
 func (v *Validator) validateArrayMin(value any, params ...string) error {
 	if value == nil {
@@ -300,12 +311,6 @@ func (v *Validator) validateArrayMax(value any, params ...string) error {
 		return errors.New(errors.ErrCodeValidation, "value must be an array")
 	}
 	return nil
-}
-
-// registerMapRules registers map validation rules
-func (v *Validator) registerMapRules() {
-	v.RegisterRule("min", v.validateMapMin)
-	v.RegisterRule("max", v.validateMapMax)
 }
 
 // validateMapMin validates minimum map length

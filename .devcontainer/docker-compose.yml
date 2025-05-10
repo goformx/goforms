@@ -21,13 +21,11 @@ services:
     volumes:
       - mariadb-data:/var/lib/mysql
       - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    env_file:
-      - ../.env
     environment:
-      - MARIADB_ROOT_PASSWORD=${GOFORMS_DB_ROOT_PASSWORD}
-      - MARIADB_USER=${GOFORMS_DB_USER}
-      - MARIADB_PASSWORD=${GOFORMS_DB_PASSWORD}
-      - MARIADB_DATABASE=${GOFORMS_DB_NAME}
+      - MARIADB_ROOT_PASSWORD=toor
+      - MARIADB_USER=goforms
+      - MARIADB_PASSWORD=goforms
+      - MARIADB_DATABASE=goforms
     ports:
       - "3306:3306"
       - "8098:8080"  # For adminer

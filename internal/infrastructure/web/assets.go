@@ -17,11 +17,11 @@ type ManifestEntry struct {
 	Imports []string `json:"imports,omitempty"`
 }
 
-// Manifest represents the entire Vite manifest file
-type Manifest map[string]ManifestEntry
+// ViteManifest represents the entire Vite manifest file
+type ViteManifest map[string]ManifestEntry
 
 var (
-	manifest Manifest
+	Manifest ViteManifest
 	cfg      *config.Config
 )
 
@@ -36,7 +36,7 @@ func init() {
 	// Only load manifest in production mode
 	if !cfg.App.IsDevelopment() {
 		// Load the Vite manifest file
-		manifestPath := filepath.Join("static", "dist", ".vite", "manifest.json")
+		manifestPath := filepath.Join("dist", ".vite", "manifest.json")
 		log.Printf("Attempting to load manifest from: %s", manifestPath)
 
 		manifestData, readErr := os.ReadFile(manifestPath)
@@ -45,13 +45,13 @@ func init() {
 			return
 		}
 
-		if unmarshalErr := json.Unmarshal(manifestData, &manifest); unmarshalErr != nil {
+		if unmarshalErr := json.Unmarshal(manifestData, &Manifest); unmarshalErr != nil {
 			log.Printf("Warning: Could not parse manifest file: %v", unmarshalErr)
 			return
 		}
 
-		log.Printf("Successfully loaded manifest with %d entries", len(manifest))
-		for key, entry := range manifest {
+		log.Printf("Successfully loaded manifest with %d entries", len(Manifest))
+		for key, entry := range Manifest {
 			log.Printf("Manifest entry: %s -> %s", key, entry.File)
 		}
 	}
@@ -64,12 +64,11 @@ func GetAssetPath(src string) string {
 	log.Printf("Getting asset path for: %s", src)
 
 	if cfg != nil && cfg.App.IsDevelopment() {
-		// In development, return the Vite dev server URL
-		return "http://localhost:3000/" + src
+		return "http://" + cfg.App.ViteDevHost + ":" + cfg.App.ViteDevPort + "/" + src
 	}
 
-	if entry, ok := manifest[src]; ok {
-		path := filepath.Join("static", "dist", entry.File)
+	if entry, ok := Manifest[src]; ok {
+		path := filepath.Join("dist", entry.File)
 		log.Printf("Found manifest entry: %s -> %s", src, path)
 		return path
 	}

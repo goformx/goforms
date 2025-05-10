@@ -1,7 +1,6 @@
 package pages
 
 import (
-	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/components"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
@@ -23,15 +22,15 @@ templ DemoFormContent() {
 		<p>This simulates a form on your website. The form submits to Goforms' backend.</p>
 	</div>
 	<form id="demo-form" class="demo-form" action="https://api.goforms.io/v1/forms/demo/submit">
-		<div class="form-group">
-			<label for="name" class="form-label">Name</label>
-			<input type="text" id="name" name="name" class="form-input" required placeholder="Enter your name"/>
+		<div class="gf-form-group">
+			<label for="name" class="gf-label">Name</label>
+			<input type="text" id="name" name="name" class="gf-input" required placeholder="Enter your name"/>
 		</div>
-		<div class="form-group">
-			<label for="email" class="form-label">Email</label>
-			<input type="email" id="email" name="email" class="form-input" required placeholder="Enter your email"/>
+		<div class="gf-form-group">
+			<label for="email" class="gf-label">Email</label>
+			<input type="email" id="email" name="email" class="gf-input" required placeholder="Enter your email"/>
 		</div>
-		<button type="submit" class="btn btn-primary">Submit Form</button>
+		<button type="submit" class="gf-button gf-button--primary">Submit Form</button>
 	</form>
 }
 
@@ -63,5 +62,8 @@ templ DemoContent() {
 			</div>
 		</div>
 	</section>
-	<script src={ "/static/" + web.GetAssetPath("demo.js") }></script>
+	<script type="module">
+		const path = { if data.IsDevelopment }"/src/js/demo.ts"{ else }{ web.GetAssetPath("src/js/demo.ts") }{ end };
+		import(path);
+	</script>
 } 

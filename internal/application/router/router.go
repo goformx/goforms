@@ -25,8 +25,14 @@ type StaticConfig struct {
 }
 
 // isStaticFile determines if a path corresponds to a static file
-func isStaticFile(path string) bool {
-	return strings.HasPrefix(path, "/static/") ||
+func isStaticFile(path, distDir string) bool {
+	// Ensure distDir always starts with a slash for prefix check
+	prefix := distDir
+	if !strings.HasPrefix(prefix, "/") {
+		prefix = "/" + prefix
+	}
+	prefix += "/"
+	return strings.HasPrefix(path, prefix) ||
 		path == "/favicon.ico" ||
 		path == "/robots.txt"
 }
@@ -117,7 +123,7 @@ func Setup(e *echo.Echo, cfg *Config) error {
 	staticGroup := e.Group("")
 	staticGroup.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			if isStaticFile(c.Request().URL.Path) {
+			if isStaticFile(c.Request().URL.Path, cfg.Static.Root) {
 				c.Set("skip_csrf", true)
 				c.Set("skip_auth", true)
 			}
@@ -126,10 +132,10 @@ func Setup(e *echo.Echo, cfg *Config) error {
 	})
 
 	// Setup routes
-	// Pass the distDir from config, fallback to default if not present
-	distDir := "dist"
-	if cfg.Static.Root != "" {
-		distDir = cfg.Static.Root
+	// Use cfg.Static.Root for distDir
+	distDir := cfg.Static.Root
+	if distDir == "" {
+		distDir = "dist"
 	}
 	setupStaticRoutes(staticGroup, distDir)
 

@@ -10,7 +10,7 @@ import (
 
 func TestLogger(t *testing.T) {
 	t.Run("creates logger with debug mode", func(t *testing.T) {
-		logger, err := logging.NewLogger(true, "test-app")
+		logger, err := logging.NewLogger("debug", "test-app")
 		if err != nil {
 			t.Fatalf("NewLogger() returned error: %v", err)
 		}
@@ -20,7 +20,7 @@ func TestLogger(t *testing.T) {
 	})
 
 	t.Run("creates logger without debug mode", func(t *testing.T) {
-		logger, err := logging.NewLogger(false, "test-app")
+		logger, err := logging.NewLogger("info", "test-app")
 		if err != nil {
 			t.Fatalf("NewLogger() returned error: %v", err)
 		}
@@ -30,7 +30,7 @@ func TestLogger(t *testing.T) {
 	})
 
 	t.Run("logs messages at different levels", func(t *testing.T) {
-		logger, err := logging.NewLogger(true, "test-app")
+		logger, err := logging.NewLogger("debug", "test-app")
 		if err != nil {
 			t.Fatalf("NewLogger() returned error: %v", err)
 		}
@@ -45,7 +45,7 @@ func TestLogger(t *testing.T) {
 
 func TestNewLogger(t *testing.T) {
 	t.Run("creates logger with default config", func(t *testing.T) {
-		logger, err := logging.NewLogger(false, "test-app")
+		logger, err := logging.NewLogger("info", "test-app")
 		if err != nil {
 			t.Fatalf("NewLogger() returned error: %v", err)
 		}
@@ -55,7 +55,7 @@ func TestNewLogger(t *testing.T) {
 	})
 
 	t.Run("creates logger with custom config", func(t *testing.T) {
-		logger, err := logging.NewLogger(true, "custom-app")
+		logger, err := logging.NewLogger("debug", "custom-app")
 		if err != nil {
 			t.Fatalf("NewLogger() returned error: %v", err)
 		}
@@ -66,7 +66,7 @@ func TestNewLogger(t *testing.T) {
 }
 
 func TestLogLevels(t *testing.T) {
-	logger, err := logging.NewLogger(false, "test-app")
+	logger, err := logging.NewLogger("info", "test-app")
 	if err != nil {
 		t.Fatalf("NewLogger() returned error: %v", err)
 	}
@@ -89,7 +89,7 @@ func TestLogLevels(t *testing.T) {
 
 func TestLoggerModes(t *testing.T) {
 	t.Run("development mode", func(t *testing.T) {
-		logger, err := logging.NewLogger(true, "debug-app")
+		logger, err := logging.NewLogger("debug", "debug-app")
 		if err != nil {
 			t.Fatalf("NewLogger() returned error: %v", err)
 		}
@@ -99,7 +99,7 @@ func TestLoggerModes(t *testing.T) {
 	})
 
 	t.Run("production mode", func(t *testing.T) {
-		logger, err := logging.NewLogger(false, "prod-app")
+		logger, err := logging.NewLogger("info", "prod-app")
 		if err != nil {
 			t.Fatalf("NewLogger() returned error: %v", err)
 		}
@@ -110,7 +110,7 @@ func TestLoggerModes(t *testing.T) {
 }
 
 func TestLoggerFunctionality(t *testing.T) {
-	logger, err := logging.NewLogger(true, "test-app")
+	logger, err := logging.NewLogger("debug", "test-app")
 	if err != nil {
 		t.Fatalf("NewLogger() returned error: %v", err)
 	}

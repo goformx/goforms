@@ -7,8 +7,6 @@ import (
 
 	"github.com/a-h/templ"
 	amw "github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/domain/contact"
-	"github.com/jonesrussell/goforms/internal/domain/subscription"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -22,36 +20,45 @@ var (
 	ErrNoCurrentUser = errors.New("no current user found")
 )
 
+// Signup validation constants (for linter compliance)
+const (
+	SignupFirstNameMinValue = 2
+	SignupFirstNameMaxValue = 50
+	SignupLastNameMinValue  = 2
+	SignupLastNameMaxValue  = 50
+	SignupEmailMinValue     = 5
+	SignupEmailMaxValue     = 100
+	SignupPasswordMinValue  = 8
+	SignupPasswordMaxValue  = 100
+)
+
+// SignupValidation holds validation constants for signup
+type SignupValidation struct {
+	FirstNameMin int
+	FirstNameMax int
+	LastNameMin  int
+	LastNameMax  int
+	EmailMin     int
+	EmailMax     int
+	PasswordMin  int
+	PasswordMax  int
+}
+
+var signupValidation = SignupValidation{
+	FirstNameMin: SignupFirstNameMinValue,
+	FirstNameMax: SignupFirstNameMaxValue,
+	LastNameMin:  SignupLastNameMinValue,
+	LastNameMax:  SignupLastNameMaxValue,
+	EmailMin:     SignupEmailMinValue,
+	EmailMax:     SignupEmailMaxValue,
+	PasswordMin:  SignupPasswordMinValue,
+	PasswordMax:  SignupPasswordMaxValue,
+}
+
 // WebHandlerOption defines a web handler option.
 // This type is used to implement the functional options pattern
 // for configuring the WebHandler.
 type WebHandlerOption func(*WebHandler)
-
-// WithContactService sets the contact service.
-// This is a required option for the WebHandler as it needs
-// the contact service to function properly.
-//
-// Example:
-//
-//	handler := NewWebHandler(logger, WithContactService(contactService))
-func WithContactService(svc contact.Service) WebHandlerOption {
-	return func(h *WebHandler) {
-		h.contactService = svc
-	}
-}
-
-// WithWebSubscriptionService sets the subscription service for the web handler.
-// This is a required option for the WebHandler as it needs the subscription
-// service to handle newsletter signups.
-//
-// Example:
-//
-//	handler := NewWebHandler(logger, WithWebSubscriptionService(subscriptionService))
-func WithWebSubscriptionService(svc subscription.Service) WebHandlerOption {
-	return func(h *WebHandler) {
-		h.subscriptionService = svc
-	}
-}
 
 // WithRenderer sets the view renderer.
 // This is a required option for the WebHandler as it needs
@@ -81,22 +88,18 @@ func WithConfig(cfg *config.Config) WebHandlerOption {
 }
 
 // WebHandler handles web page requests.
-// It requires a renderer, contact service, and subscription service to function properly.
+// It requires a renderer, and subscription service to function properly.
 // Use the functional options pattern to configure these dependencies.
 //
 // Dependencies:
 //   - renderer: Required for rendering web pages
-//   - contactService: Required for contact form functionality
-//   - subscriptionService: Required for demo form submission functionality
 //   - middlewareManager: Required for security and request processing
 //   - config: Required for configuration
 type WebHandler struct {
 	Base
-	contactService      contact.Service
-	subscriptionService subscription.Service
-	renderer            *view.Renderer
-	middlewareManager   *amw.Manager
-	config              *config.Config
+	renderer          *view.Renderer
+	middlewareManager *amw.Manager
+	config            *config.Config
 }
 
 // NewWebHandler creates a new web handler.
@@ -108,8 +111,6 @@ type WebHandler struct {
 //
 //	handler := NewWebHandler(logger,
 //	    WithRenderer(renderer),
-//	    WithContactService(contactService),
-//	    WithWebSubscriptionService(subscriptionService),
 //	    WithConfig(config),
 //	)
 func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler, error) {
@@ -124,12 +125,6 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 	// Validate critical dependencies during construction
 	if h.renderer == nil {
 		return nil, errors.New("WebHandler initialization failed: renderer is required")
-	}
-	if h.contactService == nil {
-		return nil, errors.New("WebHandler initialization failed: contact service is required")
-	}
-	if h.subscriptionService == nil {
-		return nil, errors.New("WebHandler initialization failed: subscription service is required")
 	}
 	if h.middlewareManager == nil {
 		return nil, errors.New("WebHandler initialization failed: middleware manager is required")
@@ -146,8 +141,6 @@ func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler
 //
 // Required dependencies:
 //   - renderer
-//   - contactService
-//   - subscriptionService
 //   - middlewareManager
 //   - config
 func (h *WebHandler) Validate() error {
@@ -156,12 +149,6 @@ func (h *WebHandler) Validate() error {
 	}
 	if h.renderer == nil {
 		return errors.New("WebHandler validation failed: renderer is required")
-	}
-	if h.contactService == nil {
-		return errors.New("WebHandler validation failed: contact service is required")
-	}
-	if h.subscriptionService == nil {
-		return errors.New("WebHandler validation failed: subscription service is required")
 	}
 	if h.middlewareManager == nil {
 		return errors.New("WebHandler validation failed: middleware manager is required")
@@ -227,41 +214,45 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 	return nil
 }
 
-// registerAndLogRoute registers a GET route and logs the registration
-func (h *WebHandler) registerAndLogRoute(e *echo.Echo, path string, handler echo.HandlerFunc) {
-	e.GET(path, handler)
-	if h.config.App.IsDevelopment() {
-		h.Logger.Debug("registered route",
-			logging.String("method", http.MethodGet),
-			logging.String("path", path))
-	}
+// route defines a route for registration
+type route struct {
+	Method  string
+	Path    string
+	Handler echo.HandlerFunc
 }
 
-// registerRoutes registers all web routes
+// registerRoutes registers all web routes using the route struct
 func (h *WebHandler) registerRoutes(e *echo.Echo) {
-	// Web pages
-	h.registerAndLogRoute(e, "/", h.handleHome)
-	h.registerAndLogRoute(e, "/demo", h.handleDemo)
-	h.registerAndLogRoute(e, "/signup", h.handleSignup)
-	h.registerAndLogRoute(e, "/login", h.handleLogin)
-
-	// API endpoints
-	h.registerAndLogRoute(e, "/api/validation/:schema", h.handleValidationSchema)
-
+	routes := []route{
+		{"GET", "/", h.handleHome},
+		{"GET", "/demo", h.handleDemo},
+		{"GET", "/signup", h.handleSignup},
+		{"GET", "/login", h.handleLogin},
+		{"GET", "/api/validation/:schema", h.handleValidationSchema},
+	}
+	for _, r := range routes {
+		e.Add(r.Method, r.Path, r.Handler)
+		if h.config.App.IsDevelopment() {
+			h.Logger.Debug("registered route",
+				logging.String("method", r.Method),
+				logging.String("path", r.Path))
+		}
+	}
 	// Static files
-	e.Static("/public", "./public")
-	e.Static("/dist", h.config.Static.DistDir)
+	e.Static("/"+h.config.Static.DistDir, h.config.Static.DistDir)
 	e.File("/favicon.ico", "./public/favicon.ico")
 }
 
-// Register registers the web routes
-func (h *WebHandler) Register(e *echo.Echo) {
-	// Validate base dependencies
+// validateDependencies validates required dependencies for the handler
+func (h *WebHandler) validateDependencies() {
 	if err := h.Validate(); err != nil {
 		h.Logger.Error("failed to validate web handler", logging.Error(err))
-		return
 	}
+}
 
+// Register registers the web routes (SRP: now just calls validateDependencies and registerRoutes)
+func (h *WebHandler) Register(e *echo.Echo) {
+	h.validateDependencies()
 	if h.config.App.IsDevelopment() {
 		h.Logger.Debug("registering web routes")
 	}
@@ -291,7 +282,64 @@ func (h *WebHandler) handleLogin(c echo.Context) error {
 	return h.renderPage(c, "Login", pages.Login)
 }
 
-// handleValidationSchema returns the validation schema for a given form
+// schemaBuilders maps schema names to their builder functions
+var schemaBuilders = map[string]func() map[string]any{
+	"signup": buildSignupSchema,
+	"login":  buildLoginSchema,
+}
+
 func (h *WebHandler) handleValidationSchema(c echo.Context) error {
-	return c.JSON(http.StatusNotFound, map[string]string{"error": "validation schemas are not available"})
+	schemaName := c.Param("schema")
+	builder, ok := schemaBuilders[schemaName]
+	if !ok {
+		return c.JSON(http.StatusNotFound, map[string]string{"error": "validation schema not found"})
+	}
+	return c.JSON(http.StatusOK, builder())
+}
+
+func buildSignupSchema() map[string]any {
+	return map[string]any{
+		"first_name": map[string]any{
+			"type":    "string",
+			"min":     signupValidation.FirstNameMin,
+			"max":     signupValidation.FirstNameMax,
+			"message": "First name must be between 2 and 50 characters",
+		},
+		"last_name": map[string]any{
+			"type":    "string",
+			"min":     signupValidation.LastNameMin,
+			"max":     signupValidation.LastNameMax,
+			"message": "Last name must be between 2 and 50 characters",
+		},
+		"email": map[string]any{
+			"type":    "email",
+			"min":     signupValidation.EmailMin,
+			"max":     signupValidation.EmailMax,
+			"message": "Please enter a valid email address",
+		},
+		"password": map[string]any{
+			"type":    "password",
+			"min":     signupValidation.PasswordMin,
+			"max":     signupValidation.PasswordMax,
+			"message": "Password must be at least 8 characters and contain upper, lower, number, special",
+		},
+		"confirm_password": map[string]any{
+			"type":       "match",
+			"matchField": "password",
+			"message":    "Passwords don't match",
+		},
+	}
+}
+
+func buildLoginSchema() map[string]any {
+	return map[string]any{
+		"email": map[string]any{
+			"type":    "email",
+			"message": "Please enter a valid email address",
+		},
+		"password": map[string]any{
+			"type":    "string",
+			"message": "Password is required",
+		},
+	}
 }

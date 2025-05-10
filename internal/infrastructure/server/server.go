@@ -5,6 +5,8 @@ import (
 	"fmt"
 	"net"
 	"net/http"
+	"net/http/httputil"
+	"net/url"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
@@ -28,6 +30,16 @@ func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Ech
 		echo:   e,
 		logger: logger,
 		config: cfg,
+	}
+
+	// Vite dev server proxy for /src and /@vite in development mode
+	if cfg.App.IsDevelopment() {
+		viteProxy := httputil.NewSingleHostReverseProxy(&url.URL{
+			Scheme: "http",
+			Host:   cfg.App.ViteDevHost + ":" + cfg.App.ViteDevPort,
+		})
+		e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
+		e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))
 	}
 
 	// Setup server lifecycle hooks
