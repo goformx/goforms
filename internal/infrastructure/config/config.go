@@ -5,6 +5,27 @@ import (
 	"time"
 )
 
+const (
+	// DefaultAppPort is the default port number for the application server
+	DefaultAppPort = 8090
+	// DefaultServerPort is the default port number for the API server
+	DefaultServerPort = 8099
+
+	// DefaultReadTimeout is the default timeout for reading the entire request
+	DefaultReadTimeout = 5 * time.Second
+	// DefaultWriteTimeout is the default timeout for writing the response
+	DefaultWriteTimeout = 10 * time.Second
+	// DefaultIdleTimeout is the default timeout for idle connections
+	DefaultIdleTimeout = 120 * time.Second
+	// DefaultShutdownTimeout is the default timeout for graceful shutdown
+	DefaultShutdownTimeout = 30 * time.Second
+	// DefaultRequestTimeout is the default timeout for processing requests
+	DefaultRequestTimeout = 30 * time.Second
+
+	// DefaultCorsMaxAge is the default maximum age for CORS preflight requests
+	DefaultCorsMaxAge = 3600
+)
+
 // CORSOriginsDecoder handles parsing of CORS allowed origins
 type CORSOriginsDecoder []string
 
@@ -139,23 +160,23 @@ func New() (*Config, error) {
 			Env:         "production",
 			Debug:       false,
 			LogLevel:    "info",
-			Port:        8090,
+			Port:        DefaultAppPort,
 			Host:        "localhost",
 			ViteDevHost: "localhost",
 			ViteDevPort: "3000",
 		},
 		Server: ServerConfig{
 			Host:            "localhost",
-			Port:            8099,
-			ReadTimeout:     5 * time.Second,
-			WriteTimeout:    10 * time.Second,
-			IdleTimeout:     120 * time.Second,
-			ShutdownTimeout: 30 * time.Second,
+			Port:            DefaultServerPort,
+			ReadTimeout:     DefaultReadTimeout,
+			WriteTimeout:    DefaultWriteTimeout,
+			IdleTimeout:     DefaultIdleTimeout,
+			ShutdownTimeout: DefaultShutdownTimeout,
 		},
 		Security: SecurityConfig{
-			CorsMaxAge:           3600,
+			CorsMaxAge:           DefaultCorsMaxAge,
 			CorsAllowCredentials: true,
-			RequestTimeout:       30 * time.Second,
+			RequestTimeout:       DefaultRequestTimeout,
 		},
 		Static: StaticConfig{
 			DistDir: "dist",

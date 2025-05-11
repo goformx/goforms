@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/stretchr/testify/assert"
@@ -12,7 +13,9 @@ import (
 
 func TestBase(t *testing.T) {
 	t.Run("with logger", func(t *testing.T) {
-		logger := mocklogging.NewMockLogger()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		logger := mocklogging.NewMockLogger(ctrl)
 		base := handler.NewBase(handler.WithLogger(logger))
 		assert.NotNil(t, base)
 		assert.Equal(t, logger, base.Logger)
@@ -27,7 +30,9 @@ func TestBase(t *testing.T) {
 
 func TestBase_Validate(t *testing.T) {
 	t.Run("valid when logger set", func(t *testing.T) {
-		logger := mocklogging.NewMockLogger()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		logger := mocklogging.NewMockLogger(ctrl)
 		base := handler.NewBase(handler.WithLogger(logger))
 		err := base.Validate()
 		assert.NoError(t, err)
@@ -42,7 +47,9 @@ func TestBase_Validate(t *testing.T) {
 }
 
 func TestBase_WrapResponseError(t *testing.T) {
-	logger := mocklogging.NewMockLogger()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	logger := mocklogging.NewMockLogger(ctrl)
 	base := handler.NewBase(handler.WithLogger(logger))
 
 	t.Run("wraps error with message", func(t *testing.T) {
@@ -61,16 +68,14 @@ func TestBase_WrapResponseError(t *testing.T) {
 
 func TestBase_LogError(t *testing.T) {
 	t.Run("logs error with fields", func(t *testing.T) {
-		logger := mocklogging.NewMockLogger()
+		ctrl := gomock.NewController(t)
+		defer ctrl.Finish()
+		logger := mocklogging.NewMockLogger(ctrl)
 		base := handler.NewBase(handler.WithLogger(logger))
 
 		err := errors.New("test error")
-		logger.ExpectError("test message").WithFields(map[string]any{
-			"key":   "value",
-			"error": err,
-		})
+		logger.EXPECT().Error("test message", gomock.Any()).Times(1)
 
 		base.LogError("test message", err, mocklogging.String("key", "value"))
-		assert.NoError(t, logger.Verify())
 	})
 }

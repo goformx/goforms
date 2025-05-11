@@ -4,6 +4,7 @@ import (
 	"errors"
 	"testing"
 
+	"github.com/golang/mock/gomock"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 )
@@ -134,21 +135,19 @@ func TestLoggerFunctionality(t *testing.T) {
 }
 
 func TestMockLogger(t *testing.T) {
-	mockLogger := mocklogging.NewMockLogger()
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-	mockLogger.ExpectInfo("info message")
-	mockLogger.ExpectError("error message")
-	mockLogger.ExpectDebug("debug message")
-	mockLogger.ExpectWarn("warn message")
+	mockLogger.EXPECT().Info("info message", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Error("error message", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Debug("debug message", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Warn("warn message", gomock.Any()).Times(1)
 
 	mockLogger.Info("info message")
 	mockLogger.Error("error message")
 	mockLogger.Debug("debug message")
 	mockLogger.Warn("warn message")
-
-	if err := mockLogger.Verify(); err != nil {
-		t.Fatalf("Verify failed: %v", err)
-	}
 }
 
 func TestNewTestLogger(t *testing.T) {

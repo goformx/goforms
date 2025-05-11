@@ -4,19 +4,19 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/common/validation"
 )
 
-// echoValidator wraps the domain validator to implement Echo's Validator interface.
-type echoValidator struct {
+// EchoValidator wraps the domain validator to implement Echo's Validator interface.
+type EchoValidator struct {
 	validator *validation.Validator
 }
 
 // NewValidator creates a new Echo validator
-func NewValidator() *echoValidator {
-	return &echoValidator{
+func NewValidator() *EchoValidator {
+	return &EchoValidator{
 		validator: validation.New(),
 	}
 }
 
 // Validate implements echo.Validator interface.
-func (v *echoValidator) Validate(i any) error {
+func (v *EchoValidator) Validate(i any) error {
 	return v.validator.ValidateStruct(i)
 }
