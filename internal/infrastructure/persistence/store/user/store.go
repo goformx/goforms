@@ -26,7 +26,7 @@ type Store struct {
 // NewStore creates a new user store
 func NewStore(db *database.Database, logger logging.Logger) user.Store {
 	logger.Debug("creating user store",
-		logging.Bool("db_available", db != nil),
+		logging.BoolField("db_available", db != nil),
 	)
 	return &Store{
 		db:     db,
@@ -42,9 +42,9 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 	`
 
 	s.logger.Debug("creating user",
-		logging.String("email", u.Email),
-		logging.String("role", u.Role),
-		logging.Bool("active", u.Active),
+		logging.StringField("email", u.Email),
+		logging.StringField("role", u.Role),
+		logging.BoolField("active", u.Active),
 	)
 
 	tx, err := s.db.BeginTx(ctx, nil)
@@ -55,14 +55,14 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 		if err != nil {
 			if rbErr := tx.Rollback(); rbErr != nil {
 				s.logger.Error("failed to rollback transaction",
-					logging.Error(rbErr),
+					logging.ErrorField("error", rbErr),
 				)
 			}
 			return
 		}
 		if err = tx.Commit(); err != nil {
 			s.logger.Error("failed to commit transaction",
-				logging.Error(err),
+				logging.ErrorField("error", err),
 			)
 		}
 	}()
@@ -93,8 +93,8 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 	u.ID = uint(id)
 
 	s.logger.Info("user created",
-		logging.Uint("id", u.ID),
-		logging.String("email", u.Email),
+		logging.IntField("id", int(u.ID)),
+		logging.StringField("email", u.Email),
 	)
 
 	return nil
@@ -109,7 +109,7 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 	`
 
 	s.logger.Debug("getting user by email",
-		logging.String("email", email),
+		logging.StringField("email", email),
 	)
 
 	var u user.User
@@ -127,21 +127,21 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 
 	if err == sql.ErrNoRows {
 		s.logger.Debug("user not found by email",
-			logging.String("email", email),
+			logging.StringField("email", email),
 		)
 		return nil, ErrUserNotFound
 	}
 	if err != nil {
 		s.logger.Error("failed to get user by email",
-			logging.Error(err),
-			logging.String("email", email),
+			logging.ErrorField("error", err),
+			logging.StringField("email", email),
 		)
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
 
 	s.logger.Debug("user found by email",
-		logging.Uint("id", u.ID),
-		logging.String("email", u.Email),
+		logging.IntField("id", int(u.ID)),
+		logging.StringField("email", u.Email),
 	)
 	return &u, nil
 }
@@ -193,14 +193,14 @@ func (s *Store) Update(ctx context.Context, u *user.User) error {
 		if err != nil {
 			if rbErr := tx.Rollback(); rbErr != nil {
 				s.logger.Error("failed to rollback transaction",
-					logging.Error(rbErr),
+					logging.ErrorField("error", rbErr),
 				)
 			}
 			return
 		}
 		if err = tx.Commit(); err != nil {
 			s.logger.Error("failed to commit transaction",
-				logging.Error(err),
+				logging.ErrorField("error", err),
 			)
 		}
 	}()
@@ -229,8 +229,8 @@ func (s *Store) Update(ctx context.Context, u *user.User) error {
 	}
 
 	s.logger.Info("user updated",
-		logging.Uint("id", u.ID),
-		logging.String("email", u.Email),
+		logging.IntField("id", int(u.ID)),
+		logging.StringField("email", u.Email),
 	)
 
 	return nil
@@ -248,14 +248,14 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 		if err != nil {
 			if rbErr := tx.Rollback(); rbErr != nil {
 				s.logger.Error("failed to rollback transaction",
-					logging.Error(rbErr),
+					logging.ErrorField("error", rbErr),
 				)
 			}
 			return
 		}
 		if err = tx.Commit(); err != nil {
 			s.logger.Error("failed to commit transaction",
-				logging.Error(err),
+				logging.ErrorField("error", err),
 			)
 		}
 	}()
@@ -274,7 +274,9 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 		return user.ErrUserNotFound
 	}
 
-	s.logger.Info("user deleted", logging.Uint("id", id))
+	s.logger.Info("user deleted",
+		logging.IntField("id", int(id)),
+	)
 
 	return nil
 }

@@ -64,8 +64,8 @@ func (s *Server) Echo() *echo.Echo {
 func (s *Server) Start(ctx context.Context) error {
 	s.addr = fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
 	s.logger.Info("starting server",
-		logging.String("addr", s.addr),
-		logging.String("env", s.config.App.Env),
+		logging.StringField("addr", s.addr),
+		logging.StringField("env", s.config.App.Env),
 	)
 
 	s.server = &http.Server{
@@ -82,9 +82,9 @@ func (s *Server) Start(ctx context.Context) error {
 	}
 
 	go func() {
-		s.logger.Info("server listening", logging.String("addr", s.addr))
+		s.logger.Info("server listening", logging.StringField("addr", s.addr), logging.StringField("env", s.config.App.Env))
 		if serveErr := s.server.Serve(ln); serveErr != nil && serveErr != http.ErrServerClosed {
-			s.logger.Error("server error", logging.Error(serveErr))
+			s.logger.Error("server error", logging.ErrorField("error", serveErr))
 		}
 	}()
 
@@ -103,7 +103,7 @@ func (s *Server) Stop(ctx context.Context) error {
 	defer cancel()
 
 	if err := s.server.Shutdown(shutdownCtx); err != nil {
-		s.logger.Error("server shutdown error", logging.Error(err))
+		s.logger.Error("server shutdown error", logging.ErrorField("error", err))
 		return fmt.Errorf("server shutdown error: %w", err)
 	}
 

@@ -241,9 +241,8 @@ func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 
 // logMiddlewareRegistration logs middleware registration details
 func logMiddlewareRegistration(logger logging.Logger, middlewareType string) {
-	logger.Debug("registering middleware",
-		logging.String("type", middlewareType),
-	)
+	logger.Debug("middleware registered",
+		logging.StringField("type", middlewareType))
 }
 
 // Helper to log and apply middleware
@@ -321,7 +320,7 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 		// Create JWT middleware for API routes
 		jwtMiddleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.logger, m.config.Config)
 		if err != nil {
-			m.logger.Error("failed to create JWT middleware", logging.Error(err))
+			m.logger.Error("failed to create JWT middleware", logging.ErrorField("error", err))
 			return
 		}
 

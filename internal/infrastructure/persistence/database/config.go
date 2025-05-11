@@ -31,11 +31,11 @@ func NewConfig(logger logging.Logger) *Config {
 	}
 
 	logger.Debug("database configuration loaded",
-		logging.String("host", config.Host),
-		logging.String("port", config.Port),
-		logging.String("name", config.Name),
-		logging.String("user", config.User),
-		logging.String("ssl_mode", config.SSLMode),
+		logging.StringField("host", config.Host),
+		logging.StringField("port", config.Port),
+		logging.StringField("name", config.Name),
+		logging.StringField("user", config.User),
+		logging.StringField("ssl_mode", config.SSLMode),
 	)
 
 	return config

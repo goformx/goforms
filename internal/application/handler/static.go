@@ -41,7 +41,7 @@ func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler 
 			return nil
 		})
 		if walkErr != nil {
-			logger.Error("error walking distDir", logging.Error(walkErr))
+			logger.Error("error walking distDir", logging.ErrorField("error", walkErr))
 		}
 	}
 	return handler
@@ -66,7 +66,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 	distDir := h.config.Static.DistDir
 	if _, err := os.Stat(distDir); err == nil {
 		h.logger.Info("serving static files from dist directory",
-			logging.String("dir", distDir),
+			logging.StringField("dir", distDir),
 		)
 		// Use a wildcard route to handle hashed filenames
 		prefix := "/" + distDir + "/*"
@@ -86,8 +86,8 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 	foundFile, ok := h.fileIndex[requestBaseName]
 	if !ok {
 		h.logger.Error("file not found",
-			logging.String("path", path),
-			logging.String("distDir", h.config.Static.DistDir),
+			logging.StringField("path", path),
+			logging.StringField("distDir", h.config.Static.DistDir),
 		)
 		accept := c.Request().Header.Get("Accept")
 		if strings.Contains(accept, "text/html") {
@@ -119,6 +119,11 @@ func (h *StaticHandler) HandleStatic(c echo.Context) error {
 		// Not in manifest, use a short cache
 		c.Response().Header().Set("Cache-Control", "public, max-age=3600")
 	}
+
+	h.logger.Debug("serving static file",
+		logging.StringField("path", path),
+		logging.StringField("distDir", h.config.Static.DistDir),
+	)
 
 	return c.File(foundFile)
 }

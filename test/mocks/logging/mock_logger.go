@@ -9,7 +9,6 @@ import (
 
 	gomock "github.com/golang/mock/gomock"
 	logging "github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"go.uber.org/zap"
 )
 
 // MockLogger is a mock of Logger interface.
@@ -36,7 +35,7 @@ func (m *MockLogger) EXPECT() *MockLoggerMockRecorder {
 }
 
 // Debug mocks base method.
-func (m *MockLogger) Debug(msg string, fields ...logging.Field) {
+func (m *MockLogger) Debug(msg string, fields ...logging.LogField) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{msg}
 	for _, a := range fields {
@@ -53,7 +52,7 @@ func (mr *MockLoggerMockRecorder) Debug(msg interface{}, fields ...interface{}) 
 }
 
 // Error mocks base method.
-func (m *MockLogger) Error(msg string, fields ...logging.Field) {
+func (m *MockLogger) Error(msg string, fields ...logging.LogField) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{msg}
 	for _, a := range fields {
@@ -70,7 +69,7 @@ func (mr *MockLoggerMockRecorder) Error(msg interface{}, fields ...interface{}) 
 }
 
 // Info mocks base method.
-func (m *MockLogger) Info(msg string, fields ...logging.Field) {
+func (m *MockLogger) Info(msg string, fields ...logging.LogField) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{msg}
 	for _, a := range fields {
@@ -86,92 +85,8 @@ func (mr *MockLoggerMockRecorder) Info(msg interface{}, fields ...interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Info", reflect.TypeOf((*MockLogger)(nil).Info), varargs...)
 }
 
-// Int mocks base method.
-func (m *MockLogger) Int(key string, value int) logging.Field {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Int", key, value)
-	ret0, _ := ret[0].(logging.Field)
-	return ret0
-}
-
-// Int indicates an expected call of Int.
-func (mr *MockLoggerMockRecorder) Int(key, value interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Int", reflect.TypeOf((*MockLogger)(nil).Int), key, value)
-}
-
-// Int32 mocks base method.
-func (m *MockLogger) Int32(key string, value int32) logging.Field {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Int32", key, value)
-	ret0, _ := ret[0].(logging.Field)
-	return ret0
-}
-
-// Int32 indicates an expected call of Int32.
-func (mr *MockLoggerMockRecorder) Int32(key, value interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Int32", reflect.TypeOf((*MockLogger)(nil).Int32), key, value)
-}
-
-// Int64 mocks base method.
-func (m *MockLogger) Int64(key string, value int64) logging.Field {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Int64", key, value)
-	ret0, _ := ret[0].(logging.Field)
-	return ret0
-}
-
-// Int64 indicates an expected call of Int64.
-func (mr *MockLoggerMockRecorder) Int64(key, value interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Int64", reflect.TypeOf((*MockLogger)(nil).Int64), key, value)
-}
-
-// Uint mocks base method.
-func (m *MockLogger) Uint(key string, value uint) logging.Field {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Uint", key, value)
-	ret0, _ := ret[0].(logging.Field)
-	return ret0
-}
-
-// Uint indicates an expected call of Uint.
-func (mr *MockLoggerMockRecorder) Uint(key, value interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Uint", reflect.TypeOf((*MockLogger)(nil).Uint), key, value)
-}
-
-// Uint32 mocks base method.
-func (m *MockLogger) Uint32(key string, value uint32) logging.Field {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Uint32", key, value)
-	ret0, _ := ret[0].(logging.Field)
-	return ret0
-}
-
-// Uint32 indicates an expected call of Uint32.
-func (mr *MockLoggerMockRecorder) Uint32(key, value interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Uint32", reflect.TypeOf((*MockLogger)(nil).Uint32), key, value)
-}
-
-// Uint64 mocks base method.
-func (m *MockLogger) Uint64(key string, value uint64) logging.Field {
-	m.ctrl.T.Helper()
-	ret := m.ctrl.Call(m, "Uint64", key, value)
-	ret0, _ := ret[0].(logging.Field)
-	return ret0
-}
-
-// Uint64 indicates an expected call of Uint64.
-func (mr *MockLoggerMockRecorder) Uint64(key, value interface{}) *gomock.Call {
-	mr.mock.ctrl.T.Helper()
-	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Uint64", reflect.TypeOf((*MockLogger)(nil).Uint64), key, value)
-}
-
 // Warn mocks base method.
-func (m *MockLogger) Warn(msg string, fields ...logging.Field) {
+func (m *MockLogger) Warn(msg string, fields ...logging.LogField) {
 	m.ctrl.T.Helper()
 	varargs := []interface{}{msg}
 	for _, a := range fields {
@@ -187,7 +102,37 @@ func (mr *MockLoggerMockRecorder) Warn(msg interface{}, fields ...interface{}) *
 	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Warn", reflect.TypeOf((*MockLogger)(nil).Warn), varargs...)
 }
 
-// String creates a string field (package-level for test compatibility)
-func String(key, value string) logging.Field {
-	return zap.String(key, value)
+// Fatal mocks base method.
+func (m *MockLogger) Fatal(msg string, fields ...logging.LogField) {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{msg}
+	for _, a := range fields {
+		varargs = append(varargs, a)
+	}
+	m.ctrl.Call(m, "Fatal", varargs...)
+}
+
+// Fatal indicates an expected call of Fatal.
+func (mr *MockLoggerMockRecorder) Fatal(msg interface{}, fields ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	varargs := append([]interface{}{msg}, fields...)
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "Fatal", reflect.TypeOf((*MockLogger)(nil).Fatal), varargs...)
+}
+
+// With mocks base method.
+func (m *MockLogger) With(fields ...logging.LogField) logging.Logger {
+	m.ctrl.T.Helper()
+	varargs := []interface{}{}
+	for _, a := range fields {
+		varargs = append(varargs, a)
+	}
+	ret := m.ctrl.Call(m, "With", varargs...)
+	ret0, _ := ret[0].(logging.Logger)
+	return ret0
+}
+
+// With indicates an expected call of With.
+func (mr *MockLoggerMockRecorder) With(fields ...interface{}) *gomock.Call {
+	mr.mock.ctrl.T.Helper()
+	return mr.mock.ctrl.RecordCallWithMethodType(mr.mock, "With", reflect.TypeOf((*MockLogger)(nil).With), fields...)
 }

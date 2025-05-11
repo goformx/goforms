@@ -37,8 +37,8 @@ func TestLogger(t *testing.T) {
 		}
 
 		// Just verify no panics
-		logger.Info("info message")
-		logger.Error("error message")
+		logger.Info("info message", logging.StringField("key", "value"))
+		logger.Error("error message", logging.ErrorField("error", errors.New("test error")))
 		logger.Debug("debug message")
 		logger.Warn("warn message")
 	})
@@ -80,8 +80,8 @@ func TestLogLevels(t *testing.T) {
 					t.Errorf("Logging panicked: %v", r)
 				}
 			}()
-			logger.Info("info message", logging.String("key", "value"))
-			logger.Error("error message", logging.Error(errors.New("test error")))
+			logger.Info("info message", logging.StringField("key", "value"))
+			logger.Error("error message", logging.ErrorField("error", errors.New("test error")))
 			logger.Debug("debug message")
 			logger.Warn("warn message")
 		}()
@@ -124,11 +124,11 @@ func TestLoggerFunctionality(t *testing.T) {
 			}
 		}()
 		logger.Info("test info message",
-			logging.String("key1", "value1"),
-			logging.Int("key2", 123),
-			logging.Error(errors.New("test error")),
+			logging.StringField("key1", "value1"),
+			logging.IntField("key2", 123),
+			logging.ErrorField("error", errors.New("test error")),
 		)
-		logger.Error("test error message")
+		logger.Error("test error message", logging.ErrorField("error", errors.New("test error")))
 		logger.Debug("test debug message")
 		logger.Warn("test warn message")
 	}()

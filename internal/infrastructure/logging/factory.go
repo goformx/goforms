@@ -1,23 +1,112 @@
+// Package logging provides a unified logging interface using zap
 package logging
 
 import (
+	"fmt"
+
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
+// Config holds the configuration for creating a logger
+type Config struct {
+	Level   string
+	AppName string
+}
+
 // Factory creates loggers based on configuration
-type Factory struct{}
+type Factory struct {
+	initialFields map[string]interface{}
+}
 
 // NewFactory creates a new logger factory
 func NewFactory() *Factory {
-	return &Factory{}
+	return &Factory{
+		initialFields: map[string]interface{}{
+			"version": "1.0.0",
+		},
+	}
 }
 
-// CreateFromConfig creates a logger from configuration
+// CreateFromConfig creates a logger based on the provided configuration
 func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
-	if cfg == nil {
-		return NewLogger("info", "goforms")
+	// Create encoder config
+	encoderConfig := zap.NewDevelopmentEncoderConfig()
+	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
+	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+
+	// Parse log level
+	var level zapcore.Level
+	levelErr := level.UnmarshalText([]byte(cfg.App.LogLevel))
+	if levelErr != nil {
+		level = zapcore.InfoLevel // fallback
 	}
-	return NewLogger(cfg.App.LogLevel, cfg.App.Name)
+
+	config := zap.NewDevelopmentConfig()
+	config.EncoderConfig = encoderConfig
+	config.OutputPaths = []string{"stdout"}
+	config.Encoding = "console"
+	config.Level = zap.NewAtomicLevelAt(level)
+
+	// Use JSON encoding for production
+	if level >= zapcore.WarnLevel {
+		config.Encoding = "json"
+	}
+
+	zapLog, err := config.Build(
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+		zap.Fields(
+			zap.String("app", cfg.App.Name),
+		),
+	)
+
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logger: %w", err)
+	}
+
+	return &ZapLogger{log: zapLog}, nil
+}
+
+// ZapLogger implements the Logger interface using zap
+type ZapLogger struct {
+	log *zap.Logger
+}
+
+func (l *ZapLogger) Info(msg string, fields ...LogField)  { l.log.Info(msg, convertFields(fields)...) }
+func (l *ZapLogger) Error(msg string, fields ...LogField) { l.log.Error(msg, convertFields(fields)...) }
+func (l *ZapLogger) Debug(msg string, fields ...LogField) { l.log.Debug(msg, convertFields(fields)...) }
+func (l *ZapLogger) Warn(msg string, fields ...LogField)  { l.log.Warn(msg, convertFields(fields)...) }
+func (l *ZapLogger) Fatal(msg string, fields ...LogField) { l.log.Fatal(msg, convertFields(fields)...) }
+
+// With returns a new logger with the given fields
+func (l *ZapLogger) With(fields ...LogField) Logger {
+	return &ZapLogger{log: l.log.With(convertFields(fields)...)}
+}
+
+// convertFields converts our LogField to zap.Field
+func convertFields(fields []LogField) []zap.Field {
+	zapFields := make([]zap.Field, len(fields))
+	for i, f := range fields {
+		switch f.Type {
+		case StringType:
+			zapFields[i] = zap.String(f.Key, f.String)
+		case IntType:
+			zapFields[i] = zap.Int(f.Key, f.Int)
+		case ErrorType:
+			zapFields[i] = zap.Error(f.Error)
+		case DurationType:
+			zapFields[i] = zap.String(f.Key, f.String)
+		case BoolType:
+			zapFields[i] = zap.String(f.Key, f.String)
+		case AnyType:
+			zapFields[i] = zap.String(f.Key, f.String)
+		}
+	}
+	return zapFields
 }
 
 // CreateTestLogger creates a logger for testing

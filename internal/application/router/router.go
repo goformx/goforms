@@ -60,9 +60,8 @@ func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 // logHandlerRegistration logs handler registration details
 func logHandlerRegistration(logger logging.Logger, index int, handlerType string) {
 	logger.Debug("registering handler",
-		logging.Int("index", index),
-		logging.String("type", handlerType),
-	)
+		logging.IntField("index", index),
+		logging.StringField("type", handlerType))
 }
 
 // setupStaticRoutes configures static file routes
@@ -82,8 +81,8 @@ func registerHandlers(e *echo.Echo, handlerList []handlers.Handler, logger loggi
 		logHandlerRegistration(logger, i, fmt.Sprintf("%T", h))
 		h.Register(e)
 		logger.Debug("handler registered",
-			logging.Int("index", i),
-			logging.String("type", fmt.Sprintf("%T", h)),
+			logging.IntField("index", i),
+			logging.StringField("type", fmt.Sprintf("%T", h)),
 		)
 	}
 }
@@ -111,9 +110,9 @@ func Setup(e *echo.Echo, cfg *Config) error {
 	}
 
 	cfg.Logger.Debug("setting up routes",
-		logging.Int("handler_count", len(cfg.Handlers)),
-		logging.String("static_path", cfg.Static.Path),
-		logging.String("static_root", cfg.Static.Root),
+		logging.IntField("handler_count", len(cfg.Handlers)),
+		logging.StringField("static_path", cfg.Static.Path),
+		logging.StringField("static_root", cfg.Static.Root),
 	)
 
 	// Setup middleware

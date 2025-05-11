@@ -206,10 +206,10 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 
 	// Render page
 	if renderErr := template(data).Render(c.Request().Context(), c.Response().Writer); renderErr != nil {
-		h.Logger.Error("failed to render page",
-			logging.String("title", title),
-			logging.String("path", c.Request().URL.Path),
-			logging.Error(renderErr))
+		h.Logger.Error("failed to render template",
+			logging.StringField("title", title),
+			logging.StringField("path", c.Request().URL.Path),
+			logging.ErrorField("error", renderErr))
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to render page")
 	}
 
@@ -235,9 +235,9 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	for _, r := range routes {
 		e.Add(r.Method, r.Path, r.Handler)
 		if h.config.App.IsDevelopment() {
-			h.Logger.Debug("registered route",
-				logging.String("method", r.Method),
-				logging.String("path", r.Path))
+			h.Logger.Debug("web handler called",
+				logging.StringField("method", r.Method),
+				logging.StringField("path", r.Path))
 		}
 	}
 	// Static files
@@ -248,7 +248,7 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 // validateDependencies validates required dependencies for the handler
 func (h *WebHandler) validateDependencies() {
 	if err := h.Validate(); err != nil {
-		h.Logger.Error("failed to validate web handler", logging.Error(err))
+		h.Logger.Error("failed to validate web handler", logging.ErrorField("error", err))
 	}
 }
 

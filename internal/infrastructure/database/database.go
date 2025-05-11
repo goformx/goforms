@@ -42,7 +42,7 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 	db, err := sqlx.Connect("mysql", dsn)
 	if err != nil {
 		logger.Error("failed to connect to database",
-			logging.ErrorField(err),
+			logging.ErrorField("error", err),
 			logging.StringField("host", cfg.Database.Host),
 			logging.IntField("port", cfg.Database.Port),
 		)
@@ -64,7 +64,7 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 	pingErr := db.Ping()
 	if pingErr != nil {
 		logger.Error("failed to ping database",
-			logging.ErrorField(pingErr),
+			logging.ErrorField("error", pingErr),
 		)
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
@@ -85,7 +85,7 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 func (db *Database) Close() error {
 	db.logger.Debug("closing database connection")
 	if err := db.DB.Close(); err != nil {
-		db.logger.Error("failed to close database connection", logging.ErrorField(err))
+		db.logger.Error("failed to close database connection", logging.ErrorField("error", err))
 		return fmt.Errorf("failed to close database connection: %w", err)
 	}
 	db.logger.Debug("database connection closed successfully")
@@ -97,7 +97,7 @@ func (db *Database) Begin() (*sqlx.Tx, error) {
 	db.logger.Debug("beginning database transaction")
 	tx, err := db.Beginx()
 	if err != nil {
-		db.logger.Error("failed to begin transaction", logging.ErrorField(err))
+		db.logger.Error("failed to begin transaction", logging.ErrorField("error", err))
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	db.logger.Debug("transaction started successfully")

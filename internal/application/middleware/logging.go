@@ -16,26 +16,26 @@ func handlePanic(c echo.Context, log logging.Logger, start time.Time, r any) {
 	err := fmt.Errorf("panic: %v", r)
 	c.Response().Status = echo.ErrInternalServerError.Code
 	log.Error("request panic",
-		logging.String("method", c.Request().Method),
-		logging.String("path", c.Request().URL.Path),
-		logging.Int("status", c.Response().Status),
-		logging.Duration("latency", time.Since(start)),
-		logging.String("ip", c.RealIP()),
-		logging.String("user_agent", c.Request().UserAgent()),
-		logging.Any("panic", r),
+		logging.StringField("method", c.Request().Method),
+		logging.StringField("path", c.Request().URL.Path),
+		logging.IntField("status", c.Response().Status),
+		logging.DurationField("latency", time.Since(start)),
+		logging.StringField("ip", c.RealIP()),
+		logging.StringField("user_agent", c.Request().UserAgent()),
+		logging.AnyField("panic", r),
 	)
 	c.Error(err)
 }
 
 // extractFields builds the log fields for a request
-func extractFields(c echo.Context, start time.Time) []logging.Field {
-	return []logging.Field{
-		logging.String("method", c.Request().Method),
-		logging.String("path", c.Request().URL.Path),
-		logging.Int("status", c.Response().Status),
-		logging.Duration("latency", time.Since(start)),
-		logging.String("remote_ip", c.RealIP()),
-		logging.String("user_agent", c.Request().UserAgent()),
+func extractFields(c echo.Context, start time.Time) []logging.LogField {
+	return []logging.LogField{
+		logging.StringField("method", c.Request().Method),
+		logging.StringField("path", c.Request().URL.Path),
+		logging.IntField("status", c.Response().Status),
+		logging.DurationField("latency", time.Since(start)),
+		logging.StringField("remote_ip", c.RealIP()),
+		logging.StringField("user_agent", c.Request().UserAgent()),
 	}
 }
 
@@ -91,10 +91,17 @@ func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 				if isStatic404 {
 					log.Info("static asset not found", fields...)
 				} else {
-					log.Error("request error", append(fields, logging.Error(err))...)
+					log.Error("request error", append(fields, logging.ErrorField("error", err))...)
 				}
 			} else {
-				log.Info("request", fields...)
+				log.Info("request completed",
+					logging.StringField("method", c.Request().Method),
+					logging.StringField("path", c.Request().URL.Path),
+					logging.IntField("status", c.Response().Status),
+					logging.DurationField("latency", time.Since(start)),
+					logging.StringField("ip", c.RealIP()),
+					logging.StringField("user_agent", c.Request().UserAgent()),
+				)
 			}
 
 			return err

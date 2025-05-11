@@ -25,10 +25,10 @@ type DB struct {
 // NewDB creates a new database connection with proper configuration
 func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, error) {
 	logger.Debug("initializing database connection",
-		logging.String("host", cfg.Database.Host),
-		logging.String("port", strconv.Itoa(cfg.Database.Port)),
-		logging.String("name", cfg.Database.Name),
-		logging.String("user", cfg.Database.User),
+		logging.StringField("host", cfg.Database.Host),
+		logging.StringField("port", strconv.Itoa(cfg.Database.Port)),
+		logging.StringField("name", cfg.Database.Name),
+		logging.StringField("user", cfg.Database.User),
 	)
 
 	// Construct DSN
@@ -40,11 +40,11 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 	db, err := sqlx.Connect("mysql", dsn)
 	if err != nil {
 		logger.Error("failed to connect to database",
-			logging.Error(err),
-			logging.String("host", cfg.Database.Host),
-			logging.String("port", strconv.Itoa(cfg.Database.Port)),
-			logging.String("user", cfg.Database.User),
-			logging.String("database", cfg.Database.Name),
+			logging.ErrorField("error", err),
+			logging.StringField("host", cfg.Database.Host),
+			logging.StringField("port", strconv.Itoa(cfg.Database.Port)),
+			logging.StringField("user", cfg.Database.User),
+			logging.StringField("database", cfg.Database.Name),
 		)
 		return nil, fmt.Errorf("failed to connect to database %s@%s:%d/%s: %w",
 			cfg.Database.User,
@@ -56,8 +56,8 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 	}
 
 	logger.Debug("setting database connection parameters",
-		logging.Int("max_open_conns", cfg.Database.MaxOpenConns),
-		logging.Int("max_idle_conns", cfg.Database.MaxIdleConns),
+		logging.IntField("max_open_conns", cfg.Database.MaxOpenConns),
+		logging.IntField("max_idle_conns", cfg.Database.MaxIdleConns),
 	)
 
 	// Configure connection pool
@@ -71,7 +71,7 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 	pingErr := db.Ping()
 	if pingErr != nil {
 		logger.Error("failed to ping database",
-			logging.Error(pingErr),
+			logging.ErrorField("error", pingErr),
 		)
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
@@ -95,9 +95,9 @@ func NewDB(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (*DB, err
 	})
 
 	logger.Info("successfully connected to database",
-		logging.String("host", cfg.Database.Host),
-		logging.String("port", strconv.Itoa(cfg.Database.Port)),
-		logging.String("name", cfg.Database.Name),
+		logging.StringField("host", cfg.Database.Host),
+		logging.StringField("port", strconv.Itoa(cfg.Database.Port)),
+		logging.StringField("name", cfg.Database.Name),
 	)
 
 	return wrappedDB, nil
@@ -135,7 +135,7 @@ func (db *DB) WithTx(ctx context.Context, fn func(*sqlx.Tx) error) error {
 func (db *DB) beginTransaction(ctx context.Context) (*sqlx.Tx, error) {
 	tx, err := db.BeginTxx(ctx, nil)
 	if err != nil {
-		db.logger.Error("failed to begin transaction", logging.Error(err))
+		db.logger.Error("failed to begin transaction", logging.ErrorField("error", err))
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	return tx, nil
@@ -162,11 +162,11 @@ func (db *DB) executeInTransaction(tx *sqlx.Tx, fn func(*sqlx.Tx) error) error {
 // handlePanic handles transaction panics
 func (db *DB) handlePanic(tx *sqlx.Tx, p any) {
 	db.logger.Error("rolling back transaction due to panic",
-		logging.Any("panic", p),
+		logging.AnyField("panic", p),
 	)
 	if rbErr := tx.Rollback(); rbErr != nil {
 		db.logger.Error("failed to rollback transaction after panic",
-			logging.Error(rbErr),
+			logging.ErrorField("error", rbErr),
 		)
 	}
 	panic(p) // re-throw panic after rollback
@@ -175,11 +175,11 @@ func (db *DB) handlePanic(tx *sqlx.Tx, p any) {
 // handleTransactionError handles transaction errors
 func (db *DB) handleTransactionError(tx *sqlx.Tx, err error) error {
 	db.logger.Error("rolling back transaction due to error",
-		logging.Error(err),
+		logging.ErrorField("error", err),
 	)
 	if rbErr := tx.Rollback(); rbErr != nil {
 		db.logger.Error("failed to rollback transaction",
-			logging.Error(rbErr),
+			logging.ErrorField("error", rbErr),
 		)
 		return fmt.Errorf("rollback failed: %w (original error: %w)", rbErr, err)
 	}
@@ -191,7 +191,7 @@ func (db *DB) commitTransaction(tx *sqlx.Tx) error {
 	db.logger.Debug("committing transaction")
 	if err := tx.Commit(); err != nil {
 		db.logger.Error("failed to commit transaction",
-			logging.Error(err),
+			logging.ErrorField("error", err),
 		)
 		return fmt.Errorf("failed to commit transaction: %w", err)
 	}

@@ -62,8 +62,8 @@ func (h *DashboardHandler) showDashboard(c echo.Context) error {
 	forms, err := h.FormService.GetUserForms(currentUser.ID)
 	if err != nil {
 		h.base.Logger.Error("failed to get user forms",
-			logging.Error(err),
-			logging.Uint("user_id", currentUser.ID),
+			logging.ErrorField("error", err),
+			logging.UintField("user_id", currentUser.ID),
 		)
 		return echo.NewHTTPError(InternalServerErrorCode, "Failed to get forms")
 	}

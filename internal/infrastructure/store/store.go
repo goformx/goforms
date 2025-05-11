@@ -44,14 +44,14 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 
 	rows, queryErr := s.db.NamedQueryContext(ctx, query, u)
 	if queryErr != nil {
-		s.log.Error("failed to create user", logging.Error(queryErr))
+		s.log.Error("failed to create user", logging.ErrorField("error", queryErr))
 		return queryErr
 	}
 	defer rows.Close()
 
 	if rows.Next() {
 		if scanErr := rows.Scan(&u.ID); scanErr != nil {
-			s.log.Error("failed to scan user id", logging.Error(scanErr))
+			s.log.Error("failed to scan user id", logging.ErrorField("error", scanErr))
 			return scanErr
 		}
 	}
@@ -72,7 +72,7 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-		s.log.Error("failed to get user by ID", logging.Error(err))
+		s.log.Error("failed to get user by ID", logging.ErrorField("error", err))
 		return nil, err
 	}
 	return &u, nil
@@ -87,7 +87,7 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, ErrUserNotFound
 		}
-		s.log.Error("failed to get user by email", logging.Error(err))
+		s.log.Error("failed to get user by email", logging.ErrorField("error", err))
 		return nil, err
 	}
 	return &u, nil
@@ -110,13 +110,13 @@ func (s *Store) Update(ctx context.Context, u *user.User) error {
 
 	result, err := s.db.NamedExecContext(ctx, query, u)
 	if err != nil {
-		s.log.Error("failed to update user", logging.Error(err))
+		s.log.Error("failed to update user", logging.ErrorField("error", err))
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		s.log.Error("failed to get rows affected", logging.Error(err))
+		s.log.Error("failed to get rows affected", logging.ErrorField("error", err))
 		return err
 	}
 
@@ -131,13 +131,13 @@ func (s *Store) Update(ctx context.Context, u *user.User) error {
 func (s *Store) Delete(ctx context.Context, id uint) error {
 	result, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = ?", id)
 	if err != nil {
-		s.log.Error("failed to delete user", logging.Error(err))
+		s.log.Error("failed to delete user", logging.ErrorField("error", err))
 		return err
 	}
 
 	rowsAffected, err := result.RowsAffected()
 	if err != nil {
-		s.log.Error("failed to get rows affected", logging.Error(err))
+		s.log.Error("failed to get rows affected", logging.ErrorField("error", err))
 		return err
 	}
 
@@ -153,7 +153,7 @@ func (s *Store) List(ctx context.Context) ([]user.User, error) {
 	var users []user.User
 	err := s.db.SelectContext(ctx, &users, "SELECT * FROM users")
 	if err != nil {
-		s.log.Error("failed to list users", logging.Error(err))
+		s.log.Error("failed to list users", logging.ErrorField("error", err))
 		return nil, err
 	}
 	return users, nil

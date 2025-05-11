@@ -178,9 +178,9 @@ var HandlerModule = fx.Options(
 			return nil, errors.New("failed to create static handler")
 		}
 		core.Logger.Debug("registered handler",
-			logging.String("handler_name", "StaticHandler"),
-			logging.String("handler_type", fmt.Sprintf("%T", handler)),
-			logging.String("operation", "handler_registration"),
+			logging.StringField("handler_name", "StaticHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("operation", "handler_registration"),
 		)
 		return handler, nil
 	}),
@@ -191,9 +191,9 @@ var HandlerModule = fx.Options(
 			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
 		}
 		core.Logger.Debug("registered handler",
-			logging.String("handler_name", "HomeHandler"),
-			logging.String("handler_type", fmt.Sprintf("%T", handler)),
-			logging.String("operation", "handler_registration"),
+			logging.StringField("handler_name", "HomeHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("operation", "handler_registration"),
 		)
 		return handler, nil
 	}),
@@ -203,9 +203,9 @@ var HandlerModule = fx.Options(
 			return nil, fmt.Errorf("failed to create web login handler: renderer=%T", core.Renderer)
 		}
 		core.Logger.Debug("registered handler",
-			logging.String("handler_name", "WebLoginHandler"),
-			logging.String("handler_type", fmt.Sprintf("%T", handler)),
-			logging.String("operation", "handler_registration"),
+			logging.StringField("handler_name", "WebLoginHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("operation", "handler_registration"),
 		)
 		return handler, nil
 	}),
@@ -226,9 +226,9 @@ var HandlerModule = fx.Options(
 			}
 			core.Logger.Debug(
 				"registered handler",
-				logging.String("handler_name", "WebHandler"),
-				logging.String("handler_type", fmt.Sprintf("%T", handler)),
-				logging.String("operation", "handler_registration"),
+				logging.StringField("handler_name", "WebHandler"),
+				logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+				logging.StringField("operation", "handler_registration"),
 			)
 			return handler, nil
 		},
@@ -240,9 +240,9 @@ var HandlerModule = fx.Options(
 			return nil, fmt.Errorf("failed to create auth handler: user_service=%T", services.UserService)
 		}
 		core.Logger.Debug("registered handler",
-			logging.String("handler_name", "AuthHandler"),
-			logging.String("handler_type", fmt.Sprintf("%T", handler)),
-			logging.String("operation", "handler_registration"),
+			logging.StringField("handler_name", "AuthHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("operation", "handler_registration"),
 		)
 		return handler, nil
 	}),
@@ -253,9 +253,9 @@ var HandlerModule = fx.Options(
 			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
 		}
 		core.Logger.Debug("registered handler",
-			logging.String("handler_name", "DashboardHandler"),
-			logging.String("handler_type", fmt.Sprintf("%T", handler)),
-			logging.String("operation", "handler_registration"),
+			logging.StringField("handler_name", "DashboardHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("operation", "handler_registration"),
 		)
 		return handler, nil
 	}),
@@ -305,8 +305,8 @@ func wrapAssigner[T any](assigner func(*Stores, T)) func(*Stores, any) {
 func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 	if db == nil {
 		logger.Error("database connection is nil",
-			logging.String("operation", "store_initialization"),
-			logging.String("error_type", "nil_database"),
+			logging.StringField("operation", "store_initialization"),
+			logging.StringField("error_type", "nil_database"),
 		)
 		return Stores{}, errors.New("database connection is nil")
 	}
@@ -350,9 +350,9 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 			instance := creator.create(db, logger)
 			if instance == nil {
 				logger.Error("store creation failed",
-					logging.String("store_type", name),
-					logging.String("operation", "store_initialization"),
-					logging.String("error_type", "nil_instance"),
+					logging.StringField("store_type", name),
+					logging.StringField("operation", "store_initialization"),
+					logging.StringField("error_type", "nil_instance"),
 				)
 				failedStores <- name
 				return
@@ -390,9 +390,9 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 
 	// Log successful initialization metrics
 	logger.Info("all database stores initialized successfully",
-		logging.String("operation", "store_initialization"),
-		logging.Duration("init_duration", time.Since(startTime)),
-		logging.Int("total_stores_initialized", len(storeCreators)),
+		logging.StringField("operation", "store_initialization"),
+		logging.DurationField("init_duration", time.Since(startTime)),
+		logging.IntField("total_stores_initialized", len(storeCreators)),
 	)
 
 	return stores, nil

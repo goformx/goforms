@@ -190,17 +190,17 @@ func (s *store) GetFormSubmissions(formID uint) ([]*model.FormSubmission, error)
 			&metadataJSON,
 		)
 		if scanErr != nil {
-			s.logger.Error("Error scanning form submission row", logging.Error(scanErr))
+			s.logger.Error("Error scanning form submission row", logging.ErrorField("error", scanErr))
 			continue
 		}
 
 		if unmarshalErr := json.Unmarshal(dataJSON, &submission.Data); unmarshalErr != nil {
-			s.logger.Error("Error unmarshaling submission data", logging.Error(unmarshalErr))
+			s.logger.Error("Error unmarshaling submission data", logging.ErrorField("error", unmarshalErr))
 			continue
 		}
 
 		if unmarshalErr := json.Unmarshal(metadataJSON, &submission.Metadata); unmarshalErr != nil {
-			s.logger.Error("Error unmarshaling submission metadata", logging.Error(unmarshalErr))
+			s.logger.Error("Error unmarshaling submission metadata", logging.ErrorField("error", unmarshalErr))
 			continue
 		}
 

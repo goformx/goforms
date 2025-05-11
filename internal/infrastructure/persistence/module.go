@@ -40,7 +40,7 @@ func NewStores(p StoreParams) (
 	err error,
 ) {
 	p.Logger.Debug("creating database stores",
-		logging.Bool("db_available", p.DB != nil),
+		logging.BoolField("db_available", p.DB != nil),
 	)
 
 	userStore = userstore.NewStore(p.DB, p.Logger)

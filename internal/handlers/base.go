@@ -28,7 +28,7 @@ func (b *Base) RegisterRoute(
 		e.DELETE(path, handler, middleware...)
 	}
 	b.Logger.Debug("registered route",
-		logging.String("method", method),
-		logging.String("path", path),
+		logging.StringField("method", method),
+		logging.StringField("path", path),
 	)
 }

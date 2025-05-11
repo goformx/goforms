@@ -58,10 +58,10 @@ func getLogger(c echo.Context) logging.Logger {
 func Success(c echo.Context, data any) error {
 	logger := getLogger(c)
 	logger.Debug("sending success response",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-		logging.Int("status", http.StatusOK),
-		logging.Any("data", data),
+		logging.StringField("path", c.Path()),
+		logging.StringField("method", c.Request().Method),
+		logging.IntField("status", http.StatusOK),
+		logging.AnyField("data", data),
 	)
 
 	// Use cmp package for better comparison
@@ -73,7 +73,7 @@ func Success(c echo.Context, data any) error {
 		Status: "success",
 		Data:   data,
 	}); err != nil {
-		logger.Error("failed to send success response", logging.Error(err))
+		logger.Error("failed to send success response", logging.ErrorField("error", err))
 		return err
 	}
 	return nil
@@ -83,17 +83,17 @@ func Success(c echo.Context, data any) error {
 func Created(c echo.Context, data any) error {
 	logger := getLogger(c)
 	logger.Debug("sending created response",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-		logging.Int("status", http.StatusCreated),
-		logging.Any("data", data),
+		logging.StringField("path", c.Path()),
+		logging.StringField("method", c.Request().Method),
+		logging.IntField("status", http.StatusCreated),
+		logging.AnyField("data", data),
 	)
 
 	if err := c.JSON(http.StatusCreated, Response{
 		Status: "success",
 		Data:   data,
 	}); err != nil {
-		logger.Error("failed to send created response", logging.Error(err))
+		logger.Error("failed to send created response", logging.ErrorField("error", err))
 		return err
 	}
 	return nil
@@ -103,17 +103,17 @@ func Created(c echo.Context, data any) error {
 func BadRequest(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Debug("sending bad request response",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-		logging.Int("status", http.StatusBadRequest),
-		logging.String("error", message),
+		logging.StringField("path", c.Path()),
+		logging.StringField("method", c.Request().Method),
+		logging.IntField("status", http.StatusBadRequest),
+		logging.StringField("error", message),
 	)
 
 	if err := c.JSON(http.StatusBadRequest, Response{
 		Status:  "error",
 		Message: message,
 	}); err != nil {
-		logger.Error("failed to send bad request response", logging.Error(err))
+		logger.Error("failed to send bad request response", logging.ErrorField("error", err))
 		return err
 	}
 	return nil
@@ -123,17 +123,17 @@ func BadRequest(c echo.Context, message string) error {
 func NotFound(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Debug("sending not found response",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-		logging.Int("status", http.StatusNotFound),
-		logging.String("error", message),
+		logging.StringField("path", c.Path()),
+		logging.StringField("method", c.Request().Method),
+		logging.IntField("status", http.StatusNotFound),
+		logging.StringField("error", message),
 	)
 
 	if err := c.JSON(http.StatusNotFound, Response{
 		Status:  "error",
 		Message: message,
 	}); err != nil {
-		logger.Error("failed to send not found response", logging.Error(err))
+		logger.Error("failed to send not found response", logging.ErrorField("error", err))
 		return err
 	}
 	return nil
@@ -143,17 +143,17 @@ func NotFound(c echo.Context, message string) error {
 func InternalError(c echo.Context, message string) error {
 	logger := getLogger(c)
 	logger.Error("sending internal error response",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-		logging.Int("status", http.StatusInternalServerError),
-		logging.String("error", message),
+		logging.StringField("path", c.Path()),
+		logging.StringField("method", c.Request().Method),
+		logging.IntField("status", http.StatusInternalServerError),
+		logging.StringField("error", message),
 	)
 
 	if err := c.JSON(http.StatusInternalServerError, Response{
 		Status:  "error",
 		Message: message,
 	}); err != nil {
-		logger.Error("failed to send internal error response", logging.Error(err))
+		logger.Error("failed to send internal error response", logging.ErrorField("error", err))
 		return err
 	}
 	return nil

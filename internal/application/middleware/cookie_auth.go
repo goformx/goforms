@@ -33,27 +33,27 @@ func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFu
 
 		token, err := c.Cookie("token")
 		if err != nil {
-			m.logger.Error("missing token", logging.Error(err))
+			m.logger.Error("missing token", logging.ErrorField("error", err))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
 		// Validate token
 		if _, tokenErr := m.userService.ValidateToken(token.Value); tokenErr != nil {
-			m.logger.Error("invalid token", logging.Error(tokenErr))
+			m.logger.Error("invalid token", logging.ErrorField("error", tokenErr))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
 		// Get user ID from token
 		userID, err := m.userService.GetUserIDFromToken(token.Value)
 		if err != nil {
-			m.logger.Error("invalid token claims", logging.Error(err))
+			m.logger.Error("invalid token claims", logging.ErrorField("error", err))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
 		// Get user
 		userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
 		if userErr != nil {
-			m.logger.Error("user not found", logging.Error(userErr))
+			m.logger.Error("user not found", logging.ErrorField("error", userErr))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 

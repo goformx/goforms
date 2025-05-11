@@ -68,26 +68,26 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// Skip authentication for static files and special files
 		if m.isStaticPath(path) {
-			m.logger.Debug("JWT skipped: static content",
-				logging.String("path", path),
-				logging.String("reason", "static content path"))
+			m.logger.Debug("skipping auth check",
+				logging.StringField("path", path),
+				logging.StringField("reason", "static content path"))
 			return next(c)
 		}
 
 		// Skip authentication for validation API endpoints
 		if m.isValidationAPI(path) {
-			m.logger.Debug("JWT skipped: validation API",
-				logging.String("path", path),
-				logging.String("reason", "validation API endpoint"))
+			m.logger.Debug("skipping auth check",
+				logging.StringField("path", path),
+				logging.StringField("reason", "validation API endpoint"))
 			return next(c)
 		}
 
 		// Skip authentication for public pages
 		if m.isPublicPage(path) {
-			m.logger.Debug("JWT skipped: public page",
-				logging.String("path", path),
-				logging.String("method", method),
-				logging.String("reason", "public page"))
+			m.logger.Debug("skipping auth check",
+				logging.StringField("path", path),
+				logging.StringField("method", method),
+				logging.StringField("reason", "public page"))
 			return next(c)
 		}
 
@@ -134,11 +134,10 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 
 // handleAuthError handles authentication errors
 func (m *JWTMiddleware) handleAuthError(c echo.Context, err error) error {
-	m.logger.Error("authentication failed",
-		logging.String("path", c.Path()),
-		logging.String("method", c.Request().Method),
-		logging.Error(err),
-	)
+	m.logger.Error("auth check failed",
+		logging.StringField("path", c.Path()),
+		logging.StringField("method", c.Request().Method),
+		logging.ErrorField("error", err))
 	return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
 }
 

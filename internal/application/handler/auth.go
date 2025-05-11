@@ -48,6 +48,7 @@ func NewAuthHandler(logger logging.Logger, opts ...AuthHandlerOption) *AuthHandl
 // Validate validates that required dependencies are set
 func (h *AuthHandler) Validate() error {
 	if err := h.Base.Validate(); err != nil {
+		h.Logger.Error("failed to validate handler", logging.ErrorField("error", err))
 		return err
 	}
 	if h.userService == nil {
@@ -59,7 +60,7 @@ func (h *AuthHandler) Validate() error {
 // Register registers the auth routes
 func (h *AuthHandler) Register(e *echo.Echo) {
 	if err := h.Validate(); err != nil {
-		h.Logger.Error("failed to validate handler", logging.Error(err))
+		h.Logger.Error("failed to validate handler", logging.ErrorField("error", err))
 		return
 	}
 
@@ -87,38 +88,38 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 func (h *AuthHandler) handleSignup(c echo.Context) error {
 	var signup user.Signup
 	if err := c.Bind(&signup); err != nil {
-		h.Logger.Error("failed to bind signup request", logging.Error(err))
+		h.Logger.Error("failed to bind signup request", logging.ErrorField("error", err))
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
 	h.Logger.Debug("received signup request",
-		logging.String("email", signup.Email),
-		logging.String("first_name", signup.FirstName),
-		logging.String("last_name", signup.LastName),
+		logging.StringField("email", signup.Email),
+		logging.StringField("first_name", signup.FirstName),
+		logging.StringField("last_name", signup.LastName),
 	)
 
 	if err := c.Validate(signup); err != nil {
-		h.Logger.Error("signup validation failed", logging.Error(err))
+		h.Logger.Error("signup validation failed", logging.ErrorField("error", err))
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	h.Logger.Debug("calling user service SignUp")
 	newUser, err := h.userService.SignUp(c.Request().Context(), &signup)
 	if err != nil {
-		h.Logger.Debug("SignUp returned error", logging.Error(err))
+		h.Logger.Debug("SignUp returned error", logging.ErrorField("error", err))
 
 		switch {
 		case errors.Is(err, user.ErrUserExists):
 			return echo.NewHTTPError(http.StatusConflict, "Email already exists")
 		default:
-			h.Logger.Error("unexpected error during signup", logging.Error(err))
+			h.Logger.Error("unexpected error during signup", logging.ErrorField("error", err))
 			return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create user")
 		}
 	}
 
 	h.Logger.Debug("signup successful",
-		logging.Uint("user_id", newUser.ID),
-		logging.String("email", newUser.Email),
+		logging.IntField("user_id", int(newUser.ID)),
+		logging.StringField("email", newUser.Email),
 	)
 	return c.JSON(http.StatusCreated, newUser)
 }
@@ -137,25 +138,25 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 func (h *AuthHandler) handleLogin(c echo.Context) error {
 	var login user.Login
 	if err := c.Bind(&login); err != nil {
-		h.Logger.Error("failed to bind login request", logging.Error(err))
+		h.Logger.Error("failed to bind login request", logging.ErrorField("error", err))
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid request format")
 	}
 
 	h.Logger.Debug("login attempt",
-		logging.String("email", login.Email),
-		logging.Bool("has_password", login.Password != ""),
+		logging.StringField("email", login.Email),
+		logging.BoolField("has_password", login.Password != ""),
 	)
 
 	if err := c.Validate(login); err != nil {
-		h.Logger.Error("login validation failed", logging.Error(err))
+		h.Logger.Error("login validation failed", logging.ErrorField("error", err))
 		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
 	}
 
 	tokens, err := h.userService.Login(c.Request().Context(), &login)
 	if err != nil {
 		h.Logger.Error("login failed",
-			logging.Error(err),
-			logging.String("email", login.Email),
+			logging.ErrorField("error", err),
+			logging.StringField("email", login.Email),
 		)
 		return echo.NewHTTPError(http.StatusUnauthorized, "Invalid credentials")
 	}
@@ -202,7 +203,7 @@ func (h *AuthHandler) handleLogout(c echo.Context) error {
 		// Blacklist the token
 		logoutErr := h.userService.Logout(c.Request().Context(), token.Value)
 		if logoutErr != nil {
-			h.Logger.Error("failed to blacklist token", logging.Error(logoutErr))
+			h.Logger.Error("failed to blacklist token", logging.ErrorField("error", logoutErr))
 		}
 	}
 
@@ -259,7 +260,7 @@ func (h *AuthHandler) handleWebLogout(c echo.Context) error {
 		// Blacklist the token
 		logoutErr := h.userService.Logout(c.Request().Context(), token.Value)
 		if logoutErr != nil {
-			h.Logger.Error("failed to blacklist token", logging.Error(logoutErr))
+			h.Logger.Error("failed to blacklist token", logging.ErrorField("error", logoutErr))
 		}
 	}
 

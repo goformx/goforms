@@ -19,6 +19,7 @@ type FormHandler struct {
 	formService    form.Service
 	formClient     form.Client
 	authMiddleware *amw.CookieAuthMiddleware
+	logger         logging.Logger
 }
 
 // NewFormHandler creates a new form handler
@@ -35,6 +36,7 @@ func NewFormHandler(
 		formService:    formService,
 		formClient:     formClient,
 		authMiddleware: cookieAuth,
+		logger:         logger,
 	}, nil
 }
 
@@ -70,9 +72,9 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	// Verify CSRF token if enabled
 	if csrfToken := c.Get("csrf"); csrfToken != nil {
 		// Log CSRF token presence for debugging
-		h.base.Logger.Debug("CSRF token found in request",
-			logging.String("path", c.Request().URL.Path),
-			logging.String("method", c.Request().Method))
+		h.logger.Debug("CSRF token found in request",
+			logging.StringField("path", c.Request().URL.Path),
+			logging.StringField("method", c.Request().Method))
 
 		// Validate CSRF token
 		if csrfErr := amw.ValidateCSRFToken(c); csrfErr != nil {
