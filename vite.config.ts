@@ -1,19 +1,19 @@
-import { defineConfig } from 'vite';
-import { resolve } from 'path';
-import autoprefixer from 'autoprefixer';
-import postcssImport from 'postcss-import';
-import postcssNested from 'postcss-nested';
-import cssnano from 'cssnano';
+import { defineConfig } from "vite";
+import { resolve } from "path";
+import autoprefixer from "autoprefixer";
+import postcssImport from "postcss-import";
+import postcssNested from "postcss-nested";
+import cssnano from "cssnano";
 
 export default defineConfig({
-  root: '.',
-  publicDir: 'public',
-  appType: 'custom',
-  base: '/',
+  root: ".",
+  publicDir: "public",
+  appType: "custom",
+  base: "/",
   css: {
     devSourcemap: true,
     modules: {
-      localsConvention: 'camelCase'
+      localsConvention: "camelCase",
     },
     postcss: {
       plugins: [
@@ -21,45 +21,45 @@ export default defineConfig({
         postcssImport(),
         postcssNested(),
         cssnano({
-          preset: 'default'
-        })
-      ]
-    }
+          preset: "default",
+        }),
+      ],
+    },
   },
   build: {
-    outDir: 'dist',
+    outDir: "dist",
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
-    target: 'esnext',
-    minify: 'terser',
+    target: "esnext",
+    minify: "terser",
     terserOptions: {
       compress: {
         drop_console: true,
-        drop_debugger: true
-      }
+        drop_debugger: true,
+      },
     },
     rollupOptions: {
       input: {
-        styles: resolve(__dirname, 'src/css/main.css'),
-        app: resolve(__dirname, 'src/js/main.ts'),
-        validation: resolve(__dirname, 'src/js/validation.ts'),
-        signup: resolve(__dirname, 'src/js/signup.ts'),
-        login: resolve(__dirname, 'src/js/login.ts'),
-        formBuilder: resolve(__dirname, 'src/js/form-builder.ts')
+        styles: resolve(__dirname, "src/css/main.css"),
+        app: resolve(__dirname, "src/js/main.ts"),
+        validation: resolve(__dirname, "src/js/validation.ts"),
+        signup: resolve(__dirname, "src/js/signup.ts"),
+        login: resolve(__dirname, "src/js/login.ts"),
+        formBuilder: resolve(__dirname, "src/js/form-builder.ts"),
       },
       output: {
-        entryFileNames: 'js/[name].[hash].js',
-        chunkFileNames: 'js/[name].[hash].js',
+        entryFileNames: "js/[name].[hash].js",
+        chunkFileNames: "js/[name].[hash].js",
         assetFileNames: (assetInfo) => {
-          const name = assetInfo.name || '';
-          if (name.endsWith('.css')) {
-            return 'css/[name].[hash][extname]';
+          const name = assetInfo.name || "";
+          if (name.endsWith(".css")) {
+            return "css/[name].[hash][extname]";
           }
-          return 'assets/[name].[hash][extname]';
-        }
-      }
-    }
+          return "assets/[name].[hash][extname]";
+        },
+      },
+    },
   },
   server: {
     port: 3000,
@@ -68,49 +68,52 @@ export default defineConfig({
     middlewareMode: false,
     fs: {
       strict: true,
-      allow: ['src', 'node_modules']
+      allow: ["src", "node_modules"],
     },
     watch: {
       usePolling: false,
-      interval: 1000
+      interval: 1000,
     },
     hmr: {
-      protocol: 'ws',
-      host: 'localhost',
+      protocol: "ws",
+      host: "localhost",
       port: 3000,
       clientPort: 3000,
       timeout: 5000,
-      overlay: true
+      overlay: true,
     },
     proxy: {
       // Proxy all API requests to the Go server
-      '/api': {
-        target: 'http://localhost:8090',
+      "/api": {
+        target: "http://localhost:8090",
         changeOrigin: true,
         secure: false,
-        ws: true
-      }
-    }
+        ws: true,
+      },
+    },
   },
   resolve: {
     alias: {
-      '@': resolve(__dirname, 'src/js'),
-      'goforms-template': resolve(__dirname, '../goforms-template/src/index.ts')
+      "@": resolve(__dirname, "src/js"),
+      "goforms-template": resolve(
+        __dirname,
+        "../goforms-template/src/index.ts",
+      ),
     },
-    extensions: ['.mjs', '.js', '.ts', '.jsx', '.tsx', '.json']
+    extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json"],
   },
   optimizeDeps: {
     force: true,
     esbuildOptions: {
-      target: 'esnext',
+      target: "esnext",
       supported: {
-        'top-level-await': true
-      }
-    }
+        "top-level-await": true,
+      },
+    },
   },
   preview: {
     port: 3000,
     strictPort: true,
-    host: true
-  }
-}); 
+    host: true,
+  },
+});

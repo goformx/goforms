@@ -37,6 +37,18 @@ tasks:
       - task: migrate:up
       - task: run
 
+  verify:
+    desc: Verify frontend code quality and types
+    deps: [lint:frontend]
+    cmds:
+      - npm run typecheck
+      - npm run format:check
+
+  format:
+    desc: Format frontend code
+    cmds:
+      - npm run format
+
   install:
     desc: Install project dependencies
     cmds:
@@ -55,7 +67,7 @@ tasks:
 
   build:
     desc: Build the application
-    deps: [generate]
+    deps: [generate, format, verify]
     cmds:
       - npm run build
       - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms

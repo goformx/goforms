@@ -1,7 +1,8 @@
 @font-face {
-  font-family: 'bootstrap-icons';
-  src: url('/fonts/bootstrap-icons.woff2') format('woff2'),
-       url('/fonts/bootstrap-icons.woff') format('woff');
+  font-family: "bootstrap-icons";
+  src:
+    url("/fonts/bootstrap-icons.woff2") format("woff2"),
+    url("/fonts/bootstrap-icons.woff") format("woff");
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -194,4 +195,4 @@
   color: var(--text-light);
   font-size: 0.875rem;
   margin-bottom: 1.5rem;
-} 
+}

@@ -2,38 +2,39 @@
 @layer base, layouts, components, pages, utils, theme;
 
 /* Base styles */
-@import url('base/variables.css') layer(base);
-@import url('base/reset.css') layer(base);
+@import url("base/variables.css") layer(base);
+@import url("base/reset.css") layer(base);
 
 /* Minimal Bootstrap-like CSS */
 @import "./formio-custom.css" layer(components);
 
 /* Layout styles */
-@import url('layouts/container.css') layer(layouts);
-@import url('layouts/grid.css') layer(layouts);
-@import url('layouts/hero.css') layer(layouts);
-@import url('layouts/footer.css') layer(layouts);
+@import url("layouts/container.css") layer(layouts);
+@import url("layouts/grid.css") layer(layouts);
+@import url("layouts/hero.css") layer(layouts);
+@import url("layouts/footer.css") layer(layouts);
 
 /* Component styles */
-@import url('../../node_modules/@formio/js/dist/formio.full.min.css') layer(components);
-@import url('components/nav.css') layer(components);
-@import url('components/buttons.css') layer(components);
-@import url('components/grid-items.css') layer(components);
-@import url('components/forms.css') layer(components);
-@import url('components/auth.css') layer(components);
-@import url('components/messages.css') layer(components);
-@import url('components/api_response.css') layer(components);
-@import url('components/demo_form.css') layer(components);
-@import url('components/code.css') layer(components);
-@import url('components/footer.css') layer(components);
-@import url('form-builder.css') layer(components);
+@import url("../../node_modules/@formio/js/dist/formio.full.min.css")
+layer(components);
+@import url("components/nav.css") layer(components);
+@import url("components/buttons.css") layer(components);
+@import url("components/grid-items.css") layer(components);
+@import url("components/forms.css") layer(components);
+@import url("components/auth.css") layer(components);
+@import url("components/messages.css") layer(components);
+@import url("components/api_response.css") layer(components);
+@import url("components/demo_form.css") layer(components);
+@import url("components/code.css") layer(components);
+@import url("components/footer.css") layer(components);
+@import url("form-builder.css") layer(components);
 
 /* Page styles */
-@import url('pages/dashboard.css') layer(pages);
-@import url('pages/demo/sections.css') layer(pages);
+@import url("pages/dashboard.css") layer(pages);
+@import url("pages/demo/sections.css") layer(pages);
 
 /* Utility styles */
-@import url('utils/animations.css') layer(utils);
+@import url("utils/animations.css") layer(utils);
 
 /* Theme styles */
-@import url('themes/dark.css') layer(theme);
+@import url("themes/dark.css") layer(theme);

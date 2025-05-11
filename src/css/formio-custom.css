@@ -6,9 +6,15 @@
   gap: var(--spacing-4, 1rem);
   grid-template-columns: 1fr;
 }
-.gf-grid--2 { grid-template-columns: repeat(2, 1fr); }
-.gf-grid--3 { grid-template-columns: repeat(3, 1fr); }
-.gf-grid--4 { grid-template-columns: repeat(4, 1fr); }
+.gf-grid--2 {
+  grid-template-columns: repeat(2, 1fr);
+}
+.gf-grid--3 {
+  grid-template-columns: repeat(3, 1fr);
+}
+.gf-grid--4 {
+  grid-template-columns: repeat(4, 1fr);
+}
 
 /* --- Flex Row/Col --- */
 .gf-row {
@@ -49,7 +55,10 @@
   text-decoration: none;
   transition: background 0.15s;
 }
-.gf-button:active, .gf-button:focus { outline: none; }
+.gf-button:active,
+.gf-button:focus {
+  outline: none;
+}
 .gf-button--primary {
   background: var(--primary);
   color: var(--button-primary-color, #fff);
@@ -65,8 +74,14 @@
   color: #fff;
   border-color: var(--danger);
 }
-.gf-button--sm { padding: var(--spacing-1) var(--spacing-2); font-size: var(--font-size-sm); }
-.gf-button--lg { padding: var(--spacing-3) var(--spacing-5); font-size: var(--font-size-lg); }
+.gf-button--sm {
+  padding: var(--spacing-1) var(--spacing-2);
+  font-size: var(--font-size-sm);
+}
+.gf-button--lg {
+  padding: var(--spacing-3) var(--spacing-5);
+  font-size: var(--font-size-lg);
+}
 
 /* --- Form Controls --- */
 .gf-form-group {
@@ -99,10 +114,18 @@
 }
 
 /* --- Utility --- */
-.gf-hide { display: none !important; }
-.gf-w-100 { width: 100% !important; }
-.gf-m-0 { margin: 0 !important; }
-.gf-p-0 { padding: 0 !important; }
+.gf-hide {
+  display: none !important;
+}
+.gf-w-100 {
+  width: 100% !important;
+}
+.gf-m-0 {
+  margin: 0 !important;
+}
+.gf-p-0 {
+  padding: 0 !important;
+}
 
 /* --- Layout for sidebar + form area (mobile-first) --- */
 .gf-dashboard-content,
@@ -130,7 +153,7 @@
   min-height: 100vh;
   max-height: 100vh;
   overflow-y: auto;
-  box-shadow: 2px 0 6px rgba(0,0,0,0.03);
+  box-shadow: 2px 0 6px rgba(0, 0, 0, 0.03);
   width: 100vw;
   min-width: 100vw;
   max-width: 100vw;
@@ -140,7 +163,8 @@
   min-width: 0;
   /* Remove any overflow or width here to allow drag-and-drop */
 }
-@media (min-width: 768px) { /* md: var(--breakpoint-md) */
+@media (min-width: 768px) {
+  /* md: var(--breakpoint-md) */
   .gf-formcomponents {
     width: var(--sidebar-width, 320px);
     min-width: var(--sidebar-min-width, 280px);
@@ -158,7 +182,9 @@
 }
 
 /* Utility */
-.gf-no-drop { pointer-events: auto; }
+.gf-no-drop {
+  pointer-events: auto;
+}
 
 /* Sidebar sizing variables (add these to your :root or variables.css for easy customization)
 :root {
@@ -181,4 +207,4 @@
 .gf-card {
   width: 100%;
   box-sizing: border-box;
-} 
+}

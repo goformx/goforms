@@ -1,140 +1,141 @@
 @layer pages {
+  .new-form-page {
+    min-height: calc(100vh - var(--nav-height));
+    padding: var(--spacing-8) 0;
+    background: var(--background);
+    color: var(--text);
+  }
+
+  .new-form-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: var(--spacing-8);
+  }
+
+  .new-form-header-left {
+    display: flex;
+    flex-direction: column;
+    gap: var(--spacing-2);
+  }
+
+  .new-form-title {
+    font-size: var(--font-size-3xl);
+    font-weight: var(--font-weight-bold);
+    color: var(--text);
+  }
+
+  .new-form-subtitle {
+    font-size: var(--font-size-lg);
+    color: var(--text-light);
+  }
+
+  .new-form {
+    background: var(--card-bg);
+    border: var(--card-border);
+    border-radius: var(--card-radius);
+    padding: var(--spacing-8);
+    box-shadow: var(--shadow-md);
+  }
+
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--form-group-gap);
+    margin-bottom: var(--spacing-6);
+  }
+
+  .form-group label {
+    font-weight: var(--form-label-weight);
+    color: var(--text);
+    font-size: var(--form-label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--form-label-spacing);
+  }
+
+  .form-group input,
+  .form-group textarea {
+    padding: var(--form-input-padding-y) var(--form-input-padding-x);
+    border-radius: var(--form-input-radius);
+    border: var(--form-input-border);
+    background: var(--form-input-bg);
+    color: var(--form-input-color);
+    font-size: var(--form-input-size);
+    width: 100%;
+    transition: all var(--form-transition-duration)
+      var(--form-transition-timing);
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--form-focus-border);
+    box-shadow: 0 0 0 var(--form-focus-ring-size) var(--form-focus-ring);
+    background: var(--form-focus-bg);
+  }
+
+  .form-group textarea {
+    resize: vertical;
+    min-height: var(--form-textarea-min-height);
+  }
+
+  .form-actions {
+    display: flex;
+    justify-content: flex-end;
+    gap: var(--spacing-4);
+    margin-top: var(--spacing-8);
+  }
+
+  /* Responsive styles */
+  @media (max-width: 768px) {
     .new-form-page {
-        min-height: calc(100vh - var(--nav-height));
-        padding: var(--spacing-8) 0;
-        background: var(--background);
-        color: var(--text);
+      padding: var(--spacing-6) 0;
     }
 
     .new-form-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: flex-start;
-        margin-bottom: var(--spacing-8);
-    }
-
-    .new-form-header-left {
-        display: flex;
-        flex-direction: column;
-        gap: var(--spacing-2);
+      flex-direction: column;
+      align-items: flex-start;
+      gap: var(--spacing-4);
+      margin-bottom: var(--spacing-6);
     }
 
     .new-form-title {
-        font-size: var(--font-size-3xl);
-        font-weight: var(--font-weight-bold);
-        color: var(--text);
+      font-size: var(--font-size-2xl);
     }
 
     .new-form-subtitle {
-        font-size: var(--font-size-lg);
-        color: var(--text-light);
+      font-size: var(--font-size-base);
     }
 
     .new-form {
-        background: var(--card-bg);
-        border: var(--card-border);
-        border-radius: var(--card-radius);
-        padding: var(--spacing-8);
-        box-shadow: var(--shadow-md);
-    }
-
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--form-group-gap);
-        margin-bottom: var(--spacing-6);
-    }
-
-    .form-group label {
-        font-weight: var(--form-label-weight);
-        color: var(--text);
-        font-size: var(--form-label-size);
-        text-transform: uppercase;
-        letter-spacing: var(--form-label-spacing);
-    }
-
-    .form-group input,
-    .form-group textarea {
-        padding: var(--form-input-padding-y) var(--form-input-padding-x);
-        border-radius: var(--form-input-radius);
-        border: var(--form-input-border);
-        background: var(--form-input-bg);
-        color: var(--form-input-color);
-        font-size: var(--form-input-size);
-        width: 100%;
-        transition: all var(--form-transition-duration) var(--form-transition-timing);
-    }
-
-    .form-group input:focus,
-    .form-group textarea:focus {
-        outline: none;
-        border-color: var(--form-focus-border);
-        box-shadow: 0 0 0 var(--form-focus-ring-size) var(--form-focus-ring);
-        background: var(--form-focus-bg);
-    }
-
-    .form-group textarea {
-        resize: vertical;
-        min-height: var(--form-textarea-min-height);
+      padding: var(--spacing-6);
     }
 
     .form-actions {
-        display: flex;
-        justify-content: flex-end;
-        gap: var(--spacing-4);
-        margin-top: var(--spacing-8);
+      flex-direction: column;
+      gap: var(--spacing-3);
     }
 
-    /* Responsive styles */
-    @media (max-width: 768px) {
-        .new-form-page {
-            padding: var(--spacing-6) 0;
-        }
+    .form-actions .btn {
+      width: 100%;
+    }
+  }
 
-        .new-form-header {
-            flex-direction: column;
-            align-items: flex-start;
-            gap: var(--spacing-4);
-            margin-bottom: var(--spacing-6);
-        }
-
-        .new-form-title {
-            font-size: var(--font-size-2xl);
-        }
-
-        .new-form-subtitle {
-            font-size: var(--font-size-base);
-        }
-
-        .new-form {
-            padding: var(--spacing-6);
-        }
-
-        .form-actions {
-            flex-direction: column;
-            gap: var(--spacing-3);
-        }
-
-        .form-actions .btn {
-            width: 100%;
-        }
+  @media (max-width: 480px) {
+    .new-form-page {
+      padding: var(--spacing-4) 0;
     }
 
-    @media (max-width: 480px) {
-        .new-form-page {
-            padding: var(--spacing-4) 0;
-        }
-
-        .new-form {
-            padding: var(--spacing-4);
-        }
-
-        .form-group {
-            margin-bottom: var(--spacing-4);
-        }
-
-        .form-actions {
-            margin-top: var(--spacing-6);
-        }
+    .new-form {
+      padding: var(--spacing-4);
     }
-} 
+
+    .form-group {
+      margin-bottom: var(--spacing-4);
+    }
+
+    .form-actions {
+      margin-top: var(--spacing-6);
+    }
+  }
+}

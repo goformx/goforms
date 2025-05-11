@@ -1,69 +1,70 @@
 @layer components {
-    .form-group {
-        display: flex;
-        flex-direction: column;
-        gap: var(--form-group-gap);
-    }
+  .form-group {
+    display: flex;
+    flex-direction: column;
+    gap: var(--form-group-gap);
+  }
 
-    .form-group label {
-        font-weight: var(--form-label-weight);
-        color: var(--text);
-        font-size: var(--form-label-size);
-        text-transform: uppercase;
-        letter-spacing: var(--form-label-spacing);
-    }
+  .form-group label {
+    font-weight: var(--form-label-weight);
+    color: var(--text);
+    font-size: var(--form-label-size);
+    text-transform: uppercase;
+    letter-spacing: var(--form-label-spacing);
+  }
 
-    .form-group input,
-    .form-group textarea {
-        padding: var(--form-input-padding-y) var(--form-input-padding-x);
-        border-radius: var(--form-input-radius);
-        border: var(--form-input-border);
-        background: var(--form-input-bg);
-        color: var(--form-input-color);
-        font-size: var(--form-input-size);
-        width: 100%;
-        transition: all var(--form-transition-duration) var(--form-transition-timing);
-    }
+  .form-group input,
+  .form-group textarea {
+    padding: var(--form-input-padding-y) var(--form-input-padding-x);
+    border-radius: var(--form-input-radius);
+    border: var(--form-input-border);
+    background: var(--form-input-bg);
+    color: var(--form-input-color);
+    font-size: var(--form-input-size);
+    width: 100%;
+    transition: all var(--form-transition-duration)
+      var(--form-transition-timing);
+  }
 
-    .form-group input:focus,
-    .form-group textarea:focus {
-        outline: none;
-        border-color: var(--form-focus-border);
-        box-shadow: 0 0 0 var(--form-focus-ring-size) var(--form-focus-ring);
-        background: var(--form-focus-bg);
-    }
+  .form-group input:focus,
+  .form-group textarea:focus {
+    outline: none;
+    border-color: var(--form-focus-border);
+    box-shadow: 0 0 0 var(--form-focus-ring-size) var(--form-focus-ring);
+    background: var(--form-focus-bg);
+  }
 
-    .form-group textarea {
-        resize: vertical;
-        min-height: var(--form-textarea-min-height);
-    }
+  .form-group textarea {
+    resize: vertical;
+    min-height: var(--form-textarea-min-height);
+  }
 
-    .error-message {
-        color: #dc2626;
-        font-size: 0.875rem;
-        margin-top: 0.25rem;
-    }
+  .error-message {
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-top: 0.25rem;
+  }
 
-    .form-error {
-        color: #dc2626;
-        font-size: 0.875rem;
-        margin-bottom: 1rem;
-        padding: 0.5rem;
-        background-color: #fee2e2;
-        border-radius: 0.375rem;
-        display: none;
-    }
+  .form-error {
+    color: #dc2626;
+    font-size: 0.875rem;
+    margin-bottom: 1rem;
+    padding: 0.5rem;
+    background-color: #fee2e2;
+    border-radius: 0.375rem;
+    display: none;
+  }
 
-    .form-error:not(:empty) {
-        display: block;
-    }
+  .form-error:not(:empty) {
+    display: block;
+  }
 
-    .form-input.error {
-        border-color: #dc2626;
-    }
+  .form-input.error {
+    border-color: #dc2626;
+  }
 
-    .form-input.error:focus {
-        border-color: #dc2626;
-        box-shadow: 0 0 0 1px #dc2626;
-    }
-} 
+  .form-input.error:focus {
+    border-color: #dc2626;
+    box-shadow: 0 0 0 1px #dc2626;
+  }
+}

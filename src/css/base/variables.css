@@ -1,230 +1,250 @@
 @layer base {
-    :root {
-        /* Color System */
-        --primary: #2563eb;
-        --primary-dark: #1d4ed8;
-        --secondary: #4f46e5;
-        --accent: #8b5cf6;
-        
-        /* Light Mode (default) */
-        --background: #ffffff;
-        --background-alt: #f8fafc;
-        --text: #1f2937;
-        --text-light: #6b7280;
-        --text-muted: #9ca3af;
-        --border-color: #e5e7eb;
-        --card-bg: #ffffff;
-        --card-border: 1px solid var(--border-color);
-        --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
-        --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
-        
-        /* Dark Mode */
-        @media (prefers-color-scheme: dark) {
-            --background: #0f172a;
-            --background-alt: #1e293b;
-            --text: #f1f5f9;
-            --text-light: #94a3b8;
-            --text-muted: #64748b;
-            --border-color: #334155;
-            --card-bg: #1e293b;
-            --card-border: 1px solid var(--border-color);
-            --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
-            --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
-        }
+  :root {
+    /* Color System */
+    --primary: #2563eb;
+    --primary-dark: #1d4ed8;
+    --secondary: #4f46e5;
+    --accent: #8b5cf6;
 
-        /* Typography */
-        --font-sans: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-        --font-mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-        --font-size-xs: 0.75rem;
-        --font-size-sm: 0.875rem;
-        --font-size-base: 1rem;
-        --font-size-lg: 1.125rem;
-        --font-size-xl: 1.25rem;
-        --font-size-2xl: 1.5rem;
-        --font-size-3xl: 1.875rem;
-        --font-size-4xl: 2.25rem;
-        --font-size-5xl: 3rem;
-        --font-weight-normal: 400;
-        --font-weight-medium: 500;
-        --font-weight-semibold: 600;
-        --font-weight-bold: 700;
-        --line-height-none: 1;
-        --line-height-tight: 1.25;
-        --line-height-snug: 1.375;
-        --line-height-normal: 1.5;
-        --line-height-relaxed: 1.625;
-        --line-height-loose: 2;
+    /* Light Mode (default) */
+    --background: #ffffff;
+    --background-alt: #f8fafc;
+    --text: #1f2937;
+    --text-light: #6b7280;
+    --text-muted: #9ca3af;
+    --border-color: #e5e7eb;
+    --card-bg: #ffffff;
+    --card-border: 1px solid var(--border-color);
+    --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.05);
+    --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
 
-        /* Spacing */
-        --spacing-1: 0.25rem;
-        --spacing-2: 0.5rem;
-        --spacing-3: 0.75rem;
-        --spacing-4: 1rem;
-        --spacing-5: 1.25rem;
-        --spacing-6: 1.5rem;
-        --spacing-8: 2rem;
-        --spacing-10: 2.5rem;
-        --spacing-12: 3rem;
-        --spacing-16: 4rem;
-        --spacing-20: 5rem;
-        --spacing-24: 6rem;
-        --spacing-32: 8rem;
-        --spacing-40: 10rem;
-        --spacing-48: 12rem;
-        --spacing-56: 14rem;
-        --spacing-64: 16rem;
-
-        /* Container System */
-        --container-max-width: var(--breakpoint-xl);  /* Default to xl breakpoint */
-        --container-padding-x: var(--spacing-8);      /* 2rem on desktop */
-        --container-padding-x-mobile: var(--spacing-4); /* 1rem on mobile */
-        --container-margin: 0 auto;
-        
-        /* Container Size Variants */
-        --container-sm: var(--breakpoint-sm);
-        --container-md: var(--breakpoint-md);
-        --container-lg: var(--breakpoint-lg);
-        --container-xl: var(--breakpoint-xl);
-        --container-2xl: var(--breakpoint-2xl);
-
-        /* Navigation */
-        --nav-height: 70px;
-        --nav-background: var(--background);
-        --nav-backdrop-blur: 10px;
-        --nav-shadow: var(--shadow-sm);
-        --nav-z-index: 1000;
-        --nav-logo-size: 1.5rem;
-        --nav-logo-weight: 700;
-        --nav-link-gap: 2rem;
-        --nav-link-gap-mobile: 1rem;
-        --nav-link-weight: 500;
-        --nav-logo-opacity-hover: 0.8;
-        --nav-transition-duration: 0.2s;
-        --nav-transition-timing: ease;
-        --nav-logo-gradient-angle: 135deg;
-
-        /* Buttons */
-        --button-padding-y: 1rem;
-        --button-padding-x: 2rem;
-        --button-radius: 0.75rem;
-        --button-font-weight: 600;
-        --button-font-size: 1.125rem;
-        --button-transition: all 0.2s ease;
-        --button-transform-hover: translateY(-2px);
-        
-        /* Primary Button */
-        --button-primary-gradient: linear-gradient(135deg, var(--primary), var(--accent));
-        --button-primary-color: white;
-        --button-primary-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -2px rgba(37, 99, 235, 0.1);
-        --button-primary-shadow-hover: 0 8px 12px -1px rgba(37, 99, 235, 0.3), 0 4px 8px -2px rgba(37, 99, 235, 0.2);
-        
-        /* Secondary Button */
-        --button-secondary-bg: rgba(255, 255, 255, 0.1);
-        --button-secondary-bg-hover: rgba(255, 255, 255, 0.15);
-        --button-secondary-border: 1px solid rgba(255, 255, 255, 0.2);
-        --button-secondary-color: var(--text);
-        --button-secondary-color-hover: var(--primary);
-        --button-secondary-blur: 10px;
-
-        /* Hero */
-        --hero-padding-y: 8rem;
-        --hero-padding-y-mobile: 6rem;
-        --hero-bg-gradient: linear-gradient(180deg, rgba(15, 23, 42, 0) 0%, rgba(15, 23, 42, 0.8) 100%);
-        --hero-min-height: calc(100vh - var(--nav-height));
-        --hero-container-width: 800px;
-        --hero-title-size: 4.5rem;
-        --hero-title-size-mobile: 3rem;
-        --hero-title-weight: 800;
-        --hero-title-spacing: -0.02em;
-        --hero-title-gradient: linear-gradient(135deg, var(--primary) 0%, var(--accent) 100%);
-        --hero-title-margin: 1.5rem;
-        --hero-title-margin-mobile: 1rem;
-        --hero-subtitle-size: 1.5rem;
-        --hero-subtitle-size-mobile: 1.25rem;
-        --hero-subtitle-width: 600px;
-        --hero-subtitle-margin: 3rem;
-        --hero-subtitle-margin-mobile: 2rem;
-        --hero-actions-gap: 1.5rem;
-        --hero-actions-gap-mobile: 1rem;
-        --hero-accent-1: rgba(79, 70, 229, 0.15);
-        --hero-accent-2: rgba(139, 92, 246, 0.15);
-        
-        /* Hero Compact */
-        --hero-compact-padding-y: 4rem;
-        --hero-compact-title-size: 3rem;
-        --hero-compact-subtitle-size: 1.25rem;
-
-        /* Forms & Inputs */
-        --form-gap: 1.5rem;
-        --form-group-gap: 0.5rem;
-        --form-label-weight: 500;
-        --form-label-size: 0.875rem;
-        --form-label-spacing: 0.05em;
-        --form-input-padding-y: 0.875rem;
-        --form-input-padding-x: 1rem;
-        --form-input-radius: 0.5rem;
-        --form-input-border: 1px solid var(--border-color);
-        --form-input-bg: var(--background);
-        --form-input-color: var(--text);
-        --form-input-size: 1rem;
-        --form-transition-duration: 0.2s;
-        --form-transition-timing: ease;
-        --form-focus-border: var(--primary);
-        --form-focus-ring: rgba(66, 153, 225, 0.15);
-        --form-focus-ring-size: 3px;
-        --form-focus-bg: var(--background-alt);
-        --form-textarea-min-height: 120px;
-
-        /* Cards */
-        --card-padding: 2rem;
-        --card-padding-mobile: 1.5rem;
-        --card-radius: 12px;
-        --card-backdrop-blur: 8px;
-
-        /* Features */
-        --features-padding-y: 5rem;
-        --features-padding-y-mobile: 3rem;
-        --features-gap: 2rem;
-        --feature-card-bg: rgba(30, 41, 59, 0.5);
-        --feature-card-padding: 2rem;
-        --feature-card-title-size: 1.5rem;
-        --feature-card-title-weight: 600;
-        --feature-card-title-gap: 0.75rem;
-        --feature-card-title-margin: 0.75rem;
-        --feature-card-text-size: 1rem;
-        --feature-card-text-line-height: 1.5;
-        
-        /* Grid */
-        --grid-gap: 2rem;
-        --grid-gap-lg: 3rem;
-        --grid-columns-2: repeat(2, 1fr);
-        --grid-columns-3: repeat(3, 1fr);
-        --grid-columns-4: repeat(4, 1fr);
-        --grid-columns-mobile: 1fr;
-        
-        /* Breakpoints */
-        --breakpoint-xs: 480px;  /* Mobile phones */
-        --breakpoint-sm: 576px;  /* Large phones/Small tablets */
-        --breakpoint-md: 768px;  /* Tablets */
-        --breakpoint-lg: 992px;  /* Laptops */
-        --breakpoint-xl: 1200px; /* Desktops */
-        --breakpoint-2xl: 1400px; /* Large desktops */
-
-        /* Layout */
-        --header-height: var(--nav-height);
-        --footer-height: 60px;
-
-        /* Animations */
-        --animation-timing-fade: 0.8s;
-        --animation-delay-fade: 0.4s;
-        --animation-easing: ease-out;
-
-        /* Other */
-        --border-radius: 12px;
-
-        /* Sidebar Sizing */
-        --sidebar-width: 320px;
-        --sidebar-min-width: 280px;
-        --sidebar-max-width: 380px;
+    /* Dark Mode */
+    @media (prefers-color-scheme: dark) {
+      --background: #0f172a;
+      --background-alt: #1e293b;
+      --text: #f1f5f9;
+      --text-light: #94a3b8;
+      --text-muted: #64748b;
+      --border-color: #334155;
+      --card-bg: #1e293b;
+      --card-border: 1px solid var(--border-color);
+      --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
     }
-} 
+
+    /* Typography */
+    --font-sans:
+      -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
+      Arial, sans-serif;
+    --font-mono:
+      ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
+      "Courier New", monospace;
+    --font-size-xs: 0.75rem;
+    --font-size-sm: 0.875rem;
+    --font-size-base: 1rem;
+    --font-size-lg: 1.125rem;
+    --font-size-xl: 1.25rem;
+    --font-size-2xl: 1.5rem;
+    --font-size-3xl: 1.875rem;
+    --font-size-4xl: 2.25rem;
+    --font-size-5xl: 3rem;
+    --font-weight-normal: 400;
+    --font-weight-medium: 500;
+    --font-weight-semibold: 600;
+    --font-weight-bold: 700;
+    --line-height-none: 1;
+    --line-height-tight: 1.25;
+    --line-height-snug: 1.375;
+    --line-height-normal: 1.5;
+    --line-height-relaxed: 1.625;
+    --line-height-loose: 2;
+
+    /* Spacing */
+    --spacing-1: 0.25rem;
+    --spacing-2: 0.5rem;
+    --spacing-3: 0.75rem;
+    --spacing-4: 1rem;
+    --spacing-5: 1.25rem;
+    --spacing-6: 1.5rem;
+    --spacing-8: 2rem;
+    --spacing-10: 2.5rem;
+    --spacing-12: 3rem;
+    --spacing-16: 4rem;
+    --spacing-20: 5rem;
+    --spacing-24: 6rem;
+    --spacing-32: 8rem;
+    --spacing-40: 10rem;
+    --spacing-48: 12rem;
+    --spacing-56: 14rem;
+    --spacing-64: 16rem;
+
+    /* Container System */
+    --container-max-width: var(--breakpoint-xl); /* Default to xl breakpoint */
+    --container-padding-x: var(--spacing-8); /* 2rem on desktop */
+    --container-padding-x-mobile: var(--spacing-4); /* 1rem on mobile */
+    --container-margin: 0 auto;
+
+    /* Container Size Variants */
+    --container-sm: var(--breakpoint-sm);
+    --container-md: var(--breakpoint-md);
+    --container-lg: var(--breakpoint-lg);
+    --container-xl: var(--breakpoint-xl);
+    --container-2xl: var(--breakpoint-2xl);
+
+    /* Navigation */
+    --nav-height: 70px;
+    --nav-background: var(--background);
+    --nav-backdrop-blur: 10px;
+    --nav-shadow: var(--shadow-sm);
+    --nav-z-index: 1000;
+    --nav-logo-size: 1.5rem;
+    --nav-logo-weight: 700;
+    --nav-link-gap: 2rem;
+    --nav-link-gap-mobile: 1rem;
+    --nav-link-weight: 500;
+    --nav-logo-opacity-hover: 0.8;
+    --nav-transition-duration: 0.2s;
+    --nav-transition-timing: ease;
+    --nav-logo-gradient-angle: 135deg;
+
+    /* Buttons */
+    --button-padding-y: 1rem;
+    --button-padding-x: 2rem;
+    --button-radius: 0.75rem;
+    --button-font-weight: 600;
+    --button-font-size: 1.125rem;
+    --button-transition: all 0.2s ease;
+    --button-transform-hover: translateY(-2px);
+
+    /* Primary Button */
+    --button-primary-gradient: linear-gradient(
+      135deg,
+      var(--primary),
+      var(--accent)
+    );
+    --button-primary-color: white;
+    --button-primary-shadow:
+      0 4px 6px -1px rgba(37, 99, 235, 0.2),
+      0 2px 4px -2px rgba(37, 99, 235, 0.1);
+    --button-primary-shadow-hover:
+      0 8px 12px -1px rgba(37, 99, 235, 0.3),
+      0 4px 8px -2px rgba(37, 99, 235, 0.2);
+
+    /* Secondary Button */
+    --button-secondary-bg: rgba(255, 255, 255, 0.1);
+    --button-secondary-bg-hover: rgba(255, 255, 255, 0.15);
+    --button-secondary-border: 1px solid rgba(255, 255, 255, 0.2);
+    --button-secondary-color: var(--text);
+    --button-secondary-color-hover: var(--primary);
+    --button-secondary-blur: 10px;
+
+    /* Hero */
+    --hero-padding-y: 8rem;
+    --hero-padding-y-mobile: 6rem;
+    --hero-bg-gradient: linear-gradient(
+      180deg,
+      rgba(15, 23, 42, 0) 0%,
+      rgba(15, 23, 42, 0.8) 100%
+    );
+    --hero-min-height: calc(100vh - var(--nav-height));
+    --hero-container-width: 800px;
+    --hero-title-size: 4.5rem;
+    --hero-title-size-mobile: 3rem;
+    --hero-title-weight: 800;
+    --hero-title-spacing: -0.02em;
+    --hero-title-gradient: linear-gradient(
+      135deg,
+      var(--primary) 0%,
+      var(--accent) 100%
+    );
+    --hero-title-margin: 1.5rem;
+    --hero-title-margin-mobile: 1rem;
+    --hero-subtitle-size: 1.5rem;
+    --hero-subtitle-size-mobile: 1.25rem;
+    --hero-subtitle-width: 600px;
+    --hero-subtitle-margin: 3rem;
+    --hero-subtitle-margin-mobile: 2rem;
+    --hero-actions-gap: 1.5rem;
+    --hero-actions-gap-mobile: 1rem;
+    --hero-accent-1: rgba(79, 70, 229, 0.15);
+    --hero-accent-2: rgba(139, 92, 246, 0.15);
+
+    /* Hero Compact */
+    --hero-compact-padding-y: 4rem;
+    --hero-compact-title-size: 3rem;
+    --hero-compact-subtitle-size: 1.25rem;
+
+    /* Forms & Inputs */
+    --form-gap: 1.5rem;
+    --form-group-gap: 0.5rem;
+    --form-label-weight: 500;
+    --form-label-size: 0.875rem;
+    --form-label-spacing: 0.05em;
+    --form-input-padding-y: 0.875rem;
+    --form-input-padding-x: 1rem;
+    --form-input-radius: 0.5rem;
+    --form-input-border: 1px solid var(--border-color);
+    --form-input-bg: var(--background);
+    --form-input-color: var(--text);
+    --form-input-size: 1rem;
+    --form-transition-duration: 0.2s;
+    --form-transition-timing: ease;
+    --form-focus-border: var(--primary);
+    --form-focus-ring: rgba(66, 153, 225, 0.15);
+    --form-focus-ring-size: 3px;
+    --form-focus-bg: var(--background-alt);
+    --form-textarea-min-height: 120px;
+
+    /* Cards */
+    --card-padding: 2rem;
+    --card-padding-mobile: 1.5rem;
+    --card-radius: 12px;
+    --card-backdrop-blur: 8px;
+
+    /* Features */
+    --features-padding-y: 5rem;
+    --features-padding-y-mobile: 3rem;
+    --features-gap: 2rem;
+    --feature-card-bg: rgba(30, 41, 59, 0.5);
+    --feature-card-padding: 2rem;
+    --feature-card-title-size: 1.5rem;
+    --feature-card-title-weight: 600;
+    --feature-card-title-gap: 0.75rem;
+    --feature-card-title-margin: 0.75rem;
+    --feature-card-text-size: 1rem;
+    --feature-card-text-line-height: 1.5;
+
+    /* Grid */
+    --grid-gap: 2rem;
+    --grid-gap-lg: 3rem;
+    --grid-columns-2: repeat(2, 1fr);
+    --grid-columns-3: repeat(3, 1fr);
+    --grid-columns-4: repeat(4, 1fr);
+    --grid-columns-mobile: 1fr;
+
+    /* Breakpoints */
+    --breakpoint-xs: 480px; /* Mobile phones */
+    --breakpoint-sm: 576px; /* Large phones/Small tablets */
+    --breakpoint-md: 768px; /* Tablets */
+    --breakpoint-lg: 992px; /* Laptops */
+    --breakpoint-xl: 1200px; /* Desktops */
+    --breakpoint-2xl: 1400px; /* Large desktops */
+
+    /* Layout */
+    --header-height: var(--nav-height);
+    --footer-height: 60px;
+
+    /* Animations */
+    --animation-timing-fade: 0.8s;
+    --animation-delay-fade: 0.4s;
+    --animation-easing: ease-out;
+
+    /* Other */
+    --border-radius: 12px;
+
+    /* Sidebar Sizing */
+    --sidebar-width: 320px;
+    --sidebar-min-width: 280px;
+    --sidebar-max-width: 380px;
+  }
+}

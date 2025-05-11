@@ -1,29 +1,29 @@
 @layer components {
+  .code-block {
+    padding: 1rem;
+    font-size: 0.875rem;
+    background: var(--bg-darker);
+    border-radius: 0.5rem;
+    border: 1px solid var(--border-color);
+    white-space: pre-wrap; /* preserve line breaks */
+    word-wrap: break-word; /* break long words */
+    overflow-wrap: break-word; /* allow breaking of long words */
+    max-width: 100%; /* respect container width */
+    font-family: var(--font-mono);
+    line-height: 1.5;
+    color: var(--text-bright);
+  }
+
+  .code-block code {
+    display: block;
+    font-family: inherit;
+  }
+
+  /* Tablet breakpoint */
+  @media (min-width: var(--breakpoint-md)) {
     .code-block {
-        padding: 1rem;
-        font-size: 0.875rem;
-        background: var(--bg-darker);
-        border-radius: 0.5rem;
-        border: 1px solid var(--border-color);
-        white-space: pre-wrap;       /* preserve line breaks */
-        word-wrap: break-word;       /* break long words */
-        overflow-wrap: break-word;   /* allow breaking of long words */
-        max-width: 100%;             /* respect container width */
-        font-family: var(--font-mono);
-        line-height: 1.5;
-        color: var(--text-bright);
+      padding: 1.5rem;
+      font-size: 0.9rem;
     }
-
-    .code-block code {
-        display: block;
-        font-family: inherit;
-    }
-
-    /* Tablet breakpoint */
-    @media (min-width: var(--breakpoint-md)) {
-        .code-block {
-            padding: 1.5rem;
-            font-size: 0.9rem;
-        }
-    }
-} 
+  }
+}
