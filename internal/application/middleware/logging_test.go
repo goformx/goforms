@@ -27,7 +27,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	e := echo.New()
 	c := e.NewContext(req, rec)
 
-	mockLogger.EXPECT().Info("request completed", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Info("request", gomock.Any()).Times(1)
 
 	if err := loggingMiddleware(handler)(c); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -39,7 +39,7 @@ func TestLoggingMiddlewareWithError(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-	mockLogger.EXPECT().Info("http request", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Error("request error", gomock.Any()).Times(1)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
@@ -59,7 +59,7 @@ func TestLoggingMiddlewareWithPanic(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-	mockLogger.EXPECT().Info("http request", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Error("request panic", gomock.Any()).Times(1)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
@@ -79,7 +79,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-	mockLogger.EXPECT().Info("http request", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Info("request", gomock.Any()).Times(1)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
