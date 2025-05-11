@@ -14,25 +14,28 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-type DashboardHandler struct {
+// Handler handles dashboard-related HTTP requests
+type Handler struct {
 	authMiddleware *amw.CookieAuthMiddleware
 	formService    form.Service
 }
 
-func NewDashboardHandler(
+// NewHandler creates a new dashboard handler
+func NewHandler(
 	userService user.Service,
 	formService form.Service,
 	logger logging.Logger,
-) (*DashboardHandler, error) {
+) (*Handler, error) {
 	cookieAuth := amw.NewCookieAuthMiddleware(userService, logger)
 
-	return &DashboardHandler{
+	return &Handler{
 		authMiddleware: cookieAuth,
 		formService:    formService,
 	}, nil
 }
 
-func (h *DashboardHandler) Register(e *echo.Echo) {
+// Register sets up the dashboard routes
+func (h *Handler) Register(e *echo.Echo) {
 	// Dashboard routes
 	dashboard := e.Group("/dashboard")
 	dashboard.Use(h.authMiddleware.RequireAuth) // Middleware to ensure user is authenticated
@@ -47,7 +50,8 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 	dashboard.PUT("/forms/:id/schema", h.UpdateFormSchema)
 }
 
-func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
+// ShowDashboard displays the user's dashboard
+func (h *Handler) ShowDashboard(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
@@ -81,7 +85,8 @@ func (h *DashboardHandler) ShowDashboard(c echo.Context) error {
 	return pages.Dashboard(data).Render(c.Request().Context(), c.Response().Writer)
 }
 
-func (h *DashboardHandler) ShowNewForm(c echo.Context) error {
+// ShowNewForm displays the form creation page
+func (h *Handler) ShowNewForm(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
@@ -108,7 +113,8 @@ func (h *DashboardHandler) ShowNewForm(c echo.Context) error {
 	return pages.NewForm(data).Render(c.Request().Context(), c.Response().Writer)
 }
 
-func (h *DashboardHandler) CreateForm(c echo.Context) error {
+// CreateForm handles form creation
+func (h *Handler) CreateForm(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
@@ -143,7 +149,8 @@ func (h *DashboardHandler) CreateForm(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/dashboard/forms/"+strconv.FormatUint(uint64(formObj.ID), 10)+"/edit")
 }
 
-func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
+// ShowEditForm displays the form editing page
+func (h *Handler) ShowEditForm(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
@@ -190,7 +197,7 @@ func (h *DashboardHandler) ShowEditForm(c echo.Context) error {
 }
 
 // ShowFormSubmissions handles viewing form submissions
-func (h *DashboardHandler) ShowFormSubmissions(c echo.Context) error {
+func (h *Handler) ShowFormSubmissions(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
@@ -243,7 +250,7 @@ func (h *DashboardHandler) ShowFormSubmissions(c echo.Context) error {
 }
 
 // GetFormSchema handles getting a form's schema
-func (h *DashboardHandler) GetFormSchema(c echo.Context) error {
+func (h *Handler) GetFormSchema(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
@@ -278,7 +285,7 @@ func (h *DashboardHandler) GetFormSchema(c echo.Context) error {
 }
 
 // UpdateFormSchema handles updating a form's schema
-func (h *DashboardHandler) UpdateFormSchema(c echo.Context) error {
+func (h *Handler) UpdateFormSchema(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
@@ -325,7 +332,7 @@ func (h *DashboardHandler) UpdateFormSchema(c echo.Context) error {
 }
 
 // UpdateForm handles updating a form's basic details
-func (h *DashboardHandler) UpdateForm(c echo.Context) error {
+func (h *Handler) UpdateForm(c echo.Context) error {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")

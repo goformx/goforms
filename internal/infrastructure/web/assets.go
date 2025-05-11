@@ -2,7 +2,9 @@ package web
 
 import (
 	"encoding/json"
+	"fmt"
 	"log"
+	"net"
 	"os"
 	"path/filepath"
 
@@ -21,6 +23,7 @@ type ManifestEntry struct {
 type ViteManifest map[string]ManifestEntry
 
 var (
+	// Manifest contains the webpack manifest data for asset versioning
 	Manifest ViteManifest
 	cfg      *config.Config
 )
@@ -29,8 +32,7 @@ func init() {
 	var err error
 	cfg, err = config.New()
 	if err != nil {
-		log.Printf("Warning: Could not load config: %v", err)
-		return
+		panic(fmt.Sprintf("failed to load config: %v", err))
 	}
 
 	// Only load manifest in production mode
@@ -57,22 +59,23 @@ func init() {
 	}
 }
 
-// GetAssetPath returns the path for a given source file
-// In development mode, it returns the Vite dev server URL
-// In production mode, it returns the hashed path from the manifest
-func GetAssetPath(src string) string {
-	log.Printf("Getting asset path for: %s", src)
-
-	if cfg != nil && cfg.App.IsDevelopment() {
-		return "http://" + cfg.App.ViteDevHost + ":" + cfg.App.ViteDevPort + "/" + src
+// GetAssetPath returns the path to an asset, handling development and production environments
+func GetAssetPath(asset string) string {
+	if cfg.App.Env == "development" {
+		hostPort := net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort)
+		return fmt.Sprintf("http://%s/%s", hostPort, asset)
 	}
+	return fmt.Sprintf("/assets/%s", asset)
+}
 
-	if entry, ok := Manifest[src]; ok {
-		path := filepath.Join("dist", entry.File)
-		log.Printf("Found manifest entry: %s -> %s", src, path)
-		return path
+// GetManifestPath returns the path to an asset from the manifest
+func GetManifestPath(asset string) string {
+	if cfg.App.Env == "development" {
+		hostPort := net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort)
+		return fmt.Sprintf("http://%s/%s", hostPort, asset)
 	}
-
-	log.Printf("No manifest entry found for: %s", src)
-	return ""
+	if path, ok := Manifest[asset]; ok {
+		return fmt.Sprintf("/assets/%s", path.File)
+	}
+	return fmt.Sprintf("/assets/%s", asset)
 }

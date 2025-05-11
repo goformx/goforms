@@ -182,6 +182,6 @@ func startServer(params ServerParams) error {
 }
 
 // GetVersion returns the version information
-func GetVersion() version.VersionInfo {
-	return version.Info()
+func GetVersion() version.Info {
+	return version.GetInfo()
 }

@@ -10,6 +10,7 @@ type service struct {
 	store Store
 }
 
+// NewService creates a new form service instance
 func NewService(store Store) Service {
 	return &service{
 		store: store,

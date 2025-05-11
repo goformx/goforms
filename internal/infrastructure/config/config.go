@@ -1,19 +1,14 @@
 package config
 
 import (
-	"fmt"
-	"os"
 	"strings"
 	"time"
-
-	"github.com/go-playground/validator/v10"
-	"github.com/joho/godotenv"
-	"github.com/kelseyhightower/envconfig"
 )
 
 // CORSOriginsDecoder handles parsing of CORS allowed origins
 type CORSOriginsDecoder []string
 
+// Decode decodes the CORS origins configuration
 func (c *CORSOriginsDecoder) Decode(value string) error {
 	if value == "" {
 		return nil
@@ -25,6 +20,7 @@ func (c *CORSOriginsDecoder) Decode(value string) error {
 // CORSMethodsDecoder handles parsing of CORS allowed methods
 type CORSMethodsDecoder []string
 
+// Decode decodes the CORS methods configuration
 func (c *CORSMethodsDecoder) Decode(value string) error {
 	if value == "" {
 		*c = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
@@ -37,6 +33,7 @@ func (c *CORSMethodsDecoder) Decode(value string) error {
 // CORSHeadersDecoder handles parsing of CORS allowed headers
 type CORSHeadersDecoder []string
 
+// Decode decodes the CORS headers configuration
 func (c *CORSHeadersDecoder) Decode(value string) error {
 	if value == "" {
 		*c = []string{"Origin", "Content-Type", "Accept"}
@@ -71,6 +68,11 @@ type AppConfig struct {
 	Host        string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
 	ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"3000"`
+}
+
+// IsDevelopment returns true if the application is running in development mode
+func (c *AppConfig) IsDevelopment() bool {
+	return strings.EqualFold(c.Env, "development")
 }
 
 // DatabaseConfig holds all database-related configuration
@@ -114,12 +116,6 @@ type SecurityConfig struct {
 	FormRateLimitWindow    time.Duration      `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1m"`
 }
 
-// CSRFConfig holds CSRF-related configuration
-type CSRFConfig struct {
-	Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
-	Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
-}
-
 // RateLimitConfig contains rate limiting settings
 type RateLimitConfig struct {
 	Enabled    bool          `envconfig:"GOFORMS_RATE_LIMIT_ENABLED" default:"true"`
@@ -129,50 +125,41 @@ type RateLimitConfig struct {
 	PerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
 }
 
-// IsDevelopment returns true if the application is running in development mode
-func (c *AppConfig) IsDevelopment() bool {
-	return strings.EqualFold(c.Env, "development")
+// CSRFConfig holds CSRF-related configuration
+type CSRFConfig struct {
+	Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
+	Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
 }
 
-// New creates a new Config with default values
+// New creates a new Config instance with default values
 func New() (*Config, error) {
-	if err := loadDotEnv(); err != nil {
-		return nil, err
+	cfg := &Config{
+		App: AppConfig{
+			Name:        "GoForms",
+			Env:         "production",
+			Debug:       false,
+			LogLevel:    "info",
+			Port:        8090,
+			Host:        "localhost",
+			ViteDevHost: "localhost",
+			ViteDevPort: "3000",
+		},
+		Server: ServerConfig{
+			Host:            "localhost",
+			Port:            8099,
+			ReadTimeout:     5 * time.Second,
+			WriteTimeout:    10 * time.Second,
+			IdleTimeout:     120 * time.Second,
+			ShutdownTimeout: 30 * time.Second,
+		},
+		Security: SecurityConfig{
+			CorsMaxAge:           3600,
+			CorsAllowCredentials: true,
+			RequestTimeout:       30 * time.Second,
+		},
+		Static: StaticConfig{
+			DistDir: "dist",
+		},
 	}
-
-	var cfg Config
-
-	if err := processEnvConfig(&cfg); err != nil {
-		return nil, err
-	}
-
-	if err := validateConfigStruct(cfg); err != nil {
-		return nil, err
-	}
-
-	return &cfg, nil
-}
-
-func loadDotEnv() error {
-	if err := godotenv.Load(); err != nil {
-		if !os.IsNotExist(err) {
-			return fmt.Errorf("failed to load .env file: %w", err)
-		}
-	}
-	return nil
-}
-
-func processEnvConfig(cfg *Config) error {
-	if err := envconfig.Process("GOFORMS", cfg); err != nil {
-		return fmt.Errorf("failed to process config: %w", err)
-	}
-	return nil
-}
-
-func validateConfigStruct(cfg Config) error {
-	validate := validator.New()
-	if err := validate.Struct(cfg); err != nil {
-		return fmt.Errorf("config validation failed: %w", err)
-	}
-	return nil
+	return cfg, nil
 }

@@ -5,9 +5,10 @@ import (
 	"fmt"
 	"strconv"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // MySQL driver for database/sql
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
+	_ "github.com/lib/pq" // PostgreSQL driver for database/sql
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"

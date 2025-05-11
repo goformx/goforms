@@ -48,8 +48,8 @@ type Field struct {
 	Type string
 }
 
-// FormOptions represents form configuration options
-type FormOptions struct {
+// Options represents configuration options for a form
+type Options struct {
 	// Add form options as needed
 }
 

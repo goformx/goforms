@@ -14,7 +14,8 @@ import (
 // WebLoginHandler handles the login page routes
 type WebLoginHandler struct {
 	base     handlers.Base
-	Renderer *view.Renderer
+	logger   logging.Logger
+	renderer *view.Renderer
 }
 
 // NewWebLoginHandler creates a new WebLoginHandler
@@ -23,7 +24,8 @@ func NewWebLoginHandler(logger logging.Logger, renderer *view.Renderer) *WebLogi
 		base: handlers.Base{
 			Logger: logger,
 		},
-		Renderer: renderer,
+		logger:   logger,
+		renderer: renderer,
 	}
 }
 
@@ -48,5 +50,5 @@ func (h *WebLoginHandler) handleLogin(c echo.Context) error {
 		CSRFToken: csrfToken,
 	}
 
-	return h.Renderer.Render(c, pages.Login(data))
+	return h.renderer.Render(c, pages.Login(data))
 }

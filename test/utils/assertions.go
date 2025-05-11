@@ -38,6 +38,7 @@ func AssertSuccessResponse(t *testing.T, rec *httptest.ResponseRecorder, expecte
 	require.Contains(t, response, "data")
 }
 
+// AssertResponseCode checks if the response has the expected status code
 func AssertResponseCode(t *testing.T, rec *httptest.ResponseRecorder, expectedCode int) {
 	require.Equal(t, expectedCode, rec.Code)
 }
@@ -50,14 +51,17 @@ func AssertResponseBody(t *testing.T, rec *httptest.ResponseRecorder, expected a
 	require.Equal(t, expected, actual)
 }
 
+// AssertResponseHeader checks if the response has the expected header value
 func AssertResponseHeader(t *testing.T, rec *httptest.ResponseRecorder, key, expectedValue string) {
 	require.Equal(t, expectedValue, rec.Header().Get(key))
 }
 
+// AssertNoError checks if no error occurred
 func AssertNoError(t *testing.T, err error) {
 	require.NoError(t, err)
 }
 
+// AssertError checks if an error occurred
 func AssertError(t *testing.T, err error) {
 	require.Error(t, err)
 }

@@ -8,11 +8,13 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/form/model"
 )
 
-var ErrFormSchemaNotFound = errors.New("form schema not found")
+var (
+	// ErrFormSchemaNotFound is returned when a form schema cannot be found
+	ErrFormSchemaNotFound = errors.New("form schema not found")
+)
 
-// FormSchemaRepository defines CRUD operations for FormSchema
-// In production, this would be backed by a database.
-type FormSchemaRepository interface {
+// SchemaRepository defines the interface for form schema storage
+type SchemaRepository interface {
 	List() ([]*model.FormSchema, error)
 	Create(schema *model.FormSchema) (*model.FormSchema, error)
 	Get(id uint) (*model.FormSchema, error)
@@ -28,6 +30,7 @@ type InMemoryFormSchemaRepo struct {
 	nextID  uint
 }
 
+// NewInMemoryFormSchemaRepo creates a new in-memory form schema repository
 func NewInMemoryFormSchemaRepo() *InMemoryFormSchemaRepo {
 	return &InMemoryFormSchemaRepo{
 		schemas: make(map[uint]*model.FormSchema),
@@ -35,6 +38,7 @@ func NewInMemoryFormSchemaRepo() *InMemoryFormSchemaRepo {
 	}
 }
 
+// List returns all form schemas
 func (r *InMemoryFormSchemaRepo) List() ([]*model.FormSchema, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -45,6 +49,7 @@ func (r *InMemoryFormSchemaRepo) List() ([]*model.FormSchema, error) {
 	return result, nil
 }
 
+// Create stores a new form schema
 func (r *InMemoryFormSchemaRepo) Create(schema *model.FormSchema) (*model.FormSchema, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -57,6 +62,7 @@ func (r *InMemoryFormSchemaRepo) Create(schema *model.FormSchema) (*model.FormSc
 	return schema, nil
 }
 
+// Get retrieves a form schema by ID
 func (r *InMemoryFormSchemaRepo) Get(id uint) (*model.FormSchema, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -67,6 +73,7 @@ func (r *InMemoryFormSchemaRepo) Get(id uint) (*model.FormSchema, error) {
 	return s, nil
 }
 
+// Update modifies an existing form schema
 func (r *InMemoryFormSchemaRepo) Update(id uint, schema *model.FormSchema) (*model.FormSchema, error) {
 	r.mu.Lock()
 	defer r.mu.Unlock()
@@ -81,6 +88,7 @@ func (r *InMemoryFormSchemaRepo) Update(id uint, schema *model.FormSchema) (*mod
 	return schema, nil
 }
 
+// Delete removes a form schema by ID
 func (r *InMemoryFormSchemaRepo) Delete(id uint) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()

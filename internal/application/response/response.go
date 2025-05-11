@@ -1,7 +1,6 @@
 package response
 
 import (
-	"errors"
 	"net/http"
 
 	"github.com/google/go-cmp/cmp"
@@ -176,12 +175,9 @@ func Forbidden(c echo.Context, message string) error {
 	})
 }
 
-func (r *Response) SetLogger(logger any) error {
-	log, ok := logger.(logging.Logger)
-	if !ok {
-		return errors.New("invalid logger type")
-	}
-	r.logger = log
+// SetLogger sets the logger for the response
+func (r *Response) SetLogger(logger logging.Logger) error {
+	r.logger = logger
 	return nil
 }
 

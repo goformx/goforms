@@ -8,33 +8,44 @@ import (
 type ErrorCode string
 
 const (
-	// Validation errors
-	ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
+	// ErrCodeValidation represents a general validation error
+	ErrCodeValidation ErrorCode = "VALIDATION_ERROR"
+	// ErrCodeRequiredField represents a required field validation error
 	ErrCodeRequiredField ErrorCode = "REQUIRED_FIELD"
+	// ErrCodeInvalidFormat represents an invalid format error
 	ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
-	ErrCodeInvalidValue  ErrorCode = "INVALID_VALUE"
+	// ErrCodeInvalidValue represents an invalid value error
+	ErrCodeInvalidValue ErrorCode = "INVALID_VALUE"
 
-	// Authentication errors
-	ErrCodeUnauthorized   ErrorCode = "UNAUTHORIZED"
-	ErrCodeInvalidToken   ErrorCode = "INVALID_TOKEN"
-	ErrCodeTokenExpired   ErrorCode = "TOKEN_EXPIRED"
+	// ErrCodeUnauthorized represents an unauthorized access error
+	ErrCodeUnauthorized ErrorCode = "UNAUTHORIZED"
+	// ErrCodeInvalidToken represents an invalid token error
+	ErrCodeInvalidToken ErrorCode = "INVALID_TOKEN"
+	// ErrCodeTokenExpired represents a token expiration error
+	ErrCodeTokenExpired ErrorCode = "TOKEN_EXPIRED"
+	// ErrCodeAuthentication represents a general authentication error
 	ErrCodeAuthentication ErrorCode = "AUTHENTICATION_ERROR"
 
-	// Authorization errors
-	ErrCodeForbidden        ErrorCode = "FORBIDDEN"
+	// ErrCodeForbidden represents a forbidden access error
+	ErrCodeForbidden ErrorCode = "FORBIDDEN"
+	// ErrCodeInsufficientRole represents an insufficient role error
 	ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
 
-	// Resource errors
-	ErrCodeNotFound      ErrorCode = "NOT_FOUND"
+	// ErrCodeNotFound represents a resource not found error
+	ErrCodeNotFound ErrorCode = "NOT_FOUND"
+	// ErrCodeAlreadyExists represents a resource already exists error
 	ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
-	ErrCodeConflict      ErrorCode = "CONFLICT"
+	// ErrCodeConflict represents a resource conflict error
+	ErrCodeConflict ErrorCode = "CONFLICT"
 
-	// System errors
+	// ErrCodeInternal represents an internal server error
 	ErrCodeInternal ErrorCode = "INTERNAL_ERROR"
+	// ErrCodeDatabase represents a database error
 	ErrCodeDatabase ErrorCode = "DATABASE_ERROR"
-	ErrCodeTimeout  ErrorCode = "TIMEOUT"
+	// ErrCodeTimeout represents an operation timeout error
+	ErrCodeTimeout ErrorCode = "TIMEOUT"
 
-	// New error codes
+	// ErrCodeInvalidInput represents an invalid input error
 	ErrCodeInvalidInput ErrorCode = "INVALID_INPUT"
 )
 

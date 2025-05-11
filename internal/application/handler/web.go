@@ -17,6 +17,7 @@ import (
 )
 
 var (
+	// ErrNoCurrentUser is returned when no user is found in the current context
 	ErrNoCurrentUser = errors.New("no current user found")
 )
 
@@ -113,9 +114,10 @@ type WebHandler struct {
 //	    WithRenderer(renderer),
 //	    WithConfig(config),
 //	)
-func NewWebHandler(logger logging.Logger, opts ...WebHandlerOption) (*WebHandler, error) {
+func NewWebHandler(logger logging.Logger, renderer *view.Renderer, opts ...WebHandlerOption) (*WebHandler, error) {
 	h := &WebHandler{
-		Base: NewBase(WithLogger(logger)),
+		Base:     NewBase(WithLogger(logger)),
+		renderer: renderer,
 	}
 
 	for _, opt := range opts {

@@ -12,7 +12,8 @@ import (
 // DemoHandler handles the demo page routes
 type DemoHandler struct {
 	base     handlers.Base
-	Renderer *view.Renderer
+	logger   logging.Logger
+	renderer *view.Renderer
 }
 
 // NewDemoHandler creates a new DemoHandler
@@ -24,7 +25,8 @@ func NewDemoHandler(
 		base: handlers.Base{
 			Logger: logger,
 		},
-		Renderer: renderer,
+		logger:   logger,
+		renderer: renderer,
 	}
 }
 
@@ -41,5 +43,5 @@ func (h *DemoHandler) handleDemo(c echo.Context) error {
 		Title: "GoForms Demo - See it in Action",
 	}
 
-	return h.Renderer.Render(c, pages.Demo(data))
+	return h.renderer.Render(c, pages.Demo(data))
 }

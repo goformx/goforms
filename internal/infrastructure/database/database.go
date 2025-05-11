@@ -4,8 +4,9 @@ package database
 import (
 	"fmt"
 
-	_ "github.com/go-sql-driver/mysql"
+	_ "github.com/go-sql-driver/mysql" // MySQL driver for database/sql
 	"github.com/jmoiron/sqlx"
+	_ "github.com/lib/pq" // PostgreSQL driver for database/sql
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -103,6 +104,7 @@ func (db *Database) Begin() (*sqlx.Tx, error) {
 	return tx, nil
 }
 
+// NewDatabase creates a new database connection
 func NewDatabase(cfg *config.Config) (*sqlx.DB, error) {
 	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
 		cfg.Database.User,

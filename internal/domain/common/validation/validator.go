@@ -12,18 +12,18 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/common/errors"
 )
 
+// Rule represents a validation rule
+type Rule func(value any, params ...string) error
+
 // Validator provides validation functionality
 type Validator struct {
-	rules map[string]ValidationRule
+	rules map[string]Rule
 }
-
-// ValidationRule defines a validation rule function
-type ValidationRule func(value any, params ...string) error
 
 // New creates a new validator
 func New() *Validator {
 	v := &Validator{
-		rules: make(map[string]ValidationRule),
+		rules: make(map[string]Rule),
 	}
 	v.registerDefaultRules()
 	return v
@@ -61,7 +61,7 @@ func (v *Validator) ValidateField(field any, tag string) error {
 }
 
 // RegisterRule registers a new validation rule
-func (v *Validator) RegisterRule(name string, rule ValidationRule) {
+func (v *Validator) RegisterRule(name string, rule Rule) {
 	v.rules[name] = rule
 }
 

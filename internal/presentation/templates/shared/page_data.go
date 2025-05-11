@@ -7,6 +7,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/user"
 )
 
+// PageData contains common data used across all pages
 type PageData struct {
 	Title                string
 	User                 *user.User

@@ -20,6 +20,7 @@ type Store struct {
 }
 
 var (
+	// ErrUserNotFound is returned when a user cannot be found in the store
 	ErrUserNotFound = errors.New("user not found")
 )
 
@@ -158,6 +159,7 @@ func (s *Store) List(ctx context.Context) ([]user.User, error) {
 	return users, nil
 }
 
+// GetUserIDs retrieves all user IDs from the store
 func (s *Store) GetUserIDs(ctx context.Context) ([]string, error) {
 	query := "SELECT id FROM users"
 	rows, queryErr := s.db.QueryContext(ctx, query)

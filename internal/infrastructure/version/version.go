@@ -1,7 +1,7 @@
 package version
 
-// VersionInfo holds version-related information
-type VersionInfo struct {
+// Info contains version information
+type Info struct {
 	Version   string `json:"version"`
 	BuildTime string `json:"buildTime"`
 	GitCommit string `json:"gitCommit"`
@@ -16,9 +16,9 @@ var (
 	GoVersion = "unknown"
 )
 
-// Info returns the current version information
-func Info() VersionInfo {
-	return VersionInfo{
+// GetInfo returns the current version information
+func GetInfo() Info {
+	return Info{
 		Version:   Version,
 		BuildTime: BuildTime,
 		GitCommit: GitCommit,

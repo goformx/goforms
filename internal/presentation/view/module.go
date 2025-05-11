@@ -2,7 +2,7 @@ package view
 
 import "go.uber.org/fx"
 
-//nolint:gochecknoglobals // This is an intentional global following fx module pattern
+// Module provides the view rendering module for the application
 var Module = fx.Options(
 	fx.Provide(
 		NewRenderer,

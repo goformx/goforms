@@ -18,6 +18,7 @@ type store struct {
 	logger logging.Logger
 }
 
+// NewStore creates a new form store instance
 func NewStore(db *database.Database, logger logging.Logger) form.Store {
 	return &store{
 		db:     db,

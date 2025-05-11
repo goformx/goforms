@@ -1,17 +1,5 @@
 import { z } from "zod";
 
-interface ValidationRule {
-  field: string;
-  type: string;
-  params: Record<string, any>;
-  message: string;
-}
-
-interface _ValidationSchema {
-  name: string;
-  rules: ValidationRule[];
-}
-
 interface ApiValidationRule {
   type: string;
   min?: number;
@@ -27,7 +15,7 @@ interface ApiValidationSchema {
 
 export async function getValidationSchema(
   schemaName: string,
-): Promise<z.ZodType<any>> {
+): Promise<z.ZodType<Record<string, string>>> {
   try {
     const response = await fetch(`/api/validation/${schemaName}`);
     if (!response.ok) {
@@ -46,8 +34,10 @@ export async function getValidationSchema(
   }
 }
 
-function generateZodSchema(schema: ApiValidationSchema): z.ZodType<any> {
-  const shape: Record<string, z.ZodType<any>> = {};
+function generateZodSchema(
+  schema: ApiValidationSchema,
+): z.ZodType<Record<string, string>> {
+  const shape: Record<string, z.ZodType<string>> = {};
 
   for (const [field, rule] of Object.entries(schema)) {
     shape[field] = generateZodRule(rule);
@@ -56,7 +46,7 @@ function generateZodSchema(schema: ApiValidationSchema): z.ZodType<any> {
   return z.object(shape);
 }
 
-function generateZodRule(rule: ApiValidationRule): z.ZodType<any> {
+function generateZodRule(rule: ApiValidationRule): z.ZodType<string> {
   let zodRule: z.ZodString | z.ZodEffects<z.ZodString, string, string> =
     z.string();
 

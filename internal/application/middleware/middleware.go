@@ -20,7 +20,8 @@ const (
 	// NonceSize is the size of the nonce in bytes (32 bytes = 256 bits)
 	NonceSize = 32
 	// HSTSOneYear is the number of seconds in one year
-	HSTSOneYear        = 31536000
+	HSTSOneYear = 31536000
+	// DefaultTokenLength is the default length for generated tokens
 	DefaultTokenLength = 32
 	// RateLimitBurst is the number of requests allowed in a burst
 	RateLimitBurst = 5
@@ -334,7 +335,7 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 	}
 }
 
-// Main Setup function
+// Setup initializes the middleware manager with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Info("starting middleware setup")
 

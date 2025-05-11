@@ -51,6 +51,7 @@ func handleErrorStatus(c echo.Context, err error) {
 	}
 }
 
+// LoggingMiddleware creates a middleware that logs HTTP requests and responses
 func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {

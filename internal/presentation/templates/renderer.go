@@ -10,17 +10,20 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
-type Renderer struct {
+// TemplateRenderer handles template rendering
+type TemplateRenderer struct {
 	logger logging.Logger
 }
 
-func NewRenderer(logger logging.Logger) *Renderer {
-	return &Renderer{
+// NewTemplateRenderer creates a new template renderer
+func NewTemplateRenderer(logger logging.Logger) *TemplateRenderer {
+	return &TemplateRenderer{
 		logger: logger,
 	}
 }
 
-func (r *Renderer) Render(c echo.Context, t templ.Component) error {
+// Render renders a template with the given data
+func (r *TemplateRenderer) Render(c echo.Context, t templ.Component) error {
 	if err := t.Render(c.Request().Context(), c.Response().Writer); err != nil {
 		r.logger.Error("failed to render template",
 			logging.Error(err),

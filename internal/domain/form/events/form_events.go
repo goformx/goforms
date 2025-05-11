@@ -7,22 +7,22 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/form/model"
 )
 
-// FormEventType represents the type of form-related events
-type FormEventType string
+// EventType represents the type of form event
+type EventType string
 
 const (
 	// FormSubmittedEventType is emitted when a form is submitted
-	FormSubmittedEventType FormEventType = "form.submitted"
+	FormSubmittedEventType EventType = "form.submitted"
 	// FormValidatedEventType is emitted when a form is validated
-	FormValidatedEventType FormEventType = "form.validated"
+	FormValidatedEventType EventType = "form.validated"
 	// FormProcessedEventType is emitted when a form is processed
-	FormProcessedEventType FormEventType = "form.processed"
+	FormProcessedEventType EventType = "form.processed"
 	// FormErrorEventType is emitted when an error occurs during form processing
-	FormErrorEventType FormEventType = "form.error"
+	FormErrorEventType EventType = "form.error"
 )
 
-// FormSubmittedEvent represents a form submission event
-type FormSubmittedEvent struct {
+// SubmittedEvent represents a form submission event
+type SubmittedEvent struct {
 	events.BaseEvent
 	FormID      string
 	Submission  *model.FormSubmission
@@ -30,8 +30,8 @@ type FormSubmittedEvent struct {
 }
 
 // NewFormSubmittedEvent creates a new form submitted event
-func NewFormSubmittedEvent(formID string, submission *model.FormSubmission) *FormSubmittedEvent {
-	return &FormSubmittedEvent{
+func NewFormSubmittedEvent(formID string, submission *model.FormSubmission) *SubmittedEvent {
+	return &SubmittedEvent{
 		BaseEvent:   events.NewBaseEvent(string(FormSubmittedEventType)),
 		FormID:      formID,
 		Submission:  submission,
@@ -40,12 +40,12 @@ func NewFormSubmittedEvent(formID string, submission *model.FormSubmission) *For
 }
 
 // Data returns the event data
-func (e *FormSubmittedEvent) Data() any {
+func (e *SubmittedEvent) Data() any {
 	return e.Submission
 }
 
-// FormValidatedEvent represents a form validation event
-type FormValidatedEvent struct {
+// ValidatedEvent represents a form validation event
+type ValidatedEvent struct {
 	events.BaseEvent
 	FormID      string
 	Submission  *model.FormSubmission
@@ -60,8 +60,8 @@ func NewFormValidatedEvent(
 	submission *model.FormSubmission,
 	isValid bool,
 	errors []error,
-) *FormValidatedEvent {
-	return &FormValidatedEvent{
+) *ValidatedEvent {
+	return &ValidatedEvent{
 		BaseEvent:   events.NewBaseEvent(string(FormValidatedEventType)),
 		FormID:      formID,
 		Submission:  submission,
@@ -72,7 +72,7 @@ func NewFormValidatedEvent(
 }
 
 // Data returns the event data
-func (e *FormValidatedEvent) Data() any {
+func (e *ValidatedEvent) Data() any {
 	return map[string]any{
 		"form_id":      e.FormID,
 		"submission":   e.Submission,
@@ -82,8 +82,8 @@ func (e *FormValidatedEvent) Data() any {
 	}
 }
 
-// FormProcessedEvent represents a form processing event
-type FormProcessedEvent struct {
+// ProcessedEvent represents a form processing event
+type ProcessedEvent struct {
 	events.BaseEvent
 	FormID       string
 	Submission   *model.FormSubmission
@@ -92,8 +92,8 @@ type FormProcessedEvent struct {
 }
 
 // NewFormProcessedEvent creates a new form processed event
-func NewFormProcessedEvent(formID string, submission *model.FormSubmission, processingID string) *FormProcessedEvent {
-	return &FormProcessedEvent{
+func NewFormProcessedEvent(formID string, submission *model.FormSubmission, processingID string) *ProcessedEvent {
+	return &ProcessedEvent{
 		BaseEvent:    events.NewBaseEvent(string(FormProcessedEventType)),
 		FormID:       formID,
 		Submission:   submission,
@@ -103,7 +103,7 @@ func NewFormProcessedEvent(formID string, submission *model.FormSubmission, proc
 }
 
 // Data returns the event data
-func (e *FormProcessedEvent) Data() any {
+func (e *ProcessedEvent) Data() any {
 	return map[string]any{
 		"form_id":       e.FormID,
 		"submission":    e.Submission,
@@ -112,8 +112,8 @@ func (e *FormProcessedEvent) Data() any {
 	}
 }
 
-// FormErrorEvent represents a form error event
-type FormErrorEvent struct {
+// ErrorEvent represents a form error event
+type ErrorEvent struct {
 	events.BaseEvent
 	FormID     string
 	Submission *model.FormSubmission
@@ -123,8 +123,8 @@ type FormErrorEvent struct {
 }
 
 // NewFormErrorEvent creates a new form error event
-func NewFormErrorEvent(formID string, submission *model.FormSubmission, err error, errorType string) *FormErrorEvent {
-	return &FormErrorEvent{
+func NewFormErrorEvent(formID string, submission *model.FormSubmission, err error, errorType string) *ErrorEvent {
+	return &ErrorEvent{
 		BaseEvent:  events.NewBaseEvent(string(FormErrorEventType)),
 		FormID:     formID,
 		Submission: submission,
@@ -135,7 +135,7 @@ func NewFormErrorEvent(formID string, submission *model.FormSubmission, err erro
 }
 
 // Data returns the event data
-func (e *FormErrorEvent) Data() any {
+func (e *ErrorEvent) Data() any {
 	return map[string]any{
 		"form_id":     e.FormID,
 		"submission":  e.Submission,

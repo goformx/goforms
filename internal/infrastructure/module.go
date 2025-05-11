@@ -14,7 +14,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	h "github.com/jonesrussell/goforms/internal/handlers"
-	wh "github.com/jonesrussell/goforms/internal/handlers/web"
+	webhandler "github.com/jonesrussell/goforms/internal/handlers/web"
 	wh_auth "github.com/jonesrussell/goforms/internal/handlers/web/auth"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
@@ -22,7 +22,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
-	ph "github.com/jonesrussell/goforms/internal/presentation/handlers"
+	"github.com/jonesrussell/goforms/internal/presentation/handlers"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
@@ -186,7 +186,7 @@ var HandlerModule = fx.Options(
 	}),
 	// Web handlers
 	AnnotateHandler(func(core CoreParams, middlewareManager *middleware.Manager) (h.Handler, error) {
-		handler := wh.NewHomeHandler(core.Logger, core.Renderer)
+		handler := webhandler.NewHomeHandler(core.Logger, core.Renderer)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
 		}
@@ -217,7 +217,7 @@ var HandlerModule = fx.Options(
 		) (h.Handler, error) {
 			handler, err := handler.NewWebHandler(
 				core.Logger,
-				handler.WithRenderer(core.Renderer),
+				core.Renderer,
 				handler.WithMiddlewareManager(middlewareManager),
 				handler.WithConfig(core.Config),
 			)
@@ -248,7 +248,7 @@ var HandlerModule = fx.Options(
 	}),
 	// Dashboard handler
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
-		handler, err := ph.NewDashboardHandler(services.UserService, services.FormService, core.Logger)
+		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
 		}

@@ -10,8 +10,10 @@ import (
 )
 
 var (
+	// ErrNotFound is returned when a user cannot be found
 	ErrNotFound = errors.New("user not found")
-	ErrNoValue  = errors.New("no value returned")
+	// ErrNoValue is returned when no value is available
+	ErrNoValue = errors.New("no value returned")
 )
 
 // UserStore is a mock implementation of user.Store interface

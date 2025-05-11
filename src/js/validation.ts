@@ -15,7 +15,7 @@ export type ValidationResult = {
 };
 
 // Schema cache
-const schemaCache: Record<string, z.ZodType<any>> = {};
+const schemaCache: Record<string, z.ZodType<Record<string, string>>> = {};
 
 export const validation = {
   clearError(fieldId: string): void {

@@ -11,16 +11,18 @@ import (
 	"golang.org/x/crypto/bcrypt"
 )
 
-type AuthHandler struct {
+// Handler handles authentication-related HTTP requests
+type Handler struct {
 	base     handlers.Base
 	userRepo repositories.UserRepository
 }
 
-func NewAuthHandler(
+// NewHandler creates a new authentication handler
+func NewHandler(
 	logger logging.Logger,
 	userRepo repositories.UserRepository,
-) *AuthHandler {
-	return &AuthHandler{
+) *Handler {
+	return &Handler{
 		base: handlers.Base{
 			Logger: logger,
 		},
@@ -28,12 +30,14 @@ func NewAuthHandler(
 	}
 }
 
-func (h *AuthHandler) Register(e *echo.Echo) {
+// Register sets up the authentication routes
+func (h *Handler) Register(e *echo.Echo) {
 	h.base.RegisterRoute(e, "POST", "/api/v1/auth/signup", h.Signup)
 	h.base.RegisterRoute(e, "POST", "/api/v1/auth/login", h.Login)
 }
 
-func (h *AuthHandler) Signup(c echo.Context) error {
+// Signup handles user registration
+func (h *Handler) Signup(c echo.Context) error {
 	var req struct {
 		FirstName       string `json:"first_name"`
 		LastName        string `json:"last_name"`
@@ -90,7 +94,8 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 	return c.JSON(http.StatusCreated, map[string]string{"message": "User created successfully"})
 }
 
-func (h *AuthHandler) Login(c echo.Context) error {
+// Login handles user authentication
+func (h *Handler) Login(c echo.Context) error {
 	var req struct {
 		Email    string `json:"email"`
 		Password string `json:"password"`

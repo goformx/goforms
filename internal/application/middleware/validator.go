@@ -9,7 +9,7 @@ type echoValidator struct {
 	validator *validation.Validator
 }
 
-// NewValidator returns an Echo-compatible validator using the domain validation system.
+// NewValidator creates a new Echo validator
 func NewValidator() *echoValidator {
 	return &echoValidator{
 		validator: validation.New(),

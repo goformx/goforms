@@ -1,6 +1,8 @@
 package admin
 
 import (
+	"net/http"
+
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/handlers"
@@ -12,14 +14,16 @@ import (
 )
 
 const (
-	UnauthorizedErrorCode   = 401
-	InternalServerErrorCode = 500
+	// UnauthorizedErrorCode is the HTTP status code for unauthorized access
+	UnauthorizedErrorCode = http.StatusUnauthorized
+	// InternalServerErrorCode is the HTTP status code for internal server errors
+	InternalServerErrorCode = http.StatusInternalServerError
 )
 
 // DashboardHandler handles the admin dashboard routes
 type DashboardHandler struct {
 	base        handlers.Base
-	Renderer    *view.Renderer
+	renderer    *view.Renderer
 	UserService user.Service
 	FormService form.Service
 }
@@ -35,7 +39,7 @@ func NewDashboardHandler(
 		base: handlers.Base{
 			Logger: logger,
 		},
-		Renderer:    renderer,
+		renderer:    renderer,
 		UserService: userService,
 		FormService: formService,
 	}
@@ -70,5 +74,5 @@ func (h *DashboardHandler) showDashboard(c echo.Context) error {
 		Forms: forms,
 	}
 
-	return h.Renderer.Render(c, pages.Dashboard(data))
+	return h.renderer.Render(c, pages.Dashboard(data))
 }

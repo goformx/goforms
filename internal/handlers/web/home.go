@@ -12,7 +12,8 @@ import (
 // HomeHandler handles the homepage routes
 type HomeHandler struct {
 	base     handlers.Base
-	Renderer *view.Renderer
+	logger   logging.Logger
+	renderer *view.Renderer
 }
 
 // NewHomeHandler creates a new HomeHandler
@@ -21,7 +22,8 @@ func NewHomeHandler(logger logging.Logger, renderer *view.Renderer) *HomeHandler
 		base: handlers.Base{
 			Logger: logger,
 		},
-		Renderer: renderer,
+		logger:   logger,
+		renderer: renderer,
 	}
 }
 
@@ -39,5 +41,5 @@ func (h *HomeHandler) handleHome(c echo.Context) error {
 		CSRFToken: "", // No CSRF token needed for homepage
 	}
 
-	return h.Renderer.Render(c, pages.Home(data))
+	return h.renderer.Render(c, pages.Home(data))
 }
