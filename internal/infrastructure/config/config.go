@@ -98,14 +98,14 @@ func (c *AppConfig) IsDevelopment() bool {
 
 // DatabaseConfig holds all database-related configuration
 type DatabaseConfig struct {
-	Host           string        `envconfig:"GOFORMS_DB_HOST" validate:"required"`
-	Port           int           `envconfig:"GOFORMS_DB_PORT" validate:"required"`
-	User           string        `envconfig:"GOFORMS_DB_USER" validate:"required"`
-	Password       string        `envconfig:"GOFORMS_DB_PASSWORD" validate:"required"`
-	Name           string        `envconfig:"GOFORMS_DB_NAME" validate:"required"`
-	MaxOpenConns   int           `envconfig:"GOFORMS_DB_MAX_OPEN_CONNS" default:"25"`
-	MaxIdleConns   int           `envconfig:"GOFORMS_DB_MAX_IDLE_CONNS" default:"25"`
-	ConnMaxLifetme time.Duration `envconfig:"GOFORMS_DB_CONN_MAX_LIFETIME" default:"5m"`
+	Host            string        `envconfig:"GOFORMS_DB_HOST" validate:"required"`
+	Port            int           `envconfig:"GOFORMS_DB_PORT" validate:"required"`
+	User            string        `envconfig:"GOFORMS_DB_USER" validate:"required"`
+	Password        string        `envconfig:"GOFORMS_DB_PASSWORD" validate:"required"`
+	Name            string        `envconfig:"GOFORMS_DB_NAME" validate:"required"`
+	MaxOpenConns    int           `envconfig:"GOFORMS_DB_MAX_OPEN_CONNS" default:"25"`
+	MaxIdleConns    int           `envconfig:"GOFORMS_DB_MAX_IDLE_CONNS" default:"25"`
+	ConnMaxLifetime time.Duration `envconfig:"GOFORMS_DB_CONN_MAX_LIFETIME" default:"5m"`
 }
 
 // ServerConfig holds all server-related configuration

@@ -57,7 +57,7 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 	// Configure connection pool
 	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
-	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetme)
+	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
 
 	// Verify connection
 	logger.Debug("pinging database to verify connection")
@@ -121,7 +121,7 @@ func NewDatabase(cfg *config.Config) (*sqlx.DB, error) {
 
 	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
-	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetme)
+	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
 
 	if pingErr := db.Ping(); pingErr != nil {
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)

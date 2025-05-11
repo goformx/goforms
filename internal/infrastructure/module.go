@@ -80,7 +80,7 @@ func validateDatabaseConfig(cfg *config.DatabaseConfig) []string {
 	if cfg.MaxIdleConns <= 0 {
 		validationErrors = append(validationErrors, "database max idle connections must be a positive number")
 	}
-	if cfg.ConnMaxLifetme <= 0 {
+	if cfg.ConnMaxLifetime <= 0 {
 		validationErrors = append(validationErrors, "database connection max lifetime must be a positive duration")
 	}
 	return validationErrors

@@ -11,6 +11,7 @@ import (
 	"syscall"
 	"time"
 
+	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -45,6 +46,17 @@ func main() {
 // run orchestrates the application startup process.
 // It sets up signal handling and starts the application.
 func run() error {
+	// Create a temporary logger for startup
+	logger, err := logging.NewFactory().CreateFromConfig(nil)
+	if err != nil {
+		return fmt.Errorf("failed to create startup logger: %w", err)
+	}
+
+	// Load .env file
+	if loadErr := godotenv.Load(); loadErr != nil {
+		logger.Warn("failed to load .env file", logging.Error(loadErr))
+	}
+
 	// Create a cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
