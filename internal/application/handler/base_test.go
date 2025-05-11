@@ -6,6 +6,7 @@ import (
 
 	"github.com/golang/mock/gomock"
 	"github.com/jonesrussell/goforms/internal/application/handler"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -76,6 +77,6 @@ func TestBase_LogError(t *testing.T) {
 		err := errors.New("test error")
 		logger.EXPECT().Error("test message", gomock.Any()).Times(1)
 
-		base.LogError("test message", err, mocklogging.String("key", "value"))
+		base.LogError("test message", err, logging.StringField("key", "value"))
 	})
 }

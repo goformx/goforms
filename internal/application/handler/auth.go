@@ -117,9 +117,8 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		}
 	}
 
-	h.Logger.Debug("signup successful",
-		logging.IntField("user_id", int(newUser.ID)),
-		logging.StringField("email", newUser.Email),
+	h.Logger.Info("User created successfully",
+		logging.UintField("user_id", newUser.ID),
 	)
 	return c.JSON(http.StatusCreated, newUser)
 }

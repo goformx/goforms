@@ -17,13 +17,13 @@ type Config struct {
 
 // Factory creates loggers based on configuration
 type Factory struct {
-	initialFields map[string]interface{}
+	initialFields map[string]any
 }
 
 // NewFactory creates a new logger factory
 func NewFactory() *Factory {
 	return &Factory{
-		initialFields: map[string]interface{}{
+		initialFields: map[string]any{
 			"version": "1.0.0",
 		},
 	}
@@ -45,18 +45,18 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 		level = zapcore.InfoLevel // fallback
 	}
 
-	config := zap.NewDevelopmentConfig()
-	config.EncoderConfig = encoderConfig
-	config.OutputPaths = []string{"stdout"}
-	config.Encoding = "console"
-	config.Level = zap.NewAtomicLevelAt(level)
+	zapConfig := zap.NewDevelopmentConfig()
+	zapConfig.EncoderConfig = encoderConfig
+	zapConfig.OutputPaths = []string{"stdout"}
+	zapConfig.Encoding = "console"
+	zapConfig.Level = zap.NewAtomicLevelAt(level)
 
 	// Use JSON encoding for production
 	if level >= zapcore.WarnLevel {
-		config.Encoding = "json"
+		zapConfig.Encoding = "json"
 	}
 
-	zapLog, err := config.Build(
+	zapLog, err := zapConfig.Build(
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),
 		zap.Fields(
@@ -104,6 +104,8 @@ func convertFields(fields []LogField) []zap.Field {
 			zapFields[i] = zap.String(f.Key, f.String)
 		case AnyType:
 			zapFields[i] = zap.String(f.Key, f.String)
+		case UintType:
+			zapFields[i] = zap.Uint(f.Key, f.Uint)
 		}
 	}
 	return zapFields

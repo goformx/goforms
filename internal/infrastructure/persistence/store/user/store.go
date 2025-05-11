@@ -93,7 +93,7 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 	u.ID = uint(id)
 
 	s.logger.Info("user created",
-		logging.IntField("id", int(u.ID)),
+		logging.UintField("id", u.ID),
 		logging.StringField("email", u.Email),
 	)
 
@@ -140,7 +140,7 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 	}
 
 	s.logger.Debug("user found by email",
-		logging.IntField("id", int(u.ID)),
+		logging.UintField("id", u.ID),
 		logging.StringField("email", u.Email),
 	)
 	return &u, nil
@@ -174,6 +174,9 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 
+	s.logger.Info("User retrieved",
+		logging.UintField("id", u.ID),
+	)
 	return &u, nil
 }
 
@@ -229,7 +232,7 @@ func (s *Store) Update(ctx context.Context, u *user.User) error {
 	}
 
 	s.logger.Info("user updated",
-		logging.IntField("id", int(u.ID)),
+		logging.UintField("id", u.ID),
 		logging.StringField("email", u.Email),
 	)
 
@@ -275,7 +278,7 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 	}
 
 	s.logger.Info("user deleted",
-		logging.IntField("id", int(id)),
+		logging.UintField("id", id),
 	)
 
 	return nil

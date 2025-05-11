@@ -130,7 +130,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	}
 
 	s.logger.Debug("user created successfully",
-		logging.IntField("id", int(user.ID)),
+		logging.UintField("id", user.ID),
 		logging.StringField("email", user.Email),
 	)
 
@@ -356,6 +356,9 @@ func (s *ServiceImpl) GetUserByID(ctx context.Context, id uint) (*User, error) {
 		s.logger.Error("failed to get user by id", logging.ErrorField("error", err))
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
+	s.logger.Info("User retrieved",
+		logging.UintField("id", user.ID),
+	)
 	return user, nil
 }
 

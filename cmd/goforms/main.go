@@ -44,33 +44,39 @@ func main() {
 	}
 }
 
+// initializeLogger creates a new logger based on the environment
+func initializeLogger() (*zap.Logger, error) {
+	// Load .env file
+	if loadErr := godotenv.Load(); loadErr != nil {
+		// Initialize a basic logger for startup errors
+		logger, err := zap.NewDevelopment()
+		if err != nil {
+			return nil, fmt.Errorf("failed to create startup logger: %w", err)
+		}
+		logger.Warn("failed to load .env file", zap.Error(loadErr))
+		return logger, nil
+	}
+
+	// Initialize logger based on environment
+	if os.Getenv("GOFORMS_APP_ENV") == "development" {
+		return zap.NewDevelopment()
+	}
+	return zap.NewProduction()
+}
+
 // run orchestrates the application startup process.
 // It sets up signal handling and starts the application.
 func run() error {
 	// Create a temporary logger for startup
-	var logger *zap.Logger
-	var err error
-
-	// Load .env file
-	if loadErr := godotenv.Load(); loadErr != nil {
-		// Initialize a basic logger for startup errors
-		logger, err = zap.NewDevelopment()
-		if err != nil {
-			return fmt.Errorf("failed to create startup logger: %w", err)
-		}
-		logger.Warn("failed to load .env file", zap.Error(loadErr))
-	} else {
-		// Initialize logger based on environment
-		if os.Getenv("GOFORMS_APP_ENV") == "development" {
-			logger, err = zap.NewDevelopment()
-		} else {
-			logger, err = zap.NewProduction()
-		}
-		if err != nil {
-			return fmt.Errorf("failed to create logger: %w", err)
-		}
+	logger, err := initializeLogger()
+	if err != nil {
+		return fmt.Errorf("failed to initialize logger: %w", err)
 	}
-	defer logger.Sync()
+	defer func() {
+		if syncErr := logger.Sync(); syncErr != nil {
+			logger.Error("Failed to sync logger", zap.Error(syncErr))
+		}
+	}()
 
 	// Create a cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -80,13 +86,13 @@ func run() error {
 	go handleSignals(cancel)
 
 	// Create and run the application
-	app := createApp(logger)
+	app := createApp()
 	return runApp(ctx, app)
 }
 
 // createApp sets up the dependency injection container using fx.
 // It provides all necessary dependencies and modules for the application.
-func createApp(logger *zap.Logger) *fx.App {
+func createApp() *fx.App {
 	return fx.New(
 		// Core dependencies that are required for basic functionality
 		fx.Provide(

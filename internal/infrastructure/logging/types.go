@@ -2,22 +2,24 @@
 package logging
 
 import (
-	"fmt"
+	"strconv"
 	"time"
 
 	"go.uber.org/zap"
 )
 
-// LogField represents a structured logging field
+// LogField represents a field in a log entry
 type LogField struct {
-	Key    string
 	Type   FieldType
+	Key    string
 	String string
 	Int    int
 	Error  error
+	Uint   uint
+	Any    any
 }
 
-// FieldType represents the type of a logging field
+// FieldType represents the type of a log field
 type FieldType int
 
 const (
@@ -58,19 +60,19 @@ func Duration(key string, value time.Duration) Field { return zap.Duration(key, 
 func Any(key string, value any) Field { return zap.Any(key, value) }
 
 // StringField creates a string field
-func StringField(key string, value string) LogField {
+func StringField(key, value string) LogField {
 	return LogField{
-		Key:    key,
 		Type:   StringType,
+		Key:    key,
 		String: value,
 	}
 }
 
-// IntField creates an int field
+// IntField creates an integer field
 func IntField(key string, value int) LogField {
 	return LogField{
-		Key:  key,
 		Type: IntType,
+		Key:  key,
 		Int:  value,
 	}
 }
@@ -78,8 +80,8 @@ func IntField(key string, value int) LogField {
 // ErrorField creates an error field
 func ErrorField(key string, err error) LogField {
 	return LogField{
-		Key:   key,
 		Type:  ErrorType,
+		Key:   key,
 		Error: err,
 	}
 }
@@ -87,8 +89,8 @@ func ErrorField(key string, err error) LogField {
 // DurationField creates a duration field
 func DurationField(key string, value time.Duration) LogField {
 	return LogField{
-		Key:    key,
 		Type:   DurationType,
+		Key:    key,
 		String: value.String(),
 	}
 }
@@ -96,27 +98,27 @@ func DurationField(key string, value time.Duration) LogField {
 // BoolField creates a boolean field
 func BoolField(key string, value bool) LogField {
 	return LogField{
-		Key:    key,
 		Type:   BoolType,
-		String: fmt.Sprintf("%v", value),
+		Key:    key,
+		String: strconv.FormatBool(value),
 	}
 }
 
-// AnyField creates a field from any value
-func AnyField(key string, value interface{}) LogField {
+// AnyField creates a field for any type
+func AnyField(key string, value any) LogField {
 	return LogField{
-		Key:    key,
-		Type:   AnyType,
-		String: fmt.Sprintf("%v", value),
+		Type: AnyType,
+		Key:  key,
+		Any:  value,
 	}
 }
 
 // UintField creates an unsigned integer field
 func UintField(key string, value uint) LogField {
 	return LogField{
-		Key:    key,
-		Type:   UintType,
-		String: fmt.Sprintf("%d", value),
+		Type: UintType,
+		Key:  key,
+		Uint: value,
 	}
 }
 
