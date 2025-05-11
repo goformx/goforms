@@ -27,6 +27,12 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
@@ -43,6 +49,8 @@ jobs:
         run: |
           go mod download
           go mod tidy
+          npm install
+          npm run typecheck
 
       - name: Run linter
         uses: golangci/golangci-lint-action@v8
@@ -70,6 +78,12 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
@@ -86,6 +100,8 @@ jobs:
         run: |
           go mod download
           go mod tidy
+          npm install
+          npm run typecheck
 
       - name: Build all platforms
         run: |
