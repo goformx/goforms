@@ -15,6 +15,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
+	"go.uber.org/zap"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
@@ -47,15 +48,29 @@ func main() {
 // It sets up signal handling and starts the application.
 func run() error {
 	// Create a temporary logger for startup
-	logger, err := logging.NewFactory().CreateFromConfig(nil)
-	if err != nil {
-		return fmt.Errorf("failed to create startup logger: %w", err)
-	}
+	var logger *zap.Logger
+	var err error
 
 	// Load .env file
 	if loadErr := godotenv.Load(); loadErr != nil {
-		logger.Warn("failed to load .env file", logging.Error(loadErr))
+		// Initialize a basic logger for startup errors
+		logger, err = zap.NewDevelopment()
+		if err != nil {
+			return fmt.Errorf("failed to create startup logger: %w", err)
+		}
+		logger.Warn("failed to load .env file", zap.Error(loadErr))
+	} else {
+		// Initialize logger based on environment
+		if os.Getenv("GOFORMS_APP_ENV") == "development" {
+			logger, err = zap.NewDevelopment()
+		} else {
+			logger, err = zap.NewProduction()
+		}
+		if err != nil {
+			return fmt.Errorf("failed to create logger: %w", err)
+		}
 	}
+	defer logger.Sync()
 
 	// Create a cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
@@ -65,13 +80,13 @@ func run() error {
 	go handleSignals(cancel)
 
 	// Create and run the application
-	app := createApp()
+	app := createApp(logger)
 	return runApp(ctx, app)
 }
 
 // createApp sets up the dependency injection container using fx.
 // It provides all necessary dependencies and modules for the application.
-func createApp() *fx.App {
+func createApp(logger *zap.Logger) *fx.App {
 	return fx.New(
 		// Core dependencies that are required for basic functionality
 		fx.Provide(
@@ -92,8 +107,8 @@ func createApp() *fx.App {
 			newServer,
 		),
 		// Custom logger for fx events
-		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
-			return &logging.FxEventLogger{Logger: logger}
+		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
+			return &fxevent.ZapLogger{Logger: log}
 		}),
 		// Start the server using fx.Invoke
 		fx.Invoke(startServer),

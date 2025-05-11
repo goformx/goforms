@@ -1,8 +1,11 @@
 package config
 
 import (
+	"fmt"
 	"strings"
 	"time"
+
+	"github.com/kelseyhightower/envconfig"
 )
 
 const (
@@ -182,5 +185,11 @@ func New() (*Config, error) {
 			DistDir: "dist",
 		},
 	}
+
+	// Process environment variables
+	if err := envconfig.Process("", cfg); err != nil {
+		return nil, fmt.Errorf("failed to process environment variables: %w", err)
+	}
+
 	return cfg, nil
 }

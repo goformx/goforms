@@ -21,10 +21,10 @@ type Database struct {
 // NewDB creates a new database connection
 func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 	logger.Debug("building database connection string",
-		logging.String("host", cfg.Database.Host),
-		logging.Int("port", cfg.Database.Port),
-		logging.String("name", cfg.Database.Name),
-		logging.String("user", cfg.Database.User),
+		logging.StringField("host", cfg.Database.Host),
+		logging.IntField("port", cfg.Database.Port),
+		logging.StringField("name", cfg.Database.Name),
+		logging.StringField("user", cfg.Database.User),
 	)
 
 	// Construct DSN
@@ -42,16 +42,16 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 	db, err := sqlx.Connect("mysql", dsn)
 	if err != nil {
 		logger.Error("failed to connect to database",
-			logging.Error(err),
-			logging.String("host", cfg.Database.Host),
-			logging.Int("port", cfg.Database.Port),
+			logging.ErrorField(err),
+			logging.StringField("host", cfg.Database.Host),
+			logging.IntField("port", cfg.Database.Port),
 		)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
 	logger.Debug("setting database connection parameters",
-		logging.Int("max_open_conns", cfg.Database.MaxOpenConns),
-		logging.Int("max_idle_conns", cfg.Database.MaxIdleConns),
+		logging.IntField("max_open_conns", cfg.Database.MaxOpenConns),
+		logging.IntField("max_idle_conns", cfg.Database.MaxIdleConns),
 	)
 
 	// Configure connection pool
@@ -64,15 +64,15 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 	pingErr := db.Ping()
 	if pingErr != nil {
 		logger.Error("failed to ping database",
-			logging.Error(pingErr),
+			logging.ErrorField(pingErr),
 		)
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	logger.Info("successfully connected to database",
-		logging.String("host", cfg.Database.Host),
-		logging.Int("port", cfg.Database.Port),
-		logging.String("name", cfg.Database.Name),
+		logging.StringField("host", cfg.Database.Host),
+		logging.IntField("port", cfg.Database.Port),
+		logging.StringField("name", cfg.Database.Name),
 	)
 
 	return &Database{
@@ -85,7 +85,7 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 func (db *Database) Close() error {
 	db.logger.Debug("closing database connection")
 	if err := db.DB.Close(); err != nil {
-		db.logger.Error("failed to close database connection", logging.Error(err))
+		db.logger.Error("failed to close database connection", logging.ErrorField(err))
 		return fmt.Errorf("failed to close database connection: %w", err)
 	}
 	db.logger.Debug("database connection closed successfully")
@@ -97,7 +97,7 @@ func (db *Database) Begin() (*sqlx.Tx, error) {
 	db.logger.Debug("beginning database transaction")
 	tx, err := db.Beginx()
 	if err != nil {
-		db.logger.Error("failed to begin transaction", logging.Error(err))
+		db.logger.Error("failed to begin transaction", logging.ErrorField(err))
 		return nil, fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	db.logger.Debug("transaction started successfully")
