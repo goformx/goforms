@@ -5,7 +5,7 @@ let initializationCount = 0;
 
 // Initialize validation when the page loads
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOMContentLoaded event fired", new Error().stack);
+  console.log("DOMContentLoaded event fired");
   if (!isInitialized) {
     initializationCount++;
     console.log("Initialization attempt #", initializationCount);
@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 export function setupSignupForm() {
-  console.log("Setting up signup form", new Error().stack);
+  console.log("Setting up signup form");
   const form = document.getElementById("signup-form") as HTMLFormElement;
   const formError = document.getElementById("form_error") as HTMLDivElement;
 
