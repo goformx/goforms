@@ -4,9 +4,9 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
+	"go.uber.org/mock/gomock"
 )
 
 func TestLogger(t *testing.T) {

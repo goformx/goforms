@@ -5,8 +5,8 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/golang/mock/gomock"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/mock/gomock"
 
 	"github.com/jonesrussell/goforms/internal/application/middleware"
 	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
@@ -27,7 +27,7 @@ func TestLoggingMiddleware(t *testing.T) {
 	e := echo.New()
 	c := e.NewContext(req, rec)
 
-	mockLogger.EXPECT().Info("request", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Info("request completed", gomock.Any()).Times(1)
 
 	if err := loggingMiddleware(handler)(c); err != nil {
 		t.Fatalf("unexpected error: %v", err)
@@ -79,7 +79,7 @@ func TestLoggingMiddleware_RealIP(t *testing.T) {
 	defer ctrl.Finish()
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-	mockLogger.EXPECT().Info("request", gomock.Any()).Times(1)
+	mockLogger.EXPECT().Info("request completed", gomock.Any()).Times(1)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
