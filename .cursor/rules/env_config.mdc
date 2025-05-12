@@ -1,0 +1,96 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Environment Configuration Rule
+
+> **CRITICAL NOTE**: The AI agent (me) CANNOT access, create, or modify `.env` files due to security restrictions. I can only provide guidance on what should be in the file and help debug configuration issues.
+
+The application requires a `.env` file in the root directory with the following configuration:
+
+```env
+# =============================================
+# Application Core Settings
+# =============================================
+GOFORMS_APP_NAME=goforms
+GOFORMS_APP_ENV=development
+GOFORMS_APP_DEBUG=true
+GOFORMS_APP_LOGLEVEL=info
+
+# =============================================
+# Server Configuration
+# =============================================
+GOFORMS_APP_HOST=0.0.0.0
+GOFORMS_APP_PORT=8090
+
+# Server Timeouts
+GOFORMS_READ_TIMEOUT=5s
+GOFORMS_WRITE_TIMEOUT=10s
+GOFORMS_IDLE_TIMEOUT=120s
+GOFORMS_REQUEST_TIMEOUT=30s
+
+# =============================================
+# Database Configuration
+# =============================================
+GOFORMS_DB_HOST=db
+GOFORMS_DB_PORT=3306
+GOFORMS_DB_USER=goforms
+GOFORMS_DB_PASSWORD=goforms
+GOFORMS_DB_NAME=goforms
+GOFORMS_DB_ROOT_PASSWORD=toor
+
+# Database Connection Pool Settings
+GOFORMS_DB_MAX_OPEN_CONNS=25
+GOFORMS_DB_MAX_IDLE_CONNS=5
+GOFORMS_DB_CONN_MAX_LIFETIME=5m
+
+# =============================================
+# Security Configuration
+# =============================================
+# JWT Settings
+GOFORMS_JWT_SECRET=c076b05a97291c55faa2e5c3191dfd9b28849a64808798ac46d202779a6f3069ceaeab3322ec028c384928d31796e5c5b8794870f38e5d898861f3be4beb1a9d4ebabcdba17380a203d11d6582acb2f234f39145ffc8b767a698f3246d4677576550163a78d9a16cceb5550367236637d03376db52a7522ae8bd4b922c8d86badae17d516a51ea7ac39d4f8cda39597601cf2622b2341aa7589aef60fef6d4acccfc009ca676afa8ee0665ef0b5bb6ccbdd899242b94cd5ef73adb58eb50a1dae5668d2ca5252f24d4d01cad34c615c2ea8fdc01862e2b65e8b978b7a609776d963ddf97f9c945661a4032809bd2cbb8f9b314eaa539734cef43935da72c68a2
+
+# CSRF Settings
+GOFORMS_CSRF_ENABLED=true
+GOFORMS_CSRF_SECRET=hf/LRSeENwlRqRGtBljgU54+PsuKpyEp59nbjtCu+mY=
+
+# CORS Settings
+GOFORMS_CORS_ALLOWED_ORIGINS=http://localhost:3000,https://jonesrussell.github.io
+GOFORMS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+GOFORMS_CORS_ALLOWED_HEADERS=Origin,Content-Type,Accept,Authorization,X-Requested-With
+GOFORMS_CORS_MAX_AGE=3600
+GOFORMS_CORS_ALLOW_CREDENTIALS=true
+
+# =============================================
+# Rate Limiting Configuration
+# =============================================
+GOFORMS_RATE_LIMIT_ENABLED=true
+GOFORMS_RATE_LIMIT=100
+GOFORMS_RATE_BURST=5
+GOFORMS_RATE_LIMIT_TIME_WINDOW=1m
+GOFORMS_RATE_LIMIT_PER_IP=true
+
+# =============================================
+# Vite
+# =============================================
+GOFORMS_VITE_DEV_HOST=localhost
+GOFORMS_VITE_DEV_PORT=3000
+```
+
+## Important Notes:
+1. The `.env` file must be in the root directory of the project
+2. All environment variables must be prefixed with `GOFORMS_`
+3. Database connection settings must have positive values:
+   - `GOFORMS_DB_MAX_OPEN_CONNS=25`
+   - `GOFORMS_DB_MAX_IDLE_CONNS=5`
+   - `GOFORMS_DB_CONN_MAX_LIFETIME=5m`
+4. JWT secret must be at least 32 characters long
+5. The file is gitignored and should not be committed to version control 
+
+## Debugging .env Issues
+When debugging configuration issues:
+1. Ask the user to paste their `.env` file contents (with sensitive values redacted if needed)
+2. Compare the pasted contents with the template above
+3. Help identify any missing or incorrect values
+4. Guide the user on how to fix any issues found
