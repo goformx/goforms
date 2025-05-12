@@ -2,6 +2,7 @@ package config
 
 import (
 	"fmt"
+	"os"
 	"strings"
 	"time"
 
@@ -157,6 +158,16 @@ type CSRFConfig struct {
 
 // New creates a new Config instance with default values
 func New() (*Config, error) {
+	fmt.Printf("DEBUG: Starting configuration loading...\n")
+
+	// Print all environment variables for debugging
+	fmt.Printf("DEBUG: Current environment variables:\n")
+	for _, env := range os.Environ() {
+		if strings.HasPrefix(env, "GOFORMS_") {
+			fmt.Printf("DEBUG: %s\n", env)
+		}
+	}
+
 	cfg := &Config{
 		App: AppConfig{
 			Name:        "GoForms",
@@ -186,10 +197,23 @@ func New() (*Config, error) {
 		},
 	}
 
+	fmt.Printf("DEBUG: Default configuration created\n")
+
 	// Process environment variables
 	if err := envconfig.Process("", cfg); err != nil {
+		fmt.Printf("DEBUG: Error processing environment variables: %v\n", err)
 		return nil, fmt.Errorf("failed to process environment variables: %w", err)
 	}
+
+	fmt.Printf("DEBUG: Environment variables processed\n")
+	fmt.Printf("DEBUG: Final configuration values:\n")
+	fmt.Printf("DEBUG: Database - MaxOpenConns: %d, MaxIdleConns: %d, ConnMaxLifetime: %v\n",
+		cfg.Database.MaxOpenConns, cfg.Database.MaxIdleConns, cfg.Database.ConnMaxLifetime)
+	fmt.Printf("DEBUG: JWT Secret length: %d\n", len(cfg.Security.JWTSecret))
+	fmt.Printf("DEBUG: Database Host: %s\n", cfg.Database.Host)
+	fmt.Printf("DEBUG: Database Port: %d\n", cfg.Database.Port)
+	fmt.Printf("DEBUG: Database User: %s\n", cfg.Database.User)
+	fmt.Printf("DEBUG: Database Name: %s\n", cfg.Database.Name)
 
 	return cfg, nil
 }

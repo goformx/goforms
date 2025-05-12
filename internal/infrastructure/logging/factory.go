@@ -76,6 +76,11 @@ type ZapLogger struct {
 	log *zap.Logger
 }
 
+// GetZapLogger returns the underlying zap logger
+func (l *ZapLogger) GetZapLogger() *zap.Logger {
+	return l.log
+}
+
 func (l *ZapLogger) Info(msg string, fields ...LogField)  { l.log.Info(msg, convertFields(fields)...) }
 func (l *ZapLogger) Error(msg string, fields ...LogField) { l.log.Error(msg, convertFields(fields)...) }
 func (l *ZapLogger) Debug(msg string, fields ...LogField) { l.log.Debug(msg, convertFields(fields)...) }

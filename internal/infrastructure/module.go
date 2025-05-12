@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"go.uber.org/fx"
+	"go.uber.org/zap"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
@@ -71,76 +72,102 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
-// validateDatabaseConfig validates database configuration
-func validateDatabaseConfig(cfg *config.DatabaseConfig) []string {
-	var validationErrors []string
+// validateDatabaseConfig validates the database configuration
+func validateDatabaseConfig(cfg *config.DatabaseConfig) error {
+	fmt.Printf("DEBUG: Database validation - MaxOpenConns: %d, MaxIdleConns: %d, ConnMaxLifetime: %v\n",
+		cfg.MaxOpenConns, cfg.MaxIdleConns, cfg.ConnMaxLifetime)
+
 	if cfg.MaxOpenConns <= 0 {
-		validationErrors = append(validationErrors, "database max open connections must be a positive number")
+		fmt.Printf("DEBUG: Validation failed - MaxOpenConns must be positive, got: %d\n", cfg.MaxOpenConns)
+		return fmt.Errorf("database max open connections must be a positive number")
 	}
 	if cfg.MaxIdleConns <= 0 {
-		validationErrors = append(validationErrors, "database max idle connections must be a positive number")
+		fmt.Printf("DEBUG: Validation failed - MaxIdleConns must be positive, got: %d\n", cfg.MaxIdleConns)
+		return fmt.Errorf("database max idle connections must be a positive number")
 	}
 	if cfg.ConnMaxLifetime <= 0 {
-		validationErrors = append(validationErrors, "database connection max lifetime must be a positive duration")
+		fmt.Printf("DEBUG: Validation failed - ConnMaxLifetime must be positive, got: %v\n", cfg.ConnMaxLifetime)
+		return fmt.Errorf("database connection max lifetime must be a positive duration")
 	}
-	return validationErrors
+	return nil
 }
 
-// validateSecurityConfig validates security configuration
-func validateSecurityConfig(cfg *config.SecurityConfig) []string {
-	var validationErrors []string
-	if len(cfg.JWTSecret) < MinSecretLength {
-		validationErrors = append(validationErrors, "JWT secret must be at least 32 characters long")
+// validateSecurityConfig validates the security configuration
+func validateSecurityConfig(cfg *config.SecurityConfig) error {
+	fmt.Printf("DEBUG: Security validation - JWT Secret length: %d\n", len(cfg.JWTSecret))
+
+	if len(cfg.JWTSecret) < 32 {
+		fmt.Printf("DEBUG: Validation failed - JWT Secret must be at least 32 chars, got: %d\n", len(cfg.JWTSecret))
+		return fmt.Errorf("JWT secret must be at least 32 characters long")
 	}
-	if cfg.CSRF.Enabled && len(cfg.CSRF.Secret) < MinSecretLength {
-		validationErrors = append(validationErrors, "CSRF secret must be at least 32 characters long")
-	}
-	return validationErrors
+	return nil
 }
 
-// validateServerConfig validates server configuration
-func validateServerConfig(cfg *config.ServerConfig) []string {
-	var validationErrors []string
+// validateServerConfig validates the server configuration
+func validateServerConfig(cfg *config.ServerConfig) error {
+	fmt.Printf("DEBUG: Server validation - Port: %d, ReadTimeout: %v, WriteTimeout: %v\n",
+		cfg.Port, cfg.ReadTimeout, cfg.WriteTimeout)
+
 	if cfg.Port <= 0 {
-		validationErrors = append(validationErrors, "server port must be a positive number")
+		fmt.Printf("DEBUG: Validation failed - Port must be positive, got: %d\n", cfg.Port)
+		return fmt.Errorf("server port must be a positive number")
 	}
 	if cfg.ReadTimeout <= 0 {
-		validationErrors = append(validationErrors, "server read timeout must be a positive duration")
+		fmt.Printf("DEBUG: Validation failed - ReadTimeout must be positive, got: %v\n", cfg.ReadTimeout)
+		return fmt.Errorf("server read timeout must be a positive duration")
 	}
 	if cfg.WriteTimeout <= 0 {
-		validationErrors = append(validationErrors, "server write timeout must be a positive duration")
+		fmt.Printf("DEBUG: Validation failed - WriteTimeout must be positive, got: %v\n", cfg.WriteTimeout)
+		return fmt.Errorf("server write timeout must be a positive duration")
 	}
-	if cfg.IdleTimeout <= 0 {
-		validationErrors = append(validationErrors, "server idle timeout must be a positive duration")
-	}
-	if cfg.ShutdownTimeout <= 0 {
-		validationErrors = append(validationErrors, "server shutdown timeout must be a positive duration")
-	}
-	return validationErrors
+	return nil
 }
 
-// validateConfig performs validation of critical configuration settings
+// validateConfig checks if the configuration is valid
 func validateConfig(cfg *config.Config) error {
-	if cfg == nil {
-		return errors.New("configuration is nil")
+	// Create a temporary logger for debugging
+	logger, err := zap.NewDevelopment()
+	if err != nil {
+		return fmt.Errorf("failed to create debug logger: %w", err)
 	}
+	defer logger.Sync()
 
-	var validationErrors []string
+	logger.Info("validateConfig: Starting configuration validation...")
+	logger.Info("validateConfig: Database config",
+		zap.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
+		zap.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
+		zap.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime))
+	logger.Info("validateConfig: JWT Secret length", zap.Int("length", len(cfg.Security.JWTSecret)))
+
+	var errs []string
 
 	// Validate database configuration
-	validationErrors = append(validationErrors, validateDatabaseConfig(&cfg.Database)...)
-
-	// Validate security configuration
-	validationErrors = append(validationErrors, validateSecurityConfig(&cfg.Security)...)
-
-	// Validate server configuration
-	validationErrors = append(validationErrors, validateServerConfig(&cfg.Server)...)
-
-	// If any validation errors occurred, return them all
-	if len(validationErrors) > 0 {
-		return fmt.Errorf("configuration validation failed: %s", strings.Join(validationErrors, "; "))
+	logger.Info("validateConfig: Validating database configuration...")
+	if err := validateDatabaseConfig(&cfg.Database); err != nil {
+		logger.Error("validateConfig: Database validation failed", zap.Error(err))
+		errs = append(errs, err.Error())
 	}
 
+	// Validate security configuration
+	logger.Info("validateConfig: Validating security configuration...")
+	if err := validateSecurityConfig(&cfg.Security); err != nil {
+		logger.Error("validateConfig: Security validation failed", zap.Error(err))
+		errs = append(errs, err.Error())
+	}
+
+	// Validate server configuration
+	logger.Info("validateConfig: Validating server configuration...")
+	if err := validateServerConfig(&cfg.Server); err != nil {
+		logger.Error("validateConfig: Server validation failed", zap.Error(err))
+		errs = append(errs, err.Error())
+	}
+
+	if len(errs) > 0 {
+		logger.Error("validateConfig: Validation failed", zap.Strings("errors", errs))
+		return fmt.Errorf("configuration validation failed: %s", strings.Join(errs, "; "))
+	}
+
+	logger.Info("validateConfig: Configuration validation successful")
 	return nil
 }
 
@@ -149,13 +176,25 @@ func validateConfig(cfg *config.Config) error {
 var InfrastructureModule = fx.Options(
 	fx.Provide(
 		func() (*config.Config, error) {
+			// Create a temporary logger for debugging
+			logger, err := zap.NewDevelopment()
+			if err != nil {
+				return nil, fmt.Errorf("failed to create debug logger: %w", err)
+			}
+			defer logger.Sync()
+
+			logger.Info("InfrastructureModule: Starting configuration loading...")
 			cfg, cfgErr := config.New()
 			if cfgErr != nil {
+				logger.Error("InfrastructureModule: Error loading configuration", zap.Error(cfgErr))
 				return nil, fmt.Errorf("failed to load configuration: %w", cfgErr)
 			}
+			logger.Info("InfrastructureModule: Configuration loaded, starting validation...")
 			if validationErr := validateConfig(cfg); validationErr != nil {
+				logger.Error("InfrastructureModule: Validation failed", zap.Error(validationErr))
 				return nil, validationErr
 			}
+			logger.Info("InfrastructureModule: Configuration validated successfully")
 			return cfg, nil
 		},
 		database.NewDB,

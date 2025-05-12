@@ -8,6 +8,7 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
+	"strings"
 	"syscall"
 	"time"
 
@@ -38,25 +39,86 @@ const (
 // main is the entry point of the application.
 // It calls run() and handles any fatal errors that occur during startup.
 func main() {
+	fmt.Printf("DEBUG: Starting application...\n")
+
+	// Load .env file
+	fmt.Printf("DEBUG: Attempting to load .env file...\n")
+	if err := godotenv.Load(); err != nil {
+		if os.IsNotExist(err) {
+			fmt.Printf("DEBUG: .env file not found, continuing with environment variables\n")
+		} else {
+			fmt.Printf("DEBUG: Error loading .env file: %v\n", err)
+		}
+	} else {
+		fmt.Printf("DEBUG: .env file loaded successfully\n")
+	}
+
+	// Print all environment variables for debugging
+	fmt.Printf("\nDEBUG: Environment Variables:\n")
+	fmt.Printf("=============================================\n")
+
+	// Print all GOFORMS_ prefixed variables
+	for _, env := range os.Environ() {
+		if strings.HasPrefix(env, "GOFORMS_") {
+			// Split the environment variable into key and value
+			parts := strings.SplitN(env, "=", 2)
+			if len(parts) == 2 {
+				key := parts[0]
+				value := parts[1]
+
+				// Mask sensitive values
+				if strings.Contains(strings.ToLower(key), "secret") ||
+					strings.Contains(strings.ToLower(key), "password") {
+					value = "********"
+				}
+
+				fmt.Printf("%s = %s\n", key, value)
+			}
+		}
+	}
+	fmt.Printf("=============================================\n\n")
+
+	// Check required environment variables
+	requiredVars := []string{
+		"GOFORMS_DB_MAX_OPEN_CONNS",
+		"GOFORMS_DB_MAX_IDLE_CONNS",
+		"GOFORMS_DB_CONN_MAX_LIFETIME",
+		"GOFORMS_JWT_SECRET",
+		"GOFORMS_DB_HOST",
+		"GOFORMS_DB_PORT",
+		"GOFORMS_DB_USER",
+		"GOFORMS_DB_PASSWORD",
+		"GOFORMS_DB_NAME",
+	}
+
+	fmt.Printf("DEBUG: Checking environment variables...\n")
+	var missingVars []string
+	for _, v := range requiredVars {
+		value := os.Getenv(v)
+		if value == "" {
+			missingVars = append(missingVars, v)
+			fmt.Printf("DEBUG: Missing environment variable: %s\n", v)
+		} else {
+			fmt.Printf("DEBUG: Found environment variable %s = %s\n", v, value)
+		}
+	}
+
+	if len(missingVars) > 0 {
+		fmt.Printf("ERROR: Missing required environment variables: %s\n", strings.Join(missingVars, ", "))
+		os.Exit(1)
+	}
+
+	fmt.Printf("DEBUG: All required environment variables found\n")
+
+	// Run the application
 	if err := run(); err != nil {
-		fmt.Fprintf(os.Stderr, "Error: %v\n", err)
+		fmt.Printf("Error: %v\n", err)
 		os.Exit(1)
 	}
 }
 
 // initializeLogger creates a new logger based on the environment
 func initializeLogger() (*zap.Logger, error) {
-	// Load .env file
-	if loadErr := godotenv.Load(); loadErr != nil {
-		// Initialize a basic logger for startup errors
-		logger, err := zap.NewDevelopment()
-		if err != nil {
-			return nil, fmt.Errorf("failed to create startup logger: %w", err)
-		}
-		logger.Warn("failed to load .env file", zap.Error(loadErr))
-		return logger, nil
-	}
-
 	// Initialize logger based on environment
 	if os.Getenv("GOFORMS_APP_ENV") == "development" {
 		return zap.NewDevelopment()
@@ -74,7 +136,7 @@ func run() error {
 	}
 	defer func() {
 		if syncErr := logger.Sync(); syncErr != nil {
-			logger.Error("Failed to sync logger", zap.Error(syncErr))
+			fmt.Printf("DEBUG: Failed to sync logger: %v\n", syncErr)
 		}
 	}()
 
@@ -86,20 +148,28 @@ func run() error {
 	go handleSignals(cancel)
 
 	// Create and run the application
-	app := createApp()
+	app := createApp(logging.NewZapLogger(logger))
 	return runApp(ctx, app)
 }
 
 // createApp sets up the dependency injection container using fx.
 // It provides all necessary dependencies and modules for the application.
-func createApp() *fx.App {
+func createApp(log logging.Logger) *fx.App {
 	return fx.New(
 		// Core dependencies that are required for basic functionality
 		fx.Provide(
 			GetVersion,
 			logging.NewFactory,
-			func(cfg *config.Config, logFactory *logging.Factory) (logging.Logger, error) {
-				return logFactory.CreateFromConfig(cfg)
+			// Provide the initial logger
+			func() logging.Logger { return log },
+			// Provide the raw zap logger for FX events
+			func() *zap.Logger {
+				if zapLogger, ok := log.(*logging.ZapLogger); ok {
+					return zapLogger.GetZapLogger()
+				}
+				// Fallback to a new development logger if conversion fails
+				devLogger, _ := zap.NewDevelopment()
+				return devLogger
 			},
 		),
 		// Infrastructure module for database, cache, etc.
@@ -112,7 +182,7 @@ func createApp() *fx.App {
 		fx.Provide(
 			newServer,
 		),
-		// Custom logger for fx events
+		// Custom logger for fx events - use the raw zap logger
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
 		}),
