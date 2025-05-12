@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -38,24 +39,24 @@ const (
 // main is the entry point of the application.
 // It calls run() and handles any fatal errors that occur during startup.
 func main() {
-	logger, err := createLogger(logging.NewFactory())
+	log, err := createLogger(logging.NewFactory())
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to create logger: %v\n", err)
 		return
 	}
 
-	if runErr := run(logger); runErr != nil {
-		logger.Error("Application error", logging.Error(runErr))
+	if runErr := run(log); runErr != nil {
+		log.Error("Application error", logging.Error(runErr))
 		return
 	}
 }
 
 func createLogger(factory *logging.Factory) (logging.Logger, error) {
-	logger, err := factory.CreateLogger()
+	log, err := factory.CreateLogger()
 	if err != nil {
 		return nil, fmt.Errorf("logger initialization failed: %w", err) // Wrap with full context
 	}
-	return logger, nil
+	return log, nil
 }
 
 // run orchestrates the application startup process.
@@ -64,7 +65,7 @@ func run(log logging.Logger) error {
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel() // Ensure cleanup happens when function exits
 
-	go handleSignals(cancel)
+	go handleSignals(cancel, log)
 
 	app := createApp(log)
 
@@ -93,20 +94,13 @@ func createApp(log logging.Logger) *fx.App {
 		// Core dependencies that are required for basic functionality
 		fx.Provide(
 			GetVersion,
-			logging.NewFactory,
-			// Provide the initial logger
 			func() logging.Logger { return log },
 			// Provide the raw zap logger for FX events
 			func() (*zap.Logger, error) {
 				if zapLogger, ok := log.(*logging.ZapLogger); ok {
 					return zapLogger.GetZapLogger(), nil
 				}
-				// Fallback to a new development logger if conversion fails
-				devLogger, err := zap.NewDevelopment()
-				if err != nil {
-					return nil, fmt.Errorf("failed to create development logger: %w", err)
-				}
-				return devLogger, nil
+				return nil, errors.New("logger conversion failed") // Explicit failure instead of fallback
 			},
 		),
 		// Infrastructure module for database, cache, etc.
@@ -131,10 +125,11 @@ func createApp(log logging.Logger) *fx.App {
 
 // handleSignals sets up signal handling for graceful shutdown.
 // It listens for SIGINT (Ctrl+C) and SIGTERM signals.
-func handleSignals(cancel context.CancelFunc) {
+func handleSignals(cancel context.CancelFunc, log logging.Logger) {
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-	<-signalChan
+	sig := <-signalChan
+	log.Info("Received shutdown signal", logging.StringField("signal", sig.String()))
 	cancel()
 }
 
@@ -142,19 +137,13 @@ func handleSignals(cancel context.CancelFunc) {
 // It sets up middleware, logging, and security features.
 func newServer(
 	cfg *config.Config,
-	logFactory *logging.Factory,
 	userService user.Service,
+	log logging.Logger,
 ) (
 	*echo.Echo,
 	*middleware.Manager,
 	error,
 ) {
-	// Create logger instance using converted config
-	logger, err := logFactory.CreateFromConfig(logging.FromAppConfig(cfg.App.Name, cfg.App.LogLevel, cfg.App.Debug))
-	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create logger from config: %w", err)
-	}
-
 	// Initialize Echo server
 	e := echo.New()
 	e.HideBanner = true
@@ -165,7 +154,7 @@ func newServer(
 
 	// Configure middleware stack using Manager pattern
 	mwManager := middleware.New(&middleware.ManagerConfig{
-		Logger:      logger,
+		Logger:      log,
 		UserService: userService,
 		Security:    &cfg.Security,
 	})
