@@ -14,6 +14,7 @@ import (
 	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 	"github.com/jonesrussell/goforms/internal/infrastructure/database"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 const (
@@ -24,11 +25,13 @@ const (
 )
 
 func main() {
-	var (
-		sourceURL string
-		command   string
-	)
+	sourceURL, command := parseFlags()
+	if err := performMigration(sourceURL, command); err != nil {
+		log.Fatal(err)
+	}
+}
 
+func parseFlags() (sourceURL, command string) {
 	flag.StringVar(&sourceURL, "source", defaultSourceURL, "Migration source URL")
 	flag.StringVar(&command, "command", "up", "Migration command (up/down)")
 	flag.Parse()
@@ -36,40 +39,67 @@ func main() {
 	if len(os.Args) < minArgs {
 		log.Fatal("Please provide a migration command (up/down)")
 	}
-
-	if err := performMigration(sourceURL, command); err != nil {
-		log.Fatal(err)
-	}
+	return sourceURL, command
 }
 
-func performMigration(sourceURL, command string) error {
-	// Load configuration
-	cfg, err := config.New()
-	if err != nil {
-		return fmt.Errorf("failed to load configuration: %w", err)
-	}
+func setupLogger() (logging.Logger, error) {
+	logFactory := logging.NewFactory()
+	return logFactory.CreateLogger()
+}
 
-	// Create database connection
-	db, err := database.NewDatabase(cfg)
+func setupDatabase(logger logging.Logger) (*database.Database, error) {
+	cfg, err := config.New(logger)
 	if err != nil {
-		return fmt.Errorf("failed to connect to database: %w", err)
+		return nil, fmt.Errorf("failed to load configuration: %w", err)
 	}
+	return database.NewDB(cfg, logger)
+}
 
-	// Configure MariaDB driver
-	driver, err := mysql.WithInstance(db.DB, &mysql.Config{
+func createMigrator(db *database.Database, cfg *config.Config, sourceURL string) (*migrate.Migrate, error) {
+	driver, err := mysql.WithInstance(db.DB.DB, &mysql.Config{
 		MigrationsTable: "schema_migrations",
 		DatabaseName:    cfg.Database.Name,
 	})
 	if err != nil {
-		db.Close()
-		return fmt.Errorf("failed to configure MySQL driver: %w", err)
+		return nil, fmt.Errorf("failed to configure MySQL driver: %w", err)
 	}
 
-	m, err := migrate.NewWithDatabaseInstance(sourceURL, "mysql", driver)
+	return migrate.NewWithDatabaseInstance(sourceURL, "mysql", driver)
+}
+
+func handleDirtyState(m *migrate.Migrate, version uint) error {
+	if version > uint(math.MaxInt) {
+		return fmt.Errorf("version value %d overflows int", version)
+	}
+	if err := m.Force(int(version)); err != nil {
+		return fmt.Errorf("failed to force version: %w", err)
+	}
+	log.Printf("Successfully forced version %d", version)
+	return nil
+}
+
+func performMigration(sourceURL, command string) error {
+	logger, err := setupLogger()
+	if err != nil {
+		return fmt.Errorf("failed to create logger: %w", err)
+	}
+
+	cfg, err := config.New(logger)
+	if err != nil {
+		return fmt.Errorf("failed to load configuration: %w", err)
+	}
+
+	db, err := setupDatabase(logger)
+	if err != nil {
+		return err
+	}
+
+	m, err := createMigrator(db, cfg, sourceURL)
 	if err != nil {
 		db.Close()
-		return fmt.Errorf("failed to create migrator: %w", err)
+		return err
 	}
+
 	defer func() {
 		sourceErr, closeErr := m.Close()
 		dbErr := db.Close()
@@ -78,74 +108,82 @@ func performMigration(sourceURL, command string) error {
 		}
 	}()
 
-	// Check current version
 	version, dirty, versionErr := m.Version()
 	if versionErr != nil && !errors.Is(versionErr, migrate.ErrNilVersion) {
 		return fmt.Errorf("failed to get migration version: %w", versionErr)
 	}
 	log.Printf("Current migration version: %d, dirty: %v", version, dirty)
 
-	// If database is dirty, try to fix it
 	if dirty {
 		log.Printf("Database is dirty at version %d, attempting to fix...", version)
-		if version > uint(math.MaxInt) {
-			return fmt.Errorf("version value %d overflows int", version)
+		if dirtyErr := handleDirtyState(m, version); dirtyErr != nil {
+			return dirtyErr
 		}
-		if forceErr := m.Force(int(version)); forceErr != nil {
-			return fmt.Errorf("failed to force version: %w", forceErr)
-		}
-		log.Printf("Successfully forced version %d", version)
 	}
 
-	migrationErr := runMigration(m, command)
-	if migrationErr != nil && !errors.Is(migrationErr, migrate.ErrNilVersion) {
-		return fmt.Errorf("migration failed: %w", migrationErr)
+	if migrationErr := runMigration(m, command); migrationErr != nil {
+		return migrationErr
 	}
 
-	// Check new version
-	version, dirty, versionErr = m.Version()
-	if versionErr != nil {
-		if errors.Is(versionErr, migrate.ErrNilVersion) {
+	return checkFinalVersion(m)
+}
+
+func checkFinalVersion(m *migrate.Migrate) error {
+	version, dirty, err := m.Version()
+	if err != nil {
+		if errors.Is(err, migrate.ErrNilVersion) {
 			log.Printf("New migration version: none (database is at base state), dirty: %v", dirty)
 			return nil
 		}
-		return fmt.Errorf("failed to get final migration version: %w", versionErr)
+		return fmt.Errorf("failed to get final migration version: %w", err)
 	}
 	log.Printf("New migration version: %d, dirty: %v", version, dirty)
-
 	return nil
 }
 
 func runMigration(m *migrate.Migrate, cmd string) error {
-	var migrationErr error
-
 	switch cmd {
 	case "up":
-		migrationErr = m.Up()
+		return handleUpMigration(m)
 	case "down":
-		migrationErr = m.Down()
+		return handleDownMigration(m)
 	case "down all":
-		for {
-			migrationErr = m.Down()
-			if migrationErr != nil {
-				if errors.Is(migrationErr, migrate.ErrNoChange) {
-					log.Printf("All migrations reverted")
-					return nil
-				}
-				return fmt.Errorf("migration error: %w", migrationErr)
-			}
-		}
+		return handleDownAllMigration(m)
 	default:
 		return fmt.Errorf("unknown command: %s", cmd)
 	}
+}
 
-	if migrationErr != nil {
-		if errors.Is(migrationErr, migrate.ErrNoChange) {
+func handleUpMigration(m *migrate.Migrate) error {
+	if err := m.Up(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
 			log.Printf("No migration needed")
 			return nil
 		}
-		return fmt.Errorf("migration error: %w", migrationErr)
+		return fmt.Errorf("migration error: %w", err)
 	}
-
 	return nil
+}
+
+func handleDownMigration(m *migrate.Migrate) error {
+	if err := m.Down(); err != nil {
+		if errors.Is(err, migrate.ErrNoChange) {
+			log.Printf("No migration needed")
+			return nil
+		}
+		return fmt.Errorf("migration error: %w", err)
+	}
+	return nil
+}
+
+func handleDownAllMigration(m *migrate.Migrate) error {
+	for {
+		if err := m.Down(); err != nil {
+			if errors.Is(err, migrate.ErrNoChange) {
+				log.Printf("All migrations reverted")
+				return nil
+			}
+			return fmt.Errorf("migration error: %w", err)
+		}
+	}
 }
