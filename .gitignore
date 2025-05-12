@@ -36,3 +36,4 @@ coverage/coverage.html
 node_modules/
 dist/
 coverage.html
+goforms.code-workspace
