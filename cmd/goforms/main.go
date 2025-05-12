@@ -38,23 +38,22 @@ const (
 // main is the entry point of the application.
 // It calls run() and handles any fatal errors that occur during startup.
 func main() {
-	// Create logger factory
 	logFactory := logging.NewFactory()
-	logger, err := logFactory.CreateLogger()
-	if err != nil {
-		os.Exit(1)
+	logger, logErr := logFactory.CreateLogger()
+	if logErr != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create logger: %v\n", logErr)
+		return // Avoid immediate exit; let lifecycle manage cleanup
 	}
 
-	// Run the application
 	if runErr := run(logger); runErr != nil {
 		logger.Error("Application error", logging.Error(runErr))
-		os.Exit(1)
+		return
 	}
 }
 
 // run orchestrates the application startup process.
 // It sets up signal handling and starts the application.
-func run(logger logging.Logger) error {
+func run(log logging.Logger) error {
 	// Create a cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -63,9 +62,25 @@ func run(logger logging.Logger) error {
 	go handleSignals(cancel)
 
 	// Create and run the application
-	app := createApp(logger)
+	app := createApp(log)
 
-	return runApp(ctx, app)
+	// Start the application with the provided context
+	if err := app.Start(ctx); err != nil {
+		return fmt.Errorf("failed to start application: %w", err)
+	}
+
+	// Wait for context cancellation (triggered by termination signals)
+	<-ctx.Done()
+
+	// Create a new context with timeout for graceful shutdown
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
+	defer cancel()
+
+	// Stop the application with the shutdown context
+	if err := app.Stop(shutdownCtx); err != nil {
+		return fmt.Errorf("failed to stop application gracefully: %w", err)
+	}
+	return nil
 }
 
 // createApp sets up the dependency injection container using fx.
@@ -79,13 +94,16 @@ func createApp(log logging.Logger) *fx.App {
 			// Provide the initial logger
 			func() logging.Logger { return log },
 			// Provide the raw zap logger for FX events
-			func() *zap.Logger {
+			func() (*zap.Logger, error) {
 				if zapLogger, ok := log.(*logging.ZapLogger); ok {
-					return zapLogger.GetZapLogger()
+					return zapLogger.GetZapLogger(), nil
 				}
 				// Fallback to a new development logger if conversion fails
-				devLogger, _ := zap.NewDevelopment()
-				return devLogger
+				devLogger, err := zap.NewDevelopment()
+				if err != nil {
+					return nil, fmt.Errorf("failed to create development logger: %w", err)
+				}
+				return devLogger, nil
 			},
 		),
 		// Infrastructure module for database, cache, etc.
@@ -106,28 +124,6 @@ func createApp(log logging.Logger) *fx.App {
 		// Start the server using fx.Invoke
 		fx.Invoke(startServer),
 	)
-}
-
-// runApp manages the application lifecycle.
-// It starts the application, waits for termination signals, and performs graceful shutdown.
-func runApp(ctx context.Context, app *fx.App) error {
-	// Start the application with the provided context
-	if err := app.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start application: %w", err)
-	}
-
-	// Wait for context cancellation (triggered by termination signals)
-	<-ctx.Done()
-
-	// Create a new context with timeout for graceful shutdown
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
-	defer cancel()
-
-	// Stop the application with the shutdown context
-	if err := app.Stop(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to stop application: %w", err)
-	}
-	return nil
 }
 
 // handleSignals sets up signal handling for graceful shutdown.
@@ -153,7 +149,7 @@ func newServer(
 	// Create logger instance using converted config
 	logger, err := logFactory.CreateFromConfig(logging.FromAppConfig(cfg.App.Name, cfg.App.LogLevel, cfg.App.Debug))
 	if err != nil {
-		return nil, nil, fmt.Errorf("failed to create logger: %w", err)
+		return nil, nil, fmt.Errorf("failed to create logger from config: %w", err)
 	}
 
 	// Initialize Echo server
