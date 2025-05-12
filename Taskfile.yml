@@ -57,6 +57,7 @@ tasks:
       - go install github.com/air-verse/air@latest
       - go install golang.org/x/lint/golint@latest
       - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
+      - go install go.uber.org/mock/mockgen@latest
       - export PATH=$PATH:$(go env GOPATH)/bin
       - npm install
 
@@ -64,6 +65,7 @@ tasks:
     desc: Generate code from templates
     cmds:
       - templ generate ./internal/...
+      - mockgen -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
 
   build:
     desc: Build the application
