@@ -8,11 +8,9 @@ import (
 	"fmt"
 	"os"
 	"os/signal"
-	"strings"
 	"syscall"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxevent"
@@ -28,6 +26,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/server"
 	"github.com/jonesrussell/goforms/internal/infrastructure/version"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
@@ -39,107 +38,23 @@ const (
 // main is the entry point of the application.
 // It calls run() and handles any fatal errors that occur during startup.
 func main() {
-	fmt.Printf("DEBUG: Starting application...\n")
-
-	// Load .env file
-	fmt.Printf("DEBUG: Attempting to load .env file...\n")
-	if err := godotenv.Load(); err != nil {
-		if os.IsNotExist(err) {
-			fmt.Printf("DEBUG: .env file not found, continuing with environment variables\n")
-		} else {
-			fmt.Printf("DEBUG: Error loading .env file: %v\n", err)
-		}
-	} else {
-		fmt.Printf("DEBUG: .env file loaded successfully\n")
-	}
-
-	// Print all environment variables for debugging
-	fmt.Printf("\nDEBUG: Environment Variables:\n")
-	fmt.Printf("=============================================\n")
-
-	// Print all GOFORMS_ prefixed variables
-	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, "GOFORMS_") {
-			// Split the environment variable into key and value
-			parts := strings.SplitN(env, "=", 2)
-			if len(parts) == 2 {
-				key := parts[0]
-				value := parts[1]
-
-				// Mask sensitive values
-				if strings.Contains(strings.ToLower(key), "secret") ||
-					strings.Contains(strings.ToLower(key), "password") {
-					value = "********"
-				}
-
-				fmt.Printf("%s = %s\n", key, value)
-			}
-		}
-	}
-	fmt.Printf("=============================================\n\n")
-
-	// Check required environment variables
-	requiredVars := []string{
-		"GOFORMS_DB_MAX_OPEN_CONNS",
-		"GOFORMS_DB_MAX_IDLE_CONNS",
-		"GOFORMS_DB_CONN_MAX_LIFETIME",
-		"GOFORMS_JWT_SECRET",
-		"GOFORMS_DB_HOST",
-		"GOFORMS_DB_PORT",
-		"GOFORMS_DB_USER",
-		"GOFORMS_DB_PASSWORD",
-		"GOFORMS_DB_NAME",
-	}
-
-	fmt.Printf("DEBUG: Checking environment variables...\n")
-	var missingVars []string
-	for _, v := range requiredVars {
-		value := os.Getenv(v)
-		if value == "" {
-			missingVars = append(missingVars, v)
-			fmt.Printf("DEBUG: Missing environment variable: %s\n", v)
-		} else {
-			fmt.Printf("DEBUG: Found environment variable %s = %s\n", v, value)
-		}
-	}
-
-	if len(missingVars) > 0 {
-		fmt.Printf("ERROR: Missing required environment variables: %s\n", strings.Join(missingVars, ", "))
+	// Create logger factory
+	logFactory := logging.NewFactory()
+	logger, err := logFactory.CreateLogger()
+	if err != nil {
 		os.Exit(1)
 	}
-
-	fmt.Printf("DEBUG: All required environment variables found\n")
 
 	// Run the application
-	if err := run(); err != nil {
-		fmt.Printf("Error: %v\n", err)
+	if runErr := run(logger); runErr != nil {
+		logger.Error("Application error", logging.Error(runErr))
 		os.Exit(1)
 	}
-}
-
-// initializeLogger creates a new logger based on the environment
-func initializeLogger() (*zap.Logger, error) {
-	// Initialize logger based on environment
-	if os.Getenv("GOFORMS_APP_ENV") == "development" {
-		return zap.NewDevelopment()
-	}
-	return zap.NewProduction()
 }
 
 // run orchestrates the application startup process.
 // It sets up signal handling and starts the application.
-func run() error {
-	// Create a temporary logger for startup
-	logger, err := initializeLogger()
-	if err != nil {
-		return fmt.Errorf("failed to initialize logger: %w", err)
-	}
-	defer func() {
-		if syncErr := logger.Sync(); syncErr != nil {
-			fmt.Printf("DEBUG: Failed to sync logger: %v\n", syncErr)
-		}
-	}()
-
+func run(logger logging.Logger) error {
 	// Create a cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
@@ -148,7 +63,8 @@ func run() error {
 	go handleSignals(cancel)
 
 	// Create and run the application
-	app := createApp(logging.NewZapLogger(logger))
+	app := createApp(logger)
+
 	return runApp(ctx, app)
 }
 
@@ -186,6 +102,7 @@ func createApp(log logging.Logger) *fx.App {
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
 		}),
+		fx.Invoke(web.InitializeAssets),
 		// Start the server using fx.Invoke
 		fx.Invoke(startServer),
 	)
@@ -233,8 +150,8 @@ func newServer(
 	*middleware.Manager,
 	error,
 ) {
-	// Create logger instance
-	logger, err := logFactory.CreateFromConfig(cfg)
+	// Create logger instance using converted config
+	logger, err := logFactory.CreateFromConfig(logging.FromAppConfig(cfg.App.Name, cfg.App.LogLevel, cfg.App.Debug))
 	if err != nil {
 		return nil, nil, fmt.Errorf("failed to create logger: %w", err)
 	}

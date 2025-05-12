@@ -68,19 +68,19 @@ func NewZapLogger(zapLog *zap.Logger) Logger {
 	return &logger{log: zapLog}
 }
 
-func (l *logger) Info(msg string, fields ...LogField)  { l.log.Info(msg, convertFields(fields)...) }
-func (l *logger) Error(msg string, fields ...LogField) { l.log.Error(msg, convertFields(fields)...) }
-func (l *logger) Debug(msg string, fields ...LogField) { l.log.Debug(msg, convertFields(fields)...) }
-func (l *logger) Warn(msg string, fields ...LogField)  { l.log.Warn(msg, convertFields(fields)...) }
-func (l *logger) Fatal(msg string, fields ...LogField) { l.log.Fatal(msg, convertFields(fields)...) }
+func (l *logger) Debug(msg string, fields ...any) { l.log.Debug(msg, convertToZapFields(fields)...) }
+func (l *logger) Info(msg string, fields ...any)  { l.log.Info(msg, convertToZapFields(fields)...) }
+func (l *logger) Warn(msg string, fields ...any)  { l.log.Warn(msg, convertToZapFields(fields)...) }
+func (l *logger) Error(msg string, fields ...any) { l.log.Error(msg, convertToZapFields(fields)...) }
+func (l *logger) Fatal(msg string, fields ...any) { l.log.Fatal(msg, convertToZapFields(fields)...) }
 
-func (l *logger) With(fields ...LogField) Logger {
-	return &logger{log: l.log.With(convertFields(fields)...)}
+func (l *logger) With(fields ...any) Logger {
+	return &logger{log: l.log.With(convertToZapFields(fields)...)}
 }
 
-func (l *noopLogger) Info(msg string, fields ...LogField)  {}
-func (l *noopLogger) Error(msg string, fields ...LogField) {}
-func (l *noopLogger) Debug(msg string, fields ...LogField) {}
-func (l *noopLogger) Warn(msg string, fields ...LogField)  {}
-func (l *noopLogger) Fatal(msg string, fields ...LogField) {}
-func (l *noopLogger) With(fields ...LogField) Logger       { return l }
+func (l *noopLogger) Debug(msg string, fields ...any) {}
+func (l *noopLogger) Info(msg string, fields ...any)  {}
+func (l *noopLogger) Warn(msg string, fields ...any)  {}
+func (l *noopLogger) Error(msg string, fields ...any) {}
+func (l *noopLogger) Fatal(msg string, fields ...any) {}
+func (l *noopLogger) With(fields ...any) Logger       { return l }

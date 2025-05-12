@@ -25,16 +25,13 @@ type ViteManifest map[string]ManifestEntry
 var (
 	// Manifest contains the webpack manifest data for asset versioning
 	Manifest ViteManifest
-	cfg      *config.Config
+	// Global config instance
+	globalAppConfig *config.AppConfig
 )
 
-func init() {
-	var err error
-	cfg, err = config.New()
-	if err != nil {
-		panic(fmt.Sprintf("failed to load config: %v", err))
-	}
-
+// InitializeAssets initializes the asset manifest with the provided configuration
+func InitializeAssets(cfg *config.Config) error {
+	globalAppConfig = &cfg.App // Store config globally
 	// Only load manifest in production mode
 	if !cfg.App.IsDevelopment() {
 		// Load the Vite manifest file
@@ -44,12 +41,12 @@ func init() {
 		manifestData, readErr := os.ReadFile(manifestPath)
 		if readErr != nil {
 			log.Printf("Warning: Could not read manifest file at %s: %v", manifestPath, readErr)
-			return
+			return readErr
 		}
 
 		if unmarshalErr := json.Unmarshal(manifestData, &Manifest); unmarshalErr != nil {
 			log.Printf("Warning: Could not parse manifest file: %v", unmarshalErr)
-			return
+			return unmarshalErr
 		}
 
 		log.Printf("Successfully loaded manifest with %d entries", len(Manifest))
@@ -57,12 +54,16 @@ func init() {
 			log.Printf("Manifest entry: %s -> %s", key, entry.File)
 		}
 	}
+	return nil
 }
 
 // GetAssetPath returns the path to an asset, handling development and production environments
 func GetAssetPath(asset string) string {
-	if cfg.App.Env == "development" {
-		hostPort := net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort)
+	if globalAppConfig == nil {
+		return fmt.Sprintf("/assets/%s", asset) // Fallback
+	}
+	if globalAppConfig.Env == "development" {
+		hostPort := net.JoinHostPort(globalAppConfig.ViteDevHost, globalAppConfig.ViteDevPort)
 		return fmt.Sprintf("http://%s/%s", hostPort, asset)
 	}
 	return fmt.Sprintf("/assets/%s", asset)
@@ -70,8 +71,11 @@ func GetAssetPath(asset string) string {
 
 // GetManifestPath returns the path to an asset from the manifest
 func GetManifestPath(asset string) string {
-	if cfg.App.Env == "development" {
-		hostPort := net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort)
+	if globalAppConfig == nil {
+		return fmt.Sprintf("/assets/%s", asset) // Fallback
+	}
+	if globalAppConfig.Env == "development" {
+		hostPort := net.JoinHostPort(globalAppConfig.ViteDevHost, globalAppConfig.ViteDevPort)
 		return fmt.Sprintf("http://%s/%s", hostPort, asset)
 	}
 	if path, ok := Manifest[asset]; ok {

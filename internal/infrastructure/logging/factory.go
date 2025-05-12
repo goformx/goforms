@@ -4,9 +4,16 @@ package logging
 import (
 	"fmt"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+)
+
+const (
+	// LogEncodingConsole represents console encoding for logs
+	LogEncodingConsole = "console"
+	// LogEncodingJSON represents JSON encoding for logs
+	LogEncodingJSON = "json"
 )
 
 // Config holds the configuration for creating a logger
@@ -29,6 +36,11 @@ func NewFactory() *Factory {
 	}
 }
 
+// CreateLogger creates a logger with default configuration
+func (f *Factory) CreateLogger() (Logger, error) {
+	return f.CreateFromConfig(config.New())
+}
+
 // CreateFromConfig creates a logger based on the provided configuration
 func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 	// Create encoder config
@@ -40,7 +52,7 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 
 	// Parse log level
 	var level zapcore.Level
-	levelErr := level.UnmarshalText([]byte(cfg.App.LogLevel))
+	levelErr := level.UnmarshalText([]byte(cfg.Level))
 	if levelErr != nil {
 		level = zapcore.InfoLevel // fallback
 	}
@@ -48,19 +60,19 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 	zapConfig := zap.NewDevelopmentConfig()
 	zapConfig.EncoderConfig = encoderConfig
 	zapConfig.OutputPaths = []string{"stdout"}
-	zapConfig.Encoding = "console"
+	zapConfig.Encoding = LogEncodingConsole
 	zapConfig.Level = zap.NewAtomicLevelAt(level)
 
 	// Use JSON encoding for production
 	if level >= zapcore.WarnLevel {
-		zapConfig.Encoding = "json"
+		zapConfig.Encoding = LogEncodingJSON
 	}
 
 	zapLog, err := zapConfig.Build(
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),
 		zap.Fields(
-			zap.String("app", cfg.App.Name),
+			zap.String("app", cfg.AppName),
 		),
 	)
 
@@ -81,36 +93,47 @@ func (l *ZapLogger) GetZapLogger() *zap.Logger {
 	return l.log
 }
 
-func (l *ZapLogger) Info(msg string, fields ...LogField)  { l.log.Info(msg, convertFields(fields)...) }
-func (l *ZapLogger) Error(msg string, fields ...LogField) { l.log.Error(msg, convertFields(fields)...) }
-func (l *ZapLogger) Debug(msg string, fields ...LogField) { l.log.Debug(msg, convertFields(fields)...) }
-func (l *ZapLogger) Warn(msg string, fields ...LogField)  { l.log.Warn(msg, convertFields(fields)...) }
-func (l *ZapLogger) Fatal(msg string, fields ...LogField) { l.log.Fatal(msg, convertFields(fields)...) }
-
-// With returns a new logger with the given fields
-func (l *ZapLogger) With(fields ...LogField) Logger {
-	return &ZapLogger{log: l.log.With(convertFields(fields)...)}
+// Debug logs a debug message
+func (l *ZapLogger) Debug(msg string, fields ...any) {
+	l.log.Debug(msg, convertToZapFields(fields)...)
 }
 
-// convertFields converts our LogField to zap.Field
-func convertFields(fields []LogField) []zap.Field {
+// Info logs an info message
+func (l *ZapLogger) Info(msg string, fields ...any) {
+	l.log.Info(msg, convertToZapFields(fields)...)
+}
+
+// Warn logs a warning message
+func (l *ZapLogger) Warn(msg string, fields ...any) {
+	l.log.Warn(msg, convertToZapFields(fields)...)
+}
+
+// Error logs an error message
+func (l *ZapLogger) Error(msg string, fields ...any) {
+	l.log.Error(msg, convertToZapFields(fields)...)
+}
+
+// Fatal logs a fatal message
+func (l *ZapLogger) Fatal(msg string, fields ...any) {
+	l.log.Fatal(msg, convertToZapFields(fields)...)
+}
+
+// With returns a new logger with the given fields
+func (l *ZapLogger) With(fields ...any) Logger {
+	return &ZapLogger{log: l.log.With(convertToZapFields(fields)...)}
+}
+
+// convertToZapFields converts any fields to zap.Field
+func convertToZapFields(fields []any) []zap.Field {
 	zapFields := make([]zap.Field, len(fields))
 	for i, f := range fields {
-		switch f.Type {
-		case StringType:
-			zapFields[i] = zap.String(f.Key, f.String)
-		case IntType:
-			zapFields[i] = zap.Int(f.Key, f.Int)
-		case ErrorType:
-			zapFields[i] = zap.Error(f.Error)
-		case DurationType:
-			zapFields[i] = zap.String(f.Key, f.String)
-		case BoolType:
-			zapFields[i] = zap.String(f.Key, f.String)
-		case AnyType:
-			zapFields[i] = zap.String(f.Key, f.String)
-		case UintType:
-			zapFields[i] = zap.Uint(f.Key, f.Uint)
+		switch v := f.(type) {
+		case LogField:
+			zapFields[i] = zap.Any(v.Key, v.Value)
+		case error:
+			zapFields[i] = zap.Error(v)
+		default:
+			zapFields[i] = zap.Any("", v)
 		}
 	}
 	return zapFields
@@ -129,4 +152,13 @@ func (f *Factory) AuthLogger(logger Logger) Logger {
 // CookieAuthLogger returns the shared logger for cookie auth middleware
 func (f *Factory) CookieAuthLogger(logger Logger) Logger {
 	return logger
+}
+
+// FromAppConfig converts an application config to a logging config
+func FromAppConfig(appName, logLevel string, debug bool) *config.Config {
+	return &config.Config{
+		Level:   logLevel,
+		AppName: appName,
+		Debug:   debug,
+	}
 }

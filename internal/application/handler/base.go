@@ -79,9 +79,9 @@ func (b *Base) WrapResponseError(err error, msg string) error {
 
 // LogError provides consistent error logging across all handlers.
 // It ensures errors are logged with proper context and additional fields.
-func (b *Base) LogError(msg string, err error, fields ...logging.LogField) {
+func (b *Base) LogError(msg string, err error, fields ...any) {
 	if err != nil {
-		fields = append(fields, logging.ErrorField("error", err))
+		fields = append(fields, logging.Error(err))
 	}
 	b.Logger.Error(msg, fields...)
 }

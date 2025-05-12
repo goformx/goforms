@@ -6,6 +6,9 @@ import (
 	"strings"
 	"time"
 
+	"github.com/joho/godotenv"
+	"github.com/jonesrussell/goforms/internal/infrastructure/common"
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -156,18 +159,27 @@ type CSRFConfig struct {
 	Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
 }
 
-// New creates a new Config instance with default values
-func New() (*Config, error) {
-	fmt.Printf("DEBUG: Starting configuration loading...\n")
+// New creates a new configuration instance
+func New(logger common.Logger) (*Config, error) {
+	logger.Info("Starting configuration loading...")
 
-	// Print all environment variables for debugging
-	fmt.Printf("DEBUG: Current environment variables:\n")
-	for _, env := range os.Environ() {
-		if strings.HasPrefix(env, "GOFORMS_") {
-			fmt.Printf("DEBUG: %s\n", env)
+	// Load .env file in development mode
+	if err := godotenv.Load(); err != nil {
+		// Only log a warning if the .env file is not found, as it's optional
+		if !os.IsNotExist(err) {
+			logger.Warn("Error loading .env file", logging.Error(err))
 		}
+	} else {
+		logger.Info("Loaded .env file")
 	}
 
+	// Log current environment variables
+	logger.Debug("Current environment variables")
+	for _, env := range os.Environ() {
+		logger.Debug("Environment variable", logging.String("value", env))
+	}
+
+	// Create default configuration
 	cfg := &Config{
 		App: AppConfig{
 			Name:        "GoForms",
@@ -196,24 +208,26 @@ func New() (*Config, error) {
 			DistDir: "dist",
 		},
 	}
-
-	fmt.Printf("DEBUG: Default configuration created\n")
+	logger.Debug("Default configuration created")
 
 	// Process environment variables
 	if err := envconfig.Process("", cfg); err != nil {
-		fmt.Printf("DEBUG: Error processing environment variables: %v\n", err)
+		logger.Error("Error processing environment variables", logging.Error(err))
 		return nil, fmt.Errorf("failed to process environment variables: %w", err)
 	}
+	logger.Debug("Environment variables processed")
 
-	fmt.Printf("DEBUG: Environment variables processed\n")
-	fmt.Printf("DEBUG: Final configuration values:\n")
-	fmt.Printf("DEBUG: Database - MaxOpenConns: %d, MaxIdleConns: %d, ConnMaxLifetime: %v\n",
-		cfg.Database.MaxOpenConns, cfg.Database.MaxIdleConns, cfg.Database.ConnMaxLifetime)
-	fmt.Printf("DEBUG: JWT Secret length: %d\n", len(cfg.Security.JWTSecret))
-	fmt.Printf("DEBUG: Database Host: %s\n", cfg.Database.Host)
-	fmt.Printf("DEBUG: Database Port: %d\n", cfg.Database.Port)
-	fmt.Printf("DEBUG: Database User: %s\n", cfg.Database.User)
-	fmt.Printf("DEBUG: Database Name: %s\n", cfg.Database.Name)
+	// Log final configuration values
+	logger.Debug("Final configuration values",
+		logging.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
+		logging.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
+		logging.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime),
+		logging.Int("JWTSecretLength", len(cfg.Security.JWTSecret)),
+		logging.String("DatabaseHost", cfg.Database.Host),
+		logging.Int("DatabasePort", cfg.Database.Port),
+		logging.String("DatabaseUser", cfg.Database.User),
+		logging.String("DatabaseName", cfg.Database.Name),
+	)
 
 	return cfg, nil
 }

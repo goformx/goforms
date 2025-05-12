@@ -68,10 +68,20 @@ tasks:
       - mockgen -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
 
   build:
-    desc: Build the application
+    desc: Build the application (frontend and backend in parallel)
     deps: [generate, format, verify]
     cmds:
+      - task: build:frontend
+      - task: build:backend
+
+  build:frontend:
+    desc: Build the frontend application
+    cmds:
       - npm run build
+
+  build:backend:
+    desc: Build the backend application
+    cmds:
       - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
 
   run:

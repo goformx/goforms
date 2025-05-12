@@ -33,23 +33,12 @@ func NewMapResponse(data map[string]any) *MapResponse {
 func getLogger(c echo.Context) logging.Logger {
 	logger := c.Get("logger")
 	if logger == nil {
-		// Fallback to echo's logger if our logger is not set
-		logger, err := logging.NewTestLogger()
-		if err != nil {
-			// If we can't create a test logger, return a no-op logger
-			return logging.NewNoopLogger()
-		}
-		return logger
+		return logging.NewNoopLogger()
 	}
 
 	log, ok := logger.(logging.Logger)
 	if !ok {
-		logger, err := logging.NewTestLogger()
-		if err != nil {
-			// If we can't create a test logger, return a no-op logger
-			return logging.NewNoopLogger()
-		}
-		return logger
+		return logging.NewNoopLogger()
 	}
 	return log
 }
