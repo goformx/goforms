@@ -38,11 +38,10 @@ const (
 // main is the entry point of the application.
 // It calls run() and handles any fatal errors that occur during startup.
 func main() {
-	logFactory := logging.NewFactory()
-	logger, logErr := logFactory.CreateLogger()
-	if logErr != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create logger: %v\n", logErr)
-		return // Avoid immediate exit; let lifecycle manage cleanup
+	logger, err := createLogger(logging.NewFactory())
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create logger: %v\n", err)
+		return
 	}
 
 	if runErr := run(logger); runErr != nil {
@@ -51,35 +50,39 @@ func main() {
 	}
 }
 
+func createLogger(factory *logging.Factory) (logging.Logger, error) {
+	logger, err := factory.CreateLogger()
+	if err != nil {
+		return nil, fmt.Errorf("logger initialization failed: %w", err) // Wrap with full context
+	}
+	return logger, nil
+}
+
 // run orchestrates the application startup process.
 // It sets up signal handling and starts the application.
 func run(log logging.Logger) error {
-	// Create a cancellable context for graceful shutdown
 	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
+	defer cancel() // Ensure cleanup happens when function exits
 
-	// Start a goroutine to handle termination signals
 	go handleSignals(cancel)
 
-	// Create and run the application
 	app := createApp(log)
 
-	// Start the application with the provided context
+	// Start the application
 	if err := app.Start(ctx); err != nil {
-		return fmt.Errorf("failed to start application: %w", err)
+		return fmt.Errorf("app startup failed: %w", err)
 	}
 
-	// Wait for context cancellation (triggered by termination signals)
-	<-ctx.Done()
+	<-ctx.Done() // Wait for signal
 
-	// Create a new context with timeout for graceful shutdown
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), ShutdownTimeout)
-	defer cancel()
+	// Properly handle shutdown with deferred cleanup
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), ShutdownTimeout)
+	defer cancelShutdown()
 
-	// Stop the application with the shutdown context
 	if err := app.Stop(shutdownCtx); err != nil {
-		return fmt.Errorf("failed to stop application gracefully: %w", err)
+		return fmt.Errorf("graceful shutdown failed: %w", err)
 	}
+
 	return nil
 }
 
