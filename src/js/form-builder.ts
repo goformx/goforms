@@ -1,15 +1,58 @@
 console.log("form-builder.ts");
 
-// import goforms from 'goforms-template';
+console.log("before import: goforms-template.");
+
 import { Formio } from "@formio/js";
 import { validation } from "./validation";
+import goforms from "goforms-template";
+// import "./semantic-test"; // Import the semantic test
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
 
-// console.log('goforms', goforms);
+console.log("goforms before use", goforms);
 
-// Formio.use(goforms);
+// Register the goforms template
+Formio.use(goforms);
+
+console.log("goforms after use", goforms);
+
+// Define builder options
+const builderOptions = {
+  display: "form",
+  builder: {
+    basic: false,
+    advanced: false,
+    data: false,
+    customBasic: {
+      title: "Basic Components",
+      default: true,
+      weight: 0,
+      components: {
+        textfield: true,
+        textarea: true,
+        email: true,
+        phoneNumber: true,
+        number: true,
+        password: true,
+        checkbox: true,
+        selectboxes: true,
+        select: true,
+        radio: true,
+        button: true,
+      },
+    },
+  },
+  language: "en",
+  i18n: {
+    en: {
+      "Basic Components": "Basic Components",
+    },
+  },
+  noDefaultSubmitButton: true,
+  templates: goforms.templates,
+  framework: "goforms",
+};
 
 export interface FormBuilderOptions {
   disabled?: string[];
@@ -32,11 +75,19 @@ export interface FormBuilderOptions {
   resourceFilter?: string;
   noSource?: boolean;
   showFullJsonSchema?: boolean;
+  framework: string;
+  templates?: Record<string, unknown>;
 }
 
 interface FormioBuilder {
   schema: Record<string, unknown>;
   setForm: (schema: Record<string, unknown>) => void;
+  form?: {
+    options?: {
+      framework?: string;
+    };
+    templates?: Record<string, unknown>;
+  };
 }
 
 interface FormioComponent {
@@ -60,27 +111,49 @@ export class FormBuilder {
     const container = document.getElementById(containerId);
     if (!container) throw new Error(`Container ${containerId} not found`);
     this.container = container;
+    // Add a custom class to verify template usage
+    this.container.classList.add("goforms-template-active");
     this.formId = formId;
     this.init();
   }
 
   private init() {
-    const builderOptions: FormBuilderOptions = {
+    // Debug: Log builder options
+    console.log("Builder options:", builderOptions);
+    console.log("Registered templates:", goforms.templates);
+
+    // Add a test component to verify template usage
+    const testSchema = {
       display: "form",
-      noDefaultSubmitButton: true,
-      builder: {
-        basic: {},
-        advanced: {},
-        layout: {},
-        data: false,
-        premium: false,
-        resource: {},
-      },
+      components: [
+        {
+          type: "textfield",
+          label: "Test Field",
+          key: "testField",
+          inputType: "text",
+          placeholder: "Enter text to test template",
+        },
+        {
+          type: "button",
+          label: "Test Button",
+          key: "testButton",
+          theme: "primary",
+          leftIcon: "check",
+          tooltip: "This is a test button",
+        },
+      ],
     };
 
-    Formio.builder(this.container, {}, builderOptions).then(
+    // Initialize the builder with our framework and templates
+    Formio.builder(this.container, testSchema, builderOptions).then(
       (builder: FormioBuilder) => {
         this.builder = builder;
+        // Debug: Log builder instance
+        console.log("Builder instance:", {
+          framework: (builder as any).form?.options?.framework,
+          templates: Object.keys((builder as any).form?.templates || {}),
+          components: (builder as any).form?.components,
+        });
         this.loadExistingSchema();
       },
     );
