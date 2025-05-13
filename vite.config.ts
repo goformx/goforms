@@ -4,6 +4,7 @@ import autoprefixer from "autoprefixer";
 import postcssImport from "postcss-import";
 import postcssNested from "postcss-nested";
 import cssnano from "cssnano";
+import ejsPlugin from "./src/vite-plugin-ejs";
 
 export default defineConfig({
   root: ".",
@@ -67,8 +68,8 @@ export default defineConfig({
     host: true,
     middlewareMode: false,
     fs: {
-      strict: true,
-      allow: ["src", "node_modules"],
+      strict: false,
+      allow: [".."],
     },
     watch: {
       usePolling: false,
@@ -94,7 +95,7 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "src/js"),
+      "@": resolve(__dirname, "src"),
       "goforms-template": resolve(
         __dirname,
         "../goforms-template/src/index.ts",
@@ -116,4 +117,7 @@ export default defineConfig({
     strictPort: true,
     host: true,
   },
+  plugins: [ejsPlugin()],
+  // Configure how Vite handles different file types
+  assetsInclude: ["**/*.ejs"],
 });

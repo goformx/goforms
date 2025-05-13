@@ -1,21 +1,12 @@
-console.log("form-builder.ts");
-
-console.log("before import: goforms-template.");
-
 import { Formio } from "@formio/js";
 import { validation } from "./validation";
 import goforms from "goforms-template";
-// import "./semantic-test"; // Import the semantic test
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
 
-console.log("goforms before use", goforms);
-
 // Register the goforms template
 Formio.use(goforms);
-
-console.log("goforms after use", goforms);
 
 // Define builder options
 const builderOptions = {
@@ -25,7 +16,7 @@ const builderOptions = {
     advanced: false,
     data: false,
     customBasic: {
-      title: "Basic Components",
+      title: "Basic",
       default: true,
       weight: 0,
       components: {
@@ -46,7 +37,7 @@ const builderOptions = {
   language: "en",
   i18n: {
     en: {
-      "Basic Components": "Basic Components",
+      "Basic": "Basic",
     },
   },
   noDefaultSubmitButton: true,
@@ -107,22 +98,15 @@ export class FormBuilder {
   };
 
   constructor(containerId: string, formId: number) {
-    console.log("FormBuilder: constructor called with formId:", formId);
     const container = document.getElementById(containerId);
     if (!container) throw new Error(`Container ${containerId} not found`);
     this.container = container;
-    // Add a custom class to verify template usage
     this.container.classList.add("goforms-template-active");
     this.formId = formId;
     this.init();
   }
 
   private init() {
-    // Debug: Log builder options
-    console.log("Builder options:", builderOptions);
-    console.log("Registered templates:", goforms.templates);
-
-    // Add a test component to verify template usage
     const testSchema = {
       display: "form",
       components: [
@@ -144,16 +128,9 @@ export class FormBuilder {
       ],
     };
 
-    // Initialize the builder with our framework and templates
     Formio.builder(this.container, testSchema, builderOptions).then(
       (builder: FormioBuilder) => {
         this.builder = builder;
-        // Debug: Log builder instance
-        console.log("Builder instance:", {
-          framework: (builder as any).form?.options?.framework,
-          templates: Object.keys((builder as any).form?.templates || {}),
-          components: (builder as any).form?.components,
-        });
         this.loadExistingSchema();
       },
     );
@@ -164,7 +141,6 @@ export class FormBuilder {
       if (this.formId === 0) {
         return;
       }
-      console.log("Loading form schema for form ID:", this.formId);
       const response = await validation.fetchWithCSRF(
         `/dashboard/forms/${this.formId}/schema`,
         {
@@ -176,23 +152,15 @@ export class FormBuilder {
       );
       if (response.ok) {
         const schema = await response.json();
-        console.log("Loaded form schema:", schema);
         this.builder.setForm(schema);
         this.currentSchema = schema;
       } else {
         if (response.status === 401) {
-          console.error("Not authenticated, redirecting to login");
           window.location.href = "/login";
-        } else {
-          console.error(
-            "Failed to load form schema:",
-            response.status,
-            response.statusText,
-          );
         }
       }
     } catch (error) {
-      console.error("Failed to load form schema:", error);
+      // Handle error silently
     }
   }
 
@@ -210,14 +178,11 @@ export class FormBuilder {
         },
       );
       if (response.ok) {
-        console.log("Schema saved successfully");
         this.currentSchema = formioSchema;
         return true;
-      } else {
-        throw new Error("Failed to save schema");
       }
+      return false;
     } catch (error) {
-      console.error("Failed to save form schema:", error);
       return false;
     }
   }
@@ -232,8 +197,6 @@ if (formSchemaBuilder) {
     if (!isNaN(formId)) {
       (window as { formBuilderInstance?: FormBuilder }).formBuilderInstance =
         new FormBuilder("form-schema-builder", formId);
-    } else {
-      console.error("FormBuilder: Invalid form ID:", formIdAttr);
     }
   }
 }
