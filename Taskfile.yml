@@ -127,6 +127,20 @@ tasks:
     cmds:
       - npm run lint
 
+  lint:fix:
+    desc: Fix linting issues in all code
+    deps: [lint:fix:backend, lint:fix:frontend]
+
+  lint:fix:backend:
+    desc: Fix linting issues in Go code
+    cmds:
+      - go fmt ./...
+
+  lint:fix:frontend:
+    desc: Fix linting issues in frontend code
+    cmds:
+      - npm run lint:fix
+
   test:
     desc: Run all tests
     deps: [generate]
