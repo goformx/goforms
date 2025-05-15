@@ -3,68 +3,44 @@ import path from "path";
 import type { Plugin } from "vite";
 
 /**
- * Utility to locate EJS template files.
+ * File system utility for checking template existence
  */
-class TemplateFinder {
-  static find(id: string): string | null {
-    if (id.includes("node_modules/@formio")) {
-      const ejsJsPath = id.replace(".ejs", ".ejs.js");
-      if (fs.existsSync(ejsJsPath)) {
-        return ejsJsPath;
-      }
-    }
-
-    return this.findRegularTemplate(id);
+class FileSystem {
+  static exists(filePath: string): boolean {
+    return fs.existsSync(filePath);
   }
 
-  private static findRegularTemplate(id: string): string | null {
+  static readFile(filePath: string): string {
+    return fs.readFileSync(filePath, "utf-8");
+  }
+}
+
+/**
+ * Template resolution utility
+ */
+class TemplateResolver {
+  static resolve(id: string, importer?: string): string | null {
+    const resolvedPath = path.isAbsolute(id)
+      ? id
+      : importer
+        ? path.resolve(path.dirname(importer), id)
+        : path.resolve(process.cwd(), id);
+
+    return this.findTemplate(resolvedPath);
+  }
+
+  private static findTemplate(id: string): string | null {
     const ejsJsPath = id.replace(".ejs", ".ejs.js");
-    if (fs.existsSync(ejsJsPath)) {
+
+    if (FileSystem.exists(ejsJsPath)) {
       return ejsJsPath;
     }
-    if (fs.existsSync(id)) {
-      return id;
-    }
-    return null;
+    return FileSystem.exists(id) ? id : null;
   }
 }
 
 /**
- * Utility to extract template content from .ejs.js files.
- */
-class TemplateExtractor {
-  static extract(content: string): string | null {
-    try {
-      const functionMatch = content.match(
-        /exports\.default\s*=\s*function\s*\([^)]*\)\s*{([\s\S]*?)return\s+__p\s*}/,
-      );
-      if (!functionMatch) return null;
-
-      return this.extractStringConcatenations(functionMatch[1]);
-    } catch (error) {
-      console.warn("Error extracting template:", error);
-      return null;
-    }
-  }
-
-  private static extractStringConcatenations(
-    functionBody: string,
-  ): string | null {
-    const stringMatches = functionBody.match(/'([^']+)'/g);
-    if (!stringMatches) return null;
-
-    return stringMatches
-      .map((match) => match.slice(1, -1))
-      .filter((str) => str.trim())
-      .join("")
-      .replace(/\\n/g, "\n")
-      .replace(/\\'/g, "'")
-      .replace(/\\\\/g, "\\");
-  }
-}
-
-/**
- * Main Vite plugin for EJS file handling.
+ * Vite plugin for handling EJS templates
  */
 export default function ejsPlugin(): Plugin {
   return {
@@ -72,31 +48,20 @@ export default function ejsPlugin(): Plugin {
     enforce: "pre",
 
     resolveId(id, importer) {
-      if (!id.endsWith(".ejs")) return null;
-
-      const resolveId = path.isAbsolute(id)
-        ? id
-        : importer
-          ? path.resolve(path.dirname(importer), id)
-          : path.resolve(process.cwd(), id);
-
-      return TemplateFinder.find(resolveId);
+      return id.endsWith(".ejs")
+        ? TemplateResolver.resolve(id, importer)
+        : null;
     },
 
     load(id) {
       if (!id.endsWith(".ejs") && !id.endsWith(".ejs.js")) return null;
 
       try {
-        const content = fs.readFileSync(id, "utf-8");
-        if (id.endsWith(".ejs.js")) {
-          const extractedTemplate = TemplateExtractor.extract(content);
-          return {
-            code: `export default ${JSON.stringify(extractedTemplate ?? content)};`,
-            map: null,
-          };
-        }
+        const content = FileSystem.readFile(id);
         return {
-          code: `export default ${JSON.stringify(content)};`,
+          code: id.endsWith(".ejs.js")
+            ? content
+            : `export default ${JSON.stringify(content)};`,
           map: null,
         };
       } catch (error) {

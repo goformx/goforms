@@ -5,17 +5,19 @@ alwaysApply: true
 ---
 # Form Builder Implementation
 
-The form builder is implemented using Form.io with a custom integration that maintains our own schema format.
+The form builder is implemented using Form.io with custom templates from goforms-template package.
 
 ## Key Files
-- [src/js/form-builder.ts](mdc:src/js/form-builder.ts): Main form builder implementation
-- [src/js/schema/form-schema.ts](mdc:src/js/schema/form-schema.ts): Form schema type definitions
-- [internal/presentation/templates/pages/edit_form.templ](mdc:internal/presentation/templates/pages/edit_form.templ): Form builder page template
+- [src/js/form-builder.ts](mdc:goforms/src/js/form-builder.ts): Main form builder implementation
+- [src/js/schema/form-schema.ts](mdc:goforms/src/js/schema/form-schema.ts): Form schema type definitions
+- [internal/presentation/templates/pages/edit_form.templ](mdc:goforms/internal/presentation/templates/pages/edit_form.templ): Form builder page template
+- [goforms-template/src/templates/goforms/](mdc:goforms/goforms-template/src/templates/goforms): Custom form component templates
 
 ## Architecture
 - Form builder is mounted in a div with `id="form-schema-builder"`
-- Uses Form.io builder with customized component sets
-- Maintains own schema format with conversion to/from Form.io format
+- Uses Form.io builder with custom goforms templates
+- Templates are compiled from EJS to JavaScript using Gulp
+- Vite handles template loading and bundling
 - CSRF protection implemented for all API calls
 
 ## API Endpoints
@@ -24,41 +26,50 @@ The form builder is implemented using Form.io with a custom integration that mai
 - PUT `/dashboard/forms/{id}`: Update form details
 
 ## Component Configuration
-Basic components:
-- textfield
-- textarea
-- email
-- phoneNumber
-- number
-- password
-- checkbox
-- selectboxes
-- select
-- radio
-- button
+Basic components (enabled by default):
+- textfield: Text input field
+- textarea: Multi-line text input
+- email: Email input with validation
+- phoneNumber: Phone number input with formatting
+- number: Numeric input
+- password: Password input with masking
+- checkbox: Single checkbox
+- selectboxes: Multiple checkboxes
+- select: Dropdown select
+- radio: Radio button group
+- button: Action button
 
-Advanced components:
-- file
-- signature
-- container
-- dataGrid
-- datetime
-- day
-- time
-- currency
-- survey
-- panel
+Advanced components (disabled by default):
+- file: File upload
+- signature: Digital signature
+- container: Field container
+- dataGrid: Repeating grid
+- datetime: Date and time picker
+- day: Day picker
+- time: Time picker
+- currency: Currency input
+- survey: Survey questions
+- panel: Collapsible panel
+
+## Template System
+- Templates are written in EJS
+- Compiled to JavaScript using Gulp
+- Vite plugin handles template loading
+- Custom styling through CSS modules
+- Support for semantic UI components
 
 ## Schema Format
-Our schema format is defined in [src/js/schema/form-schema.ts](mdc:src/js/schema/form-schema.ts) and includes:
+Our schema format is defined in [src/js/schema/form-schema.ts](mdc:goforms/src/js/schema/form-schema.ts) and includes:
 - Form metadata (id, name, title)
-- Pages array with form elements
-- Support for nested panels and fields
-- Custom validation rules
+- Component configuration
+- Validation rules
+- Custom properties
+- Layout settings
 
 ## Testing Requirements
 1. Form Builder UI initialization
 2. Component rendering and configuration
-3. Schema conversion (Form.io ↔ App Schema)
-4. Data persistence with CSRF
-5. Form details management
+3. Template compilation and loading
+4. Schema persistence with CSRF
+5. Form validation
+6. Custom template integration

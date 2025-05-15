@@ -278,9 +278,9 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		HSTSExcludeSubdomains: false,
 		ContentSecurityPolicy: strings.Join([]string{
 			"default-src 'self' http://localhost:3000; ",
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 https://cdn.form.io; ",
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 https://cdn.form.io https://cdn.jsdelivr.net; ",
 			"worker-src 'self' blob:; ",
-			"style-src 'self' 'unsafe-inline' http://localhost:3000 https://fonts.googleapis.com https://cdn.form.io; ",
+			"style-src 'self' 'unsafe-inline' http://localhost:3000 https://fonts.googleapis.com https://cdn.form.io https://cdn.jsdelivr.net; ",
 			"img-src 'self' data: http://localhost:3000; ",
 			"font-src 'self' http://localhost:3000 https://fonts.googleapis.com https://fonts.gstatic.com; ",
 			"connect-src 'self' http://localhost:3000 ws://localhost:3000;",

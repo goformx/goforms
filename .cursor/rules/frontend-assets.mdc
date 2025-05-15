@@ -1,13 +1,62 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: src/**/*.{ts,src/**/*.{css,src/**/*.ejs,vite.config.ts,postcss.config.cjs,tsconfig.json,src/js/form-builder.ts,src/js/schema/form-schema.ts,internal/presentation/templates/pages/edit_form.templ,goforms-template/src/templates/goforms/**
+alwaysApply: false
 ---
 # Frontend Asset Handling
 
-- Frontend assets (JS, CSS) are built and served using Vite.
-- In development mode, assets are loaded directly from the Vite dev server at `http://localhost:3000`.
-- In production, asset paths are resolved using the Vite manifest file (`static/dist/.vite/manifest.json`).
-- The Go backend uses [internal/infrastructure/web/assets.go](mdc:internal/infrastructure/web/assets.go) to read the manifest and provide hashed asset paths.
-- Templates and components should use `web.GetAssetPath()` to reference assets, as seen in [internal/presentation/templates/layouts/layout.templ](mdc:internal/presentation/templates/layouts/layout.templ), [internal/presentation/components/login_form.templ](mdc:internal/presentation/components/login_form.templ), and [internal/presentation/components/signup_form.templ](mdc:internal/presentation/components/signup_form.templ).
-- The main CSS entry point is [src/css/main.css](mdc:src/css/main.css), which imports all other CSS files and must have all `@import` statements at the top to avoid Vite warnings.
+## Build System
+- Vite is used for building and serving frontend assets
+- TypeScript compilation and bundling
+- CSS processing with PostCSS
+- EJS template compilation and loading
+- Asset optimization and minification
+
+## Development Mode
+- Assets served from Vite dev server at `http://localhost:3000`
+- Hot Module Replacement (HMR) enabled
+- Source maps for debugging
+- Proxy configuration for API requests
+
+## Production Build
+- Assets built to `dist/` directory
+- CSS files in `dist/css/`
+- JavaScript files in `dist/js/`
+- Fonts and images in `dist/assets/`
+- Manifest file for asset versioning
+
+## Asset Types
+- JavaScript/TypeScript files
+- CSS/SCSS modules
+- EJS templates
+- Font files (Bootstrap Icons, Font Awesome)
+- Images and SVGs
+
+## Configuration
+- [vite.config.ts](mdc:goforms/vite.config.ts): Main Vite configuration
+- [postcss.config.cjs](mdc:goforms/postcss.config.cjs): PostCSS plugins
+- [tsconfig.json](mdc:goforms/tsconfig.json): TypeScript configuration
+
+## Templates
+- Templates use EJS syntax
+- Compiled to JavaScript using Gulp
+- Custom Vite plugin for template loading
+- Support for semantic UI components
+
+## CSS Processing
+- PostCSS for CSS processing
+- Autoprefixer for browser compatibility
+- CSS modules for component styling
+- CSS minification in production
+
+## Asset Loading
+- Dynamic imports for code splitting
+- CSS modules for scoped styles
+- Font loading optimization
+- Image optimization
+
+## Backend Integration
+- Go backend serves static assets in production
+- Vite dev server proxy in development
+- Asset versioning through manifest
+- CSRF protection for API requests

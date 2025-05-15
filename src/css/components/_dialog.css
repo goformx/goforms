@@ -1,0 +1,79 @@
+/* Dialog Component */
+.gf-dialog {
+  display: block;
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  z-index: var(--z-index-dialog, 1000);
+  font-family: var(--font-family);
+  font-size: var(--font-size);
+  line-height: var(--line-height);
+  padding: 0;
+}
+
+.gf-dialog--theme-default {
+  padding-top: 2rem;
+  padding-bottom: 2rem;
+}
+
+.gf-dialog__overlay {
+  position: fixed;
+  top: 0;
+  right: 0;
+  bottom: 0;
+  left: 0;
+  background: rgba(0, 0, 0, 0.4);
+  animation: gf-fadein 0.3s;
+}
+
+.gf-dialog__content {
+  position: relative;
+  background: var(--background);
+  margin: 0 auto;
+  max-width: 500px;
+  max-height: 100%;
+  padding: var(--spacing-4);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  overflow: auto;
+  animation: gf-slidein 0.3s;
+}
+
+.gf-dialog__close {
+  position: absolute;
+  top: var(--spacing-2);
+  right: var(--spacing-2);
+  padding: var(--spacing-1);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  color: var(--text-muted);
+  transition: color 0.2s;
+}
+
+.gf-dialog__close:hover {
+  color: var(--text);
+}
+
+.gf-dialog__close .gf-icon {
+  font-size: 1.25rem;
+}
+
+/* Animations */
+@keyframes gf-fadein {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+@keyframes gf-slidein {
+  from {
+    transform: translateY(-10%);
+    opacity: 0;
+  }
+  to {
+    transform: translateY(0);
+    opacity: 1;
+  }
+} 

@@ -49,13 +49,10 @@ templ FormDetailsContent(data shared.PageData) {
 }
 
 templ FormFieldsContent(data shared.PageData) {
-	<div>
+	<div class="formio-form-builder">
 		<div class="form-fields-toolbar">
 			<!-- Removed search input -->
 			<!-- Add filter/sort options here if needed -->
-		</div>
-		<div class="form-fields-palette scrollable" id="form-fields-palette">
-			<!-- Field palette rendered by JS (Form.io) -->
 		</div>
 		<div id="form-schema-builder" class="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
 		<div class="form-actions">
