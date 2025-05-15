@@ -86,11 +86,11 @@ const builderSections = {
   custom: {
     title: "User Fields",
     weight: 0,
+    default: true,
     components: userFields,
   },
   customBasic: {
     title: "Basic Components",
-    default: true,
     weight: 1,
     components: basicComponents,
   },
