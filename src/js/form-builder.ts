@@ -48,6 +48,27 @@ if (formSchemaBuilder) {
     // Use Formio.builder instead of new FormBuilder
     Formio.builder(formSchemaBuilder, {}, builderOptions).then(
       (builder: FormBuilder) => {
+        // Add saveSchema method to the builder instance
+        (builder as any).saveSchema = async () => {
+          try {
+            const response = await fetch(`/dashboard/forms/${formId}/schema`, {
+              method: "PUT",
+              headers: {
+                "Content-Type": "application/json",
+                "X-CSRF-Token":
+                  document
+                    .querySelector('meta[name="csrf-token"]')
+                    ?.getAttribute("content") || "",
+              },
+              body: JSON.stringify(builder.form),
+            });
+            return response.ok;
+          } catch (error) {
+            console.error("Error saving schema:", error);
+            return false;
+          }
+        };
+
         (
           window as unknown as { formBuilderInstance?: FormBuilder }
         ).formBuilderInstance = builder;
