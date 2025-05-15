@@ -1,5 +1,6 @@
 import { Formio, FormBuilder } from "@formio/js";
 import goforms from "goforms";
+import { FormService, FormSchema } from "./services/form-service";
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
@@ -39,40 +40,39 @@ const builderOptions = {
 
 // Initialize form builder when the module is loaded
 const formSchemaBuilder = document.getElementById("form-schema-builder");
+const formService = FormService.getInstance();
 
 if (formSchemaBuilder) {
   const formIdAttr = formSchemaBuilder.getAttribute("data-form-id");
   const formId = formIdAttr ? Number(formIdAttr) : 0;
 
   if (formId > 0) {
-    // Use Formio.builder instead of new FormBuilder
-    Formio.builder(formSchemaBuilder, {}, builderOptions).then(
-      (builder: FormBuilder) => {
-        // Add saveSchema method to the builder instance
-        (builder as any).saveSchema = async () => {
-          try {
-            const response = await fetch(`/dashboard/forms/${formId}/schema`, {
-              method: "PUT",
-              headers: {
-                "Content-Type": "application/json",
-                "X-CSRF-Token":
-                  document
-                    .querySelector('meta[name="csrf-token"]')
-                    ?.getAttribute("content") || "",
-              },
-              body: JSON.stringify(builder.form),
-            });
-            return response.ok;
-          } catch (error) {
-            console.error("Error saving schema:", error);
-            return false;
-          }
-        };
+    // Load schema and initialize builder
+    formService
+      .getSchema(formId)
+      .then((schema) => {
+        Formio.builder(formSchemaBuilder, schema, builderOptions).then(
+          (builder: FormBuilder) => {
+            // Add saveSchema method to the builder instance
+            (builder as any).saveSchema = async () => {
+              try {
+                const schema = builder.form as FormSchema;
+                await formService.saveSchema(formId, schema);
+                return true;
+              } catch (error) {
+                console.error("Error saving schema:", error);
+                return false;
+              }
+            };
 
-        (
-          window as unknown as { formBuilderInstance?: FormBuilder }
-        ).formBuilderInstance = builder;
-      },
-    );
+            (
+              window as unknown as { formBuilderInstance?: FormBuilder }
+            ).formBuilderInstance = builder;
+          },
+        );
+      })
+      .catch((error) => {
+        console.error("Error loading schema:", error);
+      });
   }
 }

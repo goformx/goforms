@@ -143,38 +143,27 @@ templ EditFormContent(data shared.PageData) {
 		</script>
 	}
 	<script type="module">
+		import { FormService } from "/src/js/services/form-service.js";
+
 		// Handle form submission
-		document.getElementById('edit-form').addEventListener('submit', async (e) => {
+		const form = document.getElementById('edit-form');
+		const formService = FormService.getInstance();
+		const formId = document.getElementById('form-schema-builder').getAttribute('data-form-id');
+
+		form.addEventListener('submit', async (e) => {
 			e.preventDefault();
-			const form = e.target;
 			const formData = new FormData(form);
-			const formId = document.getElementById('form-schema-builder').getAttribute('data-form-id');
 
 			try {
-				const response = await fetch(`/dashboard/forms/${formId}`, {
-					method: 'PUT',
-					headers: {
-						'Content-Type': 'application/json',
-						'X-CSRF-Token': formData.get('csrf_token')
-					},
-					body: JSON.stringify({
-						title: formData.get('title'),
-						description: formData.get('description')
-					})
+				await formService.updateFormDetails(Number(formId), {
+					title: formData.get('title'),
+					description: formData.get('description')
 				});
-
-				if (response.ok) {
-					window.location.href = '/dashboard';
-				} else {
-					const error = await response.json();
-					const errorDiv = document.getElementById('form_error');
-					errorDiv.textContent = error.message || 'Failed to update form';
-					errorDiv.style.display = 'block';
-				}
+				window.location.href = '/dashboard';
 			} catch (error) {
 				console.error('Failed to update form:', error);
 				const errorDiv = document.getElementById('form_error');
-				errorDiv.textContent = 'Failed to update form. Please try again.';
+				errorDiv.textContent = error.message || 'Failed to update form. Please try again.';
 				errorDiv.style.display = 'block';
 			}
 		});
