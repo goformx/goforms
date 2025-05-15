@@ -41,7 +41,7 @@ templ FormDetailsContent(data shared.PageData) {
 		<div id="form_error" class="form-error"></div>
 		@FormFieldGroup("Form Title", "title", FormTitleInput(data), "title_error")
 		@FormFieldGroup("Description", "description", FormDescriptionInput(data), "description_error")
-		<div class="form-actions">
+		<div class="form-actions" style="display: none;">
 			<a href="/dashboard" class="gf-button gf-button--outline">Cancel</a>
 			<button type="submit" class="gf-button gf-button--primary">Update Details</button>
 		</div>
@@ -90,11 +90,41 @@ templ EditFormContent(data shared.PageData) {
 			</div>
 
 			<div class="dashboard-content form-builder-content">
-				@FormSectionCard("Form Details", "Update the basic information about your form", FormDetailsContent(data))
-				@FormSectionCard("Form Fields", "Design your form by adding and configuring fields. Click \"Save Fields\" to save your changes.", FormFieldsContent(data))
+				<div class="form-builder-grid">
+					<div class="form-builder-sidebar">
+						@FormSectionCard("Form Details", "Update the basic information about your form", FormDetailsContent(data))
+					</div>
+					<div class="form-builder-main">
+						@FormSectionCard("Form Fields", "Design your form by adding and configuring fields. Click \"Save Fields\" to save your changes.", FormFieldsContent(data))
+					</div>
+				</div>
 			</div>
 		</div>
 	</div>
+
+	<style>
+		.form-builder-grid {
+			display: grid;
+			grid-template-columns: 300px 1fr;
+			gap: var(--spacing-6);
+			align-items: start;
+		}
+
+		@media (max-width: 1024px) {
+			.form-builder-grid {
+				grid-template-columns: 1fr;
+			}
+		}
+
+		.form-builder-sidebar {
+			position: sticky;
+			top: var(--spacing-6);
+		}
+
+		.form-builder-main {
+			min-width: 0; /* Prevent grid item from overflowing */
+		}
+	</style>
 
 	@templ.JSONScript("form-builder-data", data.FormBuilderAssetPath)
 	if data.IsDevelopment {
@@ -169,5 +199,21 @@ templ EditFormContent(data shared.PageData) {
 				}
 			});
 		}
+	</script>
+
+	<script>
+		const form = document.getElementById('edit-form');
+		const formActions = document.querySelector('.form-actions');
+		const titleInput = document.getElementById('title');
+		const descriptionInput = document.getElementById('description');
+		
+		function checkForChanges() {
+			const hasChanges = titleInput.value !== titleInput.defaultValue || 
+							  descriptionInput.value !== descriptionInput.defaultValue;
+			formActions.style.display = hasChanges ? 'flex' : 'none';
+		}
+
+		titleInput.addEventListener('input', checkForChanges);
+		descriptionInput.addEventListener('input', checkForChanges);
 	</script>
 } 
