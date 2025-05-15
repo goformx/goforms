@@ -1,13 +1,11 @@
 import { Formio, FormBuilder } from "@formio/js";
-import goforms from "goforms-template";
-// import semantic from "@formio/semantic";
+import goforms from "goforms";
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
 
 // Register templates
 Formio.use(goforms);
-// Formio.use(semantic);
 
 // Define builder options
 const builderOptions = {
@@ -36,9 +34,7 @@ const builderOptions = {
   },
   noDefaultSubmitButton: true,
   language: "en",
-  //   template: "bootstrap5", // Temporarily use bootstrap while debugging goforms template
   template: "goforms",
-  //   template: "semantic",
 };
 
 // Initialize form builder when the module is loaded
