@@ -2,20 +2,39 @@ import { Formio } from "@formio/js";
 
 type FormBuilderOptions = Parameters<typeof Formio.builder>[2];
 
+export enum FieldType {
+  Text = "textfield",
+  TextArea = "textarea",
+  Email = "email",
+  Phone = "phoneNumber",
+}
+
+export enum IconType {
+  Text = "terminal",
+  Email = "at",
+  Phone = "phone-square",
+}
+
+const getIconForType = (type: FieldType): IconType => {
+  switch (type) {
+    case FieldType.Email:
+      return IconType.Email;
+    case FieldType.Phone:
+      return IconType.Phone;
+    default:
+      return IconType.Text;
+  }
+};
+
 export const createUserFieldSchema = (
   key: string,
   label: string,
-  type: string,
+  type: FieldType = FieldType.Text,
   required = false,
 ) => ({
   title: label,
   key,
-  icon:
-    type === "email"
-      ? "at"
-      : type === "phoneNumber"
-        ? "phone-square"
-        : "terminal",
+  icon: getIconForType(type),
   schema: {
     label,
     type,
@@ -29,54 +48,63 @@ export const createUserFieldSchema = (
   },
 });
 
-export const builderOptions: FormBuilderOptions = {
-  display: "form" as "form" | "wizard" | "pdf",
-  builder: {
-    premium: false,
-    basic: false,
-    advanced: false,
-    data: false,
-    custom: {
-      title: "User Fields",
-      weight: 10,
-      components: {
-        firstName: createUserFieldSchema(
-          "firstName",
-          "First Name",
-          "textfield",
-          true,
-        ),
-        lastName: createUserFieldSchema(
-          "lastName",
-          "Last Name",
-          "textfield",
-          true,
-        ),
-        email: createUserFieldSchema("email", "Email", "email", true),
-        phoneNumber: createUserFieldSchema(
-          "mobilePhone",
-          "Mobile Phone",
-          "phoneNumber",
-        ),
-      },
-    },
-    customBasic: {
-      title: "Basic Components",
-      default: true,
-      weight: 0,
-      components: {
-        textfield: true,
-        textarea: true,
-        email: true,
-        phoneNumber: true,
-      },
-    },
-    layout: {
-      components: {
-        table: false,
-      },
+// Basic components configuration
+const basicComponents = {
+  textfield: true,
+  textarea: true,
+  email: true,
+  phoneNumber: true,
+};
+
+// User fields configuration
+const userFields = {
+  firstName: createUserFieldSchema(
+    "firstName",
+    "First Name",
+    FieldType.Text,
+    true,
+  ),
+  lastName: createUserFieldSchema(
+    "lastName",
+    "Last Name",
+    FieldType.Text,
+    true,
+  ),
+  email: createUserFieldSchema("email", "Email", FieldType.Email, true),
+  phoneNumber: createUserFieldSchema(
+    "mobilePhone",
+    "Mobile Phone",
+    FieldType.Phone,
+  ),
+};
+
+// Builder sections configuration
+const builderSections = {
+  premium: false,
+  basic: false,
+  advanced: false,
+  data: false,
+  custom: {
+    title: "User Fields",
+    weight: 10,
+    components: userFields,
+  },
+  customBasic: {
+    title: "Basic Components",
+    default: true,
+    weight: 0,
+    components: basicComponents,
+  },
+  layout: {
+    components: {
+      table: false,
     },
   },
+};
+
+export const builderOptions: FormBuilderOptions = {
+  display: "form" as "form" | "wizard" | "pdf",
+  builder: builderSections,
   editForm: {
     textfield: [
       {
