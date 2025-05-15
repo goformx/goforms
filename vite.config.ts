@@ -98,10 +98,24 @@ export default defineConfig({
       "@": resolve(__dirname, "src"),
       "goforms-template": resolve(
         __dirname,
-        "../goforms-template/src/index.ts",
+        "../goforms-template/lib/mjs/index.js",
+      ),
+      // Add alias for templates directory
+      "goforms-template/templates": resolve(
+        __dirname,
+        "../goforms-template/lib/mjs/templates",
       ),
     },
-    extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json"],
+    extensions: [
+      ".mjs",
+      ".js",
+      ".ts",
+      ".jsx",
+      ".tsx",
+      ".json",
+      ".ejs",
+      ".ejs.js",
+    ],
   },
   optimizeDeps: {
     force: true,
@@ -119,5 +133,5 @@ export default defineConfig({
   },
   plugins: [ejsPlugin()],
   // Configure how Vite handles different file types
-  assetsInclude: ["**/*.ejs"],
+  assetsInclude: ["**/*.ejs", "**/*.ejs.js"],
 });
