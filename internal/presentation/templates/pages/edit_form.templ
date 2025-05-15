@@ -56,6 +56,10 @@ templ FormFieldsContent(data shared.PageData) {
 		</div>
 		<div id="form-schema-builder" class="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
 		<div class="form-actions">
+			<button id="view-schema-btn" class="gf-button gf-button--outline" type="button">
+				<i class="bi bi-code-square"></i>
+				<span>View Schema</span>
+			</button>
 			<button id="save-fields-btn" class="gf-button gf-button--primary gf-button--lg" type="button">
 				<span class="spinner" style="display:none;"></span>
 				<span>Save Fields</span>

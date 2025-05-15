@@ -438,3 +438,67 @@
 .tab-pane.active {
   display: block;
 }
+
+/* Schema Preview Panel */
+.formio-dialog {
+  background: var(--background);
+  border-radius: var(--border-radius);
+  box-shadow: var(--shadow-lg);
+  max-width: 90vw;
+  max-height: 90vh;
+  overflow: hidden;
+}
+
+.formio-dialog-content {
+  padding: var(--spacing-4);
+  overflow-y: auto;
+  max-height: calc(90vh - 60px);
+}
+
+.formio-dialog-header {
+  background: var(--background-alt);
+  border-bottom: 1px solid var(--border-color);
+  padding: var(--spacing-4);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.formio-dialog-title {
+  margin: 0;
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+}
+
+.formio-dialog-close {
+  background: none;
+  border: none;
+  color: var(--text-light);
+  cursor: pointer;
+  padding: var(--spacing-2);
+  font-size: var(--font-size-lg);
+  transition: color 0.2s ease;
+}
+
+.formio-dialog-close:hover {
+  color: var(--text);
+}
+
+/* JSON Editor Styles */
+.json-editor {
+  font-family: var(--font-mono);
+  font-size: var(--font-size-sm);
+  line-height: 1.5;
+  background: var(--background-alt);
+  border: 1px solid var(--border-color);
+  border-radius: var(--border-radius);
+  padding: var(--spacing-4);
+  overflow-x: auto;
+}
+
+.json-editor pre {
+  margin: 0;
+  white-space: pre-wrap;
+  word-wrap: break-word;
+}

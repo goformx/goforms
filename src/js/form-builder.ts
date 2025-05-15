@@ -59,17 +59,25 @@ if (!Number.isInteger(formId) || formId <= 0) {
   throw new Error(`Invalid form ID: ${formIdAttr}`);
 }
 
+let builder: any;
+
 async function initializeFormBuilder(formId: number): Promise<void> {
   const formService = FormService.getInstance();
 
   try {
     const schema = await formService.getSchema(formId);
-    const builder = await Formio.builder(
-      formSchemaBuilder,
-      schema,
-      builderOptions,
-    );
+    builder = await Formio.builder(formSchemaBuilder, schema, builderOptions);
     setupBuilderEvents(builder, formId, formService);
+
+    // Add schema view button handler
+    const viewSchemaBtn = document.getElementById("view-schema-btn");
+    if (viewSchemaBtn) {
+      viewSchemaBtn.addEventListener("click", () => {
+        if (builder) {
+          builder.showSchema();
+        }
+      });
+    }
   } catch (error) {
     console.error("Error initializing form builder:", error);
     // Display user-friendly error message
@@ -87,8 +95,5 @@ async function initializeFormBuilder(formId: number): Promise<void> {
   }
 }
 
-// Initialize with improved error handling
-initializeFormBuilder(formId).catch((error) => {
-  console.error("Failed to initialize form builder:", error);
-  // Error message already displayed by initializeFormBuilder
-});
+// Initialize the form builder
+initializeFormBuilder(formId);

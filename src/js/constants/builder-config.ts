@@ -128,4 +128,7 @@ export const builderOptions: FormBuilderOptions = {
     unique: true,
     position: "bottom",
   },
+  showSchema: true,
+  showJSONEditor: true,
+  showPreview: true,
 };
