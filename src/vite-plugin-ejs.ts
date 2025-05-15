@@ -10,10 +10,8 @@ class TemplateFinder {
     if (id.includes("node_modules/@formio")) {
       const ejsJsPath = id.replace(".ejs", ".ejs.js");
       if (fs.existsSync(ejsJsPath)) {
-        console.log("Found Form.io template at:", ejsJsPath);
         return ejsJsPath;
       }
-      console.log("Form.io template not found at:", ejsJsPath);
     }
 
     return this.findRegularTemplate(id);
@@ -22,11 +20,9 @@ class TemplateFinder {
   private static findRegularTemplate(id: string): string | null {
     const ejsJsPath = id.replace(".ejs", ".ejs.js");
     if (fs.existsSync(ejsJsPath)) {
-      console.log("Found .ejs.js template at:", ejsJsPath);
       return ejsJsPath;
     }
     if (fs.existsSync(id)) {
-      console.log("Found .ejs template at:", id);
       return id;
     }
     return null;
