@@ -2,9 +2,11 @@ import fs from "fs";
 import path from "path";
 import type { Plugin } from "vite";
 
-export default function ejsPlugin(): Plugin {
-  const findTemplate = (id: string): string | null => {
-    // For Form.io templates in node_modules
+/**
+ * Utility to locate EJS template files.
+ */
+class TemplateFinder {
+  static find(id: string): string | null {
     if (id.includes("node_modules/@formio")) {
       const ejsJsPath = id.replace(".ejs", ".ejs.js");
       if (fs.existsSync(ejsJsPath)) {
@@ -14,112 +16,89 @@ export default function ejsPlugin(): Plugin {
       console.log("Form.io template not found at:", ejsJsPath);
     }
 
-    // For any .ejs file, try to find a corresponding .ejs.js file first
+    return this.findRegularTemplate(id);
+  }
+
+  private static findRegularTemplate(id: string): string | null {
     const ejsJsPath = id.replace(".ejs", ".ejs.js");
     if (fs.existsSync(ejsJsPath)) {
       console.log("Found .ejs.js template at:", ejsJsPath);
       return ejsJsPath;
     }
-
-    // Then try the original .ejs file
     if (fs.existsSync(id)) {
       console.log("Found .ejs template at:", id);
       return id;
     }
-
     return null;
-  };
+  }
+}
 
-  const extractEjsJsTemplate = (content: string): string | null => {
+/**
+ * Utility to extract template content from .ejs.js files.
+ */
+class TemplateExtractor {
+  static extract(content: string): string | null {
     try {
-      // First try to match the entire function body
       const functionMatch = content.match(
         /exports\.default\s*=\s*function\s*\([^)]*\)\s*{([\s\S]*?)return\s+__p\s*}/,
       );
-      if (!functionMatch) {
-        return null;
-      }
+      if (!functionMatch) return null;
 
-      const functionBody = functionMatch[1];
-
-      // Extract all string concatenations
-      const templateParts: string[] = [];
-      const stringMatches = functionBody.match(/'([^']+)'/g);
-
-      if (!stringMatches) {
-        return null;
-      }
-
-      for (const match of stringMatches) {
-        // Remove the quotes
-        const str = match.slice(1, -1);
-        if (str.trim()) {
-          templateParts.push(str);
-        }
-      }
-
-      if (templateParts.length === 0) {
-        return null;
-      }
-
-      // Join all parts and unescape
-      return templateParts
-        .join("")
-        .replace(/\\n/g, "\n")
-        .replace(/\\'/g, "'")
-        .replace(/\\\\/g, "\\");
+      return this.extractStringConcatenations(functionMatch[1]);
     } catch (error) {
       console.warn("Error extracting template:", error);
       return null;
     }
-  };
+  }
 
+  private static extractStringConcatenations(
+    functionBody: string,
+  ): string | null {
+    const stringMatches = functionBody.match(/'([^']+)'/g);
+    if (!stringMatches) return null;
+
+    return stringMatches
+      .map((match) => match.slice(1, -1))
+      .filter((str) => str.trim())
+      .join("")
+      .replace(/\\n/g, "\n")
+      .replace(/\\'/g, "'")
+      .replace(/\\\\/g, "\\");
+  }
+}
+
+/**
+ * Main Vite plugin for EJS file handling.
+ */
+export default function ejsPlugin(): Plugin {
   return {
     name: "ejs-loader",
     enforce: "pre",
+
     resolveId(id, importer) {
       if (!id.endsWith(".ejs")) return null;
 
-      let resolveId = id;
+      const resolveId = path.isAbsolute(id)
+        ? id
+        : importer
+          ? path.resolve(path.dirname(importer), id)
+          : path.resolve(process.cwd(), id);
 
-      // Handle relative imports
-      if ((id.startsWith("./") || id.startsWith("../")) && importer) {
-        resolveId = path.resolve(path.dirname(importer), id);
-      } else if (!path.isAbsolute(id)) {
-        // Handle non-relative, non-absolute imports as relative to cwd
-        resolveId = path.resolve(process.cwd(), id);
-      }
-
-      const resolvedPath = findTemplate(resolveId);
-      if (resolvedPath) {
-        return resolvedPath;
-      }
-
-      return null;
+      return TemplateFinder.find(resolveId);
     },
+
     load(id) {
       if (!id.endsWith(".ejs") && !id.endsWith(".ejs.js")) return null;
 
       try {
         const content = fs.readFileSync(id, "utf-8");
-
-        // Handle .ejs.js files (Form.io templates)
         if (id.endsWith(".ejs.js")) {
-          const template = extractEjsJsTemplate(content);
-          if (template) {
-            return {
-              code: `export default ${JSON.stringify(template)};`,
-              map: null,
-            };
-          }
-          // If extraction fails, return the content as is
+          const extractedTemplate = TemplateExtractor.extract(content);
           return {
-            code: content,
+            code: `export default ${JSON.stringify(extractedTemplate ?? content)};`,
             map: null,
           };
         }
-
-        // Handle regular .ejs files
         return {
           code: `export default ${JSON.stringify(content)};`,
           map: null,
