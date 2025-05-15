@@ -15,16 +15,15 @@ export enum IconType {
   Phone = "phone-square",
 }
 
-const getIconForType = (type: FieldType): IconType => {
-  switch (type) {
-    case FieldType.Email:
-      return IconType.Email;
-    case FieldType.Phone:
-      return IconType.Phone;
-    default:
-      return IconType.Text;
-  }
+// Icon mapping using Record type for type safety
+const IconMap: Record<FieldType, IconType> = {
+  [FieldType.Text]: IconType.Text,
+  [FieldType.TextArea]: IconType.Text,
+  [FieldType.Email]: IconType.Email,
+  [FieldType.Phone]: IconType.Phone,
 };
+
+const getIconForType = (type: FieldType): IconType => IconMap[type];
 
 export const createUserFieldSchema = (
   key: string,
@@ -86,13 +85,13 @@ const builderSections = {
   data: false,
   custom: {
     title: "User Fields",
-    weight: 10,
+    weight: 0,
     components: userFields,
   },
   customBasic: {
     title: "Basic Components",
     default: true,
-    weight: 0,
+    weight: 1,
     components: basicComponents,
   },
   layout: {
