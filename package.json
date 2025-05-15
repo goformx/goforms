@@ -15,6 +15,7 @@
     "postinstall": "mkdir -p public/fonts && cp -r node_modules/@formio/js/dist/fonts/* public/fonts/"
   },
   "dependencies": {
+    "@formio/bootstrap": "^3.1.1",
     "@formio/js": "^5.1.1",
     "@fortawesome/fontawesome-free": "^6.7.2",
     "ace-builds": "^1.41.0",
