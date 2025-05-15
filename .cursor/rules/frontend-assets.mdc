@@ -7,16 +7,19 @@ alwaysApply: false
 
 ## Build System
 - Vite is used for building and serving frontend assets
-- TypeScript compilation and bundling
+- TypeScript compilation and bundling with esbuild
 - CSS processing with PostCSS
 - EJS template compilation and loading
-- Asset optimization and minification
+- Asset optimization and minification with Terser
+- ESM-based module system
 
 ## Development Mode
 - Assets served from Vite dev server at `http://localhost:3000`
-- Hot Module Replacement (HMR) enabled
+- Hot Module Replacement (HMR) with WebSocket
 - Source maps for debugging
 - Proxy configuration for API requests
+- Fast refresh for React components
+- CSS modules with camelCase naming
 
 ## Production Build
 - Assets built to `dist/` directory
@@ -24,39 +27,55 @@ alwaysApply: false
 - JavaScript files in `dist/js/`
 - Fonts and images in `dist/assets/`
 - Manifest file for asset versioning
+- Console and debugger statements removed
+- Source maps for production debugging
 
 ## Asset Types
-- JavaScript/TypeScript files
+- JavaScript/TypeScript files (ESNext)
 - CSS/SCSS modules
 - EJS templates
 - Font files (Bootstrap Icons, Font Awesome)
 - Images and SVGs
+- JSON files
 
 ## Configuration
-- [vite.config.ts](mdc:goforms/vite.config.ts): Main Vite configuration
-- [postcss.config.cjs](mdc:goforms/postcss.config.cjs): PostCSS plugins
-- [tsconfig.json](mdc:goforms/tsconfig.json): TypeScript configuration
+- [vite.config.ts](mdc:vite.config.ts): Main Vite configuration
+  - ESNext target for modern browsers
+  - Terser minification
+  - PostCSS processing
+  - Custom EJS plugin
+  - HMR configuration
+  - Asset optimization
+- [postcss.config.cjs](mdc:postcss.config.cjs): PostCSS plugins
+- [tsconfig.json](mdc:tsconfig.json): TypeScript configuration
 
 ## Templates
 - Templates use EJS syntax
 - Compiled to JavaScript using Gulp
 - Custom Vite plugin for template loading
 - Support for semantic UI components
+- Template resolution with fallbacks
 
 ## CSS Processing
 - PostCSS for CSS processing
 - Autoprefixer for browser compatibility
 - CSS modules for component styling
 - CSS minification in production
+- Nested CSS support
+- CSS source maps in development
 
 ## Asset Loading
 - Dynamic imports for code splitting
 - CSS modules for scoped styles
 - Font loading optimization
 - Image optimization
+- Top-level await support
+- ESM imports
 
 ## Backend Integration
 - Go backend serves static assets in production
 - Vite dev server proxy in development
 - Asset versioning through manifest
 - CSRF protection for API requests
+- WebSocket support for HMR
+- API proxy configuration

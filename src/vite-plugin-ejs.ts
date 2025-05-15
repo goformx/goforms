@@ -55,10 +55,11 @@ class TemplateResolver {
   private static findTemplate(id: string): string | null {
     const ejsJsPath = id.replace(".ejs", ".ejs.js");
 
-    if (FileSystem.exists(ejsJsPath)) {
-      return ejsJsPath;
-    }
-    return FileSystem.exists(id) ? id : null;
+    return FileSystem.exists(ejsJsPath)
+      ? ejsJsPath
+      : FileSystem.exists(id)
+        ? id
+        : null;
   }
 }
 
