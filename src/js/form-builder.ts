@@ -11,89 +11,178 @@ import "@formio/js/dist/formio.full.min.css";
 Formio.use(goforms);
 
 /**
- * Displays an error message in a consistent way across the application
- * @param message The error message to display
- * @param container Optional container element to show the error in
+ * Error handling utility
  */
-function displayErrorMessage(message: string, container?: HTMLElement): void {
-  // Try to find existing error container first
-  const errorContainer =
-    container?.querySelector(".gf-error-message") ||
-    document.querySelector(".gf-error-message");
+class FormBuilderError extends Error {
+  constructor(
+    message: string,
+    public readonly userMessage: string,
+  ) {
+    super(message);
+    this.name = "FormBuilderError";
+  }
+}
 
-  if (errorContainer instanceof HTMLElement) {
-    errorContainer.textContent = message;
-    errorContainer.style.display = "block";
-    return;
+/**
+ * DOM utility functions
+ */
+const dom = {
+  getElement<T extends HTMLElement>(id: string): T | null {
+    return document.getElementById(id) as T | null;
+  },
+
+  createElement<T extends HTMLElement>(tag: string, className?: string): T {
+    const element = document.createElement(tag) as T;
+    if (className) element.className = className;
+    return element;
+  },
+
+  showError(message: string, container?: HTMLElement): void {
+    const errorContainer =
+      container?.querySelector(".gf-error-message") ||
+      document.querySelector(".gf-error-message");
+
+    if (errorContainer instanceof HTMLElement) {
+      errorContainer.textContent = message;
+      errorContainer.style.display = "block";
+      return;
+    }
+
+    const errorDiv = dom.createElement<HTMLDivElement>(
+      "div",
+      "gf-error-message",
+    );
+    errorDiv.textContent = message;
+    document.body.insertBefore(errorDiv, document.body.firstChild);
+  },
+};
+
+/**
+ * Form builder validation
+ */
+function validateFormBuilder(): { builder: HTMLElement; formId: number } {
+  const builder = dom.getElement<HTMLElement>("form-schema-builder");
+  if (!builder) {
+    throw new FormBuilderError(
+      "Form builder element not found",
+      "Form builder element not found. Please refresh the page.",
+    );
   }
 
-  // Create new error element if none exists
-  const errorDiv = document.createElement("div");
-  errorDiv.className = "gf-error-message";
-  errorDiv.textContent = message;
+  const formIdAttr = builder.getAttribute("data-form-id");
+  if (!formIdAttr) {
+    throw new FormBuilderError(
+      "Form ID not found",
+      "Form ID not found. Please refresh the page.",
+    );
+  }
 
-  // Add to the top of the page for better visibility
-  document.body.insertBefore(errorDiv, document.body.firstChild);
+  const formId = parseInt(formIdAttr, 10);
+  if (!Number.isInteger(formId) || formId <= 0) {
+    throw new FormBuilderError(
+      `Invalid form ID: ${formIdAttr}`,
+      "Invalid form ID. Please refresh the page.",
+    );
+  }
+
+  return { builder, formId };
 }
 
-// Initialize form builder when the module is loaded
-const formSchemaBuilder = document.getElementById("form-schema-builder");
-
-if (!formSchemaBuilder) {
-  displayErrorMessage(
-    "Form builder element not found. Please refresh the page.",
-  );
-  throw new Error("Form schema builder element not found");
-}
-
-const formIdAttr = formSchemaBuilder.getAttribute("data-form-id");
-if (!formIdAttr) {
-  displayErrorMessage("Form ID not found. Please refresh the page.");
-  throw new Error("Form ID not found");
-}
-
-// More robust formId parsing
-const formId = parseInt(formIdAttr, 10);
-if (!Number.isInteger(formId) || formId <= 0) {
-  displayErrorMessage("Invalid form ID. Please refresh the page.");
-  throw new Error(`Invalid form ID: ${formIdAttr}`);
-}
-
-let builder: any;
-
-async function initializeFormBuilder(formId: number): Promise<void> {
+/**
+ * Schema management
+ */
+async function getFormSchema(formId: number): Promise<any> {
   const formService = FormService.getInstance();
-
   try {
-    const schema = await formService.getSchema(formId);
-    builder = await Formio.builder(formSchemaBuilder, schema, builderOptions);
-    setupBuilderEvents(builder, formId, formService);
+    return await formService.getSchema(formId);
+  } catch {
+    throw new FormBuilderError(
+      "Failed to fetch schema",
+      "Failed to load form schema. Please try again later.",
+    );
+  }
+}
 
-    // Add schema view button handler
-    const viewSchemaBtn = document.getElementById("view-schema-btn");
-    if (viewSchemaBtn) {
-      viewSchemaBtn.addEventListener("click", () => {
-        if (builder) {
-          builder.showSchema();
-        }
-      });
-    }
+/**
+ * Builder initialization
+ */
+async function createFormBuilder(
+  container: HTMLElement,
+  schema: any,
+): Promise<any> {
+  try {
+    return await Formio.builder(container, schema, builderOptions);
+  } catch {
+    throw new FormBuilderError(
+      "Failed to initialize builder",
+      "Failed to initialize form builder. Please refresh the page.",
+    );
+  }
+}
+
+/**
+ * Event handlers setup
+ */
+function setupEventHandlers(builder: any): void {
+  const viewSchemaBtn = dom.getElement<HTMLButtonElement>("view-schema-btn");
+  if (viewSchemaBtn) {
+    viewSchemaBtn.addEventListener("click", () => {
+      // Show the JSON editor with the current schema
+      builder.showJSON();
+    });
+  }
+
+  const saveBtn = dom.getElement<HTMLButtonElement>("save-fields-btn");
+  const feedback = dom.getElement<HTMLElement>("schema-save-feedback");
+  if (saveBtn && feedback) {
+    saveBtn.addEventListener("click", async () => {
+      const spinner = saveBtn.querySelector(".spinner") as HTMLElement;
+      try {
+        feedback.textContent = "Saving...";
+        saveBtn.disabled = true;
+        if (spinner) spinner.style.display = "inline-block";
+
+        const ok = await builder.saveSchema();
+        feedback.textContent = ok
+          ? "Schema saved successfully."
+          : "Failed to save schema.";
+      } catch (error) {
+        console.error("Error saving schema:", error);
+        feedback.textContent = "Error saving schema.";
+      } finally {
+        saveBtn.disabled = false;
+        if (spinner) spinner.style.display = "none";
+        setTimeout(() => (feedback.textContent = ""), 3000);
+      }
+    });
+  }
+}
+
+/**
+ * Main initialization function
+ */
+async function initializeFormBuilder(): Promise<void> {
+  try {
+    // Validate and get required elements
+    const { builder: container, formId } = validateFormBuilder();
+
+    // Get schema and create builder
+    const schema = await getFormSchema(formId);
+    const builder = await createFormBuilder(container, schema);
+
+    // Set up event handlers
+    setupEventHandlers(builder);
+    setupBuilderEvents(builder, formId, FormService.getInstance());
   } catch (error) {
-    console.error("Error initializing form builder:", error);
-    // Display user-friendly error message
-    if (formSchemaBuilder instanceof HTMLElement) {
-      displayErrorMessage(
-        "Failed to load form builder. Please refresh the page or try again later.",
-        formSchemaBuilder,
-      );
+    if (error instanceof FormBuilderError) {
+      dom.showError(error.userMessage);
     } else {
-      displayErrorMessage(
-        "Failed to load form builder. Please refresh the page or try again later.",
-      );
+      console.error("Unexpected error:", error);
+      dom.showError("An unexpected error occurred. Please refresh the page.");
     }
-    throw error; // Re-throw for logging purposes
+    throw error;
   }
 }
 
 // Initialize the form builder
-initializeFormBuilder(formId);
+initializeFormBuilder();
