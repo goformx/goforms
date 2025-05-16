@@ -4,7 +4,6 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"strconv"
 	"time"
 
 	"github.com/jonesrussell/goforms/internal/domain/form"
@@ -21,25 +20,16 @@ var (
 
 // Client implements the form.Client interface
 type Client struct {
-	forms     map[uint]*form.Form      // key is formID
+	forms     map[string]*form.Form    // key is formID (UUID string)
 	responses map[string]form.Response // key is responseID
-	nextID    uint                     // for generating IDs
 }
 
 // NewClient creates a new form client
 func NewClient() *Client {
 	return &Client{
-		forms:     make(map[uint]*form.Form),
+		forms:     make(map[string]*form.Form),
 		responses: make(map[string]form.Response),
-		nextID:    1,
 	}
-}
-
-// generateID generates a new unique ID
-func (c *Client) generateID() uint {
-	id := c.nextID
-	c.nextID++
-	return id
 }
 
 // SubmitForm submits a new form
@@ -47,9 +37,10 @@ func (c *Client) SubmitForm(ctx context.Context, f form.Form) error {
 	if f.Title == "" || f.Schema == nil {
 		return ErrInvalidInput
 	}
-	formID := c.generateID()
-	f.ID = formID
-	c.forms[formID] = &f
+	if f.ID == "" {
+		return ErrInvalidInput
+	}
+	c.forms[f.ID] = &f
 	return nil
 }
 
@@ -58,11 +49,7 @@ func (c *Client) GetForm(ctx context.Context, formID string) (*form.Form, error)
 	if formID == "" {
 		return nil, ErrInvalidInput
 	}
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return nil, ErrInvalidInput
-	}
-	f, exists := c.forms[uint(id)]
+	f, exists := c.forms[formID]
 	if !exists {
 		return nil, ErrFormNotFound
 	}
@@ -83,14 +70,10 @@ func (c *Client) DeleteForm(ctx context.Context, formID string) error {
 	if formID == "" {
 		return ErrInvalidInput
 	}
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return ErrInvalidInput
-	}
-	if _, exists := c.forms[uint(id)]; !exists {
+	if _, exists := c.forms[formID]; !exists {
 		return ErrFormNotFound
 	}
-	delete(c.forms, uint(id))
+	delete(c.forms, formID)
 	return nil
 }
 
@@ -99,15 +82,11 @@ func (c *Client) UpdateForm(ctx context.Context, formID string, f form.Form) err
 	if formID == "" {
 		return ErrInvalidInput
 	}
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return ErrInvalidInput
-	}
-	if _, exists := c.forms[uint(id)]; !exists {
+	if _, exists := c.forms[formID]; !exists {
 		return ErrFormNotFound
 	}
-	f.ID = uint(id)
-	c.forms[uint(id)] = &f
+	f.ID = formID
+	c.forms[formID] = &f
 	return nil
 }
 
@@ -116,7 +95,7 @@ func (c *Client) SubmitResponse(ctx context.Context, formID string, response for
 	if formID == "" || response.Values == nil {
 		return ErrInvalidInput
 	}
-	responseID := fmt.Sprintf("resp-%d", c.nextID)
+	responseID := fmt.Sprintf("resp-%s-%d", formID, time.Now().UnixNano())
 	response.ID = responseID
 	response.FormID = formID
 	response.SubmittedAt = time.Now()

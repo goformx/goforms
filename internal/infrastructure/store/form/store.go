@@ -28,9 +28,8 @@ func NewStore(db *database.Database, logger logging.Logger) form.Store {
 
 func (s *store) Create(f *form.Form) error {
 	query := `
-		INSERT INTO forms (user_id, title, description, schema, active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?)
-		RETURNING id
+		INSERT INTO forms (uuid, user_id, title, description, schema, active, created_at, updated_at)
+		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
 	`
 
 	schemaJSON, err := json.Marshal(f.Schema)
@@ -38,8 +37,9 @@ func (s *store) Create(f *form.Form) error {
 		return fmt.Errorf("failed to marshal schema: %w", err)
 	}
 
-	err = s.db.QueryRow(
+	_, err = s.db.Exec(
 		query,
+		f.ID,
 		f.UserID,
 		f.Title,
 		f.Description,
@@ -47,7 +47,7 @@ func (s *store) Create(f *form.Form) error {
 		f.Active,
 		f.CreatedAt,
 		f.UpdatedAt,
-	).Scan(&f.ID)
+	)
 
 	if err != nil {
 		return fmt.Errorf("failed to create form: %w", err)
@@ -56,11 +56,11 @@ func (s *store) Create(f *form.Form) error {
 	return nil
 }
 
-func (s *store) GetByID(id uint) (*form.Form, error) {
+func (s *store) GetByID(id string) (*form.Form, error) {
 	query := `
-		SELECT id, user_id, title, description, schema, active, created_at, updated_at
+		SELECT uuid, user_id, title, description, schema, active, created_at, updated_at
 		FROM forms
-		WHERE id = ?
+		WHERE uuid = ?
 	`
 
 	var schemaJSON []byte
@@ -93,7 +93,7 @@ func (s *store) GetByID(id uint) (*form.Form, error) {
 
 func (s *store) GetByUserID(userID uint) ([]*form.Form, error) {
 	query := `
-		SELECT id, user_id, title, description, schema, active, created_at, updated_at
+		SELECT uuid, user_id, title, description, schema, active, created_at, updated_at
 		FROM forms
 		WHERE user_id = ?
 	`
@@ -139,8 +139,8 @@ func (s *store) GetByUserID(userID uint) ([]*form.Form, error) {
 	return forms, nil
 }
 
-func (s *store) Delete(id uint) error {
-	query := `DELETE FROM forms WHERE id = ?`
+func (s *store) Delete(id string) error {
+	query := `DELETE FROM forms WHERE uuid = ?`
 
 	result, err := s.db.Exec(query, id)
 	if err != nil {
@@ -159,27 +159,23 @@ func (s *store) Delete(id uint) error {
 	return nil
 }
 
-func (s *store) GetFormSubmissions(formID uint) ([]*model.FormSubmission, error) {
+func (s *store) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
 	query := `
-		SELECT id, form_id, data, submitted_at, status, metadata
+		SELECT id, form_uuid, data, submitted_at, status, metadata
 		FROM form_submissions
-		WHERE form_id = ?
-		ORDER BY submitted_at DESC
+		WHERE form_uuid = ?
 	`
 
-	rows, err := s.db.Query(query, formID)
-	if err != nil {
-		return nil, fmt.Errorf("failed to query form submissions: %w", err)
+	rows, queryErr := s.db.Query(query, formID)
+	if queryErr != nil {
+		return nil, fmt.Errorf("failed to query form submissions: %w", queryErr)
 	}
 	defer rows.Close()
 
 	var submissions []*model.FormSubmission
 	for rows.Next() {
-		var (
-			dataJSON     []byte
-			metadataJSON []byte
-			submission   = &model.FormSubmission{}
-		)
+		var submission model.FormSubmission
+		var dataJSON, metadataJSON []byte
 
 		scanErr := rows.Scan(
 			&submission.ID,
@@ -190,25 +186,25 @@ func (s *store) GetFormSubmissions(formID uint) ([]*model.FormSubmission, error)
 			&metadataJSON,
 		)
 		if scanErr != nil {
-			s.logger.Error("Error scanning form submission row", logging.ErrorField("error", scanErr))
+			log.Printf("Error scanning submission row: %v", scanErr)
 			continue
 		}
 
 		if unmarshalErr := json.Unmarshal(dataJSON, &submission.Data); unmarshalErr != nil {
-			s.logger.Error("Error unmarshaling submission data", logging.ErrorField("error", unmarshalErr))
+			log.Printf("Error unmarshaling submission data: %v", unmarshalErr)
 			continue
 		}
 
-		if unmarshalErr := json.Unmarshal(metadataJSON, &submission.Metadata); unmarshalErr != nil {
-			s.logger.Error("Error unmarshaling submission metadata", logging.ErrorField("error", unmarshalErr))
+		if metadataErr := json.Unmarshal(metadataJSON, &submission.Metadata); metadataErr != nil {
+			log.Printf("Error unmarshaling submission metadata: %v", metadataErr)
 			continue
 		}
 
-		submissions = append(submissions, submission)
+		submissions = append(submissions, &submission)
 	}
 
 	if rowsErr := rows.Err(); rowsErr != nil {
-		return nil, fmt.Errorf("error iterating form submissions: %w", rowsErr)
+		return nil, fmt.Errorf("error iterating submissions: %w", rowsErr)
 	}
 
 	return submissions, nil
@@ -218,7 +214,7 @@ func (s *store) Update(f *form.Form) error {
 	query := `
 		UPDATE forms 
 		SET title = ?, description = ?, schema = ?, active = ?, updated_at = CURRENT_TIMESTAMP
-		WHERE id = ?
+		WHERE uuid = ?
 	`
 
 	schemaJSON, err := json.Marshal(f.Schema)

@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+vars:
+  MIGRATIONS_DIR: migrations
+  DB_USER: '{{.GOFORMS_DB_USER | default "goforms"}}'
+  DB_PASSWORD: '{{.GOFORMS_DB_PASSWORD | default "goforms"}}'
+  DB_NAME: '{{.GOFORMS_DB_NAME | default "goforms"}}'
+  DB_HOST: '{{.GOFORMS_DB_HOST | default "localhost"}}'
+  DB_PORT: '{{.GOFORMS_DB_PORT | default "3306"}}'
+  DB_URL: mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}?multiStatements=true
+
+tasks:
+  default:
+    desc: Show available migration commands
+    cmds:
+      - task --list
+
+  create:
+    desc: Create a new migration
+    requires:
+      vars: [name]
+    cmds:
+      - migrate create -ext sql -dir {{.MIGRATIONS_DIR}} -seq {{.name}}
+
+  up:
+    desc: Run all pending migrations
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" up
+
+  down:
+    desc: Rollback the last migration
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" down
+
+  down-all:
+    desc: Rollback all migrations
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" down -all
+
+  version:
+    desc: Show current migration version
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" version
+
+  force:
+    desc: Force migration version
+    requires:
+      vars: [version]
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" force {{.version}}
+
+  fix-dirty:
+    desc: Fix dirty database state
+    cmds:
+      - |
+        CURRENT_VERSION=$(migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" version | cut -d' ' -f1)
+        migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" force $CURRENT_VERSION 

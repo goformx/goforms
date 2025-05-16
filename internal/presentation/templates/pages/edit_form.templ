@@ -1,8 +1,6 @@
 package pages
 
 import (
-	"strconv"
-
 	"github.com/jonesrussell/goforms/internal/presentation/templates/layouts"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 )
@@ -54,7 +52,7 @@ templ FormFieldsContent(data shared.PageData) {
 			<!-- Removed search input -->
 			<!-- Add filter/sort options here if needed -->
 		</div>
-		<div id="form-schema-builder" class="form-schema-builder" data-form-id={ strconv.FormatUint(uint64(data.Form.ID), 10) }></div>
+		<div id="form-schema-builder" class="form-schema-builder" data-form-id={ data.Form.ID }></div>
 		<div class="form-actions">
 			<button id="view-schema-btn" class="gf-button gf-button--outline" type="button">
 				<i class="bi bi-code-square"></i>

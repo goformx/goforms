@@ -2,7 +2,6 @@ package handler
 
 import (
 	"net/http"
-	"strconv"
 
 	"github.com/labstack/echo/v4"
 
@@ -63,12 +62,6 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
 	}
 
-	// Parse formID to uint
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
-	}
-
 	// Verify CSRF token if enabled
 	if csrfToken := c.Get("csrf"); csrfToken != nil {
 		// Log CSRF token presence for debugging
@@ -98,7 +91,7 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	}
 
 	// Create form submission
-	submission, err := model.NewFormSubmission(uint(id), formData, metadata)
+	submission, err := model.NewFormSubmission(formID, formData, metadata)
 	if err != nil {
 		h.base.LogError("failed to create form submission", err)
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form submission")
@@ -115,23 +108,12 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 	// Submit response using client
 	if submitErr := h.formClient.SubmitResponse(c.Request().Context(), formID, response); submitErr != nil {
 		h.base.LogError("failed to submit form response", submitErr)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to submit form response")
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to submit form")
 	}
 
-	// Set security headers
-	c.Response().Header().Set("X-Content-Type-Options", "nosniff")
-	c.Response().Header().Set("X-Frame-Options", "DENY")
-	c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
-	c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-
-	return c.JSON(http.StatusOK, map[string]any{
-		"success": true,
-		"data": map[string]any{
-			"id":           submission.ID,
-			"form_id":      submission.FormID,
-			"values":       submission.Data,
-			"submitted_at": submission.SubmittedAt,
-		},
+	return c.JSON(http.StatusOK, map[string]string{
+		"message": "Form submitted successfully",
+		"id":      submission.ID,
 	})
 }
 
@@ -182,12 +164,7 @@ func (h *FormHandler) handleGetForm(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
 	}
 
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
-	}
-
-	formData, err := h.formService.GetForm(uint(id))
+	formData, err := h.formService.GetForm(formID)
 	if err != nil {
 		h.base.LogError("failed to get form", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form")
@@ -207,12 +184,7 @@ func (h *FormHandler) handleDeleteForm(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
 	}
 
-	id, err := strconv.ParseUint(formID, 10, 64)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form ID")
-	}
-
-	deleteErr := h.formService.DeleteForm(uint(id))
+	deleteErr := h.formService.DeleteForm(formID)
 	if deleteErr != nil {
 		h.base.LogError("failed to delete form", deleteErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete form")

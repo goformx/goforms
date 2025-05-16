@@ -3,6 +3,7 @@ package form
 import (
 	"errors"
 
+	"github.com/google/uuid"
 	"github.com/jonesrussell/goforms/internal/domain/form/model"
 )
 
@@ -27,6 +28,7 @@ func (s *service) CreateForm(userID uint, title, description string, schema JSON
 	}
 
 	form := &Form{
+		ID:          uuid.New().String(),
 		UserID:      userID,
 		Title:       title,
 		Description: description,
@@ -41,7 +43,7 @@ func (s *service) CreateForm(userID uint, title, description string, schema JSON
 	return form, nil
 }
 
-func (s *service) GetForm(id uint) (*Form, error) {
+func (s *service) GetForm(id string) (*Form, error) {
 	form, err := s.store.GetByID(id)
 	if err != nil {
 		return nil, err
@@ -63,7 +65,7 @@ func (s *service) GetUserForms(userID uint) ([]*Form, error) {
 	return forms, nil
 }
 
-func (s *service) DeleteForm(id uint) error {
+func (s *service) DeleteForm(id string) error {
 	return s.store.Delete(id)
 }
 
@@ -72,7 +74,7 @@ func (s *service) UpdateForm(form *Form) error {
 		return errors.New("form is required")
 	}
 
-	if form.ID == 0 {
+	if form.ID == "" {
 		return errors.New("form ID is required")
 	}
 
@@ -91,6 +93,6 @@ func (s *service) UpdateForm(form *Form) error {
 }
 
 // GetFormSubmissions returns all submissions for a form
-func (s *service) GetFormSubmissions(formID uint) ([]*model.FormSubmission, error) {
+func (s *service) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
 	return s.store.GetFormSubmissions(formID)
 }
