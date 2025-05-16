@@ -300,7 +300,9 @@
 }
 
 @keyframes spin {
-  to { transform: rotate(360deg); }
+  to {
+    transform: rotate(360deg);
+  }
 }
 
 /* Accordion Styling */
@@ -405,7 +407,7 @@
 }
 
 .tab-component-tabs .nav-link.active::after {
-  content: '';
+  content: "";
   position: absolute;
   bottom: -1px;
   left: 0;
