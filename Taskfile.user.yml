@@ -68,17 +68,3 @@ tasks:
       - >-
         {{.CLI_BIN}} user delete
         --id {{.id}}
-
-  create-my-user:
-    desc: Create a new user with custom parameters
-    requires:
-      vars: [email, password, first-name, last-name]
-    deps: [build]
-    cmds:
-      - >-
-        {{.CLI_BIN}} user create
-        --email {{.email}}
-        --password {{.password}}
-        --first-name {{.first-name}}
-        --last-name {{.last-name}}
-        --role {{.role | default "user"}}
