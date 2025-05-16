@@ -2,7 +2,6 @@ package commands
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
@@ -20,13 +19,10 @@ func CreateUser(c *cli.Context) error {
 	}
 	defer db.Close()
 
-	// Create logger factory
-	factory := logging.NewFactory()
-
 	// Create logger
-	logger, err := factory.CreateLogger()
+	logger, err := logging.NewFactory().CreateLogger()
 	if err != nil {
-		return fmt.Errorf("failed to create logger: %w", err)
+		return err
 	}
 
 	// Create user store
@@ -46,7 +42,7 @@ func CreateUser(c *cli.Context) error {
 
 	// Set password
 	if err := newUser.SetPassword(c.String("password")); err != nil {
-		return fmt.Errorf("failed to set password: %w", err)
+		return err
 	}
 
 	// Save user
@@ -57,10 +53,10 @@ func CreateUser(c *cli.Context) error {
 		LastName:  newUser.LastName,
 	})
 	if err != nil {
-		return fmt.Errorf("failed to create user: %w", err)
+		return err
 	}
 
-	fmt.Printf("Successfully created user with ID: %d\n", createdUser.ID)
+	logger.Info("Successfully created user", logging.UintField("id", createdUser.ID))
 	return nil
 }
 
@@ -74,13 +70,10 @@ func ListUsers(c *cli.Context) error {
 	}
 	defer db.Close()
 
-	// Create logger factory
-	factory := logging.NewFactory()
-
 	// Create logger
-	logger, err := factory.CreateLogger()
+	logger, err := logging.NewFactory().CreateLogger()
 	if err != nil {
-		return fmt.Errorf("failed to create logger: %w", err)
+		return err
 	}
 
 	// Create user store
@@ -92,16 +85,22 @@ func ListUsers(c *cli.Context) error {
 	// Get all users
 	users, err := userService.ListUsers(ctx)
 	if err != nil {
-		return fmt.Errorf("failed to list users: %w", err)
+		return err
 	}
 
 	// Print users
-	fmt.Println("\nUsers:")
-	fmt.Println("ID\tEmail\t\tName\t\tRole\tActive")
-	fmt.Println("--\t-----\t\t----\t\t----\t------")
-	for _, u := range users {
-		fmt.Printf("%d\t%s\t%s %s\t%s\t%v\n",
-			u.ID, u.Email, u.FirstName, u.LastName, u.Role, u.Active)
+	logger.Info("Users:")
+	logger.Info("ID\tEmail\t\tName\t\tRole\tActive")
+	logger.Info("--\t-----\t\t----\t\t----\t------")
+	for i := range users {
+		u := &users[i]
+		logger.Info("User details",
+			logging.UintField("id", u.ID),
+			logging.StringField("email", u.Email),
+			logging.StringField("name", u.FirstName+" "+u.LastName),
+			logging.StringField("role", u.Role),
+			logging.BoolField("active", u.Active),
+		)
 	}
 	return nil
 }
@@ -116,13 +115,10 @@ func DeleteUser(c *cli.Context) error {
 	}
 	defer db.Close()
 
-	// Create logger factory
-	factory := logging.NewFactory()
-
 	// Create logger
-	logger, err := factory.CreateLogger()
+	logger, err := logging.NewFactory().CreateLogger()
 	if err != nil {
-		return fmt.Errorf("failed to create logger: %w", err)
+		return err
 	}
 
 	// Create user store
@@ -134,9 +130,9 @@ func DeleteUser(c *cli.Context) error {
 	// Delete user
 	userID := c.Uint("id")
 	if err := userService.DeleteUser(ctx, userID); err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+		return err
 	}
 
-	fmt.Printf("Successfully deleted user with ID: %d\n", userID)
+	logger.Info("Successfully deleted user", logging.UintField("id", userID))
 	return nil
 }

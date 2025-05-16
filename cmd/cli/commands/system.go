@@ -3,9 +3,9 @@ package commands
 import (
 	"bufio"
 	"context"
-	"fmt"
 	"os"
 
+	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/urfave/cli/v2"
 )
 
@@ -19,13 +19,19 @@ func CheckSystemStatus(c *cli.Context) error {
 	}
 	defer db.Close()
 
-	// Check database connection
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("database connection failed: %w", err)
+	// Create logger
+	logger, err := logging.NewFactory().CreateLogger()
+	if err != nil {
+		return err
 	}
 
-	fmt.Println("System status: OK")
-	fmt.Println("Database connection: OK")
+	// Check database connection
+	if err := db.PingContext(ctx); err != nil {
+		return err
+	}
+
+	logger.Info("System status: OK")
+	logger.Info("Database connection: OK")
 	return nil
 }
 
@@ -39,29 +45,41 @@ func CheckDatabaseConnection(c *cli.Context) error {
 	}
 	defer db.Close()
 
-	// Check database connection
-	if err := db.PingContext(ctx); err != nil {
-		return fmt.Errorf("database connection failed: %w", err)
+	// Create logger
+	logger, err := logging.NewFactory().CreateLogger()
+	if err != nil {
+		return err
 	}
 
-	fmt.Println("Database connection: OK")
+	// Check database connection
+	if err := db.PingContext(ctx); err != nil {
+		return err
+	}
+
+	logger.Info("Database connection: OK")
 	return nil
 }
 
 func DropAllTables(c *cli.Context) error {
+	// Create logger
+	logger, err := logging.NewFactory().CreateLogger()
+	if err != nil {
+		return err
+	}
+
 	// Check if force flag is set
 	if !c.Bool("force") {
-		fmt.Println("WARNING: This will drop all database tables. This action cannot be undone.")
-		fmt.Print("Are you sure you want to continue? [y/N]: ")
+		logger.Warn("WARNING: This will drop all database tables. This action cannot be undone.")
+		logger.Info("Are you sure you want to continue? [y/N]: ")
 
 		reader := bufio.NewReader(os.Stdin)
 		response, err := reader.ReadString('\n')
 		if err != nil {
-			return fmt.Errorf("failed to read user input: %w", err)
+			return err
 		}
 
 		if response[0] != 'y' && response[0] != 'Y' {
-			fmt.Println("Operation cancelled")
+			logger.Info("Operation cancelled")
 			return nil
 		}
 	}
@@ -76,14 +94,14 @@ func DropAllTables(c *cli.Context) error {
 	defer db.Close()
 
 	// Get list of all tables
-	query := `
+	tableQuery := `
 		SELECT table_name 
 		FROM information_schema.tables 
 		WHERE table_schema = DATABASE()
 	`
-	rows, err := db.QueryContext(ctx, query)
+	rows, err := db.QueryContext(ctx, tableQuery)
 	if err != nil {
-		return fmt.Errorf("failed to get list of tables: %w", err)
+		return err
 	}
 	defer rows.Close()
 
@@ -91,39 +109,39 @@ func DropAllTables(c *cli.Context) error {
 	for rows.Next() {
 		var tableName string
 		if err := rows.Scan(&tableName); err != nil {
-			return fmt.Errorf("failed to scan table name: %w", err)
+			return err
 		}
 		tables = append(tables, tableName)
 	}
 
 	if err := rows.Err(); err != nil {
-		return fmt.Errorf("error iterating tables: %w", err)
+		return err
 	}
 
 	if len(tables) == 0 {
-		fmt.Println("No tables found in the database")
+		logger.Info("No tables found in the database")
 		return nil
 	}
 
 	// Disable foreign key checks temporarily
 	if _, err := db.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		return fmt.Errorf("failed to disable foreign key checks: %w", err)
+		return err
 	}
 
 	// Drop all tables
 	for _, table := range tables {
-		query := fmt.Sprintf("DROP TABLE IF EXISTS %s", table)
-		if _, err := db.ExecContext(ctx, query); err != nil {
-			return fmt.Errorf("failed to drop table %s: %w", table, err)
+		dropQuery := "DROP TABLE IF EXISTS " + table
+		if _, err := db.ExecContext(ctx, dropQuery); err != nil {
+			return err
 		}
-		fmt.Printf("Dropped table: %s\n", table)
+		logger.Info("Dropped table: " + table)
 	}
 
 	// Re-enable foreign key checks
 	if _, err := db.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		return fmt.Errorf("failed to re-enable foreign key checks: %w", err)
+		return err
 	}
 
-	fmt.Printf("Successfully dropped %d tables\n", len(tables))
+	logger.Info("Successfully dropped all tables", logging.IntField("count", len(tables)))
 	return nil
 }
