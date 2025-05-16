@@ -1,5 +1,5 @@
 CREATE TABLE IF NOT EXISTS forms (
-    id BIGINT PRIMARY KEY AUTO_INCREMENT,
+    uuid VARCHAR(36) PRIMARY KEY,
     user_id BIGINT NOT NULL,
     title VARCHAR(255) NOT NULL,
     description TEXT,
