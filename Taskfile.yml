@@ -1,5 +1,14 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
 version: '3'
 output: 'prefixed'
+
+includes:
+  migrate:
+    taskfile: Taskfile.migrate.yml
+    namespace: migrate
+  user:
+    taskfile: Taskfile.user.yml
+    namespace: user
 
 dotenv: ['.env']
 
@@ -148,50 +157,6 @@ tasks:
     cmds:
       - go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
       - go tool cover -html=coverage.out -o coverage.html
-
-  migrate:
-    desc: Database migration tasks
-    cmds:
-      - task --taskfile Taskfile.migrate.yml --list
-
-  migrate:up:
-    desc: Run database migrations up
-    cmds:
-      - task --taskfile Taskfile.migrate.yml up
-
-  migrate:down:
-    desc: Run database migrations down
-    cmds:
-      - task --taskfile Taskfile.migrate.yml down
-
-  migrate:down-all:
-    desc: Rollback all migrations
-    cmds:
-      - task --taskfile Taskfile.migrate.yml down-all
-
-  migrate:create:
-    desc: Create a new migration
-    requires:
-      vars: [name]
-    cmds:
-      - task --taskfile Taskfile.migrate.yml create name:{{.name}}
-
-  migrate:version:
-    desc: Show current migration version
-    cmds:
-      - task --taskfile Taskfile.migrate.yml version
-
-  migrate:force:
-    desc: Force migration version
-    requires:
-      vars: [version]
-    cmds:
-      - task --taskfile Taskfile.migrate.yml force version:{{.version}}
-
-  migrate:fix-dirty:
-    desc: Fix dirty database state
-    cmds:
-      - task --taskfile Taskfile.migrate.yml fix-dirty
 
   logs:
     desc: View production logs

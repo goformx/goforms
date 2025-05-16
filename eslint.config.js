@@ -51,7 +51,7 @@ export default defineConfig([
       "prettier/prettier": [
         "error",
         {
-          "quoteProps": "preserve",
+          quoteProps: "preserve",
         },
       ],
       "@typescript-eslint/no-unused-vars": [
