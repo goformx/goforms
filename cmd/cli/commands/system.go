@@ -20,14 +20,14 @@ func CheckSystemStatus(c *cli.Context) error {
 	defer db.Close()
 
 	// Create logger
-	logger, err := logging.NewFactory().CreateLogger()
-	if err != nil {
-		return err
+	logger, logErr := logging.NewFactory().CreateLogger()
+	if logErr != nil {
+		return logErr
 	}
 
 	// Check database connection
-	if err := db.PingContext(ctx); err != nil {
-		return err
+	if pingErr := db.PingContext(ctx); pingErr != nil {
+		return pingErr
 	}
 
 	logger.Info("System status: OK")
@@ -46,14 +46,14 @@ func CheckDatabaseConnection(c *cli.Context) error {
 	defer db.Close()
 
 	// Create logger
-	logger, err := logging.NewFactory().CreateLogger()
-	if err != nil {
-		return err
+	logger, logErr := logging.NewFactory().CreateLogger()
+	if logErr != nil {
+		return logErr
 	}
 
 	// Check database connection
-	if err := db.PingContext(ctx); err != nil {
-		return err
+	if pingErr := db.PingContext(ctx); pingErr != nil {
+		return pingErr
 	}
 
 	logger.Info("Database connection: OK")
@@ -62,9 +62,9 @@ func CheckDatabaseConnection(c *cli.Context) error {
 
 func DropAllTables(c *cli.Context) error {
 	// Create logger
-	logger, err := logging.NewFactory().CreateLogger()
-	if err != nil {
-		return err
+	logger, logErr := logging.NewFactory().CreateLogger()
+	if logErr != nil {
+		return logErr
 	}
 
 	// Check if force flag is set
@@ -73,9 +73,9 @@ func DropAllTables(c *cli.Context) error {
 		logger.Info("Are you sure you want to continue? [y/N]: ")
 
 		reader := bufio.NewReader(os.Stdin)
-		response, err := reader.ReadString('\n')
-		if err != nil {
-			return err
+		response, readErr := reader.ReadString('\n')
+		if readErr != nil {
+			return readErr
 		}
 
 		if response[0] != 'y' && response[0] != 'Y' {
@@ -99,23 +99,23 @@ func DropAllTables(c *cli.Context) error {
 		FROM information_schema.tables 
 		WHERE table_schema = DATABASE()
 	`
-	rows, err := db.QueryContext(ctx, tableQuery)
-	if err != nil {
-		return err
+	rows, queryErr := db.QueryContext(ctx, tableQuery)
+	if queryErr != nil {
+		return queryErr
 	}
 	defer rows.Close()
 
 	var tables []string
 	for rows.Next() {
 		var tableName string
-		if err := rows.Scan(&tableName); err != nil {
-			return err
+		if scanErr := rows.Scan(&tableName); scanErr != nil {
+			return scanErr
 		}
 		tables = append(tables, tableName)
 	}
 
-	if err := rows.Err(); err != nil {
-		return err
+	if rowsErr := rows.Err(); rowsErr != nil {
+		return rowsErr
 	}
 
 	if len(tables) == 0 {
@@ -124,22 +124,22 @@ func DropAllTables(c *cli.Context) error {
 	}
 
 	// Disable foreign key checks temporarily
-	if _, err := db.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 0"); err != nil {
-		return err
+	if _, fkErr := db.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 0"); fkErr != nil {
+		return fkErr
 	}
 
 	// Drop all tables
 	for _, table := range tables {
 		dropQuery := "DROP TABLE IF EXISTS " + table
-		if _, err := db.ExecContext(ctx, dropQuery); err != nil {
-			return err
+		if _, dropErr := db.ExecContext(ctx, dropQuery); dropErr != nil {
+			return dropErr
 		}
 		logger.Info("Dropped table: " + table)
 	}
 
 	// Re-enable foreign key checks
-	if _, err := db.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 1"); err != nil {
-		return err
+	if _, fkErr := db.ExecContext(ctx, "SET FOREIGN_KEY_CHECKS = 1"); fkErr != nil {
+		return fkErr
 	}
 
 	logger.Info("Successfully dropped all tables", logging.IntField("count", len(tables)))

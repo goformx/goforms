@@ -20,9 +20,9 @@ func CreateUser(c *cli.Context) error {
 	defer db.Close()
 
 	// Create logger
-	logger, err := logging.NewFactory().CreateLogger()
-	if err != nil {
-		return err
+	logger, logErr := logging.NewFactory().CreateLogger()
+	if logErr != nil {
+		return logErr
 	}
 
 	// Create user store
@@ -41,19 +41,19 @@ func CreateUser(c *cli.Context) error {
 	}
 
 	// Set password
-	if err := newUser.SetPassword(c.String("password")); err != nil {
-		return err
+	if pwdErr := newUser.SetPassword(c.String("password")); pwdErr != nil {
+		return pwdErr
 	}
 
 	// Save user
-	createdUser, err := userService.SignUp(ctx, &user.Signup{
+	createdUser, signupErr := userService.SignUp(ctx, &user.Signup{
 		Email:     newUser.Email,
 		Password:  c.String("password"),
 		FirstName: newUser.FirstName,
 		LastName:  newUser.LastName,
 	})
-	if err != nil {
-		return err
+	if signupErr != nil {
+		return signupErr
 	}
 
 	logger.Info("Successfully created user", logging.UintField("id", createdUser.ID))
@@ -71,9 +71,9 @@ func ListUsers(c *cli.Context) error {
 	defer db.Close()
 
 	// Create logger
-	logger, err := logging.NewFactory().CreateLogger()
-	if err != nil {
-		return err
+	logger, logErr := logging.NewFactory().CreateLogger()
+	if logErr != nil {
+		return logErr
 	}
 
 	// Create user store
@@ -83,9 +83,9 @@ func ListUsers(c *cli.Context) error {
 	userService := user.NewService(store, logger, "your-jwt-secret")
 
 	// Get all users
-	users, err := userService.ListUsers(ctx)
-	if err != nil {
-		return err
+	users, listErr := userService.ListUsers(ctx)
+	if listErr != nil {
+		return listErr
 	}
 
 	// Print users
@@ -116,9 +116,9 @@ func DeleteUser(c *cli.Context) error {
 	defer db.Close()
 
 	// Create logger
-	logger, err := logging.NewFactory().CreateLogger()
-	if err != nil {
-		return err
+	logger, logErr := logging.NewFactory().CreateLogger()
+	if logErr != nil {
+		return logErr
 	}
 
 	// Create user store
@@ -129,8 +129,8 @@ func DeleteUser(c *cli.Context) error {
 
 	// Delete user
 	userID := c.Uint("id")
-	if err := userService.DeleteUser(ctx, userID); err != nil {
-		return err
+	if deleteErr := userService.DeleteUser(ctx, userID); deleteErr != nil {
+		return deleteErr
 	}
 
 	logger.Info("Successfully deleted user", logging.UintField("id", userID))
