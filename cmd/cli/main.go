@@ -88,6 +88,18 @@ func main() {
 						Usage:  "Check database connection",
 						Action: commands.CheckDatabaseConnection,
 					},
+					{
+						Name:   "drop-tables",
+						Usage:  "Drop all database tables",
+						Action: commands.DropAllTables,
+						Flags: []cli.Flag{
+							&cli.BoolFlag{
+								Name:  "force",
+								Usage: "Force drop without confirmation",
+								Value: false,
+							},
+						},
+					},
 				},
 			},
 		},
