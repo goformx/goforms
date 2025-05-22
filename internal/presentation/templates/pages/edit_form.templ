@@ -157,7 +157,7 @@ templ EditFormContent(data shared.PageData) {
 			const formData = new FormData(form);
 
 			try {
-				await formService.updateFormDetails(Number(formId), {
+				await formService.updateFormDetails(formId, {
 					title: formData.get('title'),
 					description: formData.get('description')
 				});

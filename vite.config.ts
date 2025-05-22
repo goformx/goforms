@@ -120,6 +120,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     force: true,
+    include: ["@goforms/formio"],
     esbuildOptions: {
       target: "esnext",
       supported: {

@@ -25,7 +25,8 @@ export class FormService {
     );
   }
 
-  async getSchema(formId: number): Promise<FormSchema> {
+  async getSchema(formId: string): Promise<FormSchema> {
+    console.log("Getting schema for formId:", formId);
     const response = await fetch(`${this.baseUrl}/${formId}/schema`);
     if (!response.ok) {
       throw new Error("Failed to load form schema");
@@ -33,7 +34,7 @@ export class FormService {
     return response.json();
   }
 
-  async saveSchema(formId: number, schema: FormSchema): Promise<FormSchema> {
+  async saveSchema(formId: string, schema: FormSchema): Promise<FormSchema> {
     const response = await fetch(`${this.baseUrl}/${formId}/schema`, {
       method: "PUT",
       headers: {
@@ -52,7 +53,7 @@ export class FormService {
   }
 
   async updateFormDetails(
-    formId: number,
+    formId: string,
     details: { title: string; description: string },
   ): Promise<void> {
     const response = await fetch(`${this.baseUrl}/${formId}`, {

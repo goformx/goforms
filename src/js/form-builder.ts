@@ -60,7 +60,7 @@ const dom = {
 /**
  * Form builder validation
  */
-function validateFormBuilder(): { builder: HTMLElement; formId: number } {
+function validateFormBuilder(): { builder: HTMLElement; formId: string } {
   const builder = dom.getElement<HTMLElement>("form-schema-builder");
   if (!builder) {
     throw new FormBuilderError(
@@ -69,19 +69,11 @@ function validateFormBuilder(): { builder: HTMLElement; formId: number } {
     );
   }
 
-  const formIdAttr = builder.getAttribute("data-form-id");
-  if (!formIdAttr) {
+  const formId = builder.getAttribute("data-form-id");
+  if (!formId) {
     throw new FormBuilderError(
       "Form ID not found",
       "Form ID not found. Please refresh the page.",
-    );
-  }
-
-  const formId = parseInt(formIdAttr, 10);
-  if (!Number.isInteger(formId) || formId <= 0) {
-    throw new FormBuilderError(
-      `Invalid form ID: ${formIdAttr}`,
-      "Invalid form ID. Please refresh the page.",
     );
   }
 
@@ -91,7 +83,7 @@ function validateFormBuilder(): { builder: HTMLElement; formId: number } {
 /**
  * Schema management
  */
-async function getFormSchema(formId: number): Promise<any> {
+async function getFormSchema(formId: string): Promise<any> {
   const formService = FormService.getInstance();
   try {
     return await formService.getSchema(formId);

@@ -1,5 +1,6 @@
 import { FormBuilder } from "@formio/js";
-import { FormService, FormSchema } from "../services/form-service";
+import { FormService } from "../services/form-service";
+import type { FormSchema } from "../services/form-service";
 import { debounce } from "lodash";
 
 interface FormBuilderWithSchema extends FormBuilder {
@@ -36,7 +37,7 @@ const EVENT_MAP: EventHandlerMap = {
 
 export const setupBuilderEvents = (
   builder: FormBuilder,
-  formId: number,
+  formId: string,
   formService: FormService,
 ): void => {
   const typedBuilder = builder as FormBuilderWithSchema;
