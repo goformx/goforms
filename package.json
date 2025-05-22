@@ -20,7 +20,6 @@
     "@formio/semantic": "^2.6.1",
     "@fortawesome/fontawesome-free": "^6.7.2",
     "ace-builds": "^1.41.0",
-    "goforms": "^0.1.2",
     "zod": "^3.24.4"
   },
   "devDependencies": {
