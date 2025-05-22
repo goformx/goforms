@@ -75,7 +75,7 @@ tasks:
     desc: Generate code from templates
     cmds:
       - templ generate ./internal/...
-      - mockgen -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
+      - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
 
   build:
     desc: Build the application (frontend and backend in parallel)

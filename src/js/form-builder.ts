@@ -1,5 +1,5 @@
 import { Formio } from "@formio/js";
-import goforms from "goforms";
+import goforms from "@goforms/formio";
 import { FormService } from "./services/form-service";
 import { builderOptions } from "./constants/builder-config";
 import { setupBuilderEvents } from "./handlers/builder-events";

@@ -96,6 +96,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
+      "@goforms/formio": resolve(__dirname, "../formio/lib/mjs/index.js"),
       "goforms-template": resolve(
         __dirname,
         "../goforms-template/lib/mjs/index.js",
