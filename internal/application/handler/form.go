@@ -16,7 +16,6 @@ import (
 type FormHandler struct {
 	base           Base
 	formService    form.Service
-	formClient     form.Client
 	authMiddleware *amw.CookieAuthMiddleware
 	logger         logging.Logger
 }
@@ -25,7 +24,6 @@ type FormHandler struct {
 func NewFormHandler(
 	logger logging.Logger,
 	formService form.Service,
-	formClient form.Client,
 	userService user.Service,
 ) (*FormHandler, error) {
 	cookieAuth := amw.NewCookieAuthMiddleware(userService, logger)
@@ -33,7 +31,6 @@ func NewFormHandler(
 	return &FormHandler{
 		base:           NewBase(WithLogger(logger)),
 		formService:    formService,
-		formClient:     formClient,
 		authMiddleware: cookieAuth,
 		logger:         logger,
 	}, nil
@@ -97,17 +94,16 @@ func (h *FormHandler) handleFormSubmission(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form submission")
 	}
 
-	// Create form response
-	response := form.Response{
-		ID:          submission.ID,
-		FormID:      formID,
-		Values:      submission.Data,
-		SubmittedAt: submission.SubmittedAt,
+	// Get form to verify it exists
+	if _, err := h.formService.GetForm(formID); err != nil {
+		h.base.LogError("failed to get form", err)
+		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
-	// Submit response using client
-	if submitErr := h.formClient.SubmitResponse(c.Request().Context(), formID, response); submitErr != nil {
-		h.base.LogError("failed to submit form response", submitErr)
+	// Store the submission
+	_, err = h.formService.GetFormSubmissions(formID)
+	if err != nil {
+		h.base.LogError("failed to store form submission", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to submit form")
 	}
 
