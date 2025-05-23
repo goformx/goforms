@@ -67,6 +67,8 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install mockgen
+        run: go install go.uber.org/mock/mockgen@latest
       - name: Run Linter
         uses: golangci/golangci-lint-action@v8
         with:
