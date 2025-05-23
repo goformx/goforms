@@ -8,7 +8,8 @@ on:
 
 env:
   GO_VERSION: "1.24"
-  NODE_VERSION: "20"
+  NODE_VERSION: "18"
+  RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
 
 permissions:
   contents: read
