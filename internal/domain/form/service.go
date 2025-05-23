@@ -78,17 +78,7 @@ func (s *service) UpdateForm(form *Form) error {
 		return errors.New("form ID is required")
 	}
 
-	// Verify the form exists
-	existingForm, err := s.store.GetByID(form.ID)
-	if err != nil {
-		return err
-	}
-
-	if existingForm == nil {
-		return errors.New("form not found")
-	}
-
-	// Update the form in the store
+	// Update the form in the store - the store will handle form existence check
 	return s.store.Update(form)
 }
 
