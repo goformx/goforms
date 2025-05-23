@@ -5,7 +5,7 @@ import { builderOptions } from "./constants/builder-config";
 import { setupBuilderEvents } from "./handlers/builder-events";
 
 // Import Form.io styles
-import "@formio/js/dist/formio.full.min.css";
+// import "@formio/js/dist/formio.full.min.css";
 
 // Register templates
 Formio.use(goforms);
@@ -130,16 +130,13 @@ function setupEventHandlers(builder: any): void {
     saveBtn.addEventListener("click", async () => {
       const spinner = saveBtn.querySelector(".spinner") as HTMLElement;
       try {
-        console.log("Form-builder: Save button clicked");
         feedback.textContent = "Saving...";
         feedback.className = "schema-save-feedback";
         saveBtn.disabled = true;
         if (spinner) spinner.style.display = "inline-block";
 
         // Save the schema and get the response
-        console.log("Form-builder: Calling builder.saveSchema()");
         const savedSchema = await builder.saveSchema();
-        console.log("Form-builder: Save response:", savedSchema);
 
         // Check if we got a valid schema response
         if (
@@ -147,16 +144,13 @@ function setupEventHandlers(builder: any): void {
           savedSchema.schema &&
           savedSchema.schema.components
         ) {
-          console.log("Form-builder: Save successful");
           feedback.textContent = "Schema saved successfully.";
           feedback.className = "schema-save-feedback success";
         } else {
-          console.error("Form-builder: Save failed - invalid schema structure");
           feedback.textContent = "Failed to save schema - invalid response.";
           feedback.className = "schema-save-feedback error";
         }
       } catch (error) {
-        console.error("Form-builder: Error in save handler:", error);
         feedback.textContent =
           error instanceof Error ? error.message : "Error saving schema.";
         feedback.className = "schema-save-feedback error";
@@ -191,7 +185,6 @@ async function initializeFormBuilder(): Promise<void> {
     if (error instanceof FormBuilderError) {
       dom.showError(error.userMessage);
     } else {
-      console.error("Unexpected error:", error);
       dom.showError("An unexpected error occurred. Please refresh the page.");
     }
     throw error;

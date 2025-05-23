@@ -20,23 +20,12 @@ type EventHandlerMap = {
   [key: string]: (builder: FormBuilderWithSchema) => void;
 };
 
-// Helper function for timestamped logging
-const logWithTimestamp = (message: string, data?: unknown) => {
-  if (data !== undefined) {
-    console.log(`[${new Date().toISOString()}] ${message}`, data);
-  } else {
-    console.log(`[${new Date().toISOString()}] ${message}`);
-  }
-};
-
 // Define event handlers map as a constant
 const EVENT_MAP: EventHandlerMap = {
-  change: debounce((builder: FormBuilderWithSchema) => {
-    logWithTimestamp("Form modified:", builder.form);
+  change: debounce((_builder: FormBuilderWithSchema) => {
     // Only log changes, no automatic saving
   }, 300),
-  saveComponent: (builder: FormBuilderWithSchema) => {
-    logWithTimestamp("Component saved:", builder.form);
+  saveComponent: (_builder: FormBuilderWithSchema) => {
     // Only log component saves, no automatic saving
   },
 };
@@ -54,21 +43,15 @@ export const setupBuilderEvents = (
   // Create the save function
   const saveFunction = async (): Promise<FormSchema> => {
     try {
-      console.log("Builder-events: Starting schema save...");
-      logWithTimestamp("Explicitly saving schema...");
       const savedSchema = await formService.saveSchema(
         formId,
         typedBuilder.form,
       );
-      console.log("Builder-events: Schema saved successfully:", savedSchema);
-      logWithTimestamp("Schema saved successfully");
       if (!savedSchema) {
-        console.error("Builder-events: No schema returned from server");
         throw new Error("No schema returned from server");
       }
       return savedSchema;
     } catch (error) {
-      console.error("Builder-events: Error saving schema:", error);
       // Re-throw with a more descriptive error
       throw new Error(
         `Failed to save form schema: ${error instanceof Error ? error.message : "Unknown error"}`,
@@ -78,10 +61,8 @@ export const setupBuilderEvents = (
 
   // Add saveSchema method to the builder instance
   typedBuilder.saveSchema = async (): Promise<FormSchema> => {
-    console.log("Builder-events: saveSchema called");
     // If there's an ongoing save, return its promise
     if (savePromise) {
-      console.log("Builder-events: Returning existing save promise");
       return savePromise;
     }
 

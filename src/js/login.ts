@@ -4,7 +4,6 @@ let isInitialized = false;
 
 // Initialize validation when the page loads
 document.addEventListener("DOMContentLoaded", () => {
-  console.log("DOMContentLoaded event fired");
   if (!isInitialized) {
     setupLoginForm();
     isInitialized = true;
@@ -12,33 +11,19 @@ document.addEventListener("DOMContentLoaded", () => {
 });
 
 export function setupLoginForm() {
-  console.log("Setting up login form");
   const form = document.getElementById("login-form") as HTMLFormElement;
   const formError = document.getElementById("form_error") as HTMLDivElement;
 
   if (form) {
-    console.log("Login form found, form ID:", form.id);
     // Setup real-time validation
-    console.log("Setting up real-time validation");
     validation.setupRealTimeValidation("login-form", "login");
 
     // Add input event listeners for real-time validation
     const inputs = form.querySelectorAll("input[id]");
-    console.log(
-      "Found inputs:",
-      Array.from(inputs).map((input) => input.id),
-    );
     inputs.forEach((input) => {
       if (!input.id) return;
-      console.log("Adding input listener for:", input.id);
       const inputElement = input as HTMLInputElement;
       inputElement.addEventListener("input", async () => {
-        console.log(
-          "Input event for:",
-          inputElement.id,
-          "Value:",
-          inputElement.value,
-        );
         validation.clearError(inputElement.id);
         const result = await validation.validateForm(form, "login");
         if (!result.success && result.error) {
@@ -52,7 +37,6 @@ export function setupLoginForm() {
     });
 
     form.addEventListener("submit", async (e) => {
-      console.log("Form submit event");
       e.preventDefault();
 
       // Clear previous errors
@@ -60,7 +44,6 @@ export function setupLoginForm() {
 
       const result = await validation.validateForm(form, "login");
       if (result.success && result.data) {
-        console.log("Form validation successful, submitting...");
         try {
           const response = await validation.fetchWithCSRF(
             "/api/v1/auth/login",
@@ -77,15 +60,10 @@ export function setupLoginForm() {
           );
 
           if (response.ok) {
-            console.log("Login successful");
             const tokens = await response.json();
-            console.log("Login response tokens:", tokens);
             validation.setJWTToken(tokens.AccessToken);
-            console.log("JWT token stored:", validation.getJWTToken());
-            console.log("JWT token stored, redirecting to dashboard");
             window.location.href = "/dashboard";
           } else {
-            console.log("Login failed with status:", response.status);
             const error = await response.json();
             if (error.errors) {
               // Display field-specific errors
@@ -97,19 +75,15 @@ export function setupLoginForm() {
                 error.message || "An error occurred during login";
             }
           }
-        } catch (error) {
-          console.error("Unexpected error during login:", error);
+        } catch (_error) {
           formError.textContent = "An unexpected error occurred";
         }
       } else if (result.error) {
-        console.log("Form validation failed:", result.error);
         // Display validation errors
         result.error.errors.forEach((err) => {
           validation.showError(err.path[0], err.message);
         });
       }
     });
-  } else {
-    console.error("Login form not found");
   }
 }
