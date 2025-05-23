@@ -61,7 +61,7 @@ func (h *FormHandler) ShowNewForm(c echo.Context) error {
 	}
 
 	data := shared.PageData{
-		Title:     "Create New Form - GoForms",
+		Title:     "Create New Form - GoFormX",
 		User:      currentUser,
 		CSRFToken: csrfToken,
 		AssetPath: web.GetAssetPath,
@@ -126,7 +126,7 @@ func (h *FormHandler) ShowEditForm(c echo.Context) error {
 	}
 
 	data := shared.PageData{
-		Title:                "Edit Form - GoForms",
+		Title:                "Edit Form - GoFormX",
 		User:                 currentUser,
 		Form:                 formObj,
 		Submissions:          submissions,

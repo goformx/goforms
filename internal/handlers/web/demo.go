@@ -40,7 +40,7 @@ func (h *DemoHandler) handleDemo(c echo.Context) error {
 	h.base.Logger.Debug("handling demo page request")
 
 	data := shared.PageData{
-		Title: "GoForms Demo - See it in Action",
+		Title: "GoFormX Demo - See it in Action",
 	}
 
 	return h.renderer.Render(c, pages.Demo(data))

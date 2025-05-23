@@ -6,7 +6,7 @@ alwaysApply: false
 # Handler Patterns
 
 ## Overview
-Handlers in GoForms follow a structured approach to handle HTTP requests, manage dependencies, and coordinate between services. This document outlines the patterns and best practices for implementing handlers.
+Handlers in GoFormX follow a structured approach to handle HTTP requests, manage dependencies, and coordinate between services. This document outlines the patterns and best practices for implementing handlers.
 
 ## Handler Types
 

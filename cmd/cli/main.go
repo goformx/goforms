@@ -17,7 +17,7 @@ func main() {
 
 	app := &cli.App{
 		Name:  "goforms-cli",
-		Usage: "CLI tool for managing GoForms system",
+		Usage: "CLI tool for managing GoFormX system",
 		Commands: []*cli.Command{
 			{
 				Name:  "user",

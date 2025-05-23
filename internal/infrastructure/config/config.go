@@ -88,7 +88,7 @@ type Config struct {
 
 // AppConfig holds application-level configuration
 type AppConfig struct {
-	Name        string `envconfig:"GOFORMS_APP_NAME" default:"GoForms"`
+	Name        string `envconfig:"GOFORMS_APP_NAME" default:"GoFormX"`
 	Env         string `envconfig:"GOFORMS_APP_ENV" default:"production"`
 	Debug       bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
 	LogLevel    string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
@@ -182,7 +182,7 @@ func New(logger common.Logger) (*Config, error) {
 	// Create default configuration
 	cfg := &Config{
 		App: AppConfig{
-			Name:        "GoForms",
+			Name:        "GoFormX",
 			Env:         "production",
 			Debug:       false,
 			LogLevel:    "info",

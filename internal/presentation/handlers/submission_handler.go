@@ -64,7 +64,7 @@ func (h *SubmissionHandler) ShowFormSubmissions(c echo.Context) error {
 
 	// Create page data
 	data := shared.PageData{
-		Title:       "Form Submissions - GoForms",
+		Title:       "Form Submissions - GoFormX",
 		User:        currentUser,
 		Form:        formObj,
 		Submissions: submissions,

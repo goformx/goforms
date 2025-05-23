@@ -3,9 +3,9 @@ description:
 globs: src/css/**/*,src/js/**/*
 alwaysApply: false
 ---
-# GoForms Design System CSS & Class Naming
+# GoFormX Design System CSS & Class Naming
 
-GoForms uses a modern, semantic, and slightly namespaced CSS class convention for all frontend components. The main design system styles are defined in [src/css/formio-custom.css](mdc:src/css/formio-custom.css) and imported in the `components` layer via [src/css/main.css](mdc:src/css/main.css).
+GoFormX uses a modern, semantic, and slightly namespaced CSS class convention for all frontend components. The main design system styles are defined in [src/css/formio-custom.css](mdc:src/css/formio-custom.css) and imported in the `components` layer via [src/css/main.css](mdc:src/css/main.css).
 
 ## Class Naming Convention
 - All classes use the `gf-` prefix for namespacing and clarity.

@@ -37,7 +37,7 @@ func (h *HomeHandler) handleHome(c echo.Context) error {
 	h.base.Logger.Debug("handling home page request")
 
 	data := shared.PageData{
-		Title:     "GoForms - Free Form Backend Service",
+		Title:     "GoFormX - Free Form Backend Service",
 		CSRFToken: "", // No CSRF token needed for homepage
 	}
 

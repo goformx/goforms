@@ -6,7 +6,7 @@ alwaysApply: false
 # Service Layer Patterns
 
 ## Overview
-The service layer in GoForms follows a structured approach to handle business logic, data preparation, and template rendering. This document outlines the patterns and best practices for implementing services.
+The service layer in GoFormX follows a structured approach to handle business logic, data preparation, and template rendering. This document outlines the patterns and best practices for implementing services.
 
 ## Service Types
 

@@ -116,7 +116,7 @@ func (h *Handler) ShowDashboard(c echo.Context) error {
 
 	// Create page data
 	data := shared.PageData{
-		Title:     "Dashboard - GoForms",
+		Title:     "Dashboard - GoFormX",
 		User:      currentUser,
 		Forms:     forms,
 		CSRFToken: csrfToken,
@@ -145,7 +145,7 @@ func (h *Handler) ShowNewForm(c echo.Context) error {
 
 	// Create page data
 	data := shared.PageData{
-		Title:     "Create New Form - GoForms",
+		Title:     "Create New Form - GoFormX",
 		User:      currentUser,
 		CSRFToken: csrfToken,
 		AssetPath: web.GetAssetPath,
@@ -223,7 +223,7 @@ func (h *Handler) ShowEditForm(c echo.Context) error {
 
 	// Create page data
 	data := shared.PageData{
-		Title:                "Edit Form - GoForms",
+		Title:                "Edit Form - GoFormX",
 		User:                 currentUser,
 		Form:                 formObj,
 		Submissions:          submissions,

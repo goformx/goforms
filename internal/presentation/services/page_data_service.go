@@ -34,7 +34,7 @@ func (s *PageDataService) PrepareDashboardData(
 	}
 
 	return shared.PageData{
-		Title:     "Dashboard - GoForms",
+		Title:     "Dashboard - GoFormX",
 		User:      currentUser,
 		Forms:     forms,
 		CSRFToken: csrfToken,
@@ -55,7 +55,7 @@ func (s *PageDataService) PrepareFormData(
 	}
 
 	return shared.PageData{
-		Title:                "Edit Form - GoForms",
+		Title:                "Edit Form - GoFormX",
 		User:                 currentUser,
 		Form:                 formObj,
 		Submissions:          submissions,
@@ -73,7 +73,7 @@ func (s *PageDataService) PrepareNewFormData(c echo.Context, currentUser *user.U
 	}
 
 	return shared.PageData{
-		Title:     "Create New Form - GoForms",
+		Title:     "Create New Form - GoFormX",
 		User:      currentUser,
 		CSRFToken: csrfToken,
 		AssetPath: web.GetAssetPath,

@@ -55,7 +55,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 			"devtoolsFrontendUrl":  "",
 			"faviconUrl":           "/favicon.ico",
 			"id":                   "goforms",
-			"title":                "GoForms",
+			"title":                "GoFormX",
 			"type":                 "node",
 			"url":                  "/",
 			"webSocketDebuggerUrl": "",

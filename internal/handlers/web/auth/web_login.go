@@ -46,7 +46,7 @@ func (h *WebLoginHandler) handleLogin(c echo.Context) error {
 	}
 
 	data := shared.PageData{
-		Title:     "Login - GoForms",
+		Title:     "Login - GoFormX",
 		CSRFToken: csrfToken,
 	}
 

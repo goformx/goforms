@@ -69,7 +69,7 @@ func (h *DashboardHandler) showDashboard(c echo.Context) error {
 	}
 
 	data := shared.PageData{
-		Title: "Dashboard - GoForms",
+		Title: "Dashboard - GoFormX",
 		User:  currentUser,
 		Forms: forms,
 	}

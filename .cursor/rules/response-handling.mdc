@@ -6,7 +6,7 @@ alwaysApply: false
 # Response Handling Patterns
 
 ## Overview
-The ResponseBuilder service provides a consistent way to handle HTTP responses in the GoForms application. It encapsulates common response patterns and ensures proper error handling and logging.
+The ResponseBuilder service provides a consistent way to handle HTTP responses in the GoFormX application. It encapsulates common response patterns and ensures proper error handling and logging.
 
 ## Response Types
 

@@ -1,4 +1,4 @@
-# GoForms
+# GoFormX
 
 A modern Go web application for form management with MariaDB backend.
 

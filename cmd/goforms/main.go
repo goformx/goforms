@@ -1,4 +1,4 @@
-// Package main is the entry point for the GoForms application.
+// Package main is the entry point for the GoFormX application.
 // It sets up the application using dependency injection (via fx),
 // configures the server, and manages the application lifecycle.
 package main
