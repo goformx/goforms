@@ -1,0 +1,179 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Response Handling Patterns
+
+## Overview
+The ResponseBuilder service provides a consistent way to handle HTTP responses in the GoForms application. It encapsulates common response patterns and ensures proper error handling and logging.
+
+## Response Types
+
+### 1. JSON Responses
+- Use `BuildJSONResponse` for API endpoints
+- Always specify appropriate status codes
+- Include proper error handling
+```go
+func (h *Handler) GetForm(c echo.Context) error {
+    form, err := h.formService.GetForm(c.Param("id"))
+    if err != nil {
+        return h.responseBuilder.BuildErrorResponse(c, err, http.StatusNotFound, "Form not found")
+    }
+    return h.responseBuilder.BuildJSONResponse(c, form, http.StatusOK)
+}
+```
+
+### 2. Error Responses
+- Use `BuildErrorResponse` for general errors
+- Use `BuildValidationErrorResponse` for validation errors
+- Use `BuildNotFoundResponse` for not found errors
+- Use `BuildForbiddenResponse` for permission errors
+```go
+func (h *Handler) CreateForm(c echo.Context) error {
+    if err := h.validateForm(c); err != nil {
+        return h.responseBuilder.BuildValidationErrorResponse(c, err)
+    }
+    // ... rest of the handler
+}
+```
+
+### 3. Redirect Responses
+- Use `BuildRedirectResponse` for successful form submissions
+- Use `BuildRedirectResponse` for authentication redirects
+```go
+func (h *Handler) SubmitForm(c echo.Context) error {
+    if err := h.formService.SubmitForm(form); err != nil {
+        return h.responseBuilder.BuildErrorResponse(c, err, http.StatusInternalServerError, "Failed to submit form")
+    }
+    return h.responseBuilder.BuildRedirectResponse(c, "/forms", http.StatusSeeOther)
+}
+```
+
+### 4. HTML Responses
+- Use `BuildHTMLResponse` for rendering templates
+- Include proper error handling
+```go
+func (h *Handler) ShowForm(c echo.Context) error {
+    form, err := h.formService.GetForm(c.Param("id"))
+    if err != nil {
+        return h.responseBuilder.BuildNotFoundResponse(c, "Form not found")
+    }
+    return h.responseBuilder.BuildHTMLResponse(c, "form.html", form, http.StatusOK)
+}
+```
+
+## Best Practices
+
+### 1. Status Codes
+- Use appropriate HTTP status codes
+- Be consistent with status code usage
+- Document status code meanings
+
+### 2. Error Handling
+- Always include error details in logs
+- Provide meaningful error messages
+- Use appropriate error types
+
+### 3. Response Format
+- Be consistent with response structure
+- Include necessary metadata
+- Follow API documentation
+
+### 4. Logging
+- Log all responses
+- Include relevant context
+- Use appropriate log levels
+
+## Implementation Guidelines
+
+### 1. Response Builder Usage
+```go
+type Handler struct {
+    responseBuilder *ResponseBuilder
+    // ... other fields
+}
+
+func (h *Handler) HandleRequest(c echo.Context) error {
+    // Use response builder methods
+    return h.responseBuilder.BuildJSONResponse(c, data, http.StatusOK)
+}
+```
+
+### 2. Error Handling
+```go
+func (h *Handler) HandleError(c echo.Context, err error) error {
+    switch {
+    case errors.Is(err, ErrNotFound):
+        return h.responseBuilder.BuildNotFoundResponse(c, err.Error())
+    case errors.Is(err, ErrValidation):
+        return h.responseBuilder.BuildValidationErrorResponse(c, err)
+    default:
+        return h.responseBuilder.BuildErrorResponse(c, err, http.StatusInternalServerError, "Internal server error")
+    }
+}
+```
+
+### 3. Response Logging
+```go
+func (b *ResponseBuilder) BuildJSONResponse(c echo.Context, data interface{}, status int) error {
+    b.logger.Debug("building JSON response",
+        logging.IntField("status", status),
+        logging.StringField("operation", "response_building"),
+    )
+    return c.JSON(status, data)
+}
+```
+
+## Testing Guidelines
+
+### 1. Response Testing
+```go
+func TestHandler_GetForm(t *testing.T) {
+    // Setup
+    responseBuilder := NewResponseBuilder(logger)
+    handler := NewHandler(responseBuilder)
+
+    // Test cases
+    tests := []struct {
+        name       string
+        formID     string
+        wantStatus int
+        wantErr    bool
+    }{
+        // ... test cases
+    }
+
+    // Run tests
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // ... test implementation
+        })
+    }
+}
+```
+
+### 2. Error Testing
+```go
+func TestResponseBuilder_ErrorResponses(t *testing.T) {
+    // Setup
+    responseBuilder := NewResponseBuilder(logger)
+
+    // Test cases
+    tests := []struct {
+        name       string
+        err        error
+        wantStatus int
+        wantErr    bool
+    }{
+        // ... test cases
+    }
+
+    // Run tests
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            // ... test implementation
+        })
+    }
+}
+```

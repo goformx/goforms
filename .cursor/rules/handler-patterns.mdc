@@ -1,0 +1,188 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Handler Patterns
+
+## Overview
+Handlers in GoForms follow a structured approach to handle HTTP requests, manage dependencies, and coordinate between services. This document outlines the patterns and best practices for implementing handlers.
+
+## Handler Types
+
+### 1. Base Handler
+- Provides common functionality for all handlers
+- Manages middleware setup
+- Handles authentication and authorization
+- Provides error handling and logging
+
+Example:
+```go
+type BaseHandler struct {
+    authMiddleware *amw.CookieAuthMiddleware
+    formService    form.Service
+    logger         logging.Logger
+}
+
+func (h *BaseHandler) SetupMiddleware(group *echo.Group) {
+    group.Use(h.authMiddleware.RequireAuth)
+}
+```
+
+### 2. Feature Handlers
+- Handle specific feature areas
+- Use services for business logic
+- Coordinate between different services
+- Keep HTTP concerns separate from business logic
+
+Example:
+```go
+type DashboardHandler struct {
+    formService form.Service
+    logger      logging.Logger
+    Base        *BaseHandler
+}
+```
+
+## Best Practices
+
+1. **Separation of Concerns**
+   - Keep handlers focused on HTTP concerns
+   - Delegate business logic to services
+   - Use base handler for common functionality
+   - Keep handlers small and focused
+
+2. **Dependency Management**
+   - Use constructor injection
+   - Make dependencies explicit
+   - Use base handler for common dependencies
+   - Avoid global state
+
+3. **Error Handling**
+   - Use consistent error handling patterns
+   - Return appropriate HTTP status codes
+   - Log errors appropriately
+   - Provide meaningful error messages
+
+4. **Middleware Usage**
+   - Use middleware for cross-cutting concerns
+   - Keep middleware focused and reusable
+   - Document middleware behavior
+   - Test middleware independently
+
+5. **Route Registration**
+   - Group related routes
+   - Use consistent route patterns
+   - Document route behavior
+   - Keep route registration clean
+
+## Implementation Guidelines
+
+1. **Handler Creation**
+   ```go
+   // Create a new handler with dependencies
+   func NewHandler(deps Dependencies) *Handler {
+       return &Handler{
+           deps: deps,
+       }
+   }
+   ```
+
+2. **Route Registration**
+   ```go
+   // Register routes with middleware
+   func (h *Handler) Register(e *echo.Echo) {
+       group := e.Group("/path")
+       h.Base.SetupMiddleware(group)
+       
+       group.GET("", h.HandleRequest)
+   }
+   ```
+
+3. **Request Handling**
+   ```go
+   // Handle requests with proper error handling
+   func (h *Handler) HandleRequest(c echo.Context) error {
+       // Get authenticated user
+       user, err := h.Base.getAuthenticatedUser(c)
+       if err != nil {
+           return err
+       }
+
+       // Process request
+       result, err := h.processRequest(c, user)
+       if err != nil {
+           return h.Base.handleError(err, http.StatusInternalServerError, "Failed to process request")
+       }
+
+       // Return response
+       return c.JSON(http.StatusOK, result)
+   }
+   ```
+
+## Integration with Services
+
+1. **Service Usage**
+   ```go
+   type Handler struct {
+       pageDataService *PageDataService
+       formOperations  *FormOperations
+       templateService *TemplateService
+       Base           *BaseHandler
+   }
+   ```
+
+2. **Service Coordination**
+   ```go
+   func (h *Handler) HandleRequest(c echo.Context) error {
+       // Prepare data
+       data := h.pageDataService.PrepareData(c)
+
+       // Process form
+       form, err := h.formOperations.ProcessForm(data)
+       if err != nil {
+           return err
+       }
+
+       // Render template
+       return h.templateService.Render(c, form)
+   }
+   ```
+
+## Testing Guidelines
+
+1. **Unit Testing**
+   - Test handlers in isolation
+   - Mock dependencies
+   - Test error cases
+   - Test edge cases
+
+2. **Integration Testing**
+   - Test handler integration with services
+   - Test middleware behavior
+   - Test route registration
+   - Test error handling
+
+3. **Test Structure**
+   ```go
+   func TestHandler_HandleRequest(t *testing.T) {
+       // Setup
+       handler := NewHandler(mockDeps)
+
+       // Test cases
+       tests := []struct {
+           name    string
+           setup   func()
+           wantErr bool
+       }{
+           // Test cases
+       }
+
+       // Run tests
+       for _, tt := range tests {
+           t.Run(tt.name, func(t *testing.T) {
+               // Run test
+           })
+       }
+   }
+   ```

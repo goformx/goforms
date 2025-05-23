@@ -1,0 +1,161 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Service Layer Patterns
+
+## Overview
+The service layer in GoForms follows a structured approach to handle business logic, data preparation, and template rendering. This document outlines the patterns and best practices for implementing services.
+
+## Service Types
+
+### 1. Page Data Services
+- Handle template data preparation
+- Manage CSRF tokens and asset paths
+- Prepare data for different page types
+- Keep template data logic separate from handlers
+
+Example:
+```go
+type PageDataService struct {
+    logger logging.Logger
+}
+
+func (s *PageDataService) PrepareDashboardData(c echo.Context, user *user.User, forms []*form.Form) shared.PageData {
+    // Prepare data for dashboard page
+}
+```
+
+### 2. Form Operations Services
+- Handle common form operations
+- Validate and bind form data
+- Manage form ownership verification
+- Create default schemas
+- Update form details
+
+Example:
+```go
+type FormOperations struct {
+    formService form.Service
+    logger      logging.Logger
+}
+
+func (o *FormOperations) ValidateAndBindFormData(c echo.Context) (*FormData, error) {
+    // Validate and bind form data
+}
+```
+
+### 3. Template Services
+- Handle template rendering
+- Manage content preparation
+- Provide consistent rendering methods
+- Keep rendering logic separate from handlers
+
+Example:
+```go
+type TemplateService struct {
+    logger logging.Logger
+}
+
+func (s *TemplateService) RenderDashboard(c echo.Context, data shared.PageData) error {
+    // Render dashboard page
+}
+```
+
+## Best Practices
+
+1. **Single Responsibility**
+   - Each service should have a single, well-defined responsibility
+   - Avoid mixing concerns between different service types
+   - Keep services focused and cohesive
+
+2. **Dependency Injection**
+   - Use constructor injection for dependencies
+   - Make dependencies explicit in service structs
+   - Avoid global state or service locators
+
+3. **Error Handling**
+   - Use consistent error types
+   - Provide meaningful error messages
+   - Log errors appropriately
+   - Return errors to handlers for proper handling
+
+4. **Logging**
+   - Include relevant context in log messages
+   - Use appropriate log levels
+   - Log errors with stack traces when available
+   - Include operation names in log messages
+
+5. **Validation**
+   - Validate input data early
+   - Use consistent validation patterns
+   - Return clear validation error messages
+   - Handle validation errors appropriately
+
+6. **Testing**
+   - Write unit tests for services
+   - Mock dependencies for testing
+   - Test error cases
+   - Test edge cases
+
+## Implementation Guidelines
+
+1. **Service Creation**
+   ```go
+   // Create a new service with dependencies
+   func NewService(deps Dependencies) *Service {
+       return &Service{
+           deps: deps,
+       }
+   }
+   ```
+
+2. **Method Implementation**
+   ```go
+   // Implement methods with clear responsibilities
+   func (s *Service) DoSomething(ctx context.Context, input Input) (Output, error) {
+       // Validate input
+       if err := s.validateInput(input); err != nil {
+           return Output{}, err
+       }
+
+       // Process data
+       result, err := s.processData(input)
+       if err != nil {
+           return Output{}, err
+       }
+
+       // Return result
+       return result, nil
+   }
+   ```
+
+3. **Error Handling**
+   ```go
+   // Handle errors consistently
+   func (s *Service) handleError(err error, message string) error {
+       s.logger.Error(message, logging.Error(err))
+       return fmt.Errorf("%s: %w", message, err)
+   }
+   ```
+
+## Integration with Handlers
+
+1. **Handler Usage**
+   ```go
+   type Handler struct {
+       pageDataService *PageDataService
+       formOperations  *FormOperations
+       templateService *TemplateService
+   }
+   ```
+
+2. **Service Composition**
+   ```go
+   func (h *Handler) HandleRequest(c echo.Context) error {
+       // Use services in handlers
+       data := h.pageDataService.PrepareData(c)
+       return h.templateService.Render(c, data)
+   }
+   ```
