@@ -54,7 +54,7 @@ jobs:
       - name: Install Dependencies
         run: |
           go mod download
-          go mod tidy
+          go mod verify
           npm install
           npm run typecheck
       - name: Run Linter
@@ -83,7 +83,7 @@ jobs:
       - name: Install Dependencies
         run: |
           go mod download
-          go mod tidy
+          go mod verify
           npm install
           npm run typecheck
       - name: Build Application
