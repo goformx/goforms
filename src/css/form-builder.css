@@ -251,12 +251,12 @@
 
 /* Design System Components */
 .gf-section {
-  padding: 1.25rem;
   margin-bottom: 1.5rem;
-  background: var(--card-bg);
-  border: var(--card-border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-md);
+  padding: 0;
+  background: none;
+  border: none;
+  border-radius: 0;
+  box-shadow: none;
 }
 
 .gf-section:last-child {
@@ -300,4 +300,16 @@
   .gf-card {
     padding: 1rem;
   }
+}
+
+/* Sidebar Accordion Button Alignment Fix */
+.builder-sidebar .builder-group-button.btn {
+  padding-left: 1rem;
+  padding-right: 1rem;
+  padding-top: 0.75rem;
+  padding-bottom: 0.75rem;
+  font-size: 1rem;
+  text-align: left;
+  width: 100%;
+  border-radius: var(--card-radius, 8px);
 }
