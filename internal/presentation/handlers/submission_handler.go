@@ -5,6 +5,9 @@ import (
 
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
+	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
 )
 
@@ -53,8 +56,25 @@ func (h *SubmissionHandler) ShowFormSubmissions(c echo.Context) error {
 		return h.Base.handleError(err, http.StatusInternalServerError, "Failed to get form submissions")
 	}
 
-	return c.Render(http.StatusOK, "form_submissions.html", map[string]any{
-		"Form":        formObj,
-		"Submissions": submissions,
-	})
+	// Get CSRF token from context
+	csrfToken, ok := c.Get("csrf").(string)
+	if !ok {
+		csrfToken = ""
+	}
+
+	// Create page data
+	data := shared.PageData{
+		Title:       "Form Submissions - GoForms",
+		User:        currentUser,
+		Form:        formObj,
+		Submissions: submissions,
+		CSRFToken:   csrfToken,
+		AssetPath:   web.GetAssetPath,
+	}
+
+	// Set content
+	data.Content = pages.FormSubmissionsContent(data)
+
+	// Render the submissions page
+	return pages.FormSubmissions(data).Render(c.Request().Context(), c.Response().Writer)
 }
