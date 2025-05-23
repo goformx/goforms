@@ -12,7 +12,6 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
-	"github.com/jonesrussell/goforms/internal/application/middleware"
 	appmiddleware "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
@@ -254,7 +253,7 @@ var HandlerModule = fx.Options(
 		return handler, nil
 	}),
 	// Web handlers
-	AnnotateHandler(func(core CoreParams, middlewareManager *middleware.Manager) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (h.Handler, error) {
 		handler := webhandler.NewHomeHandler(core.Logger, core.Renderer)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
@@ -266,7 +265,7 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, middlewareManager *middleware.Manager) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (h.Handler, error) {
 		handler := wh_auth.NewWebLoginHandler(core.Logger, core.Renderer)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create web login handler: renderer=%T", core.Renderer)
@@ -282,7 +281,7 @@ var HandlerModule = fx.Options(
 		func(
 			core CoreParams,
 			services ServiceParams,
-			middlewareManager *middleware.Manager,
+			middlewareManager *appmiddleware.Manager,
 		) (h.Handler, error) {
 			handler, err := handler.NewWebHandler(
 				core.Logger,
@@ -317,7 +316,7 @@ var HandlerModule = fx.Options(
 	}),
 	// Dashboard handler
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
-		authMiddleware := middleware.NewCookieAuthMiddleware(services.UserService, core.Logger)
+		authMiddleware := appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger)
 		baseHandler := handlers.NewBaseHandler(
 			authMiddleware,
 			services.FormService,

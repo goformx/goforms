@@ -65,8 +65,8 @@ func (h *SchemaHandler) UpdateFormSchema(c echo.Context) error {
 	}
 
 	var schema form.JSON
-	if err := c.Bind(&schema); err != nil {
-		return h.Base.handleError(err, http.StatusBadRequest, "Invalid schema data")
+	if bindErr := c.Bind(&schema); bindErr != nil {
+		return h.Base.handleError(bindErr, http.StatusBadRequest, "Invalid schema data")
 	}
 
 	if schema == nil {
@@ -88,8 +88,8 @@ func (h *SchemaHandler) UpdateFormSchema(c echo.Context) error {
 	formObj.UserID = currentUser.ID
 	formObj.Active = true
 
-	if err := h.formService.UpdateForm(formObj); err != nil {
-		return h.Base.handleError(err, http.StatusInternalServerError, "Failed to update form schema")
+	if updateErr := h.formService.UpdateForm(formObj); updateErr != nil {
+		return h.Base.handleError(updateErr, http.StatusInternalServerError, "Failed to update form schema")
 	}
 
 	return c.JSON(http.StatusOK, formObj)
