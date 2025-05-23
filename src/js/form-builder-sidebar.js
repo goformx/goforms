@@ -1,6 +1,11 @@
 // Form Builder Sidebar Toggle
 document.addEventListener("DOMContentLoaded", () => {
+  // Only initialize on form builder pages
+  const formBuilder = document.querySelector(".formbuilder");
+  if (!formBuilder) return;
+
   const sidebar = document.querySelector(".builder-sidebar");
+  if (!sidebar) return;
 
   // Create and append toggle button if it doesn't exist
   if (!document.querySelector(".builder-sidebar-toggle")) {

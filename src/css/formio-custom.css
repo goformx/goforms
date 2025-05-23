@@ -504,3 +504,43 @@
   white-space: pre-wrap;
   word-wrap: break-word;
 }
+
+/* Builder Sidebar Toggle Button */
+.builder-sidebar-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  z-index: 1000;
+  width: 40px;
+  height: 40px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: white;
+  border: none;
+  box-shadow: var(--shadow-md);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.builder-sidebar-toggle:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-lg);
+}
+
+.builder-sidebar-toggle:active {
+  transform: translateY(0);
+}
+
+.builder-sidebar-toggle i {
+  font-size: 1.25rem;
+}
+
+/* Only show toggle button on mobile */
+@media (min-width: 768px) {
+  .builder-sidebar-toggle {
+    display: none;
+  }
+}
