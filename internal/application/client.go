@@ -38,7 +38,7 @@ func (c *Client) SubmitForm(ctx context.Context, f form.Form) error {
 		return ErrInvalidInput
 	}
 	if f.ID == "" {
-		return ErrInvalidInput
+		f.ID = fmt.Sprintf("form-%d", time.Now().UnixNano())
 	}
 	c.forms[f.ID] = &f
 	return nil

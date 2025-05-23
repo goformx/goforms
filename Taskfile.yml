@@ -155,6 +155,12 @@ tasks:
     desc: Run all tests
     deps: [generate]
     cmds:
+      - go test -v -race ./internal/...
+
+  test:cover:
+    desc: Run tests with coverage report
+    deps: [generate]
+    cmds:
       - go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
       - go tool cover -html=coverage.out -o coverage.html
 
