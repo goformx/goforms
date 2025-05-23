@@ -72,6 +72,16 @@ jobs:
           go-version: ${{ needs.setup.outputs.go_version }}
           cache: true
           cache-dependency-path: go.sum
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node_version }}
+          cache: "npm"
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: "3.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Cache Go Tools
         uses: actions/cache@v4
         id: go-tools-cache
