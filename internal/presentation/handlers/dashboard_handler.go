@@ -34,7 +34,7 @@ func NewDashboardHandler(
 // Register sets up the dashboard routes
 func (h *DashboardHandler) Register(e *echo.Echo) {
 	dashboard := e.Group("/dashboard")
-	dashboard.Use(h.Base.authMiddleware.RequireAuth)
+	h.Base.SetupMiddleware(dashboard)
 
 	dashboard.GET("", h.ShowDashboard)
 }

@@ -31,7 +31,7 @@ func NewSchemaHandler(
 // Register sets up the schema routes
 func (h *SchemaHandler) Register(e *echo.Echo) {
 	schema := e.Group("/dashboard/forms/:id/schema")
-	schema.Use(h.Base.authMiddleware.RequireAuth)
+	h.Base.SetupMiddleware(schema)
 
 	schema.GET("", h.GetFormSchema)
 	schema.PUT("", h.UpdateFormSchema)

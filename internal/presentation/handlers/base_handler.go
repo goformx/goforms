@@ -14,7 +14,7 @@ import (
 type BaseHandler struct {
 	authMiddleware *amw.CookieAuthMiddleware
 	formService    form.Service
-	LogError       func(msg string, fields ...any)
+	logger         logging.Logger
 }
 
 // NewBaseHandler creates a new base handler
@@ -26,8 +26,13 @@ func NewBaseHandler(
 	return &BaseHandler{
 		authMiddleware: authMiddleware,
 		formService:    formService,
-		LogError:       logger.Error,
+		logger:         logger,
 	}
+}
+
+// SetupMiddleware sets up common middleware for a route group
+func (h *BaseHandler) SetupMiddleware(group *echo.Group) {
+	group.Use(h.authMiddleware.RequireAuth)
 }
 
 // getAuthenticatedUser retrieves and validates the authenticated user from the context
@@ -63,4 +68,12 @@ func (h *BaseHandler) getOwnedForm(c echo.Context, currentUser *user.User) (*for
 func (h *BaseHandler) handleError(err error, status int, message string) error {
 	h.LogError(message, err)
 	return echo.NewHTTPError(status, message)
+}
+
+// LogError logs an error with consistent formatting
+func (h *BaseHandler) LogError(message string, err error) {
+	h.logger.Error(message,
+		logging.Error(err),
+		logging.StringField("operation", "handler_error"),
+	)
 }
