@@ -44,11 +44,17 @@ func main() {
 		// Core dependencies that are required for basic functionality
 		fx.Provide(
 			GetVersion,
-			func() (*zap.Logger, error) {
-				return zap.NewDevelopment()
+			func() (logging.Logger, error) {
+				factory := logging.NewFactory()
+				return factory.CreateLogger()
 			},
-			func(zapLogger *zap.Logger) logging.Logger {
-				return logging.NewZapLogger(zapLogger)
+			func(logger logging.Logger) *zap.Logger {
+				if zapLogger, ok := logger.(*logging.ZapLogger); ok {
+					return zapLogger.GetZapLogger()
+				}
+				// Fallback to development logger if type assertion fails
+				devLogger, _ := zap.NewDevelopment()
+				return devLogger
 			},
 		),
 		// Infrastructure module for database, cache, etc.
