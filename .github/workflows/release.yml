@@ -66,6 +66,7 @@ jobs:
           mkdir -p release
           cp bin/goformx release/
           cp -r dist release/
+          cp -r migrations release/
           tar -czf goformx-${{ github.ref_name }}.tar.gz -C release .
 
       - name: Upload Artifacts
