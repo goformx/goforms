@@ -11,56 +11,65 @@ env:
   RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
 
 jobs:
-  verify:
-    name: Verify
+  setup:
+    name: Setup Environment
     runs-on: ubuntu-latest
-
+    outputs:
+      go_version: "1.24"
+      node_version: "20"
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required for git describe
-
+          fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
           cache: true
           cache-dependency-path: go.sum
-
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '20'
-          cache: 'npm'
-
+          node-version: "20"
+          cache: "npm"
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
           version: "3.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Tools
+        run: |
+          go install github.com/a-h/templ/cmd/templ@latest
+          go install go.uber.org/mock/mockgen@latest
+      - name: Cache Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/go-build
+          key: ${{ runner.os }}-go-build-${{ hashFiles('go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-build
 
-      - name: Install templ
-        run: go install github.com/a-h/templ/cmd/templ@latest
-
-      - name: Install mockgen
-        run: go install go.uber.org/mock/mockgen@latest
-
-      - name: Generate files
+  verify:
+    name: Verify
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Generate Files
         run: templ generate ./internal/...
-
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           go mod download
           go mod tidy
           npm install
           npm run typecheck
-
-      - name: Run linter
+      - name: Run Linter
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
-
-      - name: Run tests
+      - name: Run Tests
         run: task test
 
   build:
@@ -68,65 +77,31 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
-
     steps:
       - uses: actions/checkout@v4
         with:
-          fetch-depth: 0  # Required for git describe
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-          cache: true
-          cache-dependency-path: go.sum
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: '20'
-          cache: 'npm'
-
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: "3.x"
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Install templ
-        run: go install github.com/a-h/templ/cmd/templ@latest
-
-      - name: Install mockgen
-        run: go install go.uber.org/mock/mockgen@latest
-
-      - name: Generate files
+          fetch-depth: 0
+      - name: Generate Files
         run: templ generate ./internal/...
-
-      - name: Install dependencies
+      - name: Install Dependencies
         run: |
           go mod download
           go mod tidy
           npm install
           npm run typecheck
-
-      - name: Build all platforms
+      - name: Build All Platforms
         run: |
           mkdir -p bin
           task build
-
-      - name: List artifacts
+      - name: List Artifacts
         run: ls -la bin/
-
-      # Skip artifact upload when running locally with act
-      - name: Upload artifacts
+      - name: Upload Artifacts
         if: ${{ !env.RUNNING_IN_ACT }}
         uses: actions/upload-artifact@v4
         with:
           name: binaries
           path: bin/
           retention-days: 7
-
-      # Skip release creation when running locally with act
       - name: Create Release
         if: ${{ !env.RUNNING_IN_ACT && startsWith(github.ref, 'refs/tags/v') }}
         uses: softprops/action-gh-release@v1
