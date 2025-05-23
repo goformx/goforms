@@ -15,7 +15,7 @@
   - [x] Implement shared authentication logic
 
 ### 2. Service Layer Improvements
-- [ ] Create `PageDataService` for template data preparation
+- [x] Create `PageDataService` for template data preparation
   ```go
   type PageDataService struct {
       logger logging.Logger
@@ -25,7 +25,7 @@
   func (s *PageDataService) PrepareFormData(c echo.Context, user *user.User, form *form.Form) shared.PageData
   ```
 
-- [ ] Create `FormOperations` for common form operations
+- [x] Create `FormOperations` for common form operations
   ```go
   type FormOperations struct {
       formService form.Service
@@ -36,7 +36,7 @@
   func (o *FormOperations) EnsureFormOwnership(c echo.Context, user *user.User, formID string) (*form.Form, error)
   ```
 
-- [ ] Create `TemplateService` for rendering
+- [x] Create `TemplateService` for rendering
   ```go
   type TemplateService struct {
       logger logging.Logger
