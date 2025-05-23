@@ -1,0 +1,54 @@
+name: Release
+
+on:
+  push:
+    tags: ['v*']
+
+permissions:
+  contents: write
+
+jobs:
+  release:
+    name: Create Release
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      
+      - name: Verify Build Directory
+        run: |
+          if [ ! -d "./cmd/goforms" ]; then
+            echo "Build directory missing!"; exit 1;
+          fi
+      
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: "1.24"
+
+      - name: Build Binaries
+        run: |
+          mkdir -p bin
+          go build -o bin/goformx ./cmd/goforms || { echo "Build failed"; exit 1; }
+      
+      - name: Archive Release Files
+        run: |
+          mkdir -p release
+          cp bin/goformx release/
+          tar -czf goformx-${{ github.ref_name }}.tar.gz -C release .
+
+      - name: Upload Artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: release-files
+          path: goformx-${{ github.ref_name }}.tar.gz
+          retention-days: 7
+
+      - name: Publish GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: goformx-${{ github.ref_name }}.tar.gz
+          draft: false
+          prerelease: false
+          generate_release_notes: true
