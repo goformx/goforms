@@ -37,7 +37,16 @@ jobs:
         with:
           version: "3.x"
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cache Go Tools
+        uses: actions/cache@v4
+        id: go-tools-cache
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
       - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: |
           go install github.com/a-h/templ/cmd/templ@latest
           go install go.uber.org/mock/mockgen@latest
@@ -57,6 +66,25 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.setup.outputs.go_version }}
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Cache Go Tools
+        uses: actions/cache@v4
+        id: go-tools-cache
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: |
+          go install github.com/a-h/templ/cmd/templ@latest
+          go install go.uber.org/mock/mockgen@latest
       - name: Generate Files
         run: templ generate ./internal/...
       - name: Install Dependencies
