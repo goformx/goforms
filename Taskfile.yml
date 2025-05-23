@@ -75,7 +75,6 @@ tasks:
     desc: Generate code from templates
     cmds:
       - templ generate ./internal/...
-      - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
 
   build:
     desc: Build the application (frontend and backend in parallel)
@@ -155,6 +154,7 @@ tasks:
     desc: Run all tests
     deps: [generate]
     cmds:
+      - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
       - go test -v -race ./internal/...
 
   test:cover:
