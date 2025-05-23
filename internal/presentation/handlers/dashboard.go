@@ -14,6 +14,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// FormData represents the structure for form creation and updates
+type FormData struct {
+	Title       string `json:"title" form:"title" validate:"required"`
+	Description string `json:"description" form:"description" validate:"required"`
+}
+
 type BaseHandler struct {
 	LogError func(msg string, err error)
 }
@@ -41,6 +47,41 @@ func NewHandler(
 	}, nil
 }
 
+// getAuthenticatedUser retrieves and validates the authenticated user from the context
+func (h *Handler) getAuthenticatedUser(c echo.Context) (*user.User, error) {
+	currentUser, ok := c.Get("user").(*user.User)
+	if !ok {
+		return nil, echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	}
+	return currentUser, nil
+}
+
+// getOwnedForm retrieves a form and verifies ownership
+func (h *Handler) getOwnedForm(c echo.Context, currentUser *user.User) (*form.Form, error) {
+	formID := c.Param("id")
+	if formID == "" {
+		return nil, echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
+	}
+
+	formObj, err := h.formService.GetForm(formID)
+	if err != nil {
+		h.base.LogError("Failed to get form", err)
+		return nil, echo.NewHTTPError(http.StatusNotFound, "Form not found")
+	}
+
+	if formObj.UserID != currentUser.ID {
+		return nil, echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	}
+
+	return formObj, nil
+}
+
+// handleError is a helper function to consistently handle and log errors
+func (h *Handler) handleError(err error, status int, message string) error {
+	h.base.LogError(message, err)
+	return echo.NewHTTPError(status, message)
+}
+
 // Register sets up the dashboard routes
 func (h *Handler) Register(e *echo.Echo) {
 	// Dashboard routes
@@ -60,15 +101,15 @@ func (h *Handler) Register(e *echo.Echo) {
 
 // ShowDashboard displays the user's dashboard
 func (h *Handler) ShowDashboard(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	currentUser, err := h.getAuthenticatedUser(c)
+	if err != nil {
+		return err
 	}
 
 	// Get user's forms
 	forms, err := h.formService.GetUserForms(currentUser.ID)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to fetch forms")
+		return h.handleError(err, http.StatusInternalServerError, "Failed to fetch forms")
 	}
 
 	// Get CSRF token from context
@@ -95,9 +136,9 @@ func (h *Handler) ShowDashboard(c echo.Context) error {
 
 // ShowNewForm displays the form creation page
 func (h *Handler) ShowNewForm(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	currentUser, err := h.getAuthenticatedUser(c)
+	if err != nil {
+		return err
 	}
 
 	// Get CSRF token from context
@@ -123,22 +164,18 @@ func (h *Handler) ShowNewForm(c echo.Context) error {
 
 // CreateForm handles form creation
 func (h *Handler) CreateForm(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
+	currentUser, err := h.getAuthenticatedUser(c)
+	if err != nil {
+		return err
 	}
 
-	var formData struct {
-		Title       string `json:"title" form:"title"`
-		Description string `json:"description" form:"description"`
-	}
-
+	var formData FormData
 	if err := c.Bind(&formData); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
+		return h.handleError(err, http.StatusBadRequest, "Invalid form data")
 	}
 
-	if err := c.Validate(formData); err != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+	if err := c.Validate(&formData); err != nil {
+		return h.handleError(err, http.StatusUnprocessableEntity, "Form validation failed")
 	}
 
 	// Create a minimal Form.io schema for the form
@@ -150,7 +187,7 @@ func (h *Handler) CreateForm(c echo.Context) error {
 	// Create the form
 	formObj, err := h.formService.CreateForm(currentUser.ID, formData.Title, formData.Description, defaultSchema)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to create form")
+		return h.handleError(err, http.StatusInternalServerError, "Failed to create form")
 	}
 
 	// Redirect to the form edit page
@@ -159,29 +196,18 @@ func (h *Handler) CreateForm(c echo.Context) error {
 
 // ShowEditForm displays the form editing page
 func (h *Handler) ShowEditForm(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("id")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	// Get form data
-	formObj, err := h.formService.GetForm(formID)
+	currentUser, err := h.getAuthenticatedUser(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+		return err
 	}
 
-	// Verify form belongs to current user
-	if formObj.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	formObj, err := h.getOwnedForm(c, currentUser)
+	if err != nil {
+		return err
 	}
 
 	// Get form submissions
-	submissions, err := h.formService.GetFormSubmissions(formID)
+	submissions, err := h.formService.GetFormSubmissions(formObj.ID)
 	if err != nil {
 		h.base.LogError("failed to get form submissions", err)
 		// Don't return error, just show empty submissions
@@ -211,32 +237,20 @@ func (h *Handler) ShowEditForm(c echo.Context) error {
 
 // ShowFormSubmissions handles viewing form submissions
 func (h *Handler) ShowFormSubmissions(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("id")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	// Get form data
-	formObj, err := h.formService.GetForm(formID)
+	currentUser, err := h.getAuthenticatedUser(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+		return err
 	}
 
-	// Verify form belongs to current user
-	if formObj.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	formObj, err := h.getOwnedForm(c, currentUser)
+	if err != nil {
+		return err
 	}
 
 	// Get form submissions
-	submissions, err := h.formService.GetFormSubmissions(formID)
+	submissions, err := h.formService.GetFormSubmissions(formObj.ID)
 	if err != nil {
-		h.base.LogError("failed to get form submissions", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form submissions")
+		return h.handleError(err, http.StatusInternalServerError, "Failed to get form submissions")
 	}
 
 	// Render the submissions page
@@ -248,25 +262,14 @@ func (h *Handler) ShowFormSubmissions(c echo.Context) error {
 
 // GetFormSchema handles getting a form's schema
 func (h *Handler) GetFormSchema(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("id")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	// Get form data
-	formObj, err := h.formService.GetForm(formID)
+	currentUser, err := h.getAuthenticatedUser(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+		return err
 	}
 
-	// Verify form belongs to current user
-	if formObj.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	formObj, err := h.getOwnedForm(c, currentUser)
+	if err != nil {
+		return err
 	}
 
 	return c.JSON(http.StatusOK, formObj.Schema)
@@ -274,31 +277,20 @@ func (h *Handler) GetFormSchema(c echo.Context) error {
 
 // UpdateFormSchema handles updating a form's schema
 func (h *Handler) UpdateFormSchema(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("id")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	// Get form data
-	formObj, err := h.formService.GetForm(formID)
+	currentUser, err := h.getAuthenticatedUser(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+		return err
 	}
 
-	// Verify form belongs to current user
-	if formObj.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	formObj, err := h.getOwnedForm(c, currentUser)
+	if err != nil {
+		return err
 	}
 
 	// Bind the schema data directly to form.JSON
 	var schema form.JSON
-	if bindErr := c.Bind(&schema); bindErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid schema data")
+	if err := c.Bind(&schema); err != nil {
+		return h.handleError(err, http.StatusBadRequest, "Invalid schema data")
 	}
 
 	// Validate schema structure
@@ -323,12 +315,11 @@ func (h *Handler) UpdateFormSchema(c echo.Context) error {
 	formObj.Schema = schema
 
 	// Ensure we preserve all form fields
-	formObj.ID = formID             // Ensure ID is set correctly
 	formObj.UserID = currentUser.ID // Ensure user ID is set correctly
 	formObj.Active = true           // Ensure form is active
 
-	if updateErr := h.formService.UpdateForm(formObj); updateErr != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form schema")
+	if err := h.formService.UpdateForm(formObj); err != nil {
+		return h.handleError(err, http.StatusInternalServerError, "Failed to update form schema")
 	}
 
 	return c.JSON(http.StatusOK, formObj)
@@ -336,75 +327,49 @@ func (h *Handler) UpdateFormSchema(c echo.Context) error {
 
 // UpdateForm handles updating a form's basic details
 func (h *Handler) UpdateForm(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("id")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	// Get existing form
-	formObj, err := h.formService.GetForm(formID)
+	currentUser, err := h.getAuthenticatedUser(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+		return err
 	}
 
-	// Verify form belongs to current user
-	if formObj.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	formObj, err := h.getOwnedForm(c, currentUser)
+	if err != nil {
+		return err
 	}
 
-	var formData struct {
-		Title       string `json:"title" form:"title"`
-		Description string `json:"description" form:"description"`
+	var formData FormData
+	if err := c.Bind(&formData); err != nil {
+		return h.handleError(err, http.StatusBadRequest, "Invalid form data")
 	}
 
-	if bindErr := c.Bind(&formData); bindErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, "Invalid form data")
-	}
-
-	if validateErr := c.Validate(formData); validateErr != nil {
-		return echo.NewHTTPError(http.StatusBadRequest, validateErr.Error())
+	if err := c.Validate(&formData); err != nil {
+		return h.handleError(err, http.StatusUnprocessableEntity, "Form validation failed")
 	}
 
 	// Update form details
 	formObj.Title = formData.Title
 	formObj.Description = formData.Description
 
-	if updateErr := h.formService.UpdateForm(formObj); updateErr != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form")
+	if err := h.formService.UpdateForm(formObj); err != nil {
+		return h.handleError(err, http.StatusInternalServerError, "Failed to update form")
 	}
 
 	return c.JSON(http.StatusOK, formObj)
 }
 
 func (h *Handler) DeleteForm(c echo.Context) error {
-	currentUser, ok := c.Get("user").(*user.User)
-	if !ok {
-		return echo.NewHTTPError(http.StatusUnauthorized, "User not found")
-	}
-
-	formID := c.Param("id")
-	if formID == "" {
-		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
-	}
-
-	// Get form data
-	formObj, err := h.formService.GetForm(formID)
+	currentUser, err := h.getAuthenticatedUser(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+		return err
 	}
 
-	// Verify form belongs to current user
-	if formObj.UserID != currentUser.ID {
-		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
+	formObj, err := h.getOwnedForm(c, currentUser)
+	if err != nil {
+		return err
 	}
 
-	if deleteErr := h.formService.DeleteForm(formID); deleteErr != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to delete form")
+	if err := h.formService.DeleteForm(formObj.ID); err != nil {
+		return h.handleError(err, http.StatusInternalServerError, "Failed to delete form")
 	}
 
 	return c.NoContent(http.StatusNoContent)
