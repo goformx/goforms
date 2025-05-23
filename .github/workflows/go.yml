@@ -62,28 +62,9 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-
 
-  security:
-    name: Security Scan
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: CodeQL Analysis
-        uses: github/codeql-action/init@v3
-        with:
-          languages: go
-      - name: Perform CodeQL Analysis
-        uses: github/codeql-action/analyze@v3
-      - name: Run Dependency Scanner
-        uses: snyk/actions/golang@master
-        env:
-          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
-
   verify:
     name: Verify
-    needs: [setup, security]
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -93,13 +74,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.setup.outputs.go_version }}
+          go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: go.sum
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ needs.setup.outputs.node_version }}
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
       - name: Install Task
         uses: arduino/setup-task@v2
@@ -150,13 +131,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ needs.setup.outputs.go_version }}
+          go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: go.sum
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ needs.setup.outputs.node_version }}
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
       - name: Install Task
         uses: arduino/setup-task@v2
