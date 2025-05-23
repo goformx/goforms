@@ -58,6 +58,10 @@ jobs:
           go mod verify
           npm install
           npm run typecheck
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
+      - name: Generate templ files
+        run: templ generate
       - name: Run Linter
         uses: golangci/golangci-lint-action@v8
         with:
@@ -87,6 +91,10 @@ jobs:
           go mod verify
           npm install
           npm run typecheck
+      - name: Install templ
+        run: go install github.com/a-h/templ/cmd/templ@latest
+      - name: Generate templ files
+        run: templ generate
       - name: Build Application
         run: |
           mkdir -p bin
