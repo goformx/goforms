@@ -198,9 +198,9 @@ func (s *Store) GetFormSubmissions(formID string) ([]*model.FormSubmission, erro
 	s.logger.Debug("GetFormSubmissions called", logging.StringField("form_id", formID))
 
 	query := `
-		SELECT id, form_id, data, submitted_at, status, metadata
+		SELECT id, form_uuid, data, submitted_at, status, metadata
 		FROM form_submissions
-		WHERE form_id = ?
+		WHERE form_uuid = ?
 		ORDER BY submitted_at DESC
 	`
 
@@ -245,7 +245,7 @@ func (s *Store) GetFormSubmissions(formID string) ([]*model.FormSubmission, erro
 
 func (s *Store) CreateSubmission(sub *model.FormSubmission) error {
 	s.logger.Debug("CreateSubmission called", logging.StringField("submission_id", sub.ID))
-	query := `INSERT INTO form_submissions (id, form_id, data, submitted_at, status, metadata) VALUES (?, ?, ?, ?, ?, ?)`
+	query := `INSERT INTO form_submissions (id, form_uuid, data, submitted_at, status, metadata) VALUES (?, ?, ?, ?, ?, ?)`
 
 	dataBytes, err := json.Marshal(sub.Data)
 	if err != nil {

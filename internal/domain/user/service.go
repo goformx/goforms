@@ -356,9 +356,6 @@ func (s *ServiceImpl) GetUserByID(ctx context.Context, id uint) (*User, error) {
 		s.logger.Error("failed to get user by id", logging.ErrorField("error", err))
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
-	s.logger.Info("User retrieved",
-		logging.UintField("id", user.ID),
-	)
 	return user, nil
 }
 

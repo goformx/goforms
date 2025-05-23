@@ -174,9 +174,6 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 
-	s.logger.Info("User retrieved",
-		logging.UintField("id", u.ID),
-	)
 	return &u, nil
 }
 
