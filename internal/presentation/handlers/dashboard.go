@@ -20,15 +20,12 @@ type FormData struct {
 	Description string `json:"description" form:"description" validate:"required"`
 }
 
-type BaseHandler struct {
-	LogError func(msg string, err error)
-}
-
 // Handler handles dashboard-related HTTP requests
 type Handler struct {
-	authMiddleware *amw.CookieAuthMiddleware
-	formService    form.Service
-	base           *BaseHandler
+	DashboardHandler  *DashboardHandler
+	FormHandler       *FormHandler
+	SubmissionHandler *SubmissionHandler
+	SchemaHandler     *SchemaHandler
 }
 
 // NewHandler creates a new dashboard handler
@@ -36,14 +33,18 @@ func NewHandler(
 	userService user.Service,
 	formService form.Service,
 	logger logging.Logger,
-	base *BaseHandler,
 ) (*Handler, error) {
-	cookieAuth := amw.NewCookieAuthMiddleware(userService, logger)
+	base := NewBaseHandler(
+		amw.NewCookieAuthMiddleware(userService, logger),
+		formService,
+		logger,
+	)
 
 	return &Handler{
-		authMiddleware: cookieAuth,
-		formService:    formService,
-		base:           base,
+		DashboardHandler:  NewDashboardHandler(formService, logger, base),
+		FormHandler:       NewFormHandler(formService, logger, base),
+		SubmissionHandler: NewSubmissionHandler(formService, logger, base),
+		SchemaHandler:     NewSchemaHandler(formService, logger, base),
 	}, nil
 }
 
@@ -63,9 +64,9 @@ func (h *Handler) getOwnedForm(c echo.Context, currentUser *user.User) (*form.Fo
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
 	}
 
-	formObj, err := h.formService.GetForm(formID)
+	formObj, err := h.FormHandler.formService.GetForm(formID)
 	if err != nil {
-		h.base.LogError("Failed to get form", err)
+		h.DashboardHandler.Base.LogError("Failed to get form", err)
 		return nil, echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
@@ -78,25 +79,16 @@ func (h *Handler) getOwnedForm(c echo.Context, currentUser *user.User) (*form.Fo
 
 // handleError is a helper function to consistently handle and log errors
 func (h *Handler) handleError(err error, status int, message string) error {
-	h.base.LogError(message, err)
+	h.DashboardHandler.Base.LogError(message, err)
 	return echo.NewHTTPError(status, message)
 }
 
 // Register sets up the dashboard routes
 func (h *Handler) Register(e *echo.Echo) {
-	// Dashboard routes
-	dashboard := e.Group("/dashboard")
-	dashboard.Use(h.authMiddleware.RequireAuth) // Middleware to ensure user is authenticated
-
-	dashboard.GET("", h.ShowDashboard)
-	dashboard.GET("/forms/new", h.ShowNewForm)
-	dashboard.POST("/forms", h.CreateForm)
-	dashboard.GET("/forms/:id/edit", h.ShowEditForm)
-	dashboard.PUT("/forms/:id", h.UpdateForm)
-	dashboard.GET("/forms/:id/submissions", h.ShowFormSubmissions)
-	dashboard.GET("/forms/:id/schema", h.GetFormSchema)
-	dashboard.PUT("/forms/:id/schema", h.UpdateFormSchema)
-	dashboard.DELETE("/forms/:id", h.DeleteForm)
+	h.DashboardHandler.Register(e)
+	h.FormHandler.Register(e)
+	h.SubmissionHandler.Register(e)
+	h.SchemaHandler.Register(e)
 }
 
 // ShowDashboard displays the user's dashboard
@@ -107,7 +99,7 @@ func (h *Handler) ShowDashboard(c echo.Context) error {
 	}
 
 	// Get user's forms
-	forms, err := h.formService.GetUserForms(currentUser.ID)
+	forms, err := h.FormHandler.formService.GetUserForms(currentUser.ID)
 	if err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to fetch forms")
 	}
@@ -185,7 +177,7 @@ func (h *Handler) CreateForm(c echo.Context) error {
 	}
 
 	// Create the form
-	formObj, err := h.formService.CreateForm(currentUser.ID, formData.Title, formData.Description, defaultSchema)
+	formObj, err := h.FormHandler.formService.CreateForm(currentUser.ID, formData.Title, formData.Description, defaultSchema)
 	if err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to create form")
 	}
@@ -207,9 +199,9 @@ func (h *Handler) ShowEditForm(c echo.Context) error {
 	}
 
 	// Get form submissions
-	submissions, err := h.formService.GetFormSubmissions(formObj.ID)
+	submissions, err := h.FormHandler.formService.GetFormSubmissions(formObj.ID)
 	if err != nil {
-		h.base.LogError("failed to get form submissions", err)
+		h.DashboardHandler.Base.LogError("failed to get form submissions", err)
 		// Don't return error, just show empty submissions
 		submissions = []*model.FormSubmission{}
 	}
@@ -248,7 +240,7 @@ func (h *Handler) ShowFormSubmissions(c echo.Context) error {
 	}
 
 	// Get form submissions
-	submissions, err := h.formService.GetFormSubmissions(formObj.ID)
+	submissions, err := h.FormHandler.formService.GetFormSubmissions(formObj.ID)
 	if err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to get form submissions")
 	}
@@ -318,7 +310,7 @@ func (h *Handler) UpdateFormSchema(c echo.Context) error {
 	formObj.UserID = currentUser.ID // Ensure user ID is set correctly
 	formObj.Active = true           // Ensure form is active
 
-	if err := h.formService.UpdateForm(formObj); err != nil {
+	if err := h.FormHandler.formService.UpdateForm(formObj); err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to update form schema")
 	}
 
@@ -350,7 +342,7 @@ func (h *Handler) UpdateForm(c echo.Context) error {
 	formObj.Title = formData.Title
 	formObj.Description = formData.Description
 
-	if err := h.formService.UpdateForm(formObj); err != nil {
+	if err := h.FormHandler.formService.UpdateForm(formObj); err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to update form")
 	}
 
@@ -368,7 +360,7 @@ func (h *Handler) DeleteForm(c echo.Context) error {
 		return err
 	}
 
-	if err := h.formService.DeleteForm(formObj.ID); err != nil {
+	if err := h.FormHandler.formService.DeleteForm(formObj.ID); err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to delete form")
 	}
 

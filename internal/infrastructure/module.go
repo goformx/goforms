@@ -265,15 +265,23 @@ var HandlerModule = fx.Options(
 	}),
 	// Dashboard handler
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
-		baseHandler := &handlers.BaseHandler{
-			LogError: func(msg string, err error) {
-				core.Logger.Error(msg, logging.Error(err))
-			},
-		}
-		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger, baseHandler)
+		authMiddleware := middleware.NewCookieAuthMiddleware(services.UserService, core.Logger)
+		baseHandler := handlers.NewBaseHandler(
+			authMiddleware,
+			services.FormService,
+			core.Logger,
+		)
+		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
 		}
+
+		// Initialize the handler with the base handler
+		handler.DashboardHandler.Base = baseHandler
+		handler.FormHandler.Base = baseHandler
+		handler.SubmissionHandler.Base = baseHandler
+		handler.SchemaHandler.Base = baseHandler
+
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "DashboardHandler"),
 			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
