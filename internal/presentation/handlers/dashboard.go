@@ -295,18 +295,43 @@ func (h *Handler) UpdateFormSchema(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "Access denied")
 	}
 
+	// Bind the schema data directly to form.JSON
 	var schema form.JSON
 	if bindErr := c.Bind(&schema); bindErr != nil {
 		return echo.NewHTTPError(http.StatusBadRequest, "Invalid schema data")
 	}
 
-	// Update form schema
+	// Validate schema structure
+	if schema == nil {
+		return echo.NewHTTPError(http.StatusBadRequest, "Schema data is required")
+	}
+
+	// Ensure required fields are present with default values
+	if _, ok := schema["display"]; !ok {
+		schema["display"] = "form"
+	}
+	if _, ok := schema["components"]; !ok {
+		schema["components"] = []any{}
+	}
+
+	// Validate components array
+	if _, ok := schema["components"].([]any); !ok {
+		return echo.NewHTTPError(http.StatusBadRequest, "Components must be an array")
+	}
+
+	// Update form schema while preserving other fields
 	formObj.Schema = schema
+
+	// Ensure we preserve all form fields
+	formObj.ID = formID             // Ensure ID is set correctly
+	formObj.UserID = currentUser.ID // Ensure user ID is set correctly
+	formObj.Active = true           // Ensure form is active
+
 	if updateErr := h.formService.UpdateForm(formObj); updateErr != nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to update form schema")
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusOK, formObj)
 }
 
 // UpdateForm handles updating a form's basic details
