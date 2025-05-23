@@ -44,6 +44,12 @@ func main() {
 		// Core dependencies that are required for basic functionality
 		fx.Provide(
 			GetVersion,
+			func() (*zap.Logger, error) {
+				return zap.NewDevelopment()
+			},
+			func(zapLogger *zap.Logger) logging.Logger {
+				return logging.NewZapLogger(zapLogger)
+			},
 		),
 		// Infrastructure module for database, cache, etc.
 		infrastructure.RootModule,
