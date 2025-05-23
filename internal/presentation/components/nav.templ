@@ -1,7 +1,7 @@
 package components
 
 import (
-	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
 
 templ Nav(data shared.PageData) {
@@ -15,7 +15,7 @@ templ Nav(data shared.PageData) {
 				</div>
 				<div class="flex items-center">
 					<a href="/demo" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Demo</a>
-					<a href="https://github.com/jonesrussell/goforms" target="_blank" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">GitHub</a>
+					<a href="https://github.com/goformx/goforms" target="_blank" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">GitHub</a>
 					if data.User == nil {
 						<a href="/signup" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Sign up</a>
 						<a href="/login" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Login</a>

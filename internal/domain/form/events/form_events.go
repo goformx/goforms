@@ -3,8 +3,8 @@ package form
 import (
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/domain/common/events"
-	"github.com/jonesrussell/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/domain/common/events"
+	"github.com/goformx/goforms/internal/domain/form/model"
 )
 
 // EventType represents the type of form event

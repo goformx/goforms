@@ -3,10 +3,10 @@ package domain
 import (
 	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/domain/form"
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // UserServiceParams contains dependencies for creating a user service

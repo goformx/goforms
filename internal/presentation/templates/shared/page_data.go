@@ -2,9 +2,9 @@ package shared
 
 import (
 	"github.com/a-h/templ"
-	"github.com/jonesrussell/goforms/internal/domain/form"
-	"github.com/jonesrussell/goforms/internal/domain/form/model"
-	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/domain/user"
 )
 
 // PageData contains common data used across all pages

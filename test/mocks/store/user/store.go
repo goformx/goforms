@@ -5,7 +5,7 @@ import (
 	"errors"
 	"sync"
 
-	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/stretchr/testify/mock"
 )
 

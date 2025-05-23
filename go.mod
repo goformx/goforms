@@ -1,4 +1,4 @@
-module github.com/jonesrussell/goforms
+module github.com/goformx/goforms
 
 go 1.24
 

@@ -4,7 +4,7 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/domain/user"
 )
 
 func TestUser_SetPassword(t *testing.T) {

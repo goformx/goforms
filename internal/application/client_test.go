@@ -4,8 +4,8 @@ import (
 	"testing"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/application"
-	"github.com/jonesrussell/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/application"
+	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )

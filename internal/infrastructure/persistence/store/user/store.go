@@ -7,9 +7,9 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/database"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/database"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 var (

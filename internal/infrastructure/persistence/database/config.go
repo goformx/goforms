@@ -4,7 +4,7 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Config holds database configuration

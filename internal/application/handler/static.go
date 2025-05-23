@@ -8,9 +8,9 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 // StaticHandler handles serving static files

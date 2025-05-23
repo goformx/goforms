@@ -8,8 +8,8 @@ import (
 	"sync"
 	"time"
 
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/golang-jwt/jwt/v5"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 )
 
 var (

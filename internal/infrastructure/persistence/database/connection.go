@@ -11,8 +11,8 @@ import (
 	_ "github.com/lib/pq" // PostgreSQL driver for database/sql
 	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // DB wraps sqlx.DB with lifecycle management

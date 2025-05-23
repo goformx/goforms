@@ -33,7 +33,7 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Option configures a Base handler. It follows the functional

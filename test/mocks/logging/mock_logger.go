@@ -12,7 +12,7 @@ package logging
 import (
 	reflect "reflect"
 
-	logging "github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	logging "github.com/goformx/goforms/internal/infrastructure/logging"
 	gomock "go.uber.org/mock/gomock"
 )
 

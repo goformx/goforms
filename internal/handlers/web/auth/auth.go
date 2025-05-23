@@ -3,10 +3,10 @@ package auth
 import (
 	"net/http"
 
-	"github.com/jonesrussell/goforms/internal/domain/entities"
-	"github.com/jonesrussell/goforms/internal/domain/repositories"
-	"github.com/jonesrussell/goforms/internal/handlers"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/entities"
+	"github.com/goformx/goforms/internal/domain/repositories"
+	"github.com/goformx/goforms/internal/handlers"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 	"golang.org/x/crypto/bcrypt"
 )

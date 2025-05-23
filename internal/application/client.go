@@ -6,7 +6,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form"
 )
 
 var (

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/jonesrussell/goforms/internal/domain/common/validation"
+	"github.com/goformx/goforms/internal/domain/common/validation"
 )
 
 // EchoValidator wraps the domain validator to implement Echo's Validator interface.

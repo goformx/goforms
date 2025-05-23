@@ -8,8 +8,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/mock/gomock"
 
-	"github.com/jonesrussell/goforms/internal/application/middleware"
-	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/goformx/goforms/internal/application/middleware"
+	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 )
 
 func TestLoggingMiddleware(t *testing.T) {

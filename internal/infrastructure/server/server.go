@@ -11,8 +11,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Server handles HTTP server lifecycle and configuration

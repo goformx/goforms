@@ -11,9 +11,9 @@ import (
 	"github.com/labstack/gommon/log"
 	"golang.org/x/time/rate"
 
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 const (

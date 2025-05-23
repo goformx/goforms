@@ -9,7 +9,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 func handlePanic(c echo.Context, log logging.Logger, start time.Time, r any) {

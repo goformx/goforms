@@ -3,8 +3,8 @@ package form
 import (
 	"errors"
 
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/google/uuid"
-	"github.com/jonesrussell/goforms/internal/domain/form/model"
 )
 
 type service struct {

@@ -3,9 +3,9 @@ package commands
 import (
 	"context"
 
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	userStore "github.com/jonesrussell/goforms/internal/infrastructure/persistence/store/user"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	userStore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/urfave/cli/v2"
 )
 

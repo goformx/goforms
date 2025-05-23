@@ -8,9 +8,9 @@ import (
 	"go.uber.org/fx"
 	"go.uber.org/fx/fxtest"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/server"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/server"
 )
 
 func TestNew(t *testing.T) {

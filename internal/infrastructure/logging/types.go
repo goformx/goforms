@@ -4,7 +4,7 @@ package logging
 import (
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/common"
+	"github.com/goformx/goforms/internal/infrastructure/common"
 )
 
 // Logger extends the common.Logger interface with additional functionality

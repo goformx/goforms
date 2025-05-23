@@ -5,7 +5,7 @@ import (
 	"context"
 	"os"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/urfave/cli/v2"
 )
 

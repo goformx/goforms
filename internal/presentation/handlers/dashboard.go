@@ -3,15 +3,15 @@ package handlers
 import (
 	"net/http"
 
-	amw "github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/domain/form"
-	"github.com/jonesrussell/goforms/internal/domain/form/model"
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/infrastructure/web"
-	"github.com/jonesrussell/goforms/internal/presentation/services"
-	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
-	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
+	amw "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
+	"github.com/goformx/goforms/internal/presentation/services"
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
 )
 

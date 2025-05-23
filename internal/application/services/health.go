@@ -5,8 +5,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/application/response"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/application/response"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // PingContexter is an interface for database health checks

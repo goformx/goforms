@@ -5,11 +5,11 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	amw "github.com/jonesrussell/goforms/internal/application/middleware"
-	"github.com/jonesrussell/goforms/internal/domain/form"
-	"github.com/jonesrussell/goforms/internal/domain/form/model"
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	amw "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // FormHandler handles form-related requests

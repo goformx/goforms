@@ -3,9 +3,9 @@ package model
 import (
 	"time"
 
+	"github.com/goformx/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/common/validation"
 	"github.com/google/uuid"
-	"github.com/jonesrussell/goforms/internal/domain/common/errors"
-	"github.com/jonesrussell/goforms/internal/domain/common/validation"
 )
 
 // FormSubmission represents a form submission

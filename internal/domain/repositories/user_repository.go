@@ -1,6 +1,6 @@
 package repositories
 
-import "github.com/jonesrussell/goforms/internal/domain/entities"
+import "github.com/goformx/goforms/internal/domain/entities"
 
 // UserRepository defines the interface for user data access
 type UserRepository interface {

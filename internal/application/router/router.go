@@ -7,8 +7,8 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/handlers"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/handlers"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Config holds router configuration

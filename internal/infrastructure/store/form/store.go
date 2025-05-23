@@ -5,10 +5,10 @@ import (
 	"encoding/json"
 	"fmt"
 
-	"github.com/jonesrussell/goforms/internal/domain/form"
-	"github.com/jonesrussell/goforms/internal/domain/form/model"
-	"github.com/jonesrussell/goforms/internal/infrastructure/database"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/database"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 type store struct {

@@ -4,8 +4,8 @@ import (
 	"log"
 	"os"
 
+	"github.com/goformx/goforms/cmd/cli/commands"
 	"github.com/joho/godotenv"
-	"github.com/jonesrussell/goforms/cmd/cli/commands"
 	"github.com/urfave/cli/v2"
 )
 

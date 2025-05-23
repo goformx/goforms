@@ -5,7 +5,7 @@ import (
 
 	validator "github.com/go-playground/validator/v10"
 
-	"github.com/jonesrussell/goforms/internal/domain/common/interfaces"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 )
 
 // validatorImpl implements the Validator interface

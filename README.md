@@ -166,7 +166,7 @@ Detailed technical documentation can be found in the `/docs` directory:
 
 2. Clone and Setup:
    ```bash
-   git clone https://github.com/jonesrussell/goforms.git
+   git clone https://github.com/goformx/goforms.git
    cd goforms
    ```
 

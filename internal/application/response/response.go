@@ -6,7 +6,7 @@ import (
 	"github.com/google/go-cmp/cmp"
 	"github.com/labstack/echo/v4"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Response represents the standard API response format

@@ -3,9 +3,9 @@ package commands
 import (
 	"fmt"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/database"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/database"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // getDB creates a new database connection

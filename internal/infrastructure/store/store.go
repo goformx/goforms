@@ -9,8 +9,8 @@ import (
 
 	"github.com/jmoiron/sqlx"
 
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Store implements the user.Store interface using a SQL database

@@ -9,7 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/config"
 )
 
 // ManifestEntry represents a single entry in the Vite manifest file

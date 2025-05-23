@@ -3,13 +3,13 @@ package admin
 import (
 	"net/http"
 
-	"github.com/jonesrussell/goforms/internal/domain/form"
-	"github.com/jonesrussell/goforms/internal/domain/user"
-	"github.com/jonesrussell/goforms/internal/handlers"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
-	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
-	"github.com/jonesrussell/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/handlers"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
 

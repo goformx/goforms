@@ -9,7 +9,7 @@ import (
 
 	"net/mail"
 
-	"github.com/jonesrussell/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/common/errors"
 )
 
 // Rule represents a validation rule

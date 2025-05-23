@@ -4,7 +4,7 @@ import (
 	"context"
 	"time"
 
-	"github.com/jonesrussell/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/domain/form/model"
 )
 
 // JSON represents a JSON object

@@ -4,7 +4,7 @@ package logging
 import (
 	"fmt"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )

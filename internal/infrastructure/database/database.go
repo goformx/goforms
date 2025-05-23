@@ -8,8 +8,8 @@ import (
 	"github.com/jmoiron/sqlx"
 	_ "github.com/lib/pq" // PostgreSQL driver for database/sql
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/config"
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Database wraps the SQL connection pool

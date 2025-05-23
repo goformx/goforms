@@ -4,8 +4,8 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
-	mocklogging "github.com/jonesrussell/goforms/test/mocks/logging"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 	"go.uber.org/mock/gomock"
 )
 
