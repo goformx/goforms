@@ -211,18 +211,37 @@ func (s *store) GetFormSubmissions(formID string) ([]*model.FormSubmission, erro
 }
 
 func (s *store) Update(f *form.Form) error {
+	// Start a transaction
+	tx, err := s.db.Begin()
+	if err != nil {
+		return fmt.Errorf("failed to begin transaction: %w", err)
+	}
+	defer tx.Rollback()
+
+	// First verify the form exists
+	var exists bool
+	err = tx.QueryRow("SELECT EXISTS(SELECT 1 FROM forms WHERE uuid = ?)", f.ID).Scan(&exists)
+	if err != nil {
+		return fmt.Errorf("failed to check form existence: %w", err)
+	}
+	if !exists {
+		return errors.New("form not found")
+	}
+
+	// Marshal the schema to JSON
+	schemaJSON, err := json.Marshal(f.Schema)
+	if err != nil {
+		return fmt.Errorf("failed to marshal schema: %w", err)
+	}
+
+	// Update the form
 	query := `
 		UPDATE forms 
 		SET title = ?, description = ?, schema = ?, active = ?, updated_at = CURRENT_TIMESTAMP
 		WHERE uuid = ?
 	`
 
-	schemaJSON, err := json.Marshal(f.Schema)
-	if err != nil {
-		return fmt.Errorf("failed to marshal schema: %w", err)
-	}
-
-	result, err := s.db.Exec(query, f.Title, f.Description, schemaJSON, f.Active, f.ID)
+	result, err := tx.Exec(query, f.Title, f.Description, schemaJSON, f.Active, f.ID)
 	if err != nil {
 		return fmt.Errorf("failed to update form: %w", err)
 	}
@@ -234,6 +253,11 @@ func (s *store) Update(f *form.Form) error {
 
 	if rowsAffected == 0 {
 		return errors.New("form not found")
+	}
+
+	// Commit the transaction
+	if err := tx.Commit(); err != nil {
+		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

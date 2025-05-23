@@ -130,21 +130,43 @@ function setupEventHandlers(builder: any): void {
     saveBtn.addEventListener("click", async () => {
       const spinner = saveBtn.querySelector(".spinner") as HTMLElement;
       try {
+        console.log("Form-builder: Save button clicked");
         feedback.textContent = "Saving...";
+        feedback.className = "schema-save-feedback";
         saveBtn.disabled = true;
         if (spinner) spinner.style.display = "inline-block";
 
-        const ok = await builder.saveSchema();
-        feedback.textContent = ok
-          ? "Schema saved successfully."
-          : "Failed to save schema.";
+        // Save the schema and get the response
+        console.log("Form-builder: Calling builder.saveSchema()");
+        const savedSchema = await builder.saveSchema();
+        console.log("Form-builder: Save response:", savedSchema);
+
+        // Check if we got a valid schema response
+        if (
+          savedSchema &&
+          savedSchema.schema &&
+          savedSchema.schema.components
+        ) {
+          console.log("Form-builder: Save successful");
+          feedback.textContent = "Schema saved successfully.";
+          feedback.className = "schema-save-feedback success";
+        } else {
+          console.error("Form-builder: Save failed - invalid schema structure");
+          feedback.textContent = "Failed to save schema - invalid response.";
+          feedback.className = "schema-save-feedback error";
+        }
       } catch (error) {
-        console.error("Error saving schema:", error);
-        feedback.textContent = "Error saving schema.";
+        console.error("Form-builder: Error in save handler:", error);
+        feedback.textContent =
+          error instanceof Error ? error.message : "Error saving schema.";
+        feedback.className = "schema-save-feedback error";
       } finally {
         saveBtn.disabled = false;
         if (spinner) spinner.style.display = "none";
-        setTimeout(() => (feedback.textContent = ""), 3000);
+        setTimeout(() => {
+          feedback.textContent = "";
+          feedback.className = "schema-save-feedback";
+        }, 3000);
       }
     });
   }
