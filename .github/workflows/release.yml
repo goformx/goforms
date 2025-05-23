@@ -34,11 +34,27 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: "npm"
+
+      - name: Install Dependencies
+        run: |
+          go mod download
+          go mod verify
+          npm install
+          npm run typecheck
+
       - name: Install templ
         run: go install github.com/a-h/templ/cmd/templ@latest
 
       - name: Generate templ files
         run: templ generate
+
+      - name: Build Frontend
+        run: npm run build
 
       - name: Build Binaries
         run: |
@@ -49,6 +65,7 @@ jobs:
         run: |
           mkdir -p release
           cp bin/goformx release/
+          cp -r dist release/
           tar -czf goformx-${{ github.ref_name }}.tar.gz -C release .
 
       - name: Upload Artifacts
