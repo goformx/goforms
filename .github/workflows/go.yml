@@ -9,14 +9,16 @@ on:
 
 env:
   RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
+  GO_VERSION: "1.24"
+  NODE_VERSION: "20"
 
 jobs:
   setup:
     name: Setup Environment
     runs-on: ubuntu-latest
     outputs:
-      go_version: "1.24"
-      node_version: "20"
+      go_version: ${{ env.GO_VERSION }}
+      node_version: ${{ env.NODE_VERSION }}
     steps:
       - uses: actions/checkout@v4
         with:
@@ -24,13 +26,13 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: "1.24"
+          go-version: ${{ env.GO_VERSION }}
           cache: true
           cache-dependency-path: go.sum
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: ${{ env.NODE_VERSION }}
           cache: "npm"
       - name: Install Task
         uses: arduino/setup-task@v2
@@ -53,15 +55,37 @@ jobs:
       - name: Cache Dependencies
         uses: actions/cache@v4
         with:
-          path: ~/.cache/go-build
-          key: ${{ runner.os }}-go-build-${{ hashFiles('go.sum') }}
+          path: |
+            ~/.cache/go-build
+            ~/go/pkg/mod
+          key: ${{ runner.os }}-go-${{ hashFiles('**/go.sum') }}
           restore-keys: |
-            ${{ runner.os }}-go-build
+            ${{ runner.os }}-go-
+
+  security:
+    name: Security Scan
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: CodeQL Analysis
+        uses: github/codeql-action/init@v3
+        with:
+          languages: go
+      - name: Perform CodeQL Analysis
+        uses: github/codeql-action/analyze@v3
+      - name: Run Dependency Scanner
+        uses: snyk/actions/golang@master
+        env:
+          SNYK_TOKEN: ${{ secrets.SNYK_TOKEN }}
 
   verify:
     name: Verify
-    needs: setup
+    needs: [setup, security]
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
         with:
@@ -115,10 +139,43 @@ jobs:
     needs: verify
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
+    timeout-minutes: 15
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest, macos-latest]
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Set up Go
+        uses: actions/setup-go@v5
+        with:
+          go-version: ${{ needs.setup.outputs.go_version }}
+          cache: true
+          cache-dependency-path: go.sum
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ needs.setup.outputs.node_version }}
+          cache: "npm"
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: "3.x"
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Cache Go Tools
+        uses: actions/cache@v4
+        id: go-tools-cache
+        with:
+          path: ~/go/bin
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.sum') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
+      - name: Install Tools
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: |
+          go install github.com/a-h/templ/cmd/templ@latest
+          go install go.uber.org/mock/mockgen@latest
       - name: Generate Files
         run: templ generate ./internal/...
       - name: Install Dependencies
@@ -137,11 +194,11 @@ jobs:
         if: ${{ !env.RUNNING_IN_ACT }}
         uses: actions/upload-artifact@v4
         with:
-          name: binaries
+          name: binaries-${{ matrix.os }}
           path: bin/
           retention-days: 7
       - name: Create Release
-        if: ${{ !env.RUNNING_IN_ACT && startsWith(github.ref, 'refs/tags/v') }}
+        if: ${{ !env.RUNNING_IN_ACT && startsWith(github.ref, 'refs/tags/v') && matrix.os == 'ubuntu-latest' }}
         uses: softprops/action-gh-release@v1
         with:
           files: bin/*
