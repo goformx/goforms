@@ -1,16 +1,19 @@
 package infrastructure
 
 import (
+	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
 	"sync"
 	"time"
 
+	"go.uber.org/dig"
 	"go.uber.org/fx"
 
 	"github.com/jonesrussell/goforms/internal/application/handler"
 	"github.com/jonesrussell/goforms/internal/application/middleware"
+	appmiddleware "github.com/jonesrussell/goforms/internal/application/middleware"
 	"github.com/jonesrussell/goforms/internal/domain/form"
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	h "github.com/jonesrussell/goforms/internal/handlers"
@@ -23,6 +26,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/infrastructure/store"
 	formstore "github.com/jonesrussell/goforms/internal/infrastructure/store/form"
 	"github.com/jonesrussell/goforms/internal/presentation/handlers"
+	"github.com/jonesrussell/goforms/internal/presentation/services"
 	"github.com/jonesrussell/goforms/internal/presentation/view"
 )
 
@@ -57,6 +61,14 @@ type ServiceParams struct {
 	fx.In
 	UserService user.Service
 	FormService form.Service
+}
+
+// ServiceContainer holds all service instances
+type ServiceContainer struct {
+	PageDataService *services.PageDataService
+	FormOperations  *services.FormOperations
+	TemplateService *services.TemplateService
+	ResponseBuilder *services.ResponseBuilder
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -153,6 +165,48 @@ func validateConfig(cfg *config.Config, logger logging.Logger) error {
 	return nil
 }
 
+// Module represents the infrastructure module
+type Module struct {
+	app            *fx.App
+	container      *dig.Container
+	config         *config.Config
+	logger         logging.Logger
+	db             *sql.DB
+	formService    form.Service
+	userService    user.Service
+	authMiddleware *appmiddleware.CookieAuthMiddleware
+	services       *ServiceContainer
+	handler        *handlers.Handler
+}
+
+// NewModule creates a new infrastructure module
+func NewModule(
+	app *fx.App,
+	container *dig.Container,
+	appConfig *config.Config,
+	logger logging.Logger,
+	db *sql.DB,
+	formService form.Service,
+	userService user.Service,
+	authMiddleware *appmiddleware.CookieAuthMiddleware,
+) *Module {
+	m := &Module{
+		app:            app,
+		container:      container,
+		config:         appConfig,
+		logger:         logger,
+		db:             db,
+		formService:    formService,
+		userService:    userService,
+		authMiddleware: authMiddleware,
+	}
+
+	m.initializeServices()
+	m.initializeHandlers()
+
+	return m
+}
+
 // InfrastructureModule provides core infrastructure dependencies.
 var InfrastructureModule = fx.Options(
 	fx.Provide(
@@ -180,13 +234,11 @@ var InfrastructureModule = fx.Options(
 )
 
 // StoreModule provides all database store implementations.
-// This module is responsible for creating and managing database stores.
 var StoreModule = fx.Options(
 	fx.Provide(NewStores),
 )
 
 // HandlerModule provides all HTTP handlers for the application.
-// This module is responsible for setting up route handlers and their dependencies.
 var HandlerModule = fx.Options(
 	// Static file handler (must be first)
 	AnnotateHandler(func(core CoreParams) (h.Handler, error) {
@@ -292,14 +344,12 @@ var HandlerModule = fx.Options(
 )
 
 // ServerModule provides the HTTP server setup.
-// This module is responsible for creating and configuring the Echo server.
 var ServerModule = fx.Options(
 	fx.Provide(server.New),
 )
 
-// Module combines all infrastructure-level modules into a single module.
-// This is the main entry point for infrastructure dependencies.
-var Module = fx.Options(
+// RootModule combines all infrastructure-level modules into a single module.
+var RootModule = fx.Options(
 	InfrastructureModule,
 	StoreModule,
 	ServerModule,
@@ -426,4 +476,41 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 	)
 
 	return stores, nil
+}
+
+// initializeServices initializes all services
+func (m *Module) initializeServices() {
+	m.services = &ServiceContainer{
+		PageDataService: services.NewPageDataService(m.logger),
+		FormOperations:  services.NewFormOperations(m.formService, m.logger),
+		TemplateService: services.NewTemplateService(m.logger),
+		ResponseBuilder: services.NewResponseBuilder(m.logger),
+	}
+}
+
+// initializeHandlers initializes all handlers
+func (m *Module) initializeHandlers() {
+	// Create base handler
+	baseHandler := handlers.NewBaseHandler(m.authMiddleware, m.formService, m.logger)
+
+	// Create feature handlers
+	dashboardHandler := handlers.NewDashboardHandler(m.formService, m.logger, baseHandler)
+	formHandler := handlers.NewFormHandler(m.formService, m.logger, baseHandler)
+	submissionHandler := handlers.NewSubmissionHandler(m.formService, m.logger, baseHandler)
+	schemaHandler := handlers.NewSchemaHandler(m.formService, m.logger, baseHandler)
+
+	// Create main handler
+	mainHandler, err := handlers.NewHandler(m.userService, m.formService, m.logger)
+	if err != nil {
+		m.logger.Error("failed to create handler", logging.Error(err))
+		return
+	}
+
+	// Set the handlers
+	mainHandler.DashboardHandler = dashboardHandler
+	mainHandler.FormHandler = formHandler
+	mainHandler.SubmissionHandler = submissionHandler
+	mainHandler.SchemaHandler = schemaHandler
+
+	m.handler = mainHandler
 }

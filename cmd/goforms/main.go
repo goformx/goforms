@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -37,74 +36,17 @@ const (
 )
 
 // main is the entry point of the application.
-// It calls run() and handles any fatal errors that occur during startup.
 func main() {
-	log, err := createLogger(logging.NewFactory())
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create logger: %v\n", err)
-		return
-	}
+	var appLogger logging.Logger
 
-	if runErr := run(log); runErr != nil {
-		log.Error("Application error", logging.Error(runErr))
-		return
-	}
-}
-
-func createLogger(factory *logging.Factory) (logging.Logger, error) {
-	log, err := factory.CreateLogger()
-	if err != nil {
-		return nil, fmt.Errorf("logger initialization failed: %w", err) // Wrap with full context
-	}
-	return log, nil
-}
-
-// run orchestrates the application startup process.
-// It sets up signal handling and starts the application.
-func run(log logging.Logger) error {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel() // Ensure cleanup happens when function exits
-
-	go handleSignals(cancel, log)
-
-	app := createApp(log)
-
-	// Start the application
-	if err := app.Start(ctx); err != nil {
-		return fmt.Errorf("app startup failed: %w", err)
-	}
-
-	<-ctx.Done() // Wait for signal
-
-	// Properly handle shutdown with deferred cleanup
-	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), ShutdownTimeout)
-	defer cancelShutdown()
-
-	if err := app.Stop(shutdownCtx); err != nil {
-		return fmt.Errorf("graceful shutdown failed: %w", err)
-	}
-
-	return nil
-}
-
-// createApp sets up the dependency injection container using fx.
-// It provides all necessary dependencies and modules for the application.
-func createApp(log logging.Logger) *fx.App {
-	return fx.New(
+	// Create the application with fx
+	app := fx.New(
 		// Core dependencies that are required for basic functionality
 		fx.Provide(
 			GetVersion,
-			func() logging.Logger { return log },
-			// Provide the raw zap logger for FX events
-			func() (*zap.Logger, error) {
-				if zapLogger, ok := log.(*logging.ZapLogger); ok {
-					return zapLogger.GetZapLogger(), nil
-				}
-				return nil, errors.New("logger conversion failed") // Explicit failure instead of fallback
-			},
 		),
 		// Infrastructure module for database, cache, etc.
-		infrastructure.Module,
+		infrastructure.RootModule,
 		// Domain module containing business logic
 		domain.Module,
 		// View module for template rendering
@@ -113,24 +55,45 @@ func createApp(log logging.Logger) *fx.App {
 		fx.Provide(
 			newServer,
 		),
-		// Custom logger for fx events - use the raw zap logger
+		// Custom logger for fx events
 		fx.WithLogger(func(log *zap.Logger) fxevent.Logger {
 			return &fxevent.ZapLogger{Logger: log}
 		}),
 		fx.Invoke(web.InitializeAssets),
 		// Start the server using fx.Invoke
 		fx.Invoke(startServer),
+		fx.Invoke(func(logger logging.Logger) {
+			appLogger = logger
+			// Application is ready
+			logger.Info("Application started")
+		}),
 	)
-}
 
-// handleSignals sets up signal handling for graceful shutdown.
-// It listens for SIGINT (Ctrl+C) and SIGTERM signals.
-func handleSignals(cancel context.CancelFunc, log logging.Logger) {
+	// Start the application
+	if err := app.Start(context.Background()); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", err)
+		return
+	}
+
+	// Set up signal handling
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// Wait for interrupt signal
 	sig := <-signalChan
-	log.Info("Received shutdown signal", logging.StringField("signal", sig.String()))
-	cancel()
+	if appLogger != nil {
+		appLogger.Info("Received shutdown signal", logging.StringField("signal", sig.String()))
+	}
+
+	// Shutdown the application with timeout
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), ShutdownTimeout)
+	defer cancelShutdown()
+
+	// Start graceful shutdown
+	if err := app.Stop(shutdownCtx); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to stop application: %v\n", err)
+		return
+	}
 }
 
 // newServer creates and configures a new Echo server instance.

@@ -216,7 +216,11 @@ func (s *store) Update(f *form.Form) error {
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
-	defer tx.Rollback()
+	defer func() {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil {
+			s.logger.Error("failed to rollback transaction", logging.Error(rollbackErr))
+		}
+	}()
 
 	// First verify the form exists
 	var exists bool
@@ -256,8 +260,8 @@ func (s *store) Update(f *form.Form) error {
 	}
 
 	// Commit the transaction
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
+	if commitErr := tx.Commit(); commitErr != nil {
+		return fmt.Errorf("failed to commit transaction: %w", commitErr)
 	}
 
 	return nil

@@ -177,7 +177,12 @@ func (h *Handler) CreateForm(c echo.Context) error {
 	}
 
 	// Create the form
-	formObj, err := h.FormHandler.formService.CreateForm(currentUser.ID, formData.Title, formData.Description, defaultSchema)
+	formObj, err := h.FormHandler.formService.CreateForm(
+		currentUser.ID,
+		formData.Title,
+		formData.Description,
+		defaultSchema,
+	)
 	if err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to create form")
 	}
