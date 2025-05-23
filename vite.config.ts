@@ -50,12 +50,12 @@ export default defineConfig({
         formBuilder: resolve(__dirname, "src/js/form-builder.ts"),
       },
       output: {
-        entryFileNames: "js/[name].[hash].js",
-        chunkFileNames: "js/[name].[hash].js",
+        entryFileNames: "assets/js/[name].[hash].js",
+        chunkFileNames: "assets/js/[name].[hash].js",
         assetFileNames: (assetInfo) => {
           const name = assetInfo.name || "";
           if (name.endsWith(".css")) {
-            return "css/[name].[hash][extname]";
+            return "assets/css/[name].[hash][extname]";
           }
           return "assets/[name].[hash][extname]";
         },

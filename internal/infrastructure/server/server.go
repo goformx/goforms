@@ -40,6 +40,9 @@ func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Ech
 		})
 		e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
 		e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))
+	} else {
+		// Serve static files from dist directory in production
+		e.Static("/", "dist")
 	}
 
 	// Setup server lifecycle hooks

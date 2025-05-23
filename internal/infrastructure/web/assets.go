@@ -7,6 +7,7 @@ import (
 	"net"
 	"os"
 	"path/filepath"
+	"strings"
 
 	"github.com/jonesrussell/goforms/internal/infrastructure/config"
 )
@@ -60,13 +61,34 @@ func InitializeAssets(cfg *config.Config) error {
 // GetAssetPath returns the path to an asset, handling development and production environments
 func GetAssetPath(asset string) string {
 	if globalAppConfig == nil {
-		return fmt.Sprintf("/assets/%s", asset) // Fallback
+		return fmt.Sprintf("/%s", asset) // Fallback
 	}
 	if globalAppConfig.Env == "development" {
 		hostPort := net.JoinHostPort(globalAppConfig.ViteDevHost, globalAppConfig.ViteDevPort)
 		return fmt.Sprintf("http://%s/%s", hostPort, asset)
 	}
-	return fmt.Sprintf("/assets/%s", asset)
+	// In production, use the manifest to get the correct path
+	if path, ok := Manifest[asset]; ok {
+		// The manifest paths already include the correct structure
+		return fmt.Sprintf("/%s", path.File)
+	}
+	// If not found in manifest, try to find the CSS file
+	if strings.HasSuffix(asset, ".css") {
+		for _, entry := range Manifest {
+			if strings.HasSuffix(entry.File, ".css") {
+				return fmt.Sprintf("/%s", entry.File)
+			}
+		}
+	}
+	// If not found in manifest, try to find the JS file
+	if strings.HasSuffix(asset, ".ts") || strings.HasSuffix(asset, ".js") {
+		for _, entry := range Manifest {
+			if strings.HasSuffix(entry.File, ".js") {
+				return fmt.Sprintf("/%s", entry.File)
+			}
+		}
+	}
+	return fmt.Sprintf("/%s", asset)
 }
 
 // GetManifestPath returns the path to an asset from the manifest
