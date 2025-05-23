@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
-	"github.com/goformx/goforms/internal/domain/common/validation"
+	"github.com/goformx/goforms/internal/infrastructure/validation"
 	"github.com/google/uuid"
 )
 
@@ -53,7 +53,7 @@ func NewFormSubmission(formID string, data map[string]any, metadata map[string]s
 // Validate validates the form submission
 func (s *FormSubmission) Validate() error {
 	validator := validation.New()
-	if err := validator.ValidateStruct(s); err != nil {
+	if err := validator.Struct(s); err != nil {
 		return errors.Wrap(err, errors.ErrCodeValidation, "form submission validation failed")
 	}
 

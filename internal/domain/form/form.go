@@ -40,22 +40,3 @@ type Service interface {
 	DeleteForm(id string) error
 	GetFormSubmissions(formID string) ([]*model.FormSubmission, error)
 }
-
-// Field represents a form field
-type Field struct {
-	Name string
-	Type string
-}
-
-// Options represents configuration options for a form
-type Options struct {
-	// Add form options as needed
-}
-
-// Response represents a form submission response
-type Response struct {
-	ID          string
-	FormID      string
-	Values      map[string]any
-	SubmittedAt time.Time
-}

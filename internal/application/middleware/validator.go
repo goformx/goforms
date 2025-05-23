@@ -1,12 +1,13 @@
 package middleware
 
 import (
-	"github.com/goformx/goforms/internal/domain/common/validation"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
+	"github.com/goformx/goforms/internal/infrastructure/validation"
 )
 
-// EchoValidator wraps the domain validator to implement Echo's Validator interface.
+// EchoValidator wraps the infrastructure validator to implement Echo's Validator interface.
 type EchoValidator struct {
-	validator *validation.Validator
+	validator interfaces.Validator
 }
 
 // NewValidator creates a new Echo validator
@@ -18,5 +19,5 @@ func NewValidator() *EchoValidator {
 
 // Validate implements echo.Validator interface.
 func (v *EchoValidator) Validate(i any) error {
-	return v.validator.ValidateStruct(i)
+	return v.validator.Struct(i)
 }

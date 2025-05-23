@@ -21,12 +21,13 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
+	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/infrastructure/store"
-	formstore "github.com/goformx/goforms/internal/infrastructure/store/form"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/services"
 	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -364,6 +365,15 @@ func wrapCreator[T any](
 	}
 }
 
+// wrapCreatorSQLX creates a type-safe wrapper for store creation functions using sqlx.DB
+func wrapCreatorSQLX[T any](
+	creator func(*sqlx.DB, logging.Logger) T,
+) func(*database.Database, logging.Logger) any {
+	return func(db *database.Database, logger logging.Logger) any {
+		return creator(db.DB, logger)
+	}
+}
+
 // wrapAssigner creates a type-safe wrapper for store assignment functions
 func wrapAssigner[T any](assigner func(*Stores, T)) func(*Stores, any) {
 	return func(s *Stores, instance any) {
@@ -398,11 +408,11 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 		assign func(*Stores, any)
 	}{
 		"user": {
-			create: wrapCreator(store.NewUserStore),
+			create: wrapCreator(userstore.NewStore),
 			assign: wrapAssigner(func(s *Stores, v user.Store) { s.UserStore = v }),
 		},
 		"form": {
-			create: wrapCreator(formstore.NewStore),
+			create: wrapCreatorSQLX(formstore.NewStore),
 			assign: wrapAssigner(func(s *Stores, v form.Store) { s.FormStore = v }),
 		},
 	}

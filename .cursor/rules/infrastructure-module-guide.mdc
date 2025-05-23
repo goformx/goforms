@@ -9,7 +9,7 @@ This guide outlines the best practices and patterns for the infrastructure modul
 
 ## Core Structure
 
-The main infrastructure module is defined in [internal/infrastructure/module.go](mdc:internal/infrastructure/module.go) and follows a modular design pattern using the `fx` dependency injection framework.
+The main infrastructure module is defined in [internal/infrastructure/module.go](mdc:goforms/internal/infrastructure/module.go) and follows a modular design pattern using the `fx` dependency injection framework.
 
 ### Module Organization
 
@@ -26,6 +26,9 @@ The module is split into focused sub-modules:
    ```
 
 2. `StoreModule`: Database store implementations
+   - **User Store**: Implemented in [internal/infrastructure/persistence/store/user/store.go](mdc:goforms/internal/infrastructure/persistence/store/user/store.go)
+   - **Form Store**: Implemented in [internal/infrastructure/persistence/store/form/store.go](mdc:goforms/internal/infrastructure/persistence/store/form/store.go)
+   - Both stores are registered in the DI container in [internal/infrastructure/module.go](mdc:goforms/internal/infrastructure/module.go) via `userstore.NewStore` and `formstore.NewStore`.
 3. `ServerModule`: HTTP server setup
 4. `HandlerModule`: HTTP handlers and routing
 
@@ -56,17 +59,19 @@ Store initialization in `NewStores` follows these principles:
 2. Explicit nil checks for each store
 3. Detailed error logging with context
 4. Type safety through Go's type system
+5. **Form and user stores are both provided and required for the domain layer**
 
 Example store initialization:
 ```go
-contactStore := store.NewContactStore(db, logger)
-if contactStore == nil {
-    logger.Error("failed to create contact store",
+userStore := store.NewUserStore(db, logger)
+formStore := store.NewFormStore(db, logger)
+if userStore == nil || formStore == nil {
+    logger.Error("failed to create store",
         logging.String("operation", "store_initialization"),
-        logging.String("store_type", "contact"),
+        logging.String("store_type", "user/form"),
         logging.String("error_type", "nil_store"),
     )
-    return Stores{}, fmt.Errorf("failed to create contact store")
+    return Stores{}, fmt.Errorf("failed to create user or form store")
 }
 ```
 
