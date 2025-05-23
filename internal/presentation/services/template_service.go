@@ -41,9 +41,13 @@ func (s *TemplateService) RenderEditForm(c echo.Context, data shared.PageData) e
 }
 
 // RenderFormSubmissions renders the form submissions page
-func (s *TemplateService) RenderFormSubmissions(c echo.Context, form *form.Form, submissions []*model.FormSubmission) error {
+func (s *TemplateService) RenderFormSubmissions(
+	c echo.Context,
+	formObj *form.Form,
+	submissions []*model.FormSubmission,
+) error {
 	return c.Render(http.StatusOK, "form_submissions.html", map[string]any{
-		"Form":        form,
+		"Form":        formObj,
 		"Submissions": submissions,
 	})
 }

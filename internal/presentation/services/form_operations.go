@@ -43,8 +43,12 @@ func (o *FormOperations) ValidateAndBindFormData(c echo.Context) (*FormData, err
 	return &formData, nil
 }
 
-// EnsureFormOwnership verifies that the user owns the form
-func (o *FormOperations) EnsureFormOwnership(c echo.Context, user *user.User, formID string) (*form.Form, error) {
+// EnsureFormOwnership checks if the user owns the form
+func (o *FormOperations) EnsureFormOwnership(
+	c echo.Context,
+	currentUser *user.User,
+	formID string,
+) (*form.Form, error) {
 	if formID == "" {
 		return nil, echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
 	}
@@ -55,7 +59,7 @@ func (o *FormOperations) EnsureFormOwnership(c echo.Context, user *user.User, fo
 		return nil, echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
-	if formObj.UserID != user.ID {
+	if formObj.UserID != currentUser.ID {
 		return nil, echo.NewHTTPError(http.StatusForbidden, "Access denied")
 	}
 

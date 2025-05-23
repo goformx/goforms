@@ -23,7 +23,11 @@ func NewPageDataService(logger logging.Logger) *PageDataService {
 }
 
 // PrepareDashboardData prepares data for the dashboard page
-func (s *PageDataService) PrepareDashboardData(c echo.Context, user *user.User, forms []*form.Form) shared.PageData {
+func (s *PageDataService) PrepareDashboardData(
+	c echo.Context,
+	currentUser *user.User,
+	forms []*form.Form,
+) shared.PageData {
 	csrfToken, ok := c.Get("csrf").(string)
 	if !ok {
 		csrfToken = ""
@@ -31,7 +35,7 @@ func (s *PageDataService) PrepareDashboardData(c echo.Context, user *user.User, 
 
 	return shared.PageData{
 		Title:     "Dashboard - GoForms",
-		User:      user,
+		User:      currentUser,
 		Forms:     forms,
 		CSRFToken: csrfToken,
 		AssetPath: web.GetAssetPath,
@@ -39,7 +43,12 @@ func (s *PageDataService) PrepareDashboardData(c echo.Context, user *user.User, 
 }
 
 // PrepareFormData prepares data for form-related pages
-func (s *PageDataService) PrepareFormData(c echo.Context, user *user.User, form *form.Form, submissions []*model.FormSubmission) shared.PageData {
+func (s *PageDataService) PrepareFormData(
+	c echo.Context,
+	currentUser *user.User,
+	formObj *form.Form,
+	submissions []*model.FormSubmission,
+) shared.PageData {
 	csrfToken, ok := c.Get("csrf").(string)
 	if !ok {
 		csrfToken = ""
@@ -47,8 +56,8 @@ func (s *PageDataService) PrepareFormData(c echo.Context, user *user.User, form 
 
 	return shared.PageData{
 		Title:                "Edit Form - GoForms",
-		User:                 user,
-		Form:                 form,
+		User:                 currentUser,
+		Form:                 formObj,
 		Submissions:          submissions,
 		CSRFToken:            csrfToken,
 		AssetPath:            web.GetAssetPath,
@@ -57,7 +66,7 @@ func (s *PageDataService) PrepareFormData(c echo.Context, user *user.User, form 
 }
 
 // PrepareNewFormData prepares data for the new form page
-func (s *PageDataService) PrepareNewFormData(c echo.Context, user *user.User) shared.PageData {
+func (s *PageDataService) PrepareNewFormData(c echo.Context, currentUser *user.User) shared.PageData {
 	csrfToken, ok := c.Get("csrf").(string)
 	if !ok {
 		csrfToken = ""
@@ -65,7 +74,7 @@ func (s *PageDataService) PrepareNewFormData(c echo.Context, user *user.User) sh
 
 	return shared.PageData{
 		Title:     "Create New Form - GoForms",
-		User:      user,
+		User:      currentUser,
 		CSRFToken: csrfToken,
 		AssetPath: web.GetAssetPath,
 	}

@@ -162,12 +162,12 @@ func (h *Handler) CreateForm(c echo.Context) error {
 	}
 
 	var formData FormData
-	if err := c.Bind(&formData); err != nil {
-		return h.handleError(err, http.StatusBadRequest, "Invalid form data")
+	if bindErr := c.Bind(&formData); bindErr != nil {
+		return h.handleError(bindErr, http.StatusBadRequest, "Invalid form data")
 	}
 
-	if err := c.Validate(&formData); err != nil {
-		return h.handleError(err, http.StatusUnprocessableEntity, "Form validation failed")
+	if validateErr := c.Validate(&formData); validateErr != nil {
+		return h.handleError(validateErr, http.StatusUnprocessableEntity, "Form validation failed")
 	}
 
 	// Create a minimal Form.io schema for the form
@@ -177,14 +177,14 @@ func (h *Handler) CreateForm(c echo.Context) error {
 	}
 
 	// Create the form
-	formObj, err := h.FormHandler.formService.CreateForm(
+	formObj, createErr := h.FormHandler.formService.CreateForm(
 		currentUser.ID,
 		formData.Title,
 		formData.Description,
 		defaultSchema,
 	)
-	if err != nil {
-		return h.handleError(err, http.StatusInternalServerError, "Failed to create form")
+	if createErr != nil {
+		return h.handleError(createErr, http.StatusInternalServerError, "Failed to create form")
 	}
 
 	// Redirect to the form edit page
@@ -286,8 +286,8 @@ func (h *Handler) UpdateFormSchema(c echo.Context) error {
 
 	// Bind the schema data directly to form.JSON
 	var schema form.JSON
-	if err := c.Bind(&schema); err != nil {
-		return h.handleError(err, http.StatusBadRequest, "Invalid schema data")
+	if bindErr := c.Bind(&schema); bindErr != nil {
+		return h.handleError(bindErr, http.StatusBadRequest, "Invalid schema data")
 	}
 
 	// Validate schema structure
@@ -315,8 +315,8 @@ func (h *Handler) UpdateFormSchema(c echo.Context) error {
 	formObj.UserID = currentUser.ID // Ensure user ID is set correctly
 	formObj.Active = true           // Ensure form is active
 
-	if err := h.FormHandler.formService.UpdateForm(formObj); err != nil {
-		return h.handleError(err, http.StatusInternalServerError, "Failed to update form schema")
+	if updateErr := h.FormHandler.formService.UpdateForm(formObj); updateErr != nil {
+		return h.handleError(updateErr, http.StatusInternalServerError, "Failed to update form schema")
 	}
 
 	return c.JSON(http.StatusOK, formObj)
@@ -335,25 +335,26 @@ func (h *Handler) UpdateForm(c echo.Context) error {
 	}
 
 	var formData FormData
-	if err := c.Bind(&formData); err != nil {
-		return h.handleError(err, http.StatusBadRequest, "Invalid form data")
+	if bindErr := c.Bind(&formData); bindErr != nil {
+		return h.handleError(bindErr, http.StatusBadRequest, "Invalid form data")
 	}
 
-	if err := c.Validate(&formData); err != nil {
-		return h.handleError(err, http.StatusUnprocessableEntity, "Form validation failed")
+	if validateErr := c.Validate(&formData); validateErr != nil {
+		return h.handleError(validateErr, http.StatusUnprocessableEntity, "Form validation failed")
 	}
 
 	// Update form details
 	formObj.Title = formData.Title
 	formObj.Description = formData.Description
 
-	if err := h.FormHandler.formService.UpdateForm(formObj); err != nil {
-		return h.handleError(err, http.StatusInternalServerError, "Failed to update form")
+	if updateErr := h.FormHandler.formService.UpdateForm(formObj); updateErr != nil {
+		return h.handleError(updateErr, http.StatusInternalServerError, "Failed to update form")
 	}
 
 	return c.JSON(http.StatusOK, formObj)
 }
 
+// DeleteForm handles form deletion
 func (h *Handler) DeleteForm(c echo.Context) error {
 	currentUser, err := h.getAuthenticatedUser(c)
 	if err != nil {
@@ -365,8 +366,8 @@ func (h *Handler) DeleteForm(c echo.Context) error {
 		return err
 	}
 
-	if err := h.FormHandler.formService.DeleteForm(formObj.ID); err != nil {
-		return h.handleError(err, http.StatusInternalServerError, "Failed to delete form")
+	if deleteErr := h.FormHandler.formService.DeleteForm(formObj.ID); deleteErr != nil {
+		return h.handleError(deleteErr, http.StatusInternalServerError, "Failed to delete form")
 	}
 
 	return c.NoContent(http.StatusNoContent)

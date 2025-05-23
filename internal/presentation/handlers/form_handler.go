@@ -7,6 +7,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/form/model"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+	"github.com/jonesrussell/goforms/internal/presentation/services"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -14,21 +15,24 @@ import (
 
 // FormHandler handles form-related HTTP requests
 type FormHandler struct {
-	formService form.Service
-	logger      logging.Logger
-	Base        *BaseHandler
+	Base           *BaseHandler
+	formService    form.Service
+	formOperations *services.FormOperations
+	logger         logging.Logger
 }
 
 // NewFormHandler creates a new form handler
 func NewFormHandler(
 	formService form.Service,
+	formOperations *services.FormOperations,
 	logger logging.Logger,
 	base *BaseHandler,
 ) *FormHandler {
 	return &FormHandler{
-		formService: formService,
-		logger:      logger,
-		Base:        base,
+		formService:    formService,
+		formOperations: formOperations,
+		logger:         logger,
+		Base:           base,
 	}
 }
 
@@ -74,25 +78,27 @@ func (h *FormHandler) CreateForm(c echo.Context) error {
 		return err
 	}
 
-	var formData FormData
-	if err := c.Bind(&formData); err != nil {
-		return h.Base.handleError(err, http.StatusBadRequest, "Invalid form data")
+	var formData services.FormData
+	if bindErr := c.Bind(&formData); bindErr != nil {
+		return h.Base.handleError(bindErr, http.StatusBadRequest, "Invalid form data")
 	}
 
-	if err := c.Validate(&formData); err != nil {
-		return h.Base.handleError(err, http.StatusUnprocessableEntity, "Form validation failed")
+	if validateErr := c.Validate(&formData); validateErr != nil {
+		return h.Base.handleError(validateErr, http.StatusUnprocessableEntity, "Form validation failed")
 	}
 
-	defaultSchema := form.JSON{
-		"display":    "form",
-		"components": []any{},
+	// Create the form
+	formObj, createErr := h.formService.CreateForm(
+		currentUser.ID,
+		formData.Title,
+		formData.Description,
+		h.formOperations.CreateDefaultSchema(),
+	)
+	if createErr != nil {
+		return h.Base.handleError(createErr, http.StatusInternalServerError, "Failed to create form")
 	}
 
-	formObj, err := h.formService.CreateForm(currentUser.ID, formData.Title, formData.Description, defaultSchema)
-	if err != nil {
-		return h.Base.handleError(err, http.StatusInternalServerError, "Failed to create form")
-	}
-
+	// Redirect to the form edit page
 	return c.Redirect(http.StatusSeeOther, "/dashboard/forms/"+formObj.ID+"/edit")
 }
 
@@ -132,7 +138,7 @@ func (h *FormHandler) ShowEditForm(c echo.Context) error {
 	return pages.EditForm(data).Render(c.Request().Context(), c.Response().Writer)
 }
 
-// UpdateForm handles updating a form's basic details
+// UpdateForm handles form updates
 func (h *FormHandler) UpdateForm(c echo.Context) error {
 	currentUser, err := h.Base.getAuthenticatedUser(c)
 	if err != nil {
@@ -144,20 +150,20 @@ func (h *FormHandler) UpdateForm(c echo.Context) error {
 		return err
 	}
 
-	var formData FormData
-	if err := c.Bind(&formData); err != nil {
-		return h.Base.handleError(err, http.StatusBadRequest, "Invalid form data")
+	var formData services.FormData
+	if bindErr := c.Bind(&formData); bindErr != nil {
+		return h.Base.handleError(bindErr, http.StatusBadRequest, "Invalid form data")
 	}
 
-	if err := c.Validate(&formData); err != nil {
-		return h.Base.handleError(err, http.StatusUnprocessableEntity, "Form validation failed")
+	if validateErr := c.Validate(&formData); validateErr != nil {
+		return h.Base.handleError(validateErr, http.StatusUnprocessableEntity, "Form validation failed")
 	}
 
-	formObj.Title = formData.Title
-	formObj.Description = formData.Description
+	// Update form details
+	h.formOperations.UpdateFormDetails(formObj, &formData)
 
-	if err := h.formService.UpdateForm(formObj); err != nil {
-		return h.Base.handleError(err, http.StatusInternalServerError, "Failed to update form")
+	if updateErr := h.formService.UpdateForm(formObj); updateErr != nil {
+		return h.Base.handleError(updateErr, http.StatusInternalServerError, "Failed to update form")
 	}
 
 	return c.JSON(http.StatusOK, formObj)
@@ -175,8 +181,8 @@ func (h *FormHandler) DeleteForm(c echo.Context) error {
 		return err
 	}
 
-	if err := h.formService.DeleteForm(formObj.ID); err != nil {
-		return h.Base.handleError(err, http.StatusInternalServerError, "Failed to delete form")
+	if deleteErr := h.formService.DeleteForm(formObj.ID); deleteErr != nil {
+		return h.Base.handleError(deleteErr, http.StatusInternalServerError, "Failed to delete form")
 	}
 
 	return c.NoContent(http.StatusNoContent)
