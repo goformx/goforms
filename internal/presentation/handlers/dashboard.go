@@ -9,6 +9,7 @@ import (
 	"github.com/jonesrussell/goforms/internal/domain/user"
 	"github.com/jonesrussell/goforms/internal/infrastructure/logging"
 	"github.com/jonesrussell/goforms/internal/infrastructure/web"
+	"github.com/jonesrussell/goforms/internal/presentation/services"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/pages"
 	"github.com/jonesrussell/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -40,9 +41,12 @@ func NewHandler(
 		logger,
 	)
 
+	// Create form operations service
+	formOperations := services.NewFormOperations(formService, logger)
+
 	return &Handler{
 		DashboardHandler:  NewDashboardHandler(formService, logger, base),
-		FormHandler:       NewFormHandler(formService, logger, base),
+		FormHandler:       NewFormHandler(formService, formOperations, logger, base),
 		SubmissionHandler: NewSubmissionHandler(formService, logger, base),
 		SchemaHandler:     NewSchemaHandler(formService, logger, base),
 	}, nil

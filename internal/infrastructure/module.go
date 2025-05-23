@@ -495,7 +495,7 @@ func (m *Module) initializeHandlers() {
 
 	// Create feature handlers
 	dashboardHandler := handlers.NewDashboardHandler(m.formService, m.logger, baseHandler)
-	formHandler := handlers.NewFormHandler(m.formService, m.logger, baseHandler)
+	formHandler := handlers.NewFormHandler(m.formService, m.services.FormOperations, m.logger, baseHandler)
 	submissionHandler := handlers.NewSubmissionHandler(m.formService, m.logger, baseHandler)
 	schemaHandler := handlers.NewSchemaHandler(m.formService, m.logger, baseHandler)
 
