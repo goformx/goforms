@@ -1,7 +1,7 @@
 package formops
 
 import (
-	"fmt"
+	"strconv"
 
 	"github.com/labstack/echo/v4"
 
@@ -68,7 +68,7 @@ func (s *service) EnsureFormOwnership(c echo.Context, usr *user.User, formID str
 		s.logger.Error("failed to get form",
 			logging.ErrorField("error", err),
 			logging.StringField("form_id", formID),
-			logging.StringField("user_id", fmt.Sprintf("%d", usr.ID)),
+			logging.StringField("user_id", strconv.FormatUint(uint64(usr.ID), 10)),
 		)
 		return nil, errors.New(errors.ErrCodeNotFound, "form not found", err)
 	}
@@ -76,7 +76,7 @@ func (s *service) EnsureFormOwnership(c echo.Context, usr *user.User, formID str
 	if frm.UserID != usr.ID {
 		s.logger.Error("user does not own form",
 			logging.StringField("form_id", formID),
-			logging.StringField("user_id", fmt.Sprintf("%d", usr.ID)),
+			logging.StringField("user_id", strconv.FormatUint(uint64(usr.ID), 10)),
 		)
 		return nil, errors.ErrForbidden
 	}

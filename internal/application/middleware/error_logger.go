@@ -85,17 +85,18 @@ func (m *ErrorLogger) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 func mapErrorToStatus(code derr.ErrorCode) int {
 	switch code {
 	case derr.ErrCodeValidation, derr.ErrCodeRequired, derr.ErrCodeInvalid,
-		derr.ErrCodeInvalidFormat, derr.ErrCodeInvalidInput:
+		derr.ErrCodeInvalidFormat, derr.ErrCodeInvalidInput, derr.ErrCodeBadRequest:
 		return http.StatusBadRequest
-	case derr.ErrCodeUnauthorized:
+	case derr.ErrCodeUnauthorized, derr.ErrCodeInvalidToken, derr.ErrCodeAuthentication:
 		return http.StatusUnauthorized
-	case derr.ErrCodeForbidden:
+	case derr.ErrCodeForbidden, derr.ErrCodeInsufficientRole:
 		return http.StatusForbidden
 	case derr.ErrCodeNotFound:
 		return http.StatusNotFound
 	case derr.ErrCodeConflict, derr.ErrCodeAlreadyExists:
 		return http.StatusConflict
-	case derr.ErrCodeServerError:
+	case derr.ErrCodeServerError, derr.ErrCodeStartup, derr.ErrCodeShutdown,
+		derr.ErrCodeConfig, derr.ErrCodeDatabase, derr.ErrCodeTimeout:
 		return http.StatusInternalServerError
 	default:
 		return http.StatusInternalServerError

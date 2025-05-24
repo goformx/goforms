@@ -14,7 +14,7 @@ import (
 	"golang.org/x/time/rate"
 
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/infrastructure/config"
+	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -27,6 +27,8 @@ const (
 	DefaultTokenLength = 32
 	// RateLimitBurst is the number of requests allowed in a burst
 	RateLimitBurst = 5
+	// DefaultRateLimit is the default number of requests allowed per second
+	DefaultRateLimit = 20
 	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
 	CookieMaxAge = 86400
 	// StaticFileFavicon is the path to the favicon
@@ -52,9 +54,9 @@ type SecurityConfig struct {
 }
 
 // NewMiddleware creates a new middleware
-func NewMiddleware(config Config, logger logging.Logger) *Middleware {
+func NewMiddleware(cfg Config, logger logging.Logger) *Middleware {
 	return &Middleware{
-		config: config,
+		config: cfg,
 		logger: logger,
 	}
 }
@@ -110,7 +112,7 @@ func (m *Middleware) Logger() echo.MiddlewareFunc {
 
 // RateLimit returns the rate limiting middleware
 func (m *Middleware) RateLimit() echo.MiddlewareFunc {
-	return echomw.RateLimiter(echomw.NewRateLimiterMemoryStore(20))
+	return echomw.RateLimiter(echomw.NewRateLimiterMemoryStore(DefaultRateLimit))
 }
 
 // Auth returns the authentication middleware
@@ -133,8 +135,8 @@ type Manager struct {
 type ManagerConfig struct {
 	Logger      logging.Logger
 	UserService user.Service
-	Security    *config.SecurityConfig
-	Config      *config.Config
+	Security    *appconfig.SecurityConfig
+	Config      *appconfig.Config
 }
 
 // New creates a new middleware manager
@@ -272,7 +274,7 @@ func setupCSRF() echo.MiddlewareFunc {
 }
 
 // setupRateLimiter creates and configures rate limiter middleware
-func setupRateLimiter(securityConfig *config.SecurityConfig) echo.MiddlewareFunc {
+func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
 		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
 			echomw.RateLimiterMemoryStoreConfig{
