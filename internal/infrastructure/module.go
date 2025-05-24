@@ -254,9 +254,9 @@ var HandlerModule = fx.Options(
 	}),
 	// Web handlers
 	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (handler.Handler, error) {
-		handler := webhandler.NewHomeHandler(core.Logger, core.Renderer)
+		handler := webhandler.NewHomeHandler(core.Logger)
 		if handler == nil {
-			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
+			return nil, fmt.Errorf("failed to create home handler")
 		}
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "HomeHandler"),
@@ -266,9 +266,9 @@ var HandlerModule = fx.Options(
 		return handler, nil
 	}),
 	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (handler.Handler, error) {
-		handler := wh_auth.NewWebLoginHandler(core.Logger, core.Renderer)
+		handler := wh_auth.NewWebLoginHandler(core.Logger)
 		if handler == nil {
-			return nil, fmt.Errorf("failed to create web login handler: renderer=%T", core.Renderer)
+			return nil, fmt.Errorf("failed to create web login handler")
 		}
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "WebLoginHandler"),

@@ -5,8 +5,8 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/handlers"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
@@ -22,7 +22,7 @@ const (
 
 // DashboardHandler handles the admin dashboard routes
 type DashboardHandler struct {
-	base        handlers.Base
+	*handlers.BaseHandler
 	renderer    *view.Renderer
 	UserService user.Service
 	FormService form.Service
@@ -36,9 +36,7 @@ func NewDashboardHandler(
 	formService form.Service,
 ) *DashboardHandler {
 	return &DashboardHandler{
-		base: handlers.Base{
-			Logger: logger,
-		},
+		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
 		renderer:    renderer,
 		UserService: userService,
 		FormService: formService,
@@ -47,24 +45,21 @@ func NewDashboardHandler(
 
 // Register sets up the routes for the dashboard handler
 func (h *DashboardHandler) Register(e *echo.Echo) {
-	h.base.RegisterRoute(e, "GET", "/dashboard", h.showDashboard)
+	e.GET("/dashboard", h.showDashboard)
 }
 
 // showDashboard renders the dashboard page
 func (h *DashboardHandler) showDashboard(c echo.Context) error {
-	h.base.Logger.Debug("handling dashboard page request")
+	h.LogDebug("handling dashboard page request")
 
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
-		return echo.NewHTTPError(UnauthorizedErrorCode, "User not authenticated")
+		return echo.NewHTTPError(UnauthorizedErrorCode, "User not found")
 	}
 
 	forms, err := h.FormService.GetUserForms(currentUser.ID)
 	if err != nil {
-		h.base.Logger.Error("failed to get user forms",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", currentUser.ID),
-		)
+		h.LogError("failed to get user forms", err)
 		return echo.NewHTTPError(InternalServerErrorCode, "Failed to get forms")
 	}
 

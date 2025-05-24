@@ -10,6 +10,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
@@ -97,7 +98,7 @@ func WithConfig(cfg *config.Config) WebHandlerOption {
 //   - middlewareManager: Required for security and request processing
 //   - config: Required for configuration
 type WebHandler struct {
-	Base
+	*handlers.BaseHandler
 	renderer          *view.Renderer
 	middlewareManager *amw.Manager
 	config            *config.Config
@@ -116,8 +117,8 @@ type WebHandler struct {
 //	)
 func NewWebHandler(logger logging.Logger, renderer *view.Renderer, opts ...WebHandlerOption) (*WebHandler, error) {
 	h := &WebHandler{
-		Base:     NewBase(WithLogger(logger)),
-		renderer: renderer,
+		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		renderer:    renderer,
 	}
 
 	for _, opt := range opts {
@@ -146,7 +147,7 @@ func NewWebHandler(logger logging.Logger, renderer *view.Renderer, opts ...WebHa
 //   - middlewareManager
 //   - config
 func (h *WebHandler) Validate() error {
-	if err := h.Base.Validate(); err != nil {
+	if err := h.BaseHandler.Validate(); err != nil {
 		return fmt.Errorf("WebHandler validation failed: %w", err)
 	}
 	if h.renderer == nil {
@@ -206,10 +207,7 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 
 	// Render page
 	if renderErr := template(data).Render(c.Request().Context(), c.Response().Writer); renderErr != nil {
-		h.Logger().Error("failed to render template",
-			logging.StringField("title", title),
-			logging.StringField("path", c.Request().URL.Path),
-			logging.ErrorField("error", renderErr))
+		h.LogError("failed to render template", renderErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to render page")
 	}
 
@@ -235,7 +233,7 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	for _, r := range routes {
 		e.Add(r.Method, r.Path, r.Handler)
 		if h.config.App.IsDevelopment() {
-			h.Logger().Debug("web handler called",
+			h.LogDebug("web handler called",
 				logging.StringField("method", r.Method),
 				logging.StringField("path", r.Path))
 		}
@@ -248,19 +246,19 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 // validateDependencies validates required dependencies for the handler
 func (h *WebHandler) validateDependencies() {
 	if err := h.Validate(); err != nil {
-		h.Logger().Error("failed to validate web handler", logging.ErrorField("error", err))
+		h.LogError("failed to validate web handler", err)
 	}
 }
 
-// Register registers the web routes (SRP: now just calls validateDependencies and registerRoutes)
+// Register registers the web routes
 func (h *WebHandler) Register(e *echo.Echo) {
 	h.validateDependencies()
 	if h.config.App.IsDevelopment() {
-		h.Logger().Debug("registering web routes")
+		h.LogDebug("registering web routes")
 	}
 	h.registerRoutes(e)
 	if h.config.App.IsDevelopment() {
-		h.Logger().Debug("web routes registration complete")
+		h.LogDebug("web routes registration complete")
 	}
 }
 

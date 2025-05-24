@@ -1,47 +1,31 @@
 package web
 
 import (
-	"github.com/goformx/goforms/internal/handlers"
+	"net/http"
+
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/labstack/echo/v4"
 )
 
-// DemoHandler handles the demo page routes
+// DemoHandler handles demo requests
 type DemoHandler struct {
-	base     handlers.Base
-	logger   logging.Logger
-	renderer *view.Renderer
+	*handlers.BaseHandler
 }
 
-// NewDemoHandler creates a new DemoHandler
-func NewDemoHandler(
-	logger logging.Logger,
-	renderer *view.Renderer,
-) *DemoHandler {
+// NewDemoHandler creates a new demo handler
+func NewDemoHandler(logger logging.Logger) *DemoHandler {
 	return &DemoHandler{
-		base: handlers.Base{
-			Logger: logger,
-		},
-		logger:   logger,
-		renderer: renderer,
+		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
 	}
 }
 
-// Register sets up the routes for the demo handler
+// Register registers the demo routes
 func (h *DemoHandler) Register(e *echo.Echo) {
-	h.base.RegisterRoute(e, "GET", "/demo", h.handleDemo)
+	e.GET("/demo", h.Demo)
 }
 
-// handleDemo renders the demo page
-func (h *DemoHandler) handleDemo(c echo.Context) error {
-	h.base.Logger.Debug("handling demo page request")
-
-	data := shared.PageData{
-		Title: "GoFormX Demo - See it in Action",
-	}
-
-	return h.renderer.Render(c, pages.Demo(data))
+// Demo handles the demo page request
+func (h *DemoHandler) Demo(c echo.Context) error {
+	return c.JSON(http.StatusOK, map[string]string{"message": "Demo"})
 }
