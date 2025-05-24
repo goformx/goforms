@@ -104,6 +104,26 @@ type WebHandler struct {
 	config            *config.Config
 }
 
+// validate validates that required dependencies are set.
+// Returns an error if any required dependency is missing.
+//
+// Required dependencies:
+//   - renderer
+//   - middlewareManager
+//   - config
+func (h *WebHandler) validate() error {
+	if h.renderer == nil {
+		return errors.New("WebHandler initialization failed: renderer is required")
+	}
+	if h.middlewareManager == nil {
+		return errors.New("WebHandler initialization failed: middleware manager is required")
+	}
+	if h.config == nil {
+		return errors.New("WebHandler initialization failed: config is required")
+	}
+	return nil
+}
+
 // NewWebHandler creates a new web handler.
 // It uses the functional options pattern to configure the handler.
 // The logger is required as a direct parameter, while other dependencies
@@ -125,15 +145,8 @@ func NewWebHandler(logger logging.Logger, renderer *view.Renderer, opts ...WebHa
 		opt(h)
 	}
 
-	// Validate critical dependencies during construction
-	if h.renderer == nil {
-		return nil, errors.New("WebHandler initialization failed: renderer is required")
-	}
-	if h.middlewareManager == nil {
-		return nil, errors.New("WebHandler initialization failed: middleware manager is required")
-	}
-	if h.config == nil {
-		return nil, errors.New("WebHandler initialization failed: config is required")
+	if err := h.validate(); err != nil {
+		return nil, err
 	}
 
 	return h, nil
@@ -164,50 +177,41 @@ func (h *WebHandler) Validate() error {
 
 // getCSRFToken retrieves the CSRF token from the context
 func (h *WebHandler) getCSRFToken(c echo.Context) (string, error) {
-	token := c.Get("csrf")
-	if token == nil {
-		return "", errors.New("CSRF token not found in context")
+	if token, ok := c.Get("csrf").(string); ok && token != "" {
+		return token, nil
 	}
-
-	tokenStr, ok := token.(string)
-	if !ok {
-		return "", errors.New("invalid CSRF token type")
-	}
-
-	if tokenStr == "" {
-		return "", errors.New("empty CSRF token")
-	}
-
-	return tokenStr, nil
+	return "", errors.New("CSRF token not found or invalid")
 }
 
-// renderPage renders a page with the given title and content
-func (h *WebHandler) renderPage(c echo.Context, title string, template func(shared.PageData) templ.Component) error {
-	// Get CSRF token from context
+// buildPageData constructs the shared page data for rendering
+func (h *WebHandler) buildPageData(c echo.Context, title string) (shared.PageData, error) {
 	csrfToken, err := h.getCSRFToken(c)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
+		return shared.PageData{}, echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
 	}
 
-	// Get user from context if available
 	var userData *user.User
-	if u := c.Get("user"); u != nil {
-		if userObj, ok := u.(*user.User); ok {
-			userData = userObj
-		}
+	if user, ok := c.Get("user").(*user.User); ok {
+		userData = user
 	}
 
-	// Create page data
-	data := shared.PageData{
+	return shared.PageData{
 		Title:         title,
 		CSRFToken:     csrfToken,
 		User:          userData,
 		IsDevelopment: h.config.App.IsDevelopment(),
+	}, nil
+}
+
+// renderPage renders a page with the given title and content
+func (h *WebHandler) renderPage(c echo.Context, title string, template func(shared.PageData) templ.Component) error {
+	data, err := h.buildPageData(c, title)
+	if err != nil {
+		return err
 	}
 
-	// Render page
-	if renderErr := template(data).Render(c.Request().Context(), c.Response().Writer); renderErr != nil {
-		h.LogError("failed to render template", renderErr)
+	if err := template(data).Render(c.Request().Context(), c.Response().Writer); err != nil {
+		h.LogError("failed to render template", err)
 		return echo.NewHTTPError(http.StatusInternalServerError, "failed to render page")
 	}
 
@@ -230,14 +234,16 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 		{"GET", "/login", h.handleLogin},
 		{"GET", "/api/validation/:schema", h.handleValidationSchema},
 	}
+
 	for _, r := range routes {
 		e.Add(r.Method, r.Path, r.Handler)
 		if h.config.App.IsDevelopment() {
-			h.LogDebug("web handler called",
+			h.LogDebug("web handler registered",
 				logging.StringField("method", r.Method),
 				logging.StringField("path", r.Path))
 		}
 	}
+
 	// Static files
 	e.Static("/"+h.config.Static.DistDir, h.config.Static.DistDir)
 	e.File("/favicon.ico", "./public/favicon.ico")
@@ -256,7 +262,10 @@ func (h *WebHandler) Register(e *echo.Echo) {
 	if h.config.App.IsDevelopment() {
 		h.LogDebug("registering web routes")
 	}
+
+	h.middlewareManager.Setup(e) // Ensure middleware is loaded properly
 	h.registerRoutes(e)
+
 	if h.config.App.IsDevelopment() {
 		h.LogDebug("web routes registration complete")
 	}
