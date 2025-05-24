@@ -13,11 +13,12 @@ import (
 
 	"github.com/goformx/goforms/internal/application/handler"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
-	appservices "github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/domain/form"
+	healthdomain "github.com/goformx/goforms/internal/domain/services/health"
 	"github.com/goformx/goforms/internal/domain/user"
 	webhandler "github.com/goformx/goforms/internal/handlers/web"
 	wh_auth "github.com/goformx/goforms/internal/handlers/web/auth"
+	healthadapter "github.com/goformx/goforms/internal/infrastructure/adapters/health"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -343,7 +344,15 @@ var HandlerModule = fx.Options(
 	}),
 	// Health handler
 	AnnotateHandler(func(core CoreParams, db *database.Database) (handler.Handler, error) {
-		handler := appservices.NewHealthHandler(core.Logger, db)
+		// Create repository
+		repo := healthadapter.NewRepository(db.DB)
+
+		// Create service
+		svc := healthdomain.NewService(core.Logger, repo)
+
+		// Create handler
+		handler := healthdomain.NewHandler(core.Logger, svc)
+
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "HealthHandler"),
 			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
