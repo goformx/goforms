@@ -28,101 +28,87 @@ func NewJWTMiddleware(
 	secret string,
 	logger logging.Logger,
 	cfg *config.Config,
-) (echo.MiddlewareFunc, error) {
-	m := &JWTMiddleware{
+) echo.MiddlewareFunc {
+	if userService == nil {
+		panic("JWTMiddleware initialization failed: userService is required")
+	}
+	if logger == nil {
+		panic("JWTMiddleware initialization failed: logger is required")
+	}
+	if cfg == nil {
+		panic("JWTMiddleware initialization failed: config is required")
+	}
+	if secret == "" {
+		panic("JWTMiddleware initialization failed: secret is required")
+	}
+
+	return (&JWTMiddleware{
 		userService: userService,
 		secret:      secret,
 		logger:      logger,
 		config:      cfg,
-	}
-	return m.Handle, nil
+	}).Handle
 }
 
-// isStaticPath checks if the path is for static content
-func (m *JWTMiddleware) isStaticPath(path string) bool {
+// isAuthExempt checks if the path is exempt from authentication
+func (m *JWTMiddleware) isAuthExempt(path string) bool {
 	return strings.HasPrefix(path, "/"+m.config.Static.DistDir+"/") ||
-		path == "/favicon.ico" ||
-		path == "/robots.txt"
-}
-
-// isValidationAPI checks if the path is for validation API
-func (m *JWTMiddleware) isValidationAPI(path string) bool {
-	return strings.HasPrefix(path, "/api/validation/")
-}
-
-// isPublicPage checks if the path is for a public page
-func (m *JWTMiddleware) isPublicPage(path string) bool {
-	return strings.HasPrefix(path, "/login") ||
-		strings.HasPrefix(path, "/signup") ||
-		strings.HasPrefix(path, "/forgot-password") ||
-		strings.HasPrefix(path, "/contact") ||
-		strings.HasPrefix(path, "/demo") ||
-		strings.HasPrefix(path, "/api/v1/auth/login")
+		path == "/favicon.ico" || path == "/robots.txt" ||
+		strings.HasPrefix(path, "/api/validation/") ||
+		strings.HasPrefix(path, "/login") || strings.HasPrefix(path, "/signup") ||
+		strings.HasPrefix(path, "/forgot-password") || strings.HasPrefix(path, "/contact") ||
+		strings.HasPrefix(path, "/demo") || strings.HasPrefix(path, "/api/v1/auth/login")
 }
 
 // Handle processes JWT authentication
 func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		path := c.Request().URL.Path
-		method := c.Request().Method
 
-		// Skip authentication for static files and special files
-		if m.isStaticPath(path) {
+		// Skip authentication for exempt paths
+		if m.isAuthExempt(path) {
 			m.logger.Debug("skipping auth check",
-				logging.StringField("path", path),
-				logging.StringField("reason", "static content path"))
-			return next(c)
-		}
-
-		// Skip authentication for validation API endpoints
-		if m.isValidationAPI(path) {
-			m.logger.Debug("skipping auth check",
-				logging.StringField("path", path),
-				logging.StringField("reason", "validation API endpoint"))
-			return next(c)
-		}
-
-		// Skip authentication for public pages
-		if m.isPublicPage(path) {
-			m.logger.Debug("skipping auth check",
-				logging.StringField("path", path),
-				logging.StringField("method", method),
-				logging.StringField("reason", "public page"))
+				logging.StringField("path", path))
 			return next(c)
 		}
 
 		// Get token from header
 		authHeader := c.Request().Header.Get("Authorization")
 		if authHeader == "" {
-			return m.handleAuthError(c, errors.New("missing authorization header"))
+			m.logger.Warn("authorization header missing",
+				logging.StringField("path", c.Path()),
+				logging.StringField("method", c.Request().Method),
+				logging.StringField("ip", c.RealIP()),
+				logging.StringField("user_agent", c.Request().UserAgent()))
+			return m.handleAuthError(c, echo.NewHTTPError(http.StatusUnauthorized, "missing authorization header"))
 		}
 
 		// Parse token
 		token, err := m.parseToken(authHeader)
 		if err != nil {
-			return m.handleAuthError(c, errors.New("invalid token"))
+			return m.handleAuthError(c, echo.NewHTTPError(http.StatusUnauthorized, err.Error()))
 		}
 
 		// Validate token claims
 		if !token.Valid {
-			return m.handleAuthError(c, errors.New("invalid token claims"))
+			return m.handleAuthError(c, echo.NewHTTPError(http.StatusForbidden, "invalid token claims"))
 		}
 
 		// Get user ID from claims
 		claims, ok := token.Claims.(jwt.MapClaims)
 		if !ok {
-			return m.handleAuthError(c, errors.New("invalid token claims"))
+			return m.handleAuthError(c, echo.NewHTTPError(http.StatusForbidden, "invalid token claims format"))
 		}
 
-		userID, ok := claims["user_id"].(float64)
-		if !ok {
-			return echo.NewHTTPError(http.StatusUnauthorized, "invalid user ID in token")
+		userID, err := extractUserID(claims)
+		if err != nil {
+			return m.handleAuthError(c, echo.NewHTTPError(http.StatusForbidden, err.Error()))
 		}
 
 		// Get user from service
-		userData, err := m.userService.GetByID(c.Request().Context(), fmt.Sprintf("%v", userID))
+		userData, err := m.userService.GetByID(c.Request().Context(), userID)
 		if err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, "invalid user")
+			return m.handleAuthError(c, echo.NewHTTPError(http.StatusForbidden, "user not found or inactive"))
 		}
 
 		// Set user in context
@@ -134,24 +120,29 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 
 // handleAuthError handles authentication errors
 func (m *JWTMiddleware) handleAuthError(c echo.Context, err error) error {
+	// Extract status code from HTTPError if available
+	status := http.StatusUnauthorized
+	var he *echo.HTTPError
+	if errors.As(err, &he) {
+		status = he.Code
+	}
+
 	m.logger.Error("auth check failed",
 		logging.StringField("path", c.Path()),
 		logging.StringField("method", c.Request().Method),
+		logging.IntField("status", status),
 		logging.ErrorField("error", err))
-	return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
+	return err
 }
 
 // parseToken parses and validates a JWT token
 func (m *JWTMiddleware) parseToken(authHeader string) (*jwt.Token, error) {
-	// Parse token from authorization header
 	parts := strings.Split(authHeader, " ")
 	if len(parts) != 2 || parts[0] != "Bearer" {
-		return nil, errors.New("invalid authorization header format")
+		return nil, errors.New("invalid authorization header format, expected 'Bearer <token>'")
 	}
 
-	// Parse token
 	token, err := jwt.Parse(parts[1], func(token *jwt.Token) (any, error) {
-		// Validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 		}
@@ -163,4 +154,13 @@ func (m *JWTMiddleware) parseToken(authHeader string) (*jwt.Token, error) {
 	}
 
 	return token, nil
+}
+
+// extractUserID extracts and validates the user ID from JWT claims
+func extractUserID(claims jwt.MapClaims) (string, error) {
+	userID, ok := claims["user_id"].(string)
+	if !ok || userID == "" {
+		return "", errors.New("invalid or missing user_id claim")
+	}
+	return userID, nil
 }

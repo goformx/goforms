@@ -321,11 +321,7 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 		cookieAuth := NewCookieAuthMiddleware(m.config.UserService, m.logger)
 
 		// Create JWT middleware for API routes
-		jwtMiddleware, err := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.logger, m.config.Config)
-		if err != nil {
-			m.logger.Error("failed to create JWT middleware", logging.ErrorField("error", err))
-			return
-		}
+		jwtMiddleware := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.logger, m.config.Config)
 
 		// Create protected API routes group (with JWT middleware)
 		protected := e.Group("/api/v1")

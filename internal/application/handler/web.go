@@ -190,17 +190,16 @@ func (h *WebHandler) buildPageData(c echo.Context, title string) (shared.PageDat
 		return shared.PageData{}, echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
 	}
 
-	var userData *user.User
-	if user, ok := c.Get("user").(*user.User); ok {
-		userData = user
+	var data shared.PageData
+	if userData, ok := c.Get("user").(*user.User); ok {
+		data.User = userData
 	}
 
-	return shared.PageData{
-		Title:         title,
-		CSRFToken:     csrfToken,
-		User:          userData,
-		IsDevelopment: h.config.App.IsDevelopment(),
-	}, nil
+	data.Title = title
+	data.CSRFToken = csrfToken
+	data.IsDevelopment = h.config.App.IsDevelopment()
+
+	return data, nil
 }
 
 // renderPage renders a page with the given title and content
@@ -210,9 +209,8 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 		return err
 	}
 
-	if err := template(data).Render(c.Request().Context(), c.Response().Writer); err != nil {
-		h.LogError("failed to render template", err)
-		return echo.NewHTTPError(http.StatusInternalServerError, "failed to render page")
+	if renderErr := template(data).Render(c.Request().Context(), c.Response().Writer); renderErr != nil {
+		return fmt.Errorf("failed to render template: %w", renderErr)
 	}
 
 	return nil
