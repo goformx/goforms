@@ -15,7 +15,6 @@ import (
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
-	h "github.com/goformx/goforms/internal/handlers"
 	webhandler "github.com/goformx/goforms/internal/handlers/web"
 	wh_auth "github.com/goformx/goforms/internal/handlers/web/auth"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -77,7 +76,7 @@ func AnnotateHandler(fn any) fx.Option {
 	return fx.Provide(
 		fx.Annotate(
 			fn,
-			fx.As(new(h.Handler)),
+			fx.As(new(handler.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),
 	)
@@ -241,7 +240,7 @@ var StoreModule = fx.Options(
 // HandlerModule provides all HTTP handlers for the application.
 var HandlerModule = fx.Options(
 	// Static file handler (must be first)
-	AnnotateHandler(func(core CoreParams) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams) (handler.Handler, error) {
 		handler := handler.NewStaticHandler(core.Logger, core.Config)
 		if handler == nil {
 			return nil, errors.New("failed to create static handler")
@@ -254,7 +253,7 @@ var HandlerModule = fx.Options(
 		return handler, nil
 	}),
 	// Web handlers
-	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (handler.Handler, error) {
 		handler := webhandler.NewHomeHandler(core.Logger, core.Renderer)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create home handler: renderer=%T", core.Renderer)
@@ -266,7 +265,7 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (handler.Handler, error) {
 		handler := wh_auth.NewWebLoginHandler(core.Logger, core.Renderer)
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create web login handler: renderer=%T", core.Renderer)
@@ -283,7 +282,7 @@ var HandlerModule = fx.Options(
 			core CoreParams,
 			services ServiceParams,
 			middlewareManager *appmiddleware.Manager,
-		) (h.Handler, error) {
+		) (handler.Handler, error) {
 			handler, err := handler.NewWebHandler(
 				core.Logger,
 				core.Renderer,
@@ -303,7 +302,7 @@ var HandlerModule = fx.Options(
 		},
 	),
 	// Auth handler
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
 		handler := handler.NewAuthHandler(core.Logger, handler.WithUserService(services.UserService))
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create auth handler: user_service=%T", services.UserService)
@@ -316,7 +315,7 @@ var HandlerModule = fx.Options(
 		return handler, nil
 	}),
 	// Dashboard handler
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
 		authMiddleware := appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger)
 		baseHandler := handlers.NewBaseHandler(
 			authMiddleware,

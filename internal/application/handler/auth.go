@@ -14,6 +14,8 @@ import (
 const (
 	// CookieExpiryMinutes is the number of minutes before a cookie expires
 	CookieExpiryMinutes = 15
+	// SecondsInMinute is the number of seconds in a minute
+	SecondsInMinute = 60
 )
 
 // AuthHandlerOption defines an auth handler option
@@ -165,7 +167,7 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(CookieExpiryMinutes * 60),
+		MaxAge:   int(CookieExpiryMinutes * SecondsInMinute),
 	})
 
 	h.LogInfo("User logged in successfully",
@@ -192,8 +194,9 @@ func (h *AuthHandler) handleLogout(c echo.Context) error {
 	}
 
 	// Blacklist the refresh token
-	if err := h.userService.Logout(c.Request().Context(), cookie.Value); err != nil {
-		h.LogError("failed to logout", err)
+	logoutErr := h.userService.Logout(c.Request().Context(), cookie.Value)
+	if logoutErr != nil {
+		h.LogError("failed to logout", logoutErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to logout")
 	}
 
@@ -224,8 +227,9 @@ func (h *AuthHandler) handleWebLogout(c echo.Context) error {
 	}
 
 	// Blacklist the refresh token
-	if err := h.userService.Logout(c.Request().Context(), cookie.Value); err != nil {
-		h.LogError("failed to logout", err)
+	logoutErr := h.userService.Logout(c.Request().Context(), cookie.Value)
+	if logoutErr != nil {
+		h.LogError("failed to logout", logoutErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to logout")
 	}
 

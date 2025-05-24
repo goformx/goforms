@@ -7,13 +7,13 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/goformx/goforms/internal/handlers"
+	"github.com/goformx/goforms/internal/application/handler"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Config holds router configuration
 type Config struct {
-	Handlers []handlers.Handler
+	Handlers []handler.Handler
 	Static   StaticConfig
 	Logger   logging.Logger
 }
@@ -76,7 +76,7 @@ func setupStaticRoutes(group interface {
 }
 
 // registerHandlers registers all API handlers
-func registerHandlers(e *echo.Echo, handlerList []handlers.Handler, logger logging.Logger) {
+func registerHandlers(e *echo.Echo, handlerList []handler.Handler, logger logging.Logger) {
 	for i, h := range handlerList {
 		logHandlerRegistration(logger, i, fmt.Sprintf("%T", h))
 		h.Register(e)

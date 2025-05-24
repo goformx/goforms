@@ -20,7 +20,6 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/handlers"
 	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -146,7 +145,7 @@ type ServerParams struct {
 	Server            *server.Server
 	Config            *config.Config
 	Logger            logging.Logger
-	Handlers          []handlers.Handler `group:"handlers"`
+	Handlers          []handler.Handler `group:"handlers"`
 	MiddlewareManager *middleware.Manager
 }
 
