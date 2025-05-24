@@ -124,21 +124,21 @@
   - [x] Add response documentation
 
 ### 5. Error Handling Improvements
-- [ ] Create custom error types
-  - [ ] `ValidationError`
-  - [ ] `NotFoundError`
-  - [ ] `ForbiddenError`
-  - [ ] `StartupError`
-  - [ ] `ShutdownError`
-- [ ] Implement error wrapping
-- [ ] Add error logging middleware
-- [ ] Create error response templates
+- [x] Create custom error types
+  - [x] `ValidationError`
+  - [x] `NotFoundError`
+  - [x] `ForbiddenError`
+  - [x] `StartupError`
+  - [x] `ShutdownError`
+- [x] Implement error wrapping
+- [x] Add error logging middleware
+- [x] Create error response templates
 - [ ] Add proper error handling for application lifecycle
-- [ ] Implement domain-specific error types
-- [ ] Add error handling documentation
+- [x] Implement domain-specific error types
+- [x] Add error handling documentation
 
 ### 6. Authentication and Authorization
-- [ ] Create dedicated auth service
+- [x] Create dedicated auth service
   ```go
   type AuthService struct {
       userService user.Service
@@ -148,6 +148,14 @@
   func (s *AuthService) GetAuthenticatedUser(c echo.Context) (*user.User, error)
   func (s *AuthService) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc
   ```
+- [ ] Implement role-based access control
+- [ ] Add user session management
+- [ ] Implement token-based authentication
+- [ ] Add password hashing and validation
+- [ ] Add user registration and login
+- [ ] Add password reset functionality
+- [ ] Add email verification
+- [ ] Add OAuth integration
 
 ### 7. Form Schema Management
 - [ ] Create dedicated schema service

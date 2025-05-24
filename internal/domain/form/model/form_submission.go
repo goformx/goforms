@@ -58,11 +58,11 @@ func (s *FormSubmission) Validate() error {
 	}
 
 	if s.Data == nil {
-		return errors.New(errors.ErrCodeValidation, "form data is required")
+		return errors.New(errors.ErrCodeValidation, "form data is required", nil)
 	}
 
 	if len(s.Data) == 0 {
-		return errors.New(errors.ErrCodeValidation, "form data cannot be empty")
+		return errors.New(errors.ErrCodeValidation, "form data cannot be empty", nil)
 	}
 
 	return nil

@@ -4,49 +4,37 @@ import (
 	"fmt"
 )
 
-// ErrorCode represents a unique error code for each error type
+// ErrorCode represents a specific type of error
 type ErrorCode string
 
 const (
-	// ErrCodeValidation represents a general validation error
-	ErrCodeValidation ErrorCode = "VALIDATION_ERROR"
-	// ErrCodeRequiredField represents a required field validation error
-	ErrCodeRequiredField ErrorCode = "REQUIRED_FIELD"
-	// ErrCodeInvalidFormat represents an invalid format error
+	// Validation errors
+	ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
+	ErrCodeRequired      ErrorCode = "REQUIRED_FIELD"
+	ErrCodeInvalid       ErrorCode = "INVALID_VALUE"
 	ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
-	// ErrCodeInvalidValue represents an invalid value error
-	ErrCodeInvalidValue ErrorCode = "INVALID_VALUE"
+	ErrCodeInvalidInput  ErrorCode = "INVALID_INPUT"
 
-	// ErrCodeUnauthorized represents an unauthorized access error
-	ErrCodeUnauthorized ErrorCode = "UNAUTHORIZED"
-	// ErrCodeInvalidToken represents an invalid token error
-	ErrCodeInvalidToken ErrorCode = "INVALID_TOKEN"
-	// ErrCodeTokenExpired represents a token expiration error
-	ErrCodeTokenExpired ErrorCode = "TOKEN_EXPIRED"
-	// ErrCodeAuthentication represents a general authentication error
-	ErrCodeAuthentication ErrorCode = "AUTHENTICATION_ERROR"
-
-	// ErrCodeForbidden represents a forbidden access error
-	ErrCodeForbidden ErrorCode = "FORBIDDEN"
-	// ErrCodeInsufficientRole represents an insufficient role error
+	// Authentication errors
+	ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
+	ErrCodeForbidden        ErrorCode = "FORBIDDEN"
+	ErrCodeInvalidToken     ErrorCode = "INVALID_TOKEN"
+	ErrCodeAuthentication   ErrorCode = "AUTHENTICATION_ERROR"
 	ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
 
-	// ErrCodeNotFound represents a resource not found error
-	ErrCodeNotFound ErrorCode = "NOT_FOUND"
-	// ErrCodeAlreadyExists represents a resource already exists error
+	// Resource errors
+	ErrCodeNotFound      ErrorCode = "NOT_FOUND"
+	ErrCodeConflict      ErrorCode = "CONFLICT"
+	ErrCodeBadRequest    ErrorCode = "BAD_REQUEST"
+	ErrCodeServerError   ErrorCode = "SERVER_ERROR"
 	ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
-	// ErrCodeConflict represents a resource conflict error
-	ErrCodeConflict ErrorCode = "CONFLICT"
 
-	// ErrCodeInternal represents an internal server error
-	ErrCodeInternal ErrorCode = "INTERNAL_ERROR"
-	// ErrCodeDatabase represents a database error
+	// Application lifecycle errors
+	ErrCodeStartup  ErrorCode = "STARTUP_ERROR"
+	ErrCodeShutdown ErrorCode = "SHUTDOWN_ERROR"
+	ErrCodeConfig   ErrorCode = "CONFIG_ERROR"
 	ErrCodeDatabase ErrorCode = "DATABASE_ERROR"
-	// ErrCodeTimeout represents an operation timeout error
-	ErrCodeTimeout ErrorCode = "TIMEOUT"
-
-	// ErrCodeInvalidInput represents an invalid input error
-	ErrCodeInvalidInput ErrorCode = "INVALID_INPUT"
+	ErrCodeTimeout  ErrorCode = "TIMEOUT"
 )
 
 // DomainError represents a domain-specific error
@@ -54,90 +42,101 @@ type DomainError struct {
 	Code    ErrorCode
 	Message string
 	Err     error
-	Context map[string]any
+	Context map[string]interface{}
 }
 
-// New creates a new domain error
-func New(code ErrorCode, message string) *DomainError {
-	return &DomainError{
-		Code:    code,
-		Message: message,
-		Context: make(map[string]any),
-	}
-}
-
-// Wrap wraps an existing error with domain context
-func Wrap(err error, code ErrorCode, message string) *DomainError {
-	return &DomainError{
-		Code:    code,
-		Message: message,
-		Err:     err,
-		Context: make(map[string]any),
-	}
-}
-
-// WithContext adds context to the error
-func (e *DomainError) WithContext(key string, value any) *DomainError {
-	e.Context[key] = value
-	return e
-}
-
-// Error implements the error interface
 func (e *DomainError) Error() string {
 	if e.Err != nil {
-		return fmt.Sprintf("%s: %s: %v", e.Code, e.Message, e.Err)
+		return fmt.Sprintf("%s: %s (%v)", e.Code, e.Message, e.Err)
 	}
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
-// Unwrap returns the underlying error
 func (e *DomainError) Unwrap() error {
 	return e.Err
 }
 
-// Is checks if the error is of a specific type
-func (e *DomainError) Is(target error) bool {
-	if target == nil {
-		return false
+// New creates a new domain error
+func New(code ErrorCode, message string, err error) *DomainError {
+	return &DomainError{
+		Code:    code,
+		Message: message,
+		Err:     err,
+		Context: make(map[string]interface{}),
 	}
-	if err, ok := target.(*DomainError); ok {
-		return e.Code == err.Code
-	}
-	return false
 }
 
-// Validation errors
+// WithContext adds context to the error
+func (e *DomainError) WithContext(key string, value interface{}) *DomainError {
+	e.Context[key] = value
+	return e
+}
+
+// Common error constructors
+func NewValidationError(message string, err error) *DomainError {
+	return New(ErrCodeValidation, message, err)
+}
+
+func NewNotFoundError(message string, err error) *DomainError {
+	return New(ErrCodeNotFound, message, err)
+}
+
+func NewForbiddenError(message string, err error) *DomainError {
+	return New(ErrCodeForbidden, message, err)
+}
+
+func NewStartupError(message string, err error) *DomainError {
+	return New(ErrCodeStartup, message, err)
+}
+
+func NewShutdownError(message string, err error) *DomainError {
+	return New(ErrCodeShutdown, message, err)
+}
+
+// IsDomainError checks if an error is a domain error
+func IsDomainError(err error) bool {
+	_, ok := err.(*DomainError)
+	return ok
+}
+
+// GetDomainError returns the domain error if the error is a domain error
+func GetDomainError(err error) *DomainError {
+	if de, ok := err.(*DomainError); ok {
+		return de
+	}
+	return nil
+}
+
+// Common error instances
 var (
-	ErrValidation    = New(ErrCodeValidation, "validation error")
-	ErrRequiredField = New(ErrCodeRequiredField, "field is required")
-	ErrInvalidFormat = New(ErrCodeInvalidFormat, "invalid format")
-	ErrInvalidValue  = New(ErrCodeInvalidValue, "invalid value")
+	// Validation errors
+	ErrValidation    = New(ErrCodeValidation, "validation error", nil)
+	ErrRequiredField = New(ErrCodeRequired, "field is required", nil)
+	ErrInvalidFormat = New(ErrCodeInvalidFormat, "invalid format", nil)
+	ErrInvalidValue  = New(ErrCodeInvalid, "invalid value", nil)
+	ErrInvalidInput  = New(ErrCodeInvalidInput, "invalid input", nil)
+
+	// Authentication errors
+	ErrUnauthorized     = New(ErrCodeUnauthorized, "unauthorized", nil)
+	ErrForbidden        = New(ErrCodeForbidden, "forbidden", nil)
+	ErrInvalidToken     = New(ErrCodeInvalidToken, "invalid token", nil)
+	ErrAuthentication   = New(ErrCodeAuthentication, "authentication error", nil)
+	ErrInsufficientRole = New(ErrCodeInsufficientRole, "insufficient role", nil)
+
+	// Resource errors
+	ErrNotFound      = New(ErrCodeNotFound, "resource not found", nil)
+	ErrConflict      = New(ErrCodeConflict, "resource conflict", nil)
+	ErrBadRequest    = New(ErrCodeBadRequest, "bad request", nil)
+	ErrServerError   = New(ErrCodeServerError, "internal server error", nil)
+	ErrAlreadyExists = New(ErrCodeAlreadyExists, "resource already exists", nil)
+
+	// System errors
+	ErrDatabase = New(ErrCodeDatabase, "database error", nil)
+	ErrTimeout  = New(ErrCodeTimeout, "operation timed out", nil)
+	ErrConfig   = New(ErrCodeConfig, "configuration error", nil)
 )
 
-// Authentication errors
-var (
-	ErrUnauthorized   = New(ErrCodeUnauthorized, "unauthorized")
-	ErrInvalidToken   = New(ErrCodeInvalidToken, "invalid token")
-	ErrTokenExpired   = New(ErrCodeTokenExpired, "token expired")
-	ErrAuthentication = New(ErrCodeAuthentication, "authentication error")
-)
-
-// Authorization errors
-var (
-	ErrForbidden        = New(ErrCodeForbidden, "forbidden")
-	ErrInsufficientRole = New(ErrCodeInsufficientRole, "insufficient role")
-)
-
-// Resource errors
-var (
-	ErrNotFound      = New(ErrCodeNotFound, "resource not found")
-	ErrAlreadyExists = New(ErrCodeAlreadyExists, "resource already exists")
-	ErrConflict      = New(ErrCodeConflict, "resource conflict")
-)
-
-// System errors
-var (
-	ErrInternal = New(ErrCodeInternal, "internal error")
-	ErrDatabase = New(ErrCodeDatabase, "database error")
-	ErrTimeout  = New(ErrCodeTimeout, "operation timed out")
-)
+// Wrap wraps an existing error with domain context
+func Wrap(err error, code ErrorCode, message string) *DomainError {
+	return New(code, message, err)
+}
