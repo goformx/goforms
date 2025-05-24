@@ -4,7 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strconv"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -32,6 +34,94 @@ const (
 	// StaticFileRobots is the path to the robots.txt file
 	StaticFileRobots = "/robots.txt"
 )
+
+// Middleware represents the application middleware
+type Middleware struct {
+	config Config
+	logger logging.Logger
+}
+
+// Config represents the middleware configuration
+type Config struct {
+	Security SecurityConfig
+}
+
+// SecurityConfig represents the security configuration
+type SecurityConfig struct {
+	JWTSecret string
+}
+
+// NewMiddleware creates a new middleware
+func NewMiddleware(config Config, logger logging.Logger) *Middleware {
+	return &Middleware{
+		config: config,
+		logger: logger,
+	}
+}
+
+// Initialize initializes the middleware
+func (m *Middleware) Initialize(e *echo.Echo) {
+	// Log middleware initialization
+	m.logger.Info("initializing middleware",
+		logging.StringField("jwt_secret_length", strconv.Itoa(len(m.config.Security.JWTSecret))),
+	)
+
+	// Add middleware
+	e.Use(echomw.Recover())
+	e.Use(m.Logger())
+	e.Use(echomw.CORS())
+	e.Use(echomw.Secure())
+	e.Use(echomw.BodyLimit("2M"))
+	e.Use(echomw.MethodOverride())
+	e.Use(echomw.RequestID())
+	e.Use(echomw.Gzip())
+	e.Use(m.RateLimit())
+	e.Use(echomw.CSRF())
+	e.Use(m.Auth())
+}
+
+// Logger returns the logging middleware
+func (m *Middleware) Logger() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			req := c.Request()
+			res := c.Response()
+			start := time.Now()
+
+			err := next(c)
+			if err != nil {
+				c.Error(err)
+			}
+
+			latency := time.Since(start)
+			status := res.Status
+
+			m.logger.Info("request completed",
+				logging.StringField("method", req.Method),
+				logging.StringField("path", req.URL.Path),
+				logging.IntField("status", status),
+				logging.DurationField("latency", latency),
+			)
+
+			return nil
+		}
+	}
+}
+
+// RateLimit returns the rate limiting middleware
+func (m *Middleware) RateLimit() echo.MiddlewareFunc {
+	return echomw.RateLimiter(echomw.NewRateLimiterMemoryStore(20))
+}
+
+// Auth returns the authentication middleware
+func (m *Middleware) Auth() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// TODO: Implement authentication middleware
+			return next(c)
+		}
+	}
+}
 
 // Manager handles middleware configuration and setup
 type Manager struct {
@@ -263,7 +353,6 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	m.useWithLog(e, "request ID", echomw.RequestID())
 	m.useWithLog(e, "secure headers", echomw.Secure())
 	m.useWithLog(e, "body limit", echomw.BodyLimit("2M"))
-	m.useWithLog(e, "request logging", LoggingMiddleware(m.logger))
 	m.useWithLog(e, "MIME type", setupMIMETypeMiddleware())
 	m.useWithLog(e, "static file", setupStaticFileMiddleware())
 }
@@ -336,7 +425,7 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 	admin.Use(cookieAuth.RequireAuth)
 
 	m.logger.Info("Auth middleware setup complete",
-		logging.String("jwt_secret_length", fmt.Sprintf("%d", len(m.config.Security.JWTSecret))),
+		logging.String("jwt_secret_length", strconv.Itoa(len(m.config.Security.JWTSecret))),
 		logging.Bool("csrf_enabled", m.config.Security.CSRF.Enabled))
 }
 

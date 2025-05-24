@@ -1,9 +1,10 @@
 package middleware
 
 import (
+	stderrors "errors"
 	"net/http"
 
-	"github.com/goformx/goforms/internal/domain/common/errors"
+	derr "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 )
@@ -29,7 +30,7 @@ func (m *ErrorLogger) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// Get the domain error if it exists
-		domainErr := errors.GetDomainError(err)
+		domainErr := derr.GetDomainError(err)
 		if domainErr != nil {
 			// Log the error with context
 			m.logger.Error("request error",
@@ -49,15 +50,21 @@ func (m *ErrorLogger) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		}
 
 		// Handle echo errors
-		if he, ok := err.(*echo.HTTPError); ok {
+		var he *echo.HTTPError
+		if stderrors.As(err, &he) {
+			msg, ok := he.Message.(string)
+			if !ok {
+				msg = "Internal server error"
+			}
 			m.logger.Error("http error",
 				logging.IntField("status", he.Code),
-				logging.StringField("message", he.Message.(string)),
+				logging.StringField("message", msg),
 				logging.StringField("path", c.Request().URL.Path),
 				logging.StringField("method", c.Request().Method),
 			)
 			return c.JSON(he.Code, map[string]any{
-				"error": he.Message,
+				"error": msg,
+				"code":  he.Code,
 			})
 		}
 
@@ -69,32 +76,27 @@ func (m *ErrorLogger) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 		)
 		return c.JSON(http.StatusInternalServerError, map[string]any{
 			"error": "Internal server error",
+			"code":  http.StatusInternalServerError,
 		})
 	}
 }
 
 // mapErrorToStatus maps domain error codes to HTTP status codes
-func mapErrorToStatus(code errors.ErrorCode) int {
+func mapErrorToStatus(code derr.ErrorCode) int {
 	switch code {
-	case errors.ErrCodeValidation, errors.ErrCodeRequired, errors.ErrCodeInvalid,
-		errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput:
+	case derr.ErrCodeValidation, derr.ErrCodeRequired, derr.ErrCodeInvalid,
+		derr.ErrCodeInvalidFormat, derr.ErrCodeInvalidInput:
 		return http.StatusBadRequest
-	case errors.ErrCodeUnauthorized, errors.ErrCodeInvalidToken,
-		errors.ErrCodeAuthentication:
+	case derr.ErrCodeUnauthorized:
 		return http.StatusUnauthorized
-	case errors.ErrCodeForbidden, errors.ErrCodeInsufficientRole:
+	case derr.ErrCodeForbidden:
 		return http.StatusForbidden
-	case errors.ErrCodeNotFound:
+	case derr.ErrCodeNotFound:
 		return http.StatusNotFound
-	case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists:
+	case derr.ErrCodeConflict, derr.ErrCodeAlreadyExists:
 		return http.StatusConflict
-	case errors.ErrCodeBadRequest:
-		return http.StatusBadRequest
-	case errors.ErrCodeServerError, errors.ErrCodeDatabase,
-		errors.ErrCodeStartup, errors.ErrCodeShutdown, errors.ErrCodeConfig:
+	case derr.ErrCodeServerError:
 		return http.StatusInternalServerError
-	case errors.ErrCodeTimeout:
-		return http.StatusGatewayTimeout
 	default:
 		return http.StatusInternalServerError
 	}
