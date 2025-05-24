@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: internal/**/*_test.go
 alwaysApply: false
 ---
 # Testing Guidelines
@@ -11,16 +11,16 @@ This project uses testify for testing and mocking. Follow these guidelines for a
 1. **Unit Tests**
    - Test domain logic thoroughly
    - Use table-driven tests
-   - Example: [internal/domain/user/service_test.go](mdc:internal/domain/user/service_test.go)
+   - Example: [internal/domain/user/service_test.go](mdc:goforms/internal/domain/user/service_test.go)
 
 2. **Integration Tests**
    - Test infrastructure components
    - Include database operations
    - Test API endpoints
-   - Example: [test/integration/api/user_test.go](mdc:test/integration/api/user_test.go)
+   - Example: [test/integration/api/user_test.go](mdc:goforms/test/integration/api/user_test.go)
 
 ## Mocking
-1. **Mock Store Example** [test/mocks/store/user/store.go](mdc:test/mocks/store/user/store.go)
+1. **Mock Store Example** [test/mocks/store/user/store.go](mdc:goforms/test/mocks/store/user/store.go)
    ```go
    type MockStore struct {
        mock.Mock
@@ -169,7 +169,7 @@ func TestConnection(t *testing.T) {
 ## Integration Tests
 - Use testcontainers for database and external service tests
 - Properly manage container lifecycle
-- Example: [internal/infrastructure/persistence/database/connection_test.go](mdc:internal/infrastructure/persistence/database/connection_test.go)
+- Example: [internal/infrastructure/persistence/database/connection_test.go](mdc:goforms/internal/infrastructure/persistence/database/connection_test.go)
 
 ## Test Structure
 1. Arrange - Set up test data and conditions
@@ -198,5 +198,5 @@ func TestSubmission(t *testing.T) {
 - Create test helpers for common setup/teardown
 
 ## Reference Files
-- [internal/infrastructure/persistence/database/connection_test.go](mdc:internal/infrastructure/persistence/database/connection_test.go)
-- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go)
+- [internal/infrastructure/persistence/database/connection_test.go](mdc:goforms/internal/infrastructure/persistence/database/connection_test.go)
+- [internal/domain/form/model/form_submission.go](mdc:goforms/internal/domain/form/model/form_submission.go)

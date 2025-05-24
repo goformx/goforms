@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: internal/**/services/**/*.go
 alwaysApply: false
 ---
 # Service Layer Architecture

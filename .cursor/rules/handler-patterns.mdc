@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: internal/**/handlers/**/*.go
 alwaysApply: false
 ---
 # Handler Patterns

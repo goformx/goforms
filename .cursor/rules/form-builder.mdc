@@ -1,17 +1,17 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: src/js/**/*.ts
+alwaysApply: false
 ---
 # Form Builder Implementation
 
 The form builder is implemented using Form.io with custom templates from goforms-template package.
 
 ## Key Files
-- [src/js/form-builder.ts](mdc:goforms/src/js/form-builder.ts): Main form builder implementation
-- [src/js/schema/form-schema.ts](mdc:goforms/src/js/schema/form-schema.ts): Form schema type definitions
-- [internal/presentation/templates/pages/edit_form.templ](mdc:goforms/internal/presentation/templates/pages/edit_form.templ): Form builder page template
-- [goforms-template/src/templates/goforms/](mdc:goforms/goforms-template/src/templates/goforms): Custom form component templates
+- [src/js/form-builder.ts](mdc:goforms/goforms/src/js/form-builder.ts): Main form builder implementation
+- [src/js/schema/form-schema.ts](mdc:goforms/goforms/src/js/schema/form-schema.ts): Form schema type definitions
+- [internal/presentation/templates/pages/edit_form.templ](mdc:goforms/goforms/internal/presentation/templates/pages/edit_form.templ): Form builder page template
+- [goforms-template/src/templates/goforms/](mdc:goforms/goforms/goforms-template/src/templates/goforms): Custom form component templates
 
 ## Architecture
 - Form builder is mounted in a div with `id="form-schema-builder"`
@@ -59,7 +59,7 @@ Advanced components (disabled by default):
 - Support for semantic UI components
 
 ## Schema Format
-Our schema format is defined in [src/js/schema/form-schema.ts](mdc:goforms/src/js/schema/form-schema.ts) and includes:
+Our schema format is defined in [src/js/schema/form-schema.ts](mdc:goforms/goforms/src/js/schema/form-schema.ts) and includes:
 - Form metadata (id, name, title)
 - Component configuration
 - Validation rules

@@ -1,5 +1,5 @@
 ---
-description: 
+description: Guidelines for implementing domain events and event handling patterns
 globs: 
 alwaysApply: false
 ---
@@ -8,7 +8,7 @@ alwaysApply: false
 This project uses a robust domain events system for handling cross-cutting concerns and maintaining loose coupling.
 
 ## Core Event System
-The base event system is defined in [internal/domain/common/events/events.go](mdc:internal/domain/common/events/events.go):
+The base event system is defined in [internal/domain/common/events/events.go](mdc:goforms/internal/domain/common/events/events.go):
 
 ### Key Components
 1. **Event Interface**
@@ -26,7 +26,7 @@ The base event system is defined in [internal/domain/common/events/events.go](md
    - Error aggregation
 
 ## Form Events
-Form-specific events are defined in [internal/domain/form/events/form_events.go](mdc:internal/domain/form/events/form_events.go):
+Form-specific events are defined in [internal/domain/form/events/form_events.go](mdc:goforms/internal/domain/form/events/form_events.go):
 
 ### Event Types
 1. **FormSubmittedEvent**

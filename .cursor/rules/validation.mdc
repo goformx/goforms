@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: internal/**/validation/**/*.go
 alwaysApply: false
 ---
 # Validation Guidelines
@@ -8,7 +8,7 @@ alwaysApply: false
 This project implements a comprehensive validation system in the domain layer.
 
 ## Core Validation System
-The validation system is defined in [internal/domain/common/validation/validator.go](mdc:internal/domain/common/validation/validator.go):
+The validation system is defined in [internal/domain/common/validation/validator.go](mdc:goforms/internal/domain/common/validation/validator.go):
 
 ### Key Components
 
@@ -28,7 +28,7 @@ The validation system is defined in [internal/domain/common/validation/validator
    - Minimum length
 
 ## Form Validation
-Form submissions are validated in [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go):
+Form submissions are validated in [internal/domain/form/model/form_submission.go](mdc:goforms/internal/domain/form/model/form_submission.go):
 
 ### Validation Rules
 1. **Required Fields**

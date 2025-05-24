@@ -1,7 +1,7 @@
 ---
 description: 
-globs: 
-alwaysApply: true
+globs: internal/infrastructure/**/*.go
+alwaysApply: false
 ---
 # Infrastructure Module Guide
 
@@ -9,7 +9,7 @@ This guide outlines the best practices and patterns for the infrastructure modul
 
 ## Core Structure
 
-The main infrastructure module is defined in [internal/infrastructure/module.go](mdc:goforms/internal/infrastructure/module.go) and follows a modular design pattern using the `fx` dependency injection framework.
+The main infrastructure module is defined in [internal/infrastructure/module.go](mdc:goforms/goforms/internal/infrastructure/module.go) and follows a modular design pattern using the `fx` dependency injection framework.
 
 ### Module Organization
 
@@ -26,9 +26,9 @@ The module is split into focused sub-modules:
    ```
 
 2. `StoreModule`: Database store implementations
-   - **User Store**: Implemented in [internal/infrastructure/persistence/store/user/store.go](mdc:goforms/internal/infrastructure/persistence/store/user/store.go)
-   - **Form Store**: Implemented in [internal/infrastructure/persistence/store/form/store.go](mdc:goforms/internal/infrastructure/persistence/store/form/store.go)
-   - Both stores are registered in the DI container in [internal/infrastructure/module.go](mdc:goforms/internal/infrastructure/module.go) via `userstore.NewStore` and `formstore.NewStore`.
+   - **User Store**: Implemented in [internal/infrastructure/persistence/store/user/store.go](mdc:goforms/goforms/internal/infrastructure/persistence/store/user/store.go)
+   - **Form Store**: Implemented in [internal/infrastructure/persistence/store/form/store.go](mdc:goforms/goforms/internal/infrastructure/persistence/store/form/store.go)
+   - Both stores are registered in the DI container in [internal/infrastructure/module.go](mdc:goforms/goforms/internal/infrastructure/module.go) via `userstore.NewStore` and `formstore.NewStore`.
 3. `ServerModule`: HTTP server setup
 4. `HandlerModule`: HTTP handlers and routing
 

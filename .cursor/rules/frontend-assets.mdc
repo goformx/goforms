@@ -1,6 +1,6 @@
 ---
 description: 
-globs: src/**/*.{ts,src/**/*.{css,src/**/*.ejs,vite.config.ts,postcss.config.cjs,tsconfig.json,src/js/form-builder.ts,src/js/schema/form-schema.ts,internal/presentation/templates/pages/edit_form.templ,goforms-template/src/templates/goforms/**
+globs: src/**/*.js,src/**/*.ts,src/**/*.css
 alwaysApply: false
 ---
 # Frontend Asset Handling
@@ -39,15 +39,15 @@ alwaysApply: false
 - JSON files
 
 ## Configuration
-- [vite.config.ts](mdc:vite.config.ts): Main Vite configuration
+- [vite.config.ts](mdc:goforms/vite.config.ts): Main Vite configuration
   - ESNext target for modern browsers
   - Terser minification
   - PostCSS processing
   - Custom EJS plugin
   - HMR configuration
   - Asset optimization
-- [postcss.config.cjs](mdc:postcss.config.cjs): PostCSS plugins
-- [tsconfig.json](mdc:tsconfig.json): TypeScript configuration
+- [postcss.config.cjs](mdc:goforms/postcss.config.cjs): PostCSS plugins
+- [tsconfig.json](mdc:goforms/tsconfig.json): TypeScript configuration
 
 ## Templates
 - Templates use EJS syntax

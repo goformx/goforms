@@ -1,6 +1,6 @@
 ---
-description: Working with forms
-globs: 
+description: 
+globs: internal/**/auth/**/*.go
 alwaysApply: false
 ---
 # Frontend Authentication and Forms
@@ -11,7 +11,7 @@ Forms in the frontend follow these principles:
 1. CSRF Protection:
 - All forms include a CSRF token from the backend
 - Token is included in form submissions and API calls
-- Implemented in [src/js/validation.ts](mdc:src/js/validation.ts)
+- Implemented in [src/js/validation.ts](mdc:goforms/src/js/validation.ts)
 
 2. Form Validation:
 - Client-side validation before submission
@@ -58,23 +58,23 @@ Forms in the frontend follow these principles:
 - Session handling
 
 ## Signup Form
-- The signup form template is defined in [internal/presentation/components/signup_form.templ](mdc:internal/presentation/components/signup_form.templ).
-- The signup form's frontend logic is implemented in [src/js/signup.ts](mdc:src/js/signup.ts).
-- Real-time and submit validation is handled using the Zod schema and utility functions in [src/js/validation.ts](mdc:src/js/validation.ts).
+- The signup form template is defined in [internal/presentation/components/signup_form.templ](mdc:goforms/internal/presentation/components/signup_form.templ).
+- The signup form's frontend logic is implemented in [src/js/signup.ts](mdc:goforms/src/js/signup.ts).
+- Real-time and submit validation is handled using the Zod schema and utility functions in [src/js/validation.ts](mdc:goforms/src/js/validation.ts).
 - The form submits data as JSON to `/api/v1/auth/signup` using a custom `fetchWithCSRF` method for CSRF protection.
 - The form fields and validation schema must match the backend Go model for successful validation.
 
 ## Login Form
-- The login form template is defined in [internal/presentation/components/login_form.templ](mdc:internal/presentation/components/login_form.templ).
-- The login form's frontend logic is implemented in [src/js/login.ts](mdc:src/js/login.ts).
-- Real-time and submit validation is handled using the Zod schema and utility functions in [src/js/validation.ts](mdc:src/js/validation.ts).
+- The login form template is defined in [internal/presentation/components/login_form.templ](mdc:goforms/internal/presentation/components/login_form.templ).
+- The login form's frontend logic is implemented in [src/js/login.ts](mdc:goforms/src/js/login.ts).
+- Real-time and submit validation is handled using the Zod schema and utility functions in [src/js/validation.ts](mdc:goforms/src/js/validation.ts).
 - The form submits data as JSON to `/api/v1/auth/login` using the `fetchWithCSRF` method for CSRF protection.
 - The login form transforms field names to match backend expectations (e.g., `Email`, `Password`).
 
 ## Shared Validation
-- Both forms use the validation utilities in [src/js/validation.ts](mdc:src/js/validation.ts) for real-time and submit validation.
+- Both forms use the validation utilities in [src/js/validation.ts](mdc:goforms/src/js/validation.ts) for real-time and submit validation.
 - Validation schemas must be kept in sync with backend Go models to avoid mismatches.
 
 ## Asset Loading
-- JavaScript modules for each form are loaded only on their respective pages, as specified in the page templates (e.g., [internal/presentation/templates/pages/signup.templ](mdc:internal/presentation/templates/pages/signup.templ)).
-- The main layout ([internal/presentation/templates/layouts/layout.templ](mdc:internal/presentation/templates/layouts/layout.templ)) only loads global assets, not form-specific scripts.
+- JavaScript modules for each form are loaded only on their respective pages, as specified in the page templates (e.g., [internal/presentation/templates/pages/signup.templ](mdc:goforms/internal/presentation/templates/pages/signup.templ)).
+- The main layout ([internal/presentation/templates/layouts/layout.templ](mdc:goforms/internal/presentation/templates/layouts/layout.templ)) only loads global assets, not form-specific scripts.

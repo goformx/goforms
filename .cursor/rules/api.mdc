@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: 
+globs: internal/**/handlers/**/*.go
 alwaysApply: false
 ---
 # API Development Guidelines
@@ -45,7 +45,7 @@ This project uses Echo framework for API development. All endpoints should follo
 ## Request/Response Handling
 1. **Request Validation**
    - Use struct tags for validation
-   - Example: [internal/domain/user/model.go](mdc:internal/domain/user/model.go)
+   - Example: [internal/domain/user/model.go](mdc:goforms/internal/domain/user/model.go)
    ```go
    type CreateUserRequest struct {
        Email     string `json:"email" validate:"required,email"`
@@ -70,7 +70,7 @@ This project uses Echo framework for API development. All endpoints should follo
 1. **JWT Authentication**
    - Use JWT for stateless authentication
    - Include proper token validation
-   - Example: [internal/domain/user/service.go](mdc:internal/domain/user/service.go)
+   - Example: [internal/domain/user/service.go](mdc:goforms/internal/domain/user/service.go)
 
 2. **Middleware**
    ```go
