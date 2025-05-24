@@ -4,6 +4,8 @@ import (
 	"net/http"
 	"strings"
 
+	"errors"
+
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
@@ -23,6 +25,60 @@ func NewCookieAuthMiddleware(userService user.Service, logger logging.Logger) *C
 	}
 }
 
+// validateToken performs all token validation steps and returns the user, validation status, and any error
+func (m *CookieAuthMiddleware) validateToken(c echo.Context, tokenStr string) (*user.User, bool, error) {
+	// Validate the token
+	if _, tokenErr := m.userService.ValidateToken(tokenStr); tokenErr != nil {
+		return nil, false, tokenErr
+	}
+
+	// Get user ID from token
+	userID, idErr := m.userService.GetUserIDFromToken(tokenStr)
+	if idErr != nil {
+		return nil, false, idErr
+	}
+
+	// Retrieve user using request context
+	userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
+	if userErr != nil {
+		return nil, false, userErr
+	}
+
+	return userObj, true, nil
+}
+
+// getAuthToken retrieves and validates the authentication token from cookies
+func getAuthToken(c echo.Context) (string, error) {
+	cookie, err := c.Cookie("token")
+	if err != nil || cookie.Value == "" {
+		return "", errors.New("missing or empty token")
+	}
+	return cookie.Value, nil
+}
+
+// publicRoutePrefixes defines common prefixes for public routes
+var publicRoutePrefixes = []string{
+	"/api/v1",
+	"/auth/",
+	"/health",
+}
+
+// isPublicRoute checks if the route is public using optimized matching
+func isPublicRoute(path string) bool {
+	// Check exact match first
+	if publicRoutes[path] {
+		return true
+	}
+
+	// Check common prefixes
+	for _, prefix := range publicRoutePrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
 // RequireAuth middleware ensures the user is authenticated
 func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -31,33 +87,37 @@ func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFu
 			return next(c)
 		}
 
-		token, err := c.Cookie("token")
+		token, err := getAuthToken(c)
 		if err != nil {
-			m.logger.Error("missing token", logging.ErrorField("error", err))
+			m.logger.Error("missing token",
+				logging.StringField("path", c.Path()),
+				logging.StringField("method", c.Request().Method),
+				logging.ErrorField("error", err))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
-		// Validate token
-		if _, tokenErr := m.userService.ValidateToken(token.Value); tokenErr != nil {
-			m.logger.Error("invalid token", logging.ErrorField("error", tokenErr))
-			return c.Redirect(http.StatusSeeOther, "/login")
-		}
-
-		// Get user ID from token
-		userID, err := m.userService.GetUserIDFromToken(token.Value)
+		userObj, valid, err := m.validateToken(c, token)
 		if err != nil {
-			m.logger.Error("invalid token claims", logging.ErrorField("error", err))
+			if strings.Contains(err.Error(), "expired") {
+				m.logger.Warn("token expired",
+					logging.StringField("path", c.Path()),
+					logging.StringField("method", c.Request().Method))
+			} else {
+				m.logger.Error("invalid token",
+					logging.StringField("path", c.Path()),
+					logging.StringField("method", c.Request().Method),
+					logging.ErrorField("error", err))
+			}
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
-		// Get user
-		userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
-		if userErr != nil {
-			m.logger.Error("user not found", logging.ErrorField("error", userErr))
+		if !valid {
+			m.logger.Error("token validation failed",
+				logging.StringField("path", c.Path()),
+				logging.StringField("method", c.Request().Method))
 			return c.Redirect(http.StatusSeeOther, "/login")
 		}
 
-		// Set user in context
 		c.Set("user", userObj)
 		return next(c)
 	}
@@ -66,16 +126,11 @@ func (m *CookieAuthMiddleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFu
 // RequireNoAuth middleware ensures the user is not authenticated
 func (m *CookieAuthMiddleware) RequireNoAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		// Get token from cookie
-		token, err := getTokenFromCookie(c)
-		if err == nil && token != "" {
-			// Validate token
-			_, validateErr := m.userService.ValidateToken(token)
-			if validateErr == nil {
-				// Check if token is blacklisted
-				if !m.userService.IsTokenBlacklisted(token) {
-					return c.Redirect(http.StatusSeeOther, "/dashboard")
-				}
+		token, err := getAuthToken(c)
+		if err == nil {
+			_, valid, err := m.validateToken(c, token)
+			if err == nil && valid && !m.userService.IsTokenBlacklisted(token) {
+				return c.Redirect(http.StatusSeeOther, "/dashboard")
 			}
 		}
 		return next(c)
@@ -90,25 +145,13 @@ func (m *CookieAuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerF
 			return next(c)
 		}
 
-		token, err := c.Cookie("token")
+		token, err := getAuthToken(c)
 		if err != nil {
 			return next(c)
 		}
 
-		// Validate token
-		if _, tokenErr := m.userService.ValidateToken(token.Value); tokenErr != nil {
-			return next(c)
-		}
-
-		// Get user ID from token
-		userID, idErr := m.userService.GetUserIDFromToken(token.Value)
-		if idErr != nil {
-			return next(c)
-		}
-
-		// Get user
-		userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
-		if userErr != nil {
+		userObj, valid, err := m.validateToken(c, token)
+		if err != nil || !valid {
 			return next(c)
 		}
 
@@ -120,50 +163,35 @@ func (m *CookieAuthMiddleware) Authenticate(next echo.HandlerFunc) echo.HandlerF
 // RefreshToken middleware attempts to refresh the token
 func (m *CookieAuthMiddleware) RefreshToken(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		token, err := c.Cookie("token")
+		token, err := getAuthToken(c)
 		if err != nil {
 			return next(c)
 		}
 
-		// Validate token
-		if _, validateErr := m.userService.ValidateToken(token.Value); validateErr == nil {
-			// Token is still valid, get user ID
-			userID, idErr := m.userService.GetUserIDFromToken(token.Value)
-			if idErr == nil {
-				// Get user
-				userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
-				if userErr == nil {
-					c.Set("user", userObj)
-				}
-			}
+		userObj, valid, err := m.validateToken(c, token)
+		if err == nil && valid {
+			// Renew secure cookie
+			cookie := new(http.Cookie)
+			cookie.Name = "token"
+			cookie.Value = token
+			cookie.HttpOnly = true
+			cookie.Secure = true
+			cookie.Path = "/"
+			cookie.SameSite = http.SameSiteStrictMode
+			c.SetCookie(cookie)
+
+			c.Set("user", userObj)
 		}
 
 		return next(c)
 	}
 }
 
-// isPublicRoute checks if the route is public
-func isPublicRoute(path string) bool {
-	publicRoutes := []string{
-		"/health",
-		"/login",
-		"/signup",
-		"/api/v1/contact",
-		"/api/v1/subscription",
-	}
-	for _, route := range publicRoutes {
-		if strings.HasPrefix(path, route) {
-			return true
-		}
-	}
-	return false
-}
-
-// getTokenFromCookie extracts token from cookie
-func getTokenFromCookie(c echo.Context) (string, error) {
-	cookie, err := c.Cookie("token")
-	if err != nil {
-		return "", err
-	}
-	return cookie.Value, nil
+// publicRoutes defines routes that don't require authentication
+var publicRoutes = map[string]bool{
+	"/health":              true,
+	"/login":               true,
+	"/signup":              true,
+	"/api/v1/contact":      true,
+	"/api/v1/subscription": true,
 }
