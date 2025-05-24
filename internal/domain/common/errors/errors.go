@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
 )
 
@@ -42,7 +43,7 @@ type DomainError struct {
 	Code    ErrorCode
 	Message string
 	Err     error
-	Context map[string]interface{}
+	Context map[string]any
 }
 
 func (e *DomainError) Error() string {
@@ -62,12 +63,12 @@ func New(code ErrorCode, message string, err error) *DomainError {
 		Code:    code,
 		Message: message,
 		Err:     err,
-		Context: make(map[string]interface{}),
+		Context: make(map[string]any),
 	}
 }
 
 // WithContext adds context to the error
-func (e *DomainError) WithContext(key string, value interface{}) *DomainError {
+func (e *DomainError) WithContext(key string, value any) *DomainError {
 	e.Context[key] = value
 	return e
 }
@@ -95,13 +96,14 @@ func NewShutdownError(message string, err error) *DomainError {
 
 // IsDomainError checks if an error is a domain error
 func IsDomainError(err error) bool {
-	_, ok := err.(*DomainError)
-	return ok
+	var de *DomainError
+	return errors.As(err, &de)
 }
 
 // GetDomainError returns the domain error if the error is a domain error
 func GetDomainError(err error) *DomainError {
-	if de, ok := err.(*DomainError); ok {
+	var de *DomainError
+	if errors.As(err, &de) {
 		return de
 	}
 	return nil

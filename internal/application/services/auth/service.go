@@ -47,16 +47,16 @@ func (s *service) GetAuthenticatedUser(c echo.Context) (*user.User, error) {
 // RequireAuth creates middleware that requires authentication
 func (s *service) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
-		user, err := s.GetAuthenticatedUser(c)
+		usr, err := s.GetAuthenticatedUser(c)
 		if err != nil {
-			return c.JSON(http.StatusUnauthorized, map[string]interface{}{
+			return c.JSON(http.StatusUnauthorized, map[string]any{
 				"error": "Authentication required",
 				"code":  errors.ErrCodeUnauthorized,
 			})
 		}
 
 		// Set user in context for downstream handlers
-		c.Set("user", user)
+		c.Set("user", usr)
 		return next(c)
 	}
 }

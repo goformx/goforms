@@ -3,7 +3,7 @@ package handlers
 import (
 	"net/http"
 
-	"github.com/goformx/goforms/internal/application/services/form_operations"
+	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -17,14 +17,14 @@ import (
 type FormHandler struct {
 	Base           *BaseHandler
 	formService    form.Service
-	formOperations form_operations.Service
+	formOperations formops.Service
 	logger         logging.Logger
 }
 
 // NewFormHandler creates a new form handler
 func NewFormHandler(
 	formService form.Service,
-	formOperations form_operations.Service,
+	formOperations formops.Service,
 	logger logging.Logger,
 	base *BaseHandler,
 ) *FormHandler {

@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	amw "github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/application/services/form_operations"
+	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -42,7 +42,7 @@ func NewHandler(
 	)
 
 	// Create form operations service
-	formOperations := form_operations.NewService(formService, logger)
+	formOperations := formops.NewService(formService, logger)
 
 	return &Handler{
 		DashboardHandler:  NewDashboardHandler(formService, logger, base),

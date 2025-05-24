@@ -13,7 +13,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/handler"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/application/services/form_operations"
+	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/application/services/page_data"
 	"github.com/goformx/goforms/internal/domain/form"
 	healthdomain "github.com/goformx/goforms/internal/domain/services/health"
@@ -69,7 +69,7 @@ type ServiceParams struct {
 // ServiceContainer holds all service instances
 type ServiceContainer struct {
 	PageDataService page_data.Service
-	FormOperations  form_operations.Service
+	FormOperations  formops.Service
 	TemplateService *preservices.TemplateService
 	ResponseBuilder *preservices.ResponseBuilder
 }
@@ -512,7 +512,7 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 func (m *Module) initializeServices() {
 	m.services = &ServiceContainer{
 		PageDataService: page_data.NewService(m.logger),
-		FormOperations:  form_operations.NewService(m.formService, m.logger),
+		FormOperations:  formops.NewService(m.formService, m.logger),
 		TemplateService: preservices.NewTemplateService(m.logger),
 		ResponseBuilder: preservices.NewResponseBuilder(m.logger),
 	}

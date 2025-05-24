@@ -1,4 +1,4 @@
-package form_operations
+package formops
 
 import (
 	"fmt"
@@ -16,10 +16,10 @@ type Service interface {
 	// ValidateAndBindFormData validates and binds form data from the request
 	ValidateAndBindFormData(c echo.Context) (*FormData, error)
 	// EnsureFormOwnership ensures the user owns the form
-	EnsureFormOwnership(c echo.Context, user *user.User, formID string) (*form.Form, error)
+	EnsureFormOwnership(c echo.Context, usr *user.User, formID string) (*form.Form, error)
 }
 
-// FormData represents the data submitted in a form
+// FormData represents the structure for form creation and updates
 type FormData struct {
 	Title       string `json:"title" form:"title" validate:"required"`
 	Description string `json:"description" form:"description" validate:"required"`
@@ -41,37 +41,45 @@ func NewService(formService form.Service, logger logging.Logger) Service {
 
 // ValidateAndBindFormData validates and binds form data from the request
 func (s *service) ValidateAndBindFormData(c echo.Context) (*FormData, error) {
-	var data FormData
-	if err := c.Bind(&data); err != nil {
+	var formData FormData
+	if err := c.Bind(&formData); err != nil {
 		s.logger.Error("failed to bind form data",
 			logging.ErrorField("error", err),
+			logging.StringField("path", c.Request().URL.Path),
 		)
-		return nil, err
+		return nil, errors.New(errors.ErrCodeValidation, "invalid form data", err)
 	}
 
-	// TODO: Add validation logic here
+	if err := c.Validate(&formData); err != nil {
+		s.logger.Error("form validation failed",
+			logging.ErrorField("error", err),
+			logging.StringField("path", c.Request().URL.Path),
+		)
+		return nil, errors.New(errors.ErrCodeValidation, "form validation failed", err)
+	}
 
-	return &data, nil
+	return &formData, nil
 }
 
 // EnsureFormOwnership ensures the user owns the form
-func (s *service) EnsureFormOwnership(c echo.Context, user *user.User, formID string) (*form.Form, error) {
-	form, err := s.formService.GetForm(formID)
+func (s *service) EnsureFormOwnership(c echo.Context, usr *user.User, formID string) (*form.Form, error) {
+	frm, err := s.formService.GetForm(formID)
 	if err != nil {
 		s.logger.Error("failed to get form",
 			logging.ErrorField("error", err),
 			logging.StringField("form_id", formID),
+			logging.StringField("user_id", fmt.Sprintf("%d", usr.ID)),
 		)
-		return nil, err
+		return nil, errors.New(errors.ErrCodeNotFound, "form not found", err)
 	}
 
-	if form.UserID != user.ID {
+	if frm.UserID != usr.ID {
 		s.logger.Error("user does not own form",
-			logging.StringField("user_id", fmt.Sprintf("%d", user.ID)),
 			logging.StringField("form_id", formID),
+			logging.StringField("user_id", fmt.Sprintf("%d", usr.ID)),
 		)
 		return nil, errors.ErrForbidden
 	}
 
-	return form, nil
+	return frm, nil
 }
