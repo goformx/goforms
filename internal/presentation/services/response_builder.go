@@ -19,6 +19,13 @@ func NewResponseBuilder(logger logging.Logger) *ResponseBuilder {
 	}
 }
 
+// Response represents a standard API response
+type Response struct {
+	Status  string `json:"status"`
+	Message string `json:"message,omitempty"`
+	Data    any    `json:"data,omitempty"`
+}
+
 // BuildJSONResponse builds a JSON response with the given data and status code
 func (b *ResponseBuilder) BuildJSONResponse(c echo.Context, data any, status int) error {
 	if status == 0 {
@@ -30,7 +37,10 @@ func (b *ResponseBuilder) BuildJSONResponse(c echo.Context, data any, status int
 		logging.StringField("operation", "response_building"),
 	)
 
-	return c.JSON(status, data)
+	return c.JSON(status, Response{
+		Status: "success",
+		Data:   data,
+	})
 }
 
 // BuildErrorResponse builds an error response with the given error, status code, and message
@@ -46,7 +56,10 @@ func (b *ResponseBuilder) BuildErrorResponse(c echo.Context, err error, status i
 		logging.StringField("operation", "error_response"),
 	)
 
-	return echo.NewHTTPError(status, message)
+	return c.JSON(status, Response{
+		Status:  "error",
+		Message: message,
+	})
 }
 
 // BuildRedirectResponse builds a redirect response to the given path with the specified status code
@@ -100,7 +113,10 @@ func (b *ResponseBuilder) BuildValidationErrorResponse(c echo.Context, err error
 		logging.StringField("operation", "validation_error"),
 	)
 
-	return echo.NewHTTPError(http.StatusUnprocessableEntity, err.Error())
+	return c.JSON(http.StatusUnprocessableEntity, Response{
+		Status:  "error",
+		Message: err.Error(),
+	})
 }
 
 // BuildNotFoundResponse builds a not found error response
@@ -114,7 +130,10 @@ func (b *ResponseBuilder) BuildNotFoundResponse(c echo.Context, message string) 
 		logging.StringField("operation", "not_found_error"),
 	)
 
-	return echo.NewHTTPError(http.StatusNotFound, message)
+	return c.JSON(http.StatusNotFound, Response{
+		Status:  "error",
+		Message: message,
+	})
 }
 
 // BuildForbiddenResponse builds a forbidden error response
@@ -128,5 +147,55 @@ func (b *ResponseBuilder) BuildForbiddenResponse(c echo.Context, message string)
 		logging.StringField("operation", "forbidden_error"),
 	)
 
-	return echo.NewHTTPError(http.StatusForbidden, message)
+	return c.JSON(http.StatusForbidden, Response{
+		Status:  "error",
+		Message: message,
+	})
+}
+
+// BuildUnauthorizedResponse builds an unauthorized error response
+func (b *ResponseBuilder) BuildUnauthorizedResponse(c echo.Context, message string) error {
+	if message == "" {
+		message = "Unauthorized"
+	}
+
+	b.logger.Error("building unauthorized response",
+		logging.StringField("message", message),
+		logging.StringField("operation", "unauthorized_error"),
+	)
+
+	return c.JSON(http.StatusUnauthorized, Response{
+		Status:  "error",
+		Message: message,
+	})
+}
+
+// BuildBadRequestResponse builds a bad request error response
+func (b *ResponseBuilder) BuildBadRequestResponse(c echo.Context, message string) error {
+	if message == "" {
+		message = "Bad request"
+	}
+
+	b.logger.Error("building bad request response",
+		logging.StringField("message", message),
+		logging.StringField("operation", "bad_request_error"),
+	)
+
+	return c.JSON(http.StatusBadRequest, Response{
+		Status:  "error",
+		Message: message,
+	})
+}
+
+// BuildCreatedResponse builds a created response
+func (b *ResponseBuilder) BuildCreatedResponse(c echo.Context, data any) error {
+	b.logger.Debug("building created response",
+		logging.AnyField("data", data),
+		logging.StringField("operation", "created_response"),
+	)
+
+	return c.JSON(http.StatusCreated, Response{
+		Status: "success",
+		Data:   data,
+	})
 }

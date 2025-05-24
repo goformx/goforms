@@ -206,7 +206,7 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 
 	// Render page
 	if renderErr := template(data).Render(c.Request().Context(), c.Response().Writer); renderErr != nil {
-		h.Logger.Error("failed to render template",
+		h.Logger().Error("failed to render template",
 			logging.StringField("title", title),
 			logging.StringField("path", c.Request().URL.Path),
 			logging.ErrorField("error", renderErr))
@@ -235,7 +235,7 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	for _, r := range routes {
 		e.Add(r.Method, r.Path, r.Handler)
 		if h.config.App.IsDevelopment() {
-			h.Logger.Debug("web handler called",
+			h.Logger().Debug("web handler called",
 				logging.StringField("method", r.Method),
 				logging.StringField("path", r.Path))
 		}
@@ -248,7 +248,7 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 // validateDependencies validates required dependencies for the handler
 func (h *WebHandler) validateDependencies() {
 	if err := h.Validate(); err != nil {
-		h.Logger.Error("failed to validate web handler", logging.ErrorField("error", err))
+		h.Logger().Error("failed to validate web handler", logging.ErrorField("error", err))
 	}
 }
 
@@ -256,11 +256,11 @@ func (h *WebHandler) validateDependencies() {
 func (h *WebHandler) Register(e *echo.Echo) {
 	h.validateDependencies()
 	if h.config.App.IsDevelopment() {
-		h.Logger.Debug("registering web routes")
+		h.Logger().Debug("registering web routes")
 	}
 	h.registerRoutes(e)
 	if h.config.App.IsDevelopment() {
-		h.Logger.Debug("web routes registration complete")
+		h.Logger().Debug("web routes registration complete")
 	}
 }
 

@@ -35,6 +35,29 @@ func (h *BaseHandler) SetupMiddleware(group *echo.Group) {
 	group.Use(h.authMiddleware.RequireAuth)
 }
 
+// RegisterRoute is a helper method to register routes with middleware
+func (h *BaseHandler) RegisterRoute(
+	e *echo.Echo,
+	method, path string,
+	handler echo.HandlerFunc,
+	middleware ...echo.MiddlewareFunc,
+) {
+	switch method {
+	case "GET":
+		e.GET(path, handler, middleware...)
+	case "POST":
+		e.POST(path, handler, middleware...)
+	case "PUT":
+		e.PUT(path, handler, middleware...)
+	case "DELETE":
+		e.DELETE(path, handler, middleware...)
+	}
+	h.logger.Debug("registered route",
+		logging.StringField("method", method),
+		logging.StringField("path", path),
+	)
+}
+
 // getAuthenticatedUser retrieves and validates the authenticated user from the context
 func (h *BaseHandler) getAuthenticatedUser(c echo.Context) (*user.User, error) {
 	currentUser, ok := c.Get("user").(*user.User)
@@ -76,4 +99,37 @@ func (h *BaseHandler) LogError(message string, err error) {
 		logging.Error(err),
 		logging.StringField("operation", "handler_error"),
 	)
+}
+
+// LogDebug logs a debug message with consistent formatting
+func (h *BaseHandler) LogDebug(message string, fields ...any) {
+	h.logger.Debug(message, fields...)
+}
+
+// LogInfo logs an info message with consistent formatting
+func (h *BaseHandler) LogInfo(message string, fields ...any) {
+	h.logger.Info(message, fields...)
+}
+
+// WrapResponseError provides consistent error wrapping for HTTP responses
+func (h *BaseHandler) WrapResponseError(err error, msg string) error {
+	if err == nil {
+		return nil
+	}
+	h.LogError(msg, err)
+	return echo.NewHTTPError(http.StatusInternalServerError, msg)
+}
+
+// Validate ensures all required dependencies are properly set
+func (h *BaseHandler) Validate() error {
+	if h.logger == nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "logger is required")
+	}
+	if h.authMiddleware == nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "auth middleware is required")
+	}
+	if h.formService == nil {
+		return echo.NewHTTPError(http.StatusInternalServerError, "form service is required")
+	}
+	return nil
 }
