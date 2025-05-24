@@ -29,7 +29,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 	// Handle Chrome DevTools well-known route only in development
 	if h.config.App.IsDevelopment() {
 		e.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c echo.Context) error {
-			return c.JSON(http.StatusOK, map[string]interface{}{
+			return c.JSON(http.StatusOK, map[string]any{
 				"devtoolsFrontendUrl":  "",
 				"faviconUrl":           "/favicon.ico",
 				"id":                   "goforms",
