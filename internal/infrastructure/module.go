@@ -13,6 +13,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/handler"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	appservices "github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	webhandler "github.com/goformx/goforms/internal/handlers/web"
@@ -24,7 +25,7 @@ import (
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/handlers"
-	"github.com/goformx/goforms/internal/presentation/services"
+	preservices "github.com/goformx/goforms/internal/presentation/services"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/jmoiron/sqlx"
 )
@@ -64,10 +65,10 @@ type ServiceParams struct {
 
 // ServiceContainer holds all service instances
 type ServiceContainer struct {
-	PageDataService *services.PageDataService
-	FormOperations  *services.FormOperations
-	TemplateService *services.TemplateService
-	ResponseBuilder *services.ResponseBuilder
+	PageDataService *preservices.PageDataService
+	FormOperations  *preservices.FormOperations
+	TemplateService *preservices.TemplateService
+	ResponseBuilder *preservices.ResponseBuilder
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -340,6 +341,16 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
+	// Health handler
+	AnnotateHandler(func(core CoreParams, db *database.Database) (handler.Handler, error) {
+		handler := appservices.NewHealthHandler(core.Logger, db)
+		core.Logger.Debug("registered handler",
+			logging.StringField("handler_name", "HealthHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("operation", "handler_registration"),
+		)
+		return handler, nil
+	}),
 )
 
 // ServerModule provides the HTTP server setup.
@@ -489,10 +500,10 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 // initializeServices initializes all services
 func (m *Module) initializeServices() {
 	m.services = &ServiceContainer{
-		PageDataService: services.NewPageDataService(m.logger),
-		FormOperations:  services.NewFormOperations(m.formService, m.logger),
-		TemplateService: services.NewTemplateService(m.logger),
-		ResponseBuilder: services.NewResponseBuilder(m.logger),
+		PageDataService: preservices.NewPageDataService(m.logger),
+		FormOperations:  preservices.NewFormOperations(m.formService, m.logger),
+		TemplateService: preservices.NewTemplateService(m.logger),
+		ResponseBuilder: preservices.NewResponseBuilder(m.logger),
 	}
 }
 

@@ -1,7 +1,8 @@
 package services
 
 import (
-	"fmt"
+	"context"
+	"net/http"
 
 	"github.com/labstack/echo/v4"
 
@@ -11,7 +12,7 @@ import (
 
 // PingContexter is an interface for database health checks
 type PingContexter interface {
-	PingContext(ctx echo.Context) error
+	PingContext(ctx context.Context) error
 }
 
 // HealthHandler handles health check requests
@@ -31,21 +32,28 @@ func NewHealthHandler(log logging.Logger, db PingContexter) *HealthHandler {
 // Register registers the health check routes
 func (h *HealthHandler) Register(e *echo.Echo) {
 	e.GET("/health", h.HandleHealthCheck)
+	h.logger.Debug("registered health check endpoint",
+		logging.StringField("path", "/health"),
+		logging.StringField("method", "GET"),
+	)
 }
 
 // HandleHealthCheck handles health check requests
 func (h *HealthHandler) HandleHealthCheck(c echo.Context) error {
-	if err := h.db.PingContext(c); err != nil {
-		h.logger.Error("health check failed", logging.ErrorField("error", err))
-		return response.InternalError(c, "Service is not healthy")
+	// Check database connectivity
+	if err := h.db.PingContext(c.Request().Context()); err != nil {
+		h.logger.Error("health check failed",
+			logging.ErrorField("error", err),
+			logging.StringField("component", "database"),
+		)
+		return response.ErrorResponse(c, http.StatusServiceUnavailable, "Service is not healthy: database connection failed")
 	}
 
-	if err := response.Success(c, map[string]any{
+	// Return health status
+	return response.Success(c, map[string]any{
 		"status": "healthy",
-	}); err != nil {
-		h.logger.Error("failed to send health check response", logging.ErrorField("error", err))
-		return fmt.Errorf("failed to send health check response: %w", err)
-	}
-
-	return nil
+		"components": map[string]string{
+			"database": "up",
+		},
+	})
 }
