@@ -4,12 +4,12 @@ import (
 	"net/http"
 
 	amw "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/services/form_operations"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/services"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -42,7 +42,7 @@ func NewHandler(
 	)
 
 	// Create form operations service
-	formOperations := services.NewFormOperations(formService, logger)
+	formOperations := form_operations.NewService(formService, logger)
 
 	return &Handler{
 		DashboardHandler:  NewDashboardHandler(formService, logger, base),
