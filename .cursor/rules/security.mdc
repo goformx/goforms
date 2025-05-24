@@ -3,46 +3,235 @@ description:
 globs: 
 alwaysApply: false
 ---
-# Security Best Practices
+# Security Guidelines
 
-## General Security
-1. Use HTTPS in production
-2. Implement proper CORS policies
-3. Set secure headers
-4. Use rate limiting
-5. Implement proper logging
-6. Handle errors securely
+## Overview
+Security is a critical aspect of GoFormX. This document outlines the security measures and best practices implemented throughout the application.
 
-## Authentication Security
-1. Use secure password hashing
-2. Implement proper session management
-3. Use secure cookie settings
-4. Implement proper token validation
-5. Use proper HTTP status codes
-6. Implement proper error handling
+## Authentication
 
-## Data Security
-1. Use proper encryption
-2. Implement proper access control
-3. Use proper validation
-4. Implement proper logging
-5. Use proper error handling
-6. Implement proper monitoring
+### Cookie Authentication
+- Used for dashboard access
+- Secure cookie settings
+- HTTP-only flag enabled
+- SameSite strict mode
+- CSRF protection
 
-## API Security
-1. Use proper authentication
-2. Implement proper authorization
-3. Use proper validation
-4. Implement proper rate limiting
-5. Use proper error handling
-6. Implement proper logging
+### JWT Authentication
+- Used for API access
+- Secure token generation
+- Proper validation
+- Token refresh mechanism
+- Expiration handling
+
+## Authorization
+
+### Role-Based Access Control
+- User roles defined
+- Role-based middleware
+- Permission checking
+- Access control lists
+- Role hierarchy
+
+### Resource Ownership
+- Form ownership verification
+- Submission access control
+- User data isolation
+- Resource boundaries
+- Access validation
+
+## Security Headers
+
+### Content Security Policy
+```go
+const (
+    CSPDirectives = "default-src 'self'; " +
+        "script-src 'self' 'nonce-%s'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; " +
+        "font-src 'self'; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'"
+)
+```
+
+### Other Headers
+- X-Frame-Options
+- X-Content-Type-Options
+- X-XSS-Protection
+- Referrer-Policy
+- Strict-Transport-Security
+
+## CSRF Protection
+
+### Implementation
+- Token generation
+- Token validation
+- Cookie settings
+- Form integration
+- API protection
+
+### Configuration
+```go
+const (
+    DefaultTokenLength = 32
+    CookieMaxAge = 86400
+)
+```
+
+## Rate Limiting
+
+### Implementation
+- Request counting
+- Burst handling
+- IP-based limiting
+- Configurable thresholds
+- Proper logging
+
+### Configuration
+```go
+const (
+    RateLimitBurst = 5
+    DefaultRateLimit = 20
+)
+```
+
+## Input Validation
+
+### Form Validation
+- Required fields
+- Type checking
+- Length limits
+- Format validation
+- Custom rules
+
+### API Validation
+- Request validation
+- Parameter checking
+- Type safety
+- Schema validation
+- Error handling
+
+## Error Handling
+
+### Security Considerations
+- Don't expose internals
+- Use domain errors
+- Log appropriately
+- Handle all cases
+- Follow guidelines
+
+### Error Responses
+- Generic messages
+- Proper status codes
+- No stack traces
+- Consistent format
+- Secure headers
+
+## File Handling
+
+### Upload Security
+- File type validation
+- Size limits
+- Content checking
+- Secure storage
+- Access control
+
+### Static Files
+- MIME type detection
+- Path validation
+- Access control
+- Cache headers
+- Security headers
+
+## Database Security
+
+### Query Safety
+- Parameterized queries
+- Input sanitization
+- Type safety
+- Error handling
+- Access control
+
+### Data Protection
+- Encryption at rest
+- Secure connections
+- Access control
+- Audit logging
+- Backup security
+
+## Logging and Monitoring
+
+### Security Logging
+- Authentication events
+- Authorization failures
+- Rate limit events
+- Security violations
+- Access attempts
+
+### Monitoring
+- Error rates
+- Access patterns
+- Resource usage
+- Security metrics
+- Performance data
 
 ## Best Practices
-1. Use secure defaults
-2. Implement proper validation
-3. Use proper error handling
-4. Implement proper logging
-5. Use proper monitoring
-6. Implement proper testing
-7. Use proper documentation
-8. Implement proper review
+
+1. Authentication
+   - Use secure methods
+   - Implement proper validation
+   - Handle sessions securely
+   - Protect credentials
+   - Monitor access
+
+2. Authorization
+   - Implement RBAC
+   - Check permissions
+   - Validate access
+   - Handle unauthorized
+   - Log violations
+
+3. Data Protection
+   - Encrypt sensitive data
+   - Secure storage
+   - Access control
+   - Data isolation
+   - Backup security
+
+4. Input Handling
+   - Validate all input
+   - Sanitize data
+   - Use proper types
+   - Handle errors
+   - Log violations
+
+5. Error Handling
+   - Don't expose internals
+   - Use domain errors
+   - Log appropriately
+   - Handle all cases
+   - Follow guidelines
+
+6. File Security
+   - Validate uploads
+   - Check file types
+   - Limit sizes
+   - Secure storage
+   - Control access
+
+7. API Security
+   - Use HTTPS
+   - Validate requests
+   - Rate limit
+   - Monitor usage
+   - Handle errors
+
+8. Monitoring
+   - Log security events
+   - Monitor access
+   - Track violations
+   - Alert on issues
+   - Review logs

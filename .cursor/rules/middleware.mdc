@@ -6,27 +6,47 @@ alwaysApply: false
 # Middleware Architecture
 
 ## Overview
-The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in [internal/application/middleware/middleware.go](mdc:goforms/internal/application/middleware/middleware.go).
+The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in [internal/application/middleware/middleware.go](mdc:goforms/goforms/internal/application/middleware/middleware.go).
 
 ## Core Components
 
 ### Manager
-The `Manager` struct in [internal/application/middleware/middleware.go](mdc:goforms/internal/application/middleware/middleware.go) handles middleware configuration and setup. It uses dependency injection for logging and configuration.
+The `Manager` struct in [internal/application/middleware/middleware.go](mdc:goforms/goforms/internal/application/middleware/middleware.go) handles middleware configuration and setup. It uses dependency injection for logging and configuration.
 
-### CSRF Protection
-CSRF middleware is implemented in [internal/application/middleware/csrf.go](mdc:goforms/internal/application/middleware/csrf.go) with the following features:
-- Configurable cookie settings
-- Secure token generation
-- Template integration
-- SameSite strict mode
-- HTTP-only cookies
+### Error Logger
+The error logger middleware in [internal/application/middleware/error_logger.go](mdc:goforms/goforms/internal/application/middleware/error_logger.go) provides:
+- Domain error mapping to HTTP status codes
+- Structured error logging
+- Consistent error responses
+- Error context preservation
 
-### Configuration
-Middleware configuration is managed through [internal/application/middleware/config.go](mdc:goforms/internal/application/middleware/config.go) which provides:
-- Centralized configuration
-- Feature toggles (e.g., CSRF, JWT)
-- Logging integration
-- Service dependencies
+### Request Logger
+The request logger middleware in [internal/application/middleware/logging.go](mdc:goforms/goforms/internal/application/middleware/logging.go) provides:
+- Request/response logging
+- Performance metrics
+- Static file request filtering
+- Structured logging with context
+
+### Security Middleware
+Security middleware components include:
+- CSRF protection with secure defaults
+- Rate limiting with configurable thresholds
+- Security headers with proper CSP
+- CORS configuration with proper origins
+- Static file handling with proper MIME types
+
+## Constants and Configuration
+
+```go
+const (
+    NonceSize = 32
+    HSTSOneYear = 31536000
+    DefaultTokenLength = 32
+    RateLimitBurst = 5
+    DefaultRateLimit = 20
+    CookieMaxAge = 86400
+)
+```
 
 ## Best Practices
 1. Use the `Manager` for middleware setup
@@ -36,6 +56,9 @@ Middleware configuration is managed through [internal/application/middleware/con
 5. Follow the constant naming conventions
 6. Use structured logging with proper context
 7. Implement rate limiting where appropriate
+8. Handle static files efficiently
+9. Use proper MIME type detection
+10. Implement proper error mapping
 
 ## Security Guidelines
 1. Always enable CSRF protection for forms
@@ -45,6 +68,75 @@ Middleware configuration is managed through [internal/application/middleware/con
 5. Use SameSite strict mode for cookies
 6. Enable HTTP-only flag for sensitive cookies
 7. Implement proper token validation
+8. Use rate limiting for sensitive endpoints
+9. Configure CORS properly
+10. Handle static files securely
+
+## Middleware Setup
+
+The middleware setup follows a specific order:
+
+1. Basic Middleware
+   - Recovery
+   - Request ID
+   - Secure headers
+   - Body limit
+   - MIME type
+   - Static file handling
+
+2. Security Middleware
+   - Security headers
+   - CORS
+   - CSRF
+   - Rate limiting
+
+3. Authentication Middleware
+   - Cookie auth for dashboard
+   - JWT auth for API
+   - Protected routes
+   - Admin routes
+
+## Error Handling
+
+The error logger middleware provides consistent error handling:
+
+1. Domain Error Mapping
+   - Maps domain errors to HTTP status codes
+   - Preserves error context
+   - Provides structured logging
+   - Returns consistent error responses
+
+2. HTTP Error Handling
+   - Handles Echo HTTP errors
+   - Provides proper status codes
+   - Includes error messages
+   - Logs errors appropriately
+
+3. Unknown Error Handling
+   - Logs unknown errors
+   - Returns 500 status code
+   - Includes generic message
+   - Preserves error context
+
+## Performance Considerations
+
+1. Route Matching
+   - Optimize route matching
+   - Use efficient data structures
+   - Cache static file checks
+   - Minimize middleware overhead
+
+2. Static File Handling
+   - Skip unnecessary middleware
+   - Use proper MIME types
+   - Cache static file checks
+   - Optimize file serving
+
+3. Rate Limiting
+   - Use efficient storage
+   - Configure appropriate limits
+   - Handle bursts properly
+   - Log rate limit events
 
 # Middleware Patterns
 
@@ -52,7 +144,7 @@ Middleware configuration is managed through [internal/application/middleware/con
 The application uses two types of authentication middleware:
 
 ### Cookie Authentication
-Implemented in [cookie_auth.go](mdc:goforms/goforms/internal/application/middleware/cookie_auth.go):
+Implemented in [cookie_auth.go](mdc:goforms/goforms/goforms/internal/application/middleware/cookie_auth.go):
 - Centralized token validation
 - Secure cookie attributes (HttpOnly, Secure, SameSite)
 - Optimized route matching
@@ -60,7 +152,7 @@ Implemented in [cookie_auth.go](mdc:goforms/goforms/internal/application/middlew
 - Token blacklist checking
 
 ### JWT Authentication
-Implemented in [auth.go](mdc:goforms/goforms/internal/application/middleware/auth.go):
+Implemented in [auth.go](mdc:goforms/goforms/goforms/internal/application/middleware/auth.go):
 - HMAC token validation
 - Secure header extraction
 - Proper status codes (401/403)

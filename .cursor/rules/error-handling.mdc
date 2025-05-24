@@ -8,39 +8,40 @@ alwaysApply: false
 This project implements a comprehensive error handling system using domain-specific errors.
 
 ## Error Types
-The central error package [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go) defines:
+The central error package [internal/domain/common/errors/errors.go](mdc:goforms/internal/domain/common/errors/errors.go) defines:
 
 1. **Validation Errors**
    - ErrCodeValidation
-   - ErrCodeRequiredField
+   - ErrCodeRequired
+   - ErrCodeInvalid
    - ErrCodeInvalidFormat
-   - ErrCodeInvalidValue
+   - ErrCodeInvalidInput
 
 2. **Authentication Errors**
    - ErrCodeUnauthorized
    - ErrCodeInvalidToken
-   - ErrCodeTokenExpired
-   - ErrCodeInvalidCredentials
-
-3. **Authorization Errors**
-   - ErrCodeForbidden
+   - ErrCodeAuthentication
    - ErrCodeInsufficientRole
 
-4. **Resource Errors**
+3. **Resource Errors**
    - ErrCodeNotFound
-   - ErrCodeAlreadyExists
    - ErrCodeConflict
+   - ErrCodeAlreadyExists
+   - ErrCodeBadRequest
 
-5. **System Errors**
-   - ErrCodeInternal
+4. **Application Lifecycle Errors**
+   - ErrCodeStartup
+   - ErrCodeShutdown
+   - ErrCodeConfig
    - ErrCodeDatabase
    - ErrCodeTimeout
+   - ErrCodeServerError
 
 ## Error Creation
 
 ### Creating New Errors
 ```go
-err := errors.New(errors.ErrCodeValidation, "validation failed")
+err := errors.New(errors.ErrCodeValidation, "validation failed", nil)
 ```
 
 ### Wrapping Errors
@@ -50,7 +51,7 @@ err := errors.Wrap(originalErr, errors.ErrCodeDatabase, "database operation fail
 
 ### Adding Context
 ```go
-err := errors.New(errors.ErrCodeValidation, "validation failed").
+err := errors.New(errors.ErrCodeValidation, "validation failed", nil).
     WithContext("field", "email").
     WithContext("value", "invalid@email")
 ```
@@ -61,23 +62,55 @@ err := errors.New(errors.ErrCodeValidation, "validation failed").
    - Create appropriate error types
    - Use meaningful error codes
    - Add relevant context
+   - Include original error when wrapping
 
 2. **Error Wrapping**
    - Wrap errors at boundaries
    - Preserve error context
    - Add meaningful messages
+   - Use proper error codes
 
 3. **Error Response**
    - Return appropriate HTTP status codes
    - Include error details in response
    - Log errors appropriately
+   - Map domain errors to HTTP status codes
 
 4. **Validation Errors**
    - Use validation package
    - Return descriptive messages
    - Include field context
+   - Use proper error codes
 
 5. **System Errors**
    - Log with stack traces
    - Don't expose internals
    - Use appropriate error codes
+   - Handle startup/shutdown errors
+
+## Error Mapping
+
+The `mapErrorToStatus` function in the error logger maps domain errors to HTTP status codes:
+
+```go
+func mapErrorToStatus(code errors.ErrorCode) int {
+    switch code {
+    case errors.ErrCodeValidation, errors.ErrCodeRequired, errors.ErrCodeInvalid,
+        errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput, errors.ErrCodeBadRequest:
+        return http.StatusBadRequest
+    case errors.ErrCodeUnauthorized, errors.ErrCodeInvalidToken, errors.ErrCodeAuthentication:
+        return http.StatusUnauthorized
+    case errors.ErrCodeForbidden, errors.ErrCodeInsufficientRole:
+        return http.StatusForbidden
+    case errors.ErrCodeNotFound:
+        return http.StatusNotFound
+    case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists:
+        return http.StatusConflict
+    case errors.ErrCodeServerError, errors.ErrCodeStartup, errors.ErrCodeShutdown,
+        errors.ErrCodeConfig, errors.ErrCodeDatabase, errors.ErrCodeTimeout:
+        return http.StatusInternalServerError
+    default:
+        return http.StatusInternalServerError
+    }
+}
+```
