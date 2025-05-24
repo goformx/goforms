@@ -316,21 +316,28 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 
 // Setup authentication middleware (cookie auth, JWT auth, protected/admin groups)
 func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
-	if m.config.UserService != nil {
-		// Create cookie auth middleware for dashboard/admin routes
-		cookieAuth := NewCookieAuthMiddleware(m.config.UserService, m.logger)
-
-		// Create JWT middleware for API routes
-		jwtMiddleware := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.logger, m.config.Config)
-
-		// Create protected API routes group (with JWT middleware)
-		protected := e.Group("/api/v1")
-		protected.Use(jwtMiddleware)
-
-		// Create admin/dashboard routes group (with cookie auth)
-		admin := e.Group("/dashboard")
-		admin.Use(cookieAuth.RequireAuth)
+	if m.config.UserService == nil {
+		m.logger.Warn("Skipping auth middleware setup: UserService is nil")
+		return
 	}
+
+	// Create cookie auth middleware for dashboard/admin routes
+	cookieAuth := NewCookieAuthMiddleware(m.config.UserService, m.logger)
+
+	// Create JWT middleware for API routes
+	jwtMiddleware := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.logger, m.config.Config)
+
+	// Create protected API routes group (with JWT middleware)
+	protected := e.Group("/api/v1")
+	protected.Use(jwtMiddleware)
+
+	// Create admin/dashboard routes group (with cookie auth)
+	admin := e.Group("/dashboard")
+	admin.Use(cookieAuth.RequireAuth)
+
+	m.logger.Info("Auth middleware setup complete",
+		logging.String("jwt_secret_length", fmt.Sprintf("%d", len(m.config.Security.JWTSecret))),
+		logging.Bool("csrf_enabled", m.config.Security.CSRF.Enabled))
 }
 
 // Setup initializes the middleware manager with the Echo instance
@@ -338,9 +345,20 @@ func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Info("starting middleware setup")
 
 	// Enable debug mode and set log level
-	e.Debug = true
+	e.Debug = m.config.Security.Debug
 	if l, ok := e.Logger.(*log.Logger); ok {
-		l.SetLevel(log.DEBUG)
+		level := log.INFO
+		switch strings.ToLower(m.config.Security.LogLevel) {
+		case "debug":
+			level = log.DEBUG
+		case "info":
+			level = log.INFO
+		case "warn":
+			level = log.WARN
+		case "error":
+			level = log.ERROR
+		}
+		l.SetLevel(level)
 		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
 	}
 
@@ -353,12 +371,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 // ValidateCSRFToken validates the CSRF token in the request
 func ValidateCSRFToken(c echo.Context) error {
-	tokenStr, err := retrieveCSRFToken(c)
-	if err != nil {
-		return echo.NewHTTPError(http.StatusForbidden, err.Error())
-	}
-
-	// Get token from request
 	reqToken := c.Request().Header.Get(echo.HeaderXCSRFToken)
 	if reqToken == "" {
 		reqToken = c.FormValue("_csrf")
@@ -367,9 +379,9 @@ func ValidateCSRFToken(c echo.Context) error {
 		return echo.NewHTTPError(http.StatusForbidden, "CSRF token not provided in request")
 	}
 
-	// Compare tokens
-	if reqToken != tokenStr {
-		return echo.NewHTTPError(http.StatusForbidden, "CSRF token mismatch: provided token does not match expected value")
+	expectedToken, err := retrieveCSRFToken(c)
+	if err != nil || reqToken != expectedToken {
+		return echo.NewHTTPError(http.StatusForbidden, "CSRF token mismatch or missing")
 	}
 
 	return nil

@@ -128,6 +128,8 @@ type ServerConfig struct {
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
 	JWTSecret            string `envconfig:"GOFORMS_JWT_SECRET" validate:"required"`
+	Debug                bool   `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
+	LogLevel             string `envconfig:"GOFORMS_SECURITY_LOG_LEVEL" default:"info"`
 	CSRF                 CSRFConfig
 	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
 	CorsAllowedMethods   CORSMethodsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_METHODS"`
