@@ -42,7 +42,7 @@ func (m *ErrorLogger) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 
 			// Map domain errors to HTTP status codes
 			status := mapErrorToStatus(domainErr.Code)
-			return c.JSON(status, map[string]interface{}{
+			return c.JSON(status, map[string]any{
 				"error": domainErr.Message,
 				"code":  domainErr.Code,
 			})
@@ -56,7 +56,7 @@ func (m *ErrorLogger) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 				logging.StringField("path", c.Request().URL.Path),
 				logging.StringField("method", c.Request().Method),
 			)
-			return c.JSON(he.Code, map[string]interface{}{
+			return c.JSON(he.Code, map[string]any{
 				"error": he.Message,
 			})
 		}
@@ -67,7 +67,7 @@ func (m *ErrorLogger) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 			logging.StringField("path", c.Request().URL.Path),
 			logging.StringField("method", c.Request().Method),
 		)
-		return c.JSON(http.StatusInternalServerError, map[string]interface{}{
+		return c.JSON(http.StatusInternalServerError, map[string]any{
 			"error": "Internal server error",
 		})
 	}
