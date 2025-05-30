@@ -82,4 +82,18 @@ export class FormService {
       throw new Error(error.message || "Failed to update form details");
     }
   }
+
+  async deleteForm(formId: string): Promise<void> {
+    const response = await fetch(`${this.baseUrl}/${formId}`, {
+      method: "DELETE",
+      headers: {
+        "X-CSRF-Token": this.getCSRFToken(),
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.message || "Failed to delete form");
+    }
+  }
 }
