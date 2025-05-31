@@ -46,6 +46,7 @@ func (h *FormHandler) Register(e *echo.Echo) {
 
 	// Public form submission endpoints
 	formGroup.POST("/:formID/submit", h.handleFormSubmission)
+	formGroup.GET("/:formID/schema", h.handleGetFormSchema)
 
 	// Protected admin endpoints - apply auth middleware to a subgroup
 	adminGroup := formGroup.Group("", h.authMiddleware.RequireAuth)
@@ -191,4 +192,24 @@ func (h *FormHandler) handleDeleteForm(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+// handleGetFormSchema handles getting a form's schema (public endpoint)
+func (h *FormHandler) handleGetFormSchema(c echo.Context) error {
+	formID := c.Param("formID")
+	if formID == "" {
+		return echo.NewHTTPError(http.StatusBadRequest, "Form ID is required")
+	}
+
+	formData, err := h.formService.GetForm(formID)
+	if err != nil {
+		h.base.LogError("failed to get form schema", err)
+		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to get form schema")
+	}
+
+	if formData == nil {
+		return echo.NewHTTPError(http.StatusNotFound, "Form not found")
+	}
+
+	return c.JSON(http.StatusOK, formData.Schema)
 }

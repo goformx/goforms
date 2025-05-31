@@ -20,6 +20,7 @@ const (
 type Config struct {
 	Level   string
 	AppName string
+	Debug   bool
 }
 
 // Factory creates loggers based on configuration
@@ -52,9 +53,13 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 
 	// Parse log level
 	var level zapcore.Level
-	levelErr := level.UnmarshalText([]byte(cfg.Level))
-	if levelErr != nil {
-		level = zapcore.InfoLevel // fallback
+	if cfg.Debug {
+		level = zapcore.DebugLevel
+	} else {
+		levelErr := level.UnmarshalText([]byte(cfg.Level))
+		if levelErr != nil {
+			level = zapcore.InfoLevel // fallback
+		}
 	}
 
 	zapConfig := zap.NewDevelopmentConfig()

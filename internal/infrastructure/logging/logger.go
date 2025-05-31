@@ -39,10 +39,6 @@ func NewLogger(logLevel, appName string) (Logger, error) {
 	config.Encoding = "console"
 	config.Level = zap.NewAtomicLevelAt(level)
 
-	if level >= zapcore.WarnLevel {
-		config.Encoding = "json"
-	}
-
 	zapLog, err := config.Build(
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),

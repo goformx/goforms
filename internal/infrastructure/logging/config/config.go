@@ -10,8 +10,8 @@ type Config struct {
 // New creates a new logging configuration
 func New() *Config {
 	return &Config{
-		Level:   "info",
+		Level:   "debug",
 		AppName: "goforms",
-		Debug:   false,
+		Debug:   true,
 	}
 }
