@@ -40,9 +40,17 @@ func NewJWTMiddleware(
 
 // isStaticPath checks if the path is for static content
 func (m *JWTMiddleware) isStaticPath(path string) bool {
-	return strings.HasPrefix(path, "/"+m.config.Static.DistDir+"/") ||
-		path == "/favicon.ico" ||
-		path == "/robots.txt"
+	// Check for common static files first
+	if path == "/favicon.ico" || path == "/robots.txt" {
+		return true
+	}
+
+	// Check for static directory if config is available
+	if m.config != nil && m.config.Static.DistDir != "" {
+		return strings.HasPrefix(path, "/"+m.config.Static.DistDir+"/")
+	}
+
+	return false
 }
 
 // isValidationAPI checks if the path is for validation API
@@ -60,6 +68,12 @@ func (m *JWTMiddleware) isPublicPage(path string) bool {
 		strings.HasPrefix(path, "/api/v1/auth/login")
 }
 
+// isPublicAPI checks if the path is for a public API endpoint
+func (m *JWTMiddleware) isPublicAPI(path string) bool {
+	return strings.HasPrefix(path, "/api/v1/forms/") &&
+		(strings.HasSuffix(path, "/schema") || strings.HasSuffix(path, "/submit"))
+}
+
 // Handle processes JWT authentication
 func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {
@@ -71,6 +85,14 @@ func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 			m.logger.Debug("skipping auth check",
 				logging.StringField("path", path),
 				logging.StringField("reason", "static content path"))
+			return next(c)
+		}
+
+		// Skip authentication for public API endpoints
+		if m.isPublicAPI(path) {
+			m.logger.Debug("skipping auth check",
+				logging.StringField("path", path),
+				logging.StringField("reason", "public API endpoint"))
 			return next(c)
 		}
 

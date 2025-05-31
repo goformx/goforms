@@ -340,6 +340,24 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
+	// Form handler
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (h.Handler, error) {
+		handler, err := handler.NewFormHandler(
+			core.Logger,
+			services.FormService,
+			nil, // formClient is not needed for schema endpoint
+			services.UserService,
+		)
+		if err != nil {
+			return nil, fmt.Errorf("failed to create form handler: %w", err)
+		}
+		core.Logger.Debug("registered handler",
+			logging.StringField("handler_name", "FormHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("operation", "handler_registration"),
+		)
+		return handler, nil
+	}),
 )
 
 // ServerModule provides the HTTP server setup.

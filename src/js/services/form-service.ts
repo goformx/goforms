@@ -6,15 +6,26 @@ export interface FormSchema {
 
 export class FormService {
   private static instance: FormService;
-  private baseUrl = "/dashboard/forms";
+  private baseUrl: string;
 
-  private constructor() {}
+  private constructor() {
+    // Use environment-based base URL
+    this.baseUrl =
+      process.env.NODE_ENV === "production"
+        ? "https://goformx.com" // Production URL
+        : "http://localhost:8090"; // Development URL
+  }
 
-  static getInstance(): FormService {
+  public static getInstance(): FormService {
     if (!FormService.instance) {
       FormService.instance = new FormService();
     }
     return FormService.instance;
+  }
+
+  // Set base URL (useful for testing or custom deployments)
+  public setBaseUrl(url: string): void {
+    this.baseUrl = url;
   }
 
   private getCSRFToken(): string {
@@ -26,11 +37,13 @@ export class FormService {
   }
 
   async getSchema(formId: string): Promise<FormSchema> {
-    const response = await fetch(`${this.baseUrl}/${formId}/schema`);
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/forms/${formId}/schema`,
+    );
     if (!response.ok) {
       throw new Error("Failed to load form schema");
     }
-    return response.json();
+    return response.json().then((data) => data as FormSchema);
   }
 
   async saveSchema(formId: string, schema: FormSchema): Promise<FormSchema> {
@@ -95,5 +108,28 @@ export class FormService {
       const error = await response.json();
       throw new Error(error.message || "Failed to delete form");
     }
+  }
+
+  async submitForm(formId: string, data: FormData): Promise<Response> {
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/forms/${formId}/submit`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Accept": "application/json",
+        },
+        body: JSON.stringify(data),
+      },
+    );
+
+    if (!response.ok) {
+      const error = await response
+        .json()
+        .catch(() => ({ message: "Failed to submit form" }));
+      throw new Error(error.message || "Failed to submit form");
+    }
+
+    return response;
   }
 }
