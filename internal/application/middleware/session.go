@@ -164,6 +164,7 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 
 	// Check other exempt paths
 	exemptPaths := []string{
+		"/",
 		"/api/validation/",
 		"/login",
 		"/signup",
