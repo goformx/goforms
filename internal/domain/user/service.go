@@ -34,6 +34,7 @@ type Service interface {
 	ValidateToken(ctx context.Context, token string) error
 	GetUserIDFromToken(ctx context.Context, token string) (uint, error)
 	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
+	Authenticate(ctx context.Context, email, password string) (*User, error)
 }
 
 // ServiceImpl implements the Service interface
@@ -216,4 +217,37 @@ func (s *ServiceImpl) GetUserIDFromToken(ctx context.Context, token string) (uin
 func (s *ServiceImpl) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
 	// TODO: Implement token blacklist check
 	return false, nil
+}
+
+// Authenticate matches the domain.UserService interface
+func (s *ServiceImpl) Authenticate(ctx context.Context, email, password string) (*User, error) {
+	s.logger.Debug("attempting authenticate",
+		logging.StringField("email", email),
+		logging.BoolField("has_password", password != ""),
+	)
+
+	user, err := s.store.GetByEmail(ctx, email)
+	if err != nil {
+		s.logger.Error("failed to get user by email",
+			logging.ErrorField("error", err),
+			logging.StringField("email", email),
+		)
+		return nil, ErrInvalidCredentials
+	}
+	if user == nil {
+		s.logger.Error("user not found", logging.StringField("email", email))
+		return nil, ErrInvalidCredentials
+	}
+
+	s.logger.Debug("user found",
+		logging.StringField("email", user.Email),
+		logging.BoolField("active", user.Active),
+	)
+
+	if !user.CheckPassword(password) {
+		s.logger.Error("password mismatch", logging.StringField("email", email))
+		return nil, ErrInvalidCredentials
+	}
+
+	return user, nil
 }

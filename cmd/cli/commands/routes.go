@@ -4,7 +4,7 @@ import (
 	"context"
 	"fmt"
 
-	"github.com/goformx/goforms/internal/application/handler"
+	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/bootstrap"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
@@ -30,7 +30,7 @@ func ListRoutes(c *cli.Context) error {
 	options = append(options, bootstrap.Providers()...)
 	options = append(options, bootstrap.ServerProviders()...)
 	options = append(options, bootstrap.HandlerProviders()...)
-	options = append(options, fx.Invoke(func(e *echo.Echo, handlers []handler.Handler) {
+	options = append(options, fx.Invoke(func(e *echo.Echo, handlers []web.Handler) {
 		// Register all handlers
 		for _, h := range handlers {
 			h.Register(e)

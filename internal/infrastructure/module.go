@@ -9,14 +9,12 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/handler"
+	"github.com/goformx/goforms/internal/application/handlers/health"
+	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/application/services/formops"
-	pagedata "github.com/goformx/goforms/internal/application/services/page_data"
 	"github.com/goformx/goforms/internal/domain/form"
 	healthdomain "github.com/goformx/goforms/internal/domain/services/health"
 	"github.com/goformx/goforms/internal/domain/user"
-	wh_auth "github.com/goformx/goforms/internal/handlers/web/auth"
 	healthadapter "github.com/goformx/goforms/internal/infrastructure/adapters/health"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
@@ -24,7 +22,6 @@ import (
 	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/jmoiron/sqlx"
 )
@@ -62,19 +59,13 @@ type ServiceParams struct {
 	FormService form.Service
 }
 
-// ServiceContainer holds all service instances
-type ServiceContainer struct {
-	PageDataService pagedata.Service
-	FormOperations  formops.Service
-}
-
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
 // It wraps the common fx.Provide and fx.Annotate pattern used for handlers.
 func AnnotateHandler(fn any) fx.Option {
 	return fx.Provide(
 		fx.Annotate(
 			fn,
-			fx.As(new(handler.Handler)),
+			fx.As(new(web.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),
 	)
@@ -223,77 +214,42 @@ var HandlerModule = fx.Options(
 	fx.Provide(func(core CoreParams) *appmiddleware.SessionManager {
 		return appmiddleware.NewSessionManager(core.Logger)
 	}),
-	// Static file handler (must be first)
-	AnnotateHandler(func(core CoreParams) (handler.Handler, error) {
-		handler := handler.NewStaticHandler(core.Logger, core.Config)
-		if handler == nil {
-			return nil, errors.New("failed to create static handler")
-		}
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "StaticHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
 	// Web handlers
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
-		handler := wh_auth.NewWebLoginHandler(core.Logger, services.UserService)
+	AnnotateHandler(func(
+		core CoreParams,
+		services ServiceParams,
+		middlewareManager *appmiddleware.Manager,
+		sessionManager *appmiddleware.SessionManager,
+	) (web.Handler, error) {
+		baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
+		handler := web.NewWebHandler(
+			baseHandler,
+			services.UserService,
+			sessionManager,
+			core.Renderer,
+			middlewareManager,
+			core.Config,
+			core.Logger,
+		)
 		if handler == nil {
-			return nil, errors.New("failed to create web login handler")
+			return nil, errors.New("failed to create web handler")
 		}
 		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "WebLoginHandler"),
+			logging.StringField("handler_name", "WebHandler"),
 			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
 			logging.StringField("operation", "handler_registration"),
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(
-		func(
-			core CoreParams,
-			services ServiceParams,
-			middlewareManager *appmiddleware.Manager,
-			sessionManager *appmiddleware.SessionManager,
-		) (handler.Handler, error) {
-			baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-			webHandler := handler.NewWebHandler(
-				baseHandler,
-				services.UserService,
-				sessionManager,
-				core.Renderer,
-				middlewareManager,
-				core.Config,
-				core.Logger,
-			)
-			if webHandler == nil {
-				return nil, errors.New("failed to create web handler")
-			}
-
-			// Validate dependencies
-			if err := webHandler.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate web handler: %w", err)
-			}
-
-			core.Logger.Debug(
-				"registered handler",
-				logging.StringField("handler_name", "WebHandler"),
-				logging.StringField("handler_type", fmt.Sprintf("%T", webHandler)),
-				logging.StringField("operation", "handler_registration"),
-			)
-			return webHandler, nil
-		},
-	),
 	// Auth handler
 	AnnotateHandler(func(
 		core CoreParams,
 		services ServiceParams,
 		middlewareManager *appmiddleware.Manager,
 		sessionManager *appmiddleware.SessionManager,
-	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-
-		authHandler := handler.NewAuthHandler(
+	) (web.Handler, error) {
+		baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
+		authHandler := web.NewAuthHandler(
 			baseHandler,
 			services.UserService,
 			sessionManager,
@@ -314,67 +270,8 @@ var HandlerModule = fx.Options(
 
 		return authHandler, nil
 	}),
-	// Form handler
-	AnnotateHandler(func(
-		core CoreParams,
-		services ServiceParams,
-	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-		formOperations := formops.NewService(services.FormService, core.Logger)
-		formHandler := handlers.NewFormHandler(
-			services.FormService,
-			formOperations,
-			services.UserService,
-			core.Config,
-			core.Logger,
-			baseHandler,
-		)
-
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "FormHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", formHandler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return formHandler, nil
-	}),
-	// Submission handler
-	AnnotateHandler(func(
-		core CoreParams,
-		services ServiceParams,
-	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-		submissionHandler := handlers.NewSubmissionHandler(services.FormService, core.Logger, baseHandler)
-
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "SubmissionHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", submissionHandler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return submissionHandler, nil
-	}),
-	// Schema handler
-	AnnotateHandler(func(
-		core CoreParams,
-		services ServiceParams,
-	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-		schemaHandler := handlers.NewSchemaHandler(
-			services.FormService,
-			services.UserService,
-			core.Config,
-			core.Logger,
-			baseHandler,
-		)
-
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "SchemaHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", schemaHandler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return schemaHandler, nil
-	}),
 	// Health handler
-	AnnotateHandler(func(core CoreParams, db *database.Database) (handler.Handler, error) {
+	AnnotateHandler(func(core CoreParams, db *database.Database) (web.Handler, error) {
 		// Create repository
 		repo := healthadapter.NewRepository(db.DB)
 
@@ -382,7 +279,7 @@ var HandlerModule = fx.Options(
 		svc := healthdomain.NewService(core.Logger, repo)
 
 		// Create handler
-		handler := healthdomain.NewHandler(core.Logger, svc)
+		handler := health.NewHandler(svc, core.Logger)
 
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "HealthHandler"),
@@ -400,12 +297,10 @@ var HandlerModule = fx.Options(
 		return appmiddleware.New(&appmiddleware.ManagerConfig{
 			Logger:         core.Logger,
 			UserService:    services.UserService,
-			Security:       &core.Config.Security,
-			Config:         core.Config,
 			SessionManager: sessionManager,
+			Config:         core.Config,
 		})
 	}),
-	fx.Provide(pagedata.NewService),
 )
 
 // ServerModule provides the HTTP server setup.

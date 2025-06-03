@@ -13,7 +13,7 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/handler"
+	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/bootstrap"
 	"github.com/goformx/goforms/internal/domain"
@@ -21,7 +21,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -69,7 +68,6 @@ func main() {
 
 		// Invoke functions
 		fx.Invoke(
-			web.InitializeAssets,
 			startServer,
 			initializeLogger,
 		),
@@ -131,14 +129,14 @@ type ServerParams struct {
 	Server            *server.Server
 	Config            *config.Config
 	Logger            logging.Logger
-	Handlers          []handler.Handler `group:"handlers"`
+	WebHandlers       []web.Handler `group:"web_handlers"`
 	MiddlewareManager *middleware.Manager
 }
 
 // startServer registers all handlers with the server.
 func startServer(params ServerParams) error {
-	// Register all handlers with the server
-	for _, h := range params.Handlers {
+	// Register all web handlers with the server
+	for _, h := range params.WebHandlers {
 		h.Register(params.Server.Echo())
 	}
 
