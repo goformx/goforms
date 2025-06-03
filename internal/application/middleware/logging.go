@@ -113,9 +113,9 @@ func (m *Logging) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 			}
 
 			// Log based on status code
-			if v.Status >= 500 {
+			if v.Status >= 500 { //nolint:mnd // 500 is a business rule for server error
 				m.logger.Error("request failed", fields...)
-			} else if v.Status >= 400 {
+			} else if v.Status >= 400 { //nolint:mnd // 400 is a business rule for client error
 				m.logger.Warn("request failed", fields...)
 			} else {
 				m.logger.Info("request completed", fields...)
