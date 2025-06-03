@@ -1,7 +1,6 @@
 package infrastructure
 
 import (
-	"database/sql"
 	"errors"
 	"fmt"
 	"strings"
@@ -186,42 +185,6 @@ func validateConfig(cfg *config.Config, logger logging.Logger) error {
 
 	logger.Info("validateConfig: Configuration validation successful")
 	return nil
-}
-
-// Module represents the infrastructure module
-type Module struct {
-	app         *fx.App
-	config      *config.Config
-	logger      logging.Logger
-	db          *sql.DB
-	formService form.Service
-	userService user.Service
-	services    *ServiceContainer
-	handler     *handlers.Handler
-}
-
-// NewModule creates a new infrastructure module
-func NewModule(
-	app *fx.App,
-	appConfig *config.Config,
-	logger logging.Logger,
-	db *sql.DB,
-	formService form.Service,
-	userService user.Service,
-) *Module {
-	m := &Module{
-		app:         app,
-		config:      appConfig,
-		logger:      logger,
-		db:          db,
-		formService: formService,
-		userService: userService,
-	}
-
-	m.initializeServices()
-	m.initializeHandlers()
-
-	return m
 }
 
 // InfrastructureModule provides core infrastructure dependencies.
@@ -569,37 +532,4 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 	)
 
 	return stores, nil
-}
-
-// initializeServices initializes all services
-func (m *Module) initializeServices() {
-	m.services = &ServiceContainer{
-		PageDataService: pagedata.NewService(m.logger),
-		FormOperations:  formops.NewService(m.formService, m.logger),
-	}
-}
-
-// initializeHandlers initializes all handlers
-func (m *Module) initializeHandlers() {
-	// Create base handler
-	baseHandler := handlers.NewBaseHandler(m.formService, m.logger)
-
-	// Create feature handlers
-	formHandler := handlers.NewFormHandler(m.formService, m.services.FormOperations, m.logger, baseHandler)
-	submissionHandler := handlers.NewSubmissionHandler(m.formService, m.logger, baseHandler)
-	schemaHandler := handlers.NewSchemaHandler(m.formService, m.logger, baseHandler)
-
-	// Create main handler
-	mainHandler, err := handlers.NewHandler(m.userService, m.formService, m.logger, m.services.PageDataService)
-	if err != nil {
-		m.logger.Error("failed to create handler", logging.Error(err))
-		return
-	}
-
-	// Set the handlers
-	mainHandler.FormHandler = formHandler
-	mainHandler.SubmissionHandler = submissionHandler
-	mainHandler.SchemaHandler = schemaHandler
-
-	m.handler = mainHandler
 }

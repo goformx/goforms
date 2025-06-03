@@ -143,27 +143,3 @@ func convertToZapFields(fields []any) []zap.Field {
 	}
 	return zapFields
 }
-
-// CreateTestLogger creates a logger for testing
-func (f *Factory) CreateTestLogger() (Logger, error) {
-	return NewTestLogger()
-}
-
-// AuthLogger returns the shared logger for auth middleware
-func (f *Factory) AuthLogger(logger Logger) Logger {
-	return logger
-}
-
-// CookieAuthLogger returns the shared logger for cookie auth middleware
-func (f *Factory) CookieAuthLogger(logger Logger) Logger {
-	return logger
-}
-
-// FromAppConfig converts an application config to a logging config
-func FromAppConfig(appName, logLevel string, debug bool) *config.Config {
-	return &config.Config{
-		Level:   logLevel,
-		AppName: appName,
-		Debug:   debug,
-	}
-}

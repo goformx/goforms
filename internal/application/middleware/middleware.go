@@ -31,12 +31,6 @@ const (
 	CookieMaxAge = 86400
 )
 
-// Middleware represents the application middleware
-type Middleware struct {
-	config Config
-	logger logging.Logger
-}
-
 // Config represents the middleware configuration
 type Config struct {
 	Security    *appconfig.SecurityConfig
@@ -60,65 +54,6 @@ type SecurityConfig struct {
 	FormCorsAllowedHeaders appconfig.CORSHeadersDecoder
 	FormRateLimit          int
 	FormRateLimitWindow    time.Duration
-}
-
-// NewMiddleware creates a new middleware
-func NewMiddleware(cfg Config, logger logging.Logger) *Middleware {
-	if cfg.UserService == nil {
-		panic("UserService is required for middleware")
-	}
-	if cfg.Config == nil {
-		panic("Config is required for middleware")
-	}
-	return &Middleware{
-		config: cfg,
-		logger: logger,
-	}
-}
-
-// Initialize initializes the middleware
-func (m *Middleware) Initialize(e *echo.Echo) {
-	// Log middleware initialization
-	m.logger.Info("initializing middleware")
-
-	// Add middleware
-	e.Use(echomw.Recover())
-	e.Use(m.Logger())
-	e.Use(echomw.CORS())
-	e.Use(echomw.Secure())
-	e.Use(echomw.BodyLimit("2M"))
-	e.Use(echomw.MethodOverride())
-	e.Use(echomw.RequestID())
-	e.Use(echomw.Gzip())
-	e.Use(echomw.CSRF())
-}
-
-// Logger returns the logging middleware
-func (m *Middleware) Logger() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			req := c.Request()
-			res := c.Response()
-			start := time.Now()
-
-			err := next(c)
-			if err != nil {
-				c.Error(err)
-			}
-
-			latency := time.Since(start)
-			status := res.Status
-
-			m.logger.Info("request completed",
-				logging.StringField("method", req.Method),
-				logging.StringField("path", req.URL.Path),
-				logging.IntField("status", status),
-				logging.DurationField("latency", latency),
-			)
-
-			return nil
-		}
-	}
 }
 
 // Manager handles middleware configuration and setup
