@@ -121,3 +121,8 @@ func (h *BaseHandler) Validate() error {
 	}
 	return nil
 }
+
+// Logger returns the logger instance
+func (h *BaseHandler) Logger() logging.Logger {
+	return h.logger
+}

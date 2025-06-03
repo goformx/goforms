@@ -16,7 +16,6 @@ import (
 	"github.com/goformx/goforms/internal/domain/form"
 	healthdomain "github.com/goformx/goforms/internal/domain/services/health"
 	"github.com/goformx/goforms/internal/domain/user"
-	webhandler "github.com/goformx/goforms/internal/handlers/web"
 	wh_auth "github.com/goformx/goforms/internal/handlers/web/auth"
 	healthadapter "github.com/goformx/goforms/internal/infrastructure/adapters/health"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -238,18 +237,6 @@ var HandlerModule = fx.Options(
 		return handler, nil
 	}),
 	// Web handlers
-	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (handler.Handler, error) {
-		handler := webhandler.NewHomeHandler(core.Logger)
-		if handler == nil {
-			return nil, errors.New("failed to create home handler")
-		}
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "HomeHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
 		handler := wh_auth.NewWebLoginHandler(core.Logger, services.UserService)
 		if handler == nil {

@@ -9,6 +9,7 @@ import (
 	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -25,6 +26,7 @@ type PageHandler struct {
 	cfg               *config.Config
 	userService       user.Service
 	sessionManager    *amw.SessionManager
+	Logger            logging.Logger
 }
 
 // NewPageHandler creates a new page handler
@@ -43,6 +45,7 @@ func NewPageHandler(
 		renderer:          renderer,
 		middlewareManager: middlewareManager,
 		cfg:               cfg,
+		Logger:            baseHandler.Logger(),
 	}
 }
 
@@ -57,7 +60,10 @@ func (h *PageHandler) Register(e *echo.Echo) {
 	e.GET("/demo", h.handleDemo)
 
 	// Protected pages
+	authMiddleware := amw.NewAuthMiddleware(h.userService, h.Logger, h.cfg).Middleware()
 	protected := e.Group("")
+	protected.Use(h.sessionManager.SessionMiddleware())
+	protected.Use(authMiddleware)
 	protected.GET("/dashboard", h.handleDashboard)
 	protected.GET("/profile", h.handleProfile)
 	protected.GET("/settings", h.handleSettings)

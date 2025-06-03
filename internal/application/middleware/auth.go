@@ -100,7 +100,8 @@ func (m *AuthMiddleware) isAuthExempt(path string) bool {
 		strings.HasPrefix(path, "/signup") ||
 		strings.HasPrefix(path, "/forgot-password") ||
 		strings.HasPrefix(path, "/contact") ||
-		strings.HasPrefix(path, "/demo")
+		strings.HasPrefix(path, "/demo") ||
+		strings.HasPrefix(path, "/")
 }
 
 // handleAuthError handles authentication errors
@@ -108,7 +109,9 @@ func (m *AuthMiddleware) handleAuthError(c echo.Context, message string) error {
 	m.logger.Error("auth check failed",
 		logging.StringField("path", c.Path()),
 		logging.StringField("method", c.Request().Method),
-		logging.StringField("error", message))
+		logging.StringField("error", message),
+	)
+	m.logger.Debug("Redirecting to /login from auth middleware", logging.StringField("path", c.Path()), logging.StringField("reason", message))
 
 	// For API requests, return 401
 	if c.Request().Header.Get("Accept") == "application/json" {

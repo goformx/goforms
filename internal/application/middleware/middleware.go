@@ -266,12 +266,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 	m.setupBasicMiddleware(e)
 	m.setupSecurityMiddleware(e)
 
-	// Add session middleware
-	m.logger.Debug("registering middleware", logging.StringField("type", "session"))
-	e.Use(m.config.SessionManager.SessionMiddleware())
-
-	// Add auth middleware
-	m.setupAuthMiddleware(e)
+	// Add security headers middleware
+	m.setupSecurityHeadersMiddleware(e)
 
 	m.logger.Info("middleware setup complete")
 }
@@ -350,11 +346,9 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	}
 }
 
-// Setup authentication middleware (cookie auth, protected/admin groups)
-func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
-	m.logger.Info("setting up authentication middleware")
-
-	// Add security headers
+// Setup security headers middleware (adds extra security headers to all responses)
+func (m *Manager) setupSecurityHeadersMiddleware(e *echo.Echo) {
+	m.logger.Info("setting up security headers middleware")
 	m.logger.Debug("registering middleware", logging.StringField("type", "security_headers"))
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
@@ -369,9 +363,4 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 			return next(c)
 		}
 	})
-
-	// Add auth middleware
-	m.logger.Debug("registering middleware", logging.StringField("type", "auth"))
-	authMiddleware := NewAuthMiddleware(m.config.UserService, m.logger, m.config.Config)
-	e.Use(authMiddleware.Middleware())
 }
