@@ -29,7 +29,7 @@ func CreateUser(c *cli.Context) error {
 	store := userStore.NewStore(db, logger)
 
 	// Create user service
-	userService := user.NewService(store, logger, "your-jwt-secret")
+	userService := user.NewService(store, logger)
 
 	// Create new user
 	newUser := &user.User{
@@ -80,7 +80,7 @@ func ListUsers(c *cli.Context) error {
 	store := userStore.NewStore(db, logger)
 
 	// Create user service
-	userService := user.NewService(store, logger, "your-jwt-secret")
+	userService := user.NewService(store, logger)
 
 	// Get all users
 	users, listErr := userService.ListUsers(ctx)
@@ -125,7 +125,7 @@ func DeleteUser(c *cli.Context) error {
 	store := userStore.NewStore(db, logger)
 
 	// Create user service
-	userService := user.NewService(store, logger, "your-jwt-secret")
+	userService := user.NewService(store, logger)
 
 	// Delete user
 	userID := c.Uint("id")
