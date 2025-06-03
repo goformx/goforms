@@ -168,6 +168,9 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	e.POST("/signup", h.handleSignupPost)
 	e.POST("/logout", h.handleLogout)
 
+	// Validation routes
+	e.GET("/api/validation/signup", h.handleSignupValidation)
+
 	// Protected routes
 	protected := e.Group("")
 	protected.Use(h.sessionManager.SessionMiddleware())
@@ -421,4 +424,36 @@ func (h *WebHandler) handleForms(c echo.Context) error {
 // handleNewForm renders the new form page
 func (h *WebHandler) handleNewForm(c echo.Context) error {
 	return h.renderPage(c, "New Form", pages.NewForm)
+}
+
+// handleSignupValidation returns the validation schema for the signup form
+func (h *WebHandler) handleSignupValidation(c echo.Context) error {
+	schema := map[string]interface{}{
+		"first_name": map[string]interface{}{
+			"type":    "string",
+			"min":     1,
+			"message": "First name is required",
+		},
+		"last_name": map[string]interface{}{
+			"type":    "string",
+			"min":     1,
+			"message": "Last name is required",
+		},
+		"email": map[string]interface{}{
+			"type":    "email",
+			"message": "Please enter a valid email address",
+		},
+		"password": map[string]interface{}{
+			"type":    "password",
+			"min":     8,
+			"message": "Password must be at least 8 characters long",
+		},
+		"confirm_password": map[string]interface{}{
+			"type":       "match",
+			"matchField": "password",
+			"message":    "Passwords must match",
+		},
+	}
+
+	return c.JSON(http.StatusOK, schema)
 }

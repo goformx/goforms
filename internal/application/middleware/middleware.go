@@ -44,7 +44,9 @@ type Middleware struct {
 
 // Config represents the middleware configuration
 type Config struct {
-	Security SecurityConfig
+	Security    SecurityConfig
+	UserService user.Service
+	Config      *appconfig.Config
 }
 
 // SecurityConfig represents the security configuration
@@ -53,6 +55,12 @@ type SecurityConfig struct {
 
 // NewMiddleware creates a new middleware
 func NewMiddleware(cfg Config, logger logging.Logger) *Middleware {
+	if cfg.UserService == nil {
+		panic("UserService is required for middleware")
+	}
+	if cfg.Config == nil {
+		panic("Config is required for middleware")
+	}
 	return &Middleware{
 		config: cfg,
 		logger: logger,
@@ -113,12 +121,8 @@ func (m *Middleware) RateLimit() echo.MiddlewareFunc {
 
 // Auth returns the authentication middleware
 func (m *Middleware) Auth() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// TODO: Implement authentication middleware
-			return next(c)
-		}
-	}
+	authMiddleware := NewAuthMiddleware(m.config.UserService, m.logger, m.config.Config)
+	return authMiddleware.Middleware()
 }
 
 // Manager handles middleware configuration and setup
@@ -261,6 +265,10 @@ func setupCSRF() echo.MiddlewareFunc {
 				return true
 			}
 
+			if strings.HasPrefix(path, "/api/validation/") {
+				return true
+			}
+
 			if strings.HasPrefix(path, "/api/") {
 				authHeader := c.Request().Header.Get("Authorization")
 				if authHeader != "" {
@@ -370,14 +378,12 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		HSTSExcludeSubdomains: false,
 		ContentSecurityPolicy: strings.Join([]string{
 			"default-src 'self' http://localhost:3000; ",
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' " +
-				"http://localhost:3000 https://cdn.form.io https://cdn.jsdelivr.net; ",
-			"worker-src 'self' blob:; ",
-			"style-src 'self' 'unsafe-inline' " +
-				"http://localhost:3000 https://fonts.googleapis.com " +
-				"https://cdn.form.io https://cdn.jsdelivr.net; ",
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; ",
+			"script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; ",
+			"style-src 'self' 'unsafe-inline' http://localhost:3000; ",
+			"style-src-elem 'self' 'unsafe-inline' http://localhost:3000; ",
 			"img-src 'self' data: http://localhost:3000; ",
-			"font-src 'self' http://localhost:3000 https://fonts.googleapis.com https://fonts.gstatic.com; ",
+			"font-src 'self' http://localhost:3000; ",
 			"connect-src 'self' http://localhost:3000 ws://localhost:3000;",
 		}, ""),
 		ReferrerPolicy: "strict-origin-when-cross-origin",
@@ -424,10 +430,6 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 			c.Response().Header().Set("X-Frame-Options", "DENY")
 			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
 			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-			c.Response().Header().Set("Content-Security-Policy",
-				"default-src 'self'; "+
-					"script-src 'self' 'unsafe-inline' 'unsafe-eval'; "+
-					"style-src 'self' 'unsafe-inline';")
 			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
