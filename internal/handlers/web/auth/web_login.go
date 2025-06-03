@@ -1,10 +1,11 @@
 package auth
 
 import (
-	"net/http"
-
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
 )
 
@@ -27,5 +28,19 @@ func (h *WebLoginHandler) Register(e *echo.Echo) {
 
 // Login handles the login page request
 func (h *WebLoginHandler) Login(c echo.Context) error {
-	return c.Redirect(http.StatusFound, "/dashboard")
+	// Get CSRF token from context
+	csrfToken, ok := c.Get("csrf").(string)
+	if !ok {
+		csrfToken = "" // Set empty string if token not found
+	}
+
+	// Create page data
+	data := shared.PageData{
+		Title:     "Login - GoFormX",
+		CSRFToken: csrfToken,
+		AssetPath: web.GetAssetPath,
+	}
+
+	// Render login page
+	return pages.Login(data).Render(c.Request().Context(), c.Response().Writer)
 }

@@ -200,15 +200,24 @@ func isStaticFile(path string) bool {
 		return false
 	}
 
-	// TODO: Use config.Static.DistDir here if it becomes dynamic at runtime
-	if strings.HasPrefix(path, "/dist/") {
+	// Skip Vite dev server paths
+	if strings.HasPrefix(path, "/@vite/") {
+		return false
+	}
+
+	// Skip source files in development mode
+	if strings.HasPrefix(path, "/src/") {
+		return false
+	}
+
+	// Skip assets in development mode
+	if strings.HasPrefix(path, "/assets/") {
 		return false
 	}
 
 	return strings.HasPrefix(path, "/public/") ||
 		path == StaticFileFavicon ||
 		path == StaticFileRobots ||
-		strings.HasPrefix(path, "/@vite/") ||
 		strings.HasSuffix(path, ".js") ||
 		strings.HasSuffix(path, ".css")
 }
