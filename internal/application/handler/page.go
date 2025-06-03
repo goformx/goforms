@@ -22,7 +22,7 @@ type PageHandler struct {
 	*handlers.BaseHandler
 	renderer          *view.Renderer
 	middlewareManager *amw.Manager
-	config            *config.Config
+	cfg               *config.Config
 	userService       user.Service
 	sessionManager    *amw.SessionManager
 }
@@ -34,7 +34,7 @@ func NewPageHandler(
 	sessionManager *amw.SessionManager,
 	renderer *view.Renderer,
 	middlewareManager *amw.Manager,
-	config *config.Config,
+	cfg *config.Config,
 ) *PageHandler {
 	return &PageHandler{
 		BaseHandler:       baseHandler,
@@ -42,7 +42,7 @@ func NewPageHandler(
 		sessionManager:    sessionManager,
 		renderer:          renderer,
 		middlewareManager: middlewareManager,
-		config:            config,
+		cfg:               cfg,
 	}
 }
 
@@ -92,7 +92,7 @@ func (h *PageHandler) buildPageData(c echo.Context, title string) (shared.PageDa
 
 	data.Title = title
 	data.CSRFToken = csrfToken
-	data.IsDevelopment = h.config.App.IsDevelopment()
+	data.IsDevelopment = h.cfg.App.IsDevelopment()
 	data.AssetPath = web.GetAssetPath
 
 	// Avoid logging the entire struct due to function fields

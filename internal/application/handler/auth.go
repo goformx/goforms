@@ -27,7 +27,7 @@ type AuthHandler struct {
 	*handlers.BaseHandler
 	renderer          *view.Renderer
 	middlewareManager *amw.Manager
-	config            *config.Config
+	cfg               *config.Config
 	userService       user.Service
 	sessionManager    *amw.SessionManager
 	logger            logging.Logger
@@ -40,7 +40,7 @@ func NewAuthHandler(
 	sessionManager *amw.SessionManager,
 	renderer *view.Renderer,
 	middlewareManager *amw.Manager,
-	config *config.Config,
+	cfg *config.Config,
 	logger logging.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
@@ -49,7 +49,7 @@ func NewAuthHandler(
 		sessionManager:    sessionManager,
 		renderer:          renderer,
 		middlewareManager: middlewareManager,
-		config:            config,
+		cfg:               cfg,
 		logger:            logger,
 	}
 }
@@ -71,6 +71,11 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 	// Parse form data
 	email := c.FormValue("email")
 	password := c.FormValue("password")
+
+	csrfToken, ok := c.Get("csrf").(string)
+	if !ok {
+		csrfToken = ""
+	}
 
 	h.logger.Debug("login attempt",
 		logging.StringField("email", email),
@@ -97,7 +102,7 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 			)
 			data := shared.PageData{
 				Title:     "Login - GoFormX",
-				CSRFToken: c.Get("csrf").(string),
+				CSRFToken: csrfToken,
 				AssetPath: web.GetAssetPath,
 			}
 			return c.Render(
@@ -115,7 +120,7 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 			)
 			data := shared.PageData{
 				Title:     "Login - GoFormX",
-				CSRFToken: c.Get("csrf").(string),
+				CSRFToken: csrfToken,
 				AssetPath: web.GetAssetPath,
 			}
 			return c.Render(
@@ -144,7 +149,7 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 		)
 		data := shared.PageData{
 			Title:     "Login - GoFormX",
-			CSRFToken: c.Get("csrf").(string),
+			CSRFToken: csrfToken,
 			AssetPath: web.GetAssetPath,
 		}
 		return c.Render(

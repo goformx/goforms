@@ -33,7 +33,7 @@ func HandlerProviders() []fx.Option {
 				sessionManager *middleware.SessionManager,
 				renderer *view.Renderer,
 				middlewareManager *middleware.Manager,
-				config *config.Config,
+				cfg *config.Config,
 				logger logging.Logger,
 			) *handler.AuthHandler {
 				h := handler.NewAuthHandler(
@@ -42,7 +42,7 @@ func HandlerProviders() []fx.Option {
 					sessionManager,
 					renderer,
 					middlewareManager,
-					config,
+					cfg,
 					logger,
 				)
 
@@ -61,7 +61,7 @@ func HandlerProviders() []fx.Option {
 				sessionManager *middleware.SessionManager,
 				renderer *view.Renderer,
 				middlewareManager *middleware.Manager,
-				config *config.Config,
+				cfg *config.Config,
 			) *handler.PageHandler {
 				return handler.NewPageHandler(
 					baseHandler,
@@ -69,7 +69,7 @@ func HandlerProviders() []fx.Option {
 					sessionManager,
 					renderer,
 					middlewareManager,
-					config,
+					cfg,
 				)
 			},
 
@@ -80,7 +80,7 @@ func HandlerProviders() []fx.Option {
 				sessionManager *middleware.SessionManager,
 				renderer *view.Renderer,
 				middlewareManager *middleware.Manager,
-				config *config.Config,
+				cfg *config.Config,
 				logger logging.Logger,
 			) *handler.WebHandler {
 				h := handler.NewWebHandler(
@@ -89,7 +89,7 @@ func HandlerProviders() []fx.Option {
 					sessionManager,
 					renderer,
 					middlewareManager,
-					config,
+					cfg,
 					logger,
 				)
 
