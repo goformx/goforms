@@ -101,7 +101,7 @@ func (m *AuthMiddleware) isAuthExempt(path string) bool {
 		strings.HasPrefix(path, "/forgot-password") ||
 		strings.HasPrefix(path, "/contact") ||
 		strings.HasPrefix(path, "/demo") ||
-		strings.HasPrefix(path, "/")
+		path == "/"
 }
 
 // handleAuthError handles authentication errors

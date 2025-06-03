@@ -314,33 +314,51 @@ var HandlerModule = fx.Options(
 
 		return authHandler, nil
 	}),
-	// Dashboard handler
+	// Form handler
 	AnnotateHandler(func(
 		core CoreParams,
 		services ServiceParams,
-		middlewareManager *appmiddleware.Manager,
-		sessionManager *appmiddleware.SessionManager,
-		pageDataService pagedata.Service,
 	) (handler.Handler, error) {
 		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger, pageDataService)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
-		}
-
-		// Initialize the handler with the base handler
-		handler.FormHandler.Base = baseHandler
-		handler.SubmissionHandler.Base = baseHandler
-		handler.SchemaHandler.Base = baseHandler
-
-		// Optionally, inject sessionManager or middlewareManager if needed in the future
+		formOperations := formops.NewService(services.FormService, core.Logger)
+		formHandler := handlers.NewFormHandler(services.FormService, formOperations, core.Logger, baseHandler)
 
 		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "Handler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+			logging.StringField("handler_name", "FormHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", formHandler)),
 			logging.StringField("operation", "handler_registration"),
 		)
-		return handler, nil
+		return formHandler, nil
+	}),
+	// Submission handler
+	AnnotateHandler(func(
+		core CoreParams,
+		services ServiceParams,
+	) (handler.Handler, error) {
+		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
+		submissionHandler := handlers.NewSubmissionHandler(services.FormService, core.Logger, baseHandler)
+
+		core.Logger.Debug("registered handler",
+			logging.StringField("handler_name", "SubmissionHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", submissionHandler)),
+			logging.StringField("operation", "handler_registration"),
+		)
+		return submissionHandler, nil
+	}),
+	// Schema handler
+	AnnotateHandler(func(
+		core CoreParams,
+		services ServiceParams,
+	) (handler.Handler, error) {
+		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
+		schemaHandler := handlers.NewSchemaHandler(services.FormService, core.Logger, baseHandler)
+
+		core.Logger.Debug("registered handler",
+			logging.StringField("handler_name", "SchemaHandler"),
+			logging.StringField("handler_type", fmt.Sprintf("%T", schemaHandler)),
+			logging.StringField("operation", "handler_registration"),
+		)
+		return schemaHandler, nil
 	}),
 	// Health handler
 	AnnotateHandler(func(core CoreParams, db *database.Database) (handler.Handler, error) {

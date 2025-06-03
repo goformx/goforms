@@ -112,7 +112,7 @@ func (h *WebHandler) Register(e *echo.Echo) {
 		h.LogDebug("registering web routes")
 	}
 
-	h.middlewareManager.Setup(e) // Ensure middleware is loaded properly
+	// Don't call middleware setup here - it's already done globally in bootstrap
 	h.registerRoutes(e)
 
 	if h.cfg.App.IsDevelopment() {

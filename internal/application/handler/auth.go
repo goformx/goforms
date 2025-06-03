@@ -242,10 +242,7 @@ func (h *AuthHandler) handleSignupPost(c echo.Context) error {
 	h.sessionManager.SetSessionCookie(c, sessionID)
 
 	// Return success response
-	return c.JSON(http.StatusOK, map[string]string{
-		"message":  "Signup successful",
-		"redirect": "/dashboard",
-	})
+	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
 // handleLogout handles the logout request

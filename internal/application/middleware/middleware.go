@@ -264,6 +264,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Setup middleware in correct order
 	m.setupBasicMiddleware(e)
+
+	// Setup session middleware globally (after basic, before security)
+	m.setupSessionMiddleware(e)
+
 	m.setupSecurityMiddleware(e)
 
 	// Add security headers middleware
@@ -291,6 +295,12 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 
 	m.logger.Debug("registering middleware", logging.StringField("type", "static file"))
 	e.Use(setupStaticFileMiddleware())
+}
+
+// Setup session middleware adds global session middleware
+func (m *Manager) setupSessionMiddleware(e *echo.Echo) {
+	m.logger.Debug("registering middleware", logging.StringField("type", "session"))
+	e.Use(m.config.SessionManager.SessionMiddleware())
 }
 
 // Setup security middleware (secure headers, CORS, CSRF, rate limiting)

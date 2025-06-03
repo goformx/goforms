@@ -7,6 +7,7 @@ import (
 
 	"github.com/a-h/templ"
 	amw "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -59,10 +60,10 @@ func (h *PageHandler) Register(e *echo.Echo) {
 	e.GET("/contact", h.handleContact)
 	e.GET("/demo", h.handleDemo)
 
-	// Protected pages
+	// Protected pages - use global middleware from middlewareManager
 	authMiddleware := amw.NewAuthMiddleware(h.userService, h.Logger, h.cfg).Middleware()
 	protected := e.Group("")
-	protected.Use(h.sessionManager.SessionMiddleware())
+	// Don't create a new session middleware instance here - rely on global setup
 	protected.Use(authMiddleware)
 	protected.GET("/dashboard", h.handleDashboard)
 	protected.GET("/profile", h.handleProfile)
@@ -169,6 +170,28 @@ func (h *PageHandler) handleDashboard(c echo.Context) error {
 	if err != nil {
 		return err
 	}
+
+	// Get the authenticated user
+	currentUser, ok := c.Get("user").(*user.User)
+	if !ok || currentUser == nil {
+		h.LogError("handleDashboard: user is nil or authentication failed", nil)
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
+	// Fetch user's forms
+	forms, formsErr := h.BaseHandler.FormService().GetUserForms(currentUser.ID)
+	if formsErr != nil {
+		h.LogError("Failed to fetch user forms", formsErr)
+		// Don't fail the whole page if forms can't be fetched, just log and continue with empty forms
+		forms = []*form.Form{}
+	}
+
+	// Add forms to the page data
+	data.Forms = forms
+
+	// Debug log for forms fetched
+	h.LogDebug("handleDashboard: forms fetched", "count", len(forms), "user_id", currentUser.ID)
+
 	data.Content = pages.DashboardContent(data)
 	return pages.Dashboard(data).Render(c.Request().Context(), c.Response().Writer)
 }

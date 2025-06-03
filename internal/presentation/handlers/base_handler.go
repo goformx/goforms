@@ -126,3 +126,8 @@ func (h *BaseHandler) Validate() error {
 func (h *BaseHandler) Logger() logging.Logger {
 	return h.logger
 }
+
+// FormService returns the form service instance
+func (h *BaseHandler) FormService() form.Service {
+	return h.formService
+}
