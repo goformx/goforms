@@ -104,8 +104,8 @@ func (s *store) unmarshalJSON(data []byte, target any, context, id string) error
 
 func (s *store) Create(f *form.Form) error {
 	query := `
-		INSERT INTO forms (uuid, user_id, title, description, schema, active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
+		INSERT INTO forms (uuid, user_id, title, description, schema, active)
+		VALUES (?, ?, ?, ?, ?, ?)
 	`
 
 	schemaJSON, err := s.marshalJSON(f.Schema, "form schema", f.ID)
@@ -120,8 +120,6 @@ func (s *store) Create(f *form.Form) error {
 		f.Description,
 		schemaJSON,
 		f.Active,
-		f.CreatedAt,
-		f.UpdatedAt,
 	}
 
 	_, err = s.execQueryWithArgs(query, "create form", args, "form_id", f.ID)

@@ -14,7 +14,7 @@ RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
     && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
 
 # Install dependencies and build the template package
-RUN cd /workspaces/goforms-template && npm install && npm run build && npm link || true
+# RUN cd /workspaces/goforms-template && npm install && npm run build && npm link || true
 
 USER root
 

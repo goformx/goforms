@@ -63,7 +63,7 @@ templ DashboardContent(data shared.PageData) {
 											<div class="table-actions">
 												<a href={ templ.URL("/dashboard/forms/" + f.ID + "/edit") } class="gf-button gf-button--sm gf-button--outline">Edit</a>
 												<a href={ templ.URL("/dashboard/forms/" + f.ID + "/submissions") } class="gf-button gf-button--sm gf-button--outline">View Submissions</a>
-												<button class="gf-button gf-button--sm gf-button--danger" onclick="deleteForm('{ f.ID }')">Delete</button>
+												<button class="gf-button gf-button--sm gf-button--danger" data-form-id={ f.ID }>Delete</button>
 											</div>
 										</td>
 									</tr>

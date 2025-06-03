@@ -96,7 +96,7 @@ export default defineConfig({
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
-      "@goforms/formio": resolve(__dirname, "../formio/lib/mjs/index.js"),
+      // "@goforms/formio": resolve(__dirname, "../formio/lib/mjs/index.js"),
       "goforms-template": resolve(
         __dirname,
         "../goforms-template/lib/mjs/index.js",
@@ -120,7 +120,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     force: true,
-    include: ["@goforms/formio"],
+    include: ["@goformx/formio"],
     esbuildOptions: {
       target: "esnext",
       supported: {

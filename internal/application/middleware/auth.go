@@ -60,6 +60,12 @@ func (m *JWTMiddleware) isAuthExempt(path string) bool {
 		strings.HasPrefix(path, "/demo") || strings.HasPrefix(path, "/api/v1/auth/login")
 }
 
+// isPublicAPI checks if the path is for a public API endpoint
+func (m *JWTMiddleware) isPublicAPI(path string) bool {
+	return strings.HasPrefix(path, "/api/v1/forms/") &&
+		(strings.HasSuffix(path, "/schema") || strings.HasSuffix(path, "/submit"))
+}
+
 // Handle processes JWT authentication
 func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
 	return func(c echo.Context) error {

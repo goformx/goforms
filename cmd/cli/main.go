@@ -100,6 +100,11 @@ func main() {
 							},
 						},
 					},
+					{
+						Name:   "routes",
+						Usage:  "List all registered routes",
+						Action: commands.ListRoutes,
+					},
 				},
 			},
 		},

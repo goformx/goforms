@@ -331,21 +331,17 @@ func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 	}
 }
 
-// logMiddlewareRegistration logs middleware registration details
-func logMiddlewareRegistration(logger logging.Logger, middlewareType string) {
-	logger.Debug("middleware registered",
-		logging.StringField("type", middlewareType))
-}
-
 // Helper to log and apply middleware
 func (m *Manager) useWithLog(e *echo.Echo, middlewareType string, mw echo.MiddlewareFunc) {
-	logMiddlewareRegistration(m.logger, middlewareType)
+	m.logger.Debug("middleware registered",
+		logging.StringField("type", middlewareType))
 	e.Use(mw)
 }
 
 // Helper to log and apply group middleware
 func (m *Manager) useGroupWithLog(g *echo.Group, middlewareType string, mw echo.MiddlewareFunc) {
-	logMiddlewareRegistration(m.logger, middlewareType)
+	m.logger.Debug("middleware registered",
+		logging.StringField("type", middlewareType))
 	g.Use(mw)
 }
 
