@@ -91,10 +91,10 @@ The middleware setup follows a specific order:
    - Rate limiting
 
 3. Authentication Middleware
-   - Cookie auth for dashboard
-   - JWT auth for API
+   - Session validation
    - Protected routes
    - Admin routes
+   - Role-based access
 
 ## Error Handling
 
@@ -141,23 +141,25 @@ The error logger middleware provides consistent error handling:
 # Middleware Patterns
 
 ## Authentication Middleware
-The application uses two types of authentication middleware:
+- Use session-based authentication
+- Implement session validation
+- Check user roles and permissions
+- Handle session expiration
+- Redirect unauthenticated users
 
-### Cookie Authentication
-Implemented in [cookie_auth.go](mdc:goforms/goforms/goforms/internal/application/middleware/cookie_auth.go):
-- Centralized token validation
-- Secure cookie attributes (HttpOnly, Secure, SameSite)
-- Optimized route matching
-- Granular error logging
-- Token blacklist checking
+## Session Management
+- Validate session cookies
+- Handle session creation and deletion
+- Implement session timeout
+- Manage session state
+- Handle session renewal
 
-### JWT Authentication
-Implemented in [auth.go](mdc:goforms/goforms/goforms/internal/application/middleware/auth.go):
-- HMAC token validation
-- Secure header extraction
-- Proper status codes (401/403)
-- Exempt route handling
-- Static file protection
+## Security Middleware
+- CSRF protection
+- Rate limiting
+- Request validation
+- Security headers
+- Input sanitization
 
 ## Common Patterns
 1. **Route Protection**

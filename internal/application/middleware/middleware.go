@@ -30,10 +30,6 @@ const (
 	DefaultRateLimit = 20
 	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
 	CookieMaxAge = 86400
-	// StaticFileFavicon is the path to the favicon
-	StaticFileFavicon = "/favicon.ico"
-	// StaticFileRobots is the path to the robots.txt file
-	StaticFileRobots = "/robots.txt"
 )
 
 // Middleware represents the application middleware
@@ -195,29 +191,9 @@ func retrieveCSRFToken(c echo.Context) (string, error) {
 
 // isStaticFile checks if the given path is a static file
 func isStaticFile(path string) bool {
-	// Skip TypeScript files in development mode
-	if strings.HasSuffix(path, ".ts") {
-		return false
-	}
-
-	// Skip Vite dev server paths
-	if strings.HasPrefix(path, "/@vite/") {
-		return false
-	}
-
-	// Skip source files in development mode
-	if strings.HasPrefix(path, "/src/") {
-		return false
-	}
-
-	// Skip assets in development mode
-	if strings.HasPrefix(path, "/assets/") {
-		return false
-	}
-
+	// This function is now just a wrapper around StaticHandler.IsStaticFile
+	// It's kept for backward compatibility but should be removed in future versions
 	return strings.HasPrefix(path, "/public/") ||
-		path == StaticFileFavicon ||
-		path == StaticFileRobots ||
 		strings.HasSuffix(path, ".js") ||
 		strings.HasSuffix(path, ".css")
 }
@@ -319,123 +295,13 @@ func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareF
 }
 
 // setupMIMETypeMiddleware creates middleware to set appropriate Content-Type headers
+// This is now handled by StaticHandler and should be removed in future versions
 func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-			switch {
-			case strings.HasSuffix(path, ".css"):
-				c.Response().Header().Set("Content-Type", "text/css")
-			case strings.HasSuffix(path, ".js"):
-				c.Response().Header().Set("Content-Type", "application/javascript")
-			case strings.HasSuffix(path, ".ts"):
-				c.Response().Header().Set("Content-Type", "application/javascript")
-			case strings.HasSuffix(path, ".mjs"):
-				c.Response().Header().Set("Content-Type", "application/javascript")
-			case path == StaticFileFavicon:
-				c.Response().Header().Set("Content-Type", "image/x-icon")
-			case path == StaticFileRobots:
-				c.Response().Header().Set("Content-Type", "text/plain")
-			case strings.HasPrefix(path, "/@vite/"):
-				c.Response().Header().Set("Content-Type", "application/javascript")
-			}
 			return next(c)
 		}
 	}
-}
-
-// Helper to log and apply middleware
-func (m *Manager) useWithLog(e *echo.Echo, middlewareType string, mw echo.MiddlewareFunc) {
-	m.logger.Debug("middleware registered",
-		logging.StringField("type", middlewareType))
-	e.Use(mw)
-}
-
-// Helper to log and apply group middleware
-func (m *Manager) useGroupWithLog(g *echo.Group, middlewareType string, mw echo.MiddlewareFunc) {
-	m.logger.Debug("middleware registered",
-		logging.StringField("type", middlewareType))
-	g.Use(mw)
-}
-
-// Setup basic middleware (recovery, request ID, secure headers, body limit, logging, MIME type, static files)
-func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
-	m.useWithLog(e, "recovery", echomw.Recover())
-	m.useWithLog(e, "request ID", echomw.RequestID())
-	m.useWithLog(e, "secure headers", echomw.Secure())
-	m.useWithLog(e, "body limit", echomw.BodyLimit("2M"))
-	m.useWithLog(e, "MIME type", setupMIMETypeMiddleware())
-	m.useWithLog(e, "static file", setupStaticFileMiddleware())
-}
-
-// Setup security middleware (secure headers, CORS, CSRF, rate limiting)
-func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
-	m.useWithLog(e, "security headers", echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "DENY",
-		HSTSMaxAge:            HSTSOneYear,
-		HSTSExcludeSubdomains: false,
-		ContentSecurityPolicy: strings.Join([]string{
-			"default-src 'self' http://localhost:3000; ",
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; ",
-			"script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; ",
-			"style-src 'self' 'unsafe-inline' http://localhost:3000; ",
-			"style-src-elem 'self' 'unsafe-inline' http://localhost:3000; ",
-			"img-src 'self' data: http://localhost:3000; ",
-			"font-src 'self' http://localhost:3000; ",
-			"connect-src 'self' http://localhost:3000 ws://localhost:3000;",
-		}, ""),
-		ReferrerPolicy: "strict-origin-when-cross-origin",
-	}))
-	m.useWithLog(e, "CORS", echomw.CORSWithConfig(corsConfig(
-		m.config.Security.CorsAllowedOrigins,
-		m.config.Security.CorsAllowedMethods,
-		m.config.Security.CorsAllowedHeaders,
-		m.config.Security.CorsAllowCredentials,
-		m.config.Security.CorsMaxAge,
-	)))
-
-	// Form submission routes group with specific middleware
-	formGroup := e.Group("/v1/forms")
-	m.useGroupWithLog(formGroup, "form CORS", echomw.CORSWithConfig(corsConfig(
-		m.config.Security.FormCorsAllowedOrigins,
-		m.config.Security.FormCorsAllowedMethods,
-		m.config.Security.FormCorsAllowedHeaders,
-		false,
-		m.config.Security.CorsMaxAge,
-	)))
-	m.useGroupWithLog(formGroup, "rate limiter", setupRateLimiter(m.config.Security))
-
-	if m.config.Security.CSRF.Enabled {
-		m.useWithLog(e, "CSRF", setupCSRF())
-	}
-}
-
-// Setup authentication middleware (cookie auth, protected/admin groups)
-func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
-	m.logger.Info("setting up authentication middleware")
-
-	// Create session manager
-	sessionManager := NewSessionManager(m.logger)
-
-	// Add session middleware
-	m.useWithLog(e, "session", sessionManager.SessionMiddleware())
-
-	// Add security headers
-	m.useWithLog(e, "security_headers", func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// Add security headers
-			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
-			c.Response().Header().Set("X-Frame-Options", "DENY")
-			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
-			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-
-			return next(c)
-		}
-	})
 }
 
 // Setup initializes the middleware manager with the Echo instance
@@ -460,11 +326,114 @@ func (m *Manager) Setup(e *echo.Echo) {
 		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
 	}
 
+	// Setup middleware in correct order
 	m.setupBasicMiddleware(e)
 	m.setupSecurityMiddleware(e)
+
+	// Create session manager
+	sessionManager := NewSessionManager(m.logger)
+
+	// Add session middleware first
+	m.logger.Debug("registering middleware", logging.StringField("type", "session"))
+	e.Use(sessionManager.SessionMiddleware())
+
+	// Then add auth middleware
 	m.setupAuthMiddleware(e)
 
 	m.logger.Info("middleware setup complete")
+}
+
+// Setup basic middleware (recovery, request ID, secure headers, body limit, logging, MIME type, static files)
+func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
+	m.logger.Debug("registering middleware", logging.StringField("type", "recovery"))
+	e.Use(echomw.Recover())
+
+	m.logger.Debug("registering middleware", logging.StringField("type", "request ID"))
+	e.Use(echomw.RequestID())
+
+	m.logger.Debug("registering middleware", logging.StringField("type", "secure headers"))
+	e.Use(echomw.Secure())
+
+	m.logger.Debug("registering middleware", logging.StringField("type", "body limit"))
+	e.Use(echomw.BodyLimit("2M"))
+
+	m.logger.Debug("registering middleware", logging.StringField("type", "MIME type"))
+	e.Use(setupMIMETypeMiddleware())
+
+	m.logger.Debug("registering middleware", logging.StringField("type", "static file"))
+	e.Use(setupStaticFileMiddleware())
+}
+
+// Setup security middleware (secure headers, CORS, CSRF, rate limiting)
+func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
+	m.logger.Debug("registering middleware", logging.StringField("type", "security headers"))
+	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "DENY",
+		HSTSMaxAge:            HSTSOneYear,
+		HSTSExcludeSubdomains: false,
+		ContentSecurityPolicy: strings.Join([]string{
+			"default-src 'self' http://localhost:3000; ",
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; ",
+			"script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000; ",
+			"style-src 'self' 'unsafe-inline' http://localhost:3000; ",
+			"style-src-elem 'self' 'unsafe-inline' http://localhost:3000; ",
+			"img-src 'self' data: http://localhost:3000; ",
+			"font-src 'self' http://localhost:3000; ",
+			"connect-src 'self' http://localhost:3000 ws://localhost:3000;",
+		}, ""),
+		ReferrerPolicy: "strict-origin-when-cross-origin",
+	}))
+
+	m.logger.Debug("registering middleware", logging.StringField("type", "CORS"))
+	e.Use(echomw.CORSWithConfig(corsConfig(
+		m.config.Security.CorsAllowedOrigins,
+		m.config.Security.CorsAllowedMethods,
+		m.config.Security.CorsAllowedHeaders,
+		m.config.Security.CorsAllowCredentials,
+		m.config.Security.CorsMaxAge,
+	)))
+
+	// Form submission routes group with specific middleware
+	formGroup := e.Group("/v1/forms")
+	m.logger.Debug("registering middleware", logging.StringField("type", "form CORS"))
+	formGroup.Use(echomw.CORSWithConfig(corsConfig(
+		m.config.Security.FormCorsAllowedOrigins,
+		m.config.Security.FormCorsAllowedMethods,
+		m.config.Security.FormCorsAllowedHeaders,
+		false,
+		m.config.Security.CorsMaxAge,
+	)))
+
+	m.logger.Debug("registering middleware", logging.StringField("type", "rate limiter"))
+	formGroup.Use(setupRateLimiter(m.config.Security))
+
+	if m.config.Security.CSRF.Enabled {
+		m.logger.Debug("registering middleware", logging.StringField("type", "CSRF"))
+		e.Use(setupCSRF())
+	}
+}
+
+// Setup authentication middleware (cookie auth, protected/admin groups)
+func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
+	m.logger.Info("setting up authentication middleware")
+
+	// Add security headers
+	m.logger.Debug("registering middleware", logging.StringField("type", "security_headers"))
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Add security headers
+			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
+			c.Response().Header().Set("X-Frame-Options", "DENY")
+			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
+			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
+			return next(c)
+		}
+	})
 }
 
 // ValidateCSRFToken validates the CSRF token in the request

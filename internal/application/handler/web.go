@@ -5,7 +5,6 @@ import (
 	"fmt"
 
 	"github.com/labstack/echo/v4"
-	"github.com/labstack/echo/v4/middleware"
 
 	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -90,12 +89,6 @@ func (h *WebHandler) Validate() error {
 
 // registerRoutes registers the web routes
 func (h *WebHandler) registerRoutes(e *echo.Echo) {
-	// Static files
-	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-		Root:   "public",
-		Browse: false,
-	}))
-
 	// Register sub-handler routes
 	h.authHandler.Register(e)
 	h.pageHandler.Register(e)

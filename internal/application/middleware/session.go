@@ -122,10 +122,13 @@ func (sm *SessionManager) DeleteSession(sessionID string) {
 
 // isSessionExempt checks if a path is exempt from session authentication
 func (sm *SessionManager) isSessionExempt(path string) bool {
+	// Check if it's a static file
+	if isStaticFile(path) {
+		return true
+	}
+
+	// Check other exempt paths
 	exemptPaths := []string{
-		"/static/",
-		"/favicon.ico",
-		"/robots.txt",
 		"/api/validation/",
 		"/login",
 		"/signup",
@@ -185,3 +188,5 @@ func (sm *SessionManager) ClearSessionCookie(c echo.Context) {
 	cookie.Expires = time.Now().Add(-1 * time.Hour)
 	c.SetCookie(cookie)
 }
+
+// Note: isPublicRoute is defined in middleware.go

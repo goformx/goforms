@@ -37,15 +37,19 @@ export function setupLoginForm() {
 
     // Add form submit validation
     form.addEventListener("submit", async (e) => {
+      e.preventDefault(); // Prevent default form submission
       const result = await validation.validateForm(form, "login");
       if (!result.success) {
-        e.preventDefault();
         if (result.error) {
           result.error.errors.forEach((err) => {
             validation.showError(err.path[0], err.message);
           });
         }
+        return;
       }
+
+      // If validation passes, submit the form normally
+      form.submit();
     });
   }
 }

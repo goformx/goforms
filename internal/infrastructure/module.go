@@ -263,6 +263,10 @@ var StoreModule = fx.Options(
 
 // HandlerModule provides all HTTP handlers for the application.
 var HandlerModule = fx.Options(
+	// Session manager provider
+	fx.Provide(func(core CoreParams) *appmiddleware.SessionManager {
+		return appmiddleware.NewSessionManager(core.Logger)
+	}),
 	// Static file handler (must be first)
 	AnnotateHandler(func(core CoreParams) (handler.Handler, error) {
 		handler := handler.NewStaticHandler(core.Logger, core.Config)

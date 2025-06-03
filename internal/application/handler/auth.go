@@ -8,7 +8,10 @@ import (
 	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
@@ -74,15 +77,34 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 	// Attempt login
 	loginResp, loginErr := h.userService.Login(c.Request().Context(), login)
 	if loginErr != nil {
-		if errors.Is(loginErr, user.ErrInvalidCredentials) {
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"message": "Invalid email or password",
-			})
+		// Handle specific error types
+		switch {
+		case errors.Is(loginErr, user.ErrInvalidCredentials):
+			data := shared.PageData{
+				Title:     "Login - GoFormX",
+				CSRFToken: c.Get("csrf").(string),
+				AssetPath: web.GetAssetPath,
+			}
+			return c.Render(
+				http.StatusBadRequest,
+				"login",
+				pages.LoginWithError(data, "Invalid email or password"),
+			)
+
+		default:
+			// Log unexpected errors
+			h.LogError("failed to login", loginErr)
+			data := shared.PageData{
+				Title:     "Login - GoFormX",
+				CSRFToken: c.Get("csrf").(string),
+				AssetPath: web.GetAssetPath,
+			}
+			return c.Render(
+				http.StatusInternalServerError,
+				"login",
+				pages.LoginWithError(data, "An error occurred. Please try again."),
+			)
 		}
-		h.LogError("failed to login", loginErr)
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"message": "An error occurred. Please try again.",
-		})
 	}
 
 	// Create session
@@ -91,9 +113,16 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 	)
 	if sessionErr != nil {
 		h.LogError("failed to create session", sessionErr)
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"message": "An error occurred. Please try again.",
-		})
+		data := shared.PageData{
+			Title:     "Login - GoFormX",
+			CSRFToken: c.Get("csrf").(string),
+			AssetPath: web.GetAssetPath,
+		}
+		return c.Render(
+			http.StatusInternalServerError,
+			"login",
+			pages.LoginWithError(data, "An error occurred. Please try again."),
+		)
 	}
 
 	// Set session cookie
@@ -110,11 +139,8 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 		MaxAge:   int(CookieMaxAgeMinutes * time.Minute.Seconds()),
 	})
 
-	// Return success response
-	return c.JSON(http.StatusOK, map[string]string{
-		"message":  "Login successful",
-		"redirect": "/dashboard",
-	})
+	// Redirect to dashboard
+	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
 // handleSignupPost handles the signup form submission

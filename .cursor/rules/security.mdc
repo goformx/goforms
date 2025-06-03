@@ -10,19 +10,14 @@ Security is a critical aspect of GoFormX. This document outlines the security me
 
 ## Authentication
 
-### Cookie Authentication
-- Used for dashboard access
+### Session Authentication
+- Used for all authenticated access
 - Secure cookie settings
 - HTTP-only flag enabled
 - SameSite strict mode
 - CSRF protection
-
-### JWT Authentication
-- Used for API access
-- Secure token generation
-- Proper validation
-- Token refresh mechanism
-- Expiration handling
+- Session timeout handling
+- Secure session storage
 
 ## Authorization
 
@@ -235,3 +230,56 @@ const (
    - Track violations
    - Alert on issues
    - Review logs
+
+# Security Practices
+
+## Authentication
+- Use secure session management
+- Implement proper login/logout flows
+- Validate credentials securely
+- Use appropriate password hashing
+- Implement rate limiting for auth endpoints
+
+## Session Management
+- Use secure session cookies
+- Set appropriate cookie attributes:
+  - HttpOnly: true
+  - Secure: true
+  - SameSite: Strict
+- Implement session expiration
+- Clear session data on logout
+- Use secure session storage
+
+## CSRF Protection
+- Include CSRF tokens in all forms
+- Validate CSRF tokens on POST requests
+- Use appropriate CSRF middleware
+- Generate unique tokens per session
+
+## Input Validation
+- Validate all user input
+- Use appropriate validation rules
+- Sanitize input data
+- Implement field-specific validation
+- Return clear validation errors
+
+## Cookie Security
+- Use secure cookie settings
+- Set appropriate expiration times
+- Use HttpOnly flag
+- Implement SameSite policy
+- Use secure flag in production
+
+## Password Security
+- Enforce strong password requirements
+- Implement password confirmation
+- Use secure password hashing
+- Never store plain text passwords
+- Implement password reset flows
+
+## API Security
+- Use appropriate HTTP methods
+- Implement rate limiting
+- Validate request headers
+- Use secure communication (HTTPS)
+- Implement proper CORS policies

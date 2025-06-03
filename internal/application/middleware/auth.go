@@ -86,8 +86,7 @@ func (m *AuthMiddleware) Middleware() echo.MiddlewareFunc {
 
 // isAuthExempt checks if the path is exempt from authentication
 func (m *AuthMiddleware) isAuthExempt(path string) bool {
-	return strings.HasPrefix(path, "/public/") ||
-		path == "/favicon.ico" || path == "/robots.txt" ||
+	return isStaticFile(path) ||
 		strings.HasPrefix(path, "/api/validation/") ||
 		strings.HasPrefix(path, "/login") || strings.HasPrefix(path, "/signup") ||
 		strings.HasPrefix(path, "/forgot-password") || strings.HasPrefix(path, "/contact") ||
@@ -128,3 +127,5 @@ func (m *AuthMiddleware) SecurityHeaders() echo.MiddlewareFunc {
 		}
 	}
 }
+
+// Note: isPublicRoute is defined in middleware.go

@@ -5,6 +5,61 @@ alwaysApply: false
 ---
 # Handler Patterns
 
+## Structure
+- Handlers should be organized in the `internal/application/handler` package
+- Each handler should be a struct that embeds `handlers.BaseHandler`
+- Handlers should receive dependencies through constructor injection
+- Dependencies should include:
+  - BaseHandler
+  - Service interfaces
+  - Session management
+  - View renderer
+  - Config
+  - Middleware manager
+
+## Registration
+- Handlers should implement a `Register` method that takes an `*echo.Echo` parameter
+- Routes should be registered in the `Register` method
+- Group related routes together (e.g., auth routes, validation routes)
+
+## Response Patterns
+- Use appropriate HTTP status codes:
+  - 200 OK for successful operations
+  - 400 Bad Request for validation errors
+  - 401 Unauthorized for authentication failures
+  - 500 Internal Server Error for unexpected errors
+- For HTML responses, use the renderer with appropriate templates
+- For API responses, use JSON with consistent structure
+- Include CSRF tokens in forms and validate them
+
+## Error Handling
+- Handle domain-specific errors using type assertions
+- Log unexpected errors using the BaseHandler's LogError method
+- Return user-friendly error messages
+- Maintain consistent error response structure
+
+## Session Management
+- Use the SessionManager for session operations
+- Set secure cookie attributes:
+  - HttpOnly: true
+  - Secure: true
+  - SameSite: Strict
+- Set appropriate cookie expiration times
+- Clear session data on logout
+
+## Validation
+- Implement separate validation endpoints for forms
+- Return validation schemas as JSON
+- Include field-specific validation rules
+- Provide clear error messages for each validation rule
+
+## Security Considerations
+- Always validate user input
+- Use CSRF protection
+- Implement proper session management
+- Follow secure cookie practices
+- Use appropriate HTTP methods for operations
+
 ## Overview
 Handlers in GoFormX follow a structured approach to handle HTTP requests, manage dependencies, and coordinate between services. This document outlines the patterns and best practices for implementing handlers.
 

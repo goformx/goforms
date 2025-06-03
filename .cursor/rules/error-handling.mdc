@@ -114,3 +114,45 @@ func mapErrorToStatus(code errors.ErrorCode) int {
     }
 }
 ```
+
+## Domain Errors
+- Define domain-specific errors in their respective packages
+- Use `errors.New()` or `errors.Is()` for error type checking
+- Common domain errors include:
+  - InvalidCredentials
+  - UserExists
+  - EmailAlreadyExists
+
+## Error Handling in Handlers
+- Use switch statements to handle specific error types
+- Return appropriate HTTP status codes based on error type
+- Provide user-friendly error messages
+- Log unexpected errors with context
+
+## Error Response Structure
+- For HTML responses:
+  - Render error page with error message
+  - Include CSRF token and other necessary data
+  - Use appropriate template for error display
+- For API responses:
+  - Return JSON with error message
+  - Include appropriate status code
+  - Maintain consistent response structure
+
+## Logging
+- Use the BaseHandler's LogError method for logging
+- Include context in error logs
+- Log unexpected errors with stack traces
+- Don't log sensitive information
+
+## Error Recovery
+- Handle panics at the middleware level
+- Provide graceful degradation
+- Return appropriate error responses
+- Log recovery information
+
+## Validation Errors
+- Return validation errors with specific field information
+- Use consistent validation error structure
+- Provide clear error messages for each validation rule
+- Include validation schema in responses
