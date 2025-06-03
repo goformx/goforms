@@ -307,25 +307,37 @@ var HandlerModule = fx.Options(
 			services ServiceParams,
 			middlewareManager *appmiddleware.Manager,
 		) (handler.Handler, error) {
-			handler := handler.NewWebHandler(
-				handlers.NewBaseHandler(
-					appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
-					services.FormService,
-					core.Logger,
-				),
+			baseHandler := handlers.NewBaseHandler(
+				appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
+				services.FormService,
+				core.Logger,
+			)
+			webHandler := handler.NewWebHandler(
+				baseHandler,
 				services.UserService,
 				appmiddleware.NewSessionManager(core.Logger),
 			)
-			if handler == nil {
+			if webHandler == nil {
 				return nil, errors.New("failed to create web handler")
 			}
+
+			// Apply functional options
+			handler.WithRenderer(core.Renderer)(webHandler)
+			handler.WithMiddlewareManager(middlewareManager)(webHandler)
+			handler.WithConfig(core.Config)(webHandler)
+
+			// Validate dependencies
+			if err := webHandler.Validate(); err != nil {
+				return nil, fmt.Errorf("failed to validate web handler: %w", err)
+			}
+
 			core.Logger.Debug(
 				"registered handler",
 				logging.StringField("handler_name", "WebHandler"),
-				logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
+				logging.StringField("handler_type", fmt.Sprintf("%T", webHandler)),
 				logging.StringField("operation", "handler_registration"),
 			)
-			return handler, nil
+			return webHandler, nil
 		},
 	),
 	// Auth handler
