@@ -9,6 +9,7 @@ import (
 	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -76,17 +77,31 @@ func (h *PageHandler) getCSRFToken(c echo.Context) (string, error) {
 func (h *PageHandler) buildPageData(c echo.Context, title string) (shared.PageData, error) {
 	csrfToken, err := h.getCSRFToken(c)
 	if err != nil {
+		h.BaseHandler.LogError("CSRF token missing or invalid", nil)
 		return shared.PageData{}, echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
 	}
 
 	var data shared.PageData
-	if userData, ok := c.Get("user").(*user.User); ok {
+	userData, userOk := c.Get("user").(*user.User)
+	if userOk {
+		h.BaseHandler.LogDebug("User found in context", "email", userData.Email, "route", c.Path())
 		data.User = userData
+	} else {
+		h.BaseHandler.LogError("No user found in context", nil)
 	}
 
 	data.Title = title
 	data.CSRFToken = csrfToken
 	data.IsDevelopment = h.config.App.IsDevelopment()
+	data.AssetPath = web.GetAssetPath
+
+	// Avoid logging the entire struct due to function fields
+	userEmail := "<nil>"
+	if data.User != nil {
+		userEmail = data.User.Email
+	}
+	assetPathSet := data.AssetPath != nil
+	h.BaseHandler.LogDebug("PageData built", "title", data.Title, "user_email", userEmail, "is_dev", data.IsDevelopment, "asset_path_set", assetPathSet, "route", c.Path())
 
 	return data, nil
 }
@@ -137,7 +152,12 @@ func (h *PageHandler) handleContact(c echo.Context) error {
 
 // handleDashboard renders the dashboard page
 func (h *PageHandler) handleDashboard(c echo.Context) error {
-	return h.renderPage(c, "Dashboard", pages.Dashboard)
+	data, err := h.buildPageData(c, "Dashboard")
+	if err != nil {
+		return err
+	}
+	data.Content = pages.DashboardContent(data)
+	return pages.Dashboard(data).Render(c.Request().Context(), c.Response().Writer)
 }
 
 // handleProfile renders the profile page

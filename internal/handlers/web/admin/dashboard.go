@@ -6,6 +6,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -64,9 +65,10 @@ func (h *AdminDashboardHandler) showDashboard(c echo.Context) error {
 	}
 
 	data := shared.PageData{
-		Title: "Dashboard - GoFormX",
-		User:  currentUser,
-		Forms: forms,
+		Title:     "Dashboard - GoFormX",
+		User:      currentUser,
+		Forms:     forms,
+		AssetPath: web.GetAssetPath,
 	}
 
 	return h.renderer.Render(c, pages.Dashboard(data))

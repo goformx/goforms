@@ -5,6 +5,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
 )
@@ -40,15 +41,17 @@ func (s *service) PrepareDashboardData(c echo.Context, usr *user.User, forms []*
 	if usr == nil {
 		s.logger.Error("PrepareDashboardData called with nil user; this should not happen!", nil)
 		return shared.PageData{
-			Title: "Dashboard",
-			User:  &user.User{FirstName: "User"},
-			Forms: forms,
+			Title:     "Dashboard",
+			User:      &user.User{FirstName: "User"},
+			Forms:     forms,
+			AssetPath: web.GetAssetPath,
 		}
 	}
 	return shared.PageData{
-		Title: "Dashboard",
-		User:  usr,
-		Forms: forms,
+		Title:     "Dashboard",
+		User:      usr,
+		Forms:     forms,
+		AssetPath: web.GetAssetPath,
 	}
 }
 
@@ -59,29 +62,33 @@ func (s *service) PrepareFormData(c echo.Context, usr *user.User, frm *form.Form
 		User:        usr,
 		Form:        frm,
 		Submissions: submissions,
+		AssetPath:   web.GetAssetPath,
 	}
 }
 
 // PrepareNewFormData prepares data for the new form page
 func (s *service) PrepareNewFormData(c echo.Context, usr *user.User) shared.PageData {
 	return shared.PageData{
-		Title: "Create New Form - GoFormX",
-		User:  usr,
+		Title:     "Create New Form - GoFormX",
+		User:      usr,
+		AssetPath: web.GetAssetPath,
 	}
 }
 
 // PrepareProfileData prepares data for the profile page
 func (s *service) PrepareProfileData(c echo.Context, usr *user.User) shared.PageData {
 	return shared.PageData{
-		Title: "Profile - GoFormX",
-		User:  usr,
+		Title:     "Profile - GoFormX",
+		User:      usr,
+		AssetPath: web.GetAssetPath,
 	}
 }
 
 // PrepareSettingsData prepares data for the settings page
 func (s *service) PrepareSettingsData(c echo.Context, usr *user.User) shared.PageData {
 	return shared.PageData{
-		Title: "Settings - GoFormX",
-		User:  usr,
+		Title:     "Settings - GoFormX",
+		User:      usr,
+		AssetPath: web.GetAssetPath,
 	}
 }
