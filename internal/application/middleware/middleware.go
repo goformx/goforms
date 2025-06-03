@@ -247,7 +247,7 @@ func setupStaticFileMiddleware() echo.MiddlewareFunc {
 }
 
 // setupCSRF creates and configures CSRF middleware
-func setupCSRF() echo.MiddlewareFunc {
+func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
 		TokenLength:    DefaultTokenLength,
 		TokenLookup:    "header:X-Csrf-Token,form:csrf_token,cookie:_csrf",
@@ -255,7 +255,7 @@ func setupCSRF() echo.MiddlewareFunc {
 		CookieName:     "_csrf",
 		CookiePath:     "/",
 		CookieDomain:   "",
-		CookieSecure:   true,
+		CookieSecure:   !isDevelopment,
 		CookieHTTPOnly: true,
 		CookieSameSite: http.SameSiteStrictMode,
 		CookieMaxAge:   CookieMaxAge,
@@ -442,7 +442,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 
 	if m.config.Security.CSRF.Enabled {
 		m.logger.Debug("registering middleware", logging.StringField("type", "CSRF"))
-		e.Use(setupCSRF())
+		e.Use(setupCSRF(m.config.Security.Debug))
 	}
 }
 

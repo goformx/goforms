@@ -379,10 +379,14 @@ var HandlerModule = fx.Options(
 		return authHandler, nil
 	}),
 	// Dashboard handler
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
-		authMiddleware := appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger)
+	AnnotateHandler(func(
+		core CoreParams,
+		services ServiceParams,
+		middlewareManager *appmiddleware.Manager,
+		sessionManager *appmiddleware.SessionManager,
+	) (handler.Handler, error) {
 		baseHandler := handlers.NewBaseHandler(
-			authMiddleware,
+			appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
 			services.FormService,
 			core.Logger,
 		)
@@ -395,6 +399,8 @@ var HandlerModule = fx.Options(
 		handler.FormHandler.Base = baseHandler
 		handler.SubmissionHandler.Base = baseHandler
 		handler.SchemaHandler.Base = baseHandler
+
+		// Optionally, inject sessionManager or middlewareManager if needed in the future
 
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "Handler"),

@@ -101,8 +101,9 @@ func (h *Handler) Register(e *echo.Echo) {
 // ShowDashboard displays the user's dashboard
 func (h *Handler) ShowDashboard(c echo.Context) error {
 	currentUser, err := h.getAuthenticatedUser(c)
-	if err != nil {
-		return err
+	if err != nil || currentUser == nil {
+		h.logger.Error("ShowDashboard: user is nil or authentication failed", logging.Error(err))
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not authenticated")
 	}
 
 	// Get user's forms
@@ -136,8 +137,9 @@ func (h *Handler) ShowDashboard(c echo.Context) error {
 // ShowNewForm displays the form creation page
 func (h *Handler) ShowNewForm(c echo.Context) error {
 	currentUser, err := h.getAuthenticatedUser(c)
-	if err != nil {
-		return err
+	if err != nil || currentUser == nil {
+		h.logger.Error("ShowNewForm: user is nil or authentication failed", logging.Error(err))
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not authenticated")
 	}
 
 	// Get CSRF token from context
