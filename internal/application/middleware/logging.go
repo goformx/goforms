@@ -1,11 +1,10 @@
 package middleware
 
 import (
-	"errors"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
@@ -22,58 +21,109 @@ func NewLogging(logger logging.Logger) *Logging {
 	}
 }
 
-// Handle logs requests and responses
+// Handle logs requests and responses using Echo's RequestLogger
 func (m *Logging) Handle(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		start := time.Now()
-
+	config := middleware.RequestLoggerConfig{
 		// Skip logging for static assets
-		path := c.Request().URL.Path
-		if strings.HasPrefix(path, "/node_modules/") ||
-			strings.HasPrefix(path, "/dist/") ||
-			strings.HasPrefix(path, "/public/") {
-			return next(c)
-		}
+		Skipper: func(c echo.Context) bool {
+			path := c.Request().URL.Path
+			return strings.HasPrefix(path, "/node_modules/") ||
+				strings.HasPrefix(path, "/dist/") ||
+				strings.HasPrefix(path, "/public/")
+		},
+		// Log all relevant request/response information
+		LogLatency:       true,
+		LogProtocol:      true,
+		LogRemoteIP:      true,
+		LogHost:          true,
+		LogMethod:        true,
+		LogURI:           true,
+		LogURIPath:       true,
+		LogRoutePath:     true,
+		LogRequestID:     true,
+		LogReferer:       true,
+		LogUserAgent:     true,
+		LogStatus:        true,
+		LogError:         true,
+		LogContentLength: true,
+		LogResponseSize:  true,
+		// Log common headers
+		LogHeaders: []string{
+			"Content-Type",
+			"Accept",
+			"Accept-Encoding",
+			"Accept-Language",
+			"Cache-Control",
+			"Connection",
+			"Cookie",
+			"Origin",
+			"Sec-Fetch-Dest",
+			"Sec-Fetch-Mode",
+			"Sec-Fetch-Site",
+			"Upgrade-Insecure-Requests",
+		},
+		// Log common query parameters
+		LogQueryParams: []string{
+			"page",
+			"limit",
+			"sort",
+			"filter",
+			"search",
+		},
+		// Log common form values
+		LogFormValues: []string{
+			"email",
+			"username",
+			"password",
+			"action",
+		},
+		// Custom logging function using our logger
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			// Build log fields
+			fields := []any{
+				logging.StringField("method", v.Method),
+				logging.StringField("uri", v.URI),
+				logging.StringField("path", v.URIPath),
+				logging.StringField("route", v.RoutePath),
+				logging.StringField("remote_ip", v.RemoteIP),
+				logging.StringField("host", v.Host),
+				logging.StringField("protocol", v.Protocol),
+				logging.StringField("request_id", v.RequestID),
+				logging.StringField("referer", v.Referer),
+				logging.StringField("user_agent", v.UserAgent),
+				logging.IntField("status", v.Status),
+				logging.AnyField("content_length", v.ContentLength),
+				logging.AnyField("response_size", v.ResponseSize),
+				logging.DurationField("latency", v.Latency),
+			}
 
-		// Log request
-		m.logger.Info("request started",
-			logging.StringField("method", c.Request().Method),
-			logging.StringField("path", path),
-			logging.StringField("remote_addr", c.Request().RemoteAddr),
-		)
+			// Add headers if present
+			for k, v := range v.Headers {
+				fields = append(fields, logging.StringField("header_"+strings.ToLower(k), strings.Join(v, ",")))
+			}
 
-		// Process request
-		err := next(c)
+			// Add query parameters if present
+			for k, v := range v.QueryParams {
+				fields = append(fields, logging.StringField("query_"+k, strings.Join(v, ",")))
+			}
 
-		// Log response
-		var httpErr *echo.HTTPError
-		if errors.As(err, &httpErr) {
-			m.logger.Info("request completed",
-				logging.StringField("method", c.Request().Method),
-				logging.StringField("path", path),
-				logging.IntField("status", httpErr.Code),
-				logging.DurationField("duration", time.Since(start)),
-			)
-			return err
-		}
+			// Add form values if present
+			for k, v := range v.FormValues {
+				fields = append(fields, logging.StringField("form_"+k, strings.Join(v, ",")))
+			}
 
-		if err != nil {
-			m.logger.Error("request failed",
-				logging.StringField("method", c.Request().Method),
-				logging.StringField("path", path),
-				logging.ErrorField("error", err),
-				logging.DurationField("duration", time.Since(start)),
-			)
-			return err
-		}
+			// Log based on status code
+			if v.Status >= 500 {
+				m.logger.Error("request failed", fields...)
+			} else if v.Status >= 400 {
+				m.logger.Warn("request failed", fields...)
+			} else {
+				m.logger.Info("request completed", fields...)
+			}
 
-		m.logger.Info("request completed",
-			logging.StringField("method", c.Request().Method),
-			logging.StringField("path", path),
-			logging.IntField("status", c.Response().Status),
-			logging.DurationField("duration", time.Since(start)),
-		)
-
-		return nil
+			return nil
+		},
 	}
+
+	return middleware.RequestLoggerWithConfig(config)(next)
 }

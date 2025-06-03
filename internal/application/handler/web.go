@@ -151,7 +151,7 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	// Static files
 	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
-		Root:   "static",
+		Root:   "public",
 		Browse: false,
 	}))
 
