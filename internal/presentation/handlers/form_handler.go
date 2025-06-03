@@ -60,6 +60,8 @@ func (h *FormHandler) Register(e *echo.Echo) {
 	forms.GET("/:id/edit", h.ShowEditForm)
 	forms.PUT("/:id", h.UpdateForm)
 	forms.DELETE("/:id", h.DeleteForm)
+	// Add POST route with method override support for forms that use HTML form submission
+	forms.POST("/:id", h.HandleFormMethodOverride)
 }
 
 // ShowNewForm displays the form creation page
@@ -198,4 +200,19 @@ func (h *FormHandler) DeleteForm(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+// HandleFormMethodOverride handles POST requests with method override
+func (h *FormHandler) HandleFormMethodOverride(c echo.Context) error {
+	// Check for method override
+	method := c.FormValue("_method")
+	switch method {
+	case "PUT":
+		return h.UpdateForm(c)
+	case "DELETE":
+		return h.DeleteForm(c)
+	default:
+		// Default to treating as regular form update
+		return h.UpdateForm(c)
+	}
 }

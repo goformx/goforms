@@ -137,6 +137,14 @@ func (sm *SessionManager) CreateSession(userID uint, email, role string) (string
 	sm.sessions[sessionIDStr] = session
 	sm.mutex.Unlock()
 
+	sm.logger.Debug("session created in SessionManager",
+		logging.StringField("session_id", sessionIDStr),
+		logging.UintField("user_id", userID),
+		logging.StringField("email", email),
+		logging.StringField("manager_instance", fmt.Sprintf("%p", sm)),
+		logging.IntField("total_sessions", len(sm.sessions)),
+	)
+
 	return sessionIDStr, nil
 }
 
@@ -144,7 +152,16 @@ func (sm *SessionManager) CreateSession(userID uint, email, role string) (string
 func (sm *SessionManager) GetSession(sessionID string) (*Session, bool) {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
+
 	session, exists := sm.sessions[sessionID]
+
+	sm.logger.Debug("session lookup attempt",
+		logging.StringField("session_id", sessionID),
+		logging.BoolField("exists", exists),
+		logging.StringField("manager_instance", fmt.Sprintf("%p", sm)),
+		logging.IntField("total_sessions", len(sm.sessions)),
+	)
+
 	return session, exists
 }
 

@@ -40,11 +40,6 @@ func Duration(key string, value time.Duration) LogField {
 	return LogField{Key: key, Value: value.String()}
 }
 
-// Any creates a field for any type
-func Any(key string, value any) LogField {
-	return LogField{Key: key, Value: value}
-}
-
 // StringField creates a string field
 func StringField(key, value string) LogField {
 	return LogField{Key: key, Value: value}

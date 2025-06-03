@@ -84,7 +84,7 @@ export class FormService {
     formId: string,
     details: { title: string; description: string },
   ): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/${formId}`, {
+    const response = await fetch(`${this.baseUrl}/dashboard/forms/${formId}`, {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
@@ -100,7 +100,7 @@ export class FormService {
   }
 
   async deleteForm(formId: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/${formId}`, {
+    const response = await fetch(`${this.baseUrl}/dashboard/forms/${formId}`, {
       method: "DELETE",
       headers: {
         "X-CSRF-Token": this.getCSRFToken(),
