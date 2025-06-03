@@ -392,13 +392,12 @@ var HandlerModule = fx.Options(
 		}
 
 		// Initialize the handler with the base handler
-		handler.DashboardHandler.Base = baseHandler
 		handler.FormHandler.Base = baseHandler
 		handler.SubmissionHandler.Base = baseHandler
 		handler.SchemaHandler.Base = baseHandler
 
 		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "DashboardHandler"),
+			logging.StringField("handler_name", "Handler"),
 			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
 			logging.StringField("operation", "handler_registration"),
 		)
@@ -598,7 +597,6 @@ func (m *Module) initializeHandlers() {
 	baseHandler := handlers.NewBaseHandler(m.authMiddleware, m.formService, m.logger)
 
 	// Create feature handlers
-	dashboardHandler := handlers.NewDashboardHandler(m.formService, m.logger, baseHandler)
 	formHandler := handlers.NewFormHandler(m.formService, m.services.FormOperations, m.logger, baseHandler)
 	submissionHandler := handlers.NewSubmissionHandler(m.formService, m.logger, baseHandler)
 	schemaHandler := handlers.NewSchemaHandler(m.formService, m.logger, baseHandler)
@@ -611,7 +609,6 @@ func (m *Module) initializeHandlers() {
 	}
 
 	// Set the handlers
-	mainHandler.DashboardHandler = dashboardHandler
 	mainHandler.FormHandler = formHandler
 	mainHandler.SubmissionHandler = submissionHandler
 	mainHandler.SchemaHandler = schemaHandler

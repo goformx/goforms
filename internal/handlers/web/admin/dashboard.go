@@ -20,22 +20,22 @@ const (
 	InternalServerErrorCode = http.StatusInternalServerError
 )
 
-// DashboardHandler handles the admin dashboard routes
-type DashboardHandler struct {
+// AdminDashboardHandler handles the admin dashboard routes
+type AdminDashboardHandler struct {
 	*handlers.BaseHandler
 	renderer    *view.Renderer
 	UserService user.Service
 	FormService form.Service
 }
 
-// NewDashboardHandler creates a new DashboardHandler
-func NewDashboardHandler(
+// NewAdminDashboardHandler creates a new AdminDashboardHandler
+func NewAdminDashboardHandler(
 	logger logging.Logger,
 	renderer *view.Renderer,
 	userService user.Service,
 	formService form.Service,
-) *DashboardHandler {
-	return &DashboardHandler{
+) *AdminDashboardHandler {
+	return &AdminDashboardHandler{
 		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
 		renderer:    renderer,
 		UserService: userService,
@@ -43,14 +43,14 @@ func NewDashboardHandler(
 	}
 }
 
-// Register sets up the routes for the dashboard handler
-func (h *DashboardHandler) Register(e *echo.Echo) {
+// Register sets up the routes for the admin dashboard handler
+func (h *AdminDashboardHandler) Register(e *echo.Echo) {
 	e.GET("/dashboard", h.showDashboard)
 }
 
-// showDashboard renders the dashboard page
-func (h *DashboardHandler) showDashboard(c echo.Context) error {
-	h.LogDebug("handling dashboard page request")
+// showDashboard renders the admin dashboard page
+func (h *AdminDashboardHandler) showDashboard(c echo.Context) error {
+	h.LogDebug("handling admin dashboard page request")
 
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {

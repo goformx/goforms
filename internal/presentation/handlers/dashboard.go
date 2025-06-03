@@ -23,10 +23,10 @@ type FormData struct {
 
 // Handler handles dashboard-related HTTP requests
 type Handler struct {
-	DashboardHandler  *DashboardHandler
 	FormHandler       *FormHandler
 	SubmissionHandler *SubmissionHandler
 	SchemaHandler     *SchemaHandler
+	logger            logging.Logger
 }
 
 // NewHandler creates a new dashboard handler
@@ -45,10 +45,10 @@ func NewHandler(
 	formOperations := formops.NewService(formService, logger)
 
 	return &Handler{
-		DashboardHandler:  NewDashboardHandler(formService, logger, base),
 		FormHandler:       NewFormHandler(formService, formOperations, logger, base),
 		SubmissionHandler: NewSubmissionHandler(formService, logger, base),
 		SchemaHandler:     NewSchemaHandler(formService, logger, base),
+		logger:            logger,
 	}, nil
 }
 
@@ -70,7 +70,7 @@ func (h *Handler) getOwnedForm(c echo.Context, currentUser *user.User) (*form.Fo
 
 	formObj, err := h.FormHandler.formService.GetForm(formID)
 	if err != nil {
-		h.DashboardHandler.Base.LogError("Failed to get form", err)
+		h.logger.Error("Failed to get form", err)
 		return nil, echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
@@ -83,13 +83,16 @@ func (h *Handler) getOwnedForm(c echo.Context, currentUser *user.User) (*form.Fo
 
 // handleError is a helper function to consistently handle and log errors
 func (h *Handler) handleError(err error, status int, message string) error {
-	h.DashboardHandler.Base.LogError(message, err)
+	h.logger.Error(message, err)
 	return echo.NewHTTPError(status, message)
 }
 
 // Register sets up the dashboard routes
 func (h *Handler) Register(e *echo.Echo) {
-	h.DashboardHandler.Register(e)
+	dashboard := e.Group("/dashboard")
+	// You may want to add middleware here if needed
+	dashboard.GET("", h.ShowDashboard)
+
 	h.FormHandler.Register(e)
 	h.SubmissionHandler.Register(e)
 	h.SchemaHandler.Register(e)
@@ -210,7 +213,7 @@ func (h *Handler) ShowEditForm(c echo.Context) error {
 	// Get form submissions
 	submissions, err := h.FormHandler.formService.GetFormSubmissions(formObj.ID)
 	if err != nil {
-		h.DashboardHandler.Base.LogError("failed to get form submissions", err)
+		h.logger.Error("failed to get form submissions", err)
 		// Don't return error, just show empty submissions
 		submissions = []*model.FormSubmission{}
 	}
