@@ -196,24 +196,36 @@ export const validation = {
       headers.set("X-CSRF-Token", csrfToken);
     }
     headers.set("Content-Type", "application/json");
+
+    // If the request has a body, add CSRF token to it
+    let body = options.body;
+    if (csrfToken && body) {
+      try {
+        const data = JSON.parse(body as string);
+        data._csrf = csrfToken;
+        body = JSON.stringify(data);
+      } catch (e) {
+        console.error("Failed to add CSRF token to request body:", e);
+      }
+    }
+
     // Make request with CSRF token and credentials
     return fetch(url, {
       ...options,
       headers,
+      body,
       credentials: "include",
     });
   },
 
   // JWT token management
-  getJWTToken(): string | null {
-    return localStorage.getItem("jwt_token");
-  },
-
-  setJWTToken(token: string): void {
-    localStorage.setItem("jwt_token", token);
-  },
-
-  clearJWTToken(): void {
-    localStorage.removeItem("jwt_token");
-  },
+  // getJWTToken(): string | null {
+  //   return localStorage.getItem("jwt_token");
+  // }
+  // setJWTToken(token: string): void {
+  //   localStorage.setItem("jwt_token", token);
+  // }
+  // clearJWTToken(): void {
+  //   localStorage.removeItem("jwt_token");
+  // }
 };

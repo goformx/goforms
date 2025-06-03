@@ -1,103 +1,129 @@
 package middleware
 
 import (
-	"errors"
-	"fmt"
-	"net/http"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-func handlePanic(c echo.Context, log logging.Logger, start time.Time, r any) {
-	err := fmt.Errorf("panic: %v", r)
-	c.Response().Status = echo.ErrInternalServerError.Code
-	log.Error("request panic",
-		logging.String("method", c.Request().Method),
-		logging.String("path", c.Request().URL.Path),
-		logging.Int("status", c.Response().Status),
-		logging.String("latency", time.Since(start).String()),
-		logging.String("ip", c.RealIP()),
-		logging.String("user_agent", c.Request().UserAgent()),
-		logging.Any("panic", r),
-	)
-	c.Error(err)
+// Logging is middleware that logs requests
+type Logging struct {
+	logger logging.Logger
 }
 
-// extractFields builds the log fields for a request
-func extractFields(c echo.Context, start time.Time) []any {
-	return []any{
-		logging.String("method", c.Request().Method),
-		logging.String("path", c.Request().URL.Path),
-		logging.Int("status", c.Response().Status),
-		logging.String("latency", time.Since(start).String()),
-		logging.String("remote_ip", c.RealIP()),
-		logging.String("user_agent", c.Request().UserAgent()),
+// NewLogging creates a new logging middleware
+func NewLogging(logger logging.Logger) *Logging {
+	return &Logging{
+		logger: logger,
 	}
 }
 
-// handleErrorStatus sets the response status based on error
-func handleErrorStatus(c echo.Context, err error) {
-	if err != nil {
-		he := &echo.HTTPError{}
-		if errors.As(err, &he) {
-			c.Response().Status = he.Code
-		} else {
-			c.Response().Status = echo.ErrInternalServerError.Code
-		}
-	}
-}
-
-// LoggingMiddleware creates a middleware that logs HTTP requests and responses
-func LoggingMiddleware(log logging.Logger) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			start := time.Now()
-			var err error
-
-			defer func() {
-				if r := recover(); r != nil {
-					handlePanic(c, log, start, r)
-				}
-			}()
-
-			// Call the next handler
-			err = next(c)
-
-			// Set status based on error
-			handleErrorStatus(c, err)
-
-			// Log the request details using structured logging
-			fields := extractFields(c, start)
-
-			if err != nil {
-				status := c.Response().Status
-				path := c.Request().URL.Path
-				isStatic404 := status == http.StatusNotFound && (strings.HasPrefix(path, "/node_modules/") ||
-					strings.HasPrefix(path, "/dist/") ||
-					strings.HasPrefix(path, "/public/") ||
-					strings.HasSuffix(path, ".woff2") ||
-					strings.HasSuffix(path, ".woff") ||
-					strings.HasSuffix(path, ".ttf") ||
-					strings.HasSuffix(path, ".eot") ||
-					strings.HasSuffix(path, ".svg") ||
-					strings.HasSuffix(path, ".png") ||
-					strings.HasSuffix(path, ".jpg") ||
-					strings.HasSuffix(path, ".jpeg") ||
-					strings.HasSuffix(path, ".gif"))
-				if isStatic404 {
-					log.Info("static asset not found", fields...)
-				} else {
-					log.Error("request error", append(fields, logging.Error(err))...)
-				}
-			} else {
-				log.Info("request completed", fields...)
+// Handle logs requests and responses using Echo's RequestLogger
+func (m *Logging) Handle(next echo.HandlerFunc) echo.HandlerFunc {
+	config := middleware.RequestLoggerConfig{
+		// Skip logging for static assets
+		Skipper: func(c echo.Context) bool {
+			path := c.Request().URL.Path
+			return strings.HasPrefix(path, "/node_modules/") ||
+				strings.HasPrefix(path, "/dist/") ||
+				strings.HasPrefix(path, "/public/")
+		},
+		// Log all relevant request/response information
+		LogLatency:       true,
+		LogProtocol:      true,
+		LogRemoteIP:      true,
+		LogHost:          true,
+		LogMethod:        true,
+		LogURI:           true,
+		LogURIPath:       true,
+		LogRoutePath:     true,
+		LogRequestID:     true,
+		LogReferer:       true,
+		LogUserAgent:     true,
+		LogStatus:        true,
+		LogError:         true,
+		LogContentLength: true,
+		LogResponseSize:  true,
+		// Log common headers
+		LogHeaders: []string{
+			"Content-Type",
+			"Accept",
+			"Accept-Encoding",
+			"Accept-Language",
+			"Cache-Control",
+			"Connection",
+			"Cookie",
+			"Origin",
+			"Sec-Fetch-Dest",
+			"Sec-Fetch-Mode",
+			"Sec-Fetch-Site",
+			"Upgrade-Insecure-Requests",
+		},
+		// Log common query parameters
+		LogQueryParams: []string{
+			"page",
+			"limit",
+			"sort",
+			"filter",
+			"search",
+		},
+		// Log common form values
+		LogFormValues: []string{
+			"email",
+			"username",
+			"password",
+			"action",
+		},
+		// Custom logging function using our logger
+		LogValuesFunc: func(c echo.Context, v middleware.RequestLoggerValues) error {
+			// Build log fields
+			fields := []any{
+				logging.StringField("method", v.Method),
+				logging.StringField("uri", v.URI),
+				logging.StringField("path", v.URIPath),
+				logging.StringField("route", v.RoutePath),
+				logging.StringField("remote_ip", v.RemoteIP),
+				logging.StringField("host", v.Host),
+				logging.StringField("protocol", v.Protocol),
+				logging.StringField("request_id", v.RequestID),
+				logging.StringField("referer", v.Referer),
+				logging.StringField("user_agent", v.UserAgent),
+				logging.IntField("status", v.Status),
+				logging.AnyField("content_length", v.ContentLength),
+				logging.AnyField("response_size", v.ResponseSize),
+				logging.DurationField("latency", v.Latency),
 			}
 
-			return err
-		}
+			// Add headers if present
+			for k, v := range v.Headers {
+				fields = append(fields, logging.StringField("header_"+strings.ToLower(k), strings.Join(v, ",")))
+			}
+
+			// Add query parameters if present
+			for k, v := range v.QueryParams {
+				fields = append(fields, logging.StringField("query_"+k, strings.Join(v, ",")))
+			}
+
+			// Add form values if present
+			for k, v := range v.FormValues {
+				fields = append(fields, logging.StringField("form_"+k, strings.Join(v, ",")))
+			}
+
+			// Log based on status code
+			if v.Status >= 500 { //nolint:mnd // 500 is a business rule for server error
+				m.logger.Error("request failed", fields...)
+			} else if v.Status >= 400 { //nolint:mnd // 400 is a business rule for client error
+				m.logger.Warn("request failed", fields...)
+			} else {
+				m.logger.Info("request completed", fields...)
+			}
+
+			return nil
+		},
 	}
+
+	return middleware.RequestLoggerWithConfig(config)(next)
 }

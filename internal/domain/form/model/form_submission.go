@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
-	"github.com/goformx/goforms/internal/domain/common/validation"
+	"github.com/goformx/goforms/internal/infrastructure/validation"
 	"github.com/google/uuid"
 )
 
@@ -53,16 +53,16 @@ func NewFormSubmission(formID string, data map[string]any, metadata map[string]s
 // Validate validates the form submission
 func (s *FormSubmission) Validate() error {
 	validator := validation.New()
-	if err := validator.ValidateStruct(s); err != nil {
+	if err := validator.Struct(s); err != nil {
 		return errors.Wrap(err, errors.ErrCodeValidation, "form submission validation failed")
 	}
 
 	if s.Data == nil {
-		return errors.New(errors.ErrCodeValidation, "form data is required")
+		return errors.New(errors.ErrCodeValidation, "form data is required", nil)
 	}
 
 	if len(s.Data) == 0 {
-		return errors.New(errors.ErrCodeValidation, "form data cannot be empty")
+		return errors.New(errors.ErrCodeValidation, "form data cannot be empty", nil)
 	}
 
 	return nil

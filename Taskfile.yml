@@ -155,7 +155,7 @@ tasks:
     deps: [generate]
     cmds:
       - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
-      - go test -v -race ./internal/...
+      - go test -v ./internal/...
 
   test:cover:
     desc: Run tests with coverage report

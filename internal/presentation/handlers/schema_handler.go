@@ -31,10 +31,14 @@ func NewSchemaHandler(
 // Register sets up the schema routes
 func (h *SchemaHandler) Register(e *echo.Echo) {
 	schema := e.Group("/dashboard/forms/:id/schema")
-	h.Base.SetupMiddleware(schema)
 
 	schema.GET("", h.GetFormSchema)
 	schema.PUT("", h.UpdateFormSchema)
+
+	// Add API routes for frontend XHR
+	apiSchema := e.Group("/api/v1/forms/:id/schema")
+	apiSchema.GET("", h.GetFormSchema)
+	apiSchema.PUT("", h.UpdateFormSchema)
 }
 
 // GetFormSchema handles getting a form's schema

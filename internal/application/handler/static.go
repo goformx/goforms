@@ -10,120 +10,133 @@ import (
 
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 // StaticHandler handles serving static files
+// It is the single source of truth for static file serving in the application.
 type StaticHandler struct {
-	logger    logging.Logger
-	config    *config.Config
-	fileIndex map[string]string // base name -> full path
+	logger logging.Logger
+	cfg    *config.Config
 }
 
 // NewStaticHandler creates a new static file handler
 func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler {
-	handler := &StaticHandler{
-		logger:    logger,
-		config:    cfg,
-		fileIndex: make(map[string]string),
+	if cfg == nil {
+		panic("config is required for StaticHandler")
 	}
-	// Build file index for dist directory
-	distDir := cfg.Static.DistDir
-	if _, statErr := os.Stat(distDir); statErr == nil {
-		walkErr := filepath.Walk(distDir, func(walkPath string, info os.FileInfo, walkErr error) error {
-			if walkErr != nil {
-				return walkErr
-			}
-			if !info.IsDir() {
-				baseName := strings.Split(info.Name(), ".")[0]
-				handler.fileIndex[baseName] = walkPath
-			}
-			return nil
-		})
-		if walkErr != nil {
-			logger.Error("error walking distDir", logging.ErrorField("error", walkErr))
-		}
+	if logger == nil {
+		panic("logger is required for StaticHandler")
 	}
-	return handler
+	return &StaticHandler{
+		logger: logger,
+		cfg:    cfg,
+	}
+}
+
+// IsStaticFile checks if the given path is a static file
+func (h *StaticHandler) IsStaticFile(path string) bool {
+	// Skip TypeScript files in development mode
+	if strings.HasSuffix(path, ".ts") {
+		return false
+	}
+
+	// Skip Vite dev server paths
+	if strings.HasPrefix(path, "/@vite/") {
+		return false
+	}
+
+	// Skip source files in development mode
+	if strings.HasPrefix(path, "/src/") {
+		return false
+	}
+
+	// Skip assets in development mode
+	if strings.HasPrefix(path, "/assets/") {
+		return false
+	}
+
+	return strings.HasPrefix(path, "/public/") ||
+		strings.HasSuffix(path, ".js") ||
+		strings.HasSuffix(path, ".css")
+}
+
+// setMIMEType sets the appropriate Content-Type header based on the file extension
+func (h *StaticHandler) setMIMEType(c echo.Context, path string) {
+	switch {
+	case strings.HasSuffix(path, ".css"):
+		c.Response().Header().Set("Content-Type", "text/css")
+	case strings.HasSuffix(path, ".js"):
+		c.Response().Header().Set("Content-Type", "application/javascript")
+	case strings.HasSuffix(path, ".ts"):
+		c.Response().Header().Set("Content-Type", "application/javascript")
+	case strings.HasSuffix(path, ".mjs"):
+		c.Response().Header().Set("Content-Type", "application/javascript")
+	case strings.HasSuffix(path, ".ico"):
+		c.Response().Header().Set("Content-Type", "image/x-icon")
+	case strings.HasSuffix(path, ".txt"):
+		c.Response().Header().Set("Content-Type", "text/plain")
+	case strings.HasPrefix(path, "/@vite/"):
+		c.Response().Header().Set("Content-Type", "application/javascript")
+	}
 }
 
 // Register sets up routes for static file serving
 func (h *StaticHandler) Register(e *echo.Echo) {
-	// Handle Chrome DevTools well-known route
-	e.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]any{
-			"devtoolsFrontendUrl":  "",
-			"faviconUrl":           "/favicon.ico",
-			"id":                   "goforms",
-			"title":                "GoFormX",
-			"type":                 "node",
-			"url":                  "/",
-			"webSocketDebuggerUrl": "",
+	// Handle Chrome DevTools well-known route only in development
+	if h.cfg.App.IsDevelopment() {
+		e.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c echo.Context) error {
+			return c.JSON(http.StatusOK, map[string]any{
+				"devtoolsFrontendUrl":  "",
+				"faviconUrl":           "/favicon.ico",
+				"id":                   "goforms",
+				"title":                "GoFormX",
+				"type":                 "node",
+				"url":                  "/",
+				"webSocketDebuggerUrl": "",
+			})
 		})
-	})
+	}
 
-	// In production, serve from the dist directory
-	distDir := h.config.Static.DistDir
-	if _, err := os.Stat(distDir); err == nil {
-		h.logger.Info("serving static files from dist directory",
+	// Serve static files using Echo's built-in middleware
+	distDir := h.cfg.Static.DistDir
+	if distDir == "" {
+		h.logger.Error("static directory not configured",
+			logging.StringField("config_key", "Static.DistDir"),
+		)
+		return
+	}
+
+	// Ensure the path is absolute
+	absPath, err := filepath.Abs(distDir)
+	if err != nil {
+		h.logger.Error("failed to resolve static directory path",
 			logging.StringField("dir", distDir),
+			logging.ErrorField("error", err),
 		)
-		// Use a wildcard route to handle hashed filenames
-		prefix := "/" + distDir + "/*"
-		e.GET(prefix, h.HandleStatic)
-	}
-}
-
-// HandleStatic serves static files
-func (h *StaticHandler) HandleStatic(c echo.Context) error {
-	path := c.Param("*")
-	if path == "" {
-		return echo.NewHTTPError(http.StatusNotFound, "file not found")
+		return
 	}
 
-	// In production, serve from the dist directory
-	requestBaseName := strings.Split(filepath.Base(path), ".")[0]
-	foundFile, ok := h.fileIndex[requestBaseName]
-	if !ok {
-		h.logger.Error("file not found",
-			logging.StringField("path", path),
-			logging.StringField("distDir", h.config.Static.DistDir),
+	if stat, statErr := os.Stat(absPath); statErr == nil && stat.IsDir() {
+		h.logger.Info("serving static files from dist directory",
+			logging.StringField("dir", absPath),
 		)
-		accept := c.Request().Header.Get("Accept")
-		if strings.Contains(accept, "text/html") {
-			// Try to serve a custom 404 page
-			notFoundPage := filepath.Join(h.config.Static.DistDir, "404.html")
-			if _, err := os.Stat(notFoundPage); err == nil {
-				return c.File(notFoundPage)
+
+		// Add MIME type middleware for static files
+		e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+			return func(c echo.Context) error {
+				path := c.Request().URL.Path
+				if h.IsStaticFile(path) {
+					h.setMIMEType(c, path)
+				}
+				return next(c)
 			}
-		}
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "file not found"})
-	}
+		})
 
-	// Set appropriate content type based on file extension
-	ext := filepath.Ext(foundFile)
-	switch ext {
-	case ".css":
-		c.Response().Header().Set("Content-Type", "text/css")
-	case ".js":
-		c.Response().Header().Set("Content-Type", "application/javascript")
-	case ".map":
-		c.Response().Header().Set("Content-Type", "application/json")
-	}
-
-	// Set cache headers based on manifest presence
-	if _, manifestOk := web.Manifest[path]; manifestOk {
-		// File is in the manifest, safe to cache long-term
-		c.Response().Header().Set("Cache-Control", "public, max-age=31536000, immutable")
+		e.Static("/", absPath)
 	} else {
-		// Not in manifest, use a short cache
-		c.Response().Header().Set("Cache-Control", "public, max-age=3600")
+		h.logger.Error("static directory not found or inaccessible",
+			logging.StringField("dir", absPath),
+			logging.ErrorField("error", statErr),
+		)
 	}
-
-	h.logger.Debug("serving static file",
-		logging.StringField("path", path),
-		logging.StringField("distDir", h.config.Static.DistDir),
-	)
-
-	return c.File(foundFile)
 }

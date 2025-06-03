@@ -3,13 +3,11 @@ package handlers
 import (
 	"net/http"
 
-	amw "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/services"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -23,10 +21,22 @@ type FormData struct {
 
 // Handler handles dashboard-related HTTP requests
 type Handler struct {
-	DashboardHandler  *DashboardHandler
 	FormHandler       *FormHandler
 	SubmissionHandler *SubmissionHandler
 	SchemaHandler     *SchemaHandler
+	logger            logging.Logger
+	pageDataService   interface {
+		PrepareDashboardData(c echo.Context, currentUser *user.User, forms []*form.Form) shared.PageData
+		PrepareFormData(
+			c echo.Context,
+			currentUser *user.User,
+			formObj *form.Form,
+			submissions []*model.FormSubmission,
+		) shared.PageData
+		PrepareNewFormData(c echo.Context, currentUser *user.User) shared.PageData
+		PrepareProfileData(c echo.Context, currentUser *user.User) shared.PageData
+		PrepareSettingsData(c echo.Context, currentUser *user.User) shared.PageData
+	}
 }
 
 // NewHandler creates a new dashboard handler
@@ -34,21 +44,33 @@ func NewHandler(
 	userService user.Service,
 	formService form.Service,
 	logger logging.Logger,
+	pageDataService interface {
+		PrepareDashboardData(c echo.Context, currentUser *user.User, forms []*form.Form) shared.PageData
+		PrepareFormData(
+			c echo.Context,
+			currentUser *user.User,
+			formObj *form.Form,
+			submissions []*model.FormSubmission,
+		) shared.PageData
+		PrepareNewFormData(c echo.Context, currentUser *user.User) shared.PageData
+		PrepareProfileData(c echo.Context, currentUser *user.User) shared.PageData
+		PrepareSettingsData(c echo.Context, currentUser *user.User) shared.PageData
+	},
 ) (*Handler, error) {
 	base := NewBaseHandler(
-		amw.NewCookieAuthMiddleware(userService, logger),
 		formService,
 		logger,
 	)
 
 	// Create form operations service
-	formOperations := services.NewFormOperations(formService, logger)
+	formOperations := formops.NewService(formService, logger)
 
 	return &Handler{
-		DashboardHandler:  NewDashboardHandler(formService, logger, base),
 		FormHandler:       NewFormHandler(formService, formOperations, logger, base),
 		SubmissionHandler: NewSubmissionHandler(formService, logger, base),
 		SchemaHandler:     NewSchemaHandler(formService, logger, base),
+		logger:            logger,
+		pageDataService:   pageDataService,
 	}, nil
 }
 
@@ -70,7 +92,7 @@ func (h *Handler) getOwnedForm(c echo.Context, currentUser *user.User) (*form.Fo
 
 	formObj, err := h.FormHandler.formService.GetForm(formID)
 	if err != nil {
-		h.DashboardHandler.Base.LogError("Failed to get form", err)
+		h.logger.Error("Failed to get form", err)
 		return nil, echo.NewHTTPError(http.StatusNotFound, "Form not found")
 	}
 
@@ -83,13 +105,16 @@ func (h *Handler) getOwnedForm(c echo.Context, currentUser *user.User) (*form.Fo
 
 // handleError is a helper function to consistently handle and log errors
 func (h *Handler) handleError(err error, status int, message string) error {
-	h.DashboardHandler.Base.LogError(message, err)
+	h.logger.Error(message, err)
 	return echo.NewHTTPError(status, message)
 }
 
 // Register sets up the dashboard routes
 func (h *Handler) Register(e *echo.Echo) {
-	h.DashboardHandler.Register(e)
+	dashboard := e.Group("/dashboard")
+	// You may want to add middleware here if needed
+	dashboard.GET("", h.ShowDashboard)
+
 	h.FormHandler.Register(e)
 	h.SubmissionHandler.Register(e)
 	h.SchemaHandler.Register(e)
@@ -98,63 +123,41 @@ func (h *Handler) Register(e *echo.Echo) {
 // ShowDashboard displays the user's dashboard
 func (h *Handler) ShowDashboard(c echo.Context) error {
 	currentUser, err := h.getAuthenticatedUser(c)
-	if err != nil {
-		return err
+	if err != nil || currentUser == nil {
+		h.logger.Error("ShowDashboard: user is nil or authentication failed", logging.Error(err))
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not authenticated")
 	}
 
-	// Get user's forms
 	forms, err := h.FormHandler.formService.GetUserForms(currentUser.ID)
 	if err != nil {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to fetch forms")
 	}
 
-	// Get CSRF token from context
-	csrfToken, ok := c.Get("csrf").(string)
-	if !ok {
-		csrfToken = "" // Set empty string if token not found
+	// Debug log for forms fetched
+	h.logger.Debug("ShowDashboard: forms fetched", logging.IntField("count", len(forms)), logging.Any("forms", forms))
+
+	data := h.pageDataService.PrepareDashboardData(c, currentUser, forms)
+	if data.User == nil {
+		h.logger.Error("ShowDashboard: PageData.User is nil after preparation, redirecting to login")
+		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
-	// Create page data
-	data := shared.PageData{
-		Title:     "Dashboard - GoFormX",
-		User:      currentUser,
-		Forms:     forms,
-		CSRFToken: csrfToken,
-		AssetPath: web.GetAssetPath,
-	}
+	h.logger.Debug("ShowDashboard: rendering dashboard", logging.Any("user", data.User))
 
-	// Set content
 	data.Content = pages.DashboardContent(data)
-
-	// Render dashboard page
 	return pages.Dashboard(data).Render(c.Request().Context(), c.Response().Writer)
 }
 
 // ShowNewForm displays the form creation page
 func (h *Handler) ShowNewForm(c echo.Context) error {
 	currentUser, err := h.getAuthenticatedUser(c)
-	if err != nil {
-		return err
+	if err != nil || currentUser == nil {
+		h.logger.Error("ShowNewForm: user is nil or authentication failed", logging.Error(err))
+		return echo.NewHTTPError(http.StatusUnauthorized, "User not authenticated")
 	}
 
-	// Get CSRF token from context
-	csrfToken, ok := c.Get("csrf").(string)
-	if !ok {
-		csrfToken = "" // Set empty string if token not found
-	}
-
-	// Create page data
-	data := shared.PageData{
-		Title:     "Create New Form - GoFormX",
-		User:      currentUser,
-		CSRFToken: csrfToken,
-		AssetPath: web.GetAssetPath,
-	}
-
-	// Set content
+	data := h.pageDataService.PrepareNewFormData(c, currentUser)
 	data.Content = pages.NewFormContent(data)
-
-	// Render new form page
 	return pages.NewForm(data).Render(c.Request().Context(), c.Response().Writer)
 }
 
@@ -207,32 +210,13 @@ func (h *Handler) ShowEditForm(c echo.Context) error {
 		return err
 	}
 
-	// Get form submissions
 	submissions, err := h.FormHandler.formService.GetFormSubmissions(formObj.ID)
 	if err != nil {
-		h.DashboardHandler.Base.LogError("failed to get form submissions", err)
-		// Don't return error, just show empty submissions
+		h.logger.Error("failed to get form submissions", err)
 		submissions = []*model.FormSubmission{}
 	}
 
-	// Get CSRF token from context
-	csrfToken, ok := c.Get("csrf").(string)
-	if !ok {
-		csrfToken = "" // Set empty string if token not found
-	}
-
-	// Create page data
-	data := shared.PageData{
-		Title:                "Edit Form - GoFormX",
-		User:                 currentUser,
-		Form:                 formObj,
-		Submissions:          submissions,
-		CSRFToken:            csrfToken,
-		AssetPath:            web.GetAssetPath,
-		FormBuilderAssetPath: web.GetAssetPath("src/js/form-builder.ts"),
-	}
-
-	// Render the edit form page
+	data := h.pageDataService.PrepareFormData(c, currentUser, formObj, submissions)
 	return pages.EditForm(data).Render(c.Request().Context(), c.Response().Writer)
 }
 

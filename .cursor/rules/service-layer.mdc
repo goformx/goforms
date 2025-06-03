@@ -1,161 +1,195 @@
 ---
-description:
-globs:
+description: 
+globs: internal/**/services/**/*.go
 alwaysApply: false
 ---
-# Service Layer Patterns
+# Service Layer Architecture
 
 ## Overview
-The service layer in GoFormX follows a structured approach to handle business logic, data preparation, and template rendering. This document outlines the patterns and best practices for implementing services.
+The service layer in GoFormX follows a clean architecture pattern with clear separation of concerns. Services are organized by domain and functionality, with a focus on maintainability and testability.
 
-## Service Types
+## Core Principles
 
-### 1. Page Data Services
-- Handle template data preparation
-- Manage CSRF tokens and asset paths
-- Prepare data for different page types
-- Keep template data logic separate from handlers
+1. Interface-Based Design
+   - Services are defined by interfaces
+   - Dependencies are injected
+   - Implementation details are hidden
+   - Easy to mock for testing
 
-Example:
+2. Domain-Driven Organization
+   - Services are grouped by domain
+   - Clear boundaries between domains
+   - Domain-specific error handling
+   - Domain-specific validation
+
+3. Clean Architecture
+   - Services depend on interfaces
+   - Domain models are independent
+   - Infrastructure concerns are isolated
+   - Business logic is centralized
+
+## Service Structure
+
+### Form Operations Service
+Located in [internal/application/services/form_operations/service.go](mdc:goforms/goforms/internal/application/services/form_operations/service.go):
+
 ```go
-type PageDataService struct {
-    logger logging.Logger
+type Service interface {
+    ValidateAndBindFormData(c echo.Context, form *model.Form) (*model.FormSubmission, error)
+    // ... other methods
 }
 
-func (s *PageDataService) PrepareDashboardData(c echo.Context, user *user.User, forms []*form.Form) shared.PageData {
-    // Prepare data for dashboard page
-}
-```
-
-### 2. Form Operations Services
-- Handle common form operations
-- Validate and bind form data
-- Manage form ownership verification
-- Create default schemas
-- Update form details
-
-Example:
-```go
-type FormOperations struct {
+type service struct {
     formService form.Service
-    logger      logging.Logger
-}
-
-func (o *FormOperations) ValidateAndBindFormData(c echo.Context) (*FormData, error) {
-    // Validate and bind form data
+    logger      *zap.Logger
 }
 ```
 
-### 3. Template Services
-- Handle template rendering
-- Manage content preparation
-- Provide consistent rendering methods
-- Keep rendering logic separate from handlers
+### Page Data Service
+Located in [internal/application/services/page_data/service.go](mdc:goforms/goforms/internal/application/services/page_data/service.go):
 
-Example:
 ```go
-type TemplateService struct {
-    logger logging.Logger
-}
-
-func (s *TemplateService) RenderDashboard(c echo.Context, data shared.PageData) error {
-    // Render dashboard page
+type Service interface {
+    GetDashboardData(usr *user.User) (*shared.PageData, error)
+    GetFormData(usr *user.User, form *model.Form) (*shared.PageData, error)
+    // ... other methods
 }
 ```
 
 ## Best Practices
 
-1. **Single Responsibility**
-   - Each service should have a single, well-defined responsibility
-   - Avoid mixing concerns between different service types
-   - Keep services focused and cohesive
+1. Interface Design
+   - Keep interfaces focused
+   - Use meaningful names
+   - Document behavior
+   - Follow Go conventions
 
-2. **Dependency Injection**
-   - Use constructor injection for dependencies
-   - Make dependencies explicit in service structs
-   - Avoid global state or service locators
+2. Error Handling
+   - Use domain errors
+   - Provide context
+   - Handle edge cases
+   - Log appropriately
 
-3. **Error Handling**
-   - Use consistent error types
-   - Provide meaningful error messages
-   - Log errors appropriately
-   - Return errors to handlers for proper handling
+3. Validation
+   - Validate input early
+   - Use domain rules
+   - Provide clear messages
+   - Handle all cases
 
-4. **Logging**
-   - Include relevant context in log messages
-   - Use appropriate log levels
-   - Log errors with stack traces when available
-   - Include operation names in log messages
+4. Logging
+   - Use structured logging
+   - Include context
+   - Log at appropriate levels
+   - Follow logging guidelines
 
-5. **Validation**
-   - Validate input data early
-   - Use consistent validation patterns
-   - Return clear validation error messages
-   - Handle validation errors appropriately
+5. Testing
+   - Write unit tests
+   - Use mocks
+   - Test edge cases
+   - Follow testing guidelines
 
-6. **Testing**
-   - Write unit tests for services
-   - Mock dependencies for testing
+## Service Dependencies
+
+1. Domain Services
+   - Form service
+   - User service
+   - Submission service
+   - Template service
+
+2. Infrastructure
+   - Database
+   - Cache
+   - File storage
+   - External services
+
+3. Cross-Cutting Concerns
+   - Logging
+   - Metrics
+   - Error handling
+   - Configuration
+
+## Service Implementation
+
+1. Constructor Pattern
+   - NewService function
+   - Dependency injection
+   - Configuration validation
+   - Error handling
+
+2. Method Implementation
+   - Clear responsibility
+   - Error handling
+   - Input validation
+   - Proper logging
+
+3. Error Handling
+   - Use domain errors
+   - Provide context
+   - Handle all cases
+   - Log appropriately
+
+4. Logging
+   - Structured logging
+   - Context inclusion
+   - Appropriate levels
+   - Clear messages
+
+## Testing Guidelines
+
+1. Unit Tests
+   - Test each method
+   - Use mocks
+   - Test edge cases
+   - Follow testing guidelines
+
+2. Integration Tests
+   - Test service integration
+   - Use test database
+   - Clean up resources
+   - Follow testing guidelines
+
+3. Test Coverage
+   - Aim for high coverage
    - Test error cases
    - Test edge cases
+   - Follow testing guidelines
 
-## Implementation Guidelines
+## Performance Considerations
 
-1. **Service Creation**
-   ```go
-   // Create a new service with dependencies
-   func NewService(deps Dependencies) *Service {
-       return &Service{
-           deps: deps,
-       }
-   }
-   ```
+1. Caching
+   - Cache expensive operations
+   - Use appropriate TTL
+   - Handle cache misses
+   - Monitor cache usage
 
-2. **Method Implementation**
-   ```go
-   // Implement methods with clear responsibilities
-   func (s *Service) DoSomething(ctx context.Context, input Input) (Output, error) {
-       // Validate input
-       if err := s.validateInput(input); err != nil {
-           return Output{}, err
-       }
+2. Database Operations
+   - Use transactions
+   - Optimize queries
+   - Handle timeouts
+   - Monitor performance
 
-       // Process data
-       result, err := s.processData(input)
-       if err != nil {
-           return Output{}, err
-       }
+3. External Services
+   - Handle timeouts
+   - Implement retries
+   - Monitor performance
+   - Handle failures
 
-       // Return result
-       return result, nil
-   }
-   ```
+## Security Guidelines
 
-3. **Error Handling**
-   ```go
-   // Handle errors consistently
-   func (s *Service) handleError(err error, message string) error {
-       s.logger.Error(message, logging.Error(err))
-       return fmt.Errorf("%s: %w", message, err)
-   }
-   ```
+1. Input Validation
+   - Validate all input
+   - Use domain rules
+   - Handle edge cases
+   - Follow security guidelines
 
-## Integration with Handlers
+2. Error Handling
+   - Don't expose internals
+   - Use domain errors
+   - Log appropriately
+   - Follow security guidelines
 
-1. **Handler Usage**
-   ```go
-   type Handler struct {
-       pageDataService *PageDataService
-       formOperations  *FormOperations
-       templateService *TemplateService
-   }
-   ```
-
-2. **Service Composition**
-   ```go
-   func (h *Handler) HandleRequest(c echo.Context) error {
-       // Use services in handlers
-       data := h.pageDataService.PrepareData(c)
-       return h.templateService.Render(c, data)
-   }
-   ```
+3. Access Control
+   - Check permissions
+   - Validate access
+   - Handle unauthorized
+   - Follow security guidelines

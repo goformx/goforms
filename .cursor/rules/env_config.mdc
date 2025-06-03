@@ -1,5 +1,5 @@
 ---
-description: 
+description: Configuration and environment variable management patterns
 globs: 
 alwaysApply: false
 ---
@@ -48,9 +48,6 @@ GOFORMS_DB_CONN_MAX_LIFETIME=5m
 # =============================================
 # Security Configuration
 # =============================================
-# JWT Settings
-GOFORMS_JWT_SECRET=c076b05a97291c55faa2e5c3191dfd9b28849a64808798ac46d202779a6f3069ceaeab3322ec028c384928d31796e5c5b8794870f38e5d898861f3be4beb1a9d4ebabcdba17380a203d11d6582acb2f234f39145ffc8b767a698f3246d4677576550163a78d9a16cceb5550367236637d03376db52a7522ae8bd4b922c8d86badae17d516a51ea7ac39d4f8cda39597601cf2622b2341aa7589aef60fef6d4acccfc009ca676afa8ee0665ef0b5bb6ccbdd899242b94cd5ef73adb58eb50a1dae5668d2ca5252f24d4d01cad34c615c2ea8fdc01862e2b65e8b978b7a609776d963ddf97f9c945661a4032809bd2cbb8f9b314eaa539734cef43935da72c68a2
-
 # CSRF Settings
 GOFORMS_CSRF_ENABLED=true
 GOFORMS_CSRF_SECRET=hf/LRSeENwlRqRGtBljgU54+PsuKpyEp59nbjtCu+mY=
@@ -76,6 +73,16 @@ GOFORMS_RATE_LIMIT_PER_IP=true
 # =============================================
 GOFORMS_VITE_DEV_HOST=localhost
 GOFORMS_VITE_DEV_PORT=3000
+
+## Session Settings
+GOFORMS_SESSION_SECRET=your-secure-session-secret
+GOFORMS_SESSION_TIMEOUT=15m
+
+## Security Requirements
+1. Session secret must be at least 32 characters long
+2. Use secure cookie settings in production
+3. Implement proper session timeout
+4. Configure secure headers
 ```
 
 ## Important Notes:
@@ -85,7 +92,7 @@ GOFORMS_VITE_DEV_PORT=3000
    - `GOFORMS_DB_MAX_OPEN_CONNS=25`
    - `GOFORMS_DB_MAX_IDLE_CONNS=5`
    - `GOFORMS_DB_CONN_MAX_LIFETIME=5m`
-4. JWT secret must be at least 32 characters long
+4. CSRF secret must be at least 32 characters long
 5. The file is gitignored and should not be committed to version control 
 
 ## Debugging .env Issues

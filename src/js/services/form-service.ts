@@ -47,14 +47,17 @@ export class FormService {
   }
 
   async saveSchema(formId: string, schema: FormSchema): Promise<FormSchema> {
-    const response = await fetch(`${this.baseUrl}/${formId}/schema`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-CSRF-Token": this.getCSRFToken(),
+    const response = await fetch(
+      `${this.baseUrl}/api/v1/forms/${formId}/schema`,
+      {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          "X-CSRF-Token": this.getCSRFToken(),
+        },
+        body: JSON.stringify(schema),
       },
-      body: JSON.stringify(schema),
-    });
+    );
 
     const responseText = await response.text();
 
@@ -117,7 +120,7 @@ export class FormService {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
-          "Accept": "application/json",
+          Accept: "application/json",
         },
         body: JSON.stringify(data),
       },

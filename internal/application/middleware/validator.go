@@ -1,12 +1,17 @@
 package middleware
 
 import (
-	"github.com/goformx/goforms/internal/domain/common/validation"
+	"errors"
+	"fmt"
+	"reflect"
+
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
+	"github.com/goformx/goforms/internal/infrastructure/validation"
 )
 
-// EchoValidator wraps the domain validator to implement Echo's Validator interface.
+// EchoValidator wraps the infrastructure validator to implement Echo's Validator interface.
 type EchoValidator struct {
-	validator *validation.Validator
+	validator interfaces.Validator
 }
 
 // NewValidator creates a new Echo validator
@@ -18,5 +23,19 @@ func NewValidator() *EchoValidator {
 
 // Validate implements echo.Validator interface.
 func (v *EchoValidator) Validate(i any) error {
-	return v.validator.ValidateStruct(i)
+	if i == nil {
+		return errors.New("validation failed: input is nil")
+	}
+
+	// Ensure the input is a struct before validating
+	if reflect.TypeOf(i).Kind() != reflect.Struct {
+		return errors.New("validation failed: input is not a struct")
+	}
+
+	err := v.validator.Struct(i)
+	if err != nil {
+		return fmt.Errorf("validation error: %w", err)
+	}
+
+	return nil
 }

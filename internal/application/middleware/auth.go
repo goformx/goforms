@@ -1,188 +1,141 @@
 package middleware
 
 import (
-	"errors"
-	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
-	"github.com/golang-jwt/jwt/v5"
 	"github.com/labstack/echo/v4"
+	"golang.org/x/time/rate"
 
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// JWTMiddleware handles JWT authentication
-type JWTMiddleware struct {
+// Rate limit configuration
+const (
+	authRateLimit  = 5  // requests per second
+	authBurstLimit = 10 // maximum burst size
+	authWindowSize = 1 * time.Minute
+)
+
+// AuthMiddleware handles authentication
+type AuthMiddleware struct {
 	userService user.Service
-	secret      string
 	logger      logging.Logger
 	config      *config.Config
+	limiter     *rate.Limiter
 }
 
-// NewJWTMiddleware creates a new JWT middleware
-func NewJWTMiddleware(
+// NewAuthMiddleware creates a new authentication middleware
+func NewAuthMiddleware(
 	userService user.Service,
-	secret string,
 	logger logging.Logger,
 	cfg *config.Config,
-) (echo.MiddlewareFunc, error) {
-	m := &JWTMiddleware{
+) *AuthMiddleware {
+	if userService == nil {
+		panic("AuthMiddleware initialization failed: userService is required")
+	}
+	if logger == nil {
+		panic("AuthMiddleware initialization failed: logger is required")
+	}
+	if cfg == nil {
+		panic("AuthMiddleware initialization failed: config is required")
+	}
+
+	return &AuthMiddleware{
 		userService: userService,
-		secret:      secret,
 		logger:      logger,
 		config:      cfg,
+		limiter:     rate.NewLimiter(rate.Limit(authRateLimit), authBurstLimit),
 	}
-	return m.Handle, nil
 }
 
-// isStaticPath checks if the path is for static content
-func (m *JWTMiddleware) isStaticPath(path string) bool {
-	// Check for common static files first
-	if path == "/favicon.ico" || path == "/robots.txt" {
+// Middleware creates a new authentication middleware function
+func (m *AuthMiddleware) Middleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Skip auth check for certain paths
+			if m.isAuthExempt(c.Request().URL.Path) {
+				return next(c)
+			}
+
+			// Get session from context
+			session, ok := c.Get("session").(*Session)
+			if !ok {
+				return m.handleAuthError(c, "no session found")
+			}
+
+			// Get user from service
+			userData, err := m.userService.GetUserByID(c.Request().Context(), session.UserID)
+			if err != nil {
+				return m.handleAuthError(c, "user not found or inactive")
+			}
+
+			// Set user in context
+			c.Set("user", userData)
+			c.Set("user_id", session.UserID)
+			c.Set("user_email", session.Email)
+			c.Set("user_role", session.Role)
+
+			return next(c)
+		}
+	}
+}
+
+// isAuthExempt checks if the path is exempt from authentication
+func (m *AuthMiddleware) isAuthExempt(path string) bool {
+	// System paths that should always be exempt
+	if strings.HasPrefix(path, "/.well-known/") ||
+		path == "/favicon.ico" ||
+		path == "/robots.txt" {
 		return true
 	}
 
-	// Check for static directory if config is available
-	if m.config != nil && m.config.Static.DistDir != "" {
-		return strings.HasPrefix(path, "/"+m.config.Static.DistDir+"/")
-	}
-
-	return false
-}
-
-// isValidationAPI checks if the path is for validation API
-func (m *JWTMiddleware) isValidationAPI(path string) bool {
-	return strings.HasPrefix(path, "/api/validation/")
-}
-
-// isPublicPage checks if the path is for a public page
-func (m *JWTMiddleware) isPublicPage(path string) bool {
-	return strings.HasPrefix(path, "/login") ||
+	// Application paths that should be exempt
+	return isStaticFile(path) ||
+		strings.HasPrefix(path, "/api/validation/") ||
+		strings.HasPrefix(path, "/login") ||
 		strings.HasPrefix(path, "/signup") ||
 		strings.HasPrefix(path, "/forgot-password") ||
 		strings.HasPrefix(path, "/contact") ||
-		strings.HasPrefix(path, "/demo") ||
-		strings.HasPrefix(path, "/api/v1/auth/login")
-}
-
-// isPublicAPI checks if the path is for a public API endpoint
-func (m *JWTMiddleware) isPublicAPI(path string) bool {
-	return strings.HasPrefix(path, "/api/v1/forms/") &&
-		(strings.HasSuffix(path, "/schema") || strings.HasSuffix(path, "/submit"))
-}
-
-// Handle processes JWT authentication
-func (m *JWTMiddleware) Handle(next echo.HandlerFunc) echo.HandlerFunc {
-	return func(c echo.Context) error {
-		path := c.Request().URL.Path
-		method := c.Request().Method
-
-		// Skip authentication for static files and special files
-		if m.isStaticPath(path) {
-			m.logger.Debug("skipping auth check",
-				logging.StringField("path", path),
-				logging.StringField("reason", "static content path"))
-			return next(c)
-		}
-
-		// Skip authentication for public API endpoints
-		if m.isPublicAPI(path) {
-			m.logger.Debug("skipping auth check",
-				logging.StringField("path", path),
-				logging.StringField("reason", "public API endpoint"))
-			return next(c)
-		}
-
-		// Skip authentication for validation API endpoints
-		if m.isValidationAPI(path) {
-			m.logger.Debug("skipping auth check",
-				logging.StringField("path", path),
-				logging.StringField("reason", "validation API endpoint"))
-			return next(c)
-		}
-
-		// Skip authentication for public pages
-		if m.isPublicPage(path) {
-			m.logger.Debug("skipping auth check",
-				logging.StringField("path", path),
-				logging.StringField("method", method),
-				logging.StringField("reason", "public page"))
-			return next(c)
-		}
-
-		// Get token from header
-		authHeader := c.Request().Header.Get("Authorization")
-		if authHeader == "" {
-			return m.handleAuthError(c, errors.New("missing authorization header"))
-		}
-
-		// Parse token
-		token, err := m.parseToken(authHeader)
-		if err != nil {
-			return m.handleAuthError(c, errors.New("invalid token"))
-		}
-
-		// Validate token claims
-		if !token.Valid {
-			return m.handleAuthError(c, errors.New("invalid token claims"))
-		}
-
-		// Get user ID from claims
-		claims, ok := token.Claims.(jwt.MapClaims)
-		if !ok {
-			return m.handleAuthError(c, errors.New("invalid token claims"))
-		}
-
-		userID, ok := claims["user_id"].(float64)
-		if !ok {
-			return echo.NewHTTPError(http.StatusUnauthorized, "invalid user ID in token")
-		}
-
-		// Get user from service
-		userData, err := m.userService.GetByID(c.Request().Context(), fmt.Sprintf("%v", userID))
-		if err != nil {
-			return echo.NewHTTPError(http.StatusUnauthorized, "invalid user")
-		}
-
-		// Set user in context
-		c.Set("user", userData)
-
-		return next(c)
-	}
+		strings.HasPrefix(path, "/demo")
 }
 
 // handleAuthError handles authentication errors
-func (m *JWTMiddleware) handleAuthError(c echo.Context, err error) error {
+func (m *AuthMiddleware) handleAuthError(c echo.Context, message string) error {
 	m.logger.Error("auth check failed",
 		logging.StringField("path", c.Path()),
 		logging.StringField("method", c.Request().Method),
-		logging.ErrorField("error", err))
-	return echo.NewHTTPError(http.StatusUnauthorized, err.Error())
-}
+		logging.StringField("error", message))
 
-// parseToken parses and validates a JWT token
-func (m *JWTMiddleware) parseToken(authHeader string) (*jwt.Token, error) {
-	// Parse token from authorization header
-	parts := strings.Split(authHeader, " ")
-	if len(parts) != 2 || parts[0] != "Bearer" {
-		return nil, errors.New("invalid authorization header format")
+	// For API requests, return 401
+	if c.Request().Header.Get("Accept") == "application/json" {
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"error": message,
+		})
 	}
 
-	// Parse token
-	token, err := jwt.Parse(parts[1], func(token *jwt.Token) (any, error) {
-		// Validate signing method
-		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
-			return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
+	// For web requests, redirect to login
+	return c.Redirect(http.StatusSeeOther, "/login")
+}
+
+// SecurityHeaders adds security-related headers to responses
+func (m *AuthMiddleware) SecurityHeaders() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Add security headers
+			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
+			c.Response().Header().Set("X-Frame-Options", "DENY")
+			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
+			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
+			return next(c)
 		}
-		return []byte(m.secret), nil
-	})
-
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse token: %w", err)
 	}
-
-	return token, nil
 }
+
+// Note: isPublicRoute is defined in middleware.go

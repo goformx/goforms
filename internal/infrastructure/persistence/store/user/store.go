@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"errors"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/user"
@@ -174,10 +175,16 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 
-	s.logger.Info("User retrieved",
-		logging.UintField("id", u.ID),
-	)
 	return &u, nil
+}
+
+// GetByIDString retrieves a user by ID string
+func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error) {
+	userID, err := strconv.ParseUint(id, 10, 32)
+	if err != nil {
+		return nil, user.ErrInvalidUserID
+	}
+	return s.GetByID(ctx, uint(userID))
 }
 
 // Update updates an existing user

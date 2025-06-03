@@ -1,58 +1,285 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
-# Security Implementation Guide
+# Security Guidelines
 
-## CSRF Protection
-CSRF protection is implemented in [internal/application/middleware/csrf.go](mdc:internal/application/middleware/csrf.go) with the following requirements:
-
-### Configuration
-- Token length must be 32 characters (DefaultCSRFTokenLength)
-- Cookies must use SameSite=Strict mode
-- HTTP-only flag must be enabled
-- Secure flag should be enabled in production
-
-### Implementation
-- Use the CSRF middleware for all forms
-- Include CSRF token in templates
-- Validate tokens on all POST/PUT/DELETE requests
-- Handle validation errors appropriately
-
-## Security Headers
-Security headers are configured in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go):
-
-### Required Headers
-- Content-Security-Policy
-- X-Content-Type-Options
-- X-Frame-Options
-- X-XSS-Protection
-- Referrer-Policy
-- Permissions-Policy
-- Cross-Origin-Opener-Policy
-- Cross-Origin-Embedder-Policy
-- Cross-Origin-Resource-Policy
-
-### CSP Configuration
-Content Security Policy must be configured with:
-- default-src 'self'
-- style-src with minimal unsafe-inline
-- script-src with nonce
-- strict resource policies
-- form-action restrictions
-
-## Error Handling
-1. Always validate type assertions
-2. Return appropriate HTTP status codes
-3. Log security-related errors
-4. Don't expose internal errors to clients
-5. Implement proper error middleware
+## Overview
+Security is a critical aspect of GoFormX. This document outlines the security measures and best practices implemented throughout the application.
 
 ## Authentication
-When implementing authentication:
-1. Use the JWT middleware configuration
-2. Implement proper token validation
-3. Set secure cookie attributes
-4. Use proper password hashing
-5. Implement rate limiting
+
+### Session Authentication
+- Used for all authenticated access
+- Secure cookie settings
+- HTTP-only flag enabled
+- SameSite strict mode
+- CSRF protection
+- Session timeout handling
+- Secure session storage
+
+## Authorization
+
+### Role-Based Access Control
+- User roles defined
+- Role-based middleware
+- Permission checking
+- Access control lists
+- Role hierarchy
+
+### Resource Ownership
+- Form ownership verification
+- Submission access control
+- User data isolation
+- Resource boundaries
+- Access validation
+
+## Security Headers
+
+### Content Security Policy
+```go
+const (
+    CSPDirectives = "default-src 'self'; " +
+        "script-src 'self' 'nonce-%s'; " +
+        "style-src 'self' 'unsafe-inline'; " +
+        "img-src 'self' data:; " +
+        "font-src 'self'; " +
+        "connect-src 'self'; " +
+        "frame-ancestors 'none'; " +
+        "base-uri 'self'; " +
+        "form-action 'self'"
+)
+```
+
+### Other Headers
+- X-Frame-Options
+- X-Content-Type-Options
+- X-XSS-Protection
+- Referrer-Policy
+- Strict-Transport-Security
+
+## CSRF Protection
+
+### Implementation
+- Token generation
+- Token validation
+- Cookie settings
+- Form integration
+- API protection
+
+### Configuration
+```go
+const (
+    DefaultTokenLength = 32
+    CookieMaxAge = 86400
+)
+```
+
+## Rate Limiting
+
+### Implementation
+- Request counting
+- Burst handling
+- IP-based limiting
+- Configurable thresholds
+- Proper logging
+
+### Configuration
+```go
+const (
+    RateLimitBurst = 5
+    DefaultRateLimit = 20
+)
+```
+
+## Input Validation
+
+### Form Validation
+- Required fields
+- Type checking
+- Length limits
+- Format validation
+- Custom rules
+
+### API Validation
+- Request validation
+- Parameter checking
+- Type safety
+- Schema validation
+- Error handling
+
+## Error Handling
+
+### Security Considerations
+- Don't expose internals
+- Use domain errors
+- Log appropriately
+- Handle all cases
+- Follow guidelines
+
+### Error Responses
+- Generic messages
+- Proper status codes
+- No stack traces
+- Consistent format
+- Secure headers
+
+## File Handling
+
+### Upload Security
+- File type validation
+- Size limits
+- Content checking
+- Secure storage
+- Access control
+
+### Static Files
+- MIME type detection
+- Path validation
+- Access control
+- Cache headers
+- Security headers
+
+## Database Security
+
+### Query Safety
+- Parameterized queries
+- Input sanitization
+- Type safety
+- Error handling
+- Access control
+
+### Data Protection
+- Encryption at rest
+- Secure connections
+- Access control
+- Audit logging
+- Backup security
+
+## Logging and Monitoring
+
+### Security Logging
+- Authentication events
+- Authorization failures
+- Rate limit events
+- Security violations
+- Access attempts
+
+### Monitoring
+- Error rates
+- Access patterns
+- Resource usage
+- Security metrics
+- Performance data
+
+## Best Practices
+
+1. Authentication
+   - Use secure methods
+   - Implement proper validation
+   - Handle sessions securely
+   - Protect credentials
+   - Monitor access
+
+2. Authorization
+   - Implement RBAC
+   - Check permissions
+   - Validate access
+   - Handle unauthorized
+   - Log violations
+
+3. Data Protection
+   - Encrypt sensitive data
+   - Secure storage
+   - Access control
+   - Data isolation
+   - Backup security
+
+4. Input Handling
+   - Validate all input
+   - Sanitize data
+   - Use proper types
+   - Handle errors
+   - Log violations
+
+5. Error Handling
+   - Don't expose internals
+   - Use domain errors
+   - Log appropriately
+   - Handle all cases
+   - Follow guidelines
+
+6. File Security
+   - Validate uploads
+   - Check file types
+   - Limit sizes
+   - Secure storage
+   - Control access
+
+7. API Security
+   - Use HTTPS
+   - Validate requests
+   - Rate limit
+   - Monitor usage
+   - Handle errors
+
+8. Monitoring
+   - Log security events
+   - Monitor access
+   - Track violations
+   - Alert on issues
+   - Review logs
+
+# Security Practices
+
+## Authentication
+- Use secure session management
+- Implement proper login/logout flows
+- Validate credentials securely
+- Use appropriate password hashing
+- Implement rate limiting for auth endpoints
+
+## Session Management
+- Use secure session cookies
+- Set appropriate cookie attributes:
+  - HttpOnly: true
+  - Secure: true
+  - SameSite: Strict
+- Implement session expiration
+- Clear session data on logout
+- Use secure session storage
+
+## CSRF Protection
+- Include CSRF tokens in all forms
+- Validate CSRF tokens on POST requests
+- Use appropriate CSRF middleware
+- Generate unique tokens per session
+
+## Input Validation
+- Validate all user input
+- Use appropriate validation rules
+- Sanitize input data
+- Implement field-specific validation
+- Return clear validation errors
+
+## Cookie Security
+- Use secure cookie settings
+- Set appropriate expiration times
+- Use HttpOnly flag
+- Implement SameSite policy
+- Use secure flag in production
+
+## Password Security
+- Enforce strong password requirements
+- Implement password confirmation
+- Use secure password hashing
+- Never store plain text passwords
+- Implement password reset flows
+
+## API Security
+- Use appropriate HTTP methods
+- Implement rate limiting
+- Validate request headers
+- Use secure communication (HTTPS)
+- Implement proper CORS policies

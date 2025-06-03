@@ -1,13 +1,14 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/services"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -17,14 +18,14 @@ import (
 type FormHandler struct {
 	Base           *BaseHandler
 	formService    form.Service
-	formOperations *services.FormOperations
+	formOperations formops.Service
 	logger         logging.Logger
 }
 
 // NewFormHandler creates a new form handler
 func NewFormHandler(
 	formService form.Service,
-	formOperations *services.FormOperations,
+	formOperations formops.Service,
 	logger logging.Logger,
 	base *BaseHandler,
 ) *FormHandler {
@@ -39,7 +40,6 @@ func NewFormHandler(
 // Register sets up the form routes
 func (h *FormHandler) Register(e *echo.Echo) {
 	forms := e.Group("/dashboard/forms")
-	h.Base.SetupMiddleware(forms)
 
 	forms.GET("/new", h.ShowNewForm)
 	forms.POST("", h.CreateForm)
@@ -78,21 +78,22 @@ func (h *FormHandler) CreateForm(c echo.Context) error {
 		return err
 	}
 
-	var formData services.FormData
-	if bindErr := c.Bind(&formData); bindErr != nil {
-		return h.Base.handleError(bindErr, http.StatusBadRequest, "Invalid form data")
-	}
+	title := c.FormValue("title")
+	description := c.FormValue("description")
 
-	if validateErr := c.Validate(&formData); validateErr != nil {
-		return h.Base.handleError(validateErr, http.StatusUnprocessableEntity, "Form validation failed")
+	if title == "" || description == "" {
+		return h.Base.handleError(errors.New("missing fields"), http.StatusBadRequest, "Title and description are required")
 	}
 
 	// Create the form
 	formObj, createErr := h.formService.CreateForm(
 		currentUser.ID,
-		formData.Title,
-		formData.Description,
-		h.formOperations.CreateDefaultSchema(),
+		title,
+		description,
+		form.JSON{
+			"display":    "form",
+			"components": []any{},
+		},
 	)
 	if createErr != nil {
 		return h.Base.handleError(createErr, http.StatusInternalServerError, "Failed to create form")
@@ -109,7 +110,7 @@ func (h *FormHandler) ShowEditForm(c echo.Context) error {
 		return err
 	}
 
-	formObj, err := h.Base.getOwnedForm(c, currentUser)
+	formObj, err := h.formOperations.EnsureFormOwnership(c, currentUser, c.Param("id"))
 	if err != nil {
 		return err
 	}
@@ -145,22 +146,19 @@ func (h *FormHandler) UpdateForm(c echo.Context) error {
 		return err
 	}
 
-	formObj, err := h.Base.getOwnedForm(c, currentUser)
+	formObj, err := h.formOperations.EnsureFormOwnership(c, currentUser, c.Param("id"))
 	if err != nil {
 		return err
 	}
 
-	var formData services.FormData
-	if bindErr := c.Bind(&formData); bindErr != nil {
-		return h.Base.handleError(bindErr, http.StatusBadRequest, "Invalid form data")
-	}
-
-	if validateErr := c.Validate(&formData); validateErr != nil {
-		return h.Base.handleError(validateErr, http.StatusUnprocessableEntity, "Form validation failed")
+	formData, err := h.formOperations.ValidateAndBindFormData(c)
+	if err != nil {
+		return h.Base.handleError(err, http.StatusBadRequest, "Invalid form data")
 	}
 
 	// Update form details
-	h.formOperations.UpdateFormDetails(formObj, &formData)
+	formObj.Title = formData.Title
+	formObj.Description = formData.Description
 
 	if updateErr := h.formService.UpdateForm(formObj); updateErr != nil {
 		return h.Base.handleError(updateErr, http.StatusInternalServerError, "Failed to update form")
@@ -176,7 +174,7 @@ func (h *FormHandler) DeleteForm(c echo.Context) error {
 		return err
 	}
 
-	formObj, err := h.Base.getOwnedForm(c, currentUser)
+	formObj, err := h.formOperations.EnsureFormOwnership(c, currentUser, c.Param("id"))
 	if err != nil {
 		return err
 	}

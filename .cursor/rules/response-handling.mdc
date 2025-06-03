@@ -1,5 +1,5 @@
 ---
-description: 
+description: HTTP response handling and error response patterns
 globs: 
 alwaysApply: false
 ---

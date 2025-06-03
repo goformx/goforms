@@ -31,6 +31,9 @@ const (
 
 	// DefaultCorsMaxAge is the default maximum age for CORS preflight requests
 	DefaultCorsMaxAge = 3600
+
+	// DefaultCorsOrigins is the default allowed CORS origins
+	DefaultCorsOrigins = "http://localhost:3000,http://localhost:5173"
 )
 
 // CORSOriginsDecoder handles parsing of CORS allowed origins
@@ -127,9 +130,10 @@ type ServerConfig struct {
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	JWTSecret            string `envconfig:"GOFORMS_JWT_SECRET" validate:"required"`
+	Debug                bool   `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
+	LogLevel             string `envconfig:"GOFORMS_SECURITY_LOG_LEVEL" default:"info"`
 	CSRF                 CSRFConfig
-	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000,http://localhost:5173"`
+	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000,http://localhost:5173"` //nolint:lll  // Long list required for CORS
 	CorsAllowedMethods   CORSMethodsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_METHODS"`
 	CorsAllowedHeaders   CORSHeadersDecoder `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS"`
 	CorsMaxAge           int                `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
@@ -171,12 +175,6 @@ func New(logger common.Logger) (*Config, error) {
 		}
 	} else {
 		logger.Info("Loaded .env file")
-	}
-
-	// Log current environment variables
-	logger.Debug("Current environment variables")
-	for _, env := range os.Environ() {
-		logger.Debug("Environment variable", logging.String("value", env))
 	}
 
 	// Create default configuration
@@ -222,7 +220,6 @@ func New(logger common.Logger) (*Config, error) {
 		logging.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
 		logging.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
 		logging.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime),
-		logging.Int("JWTSecretLength", len(cfg.Security.JWTSecret)),
 		logging.String("DatabaseHost", cfg.Database.Host),
 		logging.Int("DatabasePort", cfg.Database.Port),
 		logging.String("DatabaseUser", cfg.Database.User),

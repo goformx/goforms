@@ -5,8 +5,9 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/handlers"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
+	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
@@ -20,58 +21,54 @@ const (
 	InternalServerErrorCode = http.StatusInternalServerError
 )
 
-// DashboardHandler handles the admin dashboard routes
-type DashboardHandler struct {
-	base        handlers.Base
+// AdminDashboardHandler handles the admin dashboard routes
+type AdminDashboardHandler struct {
+	*handlers.BaseHandler
 	renderer    *view.Renderer
 	UserService user.Service
 	FormService form.Service
 }
 
-// NewDashboardHandler creates a new DashboardHandler
-func NewDashboardHandler(
+// NewAdminDashboardHandler creates a new AdminDashboardHandler
+func NewAdminDashboardHandler(
 	logger logging.Logger,
 	renderer *view.Renderer,
 	userService user.Service,
 	formService form.Service,
-) *DashboardHandler {
-	return &DashboardHandler{
-		base: handlers.Base{
-			Logger: logger,
-		},
+) *AdminDashboardHandler {
+	return &AdminDashboardHandler{
+		BaseHandler: handlers.NewBaseHandler(formService, logger),
 		renderer:    renderer,
 		UserService: userService,
 		FormService: formService,
 	}
 }
 
-// Register sets up the routes for the dashboard handler
-func (h *DashboardHandler) Register(e *echo.Echo) {
-	h.base.RegisterRoute(e, "GET", "/dashboard", h.showDashboard)
+// Register sets up the routes for the admin dashboard handler
+func (h *AdminDashboardHandler) Register(e *echo.Echo) {
+	e.GET("/dashboard", h.showDashboard)
 }
 
-// showDashboard renders the dashboard page
-func (h *DashboardHandler) showDashboard(c echo.Context) error {
-	h.base.Logger.Debug("handling dashboard page request")
+// showDashboard renders the admin dashboard page
+func (h *AdminDashboardHandler) showDashboard(c echo.Context) error {
+	h.LogDebug("handling admin dashboard page request")
 
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
-		return echo.NewHTTPError(UnauthorizedErrorCode, "User not authenticated")
+		return echo.NewHTTPError(UnauthorizedErrorCode, "User not found")
 	}
 
 	forms, err := h.FormService.GetUserForms(currentUser.ID)
 	if err != nil {
-		h.base.Logger.Error("failed to get user forms",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", currentUser.ID),
-		)
+		h.LogError("failed to get user forms", err)
 		return echo.NewHTTPError(InternalServerErrorCode, "Failed to get forms")
 	}
 
 	data := shared.PageData{
-		Title: "Dashboard - GoFormX",
-		User:  currentUser,
-		Forms: forms,
+		Title:     "Dashboard - GoFormX",
+		User:      currentUser,
+		Forms:     forms,
+		AssetPath: web.GetAssetPath,
 	}
 
 	return h.renderer.Render(c, pages.Dashboard(data))

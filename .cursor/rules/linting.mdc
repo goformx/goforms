@@ -1,5 +1,5 @@
 ---
-description: 
+description: Code style and linting rules for maintaining code quality
 globs: 
 alwaysApply: false
 ---
@@ -27,7 +27,7 @@ This project uses golangci-lint with strict rules. Follow these guidelines to ma
 2. **Sentinel Errors**
    - Don't return `nil, nil` for not found cases
    - Use domain-specific sentinel errors
-   - Example: [internal/domain/user/service.go](mdc:internal/domain/user/service.go)
+   - Example: [internal/domain/user/service.go](mdc:goforms/internal/domain/user/service.go)
    ```go
    var (
        ErrUserNotFound = errors.New("user not found")
@@ -276,6 +276,6 @@ Linting configuration is defined in:
 - Run `task lint` locally before pushing changes
 
 ## Reference Files
-- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go)
-- [internal/infrastructure/persistence/database/connection_test.go](mdc:internal/infrastructure/persistence/database/connection_test.go)
-- [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go)
+- [internal/domain/form/model/form_submission.go](mdc:goforms/internal/domain/form/model/form_submission.go)
+- [internal/infrastructure/persistence/database/connection_test.go](mdc:goforms/internal/infrastructure/persistence/database/connection_test.go)
+- [internal/domain/common/errors/errors.go](mdc:goforms/internal/domain/common/errors/errors.go)

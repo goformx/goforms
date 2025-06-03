@@ -6,17 +6,35 @@ import (
 )
 
 templ LoginForm(data shared.PageData) {
-	<form id="login-form" class="auth-form" data-validate="login" onsubmit="return false;">
+	<form id="login-form" class="auth-form" method="POST" action="/login" data-validate="login">
 		<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 		<div id="form_error" class="form-error"></div>
 		<div class="form-group">
 			<label for="email" class="form-label">Email</label>
-			<input type="email" id="email" name="email" required class="form-input" placeholder="Enter your email" />
+			<input 
+				type="email" 
+				id="email" 
+				name="email" 
+				required 
+				class="form-input" 
+				placeholder="Enter your email"
+				autocomplete="email"
+				aria-required="true"
+			/>
 			<div id="email_error" class="error-message"></div>
 		</div>
 		<div class="form-group">
 			<label for="password" class="form-label">Password</label>
-			<input type="password" id="password" name="password" required class="form-input" placeholder="Enter your password" />
+			<input 
+				type="password" 
+				id="password" 
+				name="password" 
+				required 
+				class="form-input" 
+				placeholder="Enter your password"
+				autocomplete="current-password"
+				aria-required="true"
+			/>
 			<div id="password_error" class="error-message"></div>
 		</div>
 		<div class="form-group">
@@ -28,5 +46,6 @@ templ LoginForm(data shared.PageData) {
 		</div>
 	</form>
 
+	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
 	<script type="module" src={ web.GetAssetPath("src/js/login.ts") }></script>
 }

@@ -3,6 +3,8 @@ package handler
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/labstack/echo/v4"
 )
 
@@ -16,15 +18,15 @@ type VersionInfo struct {
 
 // VersionHandler handles version-related endpoints
 type VersionHandler struct {
-	Base
+	*handlers.BaseHandler
 	info VersionInfo
 }
 
 // NewVersionHandler creates a new version handler
-func NewVersionHandler(info VersionInfo, base Base) *VersionHandler {
+func NewVersionHandler(info VersionInfo, logger logging.Logger) *VersionHandler {
 	return &VersionHandler{
-		Base: base,
-		info: info,
+		BaseHandler: handlers.NewBaseHandler(nil, logger),
+		info:        info,
 	}
 }
 

@@ -1,5 +1,5 @@
 ---
-description: 
+description: Logging patterns and best practices
 globs: 
 alwaysApply: false
 ---
@@ -9,7 +9,7 @@ alwaysApply: false
 Logging is implemented using Uber's zap logger throughout the application. The logging configuration is managed through the middleware and infrastructure layers.
 
 ## Implementation
-The main logging implementation is referenced in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go) and [internal/application/middleware/csrf.go](mdc:internal/application/middleware/csrf.go).
+The main logging implementation is referenced in [internal/application/middleware/middleware.go](mdc:goforms/internal/application/middleware/middleware.go) and [internal/application/middleware/csrf.go](mdc:goforms/internal/application/middleware/csrf.go).
 
 ### Required Fields
 All log entries should include:

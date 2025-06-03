@@ -1,32 +1,52 @@
 ---
-description: Editing middleware, http, echo, gin, api
-globs: 
+description: 
+globs: internal/application/middleware/**/*.go
 alwaysApply: false
 ---
 # Middleware Architecture
 
 ## Overview
-The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go).
+The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in [internal/application/middleware/middleware.go](mdc:goforms/goforms/internal/application/middleware/middleware.go).
 
 ## Core Components
 
 ### Manager
-The `Manager` struct in [internal/application/middleware/middleware.go](mdc:internal/application/middleware/middleware.go) handles middleware configuration and setup. It uses dependency injection for logging and configuration.
+The `Manager` struct in [internal/application/middleware/middleware.go](mdc:goforms/goforms/internal/application/middleware/middleware.go) handles middleware configuration and setup. It uses dependency injection for logging and configuration.
 
-### CSRF Protection
-CSRF middleware is implemented in [internal/application/middleware/csrf.go](mdc:internal/application/middleware/csrf.go) with the following features:
-- Configurable cookie settings
-- Secure token generation
-- Template integration
-- SameSite strict mode
-- HTTP-only cookies
+### Error Logger
+The error logger middleware in [internal/application/middleware/error_logger.go](mdc:goforms/goforms/internal/application/middleware/error_logger.go) provides:
+- Domain error mapping to HTTP status codes
+- Structured error logging
+- Consistent error responses
+- Error context preservation
 
-### Configuration
-Middleware configuration is managed through [internal/application/middleware/config.go](mdc:internal/application/middleware/config.go) which provides:
-- Centralized configuration
-- Feature toggles (e.g., CSRF, JWT)
-- Logging integration
-- Service dependencies
+### Request Logger
+The request logger middleware in [internal/application/middleware/logging.go](mdc:goforms/goforms/internal/application/middleware/logging.go) provides:
+- Request/response logging
+- Performance metrics
+- Static file request filtering
+- Structured logging with context
+
+### Security Middleware
+Security middleware components include:
+- CSRF protection with secure defaults
+- Rate limiting with configurable thresholds
+- Security headers with proper CSP
+- CORS configuration with proper origins
+- Static file handling with proper MIME types
+
+## Constants and Configuration
+
+```go
+const (
+    NonceSize = 32
+    HSTSOneYear = 31536000
+    DefaultTokenLength = 32
+    RateLimitBurst = 5
+    DefaultRateLimit = 20
+    CookieMaxAge = 86400
+)
+```
 
 ## Best Practices
 1. Use the `Manager` for middleware setup
@@ -36,6 +56,9 @@ Middleware configuration is managed through [internal/application/middleware/con
 5. Follow the constant naming conventions
 6. Use structured logging with proper context
 7. Implement rate limiting where appropriate
+8. Handle static files efficiently
+9. Use proper MIME type detection
+10. Implement proper error mapping
 
 ## Security Guidelines
 1. Always enable CSRF protection for forms
@@ -45,3 +68,130 @@ Middleware configuration is managed through [internal/application/middleware/con
 5. Use SameSite strict mode for cookies
 6. Enable HTTP-only flag for sensitive cookies
 7. Implement proper token validation
+8. Use rate limiting for sensitive endpoints
+9. Configure CORS properly
+10. Handle static files securely
+
+## Middleware Setup
+
+The middleware setup follows a specific order:
+
+1. Basic Middleware
+   - Recovery
+   - Request ID
+   - Secure headers
+   - Body limit
+   - MIME type
+   - Static file handling
+
+2. Security Middleware
+   - Security headers
+   - CORS
+   - CSRF
+   - Rate limiting
+
+3. Authentication Middleware
+   - Session validation
+   - Protected routes
+   - Admin routes
+   - Role-based access
+
+## Error Handling
+
+The error logger middleware provides consistent error handling:
+
+1. Domain Error Mapping
+   - Maps domain errors to HTTP status codes
+   - Preserves error context
+   - Provides structured logging
+   - Returns consistent error responses
+
+2. HTTP Error Handling
+   - Handles Echo HTTP errors
+   - Provides proper status codes
+   - Includes error messages
+   - Logs errors appropriately
+
+3. Unknown Error Handling
+   - Logs unknown errors
+   - Returns 500 status code
+   - Includes generic message
+   - Preserves error context
+
+## Performance Considerations
+
+1. Route Matching
+   - Optimize route matching
+   - Use efficient data structures
+   - Cache static file checks
+   - Minimize middleware overhead
+
+2. Static File Handling
+   - Skip unnecessary middleware
+   - Use proper MIME types
+   - Cache static file checks
+   - Optimize file serving
+
+3. Rate Limiting
+   - Use efficient storage
+   - Configure appropriate limits
+   - Handle bursts properly
+   - Log rate limit events
+
+# Middleware Patterns
+
+## Authentication Middleware
+- Use session-based authentication
+- Implement session validation
+- Check user roles and permissions
+- Handle session expiration
+- Redirect unauthenticated users
+
+## Session Management
+- Validate session cookies
+- Handle session creation and deletion
+- Implement session timeout
+- Manage session state
+- Handle session renewal
+
+## Security Middleware
+- CSRF protection
+- Rate limiting
+- Request validation
+- Security headers
+- Input sanitization
+
+## Common Patterns
+1. **Route Protection**
+   - Public route maps for exact matches
+   - Prefix lists for common patterns
+   - O(1) lookup optimization
+   - Static file handling
+
+2. **Error Handling**
+   - Structured logging with context
+   - Proper HTTP status codes
+   - Clear error messages
+   - Different log levels
+
+3. **Security**
+   - Secure cookie settings
+   - Token validation
+   - CSRF protection
+   - Rate limiting
+
+4. **Performance**
+   - Optimized route matching
+   - Efficient token validation
+   - Context-aware operations
+   - Proper error handling
+
+## Best Practices
+1. Always use request context
+2. Implement proper security attributes
+3. Use structured logging
+4. Optimize route matching
+5. Handle errors appropriately
+6. Protect sensitive routes
+7. Implement rate limiting
+8. Use secure defaults

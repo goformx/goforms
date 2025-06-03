@@ -1,11 +1,28 @@
 package user
 
 import (
-	"context"
+	"errors"
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
 )
+
+var (
+	// ErrInvalidUserID indicates that the provided user ID is invalid
+	ErrInvalidUserID = errors.New("invalid user ID")
+)
+
+// TokenPair represents a pair of access and refresh tokens
+type TokenPair struct {
+	AccessToken  string `json:"access_token"`
+	RefreshToken string `json:"refresh_token"`
+}
+
+// LoginResponse represents the response from a successful login
+type LoginResponse struct {
+	User  *User      `json:"user"`
+	Token *TokenPair `json:"token"`
+}
 
 // User represents a user in the system
 type User struct {
@@ -32,16 +49,6 @@ type Signup struct {
 type Login struct {
 	Email    string `json:"email" validate:"required,email"`
 	Password string `json:"password" validate:"required"`
-}
-
-// Store defines the interface for user data operations
-type Store interface {
-	Create(ctx context.Context, user *User) error
-	GetByID(ctx context.Context, id uint) (*User, error)
-	GetByEmail(ctx context.Context, email string) (*User, error)
-	Update(ctx context.Context, user *User) error
-	Delete(ctx context.Context, id uint) error
-	List(ctx context.Context) ([]User, error)
 }
 
 // SetPassword hashes and sets the user's password

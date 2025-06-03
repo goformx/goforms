@@ -25,4 +25,22 @@ templ loginContent(data shared.PageData) {
 
 templ LoginPage(data shared.PageData) {
 	@components.LoginForm(data)
+}
+
+templ LoginWithError(data shared.PageData, errorMessage string) {
+	@layouts.Layout(data, loginContentWithError(data, errorMessage))
+}
+
+templ loginContentWithError(data shared.PageData, errorMessage string) {
+	<div class="auth-page">
+		<div class="auth-container">
+			<div class="auth-card">
+				<div class="auth-header">
+					<h2 class="auth-title">Sign in to your account</h2>
+				</div>
+				<div class="form-error">{ errorMessage }</div>
+				@components.LoginForm(data)
+			</div>
+		</div>
+	</div>
 } 

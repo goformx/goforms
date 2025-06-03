@@ -34,15 +34,22 @@ func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Ech
 
 	// Vite dev server proxy for /src and /@vite in development mode
 	if cfg.App.IsDevelopment() {
-		viteProxy := httputil.NewSingleHostReverseProxy(&url.URL{
+		viteURL := &url.URL{
 			Scheme: "http",
-			Host:   cfg.App.ViteDevHost + ":" + cfg.App.ViteDevPort,
-		})
+			Host:   net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
+		}
+		viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
+
+		// Configure proxy to handle WebSocket connections
+		viteProxy.ModifyResponse = func(resp *http.Response) error {
+			resp.Header.Set("Access-Control-Allow-Origin", "*")
+			return nil
+		}
+
+		// Proxy all static asset requests to Vite dev server
 		e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
 		e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))
-	} else {
-		// Serve static files from dist directory in production
-		e.Static("/", "dist")
+		e.Group("/assets").Any("/*", echo.WrapHandler(viteProxy))
 	}
 
 	// Setup server lifecycle hooks

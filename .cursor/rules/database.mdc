@@ -1,6 +1,6 @@
 ---
 description: 
-globs: 
+globs: internal/infrastructure/persistence/**/*.go
 alwaysApply: false
 ---
 # Database Guidelines
@@ -8,12 +8,12 @@ alwaysApply: false
 This project uses MariaDB as the primary database with sqlx for database operations.
 
 ## Key Components
-1. **Database Connection** [internal/infrastructure/database/database.go](mdc:internal/infrastructure/database/database.go)
+1. **Database Connection** [internal/infrastructure/database/database.go](mdc:goforms/internal/infrastructure/database/database.go)
    - Uses sqlx for enhanced database operations
    - Implements proper connection pooling
    - Handles context propagation
 
-2. **Store Implementation** [internal/infrastructure/persistence/store/user/store.go](mdc:internal/infrastructure/persistence/store/user/store.go)
+2. **Store Implementation** [internal/infrastructure/persistence/store/user/store.go](mdc:goforms/internal/infrastructure/persistence/store/user/store.go)
    - Implements repository pattern
    - Uses prepared statements
    - Handles transactions properly
@@ -68,7 +68,7 @@ This project uses MariaDB as the primary database with sqlx for database operati
 
 ## Migration Management
 - Use golang-migrate for database migrations
-- Store migrations in [migrations](mdc:migrations) directory
+- Store migrations in [migrations](mdc:goforms/migrations) directory
 - Version migrations sequentially
 - Include both up and down migrations
 - Example migration naming:
