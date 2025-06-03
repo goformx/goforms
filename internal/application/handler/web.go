@@ -97,11 +97,13 @@ func WithConfig(cfg *config.Config) WebHandlerOption {
 //   - renderer: Required for rendering web pages
 //   - middlewareManager: Required for security and request processing
 //   - config: Required for configuration
+//   - userService: Required for user operations
 type WebHandler struct {
 	*handlers.BaseHandler
 	renderer          *view.Renderer
 	middlewareManager *amw.Manager
 	config            *config.Config
+	userService       user.Service
 }
 
 // validate validates that required dependencies are set.
@@ -111,6 +113,7 @@ type WebHandler struct {
 //   - renderer
 //   - middlewareManager
 //   - config
+//   - userService
 func (h *WebHandler) validate() error {
 	if h.renderer == nil {
 		return errors.New("WebHandler initialization failed: renderer is required")
@@ -120,6 +123,9 @@ func (h *WebHandler) validate() error {
 	}
 	if h.config == nil {
 		return errors.New("WebHandler initialization failed: config is required")
+	}
+	if h.userService == nil {
+		return errors.New("WebHandler initialization failed: user service is required")
 	}
 	return nil
 }
@@ -134,6 +140,7 @@ func (h *WebHandler) validate() error {
 //	handler := NewWebHandler(logger,
 //	    WithRenderer(renderer),
 //	    WithConfig(config),
+//	    WithUserService(userService),
 //	)
 func NewWebHandler(logger logging.Logger, renderer *view.Renderer, opts ...WebHandlerOption) (*WebHandler, error) {
 	h := &WebHandler{
@@ -229,6 +236,7 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 		{"GET", "/", h.handleHome},
 		{"GET", "/demo", h.handleDemo},
 		{"GET", "/signup", h.handleSignup},
+		{"POST", "/signup", h.handleSignupPost},
 		{"GET", "/login", h.handleLogin},
 		{"GET", "/api/validation/:schema", h.handleValidationSchema},
 	}
@@ -282,6 +290,60 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 // handleSignup renders the signup page
 func (h *WebHandler) handleSignup(c echo.Context) error {
 	return h.renderPage(c, "Sign Up", pages.Signup)
+}
+
+// handleSignupPost handles the signup form submission
+func (h *WebHandler) handleSignupPost(c echo.Context) error {
+	// Parse form data
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+	passwordConfirm := c.FormValue("password_confirm")
+
+	// Validate password confirmation
+	if password != passwordConfirm {
+		return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Passwords do not match"))
+	}
+
+	// Create signup request
+	signup := &user.Signup{
+		Email:     email,
+		Password:  password,
+		FirstName: c.FormValue("first_name"),
+		LastName:  c.FormValue("last_name"),
+	}
+
+	// Create user
+	_, err := h.userService.SignUp(c.Request().Context(), signup)
+	if err != nil {
+		if errors.Is(err, user.ErrUserExists) {
+			return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Email already exists"))
+		}
+		return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Failed to create account"))
+	}
+
+	// Generate tokens
+	login := &user.Login{
+		Email:    email,
+		Password: password,
+	}
+	tokenPair, err := h.userService.Login(c.Request().Context(), login)
+	if err != nil {
+		return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Failed to generate authentication tokens"))
+	}
+
+	// Set refresh token cookie
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    tokenPair.RefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   7 * 24 * 60 * 60, // 7 days
+	})
+
+	// Redirect to dashboard
+	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
 // handleLogin renders the login page

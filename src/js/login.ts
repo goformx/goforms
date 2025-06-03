@@ -12,7 +12,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
 export function setupLoginForm() {
   const form = document.getElementById("login-form") as HTMLFormElement;
-  const formError = document.getElementById("form_error") as HTMLDivElement;
 
   if (form) {
     // Setup real-time validation

@@ -11,6 +11,10 @@ templ Signup(data shared.PageData) {
 	@layouts.Layout(data, signupContent(data))
 }
 
+templ SignupWithError(data shared.PageData, errorMessage string) {
+	@layouts.Layout(data, signupContentWithError(data, errorMessage))
+}
+
 templ signupContent(data shared.PageData) {
 	<div class="auth-page">
 		<div class="auth-container">
@@ -19,6 +23,24 @@ templ signupContent(data shared.PageData) {
 					<h2 class="auth-title">Create your account</h2>
 					<p class="auth-subtitle">Join us to get started with your forms</p>
 				</div>
+				@components.SignupForm(data)
+			</div>
+		</div>
+	</div>
+
+	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
+	<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
+}
+
+templ signupContentWithError(data shared.PageData, errorMessage string) {
+	<div class="auth-page">
+		<div class="auth-container">
+			<div class="auth-card">
+				<div class="auth-header">
+					<h2 class="auth-title">Create your account</h2>
+					<p class="auth-subtitle">Join us to get started with your forms</p>
+				</div>
+				<div class="form-error">{ errorMessage }</div>
 				@components.SignupForm(data)
 			</div>
 		</div>
