@@ -28,7 +28,7 @@ type WebLoginHandler struct {
 // NewWebLoginHandler creates a new web login handler
 func NewWebLoginHandler(logger logging.Logger, userService user.Service) *WebLoginHandler {
 	return &WebLoginHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		BaseHandler: handlers.NewBaseHandler(nil, logger),
 		userService: userService,
 	}
 }

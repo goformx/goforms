@@ -16,7 +16,7 @@ type HomeHandler struct {
 // NewHomeHandler creates a new home handler
 func NewHomeHandler(logger logging.Logger) *HomeHandler {
 	return &HomeHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		BaseHandler: handlers.NewBaseHandler(nil, logger),
 	}
 }
 

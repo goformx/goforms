@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -12,27 +11,19 @@ import (
 
 // BaseHandler provides common functionality for all handlers
 type BaseHandler struct {
-	authMiddleware *amw.CookieAuthMiddleware
-	formService    form.Service
-	logger         logging.Logger
+	formService form.Service
+	logger      logging.Logger
 }
 
 // NewBaseHandler creates a new base handler
 func NewBaseHandler(
-	authMiddleware *amw.CookieAuthMiddleware,
 	formService form.Service,
 	logger logging.Logger,
 ) *BaseHandler {
 	return &BaseHandler{
-		authMiddleware: authMiddleware,
-		formService:    formService,
-		logger:         logger,
+		formService: formService,
+		logger:      logger,
 	}
-}
-
-// SetupMiddleware sets up common middleware for a route group
-func (h *BaseHandler) SetupMiddleware(group *echo.Group) {
-	group.Use(h.authMiddleware.RequireAuth)
 }
 
 // RegisterRoute is a helper method to register routes with middleware
@@ -124,9 +115,6 @@ func (h *BaseHandler) WrapResponseError(err error, msg string) error {
 func (h *BaseHandler) Validate() error {
 	if h.logger == nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "logger is required")
-	}
-	if h.authMiddleware == nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, "auth middleware is required")
 	}
 	if h.formService == nil {
 		return echo.NewHTTPError(http.StatusInternalServerError, "form service is required")

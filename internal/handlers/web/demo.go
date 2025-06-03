@@ -16,7 +16,7 @@ type DemoHandler struct {
 // NewDemoHandler creates a new demo handler
 func NewDemoHandler(logger logging.Logger) *DemoHandler {
 	return &DemoHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		BaseHandler: handlers.NewBaseHandler(nil, logger),
 	}
 }
 

@@ -16,7 +16,7 @@ type AuthHandler struct {
 // NewAuthHandler creates a new auth handler
 func NewAuthHandler(logger logging.Logger, userRepo repositories.UserRepository) *AuthHandler {
 	return &AuthHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		BaseHandler: handlers.NewBaseHandler(nil, logger),
 		userRepo:    userRepo,
 	}
 }

@@ -312,11 +312,7 @@ var HandlerModule = fx.Options(
 			middlewareManager *appmiddleware.Manager,
 			sessionManager *appmiddleware.SessionManager,
 		) (handler.Handler, error) {
-			baseHandler := handlers.NewBaseHandler(
-				appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
-				services.FormService,
-				core.Logger,
-			)
+			baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
 			webHandler := handler.NewWebHandler(
 				baseHandler,
 				services.UserService,
@@ -351,11 +347,7 @@ var HandlerModule = fx.Options(
 		middlewareManager *appmiddleware.Manager,
 		sessionManager *appmiddleware.SessionManager,
 	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(
-			appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
-			services.FormService,
-			core.Logger,
-		)
+		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
 
 		authHandler := handler.NewAuthHandler(
 			baseHandler,
@@ -385,11 +377,7 @@ var HandlerModule = fx.Options(
 		middlewareManager *appmiddleware.Manager,
 		sessionManager *appmiddleware.SessionManager,
 	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(
-			appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
-			services.FormService,
-			core.Logger,
-		)
+		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
 		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
@@ -600,7 +588,7 @@ func (m *Module) initializeServices() {
 // initializeHandlers initializes all handlers
 func (m *Module) initializeHandlers() {
 	// Create base handler
-	baseHandler := handlers.NewBaseHandler(m.authMiddleware, m.formService, m.logger)
+	baseHandler := handlers.NewBaseHandler(m.formService, m.logger)
 
 	// Create feature handlers
 	formHandler := handlers.NewFormHandler(m.formService, m.services.FormOperations, m.logger, baseHandler)

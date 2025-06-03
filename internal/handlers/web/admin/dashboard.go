@@ -36,7 +36,7 @@ func NewAdminDashboardHandler(
 	formService form.Service,
 ) *AdminDashboardHandler {
 	return &AdminDashboardHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		BaseHandler: handlers.NewBaseHandler(formService, logger),
 		renderer:    renderer,
 		UserService: userService,
 		FormService: formService,

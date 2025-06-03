@@ -3,7 +3,6 @@ package handlers
 import (
 	"net/http"
 
-	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -36,7 +35,6 @@ func NewHandler(
 	logger logging.Logger,
 ) (*Handler, error) {
 	base := NewBaseHandler(
-		amw.NewCookieAuthMiddleware(userService, logger),
 		formService,
 		logger,
 	)

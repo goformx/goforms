@@ -39,7 +39,6 @@ func NewFormHandler(
 // Register sets up the form routes
 func (h *FormHandler) Register(e *echo.Echo) {
 	forms := e.Group("/dashboard/forms")
-	h.Base.SetupMiddleware(forms)
 
 	forms.GET("/new", h.ShowNewForm)
 	forms.POST("", h.CreateForm)

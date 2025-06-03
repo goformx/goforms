@@ -34,7 +34,6 @@ func NewSubmissionHandler(
 // Register sets up the submission routes
 func (h *SubmissionHandler) Register(e *echo.Echo) {
 	submissions := e.Group("/dashboard/forms/:id/submissions")
-	h.Base.SetupMiddleware(submissions)
 
 	submissions.GET("", h.ShowFormSubmissions)
 }

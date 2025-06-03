@@ -25,7 +25,7 @@ type VersionHandler struct {
 // NewVersionHandler creates a new version handler
 func NewVersionHandler(info VersionInfo, logger logging.Logger) *VersionHandler {
 	return &VersionHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		BaseHandler: handlers.NewBaseHandler(nil, logger),
 		info:        info,
 	}
 }

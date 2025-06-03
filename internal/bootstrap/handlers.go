@@ -24,7 +24,7 @@ func HandlerProviders() []fx.Option {
 				authMiddleware *middleware.CookieAuthMiddleware,
 				formService form.Service,
 			) *handlers.BaseHandler {
-				return handlers.NewBaseHandler(authMiddleware, formService, logger)
+				return handlers.NewBaseHandler(formService, logger)
 			},
 
 			// Auth handler
