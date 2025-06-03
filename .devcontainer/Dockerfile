@@ -11,6 +11,7 @@ USER vscode
 RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
     && go install github.com/a-h/templ/cmd/templ@latest \
     && go install go.uber.org/mock/mockgen@latest \
+    && go install github.com/air-verse/air@latest \
     && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
 
 # Install dependencies and build the template package
