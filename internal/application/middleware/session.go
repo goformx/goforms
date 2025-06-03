@@ -162,9 +162,13 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 		return true
 	}
 
+	// Check for exact homepage match
+	if path == "/" {
+		return true
+	}
+
 	// Check other exempt paths
 	exemptPaths := []string{
-		"/",
 		"/api/validation/",
 		"/login",
 		"/signup",
