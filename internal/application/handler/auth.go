@@ -8,6 +8,7 @@ import (
 	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -29,6 +30,7 @@ type AuthHandler struct {
 	config            *config.Config
 	userService       user.Service
 	sessionManager    *amw.SessionManager
+	logger            logging.Logger
 }
 
 // NewAuthHandler creates a new auth handler
@@ -39,6 +41,7 @@ func NewAuthHandler(
 	renderer *view.Renderer,
 	middlewareManager *amw.Manager,
 	config *config.Config,
+	logger logging.Logger,
 ) *AuthHandler {
 	return &AuthHandler{
 		BaseHandler:       baseHandler,
@@ -47,6 +50,7 @@ func NewAuthHandler(
 		renderer:          renderer,
 		middlewareManager: middlewareManager,
 		config:            config,
+		logger:            logger,
 	}
 }
 
@@ -68,6 +72,13 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 	email := c.FormValue("email")
 	password := c.FormValue("password")
 
+	h.logger.Debug("login attempt",
+		logging.StringField("email", email),
+		logging.StringField("method", c.Request().Method),
+		logging.StringField("path", c.Request().URL.Path),
+		logging.StringField("user_agent", c.Request().UserAgent()),
+	)
+
 	// Create login request
 	login := &user.Login{
 		Email:    email,
@@ -80,6 +91,10 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 		// Handle specific error types
 		switch {
 		case errors.Is(loginErr, user.ErrInvalidCredentials):
+			h.logger.Warn("login failed: invalid credentials",
+				logging.StringField("email", email),
+				logging.StringField("path", c.Request().URL.Path),
+			)
 			data := shared.PageData{
 				Title:     "Login - GoFormX",
 				CSRFToken: c.Get("csrf").(string),
@@ -93,7 +108,11 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 
 		default:
 			// Log unexpected errors
-			h.LogError("failed to login", loginErr)
+			h.logger.Error("login failed: unexpected error",
+				logging.StringField("email", email),
+				logging.StringField("path", c.Request().URL.Path),
+				logging.ErrorField("error", loginErr),
+			)
 			data := shared.PageData{
 				Title:     "Login - GoFormX",
 				CSRFToken: c.Get("csrf").(string),
@@ -107,12 +126,22 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 		}
 	}
 
+	h.logger.Debug("login successful",
+		logging.StringField("email", email),
+		logging.UintField("user_id", loginResp.User.ID),
+		logging.StringField("role", loginResp.User.Role),
+	)
+
 	// Create session
 	sessionID, sessionErr := h.sessionManager.CreateSession(
 		loginResp.User.ID, loginResp.User.Email, loginResp.User.Role,
 	)
 	if sessionErr != nil {
-		h.LogError("failed to create session", sessionErr)
+		h.logger.Error("failed to create session",
+			logging.StringField("email", email),
+			logging.UintField("user_id", loginResp.User.ID),
+			logging.ErrorField("error", sessionErr),
+		)
 		data := shared.PageData{
 			Title:     "Login - GoFormX",
 			CSRFToken: c.Get("csrf").(string),
@@ -125,6 +154,12 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 		)
 	}
 
+	h.logger.Debug("session created",
+		logging.StringField("session_id", sessionID),
+		logging.StringField("email", email),
+		logging.UintField("user_id", loginResp.User.ID),
+	)
+
 	// Set session cookie
 	h.sessionManager.SetSessionCookie(c, sessionID)
 
@@ -135,9 +170,15 @@ func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
+		SameSite: http.SameSiteLaxMode,
 		MaxAge:   int(CookieMaxAgeMinutes * time.Minute.Seconds()),
 	})
+
+	h.logger.Debug("login complete, redirecting to dashboard",
+		logging.StringField("email", email),
+		logging.StringField("redirect", "/dashboard"),
+		logging.StringField("session_id", sessionID),
+	)
 
 	// Redirect to dashboard
 	return c.Redirect(http.StatusSeeOther, "/dashboard")

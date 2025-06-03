@@ -323,6 +323,7 @@ var HandlerModule = fx.Options(
 				core.Renderer,
 				middlewareManager,
 				core.Config,
+				core.Logger,
 			)
 			if webHandler == nil {
 				return nil, errors.New("failed to create web handler")
@@ -355,25 +356,26 @@ var HandlerModule = fx.Options(
 			core.Logger,
 		)
 
-		handler := handler.NewAuthHandler(
+		authHandler := handler.NewAuthHandler(
 			baseHandler,
 			services.UserService,
 			sessionManager,
 			core.Renderer,
 			middlewareManager,
 			core.Config,
+			core.Logger,
 		)
 
-		if handler == nil {
+		if authHandler == nil {
 			return nil, fmt.Errorf("failed to create auth handler: user_service=%T", services.UserService)
 		}
 
 		// Validate dependencies
-		if err := handler.Validate(); err != nil {
+		if err := authHandler.Validate(); err != nil {
 			return nil, fmt.Errorf("failed to validate auth handler: %w", err)
 		}
 
-		return handler, nil
+		return authHandler, nil
 	}),
 	// Dashboard handler
 	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {

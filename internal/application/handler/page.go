@@ -57,7 +57,6 @@ func (h *PageHandler) Register(e *echo.Echo) {
 
 	// Protected pages
 	protected := e.Group("")
-	protected.Use(h.sessionManager.SessionMiddleware())
 	protected.GET("/dashboard", h.handleDashboard)
 	protected.GET("/profile", h.handleProfile)
 	protected.GET("/settings", h.handleSettings)

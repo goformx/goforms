@@ -14,28 +14,37 @@ import (
 	"go.uber.org/fx"
 )
 
-// HandlerProviders returns all the handler-related providers
+// HandlerProviders provides the application handlers
 func HandlerProviders() []fx.Option {
 	return []fx.Option{
 		fx.Provide(
+			// Base handler
 			func(
 				logger logging.Logger,
 				authMiddleware *middleware.CookieAuthMiddleware,
 				formService form.Service,
+			) *handlers.BaseHandler {
+				return handlers.NewBaseHandler(authMiddleware, formService, logger)
+			},
+
+			// Auth handler
+			func(
+				baseHandler *handlers.BaseHandler,
 				userService user.Service,
 				sessionManager *middleware.SessionManager,
 				renderer *view.Renderer,
 				middlewareManager *middleware.Manager,
-				cfg *config.Config,
+				config *config.Config,
+				logger logging.Logger,
 			) *handler.AuthHandler {
-				baseHandler := handlers.NewBaseHandler(authMiddleware, formService, logger)
 				h := handler.NewAuthHandler(
 					baseHandler,
 					userService,
 					sessionManager,
 					renderer,
 					middlewareManager,
-					cfg,
+					config,
+					logger,
 				)
 
 				// Validate dependencies before returning
@@ -45,26 +54,44 @@ func HandlerProviders() []fx.Option {
 
 				return h
 			},
-			handler.NewStaticHandler,
-			handler.NewVersionHandler,
+
+			// Page handler
 			func(
-				logger logging.Logger,
-				authMiddleware *middleware.CookieAuthMiddleware,
-				formService form.Service,
+				baseHandler *handlers.BaseHandler,
 				userService user.Service,
 				sessionManager *middleware.SessionManager,
 				renderer *view.Renderer,
 				middlewareManager *middleware.Manager,
-				cfg *config.Config,
+				config *config.Config,
+			) *handler.PageHandler {
+				return handler.NewPageHandler(
+					baseHandler,
+					userService,
+					sessionManager,
+					renderer,
+					middlewareManager,
+					config,
+				)
+			},
+
+			// Web handler
+			func(
+				baseHandler *handlers.BaseHandler,
+				userService user.Service,
+				sessionManager *middleware.SessionManager,
+				renderer *view.Renderer,
+				middlewareManager *middleware.Manager,
+				config *config.Config,
+				logger logging.Logger,
 			) *handler.WebHandler {
-				baseHandler := handlers.NewBaseHandler(authMiddleware, formService, logger)
 				h := handler.NewWebHandler(
 					baseHandler,
 					userService,
 					sessionManager,
 					renderer,
 					middlewareManager,
-					cfg,
+					config,
+					logger,
 				)
 
 				// Validate dependencies before returning

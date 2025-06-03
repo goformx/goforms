@@ -51,26 +51,61 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			// Skip session check for certain paths
 			if sm.isSessionExempt(c.Request().URL.Path) {
+				sm.logger.Debug("session check skipped for exempt path",
+					logging.StringField("path", c.Request().URL.Path),
+					logging.StringField("method", c.Request().Method),
+				)
 				return next(c)
 			}
 
 			// Get session ID from cookie
 			cookie, err := c.Cookie("session_id")
 			if err != nil {
+				sm.logger.Debug("no session cookie found",
+					logging.StringField("path", c.Request().URL.Path),
+					logging.StringField("method", c.Request().Method),
+					logging.ErrorField("error", err),
+				)
 				return sm.handleAuthError(c, "no session found")
 			}
+
+			sm.logger.Debug("session cookie found",
+				logging.StringField("session_id", cookie.Value),
+				logging.StringField("path", c.Request().URL.Path),
+				logging.StringField("method", c.Request().Method),
+			)
 
 			// Get session from manager
 			session, exists := sm.GetSession(cookie.Value)
 			if !exists {
+				sm.logger.Warn("invalid session",
+					logging.StringField("session_id", cookie.Value),
+					logging.StringField("path", c.Request().URL.Path),
+					logging.StringField("method", c.Request().Method),
+				)
 				return sm.handleAuthError(c, "invalid session")
 			}
 
 			// Check if session is expired
 			if time.Now().After(session.ExpiresAt) {
+				sm.logger.Warn("session expired",
+					logging.StringField("session_id", cookie.Value),
+					logging.StringField("path", c.Request().URL.Path),
+					logging.StringField("method", c.Request().Method),
+					logging.StringField("expires_at", session.ExpiresAt.Format(time.RFC3339)),
+				)
 				sm.DeleteSession(cookie.Value)
 				return sm.handleAuthError(c, "session expired")
 			}
+
+			sm.logger.Debug("session validated",
+				logging.StringField("session_id", cookie.Value),
+				logging.StringField("path", c.Request().URL.Path),
+				logging.StringField("method", c.Request().Method),
+				logging.UintField("user_id", session.UserID),
+				logging.StringField("email", session.Email),
+				logging.StringField("role", session.Role),
+			)
 
 			// Store session in context
 			c.Set("session", session)
@@ -171,7 +206,7 @@ func (sm *SessionManager) SetSessionCookie(c echo.Context, sessionID string) {
 	cookie.Path = "/"
 	cookie.HttpOnly = true
 	cookie.Secure = true
-	cookie.SameSite = http.SameSiteStrictMode
+	cookie.SameSite = http.SameSiteLaxMode
 	cookie.Expires = time.Now().Add(sm.expiryTime)
 	c.SetCookie(cookie)
 }
@@ -184,7 +219,7 @@ func (sm *SessionManager) ClearSessionCookie(c echo.Context) {
 	cookie.Path = "/"
 	cookie.HttpOnly = true
 	cookie.Secure = true
-	cookie.SameSite = http.SameSiteStrictMode
+	cookie.SameSite = http.SameSiteLaxMode
 	cookie.Expires = time.Now().Add(-1 * time.Hour)
 	c.SetCookie(cookie)
 }

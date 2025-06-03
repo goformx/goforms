@@ -364,11 +364,11 @@ func (m *Manager) Setup(e *echo.Echo) {
 	m.setupBasicMiddleware(e)
 	m.setupSecurityMiddleware(e)
 
-	// Add session middleware first
+	// Add session middleware
 	m.logger.Debug("registering middleware", logging.StringField("type", "session"))
 	e.Use(m.config.SessionManager.SessionMiddleware())
 
-	// Then add auth middleware
+	// Add auth middleware
 	m.setupAuthMiddleware(e)
 
 	m.logger.Info("middleware setup complete")
