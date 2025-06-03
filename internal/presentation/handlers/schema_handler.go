@@ -34,6 +34,11 @@ func (h *SchemaHandler) Register(e *echo.Echo) {
 
 	schema.GET("", h.GetFormSchema)
 	schema.PUT("", h.UpdateFormSchema)
+
+	// Add API routes for frontend XHR
+	apiSchema := e.Group("/api/v1/forms/:id/schema")
+	apiSchema.GET("", h.GetFormSchema)
+	apiSchema.PUT("", h.UpdateFormSchema)
 }
 
 // GetFormSchema handles getting a form's schema

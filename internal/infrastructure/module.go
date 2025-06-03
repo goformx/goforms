@@ -193,15 +193,14 @@ func validateConfig(cfg *config.Config, logger logging.Logger) error {
 
 // Module represents the infrastructure module
 type Module struct {
-	app            *fx.App
-	config         *config.Config
-	logger         logging.Logger
-	db             *sql.DB
-	formService    form.Service
-	userService    user.Service
-	authMiddleware *appmiddleware.CookieAuthMiddleware
-	services       *ServiceContainer
-	handler        *handlers.Handler
+	app         *fx.App
+	config      *config.Config
+	logger      logging.Logger
+	db          *sql.DB
+	formService form.Service
+	userService user.Service
+	services    *ServiceContainer
+	handler     *handlers.Handler
 }
 
 // NewModule creates a new infrastructure module
@@ -212,16 +211,14 @@ func NewModule(
 	db *sql.DB,
 	formService form.Service,
 	userService user.Service,
-	authMiddleware *appmiddleware.CookieAuthMiddleware,
 ) *Module {
 	m := &Module{
-		app:            app,
-		config:         appConfig,
-		logger:         logger,
-		db:             db,
-		formService:    formService,
-		userService:    userService,
-		authMiddleware: authMiddleware,
+		app:         app,
+		config:      appConfig,
+		logger:      logger,
+		db:          db,
+		formService: formService,
+		userService: userService,
 	}
 
 	m.initializeServices()
@@ -376,9 +373,10 @@ var HandlerModule = fx.Options(
 		services ServiceParams,
 		middlewareManager *appmiddleware.Manager,
 		sessionManager *appmiddleware.SessionManager,
+		pageDataService pagedata.Service,
 	) (handler.Handler, error) {
 		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger)
+		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger, pageDataService)
 		if err != nil {
 			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
 		}
@@ -429,6 +427,7 @@ var HandlerModule = fx.Options(
 			SessionManager: sessionManager,
 		})
 	}),
+	fx.Provide(pagedata.NewService),
 )
 
 // ServerModule provides the HTTP server setup.
@@ -596,7 +595,7 @@ func (m *Module) initializeHandlers() {
 	schemaHandler := handlers.NewSchemaHandler(m.formService, m.logger, baseHandler)
 
 	// Create main handler
-	mainHandler, err := handlers.NewHandler(m.userService, m.formService, m.logger)
+	mainHandler, err := handlers.NewHandler(m.userService, m.formService, m.logger, m.services.PageDataService)
 	if err != nil {
 		m.logger.Error("failed to create handler", logging.Error(err))
 		return

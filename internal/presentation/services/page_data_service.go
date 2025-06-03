@@ -71,9 +71,36 @@ func (s *PageDataService) PrepareNewFormData(c echo.Context, currentUser *user.U
 	if !ok {
 		csrfToken = ""
 	}
-
 	return shared.PageData{
 		Title:     "Create New Form - GoFormX",
+		User:      currentUser,
+		CSRFToken: csrfToken,
+		AssetPath: web.GetAssetPath,
+	}
+}
+
+// PrepareProfileData prepares data for the profile page
+func (s *PageDataService) PrepareProfileData(c echo.Context, currentUser *user.User) shared.PageData {
+	csrfToken, ok := c.Get("csrf").(string)
+	if !ok {
+		csrfToken = ""
+	}
+	return shared.PageData{
+		Title:     "Profile - GoFormX",
+		User:      currentUser,
+		CSRFToken: csrfToken,
+		AssetPath: web.GetAssetPath,
+	}
+}
+
+// PrepareSettingsData prepares data for the settings page
+func (s *PageDataService) PrepareSettingsData(c echo.Context, currentUser *user.User) shared.PageData {
+	csrfToken, ok := c.Get("csrf").(string)
+	if !ok {
+		csrfToken = ""
+	}
+	return shared.PageData{
+		Title:     "Settings - GoFormX",
 		User:      currentUser,
 		CSRFToken: csrfToken,
 		AssetPath: web.GetAssetPath,
