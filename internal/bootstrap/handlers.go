@@ -23,12 +23,20 @@ func HandlerProviders() []fx.Option {
 				authMiddleware *middleware.CookieAuthMiddleware,
 				formService form.Service,
 				userService user.Service,
+				sessionManager *middleware.SessionManager,
+				renderer *view.Renderer,
+				middlewareManager *middleware.Manager,
+				cfg *config.Config,
 			) *handler.AuthHandler {
 				baseHandler := handlers.NewBaseHandler(authMiddleware, formService, logger)
-				h := &handler.AuthHandler{
-					BaseHandler: baseHandler,
-					UserService: userService,
-				}
+				h := handler.NewAuthHandler(
+					baseHandler,
+					userService,
+					sessionManager,
+					renderer,
+					middlewareManager,
+					cfg,
+				)
 
 				// Validate dependencies before returning
 				if err := h.Validate(); err != nil {
@@ -50,12 +58,14 @@ func HandlerProviders() []fx.Option {
 				cfg *config.Config,
 			) *handler.WebHandler {
 				baseHandler := handlers.NewBaseHandler(authMiddleware, formService, logger)
-				h := handler.NewWebHandler(baseHandler, userService, sessionManager)
-
-				// Set all required dependencies before returning the handler
-				handler.WithRenderer(renderer)(h)
-				handler.WithMiddlewareManager(middlewareManager)(h)
-				handler.WithConfig(cfg)(h)
+				h := handler.NewWebHandler(
+					baseHandler,
+					userService,
+					sessionManager,
+					renderer,
+					middlewareManager,
+					cfg,
+				)
 
 				// Validate dependencies before returning
 				if err := h.Validate(); err != nil {

@@ -316,15 +316,13 @@ var HandlerModule = fx.Options(
 				baseHandler,
 				services.UserService,
 				appmiddleware.NewSessionManager(core.Logger),
+				core.Renderer,
+				middlewareManager,
+				core.Config,
 			)
 			if webHandler == nil {
 				return nil, errors.New("failed to create web handler")
 			}
-
-			// Apply functional options
-			handler.WithRenderer(core.Renderer)(webHandler)
-			handler.WithMiddlewareManager(middlewareManager)(webHandler)
-			handler.WithConfig(core.Config)(webHandler)
 
 			// Validate dependencies
 			if err := webHandler.Validate(); err != nil {
@@ -341,16 +339,36 @@ var HandlerModule = fx.Options(
 		},
 	),
 	// Auth handler
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
-		handler := handler.NewAuthHandler(core.Logger, handler.WithUserService(services.UserService))
+	AnnotateHandler(func(
+		core CoreParams,
+		services ServiceParams,
+		middlewareManager *appmiddleware.Manager,
+		sessionManager *appmiddleware.SessionManager,
+	) (handler.Handler, error) {
+		baseHandler := handlers.NewBaseHandler(
+			appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
+			services.FormService,
+			core.Logger,
+		)
+
+		handler := handler.NewAuthHandler(
+			baseHandler,
+			services.UserService,
+			sessionManager,
+			core.Renderer,
+			middlewareManager,
+			core.Config,
+		)
+
 		if handler == nil {
 			return nil, fmt.Errorf("failed to create auth handler: user_service=%T", services.UserService)
 		}
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "AuthHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
+
+		// Validate dependencies
+		if err := handler.Validate(); err != nil {
+			return nil, fmt.Errorf("failed to validate auth handler: %w", err)
+		}
+
 		return handler, nil
 	}),
 	// Dashboard handler

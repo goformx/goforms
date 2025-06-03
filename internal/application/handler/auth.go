@@ -3,99 +3,241 @@ package handler
 import (
 	"errors"
 	"net/http"
+	"time"
 
-	"github.com/labstack/echo/v4"
-
+	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/presentation/handlers"
+	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/labstack/echo/v4"
 )
 
 const (
-	// CookieExpiryMinutes is the number of minutes before a cookie expires
-	CookieExpiryMinutes = 15
-	// SecondsInMinute is the number of seconds in a minute
-	SecondsInMinute = 60
+	// CookieMaxAgeMinutes is the number of minutes before a cookie expires
+	CookieMaxAgeMinutes = 15
 )
 
-// AuthHandlerOption defines an auth handler option
-type AuthHandlerOption func(*AuthHandler)
-
-// WithUserService sets the user service
-func WithUserService(svc user.Service) AuthHandlerOption {
-	return func(h *AuthHandler) {
-		h.UserService = svc
-	}
-}
-
-// AuthHandler handles authentication related requests
+// AuthHandler handles authentication-related requests
 type AuthHandler struct {
 	*handlers.BaseHandler
-	UserService user.Service
+	renderer          *view.Renderer
+	middlewareManager *amw.Manager
+	config            *config.Config
+	userService       user.Service
+	sessionManager    *amw.SessionManager
 }
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(logger logging.Logger, opts ...AuthHandlerOption) *AuthHandler {
-	h := &AuthHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+func NewAuthHandler(
+	baseHandler *handlers.BaseHandler,
+	userService user.Service,
+	sessionManager *amw.SessionManager,
+	renderer *view.Renderer,
+	middlewareManager *amw.Manager,
+	config *config.Config,
+) *AuthHandler {
+	return &AuthHandler{
+		BaseHandler:       baseHandler,
+		userService:       userService,
+		sessionManager:    sessionManager,
+		renderer:          renderer,
+		middlewareManager: middlewareManager,
+		config:            config,
 	}
-
-	for _, opt := range opts {
-		opt(h)
-	}
-
-	return h
-}
-
-// Validate validates that required dependencies are set
-func (h *AuthHandler) Validate() error {
-	if err := h.BaseHandler.Validate(); err != nil {
-		h.LogError("failed to validate handler", err)
-		return err
-	}
-	if h.UserService == nil {
-		return errors.New("user service is required")
-	}
-	return nil
 }
 
 // Register registers the auth routes
 func (h *AuthHandler) Register(e *echo.Echo) {
-	if err := h.Validate(); err != nil {
-		h.LogError("failed to validate handler", err)
-		return
-	}
+	// Auth routes
+	e.POST("/login", h.handleLoginPost)
+	e.POST("/signup", h.handleSignupPost)
+	e.POST("/logout", h.handleLogout)
 
-	// Web routes - logout only via POST for security
-	e.POST("/logout", h.handleWebLogout)
+	// Auth validation routes
+	e.GET("/api/validation/login", h.handleLoginValidation)
+	e.GET("/api/validation/signup", h.handleSignupValidation)
 }
 
-// handleWebLogout handles web logout
-func (h *AuthHandler) handleWebLogout(c echo.Context) error {
-	// Get refresh token from cookie
-	cookie, err := c.Cookie("refresh_token")
-	if err != nil {
-		h.LogError("failed to get refresh token cookie", err)
-		return echo.NewHTTPError(http.StatusBadRequest, "No refresh token found")
+// handleLoginPost handles the login form submission
+func (h *AuthHandler) handleLoginPost(c echo.Context) error {
+	// Parse form data
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+
+	// Create login request
+	login := &user.Login{
+		Email:    email,
+		Password: password,
 	}
 
-	// Blacklist the refresh token
-	logoutErr := h.UserService.Logout(c.Request().Context(), cookie.Value)
-	if logoutErr != nil {
-		h.LogError("failed to logout", logoutErr)
-		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to logout")
+	// Attempt login
+	loginResp, loginErr := h.userService.Login(c.Request().Context(), login)
+	if loginErr != nil {
+		if errors.Is(loginErr, user.ErrInvalidCredentials) {
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"message": "Invalid email or password",
+			})
+		}
+		h.LogError("failed to login", loginErr)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"message": "An error occurred. Please try again.",
+		})
 	}
 
-	// Clear the refresh token cookie
+	// Create session
+	sessionID, sessionErr := h.sessionManager.CreateSession(
+		loginResp.User.ID, loginResp.User.Email, loginResp.User.Role,
+	)
+	if sessionErr != nil {
+		h.LogError("failed to create session", sessionErr)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"message": "An error occurred. Please try again.",
+		})
+	}
+
+	// Set session cookie
+	h.sessionManager.SetSessionCookie(c, sessionID)
+
+	// Set refresh token cookie
 	c.SetCookie(&http.Cookie{
 		Name:     "refresh_token",
-		Value:    "",
+		Value:    loginResp.Token.RefreshToken,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   -1,
+		MaxAge:   int(CookieMaxAgeMinutes * time.Minute.Seconds()),
 	})
 
-	return c.Redirect(http.StatusSeeOther, "/login")
+	// Return success response
+	return c.JSON(http.StatusOK, map[string]string{
+		"message":  "Login successful",
+		"redirect": "/dashboard",
+	})
+}
+
+// handleSignupPost handles the signup form submission
+func (h *AuthHandler) handleSignupPost(c echo.Context) error {
+	// Parse form data
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+	confirmPassword := c.FormValue("confirm_password")
+	firstName := c.FormValue("first_name")
+	lastName := c.FormValue("last_name")
+
+	// Validate password confirmation
+	if password != confirmPassword {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"message": "Passwords do not match",
+		})
+	}
+
+	// Create signup request
+	signup := &user.Signup{
+		Email:     email,
+		Password:  password,
+		FirstName: firstName,
+		LastName:  lastName,
+	}
+
+	// Attempt signup
+	u, signupErr := h.userService.SignUp(c.Request().Context(), signup)
+	if signupErr != nil {
+		if errors.Is(signupErr, user.ErrUserExists) || errors.Is(signupErr, user.ErrEmailAlreadyExists) {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Email already exists",
+			})
+		}
+		h.LogError("failed to signup", signupErr)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"message": "An error occurred. Please try again.",
+		})
+	}
+
+	// Create session
+	sessionID, sessionErr := h.sessionManager.CreateSession(u.ID, u.Email, u.Role)
+	if sessionErr != nil {
+		h.LogError("failed to create session", sessionErr)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"message": "An error occurred. Please try again.",
+		})
+	}
+
+	// Set session cookie
+	h.sessionManager.SetSessionCookie(c, sessionID)
+
+	// Return success response
+	return c.JSON(http.StatusOK, map[string]string{
+		"message":  "Signup successful",
+		"redirect": "/dashboard",
+	})
+}
+
+// handleLogout handles the logout request
+func (h *AuthHandler) handleLogout(c echo.Context) error {
+	// Get session ID from cookie
+	cookie, err := c.Cookie("session_id")
+	if err == nil {
+		// Delete session
+		h.sessionManager.DeleteSession(cookie.Value)
+	}
+
+	// Clear session cookie
+	h.sessionManager.ClearSessionCookie(c)
+
+	// Return success response
+	return c.JSON(http.StatusOK, map[string]string{
+		"message":  "Logout successful",
+		"redirect": "/",
+	})
+}
+
+// handleLoginValidation handles the login form validation schema request
+func (h *AuthHandler) handleLoginValidation(c echo.Context) error {
+	schema := map[string]any{
+		"email": map[string]any{
+			"type":    "email",
+			"message": "Please enter a valid email address",
+		},
+		"password": map[string]any{
+			"type":    "password",
+			"min":     8,
+			"message": "Password must be at least 8 characters long",
+		},
+	}
+
+	return c.JSON(http.StatusOK, schema)
+}
+
+// handleSignupValidation returns the validation schema for the signup form
+func (h *AuthHandler) handleSignupValidation(c echo.Context) error {
+	schema := map[string]any{
+		"first_name": map[string]any{
+			"type":    "string",
+			"min":     1,
+			"message": "First name is required",
+		},
+		"last_name": map[string]any{
+			"type":    "string",
+			"min":     1,
+			"message": "Last name is required",
+		},
+		"email": map[string]any{
+			"type":    "email",
+			"message": "Please enter a valid email address",
+		},
+		"password": map[string]any{
+			"type":    "password",
+			"min":     8,
+			"message": "Password must be at least 8 characters long",
+		},
+		"confirm_password": map[string]any{
+			"type":       "match",
+			"matchField": "password",
+			"message":    "Passwords must match",
+		},
+	}
+
+	return c.JSON(http.StatusOK, schema)
 }
