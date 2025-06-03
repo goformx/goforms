@@ -80,15 +80,17 @@ templ DashboardTableBody(forms []*dform.Form, csrfToken string) {
 }
 
 templ DashboardTable(forms []*dform.Form, csrfToken string) {
-	<table class="dashboard-table">
-		<thead>
-			<tr>
-				<th>Title</th>
-				<th>Description</th>
-				<th>Created</th>
-				<th>Actions</th>
-			</tr>
-		</thead>
-		@DashboardTableBody(forms, csrfToken)
-	</table>
+	<div class="dashboard-table">
+		<table>
+			<thead>
+				<tr>
+					<th>Title</th>
+					<th>Description</th>
+					<th>Created</th>
+					<th>Actions</th>
+				</tr>
+			</thead>
+			@DashboardTableBody(forms, csrfToken)
+		</table>
+	</div>
 } 
