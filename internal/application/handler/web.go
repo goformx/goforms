@@ -9,53 +9,18 @@ import (
 	amw "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
+	"github.com/labstack/echo/v4/middleware"
 )
 
 var (
 	// ErrNoCurrentUser is returned when no user is found in the current context
 	ErrNoCurrentUser = errors.New("no current user found")
 )
-
-// Signup validation constants (for linter compliance)
-const (
-	SignupFirstNameMinValue = 2
-	SignupFirstNameMaxValue = 50
-	SignupLastNameMinValue  = 2
-	SignupLastNameMaxValue  = 50
-	SignupEmailMinValue     = 5
-	SignupEmailMaxValue     = 100
-	SignupPasswordMinValue  = 8
-	SignupPasswordMaxValue  = 100
-)
-
-// SignupValidation holds validation constants for signup
-type SignupValidation struct {
-	FirstNameMin int
-	FirstNameMax int
-	LastNameMin  int
-	LastNameMax  int
-	EmailMin     int
-	EmailMax     int
-	PasswordMin  int
-	PasswordMax  int
-}
-
-var signupValidation = SignupValidation{
-	FirstNameMin: SignupFirstNameMinValue,
-	FirstNameMax: SignupFirstNameMaxValue,
-	LastNameMin:  SignupLastNameMinValue,
-	LastNameMax:  SignupLastNameMaxValue,
-	EmailMin:     SignupEmailMinValue,
-	EmailMax:     SignupEmailMaxValue,
-	PasswordMin:  SignupPasswordMinValue,
-	PasswordMax:  SignupPasswordMaxValue,
-}
 
 // WebHandlerOption defines a web handler option.
 // This type is used to implement the functional options pattern
@@ -89,74 +54,27 @@ func WithConfig(cfg *config.Config) WebHandlerOption {
 	}
 }
 
-// WebHandler handles web page requests.
-// It requires a renderer, and subscription service to function properly.
-// Use the functional options pattern to configure these dependencies.
-//
-// Dependencies:
-//   - renderer: Required for rendering web pages
-//   - middlewareManager: Required for security and request processing
-//   - config: Required for configuration
-//   - userService: Required for user operations
+// WebHandler handles web requests
 type WebHandler struct {
 	*handlers.BaseHandler
 	renderer          *view.Renderer
 	middlewareManager *amw.Manager
 	config            *config.Config
 	userService       user.Service
+	sessionManager    *amw.SessionManager
 }
 
-// validate validates that required dependencies are set.
-// Returns an error if any required dependency is missing.
-//
-// Required dependencies:
-//   - renderer
-//   - middlewareManager
-//   - config
-//   - userService
-func (h *WebHandler) validate() error {
-	if h.renderer == nil {
-		return errors.New("WebHandler initialization failed: renderer is required")
+// NewWebHandler creates a new web handler
+func NewWebHandler(
+	baseHandler *handlers.BaseHandler,
+	userService user.Service,
+	sessionManager *amw.SessionManager,
+) *WebHandler {
+	return &WebHandler{
+		BaseHandler:    baseHandler,
+		userService:    userService,
+		sessionManager: sessionManager,
 	}
-	if h.middlewareManager == nil {
-		return errors.New("WebHandler initialization failed: middleware manager is required")
-	}
-	if h.config == nil {
-		return errors.New("WebHandler initialization failed: config is required")
-	}
-	if h.userService == nil {
-		return errors.New("WebHandler initialization failed: user service is required")
-	}
-	return nil
-}
-
-// NewWebHandler creates a new web handler.
-// It uses the functional options pattern to configure the handler.
-// The logger is required as a direct parameter, while other dependencies
-// are provided through options.
-//
-// Example:
-//
-//	handler := NewWebHandler(logger,
-//	    WithRenderer(renderer),
-//	    WithConfig(config),
-//	    WithUserService(userService),
-//	)
-func NewWebHandler(logger logging.Logger, renderer *view.Renderer, opts ...WebHandlerOption) (*WebHandler, error) {
-	h := &WebHandler{
-		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
-		renderer:    renderer,
-	}
-
-	for _, opt := range opts {
-		opt(h)
-	}
-
-	if err := h.validate(); err != nil {
-		return nil, err
-	}
-
-	return h, nil
 }
 
 // Validate validates that required dependencies are set.
@@ -230,29 +148,37 @@ type route struct {
 	Handler echo.HandlerFunc
 }
 
-// registerRoutes registers all web routes using the route struct
+// registerRoutes registers the web routes
 func (h *WebHandler) registerRoutes(e *echo.Echo) {
-	routes := []route{
-		{"GET", "/", h.handleHome},
-		{"GET", "/demo", h.handleDemo},
-		{"GET", "/signup", h.handleSignup},
-		{"POST", "/signup", h.handleSignupPost},
-		{"GET", "/login", h.handleLogin},
-		{"GET", "/api/validation/:schema", h.handleValidationSchema},
-	}
-
-	for _, r := range routes {
-		e.Add(r.Method, r.Path, r.Handler)
-		if h.config.App.IsDevelopment() {
-			h.LogDebug("web handler registered",
-				logging.StringField("method", r.Method),
-				logging.StringField("path", r.Path))
-		}
-	}
-
 	// Static files
-	e.Static("/"+h.config.Static.DistDir, h.config.Static.DistDir)
-	e.File("/favicon.ico", "./public/favicon.ico")
+	e.Use(middleware.StaticWithConfig(middleware.StaticConfig{
+		Root:   "static",
+		Browse: false,
+	}))
+
+	// Public routes
+	e.GET("/", h.handleHome)
+	e.GET("/login", h.handleLogin)
+	e.GET("/signup", h.handleSignup)
+	e.GET("/forgot-password", h.handleForgotPassword)
+	e.GET("/contact", h.handleContact)
+	e.GET("/demo", h.handleDemo)
+
+	// Auth routes
+	e.POST("/login", h.handleLoginPost)
+	e.POST("/signup", h.handleSignupPost)
+	e.POST("/logout", h.handleLogout)
+
+	// Protected routes
+	protected := e.Group("")
+	protected.Use(h.sessionManager.SessionMiddleware())
+	{
+		protected.GET("/dashboard", h.handleDashboard)
+		protected.GET("/profile", h.handleProfile)
+		protected.GET("/settings", h.handleSettings)
+		protected.GET("/forms", h.handleForms)
+		protected.GET("/forms/new", h.handleNewForm)
+	}
 }
 
 // validateDependencies validates required dependencies for the handler
@@ -292,123 +218,179 @@ func (h *WebHandler) handleSignup(c echo.Context) error {
 	return h.renderPage(c, "Sign Up", pages.Signup)
 }
 
-// handleSignupPost handles the signup form submission
-func (h *WebHandler) handleSignupPost(c echo.Context) error {
+// handleLogin renders the login page
+func (h *WebHandler) handleLogin(c echo.Context) error {
+	return h.renderPage(c, "Login", pages.Login)
+}
+
+// handleLoginPost handles the login form submission
+func (h *WebHandler) handleLoginPost(c echo.Context) error {
 	// Parse form data
 	email := c.FormValue("email")
 	password := c.FormValue("password")
-	passwordConfirm := c.FormValue("password_confirm")
 
-	// Validate password confirmation
-	if password != passwordConfirm {
-		return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Passwords do not match"))
-	}
-
-	// Create signup request
-	signup := &user.Signup{
-		Email:     email,
-		Password:  password,
-		FirstName: c.FormValue("first_name"),
-		LastName:  c.FormValue("last_name"),
-	}
-
-	// Create user
-	_, err := h.userService.SignUp(c.Request().Context(), signup)
-	if err != nil {
-		if errors.Is(err, user.ErrUserExists) {
-			return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Email already exists"))
-		}
-		return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Failed to create account"))
-	}
-
-	// Generate tokens
+	// Create login request
 	login := &user.Login{
 		Email:    email,
 		Password: password,
 	}
-	tokenPair, err := h.userService.Login(c.Request().Context(), login)
+
+	// Attempt login
+	loginResp, err := h.userService.Login(c.Request().Context(), login)
 	if err != nil {
-		return h.renderer.Render(c, pages.SignupWithError(shared.PageData{}, "Failed to generate authentication tokens"))
+		if errors.Is(err, user.ErrInvalidCredentials) {
+			data, err := h.buildPageData(c, "Login")
+			if err != nil {
+				return err
+			}
+			return c.Render(http.StatusUnauthorized, "login", pages.LoginWithError(data, "Invalid email or password"))
+		}
+		h.BaseHandler.LogError("failed to login", err)
+		data, err := h.buildPageData(c, "Login")
+		if err != nil {
+			return err
+		}
+		return c.Render(http.StatusInternalServerError, "login", pages.LoginWithError(data, "An error occurred. Please try again."))
 	}
+
+	// Create session
+	sessionID, err := h.sessionManager.CreateSession(loginResp.User.ID, loginResp.User.Email, loginResp.User.Role)
+	if err != nil {
+		h.BaseHandler.LogError("failed to create session", err)
+		data, err := h.buildPageData(c, "Login")
+		if err != nil {
+			return err
+		}
+		return c.Render(http.StatusInternalServerError, "login", pages.LoginWithError(data, "An error occurred. Please try again."))
+	}
+
+	// Set session cookie
+	h.sessionManager.SetSessionCookie(c, sessionID)
 
 	// Set refresh token cookie
 	c.SetCookie(&http.Cookie{
 		Name:     "refresh_token",
-		Value:    tokenPair.RefreshToken,
+		Value:    loginResp.Token.RefreshToken,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   7 * 24 * 60 * 60, // 7 days
+		MaxAge:   15 * 60, // 15 minutes
 	})
 
 	// Redirect to dashboard
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
-// handleLogin renders the login page
-func (h *WebHandler) handleLogin(c echo.Context) error {
-	return h.renderPage(c, "Login", pages.Login)
-}
+// handleSignupPost handles the signup form submission
+func (h *WebHandler) handleSignupPost(c echo.Context) error {
+	// Parse form data
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+	confirmPassword := c.FormValue("confirm_password")
+	firstName := c.FormValue("first_name")
+	lastName := c.FormValue("last_name")
 
-// schemaBuilders maps schema names to their builder functions
-var schemaBuilders = map[string]func() map[string]any{
-	"signup": buildSignupSchema,
-	"login":  buildLoginSchema,
-}
-
-func (h *WebHandler) handleValidationSchema(c echo.Context) error {
-	schemaName := c.Param("schema")
-	builder, ok := schemaBuilders[schemaName]
-	if !ok {
-		return c.JSON(http.StatusNotFound, map[string]string{"error": "validation schema not found"})
+	// Validate password confirmation
+	if password != confirmPassword {
+		data, err := h.buildPageData(c, "Sign Up")
+		if err != nil {
+			return err
+		}
+		return c.Render(http.StatusBadRequest, "signup", pages.SignupWithError(data, "Passwords do not match"))
 	}
-	return c.JSON(http.StatusOK, builder())
+
+	// Create signup request
+	signup := &user.Signup{
+		Email:     email,
+		Password:  password,
+		FirstName: firstName,
+		LastName:  lastName,
+	}
+
+	// Attempt signup
+	u, err := h.userService.SignUp(c.Request().Context(), signup)
+	if err != nil {
+		if errors.Is(err, user.ErrUserExists) || errors.Is(err, user.ErrEmailAlreadyExists) {
+			data, err := h.buildPageData(c, "Sign Up")
+			if err != nil {
+				return err
+			}
+			return c.Render(http.StatusBadRequest, "signup", pages.SignupWithError(data, "Email already exists"))
+		}
+		h.BaseHandler.LogError("failed to signup", err)
+		data, err := h.buildPageData(c, "Sign Up")
+		if err != nil {
+			return err
+		}
+		return c.Render(http.StatusInternalServerError, "signup", pages.SignupWithError(data, "An error occurred. Please try again."))
+	}
+
+	// Create session
+	sessionID, err := h.sessionManager.CreateSession(u.ID, u.Email, u.Role)
+	if err != nil {
+		h.BaseHandler.LogError("failed to create session", err)
+		data, err := h.buildPageData(c, "Sign Up")
+		if err != nil {
+			return err
+		}
+		return c.Render(http.StatusInternalServerError, "signup", pages.SignupWithError(data, "An error occurred. Please try again."))
+	}
+
+	// Set session cookie
+	h.sessionManager.SetSessionCookie(c, sessionID)
+
+	// Redirect to dashboard
+	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
-func buildSignupSchema() map[string]any {
-	return map[string]any{
-		"first_name": map[string]any{
-			"type":    "string",
-			"min":     signupValidation.FirstNameMin,
-			"max":     signupValidation.FirstNameMax,
-			"message": "First name must be between 2 and 50 characters",
-		},
-		"last_name": map[string]any{
-			"type":    "string",
-			"min":     signupValidation.LastNameMin,
-			"max":     signupValidation.LastNameMax,
-			"message": "Last name must be between 2 and 50 characters",
-		},
-		"email": map[string]any{
-			"type":    "email",
-			"min":     signupValidation.EmailMin,
-			"max":     signupValidation.EmailMax,
-			"message": "Please enter a valid email address",
-		},
-		"password": map[string]any{
-			"type":    "password",
-			"min":     signupValidation.PasswordMin,
-			"max":     signupValidation.PasswordMax,
-			"message": "Password must be at least 8 characters and contain upper, lower, number, special",
-		},
-		"confirm_password": map[string]any{
-			"type":       "match",
-			"matchField": "password",
-			"message":    "Passwords don't match",
-		},
+// handleLogout handles the logout request
+func (h *WebHandler) handleLogout(c echo.Context) error {
+	// Get session ID from cookie
+	cookie, err := c.Cookie("session_id")
+	if err == nil {
+		// Delete session
+		h.sessionManager.DeleteSession(cookie.Value)
 	}
+
+	// Clear session cookie
+	h.sessionManager.ClearSessionCookie(c)
+
+	// Redirect to home
+	return c.Redirect(http.StatusSeeOther, "/")
 }
 
-func buildLoginSchema() map[string]any {
-	return map[string]any{
-		"email": map[string]any{
-			"type":    "email",
-			"message": "Please enter a valid email address",
-		},
-		"password": map[string]any{
-			"type":    "string",
-			"message": "Password is required",
-		},
-	}
+// handleForgotPassword renders the forgot password page
+func (h *WebHandler) handleForgotPassword(c echo.Context) error {
+	return h.renderPage(c, "Forgot Password", pages.ForgotPassword)
+}
+
+// handleContact renders the contact page
+func (h *WebHandler) handleContact(c echo.Context) error {
+	return h.renderPage(c, "Contact", pages.Contact)
+}
+
+// handleDashboard renders the dashboard page
+func (h *WebHandler) handleDashboard(c echo.Context) error {
+	return h.renderPage(c, "Dashboard", pages.Dashboard)
+}
+
+// handleProfile renders the profile page
+func (h *WebHandler) handleProfile(c echo.Context) error {
+	return h.renderPage(c, "Profile", pages.Profile)
+}
+
+// handleSettings renders the settings page
+func (h *WebHandler) handleSettings(c echo.Context) error {
+	return h.renderPage(c, "Settings", pages.Settings)
+}
+
+// handleForms renders the forms page
+func (h *WebHandler) handleForms(c echo.Context) error {
+	return h.renderPage(c, "Forms", pages.Forms)
+}
+
+// handleNewForm renders the new form page
+func (h *WebHandler) handleNewForm(c echo.Context) error {
+	return h.renderPage(c, "New Form", pages.NewForm)
 }

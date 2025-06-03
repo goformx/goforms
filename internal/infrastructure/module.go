@@ -102,9 +102,6 @@ func validateDatabaseConfig(cfg *config.DatabaseConfig) error {
 
 // validateSecurityConfig validates the security configuration
 func validateSecurityConfig(cfg *config.SecurityConfig) error {
-	if len(cfg.JWTSecret) < MinSecretLength {
-		return errors.New("JWT secret must be at least 32 characters long")
-	}
 	return nil
 }
 
@@ -129,8 +126,6 @@ func validateConfig(cfg *config.Config, logger logging.Logger) error {
 		logging.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
 		logging.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
 		logging.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime))
-	logger.Info("validateConfig: JWT Secret length",
-		logging.Int("length", len(cfg.Security.JWTSecret)))
 
 	var validationErrors []string
 
@@ -287,14 +282,17 @@ var HandlerModule = fx.Options(
 			services ServiceParams,
 			middlewareManager *appmiddleware.Manager,
 		) (handler.Handler, error) {
-			handler, err := handler.NewWebHandler(
-				core.Logger,
-				core.Renderer,
-				handler.WithMiddlewareManager(middlewareManager),
-				handler.WithConfig(core.Config),
+			handler := handler.NewWebHandler(
+				handlers.NewBaseHandler(
+					appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
+					services.FormService,
+					core.Logger,
+				),
+				services.UserService,
+				appmiddleware.NewSessionManager(core.Logger),
 			)
-			if err != nil {
-				return nil, fmt.Errorf("failed to create web handler: %w", err)
+			if handler == nil {
+				return nil, fmt.Errorf("failed to create web handler")
 			}
 			core.Logger.Debug(
 				"registered handler",

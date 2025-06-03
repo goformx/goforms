@@ -4,7 +4,6 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"strconv"
 	"strings"
 	"time"
 
@@ -50,7 +49,6 @@ type Config struct {
 
 // SecurityConfig represents the security configuration
 type SecurityConfig struct {
-	JWTSecret string
 }
 
 // NewMiddleware creates a new middleware
@@ -64,9 +62,7 @@ func NewMiddleware(cfg Config, logger logging.Logger) *Middleware {
 // Initialize initializes the middleware
 func (m *Middleware) Initialize(e *echo.Echo) {
 	// Log middleware initialization
-	m.logger.Info("initializing middleware",
-		logging.StringField("jwt_secret_length", strconv.Itoa(len(m.config.Security.JWTSecret))),
-	)
+	m.logger.Info("initializing middleware")
 
 	// Add middleware
 	e.Use(echomw.Recover())
@@ -410,30 +406,31 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	}
 }
 
-// Setup authentication middleware (cookie auth, JWT auth, protected/admin groups)
+// Setup authentication middleware (cookie auth, protected/admin groups)
 func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
-	if m.config.UserService == nil {
-		m.logger.Warn("Skipping auth middleware setup: UserService is nil")
-		return
-	}
+	m.logger.Info("setting up authentication middleware")
 
-	// Create cookie auth middleware for dashboard/admin routes
-	cookieAuth := NewCookieAuthMiddleware(m.config.UserService, m.logger)
+	// Create session manager
+	sessionManager := NewSessionManager(m.logger)
 
-	// Create JWT middleware for API routes
-	jwtMiddleware := NewJWTMiddleware(m.config.UserService, m.config.Security.JWTSecret, m.logger, m.config.Config)
+	// Add session middleware
+	m.useWithLog(e, "session", sessionManager.SessionMiddleware())
 
-	// Create protected API routes group (with JWT middleware)
-	protected := e.Group("/api/v1")
-	protected.Use(jwtMiddleware)
+	// Add security headers
+	m.useWithLog(e, "security_headers", func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Add security headers
+			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
+			c.Response().Header().Set("X-Frame-Options", "DENY")
+			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
+			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			c.Response().Header().Set("Content-Security-Policy", "default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval'; style-src 'self' 'unsafe-inline';")
+			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
-	// Create admin/dashboard routes group (with cookie auth)
-	admin := e.Group("/dashboard")
-	admin.Use(cookieAuth.RequireAuth)
-
-	m.logger.Info("Auth middleware setup complete",
-		logging.String("jwt_secret_length", strconv.Itoa(len(m.config.Security.JWTSecret))),
-		logging.Bool("csrf_enabled", m.config.Security.CSRF.Enabled))
+			return next(c)
+		}
+	})
 }
 
 // Setup initializes the middleware manager with the Echo instance

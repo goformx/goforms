@@ -1,0 +1,53 @@
+package pages
+
+import (
+	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
+)
+
+templ Settings(data shared.PageData) {
+	@layouts.Dashboard(data)
+}
+
+templ SettingsContent(data shared.PageData) {
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-header">
+				<div class="dashboard-header-left">
+					<h1 class="dashboard-title">Settings</h1>
+					<p class="dashboard-subtitle">Configure your account settings</p>
+				</div>
+			</div>
+
+			<div class="dashboard-content">
+				<form id="settings-form" class="auth-form" method="POST" action="/settings">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+					<div id="form_error" class="form-error"></div>
+
+					<div class="gf-form-group">
+						<label for="theme" class="gf-label">Theme</label>
+						<select id="theme" name="theme" class="gf-input">
+							<option value="light">Light</option>
+							<option value="dark">Dark</option>
+							<option value="system">System</option>
+						</select>
+						<div id="theme_error" class="error-message"></div>
+					</div>
+
+					<div class="gf-form-group">
+						<label for="notifications" class="gf-label">Notifications</label>
+						<div class="checkbox-group">
+							<input type="checkbox" id="email_notifications" name="email_notifications" class="gf-checkbox" />
+							<label for="email_notifications">Email Notifications</label>
+						</div>
+						<div id="notifications_error" class="error-message"></div>
+					</div>
+
+					<div class="form-actions">
+						<button type="submit" class="gf-button gf-button--primary">Save Settings</button>
+					</div>
+				</form>
+			</div>
+		</div>
+	</div>
+} 

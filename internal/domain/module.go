@@ -5,7 +5,6 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -15,12 +14,11 @@ type UserServiceParams struct {
 
 	Store  user.Store
 	Logger logging.Logger
-	Config *config.Config
 }
 
 // NewUserService creates a new user service with dependencies
 func NewUserService(p UserServiceParams) user.Service {
-	return user.NewService(p.Store, p.Logger, p.Config.Security.JWTSecret)
+	return user.NewService(p.Store, p.Logger)
 }
 
 // FormServiceParams contains dependencies for creating a form service

@@ -127,7 +127,6 @@ type ServerConfig struct {
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	JWTSecret            string `envconfig:"GOFORMS_JWT_SECRET" validate:"required"`
 	Debug                bool   `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
 	LogLevel             string `envconfig:"GOFORMS_SECURITY_LOG_LEVEL" default:"info"`
 	CSRF                 CSRFConfig
@@ -224,7 +223,6 @@ func New(logger common.Logger) (*Config, error) {
 		logging.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
 		logging.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
 		logging.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime),
-		logging.Int("JWTSecretLength", len(cfg.Security.JWTSecret)),
 		logging.String("DatabaseHost", cfg.Database.Host),
 		logging.Int("DatabasePort", cfg.Database.Port),
 		logging.String("DatabaseUser", cfg.Database.User),

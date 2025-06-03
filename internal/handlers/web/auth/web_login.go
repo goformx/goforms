@@ -64,7 +64,7 @@ func (h *WebLoginHandler) LoginPost(c echo.Context) error {
 	}
 
 	// Attempt login
-	tokenPair, err := h.userService.Login(c.Request().Context(), login)
+	loginResp, err := h.userService.Login(c.Request().Context(), login)
 	if err != nil {
 		// Get CSRF token for re-rendering the form
 		csrfToken, _ := c.Get("csrf").(string)
@@ -81,7 +81,7 @@ func (h *WebLoginHandler) LoginPost(c echo.Context) error {
 	// Set refresh token cookie
 	c.SetCookie(&http.Cookie{
 		Name:     "refresh_token",
-		Value:    tokenPair.RefreshToken,
+		Value:    loginResp.Token.RefreshToken,
 		Path:     "/",
 		HttpOnly: true,
 		Secure:   true,

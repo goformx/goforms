@@ -3,7 +3,6 @@ package pages
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
-	"strconv"
 )
 
 templ Dashboard(data shared.PageData) {
@@ -15,64 +14,34 @@ templ DashboardContent(data shared.PageData) {
 		<div class="dashboard-container">
 			<div class="dashboard-header">
 				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Forms</h1>
-					<p class="dashboard-subtitle">Manage your forms and submissions</p>
+					<h1 class="dashboard-title">Dashboard</h1>
+					<p class="dashboard-subtitle">Welcome back, { data.User.FirstName }!</p>
 				</div>
-				<a href="/dashboard/forms/new" class="gf-button gf-button--primary">Create New Form</a>
 			</div>
 
-			if len(data.Forms) == 0 {
-				<div class="dashboard-empty">
-					<p>You haven't created any forms yet.</p>
-					<a href="/dashboard/forms/new" class="gf-button gf-button--primary">Create Your First Form</a>
-				</div>
-			} else {
-				<div class="dashboard-content">
-					<div class="dashboard-stats">
-						<div class="stat-card">
-							<span class="stat-value">{ strconv.Itoa(len(data.Forms)) }</span>
-							<span class="stat-label">Total Forms</span>
-						</div>
-						<div class="stat-card">
-							<span class="stat-value">0</span>
-							<span class="stat-label">Active Submissions</span>
-						</div>
+			<div class="dashboard-content">
+				<div class="dashboard-stats">
+					<div class="stat-card">
+						<h3>Total Forms</h3>
+						<p class="stat-value">0</p>
 					</div>
+					<div class="stat-card">
+						<h3>Total Submissions</h3>
+						<p class="stat-value">0</p>
+					</div>
+					<div class="stat-card">
+						<h3>Active Forms</h3>
+						<p class="stat-value">0</p>
+					</div>
+				</div>
 
-					<div class="dashboard-table">
-						<table>
-							<thead>
-								<tr>
-									<th>Title</th>
-									<th>Description</th>
-									<th>Created</th>
-									<th>Status</th>
-									<th>Actions</th>
-								</tr>
-							</thead>
-							<tbody>
-								for _, f := range data.Forms {
-									<tr>
-										<td>{ f.Title }</td>
-										<td>{ f.Description }</td>
-										<td>{ f.CreatedAt.Format("Jan 02, 2006") }</td>
-										<td>
-											<span class="status-badge status-active">Active</span>
-										</td>
-										<td>
-											<div class="table-actions">
-												<a href={ templ.URL("/dashboard/forms/" + f.ID + "/edit") } class="gf-button gf-button--sm gf-button--outline">Edit</a>
-												<a href={ templ.URL("/dashboard/forms/" + f.ID + "/submissions") } class="gf-button gf-button--sm gf-button--outline">View Submissions</a>
-												<button class="gf-button gf-button--sm gf-button--danger" data-form-id={ f.ID }>Delete</button>
-											</div>
-										</td>
-									</tr>
-								}
-							</tbody>
-						</table>
+				<div class="dashboard-recent">
+					<h2>Recent Forms</h2>
+					<div class="forms-grid">
+						// TODO: Add recent form cards here
 					</div>
 				</div>
-			}
+			</div>
 		</div>
 	</div>
 } 

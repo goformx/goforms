@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"net/http"
+	"strconv"
 	"strings"
 
 	"errors"
@@ -28,20 +29,20 @@ func NewCookieAuthMiddleware(userService user.Service, logger logging.Logger) *C
 // validateToken performs all token validation steps and returns the user, validation status, and any error
 func (m *CookieAuthMiddleware) validateToken(c echo.Context, tokenStr string) (*user.User, bool, error) {
 	// Validate the token
-	if _, tokenErr := m.userService.ValidateToken(tokenStr); tokenErr != nil {
-		return nil, false, tokenErr
+	if err := m.userService.ValidateToken(c.Request().Context(), tokenStr); err != nil {
+		return nil, false, err
 	}
 
 	// Get user ID from token
-	userID, idErr := m.userService.GetUserIDFromToken(tokenStr)
-	if idErr != nil {
-		return nil, false, idErr
+	userID, err := m.userService.GetUserIDFromToken(c.Request().Context(), tokenStr)
+	if err != nil {
+		return nil, false, err
 	}
 
 	// Retrieve user using request context
-	userObj, userErr := m.userService.GetByID(c.Request().Context(), userID)
-	if userErr != nil {
-		return nil, false, userErr
+	userObj, err := m.userService.GetByID(c.Request().Context(), strconv.FormatUint(uint64(userID), 10))
+	if err != nil {
+		return nil, false, err
 	}
 
 	return userObj, true, nil
@@ -129,8 +130,11 @@ func (m *CookieAuthMiddleware) RequireNoAuth(next echo.HandlerFunc) echo.Handler
 		token, err := getAuthToken(c)
 		if err == nil {
 			_, valid, validateErr := m.validateToken(c, token)
-			if validateErr == nil && valid && !m.userService.IsTokenBlacklisted(token) {
-				return c.Redirect(http.StatusSeeOther, "/dashboard")
+			if validateErr == nil && valid {
+				isBlacklisted, err := m.userService.IsTokenBlacklisted(c.Request().Context(), token)
+				if err == nil && !isBlacklisted {
+					return c.Redirect(http.StatusSeeOther, "/dashboard")
+				}
 			}
 		}
 		return next(c)

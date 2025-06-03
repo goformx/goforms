@@ -1,0 +1,32 @@
+package pages
+
+import (
+	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
+)
+
+templ Forms(data shared.PageData) {
+	@layouts.Dashboard(data)
+}
+
+templ FormsContent(data shared.PageData) {
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-header">
+				<div class="dashboard-header-left">
+					<h1 class="dashboard-title">Forms</h1>
+					<p class="dashboard-subtitle">Manage your forms</p>
+				</div>
+				<div class="dashboard-header-right">
+					<a href="/forms/new" class="gf-button gf-button--primary">Create Form</a>
+				</div>
+			</div>
+
+			<div class="dashboard-content">
+				<div class="forms-grid">
+					// TODO: Add form cards here
+				</div>
+			</div>
+		</div>
+	</div>
+} 
