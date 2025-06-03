@@ -177,12 +177,6 @@ func New(logger common.Logger) (*Config, error) {
 		logger.Info("Loaded .env file")
 	}
 
-	// Log current environment variables
-	logger.Debug("Current environment variables")
-	for _, env := range os.Environ() {
-		logger.Debug("Environment variable", logging.String("value", env))
-	}
-
 	// Create default configuration
 	cfg := &Config{
 		App: AppConfig{
