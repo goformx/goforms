@@ -4,9 +4,12 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -19,6 +22,8 @@ type FormHandler struct {
 	Base           *BaseHandler
 	formService    form.Service
 	formOperations formops.Service
+	userService    user.Service
+	config         *config.Config
 	logger         logging.Logger
 }
 
@@ -26,12 +31,16 @@ type FormHandler struct {
 func NewFormHandler(
 	formService form.Service,
 	formOperations formops.Service,
+	userService user.Service,
+	config *config.Config,
 	logger logging.Logger,
 	base *BaseHandler,
 ) *FormHandler {
 	return &FormHandler{
 		formService:    formService,
 		formOperations: formOperations,
+		userService:    userService,
+		config:         config,
 		logger:         logger,
 		Base:           base,
 	}
@@ -39,7 +48,12 @@ func NewFormHandler(
 
 // Register sets up the form routes
 func (h *FormHandler) Register(e *echo.Echo) {
+	// All form routes should be protected since they're under /dashboard/forms
 	forms := e.Group("/dashboard/forms")
+
+	// Add authentication middleware to all form routes - use proper auth middleware
+	authMiddleware := middleware.NewAuthMiddleware(h.userService, h.logger, h.config).Middleware()
+	forms.Use(authMiddleware)
 
 	forms.GET("/new", h.ShowNewForm)
 	forms.POST("", h.CreateForm)

@@ -321,7 +321,14 @@ var HandlerModule = fx.Options(
 	) (handler.Handler, error) {
 		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
 		formOperations := formops.NewService(services.FormService, core.Logger)
-		formHandler := handlers.NewFormHandler(services.FormService, formOperations, core.Logger, baseHandler)
+		formHandler := handlers.NewFormHandler(
+			services.FormService,
+			formOperations,
+			services.UserService,
+			core.Config,
+			core.Logger,
+			baseHandler,
+		)
 
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "FormHandler"),
@@ -351,7 +358,13 @@ var HandlerModule = fx.Options(
 		services ServiceParams,
 	) (handler.Handler, error) {
 		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-		schemaHandler := handlers.NewSchemaHandler(services.FormService, core.Logger, baseHandler)
+		schemaHandler := handlers.NewSchemaHandler(
+			services.FormService,
+			services.UserService,
+			core.Config,
+			core.Logger,
+			baseHandler,
+		)
 
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "SchemaHandler"),

@@ -3,7 +3,10 @@ package handlers
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 )
@@ -11,6 +14,8 @@ import (
 // SchemaHandler handles form schema-related HTTP requests
 type SchemaHandler struct {
 	formService form.Service
+	userService user.Service
+	config      *config.Config
 	logger      logging.Logger
 	Base        *BaseHandler
 }
@@ -18,11 +23,15 @@ type SchemaHandler struct {
 // NewSchemaHandler creates a new schema handler
 func NewSchemaHandler(
 	formService form.Service,
+	userService user.Service,
+	config *config.Config,
 	logger logging.Logger,
 	base *BaseHandler,
 ) *SchemaHandler {
 	return &SchemaHandler{
 		formService: formService,
+		userService: userService,
+		config:      config,
 		logger:      logger,
 		Base:        base,
 	}
@@ -30,13 +39,18 @@ func NewSchemaHandler(
 
 // Register sets up the schema routes
 func (h *SchemaHandler) Register(e *echo.Echo) {
-	schema := e.Group("/dashboard/forms/:id/schema")
+	// Create auth middleware
+	authMiddleware := middleware.NewAuthMiddleware(h.userService, h.logger, h.config).Middleware()
 
+	// Dashboard routes
+	schema := e.Group("/dashboard/forms/:id/schema")
+	schema.Use(authMiddleware)
 	schema.GET("", h.GetFormSchema)
 	schema.PUT("", h.UpdateFormSchema)
 
-	// Add API routes for frontend XHR
+	// API routes for frontend XHR - also need authentication
 	apiSchema := e.Group("/api/v1/forms/:id/schema")
+	apiSchema.Use(authMiddleware)
 	apiSchema.GET("", h.GetFormSchema)
 	apiSchema.PUT("", h.UpdateFormSchema)
 }
