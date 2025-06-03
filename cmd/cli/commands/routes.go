@@ -8,6 +8,7 @@ import (
 	"github.com/goformx/goforms/internal/bootstrap"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 	"github.com/urfave/cli/v2"
 	"go.uber.org/fx"
@@ -15,6 +16,12 @@ import (
 
 // ListRoutes prints all registered routes in the application
 func ListRoutes(c *cli.Context) error {
+	// Create logger
+	logger, logErr := logging.NewFactory().CreateLogger()
+	if logErr != nil {
+		return logErr
+	}
+
 	// Create a minimal app with just what we need for routes
 	options := []fx.Option{
 		infrastructure.RootModule,
@@ -30,14 +37,18 @@ func ListRoutes(c *cli.Context) error {
 		}
 
 		// Print routes
-		fmt.Println("\nRegistered Routes:")
-		fmt.Println("==================")
+		logger.Info("Registered Routes:")
+		logger.Info("==================")
 
 		for _, route := range e.Routes() {
 			method := route.Method
 			path := route.Path
 			name := route.Name
-			fmt.Printf("%-8s %-40s %s\n", method, path, name)
+			logger.Info("Route details",
+				logging.StringField("method", method),
+				logging.StringField("path", path),
+				logging.StringField("name", name),
+			)
 		}
 	}))
 
@@ -47,7 +58,11 @@ func ListRoutes(c *cli.Context) error {
 	if err := app.Start(context.Background()); err != nil {
 		return fmt.Errorf("failed to start application: %w", err)
 	}
-	defer app.Stop(context.Background())
+	defer func() {
+		if err := app.Stop(context.Background()); err != nil {
+			logger.Error("Error stopping application", logging.ErrorField("error", err))
+		}
+	}()
 
 	return nil
 }

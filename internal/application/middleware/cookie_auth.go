@@ -131,8 +131,8 @@ func (m *CookieAuthMiddleware) RequireNoAuth(next echo.HandlerFunc) echo.Handler
 		if err == nil {
 			_, valid, validateErr := m.validateToken(c, token)
 			if validateErr == nil && valid {
-				isBlacklisted, err := m.userService.IsTokenBlacklisted(c.Request().Context(), token)
-				if err == nil && !isBlacklisted {
+				isBlacklisted, blacklistErr := m.userService.IsTokenBlacklisted(c.Request().Context(), token)
+				if blacklistErr == nil && !isBlacklisted {
 					return c.Redirect(http.StatusSeeOther, "/dashboard")
 				}
 			}

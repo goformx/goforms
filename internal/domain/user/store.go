@@ -30,7 +30,7 @@ func (s *StoreImpl) Create(ctx context.Context, user *User) error {
 // GetByID retrieves a user by ID
 func (s *StoreImpl) GetByID(ctx context.Context, id uint) (*User, error) {
 	// TODO: Implement
-	return nil, nil
+	return nil, ErrUserNotFound
 }
 
 // GetByEmail retrieves a user by email
@@ -61,7 +61,7 @@ func (s *StoreImpl) List(ctx context.Context) ([]User, error) {
 func (s *StoreImpl) GetByIDString(ctx context.Context, id string) (*User, error) {
 	userID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		return nil, ErrInvalidUserID
+		return nil, err
 	}
 	return s.GetByID(ctx, uint(userID))
 }

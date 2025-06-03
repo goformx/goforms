@@ -31,6 +31,9 @@ const (
 
 	// DefaultCorsMaxAge is the default maximum age for CORS preflight requests
 	DefaultCorsMaxAge = 3600
+
+	// DefaultCorsOrigins is the default allowed CORS origins
+	DefaultCorsOrigins = "http://localhost:3000,http://localhost:5173"
 )
 
 // CORSOriginsDecoder handles parsing of CORS allowed origins

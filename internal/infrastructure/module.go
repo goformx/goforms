@@ -292,7 +292,7 @@ var HandlerModule = fx.Options(
 				appmiddleware.NewSessionManager(core.Logger),
 			)
 			if handler == nil {
-				return nil, fmt.Errorf("failed to create web handler")
+				return nil, errors.New("failed to create web handler")
 			}
 			core.Logger.Debug(
 				"registered handler",

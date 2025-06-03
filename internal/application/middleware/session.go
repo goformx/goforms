@@ -12,6 +12,13 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	// SessionExpiryHours is the number of hours before a session expires
+	SessionExpiryHours = 24
+	// SessionIDLength is the length of the session ID in bytes
+	SessionIDLength = 32
+)
+
 // Session represents a user session
 type Session struct {
 	UserID    uint
@@ -34,7 +41,7 @@ func NewSessionManager(logger logging.Logger) *SessionManager {
 	return &SessionManager{
 		logger:     logger,
 		sessions:   make(map[string]*Session),
-		expiryTime: 24 * time.Hour, // Sessions expire after 24 hours
+		expiryTime: SessionExpiryHours * time.Hour, // Sessions expire after 24 hours
 	}
 }
 
@@ -75,7 +82,7 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 // CreateSession creates a new session for a user
 func (sm *SessionManager) CreateSession(userID uint, email, role string) (string, error) {
 	// Generate random session ID
-	sessionID := make([]byte, 32)
+	sessionID := make([]byte, SessionIDLength)
 	if _, err := rand.Read(sessionID); err != nil {
 		return "", fmt.Errorf("failed to generate session ID: %w", err)
 	}

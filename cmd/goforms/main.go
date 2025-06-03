@@ -26,6 +26,11 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
+const (
+	// DefaultShutdownTimeout is the default timeout for graceful shutdown
+	DefaultShutdownTimeout = 5 * time.Second
+)
+
 // ShutdownConfig holds configuration for application shutdown
 type ShutdownConfig struct {
 	Timeout time.Duration `envconfig:"GOFORMS_SHUTDOWN_TIMEOUT" default:"5s"`
@@ -46,6 +51,13 @@ func initializeLogger(logger logging.Logger) logging.Logger {
 
 // main is the entry point of the application.
 func main() {
+	// Create logger
+	logger, err := logging.NewFactory().CreateLogger()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create logger: %v\n", err)
+		return
+	}
+
 	// Collect all fx options in a single slice
 	options := []fx.Option{
 		// Core modules
@@ -83,27 +95,27 @@ func main() {
 	app := fx.New(options...)
 
 	// Start the application
-	if err := app.Start(context.Background()); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", err)
+	if startErr := app.Start(context.Background()); startErr != nil {
+		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", startErr)
 		return
 	}
 
 	// Handle shutdown
-	handleShutdown(app)
+	handleShutdown(app, logger)
 }
 
 // handleShutdown manages the graceful shutdown of the application
-func handleShutdown(app *fx.App) {
+func handleShutdown(app *fx.App, logger logging.Logger) {
 	// Set up signal handling
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Wait for interrupt signal
 	sig := <-signalChan
-	fmt.Printf("Received signal: %v\n", sig)
+	logger.Info("Received shutdown signal", logging.String("signal", sig.String()))
 
 	// Create shutdown context with default timeout
-	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), 5*time.Second)
+	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
 	defer cancelShutdown()
 
 	// Start graceful shutdown

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/a-h/templ"
 	amw "github.com/goformx/goforms/internal/application/middleware"
@@ -15,6 +16,11 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 	"github.com/labstack/echo/v4/middleware"
+)
+
+const (
+	// CookieMaxAgeMinutes is the number of minutes before a cookie expires
+	CookieMaxAgeMinutes = 15
 )
 
 var (
@@ -141,13 +147,6 @@ func (h *WebHandler) renderPage(c echo.Context, title string, template func(shar
 	return nil
 }
 
-// route defines a route for registration
-type route struct {
-	Method  string
-	Path    string
-	Handler echo.HandlerFunc
-}
-
 // registerRoutes registers the web routes
 func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	// Static files
@@ -172,13 +171,11 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 	// Protected routes
 	protected := e.Group("")
 	protected.Use(h.sessionManager.SessionMiddleware())
-	{
-		protected.GET("/dashboard", h.handleDashboard)
-		protected.GET("/profile", h.handleProfile)
-		protected.GET("/settings", h.handleSettings)
-		protected.GET("/forms", h.handleForms)
-		protected.GET("/forms/new", h.handleNewForm)
-	}
+	protected.GET("/dashboard", h.handleDashboard)
+	protected.GET("/profile", h.handleProfile)
+	protected.GET("/settings", h.handleSettings)
+	protected.GET("/forms", h.handleForms)
+	protected.GET("/forms/new", h.handleNewForm)
 }
 
 // validateDependencies validates required dependencies for the handler
@@ -236,32 +233,46 @@ func (h *WebHandler) handleLoginPost(c echo.Context) error {
 	}
 
 	// Attempt login
-	loginResp, err := h.userService.Login(c.Request().Context(), login)
-	if err != nil {
-		if errors.Is(err, user.ErrInvalidCredentials) {
-			data, err := h.buildPageData(c, "Login")
-			if err != nil {
-				return err
+	loginResp, loginErr := h.userService.Login(c.Request().Context(), login)
+	if loginErr != nil {
+		if errors.Is(loginErr, user.ErrInvalidCredentials) {
+			data, buildErr := h.buildPageData(c, "Login")
+			if buildErr != nil {
+				return buildErr
 			}
-			return c.Render(http.StatusUnauthorized, "login", pages.LoginWithError(data, "Invalid email or password"))
+			return c.Render(
+				http.StatusUnauthorized,
+				"login",
+				pages.LoginWithError(data, "Invalid email or password"),
+			)
 		}
-		h.BaseHandler.LogError("failed to login", err)
-		data, err := h.buildPageData(c, "Login")
-		if err != nil {
-			return err
+		h.LogError("failed to login", loginErr)
+		data, buildErr := h.buildPageData(c, "Login")
+		if buildErr != nil {
+			return buildErr
 		}
-		return c.Render(http.StatusInternalServerError, "login", pages.LoginWithError(data, "An error occurred. Please try again."))
+		return c.Render(
+			http.StatusInternalServerError,
+			"login",
+			pages.LoginWithError(data, "An error occurred. Please try again."),
+		)
 	}
 
 	// Create session
-	sessionID, err := h.sessionManager.CreateSession(loginResp.User.ID, loginResp.User.Email, loginResp.User.Role)
-	if err != nil {
-		h.BaseHandler.LogError("failed to create session", err)
-		data, err := h.buildPageData(c, "Login")
-		if err != nil {
-			return err
+	sessionID, sessionErr := h.sessionManager.CreateSession(
+		loginResp.User.ID, loginResp.User.Email, loginResp.User.Role,
+	)
+	if sessionErr != nil {
+		h.LogError("failed to create session", sessionErr)
+		data, buildErr := h.buildPageData(c, "Login")
+		if buildErr != nil {
+			return buildErr
 		}
-		return c.Render(http.StatusInternalServerError, "login", pages.LoginWithError(data, "An error occurred. Please try again."))
+		return c.Render(
+			http.StatusInternalServerError,
+			"login",
+			pages.LoginWithError(data, "An error occurred. Please try again."),
+		)
 	}
 
 	// Set session cookie
@@ -275,7 +286,7 @@ func (h *WebHandler) handleLoginPost(c echo.Context) error {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   15 * 60, // 15 minutes
+		MaxAge:   int(CookieMaxAgeMinutes * time.Minute.Seconds()), // 15 minutes
 	})
 
 	// Redirect to dashboard
@@ -293,11 +304,15 @@ func (h *WebHandler) handleSignupPost(c echo.Context) error {
 
 	// Validate password confirmation
 	if password != confirmPassword {
-		data, err := h.buildPageData(c, "Sign Up")
-		if err != nil {
-			return err
+		data, buildErr := h.buildPageData(c, "Sign Up")
+		if buildErr != nil {
+			return buildErr
 		}
-		return c.Render(http.StatusBadRequest, "signup", pages.SignupWithError(data, "Passwords do not match"))
+		return c.Render(
+			http.StatusBadRequest,
+			"signup",
+			pages.SignupWithError(data, "Passwords do not match"),
+		)
 	}
 
 	// Create signup request
@@ -309,32 +324,44 @@ func (h *WebHandler) handleSignupPost(c echo.Context) error {
 	}
 
 	// Attempt signup
-	u, err := h.userService.SignUp(c.Request().Context(), signup)
-	if err != nil {
-		if errors.Is(err, user.ErrUserExists) || errors.Is(err, user.ErrEmailAlreadyExists) {
-			data, err := h.buildPageData(c, "Sign Up")
-			if err != nil {
-				return err
+	u, signupErr := h.userService.SignUp(c.Request().Context(), signup)
+	if signupErr != nil {
+		if errors.Is(signupErr, user.ErrUserExists) || errors.Is(signupErr, user.ErrEmailAlreadyExists) {
+			data, buildErr := h.buildPageData(c, "Sign Up")
+			if buildErr != nil {
+				return buildErr
 			}
-			return c.Render(http.StatusBadRequest, "signup", pages.SignupWithError(data, "Email already exists"))
+			return c.Render(
+				http.StatusBadRequest,
+				"signup",
+				pages.SignupWithError(data, "Email already exists"),
+			)
 		}
-		h.BaseHandler.LogError("failed to signup", err)
-		data, err := h.buildPageData(c, "Sign Up")
-		if err != nil {
-			return err
+		h.LogError("failed to signup", signupErr)
+		data, buildErr := h.buildPageData(c, "Sign Up")
+		if buildErr != nil {
+			return buildErr
 		}
-		return c.Render(http.StatusInternalServerError, "signup", pages.SignupWithError(data, "An error occurred. Please try again."))
+		return c.Render(
+			http.StatusInternalServerError,
+			"signup",
+			pages.SignupWithError(data, "An error occurred. Please try again."),
+		)
 	}
 
 	// Create session
-	sessionID, err := h.sessionManager.CreateSession(u.ID, u.Email, u.Role)
-	if err != nil {
-		h.BaseHandler.LogError("failed to create session", err)
-		data, err := h.buildPageData(c, "Sign Up")
-		if err != nil {
-			return err
+	sessionID, sessionErr := h.sessionManager.CreateSession(u.ID, u.Email, u.Role)
+	if sessionErr != nil {
+		h.LogError("failed to create session", sessionErr)
+		data, buildErr := h.buildPageData(c, "Sign Up")
+		if buildErr != nil {
+			return buildErr
 		}
-		return c.Render(http.StatusInternalServerError, "signup", pages.SignupWithError(data, "An error occurred. Please try again."))
+		return c.Render(
+			http.StatusInternalServerError,
+			"signup",
+			pages.SignupWithError(data, "An error occurred. Please try again."),
+		)
 	}
 
 	// Set session cookie

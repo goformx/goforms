@@ -28,7 +28,7 @@ func (h *HomeHandler) Register(e *echo.Echo) {
 // Home handles the home page request
 func (h *HomeHandler) Home(c echo.Context) error {
 	// Check if user is authenticated
-	if user, ok := c.Get("user").(interface{}); ok && user != nil {
+	if user, ok := c.Get("user").(any); ok && user != nil {
 		// User is authenticated, redirect to dashboard
 		return c.Redirect(http.StatusFound, "/dashboard")
 	}

@@ -12,6 +12,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	// CookieMaxAgeMinutes is the number of minutes before a cookie expires
+	CookieMaxAgeMinutes = 15
+)
+
 // WebLoginHandler handles web login requests
 type WebLoginHandler struct {
 	*handlers.BaseHandler
@@ -86,7 +91,7 @@ func (h *WebLoginHandler) LoginPost(c echo.Context) error {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   15 * 60, // 15 minutes
+		MaxAge:   CookieMaxAgeMinutes * 60, // 15 minutes
 	})
 
 	// Redirect to dashboard on success
