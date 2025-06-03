@@ -208,7 +208,11 @@ func (sm *SessionManager) handleAuthError(c echo.Context, message string) error 
 		logging.StringField("message", message),
 		logging.StringField("path", c.Request().URL.Path),
 	)
-	sm.logger.Debug("Redirecting to /login from session middleware", logging.StringField("path", c.Request().URL.Path), logging.StringField("reason", message))
+	sm.logger.Debug(
+		"Redirecting to /login from session middleware",
+		logging.StringField("path", c.Request().URL.Path),
+		logging.StringField("reason", message),
+	)
 
 	// For API requests, return 401
 	if c.Request().Header.Get("Accept") == "application/json" {

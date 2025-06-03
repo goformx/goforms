@@ -111,7 +111,11 @@ func (m *AuthMiddleware) handleAuthError(c echo.Context, message string) error {
 		logging.StringField("method", c.Request().Method),
 		logging.StringField("error", message),
 	)
-	m.logger.Debug("Redirecting to /login from auth middleware", logging.StringField("path", c.Path()), logging.StringField("reason", message))
+	m.logger.Debug(
+		"Redirecting to /login from auth middleware",
+		logging.StringField("path", c.Path()),
+		logging.StringField("reason", message),
+	)
 
 	// For API requests, return 401
 	if c.Request().Header.Get("Accept") == "application/json" {

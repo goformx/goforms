@@ -32,7 +32,7 @@ func NewFormHandler(
 	formService form.Service,
 	formOperations formops.Service,
 	userService user.Service,
-	config *config.Config,
+	cfg *config.Config,
 	logger logging.Logger,
 	base *BaseHandler,
 ) *FormHandler {
@@ -40,7 +40,7 @@ func NewFormHandler(
 		formService:    formService,
 		formOperations: formOperations,
 		userService:    userService,
-		config:         config,
+		config:         cfg,
 		logger:         logger,
 		Base:           base,
 	}

@@ -24,14 +24,14 @@ type SchemaHandler struct {
 func NewSchemaHandler(
 	formService form.Service,
 	userService user.Service,
-	config *config.Config,
+	cfg *config.Config,
 	logger logging.Logger,
 	base *BaseHandler,
 ) *SchemaHandler {
 	return &SchemaHandler{
 		formService: formService,
 		userService: userService,
-		config:      config,
+		config:      cfg,
 		logger:      logger,
 		Base:        base,
 	}
