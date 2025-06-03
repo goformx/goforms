@@ -182,6 +182,7 @@ func (h *WebHandler) registerRoutes(e *echo.Echo) {
 func (h *WebHandler) validateDependencies() {
 	if err := h.Validate(); err != nil {
 		h.LogError("failed to validate web handler", err)
+		panic(fmt.Sprintf("failed to validate web handler: %v", err))
 	}
 }
 

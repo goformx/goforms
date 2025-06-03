@@ -138,12 +138,8 @@ type ServerParams struct {
 
 // startServer registers all handlers with the server.
 func startServer(params ServerParams) error {
-	// Register all handlers with the middleware manager
+	// Register all handlers with the server
 	for _, h := range params.Handlers {
-		// Only apply middleware manager to web handlers
-		if webHandler, ok := h.(*handler.WebHandler); ok {
-			handler.WithMiddlewareManager(params.MiddlewareManager)(webHandler)
-		}
 		h.Register(params.Server.Echo())
 	}
 

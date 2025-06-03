@@ -8,7 +8,6 @@ import (
 	"sync"
 	"time"
 
-	"go.uber.org/dig"
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/handler"
@@ -102,6 +101,35 @@ func validateDatabaseConfig(cfg *config.DatabaseConfig) error {
 
 // validateSecurityConfig validates the security configuration
 func validateSecurityConfig(cfg *config.SecurityConfig) error {
+	if cfg == nil {
+		return errors.New("security configuration cannot be nil")
+	}
+
+	// Validate CSRF configuration
+	if cfg.CSRF.Enabled {
+		if len(cfg.CSRF.Secret) < MinSecretLength {
+			return fmt.Errorf("CSRF secret must be at least %d characters long", MinSecretLength)
+		}
+	}
+
+	// Validate CORS configuration
+	if cfg.CorsMaxAge <= 0 {
+		return errors.New("CORS max age must be a positive number")
+	}
+
+	// Validate rate limiting configuration
+	if cfg.FormRateLimit <= 0 {
+		return errors.New("form rate limit must be a positive number")
+	}
+	if cfg.FormRateLimitWindow <= 0 {
+		return errors.New("form rate limit window must be a positive duration")
+	}
+
+	// Validate request timeout
+	if cfg.RequestTimeout <= 0 {
+		return errors.New("request timeout must be a positive duration")
+	}
+
 	return nil
 }
 
@@ -166,7 +194,6 @@ func validateConfig(cfg *config.Config, logger logging.Logger) error {
 // Module represents the infrastructure module
 type Module struct {
 	app            *fx.App
-	container      *dig.Container
 	config         *config.Config
 	logger         logging.Logger
 	db             *sql.DB
@@ -180,7 +207,6 @@ type Module struct {
 // NewModule creates a new infrastructure module
 func NewModule(
 	app *fx.App,
-	container *dig.Container,
 	appConfig *config.Config,
 	logger logging.Logger,
 	db *sql.DB,
@@ -190,7 +216,6 @@ func NewModule(
 ) *Module {
 	m := &Module{
 		app:            app,
-		container:      container,
 		config:         appConfig,
 		logger:         logger,
 		db:             db,

@@ -24,14 +24,14 @@ type AuthHandlerOption func(*AuthHandler)
 // WithUserService sets the user service
 func WithUserService(svc user.Service) AuthHandlerOption {
 	return func(h *AuthHandler) {
-		h.userService = svc
+		h.UserService = svc
 	}
 }
 
 // AuthHandler handles authentication related requests
 type AuthHandler struct {
 	*handlers.BaseHandler
-	userService user.Service
+	UserService user.Service
 }
 
 // NewAuthHandler creates a new auth handler
@@ -53,7 +53,7 @@ func (h *AuthHandler) Validate() error {
 		h.LogError("failed to validate handler", err)
 		return err
 	}
-	if h.userService == nil {
+	if h.UserService == nil {
 		return errors.New("user service is required")
 	}
 	return nil
@@ -80,7 +80,7 @@ func (h *AuthHandler) handleWebLogout(c echo.Context) error {
 	}
 
 	// Blacklist the refresh token
-	logoutErr := h.userService.Logout(c.Request().Context(), cookie.Value)
+	logoutErr := h.UserService.Logout(c.Request().Context(), cookie.Value)
 	if logoutErr != nil {
 		h.LogError("failed to logout", logoutErr)
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to logout")
