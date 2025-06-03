@@ -87,7 +87,7 @@ func (h *PageHandler) buildPageData(c echo.Context, title string) (shared.PageDa
 		h.LogDebug("User found in context", "email", userData.Email, "route", c.Path())
 		data.User = userData
 	} else {
-		h.LogError("No user found in context", nil)
+		h.LogInfo("No user found in context", nil)
 	}
 
 	data.Title = title
