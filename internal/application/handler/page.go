@@ -77,17 +77,17 @@ func (h *PageHandler) getCSRFToken(c echo.Context) (string, error) {
 func (h *PageHandler) buildPageData(c echo.Context, title string) (shared.PageData, error) {
 	csrfToken, err := h.getCSRFToken(c)
 	if err != nil {
-		h.BaseHandler.LogError("CSRF token missing or invalid", nil)
+		h.LogError("CSRF token missing or invalid", nil)
 		return shared.PageData{}, echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
 	}
 
 	var data shared.PageData
 	userData, userOk := c.Get("user").(*user.User)
 	if userOk {
-		h.BaseHandler.LogDebug("User found in context", "email", userData.Email, "route", c.Path())
+		h.LogDebug("User found in context", "email", userData.Email, "route", c.Path())
 		data.User = userData
 	} else {
-		h.BaseHandler.LogError("No user found in context", nil)
+		h.LogError("No user found in context", nil)
 	}
 
 	data.Title = title
@@ -101,7 +101,14 @@ func (h *PageHandler) buildPageData(c echo.Context, title string) (shared.PageDa
 		userEmail = data.User.Email
 	}
 	assetPathSet := data.AssetPath != nil
-	h.BaseHandler.LogDebug("PageData built", "title", data.Title, "user_email", userEmail, "is_dev", data.IsDevelopment, "asset_path_set", assetPathSet, "route", c.Path())
+	h.LogDebug(
+		"PageData built",
+		"title", data.Title,
+		"user_email", userEmail,
+		"is_dev", data.IsDevelopment,
+		"asset_path_set", assetPathSet,
+		"route", c.Path(),
+	)
 
 	return data, nil
 }

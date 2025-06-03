@@ -55,23 +55,7 @@ func HandlerProviders() []fx.Option {
 			},
 
 			// Page handler
-			func(
-				baseHandler *handlers.BaseHandler,
-				userService user.Service,
-				sessionManager *middleware.SessionManager,
-				renderer *view.Renderer,
-				middlewareManager *middleware.Manager,
-				cfg *config.Config,
-			) *handler.PageHandler {
-				return handler.NewPageHandler(
-					baseHandler,
-					userService,
-					sessionManager,
-					renderer,
-					middlewareManager,
-					cfg,
-				)
-			},
+			handler.NewPageHandler,
 
 			// Web handler
 			func(

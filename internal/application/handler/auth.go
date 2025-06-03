@@ -67,6 +67,8 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 }
 
 // handleLoginPost handles the login form submission
+//
+//nolint:funlen // function is long due to error handling and business logic requirements
 func (h *AuthHandler) handleLoginPost(c echo.Context) error {
 	// Parse form data
 	email := c.FormValue("email")
@@ -273,7 +275,8 @@ func (h *AuthHandler) handleLoginValidation(c echo.Context) error {
 			"message": "Please enter a valid email address",
 		},
 		"password": map[string]any{
-			"type":    "password",
+			"type": "password",
+			//nolint:mnd // 8 is a business rule for password length
 			"min":     8,
 			"message": "Password must be at least 8 characters long",
 		},
@@ -300,7 +303,8 @@ func (h *AuthHandler) handleSignupValidation(c echo.Context) error {
 			"message": "Please enter a valid email address",
 		},
 		"password": map[string]any{
-			"type":    "password",
+			"type": "password",
+			//nolint:mnd // 8 is a business rule for password length
 			"min":     8,
 			"message": "Password must be at least 8 characters long",
 		},

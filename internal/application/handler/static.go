@@ -16,7 +16,7 @@ import (
 // It is the single source of truth for static file serving in the application.
 type StaticHandler struct {
 	logger logging.Logger
-	config *config.Config
+	cfg    *config.Config
 }
 
 // NewStaticHandler creates a new static file handler
@@ -29,7 +29,7 @@ func NewStaticHandler(logger logging.Logger, cfg *config.Config) *StaticHandler 
 	}
 	return &StaticHandler{
 		logger: logger,
-		config: cfg,
+		cfg:    cfg,
 	}
 }
 
@@ -83,7 +83,7 @@ func (h *StaticHandler) setMIMEType(c echo.Context, path string) {
 // Register sets up routes for static file serving
 func (h *StaticHandler) Register(e *echo.Echo) {
 	// Handle Chrome DevTools well-known route only in development
-	if h.config.App.IsDevelopment() {
+	if h.cfg.App.IsDevelopment() {
 		e.GET("/.well-known/appspecific/com.chrome.devtools.json", func(c echo.Context) error {
 			return c.JSON(http.StatusOK, map[string]any{
 				"devtoolsFrontendUrl":  "",
@@ -98,7 +98,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 	}
 
 	// Serve static files using Echo's built-in middleware
-	distDir := h.config.Static.DistDir
+	distDir := h.cfg.Static.DistDir
 	if distDir == "" {
 		h.logger.Error("static directory not configured",
 			logging.StringField("config_key", "Static.DistDir"),
@@ -116,7 +116,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 		return
 	}
 
-	if stat, err := os.Stat(absPath); err == nil && stat.IsDir() {
+	if stat, statErr := os.Stat(absPath); statErr == nil && stat.IsDir() {
 		h.logger.Info("serving static files from dist directory",
 			logging.StringField("dir", absPath),
 		)
@@ -136,7 +136,7 @@ func (h *StaticHandler) Register(e *echo.Echo) {
 	} else {
 		h.logger.Error("static directory not found or inaccessible",
 			logging.StringField("dir", absPath),
-			logging.ErrorField("error", err),
+			logging.ErrorField("error", statErr),
 		)
 	}
 }

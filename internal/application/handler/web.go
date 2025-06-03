@@ -19,7 +19,7 @@ type WebHandler struct {
 	*handlers.BaseHandler
 	renderer          *view.Renderer
 	middlewareManager *amw.Manager
-	config            *config.Config
+	cfg               *config.Config
 	userService       user.Service
 	sessionManager    *amw.SessionManager
 	authHandler       *AuthHandler
@@ -33,7 +33,7 @@ func NewWebHandler(
 	sessionManager *amw.SessionManager,
 	renderer *view.Renderer,
 	middlewareManager *amw.Manager,
-	config *config.Config,
+	cfg *config.Config,
 	logger logging.Logger,
 ) *WebHandler {
 	handler := &WebHandler{
@@ -42,7 +42,7 @@ func NewWebHandler(
 		sessionManager:    sessionManager,
 		renderer:          renderer,
 		middlewareManager: middlewareManager,
-		config:            config,
+		cfg:               cfg,
 	}
 
 	// Initialize sub-handlers
@@ -52,7 +52,7 @@ func NewWebHandler(
 		sessionManager,
 		renderer,
 		middlewareManager,
-		config,
+		cfg,
 		logger,
 	)
 	handler.pageHandler = NewPageHandler(
@@ -61,7 +61,7 @@ func NewWebHandler(
 		sessionManager,
 		renderer,
 		middlewareManager,
-		config,
+		cfg,
 	)
 
 	return handler
@@ -73,7 +73,7 @@ func NewWebHandler(
 // Required dependencies:
 //   - renderer
 //   - middlewareManager
-//   - config
+//   - cfg
 func (h *WebHandler) Validate() error {
 	if err := h.BaseHandler.Validate(); err != nil {
 		return fmt.Errorf("WebHandler validation failed: %w", err)
@@ -84,8 +84,8 @@ func (h *WebHandler) Validate() error {
 	if h.middlewareManager == nil {
 		return errors.New("WebHandler validation failed: middleware manager is required")
 	}
-	if h.config == nil {
-		return errors.New("WebHandler validation failed: config is required")
+	if h.cfg == nil {
+		return errors.New("WebHandler validation failed: cfg is required")
 	}
 	return nil
 }
@@ -108,14 +108,14 @@ func (h *WebHandler) validateDependencies() {
 // Register registers the web routes
 func (h *WebHandler) Register(e *echo.Echo) {
 	h.validateDependencies()
-	if h.config.App.IsDevelopment() {
+	if h.cfg.App.IsDevelopment() {
 		h.LogDebug("registering web routes")
 	}
 
 	h.middlewareManager.Setup(e) // Ensure middleware is loaded properly
 	h.registerRoutes(e)
 
-	if h.config.App.IsDevelopment() {
+	if h.cfg.App.IsDevelopment() {
 		h.LogDebug("web routes registration complete")
 	}
 }

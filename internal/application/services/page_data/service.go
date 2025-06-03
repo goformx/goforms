@@ -15,7 +15,12 @@ type Service interface {
 	// PrepareDashboardData prepares data for the dashboard page
 	PrepareDashboardData(c echo.Context, usr *user.User, forms []*form.Form) shared.PageData
 	// PrepareFormData prepares data for the form page (with submissions)
-	PrepareFormData(c echo.Context, usr *user.User, frm *form.Form, submissions []*model.FormSubmission) shared.PageData
+	PrepareFormData(
+		c echo.Context,
+		usr *user.User,
+		frm *form.Form,
+		submissions []*model.FormSubmission,
+	) shared.PageData
 	// PrepareNewFormData prepares data for the new form page
 	PrepareNewFormData(c echo.Context, usr *user.User) shared.PageData
 	// PrepareProfileData prepares data for the profile page
@@ -56,7 +61,12 @@ func (s *service) PrepareDashboardData(c echo.Context, usr *user.User, forms []*
 }
 
 // PrepareFormData prepares data for the form page
-func (s *service) PrepareFormData(c echo.Context, usr *user.User, frm *form.Form, submissions []*model.FormSubmission) shared.PageData {
+func (s *service) PrepareFormData(
+	c echo.Context,
+	usr *user.User,
+	frm *form.Form,
+	submissions []*model.FormSubmission,
+) shared.PageData {
 	return shared.PageData{
 		Title:       frm.Title,
 		User:        usr,

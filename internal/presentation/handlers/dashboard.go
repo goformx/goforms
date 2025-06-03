@@ -27,7 +27,12 @@ type Handler struct {
 	logger            logging.Logger
 	pageDataService   interface {
 		PrepareDashboardData(c echo.Context, currentUser *user.User, forms []*form.Form) shared.PageData
-		PrepareFormData(c echo.Context, currentUser *user.User, formObj *form.Form, submissions []*model.FormSubmission) shared.PageData
+		PrepareFormData(
+			c echo.Context,
+			currentUser *user.User,
+			formObj *form.Form,
+			submissions []*model.FormSubmission,
+		) shared.PageData
 		PrepareNewFormData(c echo.Context, currentUser *user.User) shared.PageData
 		PrepareProfileData(c echo.Context, currentUser *user.User) shared.PageData
 		PrepareSettingsData(c echo.Context, currentUser *user.User) shared.PageData
@@ -41,7 +46,12 @@ func NewHandler(
 	logger logging.Logger,
 	pageDataService interface {
 		PrepareDashboardData(c echo.Context, currentUser *user.User, forms []*form.Form) shared.PageData
-		PrepareFormData(c echo.Context, currentUser *user.User, formObj *form.Form, submissions []*model.FormSubmission) shared.PageData
+		PrepareFormData(
+			c echo.Context,
+			currentUser *user.User,
+			formObj *form.Form,
+			submissions []*model.FormSubmission,
+		) shared.PageData
 		PrepareNewFormData(c echo.Context, currentUser *user.User) shared.PageData
 		PrepareProfileData(c echo.Context, currentUser *user.User) shared.PageData
 		PrepareSettingsData(c echo.Context, currentUser *user.User) shared.PageData
