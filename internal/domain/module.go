@@ -17,7 +17,7 @@ type UserServiceParams struct {
 }
 
 // NewUserService creates a new user service with dependencies
-func NewUserService(p UserServiceParams) UserService {
+func NewUserService(p UserServiceParams) user.Service {
 	return user.NewService(p.Store, p.Logger)
 }
 
@@ -39,7 +39,7 @@ var Module = fx.Options(
 		// User service
 		fx.Annotate(
 			NewUserService,
-			fx.As(new(UserService)),
+			fx.As(new(user.Service)),
 		),
 		// Form service
 		fx.Annotate(

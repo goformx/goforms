@@ -296,6 +296,7 @@ var HandlerModule = fx.Options(
 	) *appmiddleware.Manager {
 		return appmiddleware.New(&appmiddleware.ManagerConfig{
 			Logger:         core.Logger,
+			Security:       &core.Config.Security,
 			UserService:    services.UserService,
 			SessionManager: sessionManager,
 			Config:         core.Config,
