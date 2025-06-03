@@ -229,21 +229,6 @@ func (s *ServiceImpl) RefreshToken(ctx context.Context, refreshToken string) (*T
 
 // ValidateToken validates a JWT token
 func (s *ServiceImpl) ValidateToken(tokenString string) (*jwt.Token, error) {
-	token, err := s.parseToken(tokenString)
-	if err != nil {
-		return nil, err
-	}
-
-	validateErr := s.validateTokenClaims(token)
-	if validateErr != nil {
-		return nil, validateErr
-	}
-
-	return token, nil
-}
-
-// parseToken parses and validates the JWT token
-func (s *ServiceImpl) parseToken(tokenString string) (*jwt.Token, error) {
 	token, err := jwt.Parse(tokenString, func(token *jwt.Token) (any, error) {
 		// Validate signing method
 		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
@@ -255,54 +240,6 @@ func (s *ServiceImpl) parseToken(tokenString string) (*jwt.Token, error) {
 		return nil, fmt.Errorf("invalid token: %w", err)
 	}
 	return token, nil
-}
-
-// validateTokenClaims validates the token claims using maps package
-func (s *ServiceImpl) validateTokenClaims(token *jwt.Token) error {
-	claims, ok := token.Claims.(jwt.MapClaims)
-	if !ok {
-		return errors.New("invalid token claims")
-	}
-
-	// Check required claims
-	requiredClaims := []string{"user_id", "exp"}
-	for _, claim := range requiredClaims {
-		if _, exists := claims[claim]; !exists {
-			return errors.New("missing required claims")
-		}
-	}
-
-	if err := s.validateUserIDClaim(claims); err != nil {
-		return err
-	}
-
-	if err := s.validateExpirationClaim(claims); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-// validateUserIDClaim validates the user_id claim
-func (s *ServiceImpl) validateUserIDClaim(claims jwt.MapClaims) error {
-	if _, ok := claims["user_id"].(float64); !ok {
-		return ErrInvalidUserIDClaim
-	}
-	return nil
-}
-
-// validateExpirationClaim validates the exp claim
-func (s *ServiceImpl) validateExpirationClaim(claims jwt.MapClaims) error {
-	exp, ok := claims["exp"].(float64)
-	if !ok {
-		return errors.New("invalid exp claim")
-	}
-
-	if time.Now().Unix() > int64(exp) {
-		return errors.New("token expired")
-	}
-
-	return nil
 }
 
 // IsTokenBlacklisted checks if a token is in the blacklist
@@ -408,7 +345,7 @@ func (s *ServiceImpl) ListUsers(ctx context.Context) ([]User, error) {
 
 // GetUserIDFromToken retrieves the user ID from a token
 func (s *ServiceImpl) GetUserIDFromToken(token string) (string, error) {
-	parsedToken, err := s.parseToken(token)
+	parsedToken, err := s.ValidateToken(token)
 	if err != nil {
 		return "", fmt.Errorf("failed to parse token: %w", err)
 	}

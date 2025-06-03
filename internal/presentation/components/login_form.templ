@@ -6,7 +6,7 @@ import (
 )
 
 templ LoginForm(data shared.PageData) {
-	<form id="login-form" class="auth-form" data-validate="login" onsubmit="return false;">
+	<form id="login-form" class="auth-form" method="POST" action="/login" data-validate="login">
 		<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 		<div id="form_error" class="form-error"></div>
 		<div class="form-group">
@@ -46,5 +46,6 @@ templ LoginForm(data shared.PageData) {
 		</div>
 	</form>
 
+	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
 	<script type="module" src={ web.GetAssetPath("src/js/login.ts") }></script>
 }

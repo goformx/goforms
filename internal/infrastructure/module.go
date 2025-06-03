@@ -269,8 +269,8 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
-	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (handler.Handler, error) {
-		handler := wh_auth.NewWebLoginHandler(core.Logger)
+	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
+		handler := wh_auth.NewWebLoginHandler(core.Logger, services.UserService)
 		if handler == nil {
 			return nil, errors.New("failed to create web login handler")
 		}

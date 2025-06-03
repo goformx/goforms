@@ -1,6 +1,9 @@
 package auth
 
 import (
+	"net/http"
+
+	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
@@ -12,18 +15,21 @@ import (
 // WebLoginHandler handles web login requests
 type WebLoginHandler struct {
 	*handlers.BaseHandler
+	userService user.Service
 }
 
 // NewWebLoginHandler creates a new web login handler
-func NewWebLoginHandler(logger logging.Logger) *WebLoginHandler {
+func NewWebLoginHandler(logger logging.Logger, userService user.Service) *WebLoginHandler {
 	return &WebLoginHandler{
 		BaseHandler: handlers.NewBaseHandler(nil, nil, logger),
+		userService: userService,
 	}
 }
 
 // Register registers the web login routes
 func (h *WebLoginHandler) Register(e *echo.Echo) {
 	e.GET("/login", h.Login)
+	e.POST("/login", h.LoginPost)
 }
 
 // Login handles the login page request
@@ -43,4 +49,46 @@ func (h *WebLoginHandler) Login(c echo.Context) error {
 
 	// Render login page
 	return pages.Login(data).Render(c.Request().Context(), c.Response().Writer)
+}
+
+// LoginPost handles the login form submission
+func (h *WebLoginHandler) LoginPost(c echo.Context) error {
+	// Parse form data
+	email := c.FormValue("email")
+	password := c.FormValue("password")
+
+	// Create login request
+	login := &user.Login{
+		Email:    email,
+		Password: password,
+	}
+
+	// Attempt login
+	tokenPair, err := h.userService.Login(c.Request().Context(), login)
+	if err != nil {
+		// Get CSRF token for re-rendering the form
+		csrfToken, _ := c.Get("csrf").(string)
+		data := shared.PageData{
+			Title:     "Login - GoFormX",
+			CSRFToken: csrfToken,
+			AssetPath: web.GetAssetPath,
+		}
+
+		// Re-render login page with error
+		return pages.Login(data).Render(c.Request().Context(), c.Response().Writer)
+	}
+
+	// Set refresh token cookie
+	c.SetCookie(&http.Cookie{
+		Name:     "refresh_token",
+		Value:    tokenPair.RefreshToken,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   true,
+		SameSite: http.SameSiteStrictMode,
+		MaxAge:   15 * 60, // 15 minutes
+	})
+
+	// Redirect to dashboard on success
+	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
