@@ -310,6 +310,7 @@ var HandlerModule = fx.Options(
 			core CoreParams,
 			services ServiceParams,
 			middlewareManager *appmiddleware.Manager,
+			sessionManager *appmiddleware.SessionManager,
 		) (handler.Handler, error) {
 			baseHandler := handlers.NewBaseHandler(
 				appmiddleware.NewCookieAuthMiddleware(services.UserService, core.Logger),
@@ -319,7 +320,7 @@ var HandlerModule = fx.Options(
 			webHandler := handler.NewWebHandler(
 				baseHandler,
 				services.UserService,
-				appmiddleware.NewSessionManager(core.Logger),
+				sessionManager,
 				core.Renderer,
 				middlewareManager,
 				core.Config,
