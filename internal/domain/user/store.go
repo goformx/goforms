@@ -36,7 +36,7 @@ func (s *StoreImpl) GetByID(ctx context.Context, id uint) (*User, error) {
 // GetByEmail retrieves a user by email
 func (s *StoreImpl) GetByEmail(ctx context.Context, email string) (*User, error) {
 	// TODO: Implement
-	return nil, nil
+	return nil, ErrUserNotFound
 }
 
 // Update updates a user
@@ -54,7 +54,7 @@ func (s *StoreImpl) Delete(ctx context.Context, id uint) error {
 // List lists all users
 func (s *StoreImpl) List(ctx context.Context) ([]User, error) {
 	// TODO: Implement
-	return nil, nil
+	return []User{}, nil
 }
 
 // GetByIDString retrieves a user by ID string

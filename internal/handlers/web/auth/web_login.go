@@ -15,6 +15,8 @@ import (
 const (
 	// CookieMaxAgeMinutes is the number of minutes before a cookie expires
 	CookieMaxAgeMinutes = 15
+	// SecondsInMinute is the number of seconds in a minute
+	SecondsInMinute = 60
 )
 
 // WebLoginHandler handles web login requests
@@ -91,7 +93,7 @@ func (h *WebLoginHandler) LoginPost(c echo.Context) error {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   CookieMaxAgeMinutes * 60, // 15 minutes
+		MaxAge:   CookieMaxAgeMinutes * SecondsInMinute, // 15 minutes
 	})
 
 	// Redirect to dashboard on success

@@ -133,7 +133,7 @@ type SecurityConfig struct {
 	Debug                bool   `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
 	LogLevel             string `envconfig:"GOFORMS_SECURITY_LOG_LEVEL" default:"info"`
 	CSRF                 CSRFConfig
-	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000,http://localhost:5173"`
+	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000,http://localhost:5173"` //nolint:lll  // Long list required for CORS
 	CorsAllowedMethods   CORSMethodsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_METHODS"`
 	CorsAllowedHeaders   CORSHeadersDecoder `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS"`
 	CorsMaxAge           int                `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
