@@ -45,21 +45,6 @@ func Any(key string, value any) LogField {
 	return LogField{Key: key, Value: value}
 }
 
-// Uint creates an unsigned integer field
-func Uint(key string, value uint) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// Int64 creates a 64-bit integer field
-func Int64(key string, value int64) LogField {
-	return LogField{Key: key, Value: int(value)}
-}
-
-// Bool creates a boolean field
-func Bool(key string, value bool) LogField {
-	return LogField{Key: key, Value: value}
-}
-
 // StringField creates a string field
 func StringField(key, value string) LogField {
 	return LogField{Key: key, Value: value}
@@ -82,11 +67,6 @@ func DurationField(key string, value time.Duration) LogField {
 
 // BoolField creates a boolean field
 func BoolField(key string, value bool) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// AnyField creates a field for any type
-func AnyField(key string, value any) LogField {
 	return LogField{Key: key, Value: value}
 }
 

@@ -27,7 +27,6 @@ import (
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/handlers"
-	preservices "github.com/goformx/goforms/internal/presentation/services"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/jmoiron/sqlx"
 )
@@ -69,8 +68,6 @@ type ServiceParams struct {
 type ServiceContainer struct {
 	PageDataService pagedata.Service
 	FormOperations  formops.Service
-	TemplateService *preservices.TemplateService
-	ResponseBuilder *preservices.ResponseBuilder
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -579,8 +576,6 @@ func (m *Module) initializeServices() {
 	m.services = &ServiceContainer{
 		PageDataService: pagedata.NewService(m.logger),
 		FormOperations:  formops.NewService(m.formService, m.logger),
-		TemplateService: preservices.NewTemplateService(m.logger),
-		ResponseBuilder: preservices.NewResponseBuilder(m.logger),
 	}
 }
 

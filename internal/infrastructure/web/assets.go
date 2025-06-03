@@ -90,18 +90,3 @@ func GetAssetPath(asset string) string {
 	}
 	return fmt.Sprintf("/%s", asset)
 }
-
-// GetManifestPath returns the path to an asset from the manifest
-func GetManifestPath(asset string) string {
-	if globalAppConfig == nil {
-		return fmt.Sprintf("/assets/%s", asset) // Fallback
-	}
-	if globalAppConfig.Env == "development" {
-		hostPort := net.JoinHostPort(globalAppConfig.ViteDevHost, globalAppConfig.ViteDevPort)
-		return fmt.Sprintf("http://%s/%s", hostPort, asset)
-	}
-	if path, ok := Manifest[asset]; ok {
-		return fmt.Sprintf("/assets/%s", path.File)
-	}
-	return fmt.Sprintf("/assets/%s", asset)
-}

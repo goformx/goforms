@@ -121,21 +121,4 @@ func (m *AuthMiddleware) handleAuthError(c echo.Context, message string) error {
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
-// SecurityHeaders adds security-related headers to responses
-func (m *AuthMiddleware) SecurityHeaders() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			// Add security headers
-			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
-			c.Response().Header().Set("X-Frame-Options", "DENY")
-			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
-			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
-			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-
-			return next(c)
-		}
-	}
-}
-
 // Note: isPublicRoute is defined in middleware.go

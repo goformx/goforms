@@ -21,7 +21,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
@@ -144,9 +143,4 @@ func startServer(params ServerParams) error {
 	}
 
 	return nil
-}
-
-// GetVersion returns the version information
-func GetVersion() version.Info {
-	return version.GetInfo()
 }

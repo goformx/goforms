@@ -1,7 +1,6 @@
 package middleware
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 	"strings"
@@ -91,9 +90,7 @@ func (m *Middleware) Initialize(e *echo.Echo) {
 	e.Use(echomw.MethodOverride())
 	e.Use(echomw.RequestID())
 	e.Use(echomw.Gzip())
-	e.Use(m.RateLimit())
 	e.Use(echomw.CSRF())
-	e.Use(m.Auth())
 }
 
 // Logger returns the logging middleware
@@ -122,17 +119,6 @@ func (m *Middleware) Logger() echo.MiddlewareFunc {
 			return nil
 		}
 	}
-}
-
-// RateLimit returns the rate limiting middleware
-func (m *Middleware) RateLimit() echo.MiddlewareFunc {
-	return echomw.RateLimiter(echomw.NewRateLimiterMemoryStore(DefaultRateLimit))
-}
-
-// Auth returns the authentication middleware
-func (m *Middleware) Auth() echo.MiddlewareFunc {
-	authMiddleware := NewAuthMiddleware(m.config.UserService, m.logger, m.config.Config)
-	return authMiddleware.Middleware()
 }
 
 // Manager handles middleware configuration and setup
@@ -186,25 +172,6 @@ func corsConfig(
 		AllowCredentials: allowCredentials,
 		MaxAge:           maxAge,
 	}
-}
-
-// retrieveCSRFToken gets the CSRF token from the context
-func retrieveCSRFToken(c echo.Context) (string, error) {
-	token := c.Get("csrf")
-	if token == nil {
-		return "", errors.New("CSRF token not found in context")
-	}
-
-	tokenStr, ok := token.(string)
-	if !ok {
-		return "", errors.New("CSRF token type is invalid")
-	}
-
-	if tokenStr == "" {
-		return "", errors.New("CSRF token is empty")
-	}
-
-	return tokenStr, nil
 }
 
 // isStaticFile checks if the given path is a static file
@@ -472,22 +439,4 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 	m.logger.Debug("registering middleware", logging.StringField("type", "auth"))
 	authMiddleware := NewAuthMiddleware(m.config.UserService, m.logger, m.config.Config)
 	e.Use(authMiddleware.Middleware())
-}
-
-// ValidateCSRFToken validates the CSRF token in the request
-func ValidateCSRFToken(c echo.Context) error {
-	reqToken := c.Request().Header.Get(echo.HeaderXCSRFToken)
-	if reqToken == "" {
-		reqToken = c.FormValue("_csrf")
-	}
-	if reqToken == "" {
-		return echo.NewHTTPError(http.StatusForbidden, "CSRF token not provided in request")
-	}
-
-	expectedToken, err := retrieveCSRFToken(c)
-	if err != nil || reqToken != expectedToken {
-		return echo.NewHTTPError(http.StatusForbidden, "CSRF token mismatch or missing")
-	}
-
-	return nil
 }

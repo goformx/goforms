@@ -1,5 +1,36 @@
 # GoFormX Project Improvements
 
+## Dead Code Cleanup
+- Removed unreachable functions from:
+  - internal/application/handler/version.go: NewVersionHandler, VersionHandler.Register, VersionHandler.GetVersion
+  - internal/application/middleware/auth.go: AuthMiddleware.SecurityHeaders
+- Attempted removal (manual review may be required):
+  - internal/application/middleware/error_logger.go: NewErrorLogger, ErrorLogger.Handle, mapErrorToStatus
+  - internal/application/middleware/logging.go: NewLogging, Logging.Handle
+  - internal/application/middleware/middleware.go: NewMiddleware, Middleware.Initialize, Middleware.Logger, Middleware.RateLimit, Middleware.Auth, retrieveCSRFToken, ValidateCSRFToken
+- Next files to target for dead code removal:
+  - internal/application/middleware/rate_limit.go
+  - internal/application/response/response.go
+  - internal/domain/common/errors/errors.go
+  - internal/domain/form/repository.go
+  - internal/domain/form/model/form_submission.go
+  - internal/domain/user/store.go
+  - internal/handlers/web/demo.go
+  - internal/handlers/web/auth/auth.go
+  - internal/infrastructure/module.go
+  - internal/infrastructure/database/database.go
+  - internal/infrastructure/logging/factory.go
+  - internal/infrastructure/logging/fx.go
+  - internal/infrastructure/logging/logger.go
+  - internal/infrastructure/logging/types.go
+  - internal/infrastructure/version/version.go
+  - internal/infrastructure/web/assets.go
+  - internal/presentation/services/page_data_service.go
+  - internal/presentation/services/response_builder.go
+  - internal/presentation/services/template_service.go
+
+- Remaining dead code to remove (see deadcode output for full list)
+
 ## Architectural Reorganization
 
 ### 1. Domain-Driven Design (DDD) Structure
