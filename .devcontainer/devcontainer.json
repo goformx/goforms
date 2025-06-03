@@ -15,15 +15,7 @@
         },
         "ghcr.io/devcontainers/features/github-cli:1": {},
         "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
-        "ghcr.io/devcontainers-extra/features/act:latest": {},
         "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {},
-        "ghcr.io/devcontainers-extra/features/go-task:1": {},
-        "ghcr.io/devcontainers/features/node:1": {
-            "nodeGypDependencies": false,
-            "version": "22.12.0",
-            "pnpmVersion": "none",
-            "nvmVersion": "none"
-        },
         "ghcr.io/devcontainers-extra/features/typescript:2": {}
     },
     "customizations": {
@@ -52,5 +44,5 @@
     "mounts": [
         "type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/vscode/.ssh"
     ],
-    "postCreateCommand": "go install github.com/a-h/templ/cmd/templ@latest && go mod download"
+    "postCreateCommand": "go mod download"
 }
