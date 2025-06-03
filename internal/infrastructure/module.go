@@ -419,6 +419,20 @@ var HandlerModule = fx.Options(
 		)
 		return handler, nil
 	}),
+	// Middleware manager provider
+	fx.Provide(func(
+		core CoreParams,
+		services ServiceParams,
+		sessionManager *appmiddleware.SessionManager,
+	) *appmiddleware.Manager {
+		return appmiddleware.New(&appmiddleware.ManagerConfig{
+			Logger:         core.Logger,
+			UserService:    services.UserService,
+			Security:       &core.Config.Security,
+			Config:         core.Config,
+			SessionManager: sessionManager,
+		})
+	}),
 )
 
 // ServerModule provides the HTTP server setup.

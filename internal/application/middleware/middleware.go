@@ -40,13 +40,27 @@ type Middleware struct {
 
 // Config represents the middleware configuration
 type Config struct {
-	Security    SecurityConfig
+	Security    *appconfig.SecurityConfig
 	UserService user.Service
 	Config      *appconfig.Config
 }
 
 // SecurityConfig represents the security configuration
 type SecurityConfig struct {
+	Debug                  bool
+	LogLevel               string
+	CSRF                   appconfig.CSRFConfig
+	CorsAllowedOrigins     appconfig.CORSOriginsDecoder
+	CorsAllowedMethods     appconfig.CORSMethodsDecoder
+	CorsAllowedHeaders     appconfig.CORSHeadersDecoder
+	CorsMaxAge             int
+	CorsAllowCredentials   bool
+	RequestTimeout         time.Duration
+	FormCorsAllowedOrigins appconfig.CORSOriginsDecoder
+	FormCorsAllowedMethods appconfig.CORSMethodsDecoder
+	FormCorsAllowedHeaders appconfig.CORSHeadersDecoder
+	FormRateLimit          int
+	FormRateLimitWindow    time.Duration
 }
 
 // NewMiddleware creates a new middleware
@@ -127,12 +141,13 @@ type Manager struct {
 	config *ManagerConfig
 }
 
-// ManagerConfig holds middleware configuration
+// ManagerConfig represents the configuration for the middleware manager
 type ManagerConfig struct {
-	Logger      logging.Logger
-	UserService user.Service
-	Security    *appconfig.SecurityConfig
-	Config      *appconfig.Config
+	Logger         logging.Logger
+	Security       *appconfig.SecurityConfig
+	UserService    user.Service
+	Config         *appconfig.Config
+	SessionManager *SessionManager
 }
 
 // New creates a new middleware manager
@@ -145,6 +160,9 @@ func New(cfg *ManagerConfig) *Manager {
 	}
 	if cfg.UserService == nil {
 		panic("user service is required for Manager")
+	}
+	if cfg.SessionManager == nil {
+		panic("session manager is required for Manager")
 	}
 
 	return &Manager{
@@ -191,11 +209,27 @@ func retrieveCSRFToken(c echo.Context) (string, error) {
 
 // isStaticFile checks if the given path is a static file
 func isStaticFile(path string) bool {
-	// This function is now just a wrapper around StaticHandler.IsStaticFile
-	// It's kept for backward compatibility but should be removed in future versions
+	// System files that should always be considered static
+	if strings.HasPrefix(path, "/.well-known/") ||
+		path == "/favicon.ico" ||
+		path == "/robots.txt" {
+		return true
+	}
+
+	// Application static files
 	return strings.HasPrefix(path, "/public/") ||
 		strings.HasSuffix(path, ".js") ||
-		strings.HasSuffix(path, ".css")
+		strings.HasSuffix(path, ".css") ||
+		strings.HasSuffix(path, ".ico") ||
+		strings.HasSuffix(path, ".png") ||
+		strings.HasSuffix(path, ".jpg") ||
+		strings.HasSuffix(path, ".jpeg") ||
+		strings.HasSuffix(path, ".gif") ||
+		strings.HasSuffix(path, ".svg") ||
+		strings.HasSuffix(path, ".woff") ||
+		strings.HasSuffix(path, ".woff2") ||
+		strings.HasSuffix(path, ".ttf") ||
+		strings.HasSuffix(path, ".eot")
 }
 
 // setupStaticFileMiddleware creates middleware to handle static files
@@ -330,12 +364,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 	m.setupBasicMiddleware(e)
 	m.setupSecurityMiddleware(e)
 
-	// Create session manager
-	sessionManager := NewSessionManager(m.logger)
-
 	// Add session middleware first
 	m.logger.Debug("registering middleware", logging.StringField("type", "session"))
-	e.Use(sessionManager.SessionMiddleware())
+	e.Use(m.config.SessionManager.SessionMiddleware())
 
 	// Then add auth middleware
 	m.setupAuthMiddleware(e)
@@ -434,6 +465,11 @@ func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
 			return next(c)
 		}
 	})
+
+	// Add auth middleware
+	m.logger.Debug("registering middleware", logging.StringField("type", "auth"))
+	authMiddleware := NewAuthMiddleware(m.config.UserService, m.logger, m.config.Config)
+	e.Use(authMiddleware.Middleware())
 }
 
 // ValidateCSRFToken validates the CSRF token in the request

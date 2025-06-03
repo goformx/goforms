@@ -86,10 +86,20 @@ func (m *AuthMiddleware) Middleware() echo.MiddlewareFunc {
 
 // isAuthExempt checks if the path is exempt from authentication
 func (m *AuthMiddleware) isAuthExempt(path string) bool {
+	// System paths that should always be exempt
+	if strings.HasPrefix(path, "/.well-known/") ||
+		path == "/favicon.ico" ||
+		path == "/robots.txt" {
+		return true
+	}
+
+	// Application paths that should be exempt
 	return isStaticFile(path) ||
 		strings.HasPrefix(path, "/api/validation/") ||
-		strings.HasPrefix(path, "/login") || strings.HasPrefix(path, "/signup") ||
-		strings.HasPrefix(path, "/forgot-password") || strings.HasPrefix(path, "/contact") ||
+		strings.HasPrefix(path, "/login") ||
+		strings.HasPrefix(path, "/signup") ||
+		strings.HasPrefix(path, "/forgot-password") ||
+		strings.HasPrefix(path, "/contact") ||
 		strings.HasPrefix(path, "/demo")
 }
 
