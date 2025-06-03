@@ -1,6 +1,7 @@
 package pages
 
 import (
+	dform "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
@@ -26,7 +27,7 @@ templ DashboardContent(data shared.PageData) {
 				<div class="dashboard-stats">
 					<div class="stat-card">
 						<h3>Total Forms</h3>
-						<p class="stat-value">0</p>
+						<p class="stat-value">{ len(data.Forms) }</p>
 					</div>
 					<div class="stat-card">
 						<h3>Total Submissions</h3>
@@ -39,12 +40,55 @@ templ DashboardContent(data shared.PageData) {
 				</div>
 
 				<div class="dashboard-recent">
-					<h2>Recent Forms</h2>
-					<div class="forms-grid">
-						// TODO: Add recent form cards here
-					</div>
+					<h2>Your Forms</h2>
+					if len(data.Forms) == 0 {
+						@DashboardEmpty()
+					} else {
+						@DashboardTable(data.Forms, data.CSRFToken)
+					}
 				</div>
 			</div>
 		</div>
 	</div>
+}
+
+templ DashboardEmpty() {
+	<div class="dashboard-empty">
+		<p>You have no forms yet. <a href="/dashboard/forms/new">Create your first form</a>.</p>
+	</div>
+}
+
+templ DashboardTableBody(forms []*dform.Form, csrfToken string) {
+	<tbody>
+	for _, form := range forms {
+		<tr>
+			<td>{ form.Title }</td>
+			<td>{ form.Description }</td>
+			<td>{ form.CreatedAt.Format("Jan 02, 2006 15:04") }</td>
+			<td class="table-actions">
+				<a href={ templ.URL("/dashboard/forms/" + form.ID + "/edit") } class="btn btn-sm">Edit</a>
+				<a href={ templ.URL("/dashboard/forms/" + form.ID + "/submissions") } class="btn btn-sm">Submissions</a>
+				<form action={ templ.URL("/dashboard/forms/" + form.ID) } method="POST" style="display:inline;" onsubmit="return confirm('Are you sure you want to delete this form?');">
+					<input type="hidden" name="_method" value="DELETE" />
+					<input type="hidden" name="csrf_token" value={ csrfToken } />
+					<button type="submit" class="btn btn-sm btn-danger">Delete</button>
+				</form>
+			</td>
+		</tr>
+	}
+	</tbody>
+}
+
+templ DashboardTable(forms []*dform.Form, csrfToken string) {
+	<table class="dashboard-table">
+		<thead>
+			<tr>
+				<th>Title</th>
+				<th>Description</th>
+				<th>Created</th>
+				<th>Actions</th>
+			</tr>
+		</thead>
+		@DashboardTableBody(forms, csrfToken)
+	</table>
 } 

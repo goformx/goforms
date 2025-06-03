@@ -123,6 +123,9 @@ func (h *Handler) ShowDashboard(c echo.Context) error {
 		return h.handleError(err, http.StatusInternalServerError, "Failed to fetch forms")
 	}
 
+	// Debug log for forms fetched
+	h.logger.Debug("ShowDashboard: forms fetched", logging.IntField("count", len(forms)), logging.Any("forms", forms))
+
 	data := h.pageDataService.PrepareDashboardData(c, currentUser, forms)
 	if data.User == nil {
 		h.logger.Error("ShowDashboard: PageData.User is nil after preparation, redirecting to login")
