@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/services/formops"
@@ -77,16 +78,18 @@ func (h *FormHandler) CreateForm(c echo.Context) error {
 		return err
 	}
 
-	formData, err := h.formOperations.ValidateAndBindFormData(c)
-	if err != nil {
-		return h.Base.handleError(err, http.StatusBadRequest, "Invalid form data")
+	title := c.FormValue("title")
+	description := c.FormValue("description")
+
+	if title == "" || description == "" {
+		return h.Base.handleError(errors.New("missing fields"), http.StatusBadRequest, "Title and description are required")
 	}
 
 	// Create the form
 	formObj, createErr := h.formService.CreateForm(
 		currentUser.ID,
-		formData.Title,
-		formData.Description,
+		title,
+		description,
 		form.JSON{
 			"display":    "form",
 			"components": []any{},
