@@ -107,6 +107,32 @@ func HandlerProviders() []fx.Option {
 				fx.As(new(web.Handler)),
 				fx.ResultTags(`group:"web_handlers"`),
 			),
+
+			// Form handler
+			fx.Annotate(
+				func(
+					baseHandler *web.BaseHandler,
+					userService user.Service,
+					sessionManager *middleware.SessionManager,
+					renderer *view.Renderer,
+					middlewareManager *middleware.Manager,
+					cfg *config.Config,
+					logger logging.Logger,
+					formService form.Service,
+				) *web.FormHandler {
+					return web.NewFormHandler(web.HandlerDeps{
+						BaseHandler:       baseHandler,
+						UserService:       userService,
+						SessionManager:    sessionManager,
+						Renderer:          renderer,
+						MiddlewareManager: middlewareManager,
+						Config:            cfg,
+						Logger:            logger,
+					}, formService)
+				},
+				fx.As(new(web.Handler)),
+				fx.ResultTags(`group:"web_handlers"`),
+			),
 		),
 	}
 }
