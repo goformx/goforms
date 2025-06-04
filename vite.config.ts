@@ -65,6 +65,17 @@ export default defineConfig({
   server: {
     port: 3000,
     strictPort: true,
+    proxy: {
+      "/api": {
+        target: "http://localhost:8090",
+        changeOrigin: true,
+        secure: false,
+        rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
+      },
+    },
+    hmr: {
+      port: 3000,
+    },
     host: true,
     middlewareMode: false,
     fs: {
@@ -75,24 +86,15 @@ export default defineConfig({
       usePolling: false,
       interval: 1000,
     },
-    hmr: {
-      protocol: "ws",
-      host: "localhost",
-      port: 3000,
-      clientPort: 3000,
-      timeout: 5000,
-      overlay: true,
-    },
   },
   resolve: {
     alias: {
       "@": resolve(__dirname, "src"),
-      // "@goforms/formio": resolve(__dirname, "../formio/lib/mjs/index.js"),
+      "@goformx/formio": resolve(__dirname, "node_modules/@goformx/formio"),
       "goforms-template": resolve(
         __dirname,
         "../goforms-template/lib/mjs/index.js",
       ),
-      // Add alias for templates directory
       "goforms-template/templates": resolve(
         __dirname,
         "../goforms-template/lib/mjs/templates",
@@ -111,7 +113,7 @@ export default defineConfig({
   },
   optimizeDeps: {
     force: true,
-    include: ["@goformx/formio"],
+    include: ["@formio/js", "@goformx/formio"],
     esbuildOptions: {
       target: "esnext",
       supported: {
@@ -120,9 +122,8 @@ export default defineConfig({
     },
   },
   preview: {
-    port: 3000,
+    port: 8090,
     strictPort: true,
-    host: true,
   },
   plugins: [ejsPlugin()],
   // Configure how Vite handles different file types

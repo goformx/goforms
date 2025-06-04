@@ -1,10 +1,11 @@
 package web
 
 import (
+	"encoding/json"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/response"
-	"github.com/goformx/goforms/internal/domain/form"
+	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -14,20 +15,27 @@ import (
 
 type FormHandler struct {
 	HandlerDeps
-	FormService form.Service
+	FormService formdomain.Service
 }
 
-func NewFormHandler(deps HandlerDeps, formService form.Service) *FormHandler {
+func NewFormHandler(deps HandlerDeps, formService formdomain.Service) *FormHandler {
 	return &FormHandler{HandlerDeps: deps, FormService: formService}
 }
 
 func (h *FormHandler) Register(e *echo.Echo) {
+	// Web routes
 	e.GET("/dashboard/forms/new", h.handleFormNew)
 	e.POST("/dashboard/forms", h.handleFormCreate)
 	e.GET("/dashboard/forms/:id/edit", h.handleFormEdit)
 	e.PUT("/dashboard/forms/:id", h.handleFormUpdate)
 	e.DELETE("/dashboard/forms/:id", h.handleFormDelete)
 	e.GET("/dashboard/forms/:id/submissions", h.handleFormSubmissions)
+
+	// API routes
+	api := e.Group("/api/v1")
+	forms := api.Group("/forms")
+	forms.GET("/:id/schema", h.handleFormSchema)
+	forms.PUT("/:id/schema", h.handleFormSchemaUpdate)
 }
 
 // GET /dashboard/forms/new
@@ -50,7 +58,7 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	description := c.FormValue("description")
 
 	// Create an empty schema for now
-	schema := form.JSON{
+	schema := formdomain.JSON{
 		"components": []any{},
 	}
 
@@ -113,4 +121,51 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	data.Submissions = submissions
 	// TODO: Create a pages.FormSubmissions(data) template
 	return h.Renderer.Render(c, pages.FormSubmissions(data))
+}
+
+// GET /api/v1/forms/:id/schema
+func (h *FormHandler) handleFormSchema(c echo.Context) error {
+	formID := c.Param("id")
+	if formID == "" {
+		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+	}
+
+	form, err := h.FormService.GetForm(formID)
+	if err != nil {
+		h.Logger.Error("failed to get form schema", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form schema")
+	}
+
+	return c.JSON(http.StatusOK, form.Schema)
+}
+
+// PUT /api/v1/forms/:id/schema
+func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
+	formID := c.Param("id")
+	if formID == "" {
+		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+	}
+
+	// Get existing form
+	form, err := h.FormService.GetForm(formID)
+	if err != nil {
+		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+	}
+
+	// Parse schema JSON
+	var schema formdomain.JSON
+	if err := json.NewDecoder(c.Request().Body).Decode(&schema); err != nil {
+		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid schema JSON")
+	}
+
+	// Update form schema
+	form.Schema = schema
+	if err := h.FormService.UpdateForm(form); err != nil {
+		h.Logger.Error("failed to update form schema", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form schema")
+	}
+
+	// Return the updated schema
+	return c.JSON(http.StatusOK, schema)
 }

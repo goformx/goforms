@@ -3,8 +3,11 @@ package middleware
 import (
 	"crypto/rand"
 	"encoding/base64"
+	"encoding/json"
 	"fmt"
 	"net/http"
+	"os"
+	"path/filepath"
 	"sync"
 	"time"
 
@@ -17,6 +20,8 @@ const (
 	SessionExpiryHours = 24
 	// SessionIDLength is the length of the session ID in bytes
 	SessionIDLength = 32
+	// SessionFile is the path to the session store file
+	SessionFile = "tmp/sessions.json"
 )
 
 // Session represents a user session
@@ -34,15 +39,80 @@ type SessionManager struct {
 	sessions   map[string]*Session
 	mutex      sync.RWMutex
 	expiryTime time.Duration
+	storeFile  string
 }
 
 // NewSessionManager creates a new session manager
 func NewSessionManager(logger logging.Logger) *SessionManager {
-	return &SessionManager{
+	// Create tmp directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(SessionFile), 0755); err != nil {
+		logger.Error("failed to create session directory", logging.ErrorField("error", err))
+	}
+
+	sm := &SessionManager{
 		logger:     logger,
 		sessions:   make(map[string]*Session),
-		expiryTime: SessionExpiryHours * time.Hour, // Sessions expire after 24 hours
+		expiryTime: SessionExpiryHours * time.Hour,
+		storeFile:  SessionFile,
 	}
+
+	// Load existing sessions
+	if err := sm.loadSessions(); err != nil {
+		logger.Error("failed to load sessions", logging.ErrorField("error", err))
+	}
+
+	return sm
+}
+
+// loadSessions loads sessions from the store file
+func (sm *SessionManager) loadSessions() error {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	// Check if file exists
+	if _, err := os.Stat(sm.storeFile); os.IsNotExist(err) {
+		return nil
+	}
+
+	// Read file
+	data, err := os.ReadFile(sm.storeFile)
+	if err != nil {
+		return fmt.Errorf("failed to read session file: %w", err)
+	}
+
+	// Parse sessions
+	if err := json.Unmarshal(data, &sm.sessions); err != nil {
+		return fmt.Errorf("failed to parse sessions: %w", err)
+	}
+
+	// Clean expired sessions
+	now := time.Now()
+	for id, session := range sm.sessions {
+		if now.After(session.ExpiresAt) {
+			delete(sm.sessions, id)
+		}
+	}
+
+	return sm.saveSessions()
+}
+
+// saveSessions saves sessions to the store file
+func (sm *SessionManager) saveSessions() error {
+	sm.mutex.RLock()
+	defer sm.mutex.RUnlock()
+
+	// Marshal sessions
+	data, err := json.Marshal(sm.sessions)
+	if err != nil {
+		return fmt.Errorf("failed to marshal sessions: %w", err)
+	}
+
+	// Write file
+	if err := os.WriteFile(sm.storeFile, data, 0644); err != nil {
+		return fmt.Errorf("failed to write session file: %w", err)
+	}
+
+	return nil
 }
 
 // SessionMiddleware creates a new session middleware
@@ -140,6 +210,11 @@ func (sm *SessionManager) CreateSession(userID uint, email, role string) (string
 	sm.sessions[sessionIDStr] = session
 	sm.mutex.Unlock()
 
+	// Save sessions to file
+	if err := sm.saveSessions(); err != nil {
+		sm.logger.Error("failed to save sessions", logging.ErrorField("error", err))
+	}
+
 	sm.logger.Debug("session created in SessionManager",
 		logging.StringField("session_id", sessionIDStr),
 		logging.UintField("user_id", userID),
@@ -173,6 +248,11 @@ func (sm *SessionManager) DeleteSession(sessionID string) {
 	sm.mutex.Lock()
 	delete(sm.sessions, sessionID)
 	sm.mutex.Unlock()
+
+	// Save sessions to file
+	if err := sm.saveSessions(); err != nil {
+		sm.logger.Error("failed to save sessions", logging.ErrorField("error", err))
+	}
 }
 
 // isSessionExempt checks if a path is exempt from session authentication

@@ -50,6 +50,7 @@ func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Ech
 		e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
 		e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))
 		e.Group("/assets").Any("/*", echo.WrapHandler(viteProxy))
+		e.Group("/node_modules").Any("/*", echo.WrapHandler(viteProxy))
 	}
 
 	// Setup server lifecycle hooks

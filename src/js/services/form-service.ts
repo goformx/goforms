@@ -1,3 +1,5 @@
+import { FormBuilderError } from "../utils/errors";
+
 export interface FormSchema {
   display: string;
   components: any[];
@@ -8,12 +10,15 @@ export class FormService {
   private static instance: FormService;
   private baseUrl: string;
 
+  // TODO: This is a hack to get the base URL. We should use the base URL from the server.
   private constructor() {
     // Use environment-based base URL
     this.baseUrl =
       process.env.NODE_ENV === "production"
         ? "https://goformx.com" // Production URL
-        : "http://localhost:8090"; // Development URL
+        : window.location.origin; // Development URL - use current origin
+
+    console.debug("FormService initialized with base URL:", this.baseUrl);
   }
 
   public static getInstance(): FormService {
@@ -26,58 +31,73 @@ export class FormService {
   // Set base URL (useful for testing or custom deployments)
   public setBaseUrl(url: string): void {
     this.baseUrl = url;
+    console.debug("FormService base URL updated to:", this.baseUrl);
   }
 
   private getCSRFToken(): string {
-    return (
-      document
-        .querySelector('meta[name="csrf-token"]')
-        ?.getAttribute("content") || ""
-    );
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (!metaTag) {
+      console.error("CSRF token meta tag not found");
+      return "";
+    }
+    const token = metaTag.getAttribute("content");
+    if (!token) {
+      console.error("CSRF token content is empty");
+      return "";
+    }
+    return token;
   }
 
   async getSchema(formId: string): Promise<FormSchema> {
-    const response = await fetch(
-      `${this.baseUrl}/api/v1/forms/${formId}/schema`,
-    );
+    const url = `${this.baseUrl}/api/v1/forms/${formId}/schema`;
+    console.debug("Fetching schema from:", url);
+
+    const response = await fetch(url);
     if (!response.ok) {
+      console.error(
+        "Failed to fetch schema:",
+        response.status,
+        response.statusText,
+      );
       throw new Error("Failed to load form schema");
     }
-    return response.json().then((data) => data as FormSchema);
+    const data = await response.json();
+    return data as FormSchema;
   }
 
-  async saveSchema(formId: string, schema: FormSchema): Promise<FormSchema> {
-    const response = await fetch(
-      `${this.baseUrl}/api/v1/forms/${formId}/schema`,
-      {
-        method: "PUT",
-        headers: {
-          "Content-Type": "application/json",
-          "X-CSRF-Token": this.getCSRFToken(),
-        },
-        body: JSON.stringify(schema),
-      },
-    );
-
-    const responseText = await response.text();
-
-    if (!response.ok) {
-      throw new Error(`Server error: ${response.status} - ${responseText}`);
-    }
-
-    // Parse the response as JSON
-    let data: FormSchema;
+  async saveSchema(formId: string, schema: any): Promise<any> {
     try {
-      data = JSON.parse(responseText);
-    } catch (_error) {
-      throw new Error("Invalid response from server");
-    }
+      const response = await fetch(
+        `${this.baseUrl}/api/v1/forms/${formId}/schema`,
+        {
+          method: "PUT",
+          headers: {
+            "Content-Type": "application/json",
+            "X-CSRF-Token": this.getCSRFToken(),
+          },
+          body: JSON.stringify(schema),
+        },
+      );
 
-    if (!data) {
-      throw new Error("Empty response from server");
-    }
+      if (!response.ok) {
+        throw new Error(`Failed to save schema: ${response.statusText}`);
+      }
 
-    return data;
+      const data = await response.json();
+      if (!data || typeof data !== "object") {
+        throw new Error("Invalid response from server");
+      }
+
+      // Validate the response structure
+      if (!data.components || !Array.isArray(data.components)) {
+        throw new Error("Invalid schema structure in response");
+      }
+
+      return data;
+    } catch (error) {
+      console.error("Error saving schema:", error);
+      throw new FormBuilderError("Failed to save schema", error);
+    }
   }
 
   async updateFormDetails(

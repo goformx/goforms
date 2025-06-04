@@ -240,6 +240,10 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 		e.Static("/", "public")
 	} else {
 		m.logger.Debug("static file handler disabled (development mode - using Vite dev server)")
+		// In development mode, let Vite handle all static files
+		e.Group("/node_modules").Any("/*", func(c echo.Context) error {
+			return c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("http://%s:%s%s", m.config.Config.App.ViteDevHost, m.config.Config.App.ViteDevPort, c.Request().URL.Path))
+		})
 	}
 }
 
