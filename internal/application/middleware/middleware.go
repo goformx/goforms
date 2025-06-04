@@ -4,7 +4,6 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -30,31 +29,6 @@ const (
 	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
 	CookieMaxAge = 86400
 )
-
-// Config represents the middleware configuration
-type Config struct {
-	Security    *appconfig.SecurityConfig
-	UserService user.Service
-	Config      *appconfig.Config
-}
-
-// SecurityConfig represents the security configuration
-type SecurityConfig struct {
-	Debug                  bool
-	LogLevel               string
-	CSRF                   appconfig.CSRFConfig
-	CorsAllowedOrigins     appconfig.CORSOriginsDecoder
-	CorsAllowedMethods     appconfig.CORSMethodsDecoder
-	CorsAllowedHeaders     appconfig.CORSHeadersDecoder
-	CorsMaxAge             int
-	CorsAllowCredentials   bool
-	RequestTimeout         time.Duration
-	FormCorsAllowedOrigins appconfig.CORSOriginsDecoder
-	FormCorsAllowedMethods appconfig.CORSMethodsDecoder
-	FormCorsAllowedHeaders appconfig.CORSHeadersDecoder
-	FormRateLimit          int
-	FormRateLimitWindow    time.Duration
-}
 
 // Manager handles middleware configuration and setup
 type Manager struct {
