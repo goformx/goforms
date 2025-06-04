@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/response"
@@ -45,6 +46,13 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	}
 	userID := userIDRaw
 
+	// Get user object
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || user == nil {
+		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+	}
+
 	// Get user's forms
 	forms, err := h.BaseHandler.formService.GetUserForms(userID)
 	if err != nil {
@@ -53,7 +61,10 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	}
 
 	data := shared.BuildPageData(h.Config, "Dashboard")
+	data.User = user
 	data.Forms = forms
+	data.Content = pages.DashboardContent(data)
+	h.Logger.Debug("rendering dashboard page", logging.StringField("data", fmt.Sprintf("%+v", data)))
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }
 
