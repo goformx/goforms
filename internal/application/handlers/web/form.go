@@ -79,12 +79,29 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	if formID == "" {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
+
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(uint)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	userID := userIDRaw
+
+	// Get user object
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || user == nil {
+		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+	}
+
 	f, err := h.FormService.GetForm(formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", err)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
+
 	data := shared.BuildPageData(h.Config, "Edit Form")
+	data.User = user
 	data.Form = f
 	return h.Renderer.Render(c, pages.EditForm(data))
 }

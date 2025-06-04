@@ -10,44 +10,61 @@ templ Settings(data shared.PageData) {
 }
 
 templ SettingsContent(data shared.PageData) {
-	<div class="dashboard-page">
-		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Settings</h1>
-					<p class="dashboard-subtitle">Configure your account settings</p>
+	<div class="container mx-auto px-4 py-8">
+		<h1 class="text-2xl font-bold mb-6">Settings</h1>
+		
+		<div class="bg-white rounded-lg shadow p-6">
+			<h2 class="text-xl font-semibold mb-4">Profile Settings</h2>
+			
+			<form class="space-y-4">
+				<div>
+					<label for="email" class="block text-sm font-medium text-gray-700">Email</label>
+					<input type="email" id="email" name="email" value={ data.User.Email } class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" readonly />
 				</div>
-			</div>
-
-			<div class="dashboard-content">
-				<form id="settings-form" class="auth-form" method="POST" action="/settings">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-					<div id="form_error" class="form-error"></div>
-
-					<div class="gf-form-group">
-						<label for="theme" class="gf-label">Theme</label>
-						<select id="theme" name="theme" class="gf-input">
-							<option value="light">Light</option>
-							<option value="dark">Dark</option>
-							<option value="system">System</option>
-						</select>
-						<div id="theme_error" class="error-message"></div>
-					</div>
-
-					<div class="gf-form-group">
-						<label for="notifications" class="gf-label">Notifications</label>
-						<div class="checkbox-group">
-							<input type="checkbox" id="email_notifications" name="email_notifications" class="gf-checkbox" />
-							<label for="email_notifications">Email Notifications</label>
-						</div>
-						<div id="notifications_error" class="error-message"></div>
-					</div>
-
-					<div class="form-actions">
-						<button type="submit" class="gf-button gf-button--primary">Save Settings</button>
-					</div>
-				</form>
-			</div>
+				
+				<div>
+					<label for="first_name" class="block text-sm font-medium text-gray-700">First Name</label>
+					<input type="text" id="first_name" name="first_name" value={ data.User.FirstName } class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+				</div>
+				
+				<div>
+					<label for="last_name" class="block text-sm font-medium text-gray-700">Last Name</label>
+					<input type="text" id="last_name" name="last_name" value={ data.User.LastName } class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+				</div>
+				
+				<div class="pt-4">
+					<button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+						Save Changes
+					</button>
+				</div>
+			</form>
+		</div>
+		
+		<div class="bg-white rounded-lg shadow p-6 mt-6">
+			<h2 class="text-xl font-semibold mb-4">Change Password</h2>
+			
+			<form class="space-y-4">
+				<div>
+					<label for="current_password" class="block text-sm font-medium text-gray-700">Current Password</label>
+					<input type="password" id="current_password" name="current_password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+				</div>
+				
+				<div>
+					<label for="new_password" class="block text-sm font-medium text-gray-700">New Password</label>
+					<input type="password" id="new_password" name="new_password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+				</div>
+				
+				<div>
+					<label for="confirm_password" class="block text-sm font-medium text-gray-700">Confirm New Password</label>
+					<input type="password" id="confirm_password" name="confirm_password" class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-indigo-500 focus:ring-indigo-500" />
+				</div>
+				
+				<div class="pt-4">
+					<button type="submit" class="inline-flex justify-center rounded-md border border-transparent bg-indigo-600 py-2 px-4 text-sm font-medium text-white shadow-sm hover:bg-indigo-700 focus:outline-none focus:ring-2 focus:ring-indigo-500 focus:ring-offset-2">
+						Update Password
+					</button>
+				</div>
+			</form>
 		</div>
 	</div>
 } 

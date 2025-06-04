@@ -133,6 +133,35 @@ func HandlerProviders() []fx.Option {
 				fx.As(new(web.Handler)),
 				fx.ResultTags(`group:"web_handlers"`),
 			),
+
+			// Settings handler
+			fx.Annotate(
+				func(
+					baseHandler *web.BaseHandler,
+					userService user.Service,
+					sessionManager *middleware.SessionManager,
+					renderer *view.Renderer,
+					middlewareManager *middleware.Manager,
+					cfg *config.Config,
+					logger logging.Logger,
+				) *web.SettingsHandler {
+					h, err := web.NewSettingsHandler(web.HandlerDeps{
+						BaseHandler:       baseHandler,
+						UserService:       userService,
+						SessionManager:    sessionManager,
+						Renderer:          renderer,
+						MiddlewareManager: middlewareManager,
+						Config:            cfg,
+						Logger:            logger,
+					})
+					if err != nil {
+						panic(fmt.Sprintf("failed to initialize settings handler: %v", err))
+					}
+					return h
+				},
+				fx.As(new(web.Handler)),
+				fx.ResultTags(`group:"web_handlers"`),
+			),
 		),
 	}
 }
