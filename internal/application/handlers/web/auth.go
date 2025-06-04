@@ -2,7 +2,6 @@ package web
 
 import (
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/user"
@@ -61,15 +60,15 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 		})
 	}
 
-	// Set session cookie
-	cookie := new(http.Cookie)
-	cookie.Name = "session"
-	cookie.Value = strconv.FormatUint(uint64(userData.ID), 10)
-	cookie.Expires = time.Now().Add(SessionDuration)
-	cookie.HttpOnly = true
-	cookie.Secure = true
-	cookie.SameSite = http.SameSiteStrictMode
-	c.SetCookie(cookie)
+	// Create session and set session cookie via SessionManager
+	sessionID, err := h.SessionManager.CreateSession(userData.ID, userData.Email, userData.Role)
+	if err != nil {
+		h.Logger.Error("failed to create session", logging.ErrorField("error", err))
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"error": "Failed to create session",
+		})
+	}
+	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
@@ -103,16 +102,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 
 // handleLogout processes the logout request
 func (h *AuthHandler) handleLogout(c echo.Context) error {
-	// Clear session cookie
-	cookie := new(http.Cookie)
-	cookie.Name = "session"
-	cookie.Value = ""
-	cookie.Expires = time.Now().Add(-1 * time.Hour)
-	cookie.Path = "/"
-	cookie.HttpOnly = true
-	cookie.Secure = true
-	cookie.SameSite = http.SameSiteStrictMode
-	c.SetCookie(cookie)
-
+	// Clear session cookie via SessionManager
+	h.SessionManager.ClearSessionCookie(c)
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
