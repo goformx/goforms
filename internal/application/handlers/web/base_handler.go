@@ -1,12 +1,73 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
+
+// HandlerDeps centralizes common handler dependencies and validation
+// Add new dependencies here as needed
+// Usage: pass HandlerDeps to each handler's constructor
+// and call Validate with required fields
+
+type HandlerDeps struct {
+	BaseHandler       *BaseHandler
+	UserService       domain.UserService
+	SessionManager    *middleware.SessionManager
+	Renderer          *view.Renderer
+	MiddlewareManager *middleware.Manager
+	Config            *config.Config
+	Logger            logging.Logger
+}
+
+// Validate checks for required dependencies by name
+func (d *HandlerDeps) Validate(required ...string) error {
+	missing := []string{}
+	for _, dep := range required {
+		switch dep {
+		case "BaseHandler":
+			if d.BaseHandler == nil {
+				missing = append(missing, "BaseHandler")
+			}
+		case "UserService":
+			if d.UserService == nil {
+				missing = append(missing, "UserService")
+			}
+		case "SessionManager":
+			if d.SessionManager == nil {
+				missing = append(missing, "SessionManager")
+			}
+		case "Renderer":
+			if d.Renderer == nil {
+				missing = append(missing, "Renderer")
+			}
+		case "MiddlewareManager":
+			if d.MiddlewareManager == nil {
+				missing = append(missing, "MiddlewareManager")
+			}
+		case "Config":
+			if d.Config == nil {
+				missing = append(missing, "Config")
+			}
+		case "Logger":
+			if d.Logger == nil {
+				missing = append(missing, "Logger")
+			}
+		}
+	}
+	if len(missing) > 0 {
+		return fmt.Errorf("missing required dependencies: %v", missing)
+	}
+	return nil
+}
 
 // BaseHandler provides common functionality for all handlers
 type BaseHandler struct {

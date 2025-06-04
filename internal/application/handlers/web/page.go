@@ -13,16 +13,16 @@ import (
 
 // PageHandler handles page-related requests
 type PageHandler struct {
-	formService form.Service
-	logger      logging.Logger
+	HandlerDeps
+	FormService form.Service // for now, keep this for direct access
 }
 
-// NewPageHandler creates a new page handler
-func NewPageHandler(formService form.Service, logger logging.Logger) *PageHandler {
-	return &PageHandler{
-		formService: formService,
-		logger:      logger,
+// NewPageHandler creates a new page handler using HandlerDeps
+func NewPageHandler(deps HandlerDeps, formService form.Service) (*PageHandler, error) {
+	if err := deps.Validate("Logger"); err != nil {
+		return nil, err
 	}
+	return &PageHandler{HandlerDeps: deps, FormService: formService}, nil
 }
 
 // Register registers the page routes
@@ -53,9 +53,9 @@ func (h *PageHandler) handlePages(c echo.Context) error {
 	userID := userIDRaw
 
 	// Get user's forms
-	forms, err := h.formService.GetUserForms(userID)
+	forms, err := h.FormService.GetUserForms(userID)
 	if err != nil {
-		h.logger.Error("failed to get user forms", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get user forms", logging.ErrorField("error", err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to get forms",
 		})
@@ -75,9 +75,9 @@ func (h *PageHandler) handlePageView(c echo.Context) error {
 		})
 	}
 
-	formData, err := h.formService.GetForm(formID)
+	formData, err := h.FormService.GetForm(formID)
 	if err != nil {
-		h.logger.Error("failed to get form", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to get form",
 		})
@@ -106,9 +106,9 @@ func (h *PageHandler) handlePageCreate(c echo.Context) error {
 		})
 	}
 
-	_, err := h.formService.CreateForm(userID, c.FormValue("title"), c.FormValue("description"), schema)
+	_, err := h.FormService.CreateForm(userID, c.FormValue("title"), c.FormValue("description"), schema)
 	if err != nil {
-		h.logger.Error("failed to create form", logging.ErrorField("error", err))
+		h.Logger.Error("failed to create form", logging.ErrorField("error", err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to create form",
 		})
@@ -127,9 +127,9 @@ func (h *PageHandler) handlePageUpdate(c echo.Context) error {
 	}
 
 	// Get existing form
-	existingForm, getErr := h.formService.GetForm(formID)
+	existingForm, getErr := h.FormService.GetForm(formID)
 	if getErr != nil {
-		h.logger.Error("failed to get form", logging.ErrorField("error", getErr))
+		h.Logger.Error("failed to get form", logging.ErrorField("error", getErr))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to get form",
 		})
@@ -149,8 +149,8 @@ func (h *PageHandler) handlePageUpdate(c echo.Context) error {
 	existingForm.Description = c.FormValue("description")
 	existingForm.Schema = schema
 
-	if updateErr := h.formService.UpdateForm(existingForm); updateErr != nil {
-		h.logger.Error("failed to update form", logging.ErrorField("error", updateErr))
+	if updateErr := h.FormService.UpdateForm(existingForm); updateErr != nil {
+		h.Logger.Error("failed to update form", logging.ErrorField("error", updateErr))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to update form",
 		})
@@ -168,8 +168,8 @@ func (h *PageHandler) handlePageDelete(c echo.Context) error {
 		})
 	}
 
-	if err := h.formService.DeleteForm(formID); err != nil {
-		h.logger.Error("failed to delete form", logging.ErrorField("error", err))
+	if err := h.FormService.DeleteForm(formID); err != nil {
+		h.Logger.Error("failed to delete form", logging.ErrorField("error", err))
 		return c.JSON(http.StatusInternalServerError, map[string]string{
 			"error": "Failed to delete form",
 		})
