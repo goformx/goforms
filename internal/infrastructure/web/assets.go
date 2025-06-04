@@ -3,6 +3,7 @@ package web
 import (
 	"encoding/json"
 	"fmt"
+	"net"
 	"os"
 	"path/filepath"
 	"strings"
@@ -31,8 +32,8 @@ func init() {
 	}
 
 	// Parse the manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		panic(err)
+	if err2 := json.Unmarshal(data, &manifest); err2 != nil {
+		panic(err2)
 	}
 }
 
@@ -45,12 +46,13 @@ func SetConfig(cfg *config.Config) {
 func GetAssetPath(path string) string {
 	// In development mode, use Vite's dev server
 	if appConfig != nil && appConfig.App.IsDevelopment() {
+		hostPort := net.JoinHostPort(appConfig.App.ViteDevHost, appConfig.App.ViteDevPort)
 		// For source files, use the Vite dev server
 		if strings.HasPrefix(path, "src/") {
-			return fmt.Sprintf("http://%s:%s/%s", appConfig.App.ViteDevHost, appConfig.App.ViteDevPort, path)
+			return fmt.Sprintf("http://%s/%s", hostPort, path)
 		}
 		// For built assets, use the Vite dev server with the original path
-		return fmt.Sprintf("http://%s:%s/assets/%s", appConfig.App.ViteDevHost, appConfig.App.ViteDevPort, path)
+		return fmt.Sprintf("http://%s/assets/%s", hostPort, path)
 	}
 
 	// In production mode, use the manifest
