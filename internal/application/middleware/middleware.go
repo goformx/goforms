@@ -179,48 +179,9 @@ func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareF
 	})
 }
 
-// setupMIMETypeMiddleware creates middleware to set appropriate Content-Type headers
-func setupMIMETypeMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-
-			// Set appropriate MIME types for static files
-			switch {
-			case strings.HasSuffix(path, ".css"):
-				c.Response().Header().Set("Content-Type", "text/css")
-			case strings.HasSuffix(path, ".js"):
-				c.Response().Header().Set("Content-Type", "application/javascript")
-			case strings.HasSuffix(path, ".mjs"):
-				c.Response().Header().Set("Content-Type", "application/javascript")
-			case strings.HasSuffix(path, ".woff"):
-				c.Response().Header().Set("Content-Type", "font/woff")
-			case strings.HasSuffix(path, ".woff2"):
-				c.Response().Header().Set("Content-Type", "font/woff2")
-			case strings.HasSuffix(path, ".ttf"):
-				c.Response().Header().Set("Content-Type", "font/ttf")
-			case strings.HasSuffix(path, ".eot"):
-				c.Response().Header().Set("Content-Type", "application/vnd.ms-fontobject")
-			case strings.HasSuffix(path, ".ico"):
-				c.Response().Header().Set("Content-Type", "image/x-icon")
-			case strings.HasSuffix(path, ".png"):
-				c.Response().Header().Set("Content-Type", "image/png")
-			case strings.HasSuffix(path, ".jpg"), strings.HasSuffix(path, ".jpeg"):
-				c.Response().Header().Set("Content-Type", "image/jpeg")
-			case strings.HasSuffix(path, ".gif"):
-				c.Response().Header().Set("Content-Type", "image/gif")
-			case strings.HasSuffix(path, ".svg"):
-				c.Response().Header().Set("Content-Type", "image/svg+xml")
-			}
-
-			return next(c)
-		}
-	}
-}
-
 // Setup initializes the middleware manager with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Info("starting middleware setup")
+	m.logger.Info("middleware setup: starting")
 
 	// Enable debug mode and set log level
 	e.Debug = m.config.Security.Debug
@@ -238,63 +199,57 @@ func (m *Manager) Setup(e *echo.Echo) {
 		}
 		l.SetLevel(level)
 		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
+		m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
 	}
 
-	// Setup middleware in correct order
+	m.logger.Info("middleware setup: registering basic middleware")
 	m.setupBasicMiddleware(e)
 
-	// Setup static file middleware before session middleware
-	m.logger.Debug("registering middleware", logging.StringField("type", "static file"))
+	m.logger.Info("middleware setup: registering static file middleware")
 	e.Use(setupStaticFileMiddleware())
 
-	// Setup session middleware globally (after basic, before security)
+	m.logger.Info("middleware setup: registering session middleware")
 	m.setupSessionMiddleware(e)
 
+	m.logger.Info("middleware setup: registering security middleware")
 	m.setupSecurityMiddleware(e)
 
-	// Add security headers middleware
+	m.logger.Info("middleware setup: registering security headers middleware")
 	m.setupSecurityHeadersMiddleware(e)
 
-	m.logger.Info("middleware setup complete")
+	m.logger.Info("middleware setup: complete")
 }
 
 // Setup basic middleware (recovery, request ID, secure headers, body limit, logging, MIME type, static files)
 func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
-	m.logger.Debug("registering middleware", logging.StringField("type", "recovery"))
+	m.logger.Debug("registering: recovery middleware")
 	e.Use(echomw.Recover())
 
-	m.logger.Debug("registering middleware", logging.StringField("type", "request ID"))
+	m.logger.Debug("registering: request ID middleware")
 	e.Use(echomw.RequestID())
 
-	m.logger.Debug("registering middleware", logging.StringField("type", "secure headers"))
+	m.logger.Debug("registering: secure headers middleware")
 	e.Use(echomw.Secure())
 
-	m.logger.Debug("registering middleware", logging.StringField("type", "body limit"))
+	m.logger.Debug("registering: body limit middleware")
 	e.Use(echomw.BodyLimit("2M"))
 
-	// Only serve static files in production mode
 	if m.config.Config.App.Env == "production" {
-		m.logger.Debug("registering static file handler (production mode)")
+		m.logger.Debug("registering: static file handler (production mode)")
 		e.Static("/assets", "dist/assets")
 		e.Static("/", "public")
 	} else {
 		m.logger.Debug("static file handler disabled (development mode - using Vite dev server)")
 	}
-
-	// Then register MIME type middleware
-	m.logger.Debug("registering middleware", logging.StringField("type", "MIME type"))
-	e.Use(setupMIMETypeMiddleware())
 }
 
-// Setup session middleware adds global session middleware
 func (m *Manager) setupSessionMiddleware(e *echo.Echo) {
-	m.logger.Debug("registering middleware", logging.StringField("type", "session"))
+	m.logger.Debug("registering: session middleware")
 	e.Use(m.config.SessionManager.SessionMiddleware())
 }
 
-// Setup security middleware (secure headers, CORS, CSRF, rate limiting)
 func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
-	m.logger.Debug("registering middleware", logging.StringField("type", "security headers"))
+	m.logger.Debug("registering: security headers middleware")
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
 		XSSProtection:         "1; mode=block",
 		ContentTypeNosniff:    "nosniff",
@@ -316,7 +271,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		ReferrerPolicy: "strict-origin-when-cross-origin",
 	}))
 
-	m.logger.Debug("registering middleware", logging.StringField("type", "CORS"))
+	m.logger.Debug("registering: CORS middleware")
 	e.Use(echomw.CORSWithConfig(corsConfig(
 		m.config.Security.CorsAllowedOrigins,
 		m.config.Security.CorsAllowedMethods,
@@ -325,9 +280,8 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		m.config.Security.CorsMaxAge,
 	)))
 
-	// Form submission routes group with specific middleware
 	formGroup := e.Group("/v1/forms")
-	m.logger.Debug("registering middleware", logging.StringField("type", "form CORS"))
+	m.logger.Debug("registering: form CORS middleware")
 	formGroup.Use(echomw.CORSWithConfig(corsConfig(
 		m.config.Security.FormCorsAllowedOrigins,
 		m.config.Security.FormCorsAllowedMethods,
@@ -336,29 +290,25 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		m.config.Security.CorsMaxAge,
 	)))
 
-	m.logger.Debug("registering middleware", logging.StringField("type", "rate limiter"))
+	m.logger.Debug("registering: rate limiter middleware")
 	formGroup.Use(setupRateLimiter(m.config.Security))
 
 	if m.config.Security.CSRF.Enabled {
-		m.logger.Debug("registering middleware", logging.StringField("type", "CSRF"))
+		m.logger.Debug("registering: CSRF middleware")
 		e.Use(setupCSRF(m.config.Security.Debug))
 	}
 }
 
-// Setup security headers middleware (adds extra security headers to all responses)
 func (m *Manager) setupSecurityHeadersMiddleware(e *echo.Echo) {
-	m.logger.Info("setting up security headers middleware")
-	m.logger.Debug("registering middleware", logging.StringField("type", "security_headers"))
+	m.logger.Debug("registering: security headers middleware (extra headers)")
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Add security headers
 			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
 			c.Response().Header().Set("X-Frame-Options", "DENY")
 			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
 			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
-
 			return next(c)
 		}
 	})
