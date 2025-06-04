@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -47,9 +48,7 @@ func (h *PageHandler) handlePages(c echo.Context) error {
 	forms, err := h.FormService.GetUserForms(userID)
 	if err != nil {
 		h.Logger.Error("failed to get user forms", logging.ErrorField("error", err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to get forms",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get forms")
 	}
 
 	data := shared.BuildPageData(h.Config, "Pages")
@@ -61,17 +60,13 @@ func (h *PageHandler) handlePages(c echo.Context) error {
 func (h *PageHandler) handlePageView(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Form ID is required",
-		})
+		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
 
 	formData, err := h.FormService.GetForm(formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to get form",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	data := shared.BuildPageData(h.Config, formData.Title)
@@ -92,17 +87,13 @@ func (h *PageHandler) handlePageCreate(c echo.Context) error {
 	var schema form.JSON
 	schemaJSON := c.FormValue("schema")
 	if err := json.Unmarshal([]byte(schemaJSON), &schema); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid schema JSON",
-		})
+		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid schema JSON")
 	}
 
 	_, err := h.FormService.CreateForm(userID, c.FormValue("title"), c.FormValue("description"), schema)
 	if err != nil {
 		h.Logger.Error("failed to create form", logging.ErrorField("error", err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to create form",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/pages")
@@ -112,27 +103,21 @@ func (h *PageHandler) handlePageCreate(c echo.Context) error {
 func (h *PageHandler) handlePageUpdate(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Form ID is required",
-		})
+		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
 
 	// Get existing form
 	existingForm, getErr := h.FormService.GetForm(formID)
 	if getErr != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", getErr))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to get form",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	// Parse schema JSON
 	var schema form.JSON
 	schemaJSON := c.FormValue("schema")
 	if unmarshalErr := json.Unmarshal([]byte(schemaJSON), &schema); unmarshalErr != nil {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Invalid schema JSON",
-		})
+		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid schema JSON")
 	}
 
 	// Update form fields
@@ -142,9 +127,7 @@ func (h *PageHandler) handlePageUpdate(c echo.Context) error {
 
 	if updateErr := h.FormService.UpdateForm(existingForm); updateErr != nil {
 		h.Logger.Error("failed to update form", logging.ErrorField("error", updateErr))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to update form",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form")
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/pages")
@@ -154,16 +137,12 @@ func (h *PageHandler) handlePageUpdate(c echo.Context) error {
 func (h *PageHandler) handlePageDelete(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Form ID is required",
-		})
+		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
 
 	if err := h.FormService.DeleteForm(formID); err != nil {
 		h.Logger.Error("failed to delete form", logging.ErrorField("error", err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to delete form",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete form")
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/pages")

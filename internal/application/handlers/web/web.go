@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -48,9 +49,7 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	forms, err := h.BaseHandler.formService.GetUserForms(userID)
 	if err != nil {
 		h.Logger.Error("failed to get user forms", logging.ErrorField("error", err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to get forms",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get forms")
 	}
 
 	data := shared.BuildPageData(h.Config, "Dashboard")
@@ -62,17 +61,13 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 func (h *WebHandler) handleFormView(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Form ID is required",
-		})
+		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
 
 	form, err := h.BaseHandler.formService.GetForm(formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to get form",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	data := shared.BuildPageData(h.Config, form.Title)

@@ -4,6 +4,7 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -53,18 +54,14 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	userData, err := h.UserService.Authenticate(c.Request().Context(), email, password)
 	if err != nil {
 		h.Logger.Error("failed to authenticate user", logging.ErrorField("error", err))
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": "Invalid credentials",
-		})
+		return response.ErrorResponse(c, http.StatusUnauthorized, "Invalid credentials")
 	}
 
 	// Create session and set session cookie via SessionManager
 	sessionID, err := h.SessionManager.CreateSession(userData.ID, userData.Email, userData.Role)
 	if err != nil {
 		h.Logger.Error("failed to create session", logging.ErrorField("error", err))
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"error": "Failed to create session",
-		})
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create session")
 	}
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
@@ -88,9 +85,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 
 	if _, err := h.UserService.SignUp(c.Request().Context(), signup); err != nil {
 		h.Logger.Error("signup failed", logging.ErrorField("error", err))
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"error": "Failed to create user",
-		})
+		return response.ErrorResponse(c, http.StatusBadRequest, "Failed to create user")
 	}
 
 	return c.Redirect(http.StatusSeeOther, "/login")
