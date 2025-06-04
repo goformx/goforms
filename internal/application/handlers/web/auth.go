@@ -37,6 +37,10 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 	e.GET("/signup", h.showSignupPage)
 	e.POST("/signup", h.handleSignup)
 	e.POST("/logout", h.handleLogout)
+
+	// Validation schema endpoints
+	e.GET("/api/validation/login", h.handleLoginValidation)
+	e.GET("/api/validation/signup", h.handleSignupValidation)
 }
 
 // showLoginPage renders the login page
@@ -96,4 +100,51 @@ func (h *AuthHandler) handleLogout(c echo.Context) error {
 	// Clear session cookie via SessionManager
 	h.SessionManager.ClearSessionCookie(c)
 	return c.Redirect(http.StatusSeeOther, "/login")
+}
+
+// handleLoginValidation handles the login form validation schema request
+func (h *AuthHandler) handleLoginValidation(c echo.Context) error {
+	schema := map[string]any{
+		"email": map[string]any{
+			"type":    "email",
+			"message": "Please enter a valid email address",
+		},
+		"password": map[string]any{
+			"type":    "password",
+			"min":     8, // 8 is a business rule for password length
+			"message": "Password must be at least 8 characters long",
+		},
+	}
+	return c.JSON(http.StatusOK, schema)
+}
+
+// handleSignupValidation returns the validation schema for the signup form
+func (h *AuthHandler) handleSignupValidation(c echo.Context) error {
+	schema := map[string]any{
+		"first_name": map[string]any{
+			"type":    "string",
+			"min":     1,
+			"message": "First name is required",
+		},
+		"last_name": map[string]any{
+			"type":    "string",
+			"min":     1,
+			"message": "Last name is required",
+		},
+		"email": map[string]any{
+			"type":    "email",
+			"message": "Please enter a valid email address",
+		},
+		"password": map[string]any{
+			"type":    "password",
+			"min":     8, // 8 is a business rule for password length
+			"message": "Password must be at least 8 characters long",
+		},
+		"confirm_password": map[string]any{
+			"type":       "match",
+			"matchField": "password",
+			"message":    "Passwords must match",
+		},
+	}
+	return c.JSON(http.StatusOK, schema)
 }

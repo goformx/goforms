@@ -109,6 +109,9 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 
 			// Store session in context
 			c.Set("session", session)
+			c.Set("user_id", session.UserID)
+			c.Set("email", session.Email)
+			c.Set("role", session.Role)
 			return next(c)
 		}
 	}
