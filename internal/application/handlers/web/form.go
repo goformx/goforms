@@ -6,6 +6,7 @@ import (
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -37,8 +38,31 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 
 // POST /dashboard/forms
 func (h *FormHandler) handleFormCreate(c echo.Context) error {
-	// TODO: Parse form data and create form
-	return response.ErrorResponse(c, http.StatusNotImplemented, "Form creation not implemented yet")
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(uint)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	userID := userIDRaw
+
+	// Get form data
+	title := c.FormValue("title")
+	description := c.FormValue("description")
+
+	// Create an empty schema for now
+	schema := form.JSON{
+		"components": []any{},
+	}
+
+	// Create the form
+	_, err := h.FormService.CreateForm(userID, title, description, schema)
+	if err != nil {
+		h.Logger.Error("failed to create form", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
+	}
+
+	// Redirect to dashboard on success
+	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
 // GET /dashboard/forms/:id/edit
