@@ -90,6 +90,23 @@ func HandlerProviders() []fx.Option {
 				}
 				return h
 			},
+
+			// Demo handler
+			fx.Annotate(
+				func(
+					renderer *view.Renderer,
+					cfg *config.Config,
+					logger logging.Logger,
+				) *web.DemoHandler {
+					return web.NewDemoHandler(web.HandlerDeps{
+						Renderer: renderer,
+						Config:   cfg,
+						Logger:   logger,
+					})
+				},
+				fx.As(new(web.Handler)),
+				fx.ResultTags(`group:"web_handlers"`),
+			),
 		),
 	}
 }
