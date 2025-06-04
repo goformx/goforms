@@ -63,7 +63,6 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	data := shared.BuildPageData(h.Config, "Dashboard")
 	data.User = user
 	data.Forms = forms
-	data.Content = pages.DashboardContent(data)
 	h.Logger.Debug("rendering dashboard page", logging.StringField("data", fmt.Sprintf("%+v", data)))
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }

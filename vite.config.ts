@@ -83,15 +83,6 @@ export default defineConfig({
       timeout: 5000,
       overlay: true,
     },
-    proxy: {
-      // Proxy all API requests to the Go server
-      "/api": {
-        target: "http://localhost:8090",
-        changeOrigin: true,
-        secure: false,
-        ws: true,
-      },
-    },
   },
   resolve: {
     alias: {

@@ -7,7 +7,18 @@ import (
 )
 
 templ Dashboard(data shared.PageData) {
-	@layouts.Dashboard(data)
+	@layouts.Dashboard(shared.PageData{
+		Title:                data.Title,
+		User:                 data.User,
+		Forms:                data.Forms,
+		Form:                 data.Form,
+		Submissions:          data.Submissions,
+		CSRFToken:           data.CSRFToken,
+		IsDevelopment:       data.IsDevelopment,
+		AssetPath:           data.AssetPath,
+		FormBuilderAssetPath: data.FormBuilderAssetPath,
+		Content:             DashboardContent(data),
+	})
 }
 
 templ DashboardContent(data shared.PageData) {
