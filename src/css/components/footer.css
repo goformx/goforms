@@ -1,5 +1,5 @@
 @layer components {
-  footer {
+  .footer {
     background: var(--background);
     border-top: 1px solid var(--border-color);
     padding: var(--spacing-8) 0;
@@ -9,7 +9,7 @@
     align-items: center;
   }
 
-  footer .container {
+  .footer-container {
     max-width: var(--container-max-width);
     margin: 0 auto;
     padding: 0 var(--container-padding-x);
@@ -20,29 +20,49 @@
     height: 100%;
   }
 
-  footer .copyright {
+  .footer-content {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    width: 100%;
+  }
+
+  .footer-logo {
+    font-size: var(--nav-logo-size);
+    font-weight: var(--nav-logo-weight);
+    color: var(--text);
+    text-decoration: none;
+    opacity: 1;
+    transition: opacity var(--nav-transition-duration) var(--nav-transition-timing);
+  }
+
+  .footer-logo:hover {
+    opacity: var(--nav-logo-opacity-hover);
+  }
+
+  .footer-copyright {
     font-size: var(--font-size-sm);
     font-weight: var(--font-weight-medium);
-    line-height: 1;
+    color: var(--text-light);
   }
 
-  footer .copyright a {
+  .footer-link {
     color: var(--primary);
     text-decoration: none;
-    transition: var(--button-transition);
+    transition: color var(--nav-transition-duration) var(--nav-transition-timing);
   }
 
-  footer .copyright a:hover {
+  .footer-link:hover {
     color: var(--primary-dark);
   }
 
-  footer .social-links {
+  .footer .social-links {
     display: flex;
     gap: var(--spacing-4);
     align-items: center;
   }
 
-  footer .social-links a {
+  .footer .social-links a {
     color: var(--text-light);
     transition: var(--button-transition);
     display: flex;
@@ -53,34 +73,39 @@
     background: var(--color-gray-100);
   }
 
-  footer .social-links a:hover {
+  .footer .social-links a:hover {
     color: var(--primary);
     background: var(--color-gray-200);
     transform: var(--button-transform-hover);
   }
 
-  footer .social-links svg {
+  .footer .social-links svg {
     width: var(--spacing-5);
     height: var(--spacing-5);
   }
 
   /* Responsive styles */
   @media (max-width: 768px) {
-    footer {
+    .footer {
       padding: var(--spacing-6) 0;
       margin-top: var(--spacing-8);
     }
 
-    footer .container {
+    .footer-container {
       padding: 0 var(--container-padding-x-mobile);
       text-align: center;
     }
 
-    footer .copyright {
+    .footer-content {
+      flex-direction: column;
+      gap: var(--spacing-4);
+    }
+
+    .footer .copyright {
       order: 2;
     }
 
-    footer .social-links {
+    .footer .social-links {
       order: 1;
       margin-bottom: var(--spacing-4);
     }

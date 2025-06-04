@@ -82,7 +82,11 @@ func (h *WebHandler) Register(e *echo.Echo) {
 // handleHome handles the home page request
 func (h *WebHandler) handleHome(c echo.Context) error {
 	data := shared.PageData{
-		Title: "Welcome to GoFormX",
+		Title:         "Welcome to GoFormX",
+		IsDevelopment: h.config.App.IsDevelopment(),
+		AssetPath: func(path string) string {
+			return path
+		},
 	}
 	return h.renderer.Render(c, pages.Home(data))
 }

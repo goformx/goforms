@@ -5,24 +5,22 @@ import (
 )
 
 templ Nav(data shared.PageData) {
-	<nav class="bg-white shadow">
-		<div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-			<div class="flex justify-between h-16">
-				<div class="flex">
-					<div class="flex-shrink-0 flex items-center">
-						<a href="/" class="text-xl font-bold text-gray-800">GoFormX</a>
-					</div>
+	<nav class="nav">
+		<div class="nav-container">
+			<div class="nav-content">
+				<div class="nav-brand">
+					<a href="/" class="nav-logo">GoFormX</a>
 				</div>
-				<div class="flex items-center">
-					<a href="/demo" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Demo</a>
-					<a href="https://github.com/goformx/goforms" target="_blank" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">GitHub</a>
+				<div class="nav-links">
+					<a href="/demo" class="nav-link">Demo</a>
+					<a href="https://github.com/goformx/goforms" target="_blank" class="nav-link">GitHub</a>
 					if data.User == nil {
-						<a href="/signup" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Sign up</a>
-						<a href="/login" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Login</a>
+						<a href="/signup" class="nav-link">Sign up</a>
+						<a href="/login" class="nav-link">Login</a>
 					} else {
-						<form action="/logout" method="POST" class="inline">
+						<form action="/logout" method="POST" class="nav-form">
 							<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
-							<button type="submit" class="text-gray-600 hover:text-gray-900 px-3 py-2 rounded-md text-sm font-medium">Logout</button>
+							<button type="submit" class="nav-link">Logout</button>
 						</form>
 					}
 				</div>

@@ -66,7 +66,7 @@ func AnnotateHandler(fn any) fx.Option {
 		fx.Annotate(
 			fn,
 			fx.As(new(web.Handler)),
-			fx.ResultTags(`group:"handlers"`),
+			fx.ResultTags(`group:"web_handlers"`),
 		),
 	)
 }

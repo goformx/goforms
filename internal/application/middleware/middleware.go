@@ -231,10 +231,39 @@ func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareF
 }
 
 // setupMIMETypeMiddleware creates middleware to set appropriate Content-Type headers
-// This is now handled by StaticHandler and should be removed in future versions
 func setupMIMETypeMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+
+			// Set appropriate MIME types for static files
+			switch {
+			case strings.HasSuffix(path, ".css"):
+				c.Response().Header().Set("Content-Type", "text/css")
+			case strings.HasSuffix(path, ".js"):
+				c.Response().Header().Set("Content-Type", "application/javascript")
+			case strings.HasSuffix(path, ".mjs"):
+				c.Response().Header().Set("Content-Type", "application/javascript")
+			case strings.HasSuffix(path, ".woff"):
+				c.Response().Header().Set("Content-Type", "font/woff")
+			case strings.HasSuffix(path, ".woff2"):
+				c.Response().Header().Set("Content-Type", "font/woff2")
+			case strings.HasSuffix(path, ".ttf"):
+				c.Response().Header().Set("Content-Type", "font/ttf")
+			case strings.HasSuffix(path, ".eot"):
+				c.Response().Header().Set("Content-Type", "application/vnd.ms-fontobject")
+			case strings.HasSuffix(path, ".ico"):
+				c.Response().Header().Set("Content-Type", "image/x-icon")
+			case strings.HasSuffix(path, ".png"):
+				c.Response().Header().Set("Content-Type", "image/png")
+			case strings.HasSuffix(path, ".jpg"), strings.HasSuffix(path, ".jpeg"):
+				c.Response().Header().Set("Content-Type", "image/jpeg")
+			case strings.HasSuffix(path, ".gif"):
+				c.Response().Header().Set("Content-Type", "image/gif")
+			case strings.HasSuffix(path, ".svg"):
+				c.Response().Header().Set("Content-Type", "image/svg+xml")
+			}
+
 			return next(c)
 		}
 	}
@@ -265,6 +294,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Setup middleware in correct order
 	m.setupBasicMiddleware(e)
 
+	// Setup static file middleware before session middleware
+	m.logger.Debug("registering middleware", logging.StringField("type", "static file"))
+	e.Use(setupStaticFileMiddleware())
+
 	// Setup session middleware globally (after basic, before security)
 	m.setupSessionMiddleware(e)
 
@@ -290,11 +323,18 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	m.logger.Debug("registering middleware", logging.StringField("type", "body limit"))
 	e.Use(echomw.BodyLimit("2M"))
 
+	// Only serve static files in production mode
+	if m.config.Config.App.Env == "production" {
+		m.logger.Debug("registering static file handler (production mode)")
+		e.Static("/assets", "dist/assets")
+		e.Static("/", "public")
+	} else {
+		m.logger.Debug("static file handler disabled (development mode - using Vite dev server)")
+	}
+
+	// Then register MIME type middleware
 	m.logger.Debug("registering middleware", logging.StringField("type", "MIME type"))
 	e.Use(setupMIMETypeMiddleware())
-
-	m.logger.Debug("registering middleware", logging.StringField("type", "static file"))
-	e.Use(setupStaticFileMiddleware())
 }
 
 // Setup session middleware adds global session middleware

@@ -23,10 +23,10 @@ templ Layout(data shared.PageData, content templ.Component) {
 	<link rel="stylesheet" href={ web.GetAssetPath("src/css/main.css") } type="text/css"/>
 </head>
 
-<body class="min-h-screen flex flex-col">
+<body>
 	@components.Nav(data)
 
-	<main class="flex-1">
+	<main>
 		@content
 	</main>
 
