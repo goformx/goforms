@@ -13,9 +13,6 @@ templ DashboardNav(data shared.PageData) {
                     if data.User == nil {
                         <a href="/signup" class="nav-link">Sign up</a>
                         <a href="/login" class="nav-link">Login</a>
-                        <a href="https://github.com/goformx/goforms" class="nav-link" target="_blank" rel="noopener noreferrer" aria-label="GitHub">
-                            <!-- GitHub SVG icon here (same as nav.templ) -->
-                        </a>
                     } else {
                         <div class="user-menu">
                             <label class="user-menu-button" tabindex="0">
