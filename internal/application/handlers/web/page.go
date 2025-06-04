@@ -34,15 +34,6 @@ func (h *PageHandler) Register(e *echo.Echo) {
 	e.DELETE("/pages/:id", h.handlePageDelete)
 }
 
-// buildPageData constructs the shared page data for rendering
-func (h *PageHandler) buildPageData(title string) shared.PageData {
-	return shared.PageData{
-		Title:         title,
-		IsDevelopment: true,                                     // TODO: Get from config
-		AssetPath:     func(path string) string { return path }, // TODO: Implement proper asset path
-	}
-}
-
 // handlePages handles the pages list request
 func (h *PageHandler) handlePages(c echo.Context) error {
 	// Get user ID from session
@@ -61,7 +52,7 @@ func (h *PageHandler) handlePages(c echo.Context) error {
 		})
 	}
 
-	data := h.buildPageData("Pages")
+	data := shared.BuildPageData(h.Config, "Pages")
 	data.Forms = forms
 	return pages.PagesList(data).Render(c.Request().Context(), c.Response().Writer)
 }
@@ -83,7 +74,7 @@ func (h *PageHandler) handlePageView(c echo.Context) error {
 		})
 	}
 
-	data := h.buildPageData(formData.Title)
+	data := shared.BuildPageData(h.Config, formData.Title)
 	data.Form = formData
 	return pages.PageView(data).Render(c.Request().Context(), c.Response().Writer)
 }

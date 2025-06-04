@@ -35,26 +35,36 @@ func HandlerProviders() []fx.Option {
 				cfg *config.Config,
 				logger logging.Logger,
 			) *web.AuthHandler {
-				h := web.NewAuthHandler(
-					baseHandler,
-					userService,
-					sessionManager,
-					renderer,
-					middlewareManager,
-					cfg,
-					logger,
-				)
-
-				// Validate dependencies before returning
-				if err := h.Validate(); err != nil {
+				h, err := web.NewAuthHandler(web.HandlerDeps{
+					BaseHandler:       baseHandler,
+					UserService:       userService,
+					SessionManager:    sessionManager,
+					Renderer:          renderer,
+					MiddlewareManager: middlewareManager,
+					Config:            cfg,
+					Logger:            logger,
+				})
+				if err != nil {
 					panic(fmt.Sprintf("failed to initialize auth handler: %v", err))
 				}
-
 				return h
 			},
 
 			// Page handler
-			web.NewPageHandler,
+			func(
+				logger logging.Logger,
+				formService form.Service,
+				cfg *config.Config,
+			) *web.PageHandler {
+				h, err := web.NewPageHandler(web.HandlerDeps{
+					Logger: logger,
+					Config: cfg,
+				}, formService)
+				if err != nil {
+					panic(fmt.Sprintf("failed to initialize page handler: %v", err))
+				}
+				return h
+			},
 
 			// Web handler
 			func(
@@ -66,21 +76,18 @@ func HandlerProviders() []fx.Option {
 				cfg *config.Config,
 				logger logging.Logger,
 			) *web.WebHandler {
-				h := web.NewWebHandler(
-					baseHandler,
-					userService,
-					sessionManager,
-					renderer,
-					middlewareManager,
-					cfg,
-					logger,
-				)
-
-				// Validate dependencies before returning
-				if err := h.Validate(); err != nil {
+				h, err := web.NewWebHandler(web.HandlerDeps{
+					BaseHandler:       baseHandler,
+					UserService:       userService,
+					SessionManager:    sessionManager,
+					Renderer:          renderer,
+					MiddlewareManager: middlewareManager,
+					Config:            cfg,
+					Logger:            logger,
+				})
+				if err != nil {
 					panic(fmt.Sprintf("failed to initialize web handler: %v", err))
 				}
-
 				return h
 			},
 		),

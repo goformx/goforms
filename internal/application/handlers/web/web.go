@@ -31,13 +31,7 @@ func (h *WebHandler) Register(e *echo.Echo) {
 
 // handleHome handles the home page request
 func (h *WebHandler) handleHome(c echo.Context) error {
-	data := shared.PageData{
-		Title:         "Welcome to GoFormX",
-		IsDevelopment: h.Config.App.IsDevelopment(),
-		AssetPath: func(path string) string {
-			return path
-		},
-	}
+	data := shared.BuildPageData(h.Config, "Welcome to GoFormX")
 	return h.Renderer.Render(c, pages.Home(data))
 }
 
@@ -59,10 +53,8 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 		})
 	}
 
-	data := shared.PageData{
-		Title: "Dashboard",
-		Forms: forms,
-	}
+	data := shared.BuildPageData(h.Config, "Dashboard")
+	data.Forms = forms
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }
 
@@ -83,9 +75,7 @@ func (h *WebHandler) handleFormView(c echo.Context) error {
 		})
 	}
 
-	data := shared.PageData{
-		Title: form.Title,
-		Form:  form,
-	}
+	data := shared.BuildPageData(h.Config, form.Title)
+	data.Form = form
 	return h.Renderer.Render(c, pages.Forms(data))
 }

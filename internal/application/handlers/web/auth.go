@@ -40,9 +40,7 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 
 // showLoginPage renders the login page
 func (h *AuthHandler) showLoginPage(c echo.Context) error {
-	data := shared.PageData{
-		Title: "Login",
-	}
+	data := shared.BuildPageData(h.Config, "Login")
 	return h.Renderer.Render(c, pages.Login(data))
 }
 
@@ -75,9 +73,7 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 
 // showSignupPage renders the signup page
 func (h *AuthHandler) showSignupPage(c echo.Context) error {
-	data := shared.PageData{
-		Title: "Sign Up",
-	}
+	data := shared.BuildPageData(h.Config, "Sign Up")
 	return h.Renderer.Render(c, pages.Signup(data))
 }
 

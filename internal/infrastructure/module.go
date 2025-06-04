@@ -222,17 +222,17 @@ var HandlerModule = fx.Options(
 		sessionManager *appmiddleware.SessionManager,
 	) (web.Handler, error) {
 		baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-		handler := web.NewWebHandler(
-			baseHandler,
-			services.UserService,
-			sessionManager,
-			core.Renderer,
-			middlewareManager,
-			core.Config,
-			core.Logger,
-		)
-		if handler == nil {
-			return nil, errors.New("failed to create web handler")
+		handler, err := web.NewWebHandler(web.HandlerDeps{
+			BaseHandler:       baseHandler,
+			UserService:       services.UserService,
+			SessionManager:    sessionManager,
+			Renderer:          core.Renderer,
+			MiddlewareManager: middlewareManager,
+			Config:            core.Config,
+			Logger:            core.Logger,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create web handler: %w", err)
 		}
 		core.Logger.Debug("registered handler",
 			logging.StringField("handler_name", "WebHandler"),
@@ -249,25 +249,18 @@ var HandlerModule = fx.Options(
 		sessionManager *appmiddleware.SessionManager,
 	) (web.Handler, error) {
 		baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-		authHandler := web.NewAuthHandler(
-			baseHandler,
-			services.UserService,
-			sessionManager,
-			core.Renderer,
-			middlewareManager,
-			core.Config,
-			core.Logger,
-		)
-
-		if authHandler == nil {
-			return nil, fmt.Errorf("failed to create auth handler: user_service=%T", services.UserService)
+		authHandler, err := web.NewAuthHandler(web.HandlerDeps{
+			BaseHandler:       baseHandler,
+			UserService:       services.UserService,
+			SessionManager:    sessionManager,
+			Renderer:          core.Renderer,
+			MiddlewareManager: middlewareManager,
+			Config:            core.Config,
+			Logger:            core.Logger,
+		})
+		if err != nil {
+			return nil, fmt.Errorf("failed to create auth handler: %w", err)
 		}
-
-		// Validate dependencies
-		if err := authHandler.Validate(); err != nil {
-			return nil, fmt.Errorf("failed to validate auth handler: %w", err)
-		}
-
 		return authHandler, nil
 	}),
 	// Health handler
