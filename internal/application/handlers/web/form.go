@@ -122,8 +122,36 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	if formID == "" {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
-	// TODO: Delete the form
-	return response.ErrorResponse(c, http.StatusNotImplemented, "Form deletion not implemented yet")
+
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(uint)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	userID := userIDRaw
+
+	// Get form to verify ownership
+	form, err := h.FormService.GetForm(formID)
+	if err != nil {
+		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+	}
+
+	// Verify form ownership
+	if form.UserID != userID {
+		return response.ErrorResponse(c, http.StatusForbidden, "You don't have permission to delete this form")
+	}
+
+	// Delete the form
+	if err := h.FormService.DeleteForm(formID); err != nil {
+		h.Logger.Error("failed to delete form", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete form")
+	}
+
+	return c.JSON(http.StatusOK, map[string]interface{}{
+		"success": true,
+		"message": "Form deleted successfully",
+	})
 }
 
 // GET /dashboard/forms/:id/submissions
