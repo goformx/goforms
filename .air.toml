@@ -49,9 +49,9 @@ tmp_dir = "tmp"
   # Show file changes
   main_only = true
 
-[misc]
+# [misc]
   # Delete tmp directory on exit
-  clean_on_exit = true
+  # clean_on_exit = true
 
 [proxy]
   app_port = 0

@@ -6,7 +6,6 @@ import (
 
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
-	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -160,11 +159,45 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	if formID == "" {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
-	// TODO: Fetch submissions for the form
-	var submissions []*model.FormSubmission // Placeholder
+
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(uint)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	userID := userIDRaw
+
+	// Get form to verify ownership
+	form, err := h.FormService.GetForm(formID)
+	if err != nil {
+		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+	}
+
+	// Verify form ownership
+	if form.UserID != userID {
+		return response.ErrorResponse(c, http.StatusForbidden, "You don't have permission to view these submissions")
+	}
+
+	// Get form submissions
+	submissions, err := h.FormService.GetFormSubmissions(formID)
+	if err != nil {
+		h.Logger.Error("failed to get form submissions", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form submissions")
+	}
+
+	// Get user object for the template
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || user == nil {
+		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+	}
+
 	data := shared.BuildPageData(h.Config, "Form Submissions")
+	data.User = user
+	data.Form = form
 	data.Submissions = submissions
-	// TODO: Create a pages.FormSubmissions(data) template
+	data.Content = pages.FormSubmissionsContent(data)
 	return h.Renderer.Render(c, pages.FormSubmissions(data))
 }
 

@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"fmt"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
@@ -25,30 +26,25 @@ templ FormSubmissionsContent(data shared.PageData) {
 					<table>
 						<thead>
 							<tr>
-								<th>ID</th>
 								<th>Submitted At</th>
 								<th>Status</th>
-								<th>Actions</th>
+								<th>Data</th>
 							</tr>
 						</thead>
 						<tbody>
 							if len(data.Submissions) == 0 {
 								<tr>
-									<td colspan="4" class="text-center">No submissions yet</td>
+									<td colspan="3" class="text-center">No submissions yet</td>
 								</tr>
 							} else {
 								for _, submission := range data.Submissions {
 									<tr>
-										<td>{ submission.ID }</td>
 										<td>{ submission.SubmittedAt.Format("Jan 02, 2006 15:04:05") }</td>
 										<td>
 											<span class="status-badge status-{ string(submission.Status) }">{ string(submission.Status) }</span>
 										</td>
 										<td>
-											<div class="table-actions">
-												<button class="btn btn-sm btn-outline" onclick="viewSubmission('{ submission.ID }')">View</button>
-												<button class="btn btn-sm btn-danger" onclick="deleteSubmission('{ submission.ID }')">Delete</button>
-											</div>
+											<pre class="submission-data">{ fmt.Sprintf("%v", submission.Data) }</pre>
 										</td>
 									</tr>
 								}
