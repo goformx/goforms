@@ -2,6 +2,7 @@ package middleware
 
 import (
 	"fmt"
+	"net"
 	"net/http"
 	"strings"
 
@@ -242,7 +243,12 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 		m.logger.Debug("static file handler disabled (development mode - using Vite dev server)")
 		// In development mode, let Vite handle all static files
 		e.Group("/node_modules").Any("/*", func(c echo.Context) error {
-			return c.Redirect(http.StatusTemporaryRedirect, fmt.Sprintf("http://%s:%s%s", m.config.Config.App.ViteDevHost, m.config.Config.App.ViteDevPort, c.Request().URL.Path))
+			hostPort := net.JoinHostPort(
+				m.config.Config.App.ViteDevHost,
+				m.config.Config.App.ViteDevPort,
+			)
+			redirectURL := fmt.Sprintf("http://%s%s", hostPort, c.Request().URL.Path)
+			return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
 		})
 	}
 }

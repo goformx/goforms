@@ -18,7 +18,15 @@ type WebHandler struct {
 
 // NewWebHandler creates a new web handler using HandlerDeps
 func NewWebHandler(deps HandlerDeps) (*WebHandler, error) {
-	if err := deps.Validate("BaseHandler", "UserService", "SessionManager", "Renderer", "MiddlewareManager", "Config", "Logger"); err != nil {
+	if err := deps.Validate(
+		"BaseHandler",
+		"UserService",
+		"SessionManager",
+		"Renderer",
+		"MiddlewareManager",
+		"Config",
+		"Logger",
+	); err != nil {
 		return nil, err
 	}
 	return &WebHandler{HandlerDeps: deps}, nil

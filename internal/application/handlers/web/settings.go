@@ -17,7 +17,15 @@ type SettingsHandler struct {
 
 // NewSettingsHandler creates a new settings handler using HandlerDeps
 func NewSettingsHandler(deps HandlerDeps) (*SettingsHandler, error) {
-	if err := deps.Validate("BaseHandler", "UserService", "SessionManager", "Renderer", "MiddlewareManager", "Config", "Logger"); err != nil {
+	if err := deps.Validate(
+		"BaseHandler",
+		"UserService",
+		"SessionManager",
+		"Renderer",
+		"MiddlewareManager",
+		"Config",
+		"Logger",
+	); err != nil {
 		return nil, err
 	}
 	return &SettingsHandler{HandlerDeps: deps}, nil

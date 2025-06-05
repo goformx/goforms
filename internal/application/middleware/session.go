@@ -26,11 +26,11 @@ const (
 
 // Session represents a user session
 type Session struct {
-	UserID    uint
-	Email     string
-	Role      string
-	CreatedAt time.Time
-	ExpiresAt time.Time
+	UserID    uint      `json:"user_id"`
+	Email     string    `json:"email"`
+	Role      string    `json:"role"`
+	CreatedAt time.Time `json:"created_at"`
+	ExpiresAt time.Time `json:"expires_at"`
 }
 
 // SessionManager manages user sessions
@@ -70,19 +70,19 @@ func (sm *SessionManager) loadSessions() error {
 	defer sm.mutex.Unlock()
 
 	// Check if file exists
-	if _, err := os.Stat(sm.storeFile); os.IsNotExist(err) {
+	if _, statErr := os.Stat(sm.storeFile); os.IsNotExist(statErr) {
 		return nil
 	}
 
 	// Read file
-	data, err := os.ReadFile(sm.storeFile)
-	if err != nil {
-		return fmt.Errorf("failed to read session file: %w", err)
+	data, readErr := os.ReadFile(sm.storeFile)
+	if readErr != nil {
+		return fmt.Errorf("failed to read session file: %w", readErr)
 	}
 
 	// Parse sessions
-	if err := json.Unmarshal(data, &sm.sessions); err != nil {
-		return fmt.Errorf("failed to parse sessions: %w", err)
+	if unmarshalErr := json.Unmarshal(data, &sm.sessions); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse sessions: %w", unmarshalErr)
 	}
 
 	// Clean expired sessions
@@ -102,14 +102,14 @@ func (sm *SessionManager) saveSessions() error {
 	defer sm.mutex.RUnlock()
 
 	// Marshal sessions
-	data, err := json.Marshal(sm.sessions)
-	if err != nil {
-		return fmt.Errorf("failed to marshal sessions: %w", err)
+	data, marshalErr := json.Marshal(sm.sessions)
+	if marshalErr != nil {
+		return fmt.Errorf("failed to marshal sessions: %w", marshalErr)
 	}
 
 	// Write file
-	if err := os.WriteFile(sm.storeFile, data, 0644); err != nil {
-		return fmt.Errorf("failed to write session file: %w", err)
+	if writeErr := os.WriteFile(sm.storeFile, data, 0600); writeErr != nil {
+		return fmt.Errorf("failed to write session store: %w", writeErr)
 	}
 
 	return nil

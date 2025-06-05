@@ -20,11 +20,21 @@ type AuthHandler struct {
 const (
 	// SessionDuration is the duration for which a session remains valid
 	SessionDuration = 24 * time.Hour
+	// MinPasswordLength is the minimum required length for passwords
+	MinPasswordLength = 8
 )
 
 // NewAuthHandler creates a new auth handler using HandlerDeps
 func NewAuthHandler(deps HandlerDeps) (*AuthHandler, error) {
-	if err := deps.Validate("BaseHandler", "UserService", "SessionManager", "Renderer", "MiddlewareManager", "Config", "Logger"); err != nil {
+	if err := deps.Validate(
+		"BaseHandler",
+		"UserService",
+		"SessionManager",
+		"Renderer",
+		"MiddlewareManager",
+		"Config",
+		"Logger",
+	); err != nil {
 		return nil, err
 	}
 	return &AuthHandler{HandlerDeps: deps}, nil
@@ -111,7 +121,7 @@ func (h *AuthHandler) handleLoginValidation(c echo.Context) error {
 		},
 		"password": map[string]any{
 			"type":    "password",
-			"min":     8, // 8 is a business rule for password length
+			"min":     MinPasswordLength, // Minimum password length requirement
 			"message": "Password must be at least 8 characters long",
 		},
 	}
@@ -137,7 +147,7 @@ func (h *AuthHandler) handleSignupValidation(c echo.Context) error {
 		},
 		"password": map[string]any{
 			"type":    "password",
-			"min":     8, // 8 is a business rule for password length
+			"min":     MinPasswordLength, // Minimum password length requirement
 			"message": "Password must be at least 8 characters long",
 		},
 		"confirm_password": map[string]any{

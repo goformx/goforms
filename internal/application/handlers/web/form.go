@@ -142,13 +142,12 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	}
 
 	// Delete the form
-	if err := h.FormService.DeleteForm(formID); err != nil {
-		h.Logger.Error("failed to delete form", logging.ErrorField("error", err))
+	if deleteErr := h.FormService.DeleteForm(formID); deleteErr != nil {
+		h.Logger.Error("failed to delete form", logging.ErrorField("error", deleteErr))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete form")
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
-		"success": true,
+	return c.JSON(http.StatusOK, map[string]any{
 		"message": "Form deleted successfully",
 	})
 }
@@ -225,23 +224,24 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 	}
 
 	// Get existing form
-	form, err := h.FormService.GetForm(formID)
-	if err != nil {
-		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
+	form, getErr := h.FormService.GetForm(formID)
+	if getErr != nil {
+		h.Logger.Error("failed to get form", logging.ErrorField("error", getErr))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 
-	// Parse schema JSON
-	var schema formdomain.JSON
-	if err := json.NewDecoder(c.Request().Body).Decode(&schema); err != nil {
-		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid schema JSON")
+	// Parse request body
+	var schema map[string]any
+	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&schema); decodeErr != nil {
+		h.Logger.Error("failed to decode request body", logging.ErrorField("error", decodeErr))
+		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
 	// Update form schema
 	form.Schema = schema
-	if err := h.FormService.UpdateForm(form); err != nil {
-		h.Logger.Error("failed to update form schema", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form schema")
+	if updateErr := h.FormService.UpdateForm(form); updateErr != nil {
+		h.Logger.Error("failed to update form", logging.ErrorField("error", updateErr))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form")
 	}
 
 	// Return the updated schema

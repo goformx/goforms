@@ -1,6 +1,7 @@
 package web
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -28,43 +29,49 @@ type HandlerDeps struct {
 	Logger            logging.Logger
 }
 
-// Validate checks for required dependencies by name
-func (d *HandlerDeps) Validate(required ...string) error {
-	missing := []string{}
-	for _, dep := range required {
-		switch dep {
-		case "BaseHandler":
-			if d.BaseHandler == nil {
-				missing = append(missing, "BaseHandler")
-			}
-		case "UserService":
-			if d.UserService == nil {
-				missing = append(missing, "UserService")
-			}
-		case "SessionManager":
-			if d.SessionManager == nil {
-				missing = append(missing, "SessionManager")
-			}
-		case "Renderer":
-			if d.Renderer == nil {
-				missing = append(missing, "Renderer")
-			}
-		case "MiddlewareManager":
-			if d.MiddlewareManager == nil {
-				missing = append(missing, "MiddlewareManager")
-			}
-		case "Config":
-			if d.Config == nil {
-				missing = append(missing, "Config")
-			}
-		case "Logger":
-			if d.Logger == nil {
-				missing = append(missing, "Logger")
-			}
+// validateField checks if a field is present in the handler dependencies
+func (d *HandlerDeps) validateField(field string) error {
+	switch field {
+	case "BaseHandler":
+		if d.BaseHandler == nil {
+			return errors.New("BaseHandler is required")
 		}
+	case "UserService":
+		if d.UserService == nil {
+			return errors.New("UserService is required")
+		}
+	case "SessionManager":
+		if d.SessionManager == nil {
+			return errors.New("SessionManager is required")
+		}
+	case "Renderer":
+		if d.Renderer == nil {
+			return errors.New("renderer is required")
+		}
+	case "MiddlewareManager":
+		if d.MiddlewareManager == nil {
+			return errors.New("MiddlewareManager is required")
+		}
+	case "Config":
+		if d.Config == nil {
+			return errors.New("config is required")
+		}
+	case "Logger":
+		if d.Logger == nil {
+			return errors.New("Logger is required")
+		}
+	default:
+		return fmt.Errorf("unknown required field: %s", field)
 	}
-	if len(missing) > 0 {
-		return fmt.Errorf("missing required dependencies: %v", missing)
+	return nil
+}
+
+// Validate checks if all required fields are present
+func (d *HandlerDeps) Validate(required ...string) error {
+	for _, field := range required {
+		if err := d.validateField(field); err != nil {
+			return err
+		}
 	}
 	return nil
 }
@@ -73,6 +80,7 @@ func (d *HandlerDeps) Validate(required ...string) error {
 type BaseHandler struct {
 	formService form.Service
 	logger      logging.Logger
+	middlewares []echo.MiddlewareFunc
 }
 
 // NewBaseHandler creates a new base handler
@@ -91,17 +99,17 @@ func (h *BaseHandler) RegisterRoute(
 	e *echo.Echo,
 	method, path string,
 	handler echo.HandlerFunc,
-	middleware ...echo.MiddlewareFunc,
+	middlewares ...echo.MiddlewareFunc,
 ) {
 	switch method {
 	case "GET":
-		e.GET(path, handler, middleware...)
+		e.GET(path, handler, middlewares...)
 	case "POST":
-		e.POST(path, handler, middleware...)
+		e.POST(path, handler, middlewares...)
 	case "PUT":
-		e.PUT(path, handler, middleware...)
+		e.PUT(path, handler, middlewares...)
 	case "DELETE":
-		e.DELETE(path, handler, middleware...)
+		e.DELETE(path, handler, middlewares...)
 	}
 	h.logger.Debug("registered route",
 		logging.StringField("method", method),
@@ -146,4 +154,12 @@ func (h *BaseHandler) Logger() logging.Logger {
 // FormService returns the form service instance
 func (h *BaseHandler) FormService() form.Service {
 	return h.formService
+}
+
+// WithMiddleware adds middleware to the handler
+func (h *BaseHandler) WithMiddleware(
+	mwFuncs ...echo.MiddlewareFunc,
+) *BaseHandler {
+	h.middlewares = append(h.middlewares, mwFuncs...)
+	return h
 }
