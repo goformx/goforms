@@ -70,7 +70,7 @@ jobs:
       - name: Install mockgen
         run: go install go.uber.org/mock/mockgen@latest
       - name: Run Linter
-        uses: golangci/golangci-lint-action@v8
+        uses: golangci/golangci-lint-action@v4
         with:
           version: latest
       - name: Run Tests

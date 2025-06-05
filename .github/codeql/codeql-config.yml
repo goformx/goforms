@@ -1,0 +1,27 @@
+name: "Go CodeQL Configuration"
+
+queries:
+  - uses: security-extended
+
+paths:
+  - src
+  - internal
+  - cmd
+
+paths-ignore:
+  - '**/test'
+  - '**/vendor'
+  - '**/node_modules'
+
+build-mode: manual
+
+build-command: |
+  # Install templ
+  go install github.com/a-h/templ/cmd/templ@latest
+  export PATH=$PATH:$(go env GOPATH)/bin
+  
+  # Generate templ files
+  templ generate ./internal/...
+  
+  # Build the application
+  go build ./... 
