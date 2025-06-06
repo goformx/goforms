@@ -37,6 +37,11 @@ type Manager struct {
 	config *ManagerConfig
 }
 
+// GetSessionManager returns the session manager
+func (m *Manager) GetSessionManager() *SessionManager {
+	return m.config.SessionManager
+}
+
 // ManagerConfig represents the configuration for the middleware manager
 type ManagerConfig struct {
 	Logger         logging.Logger
