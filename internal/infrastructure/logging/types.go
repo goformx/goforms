@@ -82,3 +82,8 @@ func BoolField(key string, value bool) LogField {
 func UintField(key string, value uint) LogField {
 	return LogField{Key: key, Value: value}
 }
+
+// Int64Field creates an int64 field
+func Int64Field(key string, value int64) LogField {
+	return LogField{Key: key, Value: value}
+}

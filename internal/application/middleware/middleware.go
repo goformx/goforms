@@ -5,6 +5,7 @@ import (
 	"net"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -86,20 +87,6 @@ func corsConfig(
 		AllowHeaders:     allowedHeaders,
 		AllowCredentials: allowCredentials,
 		MaxAge:           maxAge,
-	}
-}
-
-// setupStaticFileMiddleware creates middleware to handle static files
-func setupStaticFileMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-			if isStaticFile(path) {
-				c.Set("skip_csrf", true)
-				c.Set("skip_auth", true)
-			}
-			return next(c)
-		}
 	}
 }
 
@@ -185,6 +172,50 @@ func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareF
 	})
 }
 
+// customLogger creates a custom logger middleware that formats logs in a human-readable format
+func customLogger(logger logging.Logger) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			start := time.Now()
+			req := c.Request()
+			res := c.Response()
+
+			// Process request
+			err := next(c)
+
+			// Calculate latency
+			latency := time.Since(start)
+
+			// Get error message if any
+			errorMsg := ""
+			if err != nil {
+				errorMsg = err.Error()
+			}
+
+			// Format log message using the main app logger
+			logger.Info("Request processed",
+				logging.StringField("component", "http"),
+				logging.StringField("operation", "request"),
+				logging.StringField("time", time.Now().Format(time.RFC3339)),
+				logging.StringField("id", res.Header().Get(echo.HeaderXRequestID)),
+				logging.StringField("remote_ip", c.RealIP()),
+				logging.StringField("host", req.Host),
+				logging.StringField("method", req.Method),
+				logging.StringField("uri", req.RequestURI),
+				logging.StringField("user_agent", req.UserAgent()),
+				logging.IntField("status", res.Status),
+				logging.StringField("error", errorMsg),
+				logging.Int64Field("latency", latency.Nanoseconds()),
+				logging.StringField("latency_human", latency.String()),
+				logging.Int64Field("bytes_in", req.ContentLength),
+				logging.Int64Field("bytes_out", res.Size),
+			)
+
+			return err
+		}
+	}
+}
+
 // Setup initializes the middleware manager with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Info("middleware setup: starting")
@@ -212,7 +243,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Info("middleware setup: registering basic middleware")
 	e.Use(echomw.Recover())
 	e.Use(echomw.RequestID())
-	e.Use(echomw.Logger())
+	e.Use(customLogger(m.logger))
 	e.Use(echomw.BodyLimit("2M"))
 
 	// Development mode specific setup
