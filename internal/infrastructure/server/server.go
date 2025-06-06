@@ -53,16 +53,6 @@ func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Ech
 		e.Group("/node_modules").Any("/*", echo.WrapHandler(viteProxy))
 	}
 
-	// Setup server lifecycle hooks
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			return srv.Start(ctx)
-		},
-		OnStop: func(ctx context.Context) error {
-			return srv.Stop(ctx)
-		},
-	})
-
 	return srv
 }
 

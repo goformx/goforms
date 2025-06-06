@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"strings"
@@ -199,7 +200,16 @@ var InfrastructureModule = fx.Options(
 			logger.Info("InfrastructureModule: Configuration validated successfully")
 			return cfg, nil
 		},
-		database.NewDB,
+		func(cfg *config.Config, logger logging.Logger) (*database.Database, error) {
+			logger.Info("InfrastructureModule: Creating database connection...")
+			db, err := database.NewDB(cfg, logger)
+			if err != nil {
+				logger.Error("InfrastructureModule: Database connection failed", logging.Error(err))
+				return nil, err
+			}
+			logger.Info("InfrastructureModule: Database connection established")
+			return db, nil
+		},
 	),
 )
 
@@ -300,6 +310,18 @@ var HandlerModule = fx.Options(
 // ServerModule provides the HTTP server setup.
 var ServerModule = fx.Options(
 	fx.Provide(server.New),
+	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, srv *server.Server) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				logger.Info("Starting application")
+				return srv.Start(ctx)
+			},
+			OnStop: func(ctx context.Context) error {
+				logger.Info("Shutting down application")
+				return srv.Stop(ctx)
+			},
+		})
+	}),
 )
 
 // RootModule combines all infrastructure-level modules into a single module.
@@ -346,8 +368,9 @@ func wrapAssigner[T any](assigner func(*Stores, T)) func(*Stores, any) {
 // This function is responsible for initializing all database stores
 // and providing them to the fx container.
 func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
+	logger.Info("NewStores: Initializing database stores...")
 	if db == nil {
-		logger.Error("database connection is nil",
+		logger.Error("NewStores: database connection is nil",
 			logging.StringField("operation", "store_initialization"),
 			logging.StringField("error_type", "nil_database"),
 		)
@@ -382,6 +405,7 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 
 	// Initialize stores concurrently
 	for name, creator := range storeCreators {
+		logger.Info("NewStores: Creating store", logging.StringField("store_type", name))
 		wg.Add(1)
 		go func(name string, creator struct {
 			create func(*database.Database, logging.Logger) any
@@ -392,7 +416,7 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 			// Create store instance
 			instance := creator.create(db, logger)
 			if instance == nil {
-				logger.Error("store creation failed",
+				logger.Error("NewStores: store creation failed",
 					logging.StringField("store_type", name),
 					logging.StringField("operation", "store_initialization"),
 					logging.StringField("error_type", "nil_instance"),
@@ -401,6 +425,7 @@ func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
 				return
 			}
 
+			logger.Info("NewStores: store created successfully", logging.StringField("store_type", name))
 			results <- struct {
 				name     string
 				instance any
