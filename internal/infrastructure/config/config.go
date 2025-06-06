@@ -6,7 +6,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/goformx/goforms/internal/infrastructure/common"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
@@ -164,7 +163,7 @@ type CSRFConfig struct {
 }
 
 // New creates a new configuration instance
-func New(logger common.Logger) (*Config, error) {
+func New(logger logging.Logger) (*Config, error) {
 	logger.Info("Starting configuration loading...")
 
 	// Load .env file in development mode
