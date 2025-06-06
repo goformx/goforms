@@ -203,20 +203,37 @@ func (m *Manager) Setup(e *echo.Echo) {
 		m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
 	}
 
+	// Basic middleware that should always be enabled
 	m.logger.Info("middleware setup: registering basic middleware")
-	m.setupBasicMiddleware(e)
+	e.Use(echomw.Recover())
+	e.Use(echomw.RequestID())
+	e.Use(echomw.Logger())
+	e.Use(echomw.BodyLimit("2M"))
 
-	m.logger.Info("middleware setup: registering static file middleware")
-	e.Use(setupStaticFileMiddleware())
+	// Development mode specific setup
+	if m.config.Config.App.Env == "development" {
+		m.logger.Info("middleware setup: development mode detected, using minimal middleware")
 
-	m.logger.Info("middleware setup: registering session middleware")
-	m.setupSessionMiddleware(e)
+		// Basic CORS for development
+		e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+			AllowOrigins:     []string{"*"},
+			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowHeaders:     []string{"*"},
+			AllowCredentials: true,
+		}))
 
-	m.logger.Info("middleware setup: registering security middleware")
-	m.setupSecurityMiddleware(e)
-
-	m.logger.Info("middleware setup: registering security headers middleware")
-	m.setupSecurityHeadersMiddleware(e)
+		// Development static file handling
+		m.logger.Debug("registering: development static file handler")
+		e.Static("/assets", "dist/assets")
+		e.Static("/", "public")
+	} else {
+		// Production middleware setup
+		m.logger.Info("middleware setup: production mode detected, registering full middleware stack")
+		m.setupBasicMiddleware(e)
+		m.setupSessionMiddleware(e)
+		m.setupSecurityMiddleware(e)
+		m.setupSecurityHeadersMiddleware(e)
+	}
 
 	m.logger.Info("middleware setup: complete")
 }

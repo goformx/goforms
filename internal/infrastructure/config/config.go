@@ -96,7 +96,7 @@ type AppConfig struct {
 	Debug       bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
 	LogLevel    string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
 	Port        int    `envconfig:"GOFORMS_APP_PORT" default:"8090"`
-	Host        string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
+	Host        string `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
 	ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"3000"`
 }
@@ -120,8 +120,8 @@ type DatabaseConfig struct {
 
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
-	Host            string        `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
-	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8099"`
+	Host            string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
+	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	ReadTimeout     time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
 	WriteTimeout    time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
 	IdleTimeout     time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
@@ -172,9 +172,11 @@ func New(logger common.Logger) (*Config, error) {
 		// Only log a warning if the .env file is not found, as it's optional
 		if !os.IsNotExist(err) {
 			logger.Warn("Error loading .env file", logging.Error(err))
+		} else {
+			logger.Info("No .env file found, using environment variables")
 		}
 	} else {
-		logger.Info("Loaded .env file")
+		logger.Info("Loaded .env file successfully")
 	}
 
 	// Create default configuration
@@ -185,13 +187,13 @@ func New(logger common.Logger) (*Config, error) {
 			Debug:       false,
 			LogLevel:    "info",
 			Port:        DefaultAppPort,
-			Host:        "localhost",
+			Host:        "0.0.0.0",
 			ViteDevHost: "localhost",
 			ViteDevPort: "3000",
 		},
 		Server: ServerConfig{
-			Host:            "localhost",
-			Port:            DefaultServerPort,
+			Host:            "0.0.0.0",
+			Port:            8090,
 			ReadTimeout:     DefaultReadTimeout,
 			WriteTimeout:    DefaultWriteTimeout,
 			IdleTimeout:     DefaultIdleTimeout,
@@ -210,21 +212,45 @@ func New(logger common.Logger) (*Config, error) {
 
 	// Process environment variables
 	if err := envconfig.Process("", cfg); err != nil {
-		logger.Error("Error processing environment variables", logging.Error(err))
+		logger.Error("Error processing environment variables",
+			logging.Error(err),
+			logging.StringField("app_name", cfg.App.Name),
+			logging.StringField("app_env", cfg.App.Env),
+			logging.IntField("app_port", cfg.App.Port))
 		return nil, fmt.Errorf("failed to process environment variables: %w", err)
 	}
-	logger.Debug("Environment variables processed")
+	logger.Debug("Environment variables processed successfully")
+
+	// Validate database configuration
+	if cfg.Database.Host == "" {
+		logger.Error("Database host is required but not set")
+		return nil, fmt.Errorf("database host is required")
+	}
+	if cfg.Database.Port == 0 {
+		logger.Error("Database port is required but not set")
+		return nil, fmt.Errorf("database port is required")
+	}
+	if cfg.Database.User == "" {
+		logger.Error("Database user is required but not set")
+		return nil, fmt.Errorf("database user is required")
+	}
+	if cfg.Database.Password == "" {
+		logger.Error("Database password is required but not set")
+		return nil, fmt.Errorf("database password is required")
+	}
+	if cfg.Database.Name == "" {
+		logger.Error("Database name is required but not set")
+		return nil, fmt.Errorf("database name is required")
+	}
 
 	// Log final configuration values
-	logger.Debug("Final configuration values",
-		logging.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
-		logging.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
-		logging.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime),
-		logging.String("DatabaseHost", cfg.Database.Host),
-		logging.Int("DatabasePort", cfg.Database.Port),
-		logging.String("DatabaseUser", cfg.Database.User),
-		logging.String("DatabaseName", cfg.Database.Name),
-	)
+	logger.Info("Configuration loaded successfully",
+		logging.StringField("app_name", cfg.App.Name),
+		logging.StringField("app_env", cfg.App.Env),
+		logging.IntField("app_port", cfg.App.Port),
+		logging.StringField("db_host", cfg.Database.Host),
+		logging.IntField("db_port", cfg.Database.Port),
+		logging.StringField("db_name", cfg.Database.Name))
 
 	return cfg, nil
 }

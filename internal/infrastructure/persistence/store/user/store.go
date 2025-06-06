@@ -9,8 +9,8 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -20,12 +20,12 @@ var (
 
 // Store implements user.Store interface
 type Store struct {
-	db     *database.Database
+	db     *sqlx.DB
 	logger logging.Logger
 }
 
 // NewStore creates a new user store
-func NewStore(db *database.Database, logger logging.Logger) user.Store {
+func NewStore(db *sqlx.DB, logger logging.Logger) user.Store {
 	logger.Debug("creating user store",
 		logging.BoolField("db_available", db != nil),
 	)
@@ -114,7 +114,7 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 	)
 
 	var u user.User
-	err := s.db.QueryRowContext(ctx, query, email).Scan(
+	err := s.db.QueryRowxContext(ctx, query, email).Scan(
 		&u.ID,
 		&u.Email,
 		&u.HashedPassword,
@@ -156,7 +156,7 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	`
 
 	var u user.User
-	err := s.db.QueryRowContext(ctx, query, id).Scan(
+	err := s.db.QueryRowxContext(ctx, query, id).Scan(
 		&u.ID,
 		&u.Email,
 		&u.HashedPassword,
@@ -299,7 +299,7 @@ func (s *Store) List(ctx context.Context) ([]user.User, error) {
 		ORDER BY id
 	`
 
-	rows, queryErr := s.db.QueryContext(ctx, query)
+	rows, queryErr := s.db.QueryxContext(ctx, query)
 	if queryErr != nil {
 		return nil, fmt.Errorf("failed to list users: %w", queryErr)
 	}

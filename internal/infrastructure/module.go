@@ -1,12 +1,9 @@
 package infrastructure
 
 import (
-	"context"
 	"errors"
 	"fmt"
 	"strings"
-	"sync"
-	"time"
 
 	"go.uber.org/fx"
 
@@ -20,11 +17,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
-	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
-	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -204,18 +197,17 @@ var InfrastructureModule = fx.Options(
 			logger.Info("InfrastructureModule: Creating database connection...")
 			db, err := database.NewDB(cfg, logger)
 			if err != nil {
-				logger.Error("InfrastructureModule: Database connection failed", logging.Error(err))
+				logger.Error("InfrastructureModule: Database connection failed",
+					logging.Error(err),
+					logging.StringField("host", cfg.Database.Host),
+					logging.IntField("port", cfg.Database.Port),
+					logging.StringField("database", cfg.Database.Name))
 				return nil, err
 			}
 			logger.Info("InfrastructureModule: Database connection established")
 			return db, nil
 		},
 	),
-)
-
-// StoreModule provides all database store implementations.
-var StoreModule = fx.Options(
-	fx.Provide(NewStores),
 )
 
 // HandlerModule provides all HTTP handlers for the application.
@@ -307,161 +299,10 @@ var HandlerModule = fx.Options(
 	}),
 )
 
-// ServerModule provides the HTTP server setup.
-var ServerModule = fx.Options(
-	fx.Provide(server.New),
-	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, srv *server.Server) {
-		lc.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				logger.Info("Starting application")
-				return srv.Start(ctx)
-			},
-			OnStop: func(ctx context.Context) error {
-				logger.Info("Shutting down application")
-				return srv.Stop(ctx)
-			},
-		})
-	}),
-)
-
 // RootModule combines all infrastructure-level modules into a single module.
 var RootModule = fx.Options(
 	InfrastructureModule,
-	StoreModule,
-	ServerModule,
 	HandlerModule,
 )
 
-// wrapCreator creates a type-safe wrapper for store creation functions
-func wrapCreator[T any](
-	creator func(*database.Database, logging.Logger) T,
-) func(*database.Database, logging.Logger) any {
-	return func(db *database.Database, logger logging.Logger) any {
-		return creator(db, logger)
-	}
-}
-
-// wrapCreatorSQLX creates a type-safe wrapper for store creation functions using sqlx.DB
-func wrapCreatorSQLX[T any](
-	creator func(*sqlx.DB, logging.Logger) T,
-) func(*database.Database, logging.Logger) any {
-	return func(db *database.Database, logger logging.Logger) any {
-		return creator(db.DB, logger)
-	}
-}
-
-// wrapAssigner creates a type-safe wrapper for store assignment functions
-func wrapAssigner[T any](assigner func(*Stores, T)) func(*Stores, any) {
-	return func(s *Stores, instance any) {
-		if s == nil {
-			panic(errors.New("database connection is nil"))
-		}
-		typedInstance, ok := instance.(T)
-		if !ok {
-			panic(errors.New("invalid instance type"))
-		}
-		assigner(s, typedInstance)
-	}
-}
-
-// NewStores creates all database stores.
-// This function is responsible for initializing all database stores
-// and providing them to the fx container.
-func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
-	logger.Info("NewStores: Initializing database stores...")
-	if db == nil {
-		logger.Error("NewStores: database connection is nil",
-			logging.StringField("operation", "store_initialization"),
-			logging.StringField("error_type", "nil_database"),
-		)
-		return Stores{}, errors.New("database connection is nil")
-	}
-
-	startTime := time.Now()
-
-	// Map of store creators
-	storeCreators := map[string]struct {
-		create func(*database.Database, logging.Logger) any
-		assign func(*Stores, any)
-	}{
-		"user": {
-			create: wrapCreator(userstore.NewStore),
-			assign: wrapAssigner(func(s *Stores, v user.Store) { s.UserStore = v }),
-		},
-		"form": {
-			create: wrapCreatorSQLX(formstore.NewStore),
-			assign: wrapAssigner(func(s *Stores, v form.Store) { s.FormStore = v }),
-		},
-	}
-
-	var stores Stores
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	failedStores := make(chan string, len(storeCreators))
-	results := make(chan struct {
-		name     string
-		instance any
-	}, len(storeCreators))
-
-	// Initialize stores concurrently
-	for name, creator := range storeCreators {
-		logger.Info("NewStores: Creating store", logging.StringField("store_type", name))
-		wg.Add(1)
-		go func(name string, creator struct {
-			create func(*database.Database, logging.Logger) any
-			assign func(*Stores, any)
-		}) {
-			defer wg.Done()
-
-			// Create store instance
-			instance := creator.create(db, logger)
-			if instance == nil {
-				logger.Error("NewStores: store creation failed",
-					logging.StringField("store_type", name),
-					logging.StringField("operation", "store_initialization"),
-					logging.StringField("error_type", "nil_instance"),
-				)
-				failedStores <- name
-				return
-			}
-
-			logger.Info("NewStores: store created successfully", logging.StringField("store_type", name))
-			results <- struct {
-				name     string
-				instance any
-			}{name, instance}
-		}(name, creator)
-	}
-
-	// Wait for all goroutines to complete
-	wg.Wait()
-	close(failedStores)
-	close(results)
-
-	// Collect failed stores
-	var failedStoreNames []string
-	for name := range failedStores {
-		failedStoreNames = append(failedStoreNames, name)
-	}
-
-	// Handle initialization errors
-	if len(failedStoreNames) > 0 {
-		return Stores{}, fmt.Errorf("failed to initialize the following stores: %s", strings.Join(failedStoreNames, ", "))
-	}
-
-	// Assign successful stores
-	for result := range results {
-		mu.Lock()
-		storeCreators[result.name].assign(&stores, result.instance)
-		mu.Unlock()
-	}
-
-	// Log successful initialization metrics
-	logger.Info("all database stores initialized successfully",
-		logging.StringField("operation", "store_initialization"),
-		logging.DurationField("init_duration", time.Since(startTime)),
-		logging.IntField("total_stores_initialized", len(storeCreators)),
-	)
-
-	return stores, nil
-}
+// wrapCreatorSQLX and wrapAssigner are now in internal/infrastructure/store/module.go

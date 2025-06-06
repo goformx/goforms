@@ -77,18 +77,16 @@ func (s *Server) Start(ctx context.Context) error {
 		IdleTimeout:  s.config.Server.IdleTimeout,
 	}
 
-	ln, listenErr := net.Listen("tcp", s.addr)
-	if listenErr != nil {
-		return fmt.Errorf("failed to listen on %s: %w", s.addr, listenErr)
-	}
-
+	// Start server in a goroutine
 	go func() {
-		s.logger.Info("server listening", logging.StringField("addr", s.addr), logging.StringField("env", s.config.App.Env))
-		if serveErr := s.server.Serve(ln); serveErr != nil && serveErr != http.ErrServerClosed {
-			s.logger.Error("server error", logging.ErrorField("error", serveErr))
+		s.logger.Info("server listening", logging.StringField("addr", s.addr))
+		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			s.logger.Error("server error", logging.ErrorField("error", err))
 		}
 	}()
 
+	// Wait for context cancellation
+	<-ctx.Done()
 	return nil
 }
 

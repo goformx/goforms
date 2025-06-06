@@ -3,9 +3,10 @@ package persistence
 import (
 	"go.uber.org/fx"
 
+	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/database"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
+	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 )
 
@@ -18,32 +19,15 @@ var Module = fx.Module("persistence",
 
 	// Stores
 	fx.Provide(
-		NewStores,
 		fx.Annotate(
 			userstore.NewStore,
 			fx.As(new(user.Store)),
 		),
+		fx.Annotate(
+			formstore.NewStore,
+			fx.As(new(form.Store)),
+		),
 	),
 )
 
-// StoreParams contains dependencies for creating stores
-type StoreParams struct {
-	fx.In
-
-	DB     *database.Database
-	Logger logging.Logger
-}
-
-// NewStores creates and returns all required stores
-func NewStores(p StoreParams) (
-	userStore user.Store,
-	err error,
-) {
-	p.Logger.Debug("creating database stores",
-		logging.BoolField("db_available", p.DB != nil),
-	)
-
-	userStore = userstore.NewStore(p.DB, p.Logger)
-
-	return userStore, nil
-}
+// StoreParams and NewStores have been removed as they are no longer needed.
