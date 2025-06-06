@@ -198,13 +198,13 @@ func (l *ZapLogger) WithError(err error) Logger {
 	return l.With(Error(err))
 }
 
-// WithFields returns a new logger with the given fields
-func (l *ZapLogger) WithFields(fields map[string]interface{}) Logger {
-	zapFields := make([]any, 0, len(fields))
+// WithFields adds multiple fields to the logger
+func (l *ZapLogger) WithFields(fields map[string]any) Logger {
+	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
-		zapFields = append(zapFields, LogField{Key: k, Value: v})
+		zapFields = append(zapFields, zap.Any(k, v))
 	}
-	return l.With(zapFields...)
+	return &ZapLogger{log: l.log.With(zapFields...)}
 }
 
 // convertToZapFields converts any fields to zap.Field

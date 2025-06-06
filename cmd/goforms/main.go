@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net/http"
 	"os"
@@ -91,7 +92,7 @@ func configureServerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config,
 			// Start server in a goroutine
 			go func() {
 				logger.Info("Server starting to listen", logging.StringField("addr", addr))
-				if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
+				if err := e.Start(addr); err != nil && !errors.Is(err, http.ErrServerClosed) {
 					logger.Error("Server error",
 						logging.ErrorField("error", err),
 						logging.StringField("addr", addr),
@@ -156,15 +157,15 @@ func main() {
 		),
 	)
 
-	if err := app.Err(); err != nil {
+	if appErr := app.Err(); appErr != nil {
 		startupLogger.Error("Failed to create fx application",
-			logging.ErrorField("error", err))
+			logging.ErrorField("error", appErr))
 		os.Exit(1)
 	}
 
 	// Phase 3: Start application
 	startupLogger.Info("Starting fx application...")
-	startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	startCtx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
 	defer cancel()
 
 	if startErr := app.Start(startCtx); startErr != nil {
@@ -180,26 +181,23 @@ func main() {
 
 // handleShutdown manages the graceful shutdown of the application
 func handleShutdown(app *fx.App, logger logging.Logger) {
-	// Set up signal handling
-	signalChan := make(chan os.Signal, 1)
-	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
-
 	// Wait for interrupt signal
-	logger.Info("Waiting for shutdown signal...")
-	sig := <-signalChan
-	logger.Info("Received shutdown signal",
-		logging.StringField("signal", sig.String()))
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, os.Interrupt, syscall.SIGTERM)
+	<-sigChan
 
-	// Create shutdown context with default timeout
-	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
-	defer cancelShutdown()
+	logger.Info("Shutdown signal received")
 
-	// Start graceful shutdown
-	logger.Info("Starting graceful shutdown...")
+	// Create shutdown context with timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
+	defer cancel()
+
+	// Stop the application
 	if err := app.Stop(shutdownCtx); err != nil {
-		logger.Error("Failed to stop application",
+		logger.Error("Error during shutdown",
 			logging.ErrorField("error", err))
-		return
+		os.Exit(1)
 	}
-	logger.Info("Application shutdown completed successfully")
+
+	logger.Info("Application shutdown complete")
 }

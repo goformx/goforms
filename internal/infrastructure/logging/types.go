@@ -24,7 +24,7 @@ type Logger interface {
 	WithRequestID(requestID string) Logger
 	WithUserID(userID string) Logger
 	WithError(err error) Logger
-	WithFields(fields map[string]interface{}) Logger
+	WithFields(fields map[string]any) Logger
 }
 
 // LogField represents a field in a log entry

@@ -103,47 +103,14 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 
 // GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
-	query := `
-		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
-		FROM users
-		WHERE email = ?
-	`
-
-	s.logger.Debug("getting user by email",
-		logging.StringField("email", email),
-	)
-
 	var u user.User
-	err := s.db.QueryRowxContext(ctx, query, email).Scan(
-		&u.ID,
-		&u.Email,
-		&u.HashedPassword,
-		&u.FirstName,
-		&u.LastName,
-		&u.Role,
-		&u.Active,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		s.logger.Debug("user not found by email",
-			logging.StringField("email", email),
-		)
-		return nil, ErrUserNotFound
-	}
+	err := s.db.GetContext(ctx, &u, "SELECT * FROM users WHERE email = ?", email)
 	if err != nil {
-		s.logger.Error("failed to get user by email",
-			logging.ErrorField("error", err),
-			logging.StringField("email", email),
-		)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, nil
+		}
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
-
-	s.logger.Debug("user found by email",
-		logging.UintField("id", u.ID),
-		logging.StringField("email", u.Email),
-	)
 	return &u, nil
 }
 
