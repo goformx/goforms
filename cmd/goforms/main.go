@@ -25,6 +25,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
+	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
@@ -60,11 +61,14 @@ func setupHandlers(
 	logger logging.Logger,
 	formService form.Service,
 ) (*web.WebHandler, *web.AuthHandler, *web.FormHandler, error) {
+	// Initialize renderer
+	renderer := view.NewRenderer(logger)
+
 	webHandler, err := web.NewWebHandler(web.HandlerDeps{
 		BaseHandler:       baseHandler,
 		UserService:       userService,
 		SessionManager:    sessionManager,
-		Renderer:          nil, // TODO: Initialize renderer
+		Renderer:          renderer,
 		MiddlewareManager: middlewareManager,
 		Config:            cfg,
 		Logger:            logger,
@@ -77,7 +81,7 @@ func setupHandlers(
 		BaseHandler:       baseHandler,
 		UserService:       userService,
 		SessionManager:    sessionManager,
-		Renderer:          nil, // TODO: Initialize renderer
+		Renderer:          renderer,
 		MiddlewareManager: middlewareManager,
 		Config:            cfg,
 		Logger:            logger,
@@ -90,7 +94,7 @@ func setupHandlers(
 		BaseHandler:       baseHandler,
 		UserService:       userService,
 		SessionManager:    sessionManager,
-		Renderer:          nil, // TODO: Initialize renderer
+		Renderer:          renderer,
 		MiddlewareManager: middlewareManager,
 		Config:            cfg,
 		Logger:            logger,

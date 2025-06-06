@@ -4,7 +4,6 @@ import (
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/components"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 templ Signup(data shared.PageData) {
@@ -28,8 +27,8 @@ templ signupContent(data shared.PageData) {
 		</div>
 	</div>
 
-	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
-	<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
+	<script type="module" src={ data.AssetPath("js/validation.ts") }></script>
+	<script type="module" src={ data.AssetPath("js/signup.ts") }></script>
 }
 
 templ signupContentWithError(data shared.PageData, errorMessage string) {
@@ -46,6 +45,6 @@ templ signupContentWithError(data shared.PageData, errorMessage string) {
 		</div>
 	</div>
 
-	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
-	<script type="module" src={ web.GetAssetPath("src/js/signup.ts") }></script>
+	<script type="module" src={ data.AssetPath("js/validation.ts") }></script>
+	<script type="module" src={ data.AssetPath("js/signup.ts") }></script>
 } 

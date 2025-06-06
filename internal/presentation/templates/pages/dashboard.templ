@@ -116,7 +116,7 @@ templ DashboardContent(data shared.PageData) {
 	</style>
 
 	<script type="module">
-		import { FormService } from "/src/js/services/form-service.js";
+		import { FormService } from { data.AssetPath("js/services/form-service.js") };
 
 		// Toast notification system
 		function showToast(message, type = 'success') {

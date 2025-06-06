@@ -132,7 +132,7 @@ templ EditFormContent(data shared.PageData) {
 	if data.IsDevelopment {
 		<script type="module">
 			if (document.getElementById('form-schema-builder')) {
-				const path = "/src/js/form-builder.ts";
+				const path = { data.AssetPath("js/form-builder.ts") };
 				import(path);
 			}
 		</script>
@@ -145,7 +145,7 @@ templ EditFormContent(data shared.PageData) {
 		</script>
 	}
 	<script type="module">
-		import { FormService } from "/src/js/services/form-service.js";
+		import { FormService } from { data.AssetPath("js/services/form-service.js") };
 
 		// Handle form submission
 		const form = document.getElementById('edit-form');

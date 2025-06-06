@@ -2,7 +2,6 @@ package components
 
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 templ LoginForm(data shared.PageData) {
@@ -46,6 +45,6 @@ templ LoginForm(data shared.PageData) {
 		</div>
 	</form>
 
-	<script type="module" src={ web.GetAssetPath("src/js/validation.ts") }></script>
-	<script type="module" src={ web.GetAssetPath("src/js/login.ts") }></script>
+	<script type="module" src={ data.AssetPath("js/validation.ts") }></script>
+	<script type="module" src={ data.AssetPath("js/login.ts") }></script>
 }

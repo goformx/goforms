@@ -63,7 +63,7 @@ templ DemoContent() {
 		</div>
 	</section>
 	<script type="module">
-		const path = { if data.IsDevelopment }"/src/js/demo.ts"{ else }{ web.GetAssetPath("src/js/demo.ts") }{ end };
+		const path = { data.AssetPath("js/demo.ts") };
 		import(path);
 	</script>
 } 
