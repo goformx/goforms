@@ -356,7 +356,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	m.logger.Debug("registering: rate limiter middleware")
 	formGroup.Use(setupRateLimiter(m.config.Security))
 
-	if m.config.Security.CSRF.Enabled {
+	if m.config.Security.CSRFConfig.Enabled {
 		m.logger.Debug("registering: CSRF middleware")
 		e.Use(setupCSRF(m.config.Security.Debug))
 	}
@@ -374,5 +374,54 @@ func (m *Manager) setupSecurityHeadersMiddleware(e *echo.Echo) {
 			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 			return next(c)
 		}
+	})
+}
+
+func (m *Manager) CSRFMiddleware() echo.MiddlewareFunc {
+	return echomw.CSRFWithConfig(echomw.CSRFConfig{
+		TokenLength:    DefaultTokenLength,
+		TokenLookup:    "header:X-CSRF-Token,form:csrf_token,cookie:_csrf",
+		ContextKey:     "csrf",
+		CookieName:     "_csrf",
+		CookiePath:     "/",
+		CookieDomain:   "",
+		CookieSecure:   !m.config.Security.Debug,
+		CookieHTTPOnly: true,
+		CookieSameSite: http.SameSiteStrictMode,
+		CookieMaxAge:   CookieMaxAge,
+		Skipper: func(c echo.Context) bool {
+			path := c.Request().URL.Path
+			method := c.Request().Method
+
+			// Skip CSRF check for non-modifying methods
+			if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
+				return true
+			}
+
+			// Skip CSRF check for static files
+			if isStaticFile(path) {
+				return true
+			}
+
+			// Skip CSRF check for API endpoints with Authorization header
+			if strings.HasPrefix(path, "/api/") {
+				authHeader := c.Request().Header.Get("Authorization")
+				if authHeader != "" {
+					return true
+				}
+			}
+
+			// Skip CSRF check for validation endpoints
+			if strings.HasPrefix(path, "/api/validation/") {
+				return true
+			}
+
+			// Don't skip CSRF for login page
+			if path == "/login" {
+				return false
+			}
+
+			return false
+		},
 	})
 }
