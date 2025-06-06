@@ -6,6 +6,7 @@ package main
 import (
 	"context"
 	"fmt"
+	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
@@ -22,7 +23,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
@@ -57,6 +57,15 @@ func provideEcho(logger logging.Logger) (*echo.Echo, error) {
 	e.HideBanner = true
 	e.HidePort = true
 	e.Validator = middleware.NewValidator()
+
+	// Add basic health check route
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+	})
+
+	// Configure Echo
+	e.Debug = true // Enable debug mode for development
+
 	logger.Info("Echo server initialized successfully")
 	return e, nil
 }
@@ -70,44 +79,73 @@ func configureMiddleware(e *echo.Echo, mwManager *middleware.Manager, logger log
 }
 
 // configureServerLifecycle sets up the server lifecycle hooks
-func configureServerLifecycle(lc fx.Lifecycle, srv *server.Server, logger logging.Logger) {
+func configureServerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config, logger logging.Logger) {
+	logger.Info("Configuring server lifecycle")
+
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			logger.Info("Starting server via lifecycle hook")
-			return srv.Start(ctx)
+			addr := fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port)
+			logger.Info("Starting server",
+				logging.StringField("addr", addr),
+				logging.StringField("host", cfg.Server.Host),
+				logging.IntField("port", cfg.Server.Port),
+				logging.StringField("env", cfg.App.Env),
+			)
+
+			// Start server directly
+			logger.Info("Server starting to listen", logging.StringField("addr", addr))
+			if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
+				logger.Error("Server error",
+					logging.ErrorField("error", err),
+					logging.StringField("addr", addr),
+				)
+				return fmt.Errorf("failed to start server: %w", err)
+			}
+			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			logger.Info("Stopping server via lifecycle hook")
-			return srv.Stop(ctx)
+			logger.Info("Shutting down server")
+			shutdownCtx, cancel := context.WithTimeout(ctx, cfg.Server.ShutdownTimeout)
+			defer cancel()
+			return e.Shutdown(shutdownCtx)
 		},
 	})
+
+	logger.Info("Server lifecycle configured")
 }
 
 // main is the entry point of the application.
 func main() {
+	fmt.Println("Starting application initialization...")
+
 	// Collect all fx options in a single slice
 	options := []fx.Option{
-		// Core modules
-		infrastructure.RootModule,
-		domain.Module,
-		view.Module,
-
-		// Logger setup
+		// Logger setup - must be first
 		fx.Provide(
 			func() (logging.Logger, error) {
 				return logging.NewFactory().CreateLogger()
 			},
 		),
 
+		// Add fx logger - must be after logger provider
+		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
+			if zapLogger, ok := logger.(*logging.ZapLogger); ok {
+				return &fxevent.ZapLogger{Logger: zapLogger.GetZapLogger()}
+			}
+			devLogger, _ := zap.NewDevelopment()
+			return &fxevent.ZapLogger{Logger: devLogger}
+		}),
+
+		// Core modules
+		infrastructure.RootModule,
+		infrastructure.HandlerModule,
+		domain.Module,
+		view.Module,
+
 		// Server setup
 		fx.Provide(
 			provideEcho,
 			provideShutdownConfig,
-		),
-		fx.Invoke(
-			initializeLogger,
-			configureMiddleware,
-			configureServerLifecycle,
 		),
 
 		// Web handlers
@@ -150,24 +188,29 @@ func main() {
 			),
 		),
 
-		// Add fx logger
-		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
-			if zapLogger, ok := logger.(*logging.ZapLogger); ok {
-				return &fxevent.ZapLogger{Logger: zapLogger.GetZapLogger()}
-			}
-			devLogger, _ := zap.NewDevelopment()
-			return &fxevent.ZapLogger{Logger: devLogger}
-		}),
+		// Lifecycle hooks
+		fx.Invoke(
+			initializeLogger,
+			configureMiddleware,
+			configureServerLifecycle,
+		),
 	}
 
+	fmt.Println("Creating fx application...")
 	// Create the application with fx
 	app := fx.New(options...)
+	if err := app.Err(); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create fx application: %v\n", err)
+		os.Exit(1)
+	}
 
+	fmt.Println("Starting fx application...")
 	// Start the application
 	if startErr := app.Start(context.Background()); startErr != nil {
 		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", startErr)
-		return
+		os.Exit(1)
 	}
+	fmt.Println("Fx application started successfully")
 
 	// Handle shutdown
 	handleShutdown(app)
