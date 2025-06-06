@@ -21,16 +21,38 @@ The module is split into focused sub-modules:
        fx.Provide(
            config.New,
            database.NewDB,
+           func(db *database.Database) *sqlx.DB {
+               return db.DB
+           },
+           fx.Annotate(
+               userstore.NewStore,
+               fx.As(new(user.Store)),
+           ),
+           fx.Annotate(
+               formstore.NewStore,
+               fx.As(new(form.Store)),
+           ),
+           func(logger logging.Logger) *appmiddleware.SessionManager {
+               return appmiddleware.NewSessionManager(logger)
+           },
+           func(
+               core CoreParams,
+               services ServiceParams,
+               sessionManager *appmiddleware.SessionManager,
+           ) *appmiddleware.Manager {
+               return appmiddleware.New(&appmiddleware.ManagerConfig{
+                   Logger:         core.Logger,
+                   Security:       &core.Config.Security,
+                   UserService:    services.UserService,
+                   SessionManager: sessionManager,
+                   Config:         core.Config,
+               })
+           },
        ),
    )
    ```
 
-2. `StoreModule`: Database store implementations
-   - **User Store**: Implemented in [internal/infrastructure/persistence/store/user/store.go](mdc:goforms/goforms/internal/infrastructure/persistence/store/user/store.go)
-   - **Form Store**: Implemented in [internal/infrastructure/persistence/store/form/store.go](mdc:goforms/goforms/internal/infrastructure/persistence/store/form/store.go)
-   - Both stores are registered in the DI container in [internal/infrastructure/module.go](mdc:goforms/goforms/internal/infrastructure/module.go) via `userstore.NewStore` and `formstore.NewStore`.
-3. `ServerModule`: HTTP server setup
-4. `HandlerModule`: HTTP handlers and routing
+2. `HandlerModule`: HTTP handlers and routing
 
 ## Handler Registration
 
@@ -53,7 +75,7 @@ This separation keeps dependencies organized and maintainable.
 
 ## Store Management
 
-Store initialization in `NewStores` follows these principles:
+Store initialization follows these principles:
 
 1. Early validation of database connection
 2. Explicit nil checks for each store
@@ -109,3 +131,5 @@ Logging should:
 6. Ensure type safety
 7. Follow fail-fast principle
 8. Use proper logging levels
+9. Use interface embedding for logger compatibility
+10. Keep configuration validation close to the config package
