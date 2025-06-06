@@ -167,40 +167,7 @@ var HandlerModule = fx.Options(
 					Config:            core.Config,
 					Logger:            core.Logger,
 				}
-				return web.NewPageHandler(deps, services.FormService)
-			},
-			fx.ResultTags(`group:"web_handlers"`),
-		),
-		fx.Annotate(
-			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
-				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-				deps := web.HandlerDeps{
-					BaseHandler:       baseHandler,
-					UserService:       services.UserService,
-					SessionManager:    middlewareManager.GetSessionManager(),
-					Renderer:          core.Renderer,
-					MiddlewareManager: middlewareManager,
-					Config:            core.Config,
-					Logger:            core.Logger,
-				}
-				return web.NewSettingsHandler(deps)
-			},
-			fx.ResultTags(`group:"web_handlers"`),
-		),
-		fx.Annotate(
-			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
-				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-				deps := web.HandlerDeps{
-					BaseHandler:       baseHandler,
-					UserService:       services.UserService,
-					SessionManager:    middlewareManager.GetSessionManager(),
-					Renderer:          core.Renderer,
-					MiddlewareManager: middlewareManager,
-					Config:            core.Config,
-					Logger:            core.Logger,
-				}
-				handler := web.NewDemoHandler(deps)
-				return handler, nil
+				return web.NewDemoHandler(deps)
 			},
 			fx.ResultTags(`group:"web_handlers"`),
 		),

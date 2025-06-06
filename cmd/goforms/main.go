@@ -60,7 +60,7 @@ func setupHandlers(
 	cfg *config.Config,
 	logger logging.Logger,
 	formService form.Service,
-) (*web.WebHandler, *web.AuthHandler, *web.FormHandler, error) {
+) (*web.WebHandler, *web.AuthHandler, *web.FormHandler, *web.DemoHandler, error) {
 	// Initialize renderer
 	renderer := view.NewRenderer(logger)
 
@@ -74,7 +74,7 @@ func setupHandlers(
 		Logger:            logger,
 	})
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("create web handler: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("create web handler: %w", err)
 	}
 
 	authHandler, err := web.NewAuthHandler(web.HandlerDeps{
@@ -87,7 +87,7 @@ func setupHandlers(
 		Logger:            logger,
 	})
 	if err != nil {
-		return nil, nil, nil, fmt.Errorf("create auth handler: %w", err)
+		return nil, nil, nil, nil, fmt.Errorf("create auth handler: %w", err)
 	}
 
 	formHandler := web.NewFormHandler(web.HandlerDeps{
@@ -100,7 +100,20 @@ func setupHandlers(
 		Logger:            logger,
 	}, formService)
 
-	return webHandler, authHandler, formHandler, nil
+	demoHandler, err := web.NewDemoHandler(web.HandlerDeps{
+		BaseHandler:       baseHandler,
+		UserService:       userService,
+		SessionManager:    sessionManager,
+		Renderer:          renderer,
+		MiddlewareManager: middlewareManager,
+		Config:            cfg,
+		Logger:            logger,
+	})
+	if err != nil {
+		return nil, nil, nil, nil, fmt.Errorf("create demo handler: %w", err)
+	}
+
+	return webHandler, authHandler, formHandler, demoHandler, nil
 }
 
 // main is the entry point of the application.
@@ -152,7 +165,7 @@ func main() {
 	baseHandler := web.NewBaseHandler(formService, logger)
 
 	// Initialize handlers
-	webHandler, authHandler, formHandler, err := setupHandlers(
+	webHandler, authHandler, formHandler, demoHandler, err := setupHandlers(
 		baseHandler,
 		userService,
 		sessionManager,
@@ -181,6 +194,7 @@ func main() {
 	webHandler.Register(router)
 	authHandler.Register(router)
 	formHandler.Register(router)
+	demoHandler.Register(router)
 
 	// Start server
 	server := &http.Server{

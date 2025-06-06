@@ -2,10 +2,8 @@ package middleware
 
 import (
 	"fmt"
-	"net"
 	"net/http"
 	"strings"
-	"time"
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -73,21 +71,53 @@ func New(cfg *ManagerConfig) *Manager {
 	}
 }
 
-// corsConfig creates a CORS configuration with the given parameters
-func corsConfig(
-	allowedOrigins,
-	allowedMethods,
-	allowedHeaders []string,
-	allowCredentials bool,
-	maxAge int,
-) echomw.CORSConfig {
-	return echomw.CORSConfig{
-		AllowOrigins:     allowedOrigins,
-		AllowMethods:     allowedMethods,
-		AllowHeaders:     allowedHeaders,
-		AllowCredentials: allowCredentials,
-		MaxAge:           maxAge,
+// Setup initializes the middleware manager with the Echo instance
+func (m *Manager) Setup(e *echo.Echo) {
+	m.logger.Info("middleware setup: starting")
+
+	// Enable debug mode and set log level
+	e.Debug = m.config.Security.Debug
+	if l, ok := e.Logger.(*log.Logger); ok {
+		level := log.INFO
+		switch strings.ToLower(m.config.Security.LogLevel) {
+		case "debug":
+			level = log.DEBUG
+		case "info":
+			level = log.INFO
+		case "warn":
+			level = log.WARN
+		case "error":
+			level = log.ERROR
+		}
+		l.SetLevel(level)
+		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
+		m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
 	}
+
+	// Register basic middleware
+	e.Use(echomw.Logger())
+	e.Use(echomw.Recover())
+	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+		AllowOrigins:     m.config.Security.CorsAllowedOrigins,
+		AllowMethods:     m.config.Security.CorsAllowedMethods,
+		AllowHeaders:     m.config.Security.CorsAllowedHeaders,
+		AllowCredentials: m.config.Security.CorsAllowCredentials,
+		MaxAge:           m.config.Security.CorsMaxAge,
+	}))
+
+	// Development mode specific setup
+	if m.config.Config.App.Env == "development" {
+		m.logger.Info("middleware setup: development mode enabled")
+		e.Use(echomw.Logger())
+	}
+
+	// Register security middleware
+	e.Use(setupSecurityHeadersMiddleware())
+	e.Use(setupCSRF(m.config.Config.App.Env == "development"))
+	e.Use(setupRateLimiter(m.config.Security))
+	e.Use(m.config.SessionManager.SessionMiddleware())
+
+	m.logger.Info("middleware setup: completed")
 }
 
 // setupCSRF creates and configures CSRF middleware
@@ -172,256 +202,32 @@ func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareF
 	})
 }
 
-// customLogger creates a custom logger middleware that formats logs in a human-readable format
-func customLogger(logger logging.Logger) echo.MiddlewareFunc {
+// setupSecurityHeadersMiddleware creates and configures security headers middleware
+func setupSecurityHeadersMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			start := time.Now()
-			req := c.Request()
-			res := c.Response()
-
-			// Process request
-			err := next(c)
-
-			// Calculate latency
-			latency := time.Since(start)
-
-			// Get error message if any
-			errorMsg := ""
-			if err != nil {
-				errorMsg = err.Error()
-			}
-
-			// Format log message using the main app logger
-			logger.Info("Request processed",
-				logging.StringField("component", "http"),
-				logging.StringField("operation", "request"),
-				logging.StringField("time", time.Now().Format(time.RFC3339)),
-				logging.StringField("id", res.Header().Get(echo.HeaderXRequestID)),
-				logging.StringField("remote_ip", c.RealIP()),
-				logging.StringField("host", req.Host),
-				logging.StringField("method", req.Method),
-				logging.StringField("uri", req.RequestURI),
-				logging.StringField("user_agent", req.UserAgent()),
-				logging.IntField("status", res.Status),
-				logging.StringField("error", errorMsg),
-				logging.Int64Field("latency", latency.Nanoseconds()),
-				logging.StringField("latency_human", latency.String()),
-				logging.Int64Field("bytes_in", req.ContentLength),
-				logging.Int64Field("bytes_out", res.Size),
-			)
-
-			return err
-		}
-	}
-}
-
-// Setup initializes the middleware manager with the Echo instance
-func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Info("middleware setup: starting")
-
-	// Enable debug mode and set log level
-	e.Debug = m.config.Security.Debug
-	if l, ok := e.Logger.(*log.Logger); ok {
-		level := log.INFO
-		switch strings.ToLower(m.config.Security.LogLevel) {
-		case "debug":
-			level = log.DEBUG
-		case "info":
-			level = log.INFO
-		case "warn":
-			level = log.WARN
-		case "error":
-			level = log.ERROR
-		}
-		l.SetLevel(level)
-		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
-		m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
-	}
-
-	// Basic middleware that should always be enabled
-	m.logger.Info("middleware setup: registering basic middleware")
-	e.Use(echomw.Recover())
-	e.Use(echomw.RequestID())
-	e.Use(customLogger(m.logger))
-	e.Use(echomw.BodyLimit("2M"))
-
-	// Development mode specific setup
-	if m.config.Config.App.Env == "development" {
-		m.logger.Info("middleware setup: development mode detected, using minimal middleware")
-
-		// Basic CORS for development
-		e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
-			AllowOrigins:     []string{"*"},
-			AllowMethods:     []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowHeaders:     []string{"*"},
-			AllowCredentials: true,
-		}))
-
-		// Development static file handling
-		m.logger.Debug("registering: development static file handler")
-		e.Static("/assets", "dist/assets")
-		e.Static("/", "public")
-	} else {
-		// Production middleware setup
-		m.logger.Info("middleware setup: production mode detected, registering full middleware stack")
-		m.setupBasicMiddleware(e)
-		m.setupSessionMiddleware(e)
-		m.setupSecurityMiddleware(e)
-		m.setupSecurityHeadersMiddleware(e)
-	}
-
-	m.logger.Info("middleware setup: complete")
-}
-
-// Setup basic middleware (recovery, request ID, secure headers, body limit, logging, MIME type, static files)
-func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
-	m.logger.Debug("registering: recovery middleware")
-	e.Use(echomw.Recover())
-
-	m.logger.Debug("registering: request ID middleware")
-	e.Use(echomw.RequestID())
-
-	m.logger.Debug("registering: secure headers middleware")
-	e.Use(echomw.Secure())
-
-	m.logger.Debug("registering: body limit middleware")
-	e.Use(echomw.BodyLimit("2M"))
-
-	if m.config.Config.App.Env == "production" {
-		m.logger.Debug("registering: static file handler (production mode)")
-		e.Static("/assets", "dist/assets")
-		e.Static("/", "public")
-	} else {
-		m.logger.Debug("static file handler disabled (development mode - using Vite dev server)")
-		// In development mode, let Vite handle all static files
-		e.Group("/node_modules").Any("/*", func(c echo.Context) error {
-			hostPort := net.JoinHostPort(
-				m.config.Config.App.ViteDevHost,
-				m.config.Config.App.ViteDevPort,
-			)
-			redirectURL := fmt.Sprintf("http://%s%s", hostPort, c.Request().URL.Path)
-			return c.Redirect(http.StatusTemporaryRedirect, redirectURL)
-		})
-	}
-}
-
-func (m *Manager) setupSessionMiddleware(e *echo.Echo) {
-	m.logger.Debug("registering: session middleware")
-	e.Use(m.config.SessionManager.SessionMiddleware())
-}
-
-func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
-	m.logger.Debug("registering: security headers middleware")
-	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "DENY",
-		HSTSMaxAge:            HSTSOneYear,
-		HSTSExcludeSubdomains: false,
-		ContentSecurityPolicy: strings.Join([]string{
-			"default-src 'self' http://localhost:3000; ",
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 https://cdn.form.io; ",
-			"script-src-elem 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 https://cdn.form.io; ",
-			"worker-src 'self' blob:; ",
-			"child-src 'self' blob:; ",
-			"style-src 'self' 'unsafe-inline' http://localhost:3000; ",
-			"style-src-elem 'self' 'unsafe-inline' http://localhost:3000; ",
-			"img-src 'self' data: http://localhost:3000; ",
-			"font-src 'self' http://localhost:3000; ",
-			"connect-src 'self' http://localhost:3000 ws://localhost:3000;",
-		}, ""),
-		ReferrerPolicy: "strict-origin-when-cross-origin",
-	}))
-
-	m.logger.Debug("registering: CORS middleware")
-	e.Use(echomw.CORSWithConfig(corsConfig(
-		m.config.Security.CorsAllowedOrigins,
-		m.config.Security.CorsAllowedMethods,
-		m.config.Security.CorsAllowedHeaders,
-		m.config.Security.CorsAllowCredentials,
-		m.config.Security.CorsMaxAge,
-	)))
-
-	formGroup := e.Group("/v1/forms")
-	m.logger.Debug("registering: form CORS middleware")
-	formGroup.Use(echomw.CORSWithConfig(corsConfig(
-		m.config.Security.FormCorsAllowedOrigins,
-		m.config.Security.FormCorsAllowedMethods,
-		m.config.Security.FormCorsAllowedHeaders,
-		false,
-		m.config.Security.CorsMaxAge,
-	)))
-
-	m.logger.Debug("registering: rate limiter middleware")
-	formGroup.Use(setupRateLimiter(m.config.Security))
-
-	if m.config.Security.CSRFConfig.Enabled {
-		m.logger.Debug("registering: CSRF middleware")
-		e.Use(setupCSRF(m.config.Security.Debug))
-	}
-}
-
-func (m *Manager) setupSecurityHeadersMiddleware(e *echo.Echo) {
-	m.logger.Debug("registering: security headers middleware (extra headers)")
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
+			// Set security headers
 			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
 			c.Response().Header().Set("X-Frame-Options", "DENY")
 			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
-			c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
 			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+
 			return next(c)
 		}
-	})
+	}
 }
 
-func (m *Manager) CSRFMiddleware() echo.MiddlewareFunc {
-	return echomw.CSRFWithConfig(echomw.CSRFConfig{
-		TokenLength:    DefaultTokenLength,
-		TokenLookup:    "header:X-CSRF-Token,form:csrf_token,cookie:_csrf",
-		ContextKey:     "csrf",
-		CookieName:     "_csrf",
-		CookiePath:     "/",
-		CookieDomain:   "",
-		CookieSecure:   !m.config.Security.Debug,
-		CookieHTTPOnly: true,
-		CookieSameSite: http.SameSiteStrictMode,
-		CookieMaxAge:   CookieMaxAge,
-		Skipper: func(c echo.Context) bool {
-			path := c.Request().URL.Path
-			method := c.Request().Method
-
-			// Skip CSRF check for non-modifying methods
-			if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
-				return true
-			}
-
-			// Skip CSRF check for static files
-			if isStaticFile(path) {
-				return true
-			}
-
-			// Skip CSRF check for API endpoints with Authorization header
-			if strings.HasPrefix(path, "/api/") {
-				authHeader := c.Request().Header.Get("Authorization")
-				if authHeader != "" {
-					return true
-				}
-			}
-
-			// Skip CSRF check for validation endpoints
-			if strings.HasPrefix(path, "/api/validation/") {
-				return true
-			}
-
-			// Don't skip CSRF for login page
-			if path == "/login" {
-				return false
-			}
-
-			return false
-		},
-	})
+// isStaticFile checks if the given path is a static file
+func isStaticFile(path string) bool {
+	staticExtensions := []string{
+		".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".ico",
+		".svg", ".woff", ".woff2", ".ttf", ".eot",
+	}
+	for _, ext := range staticExtensions {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
 }
