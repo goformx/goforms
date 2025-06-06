@@ -7,11 +7,24 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/common"
 )
 
-// Logger extends the common.Logger interface with additional functionality
+// Field represents a field in a log entry
+type Field = LogField
+
+// Logger defines the interface for application logging
 type Logger interface {
 	common.Logger
+
+	// Additional logging methods
 	Fatal(msg string, fields ...any)
+
+	// Context methods
 	With(fields ...any) Logger
+	WithComponent(component string) Logger
+	WithOperation(operation string) Logger
+	WithRequestID(requestID string) Logger
+	WithUserID(userID string) Logger
+	WithError(err error) Logger
+	WithFields(fields map[string]interface{}) Logger
 }
 
 // LogField represents a field in a log entry

@@ -13,13 +13,9 @@ import (
 	"time"
 
 	"go.uber.org/fx"
-	"go.uber.org/fx/fxevent"
-	"go.uber.org/zap"
 
-	webhandler "github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain"
-	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -92,15 +88,17 @@ func configureServerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config,
 				logging.StringField("env", cfg.App.Env),
 			)
 
-			// Start server directly
-			logger.Info("Server starting to listen", logging.StringField("addr", addr))
-			if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
-				logger.Error("Server error",
-					logging.ErrorField("error", err),
-					logging.StringField("addr", addr),
-				)
-				return fmt.Errorf("failed to start server: %w", err)
-			}
+			// Start server in a goroutine
+			go func() {
+				logger.Info("Server starting to listen", logging.StringField("addr", addr))
+				if err := e.Start(addr); err != nil && err != http.ErrServerClosed {
+					logger.Error("Server error",
+						logging.ErrorField("error", err),
+						logging.StringField("addr", addr),
+					)
+				}
+			}()
+
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
@@ -116,126 +114,92 @@ func configureServerLifecycle(lc fx.Lifecycle, e *echo.Echo, cfg *config.Config,
 
 // main is the entry point of the application.
 func main() {
-	fmt.Println("Starting application initialization...")
+	// Phase 1: Initialize logging
+	factory := logging.NewFactory(logging.FactoryConfig{
+		AppName:     "goforms",
+		Version:     "1.0.0",
+		Environment: "development",
+		Fields: map[string]any{
+			"version": "1.0.0",
+		},
+	})
+	startupLogger, err := factory.CreateLogger()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to create startup logger: %v\n", err)
+		os.Exit(1)
+	}
+	startupLogger.Info("Starting application initialization...")
 
-	// Collect all fx options in a single slice
-	options := []fx.Option{
-		// Logger setup - must be first
+	// Phase 2: Create fx application
+	startupLogger.Info("Creating fx application...")
+
+	app := fx.New(
+		// Core infrastructure
 		fx.Provide(
 			func() (logging.Logger, error) {
-				return logging.NewFactory().CreateLogger()
+				return factory.CreateLogger()
 			},
-		),
-
-		// Add fx logger - must be after logger provider
-		fx.WithLogger(func(logger logging.Logger) fxevent.Logger {
-			if zapLogger, ok := logger.(*logging.ZapLogger); ok {
-				return &fxevent.ZapLogger{Logger: zapLogger.GetZapLogger()}
-			}
-			devLogger, _ := zap.NewDevelopment()
-			return &fxevent.ZapLogger{Logger: devLogger}
-		}),
-
-		// Core modules
-		infrastructure.RootModule,
-		infrastructure.HandlerModule,
-		domain.Module,
-		view.Module,
-
-		// Server setup
-		fx.Provide(
-			provideEcho,
 			provideShutdownConfig,
+			provideEcho,
 		),
-
-		// Web handlers
-		fx.Provide(
-			func(formService form.Service, logger logging.Logger) *webhandler.BaseHandler {
-				return webhandler.NewBaseHandler(formService, logger)
-			},
-			func(deps webhandler.HandlerDeps) (*webhandler.AuthHandler, error) {
-				return webhandler.NewAuthHandler(deps)
-			},
-			func(deps webhandler.HandlerDeps, formService form.Service) (*webhandler.PageHandler, error) {
-				return webhandler.NewPageHandler(deps, formService)
-			},
-			func(deps webhandler.HandlerDeps) (*webhandler.WebHandler, error) {
-				return webhandler.NewWebHandler(deps)
-			},
-			func(deps webhandler.HandlerDeps) *webhandler.DemoHandler {
-				return webhandler.NewDemoHandler(deps)
-			},
-			func(deps webhandler.HandlerDeps, formService form.Service) *webhandler.FormHandler {
-				return webhandler.NewFormHandler(deps, formService)
-			},
-		),
-
-		// Group handlers
-		fx.Provide(
-			fx.Annotate(
-				func(deps webhandler.HandlerDeps) webhandler.Handler {
-					deps.Logger.Info("Registering demo handler in web_handlers group")
-					return webhandler.NewDemoHandler(deps)
-				},
-				fx.ResultTags(`group:"web_handlers"`),
-			),
-			fx.Annotate(
-				func(deps webhandler.HandlerDeps, formService form.Service) webhandler.Handler {
-					deps.Logger.Info("Registering form handler in web_handlers group")
-					return webhandler.NewFormHandler(deps, formService)
-				},
-				fx.ResultTags(`group:"web_handlers"`),
-			),
-		),
-
+		// Infrastructure modules
+		infrastructure.RootModule,
+		// Domain modules
+		domain.Module,
+		// Presentation modules
+		view.Module,
 		// Lifecycle hooks
 		fx.Invoke(
 			initializeLogger,
 			configureMiddleware,
 			configureServerLifecycle,
 		),
-	}
+	)
 
-	fmt.Println("Creating fx application...")
-	// Create the application with fx
-	app := fx.New(options...)
 	if err := app.Err(); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to create fx application: %v\n", err)
+		startupLogger.Error("Failed to create fx application",
+			logging.ErrorField("error", err))
 		os.Exit(1)
 	}
 
-	fmt.Println("Starting fx application...")
-	// Start the application
-	if startErr := app.Start(context.Background()); startErr != nil {
-		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", startErr)
+	// Phase 3: Start application
+	startupLogger.Info("Starting fx application...")
+	startCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	if startErr := app.Start(startCtx); startErr != nil {
+		startupLogger.Error("Failed to start application",
+			logging.ErrorField("error", startErr))
 		os.Exit(1)
 	}
-	fmt.Println("Fx application started successfully")
+	startupLogger.Info("Fx application started successfully")
 
-	// Handle shutdown
-	handleShutdown(app)
+	// Phase 4: Handle shutdown
+	handleShutdown(app, startupLogger)
 }
 
 // handleShutdown manages the graceful shutdown of the application
-func handleShutdown(app *fx.App) {
+func handleShutdown(app *fx.App, logger logging.Logger) {
 	// Set up signal handling
 	signalChan := make(chan os.Signal, 1)
 	signal.Notify(signalChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Wait for interrupt signal
-	fmt.Println("Waiting for shutdown signal...")
+	logger.Info("Waiting for shutdown signal...")
 	sig := <-signalChan
-	fmt.Printf("Received shutdown signal: %s\n", sig.String())
+	logger.Info("Received shutdown signal",
+		logging.StringField("signal", sig.String()))
 
 	// Create shutdown context with default timeout
 	shutdownCtx, cancelShutdown := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
 	defer cancelShutdown()
 
 	// Start graceful shutdown
-	fmt.Println("Starting graceful shutdown...")
+	logger.Info("Starting graceful shutdown...")
 	if err := app.Stop(shutdownCtx); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to stop application: %v\n", err)
+		logger.Error("Failed to stop application",
+			logging.ErrorField("error", err))
 		return
 	}
-	fmt.Println("Application shutdown completed successfully")
+	logger.Info("Application shutdown completed successfully")
 }

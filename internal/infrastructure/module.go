@@ -1,6 +1,7 @@
 package infrastructure
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/jmoiron/sqlx"
@@ -173,8 +174,72 @@ var HandlerModule = fx.Options(
 	}),
 )
 
-// RootModule provides all infrastructure dependencies
+// RootModule provides core infrastructure dependencies
 var RootModule = fx.Options(
-	InfrastructureModule,
+	// Core infrastructure
+	fx.Provide(
+		config.New,
+		database.NewDB,
+		func(db *database.Database) *sqlx.DB {
+			return db.DB
+		},
+		// Store implementations
+		fx.Annotate(
+			userstore.NewStore,
+			fx.As(new(user.Store)),
+		),
+		fx.Annotate(
+			formstore.NewStore,
+			fx.As(new(form.Store)),
+		),
+		// Middleware
+		func(logger logging.Logger) *appmiddleware.SessionManager {
+			logger.Info("Creating session manager...")
+			return appmiddleware.NewSessionManager(logger)
+		},
+		func(
+			logger logging.Logger,
+			config *config.Config,
+			userService user.Service,
+			sessionManager *appmiddleware.SessionManager,
+		) *appmiddleware.Manager {
+			logger.Info("Creating middleware manager...")
+			return appmiddleware.New(&appmiddleware.ManagerConfig{
+				Logger:         logger,
+				Security:       &config.Security,
+				UserService:    userService,
+				SessionManager: sessionManager,
+				Config:         config,
+			})
+		},
+	),
+	// Register handlers
 	HandlerModule,
+	// Lifecycle hooks
+	fx.Invoke(
+		func(lc fx.Lifecycle, db *database.Database, logger logging.Logger) {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					logger.Info("Verifying database connection...")
+					if err := db.Ping(); err != nil {
+						logger.Error("Failed to verify database connection",
+							logging.ErrorField("error", err))
+						return fmt.Errorf("failed to verify database connection: %w", err)
+					}
+					logger.Info("Database connection verified successfully")
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					logger.Info("Closing database connection...")
+					if err := db.Close(); err != nil {
+						logger.Error("Failed to close database connection",
+							logging.ErrorField("error", err))
+						return fmt.Errorf("failed to close database connection: %w", err)
+					}
+					logger.Info("Database connection closed successfully")
+					return nil
+				},
+			})
+		},
+	),
 )

@@ -44,11 +44,6 @@ type SessionManager struct {
 
 // NewSessionManager creates a new session manager
 func NewSessionManager(logger logging.Logger) *SessionManager {
-	// Create tmp directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(SessionFile), 0755); err != nil {
-		logger.Error("failed to create session directory", logging.ErrorField("error", err))
-	}
-
 	sm := &SessionManager{
 		logger:     logger,
 		sessions:   make(map[string]*Session),
@@ -56,10 +51,22 @@ func NewSessionManager(logger logging.Logger) *SessionManager {
 		storeFile:  SessionFile,
 	}
 
-	// Load existing sessions
-	if err := sm.loadSessions(); err != nil {
-		logger.Error("failed to load sessions", logging.ErrorField("error", err))
-	}
+	// Initialize session store asynchronously
+	go func() {
+		// Create tmp directory if it doesn't exist
+		if err := os.MkdirAll(filepath.Dir(SessionFile), 0755); err != nil {
+			logger.Error("failed to create session directory", logging.ErrorField("error", err))
+			return
+		}
+
+		// Load existing sessions
+		if err := sm.loadSessions(); err != nil {
+			logger.Error("failed to load sessions", logging.ErrorField("error", err))
+			return
+		}
+
+		logger.Info("session store initialized successfully")
+	}()
 
 	return sm
 }
