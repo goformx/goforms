@@ -397,8 +397,8 @@ func (sm *SessionManager) SetSessionCookie(c echo.Context, sessionID string) {
 	cookie.Value = sessionID
 	cookie.Path = "/"
 	cookie.HttpOnly = true
-	cookie.Secure = false                   // Force to false in development
-	cookie.SameSite = http.SameSiteNoneMode // Allow cross-site in development
+	cookie.Secure = sm.secureCookie
+	cookie.SameSite = http.SameSiteLaxMode // Use Lax mode in development
 	cookie.Expires = time.Now().Add(sm.expiryTime)
 
 	sm.logger.Debug("setting session cookie",
