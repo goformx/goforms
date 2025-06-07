@@ -4,6 +4,7 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
+	"errors"
 	"fmt"
 	"strconv"
 	"time"
@@ -34,7 +35,7 @@ func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.Form
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "create_submission"),
 				logging.Error(err),
@@ -158,7 +159,7 @@ func (s *FormSubmissionStore) GetByID(ctx context.Context, id string) (*model.Fo
 	query := `SELECT * FROM form_submissions WHERE id = ?`
 	err := s.db.GetContext(ctx, &submission, query, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("submission not found: %s", id)
 		}
 		return nil, fmt.Errorf("failed to get submission: %w", err)
@@ -218,7 +219,7 @@ func (s *FormSubmissionStore) Update(ctx context.Context, submission *model.Form
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "update_submission"),
 				logging.Error(err),
@@ -280,7 +281,7 @@ func (s *FormSubmissionStore) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "delete_submission"),
 				logging.Error(err),
