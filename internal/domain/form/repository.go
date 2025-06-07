@@ -26,6 +26,16 @@ type Repository interface {
 	Delete(ctx context.Context, id string) error
 	// GetFormSubmissions gets all submissions for a form
 	GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error)
+	// List returns a paginated list of forms
+	List(ctx context.Context, offset, limit int) ([]*model.Form, error)
+	// Count returns the total number of forms
+	Count(ctx context.Context) (int, error)
+	// Search searches forms by title or description
+	Search(ctx context.Context, query string, offset, limit int) ([]*model.Form, error)
+	// GetActiveForms returns all active forms
+	GetActiveForms(ctx context.Context) ([]*model.Form, error)
+	// GetFormsByStatus returns forms by their active status
+	GetFormsByStatus(ctx context.Context, active bool) ([]*model.Form, error)
 }
 
 // SubmissionStore defines the interface for form submission persistence

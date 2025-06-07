@@ -20,5 +20,5 @@ type Event interface {
 	// Timestamp returns when the event occurred
 	Timestamp() time.Time
 	// Payload returns the event payload
-	Payload() interface{}
+	Payload() any
 }

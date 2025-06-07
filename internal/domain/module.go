@@ -33,7 +33,7 @@ type FormServiceParams struct {
 
 // NewFormService creates a new form service with dependencies
 func NewFormService(p FormServiceParams) form.Service {
-	return form.NewService(p.Store, p.EventPublisher)
+	return form.NewService(p.Store, p.EventPublisher, p.Logger)
 }
 
 // Module combines all domain services
@@ -54,5 +54,19 @@ var Module = fx.Options(
 			event.NewMemoryPublisher,
 			fx.As(new(event.Publisher)),
 		),
+	),
+)
+
+// DomainModule provides domain dependencies
+var DomainModule = fx.Options(
+	fx.Provide(
+		func(
+			userRepo user.Repository,
+			formRepo form.Repository,
+			publisher event.Publisher,
+			logger logging.Logger,
+		) (user.Service, form.Service) {
+			return user.NewService(userRepo, logger), form.NewService(formRepo, publisher, logger)
+		},
 	),
 )

@@ -5,7 +5,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
-	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -62,6 +62,44 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
+// InfrastructureModule provides infrastructure dependencies
+var InfrastructureModule = fx.Options(
+	fx.Provide(
+		config.New,
+		database.NewDB,
+		func(db *database.Database) *database.Database {
+			return db
+		},
+		fx.Annotate(
+			userstore.NewStore,
+			fx.As(new(user.Repository)),
+		),
+		fx.Annotate(
+			formstore.NewStore,
+			fx.As(new(form.Repository)),
+		),
+		func(logger logging.Logger, config *config.Config) *middleware.SessionManager {
+			// In development, use secure cookies only if explicitly enabled
+			// In production, always use secure cookies
+			secureCookie := !config.App.Debug || config.Security.SecureCookie
+			return middleware.NewSessionManager(logger, secureCookie)
+		},
+		func(
+			core CoreParams,
+			services ServiceParams,
+			sessionManager *middleware.SessionManager,
+		) *middleware.Manager {
+			return middleware.NewManager(&middleware.ManagerConfig{
+				Logger:         core.Logger,
+				Security:       &core.Config.Security,
+				UserService:    services.UserService,
+				SessionManager: sessionManager,
+				Config:         core.Config,
+			})
+		},
+	),
+)
+
 // Module provides core infrastructure dependencies
 var Module = fx.Options(
 	// Core infrastructure
@@ -83,19 +121,19 @@ var Module = fx.Options(
 	),
 	// Middleware
 	fx.Provide(
-		func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
+		func(logger logging.Logger, config *config.Config) *middleware.SessionManager {
 			// In development, use secure cookies only if explicitly enabled
 			// In production, always use secure cookies
 			secureCookie := !config.App.Debug || config.Security.SecureCookie
-			return appmiddleware.NewSessionManager(logger, secureCookie)
+			return middleware.NewSessionManager(logger, secureCookie)
 		},
 		func(
 			logger logging.Logger,
 			config *config.Config,
 			userService user.Service,
-			sessionManager *appmiddleware.SessionManager,
-		) *appmiddleware.Manager {
-			return appmiddleware.New(&appmiddleware.ManagerConfig{
+			sessionManager *middleware.SessionManager,
+		) *middleware.Manager {
+			return middleware.NewManager(&middleware.ManagerConfig{
 				Logger:         logger,
 				Security:       &config.Security,
 				Config:         config,

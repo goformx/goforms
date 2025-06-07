@@ -14,7 +14,7 @@ type Event interface {
 	// Timestamp returns when the event occurred
 	Timestamp() time.Time
 	// Payload returns the event payload
-	Payload() interface{}
+	Payload() any
 }
 
 // Publisher defines the interface for publishing events
@@ -51,7 +51,7 @@ func (e *FormCreatedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
-func (e *FormCreatedEvent) Payload() interface{} {
+func (e *FormCreatedEvent) Payload() any {
 	return e.Form
 }
 
@@ -77,7 +77,7 @@ func (e *FormUpdatedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
-func (e *FormUpdatedEvent) Payload() interface{} {
+func (e *FormUpdatedEvent) Payload() any {
 	return e.Form
 }
 
@@ -103,7 +103,7 @@ func (e *FormDeletedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
-func (e *FormDeletedEvent) Payload() interface{} {
+func (e *FormDeletedEvent) Payload() any {
 	return e.FormID
 }
 
@@ -129,6 +129,6 @@ func (e *FormSubmissionCreatedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
-func (e *FormSubmissionCreatedEvent) Payload() interface{} {
+func (e *FormSubmissionCreatedEvent) Payload() any {
 	return e.Submission
 }

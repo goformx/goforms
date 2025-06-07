@@ -34,13 +34,10 @@ const (
 
 // Manager handles middleware configuration and setup
 type Manager struct {
-	logger logging.Logger
-	config *ManagerConfig
-}
-
-// GetSessionManager returns the session manager
-func (m *Manager) GetSessionManager() *SessionManager {
-	return m.config.SessionManager
+	logger             logging.Logger
+	config             *ManagerConfig
+	contextMiddleware  *ContextMiddleware
+	recoveryMiddleware *RecoveryMiddleware
 }
 
 // ManagerConfig represents the configuration for the middleware manager
@@ -52,8 +49,8 @@ type ManagerConfig struct {
 	SessionManager *SessionManager
 }
 
-// New creates a new middleware manager
-func New(cfg *ManagerConfig) *Manager {
+// NewManager creates a new middleware manager
+func NewManager(cfg *ManagerConfig) *Manager {
 	if cfg.Logger == nil {
 		panic("logger is required for Manager")
 	}
@@ -68,12 +65,19 @@ func New(cfg *ManagerConfig) *Manager {
 	}
 
 	return &Manager{
-		logger: cfg.Logger,
-		config: cfg,
+		logger:             cfg.Logger,
+		config:             cfg,
+		contextMiddleware:  NewContextMiddleware(cfg.Logger),
+		recoveryMiddleware: NewRecoveryMiddleware(cfg.Logger),
 	}
 }
 
-// Setup initializes the middleware manager with the Echo instance
+// GetSessionManager returns the session manager
+func (m *Manager) GetSessionManager() *SessionManager {
+	return m.config.SessionManager
+}
+
+// Setup registers all middleware with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Info("middleware setup: starting")
 
@@ -84,7 +88,13 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Debug = m.config.Security.Debug
 	m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
 
-	// Register basic middleware first
+	// Add recovery middleware first to catch panics
+	e.Use(m.recoveryMiddleware.WithRecovery())
+
+	// Add context middleware to handle request context
+	e.Use(m.contextMiddleware.WithContext())
+
+	// Register basic middleware
 	e.Use(echomw.Logger())
 	e.Use(echomw.Recover())
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
@@ -230,11 +240,11 @@ type EchoLogger struct {
 	logger logging.Logger
 }
 
-func (l *EchoLogger) Print(i ...interface{}) {
+func (l *EchoLogger) Print(i ...any) {
 	l.logger.Info(fmt.Sprint(i...))
 }
 
-func (l *EchoLogger) Printf(format string, args ...interface{}) {
+func (l *EchoLogger) Printf(format string, args ...any) {
 	l.logger.Info(fmt.Sprintf(format, args...))
 }
 
@@ -246,11 +256,11 @@ func (l *EchoLogger) Printj(j log.JSON) {
 	l.logger.Info("", fields...)
 }
 
-func (l *EchoLogger) Debug(i ...interface{}) {
+func (l *EchoLogger) Debug(i ...any) {
 	l.logger.Debug(fmt.Sprint(i...))
 }
 
-func (l *EchoLogger) Debugf(format string, args ...interface{}) {
+func (l *EchoLogger) Debugf(format string, args ...any) {
 	l.logger.Debug(fmt.Sprintf(format, args...))
 }
 
@@ -262,11 +272,11 @@ func (l *EchoLogger) Debugj(j log.JSON) {
 	l.logger.Debug("", fields...)
 }
 
-func (l *EchoLogger) Info(i ...interface{}) {
+func (l *EchoLogger) Info(i ...any) {
 	l.logger.Info(fmt.Sprint(i...))
 }
 
-func (l *EchoLogger) Infof(format string, args ...interface{}) {
+func (l *EchoLogger) Infof(format string, args ...any) {
 	l.logger.Info(fmt.Sprintf(format, args...))
 }
 
@@ -278,11 +288,11 @@ func (l *EchoLogger) Infoj(j log.JSON) {
 	l.logger.Info("", fields...)
 }
 
-func (l *EchoLogger) Warn(i ...interface{}) {
+func (l *EchoLogger) Warn(i ...any) {
 	l.logger.Warn(fmt.Sprint(i...))
 }
 
-func (l *EchoLogger) Warnf(format string, args ...interface{}) {
+func (l *EchoLogger) Warnf(format string, args ...any) {
 	l.logger.Warn(fmt.Sprintf(format, args...))
 }
 
@@ -294,11 +304,11 @@ func (l *EchoLogger) Warnj(j log.JSON) {
 	l.logger.Warn("", fields...)
 }
 
-func (l *EchoLogger) Error(i ...interface{}) {
+func (l *EchoLogger) Error(i ...any) {
 	l.logger.Error(fmt.Sprint(i...))
 }
 
-func (l *EchoLogger) Errorf(format string, args ...interface{}) {
+func (l *EchoLogger) Errorf(format string, args ...any) {
 	l.logger.Error(fmt.Sprintf(format, args...))
 }
 
@@ -310,11 +320,11 @@ func (l *EchoLogger) Errorj(j log.JSON) {
 	l.logger.Error("", fields...)
 }
 
-func (l *EchoLogger) Fatal(i ...interface{}) {
+func (l *EchoLogger) Fatal(i ...any) {
 	l.logger.Fatal(fmt.Sprint(i...))
 }
 
-func (l *EchoLogger) Fatalf(format string, args ...interface{}) {
+func (l *EchoLogger) Fatalf(format string, args ...any) {
 	l.logger.Fatal(fmt.Sprintf(format, args...))
 }
 
@@ -326,12 +336,12 @@ func (l *EchoLogger) Fatalj(j log.JSON) {
 	l.logger.Fatal("", fields...)
 }
 
-func (l *EchoLogger) Panic(i ...interface{}) {
+func (l *EchoLogger) Panic(i ...any) {
 	l.logger.Error(fmt.Sprint(i...))
 	panic(fmt.Sprint(i...))
 }
 
-func (l *EchoLogger) Panicf(format string, args ...interface{}) {
+func (l *EchoLogger) Panicf(format string, args ...any) {
 	l.logger.Error(fmt.Sprintf(format, args...))
 	panic(fmt.Sprintf(format, args...))
 }

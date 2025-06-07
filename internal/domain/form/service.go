@@ -2,22 +2,26 @@ package form
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/goformx/goforms/internal/domain/common/ctxutil"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 type service struct {
 	repo      Repository
 	publisher event.Publisher
+	logger    logging.Logger
 }
 
 // NewService creates a new form service instance
-func NewService(repo Repository, publisher event.Publisher) Service {
+func NewService(repo Repository, publisher event.Publisher, logger logging.Logger) Service {
 	return &service{
 		repo:      repo,
 		publisher: publisher,
+		logger:    logger,
 	}
 }
 
@@ -36,12 +40,13 @@ func (s *service) CreateForm(ctx context.Context, userID uint, title, descriptio
 	}
 
 	if err := s.repo.Create(ctx, form); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to create form: %w", err)
 	}
 
 	if err := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); err != nil {
-		// Log error but don't fail the operation
-		// TODO: Add proper error logging
+		s.logger.Error("failed to publish form created event",
+			logging.StringField("form_id", form.ID),
+			logging.ErrorField("error", err))
 	}
 
 	return form, nil
@@ -86,12 +91,13 @@ func (s *service) DeleteForm(ctx context.Context, id string) error {
 	defer cancel()
 
 	if err := s.repo.Delete(ctx, id); err != nil {
-		return err
+		return fmt.Errorf("failed to delete form: %w", err)
 	}
 
 	if err := s.publisher.Publish(ctx, event.NewFormDeletedEvent(id)); err != nil {
-		// Log error but don't fail the operation
-		// TODO: Add proper error logging
+		s.logger.Error("failed to publish form deleted event",
+			logging.StringField("form_id", id),
+			logging.ErrorField("error", err))
 	}
 
 	return nil
@@ -114,12 +120,13 @@ func (s *service) UpdateForm(ctx context.Context, form *model.Form) error {
 	}
 
 	if err := s.repo.Update(ctx, form); err != nil {
-		return err
+		return fmt.Errorf("failed to update form: %w", err)
 	}
 
 	if err := s.publisher.Publish(ctx, event.NewFormUpdatedEvent(form)); err != nil {
-		// Log error but don't fail the operation
-		// TODO: Add proper error logging
+		s.logger.Error("failed to publish form updated event",
+			logging.StringField("form_id", form.ID),
+			logging.ErrorField("error", err))
 	}
 
 	return nil
