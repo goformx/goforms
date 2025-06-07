@@ -29,7 +29,7 @@ type Stores struct {
 	fx.Out
 
 	UserStore user.Store
-	FormStore form.Store
+	FormStore form.Repository
 }
 
 // CoreParams represents core infrastructure dependencies
@@ -73,7 +73,7 @@ var Module = fx.Options(
 	// Stores
 	fx.Provide(
 		fx.Annotate(userstore.NewStore, fx.As(new(user.Store))),
-		fx.Annotate(formstore.NewStore, fx.As(new(form.Store))),
+		fx.Annotate(formstore.NewStore, fx.As(new(form.Repository))),
 	),
 	// Base handler
 	fx.Provide(

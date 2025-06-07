@@ -1,11 +1,11 @@
 package form
 
 import (
+	"context"
 	"database/sql"
 	"encoding/json"
 	"errors"
 	"fmt"
-	"time"
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -17,14 +17,14 @@ var (
 	ErrFormNotFound = errors.New("form not found")
 )
 
-// formStore implements form.Store interface
+// formStore implements form.Repository interface
 type formStore struct {
 	db     *database.Database
 	logger logging.Logger
 }
 
 // NewStore creates a new form store
-func NewStore(db *database.Database, logger logging.Logger) form.Store {
+func NewStore(db *database.Database, logger logging.Logger) form.Repository {
 	logger.Debug("creating form store",
 		logging.BoolField("db_available", db != nil),
 	)
@@ -34,7 +34,7 @@ func NewStore(db *database.Database, logger logging.Logger) form.Store {
 	}
 }
 
-func (s *formStore) Create(f *form.Form) error {
+func (s *formStore) Create(ctx context.Context, f *model.Form) error {
 	s.logger.Debug("Create called", logging.StringField("form_id", f.ID))
 	query := fmt.Sprintf(`INSERT INTO forms (uuid, user_id, title, description, schema, active, created_at, updated_at) 
 		VALUES (%s, %s, %s, %s, %s, %s, %s, %s)`,
@@ -53,15 +53,15 @@ func (s *formStore) Create(f *form.Form) error {
 		return fmt.Errorf("failed to marshal schema: %w", err)
 	}
 
-	_, err = s.db.Exec(query,
+	_, err = s.db.ExecContext(ctx, query,
 		f.ID,
 		f.UserID,
 		f.Title,
 		f.Description,
 		schemaBytes,
 		f.Active,
-		time.Now(),
-		time.Now(),
+		f.CreatedAt,
+		f.UpdatedAt,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to create form: %w", err)
@@ -70,14 +70,14 @@ func (s *formStore) Create(f *form.Form) error {
 	return nil
 }
 
-func (s *formStore) GetByID(id string) (*form.Form, error) {
+func (s *formStore) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	s.logger.Debug("GetByID called", logging.StringField("form_id", id))
 	query := fmt.Sprintf(`SELECT uuid, user_id, title, description, schema, active, created_at, updated_at 
 		FROM forms WHERE uuid = %s`, s.db.GetPlaceholder(1))
 
-	var f form.Form
+	var f model.Form
 	var schemaBytes []byte
-	err := s.db.QueryRowx(query, id).Scan(
+	err := s.db.QueryRowxContext(ctx, query, id).Scan(
 		&f.ID,
 		&f.UserID,
 		&f.Title,
@@ -89,7 +89,7 @@ func (s *formStore) GetByID(id string) (*form.Form, error) {
 	)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, ErrFormNotFound
+			return nil, model.ErrFormNotFound
 		}
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
@@ -101,7 +101,7 @@ func (s *formStore) GetByID(id string) (*form.Form, error) {
 	return &f, nil
 }
 
-func (s *formStore) GetByUserID(userID uint) ([]*form.Form, error) {
+func (s *formStore) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
 	s.logger.Debug("GetByUserID called", logging.UintField("user_id", userID))
 
 	query := fmt.Sprintf(`
@@ -111,15 +111,15 @@ func (s *formStore) GetByUserID(userID uint) ([]*form.Form, error) {
 		ORDER BY created_at DESC
 	`, s.db.GetPlaceholder(1))
 
-	rows, err := s.db.Queryx(query, userID)
+	rows, err := s.db.QueryxContext(ctx, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query forms: %w", err)
 	}
 	defer rows.Close()
 
-	var forms []*form.Form
+	var forms []*model.Form
 	for rows.Next() {
-		var f form.Form
+		var f model.Form
 		var schemaBytes []byte
 		if scanErr := rows.Scan(
 			&f.ID,
@@ -147,11 +147,11 @@ func (s *formStore) GetByUserID(userID uint) ([]*form.Form, error) {
 	return forms, nil
 }
 
-func (s *formStore) Delete(id string) error {
+func (s *formStore) Delete(ctx context.Context, id string) error {
 	s.logger.Debug("Delete called", logging.StringField("form_id", id))
 	query := fmt.Sprintf(`DELETE FROM forms WHERE uuid = %s`, s.db.GetPlaceholder(1))
 
-	result, err := s.db.Exec(query, id)
+	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete form: %w", err)
 	}
@@ -162,13 +162,13 @@ func (s *formStore) Delete(id string) error {
 	}
 
 	if rowsAffected == 0 {
-		return ErrFormNotFound
+		return model.ErrFormNotFound
 	}
 
 	return nil
 }
 
-func (s *formStore) Update(f *form.Form) error {
+func (s *formStore) Update(ctx context.Context, f *model.Form) error {
 	s.logger.Debug("Update called", logging.StringField("form_id", f.ID))
 	query := fmt.Sprintf(`UPDATE forms SET title = %s, description = %s, schema = %s, active = %s, updated_at = %s 
 		WHERE uuid = %s`,
@@ -185,12 +185,12 @@ func (s *formStore) Update(f *form.Form) error {
 		return fmt.Errorf("failed to marshal schema: %w", err)
 	}
 
-	result, err := s.db.Exec(query,
+	result, err := s.db.ExecContext(ctx, query,
 		f.Title,
 		f.Description,
 		schemaBytes,
 		f.Active,
-		time.Now(),
+		f.UpdatedAt,
 		f.ID,
 	)
 	if err != nil {
@@ -203,13 +203,13 @@ func (s *formStore) Update(f *form.Form) error {
 	}
 
 	if rowsAffected == 0 {
-		return ErrFormNotFound
+		return model.ErrFormNotFound
 	}
 
 	return nil
 }
 
-func (s *formStore) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
+func (s *formStore) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
 	s.logger.Debug("GetFormSubmissions called", logging.StringField("form_id", formID))
 
 	query := fmt.Sprintf(`
@@ -219,7 +219,7 @@ func (s *formStore) GetFormSubmissions(formID string) ([]*model.FormSubmission, 
 		ORDER BY submitted_at DESC
 	`, s.db.GetPlaceholder(1))
 
-	rows, err := s.db.Queryx(query, formID)
+	rows, err := s.db.QueryxContext(ctx, query, formID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to query form submissions: %w", err)
 	}

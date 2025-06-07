@@ -1,368 +1,171 @@
-package form
+package formstore
 
 import (
+	"context"
 	"database/sql"
-	"encoding/json"
 	"fmt"
+	"time"
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/jmoiron/sqlx"
 )
 
+// Store implements form.Repository interface
 type store struct {
-	db     *database.Database
+	db     *sqlx.DB
 	logger logging.Logger
 }
 
-// NewStore creates a new form store instance
-func NewStore(db *database.Database, logger logging.Logger) form.Store {
+// NewStore creates a new form store
+func NewStore(db *sqlx.DB, logger logging.Logger) form.Repository {
 	return &store{
 		db:     db,
 		logger: logger,
 	}
 }
 
-// Helper functions for database operations
-func (s *store) execQueryWithArgs(query, operation string, args []any, fields ...any) (sql.Result, error) {
-	result, err := s.db.Exec(query, args...)
-	if err != nil {
-		s.logger.Error(fmt.Sprintf("Failed to %s", operation),
-			append(fields, "error", err)...,
-		)
-		return nil, fmt.Errorf("database operation failed: %w", err)
-	}
-	return result, nil
-}
-
-func (s *store) queryRow(query, operation string, args []any, fields ...any) *sql.Row {
-	row := s.db.QueryRow(query, args...)
-	if row.Err() != nil {
-		s.logger.Error(fmt.Sprintf("Failed to %s", operation),
-			append(fields, "error", row.Err())...,
-		)
-	}
-	return row
-}
-
-func (s *store) query(query, operation string, args []any, fields ...any) (*sql.Rows, error) {
-	rows, err := s.db.Query(query, args...)
-	if err != nil {
-		s.logger.Error(fmt.Sprintf("Failed to %s", operation),
-			append(fields, "error", err)...,
-		)
-		return nil, fmt.Errorf("database query failed: %w", err)
-	}
-	return rows, nil
-}
-
-// Helper function for JSON validation and marshaling
-func (s *store) marshalJSON(data any, context, id string) ([]byte, error) {
-	jsonData, err := json.Marshal(data)
-	if err != nil {
-		s.logger.Error("Failed to marshal JSON",
-			"error", err,
-			"context", context,
-			"id", id,
-		)
-		return nil, fmt.Errorf("failed to marshal %s: %w", context, err)
-	}
-
-	if !json.Valid(jsonData) {
-		s.logger.Error("Invalid JSON produced",
-			"context", context,
-			"id", id,
-		)
-		return nil, fmt.Errorf("invalid JSON produced for %s", context)
-	}
-
-	return jsonData, nil
-}
-
-// Helper function for JSON validation and unmarshaling
-func (s *store) unmarshalJSON(data []byte, target any, context, id string) error {
-	if !json.Valid(data) {
-		s.logger.Error("Invalid JSON received",
-			"context", context,
-			"id", id,
-		)
-		return fmt.Errorf("invalid JSON received for %s", context)
-	}
-
-	if err := json.Unmarshal(data, target); err != nil {
-		s.logger.Error("Failed to unmarshal JSON",
-			"error", err,
-			"context", context,
-			"id", id,
-		)
-		return fmt.Errorf("failed to unmarshal %s: %w", context, err)
-	}
-
-	return nil
-}
-
-func (s *store) Create(f *form.Form) error {
+// Create creates a new form
+func (s *store) Create(ctx context.Context, form *model.Form) error {
 	query := `
-		INSERT INTO forms (uuid, user_id, title, description, schema, active)
-		VALUES (?, ?, ?, ?, ?, ?)
+		INSERT INTO forms (
+			id, user_id, title, description, schema, active, created_at, updated_at
+		) VALUES (
+			:id, :user_id, :title, :description, :schema, :active, :created_at, :updated_at
+		)
 	`
 
-	schemaJSON, err := s.marshalJSON(f.Schema, "form schema", f.ID)
+	form.CreatedAt = time.Now()
+	form.UpdatedAt = form.CreatedAt
+
+	_, err := s.db.NamedExecContext(ctx, query, form)
 	if err != nil {
+		s.logger.Error("failed to create form",
+			logging.String("operation", "create_form"),
+			logging.String("form_id", form.ID),
+			logging.Error(err),
+		)
 		return err
 	}
 
-	args := []any{
-		f.ID,
-		f.UserID,
-		f.Title,
-		f.Description,
-		schemaJSON,
-		f.Active,
-	}
-
-	_, err = s.execQueryWithArgs(query, "create form", args, "form_id", f.ID)
-	if err != nil {
-		return fmt.Errorf("failed to create form with ID %s: %w", f.ID, err)
-	}
-
 	return nil
 }
 
-func (s *store) GetByID(id string) (*form.Form, error) {
+// GetByID retrieves a form by ID
+func (s *store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	query := `
-		SELECT uuid, user_id, title, description, schema, active, created_at, updated_at
+		SELECT id, user_id, title, description, schema, active, created_at, updated_at
 		FROM forms
-		WHERE uuid = ?
+		WHERE id = $1
 	`
 
-	var schemaJSON []byte
-	f := &form.Form{}
-
-	err := s.queryRow(query, "get form", []any{id}, "form_id", id).Scan(
-		&f.ID,
-		&f.UserID,
-		&f.Title,
-		&f.Description,
-		&schemaJSON,
-		&f.Active,
-		&f.CreatedAt,
-		&f.UpdatedAt,
-	)
-
+	var form model.Form
+	err := s.db.GetContext(ctx, &form, query, id)
 	if err != nil {
 		if err == sql.ErrNoRows {
-			s.logger.Info("Form not found", "form_id", id)
-			return nil, fmt.Errorf("form with ID %s not found", id)
+			return nil, nil
 		}
-		s.logger.Error("Failed to get form", "error", err, "form_id", id)
-		return nil, fmt.Errorf("failed to retrieve form with ID %s: %w", id, err)
+		s.logger.Error("failed to get form by id",
+			logging.String("operation", "get_form_by_id"),
+			logging.String("form_id", id),
+			logging.Error(err),
+		)
+		return nil, err
 	}
 
-	if unmarshalErr := s.unmarshalJSON(schemaJSON, &f.Schema, "form schema", id); unmarshalErr != nil {
-		return nil, unmarshalErr
-	}
-
-	return f, nil
+	return &form, nil
 }
 
-func (s *store) GetByUserID(userID uint) ([]*form.Form, error) {
+// GetByUserID retrieves forms by user ID
+func (s *store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
 	query := `
-		SELECT uuid, user_id, title, description, schema, active, created_at, updated_at
+		SELECT id, user_id, title, description, schema, active, created_at, updated_at
 		FROM forms
-		WHERE user_id = ?
+		WHERE user_id = $1
+		ORDER BY created_at DESC
 	`
 
-	rows, err := s.query(query, "query forms", []any{userID}, "user_id", userID)
+	var forms []*model.Form
+	err := s.db.SelectContext(ctx, &forms, query, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query forms for user %d: %w", userID, err)
-	}
-	defer rows.Close()
-
-	var forms []*form.Form
-	var errList []error
-
-	for rows.Next() {
-		var schemaJSON []byte
-		f := &form.Form{}
-
-		scanErr := rows.Scan(
-			&f.ID,
-			&f.UserID,
-			&f.Title,
-			&f.Description,
-			&schemaJSON,
-			&f.Active,
-			&f.CreatedAt,
-			&f.UpdatedAt,
+		s.logger.Error("failed to get forms by user id",
+			logging.String("operation", "get_forms_by_user_id"),
+			logging.String("user_id", fmt.Sprintf("%d", userID)),
+			logging.Error(err),
 		)
-		if scanErr != nil {
-			errList = append(errList, fmt.Errorf("failed to scan form data for user %d: %w", userID, scanErr))
-			continue
-		}
-
-		if unmarshalErr := s.unmarshalJSON(schemaJSON, &f.Schema, "form schema", f.ID); unmarshalErr != nil {
-			errList = append(errList, unmarshalErr)
-			continue
-		}
-
-		forms = append(forms, f)
-	}
-
-	if rowsErr := rows.Err(); rowsErr != nil {
-		errList = append(errList, fmt.Errorf("error while processing forms for user %d: %w", userID, rowsErr))
-	}
-
-	if len(errList) > 0 {
-		s.logger.Error("Multiple errors occurred while processing forms",
-			"user_id", userID,
-			"error_count", len(errList),
-			"errors", errList,
-		)
-		return forms, fmt.Errorf(
-			"multiple errors occurred while processing forms for user %d: %v",
-			userID, errList,
-		)
+		return nil, err
 	}
 
 	return forms, nil
 }
 
-func (s *store) Delete(id string) error {
-	query := `DELETE FROM forms WHERE uuid = ?`
-
-	result, err := s.execQueryWithArgs(query, "delete form", []any{id}, "form_id", id)
-	if err != nil {
-		return fmt.Errorf("failed to delete form with ID %s: %w", id, err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		s.logger.Error("Failed to get rows affected", "error", err, "form_id", id)
-		return fmt.Errorf("failed to verify form deletion for ID %s: %w", id, err)
-	}
-
-	if rowsAffected == 0 {
-		s.logger.Info("Form not found for deletion", "form_id", id)
-		return fmt.Errorf("form with ID %s not found for deletion", id)
-	}
-
-	return nil
-}
-
-func (s *store) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
+// Update updates a form
+func (s *store) Update(ctx context.Context, form *model.Form) error {
 	query := `
-		SELECT id, form_uuid, data, submitted_at, status, metadata
-		FROM form_submissions
-		WHERE form_uuid = ?
+		UPDATE forms
+		SET title = :title,
+			description = :description,
+			schema = :schema,
+			active = :active,
+			updated_at = :updated_at
+		WHERE id = :id
 	`
 
-	rows, err := s.query(query, "query form submissions", []any{formID}, "form_id", formID)
+	form.UpdatedAt = time.Now()
+
+	_, err := s.db.NamedExecContext(ctx, query, form)
 	if err != nil {
-		return nil, fmt.Errorf("failed to query submissions for form %s: %w", formID, err)
-	}
-	defer rows.Close()
-
-	var submissions []*model.FormSubmission
-	var errList []error
-
-	for rows.Next() {
-		var submission model.FormSubmission
-		var dataJSON, metadataJSON []byte
-
-		scanErr := rows.Scan(
-			&submission.ID,
-			&submission.FormID,
-			&dataJSON,
-			&submission.SubmittedAt,
-			&submission.Status,
-			&metadataJSON,
+		s.logger.Error("failed to update form",
+			logging.String("operation", "update_form"),
+			logging.String("form_id", form.ID),
+			logging.Error(err),
 		)
-		if scanErr != nil {
-			errList = append(errList, fmt.Errorf("failed to scan submission data for form %s: %w", formID, scanErr))
-			continue
-		}
-
-		if unmarshalErr := s.unmarshalJSON(
-			dataJSON,
-			&submission.Data,
-			"submission data",
-			submission.ID,
-		); unmarshalErr != nil {
-			errList = append(errList, unmarshalErr)
-			continue
-		}
-
-		if metadataErr := s.unmarshalJSON(
-			metadataJSON,
-			&submission.Metadata,
-			"submission metadata",
-			submission.ID,
-		); metadataErr != nil {
-			errList = append(errList, metadataErr)
-			continue
-		}
-
-		submissions = append(submissions, &submission)
-	}
-
-	if rowsErr := rows.Err(); rowsErr != nil {
-		errList = append(errList, fmt.Errorf("error while processing submissions for form %s: %w", formID, rowsErr))
-	}
-
-	if len(errList) > 0 {
-		s.logger.Error("Multiple errors occurred while processing submissions",
-			"form_id", formID,
-			"error_count", len(errList),
-			"errors", errList,
-		)
-		return submissions, fmt.Errorf(
-			"multiple errors occurred while processing submissions for form %s: %v",
-			formID, errList,
-		)
-	}
-
-	return submissions, nil
-}
-
-func (s *store) Update(f *form.Form) error {
-	// Marshal the schema to JSON
-	schemaJSON, err := s.marshalJSON(f.Schema, "form schema", f.ID)
-	if err != nil {
 		return err
 	}
 
-	// Update the form
+	return nil
+}
+
+// Delete deletes a form
+func (s *store) Delete(ctx context.Context, id string) error {
 	query := `
-		UPDATE forms 
-		SET title = ?, description = ?, schema = ?, active = ?, updated_at = CURRENT_TIMESTAMP
-		WHERE uuid = ?
+		DELETE FROM forms
+		WHERE id = $1
 	`
 
-	args := []any{
-		f.Title,
-		f.Description,
-		schemaJSON,
-		f.Active,
-		f.ID,
-	}
-
-	result, err := s.execQueryWithArgs(query, "update form", args, "form_id", f.ID)
+	_, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("failed to update form with ID %s: %w", f.ID, err)
-	}
-
-	rowsAffected, err := result.RowsAffected()
-	if err != nil {
-		s.logger.Error("Failed to get rows affected", "error", err, "form_id", f.ID)
-		return fmt.Errorf("failed to verify form update for ID %s: %w", f.ID, err)
-	}
-
-	if rowsAffected == 0 {
-		s.logger.Info("Form not found for update", "form_id", f.ID)
-		return fmt.Errorf("form with ID %s not found for update", f.ID)
+		s.logger.Error("failed to delete form",
+			logging.String("operation", "delete_form"),
+			logging.String("form_id", id),
+			logging.Error(err),
+		)
+		return err
 	}
 
 	return nil
+}
+
+// GetFormSubmissions retrieves form submissions
+func (s *store) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
+	query := `
+		SELECT id, form_id, data, created_at
+		FROM form_submissions
+		WHERE form_id = $1
+		ORDER BY created_at DESC
+	`
+
+	var submissions []*model.FormSubmission
+	err := s.db.SelectContext(ctx, &submissions, query, formID)
+	if err != nil {
+		s.logger.Error("failed to get form submissions",
+			logging.String("operation", "get_form_submissions"),
+			logging.String("form_id", formID),
+			logging.Error(err),
+		)
+		return nil, err
+	}
+
+	return submissions, nil
 }
