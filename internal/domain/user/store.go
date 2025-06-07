@@ -4,8 +4,9 @@ import (
 	"context"
 )
 
-// Store defines the interface for user storage
-type Store interface {
+// Repository defines the interface for user storage
+// (renamed from Store for consistency)
+type Repository interface {
 	Create(ctx context.Context, user *User) error
 	GetByID(ctx context.Context, id uint) (*User, error)
 	GetByEmail(ctx context.Context, email string) (*User, error)

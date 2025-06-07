@@ -13,13 +13,13 @@ import (
 type UserServiceParams struct {
 	fx.In
 
-	Store  user.Store
+	Repo   user.Repository
 	Logger logging.Logger
 }
 
 // NewUserService creates a new user service with dependencies
 func NewUserService(p UserServiceParams) user.Service {
-	return user.NewService(p.Store, p.Logger)
+	return user.NewService(p.Repo, p.Logger)
 }
 
 // FormServiceParams contains dependencies for creating a form service

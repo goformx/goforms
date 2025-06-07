@@ -17,14 +17,14 @@ var (
 	ErrUserNotFound = errors.New("user not found")
 )
 
-// Store implements user.Store interface
+// Store implements user.Repository interface
 type Store struct {
 	db     *database.Database
 	logger logging.Logger
 }
 
 // NewStore creates a new user store
-func NewStore(db *database.Database, logger logging.Logger) user.Store {
+func NewStore(db *database.Database, logger logging.Logger) user.Repository {
 	logger.Debug("creating user store",
 		logging.BoolField("db_available", db != nil),
 	)

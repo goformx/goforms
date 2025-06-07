@@ -28,7 +28,7 @@ const (
 type Stores struct {
 	fx.Out
 
-	UserStore user.Store
+	UserStore user.Repository
 	FormStore form.Repository
 }
 
@@ -72,7 +72,7 @@ var Module = fx.Options(
 	),
 	// Stores
 	fx.Provide(
-		fx.Annotate(userstore.NewStore, fx.As(new(user.Store))),
+		fx.Annotate(userstore.NewStore, fx.As(new(user.Repository))),
 		fx.Annotate(formstore.NewStore, fx.As(new(form.Repository))),
 	),
 	// Base handler
