@@ -33,7 +33,7 @@ type formModel struct {
 // submissionModel represents the database model for form submissions
 type submissionModel struct {
 	ID        string    `db:"id"`
-	FormID    string    `db:"form_id"`
+	FormID    string    `db:"form_uuid"`
 	Data      string    `db:"data"`
 	CreatedAt time.Time `db:"created_at"`
 	UpdatedAt time.Time `db:"updated_at"`
@@ -153,6 +153,21 @@ func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
 		}
 	}()
 
+	// Marshal schema to JSON
+	schemaJSON, err := json.Marshal(form.Schema)
+	if err != nil {
+		return fmt.Errorf("failed to marshal schema: %w", err)
+	}
+
+	// Create a map for named parameters
+	params := map[string]any{
+		"uuid":        form.ID,
+		"title":       form.Title,
+		"description": form.Description,
+		"schema":      string(schemaJSON),
+		"active":      form.Active,
+	}
+
 	query := `
 		UPDATE forms SET
 			title = :title,
@@ -163,7 +178,7 @@ func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
 		WHERE uuid = :uuid
 	`
 
-	result, err := tx.NamedExecContext(ctx, query, form)
+	result, err := tx.NamedExecContext(ctx, query, params)
 	if err != nil {
 		return fmt.Errorf("failed to update form: %w", err)
 	}
@@ -285,7 +300,7 @@ func (s *FormStore) GetFormsByStatus(ctx context.Context, active bool) ([]*model
 // GetFormSubmissions gets all submissions for a form
 func (s *FormStore) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
 	var submissions []submissionModel
-	query := fmt.Sprintf(`SELECT * FROM form_submissions WHERE form_id = %s`, s.db.GetPlaceholder(1))
+	query := fmt.Sprintf(`SELECT * FROM form_submissions WHERE form_uuid = %s ORDER BY created_at DESC`, s.db.GetPlaceholder(1))
 	err := s.db.SelectContext(ctx, &submissions, query, formID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get form submissions: %w", err)
