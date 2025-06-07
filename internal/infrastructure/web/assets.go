@@ -22,19 +22,32 @@ type Manifest map[string]ManifestEntry
 
 var manifest Manifest
 var appConfig *config.Config
+var manifestLoaded bool
 
-func init() {
-	// Read the manifest file
+// loadManifest attempts to load the Vite manifest file
+func loadManifest() error {
+	if manifestLoaded {
+		return nil
+	}
+
 	manifestPath := filepath.Join("dist", ".vite", "manifest.json")
 	data, err := os.ReadFile(manifestPath)
 	if err != nil {
-		panic(err)
+		if os.IsNotExist(err) {
+			// Manifest doesn't exist, initialize empty manifest
+			manifest = make(Manifest)
+			manifestLoaded = true
+			return nil
+		}
+		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
 
-	// Parse the manifest
-	if err2 := json.Unmarshal(data, &manifest); err2 != nil {
-		panic(err2)
+	if err := json.Unmarshal(data, &manifest); err != nil {
+		return fmt.Errorf("failed to parse manifest file: %w", err)
 	}
+
+	manifestLoaded = true
+	return nil
 }
 
 // SetConfig sets the application configuration
@@ -55,9 +68,13 @@ func GetAssetPath(path string) string {
 		return fmt.Sprintf("http://%s/assets/%s", hostPort, path)
 	}
 
-	// In production mode, use the manifest
-	if entry, ok := manifest[path]; ok {
-		return "/" + entry.File
+	// In production mode, try to use the manifest
+	if err := loadManifest(); err == nil {
+		if entry, ok := manifest[path]; ok {
+			return "/" + entry.File
+		}
 	}
+
+	// Fallback to direct asset path if manifest loading failed or entry not found
 	return "/assets/" + path
 }
