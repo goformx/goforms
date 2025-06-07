@@ -2,25 +2,9 @@ package form
 
 import (
 	"context"
-	"time"
 
 	"github.com/goformx/goforms/internal/domain/form/model"
 )
-
-// JSON represents a JSON object
-type JSON map[string]any
-
-// Form represents a form in the system
-type Form struct {
-	ID          string    `json:"id"`
-	UserID      uint      `json:"user_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Schema      JSON      `json:"schema"`
-	Active      bool      `json:"active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
-}
 
 // Service defines the interface for form operations
 type Service interface {

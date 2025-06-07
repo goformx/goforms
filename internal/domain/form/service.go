@@ -3,6 +3,7 @@ package form
 import (
 	"context"
 
+	"github.com/goformx/goforms/internal/domain/common/ctxutil"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/form/model"
 )
@@ -21,6 +22,13 @@ func NewService(repo Repository, publisher event.Publisher) Service {
 }
 
 func (s *service) CreateForm(ctx context.Context, userID uint, title, description string, schema model.JSON) (*model.Form, error) {
+	// Add timeout to context
+	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
+	defer cancel()
+
+	// Add user ID to context
+	ctx = ctxutil.WithUserID(ctx, userID)
+
 	form := model.NewForm(userID, title, description, schema)
 
 	if err := form.Validate(); err != nil {
@@ -40,6 +48,10 @@ func (s *service) CreateForm(ctx context.Context, userID uint, title, descriptio
 }
 
 func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
+	// Add timeout to context
+	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
+	defer cancel()
+
 	form, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
@@ -53,6 +65,13 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 }
 
 func (s *service) GetUserForms(ctx context.Context, userID uint) ([]*model.Form, error) {
+	// Add timeout to context
+	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
+	defer cancel()
+
+	// Add user ID to context
+	ctx = ctxutil.WithUserID(ctx, userID)
+
 	forms, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
@@ -62,6 +81,10 @@ func (s *service) GetUserForms(ctx context.Context, userID uint) ([]*model.Form,
 }
 
 func (s *service) DeleteForm(ctx context.Context, id string) error {
+	// Add timeout to context
+	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
+	defer cancel()
+
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return err
 	}
@@ -75,9 +98,16 @@ func (s *service) DeleteForm(ctx context.Context, id string) error {
 }
 
 func (s *service) UpdateForm(ctx context.Context, form *model.Form) error {
+	// Add timeout to context
+	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
+	defer cancel()
+
 	if form == nil {
 		return model.ErrFormInvalid
 	}
+
+	// Add user ID to context
+	ctx = ctxutil.WithUserID(ctx, form.UserID)
 
 	if err := form.Validate(); err != nil {
 		return err
@@ -97,5 +127,9 @@ func (s *service) UpdateForm(ctx context.Context, form *model.Form) error {
 
 // GetFormSubmissions returns all submissions for a form
 func (s *service) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
+	// Add timeout to context
+	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
+	defer cancel()
+
 	return s.repo.GetFormSubmissions(ctx, formID)
 }
