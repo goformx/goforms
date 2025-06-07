@@ -1,6 +1,7 @@
 package errors
 
 import (
+	"errors"
 	"net/http"
 )
 
@@ -18,7 +19,8 @@ func TranslateToHTTP(err error) *HTTPError {
 	}
 
 	// If it's already an HTTPError, return it
-	if httpErr, ok := err.(*HTTPError); ok {
+	var httpErr *HTTPError
+	if errors.As(err, &httpErr) {
 		return httpErr
 	}
 
@@ -36,7 +38,7 @@ func TranslateToHTTP(err error) *HTTPError {
 	statusCode := getHTTPStatusCode(code)
 
 	// Create the HTTP error
-	httpErr := &HTTPError{
+	httpErr = &HTTPError{
 		Code:    statusCode,
 		Message: GetErrorMessage(err),
 		Details: GetErrorContext(err),

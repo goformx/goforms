@@ -237,7 +237,7 @@ func (s *ServiceImpl) IsTokenBlacklisted(ctx context.Context, token string) (boo
 func (s *ServiceImpl) Authenticate(ctx context.Context, email, password string) (*User, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
-		if domainerrors.IsErrorCode(err, domainerrors.ErrCodeNotFound) {
+		if domainerrors.GetErrorCode(err) == domainerrors.ErrCodeNotFound {
 			return nil, ErrInvalidCredentials
 		}
 		return nil, domainerrors.WrapError(err, domainerrors.ErrCodeAuthentication, "failed to get user by email")

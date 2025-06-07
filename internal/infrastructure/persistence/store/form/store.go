@@ -4,18 +4,19 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	"errors"
+	stderrors "errors"
 	"fmt"
 	"time"
 
+	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 var (
-	ErrFormNotFound = errors.New("form not found")
-	ErrFormInvalid  = errors.New("invalid form data")
+	ErrFormNotFound = stderrors.New("form not found")
+	ErrFormInvalid  = stderrors.New("invalid form data")
 )
 
 // formModel represents the database model for forms
@@ -60,7 +61,7 @@ func (s *FormStore) Create(ctx context.Context, form *model.Form) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !stderrors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "create_form"),
 				logging.Error(err),
@@ -113,29 +114,46 @@ func (s *FormStore) Create(ctx context.Context, form *model.Form) error {
 	return nil
 }
 
-// GetByID retrieves a form by ID
+// GetByID retrieves a form by its ID
 func (s *FormStore) GetByID(ctx context.Context, id string) (*model.Form, error) {
-	var form formModel
-	query := fmt.Sprintf(`SELECT * FROM forms WHERE uuid = %s`, s.db.GetPlaceholder(1))
-	err := s.db.GetContext(ctx, &form, query, id)
+	var form model.Form
+	err := s.db.GetContext(ctx, &form, `
+		SELECT * FROM forms 
+		WHERE id = ? AND deleted_at IS NULL
+	`, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("form not found: %s", id)
+		if stderrors.Is(err, sql.ErrNoRows) {
+			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "form not found", nil)
 		}
-		return nil, fmt.Errorf("failed to get form: %w", err)
+		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get form")
 	}
-	return s.mapToForm(&form), nil
+
+	// Convert timestamps to UTC
+	form.CreatedAt = form.CreatedAt.UTC()
+	form.UpdatedAt = form.UpdatedAt.UTC()
+
+	return &form, nil
 }
 
-// GetByUserID retrieves forms by user ID
-func (s *FormStore) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
-	var forms []formModel
-	query := fmt.Sprintf(`SELECT * FROM forms WHERE user_id = %s`, s.db.GetPlaceholder(1))
-	err := s.db.SelectContext(ctx, &forms, query, userID)
+// GetByUserID retrieves all forms created by a specific user
+func (s *FormStore) GetByUserID(ctx context.Context, userID string) ([]*model.Form, error) {
+	var forms []*model.Form
+	err := s.db.SelectContext(ctx, &forms, `
+		SELECT * FROM forms 
+		WHERE user_id = ? AND deleted_at IS NULL
+		ORDER BY created_at DESC
+	`, userID)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get forms: %w", err)
+		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get forms by user ID")
 	}
-	return s.mapToForms(forms), nil
+
+	// Convert timestamps to UTC
+	for _, form := range forms {
+		form.CreatedAt = form.CreatedAt.UTC()
+		form.UpdatedAt = form.UpdatedAt.UTC()
+	}
+
+	return forms, nil
 }
 
 // Update updates an existing form
@@ -145,7 +163,7 @@ func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !stderrors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "update_form"),
 				logging.Error(err),
@@ -206,7 +224,7 @@ func (s *FormStore) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !stderrors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "delete_form"),
 				logging.Error(err),
@@ -245,6 +263,10 @@ func (s *FormStore) List(ctx context.Context, offset, limit int) ([]*model.Form,
 	if err != nil {
 		return nil, fmt.Errorf("failed to list forms: %w", err)
 	}
+	for i := range forms {
+		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
+		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
+	}
 	return s.mapToForms(forms), nil
 }
 
@@ -272,6 +294,10 @@ func (s *FormStore) Search(ctx context.Context, query string, offset, limit int)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search forms: %w", err)
 	}
+	for i := range forms {
+		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
+		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
+	}
 	return s.mapToForms(forms), nil
 }
 
@@ -283,6 +309,10 @@ func (s *FormStore) GetActiveForms(ctx context.Context) ([]*model.Form, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active forms: %w", err)
 	}
+	for i := range forms {
+		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
+		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
+	}
 	return s.mapToForms(forms), nil
 }
 
@@ -293,6 +323,10 @@ func (s *FormStore) GetFormsByStatus(ctx context.Context, active bool) ([]*model
 	err := s.db.SelectContext(ctx, &forms, query, active)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get forms: %w", err)
+	}
+	for i := range forms {
+		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
+		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
 	}
 	return s.mapToForms(forms), nil
 }

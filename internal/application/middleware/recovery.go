@@ -1,8 +1,9 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
+
+	"errors"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -15,65 +16,70 @@ func Recovery(logger logging.Logger) echo.MiddlewareFunc {
 		return func(c echo.Context) error {
 			defer func() {
 				if r := recover(); r != nil {
-					var err error
-					switch x := r.(type) {
-					case string:
-						err = fmt.Errorf("%s", x)
-					case error:
-						err = x
-					default:
-						err = fmt.Errorf("unknown panic")
-					}
-
-					logger.Error("panic recovered",
-						logging.String("error", err.Error()),
-						logging.String("path", c.Request().URL.Path),
-					)
-
-					// Check if it's a domain error
-					if domainErr, ok := err.(*domainerrors.DomainError); ok {
-						switch domainErr.Code {
-						case domainerrors.ErrCodeNotFound:
-							if jsonErr := c.JSON(http.StatusNotFound, map[string]string{
-								"error": domainErr.Message,
-							}); jsonErr != nil {
-								logger.Error("failed to send error response", logging.Error(jsonErr))
-							}
-							return
-						case domainerrors.ErrCodeValidation:
-							if jsonErr := c.JSON(http.StatusBadRequest, map[string]string{
-								"error": domainErr.Message,
-							}); jsonErr != nil {
-								logger.Error("failed to send error response", logging.Error(jsonErr))
-							}
-							return
-						case domainerrors.ErrCodeUnauthorized:
-							if jsonErr := c.JSON(http.StatusUnauthorized, map[string]string{
-								"error": domainErr.Message,
-							}); jsonErr != nil {
-								logger.Error("failed to send error response", logging.Error(jsonErr))
-							}
-							return
-						case domainerrors.ErrCodeForbidden:
-							if jsonErr := c.JSON(http.StatusForbidden, map[string]string{
-								"error": domainErr.Message,
-							}); jsonErr != nil {
-								logger.Error("failed to send error response", logging.Error(jsonErr))
-							}
-							return
-						}
-					}
-
-					// Default error response
-					if jsonErr := c.JSON(http.StatusInternalServerError, map[string]string{
-						"error": "Internal server error",
-					}); jsonErr != nil {
-						logger.Error("failed to send error response", logging.Error(jsonErr))
-					}
+					err := handlePanic(r)
+					handleError(c, err, logger)
 				}
 			}()
-
 			return next(c)
 		}
+	}
+}
+
+// handlePanic converts a panic value to an error
+func handlePanic(r interface{}) error {
+	switch x := r.(type) {
+	case string:
+		return errors.New(x)
+	case error:
+		return x
+	default:
+		return errors.New("unknown panic")
+	}
+}
+
+// handleError sends an appropriate error response
+func handleError(c echo.Context, err error, logger logging.Logger) {
+	var domainErr *domainerrors.DomainError
+	if errors.As(err, &domainErr) {
+		statusCode := getStatusCode(domainErr.Code)
+		if err := c.JSON(statusCode, domainErr); err != nil {
+			logger.Error("failed to send error response", logging.Error(err))
+		}
+		return
+	}
+
+	// Handle unknown errors
+	if err := c.JSON(http.StatusInternalServerError, map[string]string{
+		"error": "Internal Server Error",
+	}); err != nil {
+		logger.Error("failed to send error response", logging.Error(err))
+	}
+}
+
+// getStatusCode returns the appropriate HTTP status code for an error code
+func getStatusCode(code domainerrors.ErrorCode) int {
+	switch code {
+	case domainerrors.ErrCodeNotFound:
+		return http.StatusNotFound
+	case domainerrors.ErrCodeInvalid,
+		domainerrors.ErrCodeInvalidFormat,
+		domainerrors.ErrCodeInvalidInput,
+		domainerrors.ErrCodeBadRequest:
+		return http.StatusBadRequest
+	case domainerrors.ErrCodeInvalidToken,
+		domainerrors.ErrCodeAuthentication:
+		return http.StatusUnauthorized
+	case domainerrors.ErrCodeInsufficientRole:
+		return http.StatusForbidden
+	case domainerrors.ErrCodeConflict,
+		domainerrors.ErrCodeAlreadyExists:
+		return http.StatusConflict
+	case domainerrors.ErrCodeStartup,
+		domainerrors.ErrCodeShutdown:
+		return http.StatusServiceUnavailable
+	case domainerrors.ErrCodeTimeout:
+		return http.StatusGatewayTimeout
+	default:
+		return http.StatusInternalServerError
 	}
 }

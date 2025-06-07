@@ -187,6 +187,11 @@ func (s *FormSubmissionStore) GetByFormID(ctx context.Context, formID string) ([
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
 
+	for i := range submissions {
+		submissions[i].CreatedAt = submissions[i].CreatedAt.UTC()
+		submissions[i].UpdatedAt = submissions[i].UpdatedAt.UTC()
+	}
+
 	return s.convertDBSubmissions(submissions, "get_submissions"), nil
 }
 
@@ -207,6 +212,11 @@ func (s *FormSubmissionStore) GetByUserID(ctx context.Context, userID uint) ([]*
 	err := s.db.SelectContext(ctx, &submissions, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
+	}
+
+	for i := range submissions {
+		submissions[i].CreatedAt = submissions[i].CreatedAt.UTC()
+		submissions[i].UpdatedAt = submissions[i].UpdatedAt.UTC()
 	}
 
 	return s.convertDBSubmissions(submissions, "get_submissions"), nil
@@ -331,6 +341,11 @@ func (s *FormSubmissionStore) List(ctx context.Context, offset, limit int) ([]*m
 		return nil, fmt.Errorf("failed to list submissions: %w", err)
 	}
 
+	for i := range submissions {
+		submissions[i].CreatedAt = submissions[i].CreatedAt.UTC()
+		submissions[i].UpdatedAt = submissions[i].UpdatedAt.UTC()
+	}
+
 	return s.convertDBSubmissions(submissions, "list_submissions"), nil
 }
 
@@ -361,6 +376,11 @@ func (s *FormSubmissionStore) Search(ctx context.Context, formID string, userID 
 	err := s.db.SelectContext(ctx, &submissions, query, formID, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search submissions: %w", err)
+	}
+
+	for i := range submissions {
+		submissions[i].CreatedAt = submissions[i].CreatedAt.UTC()
+		submissions[i].UpdatedAt = submissions[i].UpdatedAt.UTC()
 	}
 
 	return s.convertDBSubmissions(submissions, "search_submissions"), nil

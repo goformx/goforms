@@ -5,6 +5,9 @@ import (
 	"strings"
 	"sync"
 
+	"errors"
+	"fmt"
+
 	validator "github.com/go-playground/validator/v10"
 	"github.com/goformx/goforms/internal/domain/common/interfaces"
 )
@@ -12,6 +15,59 @@ import (
 const (
 	jsonTagSplitLimit = 2
 )
+
+// ValidationError represents a single validation error
+type ValidationError struct {
+	Field   string
+	Message string
+}
+
+// ValidationErrors represents a collection of validation errors
+type ValidationErrors []ValidationError
+
+// Error implements the error interface
+func (e ValidationErrors) Error() string {
+	if len(e) == 0 {
+		return ""
+	}
+	var sb strings.Builder
+	for i, err := range e {
+		if i > 0 {
+			sb.WriteString("; ")
+		}
+		sb.WriteString(fmt.Sprintf("%s: %s", err.Field, err.Message))
+	}
+	return sb.String()
+}
+
+// getFieldName returns the field name from the validation error
+func getFieldName(e validator.FieldError) string {
+	field := e.Field()
+	if field == "" {
+		return e.StructField()
+	}
+	return field
+}
+
+// getErrorMessage returns the error message from the validation error
+func getErrorMessage(e validator.FieldError) string {
+	switch e.Tag() {
+	case "required":
+		return "field is required"
+	case "email":
+		return "must be a valid email address"
+	case "min":
+		return fmt.Sprintf("must be at least %s", e.Param())
+	case "max":
+		return fmt.Sprintf("must be at most %s", e.Param())
+	case "len":
+		return fmt.Sprintf("must be exactly %s characters", e.Param())
+	case "oneof":
+		return fmt.Sprintf("must be one of [%s]", e.Param())
+	default:
+		return fmt.Sprintf("failed on tag %s", e.Tag())
+	}
+}
 
 // validatorImpl implements the Validator interface
 type validatorImpl struct {
@@ -97,4 +153,24 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 		validationErrors["_error"] = err.Error()
 	}
 	return validationErrors
+}
+
+func (v *validatorImpl) ValidateStruct(s interface{}) error {
+	err := v.Validate.Struct(s)
+	if err == nil {
+		return nil
+	}
+
+	var ve validator.ValidationErrors
+	if errors.As(err, &ve) {
+		validationErrors := make([]ValidationError, len(ve))
+		for i, e := range ve {
+			validationErrors[i] = ValidationError{
+				Field:   getFieldName(e),
+				Message: getErrorMessage(e),
+			}
+		}
+		return ValidationErrors(validationErrors)
+	}
+	return err
 }

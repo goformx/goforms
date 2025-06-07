@@ -119,9 +119,7 @@ var Module = fx.Options(
 	),
 	// Base handler
 	fx.Provide(
-		func(formService formdomain.Service, logger logging.Logger) *web.BaseHandler {
-			return web.NewBaseHandler(formService, logger)
-		},
+		web.NewBaseHandler,
 	),
 	// Middleware
 	fx.Provide(

@@ -90,9 +90,9 @@ func (f *Form) validateSchema() error {
 
 	// Validate each field if there are any
 	for i, field := range fields {
-		fieldMap, ok := field.(map[string]any)
-		if !ok {
-			return errors.New(errors.ErrCodeValidation, fmt.Sprintf("invalid field structure at index %d", i), nil)
+		fieldMap, fieldOk := field.(map[string]any)
+		if !fieldOk {
+			return fmt.Errorf("invalid field format")
 		}
 
 		if err := f.validateField(fieldMap); err != nil {
@@ -105,66 +105,75 @@ func (f *Form) validateSchema() error {
 
 // validateField validates a single form field
 func (f *Form) validateField(field map[string]any) error {
-	// Check required field properties
-	requiredProps := []string{"type", "name", "label"}
-	for _, prop := range requiredProps {
-		if _, exists := field[prop]; !exists {
-			return errors.New(errors.ErrCodeValidation, fmt.Sprintf("field missing required property: %s", prop), nil)
-		}
+	// Validate required fields
+	if err := f.validateRequiredFields(field); err != nil {
+		return err
 	}
 
 	// Validate field type
-	fieldType, ok := field["type"].(string)
-	if !ok {
-		return errors.New(errors.ErrCodeValidation, "field type must be a string", nil)
+	if err := f.validateFieldType(field); err != nil {
+		return err
 	}
 
-	validTypes := []string{"text", "textarea", "number", "email", "select", "checkbox", "radio", "date"}
-	validType := false
-	for _, t := range validTypes {
-		if fieldType == t {
-			validType = true
-			break
+	// Validate field options
+	if err := f.validateFieldOptions(field); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+func (f *Form) validateRequiredFields(field map[string]any) error {
+	requiredFields := []string{"type", "label"}
+	for _, required := range requiredFields {
+		if _, ok := field[required]; !ok {
+			return fmt.Errorf("missing required field: %s", required)
 		}
 	}
+	return nil
+}
 
-	if !validType {
-		return errors.New(errors.ErrCodeValidation, fmt.Sprintf("invalid field type: %s", fieldType), nil)
-	}
-
-	// Validate field name
-	name, ok := field["name"].(string)
+func (f *Form) validateFieldType(field map[string]any) error {
+	fieldType, ok := field["type"].(string)
 	if !ok {
-		return errors.New(errors.ErrCodeValidation, "field name must be a string", nil)
+		return fmt.Errorf("invalid field type")
 	}
 
-	if len(name) < 1 {
-		return errors.New(errors.ErrCodeValidation, "field name cannot be empty", nil)
-	}
-
-	// Validate field label
-	label, ok := field["label"].(string)
-	if !ok {
-		return errors.New(errors.ErrCodeValidation, "field label must be a string", nil)
-	}
-
-	if len(label) < 1 {
-		return errors.New(errors.ErrCodeValidation, "field label cannot be empty", nil)
-	}
-
-	// Validate field-specific properties
 	switch fieldType {
-	case "select", "radio":
-		if options, exists := field["options"]; exists {
-			optionsArray, ok := options.([]any)
-			if !ok {
-				return errors.New(errors.ErrCodeValidation, "field options must be an array", nil)
-			}
-			if len(optionsArray) == 0 {
-				return errors.New(errors.ErrCodeValidation, "field must have at least one option", nil)
-			}
-		} else {
-			return errors.New(errors.ErrCodeValidation, "field must have options", nil)
+	case "text", "textarea", "email", "password", "number", "date", "time", "datetime", "select", "radio", "checkbox", "file":
+		return nil
+	default:
+		return fmt.Errorf("unsupported field type: %s", fieldType)
+	}
+}
+
+func (f *Form) validateFieldOptions(field map[string]any) error {
+	fieldType, _ := field["type"].(string)
+	if fieldType != "select" && fieldType != "radio" && fieldType != "checkbox" {
+		return nil
+	}
+
+	options, optionsOk := field["options"].([]any)
+	if !optionsOk {
+		return fmt.Errorf("invalid options format")
+	}
+
+	if len(options) == 0 {
+		return fmt.Errorf("empty options for %s field", fieldType)
+	}
+
+	for _, option := range options {
+		optionMap, optionOk := option.(map[string]any)
+		if !optionOk {
+			return fmt.Errorf("invalid option format")
+		}
+
+		if _, ok := optionMap["label"]; !ok {
+			return fmt.Errorf("missing label in option")
+		}
+
+		if _, ok := optionMap["value"]; !ok {
+			return fmt.Errorf("missing value in option")
 		}
 	}
 

@@ -1,13 +1,10 @@
 package config
 
 import (
-	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
-	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
 
@@ -185,58 +182,79 @@ type CSRFConfig struct {
 
 // New creates a new configuration
 func New() (*Config, error) {
-	// Load environment variables from .env file
-	if err := godotenv.Load(); err != nil {
-		// Only log a warning if the .env file is not found, as it's optional
-		if !os.IsNotExist(err) {
-			return nil, fmt.Errorf("failed to load .env file: %w", err)
-		}
-	}
-
 	cfg := &Config{}
 
-	// Process environment variables
-	if err := envconfig.Process("", cfg); err != nil {
-		return nil, fmt.Errorf("failed to process environment variables: %w", err)
+	// Load environment variables
+	if err := cfg.loadEnv(); err != nil {
+		return nil, fmt.Errorf("failed to load environment variables: %w", err)
 	}
 
-	// Validate required fields based on active driver
-	switch cfg.Database.Driver {
-	case "mariadb":
-		if cfg.Database.MariaDB.Host == "" {
-			return nil, errors.New("MariaDB host is required")
-		}
-		if cfg.Database.MariaDB.Port == 0 {
-			return nil, errors.New("MariaDB port is required")
-		}
-		if cfg.Database.MariaDB.User == "" {
-			return nil, errors.New("MariaDB user is required")
-		}
-		if cfg.Database.MariaDB.Password == "" {
-			return nil, errors.New("MariaDB password is required")
-		}
-		if cfg.Database.MariaDB.Name == "" {
-			return nil, errors.New("MariaDB database name is required")
-		}
-	case "postgres":
-		if cfg.Database.Postgres.Host == "" {
-			return nil, errors.New("PostgreSQL host is required")
-		}
-		if cfg.Database.Postgres.Port == 0 {
-			return nil, errors.New("PostgreSQL port is required")
-		}
-		if cfg.Database.Postgres.User == "" {
-			return nil, errors.New("PostgreSQL user is required")
-		}
-		if cfg.Database.Postgres.Password == "" {
-			return nil, errors.New("PostgreSQL password is required")
-		}
-		if cfg.Database.Postgres.Name == "" {
-			return nil, errors.New("PostgreSQL database name is required")
-		}
-	default:
-		return nil, fmt.Errorf("unsupported database driver: %s", cfg.Database.Driver)
+	// Validate database configuration
+	if err := cfg.validateDatabaseConfig(); err != nil {
+		return nil, fmt.Errorf("invalid database configuration: %w", err)
+	}
+
+	// Validate security configuration
+	if err := cfg.validateSecurityConfig(); err != nil {
+		return nil, fmt.Errorf("invalid security configuration: %w", err)
 	}
 
 	return cfg, nil
+}
+
+func (c *Config) loadEnv() error {
+	if err := envconfig.Process("", c); err != nil {
+		return fmt.Errorf("failed to process environment variables: %w", err)
+	}
+	return nil
+}
+
+func (c *Config) validateDatabaseConfig() error {
+	switch c.Database.Driver {
+	case "mariadb":
+		return c.validateMariaDBConfig()
+	case "postgres":
+		return c.validatePostgresConfig()
+	default:
+		return fmt.Errorf("unsupported database driver: %s", c.Database.Driver)
+	}
+}
+
+func (c *Config) validateMariaDBConfig() error {
+	if c.Database.MariaDB.Port == 0 {
+		return fmt.Errorf("MariaDB port is required")
+	}
+	if c.Database.MariaDB.User == "" {
+		return fmt.Errorf("MariaDB user is required")
+	}
+	if c.Database.MariaDB.Password == "" {
+		return fmt.Errorf("MariaDB password is required")
+	}
+	if c.Database.MariaDB.Name == "" {
+		return fmt.Errorf("MariaDB database name is required")
+	}
+	return nil
+}
+
+func (c *Config) validatePostgresConfig() error {
+	if c.Database.Postgres.Port == 0 {
+		return fmt.Errorf("PostgreSQL port is required")
+	}
+	if c.Database.Postgres.User == "" {
+		return fmt.Errorf("PostgreSQL user is required")
+	}
+	if c.Database.Postgres.Password == "" {
+		return fmt.Errorf("PostgreSQL password is required")
+	}
+	if c.Database.Postgres.Name == "" {
+		return fmt.Errorf("PostgreSQL database name is required")
+	}
+	return nil
+}
+
+func (c *Config) validateSecurityConfig() error {
+	if c.Security.CSRFConfig.Secret == "" {
+		return fmt.Errorf("CSRF secret is required")
+	}
+	return nil
 }

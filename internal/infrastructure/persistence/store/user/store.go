@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"strconv"
 
+	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -41,7 +42,7 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "create_user"),
 				logging.Error(err),
@@ -80,8 +81,8 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 	query := fmt.Sprintf(`SELECT * FROM users WHERE email = %s`, s.db.GetPlaceholder(1))
 	err := s.db.GetContext(ctx, &u, query, email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found: %s", email)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domainerrors.WrapError(err, domainerrors.ErrCodeNotFound, "user not found")
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
@@ -94,7 +95,7 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	query := fmt.Sprintf(`SELECT * FROM users WHERE id = %s`, s.db.GetPlaceholder(1))
 	err := s.db.GetContext(ctx, &u, query, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user not found: %d", id)
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
@@ -112,13 +113,13 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error
 }
 
 // Update updates a user
-func (s *Store) Update(ctx context.Context, user *user.User) error {
+func (s *Store) Update(ctx context.Context, userModel *user.User) error {
 	tx, err := s.db.BeginTxx(ctx, nil)
 	if err != nil {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "update_user"),
 				logging.Error(err),
@@ -147,13 +148,13 @@ func (s *Store) Update(ctx context.Context, user *user.User) error {
 	)
 
 	result, err := tx.ExecContext(ctx, query,
-		user.Email,
-		user.HashedPassword,
-		user.FirstName,
-		user.LastName,
-		user.Role,
-		user.Active,
-		user.ID,
+		userModel.Email,
+		userModel.HashedPassword,
+		userModel.FirstName,
+		userModel.LastName,
+		userModel.Role,
+		userModel.Active,
+		userModel.ID,
 	)
 	if err != nil {
 		return fmt.Errorf("failed to update user: %w", err)
@@ -165,7 +166,7 @@ func (s *Store) Update(ctx context.Context, user *user.User) error {
 	}
 
 	if rows == 0 {
-		return fmt.Errorf("user not found: %d", user.ID)
+		return fmt.Errorf("user not found: %d", userModel.ID)
 	}
 
 	if err := tx.Commit(); err != nil {
@@ -182,7 +183,7 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && err != sql.ErrTxDone {
+		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "delete_user"),
 				logging.Error(err),
@@ -257,8 +258,8 @@ func (s *Store) FindByEmail(ctx context.Context, email string) (*user.User, erro
 	var u user.User
 	err := s.db.GetContext(ctx, &u, query, email)
 	if err != nil {
-		if err == sql.ErrNoRows {
-			return nil, fmt.Errorf("user not found: %s", email)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, domainerrors.WrapError(err, domainerrors.ErrCodeNotFound, "user not found")
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)
 	}
@@ -271,7 +272,7 @@ func (s *Store) FindByID(ctx context.Context, id uint) (*user.User, error) {
 	var u user.User
 	err := s.db.GetContext(ctx, &u, query, id)
 	if err != nil {
-		if err == sql.ErrNoRows {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, fmt.Errorf("user not found: %d", id)
 		}
 		return nil, fmt.Errorf("failed to get user: %w", err)

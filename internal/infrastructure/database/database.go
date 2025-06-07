@@ -12,6 +12,11 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
+const (
+	DriverMariaDB  = "mariadb"
+	DriverPostgres = "postgres"
+)
+
 // Database wraps the SQL connection pool
 type Database struct {
 	*sqlx.DB
@@ -25,7 +30,21 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 
 	// Select configuration based on driver
 	switch cfg.Database.Driver {
-	case "postgres":
+	case DriverMariaDB:
+		logger.Debug("building MariaDB connection string",
+			logging.StringField("host", cfg.Database.MariaDB.Host),
+			logging.IntField("port", cfg.Database.MariaDB.Port),
+			logging.StringField("name", cfg.Database.MariaDB.Name),
+			logging.StringField("user", cfg.Database.MariaDB.User),
+		)
+		dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
+			cfg.Database.MariaDB.User,
+			cfg.Database.MariaDB.Password,
+			cfg.Database.MariaDB.Host,
+			cfg.Database.MariaDB.Port,
+			cfg.Database.MariaDB.Name,
+		)
+	case DriverPostgres:
 		logger.Debug("building PostgreSQL connection string",
 			logging.StringField("host", cfg.Database.Postgres.Host),
 			logging.IntField("port", cfg.Database.Postgres.Port),
@@ -39,20 +58,6 @@ func NewDB(cfg *config.Config, logger logging.Logger) (*Database, error) {
 			cfg.Database.Postgres.Password,
 			cfg.Database.Postgres.Name,
 			cfg.Database.Postgres.SSLMode,
-		)
-	case "mariadb", "mysql":
-		logger.Debug("building MariaDB connection string",
-			logging.StringField("host", cfg.Database.MariaDB.Host),
-			logging.IntField("port", cfg.Database.MariaDB.Port),
-			logging.StringField("name", cfg.Database.MariaDB.Name),
-			logging.StringField("user", cfg.Database.MariaDB.User),
-		)
-		dsn = fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
-			cfg.Database.MariaDB.User,
-			cfg.Database.MariaDB.Password,
-			cfg.Database.MariaDB.Host,
-			cfg.Database.MariaDB.Port,
-			cfg.Database.MariaDB.Name,
 		)
 	default:
 		return nil, fmt.Errorf("unsupported database driver: %s", cfg.Database.Driver)

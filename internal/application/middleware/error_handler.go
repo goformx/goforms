@@ -31,10 +31,8 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	httpErr := errors.TranslateToHTTP(err)
 
 	// Send the error response
-	if err := c.JSON(httpErr.Code, httpErr); err != nil {
-		h.logger.Error("failed to send error response",
-			logging.ErrorField("error", err),
-		)
+	if jsonErr := c.JSON(httpErr.Code, httpErr); jsonErr != nil {
+		h.logger.Error("failed to send error response", logging.Error(jsonErr))
 	}
 }
 
