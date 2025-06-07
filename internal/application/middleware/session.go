@@ -4,8 +4,8 @@ import (
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
+	"errors"
 	"fmt"
-	"log"
 	"net/http"
 	"os"
 	"path/filepath"
@@ -27,6 +27,7 @@ const (
 	SessionKey = "session"
 	// SessionCookieName is the name of the session cookie
 	SessionCookieName = "session"
+	sessionTimeout    = 5 * time.Second
 )
 
 // Session represents a user session
@@ -86,77 +87,109 @@ func NewSessionManager(logger logging.Logger, secureCookie bool) *SessionManager
 		logger.Info("session store initialization completed",
 			logging.IntField("total_sessions", len(sm.sessions)),
 		)
-	case <-time.After(5 * time.Second):
+	case <-time.After(sessionTimeout):
 		logger.Warn("session store initialization timed out, continuing without loaded sessions")
 	}
 
 	return sm
 }
 
-// loadSessions loads sessions from the store file
+// parseSessionData parses session data into a Session object
+func (sm *SessionManager) parseSessionData(data map[string]any) (*Session, error) {
+	createdStr, ok := data["created_at"].(string)
+	if !ok {
+		return nil, errors.New("invalid created_at type")
+	}
+
+	createdAt, err := time.Parse(time.RFC3339Nano, createdStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse created_at: %w", err)
+	}
+
+	expiresStr, ok := data["expires_at"].(string)
+	if !ok {
+		return nil, errors.New("invalid expires_at type")
+	}
+
+	expiresAt, err := time.Parse(time.RFC3339Nano, expiresStr)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse expires_at: %w", err)
+	}
+
+	userID, ok := data["user_id"].(float64)
+	if !ok {
+		return nil, errors.New("invalid user_id type")
+	}
+
+	email, ok := data["email"].(string)
+	if !ok {
+		return nil, errors.New("invalid email type")
+	}
+
+	role, ok := data["role"].(string)
+	if !ok {
+		return nil, errors.New("invalid role type")
+	}
+
+	return &Session{
+		UserID:    uint(userID),
+		Email:     email,
+		Role:      role,
+		CreatedAt: createdAt,
+		ExpiresAt: expiresAt,
+	}, nil
+}
+
+// loadSessions loads sessions from the file
 func (sm *SessionManager) loadSessions() error {
 	sm.mutex.Lock()
 	defer sm.mutex.Unlock()
 
-	// Create a temporary map for unmarshaling
-	tempSessions := make(map[string]map[string]interface{})
-
 	// Read the file
-	data, err := os.ReadFile(sm.storeFile)
-	if err != nil {
-		if os.IsNotExist(err) {
+	data, readErr := os.ReadFile(sm.storeFile)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
 			// File doesn't exist yet, that's okay
 			return nil
 		}
-		return fmt.Errorf("failed to read session file: %w", err)
+		return fmt.Errorf("failed to read sessions file: %w", readErr)
 	}
 
-	// Unmarshal into temporary map
-	if err := json.Unmarshal(data, &tempSessions); err != nil {
-		return fmt.Errorf("failed to unmarshal sessions: %w", err)
+	// Create a temporary map for unmarshaling
+	tempSessions := make(map[string]map[string]any)
+
+	// Unmarshal the data
+	if unmarshalErr := json.Unmarshal(data, &tempSessions); unmarshalErr != nil {
+		return fmt.Errorf("failed to unmarshal sessions: %w", unmarshalErr)
 	}
 
-	// Convert temporary map to actual Session objects
-	now := time.Now()
+	// Process each session
 	validSessions := 0
+	now := time.Now()
 	for id, data := range tempSessions {
-		// Parse timestamps
-		createdAt, err := time.Parse(time.RFC3339Nano, data["created_at"].(string))
+		session, err := sm.parseSessionData(data)
 		if err != nil {
-			log.Printf("Warning: Failed to parse created_at for session %s: %v", id, err)
-			continue
-		}
-		expiresAt, err := time.Parse(time.RFC3339Nano, data["expires_at"].(string))
-		if err != nil {
-			log.Printf("Warning: Failed to parse expires_at for session %s: %v", id, err)
+			sm.logger.Warn("failed to parse session data",
+				logging.StringField("session_id", id),
+				logging.ErrorField("error", err))
 			continue
 		}
 
 		// Skip expired sessions
-		if expiresAt.Before(now) {
-			log.Printf("Skipping expired session %s (expired at %v)", id, expiresAt)
+		if session.ExpiresAt.Before(now) {
+			sm.logger.Debug("skipping expired session",
+				logging.StringField("session_id", id),
+				logging.StringField("expires_at", session.ExpiresAt.Format(time.RFC3339)))
 			continue
 		}
 
-		// Create session object
-		session := &Session{
-			UserID:    uint(data["user_id"].(float64)),
-			Email:     data["email"].(string),
-			Role:      data["role"].(string),
-			CreatedAt: createdAt,
-			ExpiresAt: expiresAt,
-		}
-
-		// Store in session map
 		sm.sessions[id] = session
 		validSessions++
-
-		// Log session details
-		log.Printf("Loaded session %s: user_id=%d, email=%s, role=%s, expires_at=%v",
-			id, session.UserID, session.Email, session.Role, session.ExpiresAt)
 	}
 
-	log.Printf("Session store initialized with %d valid sessions", validSessions)
+	sm.logger.Info("loaded sessions from file",
+		logging.IntField("total_sessions", len(tempSessions)),
+		logging.IntField("valid_sessions", validSessions))
 	return nil
 }
 
@@ -167,9 +200,9 @@ func (sm *SessionManager) saveSessions() error {
 	defer sm.mutex.RUnlock()
 
 	// Create a map for JSON marshaling
-	sessionsMap := make(map[string]map[string]interface{})
+	sessionsMap := make(map[string]map[string]any)
 	for id, session := range sm.sessions {
-		sessionsMap[id] = map[string]interface{}{
+		sessionsMap[id] = map[string]any{
 			"user_id":    session.UserID,
 			"email":      session.Email,
 			"role":       session.Role,
