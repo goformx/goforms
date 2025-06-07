@@ -9,12 +9,12 @@ import (
 
 // FormSubmission represents a form submission
 type FormSubmission struct {
-	ID          string            `json:"id"`
-	FormID      string            `json:"form_id"`
-	Data        map[string]any    `json:"data"`
-	SubmittedAt time.Time         `json:"submitted_at"`
-	Status      SubmissionStatus  `json:"status"`
-	Metadata    map[string]string `json:"metadata"`
+	ID          string           `json:"id"`
+	FormID      string           `json:"form_id"`
+	Data        JSON             `json:"data"`
+	SubmittedAt time.Time        `json:"submitted_at"`
+	Status      SubmissionStatus `json:"status"`
+	Metadata    JSON             `json:"metadata"`
 }
 
 // SubmissionStatus represents the status of a form submission
@@ -57,7 +57,7 @@ func (s *FormSubmission) UpdateStatus(status SubmissionStatus) {
 // AddMetadata adds metadata to the submission
 func (s *FormSubmission) AddMetadata(key, value string) {
 	if s.Metadata == nil {
-		s.Metadata = make(map[string]string)
+		s.Metadata = make(JSON)
 	}
 	s.Metadata[key] = value
 }
@@ -67,5 +67,8 @@ func (s *FormSubmission) GetMetadata(key string) string {
 	if s.Metadata == nil {
 		return ""
 	}
-	return s.Metadata[key]
+	if val, ok := s.Metadata[key].(string); ok {
+		return val
+	}
+	return ""
 }

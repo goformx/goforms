@@ -1,63 +1,59 @@
 package form
 
 import (
-	"errors"
+	"context"
 
+	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/google/uuid"
 )
 
 type service struct {
-	store Store
+	repo      Repository
+	publisher event.Publisher
 }
 
 // NewService creates a new form service instance
-func NewService(store Store) Service {
+func NewService(repo Repository, publisher event.Publisher) Service {
 	return &service{
-		store: store,
+		repo:      repo,
+		publisher: publisher,
 	}
 }
 
-func (s *service) CreateForm(userID uint, title, description string, schema JSON) (*Form, error) {
-	if title == "" {
-		return nil, errors.New("title is required")
-	}
+func (s *service) CreateForm(ctx context.Context, userID uint, title, description string, schema model.JSON) (*model.Form, error) {
+	form := model.NewForm(userID, title, description, schema)
 
-	if schema == nil {
-		return nil, errors.New("schema is required")
-	}
-
-	form := &Form{
-		ID:          uuid.New().String(),
-		UserID:      userID,
-		Title:       title,
-		Description: description,
-		Schema:      schema,
-		Active:      true,
-	}
-
-	if err := s.store.Create(form); err != nil {
+	if err := form.Validate(); err != nil {
 		return nil, err
+	}
+
+	if err := s.repo.Create(ctx, form); err != nil {
+		return nil, err
+	}
+
+	if err := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); err != nil {
+		// Log error but don't fail the operation
+		// TODO: Add proper error logging
 	}
 
 	return form, nil
 }
 
-func (s *service) GetForm(id string) (*Form, error) {
-	form, err := s.store.GetByID(id)
+func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
+	form, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		return nil, err
 	}
 
 	if form == nil {
-		return nil, errors.New("form not found")
+		return nil, model.ErrFormNotFound
 	}
 
 	return form, nil
 }
 
-func (s *service) GetUserForms(userID uint) ([]*Form, error) {
-	forms, err := s.store.GetByUserID(userID)
+func (s *service) GetUserForms(ctx context.Context, userID uint) ([]*model.Form, error) {
+	forms, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		return nil, err
 	}
@@ -65,24 +61,41 @@ func (s *service) GetUserForms(userID uint) ([]*Form, error) {
 	return forms, nil
 }
 
-func (s *service) DeleteForm(id string) error {
-	return s.store.Delete(id)
+func (s *service) DeleteForm(ctx context.Context, id string) error {
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return err
+	}
+
+	if err := s.publisher.Publish(ctx, event.NewFormDeletedEvent(id)); err != nil {
+		// Log error but don't fail the operation
+		// TODO: Add proper error logging
+	}
+
+	return nil
 }
 
-func (s *service) UpdateForm(form *Form) error {
+func (s *service) UpdateForm(ctx context.Context, form *model.Form) error {
 	if form == nil {
-		return errors.New("form is required")
+		return model.ErrFormInvalid
 	}
 
-	if form.ID == "" {
-		return errors.New("form ID is required")
+	if err := form.Validate(); err != nil {
+		return err
 	}
 
-	// Update the form in the store - the store will handle form existence check
-	return s.store.Update(form)
+	if err := s.repo.Update(ctx, form); err != nil {
+		return err
+	}
+
+	if err := s.publisher.Publish(ctx, event.NewFormUpdatedEvent(form)); err != nil {
+		// Log error but don't fail the operation
+		// TODO: Add proper error logging
+	}
+
+	return nil
 }
 
 // GetFormSubmissions returns all submissions for a form
-func (s *service) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
-	return s.store.GetFormSubmissions(formID)
+func (s *service) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
+	return s.repo.GetFormSubmissions(ctx, formID)
 }
