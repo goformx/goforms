@@ -5,17 +5,18 @@ alwaysApply: false
 ---
 # Database Guidelines
 
-This project uses MariaDB as the primary database with sqlx for database operations.
+This project uses PostgreSQL as the primary database with GORM for database operations.
 
 ## Key Components
 1. **Database Connection** [internal/infrastructure/database/database.go](mdc:goforms/internal/infrastructure/database/database.go)
-   - Uses sqlx for enhanced database operations
+   - Uses GORM for enhanced database operations
    - Implements proper connection pooling
    - Handles context propagation
+   - Configures GORM logger
 
 2. **Store Implementation** [internal/infrastructure/persistence/store/user/store.go](mdc:goforms/internal/infrastructure/persistence/store/user/store.go)
    - Implements repository pattern
-   - Uses prepared statements
+   - Uses GORM's query builder
    - Handles transactions properly
    - Includes proper error handling
 
@@ -23,51 +24,49 @@ This project uses MariaDB as the primary database with sqlx for database operati
 1. **Context Usage**
    - Always use context-aware methods:
    ```go
-   db.QueryContext(ctx, query)
-   db.ExecContext(ctx, query)
-   db.GetContext(ctx, &dest, query)
-   db.SelectContext(ctx, &dest, query)
+   db.WithContext(ctx).First(&user)
+   db.WithContext(ctx).Create(&user)
+   db.WithContext(ctx).Updates(&user)
    ```
 
 2. **Transaction Handling**
    ```go
-   tx, err := db.BeginTx(ctx, nil)
-   if err != nil {
-       return fmt.Errorf("begin transaction: %w", err)
-   }
-   defer func() {
-       if err != nil {
-           tx.Rollback()
-           return
+   err := db.Transaction(func(tx *gorm.DB) error {
+       if err := tx.Create(&user).Error; err != nil {
+           return err
        }
-       err = tx.Commit()
-   }()
+       if err := tx.Create(&form).Error; err != nil {
+           return err
+       }
+       return nil
+   })
    ```
 
 3. **Error Handling**
    - Use domain-specific errors
    - Wrap database errors with context
-   - Handle no rows case explicitly
+   - Handle not found case explicitly
    ```go
-   if errors.Is(err, sql.ErrNoRows) {
+   if errors.Is(err, gorm.ErrRecordNotFound) {
        return nil, domain.ErrNotFound
    }
    ```
 
-4. **Query Organization**
-   - Use named parameters for safety
-   - Keep SQL queries readable
-   - Example:
+4. **Model Organization**
+   - Use GORM tags for field mapping
+   - Implement hooks for lifecycle events
+   - Use validation tags
    ```go
-   query := `
-       SELECT id, name, email 
-       FROM users 
-       WHERE status = :status
-   `
+   type User struct {
+       gorm.Model
+       Email    string `gorm:"uniqueIndex;not null" validate:"required,email"`
+       Password string `gorm:"not null" validate:"required"`
+   }
    ```
 
 ## Migration Management
-- Use golang-migrate for database migrations
+- Use GORM's auto-migration feature
+- Keep manual migrations for complex changes
 - Store migrations in [migrations](mdc:goforms/migrations) directory
 - Version migrations sequentially
 - Include both up and down migrations
@@ -76,3 +75,29 @@ This project uses MariaDB as the primary database with sqlx for database operati
   000001_create_users_table.up.sql
   000001_create_users_table.down.sql
   ```
+
+## GORM Features
+1. **Hooks**
+   - BeforeCreate
+   - AfterCreate
+   - BeforeUpdate
+   - AfterUpdate
+   - BeforeDelete
+   - AfterDelete
+
+2. **Validation**
+   - Use struct tags
+   - Custom validators
+   - Pre-save hooks
+
+3. **Relationships**
+   - HasOne
+   - HasMany
+   - BelongsTo
+   - ManyToMany
+
+4. **Query Builder**
+   - Where conditions
+   - Joins
+   - Preloading
+   - Scopes
