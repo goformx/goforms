@@ -3,98 +3,155 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Clean Architecture Guidelines
+# Architecture Guidelines
 
-This project follows a strict clean architecture approach with clear separation of concerns:
+This project follows a clean architecture pattern with clear separation of concerns and well-defined boundaries.
 
-## Layer Organization
-- **Domain Layer**: Contains business logic and interfaces
-  - Located in [internal/domain](mdc:internal/domain)
-  - Defines core business rules and interfaces
-  - No external dependencies allowed
+## Core Architecture
 
-- **Infrastructure Layer**: Contains external implementations
-  - Located in [internal/infrastructure](mdc:internal/infrastructure)
-  - Implements domain interfaces
-  - Handles external concerns (database, logging, etc.)
+1. **Domain Layer**
+   - Core business logic
+   - Domain models
+   - Domain events
+   - Domain services
+   - Repository interfaces
 
-- **Application Layer**: Handles use case orchestration
-  - Located in [internal/application](mdc:internal/application)
-  - Coordinates between domain and infrastructure
-  - Manages business workflows
+2. **Application Layer**
+   - Use cases
+   - Service implementations
+   - Command/Query handlers
+   - Event handlers
+   - Validation
 
-- **Presentation Layer**: Handles UI/API concerns
-  - Located in [internal/presentation](mdc:internal/presentation)
-  - Implements HTTP handlers and API endpoints
-  - Uses Echo framework for routing
+3. **Infrastructure Layer**
+   - Repository implementations
+   - External services
+   - Database access
+   - Message queues
+   - Caching
 
-## Key Principles
-1. Dependencies flow inward (domain ← application ← infrastructure/presentation)
-2. Domain layer has no external dependencies
-3. Each package must have a README.md describing its purpose
-4. Interfaces are defined in domain layer
-5. Implementations reside in infrastructure layer
+4. **Interface Layer**
+   - HTTP handlers
+   - API endpoints
+   - Web interfaces
+   - Authentication
+   - Authorization
 
-## Package Structure
-Example domain package structure:
+## Directory Structure
+
 ```
-internal/domain/user/
-├── model.go       # Domain entities and interfaces
-├── service.go     # Business logic implementation
-├── errors.go      # Domain-specific errors
-└── README.md      # Package documentation
+internal/
+├── domain/           # Domain layer
+│   ├── common/       # Shared domain code
+│   ├── form/         # Form domain
+│   └── user/         # User domain
+├── application/      # Application layer
+│   ├── services/     # Service implementations
+│   └── handlers/     # Command/Query handlers
+├── infrastructure/   # Infrastructure layer
+│   ├── persistence/  # Database access
+│   ├── messaging/    # Message queues
+│   └── cache/        # Caching
+└── interfaces/       # Interface layer
+    ├── http/         # HTTP handlers
+    ├── api/          # API endpoints
+    └── web/          # Web interfaces
 ```
 
-Example infrastructure package structure:
-```
-internal/infrastructure/persistence/store/
-├── module.go      # DI module definition
-├── store.go       # Store implementation
-└── README.md      # Package documentation
-```
+## Design Principles
 
-# Clean Architecture Implementation
+1. **Clean Architecture**
+   - Dependencies point inward
+   - Domain layer is independent
+   - Infrastructure adapts to domain
+   - Interfaces adapt to application
 
-This project follows clean architecture principles with clear separation of concerns across layers.
+2. **Domain-Driven Design**
+   - Rich domain models
+   - Ubiquitous language
+   - Bounded contexts
+   - Aggregate roots
 
-## Domain Layer
-The core business logic resides in the domain layer under `internal/domain/`:
+3. **SOLID Principles**
+   - Single Responsibility
+   - Open/Closed
+   - Liskov Substitution
+   - Interface Segregation
+   - Dependency Inversion
 
-### Common Packages
-- [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go): Central error handling
-- [internal/domain/common/validation/validator.go](mdc:internal/domain/common/validation/validator.go): Domain validation
-- [internal/domain/common/events/events.go](mdc:internal/domain/common/events/events.go): Domain events
+4. **Event-Driven Design**
+   - Domain events
+   - Event handlers
+   - Event sourcing
+   - CQRS
 
-### Form Domain
-- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go): Form submission model
-- [internal/domain/form/events/form_events.go](mdc:internal/domain/form/events/form_events.go): Form-specific events
+## Implementation Guidelines
 
-## Layer Guidelines
+1. **Domain Models**
+   ```go
+   type Form struct {
+       ID          string    `json:"id"`
+       UserID      uint      `json:"user_id"`
+       Title       string    `json:"title"`
+       Description string    `json:"description"`
+       Schema      JSON      `json:"schema"`
+       Active      bool      `json:"active"`
+       CreatedAt   time.Time `json:"created_at"`
+       UpdatedAt   time.Time `json:"updated_at"`
+   }
+   ```
 
-### Domain Layer Rules
-1. Contains business logic and interfaces
-2. No dependencies on external packages
-3. Uses domain events for cross-cutting concerns
-4. Implements proper validation
-5. Defines clear error types
+2. **Repository Interfaces**
+   ```go
+   type Repository interface {
+       Create(ctx context.Context, form *model.Form) error
+       GetByID(ctx context.Context, id string) (*model.Form, error)
+       GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error)
+       Update(ctx context.Context, form *model.Form) error
+       Delete(ctx context.Context, id string) error
+   }
+   ```
 
-### Application Layer Rules
-1. Orchestrates use cases
-2. Depends on domain interfaces
-3. Handles transaction boundaries
-4. Manages event dispatching
-5. Implements proper logging
+3. **Domain Services**
+   ```go
+   type Service interface {
+       CreateForm(ctx context.Context, userID uint, title, description string, schema model.JSON) (*model.Form, error)
+       GetForm(ctx context.Context, id string) (*model.Form, error)
+       GetUserForms(ctx context.Context, userID uint) ([]*model.Form, error)
+       UpdateForm(ctx context.Context, form *model.Form) error
+       DeleteForm(ctx context.Context, id string) error
+   }
+   ```
 
-### Infrastructure Layer Rules
-1. Implements domain interfaces
-2. Handles external dependencies
-3. Manages database connections
-4. Implements proper logging
-5. Handles security concerns
+4. **Event Handlers**
+   ```go
+   type EventHandler interface {
+       Handle(ctx context.Context, event Event) error
+   }
+   ```
 
-### Presentation Layer Rules
-1. Handles HTTP/API concerns
-2. Uses Echo framework
-3. Implements proper validation
-4. Returns consistent responses
-5. Handles proper error responses
+## Best Practices
+
+1. **Dependency Injection**
+   - Use constructor injection
+   - Define clear interfaces
+   - Use dependency containers
+   - Avoid service locators
+
+2. **Error Handling**
+   - Use domain-specific errors
+   - Handle errors at boundaries
+   - Include error context
+   - Maintain error chain
+
+3. **Validation**
+   - Validate at boundaries
+   - Use value objects
+   - Implement business rules
+   - Return clear errors
+
+4. **Testing**
+   - Unit test domain logic
+   - Integration test services
+   - End-to-end test flows
+   - Mock external dependencies

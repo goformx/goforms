@@ -5,73 +5,135 @@ alwaysApply: false
 ---
 # Validation Guidelines
 
-This project implements a comprehensive validation system in the domain layer.
+This project uses a comprehensive validation system for ensuring data integrity and business rules.
 
-## Core Validation System
-The validation system is defined in [internal/domain/common/validation/validator.go](mdc:goforms/internal/domain/common/validation/validator.go):
+## Core Validation Components
 
-### Key Components
-
-1. **Validator**
-   - Validates structs and fields
-   - Supports custom rules
-   - Thread-safe operation
-
-2. **ValidationRule**
-   - Function type for validation rules
-   - Supports rule parameters
-   - Returns descriptive errors
-
-3. **Default Rules**
-   - Required fields
-   - Email format
-   - Minimum length
-
-## Form Validation
-Form submissions are validated in [internal/domain/form/model/form_submission.go](mdc:goforms/internal/domain/form/model/form_submission.go):
-
-### Validation Rules
-1. **Required Fields**
-   - ID
-   - FormID
-   - Data
-   - SubmittedAt
-   - Status
-
-2. **Data Validation**
-   - Non-nil check
-   - Non-empty check
-   - Type validation
-
-## Best Practices
-
-1. **Struct Validation**
+1. **Validator Interface**
    ```go
-   type User struct {
-       Email    string `validate:"required,email"`
-       Password string `validate:"required,min=8"`
+   type Validator interface {
+       Struct(any) error
+       Var(any, string) error
+       RegisterValidation(string, func(fl validator.FieldLevel) bool) error
    }
    ```
 
-2. **Custom Rules**
+2. **Domain Errors**
    ```go
-   validator.RegisterRule("custom", func(value any, ruleValue string) error {
-       // Custom validation logic
-       return nil
-   })
+   type ErrorCode string
+
+   const (
+       ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
+       ErrCodeRequired      ErrorCode = "REQUIRED_FIELD"
+       ErrCodeInvalid       ErrorCode = "INVALID_VALUE"
+       ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
+       ErrCodeInvalidInput  ErrorCode = "INVALID_INPUT"
+   )
    ```
 
-3. **Error Handling**
-   - Use domain-specific errors
-   - Include field context
-   - Return descriptive messages
+## Validation Patterns
 
-4. **Validation Location**
-   - Validate at domain boundaries
-   - Validate in constructors
-   - Validate before persistence
+1. **Model Validation**
+   - Use struct tags for basic validation
+   - Implement Validate() method for complex rules
+   - Return domain-specific errors
+   - Include validation context
 
-5. **Performance**
-   - Cache validator instances
-   - Use efficient validation rules
-   - Validate only when necessary
+2. **Input Validation**
+   - Validate at API boundaries
+   - Use middleware for common validations
+   - Return user-friendly error messages
+   - Include field-level errors
+
+3. **Business Rule Validation**
+   - Implement in domain services
+   - Use value objects for complex rules
+   - Maintain validation state
+   - Handle cross-entity validation
+
+## Example Usage
+
+### Model Validation
+```go
+type Form struct {
+    ID          string    `json:"id" validate:"required"`
+    Title       string    `json:"title" validate:"required,min=3,max=100"`
+    Description string    `json:"description" validate:"max=500"`
+    Schema      JSON      `json:"schema" validate:"required"`
+    Active      bool      `json:"active"`
+    CreatedAt   time.Time `json:"created_at"`
+    UpdatedAt   time.Time `json:"updated_at"`
+}
+
+func (f *Form) Validate() error {
+    if f.Title == "" {
+        return errors.New(errors.ErrCodeValidation, "form title is required", nil)
+    }
+    return nil
+}
+```
+
+### Input Validation
+```go
+type CreateFormRequest struct {
+    Title       string `json:"title" validate:"required,min=3,max=100"`
+    Description string `json:"description" validate:"max=500"`
+    Schema      JSON   `json:"schema" validate:"required"`
+}
+
+func (r *CreateFormRequest) Validate() error {
+    validator := validation.New()
+    if err := validator.Struct(r); err != nil {
+        return errors.Wrap(err, errors.ErrCodeValidation, "invalid form data")
+    }
+    return nil
+}
+```
+
+### Business Rule Validation
+```go
+type FormService struct {
+    repo Repository
+}
+
+func (s *FormService) CreateForm(ctx context.Context, req *CreateFormRequest) (*Form, error) {
+    // Validate input
+    if err := req.Validate(); err != nil {
+        return nil, err
+    }
+
+    // Validate business rules
+    if err := s.validateBusinessRules(ctx, req); err != nil {
+        return nil, err
+    }
+
+    // Create form
+    return s.repo.Create(ctx, req)
+}
+```
+
+## Best Practices
+
+1. **Validation Layers**
+   - Input validation at API layer
+   - Model validation at domain layer
+   - Business rule validation at service layer
+   - Database constraints at persistence layer
+
+2. **Error Handling**
+   - Use domain-specific error types
+   - Include validation context
+   - Provide user-friendly messages
+   - Maintain error hierarchy
+
+3. **Performance**
+   - Validate early
+   - Cache validation results
+   - Use efficient validators
+   - Handle large datasets
+
+4. **Testing**
+   - Unit test validation rules
+   - Test error cases
+   - Test edge cases
+   - Test performance

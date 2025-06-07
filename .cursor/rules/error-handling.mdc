@@ -5,154 +5,157 @@ alwaysApply: true
 ---
 # Error Handling Guidelines
 
-This project implements a comprehensive error handling system using domain-specific errors.
+This project implements a comprehensive error handling system for consistent error management across all layers.
 
-## Error Types
-The central error package [internal/domain/common/errors/errors.go](mdc:goforms/internal/domain/common/errors/errors.go) defines:
+## Core Error System
 
-1. **Validation Errors**
-   - ErrCodeValidation
-   - ErrCodeRequired
-   - ErrCodeInvalid
-   - ErrCodeInvalidFormat
-   - ErrCodeInvalidInput
+1. **DomainError**
+   ```go
+   type DomainError struct {
+       Code    ErrorCode
+       Message string
+       Err     error
+       Context map[string]any
+   }
+   ```
 
-2. **Authentication Errors**
-   - ErrCodeUnauthorized
-   - ErrCodeInvalidToken
-   - ErrCodeAuthentication
-   - ErrCodeInsufficientRole
+2. **Error Codes**
+   ```go
+   const (
+       // Validation errors
+       ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
+       ErrCodeRequired      ErrorCode = "REQUIRED_FIELD"
+       ErrCodeInvalid       ErrorCode = "INVALID_VALUE"
+       ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
+       ErrCodeInvalidInput  ErrorCode = "INVALID_INPUT"
 
-3. **Resource Errors**
-   - ErrCodeNotFound
-   - ErrCodeConflict
-   - ErrCodeAlreadyExists
-   - ErrCodeBadRequest
+       // Authentication errors
+       ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
+       ErrCodeForbidden        ErrorCode = "FORBIDDEN"
+       ErrCodeInvalidToken     ErrorCode = "INVALID_TOKEN"
+       ErrCodeAuthentication   ErrorCode = "AUTHENTICATION_ERROR"
+       ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
 
-4. **Application Lifecycle Errors**
-   - ErrCodeStartup
-   - ErrCodeShutdown
-   - ErrCodeConfig
-   - ErrCodeDatabase
-   - ErrCodeTimeout
-   - ErrCodeServerError
+       // Resource errors
+       ErrCodeNotFound      ErrorCode = "NOT_FOUND"
+       ErrCodeConflict      ErrorCode = "CONFLICT"
+       ErrCodeBadRequest    ErrorCode = "BAD_REQUEST"
+       ErrCodeServerError   ErrorCode = "SERVER_ERROR"
+       ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
+   )
+   ```
 
-## Error Creation
+## Error Handling Patterns
 
-### Creating New Errors
-```go
-err := errors.New(errors.ErrCodeValidation, "validation failed", nil)
-```
+1. **Domain Layer**
+   - Use domain-specific errors
+   - Include error context
+   - Wrap underlying errors
+   - Maintain error hierarchy
 
-### Wrapping Errors
-```go
-err := errors.Wrap(originalErr, errors.ErrCodeDatabase, "database operation failed")
-```
-
-### Adding Context
-```go
-err := errors.New(errors.ErrCodeValidation, "validation failed", nil).
-    WithContext("field", "email").
-    WithContext("value", "invalid@email")
-```
-
-## Error Handling Best Practices
-
-1. **Use Domain-Specific Errors**
-   - Create appropriate error types
-   - Use meaningful error codes
-   - Add relevant context
-   - Include original error when wrapping
-
-2. **Error Wrapping**
-   - Wrap errors at boundaries
-   - Preserve error context
-   - Add meaningful messages
-   - Use proper error codes
-
-3. **Error Response**
-   - Return appropriate HTTP status codes
-   - Include error details in response
+2. **Service Layer**
+   - Map domain errors to HTTP errors
+   - Add service context
+   - Handle cross-cutting concerns
    - Log errors appropriately
-   - Map domain errors to HTTP status codes
 
-4. **Validation Errors**
-   - Use validation package
-   - Return descriptive messages
-   - Include field context
-   - Use proper error codes
+3. **API Layer**
+   - Return consistent error responses
+   - Include error details
+   - Handle error translation
+   - Maintain error status codes
 
-5. **System Errors**
-   - Log with stack traces
-   - Don't expose internals
-   - Use appropriate error codes
-   - Handle startup/shutdown errors
+## Example Usage
 
-## Error Mapping
-
-The `mapErrorToStatus` function in the error logger maps domain errors to HTTP status codes:
-
+### Creating Errors
 ```go
-func mapErrorToStatus(code errors.ErrorCode) int {
-    switch code {
-    case errors.ErrCodeValidation, errors.ErrCodeRequired, errors.ErrCodeInvalid,
-        errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput, errors.ErrCodeBadRequest:
-        return http.StatusBadRequest
-    case errors.ErrCodeUnauthorized, errors.ErrCodeInvalidToken, errors.ErrCodeAuthentication:
-        return http.StatusUnauthorized
-    case errors.ErrCodeForbidden, errors.ErrCodeInsufficientRole:
-        return http.StatusForbidden
-    case errors.ErrCodeNotFound:
-        return http.StatusNotFound
-    case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists:
-        return http.StatusConflict
-    case errors.ErrCodeServerError, errors.ErrCodeStartup, errors.ErrCodeShutdown,
-        errors.ErrCodeConfig, errors.ErrCodeDatabase, errors.ErrCodeTimeout:
-        return http.StatusInternalServerError
-    default:
-        return http.StatusInternalServerError
+// Simple error
+err := errors.New(errors.ErrCodeValidation, "form title is required", nil)
+
+// Error with context
+err := errors.New(errors.ErrCodeValidation, "invalid form data", nil).
+    WithContext("form_id", formID).
+    WithContext("field", "title")
+
+// Wrapping errors
+err := errors.Wrap(originalErr, errors.ErrCodeValidation, "form validation failed")
+```
+
+### Error Handling
+```go
+func (s *FormService) CreateForm(ctx context.Context, req *CreateFormRequest) (*Form, error) {
+    // Validate input
+    if err := req.Validate(); err != nil {
+        return nil, errors.Wrap(err, errors.ErrCodeValidation, "invalid form data")
     }
+
+    // Create form
+    form, err := s.repo.Create(ctx, req)
+    if err != nil {
+        return nil, errors.Wrap(err, errors.ErrCodeServerError, "failed to create form")
+    }
+
+    return form, nil
 }
 ```
 
-## Domain Errors
-- Define domain-specific errors in their respective packages
-- Use `errors.New()` or `errors.Is()` for error type checking
-- Common domain errors include:
-  - InvalidCredentials
-  - UserExists
-  - EmailAlreadyExists
+### Error Response
+```go
+type ErrorResponse struct {
+    Code    string            `json:"code"`
+    Message string            `json:"message"`
+    Details map[string]string `json:"details,omitempty"`
+}
 
-## Error Handling in Handlers
-- Use switch statements to handle specific error types
-- Return appropriate HTTP status codes based on error type
-- Provide user-friendly error messages
-- Log unexpected errors with context
+func (h *Handler) handleError(w http.ResponseWriter, err error) {
+    var domainErr *errors.DomainError
+    if errors.As(err, &domainErr) {
+        response := ErrorResponse{
+            Code:    string(domainErr.Code),
+            Message: domainErr.Message,
+            Details: make(map[string]string),
+        }
+        
+        for k, v := range domainErr.Context {
+            response.Details[k] = fmt.Sprint(v)
+        }
+        
+        w.WriteHeader(getStatusCode(domainErr.Code))
+        json.NewEncoder(w).Encode(response)
+        return
+    }
+    
+    // Handle unknown errors
+    w.WriteHeader(http.StatusInternalServerError)
+    json.NewEncoder(w).Encode(ErrorResponse{
+        Code:    string(errors.ErrCodeServerError),
+        Message: "Internal server error",
+    })
+}
+```
 
-## Error Response Structure
-- For HTML responses:
-  - Render error page with error message
-  - Include CSRF token and other necessary data
-  - Use appropriate template for error display
-- For API responses:
-  - Return JSON with error message
-  - Include appropriate status code
-  - Maintain consistent response structure
+## Best Practices
 
-## Logging
-- Use the BaseHandler's LogError method for logging
-- Include context in error logs
-- Log unexpected errors with stack traces
-- Don't log sensitive information
+1. **Error Creation**
+   - Use appropriate error codes
+   - Include descriptive messages
+   - Add relevant context
+   - Wrap underlying errors
 
-## Error Recovery
-- Handle panics at the middleware level
-- Provide graceful degradation
-- Return appropriate error responses
-- Log recovery information
+2. **Error Handling**
+   - Handle errors at appropriate level
+   - Log errors with context
+   - Maintain error chain
+   - Clean up resources
 
-## Validation Errors
-- Return validation errors with specific field information
-- Use consistent validation error structure
-- Provide clear error messages for each validation rule
-- Include validation schema in responses
+3. **Error Response**
+   - Use consistent format
+   - Include error details
+   - Set appropriate status codes
+   - Handle all error types
+
+4. **Error Logging**
+   - Log at appropriate level
+   - Include error context
+   - Add request details
+   - Maintain error chain
