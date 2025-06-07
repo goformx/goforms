@@ -378,6 +378,9 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 
 	// Check for exact homepage match
 	if path == "/" {
+		sm.logger.Debug("SessionMiddleware: Homepage is exempt from session check",
+			logging.StringField("path", path),
+		)
 		return true
 	}
 
@@ -393,6 +396,10 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 
 	for _, exemptPath := range exemptPaths {
 		if path == exemptPath || len(path) > len(exemptPath) && path[:len(exemptPath)] == exemptPath {
+			sm.logger.Debug("SessionMiddleware: Path is exempt from session check",
+				logging.StringField("path", path),
+				logging.StringField("exempt_path", exemptPath),
+			)
 			return true
 		}
 	}

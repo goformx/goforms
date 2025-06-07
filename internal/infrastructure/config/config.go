@@ -156,6 +156,7 @@ type SecurityConfig struct {
 	LogLevel            string        `envconfig:"GOFORMS_LOG_LEVEL" default:"debug"`
 	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"20"`
 	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1s"`
+	SecureCookie        bool          `envconfig:"GOFORMS_SECURE_COOKIE" default:"true"`
 
 	// CORS settings
 	CorsAllowedOrigins   []string `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`

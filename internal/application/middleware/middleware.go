@@ -94,7 +94,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
 	}
 
-	// Register basic middleware
+	// Register basic middleware first
 	e.Use(echomw.Logger())
 	e.Use(echomw.Recover())
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
@@ -115,6 +115,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(setupSecurityHeadersMiddleware())
 	e.Use(setupCSRF(m.config.Config.App.Env == "development"))
 	e.Use(setupRateLimiter(m.config.Security))
+
+	// Register session middleware last
+	m.logger.Info("middleware setup: registering session middleware")
 	e.Use(m.config.SessionManager.SessionMiddleware())
 
 	m.logger.Info("middleware setup: completed")

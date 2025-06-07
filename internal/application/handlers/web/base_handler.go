@@ -8,21 +8,20 @@ import (
 	"fmt"
 
 	"github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/view"
+	"go.uber.org/fx"
 )
 
 // HandlerDeps centralizes common handler dependencies and validation
-// Add new dependencies here as needed
-// Usage: pass HandlerDeps to each handler's constructor
-// and call Validate with required fields
-
 type HandlerDeps struct {
+	fx.In
+
 	BaseHandler       *BaseHandler
-	UserService       domain.UserService
+	UserService       user.Service
 	SessionManager    *middleware.SessionManager
 	Renderer          *view.Renderer
 	MiddlewareManager *middleware.Manager
