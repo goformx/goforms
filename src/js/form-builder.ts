@@ -103,8 +103,16 @@ async function createFormBuilder(
   schema: any,
 ): Promise<any> {
   try {
-    return await Formio.builder(container, schema, builderOptions);
-  } catch {
+    // Ensure schema has required properties
+    const formSchema = {
+      ...schema,
+      projectId: "goforms", // Add default projectId
+      display: "form",
+      components: schema.components || [],
+    };
+    return await Formio.builder(container, formSchema, builderOptions);
+  } catch (error) {
+    console.error("Form builder initialization error:", error);
     throw new FormBuilderError(
       "Failed to initialize builder",
       "Failed to initialize form builder. Please refresh the page.",

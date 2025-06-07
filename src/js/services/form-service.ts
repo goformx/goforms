@@ -1,5 +1,12 @@
 import { FormBuilderError } from "../utils/errors";
 
+// Add global type declaration
+declare global {
+  interface Window {
+    CSRF_TOKEN?: string;
+  }
+}
+
 export interface FormSchema {
   display: string;
   components: any[];
@@ -10,14 +17,11 @@ export class FormService {
   private static instance: FormService;
   private baseUrl: string;
 
-  // TODO: This is a hack to get the base URL. We should use the base URL from the server.
   private constructor() {
-    // Use environment-based base URL
     this.baseUrl =
       process.env.NODE_ENV === "production"
-        ? "https://goformx.com" // Production URL
-        : window.location.origin; // Development URL - use current origin
-
+        ? "https://goformx.com"
+        : window.location.origin;
     console.debug("FormService initialized with base URL:", this.baseUrl);
   }
 
@@ -28,21 +32,21 @@ export class FormService {
     return FormService.instance;
   }
 
-  // Set base URL (useful for testing or custom deployments)
   public setBaseUrl(url: string): void {
     this.baseUrl = url;
     console.debug("FormService base URL updated to:", this.baseUrl);
   }
 
   private getCSRFToken(): string {
-    const metaTag = document.querySelector('meta[name="csrf-token"]');
-    if (!metaTag) {
-      console.error("CSRF token meta tag not found");
+    const formBuilder = document.getElementById("form-schema-builder");
+    if (!formBuilder) {
+      console.error("Form builder element not found");
       return "";
     }
-    const token = metaTag.getAttribute("content");
+    const token = formBuilder.getAttribute("data-csrf-token");
+    console.debug("CSRF token from form builder:", token);
     if (!token) {
-      console.error("CSRF token content is empty");
+      console.error("CSRF token not found in form builder");
       return "";
     }
     return token;
@@ -88,7 +92,6 @@ export class FormService {
         throw new Error("Invalid response from server");
       }
 
-      // Validate the response structure
       if (!data.components || !Array.isArray(data.components)) {
         throw new Error("Invalid schema structure in response");
       }

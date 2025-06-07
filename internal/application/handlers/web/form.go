@@ -102,6 +102,9 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	data := shared.BuildPageData(h.Config, "Edit Form")
 	data.User = user
 	data.Form = f
+	if csrfToken, ok := c.Get("csrf").(string); ok {
+		data.CSRFToken = csrfToken
+	}
 	return h.Renderer.Render(c, pages.EditForm(data))
 }
 

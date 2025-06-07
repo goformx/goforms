@@ -52,7 +52,7 @@ templ FormFieldsContent(data shared.PageData) {
 			<!-- Removed search input -->
 			<!-- Add filter/sort options here if needed -->
 		</div>
-		<div id="form-schema-builder" class="form-schema-builder" data-form-id={ data.Form.ID }></div>
+		<div id="form-schema-builder" class="form-schema-builder" data-form-id={ data.Form.ID } data-csrf-token={ data.CSRFToken }></div>
 		<div class="form-actions">
 			<button id="view-schema-btn" class="gf-button gf-button--outline" type="button">
 				<i class="bi bi-code-square"></i>
@@ -83,6 +83,7 @@ templ EditForm(data shared.PageData) {
 
 templ EditFormContent(data shared.PageData) {
 	<div class="dashboard-page">
+		<meta name="csrf-token" content={ data.CSRFToken } />
 		<div class="dashboard-container">
 			<div class="dashboard-header">
 				<div class="dashboard-header-left">
@@ -145,6 +146,7 @@ templ EditFormContent(data shared.PageData) {
 			}
 		</script>
 	}
+
 	<script type="module" id="form-service-script" data-service-path={ data.AssetPath("js/services/form-service.js") }>
 		const script = document.getElementById('form-service-script');
 		const path = script.getAttribute('data-service-path');
@@ -182,10 +184,14 @@ templ EditFormContent(data shared.PageData) {
 				saveBtn.disabled = true;
 				saveBtn.querySelector('.spinner').style.display = 'inline-block';
 				try {
+					if (!window.formBuilderInstance) {
+						throw new Error('Form builder not initialized');
+					}
 					const ok = await window.formBuilderInstance.saveSchema();
 					feedback.textContent = ok ? 'Schema saved successfully.' : 'Failed to save schema.';
 				} catch (e) {
-					feedback.textContent = 'Error saving schema.';
+					console.error('Error saving schema:', e);
+					feedback.textContent = e instanceof Error ? e.message : 'Error saving schema.';
 				} finally {
 					saveBtn.disabled = false;
 					saveBtn.querySelector('.spinner').style.display = 'none';
