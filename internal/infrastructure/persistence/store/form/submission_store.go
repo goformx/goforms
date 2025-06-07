@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"strconv"
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -75,7 +76,7 @@ func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.Form
 		return fmt.Errorf("failed to get last insert id: %w", err)
 	}
 
-	submission.ID = fmt.Sprintf("%d", id)
+	submission.ID = strconv.FormatInt(id, 10)
 
 	if err := tx.Commit(); err != nil {
 		return fmt.Errorf("failed to commit transaction: %w", err)
@@ -125,7 +126,7 @@ func (s *FormSubmissionStore) GetByID(ctx context.Context, id string) (*model.Fo
 	}
 
 	return &model.FormSubmission{
-		ID:          fmt.Sprintf("%d", submission.ID),
+		ID:          strconv.FormatUint(uint64(submission.ID), 10),
 		FormID:      submission.FormID,
 		Data:        data,
 		SubmittedAt: submission.SubmittedAt,
@@ -147,7 +148,7 @@ func (s *FormSubmissionStore) GetByFormID(ctx context.Context, formID string) ([
 		UpdatedAt   time.Time `db:"updated_at"`
 	}
 
-	query := `SELECT * FROM form_submissions WHERE form_id = ?`
+	query := `SELECT * FROM form_submissions WHERE form_id = ? ORDER BY created_at DESC`
 	err := s.db.SelectContext(ctx, &submissions, query, formID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
@@ -174,7 +175,7 @@ func (s *FormSubmissionStore) GetByFormID(ctx context.Context, formID string) ([
 		}
 
 		result[i] = &model.FormSubmission{
-			ID:          fmt.Sprintf("%d", submission.ID),
+			ID:          strconv.FormatUint(uint64(submission.ID), 10),
 			FormID:      submission.FormID,
 			Data:        data,
 			SubmittedAt: submission.SubmittedAt,
@@ -226,7 +227,7 @@ func (s *FormSubmissionStore) GetByUserID(ctx context.Context, userID uint) ([]*
 		}
 
 		result[i] = &model.FormSubmission{
-			ID:          fmt.Sprintf("%d", submission.ID),
+			ID:          strconv.FormatUint(uint64(submission.ID), 10),
 			FormID:      submission.FormID,
 			Data:        data,
 			SubmittedAt: submission.SubmittedAt,
@@ -378,7 +379,7 @@ func (s *FormSubmissionStore) List(ctx context.Context, offset, limit int) ([]*m
 		}
 
 		result[i] = &model.FormSubmission{
-			ID:          fmt.Sprintf("%d", submission.ID),
+			ID:          strconv.FormatUint(uint64(submission.ID), 10),
 			FormID:      submission.FormID,
 			Data:        data,
 			SubmittedAt: submission.SubmittedAt,
@@ -445,7 +446,7 @@ func (s *FormSubmissionStore) Search(ctx context.Context, formID string, userID 
 		}
 
 		result[i] = &model.FormSubmission{
-			ID:          fmt.Sprintf("%d", submission.ID),
+			ID:          strconv.FormatUint(uint64(submission.ID), 10),
 			FormID:      submission.FormID,
 			Data:        data,
 			SubmittedAt: submission.SubmittedAt,
