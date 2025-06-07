@@ -74,7 +74,8 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	userData, err := h.UserService.Authenticate(c.Request().Context(), email, password)
 	if err != nil {
 		h.Logger.Error("failed to authenticate user", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusUnauthorized, "Invalid credentials")
+		data := shared.BuildPageData(h.Config, "Login")
+		return h.Renderer.Render(c, pages.LoginWithError(data, "Invalid email or password"))
 	}
 
 	h.Logger.Debug("user authenticated",
@@ -87,7 +88,8 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	sessionID, err := h.SessionManager.CreateSession(userData.ID, userData.Email, userData.Role)
 	if err != nil {
 		h.Logger.Error("failed to create session", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create session")
+		data := shared.BuildPageData(h.Config, "Login")
+		return h.Renderer.Render(c, pages.LoginWithError(data, "Failed to create session. Please try again."))
 	}
 
 	h.Logger.Debug("session created",
