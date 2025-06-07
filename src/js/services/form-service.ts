@@ -38,18 +38,34 @@ export class FormService {
   }
 
   private getCSRFToken(): string {
+    // Try to get token from form builder element
     const formBuilder = document.getElementById("form-schema-builder");
-    if (!formBuilder) {
-      console.error("Form builder element not found");
-      return "";
+    if (formBuilder) {
+      const token = formBuilder.getAttribute("data-csrf-token");
+      if (token) {
+        console.debug("CSRF token from form builder:", token);
+        return token;
+      }
     }
-    const token = formBuilder.getAttribute("data-csrf-token");
-    console.debug("CSRF token from form builder:", token);
-    if (!token) {
-      console.error("CSRF token not found in form builder");
-      return "";
+
+    // Try to get token from meta tag
+    const metaTag = document.querySelector('meta[name="csrf-token"]');
+    if (metaTag) {
+      const token = metaTag.getAttribute("content");
+      if (token) {
+        console.debug("CSRF token from meta tag:", token);
+        return token;
+      }
     }
-    return token;
+
+    // Try to get token from window object
+    if (window.CSRF_TOKEN) {
+      console.debug("CSRF token from window object:", window.CSRF_TOKEN);
+      return window.CSRF_TOKEN;
+    }
+
+    console.error("CSRF token not found in any source");
+    return "";
   }
 
   async getSchema(formId: string): Promise<FormSchema> {
