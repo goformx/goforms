@@ -1,15 +1,13 @@
 @layer layouts {
   /* Base hero styles (mobile-first) */
   .hero {
-    padding: var(--hero-padding-y-mobile) 0;
-    background: var(--hero-bg-gradient);
-    text-align: center;
     position: relative;
-    min-height: auto;
+    padding: var(--hero-padding-y) 0;
+    min-height: var(--hero-min-height);
     display: flex;
     align-items: center;
-    justify-content: center;
-    overflow: hidden;
+    text-align: center;
+    background: var(--hero-bg-gradient);
     margin-bottom: var(--spacing-8);
     width: 100%;
   }
@@ -44,37 +42,56 @@
   }
 
   .hero-title {
-    font-size: var(--hero-title-size-mobile);
-    line-height: 1.1;
+    font-size: var(--hero-title-size);
     font-weight: var(--hero-title-weight);
+    letter-spacing: var(--hero-title-spacing);
     background: var(--hero-title-gradient);
     -webkit-background-clip: text;
-    background-clip: text;
     -webkit-text-fill-color: transparent;
-    margin-bottom: var(--hero-title-margin-mobile);
-    letter-spacing: var(--hero-title-spacing);
+    margin: 0 auto var(--hero-title-margin);
+    max-width: var(--hero-container-width);
   }
 
   .hero-subtitle {
-    font-size: var(--hero-subtitle-size-mobile);
+    font-family: var(--font-sans);
+    -webkit-font-smoothing: antialiased;
+    text-align: center;
+    box-sizing: border-box;
+    padding: 0;
     color: var(--text-light);
+    font-size: var(--hero-subtitle-size);
+    line-height: var(--line-height-relaxed);
+    margin: 0 auto var(--hero-subtitle-margin);
     max-width: var(--hero-subtitle-width);
-    margin: 0 auto var(--hero-subtitle-margin-mobile);
-    line-height: 1.5;
   }
 
   .hero-actions {
     display: flex;
-    flex-direction: row;
     gap: var(--hero-actions-gap);
     justify-content: center;
-    padding: 0;
+    margin-top: var(--spacing-8);
   }
 
-  @media (max-width: 767px) {
+  /* Responsive styles */
+  @media (max-width: 768px) {
+    .hero {
+      padding: var(--hero-padding-y-mobile) 0;
+    }
+
+    .hero-title {
+      font-size: var(--hero-title-size-mobile);
+      margin-bottom: var(--hero-title-margin-mobile);
+    }
+
+    .hero-subtitle {
+      font-size: var(--hero-subtitle-size-mobile);
+      margin-bottom: var(--hero-subtitle-margin-mobile);
+    }
+
     .hero-actions {
-      flex-direction: column;
       gap: var(--hero-actions-gap-mobile);
+      flex-direction: column;
+      align-items: center;
     }
   }
 

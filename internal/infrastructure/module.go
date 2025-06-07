@@ -1,35 +1,22 @@
 package infrastructure
 
 import (
-	"database/sql"
-	"errors"
-	"fmt"
-	"strings"
-	"sync"
-	"time"
+	"context"
 
+	"github.com/jmoiron/sqlx"
+	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/handler"
+	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/application/services/formops"
-	pagedata "github.com/goformx/goforms/internal/application/services/page_data"
 	"github.com/goformx/goforms/internal/domain/form"
-	healthdomain "github.com/goformx/goforms/internal/domain/services/health"
 	"github.com/goformx/goforms/internal/domain/user"
-	webhandler "github.com/goformx/goforms/internal/handlers/web"
-	wh_auth "github.com/goformx/goforms/internal/handlers/web/auth"
-	healthadapter "github.com/goformx/goforms/internal/infrastructure/adapters/health"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
-	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/presentation/handlers"
-	preservices "github.com/goformx/goforms/internal/presentation/services"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/jmoiron/sqlx"
 )
 
 const (
@@ -47,13 +34,13 @@ type Stores struct {
 	FormStore form.Store
 }
 
-// CoreParams contains core infrastructure dependencies that are commonly needed by handlers.
-// These are typically required for basic handler functionality like logging and rendering.
+// CoreParams represents core infrastructure dependencies
 type CoreParams struct {
 	fx.In
 	Logger   logging.Logger
-	Renderer *view.Renderer
 	Config   *config.Config
+	Renderer *view.Renderer
+	Echo     *echo.Echo
 }
 
 // ServiceParams contains all service dependencies that handlers might need.
@@ -65,546 +52,157 @@ type ServiceParams struct {
 	FormService form.Service
 }
 
-// ServiceContainer holds all service instances
-type ServiceContainer struct {
-	PageDataService pagedata.Service
-	FormOperations  formops.Service
-	TemplateService *preservices.TemplateService
-	ResponseBuilder *preservices.ResponseBuilder
-}
-
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
 // It wraps the common fx.Provide and fx.Annotate pattern used for handlers.
 func AnnotateHandler(fn any) fx.Option {
 	return fx.Provide(
 		fx.Annotate(
 			fn,
-			fx.As(new(handler.Handler)),
-			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
+			fx.ResultTags(`group:"web_handlers"`),
 		),
 	)
 }
 
-// validateDatabaseConfig validates the database configuration
-func validateDatabaseConfig(cfg *config.DatabaseConfig) error {
-	if cfg.MaxOpenConns <= 0 {
-		return errors.New("database max open connections must be a positive number")
-	}
-	if cfg.MaxIdleConns <= 0 {
-		return errors.New("database max idle connections must be a positive number")
-	}
-	if cfg.ConnMaxLifetime <= 0 {
-		return errors.New("database connection max lifetime must be a positive duration")
-	}
-	return nil
-}
-
-// validateSecurityConfig validates the security configuration
-func validateSecurityConfig(cfg *config.SecurityConfig) error {
-	if cfg == nil {
-		return errors.New("security configuration cannot be nil")
-	}
-
-	// Validate CSRF configuration
-	if cfg.CSRF.Enabled {
-		if len(cfg.CSRF.Secret) < MinSecretLength {
-			return fmt.Errorf("CSRF secret must be at least %d characters long", MinSecretLength)
-		}
-	}
-
-	// Validate CORS configuration
-	if cfg.CorsMaxAge <= 0 {
-		return errors.New("CORS max age must be a positive number")
-	}
-
-	// Validate rate limiting configuration
-	if cfg.FormRateLimit <= 0 {
-		return errors.New("form rate limit must be a positive number")
-	}
-	if cfg.FormRateLimitWindow <= 0 {
-		return errors.New("form rate limit window must be a positive duration")
-	}
-
-	// Validate request timeout
-	if cfg.RequestTimeout <= 0 {
-		return errors.New("request timeout must be a positive duration")
-	}
-
-	return nil
-}
-
-// validateServerConfig validates the server configuration
-func validateServerConfig(cfg *config.ServerConfig) error {
-	if cfg.Port <= 0 {
-		return errors.New("server port must be a positive number")
-	}
-	if cfg.ReadTimeout <= 0 {
-		return errors.New("server read timeout must be a positive duration")
-	}
-	if cfg.WriteTimeout <= 0 {
-		return errors.New("server write timeout must be a positive duration")
-	}
-	return nil
-}
-
-// validateConfig checks if the configuration is valid
-func validateConfig(cfg *config.Config, logger logging.Logger) error {
-	logger.Info("validateConfig: Starting configuration validation...")
-	logger.Info("validateConfig: Database config",
-		logging.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
-		logging.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
-		logging.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime))
-
-	var validationErrors []string
-
-	// Validate database configuration
-	logger.Info("validateConfig: Validating database configuration...")
-	if dbErr := validateDatabaseConfig(&cfg.Database); dbErr != nil {
-		logger.Error("validateConfig: Database validation failed",
-			logging.Error(dbErr))
-		validationErrors = append(validationErrors, dbErr.Error())
-	}
-
-	// Validate security configuration
-	logger.Info("validateConfig: Validating security configuration...")
-	if secErr := validateSecurityConfig(&cfg.Security); secErr != nil {
-		logger.Error("validateConfig: Security validation failed",
-			logging.Error(secErr))
-		validationErrors = append(validationErrors, secErr.Error())
-	}
-
-	// Validate server configuration
-	logger.Info("validateConfig: Validating server configuration...")
-	if srvErr := validateServerConfig(&cfg.Server); srvErr != nil {
-		logger.Error("validateConfig: Server validation failed",
-			logging.Error(srvErr))
-		validationErrors = append(validationErrors, srvErr.Error())
-	}
-
-	if len(validationErrors) > 0 {
-		logger.Error("validateConfig: Validation failed",
-			logging.StringField("errors", strings.Join(validationErrors, "; ")))
-		return fmt.Errorf("configuration validation failed: %s", strings.Join(validationErrors, "; "))
-	}
-
-	logger.Info("validateConfig: Configuration validation successful")
-	return nil
-}
-
-// Module represents the infrastructure module
-type Module struct {
-	app         *fx.App
-	config      *config.Config
-	logger      logging.Logger
-	db          *sql.DB
-	formService form.Service
-	userService user.Service
-	services    *ServiceContainer
-	handler     *handlers.Handler
-}
-
-// NewModule creates a new infrastructure module
-func NewModule(
-	app *fx.App,
-	appConfig *config.Config,
-	logger logging.Logger,
-	db *sql.DB,
-	formService form.Service,
-	userService user.Service,
-) *Module {
-	m := &Module{
-		app:         app,
-		config:      appConfig,
-		logger:      logger,
-		db:          db,
-		formService: formService,
-		userService: userService,
-	}
-
-	m.initializeServices()
-	m.initializeHandlers()
-
-	return m
-}
-
-// InfrastructureModule provides core infrastructure dependencies.
+// InfrastructureModule provides core infrastructure dependencies
 var InfrastructureModule = fx.Options(
 	fx.Provide(
-		func(logger logging.Logger) (*config.Config, error) {
-			logger.Info("InfrastructureModule: Starting configuration loading...")
-			cfg, cfgErr := config.New(logger)
-			if cfgErr != nil {
-				logger.Error("InfrastructureModule: Error loading configuration",
-					logging.Error(cfgErr))
-				return nil, fmt.Errorf("failed to load configuration: %w", cfgErr)
-			}
-
-			logger.Info("InfrastructureModule: Configuration loaded, starting validation...")
-			if validationErr := validateConfig(cfg, logger); validationErr != nil {
-				logger.Error("InfrastructureModule: Validation failed",
-					logging.Error(validationErr))
-				return nil, validationErr
-			}
-
-			logger.Info("InfrastructureModule: Configuration validated successfully")
-			return cfg, nil
-		},
+		config.New,
 		database.NewDB,
-	),
-)
-
-// StoreModule provides all database store implementations.
-var StoreModule = fx.Options(
-	fx.Provide(NewStores),
-)
-
-// HandlerModule provides all HTTP handlers for the application.
-var HandlerModule = fx.Options(
-	// Session manager provider
-	fx.Provide(func(core CoreParams) *appmiddleware.SessionManager {
-		return appmiddleware.NewSessionManager(core.Logger)
-	}),
-	// Static file handler (must be first)
-	AnnotateHandler(func(core CoreParams) (handler.Handler, error) {
-		handler := handler.NewStaticHandler(core.Logger, core.Config)
-		if handler == nil {
-			return nil, errors.New("failed to create static handler")
-		}
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "StaticHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
-	// Web handlers
-	AnnotateHandler(func(core CoreParams, middlewareManager *appmiddleware.Manager) (handler.Handler, error) {
-		handler := webhandler.NewHomeHandler(core.Logger)
-		if handler == nil {
-			return nil, errors.New("failed to create home handler")
-		}
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "HomeHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
-	AnnotateHandler(func(core CoreParams, services ServiceParams) (handler.Handler, error) {
-		handler := wh_auth.NewWebLoginHandler(core.Logger, services.UserService)
-		if handler == nil {
-			return nil, errors.New("failed to create web login handler")
-		}
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "WebLoginHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
-	AnnotateHandler(
+		func(db *database.Database) *sqlx.DB {
+			return db.DB
+		},
+		fx.Annotate(
+			userstore.NewStore,
+			fx.As(new(user.Store)),
+		),
+		fx.Annotate(
+			formstore.NewStore,
+			fx.As(new(form.Store)),
+		),
+		func(logger logging.Logger, core CoreParams) *appmiddleware.SessionManager {
+			logger.Info("InfrastructureModule: Creating session manager...")
+			secureCookie := !core.Config.App.IsDevelopment()
+			sm := appmiddleware.NewSessionManager(logger, secureCookie)
+			logger.Info("InfrastructureModule: Session manager created")
+			return sm
+		},
 		func(
 			core CoreParams,
 			services ServiceParams,
-			middlewareManager *appmiddleware.Manager,
 			sessionManager *appmiddleware.SessionManager,
-		) (handler.Handler, error) {
-			baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-			webHandler := handler.NewWebHandler(
-				baseHandler,
-				services.UserService,
-				sessionManager,
-				core.Renderer,
-				middlewareManager,
-				core.Config,
-				core.Logger,
-			)
-			if webHandler == nil {
-				return nil, errors.New("failed to create web handler")
-			}
-
-			// Validate dependencies
-			if err := webHandler.Validate(); err != nil {
-				return nil, fmt.Errorf("failed to validate web handler: %w", err)
-			}
-
-			core.Logger.Debug(
-				"registered handler",
-				logging.StringField("handler_name", "WebHandler"),
-				logging.StringField("handler_type", fmt.Sprintf("%T", webHandler)),
-				logging.StringField("operation", "handler_registration"),
-			)
-			return webHandler, nil
+		) *appmiddleware.Manager {
+			return appmiddleware.New(&appmiddleware.ManagerConfig{
+				Logger:         core.Logger,
+				Security:       &core.Config.Security,
+				UserService:    services.UserService,
+				SessionManager: sessionManager,
+				Config:         core.Config,
+			})
 		},
 	),
-	// Auth handler
-	AnnotateHandler(func(
-		core CoreParams,
-		services ServiceParams,
-		middlewareManager *appmiddleware.Manager,
-		sessionManager *appmiddleware.SessionManager,
-	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-
-		authHandler := handler.NewAuthHandler(
-			baseHandler,
-			services.UserService,
-			sessionManager,
-			core.Renderer,
-			middlewareManager,
-			core.Config,
-			core.Logger,
-		)
-
-		if authHandler == nil {
-			return nil, fmt.Errorf("failed to create auth handler: user_service=%T", services.UserService)
-		}
-
-		// Validate dependencies
-		if err := authHandler.Validate(); err != nil {
-			return nil, fmt.Errorf("failed to validate auth handler: %w", err)
-		}
-
-		return authHandler, nil
-	}),
-	// Dashboard handler
-	AnnotateHandler(func(
-		core CoreParams,
-		services ServiceParams,
-		middlewareManager *appmiddleware.Manager,
-		sessionManager *appmiddleware.SessionManager,
-		pageDataService pagedata.Service,
-	) (handler.Handler, error) {
-		baseHandler := handlers.NewBaseHandler(services.FormService, core.Logger)
-		handler, err := handlers.NewHandler(services.UserService, services.FormService, core.Logger, pageDataService)
-		if err != nil {
-			return nil, fmt.Errorf("failed to create dashboard handler: %w", err)
-		}
-
-		// Initialize the handler with the base handler
-		handler.FormHandler.Base = baseHandler
-		handler.SubmissionHandler.Base = baseHandler
-		handler.SchemaHandler.Base = baseHandler
-
-		// Optionally, inject sessionManager or middlewareManager if needed in the future
-
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "Handler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
-	// Health handler
-	AnnotateHandler(func(core CoreParams, db *database.Database) (handler.Handler, error) {
-		// Create repository
-		repo := healthadapter.NewRepository(db.DB)
-
-		// Create service
-		svc := healthdomain.NewService(core.Logger, repo)
-
-		// Create handler
-		handler := healthdomain.NewHandler(core.Logger, svc)
-
-		core.Logger.Debug("registered handler",
-			logging.StringField("handler_name", "HealthHandler"),
-			logging.StringField("handler_type", fmt.Sprintf("%T", handler)),
-			logging.StringField("operation", "handler_registration"),
-		)
-		return handler, nil
-	}),
-	// Middleware manager provider
-	fx.Provide(func(
-		core CoreParams,
-		services ServiceParams,
-		sessionManager *appmiddleware.SessionManager,
-	) *appmiddleware.Manager {
-		return appmiddleware.New(&appmiddleware.ManagerConfig{
-			Logger:         core.Logger,
-			UserService:    services.UserService,
-			Security:       &core.Config.Security,
-			Config:         core.Config,
-			SessionManager: sessionManager,
-		})
-	}),
-	fx.Provide(pagedata.NewService),
 )
 
-// ServerModule provides the HTTP server setup.
-var ServerModule = fx.Options(
-	fx.Provide(server.New),
+// HandlerModule provides HTTP handlers
+var HandlerModule = fx.Options(
+	// Web handlers
+	fx.Provide(
+		fx.Annotate(
+			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
+				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
+				deps := web.HandlerDeps{
+					BaseHandler:       baseHandler,
+					UserService:       services.UserService,
+					SessionManager:    middlewareManager.GetSessionManager(),
+					Renderer:          core.Renderer,
+					MiddlewareManager: middlewareManager,
+					Config:            core.Config,
+					Logger:            core.Logger,
+				}
+				return web.NewWebHandler(deps)
+			},
+			fx.ResultTags(`group:"web_handlers"`),
+		),
+		fx.Annotate(
+			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
+				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
+				deps := web.HandlerDeps{
+					BaseHandler:       baseHandler,
+					UserService:       services.UserService,
+					SessionManager:    middlewareManager.GetSessionManager(),
+					Renderer:          core.Renderer,
+					MiddlewareManager: middlewareManager,
+					Config:            core.Config,
+					Logger:            core.Logger,
+				}
+				return web.NewAuthHandler(deps)
+			},
+			fx.ResultTags(`group:"web_handlers"`),
+		),
+		fx.Annotate(
+			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
+				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
+				deps := web.HandlerDeps{
+					BaseHandler:       baseHandler,
+					UserService:       services.UserService,
+					SessionManager:    middlewareManager.GetSessionManager(),
+					Renderer:          core.Renderer,
+					MiddlewareManager: middlewareManager,
+					Config:            core.Config,
+					Logger:            core.Logger,
+				}
+				handler := web.NewFormHandler(deps, services.FormService)
+				return handler, nil
+			},
+			fx.ResultTags(`group:"web_handlers"`),
+		),
+		fx.Annotate(
+			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
+				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
+				deps := web.HandlerDeps{
+					BaseHandler:       baseHandler,
+					UserService:       services.UserService,
+					SessionManager:    middlewareManager.GetSessionManager(),
+					Renderer:          core.Renderer,
+					MiddlewareManager: middlewareManager,
+					Config:            core.Config,
+					Logger:            core.Logger,
+				}
+				return web.NewDemoHandler(deps)
+			},
+			fx.ResultTags(`group:"web_handlers"`),
+		),
+	),
+	// Provide the handlers as a group
+	fx.Provide(
+		fx.Annotate(
+			func(handlers []web.Handler) []web.Handler {
+				return handlers
+			},
+			fx.ParamTags(`group:"web_handlers"`),
+		),
+	),
 )
 
-// RootModule combines all infrastructure-level modules into a single module.
+// RootModule combines all infrastructure modules
 var RootModule = fx.Options(
 	InfrastructureModule,
-	StoreModule,
-	ServerModule,
 	HandlerModule,
+	fx.Invoke(func(
+		lifecycle fx.Lifecycle,
+		core CoreParams,
+		services ServiceParams,
+		handlers []web.Handler,
+	) {
+		lifecycle.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				// Register handlers with Echo
+				core.Logger.Info("registering handlers with Echo")
+				for _, handler := range handlers {
+					handler.Register(core.Echo)
+				}
+				return nil
+			},
+		})
+	}),
 )
-
-// wrapCreator creates a type-safe wrapper for store creation functions
-func wrapCreator[T any](
-	creator func(*database.Database, logging.Logger) T,
-) func(*database.Database, logging.Logger) any {
-	return func(db *database.Database, logger logging.Logger) any {
-		return creator(db, logger)
-	}
-}
-
-// wrapCreatorSQLX creates a type-safe wrapper for store creation functions using sqlx.DB
-func wrapCreatorSQLX[T any](
-	creator func(*sqlx.DB, logging.Logger) T,
-) func(*database.Database, logging.Logger) any {
-	return func(db *database.Database, logger logging.Logger) any {
-		return creator(db.DB, logger)
-	}
-}
-
-// wrapAssigner creates a type-safe wrapper for store assignment functions
-func wrapAssigner[T any](assigner func(*Stores, T)) func(*Stores, any) {
-	return func(s *Stores, instance any) {
-		if s == nil {
-			panic(errors.New("database connection is nil"))
-		}
-		typedInstance, ok := instance.(T)
-		if !ok {
-			panic(errors.New("invalid instance type"))
-		}
-		assigner(s, typedInstance)
-	}
-}
-
-// NewStores creates all database stores.
-// This function is responsible for initializing all database stores
-// and providing them to the fx container.
-func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
-	if db == nil {
-		logger.Error("database connection is nil",
-			logging.StringField("operation", "store_initialization"),
-			logging.StringField("error_type", "nil_database"),
-		)
-		return Stores{}, errors.New("database connection is nil")
-	}
-
-	startTime := time.Now()
-
-	// Map of store creators
-	storeCreators := map[string]struct {
-		create func(*database.Database, logging.Logger) any
-		assign func(*Stores, any)
-	}{
-		"user": {
-			create: wrapCreator(userstore.NewStore),
-			assign: wrapAssigner(func(s *Stores, v user.Store) { s.UserStore = v }),
-		},
-		"form": {
-			create: wrapCreatorSQLX(formstore.NewStore),
-			assign: wrapAssigner(func(s *Stores, v form.Store) { s.FormStore = v }),
-		},
-	}
-
-	var stores Stores
-	var wg sync.WaitGroup
-	var mu sync.Mutex
-	failedStores := make(chan string, len(storeCreators))
-	results := make(chan struct {
-		name     string
-		instance any
-	}, len(storeCreators))
-
-	// Initialize stores concurrently
-	for name, creator := range storeCreators {
-		wg.Add(1)
-		go func(name string, creator struct {
-			create func(*database.Database, logging.Logger) any
-			assign func(*Stores, any)
-		}) {
-			defer wg.Done()
-
-			// Create store instance
-			instance := creator.create(db, logger)
-			if instance == nil {
-				logger.Error("store creation failed",
-					logging.StringField("store_type", name),
-					logging.StringField("operation", "store_initialization"),
-					logging.StringField("error_type", "nil_instance"),
-				)
-				failedStores <- name
-				return
-			}
-
-			results <- struct {
-				name     string
-				instance any
-			}{name, instance}
-		}(name, creator)
-	}
-
-	// Wait for all goroutines to complete
-	wg.Wait()
-	close(failedStores)
-	close(results)
-
-	// Collect failed stores
-	var failedStoreNames []string
-	for name := range failedStores {
-		failedStoreNames = append(failedStoreNames, name)
-	}
-
-	// Handle initialization errors
-	if len(failedStoreNames) > 0 {
-		return Stores{}, fmt.Errorf("failed to initialize the following stores: %s", strings.Join(failedStoreNames, ", "))
-	}
-
-	// Assign successful stores
-	for result := range results {
-		mu.Lock()
-		storeCreators[result.name].assign(&stores, result.instance)
-		mu.Unlock()
-	}
-
-	// Log successful initialization metrics
-	logger.Info("all database stores initialized successfully",
-		logging.StringField("operation", "store_initialization"),
-		logging.DurationField("init_duration", time.Since(startTime)),
-		logging.IntField("total_stores_initialized", len(storeCreators)),
-	)
-
-	return stores, nil
-}
-
-// initializeServices initializes all services
-func (m *Module) initializeServices() {
-	m.services = &ServiceContainer{
-		PageDataService: pagedata.NewService(m.logger),
-		FormOperations:  formops.NewService(m.formService, m.logger),
-		TemplateService: preservices.NewTemplateService(m.logger),
-		ResponseBuilder: preservices.NewResponseBuilder(m.logger),
-	}
-}
-
-// initializeHandlers initializes all handlers
-func (m *Module) initializeHandlers() {
-	// Create base handler
-	baseHandler := handlers.NewBaseHandler(m.formService, m.logger)
-
-	// Create feature handlers
-	formHandler := handlers.NewFormHandler(m.formService, m.services.FormOperations, m.logger, baseHandler)
-	submissionHandler := handlers.NewSubmissionHandler(m.formService, m.logger, baseHandler)
-	schemaHandler := handlers.NewSchemaHandler(m.formService, m.logger, baseHandler)
-
-	// Create main handler
-	mainHandler, err := handlers.NewHandler(m.userService, m.formService, m.logger, m.services.PageDataService)
-	if err != nil {
-		m.logger.Error("failed to create handler", logging.Error(err))
-		return
-	}
-
-	// Set the handlers
-	mainHandler.FormHandler = formHandler
-	mainHandler.SubmissionHandler = submissionHandler
-	mainHandler.SchemaHandler = schemaHandler
-
-	m.handler = mainHandler
-}

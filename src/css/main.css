@@ -27,6 +27,7 @@ layer(components);
 @import url("components/demo_form.css") layer(components);
 @import url("components/code.css") layer(components);
 @import url("components/footer.css") layer(components);
+@import url("components/features.css") layer(components);
 @import url("form-builder.css") layer(components);
 
 /* Page styles */

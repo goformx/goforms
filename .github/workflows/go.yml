@@ -73,6 +73,8 @@ jobs:
         uses: golangci/golangci-lint-action@v8
         with:
           version: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          only-new-issues: false
       - name: Run Tests
         run: task test
 

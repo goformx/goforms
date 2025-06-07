@@ -48,30 +48,58 @@ fx.Module("domain",
 3. Handle component lifecycle properly
 4. Use proper error handling
 5. Implement proper logging
+6. Use interface embedding for better compatibility
+7. Keep configuration validation close to the config package
+8. Provide database connections at the infrastructure level
+9. Use fx.Annotate for interface implementations
+10. Keep middleware configuration in the infrastructure module
 
 ## Example Modules
-
-### Form Module
-```go
-fx.Module("form",
-  fx.Provide(
-    NewFormService,
-    NewFormRepository,
-    NewFormEventHandler,
-  ),
-  fx.Invoke(
-    RegisterFormHandlers,
-  ),
-)
-```
 
 ### Infrastructure Module
 ```go
 fx.Module("infrastructure",
   fx.Provide(
-    NewDBConnection,
-    NewLogger,
-    NewEventDispatcher,
+    config.New,
+    database.NewDB,
+    func(db *database.Database) *sqlx.DB {
+        return db.DB
+    },
+    fx.Annotate(
+        userstore.NewStore,
+        fx.As(new(user.Store)),
+    ),
+    fx.Annotate(
+        formstore.NewStore,
+        fx.As(new(form.Store)),
+    ),
+    func(logger logging.Logger) *appmiddleware.SessionManager {
+        return appmiddleware.NewSessionManager(logger)
+    },
+    func(
+        core CoreParams,
+        services ServiceParams,
+        sessionManager *appmiddleware.SessionManager,
+    ) *appmiddleware.Manager {
+        return appmiddleware.New(&appmiddleware.ManagerConfig{
+            Logger:         core.Logger,
+            Security:       &core.Config.Security,
+            UserService:    services.UserService,
+            SessionManager: sessionManager,
+            Config:         core.Config,
+        })
+    },
+  ),
+)
+```
+
+### Handler Module
+```go
+fx.Module("handlers",
+  fx.Provide(
+    AnnotateHandler(func(core CoreParams, services ServiceParams) *wh.DemoHandler {
+        return wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
+    }),
   ),
 )
 ```

@@ -7,11 +7,24 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/common"
 )
 
-// Logger extends the common.Logger interface with additional functionality
+// Field represents a field in a log entry
+type Field = LogField
+
+// Logger defines the interface for application logging
 type Logger interface {
 	common.Logger
+
+	// Additional logging methods
 	Fatal(msg string, fields ...any)
+
+	// Context methods
 	With(fields ...any) Logger
+	WithComponent(component string) Logger
+	WithOperation(operation string) Logger
+	WithRequestID(requestID string) Logger
+	WithUserID(userID string) Logger
+	WithError(err error) Logger
+	WithFields(fields map[string]any) Logger
 }
 
 // LogField represents a field in a log entry
@@ -40,26 +53,6 @@ func Duration(key string, value time.Duration) LogField {
 	return LogField{Key: key, Value: value.String()}
 }
 
-// Any creates a field for any type
-func Any(key string, value any) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// Uint creates an unsigned integer field
-func Uint(key string, value uint) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// Int64 creates a 64-bit integer field
-func Int64(key string, value int64) LogField {
-	return LogField{Key: key, Value: int(value)}
-}
-
-// Bool creates a boolean field
-func Bool(key string, value bool) LogField {
-	return LogField{Key: key, Value: value}
-}
-
 // StringField creates a string field
 func StringField(key, value string) LogField {
 	return LogField{Key: key, Value: value}
@@ -85,12 +78,12 @@ func BoolField(key string, value bool) LogField {
 	return LogField{Key: key, Value: value}
 }
 
-// AnyField creates a field for any type
-func AnyField(key string, value any) LogField {
+// UintField creates an unsigned integer field
+func UintField(key string, value uint) LogField {
 	return LogField{Key: key, Value: value}
 }
 
-// UintField creates an unsigned integer field
-func UintField(key string, value uint) LogField {
+// Int64Field creates an int64 field
+func Int64Field(key string, value int64) LogField {
 	return LogField{Key: key, Value: value}
 }

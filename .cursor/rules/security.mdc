@@ -10,14 +10,19 @@ Security is a critical aspect of GoFormX. This document outlines the security me
 
 ## Authentication
 
-### Session Authentication
-- Used for all authenticated access
-- Secure cookie settings
-- HTTP-only flag enabled
-- SameSite strict mode
-- CSRF protection
-- Session timeout handling
-- Secure session storage
+### User Authentication
+- Use secure password hashing
+- Implement proper session management
+- Use secure cookie settings
+- Implement rate limiting for login attempts
+- Use HTTPS for all requests
+- Implement proper logout mechanism
+
+### Session Validation
+- Validate session tokens
+- Check session expiration
+- Implement session renewal
+- Clear session data on logout
 
 ## Authorization
 
@@ -62,28 +67,28 @@ const (
 ## CSRF Protection
 
 ### Implementation
-- Token generation
-- Token validation
-- Cookie settings
-- Form integration
-- API protection
+- Use CSRF tokens in forms
+- Validate CSRF tokens on POST/PUT/DELETE requests
+- Use SameSite cookie attribute
+- Implement proper token rotation
 
 ### Configuration
 ```go
 const (
-    DefaultTokenLength = 32
-    CookieMaxAge = 86400
+    // SessionDuration is the duration for which a session remains valid
+    SessionDuration = 24 * time.Hour
 )
 ```
 
 ## Rate Limiting
 
 ### Implementation
-- Request counting
-- Burst handling
-- IP-based limiting
-- Configurable thresholds
-- Proper logging
+- Implement rate limiting for:
+  - Login attempts
+  - Form submissions
+  - API requests
+- Use proper rate limit windows
+- Implement proper rate limit storage
 
 ### Configuration
 ```go
@@ -112,11 +117,10 @@ const (
 ## Error Handling
 
 ### Security Considerations
-- Don't expose internals
-- Use domain errors
-- Log appropriately
-- Handle all cases
-- Follow guidelines
+- Don't expose internal errors to users
+- Log security-related errors
+- Use proper error messages
+- Implement proper error recovery
 
 ### Error Responses
 - Generic messages
@@ -175,56 +179,80 @@ const (
 
 ## Best Practices
 
-1. Authentication
-   - Use secure methods
-   - Implement proper validation
-   - Handle sessions securely
-   - Protect credentials
-   - Monitor access
+1. **Session Management**
+   ```go
+   // Set secure session cookie
+   func setSessionCookie(c echo.Context, userID uint) {
+       cookie := new(http.Cookie)
+       cookie.Name = "session"
+       cookie.Value = strconv.FormatUint(uint64(userID), 10)
+       cookie.Expires = time.Now().Add(SessionDuration)
+       cookie.HttpOnly = true
+       cookie.Secure = true
+       cookie.SameSite = http.SameSiteStrictMode
+       c.SetCookie(cookie)
+   }
+   ```
 
-2. Authorization
-   - Implement RBAC
-   - Check permissions
-   - Validate access
-   - Handle unauthorized
-   - Log violations
+2. **Logout**
+   ```go
+   // Clear session cookie
+   func clearSessionCookie(c echo.Context) {
+       cookie := new(http.Cookie)
+       cookie.Name = "session"
+       cookie.Value = ""
+       cookie.Expires = time.Now().Add(-1 * time.Hour)
+       cookie.Path = "/"
+       cookie.HttpOnly = true
+       cookie.Secure = true
+       cookie.SameSite = http.SameSiteStrictMode
+       c.SetCookie(cookie)
+   }
+   ```
 
-3. Data Protection
-   - Encrypt sensitive data
-   - Secure storage
-   - Access control
-   - Data isolation
-   - Backup security
+3. **Type Assertion**
+   ```go
+   // Safe type assertion
+   userIDRaw, ok := c.Get("user_id").(uint)
+   if !ok {
+       return c.Redirect(http.StatusSeeOther, "/login")
+   }
+   userID := userIDRaw
+   ```
 
-4. Input Handling
-   - Validate all input
-   - Sanitize data
-   - Use proper types
-   - Handle errors
-   - Log violations
+4. **Error Handling**
+   ```go
+   // Secure error handling
+   if err != nil {
+       logger.Error("failed to process request", 
+           logging.ErrorField("error", err))
+       return c.JSON(http.StatusInternalServerError, map[string]string{
+           "error": "Failed to process request",
+       })
+   }
+   ```
 
-5. Error Handling
-   - Don't expose internals
-   - Use domain errors
-   - Log appropriately
-   - Handle all cases
-   - Follow guidelines
+5. **Input Validation**
+   - Validate all user input
+   - Use proper type assertions
+   - Implement proper error handling
+   - Use domain models for validation
 
-6. File Security
-   - Validate uploads
-   - Check file types
-   - Limit sizes
-   - Secure storage
-   - Control access
+6. **Headers**
+   - Set secure headers:
+     - X-Frame-Options
+     - X-Content-Type-Options
+     - X-XSS-Protection
+     - Content-Security-Policy
+     - Strict-Transport-Security
 
-7. API Security
-   - Use HTTPS
-   - Validate requests
-   - Rate limit
-   - Monitor usage
-   - Handle errors
+7. **Password Security**
+   - Use secure password hashing
+   - Implement password complexity requirements
+   - Use proper salt generation
+   - Implement password reset mechanism
 
-8. Monitoring
+8. **Monitoring**
    - Log security events
    - Monitor access
    - Track violations
@@ -283,3 +311,42 @@ const (
 - Validate request headers
 - Use secure communication (HTTPS)
 - Implement proper CORS policies
+
+## Testing
+
+1. **Security Testing**
+   - Test session management
+   - Test authentication
+   - Test CSRF protection
+   - Test input validation
+   - Test error handling
+   - Test rate limiting
+
+2. **Test Cases**
+   ```go
+   func TestSecurity(t *testing.T) {
+       tests := []struct {
+           name     string
+           setup    func()
+           wantErr  bool
+           wantCode int
+       }{
+           {
+               name: "valid session",
+               setup: func() {
+                   // Setup valid session
+               },
+               wantErr:  false,
+               wantCode: http.StatusOK,
+           },
+           {
+               name: "invalid session",
+               setup: func() {
+                   // Setup invalid session
+               },
+               wantErr:  true,
+               wantCode: http.StatusUnauthorized,
+           },
+       }
+   }
+   ```

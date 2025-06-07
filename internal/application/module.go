@@ -2,7 +2,6 @@ package application
 
 import (
 	"github.com/goformx/goforms/internal/application/services/auth"
-	"github.com/goformx/goforms/internal/application/services/formops"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -18,8 +17,7 @@ type Module struct {
 
 // ServiceContainer holds all application services
 type ServiceContainer struct {
-	FormOperations formops.Service
-	AuthService    auth.Service
+	AuthService auth.Service
 }
 
 // NewModule creates a new application module
@@ -39,7 +37,6 @@ func NewModule(
 
 // initializeServices initializes all application services
 func (m *Module) initializeServices() {
-	m.services.FormOperations = formops.NewService(m.formService, m.logger)
 	m.services.AuthService = auth.NewService(m.userService, m.logger)
 }
 

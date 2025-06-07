@@ -1,0 +1,44 @@
+package components
+
+type Feature struct {
+    Icon        string
+    Title       string
+    Description string
+}
+
+templ FeatureCard(feature Feature) {
+    <div class="grid-item">
+        <h3><span>{ feature.Icon }</span>{ feature.Title }</h3>
+        <p>{ feature.Description }</p>
+    </div>
+}
+
+templ Features() {
+	<section class="features">
+		<div class="container">
+			<div class="features-grid">
+				<div class="feature-card">
+					<div class="feature-header">
+						<div class="feature-icon">🎯</div>
+						<h3 class="feature-title">Free Hosted</h3>
+					</div>
+					<p class="feature-description">Start using our service instantly, no setup required.</p>
+				</div>
+				<div class="feature-card">
+					<div class="feature-header">
+						<div class="feature-icon">🔒</div>
+						<h3 class="feature-title">Self Hosted Option</h3>
+					</div>
+					<p class="feature-description">Deploy on your own infrastructure if needed.</p>
+				</div>
+				<div class="feature-card">
+					<div class="feature-header">
+						<div class="feature-icon">🛠️</div>
+						<h3 class="feature-title">API First</h3>
+					</div>
+					<p class="feature-description">RESTful API with JSON responses.</p>
+				</div>
+			</div>
+		</div>
+	</section>
+} 

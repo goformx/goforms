@@ -106,6 +106,7 @@ tasks:
     desc: Run backend with hot reload
     deps: [generate]
     cmds:
+      - mkdir -p tmp
       - air
 
   dev:frontend:

@@ -1,7 +1,6 @@
 package errors
 
 import (
-	"errors"
 	"fmt"
 )
 
@@ -71,42 +70,6 @@ func New(code ErrorCode, message string, err error) *DomainError {
 func (e *DomainError) WithContext(key string, value any) *DomainError {
 	e.Context[key] = value
 	return e
-}
-
-// Common error constructors
-func NewValidationError(message string, err error) *DomainError {
-	return New(ErrCodeValidation, message, err)
-}
-
-func NewNotFoundError(message string, err error) *DomainError {
-	return New(ErrCodeNotFound, message, err)
-}
-
-func NewForbiddenError(message string, err error) *DomainError {
-	return New(ErrCodeForbidden, message, err)
-}
-
-func NewStartupError(message string, err error) *DomainError {
-	return New(ErrCodeStartup, message, err)
-}
-
-func NewShutdownError(message string, err error) *DomainError {
-	return New(ErrCodeShutdown, message, err)
-}
-
-// IsDomainError checks if an error is a domain error
-func IsDomainError(err error) bool {
-	var de *DomainError
-	return errors.As(err, &de)
-}
-
-// GetDomainError returns the domain error if the error is a domain error
-func GetDomainError(err error) *DomainError {
-	var de *DomainError
-	if errors.As(err, &de) {
-		return de
-	}
-	return nil
 }
 
 // Common error instances

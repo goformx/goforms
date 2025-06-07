@@ -5,7 +5,7 @@ import { builderOptions } from "./constants/builder-config";
 import { setupBuilderEvents } from "./handlers/builder-events";
 
 // Import Form.io styles
-// import "@formio/js/dist/formio.full.min.css";
+import "@formio/js/dist/formio.full.min.css";
 
 // Register templates
 Formio.use(goforms);
@@ -103,8 +103,16 @@ async function createFormBuilder(
   schema: any,
 ): Promise<any> {
   try {
-    return await Formio.builder(container, schema, builderOptions);
-  } catch {
+    // Ensure schema has required properties
+    const formSchema = {
+      ...schema,
+      projectId: "goforms", // Add default projectId
+      display: "form",
+      components: schema.components || [],
+    };
+    return await Formio.builder(container, formSchema, builderOptions);
+  } catch (error) {
+    console.error("Form builder initialization error:", error);
     throw new FormBuilderError(
       "Failed to initialize builder",
       "Failed to initialize form builder. Please refresh the page.",
@@ -139,11 +147,7 @@ function setupEventHandlers(builder: any): void {
         const savedSchema = await builder.saveSchema();
 
         // Check if we got a valid schema response
-        if (
-          savedSchema &&
-          savedSchema.schema &&
-          savedSchema.schema.components
-        ) {
+        if (savedSchema && savedSchema.components) {
           feedback.textContent = "Schema saved successfully.";
           feedback.className = "schema-save-feedback success";
         } else {

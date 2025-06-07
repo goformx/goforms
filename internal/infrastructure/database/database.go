@@ -103,29 +103,3 @@ func (db *Database) Begin() (*sqlx.Tx, error) {
 	db.logger.Debug("transaction started successfully")
 	return tx, nil
 }
-
-// NewDatabase creates a new database connection
-func NewDatabase(cfg *config.Config) (*sqlx.DB, error) {
-	dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?parseTime=true",
-		cfg.Database.User,
-		cfg.Database.Password,
-		cfg.Database.Host,
-		cfg.Database.Port,
-		cfg.Database.Name,
-	)
-
-	db, dbErr := sqlx.Connect("mysql", dsn)
-	if dbErr != nil {
-		return nil, fmt.Errorf("failed to connect to database: %w", dbErr)
-	}
-
-	db.SetMaxOpenConns(cfg.Database.MaxOpenConns)
-	db.SetMaxIdleConns(cfg.Database.MaxIdleConns)
-	db.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
-
-	if pingErr := db.Ping(); pingErr != nil {
-		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
-	}
-
-	return db, nil
-}

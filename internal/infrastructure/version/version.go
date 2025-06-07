@@ -15,13 +15,3 @@ var (
 	GitCommit = "unknown"
 	GoVersion = "unknown"
 )
-
-// GetInfo returns the current version information
-func GetInfo() Info {
-	return Info{
-		Version:   Version,
-		BuildTime: BuildTime,
-		GitCommit: GitCommit,
-		GoVersion: GoVersion,
-	}
-}

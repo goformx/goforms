@@ -50,6 +50,10 @@ export const setupBuilderEvents = (
       if (!savedSchema) {
         throw new Error("No schema returned from server");
       }
+
+      // Update the builder's form with the saved schema
+      typedBuilder.form = savedSchema;
+
       return savedSchema;
     } catch (error) {
       // Re-throw with a more descriptive error

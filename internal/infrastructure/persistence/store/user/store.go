@@ -6,11 +6,10 @@ import (
 	"errors"
 	"fmt"
 	"strconv"
-	"time"
 
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -20,12 +19,12 @@ var (
 
 // Store implements user.Store interface
 type Store struct {
-	db     *database.Database
+	db     *sqlx.DB
 	logger logging.Logger
 }
 
 // NewStore creates a new user store
-func NewStore(db *database.Database, logger logging.Logger) user.Store {
+func NewStore(db *sqlx.DB, logger logging.Logger) user.Store {
 	logger.Debug("creating user store",
 		logging.BoolField("db_available", db != nil),
 	)
@@ -37,54 +36,17 @@ func NewStore(db *database.Database, logger logging.Logger) user.Store {
 
 // Create stores a new user
 func (s *Store) Create(ctx context.Context, u *user.User) error {
-	query := `
-		INSERT INTO users (email, hashed_password, first_name, last_name, role, active, created_at, updated_at)
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-	`
-
-	s.logger.Debug("creating user",
-		logging.StringField("email", u.Email),
-		logging.StringField("role", u.Role),
-		logging.BoolField("active", u.Active),
-	)
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if err != nil {
-			if rbErr := tx.Rollback(); rbErr != nil {
-				s.logger.Error("failed to rollback transaction",
-					logging.ErrorField("error", rbErr),
-				)
-			}
-			return
-		}
-		if err = tx.Commit(); err != nil {
-			s.logger.Error("failed to commit transaction",
-				logging.ErrorField("error", err),
-			)
-		}
-	}()
-
-	result, err := tx.ExecContext(ctx, query,
-		u.Email,
-		u.HashedPassword,
-		u.FirstName,
-		u.LastName,
-		u.Role,
-		u.Active,
-		u.CreatedAt,
-		u.UpdatedAt,
+	result, err := s.db.ExecContext(ctx,
+		"INSERT INTO users (email, hashed_password, first_name, last_name, role, active) VALUES (?, ?, ?, ?, ?, ?)",
+		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to insert user: %w", err)
+		return fmt.Errorf("create user: %w", err)
 	}
 
 	id, err := result.LastInsertId()
 	if err != nil {
-		return fmt.Errorf("failed to get last insert ID: %w", err)
+		return fmt.Errorf("get last insert id: %w", err)
 	}
 
 	if id <= 0 || uint64(id) > uint64(^uint(0)) {
@@ -92,58 +54,19 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 	}
 
 	u.ID = uint(id)
-
-	s.logger.Info("user created",
-		logging.UintField("id", u.ID),
-		logging.StringField("email", u.Email),
-	)
-
 	return nil
 }
 
 // GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
-	query := `
-		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
-		FROM users
-		WHERE email = ?
-	`
-
-	s.logger.Debug("getting user by email",
-		logging.StringField("email", email),
-	)
-
 	var u user.User
-	err := s.db.QueryRowContext(ctx, query, email).Scan(
-		&u.ID,
-		&u.Email,
-		&u.HashedPassword,
-		&u.FirstName,
-		&u.LastName,
-		&u.Role,
-		&u.Active,
-		&u.CreatedAt,
-		&u.UpdatedAt,
-	)
-
-	if err == sql.ErrNoRows {
-		s.logger.Debug("user not found by email",
-			logging.StringField("email", email),
-		)
-		return nil, ErrUserNotFound
-	}
+	err := s.db.GetContext(ctx, &u, "SELECT * FROM users WHERE email = ?", email)
 	if err != nil {
-		s.logger.Error("failed to get user by email",
-			logging.ErrorField("error", err),
-			logging.StringField("email", email),
-		)
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, user.ErrUserNotFound
+		}
 		return nil, fmt.Errorf("failed to get user by email: %w", err)
 	}
-
-	s.logger.Debug("user found by email",
-		logging.UintField("id", u.ID),
-		logging.StringField("email", u.Email),
-	)
 	return &u, nil
 }
 
@@ -156,7 +79,7 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	`
 
 	var u user.User
-	err := s.db.QueryRowContext(ctx, query, id).Scan(
+	err := s.db.QueryRowxContext(ctx, query, id).Scan(
 		&u.ID,
 		&u.Email,
 		&u.HashedPassword,
@@ -168,10 +91,10 @@ func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 		&u.UpdatedAt,
 	)
 
-	if err == sql.ErrNoRows {
-		return nil, user.ErrUserNotFound
-	}
 	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, user.ErrUserNotFound
+		}
 		return nil, fmt.Errorf("failed to get user by id: %w", err)
 	}
 
@@ -190,144 +113,118 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error
 // Update updates an existing user
 func (s *Store) Update(ctx context.Context, u *user.User) error {
 	query := `
-		UPDATE users
-		SET email = ?, hashed_password = ?, first_name = ?, last_name = ?, role = ?, active = ?, updated_at = ?
+		UPDATE users 
+		SET email = ?, 
+			hashed_password = ?, 
+			first_name = ?, 
+			last_name = ?, 
+			role = ?, 
+			active = ?, 
+			updated_at = NOW() 
 		WHERE id = ?
 	`
-
-	tx, err := s.db.BeginTx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if err != nil {
-			if rbErr := tx.Rollback(); rbErr != nil {
-				s.logger.Error("failed to rollback transaction",
-					logging.ErrorField("error", rbErr),
-				)
-			}
-			return
-		}
-		if err = tx.Commit(); err != nil {
-			s.logger.Error("failed to commit transaction",
-				logging.ErrorField("error", err),
-			)
-		}
-	}()
-
-	result, err := tx.ExecContext(ctx, query,
-		u.Email,
-		u.HashedPassword,
-		u.FirstName,
-		u.LastName,
-		u.Role,
-		u.Active,
-		time.Now(),
-		u.ID,
+	result, err := s.db.ExecContext(ctx, query,
+		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active, u.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update user: %w", err)
+		return fmt.Errorf("update user: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return fmt.Errorf("get rows affected: %w", err)
 	}
 
-	if rowsAffected == 0 {
+	if rows == 0 {
 		return user.ErrUserNotFound
 	}
-
-	s.logger.Info("user updated",
-		logging.UintField("id", u.ID),
-		logging.StringField("email", u.Email),
-	)
 
 	return nil
 }
 
 // Delete removes a user by ID
 func (s *Store) Delete(ctx context.Context, id uint) error {
-	query := `DELETE FROM users WHERE id = ?`
-
-	tx, err := s.db.BeginTx(ctx, nil)
+	result, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = ?", id)
 	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if err != nil {
-			if rbErr := tx.Rollback(); rbErr != nil {
-				s.logger.Error("failed to rollback transaction",
-					logging.ErrorField("error", rbErr),
-				)
-			}
-			return
-		}
-		if err = tx.Commit(); err != nil {
-			s.logger.Error("failed to commit transaction",
-				logging.ErrorField("error", err),
-			)
-		}
-	}()
-
-	result, err := tx.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+		return fmt.Errorf("delete user: %w", err)
 	}
 
-	rowsAffected, err := result.RowsAffected()
+	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return fmt.Errorf("get rows affected: %w", err)
 	}
 
-	if rowsAffected == 0 {
+	if rows == 0 {
 		return user.ErrUserNotFound
 	}
-
-	s.logger.Info("user deleted",
-		logging.UintField("id", id),
-	)
 
 	return nil
 }
 
 // List returns all users
 func (s *Store) List(ctx context.Context) ([]user.User, error) {
-	query := `
-		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
-		FROM users
-		ORDER BY id
-	`
-
-	rows, queryErr := s.db.QueryContext(ctx, query)
-	if queryErr != nil {
-		return nil, fmt.Errorf("failed to list users: %w", queryErr)
-	}
-	defer rows.Close()
-
 	var users []user.User
-	for rows.Next() {
-		var u user.User
-		scanErr := rows.Scan(
-			&u.ID,
-			&u.Email,
-			&u.HashedPassword,
-			&u.FirstName,
-			&u.LastName,
-			&u.Role,
-			&u.Active,
-			&u.CreatedAt,
-			&u.UpdatedAt,
-		)
-		if scanErr != nil {
-			return nil, fmt.Errorf("failed to scan user: %w", scanErr)
-		}
-		users = append(users, u)
+	err := s.db.SelectContext(ctx, &users, "SELECT * FROM users ORDER BY id")
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
 	}
 
-	if rowsErr := rows.Err(); rowsErr != nil {
-		return nil, fmt.Errorf("error iterating users: %w", rowsErr)
+	if len(users) == 0 {
+		return []user.User{}, nil
 	}
 
 	return users, nil
+}
+
+// ListPaginated returns a paginated list of users
+func (s *Store) ListPaginated(ctx context.Context, offset, limit int) ([]*user.User, error) {
+	var users []*user.User
+	err := s.db.SelectContext(ctx, &users,
+		"SELECT * FROM users ORDER BY id LIMIT ? OFFSET ?",
+		limit, offset,
+	)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+
+	if len(users) == 0 {
+		return []*user.User{}, nil
+	}
+
+	return users, nil
+}
+
+// Count returns the total number of users
+func (s *Store) Count(ctx context.Context) (int, error) {
+	var count int
+	err := s.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM users")
+	if err != nil {
+		return 0, fmt.Errorf("count users: %w", err)
+	}
+	return count, nil
+}
+
+// FindByEmail finds a user by email
+func (s *Store) FindByEmail(ctx context.Context, email string) (*user.User, error) {
+	var u user.User
+	err := s.db.GetContext(ctx, &u, "SELECT * FROM users WHERE email = ?", email)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, user.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("find user by email: %w", err)
+	}
+	return &u, nil
+}
+
+func (s *Store) FindByID(ctx context.Context, id uint) (*user.User, error) {
+	var u user.User
+	err := s.db.GetContext(ctx, &u, "SELECT * FROM users WHERE id = ?", id)
+	if err != nil {
+		if errors.Is(err, sql.ErrNoRows) {
+			return nil, user.ErrUserNotFound
+		}
+		return nil, fmt.Errorf("find user by id: %w", err)
+	}
+	return &u, nil
 }

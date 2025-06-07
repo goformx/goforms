@@ -6,21 +6,50 @@ alwaysApply: false
 # Handler Patterns
 
 ## Structure
-- Handlers should be organized in the `internal/application/handler` package
-- Each handler should be a struct that embeds `handlers.BaseHandler`
+- Handlers should be organized in the `internal/application/handlers/web` package
+- Each handler should be a struct that embeds or uses `BaseHandler`
 - Handlers should receive dependencies through constructor injection
 - Dependencies should include:
   - BaseHandler
-  - Service interfaces
+  - Domain services (UserService, FormService)
   - Session management
   - View renderer
   - Config
   - Middleware manager
+  - Logger
+
+## Handler Types
+
+### 1. Base Handler
+```go
+type BaseHandler struct {
+    formService form.Service
+    logger      logging.Logger
+}
+```
+
+### 2. Feature Handlers
+```go
+type WebHandler struct {
+    baseHandler       *BaseHandler
+    userService       domain.UserService
+    sessionManager    *middleware.SessionManager
+    renderer          *view.Renderer
+    middlewareManager *middleware.Manager
+    config            *config.Config
+    logger            logging.Logger
+}
+```
 
 ## Registration
 - Handlers should implement a `Register` method that takes an `*echo.Echo` parameter
 - Routes should be registered in the `Register` method
 - Group related routes together (e.g., auth routes, validation routes)
+- Use consistent route patterns:
+  - GET for viewing pages
+  - POST for form submissions
+  - PUT for updates
+  - DELETE for deletions
 
 ## Response Patterns
 - Use appropriate HTTP status codes:
@@ -34,9 +63,10 @@ alwaysApply: false
 
 ## Error Handling
 - Handle domain-specific errors using type assertions
-- Log unexpected errors using the BaseHandler's LogError method
+- Log unexpected errors using the handler's logger
 - Return user-friendly error messages
 - Maintain consistent error response structure
+- Use proper error wrapping and context
 
 ## Session Management
 - Use the SessionManager for session operations
@@ -46,12 +76,14 @@ alwaysApply: false
   - SameSite: Strict
 - Set appropriate cookie expiration times
 - Clear session data on logout
+- Use constants for session configuration
 
 ## Validation
 - Implement separate validation endpoints for forms
 - Return validation schemas as JSON
 - Include field-specific validation rules
 - Provide clear error messages for each validation rule
+- Use domain models for request validation
 
 ## Security Considerations
 - Always validate user input
@@ -59,115 +91,60 @@ alwaysApply: false
 - Implement proper session management
 - Follow secure cookie practices
 - Use appropriate HTTP methods for operations
-
-## Overview
-Handlers in GoFormX follow a structured approach to handle HTTP requests, manage dependencies, and coordinate between services. This document outlines the patterns and best practices for implementing handlers.
-
-## Handler Types
-
-### 1. Base Handler
-- Provides common functionality for all handlers
-- Manages middleware setup
-- Handles authentication and authorization
-- Provides error handling and logging
-
-Example:
-```go
-type BaseHandler struct {
-    authMiddleware *amw.CookieAuthMiddleware
-    formService    form.Service
-    logger         logging.Logger
-}
-
-func (h *BaseHandler) SetupMiddleware(group *echo.Group) {
-    group.Use(h.authMiddleware.RequireAuth)
-}
-```
-
-### 2. Feature Handlers
-- Handle specific feature areas
-- Use services for business logic
-- Coordinate between different services
-- Keep HTTP concerns separate from business logic
-
-Example:
-```go
-type DashboardHandler struct {
-    formService form.Service
-    logger      logging.Logger
-    Base        *BaseHandler
-}
-```
+- Implement rate limiting
+- Use secure headers
 
 ## Best Practices
 
-1. **Separation of Concerns**
-   - Keep handlers focused on HTTP concerns
-   - Delegate business logic to services
-   - Use base handler for common functionality
-   - Keep handlers small and focused
-
-2. **Dependency Management**
-   - Use constructor injection
-   - Make dependencies explicit
-   - Use base handler for common dependencies
-   - Avoid global state
-
-3. **Error Handling**
-   - Use consistent error handling patterns
-   - Return appropriate HTTP status codes
-   - Log errors appropriately
-   - Provide meaningful error messages
-
-4. **Middleware Usage**
-   - Use middleware for cross-cutting concerns
-   - Keep middleware focused and reusable
-   - Document middleware behavior
-   - Test middleware independently
-
-5. **Route Registration**
-   - Group related routes
-   - Use consistent route patterns
-   - Document route behavior
-   - Keep route registration clean
-
-## Implementation Guidelines
-
-1. **Handler Creation**
+1. **Dependency Management**
    ```go
-   // Create a new handler with dependencies
-   func NewHandler(deps Dependencies) *Handler {
+   func NewHandler(
+       baseHandler *BaseHandler,
+       userService domain.UserService,
+       sessionManager *middleware.SessionManager,
+       renderer *view.Renderer,
+       middlewareManager *middleware.Manager,
+       cfg *config.Config,
+       logger logging.Logger,
+   ) *Handler {
        return &Handler{
-           deps: deps,
+           baseHandler:       baseHandler,
+           userService:       userService,
+           sessionManager:    sessionManager,
+           renderer:          renderer,
+           middlewareManager: middlewareManager,
+           config:            cfg,
+           logger:            logger,
        }
    }
    ```
 
 2. **Route Registration**
    ```go
-   // Register routes with middleware
    func (h *Handler) Register(e *echo.Echo) {
-       group := e.Group("/path")
-       h.Base.SetupMiddleware(group)
-       
-       group.GET("", h.HandleRequest)
+       e.GET("/path", h.handleGet)
+       e.POST("/path", h.handlePost)
    }
    ```
 
 3. **Request Handling**
    ```go
-   // Handle requests with proper error handling
-   func (h *Handler) HandleRequest(c echo.Context) error {
+   func (h *Handler) handleRequest(c echo.Context) error {
        // Get authenticated user
-       user, err := h.Base.getAuthenticatedUser(c)
-       if err != nil {
-           return err
+       userIDRaw, ok := c.Get("user_id").(uint)
+       if !ok {
+           return c.Redirect(http.StatusSeeOther, "/login")
        }
+       userID := userIDRaw
 
        // Process request
-       result, err := h.processRequest(c, user)
+       result, err := h.service.Process(userID)
        if err != nil {
-           return h.Base.handleError(err, http.StatusInternalServerError, "Failed to process request")
+           h.logger.Error("failed to process request", 
+               logging.ErrorField("error", err))
+           return c.JSON(http.StatusInternalServerError, map[string]string{
+               "error": "Failed to process request",
+           })
        }
 
        // Return response
@@ -175,32 +152,14 @@ type DashboardHandler struct {
    }
    ```
 
-## Integration with Services
-
-1. **Service Usage**
+4. **Page Data Construction**
    ```go
-   type Handler struct {
-       pageDataService *PageDataService
-       formOperations  *FormOperations
-       templateService *TemplateService
-       Base           *BaseHandler
-   }
-   ```
-
-2. **Service Coordination**
-   ```go
-   func (h *Handler) HandleRequest(c echo.Context) error {
-       // Prepare data
-       data := h.pageDataService.PrepareData(c)
-
-       // Process form
-       form, err := h.formOperations.ProcessForm(data)
-       if err != nil {
-           return err
+   func (h *Handler) buildPageData(title string) shared.PageData {
+       return shared.PageData{
+           Title:         title,
+           IsDevelopment: true, // TODO: Get from config
+           AssetPath:     func(path string) string { return path },
        }
-
-       // Render template
-       return h.templateService.Render(c, form)
    }
    ```
 

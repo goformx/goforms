@@ -5,7 +5,6 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/validation"
-	"github.com/google/uuid"
 )
 
 // FormSubmission represents a form submission
@@ -31,24 +30,6 @@ const (
 	// SubmissionStatusFailed indicates the submission processing failed
 	SubmissionStatusFailed SubmissionStatus = "failed"
 )
-
-// NewFormSubmission creates a new form submission
-func NewFormSubmission(formID string, data map[string]any, metadata map[string]string) (*FormSubmission, error) {
-	submission := &FormSubmission{
-		ID:          uuid.New().String(),
-		FormID:      formID,
-		Data:        data,
-		SubmittedAt: time.Now(),
-		Status:      SubmissionStatusPending,
-		Metadata:    metadata,
-	}
-
-	if err := submission.Validate(); err != nil {
-		return nil, err
-	}
-
-	return submission, nil
-}
 
 // Validate validates the form submission
 func (s *FormSubmission) Validate() error {

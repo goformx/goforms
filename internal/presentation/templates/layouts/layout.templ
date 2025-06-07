@@ -3,7 +3,6 @@ package layouts
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/templates/components"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 templ Layout(data shared.PageData, content templ.Component) {
@@ -19,14 +18,14 @@ templ Layout(data shared.PageData, content templ.Component) {
 	<meta name="csrf-token" content={ data.CSRFToken } />
 	<title>{ data.Title } - Goforms</title>
 
-	<script type="module" src={ web.GetAssetPath("src/js/main.ts") }></script>
-	<link rel="stylesheet" href={ web.GetAssetPath("src/css/main.css") } type="text/css"/>
+	<script type="module" src={ data.AssetPath("js/main.ts") }></script>
+	<link rel="stylesheet" href={ data.AssetPath("css/main.css") } type="text/css"/>
 </head>
 
-<body class="min-h-screen flex flex-col">
+<body>
 	@components.Nav(data)
 
-	<main class="flex-1">
+	<main>
 		@content
 	</main>
 

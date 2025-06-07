@@ -1,13 +1,12 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
 	"time"
 
-	"github.com/goformx/goforms/internal/infrastructure/common"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/joho/godotenv"
 	"github.com/kelseyhightower/envconfig"
 )
@@ -34,6 +33,11 @@ const (
 
 	// DefaultCorsOrigins is the default allowed CORS origins
 	DefaultCorsOrigins = "http://localhost:3000,http://localhost:5173"
+
+	// DefaultPort is the default port for the server
+	DefaultPort = 8090
+	// DefaultStartupTimeout is the default timeout for application startup
+	DefaultStartupTimeout = 30 * time.Second
 )
 
 // CORSOriginsDecoder handles parsing of CORS allowed origins
@@ -81,12 +85,11 @@ type StaticConfig struct {
 
 // Config represents the complete application configuration
 type Config struct {
-	App       AppConfig
-	Server    ServerConfig
-	Database  DatabaseConfig
-	Security  SecurityConfig
-	RateLimit RateLimitConfig
-	Static    StaticConfig
+	App      AppConfig
+	Server   ServerConfig
+	Database DatabaseConfig
+	Security SecurityConfig
+	Static   StaticConfig
 }
 
 // AppConfig holds application-level configuration
@@ -96,7 +99,7 @@ type AppConfig struct {
 	Debug       bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
 	LogLevel    string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
 	Port        int    `envconfig:"GOFORMS_APP_PORT" default:"8090"`
-	Host        string `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
+	Host        string `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
 	ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"3000"`
 }
@@ -120,8 +123,8 @@ type DatabaseConfig struct {
 
 // ServerConfig holds all server-related configuration
 type ServerConfig struct {
-	Host            string        `envconfig:"GOFORMS_APP_HOST" default:"localhost"`
-	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8099"`
+	Host            string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
+	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	ReadTimeout     time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
 	WriteTimeout    time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
 	IdleTimeout     time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
@@ -130,31 +133,28 @@ type ServerConfig struct {
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	Debug                bool   `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
-	LogLevel             string `envconfig:"GOFORMS_SECURITY_LOG_LEVEL" default:"info"`
-	CSRF                 CSRFConfig
-	CorsAllowedOrigins   CORSOriginsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000,http://localhost:5173"` //nolint:lll  // Long list required for CORS
-	CorsAllowedMethods   CORSMethodsDecoder `envconfig:"GOFORMS_CORS_ALLOWED_METHODS"`
-	CorsAllowedHeaders   CORSHeadersDecoder `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS"`
-	CorsMaxAge           int                `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
-	CorsAllowCredentials bool               `envconfig:"GOFORMS_CORS_ALLOW_CREDENTIALS" default:"true"`
-	RequestTimeout       time.Duration      `envconfig:"GOFORMS_REQUEST_TIMEOUT" default:"30s"`
+	Debug               bool          `envconfig:"GOFORMS_DEBUG" default:"true"`
+	LogLevel            string        `envconfig:"GOFORMS_LOG_LEVEL" default:"debug"`
+	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"20"`
+	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1s"`
+
+	// CORS settings
+	CorsAllowedOrigins   []string `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
+	CorsAllowedMethods   []string `envconfig:"GOFORMS_CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
+	CorsAllowedHeaders   []string `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS" default:"Content-Type,Authorization"`
+	CorsAllowCredentials bool     `envconfig:"GOFORMS_CORS_ALLOW_CREDENTIALS" default:"true"`
+	CorsMaxAge           int      `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
 
 	// Form-specific CORS settings
-	FormCorsAllowedOrigins CORSOriginsDecoder `envconfig:"GOFORMS_FORM_CORS_ALLOWED_ORIGINS"`
-	FormCorsAllowedMethods CORSMethodsDecoder `envconfig:"GOFORMS_FORM_CORS_ALLOWED_METHODS"`
-	FormCorsAllowedHeaders CORSHeadersDecoder `envconfig:"GOFORMS_FORM_CORS_ALLOWED_HEADERS"`
-	FormRateLimit          int                `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"20"`
-	FormRateLimitWindow    time.Duration      `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1m"`
-}
+	FormCorsAllowedOrigins []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_ORIGINS" default:"*"`
+	FormCorsAllowedMethods []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_METHODS" default:"GET,POST,OPTIONS"`
+	FormCorsAllowedHeaders []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_HEADERS" default:"Content-Type"`
 
-// RateLimitConfig contains rate limiting settings
-type RateLimitConfig struct {
-	Enabled    bool          `envconfig:"GOFORMS_RATE_LIMIT_ENABLED" default:"true"`
-	Rate       int           `envconfig:"GOFORMS_RATE_LIMIT" default:"100"`
-	Burst      int           `envconfig:"GOFORMS_RATE_BURST" default:"5"`
-	TimeWindow time.Duration `envconfig:"GOFORMS_RATE_LIMIT_TIME_WINDOW" default:"1m"`
-	PerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
+	// CSRF settings
+	CSRFConfig struct {
+		Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
+		Secret  string `envconfig:"GOFORMS_CSRF_SECRET" required:"true"`
+	} `envconfig:"GOFORMS_CSRF"`
 }
 
 // CSRFConfig holds CSRF-related configuration
@@ -163,68 +163,39 @@ type CSRFConfig struct {
 	Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
 }
 
-// New creates a new configuration instance
-func New(logger common.Logger) (*Config, error) {
-	logger.Info("Starting configuration loading...")
-
-	// Load .env file in development mode
+// New creates a new configuration
+func New() (*Config, error) {
+	// Load environment variables from .env file
 	if err := godotenv.Load(); err != nil {
 		// Only log a warning if the .env file is not found, as it's optional
 		if !os.IsNotExist(err) {
-			logger.Warn("Error loading .env file", logging.Error(err))
+			return nil, fmt.Errorf("failed to load .env file: %w", err)
 		}
-	} else {
-		logger.Info("Loaded .env file")
 	}
 
-	// Create default configuration
-	cfg := &Config{
-		App: AppConfig{
-			Name:        "GoFormX",
-			Env:         "production",
-			Debug:       false,
-			LogLevel:    "info",
-			Port:        DefaultAppPort,
-			Host:        "localhost",
-			ViteDevHost: "localhost",
-			ViteDevPort: "3000",
-		},
-		Server: ServerConfig{
-			Host:            "localhost",
-			Port:            DefaultServerPort,
-			ReadTimeout:     DefaultReadTimeout,
-			WriteTimeout:    DefaultWriteTimeout,
-			IdleTimeout:     DefaultIdleTimeout,
-			ShutdownTimeout: DefaultShutdownTimeout,
-		},
-		Security: SecurityConfig{
-			CorsMaxAge:           DefaultCorsMaxAge,
-			CorsAllowCredentials: true,
-			RequestTimeout:       DefaultRequestTimeout,
-		},
-		Static: StaticConfig{
-			DistDir: "dist",
-		},
-	}
-	logger.Debug("Default configuration created")
+	cfg := &Config{}
 
 	// Process environment variables
 	if err := envconfig.Process("", cfg); err != nil {
-		logger.Error("Error processing environment variables", logging.Error(err))
 		return nil, fmt.Errorf("failed to process environment variables: %w", err)
 	}
-	logger.Debug("Environment variables processed")
 
-	// Log final configuration values
-	logger.Debug("Final configuration values",
-		logging.Int("MaxOpenConns", cfg.Database.MaxOpenConns),
-		logging.Int("MaxIdleConns", cfg.Database.MaxIdleConns),
-		logging.Duration("ConnMaxLifetime", cfg.Database.ConnMaxLifetime),
-		logging.String("DatabaseHost", cfg.Database.Host),
-		logging.Int("DatabasePort", cfg.Database.Port),
-		logging.String("DatabaseUser", cfg.Database.User),
-		logging.String("DatabaseName", cfg.Database.Name),
-	)
+	// Validate required fields
+	if cfg.Database.Host == "" {
+		return nil, errors.New("database host is required")
+	}
+	if cfg.Database.Port == 0 {
+		return nil, errors.New("database port is required")
+	}
+	if cfg.Database.User == "" {
+		return nil, errors.New("database user is required")
+	}
+	if cfg.Database.Password == "" {
+		return nil, errors.New("database password is required")
+	}
+	if cfg.Database.Name == "" {
+		return nil, errors.New("database name is required")
+	}
 
 	return cfg, nil
 }

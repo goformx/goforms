@@ -3,44 +3,37 @@ package health
 import (
 	"net/http"
 
-	"github.com/labstack/echo/v4"
-
-	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/services/health"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/labstack/echo/v4"
 )
 
 // Handler handles health check requests
 type Handler struct {
-	logger  logging.Logger
 	service health.Service
+	logger  logging.Logger
 }
 
-// NewHandler creates a new health handler
-func NewHandler(logger logging.Logger, service health.Service) *Handler {
+// NewHandler creates a new health check handler
+func NewHandler(service health.Service, logger logging.Logger) *Handler {
 	return &Handler{
-		logger:  logger,
 		service: service,
+		logger:  logger,
 	}
 }
 
 // Register registers the health check routes
 func (h *Handler) Register(e *echo.Echo) {
-	e.GET("/health", h.HandleHealthCheck)
-	h.logger.Debug("registered health check endpoint",
-		logging.StringField("path", "/health"),
-		logging.StringField("method", "GET"),
-	)
+	e.GET("/health", h.handleHealthCheck)
 }
 
-// HandleHealthCheck handles health check requests
-func (h *Handler) HandleHealthCheck(c echo.Context) error {
-	// Check system health
+// handleHealthCheck handles the health check request
+func (h *Handler) handleHealthCheck(c echo.Context) error {
 	status, err := h.service.CheckHealth(c.Request().Context())
 	if err != nil {
-		return response.ErrorResponse(c, http.StatusServiceUnavailable, "Service is not healthy: database connection failed")
+		h.logger.Error("health check failed", logging.ErrorField("error", err))
+		return c.JSON(http.StatusServiceUnavailable, status)
 	}
 
-	// Return health status
-	return response.Success(c, status)
+	return c.JSON(http.StatusOK, status)
 }
