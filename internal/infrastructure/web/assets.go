@@ -42,7 +42,7 @@ func loadManifest() error {
 		return fmt.Errorf("failed to read manifest file: %w", err)
 	}
 
-	if err := json.Unmarshal(data, &manifest); err != nil {
+	if err = json.Unmarshal(data, &manifest); err != nil {
 		return fmt.Errorf("failed to parse manifest file: %w", err)
 	}
 
