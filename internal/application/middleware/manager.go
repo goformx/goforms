@@ -34,10 +34,9 @@ const (
 
 // Manager handles middleware configuration and setup
 type Manager struct {
-	logger             logging.Logger
-	config             *ManagerConfig
-	contextMiddleware  *ContextMiddleware
-	recoveryMiddleware *RecoveryMiddleware
+	logger            logging.Logger
+	config            *ManagerConfig
+	contextMiddleware *ContextMiddleware
 }
 
 // ManagerConfig represents the configuration for the middleware manager
@@ -65,10 +64,9 @@ func NewManager(cfg *ManagerConfig) *Manager {
 	}
 
 	return &Manager{
-		logger:             cfg.Logger,
-		config:             cfg,
-		contextMiddleware:  NewContextMiddleware(cfg.Logger),
-		recoveryMiddleware: NewRecoveryMiddleware(cfg.Logger),
+		logger:            cfg.Logger,
+		config:            cfg,
+		contextMiddleware: NewContextMiddleware(cfg.Logger),
 	}
 }
 
@@ -89,7 +87,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
 
 	// Add recovery middleware first to catch panics
-	e.Use(m.recoveryMiddleware.WithRecovery())
+	e.Use(Recovery(m.logger))
 
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
