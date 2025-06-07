@@ -134,14 +134,14 @@ templ EditFormContent(data shared.PageData) {
 			if (document.getElementById('form-schema-builder')) {
 				const script = document.getElementById('form-builder-script');
 				const path = script.getAttribute('data-form-builder-path');
-				import(path);
+				await import(path);
 			}
 		</script>
 	} else {
 		<script type="module">
 			const path = JSON.parse(document.getElementById('form-builder-data').textContent);
 			if (document.getElementById('form-schema-builder')) {
-				import(path);
+				await import(path);
 			}
 		</script>
 	}
