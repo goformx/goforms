@@ -4,50 +4,32 @@ import (
 	"context"
 	"database/sql"
 	"encoding/json"
-	stderrors "errors"
+	"errors"
 	"fmt"
-	"time"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 var (
-	ErrFormNotFound = stderrors.New("form not found")
-	ErrFormInvalid  = stderrors.New("invalid form data")
+	// ErrFormNotFound is returned when a form cannot be found
+	ErrFormNotFound = errors.New("form not found")
 )
 
-// formModel represents the database model for forms
-type formModel struct {
-	ID          string    `db:"uuid"`
-	UserID      uint      `db:"user_id"`
-	Title       string    `db:"title"`
-	Description string    `db:"description"`
-	Schema      string    `db:"schema"`
-	Active      bool      `db:"active"`
-	CreatedAt   time.Time `db:"created_at"`
-	UpdatedAt   time.Time `db:"updated_at"`
-}
-
-// submissionModel represents the database model for form submissions
-type submissionModel struct {
-	ID        string    `db:"id"`
-	FormID    string    `db:"form_uuid"`
-	Data      string    `db:"data"`
-	CreatedAt time.Time `db:"created_at"`
-	UpdatedAt time.Time `db:"updated_at"`
-}
-
-// FormStore implements form.Repository
+// FormStore implements form.Repository interface
 type FormStore struct {
 	db     *database.Database
 	logger logging.Logger
 }
 
-// NewFormStore creates a new form store
-func NewFormStore(db *database.Database, logger logging.Logger) *FormStore {
+// NewStore creates a new form store
+func NewStore(db *database.Database, logger logging.Logger) form.Repository {
+	logger.Debug("creating form store",
+		logging.BoolField("db_available", db != nil),
+	)
 	return &FormStore{
 		db:     db,
 		logger: logger,
@@ -103,7 +85,7 @@ func (s *FormStore) GetByID(ctx context.Context, id string) (*model.Form, error)
 	query := `SELECT * FROM forms WHERE uuid = ? AND deleted_at IS NULL`
 	err := s.db.GetContext(ctx, &form, query, id)
 	if err != nil {
-		if stderrors.Is(err, sql.ErrNoRows) {
+		if errors.Is(err, sql.ErrNoRows) {
 			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "form not found", nil)
 		}
 		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get form")
@@ -117,7 +99,7 @@ func (s *FormStore) GetByID(ctx context.Context, id string) (*model.Form, error)
 }
 
 // GetByUserID retrieves all forms created by a specific user
-func (s *FormStore) GetByUserID(ctx context.Context, userID string) ([]*model.Form, error) {
+func (s *FormStore) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
 	var forms []*model.Form
 	query := `SELECT * FROM forms WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC`
 	err := s.db.SelectContext(ctx, &forms, query, userID)
@@ -181,7 +163,6 @@ func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
 // Delete deletes a form
 func (s *FormStore) Delete(ctx context.Context, id string) error {
 	query := `DELETE FROM forms WHERE uuid = ?`
-
 	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete form: %w", err)
@@ -255,103 +236,48 @@ func (s *FormStore) Search(ctx context.Context, query string, offset, limit int)
 
 // GetActiveForms returns all active forms
 func (s *FormStore) GetActiveForms(ctx context.Context) ([]*model.Form, error) {
-	var forms []formModel
-	query := `SELECT * FROM forms WHERE active = true ORDER BY created_at DESC`
-	err := s.db.SelectContext(ctx, &forms, query)
+	var forms []*model.Form
+	query := `SELECT * FROM forms WHERE active = ? AND deleted_at IS NULL ORDER BY created_at DESC`
+	err := s.db.SelectContext(ctx, &forms, query, true)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get active forms: %w", err)
 	}
-	for i := range forms {
-		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
-		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
+
+	// Convert timestamps to UTC
+	for _, form := range forms {
+		form.CreatedAt = form.CreatedAt.UTC()
+		form.UpdatedAt = form.UpdatedAt.UTC()
 	}
-	return s.mapToForms(forms), nil
+
+	return forms, nil
 }
 
 // GetFormsByStatus returns forms by their active status
 func (s *FormStore) GetFormsByStatus(ctx context.Context, active bool) ([]*model.Form, error) {
-	var forms []formModel
-	query := fmt.Sprintf(`SELECT * FROM forms WHERE active = %s`, s.db.GetPlaceholder(1))
+	var forms []*model.Form
+	query := `SELECT * FROM forms WHERE active = ? AND deleted_at IS NULL ORDER BY created_at DESC`
 	err := s.db.SelectContext(ctx, &forms, query, active)
 	if err != nil {
-		return nil, fmt.Errorf("failed to get forms: %w", err)
+		return nil, fmt.Errorf("failed to get forms by status: %w", err)
 	}
-	for i := range forms {
-		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
-		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
+
+	// Convert timestamps to UTC
+	for _, form := range forms {
+		form.CreatedAt = form.CreatedAt.UTC()
+		form.UpdatedAt = form.UpdatedAt.UTC()
 	}
-	return s.mapToForms(forms), nil
+
+	return forms, nil
 }
 
 // GetFormSubmissions gets all submissions for a form
 func (s *FormStore) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	var submissions []submissionModel
-	query := fmt.Sprintf(`SELECT * FROM form_submissions WHERE form_uuid = %s ORDER BY created_at DESC`, s.db.GetPlaceholder(1))
+	var submissions []*model.FormSubmission
+	query := `SELECT * FROM form_submissions WHERE form_id = ? ORDER BY created_at DESC`
 	err := s.db.SelectContext(ctx, &submissions, query, formID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get form submissions: %w", err)
 	}
-	return s.mapToSubmissions(submissions), nil
-}
 
-// mapToForm converts a formModel to a model.Form
-func (s *FormStore) mapToForm(f *formModel) *model.Form {
-	var schema model.JSON
-	if err := json.Unmarshal([]byte(f.Schema), &schema); err != nil {
-		s.logger.Error("failed to unmarshal form schema",
-			logging.String("operation", "map_form"),
-			logging.Error(err),
-		)
-		schema = model.JSON{}
-	}
-
-	return &model.Form{
-		ID:          f.ID,
-		UserID:      f.UserID,
-		Title:       f.Title,
-		Description: f.Description,
-		Schema:      schema,
-		Active:      f.Active,
-		CreatedAt:   f.CreatedAt,
-		UpdatedAt:   f.UpdatedAt,
-	}
-}
-
-// mapToForms converts a slice of formModel to a slice of model.Form
-func (s *FormStore) mapToForms(forms []formModel) []*model.Form {
-	result := make([]*model.Form, len(forms))
-	for i := range forms {
-		result[i] = s.mapToForm(&forms[i])
-	}
-	return result
-}
-
-// mapToSubmission converts a submissionModel to a model.FormSubmission
-func (s *FormStore) mapToSubmission(sm *submissionModel) *model.FormSubmission {
-	var data model.JSON
-	if err := json.Unmarshal([]byte(sm.Data), &data); err != nil {
-		s.logger.Error("failed to unmarshal submission data",
-			logging.String("operation", "map_submission"),
-			logging.Error(err),
-		)
-		data = model.JSON{}
-	}
-
-	return &model.FormSubmission{
-		ID:          sm.ID,
-		FormID:      sm.FormID,
-		Data:        data,
-		SubmittedAt: sm.CreatedAt,
-		Status:      model.SubmissionStatusPending,
-		Metadata:    model.JSON{},
-	}
-}
-
-// mapToSubmissions converts a slice of submissionModel to a slice of model.FormSubmission
-func (s *FormStore) mapToSubmissions(submissions []submissionModel) []*model.FormSubmission {
-	result := make([]*model.FormSubmission, len(submissions))
-	for i, sm := range submissions {
-		result[i] = s.mapToSubmission(&sm)
-	}
-	return result
+	return submissions, nil
 }

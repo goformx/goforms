@@ -1,6 +1,8 @@
 package infrastructure
 
 import (
+	"fmt"
+
 	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
@@ -63,6 +65,30 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
+// NewStores creates new store instances
+func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
+	if db == nil {
+		return Stores{}, fmt.Errorf("database connection is required")
+	}
+
+	userStore := userstore.NewStore(db, logger)
+	formStore := formstore.NewStore(db, logger)
+
+	if userStore == nil || formStore == nil {
+		logger.Error("failed to create store",
+			logging.StringField("operation", "store_initialization"),
+			logging.StringField("store_type", "user/form"),
+			logging.StringField("error_type", "nil_store"),
+		)
+		return Stores{}, fmt.Errorf("failed to create user or form store")
+	}
+
+	return Stores{
+		UserStore: userStore,
+		FormStore: formStore,
+	}, nil
+}
+
 // InfrastructureModule provides infrastructure dependencies
 var InfrastructureModule = fx.Options(
 	fx.Provide(
@@ -76,7 +102,7 @@ var InfrastructureModule = fx.Options(
 			fx.As(new(user.Repository)),
 		),
 		fx.Annotate(
-			formstore.NewFormStore,
+			formstore.NewStore,
 			fx.As(new(formdomain.Repository)),
 		),
 		func(logger logging.Logger, config *config.Config) *middleware.SessionManager {
@@ -115,7 +141,7 @@ var Module = fx.Options(
 	// Stores
 	fx.Provide(
 		fx.Annotate(userstore.NewStore, fx.As(new(user.Repository))),
-		fx.Annotate(formstore.NewFormStore, fx.As(new(formdomain.Repository))),
+		fx.Annotate(formstore.NewStore, fx.As(new(formdomain.Repository))),
 	),
 	// Base handler
 	fx.Provide(

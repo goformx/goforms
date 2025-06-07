@@ -4,7 +4,6 @@ import (
 	"context"
 	"database/sql"
 	"errors"
-	"fmt"
 	"strconv"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
@@ -50,7 +49,7 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to insert user: %w", err)
+		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to insert user")
 	}
 
 	u.ID = id
@@ -60,28 +59,38 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 // GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	var u user.User
-	query := fmt.Sprintf(`SELECT * FROM users WHERE email = %s`, s.db.GetPlaceholder(1))
+	query := `SELECT * FROM users WHERE email = ?`
 	err := s.db.GetContext(ctx, &u, query, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domainerrors.WrapError(err, domainerrors.ErrCodeNotFound, "user not found")
+			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get user")
 	}
+
+	// Convert timestamps to UTC
+	u.CreatedAt = u.CreatedAt.UTC()
+	u.UpdatedAt = u.UpdatedAt.UTC()
+
 	return &u, nil
 }
 
 // GetByID retrieves a user by ID
 func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	var u user.User
-	query := fmt.Sprintf(`SELECT * FROM users WHERE id = %s`, s.db.GetPlaceholder(1))
+	query := `SELECT * FROM users WHERE id = ?`
 	err := s.db.GetContext(ctx, &u, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("user not found: %d", id)
+			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
+		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get user")
 	}
+
+	// Convert timestamps to UTC
+	u.CreatedAt = u.CreatedAt.UTC()
+	u.UpdatedAt = u.UpdatedAt.UTC()
+
 	return &u, nil
 }
 
@@ -97,17 +106,10 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error
 // Update updates a user
 func (s *Store) Update(ctx context.Context, userModel *user.User) error {
 	query := `
-		UPDATE users SET
-			email = ?,
-			hashed_password = ?,
-			first_name = ?,
-			last_name = ?,
-			role = ?,
-			active = ?,
-			updated_at = NOW()
+		UPDATE users 
+		SET email = ?, hashed_password = ?, first_name = ?, last_name = ?, role = ?, active = ?, updated_at = NOW()
 		WHERE id = ?
 	`
-
 	result, err := s.db.ExecContext(ctx, query,
 		userModel.Email,
 		userModel.HashedPassword,
@@ -118,16 +120,16 @@ func (s *Store) Update(ctx context.Context, userModel *user.User) error {
 		userModel.ID,
 	)
 	if err != nil {
-		return fmt.Errorf("failed to update user: %w", err)
+		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to update user")
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get rows affected")
 	}
 
 	if rows == 0 {
-		return fmt.Errorf("user not found: %d", userModel.ID)
+		return domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 	}
 
 	return nil
@@ -138,16 +140,16 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 	query := `DELETE FROM users WHERE id = ?`
 	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
-		return fmt.Errorf("failed to delete user: %w", err)
+		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to delete user")
 	}
 
 	rows, err := result.RowsAffected()
 	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get rows affected")
 	}
 
 	if rows == 0 {
-		return fmt.Errorf("user not found: %d", id)
+		return domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 	}
 
 	return nil
@@ -158,7 +160,7 @@ func (s *Store) List(ctx context.Context) ([]user.User, error) {
 	var users []user.User
 	err := s.db.SelectContext(ctx, &users, "SELECT * FROM users ORDER BY id")
 	if err != nil {
-		return nil, fmt.Errorf("list users: %w", err)
+		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to list users")
 	}
 
 	if len(users) == 0 {
@@ -170,14 +172,11 @@ func (s *Store) List(ctx context.Context) ([]user.User, error) {
 
 // ListPaginated returns a paginated list of users
 func (s *Store) ListPaginated(ctx context.Context, offset, limit int) ([]*user.User, error) {
-	query := fmt.Sprintf(`SELECT * FROM users ORDER BY id LIMIT %s OFFSET %s`,
-		s.db.GetPlaceholder(1),
-		s.db.GetPlaceholder(2),
-	)
+	query := `SELECT * FROM users ORDER BY id LIMIT ? OFFSET ?`
 	var users []*user.User
 	err := s.db.SelectContext(ctx, &users, query, limit, offset)
 	if err != nil {
-		return nil, fmt.Errorf("failed to list users: %w", err)
+		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to list users")
 	}
 	return users, nil
 }
@@ -187,35 +186,7 @@ func (s *Store) Count(ctx context.Context) (int, error) {
 	var count int
 	err := s.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM users")
 	if err != nil {
-		return 0, fmt.Errorf("count users: %w", err)
+		return 0, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to count users")
 	}
 	return count, nil
-}
-
-// FindByEmail finds a user by email
-func (s *Store) FindByEmail(ctx context.Context, email string) (*user.User, error) {
-	query := fmt.Sprintf(`SELECT * FROM users WHERE email = %s`, s.db.GetPlaceholder(1))
-	var u user.User
-	err := s.db.GetContext(ctx, &u, query, email)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domainerrors.WrapError(err, domainerrors.ErrCodeNotFound, "user not found")
-		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-	return &u, nil
-}
-
-// FindByID finds a user by ID
-func (s *Store) FindByID(ctx context.Context, id uint) (*user.User, error) {
-	query := fmt.Sprintf(`SELECT * FROM users WHERE id = %s`, s.db.GetPlaceholder(1))
-	var u user.User
-	err := s.db.GetContext(ctx, &u, query, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, fmt.Errorf("user not found: %d", id)
-		}
-		return nil, fmt.Errorf("failed to get user: %w", err)
-	}
-	return &u, nil
 }
