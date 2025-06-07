@@ -85,6 +85,63 @@ func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.Form
 	return nil
 }
 
+// convertDBSubmission converts a database submission record to a model.FormSubmission
+func (s *FormSubmissionStore) convertDBSubmission(submission struct {
+	ID          uint      `db:"id"`
+	FormID      string    `db:"form_id"`
+	Data        string    `db:"data"`
+	Status      string    `db:"status"`
+	SubmittedAt time.Time `db:"submitted_at"`
+	Metadata    string    `db:"metadata"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
+}, operation string) *model.FormSubmission {
+	var data model.JSON
+	if err := json.Unmarshal([]byte(submission.Data), &data); err != nil {
+		s.logger.Error("failed to unmarshal submission data",
+			logging.String("operation", operation),
+			logging.Error(err),
+		)
+		data = model.JSON{}
+	}
+
+	var metadata model.JSON
+	if err := json.Unmarshal([]byte(submission.Metadata), &metadata); err != nil {
+		s.logger.Error("failed to unmarshal submission metadata",
+			logging.String("operation", operation),
+			logging.Error(err),
+		)
+		metadata = model.JSON{}
+	}
+
+	return &model.FormSubmission{
+		ID:          strconv.FormatUint(uint64(submission.ID), 10),
+		FormID:      submission.FormID,
+		Data:        data,
+		SubmittedAt: submission.SubmittedAt,
+		Status:      model.SubmissionStatus(submission.Status),
+		Metadata:    metadata,
+	}
+}
+
+// convertDBSubmissions converts a slice of database submission records to model.FormSubmission
+func (s *FormSubmissionStore) convertDBSubmissions(submissions []struct {
+	ID          uint      `db:"id"`
+	FormID      string    `db:"form_id"`
+	Data        string    `db:"data"`
+	Status      string    `db:"status"`
+	SubmittedAt time.Time `db:"submitted_at"`
+	Metadata    string    `db:"metadata"`
+	CreatedAt   time.Time `db:"created_at"`
+	UpdatedAt   time.Time `db:"updated_at"`
+}, operation string) []*model.FormSubmission {
+	result := make([]*model.FormSubmission, len(submissions))
+	for i, submission := range submissions {
+		result[i] = s.convertDBSubmission(submission, operation)
+	}
+	return result
+}
+
 // GetByID retrieves a form submission by ID
 func (s *FormSubmissionStore) GetByID(ctx context.Context, id string) (*model.FormSubmission, error) {
 	var submission struct {
@@ -107,32 +164,7 @@ func (s *FormSubmissionStore) GetByID(ctx context.Context, id string) (*model.Fo
 		return nil, fmt.Errorf("failed to get submission: %w", err)
 	}
 
-	var data model.JSON
-	if err := json.Unmarshal([]byte(submission.Data), &data); err != nil {
-		s.logger.Error("failed to unmarshal submission data",
-			logging.String("operation", "get_submission"),
-			logging.Error(err),
-		)
-		data = model.JSON{}
-	}
-
-	var metadata model.JSON
-	if err := json.Unmarshal([]byte(submission.Metadata), &metadata); err != nil {
-		s.logger.Error("failed to unmarshal submission metadata",
-			logging.String("operation", "get_submission"),
-			logging.Error(err),
-		)
-		metadata = model.JSON{}
-	}
-
-	return &model.FormSubmission{
-		ID:          strconv.FormatUint(uint64(submission.ID), 10),
-		FormID:      submission.FormID,
-		Data:        data,
-		SubmittedAt: submission.SubmittedAt,
-		Status:      model.SubmissionStatus(submission.Status),
-		Metadata:    metadata,
-	}, nil
+	return s.convertDBSubmission(submission, "get_submission"), nil
 }
 
 // GetByFormID retrieves all submissions for a form
@@ -154,37 +186,7 @@ func (s *FormSubmissionStore) GetByFormID(ctx context.Context, formID string) ([
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
 
-	result := make([]*model.FormSubmission, len(submissions))
-	for i, submission := range submissions {
-		var data model.JSON
-		if err := json.Unmarshal([]byte(submission.Data), &data); err != nil {
-			s.logger.Error("failed to unmarshal submission data",
-				logging.String("operation", "get_submissions"),
-				logging.Error(err),
-			)
-			data = model.JSON{}
-		}
-
-		var metadata model.JSON
-		if err := json.Unmarshal([]byte(submission.Metadata), &metadata); err != nil {
-			s.logger.Error("failed to unmarshal submission metadata",
-				logging.String("operation", "get_submissions"),
-				logging.Error(err),
-			)
-			metadata = model.JSON{}
-		}
-
-		result[i] = &model.FormSubmission{
-			ID:          strconv.FormatUint(uint64(submission.ID), 10),
-			FormID:      submission.FormID,
-			Data:        data,
-			SubmittedAt: submission.SubmittedAt,
-			Status:      model.SubmissionStatus(submission.Status),
-			Metadata:    metadata,
-		}
-	}
-
-	return result, nil
+	return s.convertDBSubmissions(submissions, "get_submissions"), nil
 }
 
 // GetByUserID retrieves all submissions by a user
@@ -206,37 +208,7 @@ func (s *FormSubmissionStore) GetByUserID(ctx context.Context, userID uint) ([]*
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
 
-	result := make([]*model.FormSubmission, len(submissions))
-	for i, submission := range submissions {
-		var data model.JSON
-		if err := json.Unmarshal([]byte(submission.Data), &data); err != nil {
-			s.logger.Error("failed to unmarshal submission data",
-				logging.String("operation", "get_submissions"),
-				logging.Error(err),
-			)
-			data = model.JSON{}
-		}
-
-		var metadata model.JSON
-		if err := json.Unmarshal([]byte(submission.Metadata), &metadata); err != nil {
-			s.logger.Error("failed to unmarshal submission metadata",
-				logging.String("operation", "get_submissions"),
-				logging.Error(err),
-			)
-			metadata = model.JSON{}
-		}
-
-		result[i] = &model.FormSubmission{
-			ID:          strconv.FormatUint(uint64(submission.ID), 10),
-			FormID:      submission.FormID,
-			Data:        data,
-			SubmittedAt: submission.SubmittedAt,
-			Status:      model.SubmissionStatus(submission.Status),
-			Metadata:    metadata,
-		}
-	}
-
-	return result, nil
+	return s.convertDBSubmissions(submissions, "get_submissions"), nil
 }
 
 // Update updates a form submission
@@ -339,7 +311,7 @@ func (s *FormSubmissionStore) Delete(ctx context.Context, id string) error {
 	return nil
 }
 
-// List returns a paginated list of form submissions
+// List retrieves all form submissions with pagination
 func (s *FormSubmissionStore) List(ctx context.Context, offset, limit int) ([]*model.FormSubmission, error) {
 	var submissions []struct {
 		ID          uint      `db:"id"`
@@ -352,43 +324,13 @@ func (s *FormSubmissionStore) List(ctx context.Context, offset, limit int) ([]*m
 		UpdatedAt   time.Time `db:"updated_at"`
 	}
 
-	query := `SELECT * FROM form_submissions ORDER BY submitted_at DESC LIMIT ? OFFSET ?`
+	query := `SELECT * FROM form_submissions ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	err := s.db.SelectContext(ctx, &submissions, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list submissions: %w", err)
 	}
 
-	result := make([]*model.FormSubmission, len(submissions))
-	for i, submission := range submissions {
-		var data model.JSON
-		if err := json.Unmarshal([]byte(submission.Data), &data); err != nil {
-			s.logger.Error("failed to unmarshal submission data",
-				logging.String("operation", "list_submissions"),
-				logging.Error(err),
-			)
-			data = model.JSON{}
-		}
-
-		var metadata model.JSON
-		if err := json.Unmarshal([]byte(submission.Metadata), &metadata); err != nil {
-			s.logger.Error("failed to unmarshal submission metadata",
-				logging.String("operation", "list_submissions"),
-				logging.Error(err),
-			)
-			metadata = model.JSON{}
-		}
-
-		result[i] = &model.FormSubmission{
-			ID:          strconv.FormatUint(uint64(submission.ID), 10),
-			FormID:      submission.FormID,
-			Data:        data,
-			SubmittedAt: submission.SubmittedAt,
-			Status:      model.SubmissionStatus(submission.Status),
-			Metadata:    metadata,
-		}
-	}
-
-	return result, nil
+	return s.convertDBSubmissions(submissions, "list_submissions"), nil
 }
 
 // Count returns the total number of form submissions
@@ -401,7 +343,7 @@ func (s *FormSubmissionStore) Count(ctx context.Context) (int, error) {
 	return count, nil
 }
 
-// Search searches form submissions by form ID or user ID
+// Search searches form submissions with filters and pagination
 func (s *FormSubmissionStore) Search(ctx context.Context, formID string, userID uint, offset, limit int) ([]*model.FormSubmission, error) {
 	var submissions []struct {
 		ID          uint      `db:"id"`
@@ -414,46 +356,11 @@ func (s *FormSubmissionStore) Search(ctx context.Context, formID string, userID 
 		UpdatedAt   time.Time `db:"updated_at"`
 	}
 
-	query := `
-		SELECT * FROM form_submissions 
-		WHERE form_id = ? AND user_id = ?
-		ORDER BY submitted_at DESC 
-		LIMIT ? OFFSET ?
-	`
+	query := `SELECT * FROM form_submissions WHERE form_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	err := s.db.SelectContext(ctx, &submissions, query, formID, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search submissions: %w", err)
 	}
 
-	result := make([]*model.FormSubmission, len(submissions))
-	for i, submission := range submissions {
-		var data model.JSON
-		if err := json.Unmarshal([]byte(submission.Data), &data); err != nil {
-			s.logger.Error("failed to unmarshal submission data",
-				logging.String("operation", "search_submissions"),
-				logging.Error(err),
-			)
-			data = model.JSON{}
-		}
-
-		var metadata model.JSON
-		if err := json.Unmarshal([]byte(submission.Metadata), &metadata); err != nil {
-			s.logger.Error("failed to unmarshal submission metadata",
-				logging.String("operation", "search_submissions"),
-				logging.Error(err),
-			)
-			metadata = model.JSON{}
-		}
-
-		result[i] = &model.FormSubmission{
-			ID:          strconv.FormatUint(uint64(submission.ID), 10),
-			FormID:      submission.FormID,
-			Data:        data,
-			SubmittedAt: submission.SubmittedAt,
-			Status:      model.SubmissionStatus(submission.Status),
-			Metadata:    metadata,
-		}
-	}
-
-	return result, nil
+	return s.convertDBSubmissions(submissions, "search_submissions"), nil
 }
