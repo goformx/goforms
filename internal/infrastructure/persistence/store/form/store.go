@@ -61,10 +61,10 @@ func (s *FormStore) Create(ctx context.Context, form *model.Form) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && !stderrors.Is(err, sql.ErrTxDone) {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "create_form"),
-				logging.Error(err),
+				logging.Error(rollbackErr),
 			)
 		}
 	}()
@@ -163,10 +163,10 @@ func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && !stderrors.Is(err, sql.ErrTxDone) {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "update_form"),
-				logging.Error(err),
+				logging.Error(rollbackErr),
 			)
 		}
 	}()
@@ -224,10 +224,10 @@ func (s *FormStore) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && !stderrors.Is(err, sql.ErrTxDone) {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "delete_form"),
-				logging.Error(err),
+				logging.Error(rollbackErr),
 			)
 		}
 	}()

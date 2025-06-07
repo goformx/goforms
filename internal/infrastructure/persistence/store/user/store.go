@@ -42,10 +42,10 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "create_user"),
-				logging.Error(err),
+				logging.Error(rollbackErr),
 			)
 		}
 	}()
@@ -119,10 +119,10 @@ func (s *Store) Update(ctx context.Context, userModel *user.User) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "update_user"),
-				logging.Error(err),
+				logging.Error(rollbackErr),
 			)
 		}
 	}()
@@ -183,10 +183,10 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 		return fmt.Errorf("failed to begin transaction: %w", err)
 	}
 	defer func() {
-		if err := tx.Rollback(); err != nil && !errors.Is(err, sql.ErrTxDone) {
+		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
 			s.logger.Error("failed to rollback transaction",
 				logging.String("operation", "delete_user"),
-				logging.Error(err),
+				logging.Error(rollbackErr),
 			)
 		}
 	}()
