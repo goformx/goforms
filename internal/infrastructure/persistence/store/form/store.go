@@ -214,7 +214,7 @@ func (s *FormStore) Delete(ctx context.Context, id string) error {
 		}
 	}()
 
-	query := `DELETE FROM forms WHERE uuid = ?`
+	query := fmt.Sprintf(`DELETE FROM forms WHERE uuid = %s`, s.db.GetPlaceholder(1))
 
 	result, err := tx.ExecContext(ctx, query, id)
 	if err != nil {

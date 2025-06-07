@@ -70,6 +70,9 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	data := shared.BuildPageData(h.Config, "Dashboard")
 	data.User = user
 	data.Forms = forms
+	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
+		data.CSRFToken = csrfToken
+	}
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }
 
