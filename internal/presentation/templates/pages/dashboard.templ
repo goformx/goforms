@@ -115,8 +115,10 @@ templ DashboardContent(data shared.PageData) {
 		}
 	</style>
 
-	<script type="module">
-		import { FormService } from { data.AssetPath("js/services/form-service.js") };
+	<script type="module" id="form-service-script" data-service-path={ data.AssetPath("js/services/form-service.js") }>
+		const script = document.getElementById('form-service-script');
+		const path = script.getAttribute('data-service-path');
+		const { FormService } = await import(path);
 
 		// Toast notification system
 		function showToast(message, type = 'success') {
