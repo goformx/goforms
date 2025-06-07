@@ -68,7 +68,29 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 		logging.StringField("role", session.Role),
 	)
 
+	// Get user data
+	user, err := h.UserService.GetUserByID(c.Request().Context(), session.UserID)
+	if err != nil {
+		h.Logger.Error("failed to get user data",
+			logging.ErrorField("error", err),
+			logging.UintField("user_id", session.UserID),
+		)
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user data")
+	}
+
+	// Get user's forms
+	forms, err := h.BaseHandler.formService.GetUserForms(session.UserID)
+	if err != nil {
+		h.Logger.Error("failed to get user's forms",
+			logging.ErrorField("error", err),
+			logging.UintField("user_id", session.UserID),
+		)
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get forms")
+	}
+
 	data := shared.BuildPageData(h.Config, "Dashboard")
+	data.User = user
+	data.Forms = forms
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }
 
