@@ -1,20 +1,18 @@
 package infrastructure
 
 import (
-	"fmt"
-
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
-	formdomain "github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
+	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/formsubmission"
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
@@ -32,7 +30,7 @@ type Stores struct {
 	fx.Out
 
 	UserStore user.Repository
-	FormStore formdomain.Repository
+	FormStore form.Repository
 }
 
 // CoreParams represents core infrastructure dependencies
@@ -50,7 +48,7 @@ type CoreParams struct {
 type ServiceParams struct {
 	fx.In
 	UserService user.Service
-	FormService formdomain.Service
+	FormService form.Service
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -65,65 +63,26 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
-// NewStores creates new store instances
-func NewStores(db *database.Database, logger logging.Logger) (Stores, error) {
-	if db == nil {
-		return Stores{}, fmt.Errorf("database connection is required")
-	}
-
+// NewStores creates new stores
+func NewStores(db *database.GormDB, logger logging.Logger) (
+	user.Repository,
+	form.Repository,
+	form.SubmissionStore,
+) {
 	userStore := userstore.NewStore(db, logger)
 	formStore := formstore.NewStore(db, logger)
+	formSubmissionStore := formsubmissionstore.NewStore(db, logger)
 
-	if userStore == nil || formStore == nil {
-		logger.Error("failed to create store",
-			logging.StringField("operation", "store_initialization"),
-			logging.StringField("store_type", "user/form"),
-			logging.StringField("error_type", "nil_store"),
-		)
-		return Stores{}, fmt.Errorf("failed to create user or form store")
-	}
-
-	return Stores{
-		UserStore: userStore,
-		FormStore: formStore,
-	}, nil
+	return userStore, formStore, formSubmissionStore
 }
 
 // InfrastructureModule provides infrastructure dependencies
 var InfrastructureModule = fx.Options(
 	fx.Provide(
 		config.New,
-		database.NewDB,
-		func(db *database.Database) *sqlx.DB {
-			return db.DB
-		},
-		fx.Annotate(
-			userstore.NewStore,
-			fx.As(new(user.Repository)),
-		),
-		fx.Annotate(
-			formstore.NewStore,
-			fx.As(new(formdomain.Repository)),
-		),
-		func(logger logging.Logger, config *config.Config) *middleware.SessionManager {
-			// In development, use secure cookies only if explicitly enabled
-			// In production, always use secure cookies
-			secureCookie := !config.App.Debug || config.Security.SecureCookie
-			return middleware.NewSessionManager(logger, secureCookie)
-		},
-		func(
-			core CoreParams,
-			services ServiceParams,
-			sessionManager *middleware.SessionManager,
-		) *middleware.Manager {
-			return middleware.NewManager(&middleware.ManagerConfig{
-				Logger:         core.Logger,
-				Security:       &core.Config.Security,
-				UserService:    services.UserService,
-				SessionManager: sessionManager,
-				Config:         core.Config,
-			})
-		},
+		logging.NewFactory,
+		database.NewGormDB,
+		NewStores,
 	),
 )
 
@@ -132,16 +91,13 @@ var Module = fx.Options(
 	// Core infrastructure
 	fx.Provide(
 		logging.NewFactory,
-		database.NewDB,
-		func(db *database.Database) *sqlx.DB {
-			return db.DB
-		},
+		database.NewGormDB,
 		view.NewRenderer,
 	),
 	// Stores
 	fx.Provide(
 		fx.Annotate(userstore.NewStore, fx.As(new(user.Repository))),
-		fx.Annotate(formstore.NewStore, fx.As(new(formdomain.Repository))),
+		fx.Annotate(formstore.NewStore, fx.As(new(form.Repository))),
 	),
 	// Base handler
 	fx.Provide(

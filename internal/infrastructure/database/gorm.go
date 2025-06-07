@@ -12,21 +12,14 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// DB wraps GORM DB with lifecycle management
-type DB struct {
+// GormDB wraps the GORM database connection
+type GormDB struct {
 	*gorm.DB
 	logger logging.Logger
 }
 
-var db *gorm.DB
-
-// GetDB returns the singleton database instance
-func GetDB() *gorm.DB {
-	return db
-}
-
-// NewDB creates a new database connection
-func NewDB(cfg *config.Config, appLogger logging.Logger) (*DB, error) {
+// NewGormDB creates a new GORM database connection
+func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	// Configure GORM logger
 	gormLogger := logger.New(
 		&GormLogWriter{logger: appLogger},
@@ -49,7 +42,7 @@ func NewDB(cfg *config.Config, appLogger logging.Logger) (*DB, error) {
 	)
 
 	// Open connection
-	gormDB, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
 		Logger: gormLogger,
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
@@ -64,7 +57,7 @@ func NewDB(cfg *config.Config, appLogger logging.Logger) (*DB, error) {
 	}
 
 	// Configure connection pool
-	sqlDB, err := gormDB.DB()
+	sqlDB, err := db.DB()
 	if err != nil {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
@@ -85,16 +78,14 @@ func NewDB(cfg *config.Config, appLogger logging.Logger) (*DB, error) {
 		logging.StringField("driver", "postgres"),
 	)
 
-	db = gormDB
-
-	return &DB{
-		DB:     gormDB,
+	return &GormDB{
+		DB:     db,
 		logger: appLogger,
 	}, nil
 }
 
 // Close closes the database connection
-func (db *DB) Close() error {
+func (db *GormDB) Close() error {
 	db.logger.Debug("closing database connection")
 	sqlDB, err := db.DB.DB()
 	if err != nil {

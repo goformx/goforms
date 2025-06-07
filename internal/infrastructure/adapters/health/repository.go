@@ -2,25 +2,49 @@ package health
 
 import (
 	"context"
-
-	"github.com/jmoiron/sqlx"
+	"time"
 
 	"github.com/goformx/goforms/internal/domain/services/health"
+	"github.com/goformx/goforms/internal/infrastructure/database"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// Repository implements the health.Repository interface
+// Repository implements health.Repository interface
 type Repository struct {
-	db *sqlx.DB
+	db     *database.GormDB
+	logger logging.Logger
 }
 
-// NewRepository creates a new health check repository
-func NewRepository(db *sqlx.DB) health.Repository {
+// NewRepository creates a new health repository
+func NewRepository(db *database.GormDB, logger logging.Logger) health.Repository {
 	return &Repository{
-		db: db,
+		db:     db,
+		logger: logger,
 	}
 }
 
 // PingContext checks if the database is accessible
 func (r *Repository) PingContext(ctx context.Context) error {
-	return r.db.PingContext(ctx)
+	r.logger.Debug("performing database health check")
+
+	// Get underlying *sql.DB
+	sqlDB, err := r.db.DB.DB()
+	if err != nil {
+		return err
+	}
+
+	// Set a timeout for the ping
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	// Ping the database
+	if err := sqlDB.PingContext(pingCtx); err != nil {
+		r.logger.Error("database health check failed",
+			logging.ErrorField("error", err),
+		)
+		return err
+	}
+
+	r.logger.Debug("database health check passed")
+	return nil
 }

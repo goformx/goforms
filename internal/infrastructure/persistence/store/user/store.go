@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"database/sql"
 	"errors"
 	"strconv"
 
@@ -10,6 +9,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"gorm.io/gorm"
 )
 
 var (
@@ -19,12 +19,12 @@ var (
 
 // Store implements user.Repository interface
 type Store struct {
-	db     *database.Database
+	db     *database.GormDB
 	logger logging.Logger
 }
 
 // NewStore creates a new user store
-func NewStore(db *database.Database, logger logging.Logger) user.Repository {
+func NewStore(db *database.GormDB, logger logging.Logger) user.Repository {
 	logger.Debug("creating user store",
 		logging.BoolField("db_available", db != nil),
 	)
@@ -36,61 +36,36 @@ func NewStore(db *database.Database, logger logging.Logger) user.Repository {
 
 // Create stores a new user
 func (s *Store) Create(ctx context.Context, u *user.User) error {
-	query := `
-		INSERT INTO users (
-			email, hashed_password, first_name, last_name, role, active, created_at, updated_at
-		) VALUES (
-			?, ?, ?, ?, ?, ?, NOW(), NOW()
-		) RETURNING id
-	`
-
-	var id uint
-	err := s.db.GetContext(ctx, &id, query,
-		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active,
-	)
-	if err != nil {
-		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to insert user")
+	result := s.db.WithContext(ctx).Create(u)
+	if result.Error != nil {
+		return domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to insert user")
 	}
-
-	u.ID = id
 	return nil
 }
 
 // GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
 	var u user.User
-	query := `SELECT * FROM users WHERE email = ?`
-	err := s.db.GetContext(ctx, &u, query, email)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	result := s.db.WithContext(ctx).Where("email = ?", email).First(&u)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 		}
-		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get user")
+		return nil, domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to get user")
 	}
-
-	// Convert timestamps to UTC
-	u.CreatedAt = u.CreatedAt.UTC()
-	u.UpdatedAt = u.UpdatedAt.UTC()
-
 	return &u, nil
 }
 
 // GetByID retrieves a user by ID
 func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
 	var u user.User
-	query := `SELECT * FROM users WHERE id = ?`
-	err := s.db.GetContext(ctx, &u, query, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
+	result := s.db.WithContext(ctx).First(&u, id)
+	if result.Error != nil {
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 		}
-		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get user")
+		return nil, domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to get user")
 	}
-
-	// Convert timestamps to UTC
-	u.CreatedAt = u.CreatedAt.UTC()
-	u.UpdatedAt = u.UpdatedAt.UTC()
-
 	return &u, nil
 }
 
@@ -105,88 +80,54 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error
 
 // Update updates a user
 func (s *Store) Update(ctx context.Context, userModel *user.User) error {
-	query := `
-		UPDATE users 
-		SET email = ?, hashed_password = ?, first_name = ?, last_name = ?, role = ?, active = ?, updated_at = NOW()
-		WHERE id = ?
-	`
-	result, err := s.db.ExecContext(ctx, query,
-		userModel.Email,
-		userModel.HashedPassword,
-		userModel.FirstName,
-		userModel.LastName,
-		userModel.Role,
-		userModel.Active,
-		userModel.ID,
-	)
-	if err != nil {
-		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to update user")
+	result := s.db.WithContext(ctx).Save(userModel)
+	if result.Error != nil {
+		return domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to update user")
 	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get rows affected")
-	}
-
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 	}
-
 	return nil
 }
 
 // Delete removes a user by ID
 func (s *Store) Delete(ctx context.Context, id uint) error {
-	query := `DELETE FROM users WHERE id = ?`
-	result, err := s.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to delete user")
+	result := s.db.WithContext(ctx).Delete(&user.User{}, id)
+	if result.Error != nil {
+		return domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to delete user")
 	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get rows affected")
-	}
-
-	if rows == 0 {
+	if result.RowsAffected == 0 {
 		return domainerrors.New(domainerrors.ErrCodeNotFound, "user not found", nil)
 	}
-
 	return nil
 }
 
 // List returns all users
 func (s *Store) List(ctx context.Context) ([]user.User, error) {
 	var users []user.User
-	err := s.db.SelectContext(ctx, &users, "SELECT * FROM users ORDER BY id")
-	if err != nil {
-		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to list users")
+	result := s.db.WithContext(ctx).Order("id").Find(&users)
+	if result.Error != nil {
+		return nil, domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to list users")
 	}
-
-	if len(users) == 0 {
-		return []user.User{}, nil
-	}
-
 	return users, nil
 }
 
 // ListPaginated returns a paginated list of users
 func (s *Store) ListPaginated(ctx context.Context, offset, limit int) ([]*user.User, error) {
-	query := `SELECT * FROM users ORDER BY id LIMIT ? OFFSET ?`
 	var users []*user.User
-	err := s.db.SelectContext(ctx, &users, query, limit, offset)
-	if err != nil {
-		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to list users")
+	result := s.db.WithContext(ctx).Offset(offset).Limit(limit).Order("id").Find(&users)
+	if result.Error != nil {
+		return nil, domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to list users")
 	}
 	return users, nil
 }
 
 // Count returns the total number of users
 func (s *Store) Count(ctx context.Context) (int, error) {
-	var count int
-	err := s.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM users")
-	if err != nil {
-		return 0, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to count users")
+	var count int64
+	result := s.db.WithContext(ctx).Model(&user.User{}).Count(&count)
+	if result.Error != nil {
+		return 0, domainerrors.Wrap(result.Error, domainerrors.ErrCodeServerError, "failed to count users")
 	}
-	return count, nil
+	return int(count), nil
 }

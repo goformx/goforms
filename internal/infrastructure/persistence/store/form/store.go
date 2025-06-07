@@ -2,16 +2,14 @@ package form
 
 import (
 	"context"
-	"database/sql"
-	"encoding/json"
 	"errors"
 	"fmt"
 
-	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"gorm.io/gorm"
 )
 
 var (
@@ -19,265 +17,152 @@ var (
 	ErrFormNotFound = errors.New("form not found")
 )
 
-// FormStore implements form.Repository interface
-type FormStore struct {
-	db     *database.Database
+// Store implements form.Repository interface
+type Store struct {
+	db     *database.GormDB
 	logger logging.Logger
 }
 
 // NewStore creates a new form store
-func NewStore(db *database.Database, logger logging.Logger) form.Repository {
+func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
 	logger.Debug("creating form store",
 		logging.BoolField("db_available", db != nil),
 	)
-	return &FormStore{
+	return &Store{
 		db:     db,
 		logger: logger,
 	}
 }
 
 // Create creates a new form
-func (s *FormStore) Create(ctx context.Context, form *model.Form) error {
-	// Marshal schema to JSON
-	schemaJSON, err := json.Marshal(form.Schema)
-	if err != nil {
-		return fmt.Errorf("failed to marshal schema: %w", err)
+func (s *Store) Create(ctx context.Context, form *model.Form) error {
+	s.logger.Debug("creating form", logging.StringField("form_id", form.ID))
+	if err := s.db.WithContext(ctx).Create(form).Error; err != nil {
+		return fmt.Errorf("failed to create form: %w", err)
 	}
-
-	// Create a map for named parameters
-	params := map[string]any{
-		"uuid":        form.ID,
-		"user_id":     form.UserID,
-		"title":       form.Title,
-		"description": form.Description,
-		"schema":      string(schemaJSON),
-		"active":      form.Active,
-	}
-
-	query := `
-		INSERT INTO forms (
-			uuid, user_id, title, description, schema, active, created_at, updated_at
-		) VALUES (
-			:uuid, :user_id, :title, :description, :schema, :active, NOW(), NOW()
-		)
-	`
-
-	result, err := s.db.NamedExecContext(ctx, query, params)
-	if err != nil {
-		return fmt.Errorf("failed to insert form: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
-		return fmt.Errorf("failed to insert form: no rows affected")
-	}
-
 	return nil
 }
 
-// GetByID retrieves a form by its ID
-func (s *FormStore) GetByID(ctx context.Context, id string) (*model.Form, error) {
+// GetByID retrieves a form by ID
+func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
+	s.logger.Debug("getting form by id", logging.StringField("form_id", id))
 	var form model.Form
-	query := `SELECT * FROM forms WHERE uuid = ? AND deleted_at IS NULL`
-	err := s.db.GetContext(ctx, &form, query, id)
-	if err != nil {
-		if errors.Is(err, sql.ErrNoRows) {
-			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "form not found", nil)
+	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&form).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, ErrFormNotFound
 		}
-		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get form")
+		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
-
-	// Convert timestamps to UTC
-	form.CreatedAt = form.CreatedAt.UTC()
-	form.UpdatedAt = form.UpdatedAt.UTC()
-
 	return &form, nil
 }
 
 // GetByUserID retrieves all forms created by a specific user
-func (s *FormStore) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
+func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
+	s.logger.Debug("getting forms by user id", logging.UintField("user_id", userID))
 	var forms []*model.Form
-	query := `SELECT * FROM forms WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC`
-	err := s.db.SelectContext(ctx, &forms, query, userID)
-	if err != nil {
-		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get forms by user ID")
+	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at DESC").Find(&forms).Error; err != nil {
+		return nil, fmt.Errorf("failed to get forms by user ID: %w", err)
 	}
-
-	// Convert timestamps to UTC
-	for _, form := range forms {
-		form.CreatedAt = form.CreatedAt.UTC()
-		form.UpdatedAt = form.UpdatedAt.UTC()
-	}
-
 	return forms, nil
 }
 
-// Update updates an existing form
-func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
-	// Marshal schema to JSON
-	schemaJSON, err := json.Marshal(form.Schema)
-	if err != nil {
-		return fmt.Errorf("failed to marshal schema: %w", err)
+// Update updates a form
+func (s *Store) Update(ctx context.Context, form *model.Form) error {
+	s.logger.Debug("updating form", logging.StringField("form_id", form.ID))
+	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("id = ?", form.ID).Updates(form)
+	if result.Error != nil {
+		return fmt.Errorf("failed to update form: %w", result.Error)
 	}
-
-	// Create a map for named parameters
-	params := map[string]any{
-		"uuid":        form.ID,
-		"title":       form.Title,
-		"description": form.Description,
-		"schema":      string(schemaJSON),
-		"active":      form.Active,
+	if result.RowsAffected == 0 {
+		return ErrFormNotFound
 	}
-
-	query := `
-		UPDATE forms SET
-			title = :title,
-			description = :description,
-			schema = :schema,
-			active = :active,
-			updated_at = NOW()
-		WHERE uuid = :uuid
-	`
-
-	result, err := s.db.NamedExecContext(ctx, query, params)
-	if err != nil {
-		return fmt.Errorf("failed to update form: %w", err)
-	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
-	}
-
-	if rows == 0 {
-		return fmt.Errorf("form not found: %s", form.ID)
-	}
-
 	return nil
 }
 
 // Delete deletes a form
-func (s *FormStore) Delete(ctx context.Context, id string) error {
-	query := `DELETE FROM forms WHERE uuid = ?`
-	result, err := s.db.ExecContext(ctx, query, id)
-	if err != nil {
-		return fmt.Errorf("failed to delete form: %w", err)
+func (s *Store) Delete(ctx context.Context, id string) error {
+	s.logger.Debug("deleting form", logging.StringField("form_id", id))
+	result := s.db.WithContext(ctx).Where("id = ?", id).Delete(&model.Form{})
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete form: %w", result.Error)
 	}
-
-	rows, err := result.RowsAffected()
-	if err != nil {
-		return fmt.Errorf("failed to get rows affected: %w", err)
+	if result.RowsAffected == 0 {
+		return ErrFormNotFound
 	}
-
-	if rows == 0 {
-		return fmt.Errorf("form not found: %s", id)
-	}
-
 	return nil
 }
 
-// List retrieves a paginated list of forms
-func (s *FormStore) List(ctx context.Context, offset, limit int) ([]*model.Form, error) {
+// List returns a paginated list of forms
+func (s *Store) List(ctx context.Context, offset, limit int) ([]*model.Form, error) {
+	s.logger.Debug("listing forms", logging.IntField("offset", offset), logging.IntField("limit", limit))
 	var forms []*model.Form
-	query := `SELECT * FROM forms WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?`
-	err := s.db.SelectContext(ctx, &forms, query, limit, offset)
-	if err != nil {
+	if err := s.db.WithContext(ctx).Order("created_at DESC").Offset(offset).Limit(limit).Find(&forms).Error; err != nil {
 		return nil, fmt.Errorf("failed to list forms: %w", err)
 	}
-
-	// Convert timestamps to UTC
-	for _, form := range forms {
-		form.CreatedAt = form.CreatedAt.UTC()
-		form.UpdatedAt = form.UpdatedAt.UTC()
-	}
-
 	return forms, nil
 }
 
 // Count returns the total number of forms
-func (s *FormStore) Count(ctx context.Context) (int, error) {
-	var count int
-	query := `SELECT COUNT(*) FROM forms WHERE deleted_at IS NULL`
-	err := s.db.GetContext(ctx, &count, query)
-	if err != nil {
+func (s *Store) Count(ctx context.Context) (int, error) {
+	s.logger.Debug("counting forms")
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&model.Form{}).Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to count forms: %w", err)
 	}
-	return count, nil
+	return int(count), nil
 }
 
 // Search searches forms by title or description
-func (s *FormStore) Search(ctx context.Context, query string, offset, limit int) ([]*model.Form, error) {
+func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]*model.Form, error) {
+	s.logger.Debug("searching forms", logging.StringField("query", query), logging.IntField("offset", offset), logging.IntField("limit", limit))
 	var forms []*model.Form
-	sqlQuery := `
-		SELECT * FROM forms 
-		WHERE deleted_at IS NULL 
-		AND (title LIKE ? OR description LIKE ?)
-		ORDER BY created_at DESC 
-		LIMIT ? OFFSET ?
-	`
 	searchPattern := "%" + query + "%"
-	err := s.db.SelectContext(ctx, &forms, sqlQuery, searchPattern, searchPattern, limit, offset)
-	if err != nil {
+	if err := s.db.WithContext(ctx).
+		Where("title LIKE ? OR description LIKE ?", searchPattern, searchPattern).
+		Order("created_at DESC").
+		Offset(offset).
+		Limit(limit).
+		Find(&forms).Error; err != nil {
 		return nil, fmt.Errorf("failed to search forms: %w", err)
 	}
-
-	// Convert timestamps to UTC
-	for _, form := range forms {
-		form.CreatedAt = form.CreatedAt.UTC()
-		form.UpdatedAt = form.UpdatedAt.UTC()
-	}
-
 	return forms, nil
 }
 
 // GetActiveForms returns all active forms
-func (s *FormStore) GetActiveForms(ctx context.Context) ([]*model.Form, error) {
+func (s *Store) GetActiveForms(ctx context.Context) ([]*model.Form, error) {
+	s.logger.Debug("getting active forms")
 	var forms []*model.Form
-	query := `SELECT * FROM forms WHERE active = ? AND deleted_at IS NULL ORDER BY created_at DESC`
-	err := s.db.SelectContext(ctx, &forms, query, true)
-	if err != nil {
+	if err := s.db.WithContext(ctx).
+		Where("active = ?", true).
+		Order("created_at DESC").
+		Find(&forms).Error; err != nil {
 		return nil, fmt.Errorf("failed to get active forms: %w", err)
 	}
-
-	// Convert timestamps to UTC
-	for _, form := range forms {
-		form.CreatedAt = form.CreatedAt.UTC()
-		form.UpdatedAt = form.UpdatedAt.UTC()
-	}
-
 	return forms, nil
 }
 
 // GetFormsByStatus returns forms by their active status
-func (s *FormStore) GetFormsByStatus(ctx context.Context, active bool) ([]*model.Form, error) {
+func (s *Store) GetFormsByStatus(ctx context.Context, active bool) ([]*model.Form, error) {
+	s.logger.Debug("getting forms by status", logging.BoolField("active", active))
 	var forms []*model.Form
-	query := `SELECT * FROM forms WHERE active = ? AND deleted_at IS NULL ORDER BY created_at DESC`
-	err := s.db.SelectContext(ctx, &forms, query, active)
-	if err != nil {
+	if err := s.db.WithContext(ctx).
+		Where("active = ?", active).
+		Order("created_at DESC").
+		Find(&forms).Error; err != nil {
 		return nil, fmt.Errorf("failed to get forms by status: %w", err)
 	}
-
-	// Convert timestamps to UTC
-	for _, form := range forms {
-		form.CreatedAt = form.CreatedAt.UTC()
-		form.UpdatedAt = form.UpdatedAt.UTC()
-	}
-
 	return forms, nil
 }
 
 // GetFormSubmissions gets all submissions for a form
-func (s *FormStore) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
+func (s *Store) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
+	s.logger.Debug("getting form submissions", logging.StringField("form_id", formID))
 	var submissions []*model.FormSubmission
-	query := `SELECT * FROM form_submissions WHERE form_id = ? ORDER BY created_at DESC`
-	err := s.db.SelectContext(ctx, &submissions, query, formID)
-	if err != nil {
+	if err := s.db.WithContext(ctx).
+		Where("form_id = ?", formID).
+		Order("created_at DESC").
+		Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get form submissions: %w", err)
 	}
-
 	return submissions, nil
 }
