@@ -3,9 +3,64 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Dependency Injection Guidelines
+# Dependency Injection Guide
 
-This project uses Uber's fx framework for dependency injection with the following organization:
+This guide outlines the best practices for dependency injection in the GoFormX application.
+
+## Database Dependencies
+
+### GORM Database
+
+1. Use the GORM database connection:
+   ```go
+   type Store struct {
+       db *database.GormDB
+   }
+   
+   func NewStore(db *database.GormDB) *Store {
+       return &Store{db: db}
+   }
+   ```
+
+2. Configure the database in the infrastructure module:
+   ```go
+   func NewInfrastructureModule() fx.Option {
+       return fx.Module("infrastructure",
+           fx.Provide(
+               config.New,
+               logging.NewFactory,
+               database.NewGormDB,
+               NewStores,
+           ),
+       )
+   }
+   ```
+
+3. Use dependency injection for database operations:
+   ```go
+   func NewStores(db *database.GormDB, logger logging.Logger) (
+       user.Repository,
+       form.Repository,
+       form.SubmissionStore,
+   ) {
+       return userstore.NewStore(db, logger),
+           formstore.NewStore(db, logger),
+           formsubmission.NewStore(db, logger)
+   }
+   ```
+
+## Best Practices
+
+1. Use constructor injection
+2. Keep dependencies explicit
+3. Use interfaces for better testability
+4. Follow the dependency inversion principle
+5. Use fx for dependency injection
+6. Keep configuration close to the infrastructure layer
+7. Use proper error handling
+8. Implement proper logging
+9. Use context for cancellation and timeouts
+10. Keep dependencies minimal
 
 ## Module Structure
 Each domain area should have its own module.go file:
@@ -40,19 +95,6 @@ fx.Module("domain",
 2. Use echo.Context
 3. Implement proper validation
 4. Return consistent responses
-
-## Best Practices
-
-1. Group related components in modules
-2. Use clear, descriptive module names
-3. Handle component lifecycle properly
-4. Use proper error handling
-5. Implement proper logging
-6. Use interface embedding for better compatibility
-7. Keep configuration validation close to the config package
-8. Provide database connections at the infrastructure level
-9. Use fx.Annotate for interface implementations
-10. Keep middleware configuration in the infrastructure module
 
 ## Example Modules
 

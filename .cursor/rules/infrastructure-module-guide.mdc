@@ -5,7 +5,7 @@ alwaysApply: false
 ---
 # Infrastructure Module Guide
 
-This guide outlines the best practices and patterns for the infrastructure module in the GoFormX application.
+This guide outlines the best practices for implementing the infrastructure module in the GoFormX application.
 
 ## Core Structure
 
@@ -133,3 +133,124 @@ Logging should:
 8. Use proper logging levels
 9. Use interface embedding for logger compatibility
 10. Keep configuration validation close to the config package
+
+## Database Operations
+
+### GORM Usage
+
+1. Use GORM for all database operations:
+   ```go
+   // Example of using GORM for database operations
+   func (s *Store) Create(ctx context.Context, u *user.User) error {
+       result := s.db.WithContext(ctx).Create(u)
+       if result.Error != nil {
+           return fmt.Errorf("failed to create user: %w", result.Error)
+       }
+       return nil
+   }
+   ```
+
+2. Always use context-aware methods:
+   ```go
+   // Good
+   s.db.WithContext(ctx).Where("email = ?", email).First(&u)
+   
+   // Bad
+   s.db.Where("email = ?", email).First(&u)
+   ```
+
+3. Use transactions when needed:
+   ```go
+   func (s *Store) CreateWithTransaction(ctx context.Context, u *user.User) error {
+       return s.db.WithContext(ctx).Transaction(func(tx *gorm.DB) error {
+           if err := tx.Create(u).Error; err != nil {
+               return err
+           }
+           // Additional operations within the same transaction
+           return nil
+       })
+   }
+   ```
+
+4. Handle errors appropriately:
+   ```go
+   if err := s.db.WithContext(ctx).First(&u, id).Error; err != nil {
+       if errors.Is(err, gorm.ErrRecordNotFound) {
+           return nil, ErrUserNotFound
+       }
+       return nil, fmt.Errorf("failed to get user: %w", err)
+   }
+   ```
+
+### Connection Management
+
+1. Use the provided database connection:
+   ```go
+   type Store struct {
+       db *database.GormDB
+   }
+   
+   func NewStore(db *database.GormDB) *Store {
+       return &Store{db: db}
+   }
+   ```
+
+2. Configure connection pool settings:
+   ```go
+   sqlDB, err := db.DB()
+   if err != nil {
+       return nil, fmt.Errorf("failed to get database instance: %w", err)
+   }
+   
+   sqlDB.SetMaxOpenConns(cfg.Database.Postgres.MaxOpenConns)
+   sqlDB.SetMaxIdleConns(cfg.Database.Postgres.MaxIdleConns)
+   sqlDB.SetConnMaxLifetime(cfg.Database.Postgres.ConnMaxLifetime)
+   ```
+
+### Error Handling
+
+1. Define custom errors:
+   ```go
+   var (
+       ErrUserNotFound = errors.New("user not found")
+       ErrInvalidInput = errors.New("invalid input")
+   )
+   ```
+
+2. Wrap errors with context:
+   ```go
+   if err := s.db.WithContext(ctx).Create(u).Error; err != nil {
+       return fmt.Errorf("failed to create user: %w", err)
+   }
+   ```
+
+### Logging
+
+1. Use structured logging:
+   ```go
+   logger.Debug("creating user",
+       logging.StringField("email", u.Email),
+       logging.StringField("id", u.ID),
+   )
+   ```
+
+2. Log errors with context:
+   ```go
+   logger.Error("failed to create user",
+       logging.ErrorField("error", err),
+       logging.StringField("email", u.Email),
+   )
+   ```
+
+## Best Practices
+
+1. Keep database operations in the infrastructure layer
+2. Use dependency injection for database connections
+3. Implement proper error handling and logging
+4. Use transactions for operations that require atomicity
+5. Follow the repository pattern for data access
+6. Use context for cancellation and timeouts
+7. Implement proper connection pooling
+8. Use GORM's built-in features for common operations
+9. Keep SQL queries maintainable and readable
+10. Use proper indexing for performance
