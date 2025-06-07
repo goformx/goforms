@@ -37,29 +37,16 @@ func NewStore(db *database.Database, logger logging.Logger) user.Repository {
 
 // Create stores a new user
 func (s *Store) Create(ctx context.Context, u *user.User) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "create_user"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
 	query := `
 		INSERT INTO users (
 			email, hashed_password, first_name, last_name, role, active, created_at, updated_at
 		) VALUES (
-			$1, $2, $3, $4, $5, $6, NOW(), NOW()
+			?, ?, ?, ?, ?, ?, NOW(), NOW()
 		) RETURNING id
 	`
 
 	var id uint
-	err = tx.GetContext(ctx, &id, query,
+	err := s.db.GetContext(ctx, &id, query,
 		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active,
 	)
 	if err != nil {
@@ -67,11 +54,6 @@ func (s *Store) Create(ctx context.Context, u *user.User) error {
 	}
 
 	u.ID = id
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
@@ -114,40 +96,19 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error
 
 // Update updates a user
 func (s *Store) Update(ctx context.Context, userModel *user.User) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "update_user"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
-	query := fmt.Sprintf(`
+	query := `
 		UPDATE users SET
-			email = %s,
-			hashed_password = %s,
-			first_name = %s,
-			last_name = %s,
-			role = %s,
-			active = %s,
+			email = ?,
+			hashed_password = ?,
+			first_name = ?,
+			last_name = ?,
+			role = ?,
+			active = ?,
 			updated_at = NOW()
-		WHERE id = %s
-	`,
-		s.db.GetPlaceholder(1),
-		s.db.GetPlaceholder(2),
-		s.db.GetPlaceholder(3),
-		s.db.GetPlaceholder(4),
-		s.db.GetPlaceholder(5),
-		s.db.GetPlaceholder(6),
-		s.db.GetPlaceholder(7),
-	)
+		WHERE id = ?
+	`
 
-	result, err := tx.ExecContext(ctx, query,
+	result, err := s.db.ExecContext(ctx, query,
 		userModel.Email,
 		userModel.HashedPassword,
 		userModel.FirstName,
@@ -169,30 +130,13 @@ func (s *Store) Update(ctx context.Context, userModel *user.User) error {
 		return fmt.Errorf("user not found: %d", userModel.ID)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
 // Delete removes a user by ID
 func (s *Store) Delete(ctx context.Context, id uint) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "delete_user"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
-	query := fmt.Sprintf(`DELETE FROM users WHERE id = %s`, s.db.GetPlaceholder(1))
-	result, err := tx.ExecContext(ctx, query, id)
+	query := `DELETE FROM users WHERE id = ?`
+	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete user: %w", err)
 	}
@@ -204,10 +148,6 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 
 	if rows == 0 {
 		return fmt.Errorf("user not found: %d", id)
-	}
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
 	}
 
 	return nil

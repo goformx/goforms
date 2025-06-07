@@ -56,19 +56,6 @@ func NewFormStore(db *database.Database, logger logging.Logger) *FormStore {
 
 // Create creates a new form
 func (s *FormStore) Create(ctx context.Context, form *model.Form) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "create_form"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
 	// Marshal schema to JSON
 	schemaJSON, err := json.Marshal(form.Schema)
 	if err != nil {
@@ -93,7 +80,7 @@ func (s *FormStore) Create(ctx context.Context, form *model.Form) error {
 		)
 	`
 
-	result, err := tx.NamedExecContext(ctx, query, params)
+	result, err := s.db.NamedExecContext(ctx, query, params)
 	if err != nil {
 		return fmt.Errorf("failed to insert form: %w", err)
 	}
@@ -107,20 +94,14 @@ func (s *FormStore) Create(ctx context.Context, form *model.Form) error {
 		return fmt.Errorf("failed to insert form: no rows affected")
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
 // GetByID retrieves a form by its ID
 func (s *FormStore) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	var form model.Form
-	err := s.db.GetContext(ctx, &form, `
-		SELECT * FROM forms 
-		WHERE id = ? AND deleted_at IS NULL
-	`, id)
+	query := `SELECT * FROM forms WHERE uuid = ? AND deleted_at IS NULL`
+	err := s.db.GetContext(ctx, &form, query, id)
 	if err != nil {
 		if stderrors.Is(err, sql.ErrNoRows) {
 			return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "form not found", nil)
@@ -138,11 +119,8 @@ func (s *FormStore) GetByID(ctx context.Context, id string) (*model.Form, error)
 // GetByUserID retrieves all forms created by a specific user
 func (s *FormStore) GetByUserID(ctx context.Context, userID string) ([]*model.Form, error) {
 	var forms []*model.Form
-	err := s.db.SelectContext(ctx, &forms, `
-		SELECT * FROM forms 
-		WHERE user_id = ? AND deleted_at IS NULL
-		ORDER BY created_at DESC
-	`, userID)
+	query := `SELECT * FROM forms WHERE user_id = ? AND deleted_at IS NULL ORDER BY created_at DESC`
+	err := s.db.SelectContext(ctx, &forms, query, userID)
 	if err != nil {
 		return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to get forms by user ID")
 	}
@@ -158,19 +136,6 @@ func (s *FormStore) GetByUserID(ctx context.Context, userID string) ([]*model.Fo
 
 // Update updates an existing form
 func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "update_form"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
 	// Marshal schema to JSON
 	schemaJSON, err := json.Marshal(form.Schema)
 	if err != nil {
@@ -196,7 +161,7 @@ func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
 		WHERE uuid = :uuid
 	`
 
-	result, err := tx.NamedExecContext(ctx, query, params)
+	result, err := s.db.NamedExecContext(ctx, query, params)
 	if err != nil {
 		return fmt.Errorf("failed to update form: %w", err)
 	}
@@ -210,31 +175,14 @@ func (s *FormStore) Update(ctx context.Context, form *model.Form) error {
 		return fmt.Errorf("form not found: %s", form.ID)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
 // Delete deletes a form
 func (s *FormStore) Delete(ctx context.Context, id string) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !stderrors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "delete_form"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
+	query := `DELETE FROM forms WHERE uuid = ?`
 
-	query := fmt.Sprintf(`DELETE FROM forms WHERE uuid = %s`, s.db.GetPlaceholder(1))
-
-	result, err := tx.ExecContext(ctx, query, id)
+	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete form: %w", err)
 	}
@@ -248,32 +196,32 @@ func (s *FormStore) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("form not found: %s", id)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
-// List returns a paginated list of forms
+// List retrieves a paginated list of forms
 func (s *FormStore) List(ctx context.Context, offset, limit int) ([]*model.Form, error) {
-	var forms []formModel
-	query := `SELECT * FROM forms ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	var forms []*model.Form
+	query := `SELECT * FROM forms WHERE deleted_at IS NULL ORDER BY created_at DESC LIMIT ? OFFSET ?`
 	err := s.db.SelectContext(ctx, &forms, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to list forms: %w", err)
 	}
-	for i := range forms {
-		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
-		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
+
+	// Convert timestamps to UTC
+	for _, form := range forms {
+		form.CreatedAt = form.CreatedAt.UTC()
+		form.UpdatedAt = form.UpdatedAt.UTC()
 	}
-	return s.mapToForms(forms), nil
+
+	return forms, nil
 }
 
 // Count returns the total number of forms
 func (s *FormStore) Count(ctx context.Context) (int, error) {
 	var count int
-	err := s.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM forms")
+	query := `SELECT COUNT(*) FROM forms WHERE deleted_at IS NULL`
+	err := s.db.GetContext(ctx, &count, query)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count forms: %w", err)
 	}
@@ -282,10 +230,11 @@ func (s *FormStore) Count(ctx context.Context) (int, error) {
 
 // Search searches forms by title or description
 func (s *FormStore) Search(ctx context.Context, query string, offset, limit int) ([]*model.Form, error) {
-	var forms []formModel
+	var forms []*model.Form
 	sqlQuery := `
 		SELECT * FROM forms 
-		WHERE title LIKE ? OR description LIKE ?
+		WHERE deleted_at IS NULL 
+		AND (title LIKE ? OR description LIKE ?)
 		ORDER BY created_at DESC 
 		LIMIT ? OFFSET ?
 	`
@@ -294,11 +243,14 @@ func (s *FormStore) Search(ctx context.Context, query string, offset, limit int)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search forms: %w", err)
 	}
-	for i := range forms {
-		forms[i].CreatedAt = forms[i].CreatedAt.UTC()
-		forms[i].UpdatedAt = forms[i].UpdatedAt.UTC()
+
+	// Convert timestamps to UTC
+	for _, form := range forms {
+		form.CreatedAt = form.CreatedAt.UTC()
+		form.UpdatedAt = form.UpdatedAt.UTC()
 	}
-	return s.mapToForms(forms), nil
+
+	return forms, nil
 }
 
 // GetActiveForms returns all active forms

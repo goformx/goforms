@@ -30,19 +30,6 @@ func NewFormSubmissionStore(db *sqlx.DB, logger logging.Logger) *FormSubmissionS
 
 // Create creates a new form submission
 func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.FormSubmission) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "create_submission"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
 	data, err := json.Marshal(submission.Data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal submission data: %w", err)
@@ -61,7 +48,7 @@ func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.Form
 		)
 	`
 
-	result, err := tx.ExecContext(ctx, query,
+	result, err := s.db.ExecContext(ctx, query,
 		submission.FormID,
 		data,
 		submission.Status,
@@ -78,11 +65,6 @@ func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.Form
 	}
 
 	submission.ID = strconv.FormatInt(id, 10)
-
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
@@ -208,7 +190,7 @@ func (s *FormSubmissionStore) GetByUserID(ctx context.Context, userID uint) ([]*
 		UpdatedAt   time.Time `db:"updated_at"`
 	}
 
-	query := `SELECT * FROM form_submissions WHERE user_id = ?`
+	query := `SELECT * FROM form_submissions WHERE user_id = ? ORDER BY created_at DESC`
 	err := s.db.SelectContext(ctx, &submissions, query, userID)
 	if err != nil {
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
@@ -224,19 +206,6 @@ func (s *FormSubmissionStore) GetByUserID(ctx context.Context, userID uint) ([]*
 
 // Update updates a form submission
 func (s *FormSubmissionStore) Update(ctx context.Context, submission *model.FormSubmission) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "update_submission"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
 	data, err := json.Marshal(submission.Data)
 	if err != nil {
 		return fmt.Errorf("failed to marshal submission data: %w", err)
@@ -251,16 +220,14 @@ func (s *FormSubmissionStore) Update(ctx context.Context, submission *model.Form
 		UPDATE form_submissions SET
 			data = ?,
 			status = ?,
-			submitted_at = ?,
 			metadata = ?,
 			updated_at = NOW()
 		WHERE id = ?
 	`
 
-	result, err := tx.ExecContext(ctx, query,
+	result, err := s.db.ExecContext(ctx, query,
 		data,
 		submission.Status,
-		submission.SubmittedAt,
 		metadata,
 		submission.ID,
 	)
@@ -277,31 +244,14 @@ func (s *FormSubmissionStore) Update(ctx context.Context, submission *model.Form
 		return fmt.Errorf("submission not found: %s", submission.ID)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
 // Delete deletes a form submission
 func (s *FormSubmissionStore) Delete(ctx context.Context, id string) error {
-	tx, err := s.db.BeginTxx(ctx, nil)
-	if err != nil {
-		return fmt.Errorf("failed to begin transaction: %w", err)
-	}
-	defer func() {
-		if rollbackErr := tx.Rollback(); rollbackErr != nil && !errors.Is(rollbackErr, sql.ErrTxDone) {
-			s.logger.Error("failed to rollback transaction",
-				logging.String("operation", "delete_submission"),
-				logging.Error(rollbackErr),
-			)
-		}
-	}()
-
 	query := `DELETE FROM form_submissions WHERE id = ?`
 
-	result, err := tx.ExecContext(ctx, query, id)
+	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("failed to delete submission: %w", err)
 	}
@@ -315,14 +265,10 @@ func (s *FormSubmissionStore) Delete(ctx context.Context, id string) error {
 		return fmt.Errorf("submission not found: %s", id)
 	}
 
-	if err := tx.Commit(); err != nil {
-		return fmt.Errorf("failed to commit transaction: %w", err)
-	}
-
 	return nil
 }
 
-// List retrieves all form submissions with pagination
+// List retrieves a paginated list of submissions
 func (s *FormSubmissionStore) List(ctx context.Context, offset, limit int) ([]*model.FormSubmission, error) {
 	var submissions []struct {
 		ID          uint      `db:"id"`
@@ -349,17 +295,18 @@ func (s *FormSubmissionStore) List(ctx context.Context, offset, limit int) ([]*m
 	return s.convertDBSubmissions(submissions, "list_submissions"), nil
 }
 
-// Count returns the total number of form submissions
+// Count returns the total number of submissions
 func (s *FormSubmissionStore) Count(ctx context.Context) (int, error) {
 	var count int
-	err := s.db.GetContext(ctx, &count, "SELECT COUNT(*) FROM form_submissions")
+	query := `SELECT COUNT(*) FROM form_submissions`
+	err := s.db.GetContext(ctx, &count, query)
 	if err != nil {
 		return 0, fmt.Errorf("failed to count submissions: %w", err)
 	}
 	return count, nil
 }
 
-// Search searches form submissions with filters and pagination
+// Search searches submissions by form ID and user ID
 func (s *FormSubmissionStore) Search(ctx context.Context, formID string, userID uint, offset, limit int) ([]*model.FormSubmission, error) {
 	var submissions []struct {
 		ID          uint      `db:"id"`
@@ -372,7 +319,12 @@ func (s *FormSubmissionStore) Search(ctx context.Context, formID string, userID 
 		UpdatedAt   time.Time `db:"updated_at"`
 	}
 
-	query := `SELECT * FROM form_submissions WHERE form_id = ? AND user_id = ? ORDER BY created_at DESC LIMIT ? OFFSET ?`
+	query := `
+		SELECT * FROM form_submissions 
+		WHERE form_id = ? AND user_id = ?
+		ORDER BY created_at DESC 
+		LIMIT ? OFFSET ?
+	`
 	err := s.db.SelectContext(ctx, &submissions, query, formID, userID, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("failed to search submissions: %w", err)
