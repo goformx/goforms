@@ -2,7 +2,6 @@ package shared
 
 import (
 	"github.com/a-h/templ"
-	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -12,8 +11,8 @@ import (
 type PageData struct {
 	Title                string
 	User                 *user.User
-	Forms                []*form.Form
-	Form                 *form.Form
+	Forms                []*model.Form
+	Form                 *model.Form
 	Submissions          []*model.FormSubmission
 	CSRFToken            string
 	IsDevelopment        bool

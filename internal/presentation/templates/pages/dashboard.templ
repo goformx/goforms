@@ -1,7 +1,7 @@
 package pages
 
 import (
-	dform "github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
@@ -196,7 +196,7 @@ templ DashboardEmpty() {
 	</div>
 }
 
-templ DashboardTableBody(forms []*dform.Form, csrfToken string) {
+templ DashboardTableBody(forms []*model.Form, csrfToken string) {
 	<tbody>
 	for _, form := range forms {
 		<tr>
@@ -219,7 +219,7 @@ templ DashboardTableBody(forms []*dform.Form, csrfToken string) {
 	</tbody>
 }
 
-templ DashboardTable(forms []*dform.Form, csrfToken string) {
+templ DashboardTable(forms []*model.Form, csrfToken string) {
 	<div class="dashboard-table">
 		<table>
 			<thead>
