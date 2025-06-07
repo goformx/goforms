@@ -2,7 +2,9 @@ package middleware
 
 import (
 	"fmt"
+	"io"
 	"net/http"
+	"os"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -75,24 +77,12 @@ func New(cfg *ManagerConfig) *Manager {
 func (m *Manager) Setup(e *echo.Echo) {
 	m.logger.Info("middleware setup: starting")
 
+	// Set Echo's logger to use our custom logger
+	e.Logger = &EchoLogger{logger: m.logger}
+
 	// Enable debug mode and set log level
 	e.Debug = m.config.Security.Debug
-	if l, ok := e.Logger.(*log.Logger); ok {
-		level := log.INFO
-		switch strings.ToLower(m.config.Security.LogLevel) {
-		case "debug":
-			level = log.DEBUG
-		case "info":
-			level = log.INFO
-		case "warn":
-			level = log.WARN
-		case "error":
-			level = log.ERROR
-		}
-		l.SetLevel(level)
-		l.SetHeader("${time_rfc3339} ${level} ${prefix} ${short_file}:${line}")
-		m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
-	}
+	m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
 
 	// Register basic middleware first
 	e.Use(echomw.Logger())
@@ -233,4 +223,152 @@ func isStaticFile(path string) bool {
 		}
 	}
 	return false
+}
+
+// EchoLogger implements echo.Logger interface using our custom logger
+type EchoLogger struct {
+	logger logging.Logger
+}
+
+func (l *EchoLogger) Print(i ...interface{}) {
+	l.logger.Info(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Printf(format string, args ...interface{}) {
+	l.logger.Info(fmt.Sprintf(format, args...))
+}
+
+func (l *EchoLogger) Printj(j log.JSON) {
+	fields := make([]any, 0, len(j))
+	for k, v := range j {
+		fields = append(fields, logging.StringField(k, fmt.Sprint(v)))
+	}
+	l.logger.Info("", fields...)
+}
+
+func (l *EchoLogger) Debug(i ...interface{}) {
+	l.logger.Debug(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Debugf(format string, args ...interface{}) {
+	l.logger.Debug(fmt.Sprintf(format, args...))
+}
+
+func (l *EchoLogger) Debugj(j log.JSON) {
+	fields := make([]any, 0, len(j))
+	for k, v := range j {
+		fields = append(fields, logging.StringField(k, fmt.Sprint(v)))
+	}
+	l.logger.Debug("", fields...)
+}
+
+func (l *EchoLogger) Info(i ...interface{}) {
+	l.logger.Info(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Infof(format string, args ...interface{}) {
+	l.logger.Info(fmt.Sprintf(format, args...))
+}
+
+func (l *EchoLogger) Infoj(j log.JSON) {
+	fields := make([]any, 0, len(j))
+	for k, v := range j {
+		fields = append(fields, logging.StringField(k, fmt.Sprint(v)))
+	}
+	l.logger.Info("", fields...)
+}
+
+func (l *EchoLogger) Warn(i ...interface{}) {
+	l.logger.Warn(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Warnf(format string, args ...interface{}) {
+	l.logger.Warn(fmt.Sprintf(format, args...))
+}
+
+func (l *EchoLogger) Warnj(j log.JSON) {
+	fields := make([]any, 0, len(j))
+	for k, v := range j {
+		fields = append(fields, logging.StringField(k, fmt.Sprint(v)))
+	}
+	l.logger.Warn("", fields...)
+}
+
+func (l *EchoLogger) Error(i ...interface{}) {
+	l.logger.Error(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Errorf(format string, args ...interface{}) {
+	l.logger.Error(fmt.Sprintf(format, args...))
+}
+
+func (l *EchoLogger) Errorj(j log.JSON) {
+	fields := make([]any, 0, len(j))
+	for k, v := range j {
+		fields = append(fields, logging.StringField(k, fmt.Sprint(v)))
+	}
+	l.logger.Error("", fields...)
+}
+
+func (l *EchoLogger) Fatal(i ...interface{}) {
+	l.logger.Fatal(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Fatalf(format string, args ...interface{}) {
+	l.logger.Fatal(fmt.Sprintf(format, args...))
+}
+
+func (l *EchoLogger) Fatalj(j log.JSON) {
+	fields := make([]any, 0, len(j))
+	for k, v := range j {
+		fields = append(fields, logging.StringField(k, fmt.Sprint(v)))
+	}
+	l.logger.Fatal("", fields...)
+}
+
+func (l *EchoLogger) Panic(i ...interface{}) {
+	l.logger.Error(fmt.Sprint(i...))
+	panic(fmt.Sprint(i...))
+}
+
+func (l *EchoLogger) Panicf(format string, args ...interface{}) {
+	l.logger.Error(fmt.Sprintf(format, args...))
+	panic(fmt.Sprintf(format, args...))
+}
+
+func (l *EchoLogger) Panicj(j log.JSON) {
+	fields := make([]any, 0, len(j))
+	for k, v := range j {
+		fields = append(fields, logging.StringField(k, fmt.Sprint(v)))
+	}
+	l.logger.Error("", fields...)
+	panic(fmt.Sprintf("%v", j))
+}
+
+func (l *EchoLogger) Level() log.Lvl {
+	return log.INFO
+}
+
+func (l *EchoLogger) SetLevel(level log.Lvl) {
+	// No-op as we use our own log level configuration
+}
+
+func (l *EchoLogger) SetHeader(h string) {
+	// No-op as we use our own log format
+}
+
+func (l *EchoLogger) SetPrefix(p string) {
+	// No-op as we use our own log format
+}
+
+func (l *EchoLogger) Prefix() string {
+	return ""
+}
+
+func (l *EchoLogger) SetOutput(w io.Writer) {
+	// No-op as we use our own output configuration
+}
+
+func (l *EchoLogger) Output() io.Writer {
+	return os.Stdout
 }
