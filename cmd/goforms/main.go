@@ -141,8 +141,8 @@ func main() {
 	}
 
 	// Initialize repositories
-	userRepo := userstore.NewStore(db.DB, logger)
-	formRepo := formstore.NewStore(db.DB, logger)
+	userRepo := userstore.NewStore(db, logger)
+	formRepo := formstore.NewStore(db, logger)
 
 	// Initialize services
 	userService := user.NewService(userRepo, logger)

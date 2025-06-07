@@ -111,14 +111,33 @@ func (c *AppConfig) IsDevelopment() bool {
 
 // DatabaseConfig holds all database-related configuration
 type DatabaseConfig struct {
-	Host            string        `envconfig:"GOFORMS_DB_HOST" validate:"required"`
-	Port            int           `envconfig:"GOFORMS_DB_PORT" validate:"required"`
-	User            string        `envconfig:"GOFORMS_DB_USER" validate:"required"`
-	Password        string        `envconfig:"GOFORMS_DB_PASSWORD" validate:"required"`
-	Name            string        `envconfig:"GOFORMS_DB_NAME" validate:"required"`
-	MaxOpenConns    int           `envconfig:"GOFORMS_DB_MAX_OPEN_CONNS" default:"25"`
-	MaxIdleConns    int           `envconfig:"GOFORMS_DB_MAX_IDLE_CONNS" default:"25"`
-	ConnMaxLifetime time.Duration `envconfig:"GOFORMS_DB_CONN_MAX_LIFETIME" default:"5m"`
+	// MariaDB Configuration
+	MariaDB struct {
+		Host            string        `envconfig:"GOFORMS_MARIADB_HOST" default:"mariadb"`
+		Port            int           `envconfig:"GOFORMS_MARIADB_PORT" default:"3306"`
+		User            string        `envconfig:"GOFORMS_MARIADB_USER" default:"goforms"`
+		Password        string        `envconfig:"GOFORMS_MARIADB_PASSWORD" default:"goforms"`
+		Name            string        `envconfig:"GOFORMS_MARIADB_NAME" default:"goforms"`
+		MaxOpenConns    int           `envconfig:"GOFORMS_MARIADB_MAX_OPEN_CONNS" default:"25"`
+		MaxIdleConns    int           `envconfig:"GOFORMS_MARIADB_MAX_IDLE_CONNS" default:"5"`
+		ConnMaxLifetime time.Duration `envconfig:"GOFORMS_MARIADB_CONN_MAX_LIFETIME" default:"5m"`
+	} `envconfig:"GOFORMS_MARIADB"`
+
+	// PostgreSQL Configuration
+	Postgres struct {
+		Host            string        `envconfig:"GOFORMS_POSTGRES_HOST" default:"postgres"`
+		Port            int           `envconfig:"GOFORMS_POSTGRES_PORT" default:"5432"`
+		User            string        `envconfig:"GOFORMS_POSTGRES_USER" default:"goforms"`
+		Password        string        `envconfig:"GOFORMS_POSTGRES_PASSWORD" default:"goforms"`
+		Name            string        `envconfig:"GOFORMS_POSTGRES_DB" default:"goforms"`
+		SSLMode         string        `envconfig:"GOFORMS_POSTGRES_SSLMODE" default:"disable"`
+		MaxOpenConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_OPEN_CONNS" default:"25"`
+		MaxIdleConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_IDLE_CONNS" default:"5"`
+		ConnMaxLifetime time.Duration `envconfig:"GOFORMS_POSTGRES_CONN_MAX_LIFETIME" default:"5m"`
+	} `envconfig:"GOFORMS_POSTGRES"`
+
+	// Active database driver
+	Driver string `envconfig:"GOFORMS_DB_DRIVER" default:"mariadb"`
 }
 
 // ServerConfig holds all server-related configuration
@@ -180,21 +199,42 @@ func New() (*Config, error) {
 		return nil, fmt.Errorf("failed to process environment variables: %w", err)
 	}
 
-	// Validate required fields
-	if cfg.Database.Host == "" {
-		return nil, errors.New("database host is required")
-	}
-	if cfg.Database.Port == 0 {
-		return nil, errors.New("database port is required")
-	}
-	if cfg.Database.User == "" {
-		return nil, errors.New("database user is required")
-	}
-	if cfg.Database.Password == "" {
-		return nil, errors.New("database password is required")
-	}
-	if cfg.Database.Name == "" {
-		return nil, errors.New("database name is required")
+	// Validate required fields based on active driver
+	switch cfg.Database.Driver {
+	case "mariadb":
+		if cfg.Database.MariaDB.Host == "" {
+			return nil, errors.New("MariaDB host is required")
+		}
+		if cfg.Database.MariaDB.Port == 0 {
+			return nil, errors.New("MariaDB port is required")
+		}
+		if cfg.Database.MariaDB.User == "" {
+			return nil, errors.New("MariaDB user is required")
+		}
+		if cfg.Database.MariaDB.Password == "" {
+			return nil, errors.New("MariaDB password is required")
+		}
+		if cfg.Database.MariaDB.Name == "" {
+			return nil, errors.New("MariaDB database name is required")
+		}
+	case "postgres":
+		if cfg.Database.Postgres.Host == "" {
+			return nil, errors.New("PostgreSQL host is required")
+		}
+		if cfg.Database.Postgres.Port == 0 {
+			return nil, errors.New("PostgreSQL port is required")
+		}
+		if cfg.Database.Postgres.User == "" {
+			return nil, errors.New("PostgreSQL user is required")
+		}
+		if cfg.Database.Postgres.Password == "" {
+			return nil, errors.New("PostgreSQL password is required")
+		}
+		if cfg.Database.Postgres.Name == "" {
+			return nil, errors.New("PostgreSQL database name is required")
+		}
+	default:
+		return nil, fmt.Errorf("unsupported database driver: %s", cfg.Database.Driver)
 	}
 
 	return cfg, nil

@@ -9,8 +9,8 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -20,12 +20,12 @@ var (
 // Store implements form.Store interface
 // Implements real DB logic for forms and submissions.
 type Store struct {
-	db     *sqlx.DB
+	db     *database.Database
 	logger logging.Logger
 }
 
 // NewStore creates a new form store
-func NewStore(db *sqlx.DB, logger logging.Logger) form.Store {
+func NewStore(db *database.Database, logger logging.Logger) form.Store {
 	logger.Debug("creating form store",
 		logging.BoolField("db_available", db != nil),
 	)
@@ -37,8 +37,17 @@ func NewStore(db *sqlx.DB, logger logging.Logger) form.Store {
 
 func (s *Store) Create(f *form.Form) error {
 	s.logger.Debug("Create called", logging.StringField("form_id", f.ID))
-	query := `INSERT INTO forms (uuid, user_id, title, description, schema, active, created_at, updated_at) 
-		VALUES (?, ?, ?, ?, ?, ?, ?, ?)`
+	query := fmt.Sprintf(`INSERT INTO forms (uuid, user_id, title, description, schema, active, created_at, updated_at) 
+		VALUES (%s, %s, %s, %s, %s, %s, %s, %s)`,
+		s.db.GetPlaceholder(1),
+		s.db.GetPlaceholder(2),
+		s.db.GetPlaceholder(3),
+		s.db.GetPlaceholder(4),
+		s.db.GetPlaceholder(5),
+		s.db.GetPlaceholder(6),
+		s.db.GetPlaceholder(7),
+		s.db.GetPlaceholder(8),
+	)
 
 	schemaBytes, err := json.Marshal(f.Schema)
 	if err != nil {

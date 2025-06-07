@@ -8,8 +8,8 @@ import (
 	"strconv"
 
 	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/jmoiron/sqlx"
 )
 
 var (
@@ -19,12 +19,12 @@ var (
 
 // Store implements user.Store interface
 type Store struct {
-	db     *sqlx.DB
+	db     *database.Database
 	logger logging.Logger
 }
 
 // NewStore creates a new user store
-func NewStore(db *sqlx.DB, logger logging.Logger) user.Store {
+func NewStore(db *database.Database, logger logging.Logger) user.Store {
 	logger.Debug("creating user store",
 		logging.BoolField("db_available", db != nil),
 	)
@@ -36,31 +36,32 @@ func NewStore(db *sqlx.DB, logger logging.Logger) user.Store {
 
 // Create stores a new user
 func (s *Store) Create(ctx context.Context, u *user.User) error {
-	result, err := s.db.ExecContext(ctx,
-		"INSERT INTO users (email, hashed_password, first_name, last_name, role, active) VALUES (?, ?, ?, ?, ?, ?)",
-		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active,
+	query := fmt.Sprintf("INSERT INTO users (email, hashed_password, first_name, last_name, role, active) VALUES (%s, %s, %s, %s, %s, %s) RETURNING id",
+		s.db.GetPlaceholder(1),
+		s.db.GetPlaceholder(2),
+		s.db.GetPlaceholder(3),
+		s.db.GetPlaceholder(4),
+		s.db.GetPlaceholder(5),
+		s.db.GetPlaceholder(6),
 	)
+
+	var id uint
+	err := s.db.QueryRowContext(ctx, query,
+		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active,
+	).Scan(&id)
 	if err != nil {
 		return fmt.Errorf("create user: %w", err)
 	}
 
-	id, err := result.LastInsertId()
-	if err != nil {
-		return fmt.Errorf("get last insert id: %w", err)
-	}
-
-	if id <= 0 || uint64(id) > uint64(^uint(0)) {
-		return fmt.Errorf("user ID %d is out of valid range", id)
-	}
-
-	u.ID = uint(id)
+	u.ID = id
 	return nil
 }
 
 // GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error) {
+	query := fmt.Sprintf("SELECT * FROM users WHERE email = %s", s.db.GetPlaceholder(1))
 	var u user.User
-	err := s.db.GetContext(ctx, &u, "SELECT * FROM users WHERE email = ?", email)
+	err := s.db.GetContext(ctx, &u, query, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, user.ErrUserNotFound
@@ -72,11 +73,11 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 
 // GetByID retrieves a user by ID
 func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
-	query := `
+	query := fmt.Sprintf(`
 		SELECT id, email, hashed_password, first_name, last_name, role, active, created_at, updated_at
 		FROM users
-		WHERE id = ?
-	`
+		WHERE id = %s
+	`, s.db.GetPlaceholder(1))
 
 	var u user.User
 	err := s.db.QueryRowxContext(ctx, query, id).Scan(
@@ -112,17 +113,26 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error
 
 // Update updates an existing user
 func (s *Store) Update(ctx context.Context, u *user.User) error {
-	query := `
+	query := fmt.Sprintf(`
 		UPDATE users 
-		SET email = ?, 
-			hashed_password = ?, 
-			first_name = ?, 
-			last_name = ?, 
-			role = ?, 
-			active = ?, 
+		SET email = %s, 
+			hashed_password = %s, 
+			first_name = %s, 
+			last_name = %s, 
+			role = %s, 
+			active = %s, 
 			updated_at = NOW() 
-		WHERE id = ?
-	`
+		WHERE id = %s
+	`,
+		s.db.GetPlaceholder(1),
+		s.db.GetPlaceholder(2),
+		s.db.GetPlaceholder(3),
+		s.db.GetPlaceholder(4),
+		s.db.GetPlaceholder(5),
+		s.db.GetPlaceholder(6),
+		s.db.GetPlaceholder(7),
+	)
+
 	result, err := s.db.ExecContext(ctx, query,
 		u.Email, u.HashedPassword, u.FirstName, u.LastName, u.Role, u.Active, u.ID,
 	)
@@ -144,7 +154,8 @@ func (s *Store) Update(ctx context.Context, u *user.User) error {
 
 // Delete removes a user by ID
 func (s *Store) Delete(ctx context.Context, id uint) error {
-	result, err := s.db.ExecContext(ctx, "DELETE FROM users WHERE id = ?", id)
+	query := fmt.Sprintf("DELETE FROM users WHERE id = %s", s.db.GetPlaceholder(1))
+	result, err := s.db.ExecContext(ctx, query, id)
 	if err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
@@ -178,11 +189,12 @@ func (s *Store) List(ctx context.Context) ([]user.User, error) {
 
 // ListPaginated returns a paginated list of users
 func (s *Store) ListPaginated(ctx context.Context, offset, limit int) ([]*user.User, error) {
-	var users []*user.User
-	err := s.db.SelectContext(ctx, &users,
-		"SELECT * FROM users ORDER BY id LIMIT ? OFFSET ?",
-		limit, offset,
+	query := fmt.Sprintf("SELECT * FROM users ORDER BY id LIMIT %s OFFSET %s",
+		s.db.GetPlaceholder(1),
+		s.db.GetPlaceholder(2),
 	)
+	var users []*user.User
+	err := s.db.SelectContext(ctx, &users, query, limit, offset)
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
@@ -206,8 +218,9 @@ func (s *Store) Count(ctx context.Context) (int, error) {
 
 // FindByEmail finds a user by email
 func (s *Store) FindByEmail(ctx context.Context, email string) (*user.User, error) {
+	query := fmt.Sprintf("SELECT * FROM users WHERE email = %s", s.db.GetPlaceholder(1))
 	var u user.User
-	err := s.db.GetContext(ctx, &u, "SELECT * FROM users WHERE email = ?", email)
+	err := s.db.GetContext(ctx, &u, query, email)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, user.ErrUserNotFound
@@ -218,8 +231,9 @@ func (s *Store) FindByEmail(ctx context.Context, email string) (*user.User, erro
 }
 
 func (s *Store) FindByID(ctx context.Context, id uint) (*user.User, error) {
+	query := fmt.Sprintf("SELECT * FROM users WHERE id = %s", s.db.GetPlaceholder(1))
 	var u user.User
-	err := s.db.GetContext(ctx, &u, "SELECT * FROM users WHERE id = ?", id)
+	err := s.db.GetContext(ctx, &u, query, id)
 	if err != nil {
 		if errors.Is(err, sql.ErrNoRows) {
 			return nil, user.ErrUserNotFound
