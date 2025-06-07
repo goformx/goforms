@@ -1,9 +1,6 @@
 package infrastructure
 
 import (
-	"context"
-
-	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
@@ -16,6 +13,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
+	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -59,150 +57,76 @@ func AnnotateHandler(fn any) fx.Option {
 		fx.Annotate(
 			fn,
 			fx.As(new(web.Handler)),
-			fx.ResultTags(`group:"web_handlers"`),
+			fx.ResultTags(`group:"handlers"`),
 		),
 	)
 }
 
-// InfrastructureModule provides core infrastructure dependencies
-var InfrastructureModule = fx.Options(
+// Module provides core infrastructure dependencies
+var Module = fx.Options(
+	// Core infrastructure
 	fx.Provide(
-		config.New,
+		logging.NewFactory,
 		database.NewDB,
-		func(db *database.Database) *sqlx.DB {
-			return db.DB
+		view.NewRenderer,
+	),
+	// Stores
+	fx.Provide(
+		fx.Annotate(userstore.NewStore, fx.As(new(user.Store))),
+		fx.Annotate(formstore.NewStore, fx.As(new(form.Store))),
+	),
+	// Base handler
+	fx.Provide(
+		func(formService form.Service, logger logging.Logger) *web.BaseHandler {
+			return web.NewBaseHandler(formService, logger)
 		},
-		fx.Annotate(
-			userstore.NewStore,
-			fx.As(new(user.Store)),
-		),
-		fx.Annotate(
-			formstore.NewStore,
-			fx.As(new(form.Store)),
-		),
-		func(logger logging.Logger, core CoreParams) *appmiddleware.SessionManager {
-			logger.Info("InfrastructureModule: Creating session manager...")
-			secureCookie := !core.Config.App.IsDevelopment()
-			sm := appmiddleware.NewSessionManager(logger, secureCookie)
-			logger.Info("InfrastructureModule: Session manager created")
-			return sm
+	),
+	// Middleware
+	fx.Provide(
+		func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
+			// In development, use secure cookies only if explicitly enabled
+			// In production, always use secure cookies
+			secureCookie := !config.App.Debug || config.Security.SecureCookie
+			return appmiddleware.NewSessionManager(logger, secureCookie)
 		},
 		func(
-			core CoreParams,
-			services ServiceParams,
+			logger logging.Logger,
+			config *config.Config,
+			userService user.Service,
 			sessionManager *appmiddleware.SessionManager,
 		) *appmiddleware.Manager {
 			return appmiddleware.New(&appmiddleware.ManagerConfig{
-				Logger:         core.Logger,
-				Security:       &core.Config.Security,
-				UserService:    services.UserService,
+				Logger:         logger,
+				Security:       &config.Security,
+				Config:         config,
+				UserService:    userService,
 				SessionManager: sessionManager,
-				Config:         core.Config,
 			})
 		},
 	),
-)
-
-// HandlerModule provides HTTP handlers
-var HandlerModule = fx.Options(
-	// Web handlers
+	// Handlers
 	fx.Provide(
 		fx.Annotate(
-			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
-				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-				deps := web.HandlerDeps{
-					BaseHandler:       baseHandler,
-					UserService:       services.UserService,
-					SessionManager:    middlewareManager.GetSessionManager(),
-					Renderer:          core.Renderer,
-					MiddlewareManager: middlewareManager,
-					Config:            core.Config,
-					Logger:            core.Logger,
-				}
-				return web.NewWebHandler(deps)
-			},
-			fx.ResultTags(`group:"web_handlers"`),
+			web.NewWebHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
 		),
 		fx.Annotate(
-			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
-				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-				deps := web.HandlerDeps{
-					BaseHandler:       baseHandler,
-					UserService:       services.UserService,
-					SessionManager:    middlewareManager.GetSessionManager(),
-					Renderer:          core.Renderer,
-					MiddlewareManager: middlewareManager,
-					Config:            core.Config,
-					Logger:            core.Logger,
-				}
-				return web.NewAuthHandler(deps)
-			},
-			fx.ResultTags(`group:"web_handlers"`),
+			web.NewAuthHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
 		),
 		fx.Annotate(
-			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
-				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-				deps := web.HandlerDeps{
-					BaseHandler:       baseHandler,
-					UserService:       services.UserService,
-					SessionManager:    middlewareManager.GetSessionManager(),
-					Renderer:          core.Renderer,
-					MiddlewareManager: middlewareManager,
-					Config:            core.Config,
-					Logger:            core.Logger,
-				}
-				handler := web.NewFormHandler(deps, services.FormService)
-				return handler, nil
-			},
-			fx.ResultTags(`group:"web_handlers"`),
+			web.NewFormHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
 		),
 		fx.Annotate(
-			func(core CoreParams, services ServiceParams, middlewareManager *appmiddleware.Manager) (web.Handler, error) {
-				baseHandler := web.NewBaseHandler(services.FormService, core.Logger)
-				deps := web.HandlerDeps{
-					BaseHandler:       baseHandler,
-					UserService:       services.UserService,
-					SessionManager:    middlewareManager.GetSessionManager(),
-					Renderer:          core.Renderer,
-					MiddlewareManager: middlewareManager,
-					Config:            core.Config,
-					Logger:            core.Logger,
-				}
-				return web.NewDemoHandler(deps)
-			},
-			fx.ResultTags(`group:"web_handlers"`),
+			web.NewDemoHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
 		),
 	),
-	// Provide the handlers as a group
-	fx.Provide(
-		fx.Annotate(
-			func(handlers []web.Handler) []web.Handler {
-				return handlers
-			},
-			fx.ParamTags(`group:"web_handlers"`),
-		),
-	),
-)
-
-// RootModule combines all infrastructure modules
-var RootModule = fx.Options(
-	InfrastructureModule,
-	HandlerModule,
-	fx.Invoke(func(
-		lifecycle fx.Lifecycle,
-		core CoreParams,
-		services ServiceParams,
-		handlers []web.Handler,
-	) {
-		lifecycle.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				// Register handlers with Echo
-				core.Logger.Info("registering handlers with Echo")
-				for _, handler := range handlers {
-					handler.Register(core.Echo)
-				}
-				return nil
-			},
-		})
-	}),
+	// Server setup
+	fx.Provide(server.New),
 )
