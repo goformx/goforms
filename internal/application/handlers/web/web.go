@@ -1,9 +1,9 @@
 package web
 
 import (
-	"fmt"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -47,31 +47,28 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 
 // handleDashboard handles the dashboard page request
 func (h *WebHandler) handleDashboard(c echo.Context) error {
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	h.Logger.Debug("dashboard request",
+		logging.StringField("path", c.Request().URL.Path),
+		logging.StringField("method", c.Request().Method),
+	)
+
+	// Get session from context
+	session, ok := c.Get(middleware.SessionKey).(*middleware.Session)
 	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-	userID := userIDRaw
-
-	// Get user object
-	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+		h.Logger.Error("no session found in context",
+			logging.StringField("path", c.Request().URL.Path),
+			logging.StringField("method", c.Request().Method),
+		)
+		return response.ErrorResponse(c, http.StatusUnauthorized, "Not authenticated")
 	}
 
-	// Get user's forms
-	forms, err := h.BaseHandler.formService.GetUserForms(userID)
-	if err != nil {
-		h.Logger.Error("failed to get user forms", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get forms")
-	}
+	h.Logger.Debug("session found in context",
+		logging.UintField("user_id", session.UserID),
+		logging.StringField("email", session.Email),
+		logging.StringField("role", session.Role),
+	)
 
 	data := shared.BuildPageData(h.Config, "Dashboard")
-	data.User = user
-	data.Forms = forms
-	h.Logger.Debug("rendering dashboard page", logging.StringField("data", fmt.Sprintf("%+v", data)))
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }
 

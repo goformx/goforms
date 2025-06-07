@@ -80,9 +80,10 @@ var InfrastructureModule = fx.Options(
 			formstore.NewStore,
 			fx.As(new(form.Store)),
 		),
-		func(logger logging.Logger) *appmiddleware.SessionManager {
+		func(logger logging.Logger, core CoreParams) *appmiddleware.SessionManager {
 			logger.Info("InfrastructureModule: Creating session manager...")
-			sm := appmiddleware.NewSessionManager(logger)
+			secureCookie := !core.Config.App.IsDevelopment()
+			sm := appmiddleware.NewSessionManager(logger, secureCookie)
 			logger.Info("InfrastructureModule: Session manager created")
 			return sm
 		},

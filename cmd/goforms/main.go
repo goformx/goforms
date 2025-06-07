@@ -27,7 +27,6 @@ import (
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
-	echomiddleware "github.com/labstack/echo/v4/middleware"
 )
 
 const (
@@ -150,7 +149,7 @@ func main() {
 	formService := form.NewService(formRepo)
 
 	// Initialize session manager
-	sessionManager := middleware.NewSessionManager(logger)
+	sessionManager := middleware.NewSessionManager(logger, !cfg.App.IsDevelopment())
 
 	// Initialize middleware manager
 	middlewareManager := middleware.New(&middleware.ManagerConfig{
@@ -180,15 +179,9 @@ func main() {
 
 	// Initialize router
 	router := echo.New()
-	router.Use(echomiddleware.Logger())
-	router.Use(echomiddleware.Recover())
-	router.Use(echomiddleware.CORSWithConfig(echomiddleware.CORSConfig{
-		AllowOrigins:     cfg.Security.CorsAllowedOrigins,
-		AllowMethods:     cfg.Security.CorsAllowedMethods,
-		AllowHeaders:     cfg.Security.CorsAllowedHeaders,
-		AllowCredentials: cfg.Security.CorsAllowCredentials,
-		MaxAge:           cfg.Security.CorsMaxAge,
-	}))
+
+	// Setup middleware using the middleware manager
+	middlewareManager.Setup(router)
 
 	// Register handlers
 	webHandler.Register(router)

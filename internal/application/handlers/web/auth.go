@@ -64,6 +64,12 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	email := c.FormValue("email")
 	password := c.FormValue("password")
 
+	h.Logger.Debug("login attempt",
+		logging.StringField("email", email),
+		logging.StringField("path", c.Request().URL.Path),
+		logging.StringField("method", c.Request().Method),
+	)
+
 	// Authenticate user
 	userData, err := h.UserService.Authenticate(c.Request().Context(), email, password)
 	if err != nil {
@@ -71,13 +77,30 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 		return response.ErrorResponse(c, http.StatusUnauthorized, "Invalid credentials")
 	}
 
+	h.Logger.Debug("user authenticated",
+		logging.UintField("user_id", userData.ID),
+		logging.StringField("email", userData.Email),
+		logging.StringField("role", userData.Role),
+	)
+
 	// Create session and set session cookie via SessionManager
 	sessionID, err := h.SessionManager.CreateSession(userData.ID, userData.Email, userData.Role)
 	if err != nil {
 		h.Logger.Error("failed to create session", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create session")
 	}
+
+	h.Logger.Debug("session created",
+		logging.StringField("session_id", sessionID),
+		logging.UintField("user_id", userData.ID),
+	)
+
 	h.SessionManager.SetSessionCookie(c, sessionID)
+
+	h.Logger.Debug("redirecting to dashboard",
+		logging.StringField("session_id", sessionID),
+		logging.UintField("user_id", userData.ID),
+	)
 
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
