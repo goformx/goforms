@@ -153,7 +153,8 @@ func GetErrorContext(err error) map[string]any {
 		return nil
 	}
 
-	if domainErr, ok := err.(*DomainError); ok {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
 		return domainErr.Context
 	}
 
@@ -170,7 +171,8 @@ func GetFullErrorMessage(err error) string {
 	current := err
 
 	for current != nil {
-		if domainErr, ok := current.(*DomainError); ok {
+		var domainErr *DomainError
+		if errors.As(current, &domainErr) {
 			messages = append(messages, domainErr.Message)
 			current = domainErr.Err
 		} else {

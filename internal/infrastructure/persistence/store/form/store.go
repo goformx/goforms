@@ -368,8 +368,8 @@ func (s *FormStore) mapToForm(f *formModel) *model.Form {
 // mapToForms converts a slice of formModel to a slice of model.Form
 func (s *FormStore) mapToForms(forms []formModel) []*model.Form {
 	result := make([]*model.Form, len(forms))
-	for i, f := range forms {
-		result[i] = s.mapToForm(&f)
+	for i := range forms {
+		result[i] = s.mapToForm(&forms[i])
 	}
 	return result
 }

@@ -64,18 +64,25 @@ func getStatusCode(code domainerrors.ErrorCode) int {
 	case domainerrors.ErrCodeInvalid,
 		domainerrors.ErrCodeInvalidFormat,
 		domainerrors.ErrCodeInvalidInput,
-		domainerrors.ErrCodeBadRequest:
+		domainerrors.ErrCodeBadRequest,
+		domainerrors.ErrCodeValidation,
+		domainerrors.ErrCodeRequired:
 		return http.StatusBadRequest
 	case domainerrors.ErrCodeInvalidToken,
-		domainerrors.ErrCodeAuthentication:
+		domainerrors.ErrCodeAuthentication,
+		domainerrors.ErrCodeUnauthorized:
 		return http.StatusUnauthorized
-	case domainerrors.ErrCodeInsufficientRole:
+	case domainerrors.ErrCodeInsufficientRole,
+		domainerrors.ErrCodeForbidden:
 		return http.StatusForbidden
 	case domainerrors.ErrCodeConflict,
 		domainerrors.ErrCodeAlreadyExists:
 		return http.StatusConflict
 	case domainerrors.ErrCodeStartup,
-		domainerrors.ErrCodeShutdown:
+		domainerrors.ErrCodeShutdown,
+		domainerrors.ErrCodeConfig,
+		domainerrors.ErrCodeDatabase,
+		domainerrors.ErrCodeServerError:
 		return http.StatusServiceUnavailable
 	case domainerrors.ErrCodeTimeout:
 		return http.StatusGatewayTimeout

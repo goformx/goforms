@@ -137,8 +137,8 @@ func (s *FormSubmissionStore) convertDBSubmissions(submissions []struct {
 	UpdatedAt   time.Time `db:"updated_at"`
 }, operation string) []*model.FormSubmission {
 	result := make([]*model.FormSubmission, len(submissions))
-	for i, submission := range submissions {
-		result[i] = s.convertDBSubmission(submission, operation)
+	for i := range submissions {
+		result[i] = s.convertDBSubmission(submissions[i], operation)
 	}
 	return result
 }
