@@ -1,10 +1,10 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
-	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -122,10 +122,33 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		LastName:  c.FormValue("last_name"),
 	}
 
+	h.Logger.Debug("signup attempt",
+		logging.StringField("email", signup.Email),
+		logging.StringField("first_name", signup.FirstName),
+		logging.StringField("last_name", signup.LastName),
+	)
+
 	if _, err := h.UserService.SignUp(c.Request().Context(), signup); err != nil {
 		h.Logger.Error("signup failed", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusBadRequest, "Failed to create user")
+		data := shared.BuildPageData(h.Config, "Sign Up")
+
+		// Handle specific error cases
+		var errorMessage string
+		switch {
+		case errors.Is(err, user.ErrUserExists):
+			errorMessage = "An account with this email already exists"
+		case errors.Is(err, user.ErrInvalidCredentials):
+			errorMessage = "Invalid signup information provided"
+		default:
+			errorMessage = "Failed to create account. Please try again."
+		}
+
+		return h.Renderer.Render(c, pages.SignupWithError(data, errorMessage))
 	}
+
+	h.Logger.Debug("signup successful",
+		logging.StringField("email", signup.Email),
+	)
 
 	return c.Redirect(http.StatusSeeOther, "/login")
 }

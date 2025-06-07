@@ -17,9 +17,8 @@ var (
 	ErrFormNotFound = errors.New("form not found")
 )
 
-// Store implements form.Store interface
-// Implements real DB logic for forms and submissions.
-type Store struct {
+// formStore implements form.Store interface
+type formStore struct {
 	db     *database.Database
 	logger logging.Logger
 }
@@ -29,13 +28,13 @@ func NewStore(db *database.Database, logger logging.Logger) form.Store {
 	logger.Debug("creating form store",
 		logging.BoolField("db_available", db != nil),
 	)
-	return &Store{
+	return &formStore{
 		db:     db,
 		logger: logger,
 	}
 }
 
-func (s *Store) Create(f *form.Form) error {
+func (s *formStore) Create(f *form.Form) error {
 	s.logger.Debug("Create called", logging.StringField("form_id", f.ID))
 	query := fmt.Sprintf(`INSERT INTO forms (uuid, user_id, title, description, schema, active, created_at, updated_at) 
 		VALUES (%s, %s, %s, %s, %s, %s, %s, %s)`,
@@ -71,10 +70,10 @@ func (s *Store) Create(f *form.Form) error {
 	return nil
 }
 
-func (s *Store) GetByID(id string) (*form.Form, error) {
+func (s *formStore) GetByID(id string) (*form.Form, error) {
 	s.logger.Debug("GetByID called", logging.StringField("form_id", id))
-	query := `SELECT uuid, user_id, title, description, schema, active, created_at, updated_at 
-		FROM forms WHERE uuid = ?`
+	query := fmt.Sprintf(`SELECT uuid, user_id, title, description, schema, active, created_at, updated_at 
+		FROM forms WHERE uuid = %s`, s.db.GetPlaceholder(1))
 
 	var f form.Form
 	var schemaBytes []byte
@@ -102,15 +101,15 @@ func (s *Store) GetByID(id string) (*form.Form, error) {
 	return &f, nil
 }
 
-func (s *Store) GetByUserID(userID uint) ([]*form.Form, error) {
+func (s *formStore) GetByUserID(userID uint) ([]*form.Form, error) {
 	s.logger.Debug("GetByUserID called", logging.UintField("user_id", userID))
 
-	query := `
+	query := fmt.Sprintf(`
 		SELECT uuid, user_id, title, description, schema, active, created_at, updated_at
 		FROM forms
-		WHERE user_id = ?
+		WHERE user_id = %s
 		ORDER BY created_at DESC
-	`
+	`, s.db.GetPlaceholder(1))
 
 	rows, err := s.db.Queryx(query, userID)
 	if err != nil {
@@ -148,9 +147,9 @@ func (s *Store) GetByUserID(userID uint) ([]*form.Form, error) {
 	return forms, nil
 }
 
-func (s *Store) Delete(id string) error {
+func (s *formStore) Delete(id string) error {
 	s.logger.Debug("Delete called", logging.StringField("form_id", id))
-	query := `DELETE FROM forms WHERE uuid = ?`
+	query := fmt.Sprintf(`DELETE FROM forms WHERE uuid = %s`, s.db.GetPlaceholder(1))
 
 	result, err := s.db.Exec(query, id)
 	if err != nil {
@@ -169,10 +168,17 @@ func (s *Store) Delete(id string) error {
 	return nil
 }
 
-func (s *Store) Update(f *form.Form) error {
+func (s *formStore) Update(f *form.Form) error {
 	s.logger.Debug("Update called", logging.StringField("form_id", f.ID))
-	query := `UPDATE forms SET title = ?, description = ?, schema = ?, active = ?, updated_at = ? 
-		WHERE uuid = ?`
+	query := fmt.Sprintf(`UPDATE forms SET title = %s, description = %s, schema = %s, active = %s, updated_at = %s 
+		WHERE uuid = %s`,
+		s.db.GetPlaceholder(1),
+		s.db.GetPlaceholder(2),
+		s.db.GetPlaceholder(3),
+		s.db.GetPlaceholder(4),
+		s.db.GetPlaceholder(5),
+		s.db.GetPlaceholder(6),
+	)
 
 	schemaBytes, err := json.Marshal(f.Schema)
 	if err != nil {
@@ -203,15 +209,15 @@ func (s *Store) Update(f *form.Form) error {
 	return nil
 }
 
-func (s *Store) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
+func (s *formStore) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
 	s.logger.Debug("GetFormSubmissions called", logging.StringField("form_id", formID))
 
-	query := `
+	query := fmt.Sprintf(`
 		SELECT id, form_uuid, data, submitted_at, status, metadata
 		FROM form_submissions
-		WHERE form_uuid = ?
+		WHERE form_uuid = %s
 		ORDER BY submitted_at DESC
-	`
+	`, s.db.GetPlaceholder(1))
 
 	rows, err := s.db.Queryx(query, formID)
 	if err != nil {
@@ -252,7 +258,7 @@ func (s *Store) GetFormSubmissions(formID string) ([]*model.FormSubmission, erro
 	return submissions, nil
 }
 
-func (s *Store) CreateSubmission(sub *model.FormSubmission) error {
+func (s *formStore) CreateSubmission(sub *model.FormSubmission) error {
 	s.logger.Debug("CreateSubmission called", logging.StringField("submission_id", sub.ID))
 	query := `INSERT INTO form_submissions (id, form_uuid, data, submitted_at, status, metadata) VALUES (?, ?, ?, ?, ?, ?)`
 

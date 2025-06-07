@@ -10,10 +10,6 @@ templ Signup(data shared.PageData) {
 	@layouts.Layout(data, signupContent(data))
 }
 
-templ SignupWithError(data shared.PageData, errorMessage string) {
-	@layouts.Layout(data, signupContentWithError(data, errorMessage))
-}
-
 templ signupContent(data shared.PageData) {
 	<div class="auth-page">
 		<div class="auth-container">
@@ -29,6 +25,10 @@ templ signupContent(data shared.PageData) {
 
 	<script type="module" src={ data.AssetPath("js/validation.ts") }></script>
 	<script type="module" src={ data.AssetPath("js/signup.ts") }></script>
+}
+
+templ SignupWithError(data shared.PageData, errorMessage string) {
+	@layouts.Layout(data, signupContentWithError(data, errorMessage))
 }
 
 templ signupContentWithError(data shared.PageData, errorMessage string) {
