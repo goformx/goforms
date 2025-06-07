@@ -10,14 +10,14 @@ import (
 
 // Form represents a form in the system
 type Form struct {
-	ID          string    `json:"id"`
-	UserID      uint      `json:"user_id"`
-	Title       string    `json:"title"`
-	Description string    `json:"description"`
-	Schema      JSON      `json:"schema"`
-	Active      bool      `json:"active"`
-	CreatedAt   time.Time `json:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at"`
+	ID          string    `json:"id" db:"uuid"`
+	UserID      uint      `json:"user_id" db:"user_id"`
+	Title       string    `json:"title" db:"title"`
+	Description string    `json:"description" db:"description"`
+	Schema      JSON      `json:"schema" db:"schema"`
+	Active      bool      `json:"active" db:"active"`
+	CreatedAt   time.Time `json:"created_at" db:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
 }
 
 // JSON is a type alias for map[string]any to represent JSON data
@@ -88,11 +88,7 @@ func (f *Form) validateSchema() error {
 		return errors.New(errors.ErrCodeValidation, "schema fields must be an array", nil)
 	}
 
-	if len(fields) == 0 {
-		return errors.New(errors.ErrCodeValidation, "schema must contain at least one field", nil)
-	}
-
-	// Validate each field
+	// Validate each field if there are any
 	for i, field := range fields {
 		fieldMap, ok := field.(map[string]any)
 		if !ok {

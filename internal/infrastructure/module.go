@@ -1,12 +1,13 @@
 package infrastructure
 
 import (
+	"github.com/jmoiron/sqlx"
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/domain/form"
+	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
@@ -29,7 +30,7 @@ type Stores struct {
 	fx.Out
 
 	UserStore user.Repository
-	FormStore form.Repository
+	FormStore formdomain.Repository
 }
 
 // CoreParams represents core infrastructure dependencies
@@ -47,7 +48,7 @@ type CoreParams struct {
 type ServiceParams struct {
 	fx.In
 	UserService user.Service
-	FormService form.Service
+	FormService formdomain.Service
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -67,16 +68,16 @@ var InfrastructureModule = fx.Options(
 	fx.Provide(
 		config.New,
 		database.NewDB,
-		func(db *database.Database) *database.Database {
-			return db
+		func(db *database.Database) *sqlx.DB {
+			return db.DB
 		},
 		fx.Annotate(
 			userstore.NewStore,
 			fx.As(new(user.Repository)),
 		),
 		fx.Annotate(
-			formstore.NewStore,
-			fx.As(new(form.Repository)),
+			formstore.NewFormStore,
+			fx.As(new(formdomain.Repository)),
 		),
 		func(logger logging.Logger, config *config.Config) *middleware.SessionManager {
 			// In development, use secure cookies only if explicitly enabled
@@ -106,16 +107,19 @@ var Module = fx.Options(
 	fx.Provide(
 		logging.NewFactory,
 		database.NewDB,
+		func(db *database.Database) *sqlx.DB {
+			return db.DB
+		},
 		view.NewRenderer,
 	),
 	// Stores
 	fx.Provide(
 		fx.Annotate(userstore.NewStore, fx.As(new(user.Repository))),
-		fx.Annotate(formstore.NewStore, fx.As(new(form.Repository))),
+		fx.Annotate(formstore.NewFormStore, fx.As(new(formdomain.Repository))),
 	),
 	// Base handler
 	fx.Provide(
-		func(formService form.Service, logger logging.Logger) *web.BaseHandler {
+		func(formService formdomain.Service, logger logging.Logger) *web.BaseHandler {
 			return web.NewBaseHandler(formService, logger)
 		},
 	),

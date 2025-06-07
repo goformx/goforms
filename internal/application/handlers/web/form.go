@@ -40,7 +40,25 @@ func (h *FormHandler) Register(e *echo.Echo) {
 
 // GET /dashboard/forms/new
 func (h *FormHandler) handleFormNew(c echo.Context) error {
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(uint)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	userID := userIDRaw
+
+	// Get user object
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || user == nil {
+		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+	}
+
 	data := shared.BuildPageData(h.Config, "New Form")
+	data.User = user
+	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
+		data.CSRFToken = csrfToken
+	}
 	return h.Renderer.Render(c, pages.NewForm(data))
 }
 
@@ -57,9 +75,11 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	title := c.FormValue("title")
 	description := c.FormValue("description")
 
-	// Create an empty schema for now
+	// Create a valid schema with required fields
 	schema := model.JSON{
-		"components": []any{},
+		"title":       title,
+		"description": description,
+		"fields":      []any{},
 	}
 
 	// Create the form

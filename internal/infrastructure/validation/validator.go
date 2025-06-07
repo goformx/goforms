@@ -9,6 +9,10 @@ import (
 	"github.com/goformx/goforms/internal/domain/common/interfaces"
 )
 
+const (
+	jsonTagSplitLimit = 2
+)
+
 // validatorImpl implements the Validator interface
 type validatorImpl struct {
 	*validator.Validate
@@ -26,9 +30,9 @@ func New() interfaces.Validator {
 		v := validator.New()
 		// Enable struct field validation
 		v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-			name := strings.SplitN(fld.Tag.Get("json"), ",", 2)[0]
+			name := strings.SplitN(fld.Tag.Get("json"), ",", jsonTagSplitLimit)[0]
 			if name == "-" {
-				return fld.Name
+				return ""
 			}
 			return name
 		})
