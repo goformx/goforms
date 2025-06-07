@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -47,44 +46,24 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 
 // handleDashboard handles the dashboard page request
 func (h *WebHandler) handleDashboard(c echo.Context) error {
-	h.Logger.Debug("dashboard request",
-		logging.StringField("path", c.Request().URL.Path),
-		logging.StringField("method", c.Request().Method),
-	)
-
-	// Get session from context
-	session, ok := c.Get(middleware.SessionKey).(*middleware.Session)
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(uint)
 	if !ok {
-		h.Logger.Error("no session found in context",
-			logging.StringField("path", c.Request().URL.Path),
-			logging.StringField("method", c.Request().Method),
-		)
-		return response.ErrorResponse(c, http.StatusUnauthorized, "Not authenticated")
+		return c.Redirect(http.StatusSeeOther, "/login")
 	}
+	userID := userIDRaw
 
-	h.Logger.Debug("session found in context",
-		logging.UintField("user_id", session.UserID),
-		logging.StringField("email", session.Email),
-		logging.StringField("role", session.Role),
-	)
-
-	// Get user data
-	user, err := h.UserService.GetUserByID(c.Request().Context(), session.UserID)
-	if err != nil {
-		h.Logger.Error("failed to get user data",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", session.UserID),
-		)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user data")
+	// Get user object
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || user == nil {
+		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
 	}
 
 	// Get user's forms
-	forms, err := h.BaseHandler.formService.GetUserForms(session.UserID)
+	forms, err := h.BaseHandler.formService.GetUserForms(c.Request().Context(), userID)
 	if err != nil {
-		h.Logger.Error("failed to get user's forms",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", session.UserID),
-		)
+		h.Logger.Error("failed to get user forms", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get forms")
 	}
 
@@ -101,13 +80,34 @@ func (h *WebHandler) handleFormView(c echo.Context) error {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
 
-	form, err := h.BaseHandler.formService.GetForm(formID)
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(uint)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	userID := userIDRaw
+
+	// Get user object
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || user == nil {
+		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+	}
+
+	// Get form
+	form, err := h.BaseHandler.formService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 
-	data := shared.BuildPageData(h.Config, form.Title)
+	// Verify form ownership
+	if form.UserID != userID {
+		return response.ErrorResponse(c, http.StatusForbidden, "You don't have permission to view this form")
+	}
+
+	data := shared.BuildPageData(h.Config, "View Form")
+	data.User = user
 	data.Form = form
 	return h.Renderer.Render(c, pages.Forms(data))
 }

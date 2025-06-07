@@ -6,6 +6,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -57,12 +58,12 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	description := c.FormValue("description")
 
 	// Create an empty schema for now
-	schema := formdomain.JSON{
+	schema := model.JSON{
 		"components": []any{},
 	}
 
 	// Create the form
-	_, err := h.FormService.CreateForm(userID, title, description, schema)
+	_, err := h.FormService.CreateForm(c.Request().Context(), userID, title, description, schema)
 	if err != nil {
 		h.Logger.Error("failed to create form", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
@@ -93,7 +94,7 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
 	}
 
-	f, err := h.FormService.GetForm(formID)
+	f, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", err)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
@@ -133,7 +134,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	userID := userIDRaw
 
 	// Get form to verify ownership
-	form, err := h.FormService.GetForm(formID)
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
@@ -145,7 +146,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	}
 
 	// Delete the form
-	if deleteErr := h.FormService.DeleteForm(formID); deleteErr != nil {
+	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), formID); deleteErr != nil {
 		h.Logger.Error("failed to delete form", logging.ErrorField("error", deleteErr))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete form")
 	}
@@ -170,7 +171,7 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	userID := userIDRaw
 
 	// Get form to verify ownership
-	form, err := h.FormService.GetForm(formID)
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
@@ -182,7 +183,7 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	}
 
 	// Get form submissions
-	submissions, err := h.FormService.GetFormSubmissions(formID)
+	submissions, err := h.FormService.GetFormSubmissions(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form submissions", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form submissions")
@@ -210,7 +211,7 @@ func (h *FormHandler) handleFormSchema(c echo.Context) error {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
 
-	form, err := h.FormService.GetForm(formID)
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form schema", logging.ErrorField("error", err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form schema")
@@ -227,14 +228,14 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 	}
 
 	// Get existing form
-	form, getErr := h.FormService.GetForm(formID)
+	form, getErr := h.FormService.GetForm(c.Request().Context(), formID)
 	if getErr != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", getErr))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	// Parse request body
-	var schema map[string]any
+	var schema model.JSON
 	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&schema); decodeErr != nil {
 		h.Logger.Error("failed to decode request body", logging.ErrorField("error", decodeErr))
 		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
@@ -242,11 +243,11 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 
 	// Update form schema
 	form.Schema = schema
-	if updateErr := h.FormService.UpdateForm(form); updateErr != nil {
+	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
 		h.Logger.Error("failed to update form", logging.ErrorField("error", updateErr))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form")
 	}
 
 	// Return the updated schema
-	return c.JSON(http.StatusOK, schema)
+	return c.JSON(http.StatusOK, form.Schema)
 }
