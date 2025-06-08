@@ -114,7 +114,11 @@ func (s *Store) Count(ctx context.Context) (int, error) {
 
 // Search searches forms by title or description
 func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]*model.Form, error) {
-	s.logger.Debug("searching forms", logging.StringField("query", query), logging.IntField("offset", offset), logging.IntField("limit", limit))
+	s.logger.Debug("searching forms",
+		logging.StringField("query", query),
+		logging.IntField("offset", offset),
+		logging.IntField("limit", limit),
+	)
 	var forms []*model.Form
 	searchPattern := "%" + query + "%"
 	if err := s.db.WithContext(ctx).

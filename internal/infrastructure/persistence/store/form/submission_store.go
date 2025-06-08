@@ -135,7 +135,12 @@ func (s *FormSubmissionStore) Count(ctx context.Context) (int, error) {
 }
 
 // Search searches form submissions by form ID and user ID
-func (s *FormSubmissionStore) Search(ctx context.Context, formID string, userID uint, offset, limit int) ([]*model.FormSubmission, error) {
+func (s *FormSubmissionStore) Search(
+	ctx context.Context,
+	formID string,
+	userID uint,
+	offset, limit int,
+) ([]*model.FormSubmission, error) {
 	s.logger.Debug("searching form submissions",
 		logging.StringField("form_id", formID),
 		logging.UintField("user_id", userID),

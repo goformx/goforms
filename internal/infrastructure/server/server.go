@@ -26,7 +26,13 @@ type Server struct {
 }
 
 // New creates a new server instance with the provided dependencies
-func New(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config, e *echo.Echo, middlewareManager *middleware.Manager) *Server {
+func New(
+	lc fx.Lifecycle,
+	logger logging.Logger,
+	cfg *config.Config,
+	e *echo.Echo,
+	middlewareManager *middleware.Manager,
+) *Server {
 	srv := &Server{
 		echo:   e,
 		logger: logger,
