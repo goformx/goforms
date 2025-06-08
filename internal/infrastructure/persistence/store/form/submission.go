@@ -21,7 +21,7 @@ type formSubmissionStore struct {
 // NewSubmissionStore creates a new form submission store
 func NewSubmissionStore(db *database.GormDB, logger logging.Logger) form.SubmissionStore {
 	logger.Debug("creating form submission store",
-		logging.BoolField("db_available", db != nil),
+		logging.Bool("db_available", db != nil),
 	)
 	return &formSubmissionStore{
 		db:     db,
@@ -30,7 +30,7 @@ func NewSubmissionStore(db *database.GormDB, logger logging.Logger) form.Submiss
 }
 
 func (s *formSubmissionStore) Create(ctx context.Context, submission *model.FormSubmission) error {
-	s.logger.Debug("Create called", logging.StringField("form_id", submission.FormID))
+	s.logger.Debug("Create called", logging.String("form_id", submission.FormID))
 	if err := s.db.WithContext(ctx).Create(submission).Error; err != nil {
 		return fmt.Errorf("failed to create form submission: %w", err)
 	}
@@ -38,7 +38,7 @@ func (s *formSubmissionStore) Create(ctx context.Context, submission *model.Form
 }
 
 func (s *formSubmissionStore) GetByID(ctx context.Context, id string) (*model.FormSubmission, error) {
-	s.logger.Debug("GetByID called", logging.StringField("submission_id", id))
+	s.logger.Debug("GetByID called", logging.String("submission_id", id))
 	var submission model.FormSubmission
 	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&submission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -50,7 +50,7 @@ func (s *formSubmissionStore) GetByID(ctx context.Context, id string) (*model.Fo
 }
 
 func (s *formSubmissionStore) GetByFormID(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	s.logger.Debug("GetByFormID called", logging.StringField("form_id", formID))
+	s.logger.Debug("GetByFormID called", logging.String("form_id", formID))
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
 		Where("form_id = ?", formID).
@@ -62,7 +62,7 @@ func (s *formSubmissionStore) GetByFormID(ctx context.Context, formID string) ([
 }
 
 func (s *formSubmissionStore) Update(ctx context.Context, submission *model.FormSubmission) error {
-	s.logger.Debug("Update called", logging.StringField("submission_id", submission.ID))
+	s.logger.Debug("Update called", logging.String("submission_id", submission.ID))
 	result := s.db.WithContext(ctx).Save(submission)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update form submission: %w", result.Error)
@@ -74,7 +74,7 @@ func (s *formSubmissionStore) Update(ctx context.Context, submission *model.Form
 }
 
 func (s *formSubmissionStore) Delete(ctx context.Context, id string) error {
-	s.logger.Debug("Delete called", logging.StringField("submission_id", id))
+	s.logger.Debug("Delete called", logging.String("submission_id", id))
 	result := s.db.WithContext(ctx).Where("id = ?", id).Delete(&model.FormSubmission{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete form submission: %w", result.Error)

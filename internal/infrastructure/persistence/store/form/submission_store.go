@@ -31,7 +31,7 @@ func NewFormSubmissionStore(db *database.GormDB, logger logging.Logger) form.Sub
 
 // Create creates a new form submission
 func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.FormSubmission) error {
-	s.logger.Debug("creating form submission", logging.StringField("form_id", submission.FormID))
+	s.logger.Debug("creating form submission", logging.String("form_id", submission.FormID))
 	if err := s.db.WithContext(ctx).Create(submission).Error; err != nil {
 		return fmt.Errorf("failed to create form submission: %w", err)
 	}
@@ -40,7 +40,7 @@ func (s *FormSubmissionStore) Create(ctx context.Context, submission *model.Form
 
 // GetByID retrieves a form submission by its ID
 func (s *FormSubmissionStore) GetByID(ctx context.Context, id string) (*model.FormSubmission, error) {
-	s.logger.Debug("getting form submission by id", logging.StringField("submission_id", id))
+	s.logger.Debug("getting form submission by id", logging.String("submission_id", id))
 	var submission model.FormSubmission
 	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&submission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -53,7 +53,7 @@ func (s *FormSubmissionStore) GetByID(ctx context.Context, id string) (*model.Fo
 
 // GetByFormID retrieves all submissions for a specific form
 func (s *FormSubmissionStore) GetByFormID(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	s.logger.Debug("getting form submissions by form id", logging.StringField("form_id", formID))
+	s.logger.Debug("getting form submissions by form id", logging.String("form_id", formID))
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
 		Where("form_id = ?", formID).
@@ -66,7 +66,7 @@ func (s *FormSubmissionStore) GetByFormID(ctx context.Context, formID string) ([
 
 // GetByUserID retrieves all submissions made by a specific user
 func (s *FormSubmissionStore) GetByUserID(ctx context.Context, userID uint) ([]*model.FormSubmission, error) {
-	s.logger.Debug("getting form submissions by user id", logging.UintField("user_id", userID))
+	s.logger.Debug("getting form submissions by user id", logging.Uint("user_id", userID))
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
 		Where("user_id = ?", userID).
@@ -79,7 +79,7 @@ func (s *FormSubmissionStore) GetByUserID(ctx context.Context, userID uint) ([]*
 
 // Update updates an existing form submission
 func (s *FormSubmissionStore) Update(ctx context.Context, submission *model.FormSubmission) error {
-	s.logger.Debug("updating form submission", logging.StringField("submission_id", submission.ID))
+	s.logger.Debug("updating form submission", logging.String("submission_id", submission.ID))
 	result := s.db.WithContext(ctx).Save(submission)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update form submission: %w", result.Error)
@@ -92,7 +92,7 @@ func (s *FormSubmissionStore) Update(ctx context.Context, submission *model.Form
 
 // Delete deletes a form submission by its ID
 func (s *FormSubmissionStore) Delete(ctx context.Context, id string) error {
-	s.logger.Debug("deleting form submission", logging.StringField("submission_id", id))
+	s.logger.Debug("deleting form submission", logging.String("submission_id", id))
 	result := s.db.WithContext(ctx).Where("id = ?", id).Delete(&model.FormSubmission{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete form submission: %w", result.Error)
@@ -106,8 +106,8 @@ func (s *FormSubmissionStore) Delete(ctx context.Context, id string) error {
 // List retrieves a paginated list of form submissions
 func (s *FormSubmissionStore) List(ctx context.Context, offset, limit int) ([]*model.FormSubmission, error) {
 	s.logger.Debug("listing form submissions",
-		logging.IntField("offset", offset),
-		logging.IntField("limit", limit),
+		logging.Int("offset", offset),
+		logging.Int("limit", limit),
 	)
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
@@ -140,10 +140,10 @@ func (s *FormSubmissionStore) Search(
 	offset, limit int,
 ) ([]*model.FormSubmission, error) {
 	s.logger.Debug("searching form submissions",
-		logging.StringField("form_id", formID),
-		logging.UintField("user_id", userID),
-		logging.IntField("offset", offset),
-		logging.IntField("limit", limit),
+		logging.String("form_id", formID),
+		logging.Uint("user_id", userID),
+		logging.Int("offset", offset),
+		logging.Int("limit", limit),
 	)
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).

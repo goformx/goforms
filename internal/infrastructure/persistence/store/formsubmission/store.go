@@ -24,7 +24,7 @@ type Store struct {
 // NewStore creates a new form submission store
 func NewStore(db *database.GormDB, logger logging.Logger) form.SubmissionStore {
 	logger.Debug("creating form submission store",
-		logging.BoolField("db_available", db != nil),
+		logging.Bool("db_available", db != nil),
 	)
 	return &Store{
 		db:     db,

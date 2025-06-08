@@ -42,9 +42,9 @@ func (s *service) CreateForm(
 
 	// Log form creation attempt
 	s.logger.Debug("creating form",
-		logging.StringField("title", title),
-		logging.StringField("description", description),
-		logging.UintField("user_id", userID),
+		logging.String("title", title),
+		logging.String("description", description),
+		logging.Uint("user_id", userID),
 	)
 
 	form := model.NewForm(userID, title, description, schema)
@@ -52,10 +52,10 @@ func (s *service) CreateForm(
 	// Validate form
 	if err := form.Validate(); err != nil {
 		s.logger.Error("form validation failed",
-			logging.ErrorField("error", err),
-			logging.StringField("title", title),
-			logging.StringField("description", description),
-			logging.UintField("user_id", userID),
+			logging.Error(err),
+			logging.String("title", title),
+			logging.String("description", description),
+			logging.Uint("user_id", userID),
 		)
 		return nil, fmt.Errorf("form validation failed: %w", err)
 	}
@@ -66,23 +66,23 @@ func (s *service) CreateForm(
 		switch {
 		case errors.Is(err, gorm.ErrDuplicatedKey):
 			s.logger.Error("form with this title already exists",
-				logging.ErrorField("error", err),
-				logging.StringField("title", title),
-				logging.UintField("user_id", userID),
+				logging.Error(err),
+				logging.String("title", title),
+				logging.Uint("user_id", userID),
 			)
 			return nil, fmt.Errorf("form with this title already exists: %w", err)
 		case errors.Is(err, gorm.ErrForeignKeyViolated):
 			s.logger.Error("invalid user ID",
-				logging.ErrorField("error", err),
-				logging.UintField("user_id", userID),
+				logging.Error(err),
+				logging.Uint("user_id", userID),
 			)
 			return nil, fmt.Errorf("invalid user ID: %w", err)
 		default:
 			s.logger.Error("database error while creating form",
-				logging.ErrorField("error", err),
-				logging.StringField("title", title),
-				logging.StringField("description", description),
-				logging.UintField("user_id", userID),
+				logging.Error(err),
+				logging.String("title", title),
+				logging.String("description", description),
+				logging.Uint("user_id", userID),
 			)
 			return nil, fmt.Errorf("database error while creating form: %w", err)
 		}
@@ -91,16 +91,16 @@ func (s *service) CreateForm(
 	// Publish form created event
 	if err := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); err != nil {
 		s.logger.Error("failed to publish form created event",
-			logging.StringField("form_id", form.ID),
-			logging.ErrorField("error", err),
+			logging.String("form_id", form.ID),
+			logging.Error(err),
 		)
 		// Don't return error here as the form was created successfully
 	}
 
 	s.logger.Info("form created successfully",
-		logging.StringField("form_id", form.ID),
-		logging.StringField("title", form.Title),
-		logging.UintField("user_id", form.UserID),
+		logging.String("form_id", form.ID),
+		logging.String("title", form.Title),
+		logging.Uint("user_id", form.UserID),
 	)
 
 	return form, nil
@@ -112,35 +112,35 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 	defer cancel()
 
 	s.logger.Debug("attempting to get form",
-		logging.StringField("form_id", id),
-		logging.StringField("operation", "get_form"),
+		logging.String("form_id", id),
+		logging.String("operation", "get_form"),
 	)
 
 	form, err := s.repo.GetByID(ctx, id)
 	if err != nil {
 		s.logger.Error("failed to get form from repository",
-			logging.StringField("form_id", id),
-			logging.ErrorField("error", err),
-			logging.StringField("error_type", "repository_error"),
-			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
-			logging.StringField("operation", "get_form"),
+			logging.String("form_id", id),
+			logging.Error(err),
+			logging.String("error_type", "repository_error"),
+			logging.String("error_details", fmt.Sprintf("%+v", err)),
+			logging.String("operation", "get_form"),
 		)
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
 
 	if form == nil {
 		s.logger.Debug("form not found",
-			logging.StringField("form_id", id),
-			logging.StringField("operation", "get_form"),
+			logging.String("form_id", id),
+			logging.String("operation", "get_form"),
 		)
 		return nil, model.ErrFormNotFound
 	}
 
 	s.logger.Debug("form retrieved successfully",
-		logging.StringField("form_id", form.ID),
-		logging.StringField("title", form.Title),
-		logging.UintField("user_id", form.UserID),
-		logging.StringField("operation", "get_form"),
+		logging.String("form_id", form.ID),
+		logging.String("title", form.Title),
+		logging.Uint("user_id", form.UserID),
+		logging.String("operation", "get_form"),
 	)
 
 	return form, nil
@@ -155,17 +155,17 @@ func (s *service) GetUserForms(ctx context.Context, userID uint) ([]*model.Form,
 	ctx = ctxutil.WithUserID(ctx, userID)
 
 	s.logger.Debug("attempting to get user forms",
-		logging.UintField("user_id", userID),
+		logging.Uint("user_id", userID),
 	)
 
 	forms, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		// Log error with minimal context
 		s.logger.Error("failed to get user forms",
-			logging.UintField("user_id", userID),
-			logging.ErrorField("error", err),
-			logging.StringField("error_message", err.Error()),
-			logging.StringField("error_type", fmt.Sprintf("%T", err)),
+			logging.Uint("user_id", userID),
+			logging.Error(err),
+			logging.String("error_message", err.Error()),
+			logging.String("error_type", fmt.Sprintf("%T", err)),
 		)
 
 		// Return the original error without wrapping to preserve error details
@@ -173,8 +173,8 @@ func (s *service) GetUserForms(ctx context.Context, userID uint) ([]*model.Form,
 	}
 
 	s.logger.Debug("user forms retrieved successfully",
-		logging.UintField("user_id", userID),
-		logging.IntField("form_count", len(forms)),
+		logging.Uint("user_id", userID),
+		logging.Int("form_count", len(forms)),
 	)
 
 	return forms, nil
@@ -191,8 +191,8 @@ func (s *service) DeleteForm(ctx context.Context, id string) error {
 
 	if err := s.publisher.Publish(ctx, event.NewFormDeletedEvent(id)); err != nil {
 		s.logger.Error("failed to publish form deleted event",
-			logging.StringField("form_id", id),
-			logging.ErrorField("error", err))
+			logging.String("form_id", id),
+			logging.Error(err))
 	}
 
 	return nil
@@ -220,8 +220,8 @@ func (s *service) UpdateForm(ctx context.Context, form *model.Form) error {
 
 	if err := s.publisher.Publish(ctx, event.NewFormUpdatedEvent(form)); err != nil {
 		s.logger.Error("failed to publish form updated event",
-			logging.StringField("form_id", form.ID),
-			logging.ErrorField("error", err))
+			logging.String("form_id", form.ID),
+			logging.Error(err))
 	}
 
 	return nil

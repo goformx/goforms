@@ -36,8 +36,8 @@ func (s *service) GetAuthenticatedUser(c echo.Context) (*user.User, error) {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
 		s.logger.Error("user not found in context",
-			logging.StringField("path", c.Request().URL.Path),
-			logging.StringField("method", c.Request().Method),
+			logging.String("path", c.Request().URL.Path),
+			logging.String("method", c.Request().Method),
 		)
 		return nil, errors.New(errors.ErrCodeUnauthorized, "user not found", nil)
 	}

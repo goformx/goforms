@@ -3,8 +3,6 @@ package logging
 
 import (
 	"time"
-
-	"github.com/goformx/goforms/internal/infrastructure/common"
 )
 
 // Field represents a field in a log entry
@@ -12,9 +10,11 @@ type Field = LogField
 
 // Logger defines the interface for application logging
 type Logger interface {
-	common.Logger
-
-	// Additional logging methods
+	// Basic logging methods
+	Debug(msg string, fields ...any)
+	Info(msg string, fields ...any)
+	Warn(msg string, fields ...any)
+	Error(msg string, fields ...any)
 	Fatal(msg string, fields ...any)
 
 	// Context methods
@@ -43,47 +43,52 @@ func Int(key string, value int) LogField {
 	return LogField{Key: key, Value: value}
 }
 
+// Int64 creates an int64 field
+func Int64(key string, value int64) LogField {
+	return LogField{Key: key, Value: value}
+}
+
+// Uint creates an unsigned integer field
+func Uint(key string, value uint) LogField {
+	return LogField{Key: key, Value: value}
+}
+
+// Uint64 creates an uint64 field
+func Uint64(key string, value uint64) LogField {
+	return LogField{Key: key, Value: value}
+}
+
+// Float32 creates a float32 field
+func Float32(key string, value float32) LogField {
+	return LogField{Key: key, Value: value}
+}
+
+// Float64 creates a float64 field
+func Float64(key string, value float64) LogField {
+	return LogField{Key: key, Value: value}
+}
+
+// Bool creates a boolean field
+func Bool(key string, value bool) LogField {
+	return LogField{Key: key, Value: value}
+}
+
+// Time creates a time field
+func Time(key string, value time.Time) LogField {
+	return LogField{Key: key, Value: value}
+}
+
+// Duration creates a duration field
+func Duration(key string, value time.Duration) LogField {
+	return LogField{Key: key, Value: value}
+}
+
 // Error creates an error field
 func Error(err error) LogField {
 	return LogField{Key: "error", Value: err}
 }
 
-// Duration creates a duration field
-func Duration(key string, value time.Duration) LogField {
-	return LogField{Key: key, Value: value.String()}
-}
-
-// StringField creates a string field
-func StringField(key, value string) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// IntField creates an integer field
-func IntField(key string, value int) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// ErrorField creates an error field
+// ErrorField creates an error field with a custom key
 func ErrorField(key string, err error) LogField {
 	return LogField{Key: key, Value: err}
-}
-
-// DurationField creates a duration field
-func DurationField(key string, value time.Duration) LogField {
-	return LogField{Key: key, Value: value.String()}
-}
-
-// BoolField creates a boolean field
-func BoolField(key string, value bool) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// UintField creates an unsigned integer field
-func UintField(key string, value uint) LogField {
-	return LogField{Key: key, Value: value}
-}
-
-// Int64Field creates an int64 field
-func Int64Field(key string, value int64) LogField {
-	return LogField{Key: key, Value: value}
 }

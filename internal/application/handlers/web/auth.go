@@ -65,9 +65,9 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	password := c.FormValue("password")
 
 	h.Logger.Debug("login attempt",
-		logging.StringField("email", email),
-		logging.StringField("path", c.Request().URL.Path),
-		logging.StringField("method", c.Request().Method),
+		logging.String("email", email),
+		logging.String("path", c.Request().URL.Path),
+		logging.String("method", c.Request().Method),
 	)
 
 	// Authenticate user
@@ -79,9 +79,9 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	}
 
 	h.Logger.Debug("user authenticated",
-		logging.UintField("user_id", userData.ID),
-		logging.StringField("email", userData.Email),
-		logging.StringField("role", userData.Role),
+		logging.Uint("user_id", userData.ID),
+		logging.String("email", userData.Email),
+		logging.String("role", userData.Role),
 	)
 
 	// Create session and set session cookie via SessionManager
@@ -93,15 +93,15 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	}
 
 	h.Logger.Debug("session created",
-		logging.StringField("session_id", sessionID),
-		logging.UintField("user_id", userData.ID),
+		logging.String("session_id", sessionID),
+		logging.Uint("user_id", userData.ID),
 	)
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	h.Logger.Debug("redirecting to dashboard",
-		logging.StringField("session_id", sessionID),
-		logging.UintField("user_id", userData.ID),
+		logging.String("session_id", sessionID),
+		logging.Uint("user_id", userData.ID),
 	)
 
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
@@ -123,9 +123,9 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 	}
 
 	h.Logger.Debug("signup attempt",
-		logging.StringField("email", signup.Email),
-		logging.StringField("first_name", signup.FirstName),
-		logging.StringField("last_name", signup.LastName),
+		logging.String("email", signup.Email),
+		logging.String("first_name", signup.FirstName),
+		logging.String("last_name", signup.LastName),
 	)
 
 	if _, err := h.UserService.SignUp(c.Request().Context(), signup); err != nil {
@@ -147,7 +147,7 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 	}
 
 	h.Logger.Debug("signup successful",
-		logging.StringField("email", signup.Email),
+		logging.String("email", signup.Email),
 	)
 
 	return c.Redirect(http.StatusSeeOther, "/login")

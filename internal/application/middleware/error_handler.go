@@ -32,8 +32,8 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	var domainErr *errors.DomainError
 	if stderrors.As(err, &domainErr) {
 		h.logger.Error("domain error",
-			logging.ErrorField("error", domainErr),
-			logging.StringField("code", string(domainErr.Code)),
+			logging.Error(domainErr),
+			logging.String("code", string(domainErr.Code)),
 		)
 
 		statusCode := http.StatusInternalServerError
@@ -71,7 +71,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 
 		if jsonErr := c.JSON(statusCode, response); jsonErr != nil {
 			h.logger.Error("failed to send error response",
-				logging.ErrorField("error", jsonErr),
+				logging.Error(jsonErr),
 			)
 		}
 
@@ -82,8 +82,8 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	var httpErr *echo.HTTPError
 	if stderrors.As(err, &httpErr) {
 		h.logger.Error("http error",
-			logging.ErrorField("error", httpErr),
-			logging.IntField("code", httpErr.Code),
+			logging.Error(httpErr),
+			logging.Int("code", httpErr.Code),
 		)
 
 		response := map[string]any{

@@ -4,8 +4,8 @@ package logging
 import (
 	"fmt"
 	"os"
+	"strings"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -17,14 +17,12 @@ const (
 	LogEncodingJSON = "json"
 	// EnvironmentDevelopment represents the development environment
 	EnvironmentDevelopment = "development"
-)
 
-// Config holds the configuration for creating a logger
-type Config struct {
-	Level   string
-	AppName string
-	Debug   bool
-}
+	// Default environment variables
+	envLogLevel    = "GOFORMS_LOG_LEVEL"
+	envLogOutput   = "GOFORMS_LOG_OUTPUT"
+	envLogEncoding = "GOFORMS_LOG_ENCODING"
+)
 
 // FactoryConfig holds the configuration for creating a logger factory
 type FactoryConfig struct {
@@ -32,6 +30,10 @@ type FactoryConfig struct {
 	Version     string
 	Environment string
 	Fields      map[string]any
+	// OutputPaths specifies where to write logs
+	OutputPaths []string
+	// ErrorOutputPaths specifies where to write error logs
+	ErrorOutputPaths []string
 }
 
 // Factory creates loggers based on configuration
@@ -40,6 +42,8 @@ type Factory struct {
 	appName       string
 	version       string
 	environment   string
+	outputPaths   []string
+	errorPaths    []string
 }
 
 // NewFactory creates a new logger factory with the given configuration
@@ -48,11 +52,21 @@ func NewFactory(cfg FactoryConfig) *Factory {
 		cfg.Fields = make(map[string]any)
 	}
 
+	// Set default output paths if not specified
+	if len(cfg.OutputPaths) == 0 {
+		cfg.OutputPaths = []string{"stdout"}
+	}
+	if len(cfg.ErrorOutputPaths) == 0 {
+		cfg.ErrorOutputPaths = []string{"stderr"}
+	}
+
 	return &Factory{
 		initialFields: cfg.Fields,
 		appName:       cfg.AppName,
 		version:       cfg.Version,
 		environment:   cfg.Environment,
+		outputPaths:   cfg.OutputPaths,
+		errorPaths:    cfg.ErrorOutputPaths,
 	}
 }
 
@@ -76,8 +90,14 @@ func (f *Factory) CreateLogger() (Logger, error) {
 
 	// Parse log level from environment
 	var level zapcore.Level
-	if err := level.UnmarshalText([]byte(os.Getenv("GOFORMS_APP_LOGLEVEL"))); err != nil {
+	if err := level.UnmarshalText([]byte(getEnv(envLogLevel, "info"))); err != nil {
 		level = zapcore.InfoLevel // fallback to info level
+	}
+
+	// Determine encoding from environment
+	encoding := getEnv(envLogEncoding, LogEncodingConsole)
+	if f.environment != EnvironmentDevelopment {
+		encoding = LogEncodingJSON
 	}
 
 	// Create base logger config
@@ -87,15 +107,10 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		DisableCaller:     false,
 		DisableStacktrace: false,
 		Sampling:          nil, // Disable sampling to show all logs
-		Encoding:          LogEncodingConsole,
+		Encoding:          encoding,
 		EncoderConfig:     encoderConfig,
-		OutputPaths:       []string{"stdout"},
-		ErrorOutputPaths:  []string{"stderr"},
-	}
-
-	// Use JSON encoding for non-development environments
-	if f.environment != EnvironmentDevelopment {
-		zapConfig.Encoding = LogEncodingJSON
+		OutputPaths:       f.outputPaths,
+		ErrorOutputPaths:  f.errorPaths,
 	}
 
 	// Build initial fields from config only
@@ -128,81 +143,12 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	return &ZapLogger{log: zapLog}, nil
 }
 
-// CreateFromConfig creates a logger based on the provided configuration
-func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
-	// Create encoder config
-	encoderConfig := zapcore.EncoderConfig{
-		TimeKey:        "time",
-		LevelKey:       "level",
-		NameKey:        "logger",
-		CallerKey:      "caller",
-		FunctionKey:    zapcore.OmitKey,
-		MessageKey:     "msg",
-		StacktraceKey:  "stacktrace",
-		LineEnding:     zapcore.DefaultLineEnding,
-		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
-		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
+// getEnv gets an environment variable or returns the default value
+func getEnv(key, defaultValue string) string {
+	if value, exists := os.LookupEnv(key); exists {
+		return strings.ToLower(value)
 	}
-
-	// Parse log level
-	var level zapcore.Level
-	if cfg.Debug {
-		level = zapcore.DebugLevel
-	} else {
-		levelErr := level.UnmarshalText([]byte(cfg.Level))
-		if levelErr != nil {
-			level = zapcore.InfoLevel // fallback
-		}
-	}
-
-	// Create base logger config
-	zapConfig := zap.Config{
-		Level:             zap.NewAtomicLevelAt(level),
-		Development:       f.environment == EnvironmentDevelopment,
-		DisableCaller:     false,
-		DisableStacktrace: false,
-		Sampling:          nil, // Disable sampling to show all logs
-		Encoding:          LogEncodingConsole,
-		EncoderConfig:     encoderConfig,
-		OutputPaths:       []string{"stdout"},
-		ErrorOutputPaths:  []string{"stderr"},
-	}
-
-	// Use JSON encoding for non-development environments
-	if f.environment != EnvironmentDevelopment {
-		zapConfig.Encoding = LogEncodingJSON
-	}
-
-	// Build initial fields from config only
-	var initialFields []zap.Field
-	for k, v := range f.initialFields {
-		switch val := v.(type) {
-		case string:
-			initialFields = append(initialFields, zap.String(k, val))
-		case int:
-			initialFields = append(initialFields, zap.Int(k, val))
-		case bool:
-			initialFields = append(initialFields, zap.Bool(k, val))
-		case float64:
-			initialFields = append(initialFields, zap.Float64(k, val))
-		default:
-			initialFields = append(initialFields, zap.Any(k, val))
-		}
-	}
-
-	// Build logger with options
-	zapLog, err := zapConfig.Build(
-		zap.AddCaller(),
-		zap.AddStacktrace(zapcore.WarnLevel), // Enable stack traces for warnings and above
-		zap.Fields(initialFields...),
-	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
-	}
-
-	return &ZapLogger{log: zapLog}, nil
+	return defaultValue
 }
 
 // ZapLogger implements the Logger interface using zap

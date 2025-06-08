@@ -54,8 +54,8 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	userIDRaw, ok := c.Get("user_id").(uint)
 	if !ok {
 		h.Logger.Error("user ID not found in session",
-			logging.StringField("operation", "handle_dashboard"),
-			logging.StringField("error_type", "session_error"),
+			logging.String("operation", "handle_dashboard"),
+			logging.String("error_type", "session_error"),
 		)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -65,10 +65,10 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
 		h.Logger.Error("failed to get user (nil or error)",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", userID),
-			logging.StringField("operation", "handle_dashboard"),
-			logging.StringField("error_type", "user_service_error"),
+			logging.Error(err),
+			logging.Uint("user_id", userID),
+			logging.String("operation", "handle_dashboard"),
+			logging.String("error_type", "user_service_error"),
 		)
 		data := shared.BuildPageData(h.Config, "Error")
 		data.Error = "Failed to get user information. Please try again later."
@@ -79,12 +79,12 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	forms, err := h.BaseHandler.formService.GetUserForms(c.Request().Context(), userID)
 	if err != nil {
 		h.Logger.Error("failed to get user forms",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", userID),
-			logging.StringField("operation", "handle_dashboard"),
-			logging.StringField("error_type", "form_service_error"),
-			logging.StringField("error_message", err.Error()),
-			logging.StringField("error_type", fmt.Sprintf("%T", err)),
+			logging.Error(err),
+			logging.Uint("user_id", userID),
+			logging.String("operation", "handle_dashboard"),
+			logging.String("error_type", "form_service_error"),
+			logging.String("error_message", err.Error()),
+			logging.String("error_type", fmt.Sprintf("%T", err)),
 		)
 
 		// Check for specific errors
@@ -111,9 +111,9 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	}
 
 	h.Logger.Debug("dashboard rendered successfully",
-		logging.UintField("user_id", userID),
-		logging.IntField("form_count", len(forms)),
-		logging.StringField("operation", "handle_dashboard"),
+		logging.Uint("user_id", userID),
+		logging.Int("form_count", len(forms)),
+		logging.String("operation", "handle_dashboard"),
 	)
 
 	return h.Renderer.Render(c, pages.Dashboard(data))
@@ -136,14 +136,14 @@ func (h *WebHandler) handleFormView(c echo.Context) error {
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get user (nil or error)", logging.Error(err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
 	}
 
 	// Get form
 	form, err := h.BaseHandler.formService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get form", logging.Error(err))
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 

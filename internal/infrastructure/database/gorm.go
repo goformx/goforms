@@ -59,9 +59,9 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	})
 	if err != nil {
 		appLogger.Error("failed to connect to database",
-			logging.ErrorField("error", err),
-			logging.StringField("driver", "postgres"),
-			logging.StringField("dsn", fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
+			logging.Error(err),
+			logging.String("driver", "postgres"),
+			logging.String("dsn", fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
 				cfg.Database.Postgres.Host,
 				cfg.Database.Postgres.Port,
 				cfg.Database.Postgres.User,
@@ -85,13 +85,13 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	// Verify connection
 	if pingErr := sqlDB.Ping(); pingErr != nil {
 		appLogger.Error("failed to ping database",
-			logging.ErrorField("error", pingErr),
+			logging.Error(pingErr),
 		)
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	appLogger.Info("successfully connected to database",
-		logging.StringField("driver", "postgres"),
+		logging.String("driver", "postgres"),
 	)
 
 	return &GormDB{
@@ -124,9 +124,9 @@ type GormLogWriter struct {
 // Write implements io.Writer interface
 func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 	w.logger.Info("gorm query",
-		logging.StringField("query", string(p)),
-		logging.StringField("type", "raw_query"),
-		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
+		logging.String("query", string(p)),
+		logging.String("type", "raw_query"),
+		logging.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
 	)
 	return len(p), nil
 }
@@ -135,10 +135,10 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 func (w *GormLogWriter) Printf(format string, args ...any) {
 	msg := fmt.Sprintf(format, args...)
 	w.logger.Info("gorm query",
-		logging.StringField("query", msg),
-		logging.StringField("type", "formatted_query"),
-		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
-		logging.StringField("args", fmt.Sprintf("%+v", args)),
+		logging.String("query", msg),
+		logging.String("type", "formatted_query"),
+		logging.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
+		logging.String("args", fmt.Sprintf("%+v", args)),
 	)
 }
 
@@ -154,14 +154,14 @@ func (w *GormLogWriter) Error(msg string, err error) {
 	}
 
 	w.logger.Error("gorm error",
-		logging.StringField("message", msg),
-		logging.ErrorField("error", err),
-		logging.StringField("type", errorType),
-		logging.StringField("error_type", fmt.Sprintf("%T", err)),
-		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
-		logging.StringField("stack_trace", fmt.Sprintf("%+v", err)),
-		logging.StringField("sql_error", err.Error()),
-		logging.StringField("sql_state", getSQLState(err)),
+		logging.String("message", msg),
+		logging.Error(err),
+		logging.String("type", errorType),
+		logging.String("error_type", fmt.Sprintf("%T", err)),
+		logging.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
+		logging.String("stack_trace", fmt.Sprintf("%+v", err)),
+		logging.String("sql_error", err.Error()),
+		logging.String("sql_state", getSQLState(err)),
 	)
 }
 

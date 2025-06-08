@@ -33,8 +33,8 @@ func NewHealthHandler(log logging.Logger, db PingContexter) *HealthHandler {
 func (h *HealthHandler) Register(e *echo.Echo) {
 	e.GET("/health", h.HandleHealthCheck)
 	h.logger.Debug("registered health check endpoint",
-		logging.StringField("path", "/health"),
-		logging.StringField("method", "GET"),
+		logging.String("path", "/health"),
+		logging.String("method", "GET"),
 	)
 }
 
@@ -43,8 +43,8 @@ func (h *HealthHandler) HandleHealthCheck(c echo.Context) error {
 	// Check database connectivity
 	if err := h.db.PingContext(c.Request().Context()); err != nil {
 		h.logger.Error("health check failed",
-			logging.ErrorField("error", err),
-			logging.StringField("component", "database"),
+			logging.Error(err),
+			logging.String("component", "database"),
 		)
 		return response.ErrorResponse(c, http.StatusServiceUnavailable, "Service is not healthy: database connection failed")
 	}

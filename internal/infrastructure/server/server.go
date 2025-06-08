@@ -61,7 +61,7 @@ func (s *Server) Start() error {
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
 			s.logger.Fatal("failed to start server",
 				logging.ErrorField("error", err),
-				logging.StringField("address", addr),
+				logging.String("address", addr),
 			)
 		}
 	}()
@@ -88,10 +88,10 @@ func New(
 
 	// Log server configuration
 	logger.Info("initializing server",
-		logging.StringField("host", cfg.App.Host),
-		logging.IntField("port", cfg.App.Port),
-		logging.StringField("environment", cfg.App.Env),
-		logging.StringField("server_type", "echo"),
+		logging.String("host", cfg.App.Host),
+		logging.Int("port", cfg.App.Port),
+		logging.String("environment", cfg.App.Env),
+		logging.String("server_type", "echo"),
 	)
 
 	// Serve static files from public directory

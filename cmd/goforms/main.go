@@ -173,7 +173,7 @@ func main() {
 		stop() // Ensure signal handler is stopped
 		if shutdownCtx.Err() == context.DeadlineExceeded {
 			logger.Fatal("Application shutdown timed out",
-				logging.DurationField("timeout", DefaultShutdownTimeout),
+				logging.Duration("timeout", DefaultShutdownTimeout),
 			)
 		} else {
 			logger.Fatal("Failed to stop application",

@@ -44,7 +44,7 @@ type Store struct {
 // NewStore creates a new form store
 func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
 	logger.Debug("creating form store",
-		logging.BoolField("db_available", db != nil),
+		logging.Bool("db_available", db != nil),
 	)
 	return &Store{
 		db:     db,
@@ -56,9 +56,9 @@ func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
 func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
 	if err := s.db.WithContext(ctx).Create(formModel).Error; err != nil {
 		s.logger.Error("failed to create form in database",
-			logging.StringField("form_id", formModel.ID),
-			logging.ErrorField("error", err),
-			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
+			logging.String("form_id", formModel.ID),
+			logging.Error(err),
+			logging.String("error_details", fmt.Sprintf("%+v", err)),
 		)
 		return fmt.Errorf("failed to create form: %w", err)
 	}
@@ -73,34 +73,34 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	// Validate UUID format
 	if _, err := uuid.Parse(normalizedID); err != nil {
 		s.logger.Error("invalid form ID format",
-			logging.StringField("form_id", id),
-			logging.ErrorField("error", err),
+			logging.String("form_id", id),
+			logging.Error(err),
 		)
 		return nil, &FormError{Op: "validate", ID: id, Err: err}
 	}
 
 	s.logger.Debug("getting form by id",
-		logging.StringField("form_id", normalizedID),
+		logging.String("form_id", normalizedID),
 	)
 
 	var formModel model.Form
 	if err := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Debug("form not found",
-				logging.StringField("form_id", normalizedID),
+				logging.String("form_id", normalizedID),
 			)
 			return nil, &FormError{Op: "get", ID: normalizedID, Err: ErrFormNotFound}
 		}
 		s.logger.Error("database error while getting form",
-			logging.StringField("form_id", normalizedID),
-			logging.ErrorField("error", err),
+			logging.String("form_id", normalizedID),
+			logging.Error(err),
 		)
 		return nil, &FormError{Op: "get", ID: normalizedID, Err: err}
 	}
 
 	s.logger.Debug("form retrieved successfully",
-		logging.StringField("form_id", formModel.ID),
-		logging.StringField("title", formModel.Title),
+		logging.String("form_id", formModel.ID),
+		logging.String("title", formModel.Title),
 	)
 	return &formModel, nil
 }
@@ -108,19 +108,14 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 // GetByUserID retrieves all forms for a user
 func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
 	s.logger.Debug("getting forms by user id",
-		logging.UintField("user_id", userID),
+		logging.Uint("user_id", userID),
 	)
 
 	var forms []*model.Form
 	result := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&forms)
 	if result.Error != nil {
 		// Log the complete database error details
-		s.logger.Error("database error while getting user forms",
-			logging.UintField("user_id", userID),
-			logging.ErrorField("error", result.Error),
-			logging.StringField("error_message", result.Error.Error()),
-			logging.StringField("error_type", fmt.Sprintf("%T", result.Error)),
-		)
+		s.logger.Error("database error while getting user forms")
 
 		// Check for specific database errors
 		switch {
@@ -139,10 +134,10 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 		default:
 			// Log the raw error for debugging
 			s.logger.Error("raw database error",
-				logging.UintField("user_id", userID),
-				logging.ErrorField("error", result.Error),
-				logging.StringField("error_type", fmt.Sprintf("%T", result.Error)),
-				logging.StringField("error_message", result.Error.Error()),
+				logging.Uint("user_id", userID),
+				logging.Error(result.Error),
+				logging.String("error_type", fmt.Sprintf("%T", result.Error)),
+				logging.String("error_message", result.Error.Error()),
 			)
 			return nil, &FormError{
 				Op:  "get_by_user",
@@ -153,8 +148,8 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 	}
 
 	s.logger.Debug("successfully retrieved user forms",
-		logging.UintField("user_id", userID),
-		logging.IntField("form_count", len(forms)),
+		logging.Uint("user_id", userID),
+		logging.Int("form_count", len(forms)),
 	)
 
 	return forms, nil
@@ -162,7 +157,7 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 
 // Update updates a form
 func (s *Store) Update(ctx context.Context, formModel *model.Form) error {
-	s.logger.Debug("updating form", logging.StringField("form_id", formModel.ID))
+	s.logger.Debug("updating form", logging.String("form_id", formModel.ID))
 	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("uuid = ?", formModel.ID).Updates(formModel)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update form: %w", result.Error)
@@ -181,27 +176,27 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	// Validate UUID format
 	if _, err := uuid.Parse(normalizedID); err != nil {
 		s.logger.Error("invalid form ID format",
-			logging.StringField("form_id", id),
-			logging.ErrorField("error", err),
+			logging.String("form_id", id),
+			logging.Error(err),
 		)
 		return &FormError{Op: "validate", ID: id, Err: err}
 	}
 
 	s.logger.Debug("deleting form",
-		logging.StringField("form_id", normalizedID),
+		logging.String("form_id", normalizedID),
 	)
 
 	result := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).Delete(&model.Form{})
 	if result.Error != nil {
 		s.logger.Error("database error while deleting form",
-			logging.StringField("form_id", normalizedID),
-			logging.ErrorField("error", result.Error),
+			logging.String("form_id", normalizedID),
+			logging.Error(result.Error),
 		)
 		return &FormError{Op: "delete", ID: normalizedID, Err: result.Error}
 	}
 	if result.RowsAffected == 0 {
 		s.logger.Debug("form not found for deletion",
-			logging.StringField("form_id", normalizedID),
+			logging.String("form_id", normalizedID),
 		)
 		return &FormError{Op: "delete", ID: normalizedID, Err: ErrFormNotFound}
 	}
@@ -210,7 +205,7 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 
 // List returns a paginated list of forms
 func (s *Store) List(ctx context.Context, offset, limit int) ([]*model.Form, error) {
-	s.logger.Debug("listing forms", logging.IntField("offset", offset), logging.IntField("limit", limit))
+	s.logger.Debug("listing forms", logging.Int("offset", offset), logging.Int("limit", limit))
 	var forms []*model.Form
 	if err := s.db.WithContext(ctx).Order("created_at DESC").Offset(offset).Limit(limit).Find(&forms).Error; err != nil {
 		return nil, fmt.Errorf("failed to list forms: %w", err)
@@ -231,9 +226,9 @@ func (s *Store) Count(ctx context.Context) (int, error) {
 // Search searches forms by title or description
 func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]*model.Form, error) {
 	s.logger.Debug("searching forms",
-		logging.StringField("query", query),
-		logging.IntField("offset", offset),
-		logging.IntField("limit", limit),
+		logging.String("query", query),
+		logging.Int("offset", offset),
+		logging.Int("limit", limit),
 	)
 	var forms []*model.Form
 	searchPattern := "%" + query + "%"
@@ -263,7 +258,7 @@ func (s *Store) GetActiveForms(ctx context.Context) ([]*model.Form, error) {
 
 // GetFormsByStatus returns forms by their active status
 func (s *Store) GetFormsByStatus(ctx context.Context, active bool) ([]*model.Form, error) {
-	s.logger.Debug("getting forms by status", logging.BoolField("active", active))
+	s.logger.Debug("getting forms by status", logging.Bool("active", active))
 	var forms []*model.Form
 	if err := s.db.WithContext(ctx).
 		Where("active = ?", active).
@@ -276,7 +271,7 @@ func (s *Store) GetFormsByStatus(ctx context.Context, active bool) ([]*model.For
 
 // GetFormSubmissions gets all submissions for a form
 func (s *Store) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	s.logger.Debug("getting form submissions", logging.StringField("form_id", formID))
+	s.logger.Debug("getting form submissions", logging.String("form_id", formID))
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
 		Where("form_id = ?", formID).
