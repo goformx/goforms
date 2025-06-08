@@ -73,7 +73,6 @@ linters:
     - usetesting
     - wastedassign
     - whitespace
-    - wsl
     - misspell
 
   settings:
@@ -245,22 +244,6 @@ linters:
     gosec:
       excludes:
         - G404  # Insecure random number source (math/rand)
-
-    wsl:
-      allow-assign-and-anything: false
-      allow-assign-and-call: false
-      allow-cuddle-declarations: false
-      allow-cuddle-with-calls:
-        - append
-        - copy
-        - delete
-        - sort
-      allow-trailing-comment: false
-      force-case-trailing-whitespace: 0
-      force-err-cuddling: false
-      force-exclusive-append: false
-      force-multi-line-append: false
-      strict-append: true
 
   exclusions:
     generated: lax
