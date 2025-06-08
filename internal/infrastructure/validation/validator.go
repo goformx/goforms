@@ -27,16 +27,16 @@ type ValidationErrors []ValidationError
 
 // Error implements the error interface
 func (e ValidationErrors) Error() string {
-	if len(e) == 0 {
-		return ""
-	}
 	var sb strings.Builder
+
 	for i, err := range e {
 		if i > 0 {
 			sb.WriteString("; ")
 		}
+
 		sb.WriteString(fmt.Sprintf("%s: %s", err.Field, err.Message))
 	}
+
 	return sb.String()
 }
 
@@ -99,7 +99,25 @@ func New() interfaces.Validator {
 
 // Struct implements validator.Struct
 func (v *validatorImpl) Struct(s any) error {
-	return v.Validate.Struct(s)
+	var validationErrors []ValidationError
+
+	if err := v.Validate.Struct(s); err != nil {
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
+			validationErrors = make([]ValidationError, len(ve))
+			for i, err := range ve {
+				validationErrors[i] = ValidationError{
+					Field:   err.Field(),
+					Message: err.Error(),
+				}
+			}
+			return ValidationErrors(validationErrors)
+		}
+
+		return err
+	}
+
+	return nil
 }
 
 // Var implements validator.Var

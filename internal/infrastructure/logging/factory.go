@@ -169,12 +169,8 @@ func (l *ZapLogger) Fatal(msg string, fields ...any) {
 }
 
 // With returns a new logger with the given fields
-func (l *ZapLogger) With(fields ...Field) Logger {
-	zapFields := make([]zap.Field, len(fields))
-
-	for i, f := range fields {
-		zapFields[i] = zap.Any(f.Key, f.Value)
-	}
+func (l *ZapLogger) With(fields ...any) Logger {
+	zapFields := convertToZapFields(fields)
 
 	return &ZapLogger{log: l.log.With(zapFields...)}
 }
@@ -213,18 +209,18 @@ func (l *ZapLogger) WithFields(fields map[string]any) Logger {
 	return &ZapLogger{log: l.log.With(zapFields...)}
 }
 
-// convertToZapFields converts any fields to zap.Field
 func convertToZapFields(fields []any) []zap.Field {
-	zapFields := make([]zap.Field, len(fields))
-	for i, f := range fields {
-		switch v := f.(type) {
-		case LogField:
-			zapFields[i] = zap.Any(v.Key, v.Value)
-		case error:
-			zapFields[i] = zap.Error(v)
-		default:
-			zapFields[i] = zap.Any("", v)
+	zapFields := make([]zap.Field, 0, len(fields))
+
+	for i := 0; i < len(fields); i += 2 {
+		if i+1 < len(fields) {
+			key, ok := fields[i].(string)
+			if !ok {
+				continue
+			}
+			zapFields = append(zapFields, zap.Any(key, fields[i+1]))
 		}
 	}
+
 	return zapFields
 }
