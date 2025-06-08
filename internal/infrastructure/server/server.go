@@ -71,8 +71,8 @@ func (s *Server) Start() error {
 		close(started)
 
 		// Start serving
-		if err := s.server.Serve(listener); err != nil && err != http.ErrServerClosed {
-			errored <- fmt.Errorf("server error: %w", err)
+		if serveErr := s.server.Serve(listener); serveErr != nil && serveErr != http.ErrServerClosed {
+			errored <- fmt.Errorf("server error: %w", serveErr)
 		}
 	}()
 
@@ -127,9 +127,8 @@ func New(
 
 	// Vite dev server proxy for development mode
 	if cfg.App.IsDevelopment() {
-		viteURL, err := url.Parse(fmt.Sprintf("http://%s:%s",
-			cfg.App.ViteDevHost,
-			cfg.App.ViteDevPort,
+		viteURL, err := url.Parse(fmt.Sprintf("http://%s",
+			net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
 		))
 		if err != nil {
 			logger.Error("failed to parse Vite dev server URL",
