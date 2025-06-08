@@ -221,6 +221,8 @@ func (s *ServiceImpl) IsTokenBlacklisted(ctx context.Context, token string) (boo
 
 // Authenticate matches the domain.UserService interface
 func (s *ServiceImpl) Authenticate(ctx context.Context, email, password string) (*User, error) {
+	email = strings.ReplaceAll(email, "\n", "")
+	email = strings.ReplaceAll(email, "\r", "")
 	s.logger.Debug("attempting authenticate",
 		logging.StringField("email", email),
 		logging.BoolField("has_password", password != ""),

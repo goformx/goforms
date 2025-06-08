@@ -62,6 +62,8 @@ func (h *AuthHandler) showLoginPage(c echo.Context) error {
 // handleLogin processes the login request
 func (h *AuthHandler) handleLogin(c echo.Context) error {
 	email := c.FormValue("email")
+	email = strings.ReplaceAll(email, "\n", "")
+	email = strings.ReplaceAll(email, "\r", "")
 	password := c.FormValue("password")
 
 	h.Logger.Debug("login attempt",

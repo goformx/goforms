@@ -213,7 +213,13 @@ func convertToZapFields(fields []any) []zap.Field {
 	for i, f := range fields {
 		switch v := f.(type) {
 		case LogField:
-			zapFields[i] = zap.Any(v.Key, v.Value)
+			if strValue, ok := v.Value.(string); ok {
+				strValue = strings.ReplaceAll(strValue, "\n", "")
+				strValue = strings.ReplaceAll(strValue, "\r", "")
+				zapFields[i] = zap.Any(v.Key, strValue)
+			} else {
+				zapFields[i] = zap.Any(v.Key, v.Value)
+			}
 		case error:
 			zapFields[i] = zap.Error(v)
 		default:
