@@ -113,6 +113,7 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 
 	s.logger.Debug("attempting to get form",
 		logging.StringField("form_id", id),
+		logging.StringField("operation", "get_form"),
 	)
 
 	form, err := s.repo.GetByID(ctx, id)
@@ -120,6 +121,9 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 		s.logger.Error("failed to get form from repository",
 			logging.StringField("form_id", id),
 			logging.ErrorField("error", err),
+			logging.StringField("error_type", "repository_error"),
+			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
+			logging.StringField("operation", "get_form"),
 		)
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
@@ -127,6 +131,7 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 	if form == nil {
 		s.logger.Debug("form not found",
 			logging.StringField("form_id", id),
+			logging.StringField("operation", "get_form"),
 		)
 		return nil, model.ErrFormNotFound
 	}
@@ -135,6 +140,7 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 		logging.StringField("form_id", form.ID),
 		logging.StringField("title", form.Title),
 		logging.UintField("user_id", form.UserID),
+		logging.StringField("operation", "get_form"),
 	)
 
 	return form, nil

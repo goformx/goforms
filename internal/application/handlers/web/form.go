@@ -126,12 +126,20 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
+		h.Logger.Error("form ID is required",
+			logging.StringField("operation", "handle_form_edit"),
+			logging.StringField("error_type", "validation_error"),
+		)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
 	// Get user ID from session
 	userIDRaw, ok := c.Get("user_id").(uint)
 	if !ok {
+		h.Logger.Error("user ID not found in session",
+			logging.StringField("operation", "handle_form_edit"),
+			logging.StringField("error_type", "session_error"),
+		)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 	userID := userIDRaw
@@ -139,14 +147,43 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get user (nil or error)",
+			logging.ErrorField("error", err),
+			logging.UintField("user_id", userID),
+			logging.StringField("operation", "handle_form_edit"),
+			logging.StringField("error_type", "user_service_error"),
+		)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
+	h.Logger.Debug("attempting to get form",
+		logging.StringField("form_id", formID),
+		logging.UintField("user_id", userID),
+		logging.StringField("operation", "handle_form_edit"),
+	)
+
 	f, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form", err)
+		h.Logger.Error("failed to get form",
+			logging.ErrorField("error", err),
+			logging.StringField("form_id", formID),
+			logging.UintField("user_id", userID),
+			logging.StringField("operation", "handle_form_edit"),
+			logging.StringField("error_type", "form_service_error"),
+		)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
+	}
+
+	// Verify form ownership
+	if f.UserID != userID {
+		h.Logger.Error("form ownership verification failed",
+			logging.StringField("form_id", formID),
+			logging.UintField("user_id", userID),
+			logging.UintField("form_user_id", f.UserID),
+			logging.StringField("operation", "handle_form_edit"),
+			logging.StringField("error_type", "authorization_error"),
+		)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to edit this form")
 	}
 
 	data := shared.BuildPageData(h.Config, "Edit Form")
@@ -155,6 +192,13 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
 		data.CSRFToken = csrfToken
 	}
+
+	h.Logger.Debug("form edit page rendered successfully",
+		logging.StringField("form_id", formID),
+		logging.UintField("user_id", userID),
+		logging.StringField("operation", "handle_form_edit"),
+	)
+
 	return h.Renderer.Render(c, pages.EditForm(data))
 }
 

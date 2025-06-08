@@ -233,40 +233,24 @@ func (sm *SessionManager) saveSessions() error {
 func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			sm.logger.Debug("SessionMiddleware: Processing request",
-				logging.StringField("method", c.Request().Method),
-				logging.StringField("path", c.Request().URL.Path),
-			)
-
 			// Skip session check for exempt paths
 			if sm.isSessionExempt(c.Request().URL.Path) {
-				sm.logger.Debug("SessionMiddleware: Path is exempt from session check",
-					logging.StringField("path", c.Request().URL.Path),
-				)
 				return next(c)
 			}
 
 			// Get session cookie
 			cookie, err := c.Cookie(SessionCookieName)
 			if err != nil {
-				sm.logger.Debug("SessionMiddleware: No session cookie found",
+				sm.logger.Debug("no session cookie found",
 					logging.StringField("path", c.Request().URL.Path),
-					logging.ErrorField("error", err),
 				)
 				return sm.handleAuthError(c, "no session found")
 			}
 
-			// Log all cookies for debugging
-			sm.logger.Debug("SessionMiddleware: Cookies in request",
-				logging.StringField("path", c.Request().URL.Path),
-				logging.StringField("cookies", fmt.Sprintf("%+v", c.Request().Cookies())),
-			)
-
 			// Get session from manager
 			session, exists := sm.GetSession(cookie.Value)
 			if !exists {
-				sm.logger.Debug("SessionMiddleware: No session found for cookie",
-					logging.StringField("cookie_value", cookie.Value),
+				sm.logger.Debug("no session found for cookie",
 					logging.StringField("path", c.Request().URL.Path),
 				)
 				return sm.handleAuthError(c, "invalid session")
@@ -274,23 +258,13 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 
 			// Check if session is expired
 			if time.Now().After(session.ExpiresAt) {
-				sm.logger.Debug("SessionMiddleware: Session expired",
+				sm.logger.Debug("session expired",
 					logging.UintField("user_id", session.UserID),
 					logging.StringField("email", session.Email),
-					logging.StringField("expires_at", session.ExpiresAt.Format(time.RFC3339)),
 				)
 				sm.DeleteSession(cookie.Value)
 				return sm.handleAuthError(c, "session expired")
 			}
-
-			// Log session details
-			sm.logger.Debug("SessionMiddleware: Valid session found",
-				logging.StringField("session_id", cookie.Value),
-				logging.UintField("user_id", session.UserID),
-				logging.StringField("email", session.Email),
-				logging.StringField("role", session.Role),
-				logging.StringField("expires_at", session.ExpiresAt.Format(time.RFC3339)),
-			)
 
 			// Store session in context
 			c.Set(SessionKey, session)

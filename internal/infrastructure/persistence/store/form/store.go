@@ -50,17 +50,17 @@ func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
 func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	s.logger.Debug("getting form by id",
 		logging.StringField("form_id", id),
-		logging.StringField("query", "uuid::text = ?"),
+		logging.StringField("query", "uuid = ?"),
 		logging.StringField("table", "forms"),
 	)
 
 	var formModel model.Form
-	if err := s.db.WithContext(ctx).Where("uuid::text = ?", id).First(&formModel).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("uuid = ?", id).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Debug("form not found",
 				logging.StringField("form_id", id),
 				logging.StringField("error_type", "record_not_found"),
-				logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE uuid::text = '%s' LIMIT 1", id)),
+				logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE uuid = '%s' LIMIT 1", id)),
 			)
 			return nil, ErrFormNotFound
 		}
@@ -69,7 +69,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 			logging.ErrorField("error", err),
 			logging.StringField("error_type", "database_error"),
 			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
-			logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE uuid::text = '%s' LIMIT 1", id)),
+			logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE uuid = '%s' LIMIT 1", id)),
 		)
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
