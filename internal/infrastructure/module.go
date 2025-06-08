@@ -12,7 +12,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
-	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/formsubmission"
+	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form/submission"
 	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
