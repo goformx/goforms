@@ -29,9 +29,11 @@ const (
 	DefaultShutdownTimeout = 30 * time.Second
 )
 
+// appParams is the application parameters
 type appParams struct {
 	fx.In
 
+	// Core dependencies
 	Lifecycle         fx.Lifecycle
 	Echo              *echo.Echo
 	Server            *server.Server
@@ -42,72 +44,45 @@ type appParams struct {
 
 // setupServer configures and starts the server
 func setupServer(params appParams) error {
-	// Log server configuration
-	logServerConfig(params.Logger, params.Server)
-
 	// Register all handlers
 	registerHandlers(params.Logger, params.Echo, params.Handlers)
 
 	// Setup middleware
-	setupMiddleware(params.Logger, params.Echo, params.MiddlewareManager)
+	setupMiddleware(params.Echo, params.MiddlewareManager)
 
 	// Start the server
 	if err := params.Server.Start(); err != nil {
 		return fmt.Errorf("failed to start server: %w", err)
 	}
 
-	// Log server URL after successful start
-	logServerStart(params.Logger, params.Server)
-
 	return nil
-}
-
-// logServerConfig logs the server configuration details
-func logServerConfig(logger logging.Logger, srv *server.Server) {
-	logger.Info("Server configuration",
-		logging.StringField("host", srv.Config().App.Host),
-		logging.IntField("port", srv.Config().App.Port),
-		logging.StringField("environment", srv.Config().App.Env),
-		logging.StringField("server_type", "echo"),
-	)
 }
 
 // registerHandlers registers all application handlers
 func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) {
 	logger.Info("Registering handlers...")
+
 	for _, h := range handlers {
 		h.Register(e)
 	}
+
 	logger.Info("Handlers registered successfully")
 }
 
 // setupMiddleware configures all middleware
-func setupMiddleware(logger logging.Logger, e *echo.Echo, manager *appmiddleware.Manager) {
-	logger.Info("Setting up middleware...")
+func setupMiddleware(e *echo.Echo, manager *appmiddleware.Manager) {
 	manager.Setup(e)
-	logger.Info("Middleware setup completed")
-}
-
-// logServerStart logs the server start information
-func logServerStart(logger logging.Logger, srv *server.Server) {
-	logger.Info("Server started successfully",
-		logging.StringField("host", srv.Config().App.Host),
-		logging.IntField("port", srv.Config().App.Port),
-		logging.StringField("address", srv.Address()),
-		logging.StringField("url", srv.URL()),
-		logging.StringField("environment", srv.Config().App.Env),
-	)
 }
 
 // createLifecycleHooks creates the application lifecycle hooks
 func createLifecycleHooks(params appParams) fx.Hook {
 	return fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			params.Logger.Info("Starting application...")
+			params.Logger.Info("running setupServer in lifecycle hooks")
 			return setupServer(params)
 		},
 		OnStop: func(ctx context.Context) error {
-			params.Logger.Info("Shutting down application...")
+			params.Logger.Info("shutting down application in lifecycle hooks")
 			return nil
 		},
 	}
@@ -119,8 +94,8 @@ func main() {
 		// Core infrastructure
 		fx.Provide(
 			setupLogger,
-			echo.New,
 			config.New,
+			echo.New,
 		),
 		// Domain services
 		domain.Module,
@@ -140,6 +115,7 @@ func main() {
 	if err := app.Start(ctx); err != nil {
 		stop() // Ensure signal handler is stopped
 		log.Printf("Failed to start application: %v", err)
+
 		return // Use return instead of os.Exit to allow deferred functions to run
 	}
 
@@ -154,15 +130,16 @@ func main() {
 	if err := app.Stop(shutdownCtx); err != nil {
 		stop() // Ensure signal handler is stopped
 		log.Printf("Failed to stop application: %v", err)
+
 		return // Use return instead of os.Exit to allow deferred functions to run
 	}
 }
 
-func setupLogger() (logging.Logger, error) {
+func setupLogger(cfg *config.Config) (logging.Logger, error) {
 	return logging.NewFactory(logging.FactoryConfig{
-		AppName:     "goforms",
-		Version:     "1.0.0",
-		Environment: "development",
+		AppName:     cfg.App.Name,
+		Version:     cfg.App.Version,
+		Environment: cfg.App.Env,
 		Fields:      map[string]any{},
 	}).CreateLogger()
 }

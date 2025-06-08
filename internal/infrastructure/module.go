@@ -79,7 +79,6 @@ func NewStores(db *database.GormDB, logger logging.Logger) (
 // InfrastructureModule provides infrastructure dependencies
 var InfrastructureModule = fx.Options(
 	fx.Provide(
-		config.New,
 		logging.NewFactory,
 		database.NewGormDB,
 		NewStores,

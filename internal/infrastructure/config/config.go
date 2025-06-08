@@ -1,7 +1,6 @@
 package config
 
 import (
-	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -9,90 +8,18 @@ import (
 	"github.com/kelseyhightower/envconfig"
 )
 
-const (
-	// DefaultAppPort is the default port number for the application server
-	DefaultAppPort = 8090
-	// DefaultServerPort is the default port number for the API server
-	DefaultServerPort = 8099
-
-	// DefaultReadTimeout is the default timeout for reading the entire request
-	DefaultReadTimeout = 5 * time.Second
-	// DefaultWriteTimeout is the default timeout for writing the response
-	DefaultWriteTimeout = 10 * time.Second
-	// DefaultIdleTimeout is the default timeout for idle connections
-	DefaultIdleTimeout = 120 * time.Second
-	// DefaultShutdownTimeout is the default timeout for graceful shutdown
-	DefaultShutdownTimeout = 30 * time.Second
-	// DefaultRequestTimeout is the default timeout for processing requests
-	DefaultRequestTimeout = 30 * time.Second
-
-	// DefaultCorsMaxAge is the default maximum age for CORS preflight requests
-	DefaultCorsMaxAge = 3600
-
-	// DefaultCorsOrigins is the default allowed CORS origins
-	DefaultCorsOrigins = "http://localhost:3000,http://localhost:5173"
-
-	// DefaultPort is the default port for the server
-	DefaultPort = 8090
-	// DefaultStartupTimeout is the default timeout for application startup
-	DefaultStartupTimeout = 30 * time.Second
-)
-
-// CORSOriginsDecoder handles parsing of CORS allowed origins
-type CORSOriginsDecoder []string
-
-// Decode decodes the CORS origins configuration
-func (c *CORSOriginsDecoder) Decode(value string) error {
-	if value == "" {
-		return nil
-	}
-	*c = strings.Split(value, ",")
-	return nil
-}
-
-// CORSMethodsDecoder handles parsing of CORS allowed methods
-type CORSMethodsDecoder []string
-
-// Decode decodes the CORS methods configuration
-func (c *CORSMethodsDecoder) Decode(value string) error {
-	if value == "" {
-		*c = []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"}
-		return nil
-	}
-	*c = strings.Split(value, ",")
-	return nil
-}
-
-// CORSHeadersDecoder handles parsing of CORS allowed headers
-type CORSHeadersDecoder []string
-
-// Decode decodes the CORS headers configuration
-func (c *CORSHeadersDecoder) Decode(value string) error {
-	if value == "" {
-		*c = []string{"Origin", "Content-Type", "Accept"}
-		return nil
-	}
-	*c = strings.Split(value, ",")
-	return nil
-}
-
-// StaticConfig holds static file serving configuration
-type StaticConfig struct {
-	DistDir string `envconfig:"GOFORMS_STATIC_DIST_DIR" default:"dist"`
-}
-
 // Config represents the complete application configuration
 type Config struct {
 	App      AppConfig
 	Server   ServerConfig
 	Database DatabaseConfig
 	Security SecurityConfig
-	Static   StaticConfig
 }
 
 // AppConfig holds application-level configuration
 type AppConfig struct {
 	Name        string `envconfig:"GOFORMS_APP_NAME" default:"GoFormX"`
+	Version     string `envconfig:"GOFORMS_APP_VERSION" default:"1.0.0"`
 	Env         string `envconfig:"GOFORMS_APP_ENV" default:"production"`
 	Debug       bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
 	LogLevel    string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
@@ -171,14 +98,8 @@ type SecurityConfig struct {
 	// CSRF settings
 	CSRFConfig struct {
 		Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
-		Secret  string `envconfig:"GOFORMS_CSRF_SECRET" required:"true"`
+		Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
 	} `envconfig:"GOFORMS_CSRF"`
-}
-
-// CSRFConfig holds CSRF-related configuration
-type CSRFConfig struct {
-	Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
-	Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
 }
 
 // New creates a new configuration
@@ -195,11 +116,6 @@ func New() (*Config, error) {
 		return nil, fmt.Errorf("invalid database configuration: %w", err)
 	}
 
-	// Validate security configuration
-	if err := cfg.validateSecurityConfig(); err != nil {
-		return nil, fmt.Errorf("invalid security configuration: %w", err)
-	}
-
 	return cfg, nil
 }
 
@@ -212,59 +128,9 @@ func (c *Config) loadEnv() error {
 
 func (c *Config) validateDatabaseConfig() error {
 	switch c.Database.Driver {
-	case "mariadb":
-		return c.validateMariaDBConfig()
-	case "postgres":
-		return c.validatePostgresConfig()
+	case "mariadb", "postgres":
+		return nil
 	default:
 		return fmt.Errorf("unsupported database driver: %s", c.Database.Driver)
 	}
-}
-
-func (c *Config) validateMariaDBConfig() error {
-	if c.Database.MariaDB.Port == 0 {
-		return errors.New("MariaDB port is required")
-	}
-
-	if c.Database.MariaDB.User == "" {
-		return errors.New("MariaDB user is required")
-	}
-
-	if c.Database.MariaDB.Password == "" {
-		return errors.New("MariaDB password is required")
-	}
-
-	if c.Database.MariaDB.Name == "" {
-		return errors.New("MariaDB database name is required")
-	}
-
-	return nil
-}
-
-func (c *Config) validatePostgresConfig() error {
-	if c.Database.Postgres.Port == 0 {
-		return errors.New("PostgreSQL port is required")
-	}
-
-	if c.Database.Postgres.User == "" {
-		return errors.New("PostgreSQL user is required")
-	}
-
-	if c.Database.Postgres.Password == "" {
-		return errors.New("PostgreSQL password is required")
-	}
-
-	if c.Database.Postgres.Name == "" {
-		return errors.New("PostgreSQL database name is required")
-	}
-
-	return nil
-}
-
-func (c *Config) validateSecurityConfig() error {
-	if c.Security.CSRFConfig.Secret == "" {
-		return errors.New("CSRF secret is required")
-	}
-
-	return nil
 }
