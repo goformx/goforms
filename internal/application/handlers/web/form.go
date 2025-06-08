@@ -77,9 +77,18 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 
 	// Create a valid schema with required fields
 	schema := model.JSON{
-		"title":       title,
-		"description": description,
-		"fields":      []any{},
+		"type": "object",
+		"properties": map[string]any{
+			"title": map[string]any{
+				"type":  "string",
+				"title": "Title",
+			},
+			"description": map[string]any{
+				"type":  "string",
+				"title": "Description",
+			},
+		},
+		"required": []string{"title"},
 	}
 
 	// Create the form

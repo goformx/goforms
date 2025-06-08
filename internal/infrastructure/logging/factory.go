@@ -89,15 +89,18 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		zapConfig.Encoding = LogEncodingJSON
 	}
 
-	zapLog, err := zapConfig.Build(
-		zap.AddCaller(),
-		zap.AddStacktrace(zapcore.ErrorLevel),
-		zap.Fields(
+	// Only add metadata fields in development mode
+	var opts []zap.Option
+	opts = append(opts, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+
+	if f.environment == "development" {
+		opts = append(opts, zap.Fields(
 			zap.String("app", f.appName),
-			zap.String("version", f.version),
-			zap.String("environment", f.environment),
-		),
-	)
+			zap.String("env", f.environment),
+		))
+	}
+
+	zapLog, err := zapConfig.Build(opts...)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)
 	}

@@ -54,11 +54,6 @@ func (s *Server) Start() error {
 			s.logger.Fatal("failed to start server",
 				logging.ErrorField("error", err),
 				logging.StringField("address", addr),
-				logging.StringField("host", s.config.App.Host),
-				logging.IntField("port", s.config.App.Port),
-				logging.StringField("app", "goforms"),
-				logging.StringField("version", "1.0.0"),
-				logging.StringField("url", s.URL()),
 			)
 		}
 	}()

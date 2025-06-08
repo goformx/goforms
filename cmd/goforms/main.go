@@ -61,8 +61,6 @@ func main() {
 						logging.IntField("port", params.Server.Config().App.Port),
 						logging.StringField("environment", params.Server.Config().App.Env),
 						logging.StringField("server_type", "echo"),
-						logging.StringField("address", params.Server.Address()),
-						logging.StringField("url", params.Server.URL()),
 					)
 
 					// Register all handlers
@@ -81,6 +79,15 @@ func main() {
 					if err := params.Server.Start(); err != nil {
 						return fmt.Errorf("failed to start server: %w", err)
 					}
+
+					// Log server URL after successful start
+					params.Logger.Info("Server started successfully",
+						logging.StringField("host", params.Server.Config().App.Host),
+						logging.IntField("port", params.Server.Config().App.Port),
+						logging.StringField("address", params.Server.Address()),
+						logging.StringField("url", params.Server.URL()),
+						logging.StringField("environment", params.Server.Config().App.Env),
+					)
 
 					return nil
 				},
