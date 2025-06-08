@@ -46,14 +46,10 @@ func setupServer(params appParams) error {
 	logServerConfig(params.Logger, params.Server)
 
 	// Register all handlers
-	if err := registerHandlers(params.Logger, params.Echo, params.Handlers); err != nil {
-		return fmt.Errorf("failed to register handlers: %w", err)
-	}
+	registerHandlers(params.Logger, params.Echo, params.Handlers)
 
 	// Setup middleware
-	if err := setupMiddleware(params.Logger, params.Echo, params.MiddlewareManager); err != nil {
-		return fmt.Errorf("failed to setup middleware: %w", err)
-	}
+	setupMiddleware(params.Logger, params.Echo, params.MiddlewareManager)
 
 	// Start the server
 	if err := params.Server.Start(); err != nil {
@@ -77,21 +73,19 @@ func logServerConfig(logger logging.Logger, srv *server.Server) {
 }
 
 // registerHandlers registers all application handlers
-func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) error {
+func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) {
 	logger.Info("Registering handlers...")
 	for _, h := range handlers {
 		h.Register(e)
 	}
 	logger.Info("Handlers registered successfully")
-	return nil
 }
 
 // setupMiddleware configures all middleware
-func setupMiddleware(logger logging.Logger, e *echo.Echo, manager *appmiddleware.Manager) error {
+func setupMiddleware(logger logging.Logger, e *echo.Echo, manager *appmiddleware.Manager) {
 	logger.Info("Setting up middleware...")
 	manager.Setup(e)
 	logger.Info("Middleware setup completed")
-	return nil
 }
 
 // logServerStart logs the server start information

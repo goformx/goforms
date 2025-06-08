@@ -78,13 +78,13 @@ func (s *service) CreateForm(
 			)
 			return nil, fmt.Errorf("invalid user ID: %w", err)
 		default:
-			s.logger.Error("failed to create form in repository",
+			s.logger.Error("database error while creating form",
 				logging.ErrorField("error", err),
 				logging.StringField("title", title),
 				logging.StringField("description", description),
 				logging.UintField("user_id", userID),
 			)
-			return nil, fmt.Errorf("failed to create form in repository: %w", err)
+			return nil, fmt.Errorf("database error while creating form: %w", err)
 		}
 	}
 
