@@ -164,10 +164,10 @@ func (v *validatorImpl) ValidateStruct(s any) error {
 	var ve validator.ValidationErrors
 	if errors.As(err, &ve) {
 		validationErrors := make([]ValidationError, len(ve))
-		for i, e := range ve {
+		for i, err := range ve {
 			validationErrors[i] = ValidationError{
-				Field:   getFieldName(e),
-				Message: getErrorMessage(e),
+				Field:   err.Field(),
+				Message: err.Error(),
 			}
 		}
 		return ValidationErrors(validationErrors)

@@ -4,7 +4,6 @@ import (
 	"context"
 	"time"
 
-	"github.com/goformx/goforms/internal/domain/common/ctxutil"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
@@ -21,10 +20,16 @@ const (
 )
 
 const (
-	// RequestIDKey is the context key for request ID
+	// RequestIDKey is the context key for the request ID
 	RequestIDKey contextKey = "request_id"
+	// CorrelationIDKey is the context key for the correlation ID
+	CorrelationIDKey contextKey = "correlation_id"
 	// LoggerKey is the context key for the logger
 	LoggerKey contextKey = "logger"
+	// UserIDKey is the context key for user ID
+	UserIDKey contextKey = "user_id"
+	// UserRoleKey is the context key for user role
+	UserRoleKey contextKey = "user_role"
 )
 
 // ContextMiddleware provides context handling for HTTP requests
@@ -66,33 +71,46 @@ func (m *ContextMiddleware) WithContext() echo.MiddlewareFunc {
 	}
 }
 
-// GetLoggerFromContext retrieves the logger from context
-func GetLoggerFromContext(ctx context.Context) logging.Logger {
+// GetLogger retrieves the logger from context
+func GetLogger(ctx context.Context) logging.Logger {
 	if logger, ok := ctx.Value(LoggerKey).(logging.Logger); ok {
 		return logger
 	}
 	return nil
 }
 
-// GetRequestIDFromContext retrieves the request ID from context
-func GetRequestIDFromContext(ctx context.Context) string {
-	if requestID, ok := ctxutil.GetRequestID(ctx); ok {
-		return requestID
+// GetRequestID retrieves the request ID from context
+func GetRequestID(ctx context.Context) string {
+	if id, ok := ctx.Value(RequestIDKey).(string); ok {
+		return id
 	}
 	return ""
 }
 
-// GetUserIDFromContext retrieves the user ID from context
-func GetUserIDFromContext(ctx context.Context) (uint, bool) {
-	return ctxutil.GetUserID(ctx)
+// GetCorrelationID retrieves the correlation ID from context
+func GetCorrelationID(ctx context.Context) string {
+	if id, ok := ctx.Value(CorrelationIDKey).(string); ok {
+		return id
+	}
+	return ""
 }
 
-// GetTraceIDFromContext retrieves the trace ID from context
-func GetTraceIDFromContext(ctx context.Context) (string, bool) {
-	return ctxutil.GetTraceID(ctx)
+// GetUserID retrieves the user ID from context
+func GetUserID(c echo.Context) uint {
+	userID, ok := c.Get(string(UserIDKey)).(uint)
+	if !ok {
+		return 0
+	}
+
+	return userID
 }
 
-// GetCorrelationIDFromContext retrieves the correlation ID from context
-func GetCorrelationIDFromContext(ctx context.Context) (string, bool) {
-	return ctxutil.GetCorrelationID(ctx)
+// GetUserRole retrieves the user role from context
+func GetUserRole(c echo.Context) string {
+	role, ok := c.Get(string(UserRoleKey)).(string)
+	if !ok {
+		return ""
+	}
+
+	return role
 }

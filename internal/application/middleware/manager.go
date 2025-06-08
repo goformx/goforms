@@ -50,17 +50,20 @@ type ManagerConfig struct {
 
 // NewManager creates a new middleware manager
 func NewManager(cfg *ManagerConfig) *Manager {
-	if cfg.Logger == nil {
-		panic("logger is required for Manager")
+	if cfg == nil {
+		panic("config is required")
 	}
+
 	if cfg.Security == nil {
-		panic("security configuration is required for Manager")
+		panic("security config is required")
 	}
+
 	if cfg.UserService == nil {
-		panic("user service is required for Manager")
+		panic("user service is required")
 	}
+
 	if cfg.SessionManager == nil {
-		panic("session manager is required for Manager")
+		panic("session manager is required")
 	}
 
 	return &Manager{

@@ -4,6 +4,7 @@ import (
 	"errors"
 	"time"
 
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 	"gorm.io/gorm"
 )
@@ -46,9 +47,8 @@ func (u *User) TableName() string {
 
 // BeforeCreate is a GORM hook that runs before creating a user
 func (u *User) BeforeCreate(tx *gorm.DB) error {
-	if u.ID == 0 {
-		u.ID = uint(time.Now().UnixNano())
-	}
+	// Generate a unique ID using UUID
+	u.ID = uint(uuid.New().ID())
 	if u.Role == "" {
 		u.Role = "user"
 	}

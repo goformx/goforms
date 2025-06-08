@@ -169,8 +169,14 @@ func (l *ZapLogger) Fatal(msg string, fields ...any) {
 }
 
 // With returns a new logger with the given fields
-func (l *ZapLogger) With(fields ...any) Logger {
-	return &ZapLogger{log: l.log.With(convertToZapFields(fields)...)}
+func (l *ZapLogger) With(fields ...Field) Logger {
+	zapFields := make([]zap.Field, len(fields))
+
+	for i, f := range fields {
+		zapFields[i] = zap.Any(f.Key, f.Value)
+	}
+
+	return &ZapLogger{log: l.log.With(zapFields...)}
 }
 
 // WithComponent returns a new logger with the given component

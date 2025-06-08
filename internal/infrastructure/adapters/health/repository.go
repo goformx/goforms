@@ -10,6 +10,10 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
+const (
+	pingTimeout = 5 * time.Second
+)
+
 // Repository implements health.Repository interface
 type Repository struct {
 	db     *database.GormDB
@@ -35,7 +39,7 @@ func (r *Repository) PingContext(ctx context.Context) error {
 	}
 
 	// Set a timeout for the ping
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	pingCtx, cancel := context.WithTimeout(ctx, pingTimeout)
 	defer cancel()
 
 	// Ping the database
@@ -48,4 +52,9 @@ func (r *Repository) PingContext(ctx context.Context) error {
 
 	r.logger.Debug("database health check passed")
 	return nil
+}
+
+// Check checks the health of the database
+func (r *Repository) Check(ctx context.Context) error {
+	return r.PingContext(ctx)
 }

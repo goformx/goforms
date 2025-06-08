@@ -38,9 +38,11 @@ func (f *Form) BeforeCreate(tx *gorm.DB) error {
 	if f.ID == "" {
 		f.ID = uuid.New().String()
 	}
+
 	if !f.Active {
 		f.Active = true
 	}
+
 	return nil
 }
 
@@ -56,6 +58,7 @@ type JSON map[string]any
 // NewForm creates a new form instance
 func NewForm(userID uint, title, description string, schema JSON) *Form {
 	now := time.Now()
+
 	return &Form{
 		ID:          uuid.New().String(),
 		UserID:      userID,
@@ -172,9 +175,11 @@ func (f *Form) validateSchema() error {
 func (f *Form) Update(title, description string, schema JSON) {
 	f.Title = title
 	f.Description = description
+
 	if schema != nil {
 		f.Schema = schema
 	}
+
 	f.UpdatedAt = time.Now()
 }
 

@@ -1,6 +1,7 @@
 package database
 
 import (
+	"context"
 	"fmt"
 	"time"
 
@@ -86,16 +87,17 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 
 // Close closes the database connection
 func (db *GormDB) Close() error {
-	db.logger.Debug("closing database connection")
 	sqlDB, err := db.DB.DB()
 	if err != nil {
 		return fmt.Errorf("failed to get database instance: %w", err)
 	}
+
 	if closeErr := sqlDB.Close(); closeErr != nil {
-		db.logger.Error("failed to close database connection", logging.ErrorField("error", closeErr))
 		return fmt.Errorf("failed to close database connection: %w", closeErr)
 	}
+
 	db.logger.Debug("database connection closed successfully")
+
 	return nil
 }
 
@@ -113,4 +115,15 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 // Printf implements logger.Writer interface
 func (w *GormLogWriter) Printf(format string, args ...any) {
 	w.logger.Debug("gorm query", logging.StringField("query", fmt.Sprintf(format, args...)))
+}
+
+func (db *GormDB) Ping(ctx context.Context) error {
+	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	defer cancel()
+
+	if pingErr := db.DB.WithContext(pingCtx).Raw("SELECT 1").Error; pingErr != nil {
+		return fmt.Errorf("failed to ping database: %w", pingErr)
+	}
+
+	return nil
 }
