@@ -272,7 +272,12 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 
 	// Verify form ownership
 	if form.UserID != userID {
-		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to view these submissions")
+		return response.WebErrorResponse(
+			c,
+			h.Renderer,
+			http.StatusForbidden,
+			"You don't have permission to view these submissions",
+		)
 	}
 
 	// Get form submissions

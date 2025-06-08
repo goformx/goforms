@@ -5,8 +5,8 @@ package main
 
 import (
 	"context"
+	"errors"
 	"fmt"
-	"log"
 	"os"
 	"os/signal"
 	"syscall"
@@ -42,7 +42,11 @@ type appParams struct {
 	MiddlewareManager *appmiddleware.Manager
 }
 
+// setupLogger creates a new logger instance
 func setupLogger(cfg *config.Config) (logging.Logger, error) {
+	if cfg == nil {
+		return nil, errors.New("config is required for logger setup")
+	}
 	return logging.NewFactory(logging.FactoryConfig{
 		AppName:     cfg.App.Name,
 		Version:     cfg.App.Version,
@@ -54,7 +58,9 @@ func setupLogger(cfg *config.Config) (logging.Logger, error) {
 // setupEcho configures and starts the server
 func setupEcho(params appParams) error {
 	// Register all handlers
-	registerHandlers(params.Logger, params.Echo, params.Handlers)
+	if err := registerHandlers(params.Logger, params.Echo, params.Handlers); err != nil {
+		return fmt.Errorf("failed to register handlers: %w", err)
+	}
 
 	// Setup middleware
 	params.MiddlewareManager.Setup(params.Echo)
@@ -68,37 +74,56 @@ func setupEcho(params appParams) error {
 }
 
 // registerHandlers registers all application handlers
-func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) {
+func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) error {
 	logger.Info("registering handlers")
 
 	for _, h := range handlers {
+		if h == nil {
+			return errors.New("nil handler encountered during registration")
+		}
 		h.Register(e)
 	}
 
 	logger.Info("handlers registered successfully")
+	return nil
 }
 
-// createLifecycleHooks creates the application lifecycle hooks
-func createLifecycleHooks(params appParams) fx.Hook {
-	return fx.Hook{
-		OnStart: func(ctx context.Context) error {
-			params.Logger.Info("running setupEcho in lifecycle hooks")
-			return setupEcho(params)
-		},
-		OnStop: func(ctx context.Context) error {
-			params.Logger.Info("shutting down application in lifecycle hooks")
-			return nil
-		},
-	}
+// createFallbackLogger creates a basic logger for emergency error reporting
+func createFallbackLogger() logging.Logger {
+	logger, _ := logging.NewFactory(logging.FactoryConfig{
+		AppName:     "goforms",
+		Version:     "1.0.0",
+		Environment: "production",
+		Fields:      map[string]any{},
+	}).CreateLogger()
+	return logger
 }
 
 func main() {
+	// Load configuration first
+	cfg, err := config.New()
+	if err != nil {
+		fallbackLogger := createFallbackLogger()
+		fallbackLogger.Fatal("Failed to load configuration",
+			logging.ErrorField("error", err),
+		)
+	}
+
+	// Create logger first
+	logger, err := setupLogger(cfg)
+	if err != nil {
+		fallbackLogger := createFallbackLogger()
+		fallbackLogger.Fatal("Failed to setup logger",
+			logging.ErrorField("error", err),
+		)
+	}
+
 	// Create the application with all dependencies
 	app := fx.New(
 		// Core infrastructure
 		fx.Provide(
-			setupLogger,
-			config.New,
+			func() logging.Logger { return logger }, // Provide the already created logger
+			func() *config.Config { return cfg },    // Provide the already loaded config
 			echo.New,
 		),
 		// Domain services
@@ -107,7 +132,20 @@ func main() {
 		infrastructure.Module,
 		// Application lifecycle
 		fx.Invoke(func(params appParams) {
-			params.Lifecycle.Append(createLifecycleHooks(params))
+			params.Lifecycle.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					params.Logger.Info("Starting application...")
+					if setupErr := setupEcho(params); setupErr != nil {
+						return fmt.Errorf("failed to setup echo: %w", setupErr)
+					}
+					params.Logger.Info("Application started successfully")
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					params.Logger.Info("Shutting down application...")
+					return nil
+				},
+			})
 		}),
 	)
 
@@ -116,11 +154,11 @@ func main() {
 	defer stop()
 
 	// Start the application
-	if err := app.Start(ctx); err != nil {
+	if startErr := app.Start(ctx); startErr != nil {
 		stop() // Ensure signal handler is stopped
-		log.Printf("Failed to start application: %v", err)
-
-		return // Use return instead of os.Exit to allow deferred functions to run
+		logger.Fatal("Failed to start application",
+			logging.ErrorField("error", startErr),
+		)
 	}
 
 	// Wait for interrupt signal
@@ -131,10 +169,18 @@ func main() {
 	defer cancel()
 
 	// Stop the application
-	if err := app.Stop(shutdownCtx); err != nil {
+	if stopErr := app.Stop(shutdownCtx); stopErr != nil {
 		stop() // Ensure signal handler is stopped
-		log.Printf("Failed to stop application: %v", err)
-
-		return // Use return instead of os.Exit to allow deferred functions to run
+		if shutdownCtx.Err() == context.DeadlineExceeded {
+			logger.Fatal("Application shutdown timed out",
+				logging.DurationField("timeout", DefaultShutdownTimeout),
+			)
+		} else {
+			logger.Fatal("Failed to stop application",
+				logging.ErrorField("error", stopErr),
+			)
+		}
 	}
+
+	logger.Info("Application shutdown completed successfully")
 }

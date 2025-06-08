@@ -71,6 +71,84 @@ func NewForm(userID uint, title, description string, schema JSON) *Form {
 	}
 }
 
+// validateProperty validates a single form property
+func validateProperty(name string, prop any) error {
+	property, isMap := prop.(map[string]any)
+	if !isMap {
+		return fmt.Errorf("invalid property format for '%s': must be an object", name)
+	}
+
+	// Check for required property fields
+	if _, exists := property["type"]; !exists {
+		return fmt.Errorf("missing type for property '%s'", name)
+	}
+
+	// Validate property type
+	propType, isString := property["type"].(string)
+	if !isString {
+		return fmt.Errorf("invalid type format for property '%s'", name)
+	}
+
+	// Validate property type value
+	validTypes := map[string]bool{
+		"string":  true,
+		"number":  true,
+		"integer": true,
+		"boolean": true,
+		"array":   true,
+		"object":  true,
+	}
+
+	if !validTypes[propType] {
+		return fmt.Errorf("invalid type '%s' for property '%s'", propType, name)
+	}
+
+	return nil
+}
+
+// validateSchema validates the form schema
+func (f *Form) validateSchema() error {
+	// Check for required schema fields
+	requiredFields := []string{"type"}
+	for _, field := range requiredFields {
+		if _, exists := f.Schema[field]; !exists {
+			return fmt.Errorf("missing required schema field: %s", field)
+		}
+	}
+
+	// Validate schema type
+	schemaType, typeOk := f.Schema["type"].(string)
+	if !typeOk || schemaType != "object" {
+		return errors.New("invalid schema type: must be 'object'")
+	}
+
+	// Check for either properties or components
+	hasProperties := false
+	hasComponents := false
+
+	if properties, propsOk := f.Schema["properties"].(map[string]any); propsOk {
+		hasProperties = true
+		// Validate each property
+		for name, prop := range properties {
+			if err := validateProperty(name, prop); err != nil {
+				return err
+			}
+		}
+	}
+
+	if components, compsOk := f.Schema["components"].([]any); compsOk {
+		hasComponents = true
+		// Components array is valid even if empty
+		_ = components
+	}
+
+	if !hasProperties && !hasComponents {
+		return errors.New("schema must contain either properties or components")
+	}
+
+	return nil
+}
+
 // Validate validates the form
 func (f *Form) Validate() error {
 	// Validate title
@@ -87,71 +165,7 @@ func (f *Form) Validate() error {
 		return fmt.Errorf("description must not exceed %d characters", MaxDescriptionLength)
 	}
 
-	// Check for required schema fields
-	requiredFields := []string{"type"}
-	for _, field := range requiredFields {
-		if _, exists := f.Schema[field]; !exists {
-			return fmt.Errorf("missing required schema field: %s", field)
-		}
-	}
-
-	// Validate schema type
-	schemaType, ok := f.Schema["type"].(string)
-	if !ok || schemaType != "object" {
-		return errors.New("invalid schema type: must be 'object'")
-	}
-
-	// Check for either properties or components
-	hasProperties := false
-	hasComponents := false
-
-	if properties, ok := f.Schema["properties"].(map[string]any); ok {
-		hasProperties = true
-		// Validate each property
-		for name, prop := range properties {
-			property, isMap := prop.(map[string]any)
-			if !isMap {
-				return fmt.Errorf("invalid property format for '%s': must be an object", name)
-			}
-
-			// Check for required property fields
-			if _, exists := property["type"]; !exists {
-				return fmt.Errorf("missing type for property '%s'", name)
-			}
-
-			// Validate property type
-			propType, isString := property["type"].(string)
-			if !isString {
-				return fmt.Errorf("invalid type format for property '%s'", name)
-			}
-
-			// Validate property type value
-			validTypes := map[string]bool{
-				"string":  true,
-				"number":  true,
-				"integer": true,
-				"boolean": true,
-				"array":   true,
-				"object":  true,
-			}
-
-			if !validTypes[propType] {
-				return fmt.Errorf("invalid type '%s' for property '%s'", propType, name)
-			}
-		}
-	}
-
-	if components, ok := f.Schema["components"].([]any); ok {
-		hasComponents = true
-		// Components array is valid even if empty
-		_ = components
-	}
-
-	if !hasProperties && !hasComponents {
-		return errors.New("schema must contain either properties or components")
-	}
-
-	return nil
+	return f.validateSchema()
 }
 
 // Update updates the form with new values
