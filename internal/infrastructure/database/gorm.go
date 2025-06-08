@@ -34,8 +34,8 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 			SlowThreshold:             time.Second,
 			LogLevel:                  logger.Info,
 			IgnoreRecordNotFoundError: false,
-			Colorful:                  false,
-			ParameterizedQueries:      false,
+			Colorful:                  cfg.App.IsDevelopment(),
+			ParameterizedQueries:      true,
 		},
 	)
 
@@ -55,11 +55,19 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
+		PrepareStmt: true, // Enable prepared statements for better performance
 	})
 	if err != nil {
 		appLogger.Error("failed to connect to database",
 			logging.ErrorField("error", err),
 			logging.StringField("driver", "postgres"),
+			logging.StringField("dsn", fmt.Sprintf("host=%s port=%d user=%s dbname=%s sslmode=%s",
+				cfg.Database.Postgres.Host,
+				cfg.Database.Postgres.Port,
+				cfg.Database.Postgres.User,
+				cfg.Database.Postgres.Name,
+				cfg.Database.Postgres.SSLMode,
+			)),
 		)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
@@ -152,7 +160,28 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		logging.StringField("error_type", fmt.Sprintf("%T", err)),
 		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
 		logging.StringField("stack_trace", fmt.Sprintf("%+v", err)),
+		logging.StringField("sql_error", err.Error()),
+		logging.StringField("sql_state", getSQLState(err)),
 	)
+}
+
+// getSQLState extracts the SQL state from a database error
+func getSQLState(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	// Try to extract SQL state from error message
+	if sqlErr, ok := err.(interface{ SQLState() string }); ok {
+		return sqlErr.SQLState()
+	}
+
+	// Try to extract SQL state from error message
+	if sqlErr, ok := err.(interface{ GetSQLState() string }); ok {
+		return sqlErr.GetSQLState()
+	}
+
+	return ""
 }
 
 func (db *GormDB) Ping(ctx context.Context) error {

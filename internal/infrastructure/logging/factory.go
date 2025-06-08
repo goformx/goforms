@@ -3,6 +3,7 @@ package logging
 
 import (
 	"fmt"
+	"os"
 
 	"github.com/goformx/goforms/internal/infrastructure/logging/config"
 	"go.uber.org/zap"
@@ -73,9 +74,15 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		EncodeCaller:   zapcore.ShortCallerEncoder,
 	}
 
+	// Parse log level from environment
+	var level zapcore.Level
+	if err := level.UnmarshalText([]byte(os.Getenv("GOFORMS_APP_LOGLEVEL"))); err != nil {
+		level = zapcore.InfoLevel // fallback to info level
+	}
+
 	// Create base logger config
 	zapConfig := zap.Config{
-		Level:             zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Level:             zap.NewAtomicLevelAt(level),
 		Development:       f.environment == EnvironmentDevelopment,
 		DisableCaller:     false,
 		DisableStacktrace: false,

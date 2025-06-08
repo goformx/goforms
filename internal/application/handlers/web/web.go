@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/response"
@@ -82,6 +83,8 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 			logging.UintField("user_id", userID),
 			logging.StringField("operation", "handle_dashboard"),
 			logging.StringField("error_type", "form_service_error"),
+			logging.StringField("error_message", err.Error()),
+			logging.StringField("error_type", fmt.Sprintf("%T", err)),
 		)
 
 		// Check for specific errors
