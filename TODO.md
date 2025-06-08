@@ -1,4 +1,4 @@
-# GoFormX Migration Plan
+# GORM Migration Plan
 
 ## Overview
 This document outlines the plan to migrate from sqlx to GORM for database operations in the GoFormX application.
