@@ -1,6 +1,8 @@
 package infrastructure
 
 import (
+	"errors"
+
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
@@ -29,8 +31,9 @@ const (
 type Stores struct {
 	fx.Out
 
-	UserStore user.Repository
-	FormStore form.Repository
+	UserStore           user.Repository
+	FormStore           form.Repository
+	FormSubmissionStore form.SubmissionStore
 }
 
 // CoreParams represents core infrastructure dependencies
@@ -63,27 +66,38 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
-// NewStores creates new stores
-func NewStores(db *database.GormDB, logger logging.Logger) (
-	userRepo user.Repository,
-	formRepo form.Repository,
-	formSubmissionStore form.SubmissionStore,
-) {
+// NewStores creates new stores with proper error handling and logging
+func NewStores(db *database.GormDB, logger logging.Logger) (Stores, error) {
+	if db == nil {
+		return Stores{}, errors.New("database connection is required")
+	}
+
 	userStore := userstore.NewStore(db, logger)
+	if userStore == nil {
+		return Stores{}, errors.New("failed to create user store")
+	}
+
 	formStore := formstore.NewStore(db, logger)
-	formSubmissionStore = formsubmissionstore.NewStore(db, logger)
+	if formStore == nil {
+		return Stores{}, errors.New("failed to create form store")
+	}
 
-	return userStore, formStore, formSubmissionStore
+	formSubmissionStore := formsubmissionstore.NewStore(db, logger)
+	if formSubmissionStore == nil {
+		return Stores{}, errors.New("failed to create form submission store")
+	}
+
+	logger.Info("stores initialized successfully",
+		logging.String("operation", "store_initialization"),
+		logging.String("store_types", "user,form,form_submission"),
+	)
+
+	return Stores{
+		UserStore:           userStore,
+		FormStore:           formStore,
+		FormSubmissionStore: formSubmissionStore,
+	}, nil
 }
-
-// InfrastructureModule provides infrastructure dependencies
-var InfrastructureModule = fx.Options(
-	fx.Provide(
-		logging.NewFactory,
-		database.NewGormDB,
-		NewStores,
-	),
-)
 
 // Module provides core infrastructure dependencies
 var Module = fx.Options(
@@ -94,35 +108,46 @@ var Module = fx.Options(
 		view.NewRenderer,
 	),
 	// Stores
-	fx.Provide(
-		fx.Annotate(userstore.NewStore, fx.As(new(user.Repository))),
-		fx.Annotate(formstore.NewStore, fx.As(new(form.Repository))),
-	),
+	fx.Provide(NewStores),
 	// Base handler
 	fx.Provide(
 		web.NewBaseHandler,
 	),
 	// Middleware
 	fx.Provide(
-		func(logger logging.Logger, config *config.Config) *middleware.SessionManager {
+		func(logger logging.Logger, config *config.Config) (*middleware.SessionManager, error) {
+			if config == nil {
+				return nil, errors.New("config is required")
+			}
 			// In development, use secure cookies only if explicitly enabled
 			// In production, always use secure cookies
 			secureCookie := !config.App.Debug || config.Security.SecureCookie
-			return middleware.NewSessionManager(logger, secureCookie)
+			sessionManager := middleware.NewSessionManager(logger, secureCookie)
+			if sessionManager == nil {
+				return nil, errors.New("failed to create session manager")
+			}
+			return sessionManager, nil
 		},
 		func(
 			logger logging.Logger,
 			config *config.Config,
 			userService user.Service,
 			sessionManager *middleware.SessionManager,
-		) *middleware.Manager {
-			return middleware.NewManager(&middleware.ManagerConfig{
+		) (*middleware.Manager, error) {
+			if config == nil || sessionManager == nil {
+				return nil, errors.New("config and session manager are required")
+			}
+			manager := middleware.NewManager(&middleware.ManagerConfig{
 				Logger:         logger,
 				Security:       &config.Security,
 				Config:         config,
 				UserService:    userService,
 				SessionManager: sessionManager,
 			})
+			if manager == nil {
+				return nil, errors.New("failed to create middleware manager")
+			}
+			return manager, nil
 		},
 	),
 	// Handlers
