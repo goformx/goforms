@@ -26,7 +26,7 @@ func Recovery(logger logging.Logger) echo.MiddlewareFunc {
 }
 
 // handlePanic converts a panic value to an error
-func handlePanic(r interface{}) error {
+func handlePanic(r any) error {
 	switch x := r.(type) {
 	case string:
 		return errors.New(x)

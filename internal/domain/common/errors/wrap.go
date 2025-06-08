@@ -123,7 +123,7 @@ func GetErrorMessage(err error) string {
 }
 
 // GetErrorDetails returns the error details if the error is a DomainError
-func GetErrorDetails(err error) map[string]interface{} {
+func GetErrorDetails(err error) map[string]any {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
 		return domainErr.Context

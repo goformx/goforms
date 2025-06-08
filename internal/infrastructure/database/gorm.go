@@ -111,6 +111,6 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 }
 
 // Printf implements logger.Writer interface
-func (w *GormLogWriter) Printf(format string, args ...interface{}) {
+func (w *GormLogWriter) Printf(format string, args ...any) {
 	w.logger.Debug("gorm query", logging.StringField("query", fmt.Sprintf(format, args...)))
 }

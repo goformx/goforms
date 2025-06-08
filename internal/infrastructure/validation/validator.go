@@ -155,7 +155,7 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 	return validationErrors
 }
 
-func (v *validatorImpl) ValidateStruct(s interface{}) error {
+func (v *validatorImpl) ValidateStruct(s any) error {
 	err := v.Validate.Struct(s)
 	if err == nil {
 		return nil

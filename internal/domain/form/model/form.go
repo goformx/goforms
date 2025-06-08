@@ -9,6 +9,12 @@ import (
 	"gorm.io/gorm"
 )
 
+const (
+	MinTitleLength       = 3
+	MaxTitleLength       = 100
+	MaxDescriptionLength = 500
+)
+
 // Form represents a form in the system
 type Form struct {
 	ID          string         `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
@@ -68,15 +74,15 @@ func (f *Form) Validate() error {
 		return ErrFormTitleRequired
 	}
 
-	if len(f.Title) < 3 {
+	if len(f.Title) < MinTitleLength {
 		return errors.New(errors.ErrCodeValidation, "form title must be at least 3 characters long", nil)
 	}
 
-	if len(f.Title) > 100 {
+	if len(f.Title) > MaxTitleLength {
 		return errors.New(errors.ErrCodeValidation, "form title must not exceed 100 characters", nil)
 	}
 
-	if f.Description != "" && len(f.Description) > 500 {
+	if f.Description != "" && len(f.Description) > MaxDescriptionLength {
 		return errors.New(errors.ErrCodeValidation, "form description must not exceed 500 characters", nil)
 	}
 
@@ -109,17 +115,17 @@ func (f *Form) validateSchema() error {
 	// Validate schema type
 	schemaType, ok := f.Schema["type"].(string)
 	if !ok || schemaType != "object" {
-		return fmt.Errorf("invalid schema type: must be 'object'")
+		return errors.New(errors.ErrCodeValidation, "invalid schema type: must be 'object'", nil)
 	}
 
 	// Validate properties
 	properties, ok := f.Schema["properties"].(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid properties format: must be an object")
+		return errors.New(errors.ErrCodeValidation, "invalid properties format: must be an object", nil)
 	}
 
 	if len(properties) == 0 {
-		return fmt.Errorf("schema must contain at least one property")
+		return errors.New(errors.ErrCodeValidation, "schema must contain at least one property", nil)
 	}
 
 	// Validate each property
