@@ -9,10 +9,8 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	// ErrInvalidUserID indicates that the provided user ID is invalid
-	ErrInvalidUserID = errors.New("invalid user ID")
-)
+// ErrInvalidUserID indicates that the provided user ID is invalid
+var ErrInvalidUserID = errors.New("invalid user ID")
 
 // TokenPair represents a pair of access and refresh tokens
 type TokenPair struct {

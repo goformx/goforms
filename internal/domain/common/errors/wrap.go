@@ -134,9 +134,12 @@ func GetErrorDetails(err error) map[string]any {
 // GetErrorStack returns the error stack if the error is a DomainError
 func GetErrorStack(err error) []error {
 	var stack []error
+
 	current := err
+
 	for current != nil {
 		stack = append(stack, current)
+
 		var domainErr *DomainError
 		if errors.As(current, &domainErr) {
 			current = domainErr.Err
@@ -144,6 +147,7 @@ func GetErrorStack(err error) []error {
 			break
 		}
 	}
+
 	return stack
 }
 
@@ -168,6 +172,7 @@ func GetFullErrorMessage(err error) string {
 	}
 
 	var messages []string
+
 	current := err
 
 	for current != nil {

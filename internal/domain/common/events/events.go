@@ -52,6 +52,7 @@ func (d *EventDispatcher) Dispatch(ctx context.Context, event Event) error {
 	d.mu.RUnlock()
 
 	var errs []error
+
 	for _, handler := range handlers {
 		if err := handler.Handle(ctx, event); err != nil {
 			errs = append(errs, err)

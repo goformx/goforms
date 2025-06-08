@@ -1,9 +1,8 @@
 package middleware
 
 import (
-	"net/http"
-
 	"errors"
+	"net/http"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"

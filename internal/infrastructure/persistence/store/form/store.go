@@ -12,10 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	// ErrFormNotFound is returned when a form cannot be found
-	ErrFormNotFound = errors.New("form not found")
-)
+// ErrFormNotFound is returned when a form cannot be found
+var ErrFormNotFound = errors.New("form not found")
 
 // Store implements form.Repository interface
 type Store struct {

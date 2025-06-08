@@ -12,10 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	// ErrUserNotFound is returned when a user cannot be found
-	ErrUserNotFound = errors.New("user not found")
-)
+// ErrUserNotFound is returned when a user cannot be found
+var ErrUserNotFound = errors.New("user not found")
 
 // Store implements user.Repository interface
 type Store struct {

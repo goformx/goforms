@@ -12,10 +12,8 @@ import (
 	"gorm.io/gorm"
 )
 
-var (
-	// ErrSubmissionNotFound is returned when a form submission cannot be found
-	ErrSubmissionNotFound = errors.New("form submission not found")
-)
+// ErrSubmissionNotFound is returned when a form submission cannot be found
+var ErrSubmissionNotFound = errors.New("form submission not found")
 
 // FormSubmissionStore implements form.SubmissionStore
 type FormSubmissionStore struct {

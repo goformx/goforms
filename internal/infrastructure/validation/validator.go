@@ -1,12 +1,11 @@
 package validation
 
 import (
+	"errors"
+	"fmt"
 	"reflect"
 	"strings"
 	"sync"
-
-	"errors"
-	"fmt"
 
 	validator "github.com/go-playground/validator/v10"
 	"github.com/goformx/goforms/internal/domain/common/interfaces"

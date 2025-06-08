@@ -64,7 +64,7 @@ func NewSessionManager(logger logging.Logger, secureCookie bool) *SessionManager
 	go func() {
 		defer close(done)
 		// Create tmp directory if it doesn't exist
-		if err := os.MkdirAll(filepath.Dir(SessionFile), 0755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(SessionFile), 0o755); err != nil {
 			logger.Error("failed to create session directory", logging.ErrorField("error", err))
 			return
 		}
@@ -218,7 +218,7 @@ func (sm *SessionManager) saveSessions() error {
 	}
 
 	// Write file
-	if writeErr := os.WriteFile(sm.storeFile, data, 0600); writeErr != nil {
+	if writeErr := os.WriteFile(sm.storeFile, data, 0o600); writeErr != nil {
 		return fmt.Errorf("failed to write session store: %w", writeErr)
 	}
 

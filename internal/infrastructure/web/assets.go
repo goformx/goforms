@@ -20,9 +20,11 @@ type ManifestEntry struct {
 
 type Manifest map[string]ManifestEntry
 
-var manifest Manifest
-var appConfig *config.Config
-var manifestLoaded bool
+var (
+	manifest       Manifest
+	appConfig      *config.Config
+	manifestLoaded bool
+)
 
 // loadManifest attempts to load the Vite manifest file
 func loadManifest() error {

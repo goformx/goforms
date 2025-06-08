@@ -125,7 +125,6 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 			zap.String("app", cfg.AppName),
 		),
 	)
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)
 	}

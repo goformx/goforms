@@ -7,10 +7,8 @@ import (
 	"github.com/goformx/goforms/internal/domain/form/model"
 )
 
-var (
-	// ErrFormSchemaNotFound is returned when a form schema cannot be found
-	ErrFormSchemaNotFound = errors.New("form schema not found")
-)
+// ErrFormSchemaNotFound is returned when a form schema cannot be found
+var ErrFormSchemaNotFound = errors.New("form schema not found")
 
 // Repository defines the interface for form data access
 type Repository interface {
