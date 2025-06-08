@@ -2,6 +2,8 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/response"
@@ -74,29 +76,74 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	// Get form data
 	title := c.FormValue("title")
 	description := c.FormValue("description")
+	schemaStr := c.FormValue("schema")
 
-	// Create a valid schema with required fields
-	schema := model.JSON{
-		"type": "object",
-		"properties": map[string]any{
-			"title": map[string]any{
-				"type":  "string",
-				"title": "Title",
+	// Log form creation attempt with raw schema
+	h.Logger.Debug("attempting to create form",
+		logging.StringField("title", title),
+		logging.StringField("description", description),
+		logging.StringField("raw_schema", schemaStr),
+		logging.UintField("user_id", userID),
+	)
+
+	// Create a default schema if none provided
+	var schema model.JSON
+	if schemaStr == "" {
+		schema = model.JSON{
+			"type": "object",
+			"properties": map[string]any{
+				"title": map[string]any{
+					"type":  "string",
+					"title": "Title",
+				},
+				"description": map[string]any{
+					"type":  "string",
+					"title": "Description",
+				},
 			},
-			"description": map[string]any{
-				"type":  "string",
-				"title": "Description",
-			},
-		},
-		"required": []string{"title"},
+			"required": []string{"title"},
+		}
+		h.Logger.Debug("using default schema",
+			logging.StringField("schema", fmt.Sprintf("%+v", schema)),
+		)
+	} else {
+		// Parse schema from form data
+		if err := json.Unmarshal([]byte(schemaStr), &schema); err != nil {
+			h.Logger.Error("failed to parse form schema",
+				logging.ErrorField("error", err),
+				logging.StringField("raw_schema", schemaStr),
+			)
+			return response.ErrorResponse(c, http.StatusBadRequest, "Invalid form schema format")
+		}
 	}
 
 	// Create the form
-	_, err := h.FormService.CreateForm(c.Request().Context(), userID, title, description, schema)
+	form, err := h.FormService.CreateForm(c.Request().Context(), userID, title, description, schema)
 	if err != nil {
-		h.Logger.Error("failed to create form", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
+		h.Logger.Error("failed to create form",
+			logging.ErrorField("error", err),
+			logging.StringField("title", title),
+			logging.StringField("description", description),
+			logging.UintField("user_id", userID),
+		)
+
+		// Check for specific validation errors
+		switch {
+		case errors.Is(err, model.ErrFormTitleRequired):
+			return response.ErrorResponse(c, http.StatusBadRequest, "Form title is required")
+		case errors.Is(err, model.ErrFormSchemaRequired):
+			return response.ErrorResponse(c, http.StatusBadRequest, "Form schema is required")
+		default:
+			return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
+		}
 	}
+
+	// Log successful form creation
+	h.Logger.Info("form created successfully",
+		logging.StringField("form_id", form.ID),
+		logging.StringField("title", form.Title),
+		logging.UintField("user_id", form.UserID),
+	)
 
 	// Redirect to dashboard on success
 	return c.Redirect(http.StatusSeeOther, "/dashboard")

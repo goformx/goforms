@@ -2,12 +2,14 @@ package form
 
 import (
 	"context"
+	"errors"
 	"fmt"
 
 	"github.com/goformx/goforms/internal/domain/common/ctxutil"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"gorm.io/gorm"
 )
 
 type service struct {
@@ -38,21 +40,68 @@ func (s *service) CreateForm(
 	// Add user ID to context
 	ctx = ctxutil.WithUserID(ctx, userID)
 
+	// Log form creation attempt
+	s.logger.Debug("creating form",
+		logging.StringField("title", title),
+		logging.StringField("description", description),
+		logging.UintField("user_id", userID),
+	)
+
 	form := model.NewForm(userID, title, description, schema)
 
+	// Validate form
 	if err := form.Validate(); err != nil {
-		return nil, err
+		s.logger.Error("form validation failed",
+			logging.ErrorField("error", err),
+			logging.StringField("title", title),
+			logging.StringField("description", description),
+			logging.UintField("user_id", userID),
+		)
+		return nil, fmt.Errorf("form validation failed: %w", err)
 	}
 
+	// Create form in repository
 	if err := s.repo.Create(ctx, form); err != nil {
-		return nil, fmt.Errorf("failed to create form: %w", err)
+		// Check for specific GORM errors
+		switch {
+		case errors.Is(err, gorm.ErrDuplicatedKey):
+			s.logger.Error("form with this title already exists",
+				logging.ErrorField("error", err),
+				logging.StringField("title", title),
+				logging.UintField("user_id", userID),
+			)
+			return nil, fmt.Errorf("form with this title already exists: %w", err)
+		case errors.Is(err, gorm.ErrForeignKeyViolated):
+			s.logger.Error("invalid user ID",
+				logging.ErrorField("error", err),
+				logging.UintField("user_id", userID),
+			)
+			return nil, fmt.Errorf("invalid user ID: %w", err)
+		default:
+			s.logger.Error("failed to create form in repository",
+				logging.ErrorField("error", err),
+				logging.StringField("title", title),
+				logging.StringField("description", description),
+				logging.UintField("user_id", userID),
+			)
+			return nil, fmt.Errorf("failed to create form in repository: %w", err)
+		}
 	}
 
+	// Publish form created event
 	if err := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); err != nil {
 		s.logger.Error("failed to publish form created event",
 			logging.StringField("form_id", form.ID),
-			logging.ErrorField("error", err))
+			logging.ErrorField("error", err),
+		)
+		// Don't return error here as the form was created successfully
 	}
+
+	s.logger.Info("form created successfully",
+		logging.StringField("form_id", form.ID),
+		logging.StringField("title", form.Title),
+		logging.UintField("user_id", form.UserID),
+	)
 
 	return form, nil
 }

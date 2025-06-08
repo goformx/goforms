@@ -68,41 +68,69 @@ func NewFactory(cfg FactoryConfig) *Factory {
 // CreateLogger creates a new logger instance with the application name.
 func (f *Factory) CreateLogger() (Logger, error) {
 	// Create encoder config
-	encoderConfig := zap.NewDevelopmentEncoderConfig()
-	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
-	encoderConfig.ConsoleSeparator = " "
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
 
-	// Create base logger
-	zapConfig := zap.NewDevelopmentConfig()
-	zapConfig.EncoderConfig = encoderConfig
-	zapConfig.OutputPaths = []string{"stdout"}
-	zapConfig.Development = true
-	zapConfig.DisableStacktrace = false
-	zapConfig.DisableCaller = false
-	zapConfig.Sampling = nil // Disable sampling to show all logs
+	// Create base logger config
+	zapConfig := zap.Config{
+		Level:             zap.NewAtomicLevelAt(zapcore.DebugLevel),
+		Development:       f.environment == EnvironmentDevelopment,
+		DisableCaller:     false,
+		DisableStacktrace: false,
+		Sampling:          nil, // Disable sampling to show all logs
+		Encoding:          LogEncodingConsole,
+		EncoderConfig:     encoderConfig,
+		OutputPaths:       []string{"stdout"},
+		ErrorOutputPaths:  []string{"stderr"},
+	}
 
-	// Use console encoding for development, JSON for production
-	if f.environment == EnvironmentDevelopment {
-		zapConfig.Encoding = LogEncodingConsole
-	} else {
+	// Use JSON encoding for non-development environments
+	if f.environment != EnvironmentDevelopment {
 		zapConfig.Encoding = LogEncodingJSON
 	}
 
-	// Only add metadata fields in development mode
-	var opts []zap.Option
-	opts = append(opts, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
+	// Build initial fields
+	var initialFields []zap.Field
+	initialFields = append(initialFields,
+		zap.String("app", f.appName),
+		zap.String("env", f.environment),
+		zap.String("version", f.version),
+	)
 
-	if f.environment == EnvironmentDevelopment {
-		opts = append(opts, zap.Fields(
-			zap.String("app", f.appName),
-			zap.String("env", f.environment),
-		))
+	// Add any additional fields from config
+	for k, v := range f.initialFields {
+		switch val := v.(type) {
+		case string:
+			initialFields = append(initialFields, zap.String(k, val))
+		case int:
+			initialFields = append(initialFields, zap.Int(k, val))
+		case bool:
+			initialFields = append(initialFields, zap.Bool(k, val))
+		case float64:
+			initialFields = append(initialFields, zap.Float64(k, val))
+		default:
+			initialFields = append(initialFields, zap.Any(k, val))
+		}
 	}
 
-	zapLog, err := zapConfig.Build(opts...)
+	// Build logger with options
+	zapLog, err := zapConfig.Build(
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.WarnLevel), // Enable stack traces for warnings and above
+		zap.Fields(initialFields...),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)
 	}
@@ -113,11 +141,20 @@ func (f *Factory) CreateLogger() (Logger, error) {
 // CreateFromConfig creates a logger based on the provided configuration
 func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 	// Create encoder config
-	encoderConfig := zap.NewDevelopmentEncoderConfig()
-	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		FunctionKey:    zapcore.OmitKey,
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	}
 
 	// Parse log level
 	var level zapcore.Level
@@ -130,25 +167,53 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 		}
 	}
 
-	zapConfig := zap.NewDevelopmentConfig()
-	zapConfig.EncoderConfig = encoderConfig
-	zapConfig.OutputPaths = []string{"stdout"}
+	// Create base logger config
+	zapConfig := zap.Config{
+		Level:             zap.NewAtomicLevelAt(level),
+		Development:       f.environment == EnvironmentDevelopment,
+		DisableCaller:     false,
+		DisableStacktrace: false,
+		Sampling:          nil, // Disable sampling to show all logs
+		Encoding:          LogEncodingConsole,
+		EncoderConfig:     encoderConfig,
+		OutputPaths:       []string{"stdout"},
+		ErrorOutputPaths:  []string{"stderr"},
+	}
 
-	// Use console encoding for development, JSON for production
-	if f.environment == EnvironmentDevelopment {
-		zapConfig.Encoding = LogEncodingConsole
-	} else {
+	// Use JSON encoding for non-development environments
+	if f.environment != EnvironmentDevelopment {
 		zapConfig.Encoding = LogEncodingJSON
 	}
 
-	zapConfig.Level = zap.NewAtomicLevelAt(level)
+	// Build initial fields
+	var initialFields []zap.Field
+	initialFields = append(initialFields,
+		zap.String("app", cfg.AppName),
+		zap.String("env", f.environment),
+		zap.String("version", f.version),
+	)
 
+	// Add any additional fields from config
+	for k, v := range f.initialFields {
+		switch val := v.(type) {
+		case string:
+			initialFields = append(initialFields, zap.String(k, val))
+		case int:
+			initialFields = append(initialFields, zap.Int(k, val))
+		case bool:
+			initialFields = append(initialFields, zap.Bool(k, val))
+		case float64:
+			initialFields = append(initialFields, zap.Float64(k, val))
+		default:
+			initialFields = append(initialFields, zap.Any(k, val))
+		}
+	}
+
+	// Build logger with options
 	zapLog, err := zapConfig.Build(
 		zap.AddCaller(),
-		zap.AddStacktrace(zapcore.ErrorLevel),
-		zap.Fields(
-			zap.String("app", cfg.AppName),
-		),
+		zap.AddStacktrace(zapcore.WarnLevel), // Enable stack traces for warnings and above
+		zap.Fields(initialFields...),
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)

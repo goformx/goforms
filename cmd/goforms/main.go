@@ -40,6 +40,85 @@ type appParams struct {
 	MiddlewareManager *appmiddleware.Manager
 }
 
+// setupServer configures and starts the server
+func setupServer(params appParams) error {
+	// Log server configuration
+	logServerConfig(params.Logger, params.Server)
+
+	// Register all handlers
+	if err := registerHandlers(params.Logger, params.Echo, params.Handlers); err != nil {
+		return fmt.Errorf("failed to register handlers: %w", err)
+	}
+
+	// Setup middleware
+	if err := setupMiddleware(params.Logger, params.Echo, params.MiddlewareManager); err != nil {
+		return fmt.Errorf("failed to setup middleware: %w", err)
+	}
+
+	// Start the server
+	if err := params.Server.Start(); err != nil {
+		return fmt.Errorf("failed to start server: %w", err)
+	}
+
+	// Log server URL after successful start
+	logServerStart(params.Logger, params.Server)
+
+	return nil
+}
+
+// logServerConfig logs the server configuration details
+func logServerConfig(logger logging.Logger, srv *server.Server) {
+	logger.Info("Server configuration",
+		logging.StringField("host", srv.Config().App.Host),
+		logging.IntField("port", srv.Config().App.Port),
+		logging.StringField("environment", srv.Config().App.Env),
+		logging.StringField("server_type", "echo"),
+	)
+}
+
+// registerHandlers registers all application handlers
+func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) error {
+	logger.Info("Registering handlers...")
+	for _, h := range handlers {
+		h.Register(e)
+	}
+	logger.Info("Handlers registered successfully")
+	return nil
+}
+
+// setupMiddleware configures all middleware
+func setupMiddleware(logger logging.Logger, e *echo.Echo, manager *appmiddleware.Manager) error {
+	logger.Info("Setting up middleware...")
+	manager.Setup(e)
+	logger.Info("Middleware setup completed")
+	return nil
+}
+
+// logServerStart logs the server start information
+func logServerStart(logger logging.Logger, srv *server.Server) {
+	logger.Info("Server started successfully",
+		logging.StringField("host", srv.Config().App.Host),
+		logging.IntField("port", srv.Config().App.Port),
+		logging.StringField("address", srv.Address()),
+		logging.StringField("url", srv.URL()),
+		logging.StringField("environment", srv.Config().App.Env),
+	)
+}
+
+// createLifecycleHooks creates the application lifecycle hooks
+func createLifecycleHooks(params appParams) fx.Hook {
+	return fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			params.Logger.Info("Starting application...")
+			return setupServer(params)
+		},
+		OnStop: func(ctx context.Context) error {
+			params.Logger.Info("Shutting down application...")
+			return nil
+		},
+	}
+}
+
 func main() {
 	// Create the application with all dependencies
 	app := fx.New(
@@ -55,52 +134,7 @@ func main() {
 		infrastructure.Module,
 		// Application lifecycle
 		fx.Invoke(func(params appParams) {
-			// Setup startup hook
-			params.Lifecycle.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					params.Logger.Info("Starting application...")
-
-					// Log server configuration
-					params.Logger.Info("Server configuration",
-						logging.StringField("host", params.Server.Config().App.Host),
-						logging.IntField("port", params.Server.Config().App.Port),
-						logging.StringField("environment", params.Server.Config().App.Env),
-						logging.StringField("server_type", "echo"),
-					)
-
-					// Register all handlers
-					params.Logger.Info("Registering handlers...")
-					for _, h := range params.Handlers {
-						h.Register(params.Echo)
-					}
-					params.Logger.Info("Handlers registered successfully")
-
-					// Setup middleware
-					params.Logger.Info("Setting up middleware...")
-					params.MiddlewareManager.Setup(params.Echo)
-					params.Logger.Info("Middleware setup completed")
-
-					// Start the server after all middleware is registered
-					if err := params.Server.Start(); err != nil {
-						return fmt.Errorf("failed to start server: %w", err)
-					}
-
-					// Log server URL after successful start
-					params.Logger.Info("Server started successfully",
-						logging.StringField("host", params.Server.Config().App.Host),
-						logging.IntField("port", params.Server.Config().App.Port),
-						logging.StringField("address", params.Server.Address()),
-						logging.StringField("url", params.Server.URL()),
-						logging.StringField("environment", params.Server.Config().App.Env),
-					)
-
-					return nil
-				},
-				OnStop: func(ctx context.Context) error {
-					params.Logger.Info("Shutting down application...")
-					return nil
-				},
-			})
+			params.Lifecycle.Append(createLifecycleHooks(params))
 		}),
 	)
 
