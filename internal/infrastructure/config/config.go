@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -222,39 +223,39 @@ func (c *Config) validateDatabaseConfig() error {
 
 func (c *Config) validateMariaDBConfig() error {
 	if c.Database.MariaDB.Port == 0 {
-		return fmt.Errorf("MariaDB port is required")
+		return errors.New("MariaDB port is required")
 	}
 	if c.Database.MariaDB.User == "" {
-		return fmt.Errorf("MariaDB user is required")
+		return errors.New("MariaDB user is required")
 	}
 	if c.Database.MariaDB.Password == "" {
-		return fmt.Errorf("MariaDB password is required")
+		return errors.New("MariaDB password is required")
 	}
 	if c.Database.MariaDB.Name == "" {
-		return fmt.Errorf("MariaDB database name is required")
+		return errors.New("MariaDB database name is required")
 	}
 	return nil
 }
 
 func (c *Config) validatePostgresConfig() error {
 	if c.Database.Postgres.Port == 0 {
-		return fmt.Errorf("PostgreSQL port is required")
+		return errors.New("PostgreSQL port is required")
 	}
 	if c.Database.Postgres.User == "" {
-		return fmt.Errorf("PostgreSQL user is required")
+		return errors.New("PostgreSQL user is required")
 	}
 	if c.Database.Postgres.Password == "" {
-		return fmt.Errorf("PostgreSQL password is required")
+		return errors.New("PostgreSQL password is required")
 	}
 	if c.Database.Postgres.Name == "" {
-		return fmt.Errorf("PostgreSQL database name is required")
+		return errors.New("PostgreSQL database name is required")
 	}
 	return nil
 }
 
 func (c *Config) validateSecurityConfig() error {
 	if c.Security.CSRFConfig.Secret == "" {
-		return fmt.Errorf("CSRF secret is required")
+		return errors.New("CSRF secret is required")
 	}
 	return nil
 }
