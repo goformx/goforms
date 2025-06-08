@@ -21,6 +21,10 @@ import (
 const (
 	// DefaultReadHeaderTimeout is the default timeout for reading request headers
 	DefaultReadHeaderTimeout = 5 * time.Second
+	// DefaultShutdownTimeout is the default timeout for graceful shutdown
+	DefaultShutdownTimeout = 10 * time.Second
+	// DefaultStartupTimeout is the default timeout for server startup
+	DefaultStartupTimeout = 5 * time.Second
 )
 
 // Server handles HTTP server lifecycle and configuration
@@ -47,29 +51,44 @@ func (s *Server) Start() error {
 	s.server = &http.Server{
 		Addr:              addr,
 		Handler:           s.echo,
-		ReadHeaderTimeout: DefaultReadHeaderTimeout, // Prevent Slowloris attacks
+		ReadHeaderTimeout: DefaultReadHeaderTimeout,
 	}
 
-	// Create a channel to signal when the server is ready
-	ready := make(chan struct{})
+	// Create channels for server startup coordination
+	started := make(chan struct{})
+	errored := make(chan error, 1)
 
 	// Start server in a goroutine
 	go func() {
-		// Signal that the server is ready to accept connections
-		close(ready)
+		// Create a listener to check if the server can bind to the port
+		listener, err := net.Listen("tcp", addr)
+		if err != nil {
+			errored <- fmt.Errorf("failed to create listener: %w", err)
+			return
+		}
 
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.logger.Fatal("failed to start server",
-				logging.ErrorField("error", err),
-				logging.String("address", addr),
-			)
+		// Signal that the server is ready to accept connections
+		close(started)
+
+		// Start serving
+		if err := s.server.Serve(listener); err != nil && err != http.ErrServerClosed {
+			errored <- fmt.Errorf("server error: %w", err)
 		}
 	}()
 
-	// Wait for the server to be ready
-	<-ready
-
-	return nil
+	// Wait for the server to be ready or fail
+	select {
+	case err := <-errored:
+		return fmt.Errorf("server failed to start: %w", err)
+	case <-started:
+		s.logger.Info("server started successfully",
+			logging.String("address", addr),
+			logging.String("environment", s.config.App.Env),
+		)
+		return nil
+	case <-time.After(DefaultStartupTimeout):
+		return fmt.Errorf("server startup timed out after %v", DefaultStartupTimeout)
+	}
 }
 
 // New creates a new server instance with the provided dependencies
@@ -94,28 +113,52 @@ func New(
 		logging.String("server_type", "echo"),
 	)
 
-	// Serve static files from public directory
-	e.Static("/", "public")
+	// Add health check endpoint
+	e.GET("/health", func(c echo.Context) error {
+		return c.JSON(http.StatusOK, map[string]string{
+			"status": "ok",
+			"time":   time.Now().Format(time.RFC3339),
+		})
+	})
 
-	// Vite dev server proxy for /src and /@vite in development mode
+	// Serve static files from public directory with proper security headers
+	e.Static("/static", "public")
+	e.Static("/assets", "public/assets")
+
+	// Vite dev server proxy for development mode
 	if cfg.App.IsDevelopment() {
-		viteURL := &url.URL{
-			Scheme: "http",
-			Host:   net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
-		}
-		viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
+		viteURL, err := url.Parse(fmt.Sprintf("http://%s:%s",
+			cfg.App.ViteDevHost,
+			cfg.App.ViteDevPort,
+		))
+		if err != nil {
+			logger.Error("failed to parse Vite dev server URL",
+				logging.ErrorField("error", err),
+				logging.String("host", cfg.App.ViteDevHost),
+				logging.String("port", cfg.App.ViteDevPort),
+			)
+		} else {
+			viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
 
-		// Configure proxy to handle WebSocket connections
-		viteProxy.ModifyResponse = func(resp *http.Response) error {
-			resp.Header.Set("Access-Control-Allow-Origin", "*")
-			return nil
-		}
+			// Configure proxy to handle WebSocket connections and CORS
+			viteProxy.ModifyResponse = func(resp *http.Response) error {
+				resp.Header.Set("Access-Control-Allow-Origin", "*")
+				resp.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+				resp.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+				return nil
+			}
 
-		// Proxy all static asset requests to Vite dev server
-		e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
-		e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))
-		e.Group("/assets").Any("/*", echo.WrapHandler(viteProxy))
-		e.Group("/node_modules").Any("/*", echo.WrapHandler(viteProxy))
+			// Proxy specific paths to Vite dev server
+			devPaths := []string{"/src", "/@vite", "/assets", "/node_modules"}
+			for _, path := range devPaths {
+				e.Group(path).Any("/*", echo.WrapHandler(viteProxy))
+			}
+
+			logger.Info("Vite dev server proxy configured",
+				logging.String("url", viteURL.String()),
+				logging.String("paths", fmt.Sprintf("%v", devPaths)),
+			)
+		}
 	}
 
 	// Register lifecycle hooks
@@ -130,15 +173,18 @@ func New(
 
 			srv.logger.Info("shutting down server")
 
-			shutdownCtx, cancel := context.WithTimeout(ctx, cfg.Server.ShutdownTimeout)
+			shutdownCtx, cancel := context.WithTimeout(ctx, DefaultShutdownTimeout)
 			defer cancel()
 
 			if err := srv.server.Shutdown(shutdownCtx); err != nil {
-				srv.logger.Error("server shutdown error", logging.ErrorField("error", err))
+				srv.logger.Error("server shutdown error",
+					logging.ErrorField("error", err),
+					logging.Duration("timeout", DefaultShutdownTimeout),
+				)
 				return fmt.Errorf("server shutdown error: %w", err)
 			}
 
-			srv.logger.Info("server stopped")
+			srv.logger.Info("server stopped gracefully")
 			return nil
 		},
 	})
