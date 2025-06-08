@@ -111,7 +111,7 @@ func (f *Form) validateSchema() error {
 	requiredFields := []string{"type", "properties"}
 	for _, field := range requiredFields {
 		if _, exists := f.Schema[field]; !exists {
-			return errors.New(fmt.Sprintf("missing required schema field: %s", field))
+			return fmt.Errorf("missing required schema field: %s", field)
 		}
 	}
 
@@ -135,18 +135,18 @@ func (f *Form) validateSchema() error {
 	for name, prop := range properties {
 		property, isMap := prop.(map[string]any)
 		if !isMap {
-			return errors.New(fmt.Sprintf("invalid property format for '%s': must be an object", name))
+			return fmt.Errorf("invalid property format for '%s': must be an object", name)
 		}
 
 		// Check for required property fields
 		if _, exists := property["type"]; !exists {
-			return errors.New(fmt.Sprintf("missing type for property '%s'", name))
+			return fmt.Errorf("missing type for property '%s'", name)
 		}
 
 		// Validate property type
 		propType, isString := property["type"].(string)
 		if !isString {
-			return errors.New(fmt.Sprintf("invalid type format for property '%s'", name))
+			return fmt.Errorf("invalid type format for property '%s'", name)
 		}
 
 		// Validate property type value
@@ -160,7 +160,7 @@ func (f *Form) validateSchema() error {
 		}
 
 		if !validTypes[propType] {
-			return errors.New(fmt.Sprintf("invalid type '%s' for property '%s'", propType, name))
+			return fmt.Errorf("invalid type '%s' for property '%s'", propType, name)
 		}
 	}
 

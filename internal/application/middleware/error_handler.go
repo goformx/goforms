@@ -29,7 +29,8 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	}
 
 	// Handle domain errors
-	if domainErr, ok := err.(*errors.DomainError); ok {
+	var domainErr *errors.DomainError
+	if stderrors.As(err, &domainErr) {
 		h.logger.Error("domain error",
 			logging.ErrorField("error", domainErr),
 			logging.StringField("code", string(domainErr.Code)),
@@ -45,6 +46,20 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 			statusCode = http.StatusUnauthorized
 		case errors.ErrCodeForbidden:
 			statusCode = http.StatusForbidden
+		case errors.ErrCodeRequired, errors.ErrCodeInvalid, errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput:
+			statusCode = http.StatusBadRequest
+		case errors.ErrCodeInvalidToken, errors.ErrCodeAuthentication:
+			statusCode = http.StatusUnauthorized
+		case errors.ErrCodeInsufficientRole:
+			statusCode = http.StatusForbidden
+		case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists:
+			statusCode = http.StatusConflict
+		case errors.ErrCodeBadRequest:
+			statusCode = http.StatusBadRequest
+		case errors.ErrCodeServerError, errors.ErrCodeDatabase, errors.ErrCodeTimeout:
+			statusCode = http.StatusInternalServerError
+		case errors.ErrCodeStartup, errors.ErrCodeShutdown, errors.ErrCodeConfig:
+			statusCode = http.StatusServiceUnavailable
 		}
 
 		response := map[string]any{
@@ -54,9 +69,9 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 			},
 		}
 
-		if err := c.JSON(statusCode, response); err != nil {
+		if jsonErr := c.JSON(statusCode, response); jsonErr != nil {
 			h.logger.Error("failed to send error response",
-				logging.ErrorField("error", err),
+				logging.ErrorField("error", jsonErr),
 			)
 		}
 
@@ -64,7 +79,8 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	}
 
 	// Handle HTTP errors
-	if httpErr, ok := err.(*echo.HTTPError); ok {
+	var httpErr *echo.HTTPError
+	if stderrors.As(err, &httpErr) {
 		h.logger.Error("http error",
 			logging.ErrorField("error", httpErr),
 			logging.IntField("code", httpErr.Code),
@@ -77,9 +93,9 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 			},
 		}
 
-		if err := c.JSON(httpErr.Code, response); err != nil {
+		if jsonErr := c.JSON(httpErr.Code, response); jsonErr != nil {
 			h.logger.Error("failed to send error response",
-				logging.ErrorField("error", err),
+				logging.ErrorField("error", jsonErr),
 			)
 		}
 
@@ -98,9 +114,9 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		},
 	}
 
-	if err := c.JSON(http.StatusInternalServerError, response); err != nil {
+	if jsonErr := c.JSON(http.StatusInternalServerError, response); jsonErr != nil {
 		h.logger.Error("failed to send error response",
-			logging.ErrorField("error", err),
+			logging.ErrorField("error", jsonErr),
 		)
 	}
 }
@@ -118,6 +134,76 @@ func (h *ErrorHandler) Middleware() echo.MiddlewareFunc {
 	}
 }
 
+// getStatusCodeForDomainError returns the appropriate HTTP status code for a domain error
+func getStatusCodeForDomainError(code errors.ErrorCode) int {
+	switch code {
+	case errors.ErrCodeValidation:
+		return http.StatusBadRequest
+	case errors.ErrCodeNotFound:
+		return http.StatusNotFound
+	case errors.ErrCodeUnauthorized:
+		return http.StatusUnauthorized
+	case errors.ErrCodeForbidden:
+		return http.StatusForbidden
+	case errors.ErrCodeRequired, errors.ErrCodeInvalid, errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput:
+		return http.StatusBadRequest
+	case errors.ErrCodeInvalidToken, errors.ErrCodeAuthentication:
+		return http.StatusUnauthorized
+	case errors.ErrCodeInsufficientRole:
+		return http.StatusForbidden
+	case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists:
+		return http.StatusConflict
+	case errors.ErrCodeBadRequest:
+		return http.StatusBadRequest
+	case errors.ErrCodeServerError, errors.ErrCodeDatabase, errors.ErrCodeTimeout:
+		return http.StatusInternalServerError
+	case errors.ErrCodeStartup, errors.ErrCodeShutdown, errors.ErrCodeConfig:
+		return http.StatusServiceUnavailable
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// handleDomainError handles domain errors and returns appropriate HTTP responses
+func handleDomainError(c echo.Context, domainErr *errors.DomainError) error {
+	statusCode := getStatusCodeForDomainError(domainErr.Code)
+	response := map[string]any{
+		"error": domainErr.Error(),
+		"code":  domainErr.Code,
+	}
+
+	if jsonErr := c.JSON(statusCode, response); jsonErr != nil {
+		return fmt.Errorf("failed to send error response: %w", jsonErr)
+	}
+	return nil
+}
+
+// handleHTTPError handles HTTP errors and returns appropriate HTTP responses
+func handleHTTPError(c echo.Context, httpErr *echo.HTTPError) error {
+	response := map[string]any{
+		"error": httpErr.Message,
+		"code":  httpErr.Code,
+	}
+
+	if jsonErr := c.JSON(httpErr.Code, response); jsonErr != nil {
+		return fmt.Errorf("failed to send error response: %w", jsonErr)
+	}
+	return nil
+}
+
+// handleUnknownError handles unknown errors and returns appropriate HTTP responses
+func handleUnknownError(c echo.Context) error {
+	response := map[string]any{
+		"error": "Internal Server Error",
+		"code":  http.StatusInternalServerError,
+	}
+
+	if jsonErr := c.JSON(http.StatusInternalServerError, response); jsonErr != nil {
+		return fmt.Errorf("failed to send error response: %w", jsonErr)
+	}
+	return nil
+}
+
 // ErrorHandlerMiddleware is a middleware that handles errors
 func ErrorHandlerMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -129,54 +215,15 @@ func ErrorHandlerMiddleware() echo.MiddlewareFunc {
 
 			var domainErr *errors.DomainError
 			if stderrors.As(err, &domainErr) {
-				var statusCode int
-				switch domainErr.Code {
-				case errors.ErrCodeValidation:
-					statusCode = http.StatusBadRequest
-				case errors.ErrCodeNotFound:
-					statusCode = http.StatusNotFound
-				case errors.ErrCodeUnauthorized:
-					statusCode = http.StatusUnauthorized
-				case errors.ErrCodeForbidden:
-					statusCode = http.StatusForbidden
-				default:
-					statusCode = http.StatusInternalServerError
-				}
-
-				response := map[string]interface{}{
-					"error": domainErr.Error(),
-					"code":  domainErr.Code,
-				}
-
-				if err := c.JSON(statusCode, response); err != nil {
-					return fmt.Errorf("failed to send error response: %w", err)
-				}
-				return nil
+				return handleDomainError(c, domainErr)
 			}
 
 			var httpErr *echo.HTTPError
 			if stderrors.As(err, &httpErr) {
-				response := map[string]interface{}{
-					"error": httpErr.Message,
-					"code":  httpErr.Code,
-				}
-
-				if err := c.JSON(httpErr.Code, response); err != nil {
-					return fmt.Errorf("failed to send error response: %w", err)
-				}
-				return nil
+				return handleHTTPError(c, httpErr)
 			}
 
-			// Handle unknown errors
-			response := map[string]interface{}{
-				"error": "Internal Server Error",
-				"code":  http.StatusInternalServerError,
-			}
-
-			if err := c.JSON(http.StatusInternalServerError, response); err != nil {
-				return fmt.Errorf("failed to send error response: %w", err)
-			}
-			return nil
+			return handleUnknownError(c)
 		}
 	}
 }

@@ -107,10 +107,11 @@ func New() Validator {
 }
 
 // Struct validates a struct
-func (v *validatorImpl) Struct(i interface{}) error {
+func (v *validatorImpl) Struct(i any) error {
 	err := v.validate.Struct(i)
 	if err != nil {
-		if ve, ok := err.(validator.ValidationErrors); ok {
+		var ve validator.ValidationErrors
+		if errors.As(err, &ve) {
 			validationErrors := make([]ValidationError, len(ve))
 			for i, e := range ve {
 				validationErrors[i] = ValidationError{
@@ -126,7 +127,7 @@ func (v *validatorImpl) Struct(i interface{}) error {
 }
 
 // Var validates a single variable
-func (v *validatorImpl) Var(i interface{}, tag string) error {
+func (v *validatorImpl) Var(i any, tag string) error {
 	return v.validate.Var(i, tag)
 }
 
@@ -147,7 +148,7 @@ func (v *validatorImpl) RegisterStructValidation(fn func(sl validator.StructLeve
 }
 
 // Validate validates a struct
-func (v *validatorImpl) Validate(i interface{}) error {
+func (v *validatorImpl) Validate(i any) error {
 	return v.Struct(i)
 }
 
@@ -158,7 +159,8 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 	}
 
 	validationErrors := make(map[string]string)
-	if ve, ok := err.(validator.ValidationErrors); ok {
+	var ve validator.ValidationErrors
+	if errors.As(err, &ve) {
 		for _, e := range ve {
 			field := e.Field()
 			switch e.Tag() {
