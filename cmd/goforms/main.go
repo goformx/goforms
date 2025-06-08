@@ -42,6 +42,15 @@ type appParams struct {
 	MiddlewareManager *appmiddleware.Manager
 }
 
+func setupLogger(cfg *config.Config) (logging.Logger, error) {
+	return logging.NewFactory(logging.FactoryConfig{
+		AppName:     cfg.App.Name,
+		Version:     cfg.App.Version,
+		Environment: cfg.App.Env,
+		Fields:      map[string]any{},
+	}).CreateLogger()
+}
+
 // setupServer configures and starts the server
 func setupServer(params appParams) error {
 	// Register all handlers
@@ -133,13 +142,4 @@ func main() {
 
 		return // Use return instead of os.Exit to allow deferred functions to run
 	}
-}
-
-func setupLogger(cfg *config.Config) (logging.Logger, error) {
-	return logging.NewFactory(logging.FactoryConfig{
-		AppName:     cfg.App.Name,
-		Version:     cfg.App.Version,
-		Environment: cfg.App.Env,
-		Fields:      map[string]any{},
-	}).CreateLogger()
 }
