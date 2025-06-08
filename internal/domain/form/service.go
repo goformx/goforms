@@ -25,7 +25,12 @@ func NewService(repo Repository, publisher event.Publisher, logger logging.Logge
 	}
 }
 
-func (s *service) CreateForm(ctx context.Context, userID uint, title, description string, schema model.JSON) (*model.Form, error) {
+func (s *service) CreateForm(
+	ctx context.Context,
+	userID uint,
+	title, description string,
+	schema model.JSON,
+) (*model.Form, error) {
 	// Add timeout to context
 	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
 	defer cancel()

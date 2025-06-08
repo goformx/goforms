@@ -132,7 +132,11 @@ func (f *Form) validateSchema() error {
 	for name, prop := range properties {
 		property, isMap := prop.(map[string]any)
 		if !isMap {
-			return errors.New(errors.ErrCodeValidation, fmt.Sprintf("invalid property format for '%s': must be an object", name), nil)
+			return errors.New(
+				errors.ErrCodeValidation,
+				fmt.Sprintf("invalid property format for '%s': must be an object", name),
+				nil,
+			)
 		}
 
 		// Check for required property fields
