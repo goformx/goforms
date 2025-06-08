@@ -176,7 +176,11 @@ func (s *Store) List(ctx context.Context, params common.PaginationParams) (*comm
 }
 
 // GetByFormIDPaginated returns a paginated list of submissions for a form
-func (s *Store) GetByFormIDPaginated(ctx context.Context, formID string, params common.PaginationParams) (*common.PaginationResult, error) {
+func (s *Store) GetByFormIDPaginated(
+	ctx context.Context,
+	formID string,
+	params common.PaginationParams,
+) (*common.PaginationResult, error) {
 	s.logger.Debug("getting paginated form submissions",
 		logging.String("form_id", formID),
 		logging.Int("page", params.Page),
