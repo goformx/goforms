@@ -7,6 +7,8 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
+	"strconv"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
@@ -14,6 +16,11 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+)
+
+const (
+	// DefaultReadHeaderTimeout is the default timeout for reading request headers
+	DefaultReadHeaderTimeout = 5 * time.Second
 )
 
 // Server handles HTTP server lifecycle and configuration
@@ -26,7 +33,7 @@ type Server struct {
 
 // Address returns the server's address in host:port format
 func (s *Server) Address() string {
-	return net.JoinHostPort(s.config.App.Host, fmt.Sprintf("%d", s.config.App.Port))
+	return net.JoinHostPort(s.config.App.Host, strconv.Itoa(s.config.App.Port))
 }
 
 // URL returns the server's full HTTP URL
@@ -38,8 +45,9 @@ func (s *Server) URL() string {
 func (s *Server) Start() error {
 	addr := s.Address()
 	s.server = &http.Server{
-		Addr:    addr,
-		Handler: s.echo,
+		Addr:              addr,
+		Handler:           s.echo,
+		ReadHeaderTimeout: DefaultReadHeaderTimeout, // Prevent Slowloris attacks
 	}
 
 	// Create a channel to signal when the server is ready

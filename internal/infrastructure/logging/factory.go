@@ -14,6 +14,8 @@ const (
 	LogEncodingConsole = "console"
 	// LogEncodingJSON represents JSON encoding for logs
 	LogEncodingJSON = "json"
+	// EnvironmentDevelopment represents the development environment
+	EnvironmentDevelopment = "development"
 )
 
 // Config holds the configuration for creating a logger
@@ -83,7 +85,7 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	zapConfig.Sampling = nil // Disable sampling to show all logs
 
 	// Use console encoding for development, JSON for production
-	if f.environment == "development" {
+	if f.environment == EnvironmentDevelopment {
 		zapConfig.Encoding = LogEncodingConsole
 	} else {
 		zapConfig.Encoding = LogEncodingJSON
@@ -93,7 +95,7 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	var opts []zap.Option
 	opts = append(opts, zap.AddCaller(), zap.AddStacktrace(zapcore.ErrorLevel))
 
-	if f.environment == "development" {
+	if f.environment == EnvironmentDevelopment {
 		opts = append(opts, zap.Fields(
 			zap.String("app", f.appName),
 			zap.String("env", f.environment),
@@ -133,7 +135,7 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 	zapConfig.OutputPaths = []string{"stdout"}
 
 	// Use console encoding for development, JSON for production
-	if f.environment == "development" {
+	if f.environment == EnvironmentDevelopment {
 		zapConfig.Encoding = LogEncodingConsole
 	} else {
 		zapConfig.Encoding = LogEncodingJSON

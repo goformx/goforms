@@ -24,6 +24,11 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	// DefaultShutdownTimeout is the default timeout for graceful shutdown
+	DefaultShutdownTimeout = 30 * time.Second
+)
+
 type appParams struct {
 	fx.In
 
@@ -105,19 +110,23 @@ func main() {
 
 	// Start the application
 	if err := app.Start(ctx); err != nil {
-		log.Fatal("Failed to start application:", err)
+		stop() // Ensure signal handler is stopped
+		log.Printf("Failed to start application: %v", err)
+		return // Use return instead of os.Exit to allow deferred functions to run
 	}
 
 	// Wait for interrupt signal
 	<-ctx.Done()
 
 	// Create a new context for shutdown with timeout
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
 	defer cancel()
 
 	// Stop the application
 	if err := app.Stop(shutdownCtx); err != nil {
-		log.Fatal("Failed to stop application:", err)
+		stop() // Ensure signal handler is stopped
+		log.Printf("Failed to stop application: %v", err)
+		return // Use return instead of os.Exit to allow deferred functions to run
 	}
 }
 
