@@ -35,9 +35,9 @@ func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
 }
 
 // Create creates a new form
-func (s *Store) Create(ctx context.Context, form *model.Form) error {
-	s.logger.Debug("creating form", logging.StringField("form_id", form.ID))
-	if err := s.db.WithContext(ctx).Create(form).Error; err != nil {
+func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
+	s.logger.Debug("creating form", logging.StringField("form_id", formModel.ID))
+	if err := s.db.WithContext(ctx).Create(formModel).Error; err != nil {
 		return fmt.Errorf("failed to create form: %w", err)
 	}
 	return nil
@@ -46,14 +46,14 @@ func (s *Store) Create(ctx context.Context, form *model.Form) error {
 // GetByID retrieves a form by ID
 func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	s.logger.Debug("getting form by id", logging.StringField("form_id", id))
-	var form model.Form
-	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&form).Error; err != nil {
+	var formModel model.Form
+	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrFormNotFound
 		}
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
-	return &form, nil
+	return &formModel, nil
 }
 
 // GetByUserID retrieves all forms created by a specific user
@@ -67,9 +67,9 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 }
 
 // Update updates a form
-func (s *Store) Update(ctx context.Context, form *model.Form) error {
-	s.logger.Debug("updating form", logging.StringField("form_id", form.ID))
-	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("id = ?", form.ID).Updates(form)
+func (s *Store) Update(ctx context.Context, formModel *model.Form) error {
+	s.logger.Debug("updating form", logging.StringField("form_id", formModel.ID))
+	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("id = ?", formModel.ID).Updates(formModel)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update form: %w", result.Error)
 	}

@@ -40,12 +40,15 @@ type User struct {
 }
 
 // TableName specifies the table name for the User model
-func (User) TableName() string {
+func (u *User) TableName() string {
 	return "users"
 }
 
 // BeforeCreate is a GORM hook that runs before creating a user
 func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.ID == 0 {
+		u.ID = uint(time.Now().UnixNano())
+	}
 	if u.Role == "" {
 		u.Role = "user"
 	}

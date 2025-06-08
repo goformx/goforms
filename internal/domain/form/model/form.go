@@ -29,7 +29,7 @@ type Form struct {
 }
 
 // TableName specifies the table name for the Form model
-func (Form) TableName() string {
+func (f *Form) TableName() string {
 	return "forms"
 }
 

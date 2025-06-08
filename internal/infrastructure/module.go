@@ -65,13 +65,13 @@ func AnnotateHandler(fn any) fx.Option {
 
 // NewStores creates new stores
 func NewStores(db *database.GormDB, logger logging.Logger) (
-	user.Repository,
-	form.Repository,
-	form.SubmissionStore,
+	userRepo user.Repository,
+	formRepo form.Repository,
+	formSubmissionStore form.SubmissionStore,
 ) {
 	userStore := userstore.NewStore(db, logger)
 	formStore := formstore.NewStore(db, logger)
-	formSubmissionStore := formsubmissionstore.NewStore(db, logger)
+	formSubmissionStore = formsubmissionstore.NewStore(db, logger)
 
 	return userStore, formStore, formSubmissionStore
 }
