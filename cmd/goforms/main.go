@@ -163,8 +163,6 @@ func setupLogger() (logging.Logger, error) {
 		AppName:     "goforms",
 		Version:     "1.0.0",
 		Environment: "development",
-		Fields: map[string]any{
-			"version": "1.0.0",
-		},
+		Fields:      map[string]any{},
 	}).CreateLogger()
 }

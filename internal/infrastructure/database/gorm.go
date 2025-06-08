@@ -35,7 +35,7 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 			LogLevel:                  logger.Info,
 			IgnoreRecordNotFoundError: false,
 			Colorful:                  false,
-			ParameterizedQueries:      true,
+			ParameterizedQueries:      false,
 		},
 	)
 
@@ -119,7 +119,6 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 		logging.StringField("query", string(p)),
 		logging.StringField("type", "raw_query"),
 		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
-		logging.StringField("warning", "raw SQL may contain unescaped values"),
 	)
 	return len(p), nil
 }
@@ -140,6 +139,10 @@ func (w *GormLogWriter) Error(msg string, err error) {
 	errorType := "database_error"
 	if errors.Is(err, gorm.ErrRecordNotFound) {
 		errorType = "record_not_found"
+	} else if errors.Is(err, gorm.ErrInvalidDB) {
+		errorType = "invalid_db"
+	} else if errors.Is(err, gorm.ErrInvalidTransaction) {
+		errorType = "invalid_transaction"
 	}
 
 	w.logger.Error("gorm error",
@@ -148,6 +151,7 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		logging.StringField("type", errorType),
 		logging.StringField("error_type", fmt.Sprintf("%T", err)),
 		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
+		logging.StringField("stack_trace", fmt.Sprintf("%+v", err)),
 	)
 }
 

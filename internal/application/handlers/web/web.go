@@ -1,13 +1,16 @@
 package web
 
 import (
+	"errors"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/response"
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
+	"gorm.io/gorm"
 )
 
 // WebHandler handles web page requests
@@ -49,6 +52,10 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	// Get user ID from session
 	userIDRaw, ok := c.Get("user_id").(uint)
 	if !ok {
+		h.Logger.Error("user ID not found in session",
+			logging.StringField("operation", "handle_dashboard"),
+			logging.StringField("error_type", "session_error"),
+		)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 	userID := userIDRaw
@@ -56,19 +63,41 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get user (nil or error)",
+			logging.ErrorField("error", err),
+			logging.UintField("user_id", userID),
+			logging.StringField("operation", "handle_dashboard"),
+			logging.StringField("error_type", "user_service_error"),
+		)
 		data := shared.BuildPageData(h.Config, "Error")
-		data.Error = "Failed to get user"
+		data.Error = "Failed to get user information. Please try again later."
 		return h.Renderer.Render(c, pages.Error(data))
 	}
 
 	// Get user's forms
 	forms, err := h.BaseHandler.formService.GetUserForms(c.Request().Context(), userID)
 	if err != nil {
-		h.Logger.Error("failed to get user forms", logging.ErrorField("error", err))
-		data := shared.BuildPageData(h.Config, "Error")
-		data.Error = "Failed to get forms"
-		return h.Renderer.Render(c, pages.Error(data))
+		h.Logger.Error("failed to get user forms",
+			logging.ErrorField("error", err),
+			logging.UintField("user_id", userID),
+			logging.StringField("operation", "handle_dashboard"),
+			logging.StringField("error_type", "form_service_error"),
+		)
+
+		// Check for specific errors
+		switch {
+		case errors.Is(err, model.ErrFormNotFound):
+			// No forms found is not an error, just show empty dashboard
+			forms = []*model.Form{}
+		case errors.Is(err, gorm.ErrInvalidDB):
+			data := shared.BuildPageData(h.Config, "Error")
+			data.Error = "Database connection error. Please try again later."
+			return h.Renderer.Render(c, pages.Error(data))
+		default:
+			data := shared.BuildPageData(h.Config, "Error")
+			data.Error = "Failed to load your forms. Please try again later."
+			return h.Renderer.Render(c, pages.Error(data))
+		}
 	}
 
 	data := shared.BuildPageData(h.Config, "Dashboard")
@@ -77,6 +106,13 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
 		data.CSRFToken = csrfToken
 	}
+
+	h.Logger.Debug("dashboard rendered successfully",
+		logging.UintField("user_id", userID),
+		logging.IntField("form_count", len(forms)),
+		logging.StringField("operation", "handle_dashboard"),
+	)
+
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }
 

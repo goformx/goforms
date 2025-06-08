@@ -150,20 +150,37 @@ func (s *service) GetUserForms(ctx context.Context, userID uint) ([]*model.Form,
 
 	s.logger.Debug("attempting to get user forms",
 		logging.UintField("user_id", userID),
+		logging.StringField("operation", "get_user_forms"),
 	)
 
 	forms, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
+		// Log detailed error information
 		s.logger.Error("failed to get user forms from repository",
 			logging.UintField("user_id", userID),
 			logging.ErrorField("error", err),
+			logging.StringField("error_type", "repository_error"),
+			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
+			logging.StringField("stack_trace", fmt.Sprintf("%+v", err)),
 		)
-		return nil, fmt.Errorf("failed to get user forms: %w", err)
+
+		// Check for specific errors
+		switch {
+		case errors.Is(err, gorm.ErrRecordNotFound):
+			return nil, model.ErrFormNotFound
+		case errors.Is(err, gorm.ErrInvalidDB):
+			return nil, fmt.Errorf("database connection error: %w", err)
+		case errors.Is(err, gorm.ErrInvalidTransaction):
+			return nil, fmt.Errorf("transaction error: %w", err)
+		default:
+			return nil, fmt.Errorf("failed to get user forms: %w", err)
+		}
 	}
 
 	s.logger.Debug("user forms retrieved successfully",
 		logging.UintField("user_id", userID),
 		logging.IntField("form_count", len(forms)),
+		logging.StringField("operation", "get_user_forms"),
 	)
 
 	return forms, nil

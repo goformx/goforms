@@ -35,8 +35,12 @@ func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
 
 // Create creates a new form
 func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
-	s.logger.Debug("creating form", logging.StringField("form_id", formModel.ID))
 	if err := s.db.WithContext(ctx).Create(formModel).Error; err != nil {
+		s.logger.Error("failed to create form in database",
+			logging.StringField("form_id", formModel.ID),
+			logging.ErrorField("error", err),
+			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
+		)
 		return fmt.Errorf("failed to create form: %w", err)
 	}
 	return nil
@@ -56,6 +60,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 			s.logger.Debug("form not found",
 				logging.StringField("form_id", id),
 				logging.StringField("error_type", "record_not_found"),
+				logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE uuid::text = '%s' LIMIT 1", id)),
 			)
 			return nil, ErrFormNotFound
 		}
@@ -63,6 +68,8 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 			logging.StringField("form_id", id),
 			logging.ErrorField("error", err),
 			logging.StringField("error_type", "database_error"),
+			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
+			logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE uuid::text = '%s' LIMIT 1", id)),
 		)
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
@@ -76,29 +83,36 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	return &formModel, nil
 }
 
-// GetByUserID retrieves all forms created by a specific user
+// GetByUserID retrieves all forms for a user
 func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
 	s.logger.Debug("getting forms by user id",
 		logging.UintField("user_id", userID),
-		logging.StringField("query", "user_id = ?"),
-		logging.StringField("table", "forms"),
+		logging.StringField("operation", "get_forms_by_user"),
 	)
 
 	var forms []*model.Form
-	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at DESC").Find(&forms).Error; err != nil {
+	result := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&forms)
+	if result.Error != nil {
 		s.logger.Error("failed to get forms by user ID",
+			logging.ErrorField("error", result.Error),
 			logging.UintField("user_id", userID),
-			logging.ErrorField("error", err),
-			logging.StringField("error_type", "database_error"),
-			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
-			logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE user_id = %d ORDER BY created_at DESC", userID)),
+			logging.StringField("operation", "get_forms_by_user"),
+			logging.StringField("sql_query", s.db.Statement.SQL.String()),
+			logging.StringField("sql_vars", fmt.Sprintf("%+v", s.db.Statement.Vars)),
+			logging.StringField("error_type", fmt.Sprintf("%T", result.Error)),
+			logging.StringField("stack_trace", fmt.Sprintf("%+v", result.Error)),
 		)
-		return nil, fmt.Errorf("failed to get forms by user ID: %w", err)
+
+		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
+			return nil, ErrFormNotFound
+		}
+		return nil, fmt.Errorf("failed to get forms by user ID: %w", result.Error)
 	}
 
-	s.logger.Debug("forms retrieved successfully",
+	s.logger.Debug("successfully retrieved forms by user ID",
 		logging.UintField("user_id", userID),
 		logging.IntField("form_count", len(forms)),
+		logging.StringField("operation", "get_forms_by_user"),
 	)
 
 	return forms, nil

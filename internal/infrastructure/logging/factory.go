@@ -47,16 +47,6 @@ func NewFactory(cfg FactoryConfig) *Factory {
 		cfg.Fields = make(map[string]any)
 	}
 
-	// Ensure version is set
-	if cfg.Version == "" {
-		cfg.Version = "1.0.0"
-	}
-
-	// Add version to fields if not present
-	if _, exists := cfg.Fields["version"]; !exists {
-		cfg.Fields["version"] = cfg.Version
-	}
-
 	return &Factory{
 		initialFields: cfg.Fields,
 		appName:       cfg.AppName,
@@ -101,15 +91,8 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		zapConfig.Encoding = LogEncodingJSON
 	}
 
-	// Build initial fields
+	// Build initial fields from config only
 	var initialFields []zap.Field
-	initialFields = append(initialFields,
-		zap.String("app", f.appName),
-		zap.String("env", f.environment),
-		zap.String("version", f.version),
-	)
-
-	// Add any additional fields from config
 	for k, v := range f.initialFields {
 		switch val := v.(type) {
 		case string:
@@ -185,15 +168,8 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 		zapConfig.Encoding = LogEncodingJSON
 	}
 
-	// Build initial fields
+	// Build initial fields from config only
 	var initialFields []zap.Field
-	initialFields = append(initialFields,
-		zap.String("app", cfg.AppName),
-		zap.String("env", f.environment),
-		zap.String("version", f.version),
-	)
-
-	// Add any additional fields from config
 	for k, v := range f.initialFields {
 		switch val := v.(type) {
 		case string:
