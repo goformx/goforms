@@ -96,7 +96,16 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(m.contextMiddleware.WithContext())
 
 	// Register basic middleware
-	e.Use(echomw.Logger())
+	if m.config.Config.App.IsDevelopment() {
+		// Use console format in development
+		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
+			Format: "${time_rfc3339} ${status} ${method} ${uri} ${latency_human}\n",
+			Output: os.Stdout,
+		}))
+	} else {
+		// Use JSON format in production
+		e.Use(echomw.Logger())
+	}
 	e.Use(echomw.Recover())
 	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
 		AllowOrigins:     m.config.Security.CorsAllowedOrigins,
@@ -109,7 +118,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Development mode specific setup
 	if m.config.Config.App.Env == "development" {
 		m.logger.Info("middleware setup: development mode enabled")
-		e.Use(echomw.Logger())
 	}
 
 	// Register security middleware

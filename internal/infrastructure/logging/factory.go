@@ -110,13 +110,15 @@ func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 	zapConfig := zap.NewDevelopmentConfig()
 	zapConfig.EncoderConfig = encoderConfig
 	zapConfig.OutputPaths = []string{"stdout"}
-	zapConfig.Encoding = LogEncodingConsole
-	zapConfig.Level = zap.NewAtomicLevelAt(level)
 
-	// Use JSON encoding for production
-	if level >= zapcore.WarnLevel {
+	// Use console encoding for development, JSON for production
+	if f.environment == "development" {
+		zapConfig.Encoding = LogEncodingConsole
+	} else {
 		zapConfig.Encoding = LogEncodingJSON
 	}
+
+	zapConfig.Level = zap.NewAtomicLevelAt(level)
 
 	zapLog, err := zapConfig.Build(
 		zap.AddCaller(),

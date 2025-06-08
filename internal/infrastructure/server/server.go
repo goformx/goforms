@@ -39,6 +39,9 @@ func New(
 		config: cfg,
 	}
 
+	// Serve static files from public directory
+	e.Static("/", "public")
+
 	// Vite dev server proxy for /src and /@vite in development mode
 	if cfg.App.IsDevelopment() {
 		viteURL := &url.URL{
