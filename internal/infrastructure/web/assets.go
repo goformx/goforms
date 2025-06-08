@@ -5,6 +5,7 @@ package web
 
 import (
 	"encoding/json"
+	"errors"
 	"fmt"
 	"net"
 	"os"
@@ -65,7 +66,7 @@ func NewAssetManager() *AssetManager {
 // SetConfig sets the application configuration
 func (m *AssetManager) SetConfig(cfg *config.Config) error {
 	if cfg == nil {
-		return fmt.Errorf("config cannot be nil")
+		return errors.New("config cannot be nil")
 	}
 	m.mu.Lock()
 	defer m.mu.Unlock()
@@ -105,7 +106,7 @@ func (m *AssetManager) loadManifest() error {
 // GetAssetPath returns the correct path for an asset based on the environment
 func (m *AssetManager) GetAssetPath(path string) (string, error) {
 	if path == "" {
-		return "", fmt.Errorf("path cannot be empty")
+		return "", errors.New("path cannot be empty")
 	}
 
 	// Check cache first

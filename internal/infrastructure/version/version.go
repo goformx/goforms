@@ -7,6 +7,7 @@
 package version
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -20,16 +21,21 @@ type Info struct {
 	GoVersion string `json:"goVersion"`
 }
 
+const (
+	// UnknownVersion represents an unknown version value
+	UnknownVersion = "unknown"
+)
+
 //nolint:gochecknoglobals // Populated via -ldflags
 var (
 	// Version is the semantic version of the application
-	Version = "dev"
+	Version = UnknownVersion
 	// BuildTime is the time when the application was built
-	BuildTime = "unknown"
+	BuildTime = UnknownVersion
 	// GitCommit is the git commit hash of the build
-	GitCommit = "unknown"
+	GitCommit = UnknownVersion
 	// GoVersion is the version of Go used to build the application
-	GoVersion = "unknown"
+	GoVersion = UnknownVersion
 )
 
 // GetInfo returns the version information as an Info struct
@@ -71,21 +77,21 @@ func (i Info) GetBuildTime() (time.Time, error) {
 // Validate checks if the version information is valid
 func (i Info) Validate() error {
 	if i.Version == "" {
-		return fmt.Errorf("version is required")
+		return errors.New("version is required")
 	}
 
-	if i.BuildTime != "unknown" {
+	if i.BuildTime != UnknownVersion {
 		if _, err := time.Parse(time.RFC3339, i.BuildTime); err != nil {
 			return fmt.Errorf("invalid build time format: %w", err)
 		}
 	}
 
-	if i.GitCommit != "unknown" && len(i.GitCommit) < 7 {
-		return fmt.Errorf("git commit hash must be at least 7 characters")
+	if i.GitCommit != "" && len(i.GitCommit) < 7 {
+		return errors.New("git commit hash must be at least 7 characters")
 	}
 
-	if i.GoVersion != "unknown" && !strings.HasPrefix(i.GoVersion, "go") {
-		return fmt.Errorf("go version must start with 'go'")
+	if i.GoVersion != "" && !strings.HasPrefix(i.GoVersion, "go") {
+		return errors.New("go version must start with 'go'")
 	}
 
 	return nil
