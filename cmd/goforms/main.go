@@ -5,13 +5,15 @@ package main
 
 import (
 	"context"
+	"fmt"
 	"log"
+	"net"
 	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"go.uber.org/fx"
-	"go.uber.org/zap"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
@@ -35,6 +37,7 @@ type appParams struct {
 }
 
 func main() {
+	// Create the application with all dependencies
 	app := fx.New(
 		// Core infrastructure
 		fx.Provide(
@@ -48,55 +51,61 @@ func main() {
 		infrastructure.Module,
 		// Application lifecycle
 		fx.Invoke(func(params appParams) {
+			// Setup startup hook
 			params.Lifecycle.Append(fx.Hook{
 				OnStart: func(ctx context.Context) error {
 					params.Logger.Info("Starting application...")
+
+					// Log server configuration
+					params.Logger.Info("Server configuration",
+						logging.StringField("host", params.Server.Config().App.Host),
+						logging.IntField("port", params.Server.Config().App.Port),
+						logging.StringField("environment", params.Server.Config().App.Env),
+						logging.StringField("server_type", "echo"),
+						logging.StringField("address", net.JoinHostPort(params.Server.Config().App.Host, fmt.Sprintf("%d", params.Server.Config().App.Port))),
+					)
 
 					// Register all handlers
 					params.Logger.Info("Registering handlers...")
 					for _, h := range params.Handlers {
 						h.Register(params.Echo)
 					}
+					params.Logger.Info("Handlers registered successfully")
 
 					// Setup middleware
 					params.Logger.Info("Setting up middleware...")
 					params.MiddlewareManager.Setup(params.Echo)
-
-					// Start server in a goroutine
-					go func() {
-						if err := params.Server.Start(ctx); err != nil {
-							params.Logger.Fatal("Failed to start server", zap.Error(err))
-						}
-					}()
-
-					// Wait for interrupt signal
-					quit := make(chan os.Signal, 1)
-					signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-					<-quit
+					params.Logger.Info("Middleware setup completed")
 
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
 					params.Logger.Info("Shutting down application...")
-					return params.Server.Stop(ctx)
+					return nil
 				},
 			})
 		}),
 	)
 
+	// Create a context that will be canceled on interrupt
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	defer stop()
+
 	// Start the application
-	if err := app.Start(context.Background()); err != nil {
-		log.Fatal(err)
+	if err := app.Start(ctx); err != nil {
+		log.Fatal("Failed to start application:", err)
 	}
 
 	// Wait for interrupt signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	<-ctx.Done()
+
+	// Create a new context for shutdown with timeout
+	shutdownCtx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
 
 	// Stop the application
-	if err := app.Stop(context.Background()); err != nil {
-		log.Fatal(err)
+	if err := app.Stop(shutdownCtx); err != nil {
+		log.Fatal("Failed to stop application:", err)
 	}
 }
 

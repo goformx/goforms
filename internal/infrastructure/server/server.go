@@ -38,6 +38,14 @@ func New(
 		config: cfg,
 	}
 
+	// Log server configuration
+	logger.Info("initializing server",
+		logging.StringField("host", cfg.App.Host),
+		logging.IntField("port", cfg.App.Port),
+		logging.StringField("environment", cfg.App.Env),
+		logging.StringField("server_type", "echo"),
+	)
+
 	// Serve static files from public directory
 	e.Static("/", "public")
 
@@ -62,6 +70,80 @@ func New(
 		e.Group("/node_modules").Any("/*", echo.WrapHandler(viteProxy))
 	}
 
+	// Register lifecycle hooks
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			addr := net.JoinHostPort(cfg.App.Host, fmt.Sprintf("%d", cfg.App.Port))
+			srv.server = &http.Server{
+				Addr:    addr,
+				Handler: e,
+			}
+
+			srv.logger.Info("server starting",
+				logging.StringField("address", addr),
+				logging.StringField("environment", cfg.App.Env),
+				logging.StringField("host", cfg.App.Host),
+				logging.IntField("port", cfg.App.Port),
+				logging.StringField("server_type", "echo"),
+				logging.StringField("app", "goforms"),
+				logging.StringField("version", "1.0.0"),
+			)
+
+			// Create a channel to signal when the server is ready
+			ready := make(chan struct{})
+
+			// Start server in a goroutine
+			go func() {
+				// Signal that the server is ready to accept connections
+				close(ready)
+
+				if err := srv.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+					srv.logger.Fatal("failed to start server",
+						logging.ErrorField("error", err),
+						logging.StringField("address", addr),
+						logging.StringField("host", cfg.App.Host),
+						logging.IntField("port", cfg.App.Port),
+						logging.StringField("app", "goforms"),
+						logging.StringField("version", "1.0.0"),
+					)
+				}
+			}()
+
+			// Wait for the server to be ready
+			<-ready
+
+			srv.logger.Info("server listening",
+				logging.StringField("address", addr),
+				logging.StringField("environment", cfg.App.Env),
+				logging.StringField("host", cfg.App.Host),
+				logging.IntField("port", cfg.App.Port),
+				logging.StringField("server_type", "echo"),
+				logging.StringField("app", "goforms"),
+				logging.StringField("version", "1.0.0"),
+			)
+
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			if srv.server == nil {
+				return nil
+			}
+
+			srv.logger.Info("shutting down server")
+
+			shutdownCtx, cancel := context.WithTimeout(ctx, cfg.Server.ShutdownTimeout)
+			defer cancel()
+
+			if err := srv.server.Shutdown(shutdownCtx); err != nil {
+				srv.logger.Error("server shutdown error", logging.ErrorField("error", err))
+				return fmt.Errorf("server shutdown error: %w", err)
+			}
+
+			srv.logger.Info("server stopped")
+			return nil
+		},
+	})
+
 	return srv
 }
 
@@ -70,50 +152,7 @@ func (s *Server) Echo() *echo.Echo {
 	return s.echo
 }
 
-// Start starts the HTTP server
-func (s *Server) Start(ctx context.Context) error {
-	s.logger.Info("starting server")
-
-	// Create HTTP server
-	addr := net.JoinHostPort(s.config.App.Host, fmt.Sprintf("%d", s.config.App.Port))
-	s.server = &http.Server{
-		Addr:    addr,
-		Handler: s.echo,
-	}
-
-	// Start server in a goroutine
-	go func() {
-		s.logger.Info("server listening",
-			logging.StringField("address", addr),
-			logging.StringField("environment", s.config.App.Env),
-		)
-		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.logger.Fatal("failed to start server",
-				logging.ErrorField("error", err),
-				logging.StringField("address", addr),
-			)
-		}
-	}()
-
-	return nil
-}
-
-// Stop gracefully shuts down the HTTP server
-func (s *Server) Stop(ctx context.Context) error {
-	if s.server == nil {
-		return nil
-	}
-
-	s.logger.Info("shutting down server")
-
-	shutdownCtx, cancel := context.WithTimeout(ctx, s.config.Server.ShutdownTimeout)
-	defer cancel()
-
-	if err := s.server.Shutdown(shutdownCtx); err != nil {
-		s.logger.Error("server shutdown error", logging.ErrorField("error", err))
-		return fmt.Errorf("server shutdown error: %w", err)
-	}
-
-	s.logger.Info("server stopped")
-	return nil
+// Config returns the server configuration
+func (s *Server) Config() *config.Config {
+	return s.config
 }

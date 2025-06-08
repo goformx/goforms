@@ -80,14 +80,27 @@ func (m *Manager) GetSessionManager() *SessionManager {
 
 // Setup registers all middleware with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Info("middleware setup: starting")
+	m.logger.Info("setting up middleware",
+		logging.StringField("app", "goforms"),
+		logging.StringField("version", "1.0.0"),
+		logging.StringField("environment", m.config.Config.App.Env),
+	)
 
 	// Set Echo's logger to use our custom logger
 	e.Logger = &EchoLogger{logger: m.logger}
 
 	// Enable debug mode and set log level
 	e.Debug = m.config.Security.Debug
-	m.logger.Debug("middleware setup: echo log level set", logging.StringField("level", m.config.Security.LogLevel))
+	if m.config.Config.App.IsDevelopment() {
+		e.Logger.SetLevel(log.DEBUG)
+		m.logger.Info("development mode enabled",
+			logging.StringField("app", "goforms"),
+			logging.StringField("version", "1.0.0"),
+			logging.StringField("environment", m.config.Config.App.Env),
+		)
+	} else {
+		e.Logger.SetLevel(log.INFO)
+	}
 
 	// Add recovery middleware first to catch panics
 	e.Use(Recovery(m.logger))
@@ -115,21 +128,24 @@ func (m *Manager) Setup(e *echo.Echo) {
 		MaxAge:           m.config.Security.CorsMaxAge,
 	}))
 
-	// Development mode specific setup
-	if m.config.Config.App.Env == "development" {
-		m.logger.Info("middleware setup: development mode enabled")
-	}
-
 	// Register security middleware
 	e.Use(setupSecurityHeadersMiddleware())
 	e.Use(setupCSRF(m.config.Config.App.Env == "development"))
 	e.Use(setupRateLimiter(m.config.Security))
 
 	// Register session middleware last
-	m.logger.Info("middleware setup: registering session middleware")
+	m.logger.Info("registering session middleware",
+		logging.StringField("app", "goforms"),
+		logging.StringField("version", "1.0.0"),
+		logging.StringField("environment", m.config.Config.App.Env),
+	)
 	e.Use(m.config.SessionManager.SessionMiddleware())
 
-	m.logger.Info("middleware setup: completed")
+	m.logger.Info("middleware setup completed",
+		logging.StringField("app", "goforms"),
+		logging.StringField("version", "1.0.0"),
+		logging.StringField("environment", m.config.Config.App.Env),
+	)
 }
 
 // setupCSRF creates and configures CSRF middleware
