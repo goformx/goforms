@@ -8,7 +8,7 @@ import (
 	"sync"
 
 	validator "github.com/go-playground/validator/v10"
-	"github.com/goformx/goforms/internal/domain/common/interfaces"
+	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 )
 
 const (
@@ -68,9 +68,19 @@ func getErrorMessage(e validator.FieldError) string {
 	}
 }
 
+// Validator defines the interface for validation
+type Validator interface {
+	Struct(any) error
+	Var(any, string) error
+	RegisterValidation(string, func(fl validator.FieldLevel) bool) error
+	GetValidationErrors(error) map[string]string
+	RegisterCrossFieldValidation(string, func(fl validator.FieldLevel) bool) error
+	RegisterStructValidation(func(sl validator.StructLevel), any) error
+}
+
 // validatorImpl implements the Validator interface
 type validatorImpl struct {
-	*validator.Validate
+	validate *validator.Validate
 }
 
 //nolint:gochecknoglobals // singleton pattern requires global instance and once
@@ -79,8 +89,8 @@ var (
 	once     sync.Once
 )
 
-// New returns a singleton instance of the validator
-func New() interfaces.Validator {
+// New creates a new validator instance
+func New() Validator {
 	once.Do(func() {
 		v := validator.New()
 		// Enable struct field validation
@@ -91,53 +101,54 @@ func New() interfaces.Validator {
 			}
 			return name
 		})
-		instance = &validatorImpl{Validate: v}
+		instance = &validatorImpl{validate: v}
 	})
 	return instance
 }
 
-// Struct implements validator.Struct
-func (v *validatorImpl) Struct(s any) error {
-	var validationErrors []ValidationError
-
-	if err := v.Validate.Struct(s); err != nil {
-		var ve validator.ValidationErrors
-		if errors.As(err, &ve) {
-			validationErrors = make([]ValidationError, len(ve))
-			for i, err := range ve {
+// Struct validates a struct
+func (v *validatorImpl) Struct(i interface{}) error {
+	err := v.validate.Struct(i)
+	if err != nil {
+		if ve, ok := err.(validator.ValidationErrors); ok {
+			validationErrors := make([]ValidationError, len(ve))
+			for i, e := range ve {
 				validationErrors[i] = ValidationError{
-					Field:   err.Field(),
-					Message: err.Error(),
+					Field:   getFieldName(e),
+					Message: getErrorMessage(e),
 				}
 			}
-			return ValidationErrors(validationErrors)
+			return domainerrors.New(domainerrors.ErrCodeValidation, "validation failed", ValidationErrors(validationErrors))
 		}
-
 		return err
 	}
-
 	return nil
 }
 
-// Var implements validator.Var
-func (v *validatorImpl) Var(field any, tag string) error {
-	return v.Validate.Var(field, tag)
+// Var validates a single variable
+func (v *validatorImpl) Var(i interface{}, tag string) error {
+	return v.validate.Var(i, tag)
 }
 
-// RegisterValidation implements validator.RegisterValidation
+// RegisterValidation registers a custom validation function
 func (v *validatorImpl) RegisterValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
-	return v.Validate.RegisterValidation(tag, fn)
+	return v.validate.RegisterValidation(tag, fn)
 }
 
-// RegisterStructValidation implements validator.RegisterStructValidation
-func (v *validatorImpl) RegisterStructValidation(fn func(sl validator.StructLevel), typ any) error {
-	v.Validate.RegisterStructValidation(fn, typ)
+// RegisterCrossFieldValidation registers a cross-field validation function
+func (v *validatorImpl) RegisterCrossFieldValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
+	return v.validate.RegisterValidation(tag, fn)
+}
+
+// RegisterStructValidation registers a struct validation function
+func (v *validatorImpl) RegisterStructValidation(fn func(sl validator.StructLevel), types any) error {
+	v.validate.RegisterStructValidation(fn, types)
 	return nil
 }
 
-// RegisterCrossFieldValidation implements validator.RegisterCrossFieldValidation
-func (v *validatorImpl) RegisterCrossFieldValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
-	return v.Validate.RegisterValidation(tag, fn)
+// Validate validates a struct
+func (v *validatorImpl) Validate(i interface{}) error {
+	return v.Struct(i)
 }
 
 // GetValidationErrors returns detailed validation errors
@@ -173,7 +184,7 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 }
 
 func (v *validatorImpl) ValidateStruct(s any) error {
-	err := v.Validate.Struct(s)
+	err := v.validate.Struct(s)
 	if err == nil {
 		return nil
 	}

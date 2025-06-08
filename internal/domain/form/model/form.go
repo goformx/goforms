@@ -1,6 +1,7 @@
 package model
 
 import (
+	"errors"
 	"fmt"
 	"time"
 
@@ -77,15 +78,15 @@ func (f *Form) Validate() error {
 	}
 
 	if len(f.Title) < MinTitleLength {
-		return fmt.Errorf("form title must be at least 3 characters long")
+		return errors.New("form title must be at least 3 characters long")
 	}
 
 	if len(f.Title) > MaxTitleLength {
-		return fmt.Errorf("form title must not exceed 100 characters")
+		return errors.New("form title must not exceed 100 characters")
 	}
 
 	if f.Description != "" && len(f.Description) > MaxDescriptionLength {
-		return fmt.Errorf("form description must not exceed 500 characters")
+		return errors.New("form description must not exceed 500 characters")
 	}
 
 	if f.Schema == nil {
@@ -93,7 +94,7 @@ func (f *Form) Validate() error {
 	}
 
 	if len(f.Schema) == 0 {
-		return fmt.Errorf("form schema cannot be empty")
+		return errors.New("form schema cannot be empty")
 	}
 
 	// Validate schema structure
@@ -110,42 +111,42 @@ func (f *Form) validateSchema() error {
 	requiredFields := []string{"type", "properties"}
 	for _, field := range requiredFields {
 		if _, exists := f.Schema[field]; !exists {
-			return fmt.Errorf("missing required schema field: %s", field)
+			return errors.New(fmt.Sprintf("missing required schema field: %s", field))
 		}
 	}
 
 	// Validate schema type
 	schemaType, ok := f.Schema["type"].(string)
 	if !ok || schemaType != "object" {
-		return fmt.Errorf("invalid schema type: must be 'object'")
+		return errors.New("invalid schema type: must be 'object'")
 	}
 
 	// Validate properties
 	properties, ok := f.Schema["properties"].(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid properties format: must be an object")
+		return errors.New("invalid properties format: must be an object")
 	}
 
 	if len(properties) == 0 {
-		return fmt.Errorf("schema must contain at least one property")
+		return errors.New("schema must contain at least one property")
 	}
 
 	// Validate each property
 	for name, prop := range properties {
 		property, isMap := prop.(map[string]any)
 		if !isMap {
-			return fmt.Errorf("invalid property format for '%s': must be an object", name)
+			return errors.New(fmt.Sprintf("invalid property format for '%s': must be an object", name))
 		}
 
 		// Check for required property fields
 		if _, exists := property["type"]; !exists {
-			return fmt.Errorf("missing type for property '%s'", name)
+			return errors.New(fmt.Sprintf("missing type for property '%s'", name))
 		}
 
 		// Validate property type
 		propType, isString := property["type"].(string)
 		if !isString {
-			return fmt.Errorf("invalid type format for property '%s'", name)
+			return errors.New(fmt.Sprintf("invalid type format for property '%s'", name))
 		}
 
 		// Validate property type value
@@ -159,7 +160,7 @@ func (f *Form) validateSchema() error {
 		}
 
 		if !validTypes[propType] {
-			return fmt.Errorf("invalid type '%s' for property '%s'", propType, name)
+			return errors.New(fmt.Sprintf("invalid type '%s' for property '%s'", propType, name))
 		}
 	}
 

@@ -1,6 +1,8 @@
 package middleware
 
 import (
+	stderrors "errors"
+	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
@@ -110,6 +112,69 @@ func (h *ErrorHandler) Middleware() echo.MiddlewareFunc {
 			err := next(c)
 			if err != nil {
 				h.Handle(err, c)
+			}
+			return nil
+		}
+	}
+}
+
+// ErrorHandlerMiddleware is a middleware that handles errors
+func ErrorHandlerMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			err := next(c)
+			if err == nil {
+				return nil
+			}
+
+			var domainErr *errors.DomainError
+			if stderrors.As(err, &domainErr) {
+				var statusCode int
+				switch domainErr.Code {
+				case errors.ErrCodeValidation:
+					statusCode = http.StatusBadRequest
+				case errors.ErrCodeNotFound:
+					statusCode = http.StatusNotFound
+				case errors.ErrCodeUnauthorized:
+					statusCode = http.StatusUnauthorized
+				case errors.ErrCodeForbidden:
+					statusCode = http.StatusForbidden
+				default:
+					statusCode = http.StatusInternalServerError
+				}
+
+				response := map[string]interface{}{
+					"error": domainErr.Error(),
+					"code":  domainErr.Code,
+				}
+
+				if err := c.JSON(statusCode, response); err != nil {
+					return fmt.Errorf("failed to send error response: %w", err)
+				}
+				return nil
+			}
+
+			var httpErr *echo.HTTPError
+			if stderrors.As(err, &httpErr) {
+				response := map[string]interface{}{
+					"error": httpErr.Message,
+					"code":  httpErr.Code,
+				}
+
+				if err := c.JSON(httpErr.Code, response); err != nil {
+					return fmt.Errorf("failed to send error response: %w", err)
+				}
+				return nil
+			}
+
+			// Handle unknown errors
+			response := map[string]interface{}{
+				"error": "Internal Server Error",
+				"code":  http.StatusInternalServerError,
+			}
+
+			if err := c.JSON(http.StatusInternalServerError, response); err != nil {
+				return fmt.Errorf("failed to send error response: %w", err)
 			}
 			return nil
 		}

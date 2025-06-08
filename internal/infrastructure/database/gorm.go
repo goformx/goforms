@@ -13,6 +13,11 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
+const (
+	// DefaultPingTimeout is the default timeout for database ping operations
+	DefaultPingTimeout = 5 * time.Second
+)
+
 // GormDB wraps the GORM database connection
 type GormDB struct {
 	*gorm.DB
@@ -118,12 +123,8 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 }
 
 func (db *GormDB) Ping(ctx context.Context) error {
-	pingCtx, cancel := context.WithTimeout(ctx, 5*time.Second)
+	pingCtx, cancel := context.WithTimeout(ctx, DefaultPingTimeout)
 	defer cancel()
 
-	if pingErr := db.DB.WithContext(pingCtx).Raw("SELECT 1").Error; pingErr != nil {
-		return fmt.Errorf("failed to ping database: %w", pingErr)
-	}
-
-	return nil
+	return db.DB.WithContext(pingCtx).Raw("SELECT 1").Error
 }
