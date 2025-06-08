@@ -76,45 +76,18 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	// Get form data
 	title := c.FormValue("title")
 	description := c.FormValue("description")
-	schemaStr := c.FormValue("schema")
 
-	// Log form creation attempt with raw schema
+	// Log form creation attempt
 	h.Logger.Debug("attempting to create form",
 		logging.StringField("title", title),
 		logging.StringField("description", description),
-		logging.StringField("raw_schema", schemaStr),
 		logging.UintField("user_id", userID),
 	)
 
-	// Create a default schema if none provided
-	var schema model.JSON
-	if schemaStr == "" {
-		schema = model.JSON{
-			"type": "object",
-			"properties": map[string]any{
-				"title": map[string]any{
-					"type":  "string",
-					"title": "Title",
-				},
-				"description": map[string]any{
-					"type":  "string",
-					"title": "Description",
-				},
-			},
-			"required": []string{"title"},
-		}
-		h.Logger.Debug("using default schema",
-			logging.StringField("schema", fmt.Sprintf("%+v", schema)),
-		)
-	} else {
-		// Parse schema from form data
-		if err := json.Unmarshal([]byte(schemaStr), &schema); err != nil {
-			h.Logger.Error("failed to parse form schema",
-				logging.ErrorField("error", err),
-				logging.StringField("raw_schema", schemaStr),
-			)
-			return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Invalid form schema format")
-		}
+	// Create a valid initial schema
+	schema := model.JSON{
+		"type":       "object",
+		"components": []any{},
 	}
 
 	// Create the form
@@ -145,8 +118,8 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 		logging.UintField("user_id", form.UserID),
 	)
 
-	// Redirect to dashboard on success
-	return c.Redirect(http.StatusSeeOther, "/dashboard")
+	// Redirect to the form edit page
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/dashboard/forms/%s/edit", form.ID))
 }
 
 // GET /dashboard/forms/:id/edit

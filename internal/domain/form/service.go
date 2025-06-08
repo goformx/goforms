@@ -111,14 +111,31 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
 	defer cancel()
 
+	s.logger.Debug("attempting to get form",
+		logging.StringField("form_id", id),
+	)
+
 	form, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		return nil, err
+		s.logger.Error("failed to get form from repository",
+			logging.StringField("form_id", id),
+			logging.ErrorField("error", err),
+		)
+		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
 
 	if form == nil {
+		s.logger.Debug("form not found",
+			logging.StringField("form_id", id),
+		)
 		return nil, model.ErrFormNotFound
 	}
+
+	s.logger.Debug("form retrieved successfully",
+		logging.StringField("form_id", form.ID),
+		logging.StringField("title", form.Title),
+		logging.UintField("user_id", form.UserID),
+	)
 
 	return form, nil
 }
@@ -131,10 +148,23 @@ func (s *service) GetUserForms(ctx context.Context, userID uint) ([]*model.Form,
 	// Add user ID to context
 	ctx = ctxutil.WithUserID(ctx, userID)
 
+	s.logger.Debug("attempting to get user forms",
+		logging.UintField("user_id", userID),
+	)
+
 	forms, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, err
+		s.logger.Error("failed to get user forms from repository",
+			logging.UintField("user_id", userID),
+			logging.ErrorField("error", err),
+		)
+		return nil, fmt.Errorf("failed to get user forms: %w", err)
 	}
+
+	s.logger.Debug("user forms retrieved successfully",
+		logging.UintField("user_id", userID),
+		logging.IntField("form_count", len(forms)),
+	)
 
 	return forms, nil
 }

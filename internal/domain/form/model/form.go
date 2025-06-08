@@ -18,7 +18,7 @@ const (
 // Form represents a form in the system
 type Form struct {
 	ID          string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID      uint           `json:"user_id" gorm:"not null;index"`
+	UserID      uint           `json:"user_id" gorm:"not null;index;type:bigint"`
 	Title       string         `json:"title" gorm:"not null;size:100"`
 	Description string         `json:"description" gorm:"size:500"`
 	Schema      JSON           `json:"schema" gorm:"type:jsonb;not null"`
@@ -73,42 +73,22 @@ func NewForm(userID uint, title, description string, schema JSON) *Form {
 
 // Validate validates the form
 func (f *Form) Validate() error {
+	// Validate title
 	if f.Title == "" {
 		return ErrFormTitleRequired
 	}
 
-	if len(f.Title) < MinTitleLength {
-		return errors.New("form title must be at least 3 characters long")
+	if len(f.Title) < MinTitleLength || len(f.Title) > MaxTitleLength {
+		return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
 	}
 
-	if len(f.Title) > MaxTitleLength {
-		return errors.New("form title must not exceed 100 characters")
+	// Validate description length
+	if len(f.Description) > MaxDescriptionLength {
+		return fmt.Errorf("description must not exceed %d characters", MaxDescriptionLength)
 	}
 
-	if f.Description != "" && len(f.Description) > MaxDescriptionLength {
-		return errors.New("form description must not exceed 500 characters")
-	}
-
-	if f.Schema == nil {
-		return ErrFormSchemaRequired
-	}
-
-	if len(f.Schema) == 0 {
-		return errors.New("form schema cannot be empty")
-	}
-
-	// Validate schema structure
-	if err := f.validateSchema(); err != nil {
-		return fmt.Errorf("invalid form schema: %w", err)
-	}
-
-	return nil
-}
-
-// validateSchema validates the form schema structure
-func (f *Form) validateSchema() error {
 	// Check for required schema fields
-	requiredFields := []string{"type", "properties"}
+	requiredFields := []string{"type"}
 	for _, field := range requiredFields {
 		if _, exists := f.Schema[field]; !exists {
 			return fmt.Errorf("missing required schema field: %s", field)
@@ -121,47 +101,54 @@ func (f *Form) validateSchema() error {
 		return errors.New("invalid schema type: must be 'object'")
 	}
 
-	// Validate properties
-	properties, ok := f.Schema["properties"].(map[string]any)
-	if !ok {
-		return errors.New("invalid properties format: must be an object")
+	// Check for either properties or components
+	hasProperties := false
+	hasComponents := false
+
+	if properties, ok := f.Schema["properties"].(map[string]any); ok {
+		hasProperties = true
+		// Validate each property
+		for name, prop := range properties {
+			property, isMap := prop.(map[string]any)
+			if !isMap {
+				return fmt.Errorf("invalid property format for '%s': must be an object", name)
+			}
+
+			// Check for required property fields
+			if _, exists := property["type"]; !exists {
+				return fmt.Errorf("missing type for property '%s'", name)
+			}
+
+			// Validate property type
+			propType, isString := property["type"].(string)
+			if !isString {
+				return fmt.Errorf("invalid type format for property '%s'", name)
+			}
+
+			// Validate property type value
+			validTypes := map[string]bool{
+				"string":  true,
+				"number":  true,
+				"integer": true,
+				"boolean": true,
+				"array":   true,
+				"object":  true,
+			}
+
+			if !validTypes[propType] {
+				return fmt.Errorf("invalid type '%s' for property '%s'", propType, name)
+			}
+		}
 	}
 
-	if len(properties) == 0 {
-		return errors.New("schema must contain at least one property")
+	if components, ok := f.Schema["components"].([]any); ok {
+		hasComponents = true
+		// Components array is valid even if empty
+		_ = components
 	}
 
-	// Validate each property
-	for name, prop := range properties {
-		property, isMap := prop.(map[string]any)
-		if !isMap {
-			return fmt.Errorf("invalid property format for '%s': must be an object", name)
-		}
-
-		// Check for required property fields
-		if _, exists := property["type"]; !exists {
-			return fmt.Errorf("missing type for property '%s'", name)
-		}
-
-		// Validate property type
-		propType, isString := property["type"].(string)
-		if !isString {
-			return fmt.Errorf("invalid type format for property '%s'", name)
-		}
-
-		// Validate property type value
-		validTypes := map[string]bool{
-			"string":  true,
-			"number":  true,
-			"integer": true,
-			"boolean": true,
-			"array":   true,
-			"object":  true,
-		}
-
-		if !validTypes[propType] {
-			return fmt.Errorf("invalid type '%s' for property '%s'", propType, name)
-		}
+	if !hasProperties && !hasComponents {
+		return errors.New("schema must contain either properties or components")
 	}
 
 	return nil

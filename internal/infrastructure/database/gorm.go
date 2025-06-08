@@ -2,6 +2,7 @@ package database
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -32,8 +33,9 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		logger.Config{
 			SlowThreshold:             time.Second,
 			LogLevel:                  logger.Info,
-			IgnoreRecordNotFoundError: true,
+			IgnoreRecordNotFoundError: false,
 			Colorful:                  false,
+			ParameterizedQueries:      true,
 		},
 	)
 
@@ -113,13 +115,40 @@ type GormLogWriter struct {
 
 // Write implements io.Writer interface
 func (w *GormLogWriter) Write(p []byte) (n int, err error) {
-	w.logger.Debug("gorm query", logging.StringField("query", string(p)))
+	w.logger.Info("gorm query",
+		logging.StringField("query", string(p)),
+		logging.StringField("type", "raw_query"),
+		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
+		logging.StringField("warning", "raw SQL may contain unescaped values"),
+	)
 	return len(p), nil
 }
 
 // Printf implements logger.Writer interface
 func (w *GormLogWriter) Printf(format string, args ...any) {
-	w.logger.Debug("gorm query", logging.StringField("query", fmt.Sprintf(format, args...)))
+	msg := fmt.Sprintf(format, args...)
+	w.logger.Info("gorm query",
+		logging.StringField("query", msg),
+		logging.StringField("type", "formatted_query"),
+		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
+		logging.StringField("args", fmt.Sprintf("%+v", args)),
+	)
+}
+
+// Error implements logger.Writer interface
+func (w *GormLogWriter) Error(msg string, err error) {
+	errorType := "database_error"
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		errorType = "record_not_found"
+	}
+
+	w.logger.Error("gorm error",
+		logging.StringField("message", msg),
+		logging.ErrorField("error", err),
+		logging.StringField("type", errorType),
+		logging.StringField("error_type", fmt.Sprintf("%T", err)),
+		logging.StringField("timestamp", time.Now().UTC().Format(time.RFC3339)),
+	)
 }
 
 func (db *GormDB) Ping(ctx context.Context) error {

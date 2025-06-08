@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"time"
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -43,24 +44,63 @@ func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
 
 // GetByID retrieves a form by ID
 func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
-	s.logger.Debug("getting form by id", logging.StringField("form_id", id))
+	s.logger.Debug("getting form by id",
+		logging.StringField("form_id", id),
+		logging.StringField("query", "uuid::text = ?"),
+		logging.StringField("table", "forms"),
+	)
+
 	var formModel model.Form
-	if err := s.db.WithContext(ctx).Where("uuid = ?", id).First(&formModel).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("uuid::text = ?", id).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
+			s.logger.Debug("form not found",
+				logging.StringField("form_id", id),
+				logging.StringField("error_type", "record_not_found"),
+			)
 			return nil, ErrFormNotFound
 		}
+		s.logger.Error("failed to get form",
+			logging.StringField("form_id", id),
+			logging.ErrorField("error", err),
+			logging.StringField("error_type", "database_error"),
+		)
 		return nil, fmt.Errorf("failed to get form: %w", err)
 	}
+
+	s.logger.Debug("form retrieved successfully",
+		logging.StringField("form_id", formModel.ID),
+		logging.StringField("title", formModel.Title),
+		logging.UintField("user_id", formModel.UserID),
+		logging.StringField("created_at", formModel.CreatedAt.Format(time.RFC3339)),
+	)
 	return &formModel, nil
 }
 
 // GetByUserID retrieves all forms created by a specific user
 func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
-	s.logger.Debug("getting forms by user id", logging.UintField("user_id", userID))
+	s.logger.Debug("getting forms by user id",
+		logging.UintField("user_id", userID),
+		logging.StringField("query", "user_id = ?"),
+		logging.StringField("table", "forms"),
+	)
+
 	var forms []*model.Form
 	if err := s.db.WithContext(ctx).Where("user_id = ?", userID).Order("created_at DESC").Find(&forms).Error; err != nil {
+		s.logger.Error("failed to get forms by user ID",
+			logging.UintField("user_id", userID),
+			logging.ErrorField("error", err),
+			logging.StringField("error_type", "database_error"),
+			logging.StringField("error_details", fmt.Sprintf("%+v", err)),
+			logging.StringField("sql_query", fmt.Sprintf("SELECT * FROM forms WHERE user_id = %d ORDER BY created_at DESC", userID)),
+		)
 		return nil, fmt.Errorf("failed to get forms by user ID: %w", err)
 	}
+
+	s.logger.Debug("forms retrieved successfully",
+		logging.UintField("user_id", userID),
+		logging.IntField("form_count", len(forms)),
+	)
+
 	return forms, nil
 }
 

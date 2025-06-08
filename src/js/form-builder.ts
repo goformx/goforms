@@ -84,6 +84,14 @@ function validateFormBuilder(): { builder: HTMLElement; formId: string } {
  * Schema management
  */
 async function getFormSchema(formId: string): Promise<any> {
+  // For new form creation, return a default schema
+  if (formId === "new") {
+    return {
+      type: "object",
+      components: [],
+    };
+  }
+
   const formService = FormService.getInstance();
   try {
     return await formService.getSchema(formId);
@@ -123,7 +131,7 @@ async function createFormBuilder(
 /**
  * Event handlers setup
  */
-function setupEventHandlers(builder: any): void {
+function setupEventHandlers(builder: any, formId: string): void {
   const viewSchemaBtn = dom.getElement<HTMLButtonElement>("view-schema-btn");
   if (viewSchemaBtn) {
     viewSchemaBtn.addEventListener("click", () => {
@@ -168,6 +176,26 @@ function setupEventHandlers(builder: any): void {
       }
     });
   }
+
+  // For new form creation, update the hidden schema field before form submission
+  if (formId === "new") {
+    const form = dom.getElement<HTMLFormElement>("new-form");
+    if (form) {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          const schema = await builder.saveSchema();
+          const schemaInput = dom.getElement<HTMLInputElement>("schema");
+          if (schemaInput) {
+            schemaInput.value = JSON.stringify(schema);
+          }
+          form.submit();
+        } catch (_error) {
+          dom.showError("Failed to save form schema. Please try again.");
+        }
+      });
+    }
+  }
 }
 
 /**
@@ -183,7 +211,7 @@ async function initializeFormBuilder(): Promise<void> {
     const builder = await createFormBuilder(container, schema);
 
     // Set up event handlers
-    setupEventHandlers(builder);
+    setupEventHandlers(builder, formId);
     setupBuilderEvents(builder, formId, FormService.getInstance());
   } catch (error) {
     if (error instanceof FormBuilderError) {
