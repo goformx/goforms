@@ -6,18 +6,42 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/google/uuid"
+	"gorm.io/gorm"
 )
 
 // Form represents a form in the system
 type Form struct {
-	ID          string    `json:"id" db:"uuid"`
-	UserID      uint      `json:"user_id" db:"user_id"`
-	Title       string    `json:"title" db:"title"`
-	Description string    `json:"description" db:"description"`
-	Schema      JSON      `json:"schema" db:"schema"`
-	Active      bool      `json:"active" db:"active"`
-	CreatedAt   time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt   time.Time `json:"updated_at" db:"updated_at"`
+	ID          string         `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserID      uint           `json:"user_id" gorm:"not null;index"`
+	Title       string         `json:"title" gorm:"not null;size:100"`
+	Description string         `json:"description" gorm:"size:500"`
+	Schema      JSON           `json:"schema" gorm:"type:jsonb;not null"`
+	Active      bool           `json:"active" gorm:"not null;default:true"`
+	CreatedAt   time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt   time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
+	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// TableName specifies the table name for the Form model
+func (Form) TableName() string {
+	return "forms"
+}
+
+// BeforeCreate is a GORM hook that runs before creating a form
+func (f *Form) BeforeCreate(tx *gorm.DB) error {
+	if f.ID == "" {
+		f.ID = uuid.New().String()
+	}
+	if !f.Active {
+		f.Active = true
+	}
+	return nil
+}
+
+// BeforeUpdate is a GORM hook that runs before updating a form
+func (f *Form) BeforeUpdate(tx *gorm.DB) error {
+	f.UpdatedAt = time.Now()
+	return nil
 }
 
 // JSON is a type alias for map[string]any to represent JSON data
@@ -75,105 +99,59 @@ func (f *Form) Validate() error {
 // validateSchema validates the form schema structure
 func (f *Form) validateSchema() error {
 	// Check for required schema fields
-	requiredFields := []string{"fields", "title", "description"}
+	requiredFields := []string{"type", "properties"}
 	for _, field := range requiredFields {
 		if _, exists := f.Schema[field]; !exists {
-			return errors.New(errors.ErrCodeValidation, fmt.Sprintf("schema missing required field: %s", field), nil)
+			return fmt.Errorf("missing required schema field: %s", field)
 		}
 	}
 
-	// Validate fields array
-	fields, ok := f.Schema["fields"].([]any)
+	// Validate schema type
+	schemaType, ok := f.Schema["type"].(string)
+	if !ok || schemaType != "object" {
+		return fmt.Errorf("invalid schema type: must be 'object'")
+	}
+
+	// Validate properties
+	properties, ok := f.Schema["properties"].(map[string]any)
 	if !ok {
-		return errors.New(errors.ErrCodeValidation, "schema fields must be an array", nil)
+		return fmt.Errorf("invalid properties format: must be an object")
 	}
 
-	// Validate each field if there are any
-	for i, field := range fields {
-		fieldMap, fieldOk := field.(map[string]any)
-		if !fieldOk {
-			return fmt.Errorf("invalid field format")
+	if len(properties) == 0 {
+		return fmt.Errorf("schema must contain at least one property")
+	}
+
+	// Validate each property
+	for name, prop := range properties {
+		property, ok := prop.(map[string]any)
+		if !ok {
+			return fmt.Errorf("invalid property format for '%s': must be an object", name)
 		}
 
-		if err := f.validateField(fieldMap); err != nil {
-			return errors.Wrap(err, errors.ErrCodeValidation, fmt.Sprintf("invalid field at index %d", i))
-		}
-	}
-
-	return nil
-}
-
-// validateField validates a single form field
-func (f *Form) validateField(field map[string]any) error {
-	// Validate required fields
-	if err := f.validateRequiredFields(field); err != nil {
-		return err
-	}
-
-	// Validate field type
-	if err := f.validateFieldType(field); err != nil {
-		return err
-	}
-
-	// Validate field options
-	if err := f.validateFieldOptions(field); err != nil {
-		return err
-	}
-
-	return nil
-}
-
-func (f *Form) validateRequiredFields(field map[string]any) error {
-	requiredFields := []string{"type", "label"}
-	for _, required := range requiredFields {
-		if _, ok := field[required]; !ok {
-			return fmt.Errorf("missing required field: %s", required)
-		}
-	}
-	return nil
-}
-
-func (f *Form) validateFieldType(field map[string]any) error {
-	fieldType, ok := field["type"].(string)
-	if !ok {
-		return fmt.Errorf("invalid field type")
-	}
-
-	switch fieldType {
-	case "text", "textarea", "email", "password", "number", "date", "time", "datetime", "select", "radio", "checkbox", "file":
-		return nil
-	default:
-		return fmt.Errorf("unsupported field type: %s", fieldType)
-	}
-}
-
-func (f *Form) validateFieldOptions(field map[string]any) error {
-	fieldType, _ := field["type"].(string)
-	if fieldType != "select" && fieldType != "radio" && fieldType != "checkbox" {
-		return nil
-	}
-
-	options, optionsOk := field["options"].([]any)
-	if !optionsOk {
-		return fmt.Errorf("invalid options format")
-	}
-
-	if len(options) == 0 {
-		return fmt.Errorf("empty options for %s field", fieldType)
-	}
-
-	for _, option := range options {
-		optionMap, optionOk := option.(map[string]any)
-		if !optionOk {
-			return fmt.Errorf("invalid option format")
+		// Check for required property fields
+		if _, exists := property["type"]; !exists {
+			return fmt.Errorf("missing type for property '%s'", name)
 		}
 
-		if _, ok := optionMap["label"]; !ok {
-			return fmt.Errorf("missing label in option")
+		// Validate property type
+		propType, ok := property["type"].(string)
+		if !ok {
+			return fmt.Errorf("invalid type format for property '%s'", name)
 		}
 
-		if _, ok := optionMap["value"]; !ok {
-			return fmt.Errorf("missing value in option")
+		// Validate property type value
+		validTypes := map[string]bool{
+			"string":  true,
+			"number":  true,
+			"integer": true,
+			"boolean": true,
+			"array":   true,
+			"object":  true,
+		}
+
+		if !validTypes[propType] {
+			return fmt.Errorf("invalid type '%s' for property '%s'", propType, name)
 		}
 	}
 

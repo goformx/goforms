@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"golang.org/x/crypto/bcrypt"
+	"gorm.io/gorm"
 )
 
 var (
@@ -26,15 +27,38 @@ type LoginResponse struct {
 
 // User represents a user in the system
 type User struct {
-	ID             uint      `json:"id" db:"id"`
-	Email          string    `json:"email" db:"email"`
-	HashedPassword string    `json:"-" db:"hashed_password"`
-	FirstName      string    `json:"first_name" db:"first_name"`
-	LastName       string    `json:"last_name" db:"last_name"`
-	Role           string    `json:"role" db:"role"`
-	Active         bool      `json:"active" db:"active"`
-	CreatedAt      time.Time `json:"created_at" db:"created_at"`
-	UpdatedAt      time.Time `json:"updated_at" db:"updated_at"`
+	ID             uint           `json:"id" gorm:"primaryKey"`
+	Email          string         `json:"email" gorm:"uniqueIndex;not null;size:255"`
+	HashedPassword string         `json:"-" gorm:"column:hashed_password;not null;size:255"`
+	FirstName      string         `json:"first_name" gorm:"not null;size:100"`
+	LastName       string         `json:"last_name" gorm:"not null;size:100"`
+	Role           string         `json:"role" gorm:"not null;size:50;default:user"`
+	Active         bool           `json:"active" gorm:"not null;default:true"`
+	CreatedAt      time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt      time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
+	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
+}
+
+// TableName specifies the table name for the User model
+func (User) TableName() string {
+	return "users"
+}
+
+// BeforeCreate is a GORM hook that runs before creating a user
+func (u *User) BeforeCreate(tx *gorm.DB) error {
+	if u.Role == "" {
+		u.Role = "user"
+	}
+	if !u.Active {
+		u.Active = true
+	}
+	return nil
+}
+
+// BeforeUpdate is a GORM hook that runs before updating a user
+func (u *User) BeforeUpdate(tx *gorm.DB) error {
+	u.UpdatedAt = time.Now()
+	return nil
 }
 
 // Signup represents the user signup request
