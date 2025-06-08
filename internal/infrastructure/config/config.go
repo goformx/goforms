@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -102,6 +103,178 @@ type SecurityConfig struct {
 	} `envconfig:"GOFORMS_CSRF"`
 }
 
+// Validation errors
+var (
+	ErrMissingAppName    = errors.New("application name is required")
+	ErrInvalidPort       = errors.New("port must be between 1 and 65535")
+	ErrMissingDBDriver   = errors.New("database driver is required")
+	ErrMissingDBHost     = errors.New("database host is required")
+	ErrMissingDBUser     = errors.New("database user is required")
+	ErrMissingDBPassword = errors.New("database password is required")
+	ErrMissingDBName     = errors.New("database name is required")
+	ErrMissingCSRFSecret = errors.New("CSRF secret is required when CSRF is enabled")
+	ErrInvalidTimeout    = errors.New("timeout duration must be positive")
+	ErrInvalidRateLimit  = errors.New("rate limit must be positive")
+	ErrInvalidMaxConns   = errors.New("max connections must be positive")
+)
+
+// validateAppConfig validates application-level configuration
+func (c *Config) validateAppConfig() error {
+	if c.App.Name == "" {
+		return ErrMissingAppName
+	}
+
+	if c.App.Port <= 0 || c.App.Port > 65535 {
+		return ErrInvalidPort
+	}
+
+	if c.App.LogLevel != "" {
+		validLevels := map[string]bool{
+			"debug":   true,
+			"info":    true,
+			"warning": true,
+			"error":   true,
+			"fatal":   true,
+		}
+		if !validLevels[strings.ToLower(c.App.LogLevel)] {
+			return fmt.Errorf("invalid log level: %s", c.App.LogLevel)
+		}
+	}
+
+	return nil
+}
+
+// validateServerConfig validates server-related configuration
+func (c *Config) validateServerConfig() error {
+	if c.Server.Port <= 0 || c.Server.Port > 65535 {
+		return ErrInvalidPort
+	}
+
+	if c.Server.ReadTimeout <= 0 {
+		return ErrInvalidTimeout
+	}
+
+	if c.Server.WriteTimeout <= 0 {
+		return ErrInvalidTimeout
+	}
+
+	if c.Server.IdleTimeout <= 0 {
+		return ErrInvalidTimeout
+	}
+
+	if c.Server.ShutdownTimeout <= 0 {
+		return ErrInvalidTimeout
+	}
+
+	return nil
+}
+
+// validateMariaDBConfig validates MariaDB-specific configuration
+func (c *Config) validateMariaDBConfig() error {
+	if c.Database.MariaDB.Host == "" {
+		return ErrMissingDBHost
+	}
+	if c.Database.MariaDB.User == "" {
+		return ErrMissingDBUser
+	}
+	if c.Database.MariaDB.Password == "" {
+		return ErrMissingDBPassword
+	}
+	if c.Database.MariaDB.Name == "" {
+		return ErrMissingDBName
+	}
+	if c.Database.MariaDB.MaxOpenConns <= 0 {
+		return ErrInvalidMaxConns
+	}
+	if c.Database.MariaDB.MaxIdleConns <= 0 {
+		return ErrInvalidMaxConns
+	}
+	if c.Database.MariaDB.ConnMaxLifetime <= 0 {
+		return ErrInvalidTimeout
+	}
+	return nil
+}
+
+// validatePostgresConfig validates PostgreSQL-specific configuration
+func (c *Config) validatePostgresConfig() error {
+	if c.Database.Postgres.Host == "" {
+		return ErrMissingDBHost
+	}
+	if c.Database.Postgres.User == "" {
+		return ErrMissingDBUser
+	}
+	if c.Database.Postgres.Password == "" {
+		return ErrMissingDBPassword
+	}
+	if c.Database.Postgres.Name == "" {
+		return ErrMissingDBName
+	}
+	if c.Database.Postgres.MaxOpenConns <= 0 {
+		return ErrInvalidMaxConns
+	}
+	if c.Database.Postgres.MaxIdleConns <= 0 {
+		return ErrInvalidMaxConns
+	}
+	if c.Database.Postgres.ConnMaxLifetime <= 0 {
+		return ErrInvalidTimeout
+	}
+	return nil
+}
+
+// validateDatabaseConfig validates database-related configuration
+func (c *Config) validateDatabaseConfig() error {
+	if c.Database.Driver == "" {
+		return ErrMissingDBDriver
+	}
+
+	switch c.Database.Driver {
+	case "mariadb":
+		return c.validateMariaDBConfig()
+	case "postgres":
+		return c.validatePostgresConfig()
+	default:
+		return fmt.Errorf("unsupported database driver: %s", c.Database.Driver)
+	}
+}
+
+// validateSecurityConfig validates security-related configuration
+func (c *Config) validateSecurityConfig() error {
+	if c.Security.FormRateLimit <= 0 {
+		return ErrInvalidRateLimit
+	}
+
+	if c.Security.FormRateLimitWindow <= 0 {
+		return ErrInvalidTimeout
+	}
+
+	if c.Security.CSRFConfig.Enabled && c.Security.CSRFConfig.Secret == "" {
+		return ErrMissingCSRFSecret
+	}
+
+	return nil
+}
+
+// validateConfig performs comprehensive validation of the entire configuration
+func (c *Config) validateConfig() error {
+	validations := []struct {
+		name string
+		fn   func() error
+	}{
+		{"app", c.validateAppConfig},
+		{"server", c.validateServerConfig},
+		{"database", c.validateDatabaseConfig},
+		{"security", c.validateSecurityConfig},
+	}
+
+	for _, v := range validations {
+		if err := v.fn(); err != nil {
+			return fmt.Errorf("invalid %s configuration: %w", v.name, err)
+		}
+	}
+
+	return nil
+}
+
 // New creates a new configuration
 func New() (*Config, error) {
 	cfg := &Config{}
@@ -111,9 +284,9 @@ func New() (*Config, error) {
 		return nil, fmt.Errorf("failed to load environment variables: %w", err)
 	}
 
-	// Validate database configuration
-	if err := cfg.validateDatabaseConfig(); err != nil {
-		return nil, fmt.Errorf("invalid database configuration: %w", err)
+	// Validate all configuration
+	if err := cfg.validateConfig(); err != nil {
+		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
 
 	return cfg, nil
@@ -124,13 +297,4 @@ func (c *Config) loadEnv() error {
 		return fmt.Errorf("failed to process environment variables: %w", err)
 	}
 	return nil
-}
-
-func (c *Config) validateDatabaseConfig() error {
-	switch c.Database.Driver {
-	case "mariadb", "postgres":
-		return nil
-	default:
-		return fmt.Errorf("unsupported database driver: %s", c.Database.Driver)
-	}
 }
