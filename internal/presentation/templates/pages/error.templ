@@ -1,0 +1,22 @@
+package pages
+
+import (
+	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
+)
+
+templ Error(data shared.PageData) {
+	@layouts.Layout(data, errorContent(data))
+}
+
+templ errorContent(data shared.PageData) {
+	<div class="error-container">
+		<div class="error-content">
+			<h1>Error</h1>
+			<p>{ data.Error }</p>
+			<div class="error-actions">
+				<a href="/dashboard">Return to Dashboard</a>
+			</div>
+		</div>
+	</div>
+} 

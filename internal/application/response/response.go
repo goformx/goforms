@@ -3,6 +3,9 @@ package response
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
 
@@ -27,4 +30,11 @@ func ErrorResponse(c echo.Context, statusCode int, message string) error {
 		Success: false,
 		Message: message,
 	})
+}
+
+// WebErrorResponse renders an error page for web handlers
+func WebErrorResponse(c echo.Context, renderer *view.Renderer, statusCode int, message string) error {
+	data := shared.BuildPageData(nil, "Error")
+	data.Error = message
+	return renderer.Render(c, pages.Error(data))
 }

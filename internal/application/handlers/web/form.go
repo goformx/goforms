@@ -53,7 +53,7 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
 		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
 	data := shared.BuildPageData(h.Config, "New Form")
@@ -113,7 +113,7 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 				logging.ErrorField("error", err),
 				logging.StringField("raw_schema", schemaStr),
 			)
-			return response.ErrorResponse(c, http.StatusBadRequest, "Invalid form schema format")
+			return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Invalid form schema format")
 		}
 	}
 
@@ -130,11 +130,11 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 		// Check for specific validation errors
 		switch {
 		case errors.Is(err, model.ErrFormTitleRequired):
-			return response.ErrorResponse(c, http.StatusBadRequest, "Form title is required")
+			return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form title is required")
 		case errors.Is(err, model.ErrFormSchemaRequired):
-			return response.ErrorResponse(c, http.StatusBadRequest, "Form schema is required")
+			return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form schema is required")
 		default:
-			return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
+			return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to create form")
 		}
 	}
 
@@ -153,7 +153,7 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
 	// Get user ID from session
@@ -167,13 +167,13 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
 		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
 	f, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", err)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	data := shared.BuildPageData(h.Config, "Edit Form")
@@ -189,17 +189,17 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 func (h *FormHandler) handleFormUpdate(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 	// TODO: Parse and update form details
-	return response.ErrorResponse(c, http.StatusNotImplemented, "Form update not implemented yet")
+	return response.WebErrorResponse(c, h.Renderer, http.StatusNotImplemented, "Form update not implemented yet")
 }
 
 // DELETE /dashboard/forms/:id
 func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
 	// Get user ID from session
@@ -213,18 +213,18 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	// Verify form ownership
 	if form.UserID != userID {
-		return response.ErrorResponse(c, http.StatusForbidden, "You don't have permission to delete this form")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to delete this form")
 	}
 
 	// Delete the form
 	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), formID); deleteErr != nil {
 		h.Logger.Error("failed to delete form", logging.ErrorField("error", deleteErr))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to delete form")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to delete form")
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{
@@ -236,7 +236,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
 	// Get user ID from session
@@ -250,26 +250,26 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	// Verify form ownership
 	if form.UserID != userID {
-		return response.ErrorResponse(c, http.StatusForbidden, "You don't have permission to view these submissions")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to view these submissions")
 	}
 
 	// Get form submissions
 	submissions, err := h.FormService.GetFormSubmissions(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form submissions", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form submissions")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form submissions")
 	}
 
 	// Get user object for the template
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
 		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
 	data := shared.BuildPageData(h.Config, "Form Submissions")

@@ -19,6 +19,7 @@ type PageData struct {
 	AssetPath            func(string) string
 	Content              templ.Component
 	FormBuilderAssetPath string // Path to the form builder JS asset
+	Error                string // Error message to display
 }
 
 // BuildPageData centralizes construction of PageData for handlers

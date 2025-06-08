@@ -57,14 +57,18 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
 		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
+		data := shared.BuildPageData(h.Config, "Error")
+		data.Error = "Failed to get user"
+		return h.Renderer.Render(c, pages.Error(data))
 	}
 
 	// Get user's forms
 	forms, err := h.BaseHandler.formService.GetUserForms(c.Request().Context(), userID)
 	if err != nil {
 		h.Logger.Error("failed to get user forms", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get forms")
+		data := shared.BuildPageData(h.Config, "Error")
+		data.Error = "Failed to get forms"
+		return h.Renderer.Render(c, pages.Error(data))
 	}
 
 	data := shared.BuildPageData(h.Config, "Dashboard")

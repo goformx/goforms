@@ -45,7 +45,7 @@ func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
 func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	s.logger.Debug("getting form by id", logging.StringField("form_id", id))
 	var formModel model.Form
-	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&formModel).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("uuid = ?", id).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, ErrFormNotFound
 		}
@@ -67,7 +67,7 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 // Update updates a form
 func (s *Store) Update(ctx context.Context, formModel *model.Form) error {
 	s.logger.Debug("updating form", logging.StringField("form_id", formModel.ID))
-	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("id = ?", formModel.ID).Updates(formModel)
+	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("uuid = ?", formModel.ID).Updates(formModel)
 	if result.Error != nil {
 		return fmt.Errorf("failed to update form: %w", result.Error)
 	}
@@ -80,7 +80,7 @@ func (s *Store) Update(ctx context.Context, formModel *model.Form) error {
 // Delete deletes a form
 func (s *Store) Delete(ctx context.Context, id string) error {
 	s.logger.Debug("deleting form", logging.StringField("form_id", id))
-	result := s.db.WithContext(ctx).Where("id = ?", id).Delete(&model.Form{})
+	result := s.db.WithContext(ctx).Where("uuid = ?", id).Delete(&model.Form{})
 	if result.Error != nil {
 		return fmt.Errorf("failed to delete form: %w", result.Error)
 	}

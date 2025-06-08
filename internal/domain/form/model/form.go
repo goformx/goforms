@@ -17,7 +17,7 @@ const (
 
 // Form represents a form in the system
 type Form struct {
-	ID          string         `json:"id" gorm:"primaryKey;type:uuid;default:gen_random_uuid()"`
+	ID          string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
 	UserID      uint           `json:"user_id" gorm:"not null;index"`
 	Title       string         `json:"title" gorm:"not null;size:100"`
 	Description string         `json:"description" gorm:"size:500"`
