@@ -67,11 +67,11 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	sqlDB.SetConnMaxLifetime(cfg.Database.Postgres.ConnMaxLifetime)
 
 	// Verify connection
-	if err := sqlDB.Ping(); err != nil {
+	if pingErr := sqlDB.Ping(); pingErr != nil {
 		appLogger.Error("failed to ping database",
-			logging.ErrorField("error", err),
+			logging.ErrorField("error", pingErr),
 		)
-		return nil, fmt.Errorf("failed to ping database: %w", err)
+		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	appLogger.Info("successfully connected to database",
@@ -91,9 +91,9 @@ func (db *GormDB) Close() error {
 	if err != nil {
 		return fmt.Errorf("failed to get database instance: %w", err)
 	}
-	if err := sqlDB.Close(); err != nil {
-		db.logger.Error("failed to close database connection", logging.ErrorField("error", err))
-		return fmt.Errorf("failed to close database connection: %w", err)
+	if closeErr := sqlDB.Close(); closeErr != nil {
+		db.logger.Error("failed to close database connection", logging.ErrorField("error", closeErr))
+		return fmt.Errorf("failed to close database connection: %w", closeErr)
 	}
 	db.logger.Debug("database connection closed successfully")
 	return nil

@@ -130,20 +130,20 @@ func (f *Form) validateSchema() error {
 
 	// Validate each property
 	for name, prop := range properties {
-		property, ok := prop.(map[string]any)
-		if !ok {
-			return fmt.Errorf("invalid property format for '%s': must be an object", name)
+		property, isMap := prop.(map[string]any)
+		if !isMap {
+			return errors.New(errors.ErrCodeValidation, fmt.Sprintf("invalid property format for '%s': must be an object", name), nil)
 		}
 
 		// Check for required property fields
 		if _, exists := property["type"]; !exists {
-			return fmt.Errorf("missing type for property '%s'", name)
+			return errors.New(errors.ErrCodeValidation, fmt.Sprintf("missing type for property '%s'", name), nil)
 		}
 
 		// Validate property type
-		propType, ok := property["type"].(string)
-		if !ok {
-			return fmt.Errorf("invalid type format for property '%s'", name)
+		propType, isString := property["type"].(string)
+		if !isString {
+			return errors.New(errors.ErrCodeValidation, fmt.Sprintf("invalid type format for property '%s'", name), nil)
 		}
 
 		// Validate property type value

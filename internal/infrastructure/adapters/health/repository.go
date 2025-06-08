@@ -2,6 +2,7 @@ package health
 
 import (
 	"context"
+	"fmt"
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/services/health"
@@ -30,7 +31,7 @@ func (r *Repository) PingContext(ctx context.Context) error {
 	// Get underlying *sql.DB
 	sqlDB, err := r.db.DB.DB()
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to get database instance: %w", err)
 	}
 
 	// Set a timeout for the ping
@@ -38,11 +39,11 @@ func (r *Repository) PingContext(ctx context.Context) error {
 	defer cancel()
 
 	// Ping the database
-	if err := sqlDB.PingContext(pingCtx); err != nil {
+	if pingErr := sqlDB.PingContext(pingCtx); pingErr != nil {
 		r.logger.Error("database health check failed",
-			logging.ErrorField("error", err),
+			logging.ErrorField("error", pingErr),
 		)
-		return err
+		return fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
 	r.logger.Debug("database health check passed")
