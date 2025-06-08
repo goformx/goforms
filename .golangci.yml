@@ -1,7 +1,5 @@
 version: "2"
 
-go: "1.24"
-
 linters:
   default: none
   enable:
@@ -103,13 +101,6 @@ linters:
       lines: 100
       statements: 50
       ignore-comments: true
-
-    gci:
-      sections:
-        - standard
-        - default
-        - prefix(github.com/goformx/goforms)
-      skip-generated: true
 
     gocognit:
       min-complexity: 20
