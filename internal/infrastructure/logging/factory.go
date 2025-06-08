@@ -65,26 +65,39 @@ func NewFactory(cfg FactoryConfig) *Factory {
 
 // CreateLogger creates a new logger instance with the application name.
 func (f *Factory) CreateLogger() (Logger, error) {
+	// Create encoder config
+	encoderConfig := zap.NewDevelopmentEncoderConfig()
+	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
+	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
+	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
+	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+
 	// Create base logger
-	zapLog, err := zap.NewDevelopment()
+	zapConfig := zap.NewDevelopmentConfig()
+	zapConfig.EncoderConfig = encoderConfig
+	zapConfig.OutputPaths = []string{"stdout"}
+
+	// Use console encoding for development, JSON for production
+	if f.environment == "development" {
+		zapConfig.Encoding = LogEncodingConsole
+	} else {
+		zapConfig.Encoding = LogEncodingJSON
+	}
+
+	zapLog, err := zapConfig.Build(
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+		zap.Fields(
+			zap.String("app", f.appName),
+			zap.String("version", f.version),
+			zap.String("environment", f.environment),
+		),
+	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)
 	}
 
-	// Add initial fields
-	logger := zapLog.With(
-		zap.String("app", f.appName),
-		zap.String("version", f.version),
-		zap.String("environment", f.environment),
-	)
-
-	// Add component tracking
-	logger = logger.With(
-		zap.String("component", "application"),
-		zap.String("operation", "startup"),
-	)
-
-	return &ZapLogger{log: logger}, nil
+	return &ZapLogger{log: zapLog}, nil
 }
 
 // CreateFromConfig creates a logger based on the provided configuration

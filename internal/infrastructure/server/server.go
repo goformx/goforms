@@ -22,7 +22,6 @@ type Server struct {
 	logger logging.Logger
 	config *config.Config
 	server *http.Server
-	addr   string
 }
 
 // New creates a new server instance with the provided dependencies
@@ -71,32 +70,31 @@ func (s *Server) Echo() *echo.Echo {
 	return s.echo
 }
 
-// Start initializes and starts the HTTP server
+// Start starts the HTTP server
 func (s *Server) Start(ctx context.Context) error {
-	s.addr = fmt.Sprintf("%s:%d", s.config.Server.Host, s.config.Server.Port)
-	s.logger.Info("starting server",
-		logging.StringField("addr", s.addr),
-		logging.StringField("env", s.config.App.Env),
-	)
+	s.logger.Info("starting server")
 
+	// Create HTTP server
+	addr := net.JoinHostPort(s.config.App.Host, fmt.Sprintf("%d", s.config.App.Port))
 	s.server = &http.Server{
-		Addr:         s.addr,
-		Handler:      s.echo,
-		ReadTimeout:  s.config.Server.ReadTimeout,
-		WriteTimeout: s.config.Server.WriteTimeout,
-		IdleTimeout:  s.config.Server.IdleTimeout,
+		Addr:    addr,
+		Handler: s.echo,
 	}
 
 	// Start server in a goroutine
 	go func() {
-		s.logger.Info("server listening", logging.StringField("addr", s.addr))
+		s.logger.Info("server listening",
+			logging.StringField("address", addr),
+			logging.StringField("environment", s.config.App.Env),
+		)
 		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-			s.logger.Error("server error", logging.ErrorField("error", err))
+			s.logger.Fatal("failed to start server",
+				logging.ErrorField("error", err),
+				logging.StringField("address", addr),
+			)
 		}
 	}()
 
-	// Wait for context cancellation
-	<-ctx.Done()
 	return nil
 }
 
