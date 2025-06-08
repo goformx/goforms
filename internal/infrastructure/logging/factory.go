@@ -71,11 +71,16 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
 	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
 	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
+	encoderConfig.ConsoleSeparator = " "
 
 	// Create base logger
 	zapConfig := zap.NewDevelopmentConfig()
 	zapConfig.EncoderConfig = encoderConfig
 	zapConfig.OutputPaths = []string{"stdout"}
+	zapConfig.Development = true
+	zapConfig.DisableStacktrace = false
+	zapConfig.DisableCaller = false
+	zapConfig.Sampling = nil // Disable sampling to show all logs
 
 	// Use console encoding for development, JSON for production
 	if f.environment == "development" {

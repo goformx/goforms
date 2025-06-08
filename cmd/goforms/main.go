@@ -7,7 +7,6 @@ import (
 	"context"
 	"fmt"
 	"log"
-	"net"
 	"os"
 	"os/signal"
 	"syscall"
@@ -62,7 +61,8 @@ func main() {
 						logging.IntField("port", params.Server.Config().App.Port),
 						logging.StringField("environment", params.Server.Config().App.Env),
 						logging.StringField("server_type", "echo"),
-						logging.StringField("address", net.JoinHostPort(params.Server.Config().App.Host, fmt.Sprintf("%d", params.Server.Config().App.Port))),
+						logging.StringField("address", params.Server.Address()),
+						logging.StringField("url", params.Server.URL()),
 					)
 
 					// Register all handlers
@@ -76,6 +76,11 @@ func main() {
 					params.Logger.Info("Setting up middleware...")
 					params.MiddlewareManager.Setup(params.Echo)
 					params.Logger.Info("Middleware setup completed")
+
+					// Start the server after all middleware is registered
+					if err := params.Server.Start(); err != nil {
+						return fmt.Errorf("failed to start server: %w", err)
+					}
 
 					return nil
 				},

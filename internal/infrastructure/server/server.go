@@ -24,6 +24,51 @@ type Server struct {
 	server *http.Server
 }
 
+// Address returns the server's address in host:port format
+func (s *Server) Address() string {
+	return net.JoinHostPort(s.config.App.Host, fmt.Sprintf("%d", s.config.App.Port))
+}
+
+// URL returns the server's full HTTP URL
+func (s *Server) URL() string {
+	return fmt.Sprintf("http://%s", s.Address())
+}
+
+// Start starts the server and returns when it's ready to accept connections
+func (s *Server) Start() error {
+	addr := s.Address()
+	s.server = &http.Server{
+		Addr:    addr,
+		Handler: s.echo,
+	}
+
+	// Create a channel to signal when the server is ready
+	ready := make(chan struct{})
+
+	// Start server in a goroutine
+	go func() {
+		// Signal that the server is ready to accept connections
+		close(ready)
+
+		if err := s.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
+			s.logger.Fatal("failed to start server",
+				logging.ErrorField("error", err),
+				logging.StringField("address", addr),
+				logging.StringField("host", s.config.App.Host),
+				logging.IntField("port", s.config.App.Port),
+				logging.StringField("app", "goforms"),
+				logging.StringField("version", "1.0.0"),
+				logging.StringField("url", s.URL()),
+			)
+		}
+	}()
+
+	// Wait for the server to be ready
+	<-ready
+
+	return nil
+}
+
 // New creates a new server instance with the provided dependencies
 func New(
 	lc fx.Lifecycle,
@@ -73,56 +118,7 @@ func New(
 	// Register lifecycle hooks
 	lc.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			addr := net.JoinHostPort(cfg.App.Host, fmt.Sprintf("%d", cfg.App.Port))
-			srv.server = &http.Server{
-				Addr:    addr,
-				Handler: e,
-			}
-
-			srv.logger.Info("server starting",
-				logging.StringField("address", addr),
-				logging.StringField("environment", cfg.App.Env),
-				logging.StringField("host", cfg.App.Host),
-				logging.IntField("port", cfg.App.Port),
-				logging.StringField("server_type", "echo"),
-				logging.StringField("app", "goforms"),
-				logging.StringField("version", "1.0.0"),
-			)
-
-			// Create a channel to signal when the server is ready
-			ready := make(chan struct{})
-
-			// Start server in a goroutine
-			go func() {
-				// Signal that the server is ready to accept connections
-				close(ready)
-
-				if err := srv.server.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-					srv.logger.Fatal("failed to start server",
-						logging.ErrorField("error", err),
-						logging.StringField("address", addr),
-						logging.StringField("host", cfg.App.Host),
-						logging.IntField("port", cfg.App.Port),
-						logging.StringField("app", "goforms"),
-						logging.StringField("version", "1.0.0"),
-					)
-				}
-			}()
-
-			// Wait for the server to be ready
-			<-ready
-
-			srv.logger.Info("server listening",
-				logging.StringField("address", addr),
-				logging.StringField("environment", cfg.App.Env),
-				logging.StringField("host", cfg.App.Host),
-				logging.IntField("port", cfg.App.Port),
-				logging.StringField("server_type", "echo"),
-				logging.StringField("app", "goforms"),
-				logging.StringField("version", "1.0.0"),
-			)
-
-			return nil
+			return nil // Server will be started after middleware is registered
 		},
 		OnStop: func(ctx context.Context) error {
 			if srv.server == nil {
