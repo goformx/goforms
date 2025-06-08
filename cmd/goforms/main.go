@@ -51,13 +51,13 @@ func setupLogger(cfg *config.Config) (logging.Logger, error) {
 	}).CreateLogger()
 }
 
-// setupServer configures and starts the server
-func setupServer(params appParams) error {
+// setupEcho configures and starts the server
+func setupEcho(params appParams) error {
 	// Register all handlers
 	registerHandlers(params.Logger, params.Echo, params.Handlers)
 
 	// Setup middleware
-	setupMiddleware(params.Echo, params.MiddlewareManager)
+	params.MiddlewareManager.Setup(params.Echo)
 
 	// Start the server
 	if err := params.Server.Start(); err != nil {
@@ -69,26 +69,21 @@ func setupServer(params appParams) error {
 
 // registerHandlers registers all application handlers
 func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) {
-	logger.Info("Registering handlers...")
+	logger.Info("registering handlers")
 
 	for _, h := range handlers {
 		h.Register(e)
 	}
 
-	logger.Info("Handlers registered successfully")
-}
-
-// setupMiddleware configures all middleware
-func setupMiddleware(e *echo.Echo, manager *appmiddleware.Manager) {
-	manager.Setup(e)
+	logger.Info("handlers registered successfully")
 }
 
 // createLifecycleHooks creates the application lifecycle hooks
 func createLifecycleHooks(params appParams) fx.Hook {
 	return fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			params.Logger.Info("running setupServer in lifecycle hooks")
-			return setupServer(params)
+			params.Logger.Info("running setupEcho in lifecycle hooks")
+			return setupEcho(params)
 		},
 		OnStop: func(ctx context.Context) error {
 			params.Logger.Info("shutting down application in lifecycle hooks")
