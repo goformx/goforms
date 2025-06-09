@@ -79,7 +79,6 @@ type ServerConfig struct {
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
 	Debug               bool          `envconfig:"GOFORMS_DEBUG" default:"true"`
-	LogLevel            string        `envconfig:"GOFORMS_LOG_LEVEL" default:"debug"`
 	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"20"`
 	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1s"`
 	SecureCookie        bool          `envconfig:"GOFORMS_SECURE_COOKIE" default:"true"`
@@ -126,19 +125,6 @@ func (c *Config) validateAppConfig() error {
 
 	if c.App.Port <= 0 || c.App.Port > 65535 {
 		return ErrInvalidPort
-	}
-
-	if c.App.LogLevel != "" {
-		validLevels := map[string]bool{
-			"debug":   true,
-			"info":    true,
-			"warning": true,
-			"error":   true,
-			"fatal":   true,
-		}
-		if !validLevels[strings.ToLower(c.App.LogLevel)] {
-			return fmt.Errorf("invalid log level: %s", c.App.LogLevel)
-		}
 	}
 
 	return nil

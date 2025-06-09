@@ -27,13 +27,28 @@ type GormDB struct {
 
 // NewGormDB creates a new GORM database connection
 func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
+	// Map our log levels to GORM log levels
+	var gormLogLevel logger.LogLevel
+	switch cfg.App.LogLevel {
+	case "debug":
+		gormLogLevel = logger.Info // GORM's Info level shows all queries
+	case "info":
+		gormLogLevel = logger.Info
+	case "warn":
+		gormLogLevel = logger.Warn
+	case "error":
+		gormLogLevel = logger.Error
+	default:
+		gormLogLevel = logger.Info
+	}
+
 	// Configure GORM logger
 	gormLogger := logger.New(
 		&GormLogWriter{logger: appLogger},
 		logger.Config{
 			SlowThreshold:             time.Second,
-			LogLevel:                  logger.Info,
-			IgnoreRecordNotFoundError: false,
+			LogLevel:                  gormLogLevel,
+			IgnoreRecordNotFoundError: true,
 			Colorful:                  cfg.App.IsDevelopment(),
 			ParameterizedQueries:      true,
 		},
@@ -123,31 +138,58 @@ type GormLogWriter struct {
 
 // Write implements io.Writer interface
 func (w *GormLogWriter) Write(p []byte) (n int, err error) {
-	w.logger.Info("gorm query",
+	w.logger.Debug("gorm query",
 		logging.String("query", string(p)),
 		logging.String("type", "raw_query"),
-		logging.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
 	)
 	return len(p), nil
 }
 
 // Printf implements logger.Writer interface
 func (w *GormLogWriter) Printf(format string, args ...any) {
-	msg := fmt.Sprintf(format, args...)
-	w.logger.Info("gorm query",
-		logging.String("query", msg),
+	// Extract query and duration from the format string
+	var query string
+	var duration time.Duration
+	var rowsAffected int64
+
+	// Parse the format string and args to extract query information
+	if len(args) > 0 {
+		if q, ok := args[0].(string); ok {
+			query = q
+		}
+		if len(args) > 1 {
+			if d, ok := args[1].(time.Duration); ok {
+				duration = d
+			}
+		}
+		if len(args) > 2 {
+			if r, ok := args[2].(int64); ok {
+				rowsAffected = r
+			}
+		}
+	}
+
+	w.logger.Debug("gorm query",
+		logging.String("query", query),
 		logging.String("type", "formatted_query"),
-		logging.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
-		logging.String("args", fmt.Sprintf("%+v", args)),
+		logging.Duration("duration", duration),
+		logging.Int64("rows_affected", rowsAffected),
 	)
 }
 
 // Error implements logger.Writer interface
 func (w *GormLogWriter) Error(msg string, err error) {
-	errorType := "database_error"
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		errorType = "record_not_found"
-	} else if errors.Is(err, gorm.ErrInvalidDB) {
+		w.logger.Warn("gorm query",
+			logging.String("message", msg),
+			logging.Error(err),
+			logging.String("type", "record_not_found"),
+		)
+		return
+	}
+
+	errorType := "database_error"
+	if errors.Is(err, gorm.ErrInvalidDB) {
 		errorType = "invalid_db"
 	} else if errors.Is(err, gorm.ErrInvalidTransaction) {
 		errorType = "invalid_transaction"
@@ -158,9 +200,6 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		logging.Error(err),
 		logging.String("type", errorType),
 		logging.String("error_type", fmt.Sprintf("%T", err)),
-		logging.String("timestamp", time.Now().UTC().Format(time.RFC3339)),
-		logging.String("stack_trace", fmt.Sprintf("%+v", err)),
-		logging.String("sql_error", err.Error()),
 		logging.String("sql_state", getSQLState(err)),
 	)
 }

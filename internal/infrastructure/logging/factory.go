@@ -19,9 +19,7 @@ const (
 	EnvironmentDevelopment = "development"
 
 	// Default environment variables
-	envLogLevel    = "GOFORMS_LOG_LEVEL"
-	envLogOutput   = "GOFORMS_LOG_OUTPUT"
-	envLogEncoding = "GOFORMS_LOG_ENCODING"
+	envLogLevel = "GOFORMS_APP_LOGLEVEL"
 )
 
 // FactoryConfig holds the configuration for creating a logger factory
@@ -94,8 +92,8 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		level = zapcore.InfoLevel // fallback to info level
 	}
 
-	// Determine encoding from environment
-	encoding := getEnv(envLogEncoding, LogEncodingConsole)
+	// Determine encoding based on environment
+	encoding := LogEncodingConsole
 	if f.environment != EnvironmentDevelopment {
 		encoding = LogEncodingJSON
 	}
