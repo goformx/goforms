@@ -131,8 +131,9 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	// Build logger with options
 	zapLog, err := zapConfig.Build(
 		zap.AddCaller(),
-		zap.AddStacktrace(zapcore.WarnLevel), // Enable stack traces for warnings and above
+		zap.AddStacktrace(zapcore.ErrorLevel), // Only show stack traces for errors
 		zap.Fields(initialFields...),
+		zap.Development(), // Enable development mode for more concise output
 	)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)

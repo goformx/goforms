@@ -63,7 +63,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	)
 
 	var formModel model.Form
-	if err := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).First(&formModel).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("id = ?", normalizedID).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Debug("form not found",
 				logging.String("form_id", normalizedID),
@@ -91,7 +91,7 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 	)
 
 	var forms []*model.Form
-	result := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&forms)
+	result := s.db.WithContext(ctx).Where("UserID = ?", userID).Find(&forms)
 	if result.Error != nil {
 		s.logger.Error("database error while getting user forms",
 			logging.Uint("user_id", userID),
