@@ -43,7 +43,7 @@ tasks:
       - task: install
       - task: generate
       - task: build
-      - task: migrate:up
+      - task: migrate:pg:up
       - task: run
 
   verify:

@@ -18,7 +18,7 @@ vars:
   DB_PG_HOST: '{{.GOFORMS_POSTGRES_HOST | default "postgres"}}'
   DB_PG_PORT: '{{.GOFORMS_POSTGRES_PORT | default "5432"}}'
   DB_PG_SSLMODE: '{{.GOFORMS_POSTGRES_SSLMODE | default "disable"}}'
-  DB_PG_URL: postgres://{{.DB_PG_USER}}:{{.DB_PG_PASSWORD}}@{{.DB_PG_HOST}}:{{.DB_PG_PORT}}/{{.DB_PG_NAME}}?sslmode={{.DB_PG_SSLMODE}}
+  DB_PG_URL: postgresql://{{.DB_PG_USER}}:{{.DB_PG_PASSWORD}}@{{.DB_PG_HOST}}:{{.DB_PG_PORT}}/{{.DB_PG_NAME}}?sslmode={{.DB_PG_SSLMODE}}
 
 tasks:
   default:
