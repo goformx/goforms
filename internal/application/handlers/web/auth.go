@@ -63,32 +63,23 @@ func (h *AuthHandler) handleLogin(c echo.Context) error {
 	email := c.FormValue("email")
 	password := c.FormValue("password")
 
-	h.Logger.Debug("handling login request", "email", email, "path", c.Request().URL.Path, "method", c.Request().Method)
-
 	// Authenticate user
 	userData, err := h.UserService.Authenticate(c.Request().Context(), email, password)
 	if err != nil {
-		h.Logger.Error("login failed", "error", err, "email", email)
+		h.Logger.Error("login failed", "error", err)
 		data := shared.BuildPageData(h.Config, "Login")
 		return h.Renderer.Render(c, pages.LoginWithError(data, "Invalid email or password"))
 	}
 
-	h.Logger.Debug("user logged in", "user_id", userData.ID, "email", userData.Email, "role", userData.Role)
-
 	// Create session and set session cookie via SessionManager
 	sessionID, err := h.SessionManager.CreateSession(userData.ID, userData.Email, userData.Role)
 	if err != nil {
-		h.Logger.Error("failed to create session", "error", err, "user_id", userData.ID)
+		h.Logger.Error("failed to create session", "error", err)
 		data := shared.BuildPageData(h.Config, "Login")
 		return h.Renderer.Render(c, pages.LoginWithError(data, "Failed to create session. Please try again."))
 	}
 
-	h.Logger.Debug("session created", "session_id", sessionID, "user_id", userData.ID)
-
 	h.SessionManager.SetSessionCookie(c, sessionID)
-
-	h.Logger.Debug("redirecting to dashboard", "session_id", sessionID, "user_id", userData.ID)
-
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
@@ -106,8 +97,6 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		FirstName: c.FormValue("first_name"),
 		LastName:  c.FormValue("last_name"),
 	}
-
-	h.Logger.Debug("signup attempt", "email", signup.Email, "first_name", signup.FirstName, "last_name", signup.LastName)
 
 	if _, err := h.UserService.SignUp(c.Request().Context(), signup); err != nil {
 		h.Logger.Error("signup failed", "error", err)
@@ -127,17 +116,12 @@ func (h *AuthHandler) handleSignup(c echo.Context) error {
 		return h.Renderer.Render(c, pages.SignupWithError(data, errorMessage))
 	}
 
-	h.Logger.Debug("signup successful", "email", signup.Email)
-
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
 // handleLogout processes the logout request
 func (h *AuthHandler) handleLogout(c echo.Context) error {
-	// Clear session cookie via SessionManager
 	h.SessionManager.ClearSessionCookie(c)
-	h.Logger.Debug("handling logout request", "path", c.Request().URL.Path, "method", c.Request().Method)
-
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
