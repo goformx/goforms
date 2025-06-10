@@ -37,6 +37,18 @@ func NewFormService(p FormServiceParams) form.Service {
 	return form.NewService(p.Store, p.EventPublisher, p.Logger)
 }
 
+// EventPublisherParams contains dependencies for creating an event publisher
+type EventPublisherParams struct {
+	fx.In
+
+	Logger logging.Logger
+}
+
+// NewEventPublisher creates a new event publisher with dependencies
+func NewEventPublisher(p EventPublisherParams) event.Publisher {
+	return infraevent.NewMemoryPublisher(p.Logger)
+}
+
 // Module combines all domain services
 var Module = fx.Options(
 	fx.Provide(
@@ -52,7 +64,7 @@ var Module = fx.Options(
 		),
 		// Event publisher
 		fx.Annotate(
-			infraevent.NewMemoryPublisher,
+			NewEventPublisher,
 			fx.As(new(event.Publisher)),
 		),
 	),

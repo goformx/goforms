@@ -33,7 +33,10 @@ const (
 
 // Validate validates the form submission
 func (s *FormSubmission) Validate() error {
-	validator := validation.New()
+	validator, err := validation.New()
+	if err != nil {
+		return errors.Wrap(err, errors.ErrCodeValidation, "failed to initialize validator")
+	}
 	if err := validator.Struct(s); err != nil {
 		return errors.Wrap(err, errors.ErrCodeValidation, "form submission validation failed")
 	}

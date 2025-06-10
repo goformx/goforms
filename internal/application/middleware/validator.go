@@ -15,10 +15,14 @@ type EchoValidator struct {
 }
 
 // NewValidator creates a new Echo validator
-func NewValidator() *EchoValidator {
-	return &EchoValidator{
-		validator: validation.New(),
+func NewValidator() (*EchoValidator, error) {
+	v, err := validation.New()
+	if err != nil {
+		return nil, err
 	}
+	return &EchoValidator{
+		validator: v,
+	}, nil
 }
 
 // Validate implements echo.Validator interface.

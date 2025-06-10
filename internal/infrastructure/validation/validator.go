@@ -99,36 +99,37 @@ type validatorImpl struct {
 	cache    sync.Map // Cache for validation results
 }
 
-//nolint:gochecknoglobals // singleton pattern requires global instance and once
-var (
-	instance *validatorImpl
-	once     sync.Once
-)
-
 // New creates a new validator instance with common validation rules
-func New() interfaces.Validator {
-	once.Do(func() {
-		v := validator.New()
+func New() (interfaces.Validator, error) {
+	v := validator.New()
 
-		// Enable struct field validation
-		v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-			name := strings.SplitN(fld.Tag.Get("json"), ",", jsonTagSplitLimit)[0]
-			if name == "-" {
-				return ""
-			}
-			return name
-		})
-
-		// Register custom validations
-		_ = v.RegisterValidation("url", validateURL)
-		_ = v.RegisterValidation("phone", validatePhone)
-		_ = v.RegisterValidation("password", validatePassword)
-		_ = v.RegisterValidation("date", validateDate)
-		_ = v.RegisterValidation("datetime", validateDateTime)
-
-		instance = &validatorImpl{validate: v}
+	// Enable struct field validation
+	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
+		name := strings.SplitN(fld.Tag.Get("json"), ",", jsonTagSplitLimit)[0]
+		if name == "-" {
+			return ""
+		}
+		return name
 	})
-	return instance
+
+	// Register custom validations
+	if err := v.RegisterValidation("url", validateURL); err != nil {
+		return nil, fmt.Errorf("failed to register url validation: %w", err)
+	}
+	if err := v.RegisterValidation("phone", validatePhone); err != nil {
+		return nil, fmt.Errorf("failed to register phone validation: %w", err)
+	}
+	if err := v.RegisterValidation("password", validatePassword); err != nil {
+		return nil, fmt.Errorf("failed to register password validation: %w", err)
+	}
+	if err := v.RegisterValidation("date", validateDate); err != nil {
+		return nil, fmt.Errorf("failed to register date validation: %w", err)
+	}
+	if err := v.RegisterValidation("datetime", validateDateTime); err != nil {
+		return nil, fmt.Errorf("failed to register datetime validation: %w", err)
+	}
+
+	return &validatorImpl{validate: v}, nil
 }
 
 // validateURL validates if a string is a valid URL
@@ -251,42 +252,19 @@ func (v *validatorImpl) RegisterStructValidation(fn func(sl validator.StructLeve
 
 // GetValidationErrors returns detailed validation errors
 func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
-	if err == nil {
+	var ve validator.ValidationErrors
+	if !errors.As(err, &ve) {
 		return nil
 	}
 
-	validationErrors := make(map[string]string)
-	var ve validator.ValidationErrors
-	if errors.As(err, &ve) {
-		for _, e := range ve {
-			field := e.Field()
-			validationErrors[field] = getErrorMessage(e)
-		}
-	} else {
-		// Handle non-validation errors
-		validationErrors["_error"] = err.Error()
+	errors := make(map[string]string)
+	for _, e := range ve {
+		errors[getFieldName(e)] = getErrorMessage(e)
 	}
-	return validationErrors
+	return errors
 }
 
-// ValidateStruct validates a struct and returns validation errors
+// ValidateStruct validates a struct and returns any validation errors
 func (v *validatorImpl) ValidateStruct(s any) error {
-	err := v.validate.Struct(s)
-	if err == nil {
-		return nil
-	}
-
-	var ve validator.ValidationErrors
-	if errors.As(err, &ve) {
-		validationErrors := make([]ValidationError, len(ve))
-		for i, err := range ve {
-			validationErrors[i] = ValidationError{
-				Field:   err.Field(),
-				Message: getErrorMessage(err),
-				Value:   err.Value(),
-			}
-		}
-		return ValidationErrors(validationErrors)
-	}
-	return err
+	return v.Struct(s)
 }

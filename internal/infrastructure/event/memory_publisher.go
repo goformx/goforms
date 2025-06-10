@@ -20,20 +20,20 @@ var ErrInvalidEvent = errors.New("invalid event")
 
 // MemoryPublisher is an in-memory implementation of the events.Publisher interface
 type MemoryPublisher struct {
-	logger      logging.Logger
-	mu          sync.RWMutex
-	events      []event.Event
-	subscribers []event.Subscriber
-	maxEvents   int
+	logger    logging.Logger
+	mu        sync.RWMutex
+	events    []event.Event
+	handlers  map[string][]func(ctx context.Context, event event.Event) error
+	maxEvents int
 }
 
 // NewMemoryPublisher creates a new in-memory event publisher
 func NewMemoryPublisher(logger logging.Logger) event.Publisher {
 	return &MemoryPublisher{
-		logger:      logger,
-		events:      make([]event.Event, 0),
-		subscribers: make([]event.Subscriber, 0),
-		maxEvents:   DefaultMaxEvents,
+		logger:    logger,
+		events:    make([]event.Event, 0),
+		handlers:  make(map[string][]func(ctx context.Context, event event.Event) error),
+		maxEvents: DefaultMaxEvents,
 	}
 }
 
@@ -62,41 +62,35 @@ func (p *MemoryPublisher) Publish(ctx context.Context, evt event.Event) error {
 	p.events = append(p.events, evt)
 	p.logger.Debug("publishing event", "name", evt.Name(), "time", time.Now())
 
-	// TODO(goforms): Refactor subscriber notification to match new event.Subscriber interface (see TODO.md 'To Discuss')
-	// for _, sub := range p.subscribers {
-	// 	go func(s event.Subscriber) {
-	// 		if err := s.Handle(ctx, evt); err != nil {
-	// 			p.logger.Error("failed to publish event", "error", err, "event", evt.Name())
-	// 		}
-	// 	}(sub)
-	// }
+	// Notify handlers
+	if handlers, ok := p.handlers[evt.Name()]; ok {
+		for _, handler := range handlers {
+			go func(h func(ctx context.Context, event event.Event) error) {
+				if err := h(ctx, evt); err != nil {
+					p.logger.Error("failed to handle event", "error", err, "event", evt.Name())
+				}
+			}(handler)
+		}
+	}
 
 	return nil
 }
 
-// Subscribe adds a subscriber for events
-func (p *MemoryPublisher) Subscribe(subscriber event.Subscriber) {
-	if subscriber == nil {
-		return
+// Subscribe adds a handler for a specific event type
+func (p *MemoryPublisher) Subscribe(ctx context.Context, eventName string, handler func(ctx context.Context, event event.Event) error) error {
+	if handler == nil {
+		return errors.New("handler cannot be nil")
 	}
-	p.mu.Lock()
-	defer p.mu.Unlock()
-	p.subscribers = append(p.subscribers, subscriber)
-}
 
-// Unsubscribe removes a subscriber
-func (p *MemoryPublisher) Unsubscribe(subscriber event.Subscriber) {
-	if subscriber == nil {
-		return
-	}
 	p.mu.Lock()
 	defer p.mu.Unlock()
-	for i, sub := range p.subscribers {
-		if sub == subscriber {
-			p.subscribers = append(p.subscribers[:i], p.subscribers[i+1:]...)
-			break
-		}
+
+	if _, ok := p.handlers[eventName]; !ok {
+		p.handlers[eventName] = make([]func(ctx context.Context, event event.Event) error, 0)
 	}
+
+	p.handlers[eventName] = append(p.handlers[eventName], handler)
+	return nil
 }
 
 // GetEvents returns all published events

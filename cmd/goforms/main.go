@@ -42,89 +42,60 @@ type appParams struct {
 	MiddlewareManager *appmiddleware.Manager
 }
 
-// setupLogger creates a new logger instance
-func setupLogger(cfg *config.Config) (logging.Logger, error) {
-	if cfg == nil {
-		return nil, errors.New("config is required for logger setup")
-	}
-	return logging.NewFactory(logging.FactoryConfig{
-		AppName:     cfg.App.Name,
-		Version:     cfg.App.Version,
-		Environment: cfg.App.Env,
-		Fields:      map[string]any{},
-	}).CreateLogger()
-}
-
 // setupEcho configures and starts the server
 func setupEcho(params appParams) error {
-	// Register all handlers
-	if err := registerHandlers(params.Logger, params.Echo, params.Handlers); err != nil {
-		return fmt.Errorf("failed to register handlers: %w", err)
-	}
-
-	// Setup middleware
+	// Register middleware
 	params.MiddlewareManager.Setup(params.Echo)
 
-	// Start the server
-	if err := params.Server.Start(); err != nil {
-		return fmt.Errorf("failed to start server: %w", err)
-	}
-
-	return nil
-}
-
-// registerHandlers registers all application handlers
-func registerHandlers(logger logging.Logger, e *echo.Echo, handlers []web.Handler) error {
-	logger.Info("registering handlers")
-
-	for _, h := range handlers {
-		if h == nil {
+	// Register handlers
+	for _, handler := range params.Handlers {
+		if handler == nil {
 			return errors.New("nil handler encountered during registration")
 		}
-		h.Register(e)
+		handler.Register(params.Echo)
 	}
 
-	logger.Info("handlers registered successfully")
 	return nil
 }
 
-// createFallbackLogger creates a basic logger for emergency error reporting
+// createFallbackLogger creates a basic logger for startup errors
 func createFallbackLogger() logging.Logger {
-	logger, _ := logging.NewFactory(logging.FactoryConfig{
+	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     "goforms",
-		Version:     "1.0.0",
-		Environment: "production",
-		Fields:      map[string]any{},
-	}).CreateLogger()
+		Version:     "unknown",
+		Environment: "development",
+	})
+	logger, err := factory.CreateLogger()
+	if err != nil {
+		// If we can't create a logger, we can't do much else
+		os.Exit(1)
+	}
 	return logger
 }
 
 func main() {
-	// Load configuration first
-	cfg, err := config.New()
-	if err != nil {
-		fallbackLogger := createFallbackLogger()
-		fallbackLogger.Fatal("Failed to load configuration",
-			"error", err,
-		)
-		os.Exit(1)
-	}
-
-	// Create logger first
-	logger, err := setupLogger(cfg)
-	if err != nil {
-		fallbackLogger := createFallbackLogger()
-		fallbackLogger.Fatal("Failed to setup logger",
-			"error", err,
-		)
-	}
-
 	// Create the application with all dependencies
 	app := fx.New(
 		// Core infrastructure
 		fx.Provide(
-			func() logging.Logger { return logger }, // Provide the already created logger
-			func() *config.Config { return cfg },    // Provide the already loaded config
+			// Configuration
+			func() (*config.Config, error) {
+				return config.New()
+			},
+			// Logger
+			func(cfg *config.Config) (logging.Logger, error) {
+				if cfg == nil {
+					return nil, errors.New("config is required for logger setup")
+				}
+				factory := logging.NewFactory(logging.FactoryConfig{
+					AppName:     cfg.App.Name,
+					Version:     cfg.App.Version,
+					Environment: cfg.App.Env,
+					Fields:      map[string]any{},
+				})
+				return factory.CreateLogger()
+			},
+			// Echo instance
 			echo.New,
 		),
 		// Domain services
@@ -157,7 +128,8 @@ func main() {
 	// Start the application
 	if startErr := app.Start(ctx); startErr != nil {
 		stop() // Ensure signal handler is stopped
-		logger.Fatal("Failed to start application",
+		fallbackLogger := createFallbackLogger()
+		fallbackLogger.Fatal("Failed to start application",
 			"error", startErr,
 		)
 	}
@@ -171,17 +143,10 @@ func main() {
 
 	// Stop the application
 	if stopErr := app.Stop(shutdownCtx); stopErr != nil {
-		stop() // Ensure signal handler is stopped
-		if shutdownCtx.Err() == context.DeadlineExceeded {
-			logger.Fatal("Application shutdown timed out",
-				"timeout", DefaultShutdownTimeout,
-			)
-		} else {
-			logger.Fatal("Failed to stop application",
-				"error", stopErr,
-			)
-		}
+		fallbackLogger := createFallbackLogger()
+		fallbackLogger.Error("Failed to stop application gracefully",
+			"error", stopErr,
+		)
+		os.Exit(1)
 	}
-
-	logger.Info("Application shutdown completed successfully")
 }

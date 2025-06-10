@@ -7,16 +7,18 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
-	"github.com/goformx/goforms/internal/application/middleware"
+	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
+	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	formstore "github.com/goformx/goforms/internal/infrastructure/repository/form"
 	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/repository/form/submission"
 	userstore "github.com/goformx/goforms/internal/infrastructure/repository/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
+	"github.com/goformx/goforms/internal/infrastructure/validation"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -45,17 +47,14 @@ type CoreParams struct {
 	Echo     *echo.Echo
 }
 
-// ServiceParams contains all service dependencies that handlers might need.
-// This separation makes it easier to manage service dependencies and allows for
-// more granular dependency injection.
+// ServiceParams contains all service dependencies that handlers might need
 type ServiceParams struct {
 	fx.In
 	UserService user.Service
 	FormService form.Service
 }
 
-// AnnotateHandler is a helper function that simplifies the creation of handler providers.
-// It wraps the common fx.Provide and fx.Annotate pattern used for handlers.
+// AnnotateHandler is a helper function that simplifies the creation of handler providers
 func AnnotateHandler(fn any) fx.Option {
 	return fx.Provide(
 		fx.Annotate(
@@ -114,57 +113,69 @@ func NewStores(db *database.GormDB, logger logging.Logger) (Stores, error) {
 	}, nil
 }
 
-// Module provides core infrastructure dependencies
+// Module provides all infrastructure dependencies
 var Module = fx.Options(
 	// Core infrastructure
 	fx.Provide(
+		config.New,
 		logging.NewFactory,
+		validation.New,
 		database.NewGormDB,
-		view.NewRenderer,
 	),
-	// Stores
-	fx.Provide(NewStores),
-	// Base handler
+
+	// Repositories
 	fx.Provide(
-		web.NewBaseHandler,
+		fx.Annotate(
+			userstore.NewStore,
+			fx.As(new(user.Repository)),
+		),
+		fx.Annotate(
+			formstore.NewStore,
+			fx.As(new(form.Repository)),
+		),
+		fx.Annotate(
+			formsubmissionstore.NewStore,
+			fx.As(new(form.SubmissionStore)),
+		),
 	),
+
+	// Event system
+	fx.Provide(
+		event.NewMemoryPublisher,
+	),
+
 	// Middleware
 	fx.Provide(
-		func(logger logging.Logger, config *config.Config) (*middleware.SessionManager, error) {
-			if config == nil {
-				return nil, errors.New("config is required")
-			}
+		func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
 			// In development, use secure cookies only if explicitly enabled
 			// In production, always use secure cookies
 			secureCookie := !config.App.Debug || config.Security.SecureCookie
-			sessionManager := middleware.NewSessionManager(logger, secureCookie)
-			if sessionManager == nil {
-				return nil, errors.New("failed to create session manager")
-			}
-			return sessionManager, nil
+			return appmiddleware.NewSessionManager(logger, secureCookie)
 		},
 		func(
 			logger logging.Logger,
 			config *config.Config,
 			userService user.Service,
-			sessionManager *middleware.SessionManager,
-		) (*middleware.Manager, error) {
-			if config == nil || sessionManager == nil {
-				return nil, errors.New("config and session manager are required")
-			}
-			manager := middleware.NewManager(&middleware.ManagerConfig{
+			sessionManager *appmiddleware.SessionManager,
+		) *appmiddleware.Manager {
+			return appmiddleware.NewManager(&appmiddleware.ManagerConfig{
 				Logger:         logger,
 				Security:       &config.Security,
-				Config:         config,
 				UserService:    userService,
 				SessionManager: sessionManager,
+				Config:         config,
 			})
-			if manager == nil {
-				return nil, errors.New("failed to create middleware manager")
-			}
-			return manager, nil
 		},
 	),
+
+	// Stores
+	fx.Provide(NewStores),
+
+	// Base handler
+	fx.Provide(
+		web.NewBaseHandler,
+	),
+
 	// Handlers
 	fx.Provide(
 		fx.Annotate(
@@ -188,6 +199,7 @@ var Module = fx.Options(
 			fx.As(new(web.Handler)),
 		),
 	),
+
 	// Server setup
 	fx.Provide(server.New),
 )
