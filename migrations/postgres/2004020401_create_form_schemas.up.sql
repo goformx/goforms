@@ -1,6 +1,6 @@
 CREATE TABLE IF NOT EXISTS form_schemas (
     id BIGSERIAL PRIMARY KEY,
-    form_uuid VARCHAR(36) NOT NULL,
+    form_uuid UUID NOT NULL,
     version INTEGER NOT NULL,
     schema JSONB NOT NULL,
     created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
