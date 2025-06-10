@@ -133,114 +133,97 @@ func NewStores(db *database.GormDB, logger logging.Logger) (Stores, error) {
 
 // Module provides all infrastructure dependencies
 var Module = fx.Options(
-	// Core infrastructure
+	// Application infrastructure
 	fx.Provide(
-		// Configuration
-		func() (*config.Config, error) {
-			return config.New()
-		},
-		// Logger
-		func(cfg *config.Config) (logging.Logger, error) {
-			if cfg == nil {
-				return nil, errors.New("config is required for logger setup")
-			}
-			factory := logging.NewFactory(logging.FactoryConfig{
-				AppName:     cfg.App.Name,
-				Version:     cfg.App.Version,
-				Environment: cfg.App.Env,
-				Fields:      map[string]any{},
-			})
-			return factory.CreateLogger()
-		},
 		// Echo instance
 		echo.New,
 		// Validation
 		validation.New,
 		// Database
 		database.NewGormDB,
-	),
 
-	// Start connection pool monitoring
-	fx.Invoke(func(db *database.GormDB, lc fx.Lifecycle) {
-		lc.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				go db.MonitorConnectionPool(ctx)
-				return nil
-			},
-		})
-	}),
-
-	// Event system
-	fx.Provide(
-		fx.Annotate(
-			NewEventPublisher,
-			fx.As(new(formevent.Publisher)),
-		),
-	),
-
-	// Repositories
-	fx.Provide(
-		fx.Annotate(
-			userstore.NewStore,
-			fx.As(new(user.Repository)),
-		),
-		fx.Annotate(
-			formstore.NewStore,
-			fx.As(new(form.Repository)),
-		),
-		fx.Annotate(
-			formsubmissionstore.NewStore,
-			fx.As(new(form.SubmissionStore)),
-		),
-	),
-
-	// Middleware
-	fx.Provide(
-		func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
-			// In development, use secure cookies only if explicitly enabled
-			// In production, always use secure cookies
-			secureCookie := !config.App.Debug || config.Security.SecureCookie
-			return appmiddleware.NewSessionManager(logger, secureCookie)
-		},
-		func(
-			logger logging.Logger,
-			config *config.Config,
-			userService user.Service,
-			sessionManager *appmiddleware.SessionManager,
-		) *appmiddleware.Manager {
-			return appmiddleware.NewManager(&appmiddleware.ManagerConfig{
-				Logger:         logger,
-				Security:       &config.Security,
-				UserService:    userService,
-				SessionManager: sessionManager,
-				Config:         config,
+		// Start connection pool monitoring
+		fx.Invoke(func(db *database.GormDB, lc fx.Lifecycle) {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					go db.MonitorConnectionPool(ctx)
+					return nil
+				},
 			})
-		},
-	),
+		}),
 
-	// Stores
-	fx.Provide(NewStores),
-
-	// Web handlers
-	fx.Provide(
-		web.NewWebHandler,
-		web.NewAuthHandler,
-	),
-
-	// Handlers
-	fx.Provide(
-		fx.Annotate(
-			web.NewFormHandler,
-			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
+		// Event system
+		fx.Provide(
+			fx.Annotate(
+				NewEventPublisher,
+				fx.As(new(formevent.Publisher)),
+			),
 		),
-		fx.Annotate(
-			web.NewDemoHandler,
-			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
-		),
-	),
 
-	// Server setup
-	fx.Provide(server.New),
+		// Repositories
+		fx.Provide(
+			fx.Annotate(
+				userstore.NewStore,
+				fx.As(new(user.Repository)),
+			),
+			fx.Annotate(
+				formstore.NewStore,
+				fx.As(new(form.Repository)),
+			),
+			fx.Annotate(
+				formsubmissionstore.NewStore,
+				fx.As(new(form.SubmissionStore)),
+			),
+		),
+
+		// Middleware
+		fx.Provide(
+			func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
+				// In development, use secure cookies only if explicitly enabled
+				// In production, always use secure cookies
+				secureCookie := !config.App.Debug || config.Security.SecureCookie
+				return appmiddleware.NewSessionManager(logger, secureCookie)
+			},
+			func(
+				logger logging.Logger,
+				config *config.Config,
+				userService user.Service,
+				sessionManager *appmiddleware.SessionManager,
+			) *appmiddleware.Manager {
+				return appmiddleware.NewManager(&appmiddleware.ManagerConfig{
+					Logger:         logger,
+					Security:       &config.Security,
+					UserService:    userService,
+					SessionManager: sessionManager,
+					Config:         config,
+				})
+			},
+		),
+
+		// Stores
+		fx.Provide(NewStores),
+
+		// Web handlers
+		fx.Provide(
+			web.NewWebHandler,
+			web.NewAuthHandler,
+		),
+
+		// Handlers
+		fx.Provide(
+			fx.Annotate(
+				web.NewFormHandler,
+				fx.ResultTags(`group:"handlers"`),
+				fx.As(new(web.Handler)),
+			),
+			fx.Annotate(
+				web.NewDemoHandler,
+				fx.ResultTags(`group:"handlers"`),
+				fx.As(new(web.Handler)),
+			),
+		),
+
+		// Server setup
+		fx.Provide(server.New),
+	),
 )

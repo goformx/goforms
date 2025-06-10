@@ -77,7 +77,11 @@ func (p *MemoryPublisher) Publish(ctx context.Context, evt event.Event) error {
 }
 
 // Subscribe adds a handler for a specific event type
-func (p *MemoryPublisher) Subscribe(ctx context.Context, eventName string, handler func(ctx context.Context, event event.Event) error) error {
+func (p *MemoryPublisher) Subscribe(
+	ctx context.Context,
+	eventName string,
+	handler func(ctx context.Context, event event.Event) error,
+) error {
 	if handler == nil {
 		return errors.New("handler cannot be nil")
 	}

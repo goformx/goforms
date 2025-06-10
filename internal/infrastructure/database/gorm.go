@@ -23,6 +23,10 @@ const (
 	queryArgPos        = 0
 	durationArgPos     = 1
 	rowsAffectedArgPos = 2
+	// ConnectionPoolWarningThreshold is the percentage of max connections that triggers a warning
+	ConnectionPoolWarningThreshold = 0.8
+	// ConnectionPoolPercentageMultiplier is used to convert ratio to percentage
+	ConnectionPoolPercentageMultiplier = 100
 )
 
 // GormDB wraps the GORM database connection
@@ -236,11 +240,11 @@ func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 				"max_lifetime_closed", stats.MaxLifetimeClosed)
 
 			// Alert on high connection usage
-			if float64(stats.InUse)/float64(stats.MaxOpenConnections) > 0.8 {
-				db.logger.Warn("high database connection usage",
+			if float64(stats.InUse)/float64(stats.MaxOpenConnections) > ConnectionPoolWarningThreshold {
+				db.logger.Warn("database connection pool usage is high",
 					"in_use", stats.InUse,
 					"max_open", stats.MaxOpenConnections,
-					"usage_percentage", float64(stats.InUse)/float64(stats.MaxOpenConnections)*100)
+					"usage_percentage", float64(stats.InUse)/float64(stats.MaxOpenConnections)*ConnectionPoolPercentageMultiplier)
 			}
 		}
 	}

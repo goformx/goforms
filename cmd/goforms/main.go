@@ -18,6 +18,7 @@ import (
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
+	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/labstack/echo/v4"
@@ -28,101 +29,110 @@ const (
 	DefaultShutdownTimeout = 30 * time.Second
 )
 
-// appParams is the application parameters
+// appParams groups all dependencies injected via fx.
 type appParams struct {
 	fx.In
-
-	// Core dependencies
 	Lifecycle         fx.Lifecycle
 	Echo              *echo.Echo
 	Server            *server.Server
 	Logger            logging.Logger
 	Handlers          []web.Handler `group:"handlers"`
 	MiddlewareManager *appmiddleware.Manager
+	Config            *config.Config
 }
 
-// setupEcho configures and starts the server
-func setupEcho(params appParams) error {
-	// Register middleware
-	params.MiddlewareManager.Setup(params.Echo)
-
-	// Register handlers
-	for _, handler := range params.Handlers {
+// setupHandlers registers all HTTP handlers.
+func setupHandlers(handlers []web.Handler, e *echo.Echo) error {
+	for _, handler := range handlers {
 		if handler == nil {
 			return errors.New("nil handler encountered during registration")
 		}
-		handler.Register(params.Echo)
+		handler.Register(e)
 	}
-
 	return nil
 }
 
-// createFallbackLogger creates a basic logger for startup errors
-func createFallbackLogger() logging.Logger {
-	factory := logging.NewFactory(logging.FactoryConfig{
-		AppName:     "goforms",
-		Version:     "unknown",
-		Environment: "development",
+// setupApplication initializes middleware and handlers.
+func setupApplication(params appParams) error {
+	params.MiddlewareManager.Setup(params.Echo)
+	return setupHandlers(params.Handlers, params.Echo)
+}
+
+// setupLifecycle configures application lifecycle hooks.
+func setupLifecycle(params appParams) {
+	params.Lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			params.Logger.Info("Starting application...",
+				"app_name", params.Config.App.Name,
+				"version", params.Config.App.Version,
+				"environment", params.Config.App.Env,
+			)
+			if err := setupApplication(params); err != nil {
+				return fmt.Errorf("application setup failed: %w", err)
+			}
+			params.Logger.Info("Application started successfully")
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			params.Logger.Info("Shutting down application...")
+			return nil
+		},
 	})
-	logger, err := factory.CreateLogger()
-	if err != nil {
-		// If we can't create a logger, we can't do much else
-		os.Exit(1)
-	}
-	return logger
 }
 
 func main() {
-	// Create the application with all dependencies
+	ctx, cancel := context.WithCancel(context.Background())
+	defer cancel()
+
+	// Initialize core dependencies
+	cfg, err := config.New()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
+		return
+	}
+
+	factory := logging.NewFactory(logging.FactoryConfig{
+		AppName:     cfg.App.Name,
+		Version:     cfg.App.Version,
+		Environment: cfg.App.Env,
+		Fields:      map[string]any{},
+	})
+	logger, err := factory.CreateLogger()
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+		return
+	}
+
 	app := fx.New(
-		// Core modules
-		infrastructure.Module, // Provides core infrastructure (config, logger, db, etc.)
-		domain.Module,         // Provides domain services and interfaces
-		// Application lifecycle
-		fx.Invoke(func(params appParams) {
-			params.Lifecycle.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					params.Logger.Info("Starting application...")
-					if setupErr := setupEcho(params); setupErr != nil {
-						return fmt.Errorf("failed to setup echo: %w", setupErr)
-					}
-					params.Logger.Info("Application started successfully")
-					return nil
-				},
-				OnStop: func(ctx context.Context) error {
-					params.Logger.Info("Shutting down application...")
-					return nil
-				},
-			})
-		}),
+		// Provide core dependencies
+		fx.Supply(cfg, logger),
+		// Load infrastructure and domain modules
+		infrastructure.Module,
+		domain.Module,
+		fx.Invoke(setupLifecycle),
 	)
 
 	// Create a context that will be canceled on interrupt
-	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
+	stopCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
 	// Start the application
-	if startErr := app.Start(ctx); startErr != nil {
+	if err := app.Start(stopCtx); err != nil {
 		stop() // Ensure signal handler is stopped
-		fallbackLogger := createFallbackLogger()
-		fallbackLogger.Fatal("Failed to start application",
-			"error", startErr,
-		)
+		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", err)
+		return
 	}
 
 	// Wait for interrupt signal
-	<-ctx.Done()
+	<-stopCtx.Done()
 
 	// Create a new context for shutdown with timeout
-	shutdownCtx, cancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
-	defer cancel()
+	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
+	defer shutdownCancel()
 
 	// Stop the application
-	if stopErr := app.Stop(shutdownCtx); stopErr != nil {
-		fallbackLogger := createFallbackLogger()
-		fallbackLogger.Error("Failed to stop application gracefully",
-			"error", stopErr,
-		)
-		os.Exit(1)
+	if err := app.Stop(shutdownCtx); err != nil {
+		fmt.Fprintf(os.Stderr, "Failed to stop application gracefully: %v\n", err)
+		return
 	}
 }

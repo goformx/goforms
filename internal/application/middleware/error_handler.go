@@ -22,21 +22,8 @@ func NewErrorHandler(logger logging.Logger) *ErrorHandler {
 	}
 }
 
-// Handle handles errors and returns appropriate HTTP responses
-func (h *ErrorHandler) Handle(err error, c echo.Context) {
-	if err == nil {
-		return
-	}
-
-	// Create a logger with request context
-	logger := h.logger.With(
-		"request_id", c.Request().Header.Get("X-Request-ID"),
-		"method", c.Request().Method,
-		"path", c.Request().URL.Path,
-		"remote_addr", c.Request().RemoteAddr,
-	)
-
-	// Handle domain errors
+// handleDomainError handles domain-specific errors
+func (h *ErrorHandler) handleDomainError(err error, c echo.Context, logger logging.Logger) {
 	var domainErr *errors.DomainError
 	if stderrors.As(err, &domainErr) {
 		logger.Error("domain error",
@@ -86,11 +73,11 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 				"original_error", err,
 			)
 		}
-
-		return
 	}
+}
 
-	// Handle HTTP errors
+// handleHTTPError handles HTTP-specific errors
+func (h *ErrorHandler) handleHTTPError(err error, c echo.Context, logger logging.Logger) {
 	var httpErr *echo.HTTPError
 	if stderrors.As(err, &httpErr) {
 		logger.Error("http error",
@@ -114,11 +101,11 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 				"original_error", err,
 			)
 		}
-
-		return
 	}
+}
 
-	// Handle unknown errors
+// handleUnknownError handles unknown errors
+func (h *ErrorHandler) handleUnknownError(err error, c echo.Context, logger logging.Logger) {
 	logger.Error("unknown error",
 		"error", err,
 		"error_type", "unknown_error",
@@ -138,6 +125,30 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 			"original_error", err,
 		)
 	}
+}
+
+// Handle handles errors and returns appropriate HTTP responses
+func (h *ErrorHandler) Handle(err error, c echo.Context) {
+	if err == nil {
+		return
+	}
+
+	// Create a logger with request context
+	logger := h.logger.With(
+		"request_id", c.Request().Header.Get("X-Request-ID"),
+		"method", c.Request().Method,
+		"path", c.Request().URL.Path,
+		"remote_addr", c.Request().RemoteAddr,
+	)
+
+	// Handle domain errors
+	h.handleDomainError(err, c, logger)
+
+	// Handle HTTP errors
+	h.handleHTTPError(err, c, logger)
+
+	// Handle unknown errors
+	h.handleUnknownError(err, c, logger)
 }
 
 // Middleware returns the error handler middleware function

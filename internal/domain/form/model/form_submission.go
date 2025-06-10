@@ -38,8 +38,10 @@ func (s *FormSubmission) Validate() error {
 	if err != nil {
 		return errors.Wrap(err, errors.ErrCodeValidation, "failed to initialize validator")
 	}
-	if err := validator.Struct(s); err != nil {
-		return errors.Wrap(err, errors.ErrCodeValidation, "form submission validation failed")
+
+	// Use a different variable name to avoid shadowing
+	if validateErr := validator.Struct(s); validateErr != nil {
+		return errors.Wrap(validateErr, errors.ErrCodeValidation, "form submission validation failed")
 	}
 
 	if s.Data == nil {

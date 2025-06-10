@@ -257,11 +257,11 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 		return nil
 	}
 
-	errors := make(map[string]string)
+	validationErrors := make(map[string]string)
 	for _, e := range ve {
-		errors[getFieldName(e)] = getErrorMessage(e)
+		validationErrors[getFieldName(e)] = getErrorMessage(e)
 	}
-	return errors
+	return validationErrors
 }
 
 // ValidateStruct validates a struct and returns any validation errors

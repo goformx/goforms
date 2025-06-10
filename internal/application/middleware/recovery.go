@@ -95,7 +95,10 @@ func getStatusCode(code domainerrors.ErrorCode) int {
 		return http.StatusUnauthorized
 	case domainerrors.ErrCodeForbidden:
 		return http.StatusForbidden
-	case domainerrors.ErrCodeRequired, domainerrors.ErrCodeInvalid, domainerrors.ErrCodeInvalidFormat, domainerrors.ErrCodeInvalidInput:
+	case domainerrors.ErrCodeRequired,
+		domainerrors.ErrCodeInvalid,
+		domainerrors.ErrCodeInvalidFormat,
+		domainerrors.ErrCodeInvalidInput:
 		return http.StatusBadRequest
 	case domainerrors.ErrCodeInvalidToken, domainerrors.ErrCodeAuthentication:
 		return http.StatusUnauthorized
