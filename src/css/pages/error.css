@@ -1,0 +1,24 @@
+.error-page {
+    text-align: center;
+    padding: 4rem 1rem;
+    max-width: 600px;
+    margin: 0 auto;
+}
+
+.error-page i {
+    font-size: 4rem;
+    color: var(--color-error);
+    margin-bottom: 1.5rem;
+}
+
+.error-page h1 {
+    font-size: 2rem;
+    color: var(--color-text);
+    margin: 0 0 1rem;
+}
+
+.error-page p {
+    color: var(--color-text-muted);
+    margin: 0 0 2rem;
+    font-size: 1.125rem;
+} 

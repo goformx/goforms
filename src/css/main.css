@@ -15,8 +15,7 @@
 @import url("layouts/footer.css") layer(layouts);
 
 /* Component styles */
-@import url("../../node_modules/@formio/js/dist/formio.full.min.css")
-layer(components);
+@import url("../../node_modules/@formio/js/dist/formio.full.min.css") layer(components);
 @import url("components/nav.css") layer(components);
 @import url("components/buttons.css") layer(components);
 @import url("components/grid-items.css") layer(components);
@@ -32,6 +31,7 @@ layer(components);
 
 /* Page styles */
 @import url("pages/dashboard.css") layer(pages);
+@import url("pages/error.css") layer(pages);
 @import url("pages/demo/sections.css") layer(pages);
 
 /* Utility styles */

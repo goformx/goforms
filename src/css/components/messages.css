@@ -105,3 +105,41 @@
     background: rgba(255, 255, 255, 0.2);
   }
 }
+
+.message-area {
+    margin: 1rem auto;
+    padding: 1rem;
+    border-radius: 0.5rem;
+    max-width: 800px;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+}
+
+.message-area i {
+    font-size: 1.25rem;
+}
+
+.message-area.error {
+    background-color: var(--color-error-bg);
+    color: var(--color-error);
+    border: 1px solid var(--color-error-border);
+}
+
+.message-area.success {
+    background-color: var(--color-success-bg);
+    color: var(--color-success);
+    border: 1px solid var(--color-success-border);
+}
+
+.message-area.warning {
+    background-color: var(--color-warning-bg);
+    color: var(--color-warning);
+    border: 1px solid var(--color-warning-border);
+}
+
+.message-area.info {
+    background-color: var(--color-info-bg);
+    color: var(--color-info);
+    border: 1px solid var(--color-info-border);
+}

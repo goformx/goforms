@@ -17,6 +17,7 @@ export interface FormSchema {
 export class FormService {
   private static instance: FormService;
   private baseUrl: string;
+  private csrfToken: string;
 
   private constructor() {
     this.baseUrl =
@@ -24,6 +25,7 @@ export class FormService {
         ? "https://goformx.com"
         : window.location.origin;
     console.debug("FormService initialized with base URL:", this.baseUrl);
+    this.csrfToken = this.getCSRFToken();
   }
 
   public static getInstance(): FormService {
@@ -39,34 +41,11 @@ export class FormService {
   }
 
   private getCSRFToken(): string {
-    // Try to get token from form builder element
-    const formBuilder = document.getElementById("form-schema-builder");
-    if (formBuilder) {
-      const token = formBuilder.getAttribute("data-csrf-token");
-      if (token) {
-        console.debug("CSRF token from form builder:", token);
-        return token;
-      }
-    }
-
-    // Try to get token from meta tag
     const metaTag = document.querySelector('meta[name="csrf-token"]');
-    if (metaTag) {
-      const token = metaTag.getAttribute("content");
-      if (token) {
-        console.debug("CSRF token from meta tag:", token);
-        return token;
-      }
+    if (!metaTag) {
+      throw new Error("CSRF token not found");
     }
-
-    // Try to get token from window object
-    if (window.CSRF_TOKEN) {
-      console.debug("CSRF token from window object:", window.CSRF_TOKEN);
-      return window.CSRF_TOKEN;
-    }
-
-    console.error("CSRF token not found in any source");
-    return "";
+    return metaTag.getAttribute("content") || "";
   }
 
   async getSchema(formId: string): Promise<FormSchema> {
@@ -94,7 +73,7 @@ export class FormService {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "X-CSRF-Token": this.getCSRFToken(),
+            "X-CSRF-Token": this.csrfToken,
           },
           body: JSON.stringify(schema),
         },
@@ -128,7 +107,7 @@ export class FormService {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": this.getCSRFToken(),
+        "X-CSRF-Token": this.csrfToken,
       },
       body: JSON.stringify(details),
     });
@@ -139,11 +118,11 @@ export class FormService {
     }
   }
 
-  async deleteForm(formId: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/dashboard/forms/${formId}`, {
+  public async deleteForm(formId: string): Promise<void> {
+    const response = await fetch(`/api/v1/forms/${formId}`, {
       method: "DELETE",
       headers: {
-        "X-CSRF-Token": this.getCSRFToken(),
+        "X-CSRF-Token": this.csrfToken,
       },
     });
 
@@ -201,3 +180,47 @@ export class FormService {
     return response;
   }
 }
+
+// Initialize form deletion handlers
+document.addEventListener("DOMContentLoaded", () => {
+  const formService = FormService.getInstance();
+
+  document.querySelectorAll(".delete-form").forEach((button) => {
+    button.addEventListener("click", async (e) => {
+      e.preventDefault();
+      const formId = button.getAttribute("data-form-id");
+      if (!formId) return;
+
+      if (
+        !confirm(
+          "Are you sure you want to delete this form? This action cannot be undone.",
+        )
+      ) {
+        return;
+      }
+
+      try {
+        await formService.deleteForm(formId);
+        const formCard = button.closest(".form-card");
+        if (formCard) {
+          formCard.remove();
+        }
+
+        // If no forms left, show empty state
+        const formsGrid = document.querySelector(".forms-grid");
+        if (formsGrid && !formsGrid.querySelector(".form-card")) {
+          formsGrid.innerHTML = `
+            <div class="empty-state">
+              <i class="bi bi-file-earmark-text"></i>
+              <p>You haven't created any forms yet.</p>
+              <a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
+            </div>
+          `;
+        }
+      } catch (error) {
+        console.error("Failed to delete form:", error);
+        alert(error instanceof Error ? error.message : "Failed to delete form");
+      }
+    });
+  });
+});
