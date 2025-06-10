@@ -50,22 +50,24 @@ func TranslateToHTTP(err error) *HTTPError {
 // getHTTPStatusCode maps domain error codes to HTTP status codes
 func getHTTPStatusCode(code ErrorCode) int {
 	switch code {
-	case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput:
+	case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+		ErrCodeBadRequest, ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid,
+		ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
 		return http.StatusBadRequest
-	case ErrCodeUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication:
+	case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication:
 		return http.StatusUnauthorized
-	case ErrCodeForbidden, ErrCodeInsufficientRole:
+	case ErrCodeForbidden, ErrCodeFormAccessDenied, ErrCodeInsufficientRole:
 		return http.StatusForbidden
-	case ErrCodeNotFound:
+	case ErrCodeNotFound, ErrCodeFormNotFound, ErrCodeUserNotFound:
 		return http.StatusNotFound
-	case ErrCodeConflict, ErrCodeAlreadyExists:
+	case ErrCodeConflict, ErrCodeAlreadyExists, ErrCodeUserExists:
 		return http.StatusConflict
-	case ErrCodeBadRequest:
-		return http.StatusBadRequest
-	case ErrCodeServerError, ErrCodeDatabase, ErrCodeTimeout:
+	case ErrCodeServerError, ErrCodeDatabase, ErrCodeConfig:
 		return http.StatusInternalServerError
-	case ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig:
+	case ErrCodeStartup, ErrCodeShutdown:
 		return http.StatusServiceUnavailable
+	case ErrCodeTimeout:
+		return http.StatusGatewayTimeout
 	default:
 		return http.StatusInternalServerError
 	}

@@ -33,31 +33,7 @@ func (h *ErrorHandler) handleDomainError(err error, c echo.Context, logger loggi
 			"error_type", "domain_error",
 		)
 
-		statusCode := http.StatusInternalServerError
-		switch domainErr.Code {
-		case errors.ErrCodeValidation:
-			statusCode = http.StatusBadRequest
-		case errors.ErrCodeNotFound:
-			statusCode = http.StatusNotFound
-		case errors.ErrCodeUnauthorized:
-			statusCode = http.StatusUnauthorized
-		case errors.ErrCodeForbidden:
-			statusCode = http.StatusForbidden
-		case errors.ErrCodeRequired, errors.ErrCodeInvalid, errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput:
-			statusCode = http.StatusBadRequest
-		case errors.ErrCodeInvalidToken, errors.ErrCodeAuthentication:
-			statusCode = http.StatusUnauthorized
-		case errors.ErrCodeInsufficientRole:
-			statusCode = http.StatusForbidden
-		case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists:
-			statusCode = http.StatusConflict
-		case errors.ErrCodeBadRequest:
-			statusCode = http.StatusBadRequest
-		case errors.ErrCodeServerError, errors.ErrCodeDatabase, errors.ErrCodeTimeout:
-			statusCode = http.StatusInternalServerError
-		case errors.ErrCodeStartup, errors.ErrCodeShutdown, errors.ErrCodeConfig:
-			statusCode = http.StatusServiceUnavailable
-		}
+		statusCode := getStatusCodeForDomainError(domainErr.Code)
 
 		response := map[string]any{
 			"error": map[string]any{
@@ -167,28 +143,26 @@ func (h *ErrorHandler) Middleware() echo.MiddlewareFunc {
 // getStatusCodeForDomainError returns the appropriate HTTP status code for a domain error
 func getStatusCodeForDomainError(code errors.ErrorCode) int {
 	switch code {
-	case errors.ErrCodeValidation:
+	case errors.ErrCodeValidation, errors.ErrCodeRequired, errors.ErrCodeInvalid,
+		errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput, errors.ErrCodeBadRequest,
+		errors.ErrCodeFormValidation, errors.ErrCodeFormInvalid, errors.ErrCodeUserInvalid,
+		errors.ErrCodeFormSubmission, errors.ErrCodeFormExpired, errors.ErrCodeUserDisabled:
 		return http.StatusBadRequest
-	case errors.ErrCodeNotFound:
+	case errors.ErrCodeUnauthorized, errors.ErrCodeUserUnauthorized, errors.ErrCodeInvalidToken,
+		errors.ErrCodeAuthentication:
+		return http.StatusUnauthorized
+	case errors.ErrCodeForbidden, errors.ErrCodeFormAccessDenied, errors.ErrCodeInsufficientRole:
+		return http.StatusForbidden
+	case errors.ErrCodeNotFound, errors.ErrCodeFormNotFound, errors.ErrCodeUserNotFound:
 		return http.StatusNotFound
-	case errors.ErrCodeUnauthorized:
-		return http.StatusUnauthorized
-	case errors.ErrCodeForbidden:
-		return http.StatusForbidden
-	case errors.ErrCodeRequired, errors.ErrCodeInvalid, errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput:
-		return http.StatusBadRequest
-	case errors.ErrCodeInvalidToken, errors.ErrCodeAuthentication:
-		return http.StatusUnauthorized
-	case errors.ErrCodeInsufficientRole:
-		return http.StatusForbidden
-	case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists:
+	case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists, errors.ErrCodeUserExists:
 		return http.StatusConflict
-	case errors.ErrCodeBadRequest:
-		return http.StatusBadRequest
-	case errors.ErrCodeServerError, errors.ErrCodeDatabase, errors.ErrCodeTimeout:
+	case errors.ErrCodeServerError, errors.ErrCodeDatabase, errors.ErrCodeConfig:
 		return http.StatusInternalServerError
-	case errors.ErrCodeStartup, errors.ErrCodeShutdown, errors.ErrCodeConfig:
+	case errors.ErrCodeStartup, errors.ErrCodeShutdown:
 		return http.StatusServiceUnavailable
+	case errors.ErrCodeTimeout:
+		return http.StatusGatewayTimeout
 	default:
 		return http.StatusInternalServerError
 	}

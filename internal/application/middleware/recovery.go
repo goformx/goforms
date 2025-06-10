@@ -87,31 +87,26 @@ func handleError(c echo.Context, err error, logger logging.Logger) {
 // getStatusCode returns the appropriate HTTP status code for an error code
 func getStatusCode(code domainerrors.ErrorCode) int {
 	switch code {
-	case domainerrors.ErrCodeValidation:
+	case domainerrors.ErrCodeValidation, domainerrors.ErrCodeRequired, domainerrors.ErrCodeInvalid,
+		domainerrors.ErrCodeInvalidFormat, domainerrors.ErrCodeInvalidInput, domainerrors.ErrCodeBadRequest,
+		domainerrors.ErrCodeFormValidation, domainerrors.ErrCodeFormInvalid, domainerrors.ErrCodeUserInvalid,
+		domainerrors.ErrCodeFormSubmission, domainerrors.ErrCodeFormExpired, domainerrors.ErrCodeUserDisabled:
 		return http.StatusBadRequest
-	case domainerrors.ErrCodeNotFound:
+	case domainerrors.ErrCodeUnauthorized, domainerrors.ErrCodeUserUnauthorized, domainerrors.ErrCodeInvalidToken,
+		domainerrors.ErrCodeAuthentication:
+		return http.StatusUnauthorized
+	case domainerrors.ErrCodeForbidden, domainerrors.ErrCodeFormAccessDenied, domainerrors.ErrCodeInsufficientRole:
+		return http.StatusForbidden
+	case domainerrors.ErrCodeNotFound, domainerrors.ErrCodeFormNotFound, domainerrors.ErrCodeUserNotFound:
 		return http.StatusNotFound
-	case domainerrors.ErrCodeUnauthorized:
-		return http.StatusUnauthorized
-	case domainerrors.ErrCodeForbidden:
-		return http.StatusForbidden
-	case domainerrors.ErrCodeRequired,
-		domainerrors.ErrCodeInvalid,
-		domainerrors.ErrCodeInvalidFormat,
-		domainerrors.ErrCodeInvalidInput:
-		return http.StatusBadRequest
-	case domainerrors.ErrCodeInvalidToken, domainerrors.ErrCodeAuthentication:
-		return http.StatusUnauthorized
-	case domainerrors.ErrCodeInsufficientRole:
-		return http.StatusForbidden
-	case domainerrors.ErrCodeConflict, domainerrors.ErrCodeAlreadyExists:
+	case domainerrors.ErrCodeConflict, domainerrors.ErrCodeAlreadyExists, domainerrors.ErrCodeUserExists:
 		return http.StatusConflict
-	case domainerrors.ErrCodeBadRequest:
-		return http.StatusBadRequest
-	case domainerrors.ErrCodeServerError, domainerrors.ErrCodeDatabase, domainerrors.ErrCodeTimeout:
+	case domainerrors.ErrCodeServerError, domainerrors.ErrCodeDatabase, domainerrors.ErrCodeConfig:
 		return http.StatusInternalServerError
-	case domainerrors.ErrCodeStartup, domainerrors.ErrCodeShutdown, domainerrors.ErrCodeConfig:
+	case domainerrors.ErrCodeStartup, domainerrors.ErrCodeShutdown:
 		return http.StatusServiceUnavailable
+	case domainerrors.ErrCodeTimeout:
+		return http.StatusGatewayTimeout
 	default:
 		return http.StatusInternalServerError
 	}

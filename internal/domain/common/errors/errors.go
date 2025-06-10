@@ -1,7 +1,9 @@
 package errors
 
 import (
+	"errors"
 	"fmt"
+	"net/http"
 )
 
 // ErrorCode represents a specific type of error
@@ -35,6 +37,21 @@ const (
 	ErrCodeConfig   ErrorCode = "CONFIG_ERROR"
 	ErrCodeDatabase ErrorCode = "DATABASE_ERROR"
 	ErrCodeTimeout  ErrorCode = "TIMEOUT"
+
+	// Form-specific errors
+	ErrCodeFormValidation   ErrorCode = "FORM_VALIDATION_ERROR"
+	ErrCodeFormNotFound     ErrorCode = "FORM_NOT_FOUND"
+	ErrCodeFormSubmission   ErrorCode = "FORM_SUBMISSION_ERROR"
+	ErrCodeFormAccessDenied ErrorCode = "FORM_ACCESS_DENIED"
+	ErrCodeFormInvalid      ErrorCode = "FORM_INVALID"
+	ErrCodeFormExpired      ErrorCode = "FORM_EXPIRED"
+
+	// User-specific errors
+	ErrCodeUserNotFound     ErrorCode = "USER_NOT_FOUND"
+	ErrCodeUserExists       ErrorCode = "USER_EXISTS"
+	ErrCodeUserDisabled     ErrorCode = "USER_DISABLED"
+	ErrCodeUserInvalid      ErrorCode = "USER_INVALID"
+	ErrCodeUserUnauthorized ErrorCode = "USER_UNAUTHORIZED"
 )
 
 // DomainError represents a domain-specific error
@@ -43,6 +60,13 @@ type DomainError struct {
 	Message string
 	Err     error
 	Context map[string]any
+}
+
+// ErrorResponse represents a standardized error response for HTTP handlers
+type ErrorResponse struct {
+	Code    string         `json:"code"`
+	Message string         `json:"message"`
+	Details map[string]any `json:"details,omitempty"`
 }
 
 func (e *DomainError) Error() string {
@@ -54,6 +78,40 @@ func (e *DomainError) Error() string {
 
 func (e *DomainError) Unwrap() error {
 	return e.Err
+}
+
+// HTTPStatus returns the appropriate HTTP status code for the error
+func (e *DomainError) HTTPStatus() int {
+	switch e.Code {
+	case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+		ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid, ErrCodeBadRequest:
+		return http.StatusBadRequest
+	case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication:
+		return http.StatusUnauthorized
+	case ErrCodeForbidden, ErrCodeFormAccessDenied, ErrCodeInsufficientRole:
+		return http.StatusForbidden
+	case ErrCodeNotFound, ErrCodeFormNotFound, ErrCodeUserNotFound:
+		return http.StatusNotFound
+	case ErrCodeConflict, ErrCodeAlreadyExists, ErrCodeUserExists:
+		return http.StatusConflict
+	case ErrCodeServerError, ErrCodeDatabase, ErrCodeConfig, ErrCodeStartup, ErrCodeShutdown:
+		return http.StatusInternalServerError
+	case ErrCodeTimeout:
+		return http.StatusGatewayTimeout
+	case ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
+// ToResponse converts the DomainError to a standardized ErrorResponse
+func (e *DomainError) ToResponse() ErrorResponse {
+	return ErrorResponse{
+		Code:    string(e.Code),
+		Message: e.Message,
+		Details: e.Context,
+	}
 }
 
 // New creates a new domain error
@@ -99,9 +157,96 @@ var (
 	ErrDatabase = New(ErrCodeDatabase, "database error", nil)
 	ErrTimeout  = New(ErrCodeTimeout, "operation timed out", nil)
 	ErrConfig   = New(ErrCodeConfig, "configuration error", nil)
+
+	// Form-specific errors
+	ErrFormValidation   = New(ErrCodeFormValidation, "form validation error", nil)
+	ErrFormNotFound     = New(ErrCodeFormNotFound, "form not found", nil)
+	ErrFormSubmission   = New(ErrCodeFormSubmission, "form submission error", nil)
+	ErrFormAccessDenied = New(ErrCodeFormAccessDenied, "form access denied", nil)
+	ErrFormInvalid      = New(ErrCodeFormInvalid, "invalid form", nil)
+	ErrFormExpired      = New(ErrCodeFormExpired, "form has expired", nil)
+
+	// User-specific errors
+	ErrUserNotFound     = New(ErrCodeUserNotFound, "user not found", nil)
+	ErrUserExists       = New(ErrCodeUserExists, "user already exists", nil)
+	ErrUserDisabled     = New(ErrCodeUserDisabled, "user is disabled", nil)
+	ErrUserInvalid      = New(ErrCodeUserInvalid, "invalid user", nil)
+	ErrUserUnauthorized = New(ErrCodeUserUnauthorized, "user is not authorized", nil)
 )
 
 // Wrap wraps an existing error with domain context
 func Wrap(err error, code ErrorCode, message string) *DomainError {
 	return New(code, message, err)
+}
+
+// Error type checking utilities
+func IsNotFound(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeNotFound, ErrCodeFormNotFound, ErrCodeUserNotFound:
+			return true
+		}
+	}
+	return false
+}
+
+func IsValidation(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid, ErrCodeBadRequest:
+			return true
+		}
+	}
+	return false
+}
+
+func IsFormError(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
+			ErrCodeFormAccessDenied, ErrCodeFormInvalid, ErrCodeFormExpired:
+			return true
+		}
+	}
+	return false
+}
+
+func IsUserError(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeUserNotFound, ErrCodeUserExists, ErrCodeUserDisabled,
+			ErrCodeUserInvalid, ErrCodeUserUnauthorized:
+			return true
+		}
+	}
+	return false
+}
+
+func IsAuthenticationError(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken,
+			ErrCodeAuthentication, ErrCodeInsufficientRole, ErrCodeUserUnauthorized:
+			return true
+		}
+	}
+	return false
+}
+
+func IsSystemError(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeServerError, ErrCodeDatabase, ErrCodeConfig,
+			ErrCodeStartup, ErrCodeShutdown, ErrCodeTimeout:
+			return true
+		}
+	}
+	return false
 }

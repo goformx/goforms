@@ -1,27 +1,16 @@
 package validation
 
 import (
+	"errors"
 	"fmt"
 	"net/url"
 	"reflect"
-	"regexp"
 	"strings"
 	"sync"
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
 	"github.com/goformx/goforms/internal/domain/common/interfaces"
-)
-
-const (
-	jsonTagSplitLimit = 2
-	// Common validation patterns
-	phoneRegex = `^\+?[1-9]\d{1,14}$`
-)
-
-var (
-	// Common validation regexes
-	phonePattern = regexp.MustCompile(phoneRegex)
 )
 
 // ValidationError represents a single validation error
@@ -103,19 +92,20 @@ func New() (interfaces.Validator, error) {
 
 	// Enable struct field validation
 	v.RegisterTagNameFunc(func(fld reflect.StructField) string {
-		name := strings.SplitN(fld.Tag.Get("json"), ",", jsonTagSplitLimit)[0]
-		if name == "-" {
+		// Get the first part of the JSON tag (before any comma)
+		tag := fld.Tag.Get("json")
+		if tag == "" || tag == "-" {
 			return ""
 		}
-		return name
+		if idx := strings.Index(tag, ","); idx != -1 {
+			tag = tag[:idx]
+		}
+		return tag
 	})
 
 	// Register custom validations
 	if err := v.RegisterValidation("url", validateURL); err != nil {
 		return nil, fmt.Errorf("failed to register url validation: %w", err)
-	}
-	if err := v.RegisterValidation("phone", validatePhone); err != nil {
-		return nil, fmt.Errorf("failed to register phone validation: %w", err)
 	}
 	if err := v.RegisterValidation("password", validatePassword); err != nil {
 		return nil, fmt.Errorf("failed to register password validation: %w", err)
@@ -138,15 +128,6 @@ func validateURL(fl validator.FieldLevel) bool {
 	}
 	_, err := url.ParseRequestURI(urlStr)
 	return err == nil
-}
-
-// validatePhone validates if a string is a valid phone number
-func validatePhone(fl validator.FieldLevel) bool {
-	phone := fl.Field().String()
-	if phone == "" {
-		return true // Empty phone numbers are handled by required tag
-	}
-	return phonePattern.MatchString(phone)
 }
 
 // validatePassword validates if a string meets password requirements
@@ -205,8 +186,8 @@ func (v *validatorImpl) Struct(i any) error {
 	// Validate the struct
 	err := v.validate.Struct(i)
 	if err != nil {
-		// Convert validation errors to domain errors
-		if validationErrors, ok := err.(validator.ValidationErrors); ok {
+		var validationErrors validator.ValidationErrors
+		if errors.As(err, &validationErrors) {
 			domainErrs := make(ValidationErrors, 0, len(validationErrors))
 			for _, e := range validationErrors {
 				domainErrs = append(domainErrs, ValidationError{
@@ -253,7 +234,8 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 	}
 
 	// Handle our custom ValidationErrors type
-	if validationErrors, ok := err.(ValidationErrors); ok {
+	var validationErrors ValidationErrors
+	if errors.As(err, &validationErrors) {
 		errors := make(map[string]string)
 		for _, e := range validationErrors {
 			errors[e.Field] = e.Message
@@ -262,9 +244,10 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 	}
 
 	// Handle validator.ValidationErrors
-	if validationErrors, ok := err.(validator.ValidationErrors); ok {
+	var validatorErrors validator.ValidationErrors
+	if errors.As(err, &validatorErrors) {
 		errors := make(map[string]string)
-		for _, e := range validationErrors {
+		for _, e := range validatorErrors {
 			errors[getFieldName(e)] = getErrorMessage(e)
 		}
 		return errors
@@ -279,7 +262,8 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 // ValidateStruct validates a struct and returns domain errors
 func (v *validatorImpl) ValidateStruct(s any) error {
 	if err := v.Struct(s); err != nil {
-		if validationErrors, ok := err.(ValidationErrors); ok {
+		var validationErrors ValidationErrors
+		if errors.As(err, &validationErrors) {
 			return validationErrors
 		}
 		return fmt.Errorf("validation failed: %w", err)
