@@ -26,6 +26,6 @@ func (h *DemoHandler) Register(e *echo.Echo) {
 
 // handleDemo handles the demo page request
 func (h *DemoHandler) handleDemo(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, "Demo")
+	data := shared.BuildPageData(h.Config, c, "Demo")
 	return h.Renderer.Render(c, pages.Demo(data))
 }

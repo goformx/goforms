@@ -56,11 +56,8 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
-	data := shared.BuildPageData(h.Config, "New Form")
+	data := shared.BuildPageData(h.Config, c, "New Form")
 	data.User = user
-	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
-		data.CSRFToken = csrfToken
-	}
 	return h.Renderer.Render(c, pages.NewForm(data))
 }
 
@@ -136,13 +133,9 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to edit this form")
 	}
 
-	data := shared.BuildPageData(h.Config, "Edit Form")
+	data := shared.BuildPageData(h.Config, c, "Edit Form")
 	data.User = user
 	data.Form = f
-	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
-		data.CSRFToken = csrfToken
-	}
-
 	return h.Renderer.Render(c, pages.EditForm(data))
 }
 
@@ -234,13 +227,10 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form submissions")
 	}
 
-	data := shared.BuildPageData(h.Config, "Form Submissions")
+	data := shared.BuildPageData(h.Config, c, "Form Submissions")
 	data.User = user
 	data.Form = form
 	data.Submissions = submissions
-	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
-		data.CSRFToken = csrfToken
-	}
 	data.Content = pages.FormSubmissionsContent(data)
 
 	return h.Renderer.Render(c, pages.FormSubmissions(data))

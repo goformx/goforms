@@ -6,17 +6,18 @@ import (
 )
 
 templ Error(data shared.PageData) {
-	@layouts.Layout(data, errorContent(data))
+	@layouts.Layout(data, ErrorContent(data))
 }
 
-templ errorContent(data shared.PageData) {
-	<div class="error-container">
-		<div class="error-content">
-			<h1>Error</h1>
-			<p>{ data.Error }</p>
-			<div class="error-actions">
-				<a href="/dashboard">Return to Dashboard</a>
-			</div>
-		</div>
+templ ErrorContent(data shared.PageData) {
+	<div class="error-page">
+		<i class="bi bi-exclamation-circle"></i>
+		<h1>Error</h1>
+		if data.Message != nil {
+			<p>{ data.Message.Text }</p>
+		} else {
+			<p>An unexpected error occurred.</p>
+		}
+		<a href="/" class="btn btn-primary">Return Home</a>
 	</div>
 } 

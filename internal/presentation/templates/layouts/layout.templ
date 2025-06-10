@@ -3,6 +3,7 @@ package layouts
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/templates/components"
+	"fmt"
 )
 
 templ Layout(data shared.PageData, content templ.Component) {
@@ -16,6 +17,7 @@ templ Layout(data shared.PageData, content templ.Component) {
 	<meta name="keywords" content="forms, golang, backend, self-hosted" />
 	<meta name="color-scheme" content="light dark" />
 	<meta name="csrf-token" content={ data.CSRFToken } />
+	<meta name="csrf-param" content="_csrf" />
 	<title>{ data.Title } - Goforms</title>
 
 	<script type="module" src={ data.AssetPath("src/js/main.ts") }></script>
@@ -26,6 +28,12 @@ templ Layout(data shared.PageData, content templ.Component) {
 	@components.Nav(data)
 
 	<main>
+		if data.Message != nil {
+			<div class="message-area { data.Message.Type }">
+				<i class={ fmt.Sprintf("bi bi-%s", shared.GetMessageIcon(data.Message.Type)) }></i>
+				<span>{ data.Message.Text }</span>
+			</div>
+		}
 		@content
 	</main>
 

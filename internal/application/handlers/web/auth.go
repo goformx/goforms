@@ -44,13 +44,13 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 	e.POST("/logout", h.Logout)
 
 	// Validation schema endpoints
-	e.GET("/api/validation/login", h.handleLoginValidation)
-	e.GET("/api/validation/signup", h.handleSignupValidation)
+	e.GET("/api/validation/login", h.LoginValidation)
+	e.GET("/api/validation/signup", h.SignupValidation)
 }
 
-// Login handles the login page request
+// Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
-	data := shared.BuildPageData(h.deps.Config, "Login")
+	data := shared.BuildPageData(h.deps.Config, c, "Login")
 	// Debug log for environment and asset path
 	if h.deps.Config != nil && h.deps.Logger != nil {
 		h.deps.Logger.Debug("Rendering login page",
@@ -61,26 +61,36 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	return h.deps.Renderer.Render(c, pages.Login(data))
 }
 
-// LoginPost handles the login form submission
+// LoginPost handles POST /login - processes the login form
 func (h *AuthHandler) LoginPost(c echo.Context) error {
+	data := shared.BuildPageData(h.deps.Config, c, "Login")
+
 	email := c.FormValue("email")
 	password := c.FormValue("password")
 
 	// Validate credentials using the user service
-	user, err := h.deps.UserService.Authenticate(c.Request().Context(), email, password)
+	authenticatedUser, err := h.deps.UserService.Authenticate(c.Request().Context(), email, password)
 	if err != nil {
 		h.deps.Logger.Debug("Login failed", "error", err)
-		data := shared.BuildPageData(h.deps.Config, "Login")
-		data.Error = "Invalid email or password"
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: err.Error(),
+		}
 		return h.deps.Renderer.Render(c, pages.Login(data))
 	}
 
 	// Create session
-	session, err := h.deps.SessionManager.CreateSession(user.ID, user.Email, c.Request().UserAgent())
+	session, err := h.deps.SessionManager.CreateSession(
+		authenticatedUser.ID,
+		authenticatedUser.Email,
+		c.Request().UserAgent(),
+	)
 	if err != nil {
 		h.deps.Logger.Error("Failed to create session", "error", err)
-		data := shared.BuildPageData(h.deps.Config, "Login")
-		data.Error = "An error occurred. Please try again."
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: "An error occurred. Please try again.",
+		}
 		return h.deps.Renderer.Render(c, pages.Login(data))
 	}
 
@@ -92,7 +102,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   86400, // 24 hours in seconds
+		MaxAge:   int(SessionDuration.Seconds()),
 	}
 	c.SetCookie(cookie)
 
@@ -100,31 +110,32 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
-// Signup handles the signup page request
+// Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
-	data := shared.BuildPageData(h.deps.Config, "Sign Up")
+	data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
 	return h.deps.Renderer.Render(c, pages.Signup(data))
 }
 
-// SignupPost handles the signup form submission
+// SignupPost handles POST /signup - processes the signup form
 func (h *AuthHandler) SignupPost(c echo.Context) error {
-	email := c.FormValue("email")
+	data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
+
+	// Get and sanitize form values
+	email := sanitize.Email(c.FormValue("email"), false)
 	password := c.FormValue("password")
-	firstName := c.FormValue("first_name")
-	lastName := c.FormValue("last_name")
+	firstName := sanitize.XSS(c.FormValue("first_name"))
+	lastName := sanitize.XSS(c.FormValue("last_name"))
 
-	// Sanitize input (per validation rules)
-	email = sanitize.Email(email, false)
-	firstName = sanitize.XSS(firstName)
-	lastName = sanitize.XSS(lastName)
-
-	// Validate input (basic check)
+	// Validate input
 	if email == "" || password == "" || firstName == "" || lastName == "" {
-		data := shared.BuildPageData(h.deps.Config, "Sign Up")
-		data.Error = "All fields are required."
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: "All fields are required.",
+		}
 		return h.deps.Renderer.Render(c, pages.Signup(data))
 	}
 
+	// Create user
 	signup := &user.Signup{
 		Email:     email,
 		Password:  password,
@@ -135,8 +146,10 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	newUser, err := h.deps.UserService.SignUp(c.Request().Context(), signup)
 	if err != nil {
 		h.deps.Logger.Debug("Signup failed", "error", err)
-		data := shared.BuildPageData(h.deps.Config, "Sign Up")
-		data.Error = "Signup failed: " + err.Error()
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: "Signup failed: " + err.Error(),
+		}
 		return h.deps.Renderer.Render(c, pages.Signup(data))
 	}
 
@@ -144,8 +157,10 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	session, err := h.deps.SessionManager.CreateSession(newUser.ID, newUser.Email, c.Request().UserAgent())
 	if err != nil {
 		h.deps.Logger.Error("Failed to create session after signup", "error", err)
-		data := shared.BuildPageData(h.deps.Config, "Sign Up")
-		data.Error = "An error occurred. Please try again."
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: "An error occurred. Please try again.",
+		}
 		return h.deps.Renderer.Render(c, pages.Signup(data))
 	}
 
@@ -157,7 +172,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		HttpOnly: true,
 		Secure:   true,
 		SameSite: http.SameSiteStrictMode,
-		MaxAge:   86400, // 24 hours in seconds
+		MaxAge:   int(SessionDuration.Seconds()),
 	}
 	c.SetCookie(cookie)
 
@@ -165,7 +180,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
-// Logout handles the logout request
+// Logout handles POST /logout - processes the logout request
 func (h *AuthHandler) Logout(c echo.Context) error {
 	// Get session cookie
 	cookie, err := c.Cookie(h.deps.SessionManager.GetCookieName())
@@ -182,8 +197,8 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
-// handleLoginValidation handles the login form validation schema request
-func (h *AuthHandler) handleLoginValidation(c echo.Context) error {
+// LoginValidation handles the login form validation schema request
+func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	schema := map[string]any{
 		"email": map[string]any{
 			"type":    "email",
@@ -198,8 +213,8 @@ func (h *AuthHandler) handleLoginValidation(c echo.Context) error {
 	return c.JSON(http.StatusOK, schema)
 }
 
-// handleSignupValidation returns the validation schema for the signup form
-func (h *AuthHandler) handleSignupValidation(c echo.Context) error {
+// SignupValidation returns the validation schema for the signup form
+func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	schema := map[string]any{
 		"first_name": map[string]any{
 			"type":    "string",

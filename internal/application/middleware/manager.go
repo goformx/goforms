@@ -149,7 +149,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
 		TokenLength:    DefaultTokenLength,
-		TokenLookup:    "header:X-Csrf-Token,form:csrf_token,cookie:_csrf",
+		TokenLookup:    "header:X-CSRF-Token,form:_csrf,cookie:_csrf",
 		ContextKey:     "csrf",
 		CookieName:     "_csrf",
 		CookiePath:     "/",
@@ -162,22 +162,17 @@ func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
 			path := c.Request().URL.Path
 			method := c.Request().Method
 
-			if skip, ok := c.Get("skip_csrf").(bool); ok && skip {
-				return true
-			}
-
+			// Skip CSRF for static files
 			if isStaticFile(path) {
 				return true
 			}
 
-			if method == http.MethodHead || method == http.MethodOptions {
-				return true
+			// Skip CSRF validation for safe methods, but still generate token
+			if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
+				return false
 			}
 
-			if strings.HasPrefix(path, "/api/validation/") {
-				return true
-			}
-
+			// Skip CSRF for API endpoints with valid Authorization header
 			if strings.HasPrefix(path, "/api/") {
 				authHeader := c.Request().Header.Get("Authorization")
 				if authHeader != "" {
@@ -185,8 +180,13 @@ func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
 				}
 			}
 
-			// Don't skip CSRF for login page
-			if path == "/login" {
+			// Skip CSRF for validation endpoints
+			if strings.HasPrefix(path, "/api/validation/") {
+				return true
+			}
+
+			// Never skip CSRF for login, signup, or password reset
+			if path == "/login" || path == "/signup" || path == "/reset-password" {
 				return false
 			}
 
