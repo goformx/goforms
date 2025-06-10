@@ -30,6 +30,8 @@ const (
 	DefaultRateLimit = 20
 	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
 	CookieMaxAge = 86400
+	// FieldPairSize represents the number of elements in a key-value pair
+	FieldPairSize = 2
 )
 
 // Manager handles middleware configuration and setup
@@ -260,7 +262,7 @@ func (l *EchoLogger) Printf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Printj(j log.JSON) {
-	fields := make([]any, 0, len(j)*2)
+	fields := make([]any, 0, len(j)*FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -276,7 +278,7 @@ func (l *EchoLogger) Debugf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Debugj(j log.JSON) {
-	fields := make([]any, 0, len(j)*2)
+	fields := make([]any, 0, len(j)*FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -292,7 +294,7 @@ func (l *EchoLogger) Infof(format string, args ...any) {
 }
 
 func (l *EchoLogger) Infoj(j log.JSON) {
-	fields := make([]any, 0, len(j)*2)
+	fields := make([]any, 0, len(j)*FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -308,7 +310,7 @@ func (l *EchoLogger) Warnf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Warnj(j log.JSON) {
-	fields := make([]any, 0, len(j)*2)
+	fields := make([]any, 0, len(j)*FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -324,7 +326,7 @@ func (l *EchoLogger) Errorf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Errorj(j log.JSON) {
-	fields := make([]any, 0, len(j)*2)
+	fields := make([]any, 0, len(j)*FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -340,7 +342,7 @@ func (l *EchoLogger) Fatalf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Fatalj(j log.JSON) {
-	fields := make([]any, 0, len(j)*2)
+	fields := make([]any, 0, len(j)*FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -358,7 +360,7 @@ func (l *EchoLogger) Panicf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Panicj(j log.JSON) {
-	fields := make([]any, 0, len(j)*2)
+	fields := make([]any, 0, len(j)*FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}

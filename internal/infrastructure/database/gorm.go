@@ -17,6 +17,8 @@ import (
 const (
 	// DefaultPingTimeout is the default timeout for database ping operations
 	DefaultPingTimeout = 5 * time.Second
+	// MinArgsLength represents the minimum number of arguments needed for a query
+	MinArgsLength = 2
 )
 
 // GormDB wraps the GORM database connection
@@ -128,35 +130,29 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// parseQueryArgs extracts query information from format string arguments
-func parseQueryArgs(args ...any) (query string, duration time.Duration, rowsAffected int64) {
-	if len(args) > 0 {
-		if q, ok := args[0].(string); ok {
-			query = q
-		}
-		if len(args) > 1 {
-			if d, ok := args[1].(time.Duration); ok {
-				duration = d
-			}
-		}
-		if len(args) > 2 {
-			if r, ok := args[2].(int64); ok {
-				rowsAffected = r
-			}
-		}
-	}
-	return
-}
-
 // Printf implements logger.Writer interface
 func (w *GormLogWriter) Printf(format string, args ...any) {
-	query, duration, rowsAffected := parseQueryArgs(args...)
+	if len(args) < 2 {
+		return
+	}
 
-	// Log based on duration threshold
+	query, _ := args[0].(string)
+	duration, _ := args[1].(time.Duration)
+	rowsAffected := int64(0)
+	if len(args) > 2 {
+		rowsAffected, _ = args[2].(int64)
+	}
+
 	if duration > time.Millisecond*100 {
-		w.logger.Warn("slow gorm query", "query", query, "type", "formatted_query", "duration", duration, "rows_affected", rowsAffected)
+		w.logger.Warn("slow gorm query",
+			"query", query,
+			"duration", duration,
+			"rows_affected", rowsAffected)
 	} else {
-		w.logger.Debug("gorm query", "query", query, "type", "formatted_query", "duration", duration, "rows_affected", rowsAffected)
+		w.logger.Debug("gorm query",
+			"query", query,
+			"duration", duration,
+			"rows_affected", rowsAffected)
 	}
 }
 

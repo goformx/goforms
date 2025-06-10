@@ -17,6 +17,10 @@ const (
 	LogEncodingJSON = "json"
 	// EnvironmentDevelopment represents the development environment
 	EnvironmentDevelopment = "development"
+	// MaxPartsLength represents the maximum number of parts in a log message
+	MaxPartsLength = 2
+	// FieldPairSize represents the number of elements in a key-value pair
+	FieldPairSize = 2
 )
 
 // FactoryConfig holds the configuration for creating a logger factory
@@ -82,8 +86,8 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		EncodeCaller: func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
 			// Show only the last two parts of the file path
 			parts := strings.Split(caller.File, "/")
-			if len(parts) > 2 {
-				parts = parts[len(parts)-2:]
+			if len(parts) > MaxPartsLength {
+				parts = parts[len(parts)-MaxPartsLength:]
 			}
 			file := strings.Join(parts, "/")
 			enc.AppendString(fmt.Sprintf("%s:%d", file, caller.Line))
@@ -190,7 +194,7 @@ func (l *ZapLogger) WithError(err error) Logger {
 
 // WithFields adds multiple fields to the logger
 func (l *ZapLogger) WithFields(fields map[string]any) Logger {
-	zapFields := make([]zap.Field, 0, len(fields))
+	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, v))
 	}
@@ -199,8 +203,8 @@ func (l *ZapLogger) WithFields(fields map[string]any) Logger {
 
 // convertToZapFields converts a slice of fields to zap fields
 func convertToZapFields(fields []any) []zap.Field {
-	zapFields := make([]zap.Field, 0, len(fields)/2)
-	for i := 0; i < len(fields); i += 2 {
+	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
+	for i := 0; i < len(fields); i += FieldPairSize {
 		if i+1 >= len(fields) {
 			break
 		}
