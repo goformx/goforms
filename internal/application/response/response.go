@@ -33,7 +33,7 @@ func ErrorResponse(c echo.Context, statusCode int, message string) error {
 }
 
 // WebErrorResponse renders an error page for web handlers
-func WebErrorResponse(c echo.Context, renderer *view.Renderer, statusCode int, message string) error {
+func WebErrorResponse(c echo.Context, renderer view.Renderer, statusCode int, message string) error {
 	data := shared.BuildPageData(nil, "Error")
 	data.Error = message
 	return renderer.Render(c, pages.Error(data))

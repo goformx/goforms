@@ -9,7 +9,7 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/services/auth"
+	"github.com/goformx/goforms/internal/domain/auth"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -70,15 +70,9 @@ type AuthServiceParams struct {
 	Logger      logging.Logger
 }
 
-// NewAuthService creates a new auth service with dependencies
-func NewAuthService(p AuthServiceParams) (auth.Service, error) {
-	if p.UserService == nil {
-		return nil, errors.New("user service is required")
-	}
-	if p.Logger == nil {
-		return nil, errors.New("logger is required")
-	}
-	return auth.NewService(p.UserService, p.Logger), nil
+// NewAuthService creates a new auth service
+func NewAuthService(params AuthServiceParams) auth.Service {
+	return auth.NewService(params.UserService, params.Logger)
 }
 
 // StoreParams groups store dependencies
@@ -141,19 +135,5 @@ var Module = fx.Options(
 			fx.As(new(auth.Service)),
 		),
 		NewStores,
-	),
-)
-
-// DomainModule provides domain dependencies
-var DomainModule = fx.Options(
-	fx.Provide(
-		func(
-			userRepo user.Repository,
-			formRepo form.Repository,
-			publisher event.Publisher,
-			logger logging.Logger,
-		) (user.Service, form.Service) {
-			return user.NewService(userRepo, logger), form.NewService(formRepo, publisher, logger)
-		},
 	),
 )

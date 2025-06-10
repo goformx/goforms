@@ -13,15 +13,7 @@ type DemoHandler struct {
 
 // NewDemoHandler creates a new demo handler using HandlerDeps
 func NewDemoHandler(deps HandlerDeps) (*DemoHandler, error) {
-	if err := deps.Validate(
-		"BaseHandler",
-		"UserService",
-		"SessionManager",
-		"Renderer",
-		"MiddlewareManager",
-		"Config",
-		"Logger",
-	); err != nil {
+	if err := deps.Validate(); err != nil {
 		return nil, err
 	}
 	return &DemoHandler{HandlerDeps: deps}, nil

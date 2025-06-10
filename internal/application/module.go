@@ -8,7 +8,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/application/services/auth"
+	"github.com/goformx/goforms/internal/domain/auth"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -23,13 +23,14 @@ type Dependencies struct {
 	// Domain services
 	UserService user.Service
 	FormService form.Service
+	AuthService auth.Service
 
 	// Infrastructure
 	Logger            logging.Logger
 	Config            *config.Config
-	Renderer          *view.Renderer
 	SessionManager    *middleware.SessionManager
 	MiddlewareManager *middleware.Manager
+	Renderer          view.Renderer
 }
 
 // Validate checks if all required dependencies are present
@@ -40,11 +41,12 @@ func (d *Dependencies) Validate() error {
 	}{
 		{"UserService", d.UserService},
 		{"FormService", d.FormService},
+		{"AuthService", d.AuthService},
 		{"Logger", d.Logger},
 		{"Config", d.Config},
-		{"Renderer", d.Renderer},
 		{"SessionManager", d.SessionManager},
 		{"MiddlewareManager", d.MiddlewareManager},
+		{"Renderer", d.Renderer},
 	}
 
 	for _, r := range required {
@@ -53,14 +55,6 @@ func (d *Dependencies) Validate() error {
 		}
 	}
 	return nil
-}
-
-// NewAuthService creates a new auth service
-func NewAuthService(deps Dependencies) (auth.Service, error) {
-	if err := deps.Validate(); err != nil {
-		return nil, err
-	}
-	return auth.NewService(deps.UserService, deps.Logger), nil
 }
 
 // NewHandlerDeps creates handler dependencies
@@ -72,24 +66,17 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 	return &web.HandlerDeps{
 		UserService:       deps.UserService,
 		FormService:       deps.FormService,
+		AuthService:       deps.AuthService,
 		SessionManager:    deps.SessionManager,
-		Renderer:          deps.Renderer,
 		MiddlewareManager: deps.MiddlewareManager,
 		Config:            deps.Config,
 		Logger:            deps.Logger,
+		Renderer:          deps.Renderer,
 	}, nil
 }
 
 // Module provides all application layer dependencies
 var Module = fx.Options(
-	// Services
-	fx.Provide(
-		fx.Annotate(
-			NewAuthService,
-			fx.As(new(auth.Service)),
-		),
-	),
-
 	// Handler dependencies
 	fx.Provide(
 		NewHandlerDeps,

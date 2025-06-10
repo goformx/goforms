@@ -14,6 +14,7 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain"
@@ -63,80 +64,95 @@ func setupApplication(params appParams) error {
 func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			params.Logger.Info("Starting application...",
-				"app_name", params.Config.App.Name,
+			params.Logger.Info("starting application",
+				"app", params.Config.App.Name,
 				"version", params.Config.App.Version,
 				"environment", params.Config.App.Env,
 			)
-			if err := setupApplication(params); err != nil {
-				return fmt.Errorf("application setup failed: %w", err)
-			}
-			params.Logger.Info("Application started successfully")
+
+			// Start the server in a goroutine
+			go func() {
+				if err := params.Server.Start(); err != nil {
+					params.Logger.Error("server error",
+						"error", err,
+						"app", params.Config.App.Name,
+					)
+				}
+			}()
+
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
-			params.Logger.Info("Shutting down application...")
+			params.Logger.Info("shutting down application",
+				"app", params.Config.App.Name,
+				"version", params.Config.App.Version,
+			)
+
+			// The server shutdown is handled by the server's lifecycle hooks
 			return nil
 		},
 	})
 }
 
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Initialize core dependencies
+	// Load configuration
 	cfg, err := config.New()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
-		return
+		os.Exit(1)
 	}
 
-	// Create logger factory and instance
+	// Create logger factory
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     cfg.App.Name,
 		Version:     cfg.App.Version,
 		Environment: cfg.App.Env,
 		Fields:      map[string]any{},
 	})
+
+	// Create logger instance
 	logger, err := factory.CreateLogger()
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
-		return
+		os.Exit(1)
 	}
 
+	// Create the application
 	app := fx.New(
-		// Provide core dependencies
+		// Supply core dependencies
 		fx.Supply(cfg),
-		fx.Provide(func() logging.Logger { return logger }),
-		// Load infrastructure and domain modules
+
+		// Infrastructure module
 		infrastructure.Module,
+
+		// Domain module
 		domain.Module,
+
+		// Application module
+		application.Module,
+
+		// Presentation module
 		presentation.Module,
+
+		// Setup application
+		fx.Invoke(setupApplication),
 		fx.Invoke(setupLifecycle),
 	)
 
-	// Create a context that will be canceled on interrupt
-	stopCtx, stop := signal.NotifyContext(ctx, os.Interrupt, syscall.SIGTERM)
-	defer stop()
-
 	// Start the application
-	if startErr := app.Start(stopCtx); startErr != nil {
-		stop() // Ensure signal handler is stopped
-		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", startErr)
-		return
+	if err := app.Start(context.Background()); err != nil {
+		logger.Error("failed to start application", "error", err)
+		os.Exit(1)
 	}
 
 	// Wait for interrupt signal
-	<-stopCtx.Done()
-
-	// Create a new context for shutdown with timeout
-	shutdownCtx, shutdownCancel := context.WithTimeout(context.Background(), DefaultShutdownTimeout)
-	defer shutdownCancel()
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+	<-sigChan
 
 	// Stop the application
-	if stopErr := app.Stop(shutdownCtx); stopErr != nil {
-		fmt.Fprintf(os.Stderr, "Failed to stop application gracefully: %v\n", stopErr)
-		return
+	if err := app.Stop(context.Background()); err != nil {
+		logger.Error("failed to stop application", "error", err)
+		os.Exit(1)
 	}
 }

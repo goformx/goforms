@@ -1,19 +1,18 @@
 package web
 
 import (
-	"errors"
 	"net/http"
 	"time"
 
-	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
 )
 
-// AuthHandler handles authentication requests
+// AuthHandler handles authentication-related requests
 type AuthHandler struct {
-	HandlerDeps
+	deps HandlerDeps
 }
 
 const (
@@ -23,106 +22,59 @@ const (
 	MinPasswordLength = 8
 )
 
-// NewAuthHandler creates a new auth handler using HandlerDeps
+// NewAuthHandler creates a new auth handler
 func NewAuthHandler(deps HandlerDeps) (*AuthHandler, error) {
-	if err := deps.Validate(
-		"UserService",
-		"AuthService",
-		"SessionManager",
-		"Renderer",
-		"MiddlewareManager",
-		"Config",
-		"Logger",
-	); err != nil {
+	if err := deps.Validate(); err != nil {
 		return nil, err
 	}
-	return &AuthHandler{HandlerDeps: deps}, nil
+
+	return &AuthHandler{
+		deps: deps,
+	}, nil
 }
 
-// Register registers the auth routes
+// Register registers the auth handler routes
 func (h *AuthHandler) Register(e *echo.Echo) {
-	e.GET("/login", h.showLoginPage)
-	e.POST("/login", h.handleLogin)
-	e.GET("/signup", h.showSignupPage)
-	e.POST("/signup", h.handleSignup)
-	e.POST("/logout", h.handleLogout)
+	auth := e.Group("/auth")
+	auth.GET("/login", h.Login)
+	auth.POST("/login", h.LoginPost)
+	auth.GET("/signup", h.Signup)
+	auth.POST("/signup", h.SignupPost)
+	auth.POST("/logout", h.Logout)
 
 	// Validation schema endpoints
-	e.GET("/api/validation/login", h.handleLoginValidation)
-	e.GET("/api/validation/signup", h.handleSignupValidation)
+	auth.GET("/api/validation/login", h.handleLoginValidation)
+	auth.GET("/api/validation/signup", h.handleSignupValidation)
 }
 
-// showLoginPage renders the login page
-func (h *AuthHandler) showLoginPage(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, "Login")
-	return h.Renderer.Render(c, pages.Login(data))
+// Login handles the login page request
+func (h *AuthHandler) Login(c echo.Context) error {
+	data := shared.BuildPageData(h.deps.Config, "Login")
+	return h.deps.Renderer.Render(c, pages.Login(data))
 }
 
-// handleLogin processes the login request
-func (h *AuthHandler) handleLogin(c echo.Context) error {
-	email := c.FormValue("email")
-	password := c.FormValue("password")
-
-	// Authenticate user
-	userData, err := h.UserService.Authenticate(c.Request().Context(), email, password)
-	if err != nil {
-		h.Logger.Error("login failed", "error", err)
-		data := shared.BuildPageData(h.Config, "Login")
-		return h.Renderer.Render(c, pages.LoginWithError(data, "Invalid email or password"))
-	}
-
-	// Create session and set session cookie via SessionManager
-	sessionID, err := h.SessionManager.CreateSession(userData.ID, userData.Email, userData.Role)
-	if err != nil {
-		h.Logger.Error("failed to create session", "error", err)
-		data := shared.BuildPageData(h.Config, "Login")
-		return h.Renderer.Render(c, pages.LoginWithError(data, "Failed to create session. Please try again."))
-	}
-
-	h.SessionManager.SetSessionCookie(c, sessionID)
-	return c.Redirect(http.StatusSeeOther, "/dashboard")
+// LoginPost handles the login form submission
+func (h *AuthHandler) LoginPost(c echo.Context) error {
+	// TODO: Implement login logic
+	return response.WebErrorResponse(c, h.deps.Renderer, http.StatusNotImplemented, "Login not implemented")
 }
 
-// showSignupPage renders the signup page
-func (h *AuthHandler) showSignupPage(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, "Sign Up")
-	return h.Renderer.Render(c, pages.Signup(data))
+// Signup handles the signup page request
+func (h *AuthHandler) Signup(c echo.Context) error {
+	data := shared.BuildPageData(h.deps.Config, "Sign Up")
+	return h.deps.Renderer.Render(c, pages.Signup(data))
 }
 
-// handleSignup processes the signup request
-func (h *AuthHandler) handleSignup(c echo.Context) error {
-	signup := &user.Signup{
-		Email:     c.FormValue("email"),
-		Password:  c.FormValue("password"),
-		FirstName: c.FormValue("first_name"),
-		LastName:  c.FormValue("last_name"),
-	}
-
-	if _, err := h.UserService.SignUp(c.Request().Context(), signup); err != nil {
-		h.Logger.Error("signup failed", "error", err)
-		data := shared.BuildPageData(h.Config, "Sign Up")
-
-		// Handle specific error cases
-		var errorMessage string
-		switch {
-		case errors.Is(err, user.ErrUserExists):
-			errorMessage = "An account with this email already exists"
-		case errors.Is(err, user.ErrInvalidCredentials):
-			errorMessage = "Invalid signup information provided"
-		default:
-			errorMessage = "Failed to create account. Please try again."
-		}
-
-		return h.Renderer.Render(c, pages.SignupWithError(data, errorMessage))
-	}
-
-	return c.Redirect(http.StatusSeeOther, "/login")
+// SignupPost handles the signup form submission
+func (h *AuthHandler) SignupPost(c echo.Context) error {
+	// TODO: Implement signup logic
+	return response.WebErrorResponse(c, h.deps.Renderer, http.StatusNotImplemented, "Signup not implemented")
 }
 
-// handleLogout processes the logout request
-func (h *AuthHandler) handleLogout(c echo.Context) error {
-	h.SessionManager.ClearSessionCookie(c)
-	return c.Redirect(http.StatusSeeOther, "/login")
+// Logout handles the logout request
+func (h *AuthHandler) Logout(c echo.Context) error {
+	// TODO: Implement logout logic
+	return response.WebErrorResponse(c, h.deps.Renderer, http.StatusNotImplemented, "Logout not implemented")
 }
 
 // handleLoginValidation handles the login form validation schema request
