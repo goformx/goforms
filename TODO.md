@@ -1,0 +1,200 @@
+# Code Cleanup and Best Practices TODO
+
+## Redundant Code
+
+### Service Definitions
+- [ ] Consolidate duplicate user service definitions:
+  - `internal/domain/user_service.go` (old)
+  - `internal/domain/user/service.go` (new)
+  - Action: Remove `user_service.go` after verifying all functionality is in `service.go`
+
+### Validator Interfaces
+- [ ] Consolidate validator interfaces:
+  - `internal/infrastructure/validation/validator.go`
+  - `internal/domain/common/interfaces/validator.go`
+  - Action: Create a single validator interface in `internal/domain/common/interfaces/validator.go` and update all references
+
+### Event System
+- [ ] Consolidate event-related interfaces:
+  - `internal/infrastructure/event/publisher.go`
+  - `internal/domain/common/events/events.go`
+  - `internal/domain/form/event/event.go`
+  - Action: Create a unified event system in `internal/domain/common/events/events.go`
+
+## Code Organization
+
+### Middleware
+- [ ] Review middleware organization:
+  - Some middleware is in `internal/application/middleware`
+  - Some is in `internal/infrastructure/web/middleware`
+  - Action: Consolidate all middleware in `internal/application/middleware`
+
+### Repository Pattern
+- [ ] Review repository implementations:
+  - Some repositories are in `internal/infrastructure/persistence`
+  - Some are in `internal/infrastructure/repository`
+  - Action: Consolidate all repositories in `internal/infrastructure/repository`
+
+## Best Practices Violations
+
+### Error Handling
+- [ ] Review error handling patterns:
+  - Some errors are returned directly
+  - Some are wrapped with context
+  - Action: Standardize error handling with proper context and wrapping
+
+### Logging
+- [ ] Review logging patterns:
+  - Some logs include sensitive information
+  - Some logs lack proper context
+  - Action: Standardize logging with proper context and security
+
+### Configuration
+- [ ] Review configuration management:
+  - Some config is hardcoded
+  - Some config is in environment variables
+  - Action: Standardize configuration management
+
+### Dependency Injection
+- [ ] Review dependency injection:
+  - Some components use constructor injection
+  - Some use fx dependency injection
+  - Action: Standardize on fx dependency injection
+
+## Testing
+
+### Test Coverage
+- [ ] Review test coverage:
+  - Some packages lack tests
+  - Some tests are incomplete
+  - Action: Add missing tests and improve existing ones
+
+### Test Organization
+- [ ] Review test organization:
+  - Some tests are in `_test.go` files
+  - Some are in separate test packages
+  - Action: Standardize test organization
+
+## Documentation
+
+### API Documentation
+- [ ] Review API documentation:
+  - Some endpoints lack documentation
+  - Some documentation is outdated
+  - Action: Update and complete API documentation
+
+### Code Comments
+- [ ] Review code comments:
+  - Some code lacks comments
+  - Some comments are outdated
+  - Action: Update and add missing comments
+
+## Security
+
+### Authentication
+- [ ] Review authentication:
+  - Some endpoints lack proper authentication
+  - Some authentication is inconsistent
+  - Action: Standardize authentication across all endpoints
+
+### Authorization
+- [ ] Review authorization:
+  - Some endpoints lack proper authorization
+  - Some authorization is inconsistent
+  - Action: Standardize authorization across all endpoints
+
+## Performance
+
+### Database Operations
+- [ ] Review database operations:
+  - Some queries lack proper indexing
+  - Some operations are inefficient
+  - Action: Optimize database operations
+
+### Caching
+- [ ] Review caching:
+  - Some operations lack caching
+  - Some caching is inconsistent
+  - Action: Implement proper caching strategy
+
+## Frontend
+
+### JavaScript Organization
+- [ ] Review JavaScript organization:
+  - Some code is in global scope
+  - Some modules lack proper exports
+  - Action: Standardize JavaScript module organization
+
+### CSS Organization
+- [ ] Review CSS organization:
+  - Some styles are duplicated
+  - Some styles lack proper scoping
+  - Action: Standardize CSS organization
+
+## Infrastructure
+
+### Docker Configuration
+- [ ] Review Docker configuration:
+  - Some configurations are hardcoded
+  - Some lack proper security settings
+  - Action: Standardize Docker configuration
+
+### CI/CD
+- [ ] Review CI/CD pipeline:
+  - Some steps are missing
+  - Some configurations are outdated
+  - Action: Update and complete CI/CD pipeline
+
+## Critical Issues
+
+### Security Vulnerabilities
+- [ ] Fix hardcoded database passwords in `internal/infrastructure/config/config.go`
+- [ ] Implement proper token generation and validation in `internal/domain/user/service.go`
+- [ ] Add proper token blacklisting in `internal/domain/user/service.go`
+- [ ] Implement proper JWT validation and parsing in `internal/domain/user/service.go`
+
+### Incomplete Features
+- [ ] Complete form details parsing in `internal/application/handlers/web/form.go`
+- [ ] Add form cards in `internal/presentation/templates/pages/forms.templ`
+- [ ] Implement proper token blacklist check in `internal/domain/user/service.go`
+
+### Code Quality
+- [ ] Remove redundant error checks in `internal/application/handlers/web/form.go`
+- [ ] Consolidate duplicate error handling patterns
+- [ ] Standardize error wrapping and context
+- [ ] Remove hardcoded values and move to configuration
+
+### Performance Issues
+- [ ] Review and optimize database queries
+- [ ] Implement proper caching for frequently accessed data
+- [ ] Add database indexes for common queries
+- [ ] Optimize form submission handling
+
+### Security Best Practices
+- [ ] Implement proper CSRF protection
+- [ ] Add rate limiting for authentication endpoints
+- [ ] Implement proper session management
+- [ ] Add input validation for all endpoints
+- [ ] Implement proper password hashing and validation
+- [ ] Add proper error messages for security-related failures
+
+### Code Organization
+- [ ] Move all middleware to `internal/application/middleware`
+- [ ] Consolidate repository implementations
+- [ ] Standardize service interfaces
+- [ ] Implement proper dependency injection
+- [ ] Add proper error types and handling
+
+### Testing
+- [ ] Add unit tests for all services
+- [ ] Add integration tests for all endpoints
+- [ ] Add proper test coverage reporting
+- [ ] Implement proper test fixtures
+- [ ] Add proper test documentation
+
+### Documentation
+- [ ] Add proper API documentation
+- [ ] Add proper code comments
+- [ ] Add proper README files
+- [ ] Add proper setup instructions
+- [ ] Add proper contribution guidelines 

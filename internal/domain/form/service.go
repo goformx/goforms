@@ -28,9 +28,6 @@ type service struct {
 
 // NewService creates a new form service instance
 func NewService(repo Repository, publisher event.Publisher, logger logging.Logger) *service {
-	logger.Debug("creating form service",
-		"repo_available", repo != nil,
-	)
 	return &service{
 		repo:      repo,
 		publisher: publisher,
@@ -59,12 +56,9 @@ func (s *service) CreateForm(ctx context.Context, userID string, form *model.For
 
 // GetForm retrieves a form by ID
 func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
-	logger := s.logger
-
-	// Get form
 	form, err := s.repo.GetByID(ctx, id)
 	if err != nil {
-		logger.Error("failed to get form", "error", err)
+		s.logger.Error("failed to get form", "error", err)
 		return nil, err
 	}
 
@@ -75,7 +69,6 @@ func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
 func (s *service) GetUserForms(ctx context.Context, userID string) ([]*model.Form, error) {
 	logger := s.logger.WithUserID(userID)
 
-	// Get forms
 	forms, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
 		logger.Error("failed to get user forms", "error", err)
@@ -141,28 +134,11 @@ func (s *service) GetFormSubmissions(ctx context.Context, formID string) ([]*mod
 	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
 	defer cancel()
 
-	s.logger.Debug("getting form submissions",
-		"form_id", formID,
-		"operation", "get_form_submissions",
-	)
-
 	submissions, err := s.repo.GetFormSubmissions(ctx, formID)
 	if err != nil {
-		s.logger.Error("failed to get form submissions",
-			"form_id", formID,
-			"error", err,
-			"operation", "get_form_submissions",
-			"error_type", "repository_error",
-			"error_details", fmt.Sprintf("%+v", err),
-		)
+		s.logger.Error("failed to get form submissions", "error", err)
 		return nil, fmt.Errorf("failed to get form submissions: %w", err)
 	}
-
-	s.logger.Debug("form submissions retrieved successfully",
-		"form_id", formID,
-		"submission_count", len(submissions),
-		"operation", "get_form_submissions",
-	)
 
 	return submissions, nil
 }

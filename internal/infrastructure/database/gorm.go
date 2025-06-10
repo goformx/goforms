@@ -79,7 +79,7 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		PrepareStmt: true, // Enable prepared statements for better performance
 	})
 	if err != nil {
-		appLogger.Error("failed to connect to database", "error", err, "dsn", dsn)
+		appLogger.Error("failed to connect to database", "error", err)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
@@ -99,12 +99,9 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
-	appLogger.Debug("database connection established",
+	appLogger.Info("database connection established",
 		"host", cfg.Database.Postgres.Host,
-		"port", cfg.Database.Postgres.Port)
-	appLogger.Debug("database connection settings",
-		"duration", cfg.Database.Postgres.ConnMaxLifetime,
-		"ssl_mode", cfg.Database.Postgres.SSLMode,
+		"port", cfg.Database.Postgres.Port,
 		"max_open_conns", cfg.Database.Postgres.MaxOpenConns)
 
 	return &GormDB{
@@ -125,7 +122,6 @@ func (db *GormDB) Close() error {
 		return fmt.Errorf("failed to close database connection: %w", closeErr)
 	}
 
-	db.logger.Debug("database connection closed")
 	return nil
 }
 
@@ -136,7 +132,6 @@ type GormLogWriter struct {
 
 // Write implements io.Writer interface
 func (w *GormLogWriter) Write(p []byte) (n int, err error) {
-	w.logger.Debug("gorm query", "query", string(p), "type", "raw_query")
 	return len(p), nil
 }
 
@@ -154,12 +149,7 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 	}
 
 	if duration > time.Millisecond*100 {
-		w.logger.Warn("slow gorm query",
-			"query", query,
-			"duration", duration,
-			"rows_affected", rowsAffected)
-	} else {
-		w.logger.Debug("gorm query",
+		w.logger.Warn("slow query",
 			"query", query,
 			"duration", duration,
 			"rows_affected", rowsAffected)
@@ -168,24 +158,7 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 
 // Error implements logger.Writer interface
 func (w *GormLogWriter) Error(msg string, err error) {
-	// Log debug information about the error being processed
-	w.logger.Debug("processing gorm error",
-		"message", msg,
-		"error_type", fmt.Sprintf("%T", err),
-		"error_message", err.Error(),
-		"error_details", fmt.Sprintf("%+v", err),
-		"error_stack", fmt.Sprintf("%+v", err),
-	)
-
 	if errors.Is(err, gorm.ErrRecordNotFound) {
-		w.logger.Debug("gorm query",
-			"message", msg,
-			"type", "record_not_found",
-			"error_details", fmt.Sprintf("%+v", err),
-			"error_message", err.Error(),
-			"error_stack", fmt.Sprintf("%+v", err),
-			"error", err,
-		)
 		return
 	}
 
@@ -194,14 +167,10 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		errorType = "invalid_db"
 	}
 
-	w.logger.Error("gorm error",
+	w.logger.Error("database error",
 		"message", msg,
 		"type", errorType,
-		"error_details", fmt.Sprintf("%+v", err),
-		"error_message", err.Error(),
-		"error_stack", fmt.Sprintf("%+v", err),
-		"error", err,
-	)
+		"error", err)
 }
 
 func (db *GormDB) Ping(ctx context.Context) error {

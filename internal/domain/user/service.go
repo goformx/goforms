@@ -58,33 +58,16 @@ func NewService(repo Repository, logger logging.Logger) Service {
 
 // SignUp registers a new user
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
-	s.logger.Debug("starting signup process",
-		"email", signup.Email,
-		"first_name", signup.FirstName,
-		"last_name", signup.LastName,
-	)
-
 	// Check if email already exists
 	existingUser, err := s.repo.GetByEmail(ctx, signup.Email)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
-			s.logger.Debug("user not found, proceeding with signup",
-				"email", signup.Email,
-			)
+			// User not found, proceed with signup
 		}
 	}
 	if existingUser != nil {
-		s.logger.Debug("user already exists", "email", existingUser.Email)
 		return nil, ErrUserExists
 	}
-
-	s.logger.Debug("proceeding with signup",
-		"email", signup.Email,
-		"first_name", signup.FirstName,
-		"last_name", signup.LastName,
-	)
-
-	s.logger.Debug("creating new user")
 
 	// Create user
 	user := &User{
@@ -105,42 +88,23 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 
 	// Save user
 	if createErr := s.repo.Create(ctx, user); createErr != nil {
-		s.logger.Error("failed to create user in store", "error", createErr)
+		s.logger.Error("failed to create user", "error", createErr)
 		return nil, fmt.Errorf("failed to create user: %w", createErr)
 	}
-
-	s.logger.Debug("user created successfully",
-		"id", user.ID,
-		"email", user.Email,
-	)
 
 	return user, nil
 }
 
 // Login authenticates a user
 func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, error) {
-	s.logger.Debug("attempting login",
-		"email", login.Email,
-		"has_password", login.Password != "",
-	)
-
 	user, err := s.repo.GetByEmail(ctx, login.Email)
 	if err != nil {
-		s.logger.Error("failed to get user by email",
-			"error", err,
-			"email", login.Email,
-		)
+		s.logger.Error("failed to get user by email", "error", err)
 		return nil, ErrInvalidCredentials
 	}
 	if user == nil {
-		s.logger.Error("user not found", "email", login.Email)
 		return nil, ErrInvalidCredentials
 	}
-
-	s.logger.Debug("user found",
-		"email", user.Email,
-		"active", user.Active,
-	)
 
 	if !user.CheckPassword(login.Password) {
 		s.logger.Error("password mismatch", "email", login.Email)
@@ -154,7 +118,6 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, 
 		RefreshToken: "dummy_refresh_token",
 	}
 
-	s.logger.Debug("login successful", "email", login.Email)
 	return &LoginResponse{
 		User:  user,
 		Token: tokenPair,
@@ -163,16 +126,7 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, 
 
 // Logout blacklists a refresh token
 func (s *ServiceImpl) Logout(ctx context.Context, refreshToken string) error {
-	s.logger.Debug("logging out user",
-		"refresh_token", refreshToken,
-	)
-
 	// TODO: Implement token blacklisting
-	// For now, we'll just log the logout attempt
-	s.logger.Debug("logout successful",
-		"refresh_token", refreshToken,
-	)
-
 	return nil
 }
 

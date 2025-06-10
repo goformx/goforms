@@ -31,7 +31,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	// Handle domain errors
 	var domainErr *errors.DomainError
 	if stderrors.As(err, &domainErr) {
-		h.logger.Error("error handling request", "error", err, "path", c.Request().URL.Path)
+		h.logger.Error("domain error", "error", err)
 
 		statusCode := http.StatusInternalServerError
 		switch domainErr.Code {
@@ -67,7 +67,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		}
 
 		if jsonErr := c.JSON(statusCode, response); jsonErr != nil {
-			h.logger.Error("error handling request", "error", jsonErr)
+			h.logger.Error("failed to send error response", "error", jsonErr)
 		}
 
 		return
@@ -76,7 +76,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	// Handle HTTP errors
 	var httpErr *echo.HTTPError
 	if stderrors.As(err, &httpErr) {
-		h.logger.Error("error handling request", "error", err)
+		h.logger.Error("http error", "error", err)
 
 		response := map[string]any{
 			"error": map[string]any{
@@ -86,14 +86,14 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		}
 
 		if jsonErr := c.JSON(httpErr.Code, response); jsonErr != nil {
-			h.logger.Error("error handling request", "error", jsonErr)
+			h.logger.Error("failed to send error response", "error", jsonErr)
 		}
 
 		return
 	}
 
 	// Handle unknown errors
-	h.logger.Error("error handling request", "error", err)
+	h.logger.Error("unknown error", "error", err)
 
 	response := map[string]any{
 		"error": map[string]any{
@@ -103,7 +103,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	}
 
 	if jsonErr := c.JSON(http.StatusInternalServerError, response); jsonErr != nil {
-		h.logger.Error("error handling request", "error", jsonErr)
+		h.logger.Error("failed to send error response", "error", jsonErr)
 	}
 }
 

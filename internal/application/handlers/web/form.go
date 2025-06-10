@@ -76,13 +76,6 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	title := c.FormValue("title")
 	description := c.FormValue("description")
 
-	// Log form creation attempt
-	h.Logger.Debug("attempting to create form",
-		"title", title,
-		"description", description,
-		"user_id", userID,
-	)
-
 	// Create a valid initial schema
 	schema := model.JSON{
 		"type":       "object",
@@ -93,12 +86,7 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	form := model.NewForm(userID, title, description, schema)
 	err := h.FormService.CreateForm(c.Request().Context(), userID, form)
 	if err != nil {
-		h.Logger.Error("failed to create form",
-			"error", err,
-			"title", title,
-			"description", description,
-			"user_id", userID,
-		)
+		h.Logger.Error("failed to create form", "error", err)
 
 		// Check for specific validation errors
 		switch {
@@ -111,14 +99,6 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 		}
 	}
 
-	// Log successful form creation
-	h.Logger.Info("form created successfully",
-		"form_id", form.ID,
-		"title", form.Title,
-		"user_id", form.UserID,
-	)
-
-	// Redirect to the form edit page
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/dashboard/forms/%s/edit", form.ID))
 }
 
@@ -126,20 +106,12 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
-		h.Logger.Error("form ID is required",
-			"operation", "handle_form_edit",
-			"error_type", "validation_error",
-		)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
 	// Get user ID from session
 	userIDRaw, ok := c.Get("user_id").(string)
 	if !ok {
-		h.Logger.Error("user ID not found in session",
-			"operation", "handle_form_edit",
-			"error_type", "session_error",
-		)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 	userID := userIDRaw
@@ -147,18 +119,9 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)",
-			"error", err,
-			"user_id", userID,
-			"operation", "handle_form_edit",
-			"error_type", "user_service_error",
-		)
+		h.Logger.Error("failed to get user", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
-
-	h.Logger.Debug("attempting to get form",
-		"form_id", formID,
-	)
 
 	f, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
@@ -168,13 +131,7 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 
 	// Verify form ownership
 	if f.UserID != userID {
-		h.Logger.Error("form ownership verification failed",
-			"form_id", formID,
-			"user_id", userID,
-			"form_user_id", f.UserID,
-			"operation", "handle_form_edit",
-			"error_type", "authorization_error",
-		)
+		h.Logger.Error("form ownership verification failed", "form_id", formID, "user_id", userID)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to edit this form")
 	}
 
@@ -184,12 +141,6 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
 		data.CSRFToken = csrfToken
 	}
-
-	h.Logger.Debug("form edit page rendered successfully",
-		"form_id", formID,
-		"user_id", userID,
-		"operation", "handle_form_edit",
-	)
 
 	return h.Renderer.Render(c, pages.EditForm(data))
 }
