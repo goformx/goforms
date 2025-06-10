@@ -103,6 +103,19 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	data := shared.BuildPageData(h.Config, "Dashboard")
 	data.Forms = forms
 
+	// Get user data
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil {
+		h.Logger.Error("failed to get user data for dashboard",
+			"operation", "handle_dashboard",
+			"user_id", userID,
+			"error", err,
+		)
+		data.Error = "Failed to load user data. Please try again later."
+		return h.Renderer.Render(c, pages.Error(data))
+	}
+	data.User = user
+
 	h.Logger.Debug("rendering dashboard page")
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }

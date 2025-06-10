@@ -64,7 +64,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	)
 
 	var formModel model.Form
-	if err := s.db.WithContext(ctx).Where("id = ?", normalizedID).First(&formModel).Error; err != nil {
+	if err := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Debug("form not found",
 				"form_id", normalizedID,
