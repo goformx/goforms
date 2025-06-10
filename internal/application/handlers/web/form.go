@@ -289,6 +289,7 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
 		data.CSRFToken = csrfToken
 	}
+	data.Content = pages.FormSubmissionsContent(data)
 
 	return h.Renderer.Render(c, pages.FormSubmissions(data))
 }

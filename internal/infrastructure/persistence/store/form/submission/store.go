@@ -64,7 +64,7 @@ func (s *Store) GetByFormID(ctx context.Context, formID string) ([]*model.FormSu
 
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
-		Where("form_id = ?", formID).
+		Where("form_uuid = ?", formID).
 		Order("created_at DESC").
 		Find(&submissions).Error; err != nil {
 		s.logger.Error("failed to get form submissions", "error", err, "form_id", formID)
@@ -161,7 +161,7 @@ func (s *Store) GetByFormIDPaginated(
 	// Get total count for this form
 	if err := s.db.WithContext(ctx).
 		Model(&model.FormSubmission{}).
-		Where("form_id = ?", formID).
+		Where("form_uuid = ?", formID).
 		Count(&total).Error; err != nil {
 		s.logger.Error("database error while counting form submissions",
 			"form_id", formID,
@@ -172,7 +172,7 @@ func (s *Store) GetByFormIDPaginated(
 
 	// Get paginated results for this form
 	if err := s.db.WithContext(ctx).
-		Where("form_id = ?", formID).
+		Where("form_uuid = ?", formID).
 		Order("created_at DESC").
 		Offset(params.GetOffset()).
 		Limit(params.GetLimit()).
@@ -198,7 +198,7 @@ func (s *Store) GetByFormAndUser(ctx context.Context, formID, userID string) (*m
 	s.logger.Debug("getting submission by form and user", "form_id", formID, "user_id", userID)
 
 	var submission model.FormSubmission
-	query := s.db.WithContext(ctx).Where("form_id = ? AND user_id = ?", formID, userID)
+	query := s.db.WithContext(ctx).Where("form_uuid = ? AND user_id = ?", formID, userID)
 	if err := query.First(&submission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Debug("form submission not found by form and user",

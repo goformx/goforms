@@ -296,7 +296,7 @@ func (s *Store) GetFormSubmissions(ctx context.Context, formID string) ([]*model
 	s.logger.Debug("getting form submissions", "form_id", formID)
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
-		Where("form_id = ?", formID).
+		Where("form_uuid = ?", formID).
 		Order("created_at DESC").
 		Find(&submissions).Error; err != nil {
 		return nil, common.NewDatabaseError("get_submissions", "form", formID, err)

@@ -16,12 +16,21 @@ templ DashboardNav(data shared.PageData) {
                     } else {
                         <div class="user-menu">
                             <label class="user-menu-button" tabindex="0">
-                                <span class="user-menu-avatar">{ data.User.FirstName[0:1] }</span>
-                                <span class="user-menu-name">{ data.User.FirstName } { data.User.LastName }</span>
+                                if data.User.FirstName != "" {
+                                    <span class="user-menu-avatar">{ data.User.FirstName[0:1] }</span>
+                                    <span class="user-menu-name">{ data.User.FirstName } { data.User.LastName }</span>
+                                } else {
+                                    <span class="user-menu-avatar">U</span>
+                                    <span class="user-menu-name">User</span>
+                                }
                             </label>
                             <div class="user-menu-dropdown">
                                 <div class="user-menu-header">
-                                    <span class="user-menu-email">{ data.User.Email }</span>
+                                    if data.User.Email != "" {
+                                        <span class="user-menu-email">{ data.User.Email }</span>
+                                    } else {
+                                        <span class="user-menu-email">No email</span>
+                                    }
                                 </div>
                                 <div class="user-menu-items">
                                     <a href="/dashboard" class="user-menu-item">Dashboard</a>

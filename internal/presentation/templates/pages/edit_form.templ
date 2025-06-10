@@ -90,6 +90,12 @@ templ EditFormContent(data shared.PageData) {
 					<h1 class="dashboard-title">Edit Form</h1>
 					<p class="dashboard-subtitle">Configure your form settings and fields</p>
 				</div>
+				<div class="dashboard-header-right">
+					<a href={ templ.SafeURL("/dashboard/forms/" + data.Form.ID + "/submissions") } class="gf-button gf-button--outline">
+						<i class="bi bi-list-check"></i>
+						<span>View Submissions</span>
+					</a>
+				</div>
 			</div>
 
 			<div class="dashboard-content form-builder-content">
@@ -126,6 +132,18 @@ templ EditFormContent(data shared.PageData) {
 
 		.form-builder-main {
 			min-width: 0; /* Prevent grid item from overflowing */
+		}
+
+		.dashboard-header {
+			display: flex;
+			justify-content: space-between;
+			align-items: center;
+			margin-bottom: var(--spacing-6);
+		}
+
+		.dashboard-header-right {
+			display: flex;
+			gap: var(--spacing-4);
 		}
 	</style>
 
