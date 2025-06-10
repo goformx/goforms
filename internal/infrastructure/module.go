@@ -13,9 +13,9 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
-	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form/submission"
-	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
+	formstore "github.com/goformx/goforms/internal/infrastructure/repository/form"
+	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/repository/form/submission"
+	userstore "github.com/goformx/goforms/internal/infrastructure/repository/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
 )

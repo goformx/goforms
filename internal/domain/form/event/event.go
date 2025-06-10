@@ -36,7 +36,7 @@ type FormCreatedEvent struct {
 }
 
 // NewFormCreatedEvent creates a new form created event
-func NewFormCreatedEvent(form *model.Form) *FormCreatedEvent {
+func NewFormCreatedEvent(form *model.Form) Event {
 	return &FormCreatedEvent{
 		Form:      form,
 		timestamp: time.Now(),
@@ -62,7 +62,7 @@ type FormUpdatedEvent struct {
 }
 
 // NewFormUpdatedEvent creates a new form updated event
-func NewFormUpdatedEvent(form *model.Form) *FormUpdatedEvent {
+func NewFormUpdatedEvent(form *model.Form) Event {
 	return &FormUpdatedEvent{
 		Form:      form,
 		timestamp: time.Now(),
@@ -88,7 +88,7 @@ type FormDeletedEvent struct {
 }
 
 // NewFormDeletedEvent creates a new form deleted event
-func NewFormDeletedEvent(formID string) *FormDeletedEvent {
+func NewFormDeletedEvent(formID string) Event {
 	return &FormDeletedEvent{
 		FormID:    formID,
 		timestamp: time.Now(),
@@ -114,7 +114,7 @@ type FormSubmissionCreatedEvent struct {
 }
 
 // NewFormSubmissionCreatedEvent creates a new form submission created event
-func NewFormSubmissionCreatedEvent(submission *model.FormSubmission) *FormSubmissionCreatedEvent {
+func NewFormSubmissionCreatedEvent(submission *model.FormSubmission) Event {
 	return &FormSubmissionCreatedEvent{
 		Submission: submission,
 		timestamp:  time.Now(),

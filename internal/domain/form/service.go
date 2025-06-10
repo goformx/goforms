@@ -51,6 +51,11 @@ func (s *service) CreateForm(ctx context.Context, userID string, form *model.For
 		return err
 	}
 
+	// Publish form created event
+	if pubErr := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); pubErr != nil {
+		logger.Error("failed to publish form created event", "error", pubErr)
+	}
+
 	return nil
 }
 
@@ -103,6 +108,11 @@ func (s *service) UpdateForm(ctx context.Context, userID string, form *model.For
 		return updateErr
 	}
 
+	// Publish form updated event
+	if pubErr := s.publisher.Publish(ctx, event.NewFormUpdatedEvent(form)); pubErr != nil {
+		logger.Error("failed to publish form updated event", "error", pubErr)
+	}
+
 	return nil
 }
 
@@ -124,6 +134,11 @@ func (s *service) DeleteForm(ctx context.Context, userID, id string) error {
 	if deleteErr := s.repo.Delete(ctx, id); deleteErr != nil {
 		logger.Error("failed to delete form", "error", deleteErr)
 		return deleteErr
+	}
+
+	// Publish form deleted event
+	if pubErr := s.publisher.Publish(ctx, event.NewFormDeletedEvent(id)); pubErr != nil {
+		logger.Error("failed to publish form deleted event", "error", pubErr)
 	}
 
 	return nil

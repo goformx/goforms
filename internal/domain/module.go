@@ -4,8 +4,9 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/infrastructure/event"
+	infraevent "github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -51,7 +52,7 @@ var Module = fx.Options(
 		),
 		// Event publisher
 		fx.Annotate(
-			event.NewMemoryPublisher,
+			infraevent.NewMemoryPublisher,
 			fx.As(new(event.Publisher)),
 		),
 	),

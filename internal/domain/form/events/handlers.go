@@ -3,10 +3,19 @@ package form
 import (
 	"context"
 	"errors"
+	"time"
 
-	"github.com/goformx/goforms/internal/domain/common/events"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
+
+// FormEvent is a local interface for form event handling
+// It matches the event types defined in form_events.go
+// (Data, EventType, Timestamp)
+type FormEvent interface {
+	Data() any
+	EventType() string
+	Timestamp() time.Time
+}
 
 // FormEventHandler handles form-related events
 type FormEventHandler struct {
@@ -21,9 +30,8 @@ func NewFormEventHandler(logger logging.Logger) *FormEventHandler {
 }
 
 // Handle handles form events
-func (h *FormEventHandler) Handle(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) Handle(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With(
-		"event_id", event.EventID(),
 		"event_type", event.EventType(),
 		"timestamp", event.Timestamp(),
 	)
@@ -60,7 +68,7 @@ func (h *FormEventHandler) Handle(ctx context.Context, event events.Event) error
 }
 
 // handleFormCreated handles form creation events
-func (h *FormEventHandler) handleFormCreated(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormCreated(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.created")
 
 	// Check for context cancellation
@@ -86,7 +94,7 @@ func (h *FormEventHandler) handleFormCreated(ctx context.Context, event events.E
 }
 
 // handleFormUpdated handles form update events
-func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.updated")
 
 	// Check for context cancellation
@@ -112,7 +120,7 @@ func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event events.E
 }
 
 // handleFormDeleted handles form deletion events
-func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.deleted")
 
 	// Check for context cancellation
@@ -138,7 +146,7 @@ func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event events.E
 }
 
 // handleFormSubmitted handles form submission events
-func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.submitted")
 
 	// Check for context cancellation
@@ -164,7 +172,7 @@ func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event events
 }
 
 // handleFormValidated handles form validation events
-func (h *FormEventHandler) handleFormValidated(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormValidated(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.validated")
 
 	// Check for context cancellation
@@ -190,7 +198,7 @@ func (h *FormEventHandler) handleFormValidated(ctx context.Context, event events
 }
 
 // handleFormProcessed handles form processing events
-func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.processed")
 
 	// Check for context cancellation
@@ -216,7 +224,7 @@ func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event events
 }
 
 // handleFormError handles form error events
-func (h *FormEventHandler) handleFormError(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormError(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.error")
 
 	// Check for context cancellation
@@ -243,7 +251,7 @@ func (h *FormEventHandler) handleFormError(ctx context.Context, event events.Eve
 }
 
 // handleFormState handles form state events
-func (h *FormEventHandler) handleFormState(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFormState(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.state")
 
 	// Check for context cancellation
@@ -269,7 +277,7 @@ func (h *FormEventHandler) handleFormState(ctx context.Context, event events.Eve
 }
 
 // handleFieldEvent handles field events
-func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.field")
 
 	// Check for context cancellation
@@ -296,7 +304,7 @@ func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event events.Ev
 }
 
 // handleAnalyticsEvent handles analytics events
-func (h *FormEventHandler) handleAnalyticsEvent(ctx context.Context, event events.Event) error {
+func (h *FormEventHandler) handleAnalyticsEvent(ctx context.Context, event FormEvent) error {
 	logger := h.logger.With("event_type", "form.analytics")
 
 	// Check for context cancellation

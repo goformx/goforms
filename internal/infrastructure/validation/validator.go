@@ -12,6 +12,7 @@ import (
 
 	validator "github.com/go-playground/validator/v10"
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 )
 
 const (
@@ -92,23 +93,7 @@ func getErrorMessage(e validator.FieldError) string {
 	}
 }
 
-// Validator defines the interface for validation
-type Validator interface {
-	// Struct validates a struct against its validation tags
-	Struct(any) error
-	// Var validates a single variable against the provided tag
-	Var(any, string) error
-	// RegisterValidation registers a custom validation function
-	RegisterValidation(string, func(fl validator.FieldLevel) bool) error
-	// GetValidationErrors returns a map of field names to error messages
-	GetValidationErrors(error) map[string]string
-	// RegisterCrossFieldValidation registers a cross-field validation function
-	RegisterCrossFieldValidation(string, func(fl validator.FieldLevel) bool) error
-	// RegisterStructValidation registers a struct validation function
-	RegisterStructValidation(func(sl validator.StructLevel), any) error
-}
-
-// validatorImpl implements the Validator interface
+// validatorImpl implements the interfaces.Validator interface
 type validatorImpl struct {
 	validate *validator.Validate
 	cache    sync.Map // Cache for validation results
@@ -121,7 +106,7 @@ var (
 )
 
 // New creates a new validator instance with common validation rules
-func New() Validator {
+func New() interfaces.Validator {
 	once.Do(func() {
 		v := validator.New()
 

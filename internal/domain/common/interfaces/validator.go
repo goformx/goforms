@@ -16,4 +16,6 @@ type Validator interface {
 	RegisterCrossFieldValidation(tag string, fn func(fl validator.FieldLevel) bool) error
 	// GetValidationErrors returns detailed validation errors
 	GetValidationErrors(err error) map[string]string
+	// ValidateStruct is an alias for Struct for backward compatibility
+	ValidateStruct(any) error
 }

@@ -3,9 +3,23 @@ package form
 import (
 	"time"
 
-	"github.com/goformx/goforms/internal/domain/common/events"
 	"github.com/goformx/goforms/internal/domain/form/model"
 )
+
+// BaseEvent provides common event functionality for form events
+// (migrated from the old common/events package)
+type BaseEvent struct {
+	EventType string
+	Timestamp time.Time
+}
+
+// NewBaseEvent creates a new base event with the given type
+func NewBaseEvent(eventType string) BaseEvent {
+	return BaseEvent{
+		EventType: eventType,
+		Timestamp: time.Now(),
+	}
+}
 
 // EventType represents the type of form event
 type EventType string
@@ -48,7 +62,7 @@ const (
 
 // SubmittedEvent represents a form submission event
 type SubmittedEvent struct {
-	events.BaseEvent
+	BaseEvent
 	FormID      string
 	Submission  *model.FormSubmission
 	SubmittedAt time.Time
@@ -57,7 +71,7 @@ type SubmittedEvent struct {
 // NewFormSubmittedEvent creates a new form submitted event
 func NewFormSubmittedEvent(formID string, submission *model.FormSubmission) *SubmittedEvent {
 	return &SubmittedEvent{
-		BaseEvent:   events.NewBaseEvent(string(FormSubmittedEventType)),
+		BaseEvent:   NewBaseEvent(string(FormSubmittedEventType)),
 		FormID:      formID,
 		Submission:  submission,
 		SubmittedAt: time.Now(),
@@ -71,7 +85,7 @@ func (e *SubmittedEvent) Data() any {
 
 // ValidatedEvent represents a form validation event
 type ValidatedEvent struct {
-	events.BaseEvent
+	BaseEvent
 	FormID      string
 	Submission  *model.FormSubmission
 	ValidatedAt time.Time
@@ -87,7 +101,7 @@ func NewFormValidatedEvent(
 	errors []error,
 ) *ValidatedEvent {
 	return &ValidatedEvent{
-		BaseEvent:   events.NewBaseEvent(string(FormValidatedEventType)),
+		BaseEvent:   NewBaseEvent(string(FormValidatedEventType)),
 		FormID:      formID,
 		Submission:  submission,
 		ValidatedAt: time.Now(),
@@ -109,7 +123,7 @@ func (e *ValidatedEvent) Data() any {
 
 // ProcessedEvent represents a form processing event
 type ProcessedEvent struct {
-	events.BaseEvent
+	BaseEvent
 	FormID       string
 	Submission   *model.FormSubmission
 	ProcessedAt  time.Time
@@ -119,7 +133,7 @@ type ProcessedEvent struct {
 // NewFormProcessedEvent creates a new form processed event
 func NewFormProcessedEvent(formID string, submission *model.FormSubmission, processingID string) *ProcessedEvent {
 	return &ProcessedEvent{
-		BaseEvent:    events.NewBaseEvent(string(FormProcessedEventType)),
+		BaseEvent:    NewBaseEvent(string(FormProcessedEventType)),
 		FormID:       formID,
 		Submission:   submission,
 		ProcessedAt:  time.Now(),
@@ -139,7 +153,7 @@ func (e *ProcessedEvent) Data() any {
 
 // ErrorEvent represents a form error event
 type ErrorEvent struct {
-	events.BaseEvent
+	BaseEvent
 	FormID     string
 	Submission *model.FormSubmission
 	Error      error
@@ -150,7 +164,7 @@ type ErrorEvent struct {
 // NewFormErrorEvent creates a new form error event
 func NewFormErrorEvent(formID string, submission *model.FormSubmission, err error, errorType string) *ErrorEvent {
 	return &ErrorEvent{
-		BaseEvent:  events.NewBaseEvent(string(FormErrorEventType)),
+		BaseEvent:  NewBaseEvent(string(FormErrorEventType)),
 		FormID:     formID,
 		Submission: submission,
 		Error:      err,
@@ -172,7 +186,7 @@ func (e *ErrorEvent) Data() any {
 
 // FormStateEvent represents a form state change event
 type FormStateEvent struct {
-	events.BaseEvent
+	BaseEvent
 	FormID    string
 	State     string
 	ChangedAt time.Time
@@ -182,7 +196,7 @@ type FormStateEvent struct {
 // NewFormStateEvent creates a new form state event
 func NewFormStateEvent(formID, state string, metadata map[string]any) *FormStateEvent {
 	return &FormStateEvent{
-		BaseEvent: events.NewBaseEvent("form.state"),
+		BaseEvent: NewBaseEvent("form.state"),
 		FormID:    formID,
 		State:     state,
 		Metadata:  metadata,
@@ -201,7 +215,7 @@ func (e *FormStateEvent) Data() any {
 
 // FieldEvent represents a form field event
 type FieldEvent struct {
-	events.BaseEvent
+	BaseEvent
 	FormID     string
 	FieldID    string
 	FieldName  string
@@ -213,7 +227,7 @@ type FieldEvent struct {
 // NewFieldEvent creates a new field event
 func NewFieldEvent(formID, fieldID, fieldName string, fieldValue any, metadata map[string]any) *FieldEvent {
 	return &FieldEvent{
-		BaseEvent:  events.NewBaseEvent("form.field"),
+		BaseEvent:  NewBaseEvent("form.field"),
 		FormID:     formID,
 		FieldID:    fieldID,
 		FieldName:  fieldName,
@@ -236,7 +250,7 @@ func (e *FieldEvent) Data() any {
 
 // AnalyticsEvent represents a form analytics event
 type AnalyticsEvent struct {
-	events.BaseEvent
+	BaseEvent
 	FormID    string
 	EventType string
 	UserID    string
@@ -248,7 +262,7 @@ type AnalyticsEvent struct {
 // NewAnalyticsEvent creates a new analytics event
 func NewAnalyticsEvent(formID, eventType, userID, sessionID string, metadata map[string]any) *AnalyticsEvent {
 	return &AnalyticsEvent{
-		BaseEvent: events.NewBaseEvent("form.analytics"),
+		BaseEvent: NewBaseEvent("form.analytics"),
 		FormID:    formID,
 		EventType: eventType,
 		UserID:    userID,

@@ -1,25 +1,41 @@
 # Code Cleanup and Best Practices TODO
 
+## To Discuss
+- Refactor in-memory event publisher: The new event system's Subscriber interface only supports Subscribe, not Handle. The publisher should maintain a map of event names to handler functions and invoke them on Publish. Confirm design before refactor.
+
+## Completed Tasks
+
+- ✅ Removed old user service definition (`internal/domain/user_service.go`).
+- ✅ Consolidated validator interfaces: now only in `internal/domain/common/interfaces/validator.go` and all references updated.
+- ✅ Unified event system: core event interfaces are now in `internal/domain/common/events/`, infrastructure and form events updated, and deleted `internal/domain/common/events/events.go` and `internal/infrastructure/event/publisher.go`.
+- ✅ Repository consolidation: moved all repositories from `internal/infrastructure/persistence/store/*` to `internal/infrastructure/repository/*` and updated all references.
+
 ## Redundant Code
 
 ### Service Definitions
-- [ ] Consolidate duplicate user service definitions:
+- [x] Consolidate duplicate user service definitions:
   - `internal/domain/user_service.go` (old)
   - `internal/domain/user/service.go` (new)
-  - Action: Remove `user_service.go` after verifying all functionality is in `service.go`
+  - Action: Remove `user_service.go` after verifying all functionality is in `service.go` (**Done**)
 
 ### Validator Interfaces
-- [ ] Consolidate validator interfaces:
+- [x] Consolidate validator interfaces:
   - `internal/infrastructure/validation/validator.go`
   - `internal/domain/common/interfaces/validator.go`
-  - Action: Create a single validator interface in `internal/domain/common/interfaces/validator.go` and update all references
+  - Action: Create a single validator interface in `internal/domain/common/interfaces/validator.go` and update all references (**Done**)
 
 ### Event System
-- [ ] Consolidate event-related interfaces:
+- [x] Consolidate event-related interfaces:
   - `internal/infrastructure/event/publisher.go`
   - `internal/domain/common/events/events.go`
   - `internal/domain/form/event/event.go`
-  - Action: Create a unified event system in `internal/domain/common/events/events.go`
+  - Action: Create a unified event system in `internal/domain/common/events/` (**Done**)
+
+### Repository Pattern
+- [x] Review repository implementations:
+  - Some repositories are in `internal/infrastructure/persistence`
+  - Some are in `internal/infrastructure/repository`
+  - Action: Consolidate all repositories in `internal/infrastructure/repository` (**Done**)
 
 ## Code Organization
 
@@ -28,12 +44,6 @@
   - Some middleware is in `internal/application/middleware`
   - Some is in `internal/infrastructure/web/middleware`
   - Action: Consolidate all middleware in `internal/application/middleware`
-
-### Repository Pattern
-- [ ] Review repository implementations:
-  - Some repositories are in `internal/infrastructure/persistence`
-  - Some are in `internal/infrastructure/repository`
-  - Action: Consolidate all repositories in `internal/infrastructure/repository`
 
 ## Best Practices Violations
 
