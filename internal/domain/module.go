@@ -5,7 +5,6 @@ package domain
 
 import (
 	"errors"
-	"fmt"
 
 	"go.uber.org/fx"
 
@@ -106,7 +105,7 @@ func NewStores(p StoreParams) (Stores, error) {
 			"store_type", "user/form/submission",
 			"error_type", "nil_store",
 		)
-		return Stores{}, fmt.Errorf("failed to create store")
+		return Stores{}, errors.New("failed to create store")
 	}
 
 	return Stores{

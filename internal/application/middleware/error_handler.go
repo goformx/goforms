@@ -33,7 +33,7 @@ func (h *ErrorHandler) handleDomainError(err error, c echo.Context, logger loggi
 			"error_type", "domain_error",
 		)
 
-		statusCode := getStatusCodeForDomainError(domainErr.Code)
+		statusCode := errors.GetHTTPStatus(domainErr.Code)
 
 		response := map[string]any{
 			"error": map[string]any{
@@ -140,46 +140,10 @@ func (h *ErrorHandler) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-// getStatusCodeForDomainError returns the appropriate HTTP status code for a domain error
-func getStatusCodeForDomainError(code errors.ErrorCode) int {
-	switch code {
-	case errors.ErrCodeValidation, errors.ErrCodeRequired, errors.ErrCodeInvalid,
-		errors.ErrCodeInvalidFormat, errors.ErrCodeInvalidInput, errors.ErrCodeBadRequest,
-		errors.ErrCodeFormValidation, errors.ErrCodeFormInvalid, errors.ErrCodeUserInvalid,
-		errors.ErrCodeFormSubmission, errors.ErrCodeFormExpired, errors.ErrCodeUserDisabled:
-		return http.StatusBadRequest
-	case errors.ErrCodeUnauthorized, errors.ErrCodeUserUnauthorized, errors.ErrCodeInvalidToken,
-		errors.ErrCodeAuthentication:
-		return http.StatusUnauthorized
-	case errors.ErrCodeForbidden, errors.ErrCodeFormAccessDenied, errors.ErrCodeInsufficientRole:
-		return http.StatusForbidden
-	case errors.ErrCodeNotFound, errors.ErrCodeFormNotFound, errors.ErrCodeUserNotFound:
-		return http.StatusNotFound
-	case errors.ErrCodeConflict, errors.ErrCodeAlreadyExists, errors.ErrCodeUserExists:
-		return http.StatusConflict
-	case errors.ErrCodeServerError, errors.ErrCodeDatabase, errors.ErrCodeConfig:
-		return http.StatusInternalServerError
-	case errors.ErrCodeStartup, errors.ErrCodeShutdown:
-		return http.StatusServiceUnavailable
-	case errors.ErrCodeTimeout:
-		return http.StatusGatewayTimeout
-	default:
-		return http.StatusInternalServerError
-	}
-}
-
-// handleDomainError handles domain errors and returns appropriate HTTP responses
-func handleDomainError(c echo.Context, domainErr *errors.DomainError) error {
-	statusCode := getStatusCodeForDomainError(domainErr.Code)
-	response := map[string]any{
-		"error": domainErr.Error(),
-		"code":  domainErr.Code,
-	}
-
-	if jsonErr := c.JSON(statusCode, response); jsonErr != nil {
-		return fmt.Errorf("failed to send error response: %w", jsonErr)
-	}
-	return nil
+// handleDomainError handles domain errors and returns appropriate HTTP status code
+func handleDomainError(c echo.Context, err *errors.DomainError) error {
+	statusCode := errors.GetHTTPStatus(err.Code)
+	return c.JSON(statusCode, err)
 }
 
 // handleHTTPError handles HTTP errors and returns appropriate HTTP responses

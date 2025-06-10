@@ -137,9 +137,9 @@ func main() {
 	// Set up signal handling for graceful shutdown
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	sig := <-sigChan
 
-	fmt.Printf("Received signal: %v, shutting down...\n", sig)
+	// Wait for interrupt signal
+	<-sigChan
 
 	// Attempt graceful shutdown
 	if stopErr := app.Stop(context.Background()); stopErr != nil {

@@ -177,9 +177,9 @@ func (v *validatorImpl) Struct(i any) error {
 	cacheKey := fmt.Sprintf("%T", i)
 
 	// Check cache first
-	if cached, ok := v.cache.Load(cacheKey); ok {
-		if err, ok := cached.(error); ok {
-			return err
+	if cached, found := v.cache.Load(cacheKey); found {
+		if cachedErr, isError := cached.(error); isError {
+			return cachedErr
 		}
 	}
 
@@ -236,21 +236,21 @@ func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
 	// Handle our custom ValidationErrors type
 	var validationErrors ValidationErrors
 	if errors.As(err, &validationErrors) {
-		errors := make(map[string]string)
+		errMap := make(map[string]string)
 		for _, e := range validationErrors {
-			errors[e.Field] = e.Message
+			errMap[e.Field] = e.Message
 		}
-		return errors
+		return errMap
 	}
 
 	// Handle validator.ValidationErrors
 	var validatorErrors validator.ValidationErrors
 	if errors.As(err, &validatorErrors) {
-		errors := make(map[string]string)
+		errMap := make(map[string]string)
 		for _, e := range validatorErrors {
-			errors[getFieldName(e)] = getErrorMessage(e)
+			errMap[getFieldName(e)] = getErrorMessage(e)
 		}
-		return errors
+		return errMap
 	}
 
 	// Handle other errors

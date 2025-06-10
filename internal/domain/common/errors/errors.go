@@ -82,9 +82,15 @@ func (e *DomainError) Unwrap() error {
 
 // HTTPStatus returns the appropriate HTTP status code for the error
 func (e *DomainError) HTTPStatus() int {
-	switch e.Code {
+	return GetHTTPStatus(e.Code)
+}
+
+// GetHTTPStatus returns the appropriate HTTP status code for an error code
+func GetHTTPStatus(code ErrorCode) int {
+	switch code {
 	case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-		ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid, ErrCodeBadRequest:
+		ErrCodeBadRequest, ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid,
+		ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
 		return http.StatusBadRequest
 	case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication:
 		return http.StatusUnauthorized
@@ -94,12 +100,12 @@ func (e *DomainError) HTTPStatus() int {
 		return http.StatusNotFound
 	case ErrCodeConflict, ErrCodeAlreadyExists, ErrCodeUserExists:
 		return http.StatusConflict
-	case ErrCodeServerError, ErrCodeDatabase, ErrCodeConfig, ErrCodeStartup, ErrCodeShutdown:
+	case ErrCodeServerError, ErrCodeDatabase, ErrCodeConfig:
 		return http.StatusInternalServerError
+	case ErrCodeStartup, ErrCodeShutdown:
+		return http.StatusServiceUnavailable
 	case ErrCodeTimeout:
 		return http.StatusGatewayTimeout
-	case ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
-		return http.StatusBadRequest
 	default:
 		return http.StatusInternalServerError
 	}
@@ -186,6 +192,14 @@ func IsNotFound(err error) bool {
 		switch domainErr.Code {
 		case ErrCodeNotFound, ErrCodeFormNotFound, ErrCodeUserNotFound:
 			return true
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeInsufficientRole, ErrCodeConflict, ErrCodeBadRequest, ErrCodeServerError,
+			ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase,
+			ErrCodeTimeout, ErrCodeFormValidation, ErrCodeFormSubmission, ErrCodeFormAccessDenied,
+			ErrCodeFormInvalid, ErrCodeFormExpired, ErrCodeUserExists, ErrCodeUserDisabled,
+			ErrCodeUserInvalid, ErrCodeUserUnauthorized:
+			return false
 		}
 	}
 	return false
@@ -196,8 +210,15 @@ func IsValidation(err error) bool {
 	if errors.As(err, &domainErr) {
 		switch domainErr.Code {
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid, ErrCodeBadRequest:
+			ErrCodeBadRequest, ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid,
+			ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
 			return true
+		case ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeServerError,
+			ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase,
+			ErrCodeTimeout, ErrCodeFormNotFound, ErrCodeFormAccessDenied, ErrCodeUserNotFound,
+			ErrCodeUserExists, ErrCodeUserUnauthorized:
+			return false
 		}
 	}
 	return false
@@ -210,6 +231,13 @@ func IsFormError(err error) bool {
 		case ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
 			ErrCodeFormAccessDenied, ErrCodeFormInvalid, ErrCodeFormExpired:
 			return true
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
+			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
+			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeUserNotFound,
+			ErrCodeUserExists, ErrCodeUserDisabled, ErrCodeUserInvalid, ErrCodeUserUnauthorized:
+			return false
 		}
 	}
 	return false
@@ -222,6 +250,14 @@ func IsUserError(err error) bool {
 		case ErrCodeUserNotFound, ErrCodeUserExists, ErrCodeUserDisabled,
 			ErrCodeUserInvalid, ErrCodeUserUnauthorized:
 			return true
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
+			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
+			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeFormValidation,
+			ErrCodeFormNotFound, ErrCodeFormSubmission, ErrCodeFormAccessDenied,
+			ErrCodeFormInvalid, ErrCodeFormExpired:
+			return false
 		}
 	}
 	return false
@@ -231,9 +267,17 @@ func IsAuthenticationError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
 		switch domainErr.Code {
-		case ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken,
-			ErrCodeAuthentication, ErrCodeInsufficientRole, ErrCodeUserUnauthorized:
+		case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeInvalidToken,
+			ErrCodeAuthentication, ErrCodeInsufficientRole:
 			return true
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeForbidden, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
+			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
+			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeFormValidation,
+			ErrCodeFormNotFound, ErrCodeFormSubmission, ErrCodeFormAccessDenied,
+			ErrCodeFormInvalid, ErrCodeFormExpired, ErrCodeUserNotFound,
+			ErrCodeUserExists, ErrCodeUserDisabled, ErrCodeUserInvalid:
+			return false
 		}
 	}
 	return false
@@ -246,6 +290,54 @@ func IsSystemError(err error) bool {
 		case ErrCodeServerError, ErrCodeDatabase, ErrCodeConfig,
 			ErrCodeStartup, ErrCodeShutdown, ErrCodeTimeout:
 			return true
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
+			ErrCodeAlreadyExists, ErrCodeFormValidation, ErrCodeFormNotFound,
+			ErrCodeFormSubmission, ErrCodeFormAccessDenied, ErrCodeFormInvalid,
+			ErrCodeFormExpired, ErrCodeUserNotFound, ErrCodeUserExists,
+			ErrCodeUserDisabled, ErrCodeUserInvalid, ErrCodeUserUnauthorized:
+			return false
+		}
+	}
+	return false
+}
+
+func IsConflictError(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeConflict, ErrCodeAlreadyExists, ErrCodeUserExists:
+			return true
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeBadRequest, ErrCodeServerError,
+			ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout,
+			ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
+			ErrCodeFormAccessDenied, ErrCodeFormInvalid, ErrCodeFormExpired,
+			ErrCodeUserNotFound, ErrCodeUserDisabled, ErrCodeUserInvalid,
+			ErrCodeUserUnauthorized:
+			return false
+		}
+	}
+	return false
+}
+
+func IsForbiddenError(err error) bool {
+	var domainErr *DomainError
+	if errors.As(err, &domainErr) {
+		switch domainErr.Code {
+		case ErrCodeForbidden, ErrCodeFormAccessDenied, ErrCodeInsufficientRole:
+			return true
+		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
+			ErrCodeUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication, ErrCodeNotFound,
+			ErrCodeConflict, ErrCodeBadRequest, ErrCodeServerError, ErrCodeAlreadyExists,
+			ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout,
+			ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
+			ErrCodeFormInvalid, ErrCodeFormExpired, ErrCodeUserNotFound,
+			ErrCodeUserExists, ErrCodeUserDisabled, ErrCodeUserInvalid,
+			ErrCodeUserUnauthorized:
+			return false
 		}
 	}
 	return false

@@ -8,16 +8,14 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
-	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
 	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/infrastructure/validation"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -67,50 +65,30 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
-// Module provides all infrastructure dependencies
+// Module provides infrastructure dependencies
 var Module = fx.Options(
 	fx.Provide(
 		// Core infrastructure
-		database.NewGormDB,
-		validation.New,
-
-		// Echo instance
-		func() *echo.Echo {
-			return echo.New()
+		echo.New,
+		server.New,
+		NewEventPublisher,
+		// Session manager
+		func(logger logging.Logger) *middleware.SessionManager {
+			return middleware.NewSessionManager(logger, true) // secureCookie=true for production
 		},
-
-		// Middleware
-		func(logger logging.Logger) *appmiddleware.SessionManager {
-			return appmiddleware.NewSessionManager(logger, true) // secureCookie=true for production
-		},
+		// Middleware manager
 		func(
 			core CoreParams,
 			services ServiceParams,
-			sessionManager *appmiddleware.SessionManager,
-		) *appmiddleware.Manager {
-			return appmiddleware.NewManager(&appmiddleware.ManagerConfig{
+			sessionManager *middleware.SessionManager,
+		) *middleware.Manager {
+			return middleware.NewManager(&middleware.ManagerConfig{
 				Logger:         core.Logger,
 				Security:       &core.Config.Security,
 				UserService:    services.UserService,
 				SessionManager: sessionManager,
 				Config:         core.Config,
 			})
-		},
-
-		// Server
-		func(
-			lc fx.Lifecycle,
-			logger logging.Logger,
-			cfg *config.Config,
-			e *echo.Echo,
-			middlewareManager *appmiddleware.Manager,
-		) *server.Server {
-			return server.New(lc, logger, cfg, e, middlewareManager)
-		},
-
-		// Event system
-		func(logger logging.Logger) formevent.Publisher {
-			return event.NewMemoryPublisher(logger)
 		},
 	),
 )

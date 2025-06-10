@@ -56,7 +56,7 @@ func handleError(c echo.Context, err error, logger logging.Logger) {
 			"error_type", "panic_domain_error",
 		)
 
-		statusCode := getStatusCode(domainErr.Code)
+		statusCode := domainerrors.GetHTTPStatus(domainErr.Code)
 		if jsonErr := c.JSON(statusCode, domainErr); jsonErr != nil {
 			logger.Error("failed to send error response",
 				"error", jsonErr,
@@ -81,33 +81,5 @@ func handleError(c echo.Context, err error, logger logging.Logger) {
 			"error_type", "response_error",
 			"original_error", err,
 		)
-	}
-}
-
-// getStatusCode returns the appropriate HTTP status code for an error code
-func getStatusCode(code domainerrors.ErrorCode) int {
-	switch code {
-	case domainerrors.ErrCodeValidation, domainerrors.ErrCodeRequired, domainerrors.ErrCodeInvalid,
-		domainerrors.ErrCodeInvalidFormat, domainerrors.ErrCodeInvalidInput, domainerrors.ErrCodeBadRequest,
-		domainerrors.ErrCodeFormValidation, domainerrors.ErrCodeFormInvalid, domainerrors.ErrCodeUserInvalid,
-		domainerrors.ErrCodeFormSubmission, domainerrors.ErrCodeFormExpired, domainerrors.ErrCodeUserDisabled:
-		return http.StatusBadRequest
-	case domainerrors.ErrCodeUnauthorized, domainerrors.ErrCodeUserUnauthorized, domainerrors.ErrCodeInvalidToken,
-		domainerrors.ErrCodeAuthentication:
-		return http.StatusUnauthorized
-	case domainerrors.ErrCodeForbidden, domainerrors.ErrCodeFormAccessDenied, domainerrors.ErrCodeInsufficientRole:
-		return http.StatusForbidden
-	case domainerrors.ErrCodeNotFound, domainerrors.ErrCodeFormNotFound, domainerrors.ErrCodeUserNotFound:
-		return http.StatusNotFound
-	case domainerrors.ErrCodeConflict, domainerrors.ErrCodeAlreadyExists, domainerrors.ErrCodeUserExists:
-		return http.StatusConflict
-	case domainerrors.ErrCodeServerError, domainerrors.ErrCodeDatabase, domainerrors.ErrCodeConfig:
-		return http.StatusInternalServerError
-	case domainerrors.ErrCodeStartup, domainerrors.ErrCodeShutdown:
-		return http.StatusServiceUnavailable
-	case domainerrors.ErrCodeTimeout:
-		return http.StatusGatewayTimeout
-	default:
-		return http.StatusInternalServerError
 	}
 }

@@ -2,9 +2,15 @@ package auth
 
 import (
 	"context"
+	"errors"
 
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+)
+
+// Authentication errors
+var (
+	ErrNotAuthenticated = errors.New("user is not authenticated")
 )
 
 // Service defines the interface for authentication operations
@@ -36,7 +42,7 @@ func NewService(userService user.Service, logger logging.Logger) Service {
 // GetAuthenticatedUser returns the currently authenticated user
 func (s *service) GetAuthenticatedUser(ctx context.Context) (*user.User, error) {
 	// TODO: Implement user authentication logic
-	return nil, nil
+	return nil, ErrNotAuthenticated
 }
 
 // RequireAuth ensures that a user is authenticated
