@@ -1,9 +1,12 @@
 package model
 
 import (
+	"encoding/json"
 	"errors"
 	"fmt"
 	"time"
+
+	"database/sql/driver"
 
 	"github.com/google/uuid"
 	"gorm.io/gorm"
@@ -54,6 +57,36 @@ func (f *Form) BeforeUpdate(tx *gorm.DB) error {
 
 // JSON is a type alias for map[string]any to represent JSON data
 type JSON map[string]any
+
+// Scan implements the sql.Scanner interface for JSON
+func (j *JSON) Scan(value interface{}) error {
+	if value == nil {
+		*j = JSON{}
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("failed to unmarshal JSONB value: %v", value)
+	}
+
+	result := make(map[string]any)
+	err := json.Unmarshal(bytes, &result)
+	if err != nil {
+		return err
+	}
+
+	*j = JSON(result)
+	return nil
+}
+
+// Value implements the driver.Valuer interface for JSON
+func (j JSON) Value() (driver.Value, error) {
+	if j == nil {
+		return nil, nil
+	}
+	return json.Marshal(j)
+}
 
 // NewForm creates a new form instance
 func NewForm(userID uint, title, description string, schema JSON) *Form {

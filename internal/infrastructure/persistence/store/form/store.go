@@ -98,7 +98,8 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 	if result.Error != nil {
 		// Extract SQL state if available
 		var sqlState string
-		if pgErr, ok := result.Error.(*pgconn.PgError); ok {
+		var pgErr *pgconn.PgError
+		if errors.As(result.Error, &pgErr) {
 			sqlState = pgErr.Code
 		}
 
@@ -125,25 +126,6 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 	)
 
 	return forms, nil
-}
-
-// getSQLState extracts the SQL state from a database error
-func getSQLState(err error) string {
-	if err == nil {
-		return ""
-	}
-
-	// Try to extract SQL state from error message
-	if sqlErr, ok := err.(interface{ SQLState() string }); ok {
-		return sqlErr.SQLState()
-	}
-
-	// Try to extract SQL state from error message
-	if sqlErr, ok := err.(interface{ GetSQLState() string }); ok {
-		return sqlErr.GetSQLState()
-	}
-
-	return ""
 }
 
 // Update updates a form

@@ -128,14 +128,8 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 	return len(p), nil
 }
 
-// Printf implements logger.Writer interface
-func (w *GormLogWriter) Printf(format string, args ...any) {
-	// Extract query and duration from the format string
-	var query string
-	var duration time.Duration
-	var rowsAffected int64
-
-	// Parse the format string and args to extract query information
+// parseQueryArgs extracts query information from format string arguments
+func parseQueryArgs(args ...any) (query string, duration time.Duration, rowsAffected int64) {
 	if len(args) > 0 {
 		if q, ok := args[0].(string); ok {
 			query = q
@@ -151,6 +145,12 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 			}
 		}
 	}
+	return
+}
+
+// Printf implements logger.Writer interface
+func (w *GormLogWriter) Printf(format string, args ...any) {
+	query, duration, rowsAffected := parseQueryArgs(args...)
 
 	// Log based on duration threshold
 	if duration > time.Millisecond*100 {

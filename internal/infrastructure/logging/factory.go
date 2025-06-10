@@ -17,9 +17,6 @@ const (
 	LogEncodingJSON = "json"
 	// EnvironmentDevelopment represents the development environment
 	EnvironmentDevelopment = "development"
-
-	// Default environment variables
-	envLogLevel = "GOFORMS_APP_LOGLEVEL"
 )
 
 // FactoryConfig holds the configuration for creating a logger factory
@@ -122,32 +119,6 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	return &ZapLogger{
 		logger: logger,
 	}, nil
-}
-
-// fieldDisplayCore ensures fields are displayed in development mode
-type fieldDisplayCore struct {
-	zapcore.Core
-	enc zapcore.Encoder
-}
-
-func (c *fieldDisplayCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
-	// Format the entry with fields
-	buf, err := c.enc.EncodeEntry(ent, fields)
-	if err != nil {
-		return err
-	}
-	defer buf.Free()
-
-	// Write to the underlying core
-	return c.Core.Write(ent, fields)
-}
-
-// getEnv gets an environment variable or returns the default value
-func getEnv(key, defaultValue string) string {
-	if value, exists := os.LookupEnv(key); exists {
-		return strings.ToLower(value)
-	}
-	return defaultValue
 }
 
 // ZapLogger implements the Logger interface using zap
