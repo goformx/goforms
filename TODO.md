@@ -40,10 +40,11 @@
 ## Code Organization
 
 ### Middleware
-- [ ] Review middleware organization:
+- [x] Review middleware organization:
   - Some middleware is in `internal/application/middleware`
   - Some is in `internal/infrastructure/web/middleware`
   - Action: Consolidate all middleware in `internal/application/middleware`
+  - Note: All middleware is already properly organized in `internal/application/middleware/` with no duplicates found in infrastructure layer.
 
 ## Best Practices Violations
 
@@ -62,10 +63,16 @@
   - Note: Explicit masking for sensitive fields is now restored in the logger. The go-sanitize library is used only for input cleaning, not for masking sensitive data in logs.
 
 ### Configuration
-- [ ] Review configuration management:
+- [x] Review configuration management:
   - Some config is hardcoded
   - Some config is in environment variables
   - Action: Standardize configuration management
+  - Tasks:
+    1. Remove sensitive defaults (DB credentials, CSRF secrets, API keys) ✅
+    2. Consolidate duplicate config (AppConfig and ServerConfig) ✅
+    3. Add configuration documentation
+    4. Add environment variable validation
+    5. Review and update security-related defaults
 
 ### Dependency Injection
 - [ ] Review dependency injection:

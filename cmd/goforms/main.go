@@ -107,6 +107,7 @@ func main() {
 		fallbackLogger.Fatal("Failed to load configuration",
 			"error", err,
 		)
+		os.Exit(1)
 	}
 
 	// Create logger first

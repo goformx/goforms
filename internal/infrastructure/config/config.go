@@ -12,20 +12,38 @@ import (
 // Config represents the complete application configuration
 type Config struct {
 	App      AppConfig
-	Server   ServerConfig
 	Database DatabaseConfig
 	Security SecurityConfig
+	Email    EmailConfig
+	Storage  StorageConfig
+	Cache    CacheConfig
+	Logging  LoggingConfig
+	Session  SessionConfig
+	Auth     AuthConfig
+	Form     FormConfig
+	API      APIConfig
+	Web      WebConfig
+	User     UserConfig
 }
 
 // AppConfig holds application-level configuration
 type AppConfig struct {
-	Name        string `envconfig:"GOFORMS_APP_NAME" default:"GoFormX"`
-	Version     string `envconfig:"GOFORMS_APP_VERSION" default:"1.0.0"`
-	Env         string `envconfig:"GOFORMS_APP_ENV" default:"production"`
-	Debug       bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
-	LogLevel    string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
-	Port        int    `envconfig:"GOFORMS_APP_PORT" default:"8090"`
-	Host        string `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
+	// Application Info
+	Name     string `envconfig:"GOFORMS_APP_NAME" default:"GoFormX"`
+	Version  string `envconfig:"GOFORMS_APP_VERSION" default:"1.0.0"`
+	Env      string `envconfig:"GOFORMS_APP_ENV" default:"production"`
+	Debug    bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
+	LogLevel string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
+
+	// Server Settings
+	Port           int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
+	Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
+	ReadTimeout    time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
+	WriteTimeout   time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout    time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
+	RequestTimeout time.Duration `envconfig:"GOFORMS_REQUEST_TIMEOUT" default:"30s"`
+
+	// Development Settings
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
 	ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"3000"`
 }
@@ -39,11 +57,11 @@ func (c *AppConfig) IsDevelopment() bool {
 type DatabaseConfig struct {
 	// MariaDB Configuration
 	MariaDB struct {
-		Host            string        `envconfig:"GOFORMS_MARIADB_HOST" default:"mariadb"`
+		Host            string        `envconfig:"GOFORMS_MARIADB_HOST" validate:"required"`
 		Port            int           `envconfig:"GOFORMS_MARIADB_PORT" default:"3306"`
-		User            string        `envconfig:"GOFORMS_MARIADB_USER" default:"goforms"`
-		Password        string        `envconfig:"GOFORMS_MARIADB_PASSWORD" default:"goforms"`
-		Name            string        `envconfig:"GOFORMS_MARIADB_NAME" default:"goforms"`
+		User            string        `envconfig:"GOFORMS_MARIADB_USER" validate:"required"`
+		Password        string        `envconfig:"GOFORMS_MARIADB_PASSWORD" validate:"required"`
+		Name            string        `envconfig:"GOFORMS_MARIADB_NAME" validate:"required"`
 		MaxOpenConns    int           `envconfig:"GOFORMS_MARIADB_MAX_OPEN_CONNS" default:"25"`
 		MaxIdleConns    int           `envconfig:"GOFORMS_MARIADB_MAX_IDLE_CONNS" default:"5"`
 		ConnMaxLifetime time.Duration `envconfig:"GOFORMS_MARIADB_CONN_MAX_LIFETIME" default:"5m"`
@@ -51,11 +69,11 @@ type DatabaseConfig struct {
 
 	// PostgreSQL Configuration
 	Postgres struct {
-		Host            string        `envconfig:"GOFORMS_POSTGRES_HOST" default:"postgres"`
+		Host            string        `envconfig:"GOFORMS_POSTGRES_HOST" validate:"required"`
 		Port            int           `envconfig:"GOFORMS_POSTGRES_PORT" default:"5432"`
-		User            string        `envconfig:"GOFORMS_POSTGRES_USER" default:"goforms"`
-		Password        string        `envconfig:"GOFORMS_POSTGRES_PASSWORD" default:"goforms"`
-		Name            string        `envconfig:"GOFORMS_POSTGRES_DB" default:"goforms"`
+		User            string        `envconfig:"GOFORMS_POSTGRES_USER" validate:"required"`
+		Password        string        `envconfig:"GOFORMS_POSTGRES_PASSWORD" validate:"required"`
+		Name            string        `envconfig:"GOFORMS_POSTGRES_DB" validate:"required"`
 		SSLMode         string        `envconfig:"GOFORMS_POSTGRES_SSLMODE" default:"disable"`
 		MaxOpenConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_OPEN_CONNS" default:"25"`
 		MaxIdleConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_IDLE_CONNS" default:"5"`
@@ -79,22 +97,19 @@ type DatabaseConfig struct {
 	} `envconfig:"GOFORMS_DB_LOGGING"`
 }
 
-// ServerConfig holds all server-related configuration
-type ServerConfig struct {
-	Host            string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
-	Port            int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
-	ReadTimeout     time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
-	WriteTimeout    time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
-	IdleTimeout     time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
-	ShutdownTimeout time.Duration `envconfig:"GOFORMS_SHUTDOWN_TIMEOUT" default:"30s"`
-}
-
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	Debug               bool          `envconfig:"GOFORMS_DEBUG" default:"true"`
+	Debug               bool          `envconfig:"GOFORMS_DEBUG" default:"false"`
 	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"20"`
 	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1s"`
 	SecureCookie        bool          `envconfig:"GOFORMS_SECURE_COOKIE" default:"true"`
+
+	// Rate Limiting
+	RateLimitEnabled    bool          `envconfig:"GOFORMS_RATE_LIMIT_ENABLED" default:"true"`
+	RateLimit           int           `envconfig:"GOFORMS_RATE_LIMIT" default:"100"`
+	RateBurst           int           `envconfig:"GOFORMS_RATE_BURST" default:"5"`
+	RateLimitTimeWindow time.Duration `envconfig:"GOFORMS_RATE_LIMIT_TIME_WINDOW" default:"1m"`
+	RateLimitPerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
 
 	// CORS settings
 	CorsAllowedOrigins   []string `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
@@ -115,6 +130,95 @@ type SecurityConfig struct {
 	} `envconfig:"GOFORMS_CSRF"`
 }
 
+// EmailConfig holds email-related configuration
+type EmailConfig struct {
+	Host     string `envconfig:"GOFORMS_EMAIL_HOST" validate:"required"`
+	Port     int    `envconfig:"GOFORMS_EMAIL_PORT" default:"587"`
+	Username string `envconfig:"GOFORMS_EMAIL_USERNAME" validate:"required"`
+	Password string `envconfig:"GOFORMS_EMAIL_PASSWORD" validate:"required"`
+	From     string `envconfig:"GOFORMS_EMAIL_FROM" validate:"required,email"`
+}
+
+// StorageConfig holds storage-related configuration
+type StorageConfig struct {
+	Type     string `envconfig:"GOFORMS_STORAGE_TYPE" default:"local"`
+	LocalDir string `envconfig:"GOFORMS_STORAGE_LOCAL_DIR" default:"./storage"`
+}
+
+// CacheConfig holds cache-related configuration
+type CacheConfig struct {
+	Type    string        `envconfig:"GOFORMS_CACHE_TYPE" default:"memory"`
+	TTL     time.Duration `envconfig:"GOFORMS_CACHE_TTL" default:"1h"`
+	MaxSize int           `envconfig:"GOFORMS_CACHE_MAX_SIZE" default:"1000"`
+}
+
+// LoggingConfig holds logging-related configuration
+type LoggingConfig struct {
+	Level      string `envconfig:"GOFORMS_LOG_LEVEL" default:"info"`
+	Format     string `envconfig:"GOFORMS_LOG_FORMAT" default:"json"`
+	Output     string `envconfig:"GOFORMS_LOG_OUTPUT" default:"stdout"`
+	MaxSize    int    `envconfig:"GOFORMS_LOG_MAX_SIZE" default:"100"`
+	MaxBackups int    `envconfig:"GOFORMS_LOG_MAX_BACKUPS" default:"3"`
+	MaxAge     int    `envconfig:"GOFORMS_LOG_MAX_AGE" default:"28"`
+	Compress   bool   `envconfig:"GOFORMS_LOG_COMPRESS" default:"true"`
+}
+
+// SessionConfig holds session-related configuration
+type SessionConfig struct {
+	Type     string        `envconfig:"GOFORMS_SESSION_TYPE" default:"cookie"`
+	Secret   string        `envconfig:"GOFORMS_SESSION_SECRET" validate:"required"`
+	TTL      time.Duration `envconfig:"GOFORMS_SESSION_TTL" default:"24h"`
+	Secure   bool          `envconfig:"GOFORMS_SESSION_SECURE" default:"true"`
+	HTTPOnly bool          `envconfig:"GOFORMS_SESSION_HTTP_ONLY" default:"true"`
+}
+
+// AuthConfig holds authentication-related configuration
+type AuthConfig struct {
+	JWTSecret     string        `envconfig:"GOFORMS_JWT_SECRET" validate:"required"`
+	JWTExpiration time.Duration `envconfig:"GOFORMS_JWT_EXPIRATION" default:"24h"`
+	PasswordCost  int           `envconfig:"GOFORMS_PASSWORD_COST" default:"12"`
+}
+
+// FormConfig holds form-related configuration
+type FormConfig struct {
+	MaxFileSize    int64    `envconfig:"GOFORMS_MAX_FILE_SIZE" default:"10485760"` // 10MB
+	AllowedTypes   []string `envconfig:"GOFORMS_ALLOWED_FILE_TYPES" default:"image/jpeg,image/png,application/pdf"`
+	MaxSubmissions int      `envconfig:"GOFORMS_MAX_SUBMISSIONS" default:"1000"`
+	RetentionDays  int      `envconfig:"GOFORMS_RETENTION_DAYS" default:"90"`
+}
+
+// APIConfig holds API-related configuration
+type APIConfig struct {
+	Version   string `envconfig:"GOFORMS_API_VERSION" default:"v1"`
+	Prefix    string `envconfig:"GOFORMS_API_PREFIX" default:"/api"`
+	RateLimit int    `envconfig:"GOFORMS_API_RATE_LIMIT" default:"100"`
+	Timeout   int    `envconfig:"GOFORMS_API_TIMEOUT" default:"30"`
+}
+
+// WebConfig holds web-related configuration
+type WebConfig struct {
+	BaseURL      string `envconfig:"GOFORMS_WEB_BASE_URL" default:"http://localhost:8090"`
+	AssetsDir    string `envconfig:"GOFORMS_WEB_ASSETS_DIR" default:"./assets"`
+	TemplatesDir string `envconfig:"GOFORMS_WEB_TEMPLATES_DIR" default:"./templates"`
+}
+
+// UserConfig holds user-related configuration
+type UserConfig struct {
+	Admin struct {
+		Email     string `envconfig:"GOFORMS_ADMIN_EMAIL" validate:"required,email"`
+		Password  string `envconfig:"GOFORMS_ADMIN_PASSWORD" validate:"required"`
+		FirstName string `envconfig:"GOFORMS_ADMIN_FIRST_NAME" validate:"required"`
+		LastName  string `envconfig:"GOFORMS_ADMIN_LAST_NAME" validate:"required"`
+	} `envconfig:"GOFORMS_ADMIN"`
+
+	Default struct {
+		Email     string `envconfig:"GOFORMS_USER_EMAIL" validate:"required,email"`
+		Password  string `envconfig:"GOFORMS_USER_PASSWORD" validate:"required"`
+		FirstName string `envconfig:"GOFORMS_USER_FIRST_NAME" validate:"required"`
+		LastName  string `envconfig:"GOFORMS_USER_LAST_NAME" validate:"required"`
+	} `envconfig:"GOFORMS_USER"`
+}
+
 // Validation errors
 var (
 	ErrMissingAppName    = errors.New("application name is required")
@@ -131,183 +235,183 @@ var (
 	ErrInvalidDBLogLevel = errors.New("invalid database log level")
 )
 
-// validateAppConfig validates application-level configuration
+// validateAppConfig validates the application configuration
 func (c *Config) validateAppConfig() error {
+	var errs []string
+
 	if c.App.Name == "" {
-		return ErrMissingAppName
+		errs = append(errs, "app name is required")
 	}
-
 	if c.App.Port <= 0 || c.App.Port > 65535 {
-		return ErrInvalidPort
+		errs = append(errs, "app port must be between 1 and 65535")
+	}
+	if c.App.ReadTimeout <= 0 {
+		errs = append(errs, "read timeout must be positive")
+	}
+	if c.App.WriteTimeout <= 0 {
+		errs = append(errs, "write timeout must be positive")
+	}
+	if c.App.IdleTimeout <= 0 {
+		errs = append(errs, "idle timeout must be positive")
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("app config validation errors: %s", strings.Join(errs, "; "))
 	}
 
 	return nil
 }
 
-// validateServerConfig validates server-related configuration
-func (c *Config) validateServerConfig() error {
-	if c.Server.Port <= 0 || c.Server.Port > 65535 {
-		return ErrInvalidPort
-	}
-
-	if c.Server.ReadTimeout <= 0 {
-		return ErrInvalidTimeout
-	}
-
-	if c.Server.WriteTimeout <= 0 {
-		return ErrInvalidTimeout
-	}
-
-	if c.Server.IdleTimeout <= 0 {
-		return ErrInvalidTimeout
-	}
-
-	if c.Server.ShutdownTimeout <= 0 {
-		return ErrInvalidTimeout
-	}
-
-	return nil
-}
-
-// validateMariaDBConfig validates MariaDB-specific configuration
+// validateMariaDBConfig validates MariaDB configuration
 func (c *Config) validateMariaDBConfig() error {
+	var errs []string
+
 	if c.Database.MariaDB.Host == "" {
-		return ErrMissingDBHost
+		errs = append(errs, "MariaDB host is required")
+	}
+	if c.Database.MariaDB.Port <= 0 || c.Database.MariaDB.Port > 65535 {
+		errs = append(errs, "MariaDB port must be between 1 and 65535")
 	}
 	if c.Database.MariaDB.User == "" {
-		return ErrMissingDBUser
+		errs = append(errs, "MariaDB user is required")
 	}
 	if c.Database.MariaDB.Password == "" {
-		return ErrMissingDBPassword
+		errs = append(errs, "MariaDB password is required")
 	}
 	if c.Database.MariaDB.Name == "" {
-		return ErrMissingDBName
+		errs = append(errs, "MariaDB database name is required")
 	}
-	if c.Database.MariaDB.MaxOpenConns <= 0 {
-		return ErrInvalidMaxConns
+
+	if len(errs) > 0 {
+		return fmt.Errorf("MariaDB config validation errors: %s", strings.Join(errs, "; "))
 	}
-	if c.Database.MariaDB.MaxIdleConns <= 0 {
-		return ErrInvalidMaxConns
-	}
-	if c.Database.MariaDB.ConnMaxLifetime <= 0 {
-		return ErrInvalidTimeout
-	}
+
 	return nil
 }
 
-// validatePostgresConfig validates PostgreSQL-specific configuration
+// validatePostgresConfig validates PostgreSQL configuration
 func (c *Config) validatePostgresConfig() error {
+	var errs []string
+
 	if c.Database.Postgres.Host == "" {
-		return ErrMissingDBHost
+		errs = append(errs, "PostgreSQL host is required")
+	}
+	if c.Database.Postgres.Port <= 0 || c.Database.Postgres.Port > 65535 {
+		errs = append(errs, "PostgreSQL port must be between 1 and 65535")
 	}
 	if c.Database.Postgres.User == "" {
-		return ErrMissingDBUser
+		errs = append(errs, "PostgreSQL user is required")
 	}
 	if c.Database.Postgres.Password == "" {
-		return ErrMissingDBPassword
+		errs = append(errs, "PostgreSQL password is required")
 	}
 	if c.Database.Postgres.Name == "" {
-		return ErrMissingDBName
+		errs = append(errs, "PostgreSQL database name is required")
 	}
-	if c.Database.Postgres.MaxOpenConns <= 0 {
-		return ErrInvalidMaxConns
+
+	if len(errs) > 0 {
+		return fmt.Errorf("PostgreSQL config validation errors: %s", strings.Join(errs, "; "))
 	}
-	if c.Database.Postgres.MaxIdleConns <= 0 {
-		return ErrInvalidMaxConns
-	}
-	if c.Database.Postgres.ConnMaxLifetime <= 0 {
-		return ErrInvalidTimeout
-	}
+
 	return nil
 }
 
-// validateDatabaseConfig validates database-related configuration
+// validateDatabaseConfig validates database configuration
 func (c *Config) validateDatabaseConfig() error {
-	if c.Database.Driver == "" {
-		return ErrMissingDBDriver
+	var errs []string
+
+	if err := c.validateMariaDBConfig(); err != nil {
+		errs = append(errs, err.Error())
+	}
+	if err := c.validatePostgresConfig(); err != nil {
+		errs = append(errs, err.Error())
 	}
 
-	// Validate database log level
-	switch c.Database.Logging.LogLevel {
-	case "silent", "error", "warn", "info":
-		// Valid log levels
-	default:
-		return fmt.Errorf("%w: %s", ErrInvalidDBLogLevel, c.Database.Logging.LogLevel)
+	if len(errs) > 0 {
+		return fmt.Errorf("database config validation errors: %s", strings.Join(errs, "; "))
 	}
 
-	// Validate slow threshold
-	if c.Database.Logging.SlowThreshold <= 0 {
-		return ErrInvalidTimeout
-	}
-
-	switch c.Database.Driver {
-	case "mariadb":
-		return c.validateMariaDBConfig()
-	case "postgres":
-		return c.validatePostgresConfig()
-	default:
-		return fmt.Errorf("unsupported database driver: %s", c.Database.Driver)
-	}
+	return nil
 }
 
-// validateSecurityConfig validates security-related configuration
+// validateSecurityConfig validates security configuration
 func (c *Config) validateSecurityConfig() error {
+	var errs []string
+
+	if c.Security.CSRFConfig.Secret == "" {
+		errs = append(errs, "CSRF secret is required")
+	}
 	if c.Security.FormRateLimit <= 0 {
-		return ErrInvalidRateLimit
+		errs = append(errs, "form rate limit must be positive")
 	}
-
 	if c.Security.FormRateLimitWindow <= 0 {
-		return ErrInvalidTimeout
+		errs = append(errs, "form rate limit window must be positive")
 	}
 
-	if c.Security.CSRFConfig.Enabled && c.Security.CSRFConfig.Secret == "" {
-		return ErrMissingCSRFSecret
+	if len(errs) > 0 {
+		return fmt.Errorf("security config validation errors: %s", strings.Join(errs, "; "))
 	}
 
 	return nil
 }
 
-// validateConfig performs comprehensive validation of the entire configuration
+// validateConfig validates the configuration
 func (c *Config) validateConfig() error {
-	validations := []struct {
-		name string
-		fn   func() error
-	}{
-		{"app", c.validateAppConfig},
-		{"server", c.validateServerConfig},
-		{"database", c.validateDatabaseConfig},
-		{"security", c.validateSecurityConfig},
+	var errs []string
+
+	// Validate App config
+	if err := c.validateAppConfig(); err != nil {
+		errs = append(errs, err.Error())
 	}
 
-	for _, v := range validations {
-		if err := v.fn(); err != nil {
-			return fmt.Errorf("invalid %s configuration: %w", v.name, err)
-		}
+	// Validate Database config
+	if err := c.validateDatabaseConfig(); err != nil {
+		errs = append(errs, err.Error())
+	}
+
+	// Validate Security config
+	if err := c.validateSecurityConfig(); err != nil {
+		errs = append(errs, err.Error())
+	}
+
+	// Validate Session config
+	if c.Session.Secret == "" {
+		errs = append(errs, "session secret is required")
+	}
+
+	// Validate Auth config
+	if c.Auth.JWTSecret == "" {
+		errs = append(errs, "JWT secret is required")
+	}
+
+	// Validate Email config if enabled
+	if c.Email.Host == "" {
+		errs = append(errs, "Email host is required")
+	}
+	if c.Email.From == "" {
+		errs = append(errs, "Email from address is required")
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("validation errors: %s", strings.Join(errs, "; "))
 	}
 
 	return nil
 }
 
-// New creates a new configuration
+// New creates a new Config instance
 func New() (*Config, error) {
-	cfg := &Config{}
+	var config Config
 
 	// Load environment variables
-	if err := cfg.loadEnv(); err != nil {
-		return nil, fmt.Errorf("failed to load environment variables: %w", err)
+	if err := envconfig.Process("GOFORMS", &config); err != nil {
+		return nil, fmt.Errorf("failed to load config: %w", err)
 	}
 
-	// Validate all configuration
-	if err := cfg.validateConfig(); err != nil {
-		return nil, fmt.Errorf("configuration validation failed: %w", err)
+	// Validate required fields
+	if err := config.validateConfig(); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 
-	return cfg, nil
-}
-
-func (c *Config) loadEnv() error {
-	if err := envconfig.Process("", c); err != nil {
-		return fmt.Errorf("failed to process environment variables: %w", err)
-	}
-	return nil
+	return &config, nil
 }
