@@ -132,11 +132,11 @@ type SecurityConfig struct {
 
 // EmailConfig holds email-related configuration
 type EmailConfig struct {
-	Host     string `envconfig:"GOFORMS_EMAIL_HOST" validate:"required"`
+	Host     string `envconfig:"GOFORMS_EMAIL_HOST"`
 	Port     int    `envconfig:"GOFORMS_EMAIL_PORT" default:"587"`
-	Username string `envconfig:"GOFORMS_EMAIL_USERNAME" validate:"required"`
-	Password string `envconfig:"GOFORMS_EMAIL_PASSWORD" validate:"required"`
-	From     string `envconfig:"GOFORMS_EMAIL_FROM" validate:"required,email"`
+	Username string `envconfig:"GOFORMS_EMAIL_USERNAME"`
+	Password string `envconfig:"GOFORMS_EMAIL_PASSWORD"`
+	From     string `envconfig:"GOFORMS_EMAIL_FROM"`
 }
 
 // StorageConfig holds storage-related configuration
@@ -165,8 +165,8 @@ type LoggingConfig struct {
 
 // SessionConfig holds session-related configuration
 type SessionConfig struct {
-	Type     string        `envconfig:"GOFORMS_SESSION_TYPE" default:"cookie"`
-	Secret   string        `envconfig:"GOFORMS_SESSION_SECRET" validate:"required"`
+	Type     string        `envconfig:"GOFORMS_SESSION_TYPE" default:"none"`
+	Secret   string        `envconfig:"GOFORMS_SESSION_SECRET"`
 	TTL      time.Duration `envconfig:"GOFORMS_SESSION_TTL" default:"24h"`
 	Secure   bool          `envconfig:"GOFORMS_SESSION_SECURE" default:"true"`
 	HTTPOnly bool          `envconfig:"GOFORMS_SESSION_HTTP_ONLY" default:"true"`
@@ -174,9 +174,7 @@ type SessionConfig struct {
 
 // AuthConfig holds authentication-related configuration
 type AuthConfig struct {
-	JWTSecret     string        `envconfig:"GOFORMS_JWT_SECRET" validate:"required"`
-	JWTExpiration time.Duration `envconfig:"GOFORMS_JWT_EXPIRATION" default:"24h"`
-	PasswordCost  int           `envconfig:"GOFORMS_PASSWORD_COST" default:"12"`
+	PasswordCost int `envconfig:"GOFORMS_PASSWORD_COST" default:"12"`
 }
 
 // FormConfig holds form-related configuration
@@ -374,22 +372,22 @@ func (c *Config) validateConfig() error {
 		errs = append(errs, err.Error())
 	}
 
-	// Validate Session config
-	if c.Session.Secret == "" {
-		errs = append(errs, "session secret is required")
+	// Validate Session config only if session type is not "none"
+	if c.Session.Type != "none" && c.Session.Secret == "" {
+		errs = append(errs, "session secret is required when session type is not 'none'")
 	}
 
-	// Validate Auth config
-	if c.Auth.JWTSecret == "" {
-		errs = append(errs, "JWT secret is required")
-	}
-
-	// Validate Email config if enabled
-	if c.Email.Host == "" {
-		errs = append(errs, "Email host is required")
-	}
-	if c.Email.From == "" {
-		errs = append(errs, "Email from address is required")
+	// Validate Email config only if email host is set
+	if c.Email.Host != "" {
+		if c.Email.Username == "" {
+			errs = append(errs, "Email username is required when email host is set")
+		}
+		if c.Email.Password == "" {
+			errs = append(errs, "Email password is required when email host is set")
+		}
+		if c.Email.From == "" {
+			errs = append(errs, "Email from address is required when email host is set")
+		}
 	}
 
 	if len(errs) > 0 {
