@@ -2,7 +2,7 @@ package form
 
 import (
 	"context"
-	"fmt"
+	"errors"
 
 	"github.com/goformx/goforms/internal/domain/common/events"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -55,7 +55,7 @@ func (h *FormEventHandler) Handle(ctx context.Context, event events.Event) error
 		return h.handleAnalyticsEvent(ctx, event)
 	default:
 		logger.Warn("unknown event type")
-		return fmt.Errorf("unknown event type: %s", event.EventType())
+		return errors.New("unknown event type")
 	}
 }
 
@@ -71,7 +71,7 @@ func (h *FormEventHandler) handleFormCreated(ctx context.Context, event events.E
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form creation with context
@@ -97,7 +97,7 @@ func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event events.E
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form update with context
@@ -123,7 +123,7 @@ func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event events.E
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form deletion with context
@@ -149,7 +149,7 @@ func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event events
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form submission with context
@@ -175,7 +175,7 @@ func (h *FormEventHandler) handleFormValidated(ctx context.Context, event events
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form validation with context
@@ -201,7 +201,7 @@ func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event events
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form processing with context
@@ -227,7 +227,7 @@ func (h *FormEventHandler) handleFormError(ctx context.Context, event events.Eve
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form error with context
@@ -254,7 +254,7 @@ func (h *FormEventHandler) handleFormState(ctx context.Context, event events.Eve
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log form state change with context
@@ -280,7 +280,7 @@ func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event events.Ev
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log field event with context
@@ -307,7 +307,7 @@ func (h *FormEventHandler) handleAnalyticsEvent(ctx context.Context, event event
 	// Extract event data
 	data, ok := event.Data().(map[string]any)
 	if !ok {
-		return fmt.Errorf("invalid event data type")
+		return errors.New("invalid event data type")
 	}
 
 	// Log analytics event with context

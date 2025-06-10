@@ -180,12 +180,11 @@ type FormStateEvent struct {
 }
 
 // NewFormStateEvent creates a new form state event
-func NewFormStateEvent(formID string, state string, metadata map[string]any) *FormStateEvent {
+func NewFormStateEvent(formID, state string, metadata map[string]any) *FormStateEvent {
 	return &FormStateEvent{
-		BaseEvent: events.NewBaseEvent(string(FormLoadedEventType)),
+		BaseEvent: events.NewBaseEvent("form.state"),
 		FormID:    formID,
 		State:     state,
-		ChangedAt: time.Now(),
 		Metadata:  metadata,
 	}
 }
@@ -212,14 +211,13 @@ type FieldEvent struct {
 }
 
 // NewFieldEvent creates a new field event
-func NewFieldEvent(formID string, fieldID string, fieldName string, fieldValue any, metadata map[string]any) *FieldEvent {
+func NewFieldEvent(formID, fieldID, fieldName string, fieldValue any, metadata map[string]any) *FieldEvent {
 	return &FieldEvent{
-		BaseEvent:  events.NewBaseEvent(string(FieldChangedEventType)),
+		BaseEvent:  events.NewBaseEvent("form.field"),
 		FormID:     formID,
 		FieldID:    fieldID,
 		FieldName:  fieldName,
 		FieldValue: fieldValue,
-		ChangedAt:  time.Now(),
 		Metadata:   metadata,
 	}
 }
@@ -248,14 +246,13 @@ type AnalyticsEvent struct {
 }
 
 // NewAnalyticsEvent creates a new analytics event
-func NewAnalyticsEvent(formID string, eventType string, userID string, sessionID string, metadata map[string]any) *AnalyticsEvent {
+func NewAnalyticsEvent(formID, eventType, userID, sessionID string, metadata map[string]any) *AnalyticsEvent {
 	return &AnalyticsEvent{
-		BaseEvent: events.NewBaseEvent(string(FormViewedEventType)),
+		BaseEvent: events.NewBaseEvent("form.analytics"),
 		FormID:    formID,
 		EventType: eventType,
 		UserID:    userID,
 		SessionID: sessionID,
-		Timestamp: time.Now(),
 		Metadata:  metadata,
 	}
 }
