@@ -1,4 +1,5 @@
 import { FormBuilderError } from "../utils/errors";
+import DOMPurify from "dompurify";
 
 // Add global type declaration
 declare global {
@@ -152,7 +153,32 @@ export class FormService {
     }
   }
 
+  // Helper function to sanitize form data
+  private sanitizeFormData(data: any): any {
+    if (typeof data !== "object" || data === null) {
+      return data;
+    }
+
+    const sanitized: any = Array.isArray(data) ? [] : {};
+
+    for (const [key, value] of Object.entries(data)) {
+      if (typeof value === "string") {
+        // Use DOMPurify for string sanitization
+        sanitized[key] = DOMPurify.sanitize(value);
+      } else if (typeof value === "object" && value !== null) {
+        sanitized[key] = this.sanitizeFormData(value);
+      } else {
+        sanitized[key] = value;
+      }
+    }
+
+    return sanitized;
+  }
+
   async submitForm(formId: string, data: FormData): Promise<Response> {
+    // Sanitize the form data before sending
+    const sanitizedData = this.sanitizeFormData(data);
+
     const response = await fetch(
       `${this.baseUrl}/api/v1/forms/${formId}/submit`,
       {
@@ -161,7 +187,7 @@ export class FormService {
           "Content-Type": "application/json",
           Accept: "application/json",
         },
-        body: JSON.stringify(data),
+        body: JSON.stringify(sanitizedData),
       },
     );
 

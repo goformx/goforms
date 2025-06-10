@@ -2,6 +2,7 @@
 package infrastructure
 
 import (
+	"context"
 	"errors"
 
 	"github.com/labstack/echo/v4"
@@ -158,6 +159,16 @@ var Module = fx.Options(
 		// Database
 		database.NewGormDB,
 	),
+
+	// Start connection pool monitoring
+	fx.Invoke(func(db *database.GormDB, lc fx.Lifecycle) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go db.MonitorConnectionPool(ctx)
+				return nil
+			},
+		})
+	}),
 
 	// Event system
 	fx.Provide(

@@ -5,6 +5,7 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/validation"
+	"github.com/mrz1836/go-sanitize"
 )
 
 // FormSubmission represents a form submission
@@ -47,6 +48,13 @@ func (s *FormSubmission) Validate() error {
 
 	if len(s.Data) == 0 {
 		return errors.New(errors.ErrCodeValidation, "form data cannot be empty", nil)
+	}
+
+	// Sanitize all string values in the form data
+	for key, value := range s.Data {
+		if strValue, ok := value.(string); ok {
+			s.Data[key] = sanitize.XSS(strValue)
+		}
 	}
 
 	return nil

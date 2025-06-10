@@ -12,6 +12,7 @@ import (
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
+	"github.com/mrz1836/go-sanitize"
 )
 
 type FormHandler struct {
@@ -72,9 +73,9 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	}
 	userID := userIDRaw
 
-	// Get form data
-	title := c.FormValue("title")
-	description := c.FormValue("description")
+	// Get and sanitize form data
+	title := sanitize.XSS(c.FormValue("title"))
+	description := sanitize.XSS(c.FormValue("description"))
 
 	// Create a valid initial schema
 	schema := model.JSON{

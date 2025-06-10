@@ -148,29 +148,102 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 		rowsAffected, _ = args[rowsAffectedArgPos].(int64)
 	}
 
+	// Log all queries in debug mode
+	w.logger.Debug("database query",
+		"query", query,
+		"duration", duration,
+		"rows_affected", rowsAffected)
+
+	// Warn on slow queries
 	if duration > time.Millisecond*100 {
-		w.logger.Warn("slow query",
+		w.logger.Warn("slow query detected",
 			"query", query,
 			"duration", duration,
-			"rows_affected", rowsAffected)
+			"rows_affected", rowsAffected,
+			"threshold", "100ms")
 	}
 }
 
 // Error implements logger.Writer interface
 func (w *GormLogWriter) Error(msg string, err error) {
 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		w.logger.Debug("record not found",
+			"message", msg,
+			"error", err)
 		return
 	}
 
 	errorType := "database_error"
-	if errors.Is(err, gorm.ErrInvalidDB) {
+	switch {
+	case errors.Is(err, gorm.ErrInvalidDB):
 		errorType = "invalid_db"
+	case errors.Is(err, gorm.ErrInvalidTransaction):
+		errorType = "invalid_transaction"
+	case errors.Is(err, gorm.ErrNotImplemented):
+		errorType = "not_implemented"
+	case errors.Is(err, gorm.ErrMissingWhereClause):
+		errorType = "missing_where_clause"
+	case errors.Is(err, gorm.ErrUnsupportedDriver):
+		errorType = "unsupported_driver"
+	case errors.Is(err, gorm.ErrRegistered):
+		errorType = "already_registered"
+	case errors.Is(err, gorm.ErrInvalidField):
+		errorType = "invalid_field"
+	case errors.Is(err, gorm.ErrEmptySlice):
+		errorType = "empty_slice"
+	case errors.Is(err, gorm.ErrDryRunModeUnsupported):
+		errorType = "dry_run_unsupported"
+	case errors.Is(err, gorm.ErrInvalidData):
+		errorType = "invalid_data"
+	case errors.Is(err, gorm.ErrUnsupportedRelation):
+		errorType = "unsupported_relation"
+	case errors.Is(err, gorm.ErrPrimaryKeyRequired):
+		errorType = "primary_key_required"
 	}
 
 	w.logger.Error("database error",
 		"message", msg,
 		"type", errorType,
 		"error", err)
+}
+
+// MonitorConnectionPool periodically checks the database connection pool status
+func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
+	ticker := time.NewTicker(time.Minute)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-ticker.C:
+			sqlDB, err := db.DB.DB()
+			if err != nil {
+				db.logger.Error("failed to get database instance for monitoring",
+					"error", err)
+				continue
+			}
+
+			stats := sqlDB.Stats()
+			db.logger.Info("database connection pool status",
+				"max_open_connections", stats.MaxOpenConnections,
+				"open_connections", stats.OpenConnections,
+				"in_use", stats.InUse,
+				"idle", stats.Idle,
+				"wait_count", stats.WaitCount,
+				"wait_duration", stats.WaitDuration,
+				"max_idle_closed", stats.MaxIdleClosed,
+				"max_lifetime_closed", stats.MaxLifetimeClosed)
+
+			// Alert on high connection usage
+			if float64(stats.InUse)/float64(stats.MaxOpenConnections) > 0.8 {
+				db.logger.Warn("high database connection usage",
+					"in_use", stats.InUse,
+					"max_open", stats.MaxOpenConnections,
+					"usage_percentage", float64(stats.InUse)/float64(stats.MaxOpenConnections)*100)
+			}
+		}
+	}
 }
 
 func (db *GormDB) Ping(ctx context.Context) error {

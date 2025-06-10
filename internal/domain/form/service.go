@@ -9,6 +9,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/mrz1836/go-sanitize"
 )
 
 type Service interface {
@@ -38,6 +39,10 @@ func NewService(repo Repository, publisher event.Publisher, logger logging.Logge
 // CreateForm creates a new form
 func (s *service) CreateForm(ctx context.Context, userID string, form *model.Form) error {
 	logger := s.logger.WithUserID(userID)
+
+	// Sanitize form data before validation
+	form.Title = sanitize.XSS(form.Title)
+	form.Description = sanitize.XSS(form.Description)
 
 	if err := form.Validate(); err != nil {
 		logger.Error("form validation failed", "error", err)
@@ -97,6 +102,10 @@ func (s *service) UpdateForm(ctx context.Context, userID string, form *model.For
 		logger.Error("user does not own form", "user_id", userID, "form_id", form.ID)
 		return domainerrors.New(domainerrors.ErrCodeForbidden, "update form: user does not own form", nil)
 	}
+
+	// Sanitize form data before validation
+	form.Title = sanitize.XSS(form.Title)
+	form.Description = sanitize.XSS(form.Description)
 
 	if validateErr := form.Validate(); validateErr != nil {
 		logger.Error("form validation failed", "error", validateErr)
