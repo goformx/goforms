@@ -35,8 +35,8 @@ type GormDB struct {
 	logger logging.Logger
 }
 
-// NewGormDB creates a new GORM database connection
-func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
+// New creates a new GORM database connection
+func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	// Map our log levels to GORM log levels
 	var gormLogLevel logger.LogLevel
 	switch cfg.Database.Logging.LogLevel {
