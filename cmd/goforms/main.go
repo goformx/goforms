@@ -105,7 +105,7 @@ func main() {
 
 	app := fx.New(
 		// Provide core dependencies
-		fx.Supply(cfg, logger),
+		fx.Supply(cfg, logging.Logger(logger)),
 		// Load infrastructure and domain modules
 		infrastructure.Module,
 		domain.Module,
@@ -117,9 +117,9 @@ func main() {
 	defer stop()
 
 	// Start the application
-	if err := app.Start(stopCtx); err != nil {
+	if startErr := app.Start(stopCtx); startErr != nil {
 		stop() // Ensure signal handler is stopped
-		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", err)
+		fmt.Fprintf(os.Stderr, "Failed to start application: %v\n", startErr)
 		return
 	}
 
@@ -131,8 +131,8 @@ func main() {
 	defer shutdownCancel()
 
 	// Stop the application
-	if err := app.Stop(shutdownCtx); err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to stop application gracefully: %v\n", err)
+	if stopErr := app.Stop(shutdownCtx); stopErr != nil {
+		fmt.Fprintf(os.Stderr, "Failed to stop application gracefully: %v\n", stopErr)
 		return
 	}
 }

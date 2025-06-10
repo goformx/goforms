@@ -19,11 +19,13 @@ The module is split into focused sub-modules:
    ```go
    var InfrastructureModule = fx.Options(
        fx.Provide(
+           // Core infrastructure
            config.New,
            database.NewDB,
-           func(db *database.Database) *sqlx.DB {
-               return db.DB
-           },
+           logging.NewFactory,
+           validation.New,
+           
+           // Database stores
            fx.Annotate(
                userstore.NewStore,
                fx.As(new(user.Store)),
@@ -32,6 +34,8 @@ The module is split into focused sub-modules:
                formstore.NewStore,
                fx.As(new(form.Store)),
            ),
+           
+           // Middleware
            func(logger logging.Logger) *appmiddleware.SessionManager {
                return appmiddleware.NewSessionManager(logger)
            },
@@ -53,6 +57,50 @@ The module is split into focused sub-modules:
    ```
 
 2. `HandlerModule`: HTTP handlers and routing
+
+## What Belongs in Infrastructure
+
+The infrastructure layer should only contain:
+
+1. Core Infrastructure Components:
+   - Database connections and repositories
+   - Logging
+   - Configuration
+   - Event system
+   - Middleware
+   - Server setup
+   - Validation
+
+2. External Service Adapters:
+   - Database implementations
+   - Message queue clients
+   - Cache implementations
+   - External API clients
+
+3. Technical Concerns:
+   - Connection pooling
+   - Resource management
+   - Error handling
+   - Logging infrastructure
+
+## What Does NOT Belong in Infrastructure
+
+The following should be moved to their respective layers:
+
+1. Application Services:
+   - Auth service → application layer
+   - User service → application layer
+   - Form service → application layer
+
+2. Presentation Components:
+   - View renderers → presentation layer
+   - Template engines → presentation layer
+   - UI components → presentation layer
+
+3. Domain Logic:
+   - Business rules → domain layer
+   - Domain services → domain layer
+   - Domain events → domain layer
 
 ## Handler Registration
 

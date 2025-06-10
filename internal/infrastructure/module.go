@@ -135,95 +135,83 @@ func NewStores(db *database.GormDB, logger logging.Logger) (Stores, error) {
 var Module = fx.Options(
 	// Application infrastructure
 	fx.Provide(
+		// Logger provider - ensure interface type is used
+		func(logger *logging.ZapLogger) logging.Logger {
+			return logger
+		},
 		// Echo instance
 		echo.New,
 		// Validation
 		validation.New,
 		// Database
-		database.NewGormDB,
-
-		// Start connection pool monitoring
-		fx.Invoke(func(db *database.GormDB, lc fx.Lifecycle) {
-			lc.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					go db.MonitorConnectionPool(ctx)
-					return nil
-				},
-			})
-		}),
-
-		// Event system
-		fx.Provide(
-			fx.Annotate(
-				NewEventPublisher,
-				fx.As(new(formevent.Publisher)),
-			),
+		fx.Annotate(
+			database.NewGormDB,
 		),
 
-		// Repositories
-		fx.Provide(
-			fx.Annotate(
-				userstore.NewStore,
-				fx.As(new(user.Repository)),
-			),
-			fx.Annotate(
-				formstore.NewStore,
-				fx.As(new(form.Repository)),
-			),
-			fx.Annotate(
-				formsubmissionstore.NewStore,
-				fx.As(new(form.SubmissionStore)),
-			),
+		// Event system
+		fx.Annotate(
+			NewEventPublisher,
+			fx.As(new(formevent.Publisher)),
 		),
 
 		// Middleware
-		fx.Provide(
-			func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
-				// In development, use secure cookies only if explicitly enabled
-				// In production, always use secure cookies
-				secureCookie := !config.App.Debug || config.Security.SecureCookie
-				return appmiddleware.NewSessionManager(logger, secureCookie)
-			},
-			func(
-				logger logging.Logger,
-				config *config.Config,
-				userService user.Service,
-				sessionManager *appmiddleware.SessionManager,
-			) *appmiddleware.Manager {
-				return appmiddleware.NewManager(&appmiddleware.ManagerConfig{
-					Logger:         logger,
-					Security:       &config.Security,
-					UserService:    userService,
-					SessionManager: sessionManager,
-					Config:         config,
-				})
-			},
-		),
+		func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
+			// In development, use secure cookies only if explicitly enabled
+			// In production, always use secure cookies
+			secureCookie := !config.App.Debug || config.Security.SecureCookie
+			return appmiddleware.NewSessionManager(logger, secureCookie)
+		},
+		func(
+			logger logging.Logger,
+			config *config.Config,
+			userService user.Service,
+			sessionManager *appmiddleware.SessionManager,
+		) *appmiddleware.Manager {
+			return appmiddleware.NewManager(&appmiddleware.ManagerConfig{
+				Logger:         logger,
+				Security:       &config.Security,
+				UserService:    userService,
+				SessionManager: sessionManager,
+				Config:         config,
+			})
+		},
 
 		// Stores
-		fx.Provide(NewStores),
+		NewStores,
 
 		// Web handlers
-		fx.Provide(
+		fx.Annotate(
 			web.NewWebHandler,
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
 			web.NewAuthHandler,
+			fx.ResultTags(`group:"handlers"`),
 		),
 
 		// Handlers
-		fx.Provide(
-			fx.Annotate(
-				web.NewFormHandler,
-				fx.ResultTags(`group:"handlers"`),
-				fx.As(new(web.Handler)),
-			),
-			fx.Annotate(
-				web.NewDemoHandler,
-				fx.ResultTags(`group:"handlers"`),
-				fx.As(new(web.Handler)),
-			),
+		fx.Annotate(
+			web.NewFormHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
+		),
+		fx.Annotate(
+			web.NewDemoHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
 		),
 
 		// Server setup
-		fx.Provide(server.New),
+		server.New,
 	),
+
+	// Start connection pool monitoring
+	fx.Invoke(func(db *database.GormDB, lc fx.Lifecycle) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				go db.MonitorConnectionPool(ctx)
+				return nil
+			},
+		})
+	}),
 )
