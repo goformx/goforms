@@ -48,16 +48,18 @@
 ## Best Practices Violations
 
 ### Error Handling
-- [ ] Review error handling patterns:
+- [x] Review error handling patterns:
   - Some errors are returned directly
   - Some are wrapped with context
   - Action: Standardize error handling with proper context and wrapping
+  - Note: Variable shadowing issues in form/service.go have been fixed.
 
 ### Logging
-- [ ] Review logging patterns:
+- [x] Review logging patterns:
   - Some logs include sensitive information
   - Some logs lack proper context
   - Action: Standardize logging with proper context and security
+  - Note: Explicit masking for sensitive fields is now restored in the logger. The go-sanitize library is used only for input cleaning, not for masking sensitive data in logs.
 
 ### Configuration
 - [ ] Review configuration management:

@@ -184,7 +184,7 @@ func (l *ZapLogger) WithRequestID(requestID string) Logger {
 
 // WithUserID returns a new logger with the given user ID
 func (l *ZapLogger) WithUserID(userID string) Logger {
-	return l.With("user_id", userID)
+	return l.With("user_id", l.SanitizeField("user_id", userID))
 }
 
 // WithError returns a new logger with the given error
@@ -196,9 +196,111 @@ func (l *ZapLogger) WithError(err error) Logger {
 func (l *ZapLogger) WithFields(fields map[string]any) Logger {
 	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
 	for k, v := range fields {
-		zapFields = append(zapFields, zap.Any(k, v))
+		zapFields = append(zapFields, zap.Any(k, l.SanitizeField(k, v)))
 	}
 	return &ZapLogger{logger: l.logger.With(zapFields...)}
+}
+
+var sensitiveKeys = map[string]struct{}{
+	"password":           {},
+	"token":              {},
+	"secret":             {},
+	"key":                {},
+	"credential":         {},
+	"authorization":      {},
+	"cookie":             {},
+	"session":            {},
+	"api_key":            {},
+	"access_token":       {},
+	"refresh_token":      {},
+	"private_key":        {},
+	"public_key":         {},
+	"certificate":        {},
+	"ssn":                {},
+	"credit_card":        {},
+	"bank_account":       {},
+	"phone":              {},
+	"email":              {},
+	"address":            {},
+	"dob":                {},
+	"birth_date":         {},
+	"social_security":    {},
+	"tax_id":             {},
+	"driver_license":     {},
+	"passport":           {},
+	"national_id":        {},
+	"health_record":      {},
+	"medical_record":     {},
+	"insurance":          {},
+	"benefit":            {},
+	"salary":             {},
+	"compensation":       {},
+	"bank_routing":       {},
+	"bank_swift":         {},
+	"iban":               {},
+	"account_number":     {},
+	"pin":                {},
+	"cvv":                {},
+	"cvc":                {},
+	"security_code":      {},
+	"verification_code":  {},
+	"otp":                {},
+	"mfa_code":           {},
+	"2fa_code":           {},
+	"recovery_code":      {},
+	"backup_code":        {},
+	"reset_token":        {},
+	"activation_code":    {},
+	"verification_token": {},
+	"invite_code":        {},
+	"referral_code":      {},
+	"promo_code":         {},
+	"discount_code":      {},
+	"coupon_code":        {},
+	"gift_card":          {},
+	"voucher":            {},
+	"license_key":        {},
+	"product_key":        {},
+	"serial_number":      {},
+	"activation_key":     {},
+	"registration_key":   {},
+	"subscription_key":   {},
+	"membership_key":     {},
+	"access_code":        {},
+	"security_key":       {},
+	"encryption_key":     {},
+	"decryption_key":     {},
+	"signing_key":        {},
+	"verification_key":   {},
+	"authentication_key": {},
+	"authorization_key":  {},
+	"session_key":        {},
+	"cookie_key":         {},
+	"csrf_token":         {},
+	"xsrf_token":         {},
+	"jwt":                {},
+	"jwe":                {},
+	"jws":                {},
+	"oauth_token":        {},
+	"oauth_secret":       {},
+	"oauth_verifier":     {},
+	"oauth_code":         {},
+	"oauth_state":        {},
+	"oauth_nonce":        {},
+	"oauth_scope":        {},
+	"oauth_grant":        {},
+	"oauth_refresh":      {},
+	"oauth_access":       {},
+	"oauth_id":           {},
+	"oauth_key":          {},
+}
+
+// SanitizeField returns a masked version of a sensitive field value
+func (l *ZapLogger) SanitizeField(key string, value any) any {
+	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
+		return "****"
+	}
+	return value
 }
 
 // convertToZapFields converts a slice of fields to zap fields

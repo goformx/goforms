@@ -18,7 +18,7 @@ type ErrorHandler struct {
 // NewErrorHandler creates a new error handler
 func NewErrorHandler(logger logging.Logger) *ErrorHandler {
 	return &ErrorHandler{
-		logger: logger,
+		logger: logger.WithComponent("error_handler"),
 	}
 }
 
@@ -28,10 +28,23 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		return
 	}
 
+	// Create a logger with request context
+	logger := h.logger.With(
+		"request_id", c.Request().Header.Get("X-Request-ID"),
+		"method", c.Request().Method,
+		"path", c.Request().URL.Path,
+		"remote_addr", c.Request().RemoteAddr,
+	)
+
 	// Handle domain errors
 	var domainErr *errors.DomainError
 	if stderrors.As(err, &domainErr) {
-		h.logger.Error("domain error", "error", err)
+		logger.Error("domain error",
+			"error", err,
+			"error_code", domainErr.Code,
+			"error_message", domainErr.Message,
+			"error_type", "domain_error",
+		)
 
 		statusCode := http.StatusInternalServerError
 		switch domainErr.Code {
@@ -67,7 +80,11 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		}
 
 		if jsonErr := c.JSON(statusCode, response); jsonErr != nil {
-			h.logger.Error("failed to send error response", "error", jsonErr)
+			logger.Error("failed to send error response",
+				"error", jsonErr,
+				"error_type", "response_error",
+				"original_error", err,
+			)
 		}
 
 		return
@@ -76,7 +93,12 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	// Handle HTTP errors
 	var httpErr *echo.HTTPError
 	if stderrors.As(err, &httpErr) {
-		h.logger.Error("http error", "error", err)
+		logger.Error("http error",
+			"error", err,
+			"error_code", httpErr.Code,
+			"error_message", httpErr.Message,
+			"error_type", "http_error",
+		)
 
 		response := map[string]any{
 			"error": map[string]any{
@@ -86,14 +108,21 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		}
 
 		if jsonErr := c.JSON(httpErr.Code, response); jsonErr != nil {
-			h.logger.Error("failed to send error response", "error", jsonErr)
+			logger.Error("failed to send error response",
+				"error", jsonErr,
+				"error_type", "response_error",
+				"original_error", err,
+			)
 		}
 
 		return
 	}
 
 	// Handle unknown errors
-	h.logger.Error("unknown error", "error", err)
+	logger.Error("unknown error",
+		"error", err,
+		"error_type", "unknown_error",
+	)
 
 	response := map[string]any{
 		"error": map[string]any{
@@ -103,7 +132,11 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	}
 
 	if jsonErr := c.JSON(http.StatusInternalServerError, response); jsonErr != nil {
-		h.logger.Error("failed to send error response", "error", jsonErr)
+		logger.Error("failed to send error response",
+			"error", jsonErr,
+			"error_type", "response_error",
+			"original_error", err,
+		)
 	}
 }
 

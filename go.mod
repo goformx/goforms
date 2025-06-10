@@ -12,6 +12,7 @@ require (
 	github.com/kelseyhightower/envconfig v1.4.0
 	github.com/labstack/echo/v4 v4.13.3
 	github.com/labstack/gommon v0.4.2
+	github.com/mrz1836/go-sanitize v1.3.5
 	go.uber.org/fx v1.23.0
 	go.uber.org/mock v0.5.2
 	go.uber.org/zap v1.27.0
