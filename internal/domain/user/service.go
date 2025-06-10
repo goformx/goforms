@@ -30,14 +30,14 @@ type Service interface {
 	SignUp(ctx context.Context, signup *Signup) (*User, error)
 	Login(ctx context.Context, login *Login) (*LoginResponse, error)
 	Logout(ctx context.Context, refreshToken string) error
-	GetUserByID(ctx context.Context, id uint) (*User, error)
+	GetUserByID(ctx context.Context, id string) (*User, error)
 	GetUserByEmail(ctx context.Context, email string) (*User, error)
 	UpdateUser(ctx context.Context, user *User) error
-	DeleteUser(ctx context.Context, id uint) error
+	DeleteUser(ctx context.Context, id string) error
 	ListUsers(ctx context.Context) ([]User, error)
 	GetByID(ctx context.Context, id string) (*User, error)
 	ValidateToken(ctx context.Context, token string) error
-	GetUserIDFromToken(ctx context.Context, token string) (uint, error)
+	GetUserIDFromToken(ctx context.Context, token string) (string, error)
 	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
 	Authenticate(ctx context.Context, email, password string) (*User, error)
 }
@@ -177,7 +177,7 @@ func (s *ServiceImpl) Logout(ctx context.Context, refreshToken string) error {
 }
 
 // GetUserByID retrieves a user by ID
-func (s *ServiceImpl) GetUserByID(ctx context.Context, id uint) (*User, error) {
+func (s *ServiceImpl) GetUserByID(ctx context.Context, id string) (*User, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
@@ -192,7 +192,7 @@ func (s *ServiceImpl) UpdateUser(ctx context.Context, user *User) error {
 }
 
 // DeleteUser deletes a user
-func (s *ServiceImpl) DeleteUser(ctx context.Context, id uint) error {
+func (s *ServiceImpl) DeleteUser(ctx context.Context, id string) error {
 	return s.repo.Delete(ctx, id)
 }
 
@@ -216,12 +216,12 @@ func (s *ServiceImpl) ValidateToken(ctx context.Context, token string) error {
 }
 
 // GetUserIDFromToken extracts the user ID from a token
-func (s *ServiceImpl) GetUserIDFromToken(ctx context.Context, token string) (uint, error) {
+func (s *ServiceImpl) GetUserIDFromToken(ctx context.Context, token string) (string, error) {
 	if token == "" {
-		return 0, ErrInvalidToken
+		return "", ErrInvalidToken
 	}
 	// TODO: Implement proper JWT parsing
-	return 0, nil
+	return "", nil
 }
 
 // IsTokenBlacklisted checks if a token is blacklisted

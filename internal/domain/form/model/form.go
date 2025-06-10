@@ -21,7 +21,7 @@ const (
 // Form represents a form in the system
 type Form struct {
 	ID          string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID      uint           `json:"user_id" gorm:"not null;index;type:bigint"`
+	UserID      string         `json:"user_id" gorm:"not null;index;type:uuid"`
 	Title       string         `json:"title" gorm:"not null;size:100"`
 	Description string         `json:"description" gorm:"size:500"`
 	Schema      JSON           `json:"schema" gorm:"type:jsonb;not null"`
@@ -89,7 +89,7 @@ func (j JSON) Value() (driver.Value, error) {
 }
 
 // NewForm creates a new form instance
-func NewForm(userID uint, title, description string, schema JSON) *Form {
+func NewForm(userID string, title, description string, schema JSON) *Form {
 	now := time.Now()
 
 	return &Form{

@@ -86,7 +86,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 }
 
 // GetByUserID retrieves all forms for a given user
-func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error) {
+func (s *Store) GetByUserID(ctx context.Context, userID string) ([]*model.Form, error) {
 	s.logger.Debug("get by user id request received",
 		"operation", "get_user_forms",
 		"user_id", userID,
@@ -116,7 +116,7 @@ func (s *Store) GetByUserID(ctx context.Context, userID uint) ([]*model.Form, er
 			"error_message", result.Error.Error(),
 		)
 
-		return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%d", userID), result.Error)
+		return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s", userID), result.Error)
 	}
 
 	s.logger.Debug("forms retrieved from database",

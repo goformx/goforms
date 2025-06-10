@@ -17,7 +17,7 @@ type Repository interface {
 	// GetByID gets a form by ID
 	GetByID(ctx context.Context, id string) (*model.Form, error)
 	// GetByUserID gets all forms for a user
-	GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error)
+	GetByUserID(ctx context.Context, userID string) ([]*model.Form, error)
 	// Update updates a form
 	Update(ctx context.Context, form *model.Form) error
 	// Delete deletes a form

@@ -26,7 +26,7 @@ type LoginResponse struct {
 
 // User represents a user in the system
 type User struct {
-	ID             uint           `json:"id" gorm:"primaryKey"`
+	ID             string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
 	Email          string         `json:"email" gorm:"uniqueIndex;not null;size:255"`
 	HashedPassword string         `json:"-" gorm:"column:hashed_password;not null;size:255"`
 	FirstName      string         `json:"first_name" gorm:"not null;size:100"`
@@ -46,7 +46,9 @@ func (u *User) TableName() string {
 // BeforeCreate is a GORM hook that runs before creating a user
 func (u *User) BeforeCreate(tx *gorm.DB) error {
 	// Generate a unique ID using UUID
-	u.ID = uint(uuid.New().ID())
+	if u.ID == "" {
+		u.ID = uuid.New().String()
+	}
 	if u.Role == "" {
 		u.Role = "user"
 	}

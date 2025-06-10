@@ -31,7 +31,7 @@ func NewStore(db *database.GormDB, logger logging.Logger) user.Repository {
 func (s *Store) Create(ctx context.Context, u *user.User) error {
 	result := s.db.WithContext(ctx).Create(u)
 	if result.Error != nil {
-		return common.NewDatabaseError("create", "user", strconv.FormatUint(uint64(u.ID), 10), result.Error)
+		return common.NewDatabaseError("create", "user", u.ID, result.Error)
 	}
 	return nil
 }
@@ -50,14 +50,14 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*user.User, error
 }
 
 // GetByID retrieves a user by ID
-func (s *Store) GetByID(ctx context.Context, id uint) (*user.User, error) {
+func (s *Store) GetByID(ctx context.Context, id string) (*user.User, error) {
 	var u user.User
-	result := s.db.WithContext(ctx).First(&u, id)
+	result := s.db.WithContext(ctx).First(&u, "uuid = ?", id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, common.NewNotFoundError("get_by_id", "user", strconv.FormatUint(uint64(id), 10))
+			return nil, common.NewNotFoundError("get_by_id", "user", id)
 		}
-		return nil, common.NewDatabaseError("get_by_id", "user", strconv.FormatUint(uint64(id), 10), result.Error)
+		return nil, common.NewDatabaseError("get_by_id", "user", id, result.Error)
 	}
 	return &u, nil
 }
@@ -68,29 +68,29 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*user.User, error
 	if err != nil {
 		return nil, common.NewInvalidInputError("get_by_id_string", "user", id, err)
 	}
-	return s.GetByID(ctx, uint(userID))
+	return s.GetByID(ctx, strconv.FormatUint(userID, 10))
 }
 
 // Update updates a user
 func (s *Store) Update(ctx context.Context, userModel *user.User) error {
 	result := s.db.WithContext(ctx).Save(userModel)
 	if result.Error != nil {
-		return common.NewDatabaseError("update", "user", strconv.FormatUint(uint64(userModel.ID), 10), result.Error)
+		return common.NewDatabaseError("update", "user", userModel.ID, result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return common.NewNotFoundError("update", "user", strconv.FormatUint(uint64(userModel.ID), 10))
+		return common.NewNotFoundError("update", "user", userModel.ID)
 	}
 	return nil
 }
 
 // Delete removes a user by ID
-func (s *Store) Delete(ctx context.Context, id uint) error {
-	result := s.db.WithContext(ctx).Delete(&user.User{}, id)
+func (s *Store) Delete(ctx context.Context, id string) error {
+	result := s.db.WithContext(ctx).Delete(&user.User{}, "uuid = ?", id)
 	if result.Error != nil {
-		return common.NewDatabaseError("delete", "user", strconv.FormatUint(uint64(id), 10), result.Error)
+		return common.NewDatabaseError("delete", "user", id, result.Error)
 	}
 	if result.RowsAffected == 0 {
-		return common.NewNotFoundError("delete", "user", strconv.FormatUint(uint64(id), 10))
+		return common.NewNotFoundError("delete", "user", id)
 	}
 	return nil
 }
@@ -98,7 +98,7 @@ func (s *Store) Delete(ctx context.Context, id uint) error {
 // List returns all users
 func (s *Store) List(ctx context.Context) ([]user.User, error) {
 	var users []user.User
-	result := s.db.WithContext(ctx).Order("id").Find(&users)
+	result := s.db.WithContext(ctx).Order("uuid").Find(&users)
 	if result.Error != nil {
 		return nil, common.NewDatabaseError("list", "user", "", result.Error)
 	}
@@ -123,7 +123,7 @@ func (s *Store) ListPaginated(ctx context.Context, params common.PaginationParam
 
 	// Get paginated results
 	result := s.db.WithContext(ctx).
-		Order("id").
+		Order("uuid").
 		Offset(params.GetOffset()).
 		Limit(params.GetLimit()).
 		Find(&users)

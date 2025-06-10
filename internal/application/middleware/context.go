@@ -96,10 +96,10 @@ func GetCorrelationID(ctx context.Context) string {
 }
 
 // GetUserID retrieves the user ID from context
-func GetUserID(c echo.Context) uint {
-	userID, ok := c.Get(string(UserIDKey)).(uint)
+func GetUserID(c echo.Context) string {
+	userID, ok := c.Get(string(UserIDKey)).(string)
 	if !ok {
-		return 0
+		return ""
 	}
 
 	return userID

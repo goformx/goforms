@@ -42,7 +42,7 @@ func (h *FormHandler) Register(e *echo.Echo) {
 // GET /dashboard/forms/new
 func (h *FormHandler) handleFormNew(c echo.Context) error {
 	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	userIDRaw, ok := c.Get("user_id").(string)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -66,7 +66,7 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 // POST /dashboard/forms
 func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	userIDRaw, ok := c.Get("user_id").(string)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -90,7 +90,8 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	}
 
 	// Create the form
-	form, err := h.FormService.CreateForm(c.Request().Context(), userID, title, description, schema)
+	form := model.NewForm(userID, title, description, schema)
+	err := h.FormService.CreateForm(c.Request().Context(), userID, form)
 	if err != nil {
 		h.Logger.Error("failed to create form",
 			"error", err,
@@ -133,7 +134,7 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	}
 
 	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	userIDRaw, ok := c.Get("user_id").(string)
 	if !ok {
 		h.Logger.Error("user ID not found in session",
 			"operation", "handle_form_edit",
@@ -211,7 +212,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	}
 
 	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	userIDRaw, ok := c.Get("user_id").(string)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -230,7 +231,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	}
 
 	// Delete the form
-	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), formID); deleteErr != nil {
+	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), userID, formID); deleteErr != nil {
 		h.Logger.Error("failed to delete form", "error", deleteErr)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to delete form")
 	}
@@ -248,11 +249,18 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	}
 
 	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	userIDRaw, ok := c.Get("user_id").(string)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 	userID := userIDRaw
+
+	// Get user object
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || user == nil {
+		h.Logger.Error("failed to get user (nil or error)", "error", err)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
+	}
 
 	// Get form to verify ownership
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
@@ -263,12 +271,7 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 
 	// Verify form ownership
 	if form.UserID != userID {
-		return response.WebErrorResponse(
-			c,
-			h.Renderer,
-			http.StatusForbidden,
-			"You don't have permission to view these submissions",
-		)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to view submissions for this form")
 	}
 
 	// Get form submissions
@@ -278,18 +281,14 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form submissions")
 	}
 
-	// Get user object for the template
-	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", "error", err)
-		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
-	}
-
 	data := shared.BuildPageData(h.Config, "Form Submissions")
 	data.User = user
 	data.Form = form
 	data.Submissions = submissions
-	data.Content = pages.FormSubmissionsContent(data)
+	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
+		data.CSRFToken = csrfToken
+	}
+
 	return h.Renderer.Render(c, pages.FormSubmissions(data))
 }
 
@@ -330,9 +329,16 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(string)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	userID := userIDRaw
+
 	// Update form schema
 	form.Schema = schema
-	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
+	if updateErr := h.FormService.UpdateForm(c.Request().Context(), userID, form); updateErr != nil {
 		h.Logger.Error("failed to update form", "error", updateErr)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form")
 	}

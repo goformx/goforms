@@ -53,7 +53,7 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	)
 
 	// Get user from session
-	userID, ok := c.Get("user_id").(uint)
+	userID, ok := c.Get("user_id").(string)
 	if !ok {
 		h.Logger.Error("failed to get user from session",
 			"operation", "handle_dashboard",
@@ -128,7 +128,7 @@ func (h *WebHandler) handleFormView(c echo.Context) error {
 	}
 
 	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	userIDRaw, ok := c.Get("user_id").(string)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}

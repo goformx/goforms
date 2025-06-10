@@ -32,7 +32,7 @@ const (
 
 // Session represents a user session
 type Session struct {
-	UserID    uint      `json:"user_id"`
+	UserID    string    `json:"user_id"`
 	Email     string    `json:"email"`
 	Role      string    `json:"role"`
 	CreatedAt time.Time `json:"created_at"`
@@ -95,27 +95,17 @@ func NewSessionManager(logger logging.Logger, secureCookie bool) *SessionManager
 
 // parseSessionData parses session data into a Session object
 func (sm *SessionManager) parseSessionData(data map[string]any) (*Session, error) {
-	createdStr, ok := data["created_at"].(string)
+	createdAt, ok := data["created_at"].(string)
 	if !ok {
 		return nil, errors.New("invalid created_at type")
 	}
 
-	createdAt, err := time.Parse(time.RFC3339Nano, createdStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse created_at: %w", err)
-	}
-
-	expiresStr, ok := data["expires_at"].(string)
+	expiresAt, ok := data["expires_at"].(string)
 	if !ok {
 		return nil, errors.New("invalid expires_at type")
 	}
 
-	expiresAt, err := time.Parse(time.RFC3339Nano, expiresStr)
-	if err != nil {
-		return nil, fmt.Errorf("failed to parse expires_at: %w", err)
-	}
-
-	userID, ok := data["user_id"].(float64)
+	userID, ok := data["user_id"].(string)
 	if !ok {
 		return nil, errors.New("invalid user_id type")
 	}
@@ -130,12 +120,22 @@ func (sm *SessionManager) parseSessionData(data map[string]any) (*Session, error
 		return nil, errors.New("invalid role type")
 	}
 
+	createdAtTime, err := time.Parse(time.RFC3339, createdAt)
+	if err != nil {
+		return nil, fmt.Errorf("invalid created_at format: %w", err)
+	}
+
+	expiresAtTime, err := time.Parse(time.RFC3339, expiresAt)
+	if err != nil {
+		return nil, fmt.Errorf("invalid expires_at format: %w", err)
+	}
+
 	return &Session{
-		UserID:    uint(userID),
+		UserID:    userID,
 		Email:     email,
 		Role:      role,
-		CreatedAt: createdAt,
-		ExpiresAt: expiresAt,
+		CreatedAt: createdAtTime,
+		ExpiresAt: expiresAtTime,
 	}, nil
 }
 
@@ -277,7 +277,7 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 }
 
 // CreateSession creates a new session for a user
-func (sm *SessionManager) CreateSession(userID uint, email, role string) (string, error) {
+func (sm *SessionManager) CreateSession(userID string, email, role string) (string, error) {
 	sm.logger.Debug("CreateSession: start", "user_id", userID)
 	// Generate random session ID
 	sessionID := make([]byte, SessionIDLength)
