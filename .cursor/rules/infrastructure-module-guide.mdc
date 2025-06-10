@@ -21,19 +21,9 @@ The module is split into focused sub-modules:
        fx.Provide(
            // Core infrastructure
            config.New,
-           database.NewDB,
+           database.NewDB,  // Database connection belongs in infrastructure
            logging.NewFactory,
            validation.New,
-           
-           // Database stores
-           fx.Annotate(
-               userstore.NewStore,
-               fx.As(new(user.Store)),
-           ),
-           fx.Annotate(
-               formstore.NewStore,
-               fx.As(new(form.Store)),
-           ),
            
            // Middleware
            func(logger logging.Logger) *appmiddleware.SessionManager {
@@ -63,7 +53,7 @@ The module is split into focused sub-modules:
 The infrastructure layer should only contain:
 
 1. Core Infrastructure Components:
-   - Database connections and repositories
+   - Database connections and connection management
    - Logging
    - Configuration
    - Event system
@@ -72,7 +62,6 @@ The infrastructure layer should only contain:
    - Validation
 
 2. External Service Adapters:
-   - Database implementations
    - Message queue clients
    - Cache implementations
    - External API clients
@@ -101,6 +90,8 @@ The following should be moved to their respective layers:
    - Business rules → domain layer
    - Domain services → domain layer
    - Domain events → domain layer
+   - Repositories and stores → domain layer
+   - Repository implementations → domain layer
 
 ## Handler Registration
 
@@ -129,19 +120,37 @@ Store initialization follows these principles:
 2. Explicit nil checks for each store
 3. Detailed error logging with context
 4. Type safety through Go's type system
-5. **Form and user stores are both provided and required for the domain layer**
+5. **Stores are defined and initialized in the domain layer**
 
-Example store initialization:
+Example store initialization in domain layer:
 ```go
-userStore := store.NewUserStore(db, logger)
-formStore := store.NewFormStore(db, logger)
-if userStore == nil || formStore == nil {
-    logger.Error("failed to create store",
-        logging.String("operation", "store_initialization"),
-        logging.String("store_type", "user/form"),
-        logging.String("error_type", "nil_store"),
-    )
-    return Stores{}, fmt.Errorf("failed to create user or form store")
+// In domain/module.go
+type StoreParams struct {
+    fx.In
+    DB     *database.GormDB  // Database connection from infrastructure
+    Logger logging.Logger    // Logger from infrastructure
+}
+
+func NewStores(p StoreParams) (Stores, error) {
+    if p.DB == nil {
+        return Stores{}, errors.New("database connection is required")
+    }
+
+    userStore := userstore.NewStore(p.DB, p.Logger)
+    formStore := formstore.NewStore(p.DB, p.Logger)
+    if userStore == nil || formStore == nil {
+        p.Logger.Error("failed to create store",
+            "operation", "store_initialization",
+            "store_type", "user/form",
+            "error_type", "nil_store",
+        )
+        return Stores{}, fmt.Errorf("failed to create user or form store")
+    }
+
+    return Stores{
+        UserStore: userStore,
+        FormStore: formStore,
+    }, nil
 }
 ```
 
@@ -292,7 +301,7 @@ Logging should:
 
 ## Best Practices
 
-1. Keep database operations in the infrastructure layer
+1. Keep database operations in the domain layer
 2. Use dependency injection for database connections
 3. Implement proper error handling and logging
 4. Use transactions for operations that require atomicity

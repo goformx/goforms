@@ -1,4 +1,4 @@
-// Package logging provides a unified logging interface using zap
+// Package logging provides a unified logging interface
 package logging
 
 import (
@@ -105,7 +105,7 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	)
 
 	// Create logger with options
-	logger := zap.New(core,
+	zapLogger := zap.New(core,
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),
 		zap.Development(),
@@ -118,87 +118,85 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	}
 
 	// Create logger with initial fields
-	logger = logger.With(fields...)
+	zapLogger = zapLogger.With(fields...)
 
-	return &ZapLogger{
-		logger: logger,
-	}, nil
+	// Create our logger implementation
+	return newLogger(zapLogger), nil
 }
 
-// ZapLogger implements the Logger interface using zap
-type ZapLogger struct {
-	logger *zap.Logger
+// logger implements the Logger interface using zap
+type logger struct {
+	zapLogger *zap.Logger
 }
 
-// GetZapLogger returns the underlying zap logger
-func (l *ZapLogger) GetZapLogger() *zap.Logger {
-	return l.logger
+// newLogger creates a new logger instance
+func newLogger(zapLogger *zap.Logger) Logger {
+	return &logger{zapLogger: zapLogger}
 }
 
 // Debug logs a debug message
-func (l *ZapLogger) Debug(msg string, fields ...any) {
-	l.logger.Debug(msg, convertToZapFields(fields)...)
+func (l *logger) Debug(msg string, fields ...any) {
+	l.zapLogger.Debug(msg, convertToZapFields(fields)...)
 }
 
 // Info logs an info message
-func (l *ZapLogger) Info(msg string, fields ...any) {
-	l.logger.Info(msg, convertToZapFields(fields)...)
+func (l *logger) Info(msg string, fields ...any) {
+	l.zapLogger.Info(msg, convertToZapFields(fields)...)
 }
 
 // Warn logs a warning message
-func (l *ZapLogger) Warn(msg string, fields ...any) {
-	l.logger.Warn(msg, convertToZapFields(fields)...)
+func (l *logger) Warn(msg string, fields ...any) {
+	l.zapLogger.Warn(msg, convertToZapFields(fields)...)
 }
 
 // Error logs an error message
-func (l *ZapLogger) Error(msg string, fields ...any) {
-	l.logger.Error(msg, convertToZapFields(fields)...)
+func (l *logger) Error(msg string, fields ...any) {
+	l.zapLogger.Error(msg, convertToZapFields(fields)...)
 }
 
 // Fatal logs a fatal message
-func (l *ZapLogger) Fatal(msg string, fields ...any) {
-	l.logger.Fatal(msg, convertToZapFields(fields)...)
+func (l *logger) Fatal(msg string, fields ...any) {
+	l.zapLogger.Fatal(msg, convertToZapFields(fields)...)
 }
 
 // With returns a new logger with the given fields
-func (l *ZapLogger) With(fields ...any) Logger {
+func (l *logger) With(fields ...any) Logger {
 	zapFields := convertToZapFields(fields)
-
-	return &ZapLogger{logger: l.logger.With(zapFields...)}
+	return newLogger(l.zapLogger.With(zapFields...))
 }
 
 // WithComponent returns a new logger with the given component
-func (l *ZapLogger) WithComponent(component string) Logger {
+func (l *logger) WithComponent(component string) Logger {
 	return l.With("component", component)
 }
 
 // WithOperation returns a new logger with the given operation
-func (l *ZapLogger) WithOperation(operation string) Logger {
+func (l *logger) WithOperation(operation string) Logger {
 	return l.With("operation", operation)
 }
 
 // WithRequestID returns a new logger with the given request ID
-func (l *ZapLogger) WithRequestID(requestID string) Logger {
+func (l *logger) WithRequestID(requestID string) Logger {
 	return l.With("request_id", requestID)
 }
 
 // WithUserID returns a new logger with the given user ID
-func (l *ZapLogger) WithUserID(userID string) Logger {
+func (l *logger) WithUserID(userID string) Logger {
 	return l.With("user_id", l.SanitizeField("user_id", userID))
 }
 
 // WithError returns a new logger with the given error
-func (l *ZapLogger) WithError(err error) Logger {
+func (l *logger) WithError(err error) Logger {
 	return l.With("error", err)
 }
 
 // WithFields adds multiple fields to the logger
-func (l *ZapLogger) WithFields(fields map[string]any) Logger {
+func (l *logger) WithFields(fields map[string]any) Logger {
 	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, l.SanitizeField(k, v)))
 	}
-	return &ZapLogger{logger: l.logger.With(zapFields...)}
+	return newLogger(l.zapLogger.With(zapFields...))
 }
 
 var sensitiveKeys = map[string]struct{}{
@@ -296,7 +294,7 @@ var sensitiveKeys = map[string]struct{}{
 }
 
 // SanitizeField returns a masked version of a sensitive field value
-func (l *ZapLogger) SanitizeField(key string, value any) any {
+func (l *logger) SanitizeField(key string, value any) any {
 	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
 		return "****"
 	}

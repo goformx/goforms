@@ -2,7 +2,6 @@
 package infrastructure
 
 import (
-	"context"
 	"errors"
 
 	"github.com/labstack/echo/v4"
@@ -15,11 +14,8 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
-	infraevent "github.com/goformx/goforms/internal/infrastructure/event"
+	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	formstore "github.com/goformx/goforms/internal/infrastructure/repository/form"
-	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/repository/form/submission"
-	userstore "github.com/goformx/goforms/internal/infrastructure/repository/user"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/validation"
 	"github.com/goformx/goforms/internal/presentation/view"
@@ -30,27 +26,16 @@ const (
 	MinSecretLength = 32
 )
 
-// Stores groups all database store providers.
-// This struct is used with fx.Out to provide multiple stores
-// to the fx container in a single provider function.
-type Stores struct {
-	fx.Out
-
-	UserStore           user.Repository
-	FormStore           form.Repository
-	FormSubmissionStore form.SubmissionStore
-}
-
-// CoreParams represents core infrastructure dependencies
+// CoreParams groups core infrastructure dependencies
 type CoreParams struct {
 	fx.In
-	Logger   logging.Logger
 	Config   *config.Config
+	Logger   logging.Logger
 	Renderer *view.Renderer
 	Echo     *echo.Echo
 }
 
-// ServiceParams contains all service dependencies that handlers might need
+// ServiceParams groups business service dependencies
 type ServiceParams struct {
 	fx.In
 	UserService user.Service
@@ -60,7 +45,6 @@ type ServiceParams struct {
 // EventPublisherParams contains dependencies for creating an event publisher
 type EventPublisherParams struct {
 	fx.In
-
 	Logger logging.Logger
 }
 
@@ -69,7 +53,7 @@ func NewEventPublisher(p EventPublisherParams) (formevent.Publisher, error) {
 	if p.Logger == nil {
 		return nil, errors.New("logger is required for event publisher")
 	}
-	return infraevent.NewMemoryPublisher(p.Logger), nil
+	return event.NewMemoryPublisher(p.Logger), nil
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers
@@ -83,113 +67,50 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
-// NewStores creates new stores with proper error handling and logging
-func NewStores(db *database.GormDB, logger logging.Logger) (Stores, error) {
-	if db == nil {
-		return Stores{}, errors.New("database connection is required")
-	}
-
-	userStore := userstore.NewStore(db, logger)
-	if userStore == nil {
-		logger.Error("failed to create store",
-			"operation", "store_initialization",
-			"store_type", "user",
-			"error_type", "nil_store",
-		)
-		return Stores{}, errors.New("failed to create user store")
-	}
-
-	formStore := formstore.NewStore(db, logger)
-	if formStore == nil {
-		logger.Error("failed to create store",
-			"operation", "store_initialization",
-			"store_type", "form",
-			"error_type", "nil_store",
-		)
-		return Stores{}, errors.New("failed to create form store")
-	}
-
-	formSubmissionStore := formsubmissionstore.NewStore(db, logger)
-	if formSubmissionStore == nil {
-		logger.Error("failed to create store",
-			"operation", "store_initialization",
-			"store_type", "form_submission",
-			"error_type", "nil_store",
-		)
-		return Stores{}, errors.New("failed to create form submission store")
-	}
-
-	logger.Info("stores initialized successfully",
-		"operation", "store_initialization",
-		"store_types", "user,form,form_submission",
-	)
-
-	return Stores{
-		UserStore:           userStore,
-		FormStore:           formStore,
-		FormSubmissionStore: formSubmissionStore,
-	}, nil
-}
-
 // Module provides all infrastructure dependencies
 var Module = fx.Options(
-	// Application infrastructure
 	fx.Provide(
-		// Logger provider - ensure interface type is used
-		func(logger *logging.ZapLogger) logging.Logger {
-			return logger
-		},
-		// Echo instance
-		echo.New,
-		// Validation
+		// Core infrastructure
+		database.NewGormDB,
 		validation.New,
-		// Database
-		fx.Annotate(
-			database.NewGormDB,
-		),
 
-		// Event system
-		fx.Annotate(
-			NewEventPublisher,
-			fx.As(new(formevent.Publisher)),
-		),
+		// Echo instance
+		func() *echo.Echo {
+			return echo.New()
+		},
 
 		// Middleware
-		func(logger logging.Logger, config *config.Config) *appmiddleware.SessionManager {
-			// In development, use secure cookies only if explicitly enabled
-			// In production, always use secure cookies
-			secureCookie := !config.App.Debug || config.Security.SecureCookie
-			return appmiddleware.NewSessionManager(logger, secureCookie)
+		func(logger logging.Logger) *appmiddleware.SessionManager {
+			return appmiddleware.NewSessionManager(logger, true) // secureCookie=true for production
 		},
 		func(
-			logger logging.Logger,
-			config *config.Config,
-			userService user.Service,
+			core CoreParams,
+			services ServiceParams,
 			sessionManager *appmiddleware.SessionManager,
 		) *appmiddleware.Manager {
 			return appmiddleware.NewManager(&appmiddleware.ManagerConfig{
-				Logger:         logger,
-				Security:       &config.Security,
-				UserService:    userService,
+				Logger:         core.Logger,
+				Security:       &core.Config.Security,
+				UserService:    services.UserService,
 				SessionManager: sessionManager,
-				Config:         config,
+				Config:         core.Config,
 			})
 		},
 
-		// Stores
-		NewStores,
+		// Server
+		func(
+			lc fx.Lifecycle,
+			logger logging.Logger,
+			cfg *config.Config,
+			e *echo.Echo,
+			middlewareManager *appmiddleware.Manager,
+		) *server.Server {
+			return server.New(lc, logger, cfg, e, middlewareManager)
+		},
 
-		// Server setup
-		server.New,
+		// Event system
+		func(logger logging.Logger) formevent.Publisher {
+			return event.NewMemoryPublisher(logger)
+		},
 	),
-
-	// Start connection pool monitoring
-	fx.Invoke(func(db *database.GormDB, lc fx.Lifecycle) {
-		lc.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				go db.MonitorConnectionPool(ctx)
-				return nil
-			},
-		})
-	}),
 )

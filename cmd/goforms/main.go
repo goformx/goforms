@@ -92,6 +92,7 @@ func main() {
 		return
 	}
 
+	// Create logger factory and instance
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     cfg.App.Name,
 		Version:     cfg.App.Version,
@@ -106,7 +107,8 @@ func main() {
 
 	app := fx.New(
 		// Provide core dependencies
-		fx.Supply(cfg, logging.Logger(logger)),
+		fx.Supply(cfg),
+		fx.Provide(func() logging.Logger { return logger }),
 		// Load infrastructure and domain modules
 		infrastructure.Module,
 		domain.Module,

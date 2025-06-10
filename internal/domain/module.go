@@ -5,6 +5,7 @@ package domain
 
 import (
 	"errors"
+	"fmt"
 
 	"go.uber.org/fx"
 
@@ -12,7 +13,11 @@ import (
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	formstore "github.com/goformx/goforms/internal/infrastructure/repository/form"
+	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/repository/form/submission"
+	userstore "github.com/goformx/goforms/internal/infrastructure/repository/user"
 )
 
 // UserServiceParams contains dependencies for creating a user service
@@ -76,6 +81,47 @@ func NewAuthService(p AuthServiceParams) (auth.Service, error) {
 	return auth.NewService(p.UserService, p.Logger), nil
 }
 
+// StoreParams groups store dependencies
+type StoreParams struct {
+	fx.In
+	DB     *database.GormDB
+	Logger logging.Logger
+}
+
+// Stores groups all store implementations
+type Stores struct {
+	fx.Out
+	UserStore           user.Repository
+	FormStore           form.Repository
+	FormSubmissionStore form.SubmissionStore
+}
+
+// NewStores creates new store instances
+func NewStores(p StoreParams) (Stores, error) {
+	if p.DB == nil {
+		return Stores{}, errors.New("database connection is required")
+	}
+
+	userStore := userstore.NewStore(p.DB, p.Logger)
+	formStore := formstore.NewStore(p.DB, p.Logger)
+	formSubmissionStore := formsubmissionstore.NewStore(p.DB, p.Logger)
+
+	if userStore == nil || formStore == nil || formSubmissionStore == nil {
+		p.Logger.Error("failed to create store",
+			"operation", "store_initialization",
+			"store_type", "user/form/submission",
+			"error_type", "nil_store",
+		)
+		return Stores{}, fmt.Errorf("failed to create store")
+	}
+
+	return Stores{
+		UserStore:           userStore,
+		FormStore:           formStore,
+		FormSubmissionStore: formSubmissionStore,
+	}, nil
+}
+
 // Module provides all domain services and interfaces
 var Module = fx.Options(
 	fx.Provide(
@@ -94,6 +140,7 @@ var Module = fx.Options(
 			NewAuthService,
 			fx.As(new(auth.Service)),
 		),
+		NewStores,
 	),
 )
 
