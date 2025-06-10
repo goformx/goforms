@@ -198,7 +198,8 @@ func (s *Store) GetByFormAndUser(ctx context.Context, formID, userID string) (*m
 	s.logger.Debug("getting submission by form and user", "form_id", formID, "user_id", userID)
 
 	var submission model.FormSubmission
-	if err := s.db.WithContext(ctx).Where("form_id = ? AND user_id = ?", formID, userID).First(&submission).Error; err != nil {
+	query := s.db.WithContext(ctx).Where("form_id = ? AND user_id = ?", formID, userID)
+	if err := query.First(&submission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			s.logger.Debug("form submission not found by form and user",
 				"form_id", formID,

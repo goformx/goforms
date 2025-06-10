@@ -101,7 +101,7 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	core := zapcore.NewCore(
 		encoder,
 		zapcore.AddSync(os.Stdout),
-		zapcore.Level(zapcore.DebugLevel),
+		zapcore.DebugLevel,
 	)
 
 	// Create logger with options
@@ -231,9 +231,7 @@ func convertToZapFields(fields []any) []zap.Field {
 		case bool:
 			zapFields = append(zapFields, zap.Bool(key, v))
 		case error:
-			zapFields = append(zapFields, zap.Error(v))
-			// Add error details as a separate field
-			zapFields = append(zapFields, zap.String(key+"_details", fmt.Sprintf("%+v", v)))
+			zapFields = append(zapFields, zap.Error(v), zap.String(key+"_details", fmt.Sprintf("%+v", v)))
 		default:
 			zapFields = append(zapFields, zap.Any(key, v))
 		}

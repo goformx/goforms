@@ -16,7 +16,7 @@ type Service interface {
 	GetForm(ctx context.Context, id string) (*model.Form, error)
 	GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
 	UpdateForm(ctx context.Context, userID string, form *model.Form) error
-	DeleteForm(ctx context.Context, userID string, id string) error
+	DeleteForm(ctx context.Context, userID, id string) error
 	GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error)
 }
 
@@ -100,21 +100,21 @@ func (s *service) UpdateForm(ctx context.Context, userID string, form *model.For
 		return domainerrors.New(domainerrors.ErrCodeForbidden, "update form: user does not own form", nil)
 	}
 
-	if err := form.Validate(); err != nil {
-		logger.Error("form validation failed", "error", err)
-		return domainerrors.New(domainerrors.ErrCodeInvalidInput, "update form: invalid input", err)
+	if validateErr := form.Validate(); validateErr != nil {
+		logger.Error("form validation failed", "error", validateErr)
+		return domainerrors.New(domainerrors.ErrCodeInvalidInput, "update form: invalid input", validateErr)
 	}
 
-	if err := s.repo.Update(ctx, form); err != nil {
-		logger.Error("failed to update form", "error", err)
-		return err
+	if updateErr := s.repo.Update(ctx, form); updateErr != nil {
+		logger.Error("failed to update form", "error", updateErr)
+		return updateErr
 	}
 
 	return nil
 }
 
 // DeleteForm deletes a form
-func (s *service) DeleteForm(ctx context.Context, userID string, id string) error {
+func (s *service) DeleteForm(ctx context.Context, userID, id string) error {
 	logger := s.logger.WithUserID(userID)
 
 	form, err := s.repo.GetByID(ctx, id)
@@ -128,9 +128,9 @@ func (s *service) DeleteForm(ctx context.Context, userID string, id string) erro
 		return domainerrors.New(domainerrors.ErrCodeForbidden, "delete form: user does not own form", nil)
 	}
 
-	if err := s.repo.Delete(ctx, id); err != nil {
-		logger.Error("failed to delete form", "error", err)
-		return err
+	if deleteErr := s.repo.Delete(ctx, id); deleteErr != nil {
+		logger.Error("failed to delete form", "error", deleteErr)
+		return deleteErr
 	}
 
 	return nil

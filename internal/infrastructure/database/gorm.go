@@ -19,6 +19,10 @@ const (
 	DefaultPingTimeout = 5 * time.Second
 	// MinArgsLength represents the minimum number of arguments needed for a query
 	MinArgsLength = 2
+	// GORM query argument positions
+	queryArgPos        = 0
+	durationArgPos     = 1
+	rowsAffectedArgPos = 2
 )
 
 // GormDB wraps the GORM database connection
@@ -95,7 +99,13 @@ func NewGormDB(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
-	appLogger.Debug("database connection established", "host", cfg.Database.Postgres.Host, "port", cfg.Database.Postgres.Port, "duration", cfg.Database.Postgres.ConnMaxLifetime, "ssl_mode", cfg.Database.Postgres.SSLMode, "max_open_conns", cfg.Database.Postgres.MaxOpenConns)
+	appLogger.Debug("database connection established",
+		"host", cfg.Database.Postgres.Host,
+		"port", cfg.Database.Postgres.Port)
+	appLogger.Debug("database connection settings",
+		"duration", cfg.Database.Postgres.ConnMaxLifetime,
+		"ssl_mode", cfg.Database.Postgres.SSLMode,
+		"max_open_conns", cfg.Database.Postgres.MaxOpenConns)
 
 	return &GormDB{
 		DB:     db,
@@ -132,15 +142,15 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 
 // Printf implements logger.Writer interface
 func (w *GormLogWriter) Printf(format string, args ...any) {
-	if len(args) < 2 {
+	if len(args) < durationArgPos+1 {
 		return
 	}
 
-	query, _ := args[0].(string)
-	duration, _ := args[1].(time.Duration)
+	query, _ := args[queryArgPos].(string)
+	duration, _ := args[durationArgPos].(time.Duration)
 	rowsAffected := int64(0)
-	if len(args) > 2 {
-		rowsAffected, _ = args[2].(int64)
+	if len(args) > rowsAffectedArgPos {
+		rowsAffected, _ = args[rowsAffectedArgPos].(int64)
 	}
 
 	if duration > time.Millisecond*100 {

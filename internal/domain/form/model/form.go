@@ -81,15 +81,15 @@ func (j *JSON) Scan(value any) error {
 }
 
 // Value implements the driver.Valuer interface for JSON
-func (j JSON) Value() (driver.Value, error) {
+func (j *JSON) Value() (driver.Value, error) {
 	if j == nil {
-		return nil, nil
+		return nil, fmt.Errorf("cannot convert nil JSON to value")
 	}
-	return json.Marshal(j)
+	return json.Marshal(*j)
 }
 
 // NewForm creates a new form instance
-func NewForm(userID string, title, description string, schema JSON) *Form {
+func NewForm(userID, title, description string, schema JSON) *Form {
 	now := time.Now()
 
 	return &Form{

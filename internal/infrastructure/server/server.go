@@ -81,7 +81,11 @@ func (s *Server) Start() error {
 	case err := <-errored:
 		return fmt.Errorf("server failed to start: %w", err)
 	case <-started:
-		s.logger.Info("server started", "host", s.config.App.Host, "port", s.config.App.Port, "environment", s.config.App.Env, "version", s.config.App.Version)
+		s.logger.Info("server started",
+			"host", s.config.App.Host,
+			"port", s.config.App.Port,
+			"environment", s.config.App.Env,
+			"version", s.config.App.Version)
 		return nil
 	case <-time.After(DefaultStartupTimeout):
 		return fmt.Errorf("server startup timed out after %v", DefaultStartupTimeout)
@@ -103,7 +107,11 @@ func New(
 	}
 
 	// Log server configuration
-	logger.Info("initializing server", "host", cfg.App.Host, "port", cfg.App.Port, "environment", cfg.App.Env, "server_type", "echo")
+	logger.Info("initializing server",
+		"host", cfg.App.Host,
+		"port", cfg.App.Port,
+		"environment", cfg.App.Env,
+		"server_type", "echo")
 
 	// Add health check endpoint
 	e.GET("/health", func(c echo.Context) error {
@@ -123,7 +131,10 @@ func New(
 			net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
 		))
 		if err != nil {
-			logger.Error("failed to parse Vite dev server URL", "error", err, "host", cfg.App.ViteDevHost, "port", cfg.App.ViteDevPort)
+			logger.Error("failed to parse Vite dev server URL",
+				"error", err,
+				"host", cfg.App.ViteDevHost,
+				"port", cfg.App.ViteDevPort)
 		} else {
 			viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
 

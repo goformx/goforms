@@ -277,7 +277,7 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 }
 
 // CreateSession creates a new session for a user
-func (sm *SessionManager) CreateSession(userID string, email, role string) (string, error) {
+func (sm *SessionManager) CreateSession(userID, email, role string) (string, error) {
 	sm.logger.Debug("CreateSession: start", "user_id", userID)
 	// Generate random session ID
 	sessionID := make([]byte, SessionIDLength)

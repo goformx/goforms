@@ -91,7 +91,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Debug = m.config.Security.Debug
 	if m.config.Config.App.IsDevelopment() {
 		e.Logger.SetLevel(log.DEBUG)
-		m.logger.Info("development mode enabled", "app", "goforms", "version", "1.0.0", "environment", m.config.Config.App.Env)
+		m.logger.Info("development mode enabled",
+			"app", "goforms",
+			"version", "1.0.0",
+			"environment", m.config.Config.App.Env)
 	} else {
 		e.Logger.SetLevel(log.INFO)
 	}
@@ -128,10 +131,16 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(setupRateLimiter(m.config.Security))
 
 	// Register session middleware last
-	m.logger.Info("registering session middleware", "app", "goforms", "version", "1.0.0", "environment", m.config.Config.App.Env)
+	m.logger.Info("registering session middleware",
+		"app", "goforms",
+		"version", "1.0.0",
+		"environment", m.config.Config.App.Env)
 	e.Use(m.config.SessionManager.SessionMiddleware())
 
-	m.logger.Info("middleware setup completed", "app", "goforms", "version", "1.0.0", "environment", m.config.Config.App.Env)
+	m.logger.Info("middleware setup completed",
+		"app", "goforms",
+		"version", "1.0.0",
+		"environment", m.config.Config.App.Env)
 
 	m.logger.Debug("middleware manager initialized", "service", "middleware")
 }
