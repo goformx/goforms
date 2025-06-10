@@ -121,6 +121,7 @@ func main() {
 	app := fx.New(
 		// Supply core dependencies
 		fx.Supply(cfg),
+		fx.Supply(fx.Annotate(logger, fx.As(new(logging.Logger)))),
 
 		// Infrastructure module
 		infrastructure.Module,

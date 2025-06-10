@@ -31,7 +31,7 @@ type CoreParams struct {
 	fx.In
 	Config   *config.Config
 	Logger   logging.Logger
-	Renderer *view.Renderer
+	Renderer view.Renderer
 	Echo     *echo.Echo
 }
 
