@@ -9,7 +9,6 @@ import (
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -52,7 +51,7 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get user (nil or error)", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
@@ -79,9 +78,9 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 
 	// Log form creation attempt
 	h.Logger.Debug("attempting to create form",
-		logging.String("title", title),
-		logging.String("description", description),
-		logging.Uint("user_id", userID),
+		"title", title,
+		"description", description,
+		"user_id", userID,
 	)
 
 	// Create a valid initial schema
@@ -94,10 +93,10 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	form, err := h.FormService.CreateForm(c.Request().Context(), userID, title, description, schema)
 	if err != nil {
 		h.Logger.Error("failed to create form",
-			logging.ErrorField("error", err),
-			logging.String("title", title),
-			logging.String("description", description),
-			logging.Uint("user_id", userID),
+			"error", err,
+			"title", title,
+			"description", description,
+			"user_id", userID,
 		)
 
 		// Check for specific validation errors
@@ -113,9 +112,9 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 
 	// Log successful form creation
 	h.Logger.Info("form created successfully",
-		logging.String("form_id", form.ID),
-		logging.String("title", form.Title),
-		logging.Uint("user_id", form.UserID),
+		"form_id", form.ID,
+		"title", form.Title,
+		"user_id", form.UserID,
 	)
 
 	// Redirect to the form edit page
@@ -127,8 +126,8 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
 		h.Logger.Error("form ID is required",
-			logging.String("operation", "handle_form_edit"),
-			logging.String("error_type", "validation_error"),
+			"operation", "handle_form_edit",
+			"error_type", "validation_error",
 		)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
@@ -137,8 +136,8 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	userIDRaw, ok := c.Get("user_id").(uint)
 	if !ok {
 		h.Logger.Error("user ID not found in session",
-			logging.String("operation", "handle_form_edit"),
-			logging.String("error_type", "session_error"),
+			"operation", "handle_form_edit",
+			"error_type", "session_error",
 		)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -148,38 +147,32 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
 		h.Logger.Error("failed to get user (nil or error)",
-			logging.ErrorField("error", err),
-			logging.Uint("user_id", userID),
-			logging.String("operation", "handle_form_edit"),
-			logging.String("error_type", "user_service_error"),
+			"error", err,
+			"user_id", userID,
+			"operation", "handle_form_edit",
+			"error_type", "user_service_error",
 		)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
 	h.Logger.Debug("attempting to get form",
-		logging.String("form_id", formID),
+		"form_id", formID,
 	)
 
 	f, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form",
-			logging.ErrorField("error", err),
-			logging.String("form_id", formID),
-			logging.Uint("user_id", userID),
-			logging.String("operation", "handle_form_edit"),
-			logging.String("error_type", "form_service_error"),
-		)
+		h.Logger.Error("failed to get form", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	// Verify form ownership
 	if f.UserID != userID {
 		h.Logger.Error("form ownership verification failed",
-			logging.String("form_id", formID),
-			logging.Uint("user_id", userID),
-			logging.Uint("form_user_id", f.UserID),
-			logging.String("operation", "handle_form_edit"),
-			logging.String("error_type", "authorization_error"),
+			"form_id", formID,
+			"user_id", userID,
+			"form_user_id", f.UserID,
+			"operation", "handle_form_edit",
+			"error_type", "authorization_error",
 		)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to edit this form")
 	}
@@ -192,9 +185,9 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	}
 
 	h.Logger.Debug("form edit page rendered successfully",
-		logging.String("form_id", formID),
-		logging.Uint("user_id", userID),
-		logging.String("operation", "handle_form_edit"),
+		"form_id", formID,
+		"user_id", userID,
+		"operation", "handle_form_edit",
 	)
 
 	return h.Renderer.Render(c, pages.EditForm(data))
@@ -227,7 +220,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	// Get form to verify ownership
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get form", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
 	}
 
@@ -238,7 +231,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 
 	// Delete the form
 	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), formID); deleteErr != nil {
-		h.Logger.Error("failed to delete form", logging.ErrorField("error", deleteErr))
+		h.Logger.Error("failed to delete form", "error", deleteErr)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to delete form")
 	}
 
@@ -264,7 +257,7 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	// Get form to verify ownership
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get form", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
 	}
 
@@ -281,14 +274,14 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	// Get form submissions
 	submissions, err := h.FormService.GetFormSubmissions(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form submissions", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get form submissions", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form submissions")
 	}
 
 	// Get user object for the template
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get user (nil or error)", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
@@ -309,7 +302,7 @@ func (h *FormHandler) handleFormSchema(c echo.Context) error {
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form schema", logging.ErrorField("error", err))
+		h.Logger.Error("failed to get form schema", "error", err)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form schema")
 	}
 
@@ -326,21 +319,21 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 	// Get existing form
 	form, getErr := h.FormService.GetForm(c.Request().Context(), formID)
 	if getErr != nil {
-		h.Logger.Error("failed to get form", logging.ErrorField("error", getErr))
+		h.Logger.Error("failed to get form", "error", getErr)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	// Parse request body
 	var schema model.JSON
 	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&schema); decodeErr != nil {
-		h.Logger.Error("failed to decode request body", logging.ErrorField("error", decodeErr))
+		h.Logger.Error("failed to decode request body", "error", decodeErr)
 		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
 
 	// Update form schema
 	form.Schema = schema
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
-		h.Logger.Error("failed to update form", logging.ErrorField("error", updateErr))
+		h.Logger.Error("failed to update form", "error", updateErr)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form")
 	}
 

@@ -59,9 +59,9 @@ func NewService(repo Repository, logger logging.Logger) Service {
 // SignUp registers a new user
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
 	s.logger.Debug("starting signup process",
-		logging.String("email", signup.Email),
-		logging.String("first_name", signup.FirstName),
-		logging.String("last_name", signup.LastName),
+		"email", signup.Email,
+		"first_name", signup.FirstName,
+		"last_name", signup.LastName,
 	)
 
 	// Check if email already exists
@@ -69,19 +69,19 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	if err != nil {
 		if errors.Is(err, ErrUserNotFound) {
 			s.logger.Debug("user not found, proceeding with signup",
-				logging.String("email", signup.Email),
+				"email", signup.Email,
 			)
 		}
 	}
 	if existingUser != nil {
-		s.logger.Debug("user already exists", logging.String("email", existingUser.Email))
+		s.logger.Debug("user already exists", "email", existingUser.Email)
 		return nil, ErrUserExists
 	}
 
 	s.logger.Debug("proceeding with signup",
-		logging.String("email", signup.Email),
-		logging.String("first_name", signup.FirstName),
-		logging.String("last_name", signup.LastName),
+		"email", signup.Email,
+		"first_name", signup.FirstName,
+		"last_name", signup.LastName,
 	)
 
 	s.logger.Debug("creating new user")
@@ -99,19 +99,19 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 
 	// Set password
 	if pwErr := user.SetPassword(signup.Password); pwErr != nil {
-		s.logger.Error("failed to set password", logging.Error(pwErr))
+		s.logger.Error("failed to set password", "error", pwErr)
 		return nil, fmt.Errorf("failed to set password: %w", pwErr)
 	}
 
 	// Save user
 	if createErr := s.repo.Create(ctx, user); createErr != nil {
-		s.logger.Error("failed to create user in store", logging.Error(createErr))
+		s.logger.Error("failed to create user in store", "error", createErr)
 		return nil, fmt.Errorf("failed to create user: %w", createErr)
 	}
 
 	s.logger.Debug("user created successfully",
-		logging.Uint("id", user.ID),
-		logging.String("email", user.Email),
+		"id", user.ID,
+		"email", user.Email,
 	)
 
 	return user, nil
@@ -120,30 +120,30 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 // Login authenticates a user
 func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, error) {
 	s.logger.Debug("attempting login",
-		logging.String("email", login.Email),
-		logging.Bool("has_password", login.Password != ""),
+		"email", login.Email,
+		"has_password", login.Password != "",
 	)
 
 	user, err := s.repo.GetByEmail(ctx, login.Email)
 	if err != nil {
 		s.logger.Error("failed to get user by email",
-			logging.Error(err),
-			logging.String("email", login.Email),
+			"error", err,
+			"email", login.Email,
 		)
 		return nil, ErrInvalidCredentials
 	}
 	if user == nil {
-		s.logger.Error("user not found", logging.String("email", login.Email))
+		s.logger.Error("user not found", "email", login.Email)
 		return nil, ErrInvalidCredentials
 	}
 
 	s.logger.Debug("user found",
-		logging.String("email", user.Email),
-		logging.Bool("active", user.Active),
+		"email", user.Email,
+		"active", user.Active,
 	)
 
 	if !user.CheckPassword(login.Password) {
-		s.logger.Error("password mismatch", logging.String("email", login.Email))
+		s.logger.Error("password mismatch", "email", login.Email)
 		return nil, ErrInvalidCredentials
 	}
 
@@ -154,7 +154,7 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, 
 		RefreshToken: "dummy_refresh_token",
 	}
 
-	s.logger.Debug("login successful", logging.String("email", login.Email))
+	s.logger.Debug("login successful", "email", login.Email)
 	return &LoginResponse{
 		User:  user,
 		Token: tokenPair,
@@ -164,13 +164,13 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, 
 // Logout blacklists a refresh token
 func (s *ServiceImpl) Logout(ctx context.Context, refreshToken string) error {
 	s.logger.Debug("logging out user",
-		logging.String("refresh_token", refreshToken),
+		"refresh_token", refreshToken,
 	)
 
 	// TODO: Implement token blacklisting
 	// For now, we'll just log the logout attempt
 	s.logger.Debug("logout successful",
-		logging.String("refresh_token", refreshToken),
+		"refresh_token", refreshToken,
 	)
 
 	return nil

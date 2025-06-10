@@ -31,7 +31,7 @@ func (h *Handler) Register(e *echo.Echo) {
 func (h *Handler) handleHealthCheck(c echo.Context) error {
 	status, err := h.service.CheckHealth(c.Request().Context())
 	if err != nil {
-		h.logger.Error("health check failed", logging.ErrorField("error", err))
+		h.logger.Error("health check failed", "error", err)
 		return c.JSON(http.StatusServiceUnavailable, status)
 	}
 

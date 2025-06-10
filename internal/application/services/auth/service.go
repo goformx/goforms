@@ -35,10 +35,7 @@ func NewService(userService user.Service, logger logging.Logger) Service {
 func (s *service) GetAuthenticatedUser(c echo.Context) (*user.User, error) {
 	currentUser, ok := c.Get("user").(*user.User)
 	if !ok {
-		s.logger.Error("user not found in context",
-			logging.String("path", c.Request().URL.Path),
-			logging.String("method", c.Request().Method),
-		)
+		s.logger.Error("user not found in context", "path", c.Request().URL.Path, "method", c.Request().Method)
 		return nil, errors.New(errors.ErrCodeUnauthorized, "user not found", nil)
 	}
 	return currentUser, nil

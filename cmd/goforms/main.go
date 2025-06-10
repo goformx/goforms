@@ -105,7 +105,7 @@ func main() {
 	if err != nil {
 		fallbackLogger := createFallbackLogger()
 		fallbackLogger.Fatal("Failed to load configuration",
-			logging.ErrorField("error", err),
+			"error", err,
 		)
 	}
 
@@ -114,7 +114,7 @@ func main() {
 	if err != nil {
 		fallbackLogger := createFallbackLogger()
 		fallbackLogger.Fatal("Failed to setup logger",
-			logging.ErrorField("error", err),
+			"error", err,
 		)
 	}
 
@@ -157,7 +157,7 @@ func main() {
 	if startErr := app.Start(ctx); startErr != nil {
 		stop() // Ensure signal handler is stopped
 		logger.Fatal("Failed to start application",
-			logging.ErrorField("error", startErr),
+			"error", startErr,
 		)
 	}
 
@@ -173,11 +173,11 @@ func main() {
 		stop() // Ensure signal handler is stopped
 		if shutdownCtx.Err() == context.DeadlineExceeded {
 			logger.Fatal("Application shutdown timed out",
-				logging.Duration("timeout", DefaultShutdownTimeout),
+				"timeout", DefaultShutdownTimeout,
 			)
 		} else {
 			logger.Fatal("Failed to stop application",
-				logging.ErrorField("error", stopErr),
+				"error", stopErr,
 			)
 		}
 	}

@@ -31,10 +31,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	// Handle domain errors
 	var domainErr *errors.DomainError
 	if stderrors.As(err, &domainErr) {
-		h.logger.Error("domain error",
-			logging.Error(domainErr),
-			logging.String("code", string(domainErr.Code)),
-		)
+		h.logger.Error("error handling request", "error", err, "path", c.Request().URL.Path)
 
 		statusCode := http.StatusInternalServerError
 		switch domainErr.Code {
@@ -70,9 +67,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		}
 
 		if jsonErr := c.JSON(statusCode, response); jsonErr != nil {
-			h.logger.Error("failed to send error response",
-				logging.Error(jsonErr),
-			)
+			h.logger.Error("error handling request", "error", jsonErr)
 		}
 
 		return
@@ -81,10 +76,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	// Handle HTTP errors
 	var httpErr *echo.HTTPError
 	if stderrors.As(err, &httpErr) {
-		h.logger.Error("http error",
-			logging.Error(httpErr),
-			logging.Int("code", httpErr.Code),
-		)
+		h.logger.Error("error handling request", "error", err)
 
 		response := map[string]any{
 			"error": map[string]any{
@@ -94,18 +86,14 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 		}
 
 		if jsonErr := c.JSON(httpErr.Code, response); jsonErr != nil {
-			h.logger.Error("failed to send error response",
-				logging.ErrorField("error", jsonErr),
-			)
+			h.logger.Error("error handling request", "error", jsonErr)
 		}
 
 		return
 	}
 
 	// Handle unknown errors
-	h.logger.Error("unknown error",
-		logging.ErrorField("error", err),
-	)
+	h.logger.Error("error handling request", "error", err)
 
 	response := map[string]any{
 		"error": map[string]any{
@@ -115,9 +103,7 @@ func (h *ErrorHandler) Handle(err error, c echo.Context) {
 	}
 
 	if jsonErr := c.JSON(http.StatusInternalServerError, response); jsonErr != nil {
-		h.logger.Error("failed to send error response",
-			logging.ErrorField("error", jsonErr),
-		)
+		h.logger.Error("error handling request", "error", jsonErr)
 	}
 }
 

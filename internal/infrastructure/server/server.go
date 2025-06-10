@@ -81,10 +81,7 @@ func (s *Server) Start() error {
 	case err := <-errored:
 		return fmt.Errorf("server failed to start: %w", err)
 	case <-started:
-		s.logger.Info("server started successfully",
-			logging.String("address", addr),
-			logging.String("environment", s.config.App.Env),
-		)
+		s.logger.Info("server started", "host", s.config.App.Host, "port", s.config.App.Port, "environment", s.config.App.Env, "version", s.config.App.Version)
 		return nil
 	case <-time.After(DefaultStartupTimeout):
 		return fmt.Errorf("server startup timed out after %v", DefaultStartupTimeout)
@@ -106,12 +103,7 @@ func New(
 	}
 
 	// Log server configuration
-	logger.Info("initializing server",
-		logging.String("host", cfg.App.Host),
-		logging.Int("port", cfg.App.Port),
-		logging.String("environment", cfg.App.Env),
-		logging.String("server_type", "echo"),
-	)
+	logger.Info("initializing server", "host", cfg.App.Host, "port", cfg.App.Port, "environment", cfg.App.Env, "server_type", "echo")
 
 	// Add health check endpoint
 	e.GET("/health", func(c echo.Context) error {
@@ -131,11 +123,7 @@ func New(
 			net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
 		))
 		if err != nil {
-			logger.Error("failed to parse Vite dev server URL",
-				logging.ErrorField("error", err),
-				logging.String("host", cfg.App.ViteDevHost),
-				logging.String("port", cfg.App.ViteDevPort),
-			)
+			logger.Error("failed to parse Vite dev server URL", "error", err, "host", cfg.App.ViteDevHost, "port", cfg.App.ViteDevPort)
 		} else {
 			viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
 
@@ -153,10 +141,7 @@ func New(
 				e.Group(path).Any("/*", echo.WrapHandler(viteProxy))
 			}
 
-			logger.Info("Vite dev server proxy configured",
-				logging.String("url", viteURL.String()),
-				logging.String("paths", fmt.Sprintf("%v", devPaths)),
-			)
+			logger.Info("Vite dev server proxy configured", "url", viteURL.String(), "paths", fmt.Sprintf("%v", devPaths))
 		}
 	}
 
@@ -176,10 +161,7 @@ func New(
 			defer cancel()
 
 			if err := srv.server.Shutdown(shutdownCtx); err != nil {
-				srv.logger.Error("server shutdown error",
-					logging.ErrorField("error", err),
-					logging.Duration("timeout", DefaultShutdownTimeout),
-				)
+				srv.logger.Error("server shutdown error", "error", err, "timeout", DefaultShutdownTimeout)
 				return fmt.Errorf("server shutdown error: %w", err)
 			}
 

@@ -74,22 +74,37 @@ func NewStores(db *database.GormDB, logger logging.Logger) (Stores, error) {
 
 	userStore := userstore.NewStore(db, logger)
 	if userStore == nil {
+		logger.Error("failed to create store",
+			"operation", "store_initialization",
+			"store_type", "user",
+			"error_type", "nil_store",
+		)
 		return Stores{}, errors.New("failed to create user store")
 	}
 
 	formStore := formstore.NewStore(db, logger)
 	if formStore == nil {
+		logger.Error("failed to create store",
+			"operation", "store_initialization",
+			"store_type", "form",
+			"error_type", "nil_store",
+		)
 		return Stores{}, errors.New("failed to create form store")
 	}
 
 	formSubmissionStore := formsubmissionstore.NewStore(db, logger)
 	if formSubmissionStore == nil {
+		logger.Error("failed to create store",
+			"operation", "store_initialization",
+			"store_type", "form_submission",
+			"error_type", "nil_store",
+		)
 		return Stores{}, errors.New("failed to create form submission store")
 	}
 
 	logger.Info("stores initialized successfully",
-		logging.String("operation", "store_initialization"),
-		logging.String("store_types", "user,form,form_submission"),
+		"operation", "store_initialization",
+		"store_types", "user,form,form_submission",
 	)
 
 	return Stores{

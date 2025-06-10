@@ -42,7 +42,7 @@ func handleError(c echo.Context, err error, logger logging.Logger) {
 	if errors.As(err, &domainErr) {
 		statusCode := getStatusCode(domainErr.Code)
 		if jsonErr := c.JSON(statusCode, domainErr); jsonErr != nil {
-			logger.Error("failed to send error response", logging.Error(jsonErr))
+			logger.Error("failed to send error response", "error", jsonErr)
 		}
 		return
 	}
@@ -51,7 +51,7 @@ func handleError(c echo.Context, err error, logger logging.Logger) {
 	if jsonErr := c.JSON(http.StatusInternalServerError, map[string]string{
 		"error": "Internal Server Error",
 	}); jsonErr != nil {
-		logger.Error("failed to send error response", logging.Error(jsonErr))
+		logger.Error("failed to send error response", "error", jsonErr)
 	}
 }
 

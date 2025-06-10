@@ -26,7 +26,14 @@ func (e *StoreError) Error() string {
 	if e.Err == nil {
 		return fmt.Sprintf("%s: %s %s", e.Op, e.Entity, e.ID)
 	}
-	return fmt.Sprintf("%s: %s %s: %v", e.Op, e.Entity, e.ID, e.Err)
+
+	// Always include the full error details
+	errDetails := fmt.Sprintf("%+v", e.Err)
+	if e.Details != "" {
+		errDetails = fmt.Sprintf("%s\nDetails: %s", errDetails, e.Details)
+	}
+
+	return fmt.Sprintf("%s: %s %s\nError: %s", e.Op, e.Entity, e.ID, errDetails)
 }
 
 // Unwrap returns the underlying error
@@ -47,19 +54,28 @@ func NewNotFoundError(op, entity, id string) error {
 // NewInvalidInputError creates a new invalid input error
 func NewInvalidInputError(op, entity, id string, err error) error {
 	return &StoreError{
-		Op:     op,
-		Entity: entity,
-		ID:     id,
-		Err:    err,
+		Op:      op,
+		Entity:  entity,
+		ID:      id,
+		Err:     err,
+		Details: fmt.Sprintf("%+v", err),
 	}
 }
 
 // NewDatabaseError creates a new database error
 func NewDatabaseError(op, entity, id string, err error) error {
+	// Create a detailed error message that includes all error information
+	details := fmt.Sprintf("type: %T\nmessage: %s\ndetails: %+v",
+		err,
+		err.Error(),
+		err,
+	)
+
 	return &StoreError{
-		Op:     op,
-		Entity: entity,
-		ID:     id,
-		Err:    err,
+		Op:      op,
+		Entity:  entity,
+		ID:      id,
+		Err:     err,
+		Details: details,
 	}
 }

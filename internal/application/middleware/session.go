@@ -65,19 +65,18 @@ func NewSessionManager(logger logging.Logger, secureCookie bool) *SessionManager
 		defer close(done)
 		// Create tmp directory if it doesn't exist
 		if err := os.MkdirAll(filepath.Dir(SessionFile), 0o755); err != nil {
-			logger.Error("failed to create session directory", logging.Error(err))
+			logger.Error("failed to create session directory", "error", err)
 			return
 		}
 
 		// Load existing sessions
 		if err := sm.loadSessions(); err != nil {
-			logger.Error("failed to load sessions", logging.Error(err))
+			logger.Error("failed to load sessions", "error", err)
 			return
 		}
 
 		logger.Info("session store initialized successfully",
-			logging.Int("total_sessions", len(sm.sessions)),
-			logging.String("sessions", fmt.Sprintf("%v", sm.sessions)),
+			"total_sessions", len(sm.sessions),
 		)
 	}()
 
@@ -85,7 +84,7 @@ func NewSessionManager(logger logging.Logger, secureCookie bool) *SessionManager
 	select {
 	case <-done:
 		logger.Info("session store initialization completed",
-			logging.Int("total_sessions", len(sm.sessions)),
+			"total_sessions", len(sm.sessions),
 		)
 	case <-time.After(sessionTimeout):
 		logger.Warn("session store initialization timed out, continuing without loaded sessions")
@@ -170,16 +169,16 @@ func (sm *SessionManager) loadSessions() error {
 		session, err := sm.parseSessionData(data)
 		if err != nil {
 			sm.logger.Warn("failed to parse session data",
-				logging.String("session_id", id),
-				logging.Error(err))
+				"session_id", id,
+				"error", err)
 			continue
 		}
 
 		// Skip expired sessions
 		if session.ExpiresAt.Before(now) {
 			sm.logger.Debug("skipping expired session",
-				logging.String("session_id", id),
-				logging.String("expires_at", session.ExpiresAt.Format(time.RFC3339)))
+				"session_id", id,
+				"expires_at", session.ExpiresAt.Format(time.RFC3339))
 			continue
 		}
 
@@ -188,8 +187,8 @@ func (sm *SessionManager) loadSessions() error {
 	}
 
 	sm.logger.Info("loaded sessions from file",
-		logging.Int("total_sessions", len(tempSessions)),
-		logging.Int("valid_sessions", validSessions))
+		"total_sessions", len(tempSessions),
+		"valid_sessions", validSessions)
 	return nil
 }
 
@@ -223,8 +222,8 @@ func (sm *SessionManager) saveSessions() error {
 	}
 
 	sm.logger.Debug("saveSessions: end",
-		logging.Int("total_sessions", len(sm.sessions)),
-		logging.String("sessions", fmt.Sprintf("%+v", sm.sessions)),
+		"total_sessions", len(sm.sessions),
+		"sessions", fmt.Sprintf("%+v", sm.sessions),
 	)
 	return nil
 }
@@ -242,7 +241,7 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			cookie, err := c.Cookie(SessionCookieName)
 			if err != nil {
 				sm.logger.Debug("no session cookie found",
-					logging.String("path", c.Request().URL.Path),
+					"path", c.Request().URL.Path,
 				)
 				return sm.handleAuthError(c, "no session found")
 			}
@@ -251,7 +250,7 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			session, exists := sm.GetSession(cookie.Value)
 			if !exists {
 				sm.logger.Debug("no session found for cookie",
-					logging.String("path", c.Request().URL.Path),
+					"path", c.Request().URL.Path,
 				)
 				return sm.handleAuthError(c, "invalid session")
 			}
@@ -259,8 +258,8 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			// Check if session is expired
 			if time.Now().After(session.ExpiresAt) {
 				sm.logger.Debug("session expired",
-					logging.Uint("user_id", session.UserID),
-					logging.String("email", session.Email),
+					"session_id", cookie.Value,
+					"expires_at", session.ExpiresAt.Format(time.RFC3339),
 				)
 				sm.DeleteSession(cookie.Value)
 				return sm.handleAuthError(c, "session expired")
@@ -279,7 +278,7 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 
 // CreateSession creates a new session for a user
 func (sm *SessionManager) CreateSession(userID uint, email, role string) (string, error) {
-	sm.logger.Debug("CreateSession: start", logging.Uint("user_id", userID))
+	sm.logger.Debug("CreateSession: start", "user_id", userID)
 	// Generate random session ID
 	sessionID := make([]byte, SessionIDLength)
 	if _, err := rand.Read(sessionID); err != nil {
@@ -303,14 +302,11 @@ func (sm *SessionManager) CreateSession(userID uint, email, role string) (string
 
 	// Save sessions to file
 	if err := sm.saveSessions(); err != nil {
-		sm.logger.Error("failed to save sessions", logging.Error(err))
+		sm.logger.Error("failed to save sessions", "error", err)
 		return "", fmt.Errorf("failed to save session: %w", err)
 	}
 
-	sm.logger.Debug("CreateSession: end",
-		logging.String("session_id", sessionIDStr),
-		logging.Int("total_sessions", len(sm.sessions)),
-	)
+	sm.logger.Debug("session created", "session_id", sessionIDStr, "user_id", userID)
 	return sessionIDStr, nil
 }
 
@@ -322,10 +318,10 @@ func (sm *SessionManager) GetSession(sessionID string) (*Session, bool) {
 	session, exists := sm.sessions[sessionID]
 
 	sm.logger.Debug("session lookup attempt",
-		logging.String("session_id", sessionID),
-		logging.Bool("exists", exists),
-		logging.String("manager_instance", fmt.Sprintf("%p", sm)),
-		logging.Int("total_sessions", len(sm.sessions)),
+		"session_id", sessionID,
+		"exists", exists,
+		"manager_instance", fmt.Sprintf("%p", sm),
+		"total_sessions", len(sm.sessions),
 	)
 
 	return session, exists
@@ -339,8 +335,10 @@ func (sm *SessionManager) DeleteSession(sessionID string) {
 
 	// Save sessions to file
 	if err := sm.saveSessions(); err != nil {
-		sm.logger.Error("failed to save sessions", logging.Error(err))
+		sm.logger.Error("failed to save sessions", "error", err)
 	}
+
+	sm.logger.Debug("session deleted", "session_id", sessionID)
 }
 
 // isSessionExempt checks if a path is exempt from session authentication
@@ -353,7 +351,7 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 	// Check for exact homepage match
 	if path == "/" {
 		sm.logger.Debug("SessionMiddleware: Homepage is exempt from session check",
-			logging.String("path", path),
+			"path", path,
 		)
 		return true
 	}
@@ -371,8 +369,8 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 	for _, exemptPath := range exemptPaths {
 		if path == exemptPath || len(path) > len(exemptPath) && path[:len(exemptPath)] == exemptPath {
 			sm.logger.Debug("SessionMiddleware: Path is exempt from session check",
-				logging.String("path", path),
-				logging.String("exempt_path", exemptPath),
+				"path", path,
+				"exempt_path", exemptPath,
 			)
 			return true
 		}
@@ -383,13 +381,13 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 // handleAuthError handles authentication errors
 func (sm *SessionManager) handleAuthError(c echo.Context, message string) error {
 	sm.logger.Debug("authentication error",
-		logging.String("message", message),
-		logging.String("path", c.Request().URL.Path),
+		"message", message,
+		"path", c.Request().URL.Path,
 	)
 	sm.logger.Debug(
 		"Redirecting to /login from session middleware",
-		logging.String("path", c.Request().URL.Path),
-		logging.String("reason", message),
+		"path", c.Request().URL.Path,
+		"reason", message,
 	)
 
 	// For API requests, return 401
@@ -405,7 +403,7 @@ func (sm *SessionManager) handleAuthError(c echo.Context, message string) error 
 
 // SetSessionCookie sets the session cookie
 func (sm *SessionManager) SetSessionCookie(c echo.Context, sessionID string) {
-	sm.logger.Debug("SetSessionCookie: start", logging.String("session_id", sessionID))
+	sm.logger.Debug("SetSessionCookie: start", "session_id", sessionID)
 	cookie := new(http.Cookie)
 	cookie.Name = SessionCookieName
 	cookie.Value = sessionID
@@ -416,15 +414,15 @@ func (sm *SessionManager) SetSessionCookie(c echo.Context, sessionID string) {
 	cookie.Expires = time.Now().Add(sm.expiryTime)
 
 	sm.logger.Debug("setting session cookie",
-		logging.String("session_id", sessionID),
-		logging.String("cookie_path", cookie.Path),
-		logging.Bool("cookie_secure", cookie.Secure),
-		logging.Int("cookie_samesite", int(cookie.SameSite)),
-		logging.String("cookie_expires", cookie.Expires.Format(time.RFC3339)),
+		"session_id", sessionID,
+		"cookie_path", cookie.Path,
+		"cookie_secure", cookie.Secure,
+		"cookie_samesite", int(cookie.SameSite),
+		"cookie_expires", cookie.Expires.Format(time.RFC3339),
 	)
 
 	c.SetCookie(cookie)
-	sm.logger.Debug("SetSessionCookie: end", logging.String("session_id", sessionID))
+	sm.logger.Debug("SetSessionCookie: end", "session_id", sessionID)
 }
 
 // ClearSessionCookie clears the session cookie

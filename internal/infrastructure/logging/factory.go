@@ -76,70 +76,70 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		LevelKey:       "level",
 		NameKey:        "logger",
 		CallerKey:      "caller",
-		FunctionKey:    zapcore.OmitKey,
 		MessageKey:     "msg",
 		StacktraceKey:  "stacktrace",
 		LineEnding:     zapcore.DefaultLineEnding,
 		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
-		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeTime:     zapcore.TimeEncoderOfLayout("15:04:05.000"),
 		EncodeDuration: zapcore.StringDurationEncoder,
-		EncodeCaller:   zapcore.ShortCallerEncoder,
+		EncodeCaller: func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
+			// Show only the last two parts of the file path
+			parts := strings.Split(caller.File, "/")
+			if len(parts) > 2 {
+				parts = parts[len(parts)-2:]
+			}
+			file := strings.Join(parts, "/")
+			enc.AppendString(fmt.Sprintf("%s:%d", file, caller.Line))
+		},
 	}
 
-	// Parse log level from environment
-	var level zapcore.Level
-	if err := level.UnmarshalText([]byte(getEnv(envLogLevel, "info"))); err != nil {
-		level = zapcore.InfoLevel // fallback to info level
-	}
+	// Create console encoder for better readability in development mode
+	encoder := zapcore.NewConsoleEncoder(encoderConfig)
 
-	// Determine encoding based on environment
-	encoding := LogEncodingConsole
-	if f.environment != EnvironmentDevelopment {
-		encoding = LogEncodingJSON
-	}
-
-	// Create base logger config
-	zapConfig := zap.Config{
-		Level:             zap.NewAtomicLevelAt(level),
-		Development:       f.environment == EnvironmentDevelopment,
-		DisableCaller:     false,
-		DisableStacktrace: false,
-		Sampling:          nil, // Disable sampling to show all logs
-		Encoding:          encoding,
-		EncoderConfig:     encoderConfig,
-		OutputPaths:       f.outputPaths,
-		ErrorOutputPaths:  f.errorPaths,
-	}
-
-	// Build initial fields from config only
-	var initialFields []zap.Field
-	for k, v := range f.initialFields {
-		switch val := v.(type) {
-		case string:
-			initialFields = append(initialFields, zap.String(k, val))
-		case int:
-			initialFields = append(initialFields, zap.Int(k, val))
-		case bool:
-			initialFields = append(initialFields, zap.Bool(k, val))
-		case float64:
-			initialFields = append(initialFields, zap.Float64(k, val))
-		default:
-			initialFields = append(initialFields, zap.Any(k, val))
-		}
-	}
-
-	// Build logger with options
-	zapLog, err := zapConfig.Build(
-		zap.AddCaller(),
-		zap.AddStacktrace(zapcore.ErrorLevel), // Only show stack traces for errors
-		zap.Fields(initialFields...),
-		zap.Development(), // Enable development mode for more concise output
+	// Create core with console encoder
+	core := zapcore.NewCore(
+		encoder,
+		zapcore.AddSync(os.Stdout),
+		zapcore.Level(zapcore.DebugLevel),
 	)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
+
+	// Create logger with options
+	logger := zap.New(core,
+		zap.AddCaller(),
+		zap.AddStacktrace(zapcore.ErrorLevel),
+		zap.Development(),
+	)
+
+	// Create initial fields
+	fields := make([]zap.Field, 0, len(f.initialFields))
+	for k, v := range f.initialFields {
+		fields = append(fields, zap.String(k, fmt.Sprintf("%v", v)))
 	}
 
-	return &ZapLogger{log: zapLog}, nil
+	// Create logger with initial fields
+	logger = logger.With(fields...)
+
+	return &ZapLogger{
+		logger: logger,
+	}, nil
+}
+
+// fieldDisplayCore ensures fields are displayed in development mode
+type fieldDisplayCore struct {
+	zapcore.Core
+	enc zapcore.Encoder
+}
+
+func (c *fieldDisplayCore) Write(ent zapcore.Entry, fields []zapcore.Field) error {
+	// Format the entry with fields
+	buf, err := c.enc.EncodeEntry(ent, fields)
+	if err != nil {
+		return err
+	}
+	defer buf.Free()
+
+	// Write to the underlying core
+	return c.Core.Write(ent, fields)
 }
 
 // getEnv gets an environment variable or returns the default value
@@ -152,69 +152,69 @@ func getEnv(key, defaultValue string) string {
 
 // ZapLogger implements the Logger interface using zap
 type ZapLogger struct {
-	log *zap.Logger
+	logger *zap.Logger
 }
 
 // GetZapLogger returns the underlying zap logger
 func (l *ZapLogger) GetZapLogger() *zap.Logger {
-	return l.log
+	return l.logger
 }
 
 // Debug logs a debug message
 func (l *ZapLogger) Debug(msg string, fields ...any) {
-	l.log.Debug(msg, convertToZapFields(fields)...)
+	l.logger.Debug(msg, convertToZapFields(fields)...)
 }
 
 // Info logs an info message
 func (l *ZapLogger) Info(msg string, fields ...any) {
-	l.log.Info(msg, convertToZapFields(fields)...)
+	l.logger.Info(msg, convertToZapFields(fields)...)
 }
 
 // Warn logs a warning message
 func (l *ZapLogger) Warn(msg string, fields ...any) {
-	l.log.Warn(msg, convertToZapFields(fields)...)
+	l.logger.Warn(msg, convertToZapFields(fields)...)
 }
 
 // Error logs an error message
 func (l *ZapLogger) Error(msg string, fields ...any) {
-	l.log.Error(msg, convertToZapFields(fields)...)
+	l.logger.Error(msg, convertToZapFields(fields)...)
 }
 
 // Fatal logs a fatal message
 func (l *ZapLogger) Fatal(msg string, fields ...any) {
-	l.log.Fatal(msg, convertToZapFields(fields)...)
+	l.logger.Fatal(msg, convertToZapFields(fields)...)
 }
 
 // With returns a new logger with the given fields
 func (l *ZapLogger) With(fields ...any) Logger {
 	zapFields := convertToZapFields(fields)
 
-	return &ZapLogger{log: l.log.With(zapFields...)}
+	return &ZapLogger{logger: l.logger.With(zapFields...)}
 }
 
 // WithComponent returns a new logger with the given component
 func (l *ZapLogger) WithComponent(component string) Logger {
-	return l.With(String("component", component))
+	return l.With("component", component)
 }
 
 // WithOperation returns a new logger with the given operation
 func (l *ZapLogger) WithOperation(operation string) Logger {
-	return l.With(String("operation", operation))
+	return l.With("operation", operation)
 }
 
 // WithRequestID returns a new logger with the given request ID
 func (l *ZapLogger) WithRequestID(requestID string) Logger {
-	return l.With(String("request_id", requestID))
+	return l.With("request_id", requestID)
 }
 
 // WithUserID returns a new logger with the given user ID
 func (l *ZapLogger) WithUserID(userID string) Logger {
-	return l.With(String("user_id", userID))
+	return l.With("user_id", userID)
 }
 
 // WithError returns a new logger with the given error
 func (l *ZapLogger) WithError(err error) Logger {
-	return l.With(Error(err))
+	return l.With("error", err)
 }
 
 // WithFields adds multiple fields to the logger
@@ -223,21 +223,45 @@ func (l *ZapLogger) WithFields(fields map[string]any) Logger {
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, v))
 	}
-	return &ZapLogger{log: l.log.With(zapFields...)}
+	return &ZapLogger{logger: l.logger.With(zapFields...)}
 }
 
+// convertToZapFields converts a slice of fields to zap fields
 func convertToZapFields(fields []any) []zap.Field {
-	zapFields := make([]zap.Field, 0, len(fields))
-
+	zapFields := make([]zap.Field, 0, len(fields)/2)
 	for i := 0; i < len(fields); i += 2 {
-		if i+1 < len(fields) {
-			key, ok := fields[i].(string)
-			if !ok {
-				continue
-			}
-			zapFields = append(zapFields, zap.Any(key, fields[i+1]))
+		if i+1 >= len(fields) {
+			break
+		}
+
+		key, ok := fields[i].(string)
+		if !ok {
+			continue
+		}
+
+		value := fields[i+1]
+		switch v := value.(type) {
+		case string:
+			zapFields = append(zapFields, zap.String(key, v))
+		case int:
+			zapFields = append(zapFields, zap.Int(key, v))
+		case int64:
+			zapFields = append(zapFields, zap.Int64(key, v))
+		case uint:
+			zapFields = append(zapFields, zap.Uint(key, v))
+		case uint64:
+			zapFields = append(zapFields, zap.Uint64(key, v))
+		case float64:
+			zapFields = append(zapFields, zap.Float64(key, v))
+		case bool:
+			zapFields = append(zapFields, zap.Bool(key, v))
+		case error:
+			zapFields = append(zapFields, zap.Error(v))
+			// Add error details as a separate field
+			zapFields = append(zapFields, zap.String(key+"_details", fmt.Sprintf("%+v", v)))
+		default:
+			zapFields = append(zapFields, zap.Any(key, v))
 		}
 	}
-
 	return zapFields
 }

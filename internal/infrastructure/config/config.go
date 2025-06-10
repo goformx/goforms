@@ -64,6 +64,19 @@ type DatabaseConfig struct {
 
 	// Active database driver
 	Driver string `envconfig:"GOFORMS_DB_DRIVER" default:"mariadb"`
+
+	// Logging configuration
+	Logging struct {
+		// SlowThreshold is the threshold for logging slow queries
+		SlowThreshold time.Duration `envconfig:"GOFORMS_DB_SLOW_THRESHOLD" default:"1s"`
+		// Parameterized enables logging of query parameters
+		Parameterized bool `envconfig:"GOFORMS_DB_LOG_PARAMETERS" default:"false"`
+		// IgnoreNotFound determines whether to ignore record not found errors
+		IgnoreNotFound bool `envconfig:"GOFORMS_DB_IGNORE_NOT_FOUND" default:"false"`
+		// LogLevel determines the verbosity of database logging
+		// Valid values: "silent", "error", "warn", "info"
+		LogLevel string `envconfig:"GOFORMS_DB_LOG_LEVEL" default:"warn"`
+	} `envconfig:"GOFORMS_DB_LOGGING"`
 }
 
 // ServerConfig holds all server-related configuration
@@ -115,6 +128,7 @@ var (
 	ErrInvalidTimeout    = errors.New("timeout duration must be positive")
 	ErrInvalidRateLimit  = errors.New("rate limit must be positive")
 	ErrInvalidMaxConns   = errors.New("max connections must be positive")
+	ErrInvalidDBLogLevel = errors.New("invalid database log level")
 )
 
 // validateAppConfig validates application-level configuration
@@ -211,6 +225,19 @@ func (c *Config) validatePostgresConfig() error {
 func (c *Config) validateDatabaseConfig() error {
 	if c.Database.Driver == "" {
 		return ErrMissingDBDriver
+	}
+
+	// Validate database log level
+	switch c.Database.Logging.LogLevel {
+	case "silent", "error", "warn", "info":
+		// Valid log levels
+	default:
+		return fmt.Errorf("%w: %s", ErrInvalidDBLogLevel, c.Database.Logging.LogLevel)
+	}
+
+	// Validate slow threshold
+	if c.Database.Logging.SlowThreshold <= 0 {
+		return ErrInvalidTimeout
 	}
 
 	switch c.Database.Driver {

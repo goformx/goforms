@@ -3,6 +3,7 @@ package event
 import (
 	"context"
 	"sync"
+	"time"
 
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -55,19 +56,13 @@ func (p *MemoryPublisher) Publish(ctx context.Context, evt event.Event) error {
 	}
 
 	p.events = append(p.events, evt)
-	p.logger.Debug("event published",
-		logging.String("name", evt.Name()),
-		logging.Time("timestamp", evt.Timestamp()),
-	)
+	p.logger.Debug("publishing event", "name", evt.Name(), "time", time.Now())
 
 	// Notify subscribers
 	for _, sub := range p.subscribers {
 		go func(s Subscriber) {
 			if err := s.Handle(ctx, evt); err != nil {
-				p.logger.Error("subscriber error",
-					logging.Error(err),
-					logging.String("event", evt.Name()),
-				)
+				p.logger.Error("failed to publish event", "error", err, "event", evt.Name())
 			}
 		}(sub)
 	}

@@ -80,11 +80,7 @@ func (m *Manager) GetSessionManager() *SessionManager {
 
 // Setup registers all middleware with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Info("setting up middleware",
-		logging.String("app", "goforms"),
-		logging.String("version", "1.0.0"),
-		logging.String("environment", m.config.Config.App.Env),
-	)
+	m.logger.Info("setting up middleware", "app", "goforms", "version", "1.0.0", "environment", m.config.Config.App.Env)
 
 	// Set Echo's logger to use our custom logger
 	e.Logger = &EchoLogger{logger: m.logger}
@@ -93,11 +89,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Debug = m.config.Security.Debug
 	if m.config.Config.App.IsDevelopment() {
 		e.Logger.SetLevel(log.DEBUG)
-		m.logger.Info("development mode enabled",
-			logging.String("app", "goforms"),
-			logging.String("version", "1.0.0"),
-			logging.String("environment", m.config.Config.App.Env),
-		)
+		m.logger.Info("development mode enabled", "app", "goforms", "version", "1.0.0", "environment", m.config.Config.App.Env)
 	} else {
 		e.Logger.SetLevel(log.INFO)
 	}
@@ -134,18 +126,12 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(setupRateLimiter(m.config.Security))
 
 	// Register session middleware last
-	m.logger.Info("registering session middleware",
-		logging.String("app", "goforms"),
-		logging.String("version", "1.0.0"),
-		logging.String("environment", m.config.Config.App.Env),
-	)
+	m.logger.Info("registering session middleware", "app", "goforms", "version", "1.0.0", "environment", m.config.Config.App.Env)
 	e.Use(m.config.SessionManager.SessionMiddleware())
 
-	m.logger.Info("middleware setup completed",
-		logging.String("app", "goforms"),
-		logging.String("version", "1.0.0"),
-		logging.String("environment", m.config.Config.App.Env),
-	)
+	m.logger.Info("middleware setup completed", "app", "goforms", "version", "1.0.0", "environment", m.config.Config.App.Env)
+
+	m.logger.Debug("middleware manager initialized", "service", "middleware")
 }
 
 // setupCSRF creates and configures CSRF middleware
@@ -274,9 +260,9 @@ func (l *EchoLogger) Printf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Printj(j log.JSON) {
-	fields := make([]any, 0, len(j))
+	fields := make([]any, 0, len(j)*2)
 	for k, v := range j {
-		fields = append(fields, logging.String(k, fmt.Sprint(v)))
+		fields = append(fields, k, fmt.Sprint(v))
 	}
 	l.logger.Info("", fields...)
 }
@@ -290,9 +276,9 @@ func (l *EchoLogger) Debugf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Debugj(j log.JSON) {
-	fields := make([]any, 0, len(j))
+	fields := make([]any, 0, len(j)*2)
 	for k, v := range j {
-		fields = append(fields, logging.String(k, fmt.Sprint(v)))
+		fields = append(fields, k, fmt.Sprint(v))
 	}
 	l.logger.Debug("", fields...)
 }
@@ -306,9 +292,9 @@ func (l *EchoLogger) Infof(format string, args ...any) {
 }
 
 func (l *EchoLogger) Infoj(j log.JSON) {
-	fields := make([]any, 0, len(j))
+	fields := make([]any, 0, len(j)*2)
 	for k, v := range j {
-		fields = append(fields, logging.String(k, fmt.Sprint(v)))
+		fields = append(fields, k, fmt.Sprint(v))
 	}
 	l.logger.Info("", fields...)
 }
@@ -322,9 +308,9 @@ func (l *EchoLogger) Warnf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Warnj(j log.JSON) {
-	fields := make([]any, 0, len(j))
+	fields := make([]any, 0, len(j)*2)
 	for k, v := range j {
-		fields = append(fields, logging.String(k, fmt.Sprint(v)))
+		fields = append(fields, k, fmt.Sprint(v))
 	}
 	l.logger.Warn("", fields...)
 }
@@ -338,9 +324,9 @@ func (l *EchoLogger) Errorf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Errorj(j log.JSON) {
-	fields := make([]any, 0, len(j))
+	fields := make([]any, 0, len(j)*2)
 	for k, v := range j {
-		fields = append(fields, logging.String(k, fmt.Sprint(v)))
+		fields = append(fields, k, fmt.Sprint(v))
 	}
 	l.logger.Error("", fields...)
 }
@@ -354,9 +340,9 @@ func (l *EchoLogger) Fatalf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Fatalj(j log.JSON) {
-	fields := make([]any, 0, len(j))
+	fields := make([]any, 0, len(j)*2)
 	for k, v := range j {
-		fields = append(fields, logging.String(k, fmt.Sprint(v)))
+		fields = append(fields, k, fmt.Sprint(v))
 	}
 	l.logger.Fatal("", fields...)
 }
@@ -372,9 +358,9 @@ func (l *EchoLogger) Panicf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Panicj(j log.JSON) {
-	fields := make([]any, 0, len(j))
+	fields := make([]any, 0, len(j)*2)
 	for k, v := range j {
-		fields = append(fields, logging.String(k, fmt.Sprint(v)))
+		fields = append(fields, k, fmt.Sprint(v))
 	}
 	l.logger.Error("", fields...)
 	panic(fmt.Sprintf("%v", j))

@@ -2,12 +2,10 @@ package web
 
 import (
 	"errors"
-	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -50,41 +48,33 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 
 // handleDashboard handles the dashboard page request
 func (h *WebHandler) handleDashboard(c echo.Context) error {
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(uint)
+	h.Logger.Debug("dashboard request received",
+		"operation", "handle_dashboard",
+	)
+
+	// Get user from session
+	userID, ok := c.Get("user_id").(uint)
 	if !ok {
-		h.Logger.Error("user ID not found in session",
-			logging.String("operation", "handle_dashboard"),
-			logging.String("error_type", "session_error"),
+		h.Logger.Error("failed to get user from session",
+			"operation", "handle_dashboard",
+			"error_type", "session_error",
+			"error_message", "user not found in session",
 		)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
-	userID := userIDRaw
 
-	// Get user object
-	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)",
-			logging.Error(err),
-			logging.Uint("user_id", userID),
-			logging.String("operation", "handle_dashboard"),
-			logging.String("error_type", "user_service_error"),
-		)
-		data := shared.BuildPageData(h.Config, "Error")
-		data.Error = "Failed to get user information. Please try again later."
-		return h.Renderer.Render(c, pages.Error(data))
-	}
+	h.Logger.Debug("handling dashboard request",
+		"operation", "handle_dashboard",
+		"user_id", userID,
+	)
 
 	// Get user's forms
 	forms, err := h.BaseHandler.formService.GetUserForms(c.Request().Context(), userID)
 	if err != nil {
-		h.Logger.Error("failed to get user forms",
-			logging.Error(err),
-			logging.Uint("user_id", userID),
-			logging.String("operation", "handle_dashboard"),
-			logging.String("error_type", "form_service_error"),
-			logging.String("error_message", err.Error()),
-			logging.String("error_type", fmt.Sprintf("%T", err)),
+		h.Logger.Error("web handler failed to get user forms",
+			"operation", "handle_dashboard",
+			"user_id", userID,
+			"error", err,
 		)
 
 		// Check for specific errors
@@ -103,19 +93,17 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 		}
 	}
 
-	data := shared.BuildPageData(h.Config, "Dashboard")
-	data.User = user
-	data.Forms = forms
-	if csrfToken, hasToken := c.Get("csrf").(string); hasToken {
-		data.CSRFToken = csrfToken
-	}
-
-	h.Logger.Debug("dashboard rendered successfully",
-		logging.Uint("user_id", userID),
-		logging.Int("form_count", len(forms)),
-		logging.String("operation", "handle_dashboard"),
+	h.Logger.Debug("successfully retrieved user forms for dashboard",
+		"operation", "handle_dashboard",
+		"user_id", userID,
+		"form_count", len(forms),
 	)
 
+	// Build page data
+	data := shared.BuildPageData(h.Config, "Dashboard")
+	data.Forms = forms
+
+	h.Logger.Debug("rendering dashboard page")
 	return h.Renderer.Render(c, pages.Dashboard(data))
 }
 
@@ -136,14 +124,14 @@ func (h *WebHandler) handleFormView(c echo.Context) error {
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", logging.Error(err))
+		h.Logger.Error("failed to get user (nil or error)", "error", err)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user")
 	}
 
 	// Get form
 	form, err := h.BaseHandler.formService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form", logging.Error(err))
+		h.Logger.Error("failed to get form", "error", err)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
 	}
 

@@ -28,10 +28,7 @@ func NewRenderer(logger logging.Logger) *Renderer {
 // Render renders a templ component to the response writer
 func (r *Renderer) Render(c echo.Context, t templ.Component) error {
 	if err := t.Render(c.Request().Context(), c.Response().Writer); err != nil {
-		r.logger.Error("failed to render template",
-			logging.Error(err),
-			logging.String("template", fmt.Sprintf("%T", t)),
-		)
+		r.logger.Error("failed to render template", "error", err, "template", fmt.Sprintf("%T", t))
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to render page")
 	}
 	return nil
