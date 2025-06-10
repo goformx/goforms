@@ -1,6 +1,8 @@
 package shared
 
 import (
+	"fmt"
+
 	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -26,7 +28,7 @@ type PageData struct {
 func BuildPageData(cfg *config.Config, title string) PageData {
 	assetBase := "/assets/"
 	if cfg != nil && cfg.App.IsDevelopment() {
-		assetBase = "http://localhost:3000/src/"
+		assetBase = fmt.Sprintf("http://%s:%s/", cfg.App.ViteDevHost, cfg.App.ViteDevPort)
 	}
 	return PageData{
 		Title:         title,

@@ -146,13 +146,14 @@ func New(
 				return nil
 			}
 
-			// Proxy specific paths to Vite dev server
-			devPaths := []string{"/src", "/@vite", "/assets", "/node_modules"}
-			for _, path := range devPaths {
-				e.Group(path).Any("/*", echo.WrapHandler(viteProxy))
-			}
+			// Proxy all asset requests to Vite dev server
+			e.Group("/assets").Any("/*", echo.WrapHandler(viteProxy))
+			e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
+			e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))
+			e.Group("/node_modules").Any("/*", echo.WrapHandler(viteProxy))
+			e.Group("/js").Any("/*", echo.WrapHandler(viteProxy))
 
-			logger.Info("Vite dev server proxy configured", "url", viteURL.String(), "paths", fmt.Sprintf("%v", devPaths))
+			logger.Info("Vite dev server proxy configured", "url", viteURL.String())
 		}
 	}
 

@@ -23,8 +23,8 @@ templ signupContent(data shared.PageData) {
 		</div>
 	</div>
 
-	<script type="module" src={ data.AssetPath("js/validation.ts") }></script>
-	<script type="module" src={ data.AssetPath("js/signup.ts") }></script>
+	<script type="module" src={ data.AssetPath("src/js/validation.ts") }></script>
+	<script type="module" src={ data.AssetPath("src/js/signup.ts") }></script>
 }
 
 templ SignupWithError(data shared.PageData, errorMessage string) {
@@ -45,6 +45,6 @@ templ signupContentWithError(data shared.PageData, errorMessage string) {
 		</div>
 	</div>
 
-	<script type="module" src={ data.AssetPath("js/validation.ts") }></script>
-	<script type="module" src={ data.AssetPath("js/signup.ts") }></script>
+	<script type="module" src={ data.AssetPath("src/js/validation.ts") }></script>
+	<script type="module" src={ data.AssetPath("src/js/signup.ts") }></script>
 } 

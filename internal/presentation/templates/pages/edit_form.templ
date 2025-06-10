@@ -149,7 +149,7 @@ templ EditFormContent(data shared.PageData) {
 
 	@templ.JSONScript("form-builder-data", data.FormBuilderAssetPath)
 	if data.IsDevelopment {
-		<script type="module" id="form-builder-script" data-form-builder-path={ data.AssetPath("js/form-builder.ts") }>
+		<script type="module" id="form-builder-script" data-form-builder-path={ data.AssetPath("src/js/form-builder.ts") }>
 			if (document.getElementById('form-schema-builder')) {
 				const script = document.getElementById('form-builder-script');
 				const path = script.getAttribute('data-form-builder-path');
@@ -165,7 +165,7 @@ templ EditFormContent(data shared.PageData) {
 		</script>
 	}
 
-	<script type="module" id="form-service-script" data-service-path={ data.AssetPath("js/services/form-service.js") }>
+	<script type="module" id="form-service-script" data-service-path={ data.AssetPath("src/js/services/form-service.ts") }>
 		const script = document.getElementById('form-service-script');
 		const path = script.getAttribute('data-service-path');
 		const { FormService } = await import(path);

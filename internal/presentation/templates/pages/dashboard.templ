@@ -115,7 +115,7 @@ templ DashboardContent(data shared.PageData) {
 		}
 	</style>
 
-	<script type="module" id="form-service-script" data-service-path={ data.AssetPath("js/services/form-service.js") }>
+	<script type="module" id="form-service-script" data-service-path={ data.AssetPath("src/js/services/form-service.ts") }>
 		const script = document.getElementById('form-service-script');
 		const path = script.getAttribute('data-service-path');
 		const { FormService } = await import(path);
