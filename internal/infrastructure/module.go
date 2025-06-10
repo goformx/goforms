@@ -13,6 +13,7 @@ import (
 	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
@@ -72,6 +73,8 @@ var Module = fx.Options(
 		echo.New,
 		server.New,
 		NewEventPublisher,
+		// Database
+		database.NewGormDB,
 		// Session manager
 		func(logger logging.Logger) *middleware.SessionManager {
 			return middleware.NewSessionManager(logger, true) // secureCookie=true for production
