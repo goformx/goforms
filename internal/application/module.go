@@ -1,3 +1,4 @@
+// Package application provides the application layer components and their dependency injection setup.
 package application
 
 import (
@@ -15,89 +16,68 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-// ServiceParams contains dependencies for application services
-type ServiceParams struct {
+// Dependencies contains all application layer dependencies
+type Dependencies struct {
 	fx.In
 
+	// Domain services
 	UserService user.Service
 	FormService form.Service
-	Logger      logging.Logger
-}
 
-// HandlerParams contains dependencies for handlers
-type HandlerParams struct {
-	fx.In
-
-	UserService       user.Service
-	FormService       form.Service
-	AuthService       auth.Service
-	SessionManager    *middleware.SessionManager
-	Renderer          *view.Renderer
-	MiddlewareManager *middleware.Manager
-	Config            *config.Config
+	// Infrastructure
 	Logger            logging.Logger
+	Config            *config.Config
+	Renderer          *view.Renderer
+	SessionManager    *middleware.SessionManager
+	MiddlewareManager *middleware.Manager
 }
 
-// NewAuthService creates a new auth service with proper error handling
-func NewAuthService(p ServiceParams) (auth.Service, error) {
-	if p.UserService == nil {
-		return nil, errors.New("user service is required for auth service")
+// Validate checks if all required dependencies are present
+func (d *Dependencies) Validate() error {
+	required := []struct {
+		name  string
+		value any
+	}{
+		{"UserService", d.UserService},
+		{"FormService", d.FormService},
+		{"Logger", d.Logger},
+		{"Config", d.Config},
+		{"Renderer", d.Renderer},
+		{"SessionManager", d.SessionManager},
+		{"MiddlewareManager", d.MiddlewareManager},
 	}
-	if p.Logger == nil {
-		return nil, errors.New("logger is required for auth service")
+
+	for _, r := range required {
+		if r.value == nil {
+			return errors.New(r.name + " is required")
+		}
 	}
-	return auth.NewService(p.UserService, p.Logger), nil
+	return nil
 }
 
-// NewHandlerDeps creates a new HandlerDeps instance with proper error handling
-func NewHandlerDeps(p HandlerParams) (*web.HandlerDeps, error) {
-	deps := &web.HandlerDeps{
-		UserService:       p.UserService,
-		FormService:       p.FormService,
-		AuthService:       p.AuthService,
-		SessionManager:    p.SessionManager,
-		Renderer:          p.Renderer,
-		MiddlewareManager: p.MiddlewareManager,
-		Config:            p.Config,
-		Logger:            p.Logger,
+// NewAuthService creates a new auth service
+func NewAuthService(deps Dependencies) (auth.Service, error) {
+	if err := deps.Validate(); err != nil {
+		return nil, err
 	}
+	return auth.NewService(deps.UserService, deps.Logger), nil
+}
 
-	// Validate all required dependencies
-	if err := deps.Validate(
-		"UserService",
-		"FormService",
-		"AuthService",
-		"SessionManager",
-		"Renderer",
-		"MiddlewareManager",
-		"Config",
-		"Logger",
-	); err != nil {
+// NewHandlerDeps creates handler dependencies
+func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
+	if err := deps.Validate(); err != nil {
 		return nil, err
 	}
 
-	return deps, nil
-}
-
-// NewAuthHandler creates a new auth handler with proper error handling
-func NewAuthHandler(deps *web.HandlerDeps) (*web.AuthHandler, error) {
-	return web.NewAuthHandler(*deps)
-}
-
-// NewWebHandler creates a new web handler with proper error handling
-func NewWebHandler(deps *web.HandlerDeps) (*web.WebHandler, error) {
-	return web.NewWebHandler(*deps)
-}
-
-// NewFormHandler creates a new form handler with proper error handling
-func NewFormHandler(deps *web.HandlerDeps, formService form.Service) (*web.FormHandler, error) {
-	handler := web.NewFormHandler(*deps, formService)
-	return handler, nil
-}
-
-// NewDemoHandler creates a new demo handler with proper error handling
-func NewDemoHandler(deps *web.HandlerDeps) (*web.DemoHandler, error) {
-	return web.NewDemoHandler(*deps)
+	return &web.HandlerDeps{
+		UserService:       deps.UserService,
+		FormService:       deps.FormService,
+		SessionManager:    deps.SessionManager,
+		Renderer:          deps.Renderer,
+		MiddlewareManager: deps.MiddlewareManager,
+		Config:            deps.Config,
+		Logger:            deps.Logger,
+	}, nil
 }
 
 // Module provides all application layer dependencies
@@ -109,31 +89,57 @@ var Module = fx.Options(
 			fx.As(new(auth.Service)),
 		),
 	),
+
 	// Handler dependencies
 	fx.Provide(
 		NewHandlerDeps,
 	),
+
 	// Handlers
 	fx.Provide(
+		// Auth handler
 		fx.Annotate(
-			NewAuthHandler,
+			func(deps *web.HandlerDeps) (web.Handler, error) {
+				handler, err := web.NewAuthHandler(*deps)
+				if err != nil {
+					return nil, err
+				}
+				return handler, nil
+			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
 		),
+
+		// Web handler
 		fx.Annotate(
-			NewWebHandler,
+			func(deps *web.HandlerDeps) (web.Handler, error) {
+				handler, err := web.NewWebHandler(*deps)
+				if err != nil {
+					return nil, err
+				}
+				return handler, nil
+			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
 		),
+
+		// Form handler
 		fx.Annotate(
-			NewFormHandler,
+			func(deps *web.HandlerDeps) (web.Handler, error) {
+				handler := web.NewFormHandler(*deps, deps.FormService)
+				return handler, nil
+			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
 		),
+
+		// Demo handler
 		fx.Annotate(
-			NewDemoHandler,
+			func(deps *web.HandlerDeps) (web.Handler, error) {
+				handler, err := web.NewDemoHandler(*deps)
+				if err != nil {
+					return nil, err
+				}
+				return handler, nil
+			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
 		),
 	),
 )

@@ -21,7 +21,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/presentation"
 	"github.com/labstack/echo/v4"
 )
 
@@ -112,7 +112,7 @@ func main() {
 		// Load infrastructure and domain modules
 		infrastructure.Module,
 		domain.Module,
-		view.Module,
+		presentation.Module,
 		fx.Invoke(setupLifecycle),
 	)
 
