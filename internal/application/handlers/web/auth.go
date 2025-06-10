@@ -35,13 +35,15 @@ func NewAuthHandler(deps HandlerDeps) (*AuthHandler, error) {
 
 // Register registers the auth handler routes
 func (h *AuthHandler) Register(e *echo.Echo) {
-	auth := e.Group("/auth")
-	auth.GET("/login", h.Login)
-	auth.POST("/login", h.LoginPost)
-	auth.GET("/signup", h.Signup)
-	auth.POST("/signup", h.SignupPost)
-	auth.POST("/logout", h.Logout)
+	// Public routes
+	e.GET("/login", h.Login)
+	e.POST("/login", h.LoginPost)
+	e.GET("/signup", h.Signup)
+	e.POST("/signup", h.SignupPost)
+	e.POST("/logout", h.Logout)
 
+	// Auth group for protected routes
+	auth := e.Group("/auth")
 	// Validation schema endpoints
 	auth.GET("/api/validation/login", h.handleLoginValidation)
 	auth.GET("/api/validation/signup", h.handleSignupValidation)
@@ -73,8 +75,19 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 
 // Logout handles the logout request
 func (h *AuthHandler) Logout(c echo.Context) error {
-	// TODO: Implement logout logic
-	return response.WebErrorResponse(c, h.deps.Renderer, http.StatusNotImplemented, "Logout not implemented")
+	// Get session cookie
+	cookie, err := c.Cookie(h.deps.SessionManager.GetCookieName())
+	if err != nil {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
+	// Delete session
+	h.deps.SessionManager.DeleteSession(cookie.Value)
+
+	// Clear session cookie
+	h.deps.SessionManager.ClearSessionCookie(c)
+
+	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
 // handleLoginValidation handles the login form validation schema request

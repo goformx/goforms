@@ -76,8 +76,8 @@ var Module = fx.Options(
 		// Database
 		database.New,
 		// Session manager
-		func(logger logging.Logger) *middleware.SessionManager {
-			return middleware.NewSessionManager(logger, true) // secureCookie=true for production
+		func(logger logging.Logger, cfg *config.Config) *middleware.SessionManager {
+			return middleware.NewSessionManager(logger, &cfg.Session)
 		},
 		// Middleware manager
 		func(

@@ -165,11 +165,13 @@ type LoggingConfig struct {
 
 // SessionConfig holds session-related configuration
 type SessionConfig struct {
-	Type     string        `envconfig:"GOFORMS_SESSION_TYPE" default:"none"`
-	Secret   string        `envconfig:"GOFORMS_SESSION_SECRET"`
-	TTL      time.Duration `envconfig:"GOFORMS_SESSION_TTL" default:"24h"`
-	Secure   bool          `envconfig:"GOFORMS_SESSION_SECURE" default:"true"`
-	HTTPOnly bool          `envconfig:"GOFORMS_SESSION_HTTP_ONLY" default:"true"`
+	Type       string        `envconfig:"GOFORMS_SESSION_TYPE" default:"none"`
+	Secret     string        `envconfig:"GOFORMS_SESSION_SECRET"`
+	TTL        time.Duration `envconfig:"GOFORMS_SESSION_TTL" default:"24h"`
+	Secure     bool          `envconfig:"GOFORMS_SESSION_SECURE" default:"true"`
+	HTTPOnly   bool          `envconfig:"GOFORMS_SESSION_HTTP_ONLY" default:"true"`
+	CookieName string        `envconfig:"GOFORMS_SESSION_COOKIE_NAME" default:"session"`
+	StoreFile  string        `envconfig:"GOFORMS_SESSION_STORE_FILE" default:"tmp/sessions.json"`
 }
 
 // AuthConfig holds authentication-related configuration

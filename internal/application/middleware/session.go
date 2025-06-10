@@ -12,6 +12,7 @@ import (
 	"sync"
 	"time"
 
+	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 )
@@ -21,13 +22,9 @@ const (
 	SessionExpiryHours = 24
 	// SessionIDLength is the length of the session ID in bytes
 	SessionIDLength = 32
-	// SessionFile is the path to the session store file
-	SessionFile = "tmp/sessions.json"
 	// SessionKey is a key used in the context
-	SessionKey = "session"
-	// SessionCookieName is the name of the session cookie
-	SessionCookieName = "session"
-	sessionTimeout    = 5 * time.Second
+	SessionKey     = "session"
+	sessionTimeout = 5 * time.Second
 )
 
 // Session represents a user session
@@ -47,16 +44,18 @@ type SessionManager struct {
 	expiryTime   time.Duration
 	storeFile    string
 	secureCookie bool
+	cookieName   string
 }
 
 // NewSessionManager creates a new session manager
-func NewSessionManager(logger logging.Logger, secureCookie bool) *SessionManager {
+func NewSessionManager(logger logging.Logger, cfg *config.SessionConfig) *SessionManager {
 	sm := &SessionManager{
 		logger:       logger,
 		sessions:     make(map[string]*Session),
-		expiryTime:   SessionExpiryHours * time.Hour,
-		storeFile:    SessionFile,
-		secureCookie: secureCookie,
+		expiryTime:   cfg.TTL,
+		storeFile:    cfg.StoreFile,
+		secureCookie: cfg.Secure,
+		cookieName:   cfg.CookieName,
 	}
 
 	// Initialize session store with timeout
@@ -64,7 +63,7 @@ func NewSessionManager(logger logging.Logger, secureCookie bool) *SessionManager
 	go func() {
 		defer close(done)
 		// Create tmp directory if it doesn't exist
-		if err := os.MkdirAll(filepath.Dir(SessionFile), 0o755); err != nil {
+		if err := os.MkdirAll(filepath.Dir(sm.storeFile), 0o755); err != nil {
 			logger.Error("failed to create session directory", "error", err)
 			return
 		}
@@ -219,7 +218,7 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			}
 
 			// Get session cookie
-			cookie, err := c.Cookie(SessionCookieName)
+			cookie, err := c.Cookie(sm.cookieName)
 			if err != nil {
 				return sm.handleAuthError(c, "no session found")
 			}
@@ -351,7 +350,7 @@ func (sm *SessionManager) handleAuthError(c echo.Context, message string) error 
 // SetSessionCookie sets the session cookie
 func (sm *SessionManager) SetSessionCookie(c echo.Context, sessionID string) {
 	cookie := new(http.Cookie)
-	cookie.Name = SessionCookieName
+	cookie.Name = sm.cookieName
 	cookie.Value = sessionID
 	cookie.Path = "/"
 	cookie.HttpOnly = true
@@ -364,7 +363,7 @@ func (sm *SessionManager) SetSessionCookie(c echo.Context, sessionID string) {
 // ClearSessionCookie clears the session cookie
 func (sm *SessionManager) ClearSessionCookie(c echo.Context) {
 	cookie := new(http.Cookie)
-	cookie.Name = SessionCookieName
+	cookie.Name = sm.cookieName
 	cookie.Value = ""
 	cookie.Path = "/"
 	cookie.HttpOnly = true
@@ -372,6 +371,11 @@ func (sm *SessionManager) ClearSessionCookie(c echo.Context) {
 	cookie.SameSite = http.SameSiteLaxMode
 	cookie.Expires = time.Now().Add(-1 * time.Hour)
 	c.SetCookie(cookie)
+}
+
+// GetCookieName returns the name of the session cookie
+func (sm *SessionManager) GetCookieName() string {
+	return sm.cookieName
 }
 
 // Note: isPublicRoute is defined in middleware.go
