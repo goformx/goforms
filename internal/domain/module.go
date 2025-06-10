@@ -8,6 +8,7 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/goformx/goforms/internal/application/services/auth"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -56,6 +57,25 @@ func NewFormService(p FormServiceParams) (form.Service, error) {
 	return form.NewService(p.Store, p.EventPublisher, p.Logger), nil
 }
 
+// AuthServiceParams contains dependencies for creating an auth service
+type AuthServiceParams struct {
+	fx.In
+
+	UserService user.Service
+	Logger      logging.Logger
+}
+
+// NewAuthService creates a new auth service with dependencies
+func NewAuthService(p AuthServiceParams) (auth.Service, error) {
+	if p.UserService == nil {
+		return nil, errors.New("user service is required")
+	}
+	if p.Logger == nil {
+		return nil, errors.New("logger is required")
+	}
+	return auth.NewService(p.UserService, p.Logger), nil
+}
+
 // Module provides all domain services and interfaces
 var Module = fx.Options(
 	fx.Provide(
@@ -68,6 +88,11 @@ var Module = fx.Options(
 		fx.Annotate(
 			NewFormService,
 			fx.As(new(form.Service)),
+		),
+		// Auth service
+		fx.Annotate(
+			NewAuthService,
+			fx.As(new(auth.Service)),
 		),
 	),
 )

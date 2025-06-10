@@ -179,28 +179,6 @@ var Module = fx.Options(
 		// Stores
 		NewStores,
 
-		// Web handlers
-		fx.Annotate(
-			web.NewWebHandler,
-			fx.ResultTags(`group:"handlers"`),
-		),
-		fx.Annotate(
-			web.NewAuthHandler,
-			fx.ResultTags(`group:"handlers"`),
-		),
-
-		// Handlers
-		fx.Annotate(
-			web.NewFormHandler,
-			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
-		),
-		fx.Annotate(
-			web.NewDemoHandler,
-			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
-		),
-
 		// Server setup
 		server.New,
 	),

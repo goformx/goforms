@@ -49,9 +49,9 @@ func NewAuthService(p ServiceParams) (auth.Service, error) {
 	return auth.NewService(p.UserService, p.Logger), nil
 }
 
-// NewAuthHandler creates a new auth handler with proper error handling
-func NewAuthHandler(p HandlerParams) (*web.AuthHandler, error) {
-	deps := web.HandlerDeps{
+// NewHandlerDeps creates a new HandlerDeps instance with proper error handling
+func NewHandlerDeps(p HandlerParams) (*web.HandlerDeps, error) {
+	deps := &web.HandlerDeps{
 		UserService:       p.UserService,
 		FormService:       p.FormService,
 		AuthService:       p.AuthService,
@@ -61,7 +61,43 @@ func NewAuthHandler(p HandlerParams) (*web.AuthHandler, error) {
 		Config:            p.Config,
 		Logger:            p.Logger,
 	}
-	return web.NewAuthHandler(deps)
+
+	// Validate all required dependencies
+	if err := deps.Validate(
+		"UserService",
+		"FormService",
+		"AuthService",
+		"SessionManager",
+		"Renderer",
+		"MiddlewareManager",
+		"Config",
+		"Logger",
+	); err != nil {
+		return nil, err
+	}
+
+	return deps, nil
+}
+
+// NewAuthHandler creates a new auth handler with proper error handling
+func NewAuthHandler(deps *web.HandlerDeps) (*web.AuthHandler, error) {
+	return web.NewAuthHandler(*deps)
+}
+
+// NewWebHandler creates a new web handler with proper error handling
+func NewWebHandler(deps *web.HandlerDeps) (*web.WebHandler, error) {
+	return web.NewWebHandler(*deps)
+}
+
+// NewFormHandler creates a new form handler with proper error handling
+func NewFormHandler(deps *web.HandlerDeps, formService form.Service) (*web.FormHandler, error) {
+	handler := web.NewFormHandler(*deps, formService)
+	return handler, nil
+}
+
+// NewDemoHandler creates a new demo handler with proper error handling
+func NewDemoHandler(deps *web.HandlerDeps) (*web.DemoHandler, error) {
+	return web.NewDemoHandler(*deps)
 }
 
 // Module provides all application layer dependencies
@@ -73,10 +109,30 @@ var Module = fx.Options(
 			fx.As(new(auth.Service)),
 		),
 	),
+	// Handler dependencies
+	fx.Provide(
+		NewHandlerDeps,
+	),
 	// Handlers
 	fx.Provide(
 		fx.Annotate(
 			NewAuthHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
+		),
+		fx.Annotate(
+			NewWebHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
+		),
+		fx.Annotate(
+			NewFormHandler,
+			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(web.Handler)),
+		),
+		fx.Annotate(
+			NewDemoHandler,
+			fx.ResultTags(`group:"handlers"`),
 			fx.As(new(web.Handler)),
 		),
 	),
