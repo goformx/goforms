@@ -116,7 +116,7 @@ func (h *Handler) HandleError(c echo.Context, err error) error {
 
 ### 3. Response Logging
 ```go
-func (b *ResponseBuilder) BuildJSONResponse(c echo.Context, data interface{}, status int) error {
+func (b *ResponseBuilder) BuildJSONResponse(c echo.Context, data any, status int) error {
     b.logger.Debug("building JSON response",
         logging.IntField("status", status),
         logging.StringField("operation", "response_building"),
