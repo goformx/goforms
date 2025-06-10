@@ -78,33 +78,17 @@
 - [ ] Review dependency injection:
   - Some components use constructor injection
   - Some use fx dependency injection
-  - Action: Standardize on fx dependency injection
+  - Action: Standardize on fx dependency injection (keep it simple)
   - Tasks:
-    1. Convert validator package to use fx.Provide and fx.Annotate
-    2. Convert middleware components to use fx.Provide and fx.Annotate
-    3. Convert store components to use fx.Provide and fx.Annotate
-    4. Ensure all components use fx.In for dependency injection
-    5. Add proper error handling for fx.Provide functions
-    6. Standardize fx.Out usage:
-       - Use fx.Out for components that provide multiple dependencies
-       - Group related dependencies in fx.Out structs
-       - Add proper documentation for fx.Out structs
-       - Ensure consistent naming for fx.Out structs
-    7. Implement proper lifecycle hooks:
-       - Add OnStart hooks for resource initialization
-       - Add OnStop hooks for resource cleanup
-       - Ensure hooks don't block for long-running tasks
-       - Use background goroutines for long-running tasks
-    8. Improve interface decoupling:
-       - Use fx.As for interface casting
-       - Define clear interfaces for components
-       - Use fx.ResultTags for multiple implementations
-       - Add compile-time interface checks
-    9. Standardize module organization:
-       - Group related providers in fx.Module
-       - Use descriptive module names
-       - Document module dependencies
-       - Add proper error handling in modules
+    1. Use fx.Provide for all injectable components
+    2. Use fx.In for grouping dependencies only when it improves clarity
+    3. Use fx.Out only when a constructor must provide multiple values
+    4. Use fx.Annotate and fx.As only when interface casting or grouping is needed
+    5. Add error handling for fx.Provide functions
+    6. Add OnStart/OnStop hooks only for components that need resource management
+    7. Group related providers in modules, but avoid unnecessary modules
+    8. Use clear, descriptive names for modules and providers
+    9. Keep interface decoupling simple: use fx.As only when needed
 
 ### Input Validation
 - [ ] Use go-sanitize for all user input:
