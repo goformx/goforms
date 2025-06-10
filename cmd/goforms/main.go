@@ -1,11 +1,7 @@
-// Package main is the entry point for the GoFormX application.
-// It sets up the application using dependency injection (via fx),
-// configures the server, and manages the application lifecycle.
 package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"os"
 	"os/signal"
@@ -26,12 +22,8 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	// DefaultShutdownTimeout is the default timeout for graceful shutdown
-	DefaultShutdownTimeout = 30 * time.Second
-)
+const DefaultShutdownTimeout = 30 * time.Second
 
-// appParams groups all dependencies injected via fx.
 type appParams struct {
 	fx.In
 	Lifecycle         fx.Lifecycle
@@ -43,24 +35,21 @@ type appParams struct {
 	Config            *config.Config
 }
 
-// setupHandlers registers all HTTP handlers.
 func setupHandlers(handlers []web.Handler, e *echo.Echo) error {
-	for _, handler := range handlers {
+	for i, handler := range handlers {
 		if handler == nil {
-			return errors.New("nil handler encountered during registration")
+			return fmt.Errorf("nil handler encountered at index %d", i)
 		}
 		handler.Register(e)
 	}
 	return nil
 }
 
-// setupApplication initializes middleware and handlers.
 func setupApplication(params appParams) error {
 	params.MiddlewareManager.Setup(params.Echo)
 	return setupHandlers(params.Handlers, params.Echo)
 }
 
-// setupLifecycle configures application lifecycle hooks.
 func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
@@ -70,13 +59,11 @@ func setupLifecycle(params appParams) {
 				"environment", params.Config.App.Env,
 			)
 
-			// Start the server in a goroutine
+			// Start the server and handle errors properly
 			go func() {
 				if err := params.Server.Start(); err != nil {
-					params.Logger.Error("server error",
-						"error", err,
-						"app", params.Config.App.Name,
-					)
+					params.Logger.Fatal("server startup failed", "error", err)
+					os.Exit(1)
 				}
 			}()
 
@@ -87,73 +74,50 @@ func setupLifecycle(params appParams) {
 				"app", params.Config.App.Name,
 				"version", params.Config.App.Version,
 			)
-
-			// The server shutdown is handled by the server's lifecycle hooks
 			return nil
 		},
 	})
 }
 
 func main() {
-	// Load configuration
-	cfg, err := config.New()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to load configuration: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Create logger factory
-	factory := logging.NewFactory(logging.FactoryConfig{
-		AppName:     cfg.App.Name,
-		Version:     cfg.App.Version,
-		Environment: cfg.App.Env,
-		Fields:      map[string]any{},
-	})
-
-	// Create logger instance
-	logger, err := factory.CreateLogger()
-	if err != nil {
-		fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
-		os.Exit(1)
-	}
-
-	// Create the application
 	app := fx.New(
-		// Supply core dependencies
-		fx.Supply(cfg),
-		fx.Supply(fx.Annotate(logger, fx.As(new(logging.Logger)))),
-
-		// Infrastructure module
+		fx.Provide(config.New),
+		fx.Provide(func(cfg *config.Config) logging.Logger {
+			factory := logging.NewFactory(logging.FactoryConfig{
+				AppName:     cfg.App.Name,
+				Version:     cfg.App.Version,
+				Environment: cfg.App.Env,
+				Fields:      map[string]any{},
+			})
+			logger, err := factory.CreateLogger()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+				os.Exit(1)
+			}
+			return logger
+		}),
 		infrastructure.Module,
-
-		// Domain module
 		domain.Module,
-
-		// Application module
 		application.Module,
-
-		// Presentation module
 		presentation.Module,
-
-		// Setup application
 		fx.Invoke(setupApplication),
 		fx.Invoke(setupLifecycle),
 	)
 
-	// Start the application
-	if err := app.Start(context.Background()); err != nil {
-		logger.Error("failed to start application", "error", err)
+	if startErr := app.Start(context.Background()); startErr != nil {
+		fmt.Fprintf(os.Stderr, "Application startup failed: %v\n", startErr)
 		os.Exit(1)
 	}
 
-	// Wait for interrupt signal
+	// Handle termination signals gracefully
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-	<-sigChan
+	sig := <-sigChan
 
-	// Stop the application
-	if err := app.Stop(context.Background()); err != nil {
-		logger.Error("failed to stop application", "error", err)
+	fmt.Printf("Received signal: %v, shutting down...\n", sig)
+
+	if stopErr := app.Stop(context.Background()); stopErr != nil {
+		fmt.Fprintf(os.Stderr, "Application shutdown failed: %v\n", stopErr)
 		os.Exit(1)
 	}
 }
