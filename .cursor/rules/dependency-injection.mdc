@@ -3,21 +3,83 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Dependency Injection Guide (Simple)
+# Dependency Injection Guide
 
-This project uses Uber FX for dependency injection. The goal is to keep DI simple, clear, and maintainable.
+This project uses Uber FX for dependency injection. The goal is to keep DI simple, clear, and maintainable while preserving implementation visibility.
 
 ## Core Principles
 
-1. **Use fx.Provide for all injectable components.**
-2. **Use fx.In for grouping dependencies only when it improves clarity.**
-3. **Use fx.Out only when a constructor must provide multiple values.**
-4. **Use fx.Annotate and fx.As only when interface casting or grouping is needed.**
-5. **Add error handling for fx.Provide functions.**
-6. **Add OnStart/OnStop hooks only for components that need resource management.**
-7. **Group related providers in modules, but avoid unnecessary modules.**
-8. **Use clear, descriptive names for modules and providers.**
-9. **Keep interface decoupling simple: use fx.As only when needed.**
+1. **Centralize Core Providers**
+   - Core infrastructure (config, logger, DB, etc.) in `infrastructure.Module`
+   - Domain services in `domain.Module`
+   - Application services in `application.Module`
+   - Keep app-specific wiring in `main.go`
+
+2. **Keep Implementation Visible**
+   - Don't bury implementation details in modules
+   - Keep wiring explicit in `main.go`
+   - Use clear, descriptive names for modules and providers
+
+3. **Use fx Features Judiciously**
+   - Use `fx.Provide` for all injectable components
+   - Use `fx.In` for grouping dependencies only when it improves clarity
+   - Use `fx.Out` only when a constructor must provide multiple values
+   - Use `fx.Annotate` and `fx.As` only when interface casting or grouping is needed
+
+4. **Error Handling and Lifecycle**
+   - Add error handling for all `fx.Provide` functions
+   - Add `OnStart/OnStop` hooks only for components that need resource management
+   - Document any non-obvious DI patterns
+
+## Module Organization
+
+### main.go
+```go
+func main() {
+    app := fx.New(
+        infrastructure.Module, // config, logger, db, repo impls
+        domain.Module,         // domain services, interfaces
+        application.Module,    // handlers, middleware, app services
+        presentation.Module,   // renderers, templates
+        fx.Invoke(registerHandlersAndLifecycle),
+    )
+}
+```
+
+### infrastructure.Module
+```go
+var Module = fx.Options(
+    fx.Provide(
+        config.New,
+        logging.NewFactory,
+        validation.New,
+        database.NewGormDB,
+        // ... other core providers
+    ),
+)
+```
+
+### domain.Module
+```go
+var Module = fx.Options(
+    fx.Provide(
+        user.NewService,
+        form.NewService,
+        // ... other domain services
+    ),
+)
+```
+
+### application.Module
+```go
+var Module = fx.Options(
+    fx.Provide(
+        web.NewHandler,
+        middleware.NewManager,
+        // ... other application services
+    ),
+)
+```
 
 ## Example Patterns
 
@@ -80,6 +142,11 @@ fx.Provide(
 ```
 
 ## Best Practices
+- Keep wiring explicit in `main.go`
+- Centralize core providers in infrastructure
+- Use fx.In/fx.Out for complex constructors
+- Document the DI graph with comments
+- Test and iterate on wiring
 - Avoid global variables and init() for DI
 - Prefer explicit, constructor-based injection
 - Only use advanced FX features when necessary

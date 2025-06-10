@@ -75,20 +75,26 @@
     5. Review and update security-related defaults
 
 ### Dependency Injection
-- [ ] Review dependency injection:
+- [x] Review dependency injection:
   - Some components use constructor injection
   - Some use fx dependency injection
   - Action: Standardize on fx dependency injection (keep it simple)
   - Tasks:
-    1. Use fx.Provide for all injectable components
-    2. Use fx.In for grouping dependencies only when it improves clarity
-    3. Use fx.Out only when a constructor must provide multiple values
-    4. Use fx.Annotate and fx.As only when interface casting or grouping is needed
-    5. Add error handling for fx.Provide functions
-    6. Add OnStart/OnStop hooks only for components that need resource management
-    7. Group related providers in modules, but avoid unnecessary modules
-    8. Use clear, descriptive names for modules and providers
-    9. Keep interface decoupling simple: use fx.As only when needed
+    1. ✅ Use fx.Provide for all injectable components
+    2. ✅ Use fx.In for grouping dependencies only when it improves clarity
+    3. ✅ Use fx.Out only when a constructor must provide multiple values
+    4. ✅ Use fx.Annotate and fx.As only when interface casting or grouping is needed
+    5. ✅ Add error handling for fx.Provide functions
+    6. ✅ Add OnStart/OnStop hooks only for components that need resource management
+    7. ✅ Group related providers in modules, but avoid unnecessary modules
+    8. ✅ Use clear, descriptive names for modules and providers
+    9. ✅ Keep interface decoupling simple: use fx.As only when needed
+  - New Strategy:
+    1. [x] Centralize core providers in infrastructure.Module
+    2. [x] Keep app-specific wiring in main.go
+    3. [x] Use fx.In/fx.Out for complex constructors
+    4. [x] Document DI graph with comments
+    5. [x] Test and iterate on wiring
 
 ### Input Validation
 - [ ] Use go-sanitize for all user input:
@@ -231,4 +237,154 @@
 - [ ] Add proper code comments
 - [ ] Add proper README files
 - [ ] Add proper setup instructions
-- [ ] Add proper contribution guidelines 
+- [ ] Add proper contribution guidelines
+
+# GoForms TODO List
+
+## Dependency Injection (DI) Implementation
+
+### Completed
+- [x] Centralize core providers in infrastructure.Module
+- [x] Keep app-specific wiring in main.go
+- [x] Document DI graph with comments
+- [x] Move event publisher to infrastructure layer
+- [x] Fix import conflicts with proper aliases
+- [x] Add error handling for provider initialization
+- [x] Implement proper store initialization with error handling
+- [x] Add structured logging for infrastructure components
+- [x] Update application layer DI with proper error handling
+- [x] Implement proper handler dependency management
+- [x] Add validation for handler dependencies
+
+### In Progress
+- [ ] Add tests for infrastructure providers
+- [ ] Add tests for application providers
+- [ ] Document DI patterns in architecture guide
+
+### Next Steps
+1. Testing:
+   - [ ] Unit tests for providers
+   - [ ] Integration tests for DI graph
+   - [ ] Error handling tests
+
+2. Documentation:
+   - [ ] Update architecture guide with DI patterns
+   - [ ] Add examples for common DI scenarios
+   - [ ] Document error handling strategies
+
+## Infrastructure Module
+
+### Completed
+- [x] Implement proper store initialization
+- [x] Add error handling for database operations
+- [x] Implement structured logging
+- [x] Fix import conflicts
+- [x] Move event publisher to infrastructure layer
+- [x] Add proper error handling for providers
+
+### In Progress
+- [ ] Add tests for infrastructure components
+- [ ] Document infrastructure patterns
+
+### Next Steps
+1. Testing:
+   - [ ] Add unit tests for stores
+   - [ ] Add integration tests for database operations
+   - [ ] Test error handling scenarios
+
+2. Documentation:
+   - [ ] Document infrastructure patterns
+   - [ ] Add examples for common scenarios
+   - [ ] Update architecture guide
+
+## Domain Layer
+
+### Completed
+- [x] Keep domain layer free of infrastructure details
+- [x] Define clear interfaces for repositories
+- [x] Implement proper error handling
+- [x] Add structured logging
+
+### In Progress
+- [ ] Add tests for domain services
+- [ ] Document domain patterns
+
+### Next Steps
+1. Testing:
+   - [ ] Add unit tests for services
+   - [ ] Add integration tests for repositories
+   - [ ] Test error handling scenarios
+
+2. Documentation:
+   - [ ] Document domain patterns
+   - [ ] Add examples for common scenarios
+   - [ ] Update architecture guide
+
+## Application Layer
+
+### Completed
+- [x] Implement proper error handling
+- [x] Add structured logging
+- [x] Keep handlers focused and single-purpose
+- [x] Implement proper DI for handlers
+- [x] Add validation for handler dependencies
+- [x] Centralize handler dependency management
+
+### In Progress
+- [ ] Add tests for handlers
+- [ ] Document handler patterns
+
+### Next Steps
+1. Testing:
+   - [ ] Add unit tests for handlers
+   - [ ] Add integration tests for handlers
+   - [ ] Test error handling scenarios
+
+2. Documentation:
+   - [ ] Document handler patterns
+   - [ ] Add examples for common scenarios
+   - [ ] Update architecture guide
+
+## Presentation Layer
+
+### Completed
+- [x] Implement proper error handling
+- [x] Add structured logging
+- [x] Keep views focused and single-purpose
+
+### In Progress
+- [ ] Add tests for views
+- [ ] Document view patterns
+
+### Next Steps
+1. Testing:
+   - [ ] Add unit tests for views
+   - [ ] Add integration tests for views
+   - [ ] Test error handling scenarios
+
+2. Documentation:
+   - [ ] Document view patterns
+   - [ ] Add examples for common scenarios
+   - [ ] Update architecture guide
+
+## General
+
+### Completed
+- [x] Implement proper error handling
+- [x] Add structured logging
+- [x] Keep components focused and single-purpose
+
+### In Progress
+- [ ] Add tests for all components
+- [ ] Document patterns and best practices
+
+### Next Steps
+1. Testing:
+   - [ ] Add unit tests for all components
+   - [ ] Add integration tests for all components
+   - [ ] Test error handling scenarios
+
+2. Documentation:
+   - [ ] Document patterns and best practices
+   - [ ] Add examples for common scenarios
+   - [ ] Update architecture guide 

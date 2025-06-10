@@ -26,8 +26,8 @@ const (
 // NewAuthHandler creates a new auth handler using HandlerDeps
 func NewAuthHandler(deps HandlerDeps) (*AuthHandler, error) {
 	if err := deps.Validate(
-		"BaseHandler",
 		"UserService",
+		"AuthService",
 		"SessionManager",
 		"Renderer",
 		"MiddlewareManager",

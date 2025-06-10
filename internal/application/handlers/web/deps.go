@@ -1,6 +1,3 @@
-// Package main is the entry point for the GoFormX application.
-// It sets up the application using dependency injection (via fx),
-// configures the server, and manages the application lifecycle.
 package web
 
 import (
@@ -8,6 +5,7 @@ import (
 	"fmt"
 
 	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/services/auth"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -16,12 +14,13 @@ import (
 	"go.uber.org/fx"
 )
 
-// HandlerDeps centralizes common handler dependencies and validation
+// HandlerDeps contains all dependencies required by web handlers
 type HandlerDeps struct {
 	fx.In
 
-	BaseHandler       *BaseHandler
 	UserService       user.Service
+	FormService       form.Service
+	AuthService       auth.Service
 	SessionManager    *middleware.SessionManager
 	Renderer          *view.Renderer
 	MiddlewareManager *middleware.Manager
@@ -32,13 +31,17 @@ type HandlerDeps struct {
 // validateField checks if a field is present in the handler dependencies
 func (d *HandlerDeps) validateField(field string) error {
 	switch field {
-	case "BaseHandler":
-		if d.BaseHandler == nil {
-			return errors.New("base handler is required")
-		}
 	case "UserService":
 		if d.UserService == nil {
 			return errors.New("user service is required")
+		}
+	case "FormService":
+		if d.FormService == nil {
+			return errors.New("form service is required")
+		}
+	case "AuthService":
+		if d.AuthService == nil {
+			return errors.New("auth service is required")
 		}
 	case "SessionManager":
 		if d.SessionManager == nil {
@@ -76,19 +79,46 @@ func (d *HandlerDeps) Validate(required ...string) error {
 	return nil
 }
 
-// BaseHandler provides common functionality for all handlers
-type BaseHandler struct {
-	formService form.Service
-	logger      logging.Logger
+// HandlerParams contains dependencies for creating handlers
+type HandlerParams struct {
+	fx.In
+
+	UserService       user.Service
+	FormService       form.Service
+	AuthService       auth.Service
+	SessionManager    *middleware.SessionManager
+	Renderer          *view.Renderer
+	MiddlewareManager *middleware.Manager
+	Config            *config.Config
+	Logger            logging.Logger
 }
 
-// NewBaseHandler creates a new base handler
-func NewBaseHandler(
-	formService form.Service,
-	logger logging.Logger,
-) *BaseHandler {
-	return &BaseHandler{
-		formService: formService,
-		logger:      logger,
+// NewHandlerDeps creates a new HandlerDeps instance with proper error handling
+func NewHandlerDeps(p HandlerParams) (*HandlerDeps, error) {
+	deps := &HandlerDeps{
+		UserService:       p.UserService,
+		FormService:       p.FormService,
+		AuthService:       p.AuthService,
+		SessionManager:    p.SessionManager,
+		Renderer:          p.Renderer,
+		MiddlewareManager: p.MiddlewareManager,
+		Config:            p.Config,
+		Logger:            p.Logger,
 	}
+
+	// Validate all required dependencies
+	if err := deps.Validate(
+		"UserService",
+		"FormService",
+		"AuthService",
+		"SessionManager",
+		"Renderer",
+		"MiddlewareManager",
+		"Config",
+		"Logger",
+	); err != nil {
+		return nil, fmt.Errorf("failed to create handler dependencies: %w", err)
+	}
+
+	return deps, nil
 }

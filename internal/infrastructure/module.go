@@ -1,3 +1,4 @@
+// Package infrastructure provides core infrastructure components and their dependency injection setup.
 package infrastructure
 
 import (
@@ -9,10 +10,11 @@ import (
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
+	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
-	"github.com/goformx/goforms/internal/infrastructure/event"
+	infraevent "github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	formstore "github.com/goformx/goforms/internal/infrastructure/repository/form"
 	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/repository/form/submission"
@@ -52,6 +54,21 @@ type ServiceParams struct {
 	fx.In
 	UserService user.Service
 	FormService form.Service
+}
+
+// EventPublisherParams contains dependencies for creating an event publisher
+type EventPublisherParams struct {
+	fx.In
+
+	Logger logging.Logger
+}
+
+// NewEventPublisher creates a new event publisher with dependencies
+func NewEventPublisher(p EventPublisherParams) (formevent.Publisher, error) {
+	if p.Logger == nil {
+		return nil, errors.New("logger is required for event publisher")
+	}
+	return infraevent.NewMemoryPublisher(p.Logger), nil
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers
@@ -117,10 +134,37 @@ func NewStores(db *database.GormDB, logger logging.Logger) (Stores, error) {
 var Module = fx.Options(
 	// Core infrastructure
 	fx.Provide(
-		config.New,
-		logging.NewFactory,
+		// Configuration
+		func() (*config.Config, error) {
+			return config.New()
+		},
+		// Logger
+		func(cfg *config.Config) (logging.Logger, error) {
+			if cfg == nil {
+				return nil, errors.New("config is required for logger setup")
+			}
+			factory := logging.NewFactory(logging.FactoryConfig{
+				AppName:     cfg.App.Name,
+				Version:     cfg.App.Version,
+				Environment: cfg.App.Env,
+				Fields:      map[string]any{},
+			})
+			return factory.CreateLogger()
+		},
+		// Echo instance
+		echo.New,
+		// Validation
 		validation.New,
+		// Database
 		database.NewGormDB,
+	),
+
+	// Event system
+	fx.Provide(
+		fx.Annotate(
+			NewEventPublisher,
+			fx.As(new(formevent.Publisher)),
+		),
 	),
 
 	// Repositories
@@ -137,11 +181,6 @@ var Module = fx.Options(
 			formsubmissionstore.NewStore,
 			fx.As(new(form.SubmissionStore)),
 		),
-	),
-
-	// Event system
-	fx.Provide(
-		event.NewMemoryPublisher,
 	),
 
 	// Middleware
@@ -171,23 +210,14 @@ var Module = fx.Options(
 	// Stores
 	fx.Provide(NewStores),
 
-	// Base handler
+	// Web handlers
 	fx.Provide(
-		web.NewBaseHandler,
+		web.NewWebHandler,
+		web.NewAuthHandler,
 	),
 
 	// Handlers
 	fx.Provide(
-		fx.Annotate(
-			web.NewWebHandler,
-			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
-		),
-		fx.Annotate(
-			web.NewAuthHandler,
-			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(web.Handler)),
-		),
 		fx.Annotate(
 			web.NewFormHandler,
 			fx.ResultTags(`group:"handlers"`),

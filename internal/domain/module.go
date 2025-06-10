@@ -1,12 +1,16 @@
+// Package domain provides domain services and their dependency injection setup.
+// This module is responsible for providing domain services and interfaces,
+// while keeping implementation details in the infrastructure layer.
 package domain
 
 import (
+	"errors"
+
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
-	infraevent "github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -19,8 +23,14 @@ type UserServiceParams struct {
 }
 
 // NewUserService creates a new user service with dependencies
-func NewUserService(p UserServiceParams) user.Service {
-	return user.NewService(p.Repo, p.Logger)
+func NewUserService(p UserServiceParams) (user.Service, error) {
+	if p.Repo == nil {
+		return nil, errors.New("user repository is required")
+	}
+	if p.Logger == nil {
+		return nil, errors.New("logger is required")
+	}
+	return user.NewService(p.Repo, p.Logger), nil
 }
 
 // FormServiceParams contains dependencies for creating a form service
@@ -33,23 +43,20 @@ type FormServiceParams struct {
 }
 
 // NewFormService creates a new form service with dependencies
-func NewFormService(p FormServiceParams) form.Service {
-	return form.NewService(p.Store, p.EventPublisher, p.Logger)
+func NewFormService(p FormServiceParams) (form.Service, error) {
+	if p.Store == nil {
+		return nil, errors.New("form repository is required")
+	}
+	if p.EventPublisher == nil {
+		return nil, errors.New("event publisher is required")
+	}
+	if p.Logger == nil {
+		return nil, errors.New("logger is required")
+	}
+	return form.NewService(p.Store, p.EventPublisher, p.Logger), nil
 }
 
-// EventPublisherParams contains dependencies for creating an event publisher
-type EventPublisherParams struct {
-	fx.In
-
-	Logger logging.Logger
-}
-
-// NewEventPublisher creates a new event publisher with dependencies
-func NewEventPublisher(p EventPublisherParams) event.Publisher {
-	return infraevent.NewMemoryPublisher(p.Logger)
-}
-
-// Module combines all domain services
+// Module provides all domain services and interfaces
 var Module = fx.Options(
 	fx.Provide(
 		// User service
@@ -61,11 +68,6 @@ var Module = fx.Options(
 		fx.Annotate(
 			NewFormService,
 			fx.As(new(form.Service)),
-		),
-		// Event publisher
-		fx.Annotate(
-			NewEventPublisher,
-			fx.As(new(event.Publisher)),
 		),
 	),
 )

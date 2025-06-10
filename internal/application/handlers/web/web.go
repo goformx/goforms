@@ -20,8 +20,8 @@ type WebHandler struct {
 // NewWebHandler creates a new web handler using HandlerDeps
 func NewWebHandler(deps HandlerDeps) (*WebHandler, error) {
 	if err := deps.Validate(
-		"BaseHandler",
 		"UserService",
+		"FormService",
 		"SessionManager",
 		"Renderer",
 		"MiddlewareManager",
@@ -69,7 +69,7 @@ func (h *WebHandler) handleDashboard(c echo.Context) error {
 	)
 
 	// Get user's forms
-	forms, err := h.BaseHandler.formService.GetUserForms(c.Request().Context(), userID)
+	forms, err := h.FormService.GetUserForms(c.Request().Context(), userID)
 	if err != nil {
 		h.Logger.Error("web handler failed to get user forms",
 			"operation", "handle_dashboard",
@@ -142,7 +142,7 @@ func (h *WebHandler) handleFormView(c echo.Context) error {
 	}
 
 	// Get form
-	form, err := h.BaseHandler.formService.GetForm(c.Request().Context(), formID)
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", "error", err)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")

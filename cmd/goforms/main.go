@@ -18,7 +18,6 @@ import (
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
-	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/labstack/echo/v4"
@@ -76,32 +75,9 @@ func createFallbackLogger() logging.Logger {
 func main() {
 	// Create the application with all dependencies
 	app := fx.New(
-		// Core infrastructure
-		fx.Provide(
-			// Configuration
-			func() (*config.Config, error) {
-				return config.New()
-			},
-			// Logger
-			func(cfg *config.Config) (logging.Logger, error) {
-				if cfg == nil {
-					return nil, errors.New("config is required for logger setup")
-				}
-				factory := logging.NewFactory(logging.FactoryConfig{
-					AppName:     cfg.App.Name,
-					Version:     cfg.App.Version,
-					Environment: cfg.App.Env,
-					Fields:      map[string]any{},
-				})
-				return factory.CreateLogger()
-			},
-			// Echo instance
-			echo.New,
-		),
-		// Domain services
-		domain.Module,
-		// Infrastructure and handlers
-		infrastructure.Module,
+		// Core modules
+		infrastructure.Module, // Provides core infrastructure (config, logger, db, etc.)
+		domain.Module,         // Provides domain services and interfaces
 		// Application lifecycle
 		fx.Invoke(func(params appParams) {
 			params.Lifecycle.Append(fx.Hook{
