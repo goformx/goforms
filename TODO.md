@@ -79,6 +79,32 @@
   - Some components use constructor injection
   - Some use fx dependency injection
   - Action: Standardize on fx dependency injection
+  - Tasks:
+    1. Convert validator package to use fx.Provide and fx.Annotate
+    2. Convert middleware components to use fx.Provide and fx.Annotate
+    3. Convert store components to use fx.Provide and fx.Annotate
+    4. Ensure all components use fx.In for dependency injection
+    5. Add proper error handling for fx.Provide functions
+    6. Standardize fx.Out usage:
+       - Use fx.Out for components that provide multiple dependencies
+       - Group related dependencies in fx.Out structs
+       - Add proper documentation for fx.Out structs
+       - Ensure consistent naming for fx.Out structs
+    7. Implement proper lifecycle hooks:
+       - Add OnStart hooks for resource initialization
+       - Add OnStop hooks for resource cleanup
+       - Ensure hooks don't block for long-running tasks
+       - Use background goroutines for long-running tasks
+    8. Improve interface decoupling:
+       - Use fx.As for interface casting
+       - Define clear interfaces for components
+       - Use fx.ResultTags for multiple implementations
+       - Add compile-time interface checks
+    9. Standardize module organization:
+       - Group related providers in fx.Module
+       - Use descriptive module names
+       - Document module dependencies
+       - Add proper error handling in modules
 
 ### Input Validation
 - [ ] Use go-sanitize for all user input:
