@@ -11,14 +11,39 @@ import (
 type EventType string
 
 const (
-	// FormSubmittedEventType is emitted when a form is submitted
+	// Form Lifecycle Events
+	FormCreatedEventType     EventType = "form.created"
+	FormUpdatedEventType     EventType = "form.updated"
+	FormDeletedEventType     EventType = "form.deleted"
+	FormPublishedEventType   EventType = "form.published"
+	FormUnpublishedEventType EventType = "form.unpublished"
+
+	// Form State Events
+	FormLoadedEventType EventType = "form.loaded"
+	FormReadyEventType  EventType = "form.ready"
+	FormDirtyEventType  EventType = "form.dirty"
+	FormCleanEventType  EventType = "form.clean"
+	FormStateEventType  EventType = "form.state"
+
+	// Form Submission Events
 	FormSubmittedEventType EventType = "form.submitted"
-	// FormValidatedEventType is emitted when a form is validated
 	FormValidatedEventType EventType = "form.validated"
-	// FormProcessedEventType is emitted when a form is processed
 	FormProcessedEventType EventType = "form.processed"
-	// FormErrorEventType is emitted when an error occurs during form processing
-	FormErrorEventType EventType = "form.error"
+	FormErrorEventType     EventType = "form.error"
+
+	// Form Field Events
+	FieldFocusedEventType   EventType = "form.field.focused"
+	FieldBlurredEventType   EventType = "form.field.blurred"
+	FieldChangedEventType   EventType = "form.field.changed"
+	FieldValidatedEventType EventType = "form.field.validated"
+	FieldEventType          EventType = "form.field"
+
+	// Form Analytics Events
+	FormViewedEventType     EventType = "form.viewed"
+	FormInteractedEventType EventType = "form.interacted"
+	FormAbandonedEventType  EventType = "form.abandoned"
+	FormCompletedEventType  EventType = "form.completed"
+	AnalyticsEventType      EventType = "form.analytics"
 )
 
 // SubmittedEvent represents a form submission event
@@ -142,5 +167,107 @@ func (e *ErrorEvent) Data() any {
 		"error":       e.Error,
 		"occurred_at": e.OccurredAt,
 		"error_type":  e.ErrorType,
+	}
+}
+
+// FormStateEvent represents a form state change event
+type FormStateEvent struct {
+	events.BaseEvent
+	FormID    string
+	State     string
+	ChangedAt time.Time
+	Metadata  map[string]interface{}
+}
+
+// NewFormStateEvent creates a new form state event
+func NewFormStateEvent(formID string, state string, metadata map[string]interface{}) *FormStateEvent {
+	return &FormStateEvent{
+		BaseEvent: events.NewBaseEvent(string(FormLoadedEventType)),
+		FormID:    formID,
+		State:     state,
+		ChangedAt: time.Now(),
+		Metadata:  metadata,
+	}
+}
+
+// Data returns the event data
+func (e *FormStateEvent) Data() any {
+	return map[string]any{
+		"form_id":    e.FormID,
+		"state":      e.State,
+		"changed_at": e.ChangedAt,
+		"metadata":   e.Metadata,
+	}
+}
+
+// FieldEvent represents a form field event
+type FieldEvent struct {
+	events.BaseEvent
+	FormID     string
+	FieldID    string
+	FieldName  string
+	FieldValue interface{}
+	ChangedAt  time.Time
+	Metadata   map[string]interface{}
+}
+
+// NewFieldEvent creates a new field event
+func NewFieldEvent(formID string, fieldID string, fieldName string, fieldValue interface{}, metadata map[string]interface{}) *FieldEvent {
+	return &FieldEvent{
+		BaseEvent:  events.NewBaseEvent(string(FieldChangedEventType)),
+		FormID:     formID,
+		FieldID:    fieldID,
+		FieldName:  fieldName,
+		FieldValue: fieldValue,
+		ChangedAt:  time.Now(),
+		Metadata:   metadata,
+	}
+}
+
+// Data returns the event data
+func (e *FieldEvent) Data() any {
+	return map[string]any{
+		"form_id":     e.FormID,
+		"field_id":    e.FieldID,
+		"field_name":  e.FieldName,
+		"field_value": e.FieldValue,
+		"changed_at":  e.ChangedAt,
+		"metadata":    e.Metadata,
+	}
+}
+
+// AnalyticsEvent represents a form analytics event
+type AnalyticsEvent struct {
+	events.BaseEvent
+	FormID    string
+	EventType string
+	UserID    string
+	SessionID string
+	Timestamp time.Time
+	Metadata  map[string]interface{}
+}
+
+// NewAnalyticsEvent creates a new analytics event
+func NewAnalyticsEvent(formID string, eventType string, userID string, sessionID string, metadata map[string]interface{}) *AnalyticsEvent {
+	return &AnalyticsEvent{
+		BaseEvent: events.NewBaseEvent(string(FormViewedEventType)),
+		FormID:    formID,
+		EventType: eventType,
+		UserID:    userID,
+		SessionID: sessionID,
+		Timestamp: time.Now(),
+		Metadata:  metadata,
+	}
+}
+
+// Data returns the event data
+func (e *AnalyticsEvent) Data() any {
+	return map[string]any{
+		"form_id":    e.FormID,
+		"event_type": e.EventType,
+		"user_id":    e.UserID,
+		"session_id": e.SessionID,
+		"timestamp":  e.Timestamp,
+		"metadata":   e.Metadata,
 	}
 }
