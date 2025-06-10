@@ -83,7 +83,7 @@ func (j *JSON) Scan(value any) error {
 // Value implements the driver.Valuer interface for JSON
 func (j *JSON) Value() (driver.Value, error) {
 	if j == nil {
-		return nil, fmt.Errorf("cannot convert nil JSON to value")
+		return nil, errors.New("cannot convert nil JSON to value")
 	}
 	return json.Marshal(*j)
 }
