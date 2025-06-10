@@ -1,6 +1,6 @@
 ---
 description: 
-globs: internal/**/validation/**/*.go
+globs: internal/**/validation/**/*.go,internal/domain/form/**/*.go,internal/**/validation/**/*.go,*.templ
 alwaysApply: false
 ---
 # Validation Guidelines
@@ -137,3 +137,37 @@ func (s *FormService) CreateForm(ctx context.Context, req *CreateFormRequest) (*
    - Test error cases
    - Test edge cases
    - Test performance
+
+# Input Validation Rule: go-sanitize
+
+All user input (from HTTP requests, forms, API payloads, etc.) **must** be sanitized using the [go-sanitize](mdc:https:/github.com/mrz1836/go-sanitize) library before any processing, storage, or further validation.
+
+## Rationale
+- Prevents XSS, script injection, and malformed data from entering the system.
+- Ensures consistent normalization and cleaning of user data.
+- Reduces risk of security vulnerabilities and data corruption.
+
+## Implementation Guidelines
+- Apply go-sanitize functions (e.g., `sanitize.XSS`, `sanitize.Email`, `sanitize.URL`, etc.) to all user-provided fields.
+- Sanitize at the boundary (controller/handler level) before passing data to domain or infrastructure layers.
+- Do not rely on downstream layers to sanitize input.
+- Document which sanitize function is used for each field type.
+- See TODO.md: "Use go-sanitize for all user input" for tracking progress.
+
+## Example
+```go
+import "github.com/mrz1836/go-sanitize"
+
+func (h *UserHandler) CreateUser(c echo.Context) error {
+    req := new(CreateUserRequest)
+    if err := c.Bind(req); err != nil {
+        return err
+    }
+    req.Email = sanitize.Email(req.Email, false)
+    req.Name = sanitize.XSS(req.Name)
+    // ...sanitize other fields as needed
+    // Proceed with business logic
+}
+```
+
+globs: internal/**/validation/**/*.go, internal/domain/form/**/*.go, internal/presentation/templates/**/*.templ

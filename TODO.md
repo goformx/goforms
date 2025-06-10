@@ -73,6 +73,11 @@
   - Some use fx dependency injection
   - Action: Standardize on fx dependency injection
 
+### Input Validation
+- [ ] Use go-sanitize for all user input:
+  - Ensure all user-provided data is sanitized using go-sanitize before processing or storing.
+  - Action: Audit all input points and apply go-sanitize as appropriate.
+
 ## Testing
 
 ### Test Coverage
