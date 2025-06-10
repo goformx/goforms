@@ -126,13 +126,33 @@ func (s *Store) GetByUserID(ctx context.Context, userID string) ([]*model.Form, 
 			// Handle specific PostgreSQL error cases
 			switch pgErr.Code {
 			case "42703": // undefined_column
-				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - column does not exist", userID), result.Error)
+				return nil, common.NewDatabaseError(
+					"get_by_user",
+					"form",
+					fmt.Sprintf("user_id:%s - column does not exist", userID),
+					result.Error,
+				)
 			case "42P01": // undefined_table
-				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - table does not exist", userID), result.Error)
+				return nil, common.NewDatabaseError(
+					"get_by_user",
+					"form",
+					fmt.Sprintf("user_id:%s - table does not exist", userID),
+					result.Error,
+				)
 			case "23503": // foreign_key_violation
-				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - invalid user reference", userID), result.Error)
+				return nil, common.NewDatabaseError(
+					"get_by_user",
+					"form",
+					fmt.Sprintf("user_id:%s - invalid user reference", userID),
+					result.Error,
+				)
 			case "23505": // unique_violation
-				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - duplicate entry", userID), result.Error)
+				return nil, common.NewDatabaseError(
+					"get_by_user",
+					"form",
+					fmt.Sprintf("user_id:%s - duplicate entry", userID),
+					result.Error,
+				)
 			}
 		}
 
