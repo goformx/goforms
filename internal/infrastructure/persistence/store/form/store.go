@@ -96,24 +96,53 @@ func (s *Store) GetByUserID(ctx context.Context, userID string) ([]*model.Form, 
 	result := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&forms)
 
 	if result.Error != nil {
-		// Extract SQL state if available
-		var sqlState string
+		// Extract PostgreSQL error details if available
 		var pgErr *pgconn.PgError
 		if errors.As(result.Error, &pgErr) {
-			sqlState = pgErr.Code
+			// Log detailed PostgreSQL error information
+			s.logger.Error("postgres error while getting user forms",
+				"operation", "get_user_forms",
+				"user_id", userID,
+				"error_type", "postgres_error",
+				"sql_state", pgErr.Code,
+				"severity", pgErr.Severity,
+				"message", pgErr.Message,
+				"detail", pgErr.Detail,
+				"hint", pgErr.Hint,
+				"position", pgErr.Position,
+				"internal_position", pgErr.InternalPosition,
+				"internal_query", pgErr.InternalQuery,
+				"where", pgErr.Where,
+				"schema_name", pgErr.SchemaName,
+				"table_name", pgErr.TableName,
+				"column_name", pgErr.ColumnName,
+				"data_type_name", pgErr.DataTypeName,
+				"constraint_name", pgErr.ConstraintName,
+				"file", pgErr.File,
+				"line", pgErr.Line,
+				"routine", pgErr.Routine,
+			)
+
+			// Handle specific PostgreSQL error cases
+			switch pgErr.Code {
+			case "42703": // undefined_column
+				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - column does not exist", userID), result.Error)
+			case "42P01": // undefined_table
+				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - table does not exist", userID), result.Error)
+			case "23503": // foreign_key_violation
+				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - invalid user reference", userID), result.Error)
+			case "23505": // unique_violation
+				return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s - duplicate entry", userID), result.Error)
+			}
 		}
 
-		// Log the error with all relevant context
+		// Log general database error if not a PostgreSQL error
 		s.logger.Error("database error while getting user forms",
 			"operation", "get_user_forms",
 			"user_id", userID,
 			"error_type", "database_error",
-			"sql_state", sqlState,
-			"query", s.db.Statement.SQL.String(),
-			"params", fmt.Sprintf("%v", s.db.Statement.Vars),
 			"error", result.Error,
 			"error_details", fmt.Sprintf("%+v", result.Error),
-			"error_message", result.Error.Error(),
 		)
 
 		return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s", userID), result.Error)
