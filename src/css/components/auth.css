@@ -1,98 +1,96 @@
-@layer components {
+.auth-page {
+  min-height: calc(100vh - var(--nav-height));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--spacing-8) 0;
+  background: var(--background);
+  color: var(--text);
+}
+
+.auth-container {
+  width: 100%;
+  max-width: var(--container-max-width);
+  margin: var(--container-margin);
+  padding: 0 var(--container-padding-x);
+}
+
+.auth-card {
+  background: var(--card-bg);
+  padding: var(--card-padding);
+  border-radius: var(--card-radius);
+  border: var(--card-border);
+  box-shadow: var(--shadow-md);
+  max-width: 28rem;
+  margin: 0 auto;
+  backdrop-filter: blur(var(--card-backdrop-blur));
+}
+
+.auth-header {
+  text-align: center;
+  margin-bottom: var(--spacing-8);
+}
+
+.auth-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  color: var(--text);
+  margin-bottom: var(--spacing-4);
+  line-height: var(--line-height-tight);
+}
+
+.auth-subtitle {
+  font-size: var(--font-size-base);
+  color: var(--text-light);
+  line-height: var(--line-height-normal);
+}
+
+.auth-form {
+  max-width: 400px;
+  margin: 0 auto;
+  display: flex;
+  flex-direction: column;
+  gap: var(--form-gap);
+}
+
+.auth-alt-action {
+  margin-top: var(--form-gap);
+  text-align: center;
+  color: var(--text-muted);
+}
+
+.auth-alt-action a {
+  color: var(--primary);
+  text-decoration: none;
+  transition: color var(--form-transition-duration)
+    var(--form-transition-timing);
+}
+
+.auth-alt-action a:hover {
+  color: var(--primary-dark);
+}
+
+/* Responsive styles */
+@media (max-width: var(--breakpoint-md)) {
   .auth-page {
-    min-height: calc(100vh - var(--nav-height));
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    padding: var(--spacing-8) 0;
-    background: var(--background);
-    color: var(--text);
+    padding: var(--spacing-6) 0;
   }
 
   .auth-container {
-    width: 100%;
-    max-width: var(--container-max-width);
-    margin: var(--container-margin);
-    padding: 0 var(--container-padding-x);
+    padding: 0 var(--container-padding-x-mobile);
   }
 
   .auth-card {
-    background: var(--card-bg);
-    padding: var(--card-padding);
-    border-radius: var(--card-radius);
-    border: var(--card-border);
-    box-shadow: var(--shadow-md);
-    max-width: 28rem;
-    margin: 0 auto;
-    backdrop-filter: blur(var(--card-backdrop-blur));
-  }
-
-  .auth-header {
-    text-align: center;
-    margin-bottom: var(--spacing-8);
+    padding: var(--card-padding-mobile);
   }
 
   .auth-title {
-    font-size: var(--font-size-2xl);
-    font-weight: var(--font-weight-bold);
-    color: var(--text);
-    margin-bottom: var(--spacing-4);
-    line-height: var(--line-height-tight);
+    font-size: var(--font-size-xl);
   }
+}
 
-  .auth-subtitle {
-    font-size: var(--font-size-base);
-    color: var(--text-light);
-    line-height: var(--line-height-normal);
-  }
-
-  .auth-form {
-    max-width: 400px;
-    margin: 0 auto;
-    display: flex;
-    flex-direction: column;
-    gap: var(--form-gap);
-  }
-
-  .auth-alt-action {
-    margin-top: var(--form-gap);
-    text-align: center;
-    color: var(--text-muted);
-  }
-
-  .auth-alt-action a {
-    color: var(--primary);
-    text-decoration: none;
-    transition: color var(--form-transition-duration)
-      var(--form-transition-timing);
-  }
-
-  .auth-alt-action a:hover {
-    color: var(--primary-dark);
-  }
-
-  /* Responsive styles */
-  @media (max-width: var(--breakpoint-md)) {
-    .auth-page {
-      padding: var(--spacing-6) 0;
-    }
-
-    .auth-container {
-      padding: 0 var(--container-padding-x-mobile);
-    }
-
-    .auth-card {
-      padding: var(--card-padding-mobile);
-    }
-
-    .auth-title {
-      font-size: var(--font-size-xl);
-    }
-  }
-
-  @media (min-width: var(--breakpoint-md)) {
-    .auth-section {
-      padding: var(--section-spacing) var(--container-padding-x);
-    }
+@media (min-width: var(--breakpoint-md)) {
+  .auth-section {
+    padding: var(--section-spacing) var(--container-padding-x);
   }
 }

@@ -1,3 +1,7 @@
+:root {
+  --font-icons: "bootstrap-icons";
+}
+
 @font-face {
   font-family: "bootstrap-icons";
   src:
@@ -11,19 +15,201 @@
 .form-builder {
   display: flex;
   flex-direction: column;
-  gap: 2rem;
-  padding: 1rem;
-  background: var(--card-bg);
-  border: var(--card-border);
-  border-radius: var(--card-radius);
-  box-shadow: var(--shadow-md);
+  gap: var(--spacing-8);
+  padding: var(--spacing-4);
+}
+
+.form-builder-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4) 0;
+}
+
+.form-builder-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-4);
+}
+
+.form-builder-main {
+  display: flex;
+  gap: var(--spacing-4);
+  padding: var(--spacing-4);
+}
+
+.form-builder-sidebar {
+  width: var(--sidebar-width);
+  flex-shrink: 0;
+}
+
+.form-builder-content {
+  flex: 1;
+  min-width: 0;
 }
 
 .form-builder-toolbar {
   display: flex;
-  justify-content: flex-end;
-  gap: 1rem;
-  padding: 1rem 0;
+  align-items: center;
+  gap: var(--spacing-4);
+  font-size: var(--font-size-sm);
+  padding: var(--spacing-1) var(--spacing-2);
+  border-radius: var(--border-radius-sm);
+}
+
+.form-builder-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: var(--overlay-bg);
+  z-index: var(--z-index-overlay);
+}
+
+.form-builder-modal {
+  position: fixed;
+  top: 50%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  padding: var(--spacing-8);
+  background: var(--background);
+  border-radius: var(--border-radius-lg);
+  width: 100%;
+  max-width: var(--container-sm);
+}
+
+.form-builder-modal-header {
+  margin-bottom: var(--spacing-6);
+}
+
+.form-builder-modal-actions {
+  display: flex;
+  gap: var(--spacing-4);
+  margin-top: var(--spacing-8);
+}
+
+.form-builder-modal-footer {
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border-color);
+}
+
+.form-builder-section {
+  margin-bottom: var(--spacing-6);
+}
+
+.form-builder-section-header {
+  display: flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+
+.form-builder-section-title {
+  font-size: var(--font-size-lg);
+  font-weight: var(--font-weight-semibold);
+}
+
+.form-builder-section-content {
+  display: grid;
+  grid-template-columns: var(--form-builder-grid);
+  gap: var(--spacing-4);
+  width: 100%;
+}
+
+.form-builder-preview {
+  min-height: var(--form-builder-preview-height);
+  padding: var(--spacing-3);
+}
+
+.form-builder-required {
+  color: var(--error-color);
+  margin-left: var(--spacing-1);
+}
+
+.form-builder-field {
+  margin-top: var(--spacing-4);
+  padding-top: var(--spacing-4);
+  border-top: 1px solid var(--border-color);
+}
+
+.form-builder-field-header {
+  margin-bottom: var(--spacing-6);
+}
+
+.form-builder-field-title {
+  font-size: var(--font-size-2xl);
+  font-weight: var(--font-weight-bold);
+  margin-bottom: var(--spacing-2);
+}
+
+.form-builder-field-description {
+  font-size: var(--font-size-sm);
+  margin-bottom: var(--spacing-5);
+}
+
+.form-builder-field-content {
+  display: grid;
+  grid-template-columns: var(--form-builder-field-grid);
+  gap: var(--spacing-4);
+  width: 100%;
+}
+
+.form-builder-field-preview {
+  min-height: var(--form-builder-field-preview-height);
+  padding: var(--spacing-3);
+}
+
+.form-builder-field-actions {
+  display: flex;
+  gap: var(--spacing-2);
+  margin-bottom: var(--spacing-2);
+}
+
+.form-builder-field-label {
+  margin-bottom: var(--spacing-4);
+}
+
+.form-builder-field-input {
+  height: var(--form-builder-input-height);
+  padding: var(--spacing-3) var(--spacing-4);
+  font-size: var(--font-size-base);
+  width: 100%;
+  border-radius: var(--border-radius);
+}
+
+/* Responsive */
+@media (max-width: var(--breakpoint-lg)) {
+  .form-builder-section-content {
+    grid-template-columns: 1fr;
+    gap: var(--spacing-4);
+    padding: var(--spacing-3);
+  }
+}
+
+@media (max-width: var(--breakpoint-md)) {
+  .form-builder-main {
+    padding: var(--spacing-3);
+  }
+
+  .form-builder-field-content {
+    padding: var(--spacing-3);
+  }
+}
+
+@media (max-width: var(--breakpoint-sm)) {
+  .form-builder-main {
+    padding: var(--spacing-3);
+  }
+
+  .form-builder-field-input {
+    padding: var(--spacing-3) var(--spacing-4);
+    font-size: var(--font-size-base);
+    width: 100%;
+    border-radius: var(--border-radius);
+  }
 }
 
 .form-builder-fields {
