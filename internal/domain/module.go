@@ -8,7 +8,6 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/domain/auth"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -61,19 +60,6 @@ func NewFormService(p FormServiceParams) (form.Service, error) {
 	return form.NewService(p.Store, p.EventPublisher, p.Logger), nil
 }
 
-// AuthServiceParams contains dependencies for creating an auth service
-type AuthServiceParams struct {
-	fx.In
-
-	UserService user.Service
-	Logger      logging.Logger
-}
-
-// NewAuthService creates a new auth service
-func NewAuthService(params AuthServiceParams) auth.Service {
-	return auth.NewService(params.UserService, params.Logger)
-}
-
 // StoreParams groups store dependencies
 type StoreParams struct {
 	fx.In
@@ -115,7 +101,7 @@ func NewStores(p StoreParams) (Stores, error) {
 	}, nil
 }
 
-// Module provides all domain services and interfaces
+// Module provides all domain layer dependencies
 var Module = fx.Options(
 	fx.Provide(
 		// User service
@@ -127,11 +113,6 @@ var Module = fx.Options(
 		fx.Annotate(
 			NewFormService,
 			fx.As(new(form.Service)),
-		),
-		// Auth service
-		fx.Annotate(
-			NewAuthService,
-			fx.As(new(auth.Service)),
 		),
 		NewStores,
 	),
