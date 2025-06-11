@@ -8,11 +8,14 @@
   border-radius: var(--button-radius);
   font-weight: var(--button-font-weight);
   font-size: var(--button-font-size);
-  transition: var(--button-transition);
+  transition: var(--button-transition), box-shadow 0.2s;
   cursor: pointer;
   text-decoration: none;
   border: none;
   outline: none;
+  box-shadow: var(--shadow-sm);
+  background: var(--button-secondary-bg);
+  color: var(--button-secondary-color);
 }
 
 /* Primary Button */
@@ -20,24 +23,68 @@
   background: var(--button-primary-gradient);
   color: var(--button-primary-color);
   box-shadow: var(--button-primary-shadow);
+  border: none;
+  font-weight: 700;
 }
 
-.btn-primary:hover {
-  transform: var(--button-transform-hover);
+.btn-primary:hover, .btn-primary:focus {
+  background: linear-gradient(135deg, var(--primary-dark), var(--accent));
   box-shadow: var(--button-primary-shadow-hover);
+  transform: var(--button-transform-hover);
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 /* Secondary Button */
 .btn-secondary {
   background: var(--button-secondary-bg);
-  color: var(--button-secondary-color);
-  border: var(--button-secondary-border);
-  backdrop-filter: blur(var(--button-secondary-blur));
+  color: var(--primary);
+  border: 1.5px solid var(--primary);
+  font-weight: 600;
+  box-shadow: none;
 }
 
-.btn-secondary:hover {
-  background: var(--button-secondary-bg-hover);
-  color: var(--button-secondary-color-hover);
+.btn-secondary:hover, .btn-secondary:focus {
+  background: var(--background-alt);
+  color: var(--primary-dark);
+  border-color: var(--primary-dark);
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Outline Button */
+.btn-outline {
+  background: transparent;
+  border: 2px solid var(--primary);
+  color: var(--primary);
+  font-weight: 600;
+}
+
+.btn-outline:hover, .btn-outline:focus {
+  background: var(--primary);
+  color: var(--button-primary-color);
+  box-shadow: var(--shadow-sm);
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
+}
+
+/* Icon Buttons */
+.btn-icon {
+  padding: var(--spacing-2);
+  border-radius: 50%;
+  aspect-ratio: 1;
+  background: var(--background-alt);
+  color: var(--primary);
+  border: none;
+  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+}
+
+.btn-icon:hover, .btn-icon:focus {
+  background: var(--primary);
+  color: var(--button-primary-color);
+  box-shadow: var(--shadow-sm);
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
 /* Button Sizes */
@@ -56,6 +103,7 @@
   opacity: 0.5;
   cursor: not-allowed;
   pointer-events: none;
+  box-shadow: none;
 }
 
 .btn-loading {
@@ -103,50 +151,44 @@
   border-bottom-right-radius: var(--button-radius);
 }
 
-/* Icon Buttons */
-.btn-icon {
-  padding: var(--spacing-2);
-  border-radius: 50%;
-  aspect-ratio: 1;
-}
-
 /* Full Width Button */
 .btn-block {
   width: 100%;
 }
 
-/* Button Variants */
-.btn-outline {
-  background: transparent;
-  border: 1px solid currentColor;
-}
-
+/* Text Button */
 .btn-text {
   background: transparent;
-  padding: var(--spacing-2);
+  color: var(--primary);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-weight: 500;
+  border-radius: var(--button-radius);
 }
 
-.btn-text:hover {
-  background: var(--background-hover);
+.btn-text:hover, .btn-text:focus {
+  background: var(--background-alt);
+  color: var(--primary-dark);
+  outline: 2px solid var(--primary);
+  outline-offset: 2px;
 }
 
-/* Button Colors */
+/* Color Variants */
 .btn-success {
-  background: var(--success-color);
-  color: white;
+  background: var(--success-color, #22c55e);
+  color: var(--button-primary-color);
 }
 
 .btn-error {
-  background: var(--error-color);
-  color: white;
+  background: var(--error-color, #ef4444);
+  color: var(--button-primary-color);
 }
 
 .btn-warning {
-  background: var(--warning-color);
-  color: white;
+  background: var(--warning-color, #f59e42);
+  color: var(--button-primary-color);
 }
 
 .btn-info {
-  background: var(--info-color);
-  color: white;
+  background: var(--info-color, #38bdf8);
+  color: var(--button-primary-color);
 }
