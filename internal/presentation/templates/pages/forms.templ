@@ -6,26 +6,39 @@ import (
 )
 
 templ Forms(data shared.PageData) {
-	@layouts.Dashboard(data)
+	@layouts.Dashboard(data, formsContent(data))
 }
 
-templ FormsContent(data shared.PageData) {
-	<div class="dashboard-page">
-		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Forms</h1>
-					<p class="dashboard-subtitle">Manage your forms</p>
-				</div>
-				<div class="dashboard-header-right">
-					<a href="/forms/new" class="gf-button gf-button--primary">Create Form</a>
-				</div>
-			</div>
-
-			<div class="dashboard-content">
-				<div class="forms-grid">
-					// TODO: Add form cards here
-				</div>
+templ formsContent(data shared.PageData) {
+	<div class="dashboard-content">
+		<div class="dashboard-header">
+			<h1>Forms</h1>
+		</div>
+		<div class="dashboard-body">
+			<div class="forms-grid">
+				for _, form := range data.Forms {
+					<div class="form-card">
+						<div class="form-card-header">
+							<h2>{ form.Title }</h2>
+							<p class="form-description">{ form.Description }</p>
+						</div>
+						<div class="form-card-body">
+							<div class="form-meta">
+								<div class="form-meta-item">
+									<span class="form-meta-label">Created</span>
+									<span class="form-meta-value">{ form.CreatedAt.Format("Jan 2, 2006") }</span>
+								</div>
+								<div class="form-meta-item">
+									<span class="form-meta-label">Last Edited</span>
+									<span class="form-meta-value">{ form.UpdatedAt.Format("Jan 2, 2006") }</span>
+								</div>
+							</div>
+						</div>
+						<div class="form-card-footer">
+							<a href={ templ.SafeURL("/forms/" + form.ID) } class="gf-button gf-button--primary">View Form</a>
+						</div>
+					</div>
+				}
 			</div>
 		</div>
 	</div>

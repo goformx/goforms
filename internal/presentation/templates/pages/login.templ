@@ -12,12 +12,15 @@ templ Login(data shared.PageData) {
 
 templ loginContent(data shared.PageData) {
 	<div class="auth-page">
-		<div class="auth-container">
-			<div class="auth-card">
-				<div class="auth-header">
-					<h2 class="auth-title">Sign in to your account</h2>
+		<div class="auth-content">
+			@components.Message(data)
+			<div class="auth-container">
+				<div class="auth-card">
+					<div class="auth-header">
+						<h2 class="auth-title">Sign in to your account</h2>
+					</div>
+					@components.LoginForm(data)
 				</div>
-				@components.LoginForm(data)
 			</div>
 		</div>
 	</div>
@@ -33,13 +36,16 @@ templ LoginWithError(data shared.PageData, errorMessage string) {
 
 templ loginContentWithError(data shared.PageData, errorMessage string) {
 	<div class="auth-page">
-		<div class="auth-container">
-			<div class="auth-card">
-				<div class="auth-header">
-					<h2 class="auth-title">Sign in to your account</h2>
+		<div class="auth-content">
+			@components.Message(data)
+			<div class="auth-container">
+				<div class="auth-card">
+					<div class="auth-header">
+						<h2 class="auth-title">Sign in to your account</h2>
+					</div>
+					<div class="form-error">{ errorMessage }</div>
+					@components.LoginForm(data)
 				</div>
-				<div class="form-error">{ errorMessage }</div>
-				@components.LoginForm(data)
 			</div>
 		</div>
 	</div>

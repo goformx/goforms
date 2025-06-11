@@ -3,7 +3,6 @@ package layouts
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/templates/components"
-	"fmt"
 )
 
 templ Layout(data shared.PageData, content templ.Component) {
@@ -28,12 +27,6 @@ templ Layout(data shared.PageData, content templ.Component) {
 	@components.Nav(data)
 
 	<main>
-		if data.Message != nil {
-			<div class="message-area { data.Message.Type }">
-				<i class={ fmt.Sprintf("bi bi-%s", shared.GetMessageIcon(data.Message.Type)) }></i>
-				<span>{ data.Message.Text }</span>
-			</div>
-		}
 		@content
 	</main>
 
