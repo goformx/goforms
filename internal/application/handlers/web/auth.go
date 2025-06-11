@@ -1,12 +1,13 @@
 package web
 
 import (
+	"context"
 	"net/http"
 	"reflect"
 	"strings"
 	"time"
 
-	"github.com/goformx/goforms/internal/application/middleware/context"
+	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -118,7 +119,7 @@ func generateValidationSchema(s interface{}) map[string]any {
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Login")
-	if context.IsAuthenticated(c) {
+	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(http.StatusSeeOther, "/dashboard")
 	}
 	// Debug log for environment and asset path
@@ -178,7 +179,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
-	if context.IsAuthenticated(c) {
+	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(http.StatusSeeOther, "/dashboard")
 	}
 	return h.deps.Renderer.Render(c, pages.Signup(data))
@@ -265,4 +266,16 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "application/json")
 	schema := generateValidationSchema(&user.Signup{})
 	return c.JSON(http.StatusOK, schema)
+}
+
+// Start initializes the auth handler.
+// This is called during application startup.
+func (h *AuthHandler) Start(ctx context.Context) error {
+	return nil // No initialization needed
+}
+
+// Stop cleans up any resources used by the auth handler.
+// This is called during application shutdown.
+func (h *AuthHandler) Stop(ctx context.Context) error {
+	return nil // No cleanup needed
 }

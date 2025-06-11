@@ -1,6 +1,8 @@
 package web
 
 import (
+	"context"
+
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/middleware"
@@ -16,71 +18,94 @@ import (
 
 // Module provides web handler dependencies
 var Module = fx.Options(
+	// Core dependencies
 	fx.Provide(
-		// Handler dependencies
-		func(
-			logger logging.Logger,
-			cfg *config.Config,
-			sessionManager *session.Manager,
-			middlewareManager *middleware.Manager,
-			renderer view.Renderer,
-			userService user.Service,
-			formService form.Service,
-			accessManager *access.AccessManager,
-		) *HandlerDeps {
-			return &HandlerDeps{
-				Logger:            logger,
-				Config:            cfg,
-				SessionManager:    sessionManager,
-				MiddlewareManager: middlewareManager,
-				Renderer:          renderer,
-				UserService:       userService,
-				FormService:       formService,
-			}
-		},
+		fx.Annotate(
+			func(
+				logger logging.Logger,
+				cfg *config.Config,
+				sessionManager *session.Manager,
+				middlewareManager *middleware.Manager,
+				renderer view.Renderer,
+				userService user.Service,
+				formService form.Service,
+			) *HandlerDeps {
+				return &HandlerDeps{
+					Logger:            logger,
+					Config:            cfg,
+					SessionManager:    sessionManager,
+					MiddlewareManager: middlewareManager,
+					Renderer:          renderer,
+					UserService:       userService,
+					FormService:       formService,
+				}
+			},
+			fx.ResultTags(`group:"handler_deps"`),
+		),
+	),
 
-		// Login handler - public access
+	// Handler providers
+	fx.Provide(
+		// Auth handler - public access
 		fx.Annotate(
 			func(deps *HandlerDeps) (Handler, error) {
-				handler, err := NewAuthHandler(*deps)
-				if err != nil {
-					return nil, err
-				}
-				return handler, nil
+				return NewAuthHandler(*deps)
 			},
 			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(Handler)),
 		),
 
-		// Public web page handlers - public access
+		// Web handler - public access
 		fx.Annotate(
 			func(deps *HandlerDeps) (Handler, error) {
-				handler, err := NewWebHandler(*deps)
-				if err != nil {
-					return nil, err
-				}
-				return handler, nil
+				return NewWebHandler(*deps)
 			},
 			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(Handler)),
 		),
 
 		// Form handler - authenticated access
 		fx.Annotate(
 			func(deps *HandlerDeps, accessManager *access.AccessManager) (Handler, error) {
-				handler := NewFormHandler(*deps, deps.FormService, accessManager)
-				return handler, nil
+				return NewFormHandler(*deps, deps.FormService, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(Handler)),
 		),
 
 		// Dashboard handler - authenticated access
 		fx.Annotate(
 			func(deps *HandlerDeps, accessManager *access.AccessManager) (Handler, error) {
-				handler := NewDashboardHandler(*deps, accessManager)
-				return handler, nil
+				return NewDashboardHandler(*deps, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
+			fx.As(new(Handler)),
 		),
 	),
+
+	// Lifecycle hooks
+	fx.Invoke(func(lc fx.Lifecycle, handlers []Handler, logger logging.Logger) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				for _, h := range handlers {
+					if err := h.Start(ctx); err != nil {
+						logger.Error("failed to start handler", "error", err)
+						return err
+					}
+				}
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				for _, h := range handlers {
+					if err := h.Stop(ctx); err != nil {
+						logger.Error("failed to stop handler", "error", err)
+						return err
+					}
+				}
+				return nil
+			},
+		})
+	}),
 )
 
 // RegisterHandlers registers all handlers with the Echo instance

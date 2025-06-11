@@ -1,10 +1,11 @@
 package web
 
 import (
+	"context"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/middleware/context"
+	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -33,7 +34,7 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 
 // handleDashboard handles the dashboard page request
 func (h *DashboardHandler) handleDashboard(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -62,7 +63,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 
 // handleFormView handles the form view page request
 func (h *DashboardHandler) handleFormView(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -100,4 +101,16 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 	data.User = userObj
 	data.Form = form
 	return h.Renderer.Render(c, pages.Forms(data))
+}
+
+// Start initializes the dashboard handler.
+// This is called during application startup.
+func (h *DashboardHandler) Start(ctx context.Context) error {
+	return nil // No initialization needed
+}
+
+// Stop cleans up any resources used by the dashboard handler.
+// This is called during application shutdown.
+func (h *DashboardHandler) Stop(ctx context.Context) error {
+	return nil // No cleanup needed
 }

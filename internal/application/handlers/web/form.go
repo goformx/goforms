@@ -1,13 +1,14 @@
 package web
 
 import (
+	"context"
 	"encoding/json"
 	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/middleware/context"
+	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -52,7 +53,7 @@ func (h *FormHandler) Register(e *echo.Echo) {
 
 // GET /forms/new
 func (h *FormHandler) handleFormNew(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -71,7 +72,7 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 
 // POST /forms
 func (h *FormHandler) handleFormCreate(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -114,11 +115,10 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	}
 
 	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
-	userID := userIDRaw
 
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
@@ -147,7 +147,7 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 
 // PUT /forms/:id
 func (h *FormHandler) handleFormUpdate(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -175,7 +175,7 @@ func (h *FormHandler) handleFormUpdate(c echo.Context) error {
 
 // DELETE /forms/:id
 func (h *FormHandler) handleFormDelete(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -210,7 +210,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 
 // GET /forms/:id/submissions
 func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -278,7 +278,7 @@ func (h *FormHandler) handleFormSchema(c echo.Context) error {
 
 // PUT /api/v1/forms/:id/schema
 func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -316,4 +316,16 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 
 	// Return the updated schema
 	return c.JSON(http.StatusOK, form.Schema)
+}
+
+// Start initializes the form handler.
+// This is called during application startup.
+func (h *FormHandler) Start(ctx context.Context) error {
+	return nil // No initialization needed
+}
+
+// Stop cleans up any resources used by the form handler.
+// This is called during application shutdown.
+func (h *FormHandler) Stop(ctx context.Context) error {
+	return nil // No cleanup needed
 }

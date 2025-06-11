@@ -1,7 +1,9 @@
 package web
 
 import (
+	"context"
 	"errors"
+	"fmt"
 
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/session"
@@ -27,6 +29,14 @@ type Handler interface {
 	// The handler should not apply middleware directly - this is handled by RegisterHandlers.
 	// Routes should be grouped logically and follow RESTful patterns where appropriate.
 	Register(e *echo.Echo)
+
+	// Start initializes the handler and any required resources.
+	// This is called during application startup.
+	Start(ctx context.Context) error
+
+	// Stop cleans up any resources used by the handler.
+	// This is called during application shutdown.
+	Stop(ctx context.Context) error
 }
 
 // HandlerDeps contains dependencies for web handlers.
@@ -116,4 +126,20 @@ func NewHandlerDeps(params HandlerParams) (*HandlerDeps, error) {
 	}
 
 	return deps, nil
+}
+
+// Start initializes the handler dependencies.
+// This is called during application startup.
+func (d *HandlerDeps) Start(ctx context.Context) error {
+	if err := d.Validate(); err != nil {
+		return fmt.Errorf("failed to validate handler dependencies: %w", err)
+	}
+	return nil
+}
+
+// Stop cleans up any resources used by the handler dependencies.
+// This is called during application shutdown.
+func (d *HandlerDeps) Stop(ctx context.Context) error {
+	// Add any cleanup logic here if needed
+	return nil
 }
