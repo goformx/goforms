@@ -71,6 +71,11 @@ func (sm *Manager) isPathExempt(path string) bool {
 		return true
 	}
 
+	// Check if it's a validation endpoint
+	if strings.HasPrefix(path, "/api/v1/validation/") {
+		return true
+	}
+
 	// Check if it's a health check or monitoring endpoint
 	if strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/metrics") {
 		return true
@@ -127,22 +132,15 @@ func (sm *Manager) isStaticFile(path string) bool {
 
 // handleAuthError handles authentication errors
 func (sm *Manager) handleAuthError(c echo.Context, message string) error {
-	if sm.config.ErrorHandler != nil {
-		return sm.config.ErrorHandler(c, message)
-	}
+	// Check if this is an API request
+	isAPIRequest := strings.HasPrefix(c.Request().URL.Path, "/api/")
+	acceptsJSON := strings.Contains(c.Request().Header.Get("Accept"), "application/json")
 
-	path := c.Request().URL.Path
-
-	// For API requests, return 401
-	if c.Request().Header.Get("Accept") == "application/json" {
+	if isAPIRequest || acceptsJSON {
+		// Return JSON error response for API requests
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": message,
 		})
-	}
-
-	// If already on /login or /signup, just render the page, don't redirect
-	if sm.isPathExempt(path) {
-		return nil // Let the handler render the page
 	}
 
 	// For web requests, redirect to login
@@ -173,4 +171,55 @@ func (sm *Manager) ClearSessionCookie(c echo.Context) {
 	cookie.SameSite = http.SameSiteLaxMode
 	cookie.Expires = time.Now().Add(-1 * time.Hour)
 	c.SetCookie(cookie)
+}
+
+// SessionMiddleware creates a new session middleware
+func (sm *Manager) SessionMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+
+			// Skip session check for exempt paths
+			if sm.isPathExempt(path) {
+				return next(c)
+			}
+
+			// Get session cookie
+			cookie, err := c.Cookie(sm.cookieName)
+			if err != nil {
+				return sm.handleAuthError(c, "no session found")
+			}
+
+			// Get session from manager
+			session, exists := sm.GetSession(cookie.Value)
+			if !exists {
+				return sm.handleAuthError(c, "invalid session")
+			}
+
+			// Check session expiration
+			if session.ExpiresAt.Before(time.Now()) {
+				return sm.handleAuthError(c, "session expired")
+			}
+
+			// Set user ID in context
+			c.Set("user_id", session.UserID)
+			c.Set("user_email", session.Email)
+
+			// Refresh session if needed
+			if time.Until(session.ExpiresAt) < sm.expiryTime/2 {
+				// Create new session with same user data
+				newSessionID, err := sm.CreateSession(session.UserID, session.Email, session.Role)
+				if err != nil {
+					sm.logger.Error("failed to refresh session", "error", err)
+				} else {
+					// Delete old session
+					sm.DeleteSession(cookie.Value)
+					// Set new session cookie
+					sm.SetSessionCookie(c, newSessionID)
+				}
+			}
+
+			return next(c)
+		}
+	}
 }

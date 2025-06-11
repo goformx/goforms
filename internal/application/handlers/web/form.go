@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -37,7 +38,7 @@ func (h *FormHandler) Register(e *echo.Echo) {
 	api := e.Group("/api/v1")
 	forms := api.Group("/forms")
 	forms.GET("/:id/schema", h.handleFormSchema)
-	forms.PUT("/:id/schema", h.handleFormSchemaUpdate)
+	forms.PUT("/:id/schema", h.handleFormSchemaUpdate, middleware.RequireAuth(h.Logger))
 }
 
 // GET /forms/new
@@ -258,11 +259,23 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
 
+	// Get user ID from session
+	userIDRaw, ok := c.Get("user_id").(string)
+	if !ok {
+		return response.ErrorResponse(c, http.StatusUnauthorized, "Authentication required")
+	}
+	userID := userIDRaw
+
 	// Get existing form
 	form, getErr := h.FormService.GetForm(c.Request().Context(), formID)
 	if getErr != nil {
 		h.Logger.Error("failed to get form", "error", getErr)
 		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+	}
+
+	// Verify form ownership
+	if form.UserID != userID {
+		return response.ErrorResponse(c, http.StatusForbidden, "You don't have permission to update this form")
 	}
 
 	// Parse request body
@@ -271,13 +284,6 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 		h.Logger.Error("failed to decode request body", "error", decodeErr)
 		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
 	}
-
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
-	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-	userID := userIDRaw
 
 	// Update form schema
 	form.Schema = schema

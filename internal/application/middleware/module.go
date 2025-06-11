@@ -32,7 +32,6 @@ var Module = fx.Options(
 					"/demo",
 				},
 				ExemptPaths: []string{
-					"/api/v1",
 					"/api/v1/validation",
 					"/api/v1/validation/login",
 					"/api/v1/validation/signup",
