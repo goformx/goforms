@@ -231,7 +231,6 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	data.User = user
 	data.Form = form
 	data.Submissions = submissions
-	data.Content = pages.FormSubmissionsContent(data)
 
 	return h.Renderer.Render(c, pages.FormSubmissions(data))
 }

@@ -2,6 +2,8 @@ package web
 
 import (
 	"net/http"
+	"reflect"
+	"strings"
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/user"
@@ -48,6 +50,68 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 	e.GET("/api/validation/signup", h.SignupValidation)
 }
 
+// generateValidationSchema generates a validation schema from struct tags
+func generateValidationSchema(s interface{}) map[string]any {
+	schema := make(map[string]any)
+	t := reflect.TypeOf(s)
+
+	// Handle pointer types
+	if t.Kind() == reflect.Ptr {
+		t = t.Elem()
+	}
+
+	// Only process structs
+	if t.Kind() != reflect.Struct {
+		return schema
+	}
+
+	for i := 0; i < t.NumField(); i++ {
+		field := t.Field(i)
+		jsonTag := field.Tag.Get("json")
+		if jsonTag == "" || jsonTag == "-" {
+			continue
+		}
+
+		// Get the first part of the JSON tag (before any comma)
+		fieldName := strings.Split(jsonTag, ",")[0]
+		validateTag := field.Tag.Get("validate")
+
+		// Create field schema
+		fieldSchema := make(map[string]any)
+		fieldSchema["type"] = "string" // Default type
+
+		// Parse validation tags
+		if validateTag != "" {
+			rules := strings.Split(validateTag, ",")
+			for _, rule := range rules {
+				switch {
+				case rule == "required":
+					fieldSchema["min"] = 1
+					fieldSchema["message"] = fieldName + " is required"
+				case rule == "email":
+					fieldSchema["type"] = "email"
+					fieldSchema["message"] = "Please enter a valid email address"
+				case strings.HasPrefix(rule, "min="):
+					min := strings.TrimPrefix(rule, "min=")
+					fieldSchema["min"] = min
+					if fieldName == "password" {
+						fieldSchema["message"] = "Password must be at least " + min + " characters long"
+					}
+				case strings.HasPrefix(rule, "match="):
+					matchField := strings.TrimPrefix(rule, "match=")
+					fieldSchema["type"] = "match"
+					fieldSchema["matchField"] = matchField
+					fieldSchema["message"] = "Passwords must match"
+				}
+			}
+		}
+
+		schema[fieldName] = fieldSchema
+	}
+
+	return schema
+}
+
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Login")
@@ -71,22 +135,26 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	// Validate credentials using the user service
 	authenticatedUser, err := h.deps.UserService.Authenticate(c.Request().Context(), email, password)
 	if err != nil {
-		h.deps.Logger.Debug("Login failed", "error", err)
+		h.deps.Logger.Debug("Login failed",
+			"email", h.deps.Logger.SanitizeField("email", email),
+			"error_type", "authentication_error")
 		data.Message = &shared.Message{
 			Type: "error",
-			Text: err.Error(),
+			Text: "Invalid email or password",
 		}
 		return h.deps.Renderer.Render(c, pages.Login(data))
 	}
 
-	// Create session
+	// Create session with rolling expiration
 	session, err := h.deps.SessionManager.CreateSession(
 		authenticatedUser.ID,
 		authenticatedUser.Email,
 		c.Request().UserAgent(),
 	)
 	if err != nil {
-		h.deps.Logger.Error("Failed to create session", "error", err)
+		h.deps.Logger.Error("Failed to create session",
+			"error", err,
+			"user_id", h.deps.Logger.SanitizeField("user_id", authenticatedUser.ID))
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "An error occurred. Please try again.",
@@ -94,7 +162,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		return h.deps.Renderer.Render(c, pages.Login(data))
 	}
 
-	// Set session cookie
+	// Set session cookie with rolling expiration
 	cookie := &http.Cookie{
 		Name:     h.deps.SessionManager.GetCookieName(),
 		Value:    session,
@@ -126,15 +194,6 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	firstName := sanitize.XSS(c.FormValue("first_name"))
 	lastName := sanitize.XSS(c.FormValue("last_name"))
 
-	// Validate input
-	if email == "" || password == "" || firstName == "" || lastName == "" {
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "All fields are required.",
-		}
-		return h.deps.Renderer.Render(c, pages.Signup(data))
-	}
-
 	// Create user
 	signup := &user.Signup{
 		Email:     email,
@@ -145,10 +204,12 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 
 	newUser, err := h.deps.UserService.SignUp(c.Request().Context(), signup)
 	if err != nil {
-		h.deps.Logger.Debug("Signup failed", "error", err)
+		h.deps.Logger.Debug("Signup failed",
+			"error", err,
+			"email", h.deps.Logger.SanitizeField("email", email))
 		data.Message = &shared.Message{
 			Type: "error",
-			Text: "Signup failed: " + err.Error(),
+			Text: "Unable to create account. Please try again.",
 		}
 		return h.deps.Renderer.Render(c, pages.Signup(data))
 	}
@@ -156,7 +217,9 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	// Create session for new user
 	session, err := h.deps.SessionManager.CreateSession(newUser.ID, newUser.Email, c.Request().UserAgent())
 	if err != nil {
-		h.deps.Logger.Error("Failed to create session after signup", "error", err)
+		h.deps.Logger.Error("Failed to create session after signup",
+			"error", err,
+			"user_id", h.deps.Logger.SanitizeField("user_id", newUser.ID))
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "An error occurred. Please try again.",
@@ -199,47 +262,12 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 
 // LoginValidation handles the login form validation schema request
 func (h *AuthHandler) LoginValidation(c echo.Context) error {
-	schema := map[string]any{
-		"email": map[string]any{
-			"type":    "email",
-			"message": "Please enter a valid email address",
-		},
-		"password": map[string]any{
-			"type":    "password",
-			"min":     MinPasswordLength, // Minimum password length requirement
-			"message": "Password must be at least 8 characters long",
-		},
-	}
+	schema := generateValidationSchema(&user.Login{})
 	return c.JSON(http.StatusOK, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
 func (h *AuthHandler) SignupValidation(c echo.Context) error {
-	schema := map[string]any{
-		"first_name": map[string]any{
-			"type":    "string",
-			"min":     1,
-			"message": "First name is required",
-		},
-		"last_name": map[string]any{
-			"type":    "string",
-			"min":     1,
-			"message": "Last name is required",
-		},
-		"email": map[string]any{
-			"type":    "email",
-			"message": "Please enter a valid email address",
-		},
-		"password": map[string]any{
-			"type":    "password",
-			"min":     MinPasswordLength, // Minimum password length requirement
-			"message": "Password must be at least 8 characters long",
-		},
-		"confirm_password": map[string]any{
-			"type":       "match",
-			"matchField": "password",
-			"message":    "Passwords must match",
-		},
-	}
+	schema := generateValidationSchema(&user.Signup{})
 	return c.JSON(http.StatusOK, schema)
 }
