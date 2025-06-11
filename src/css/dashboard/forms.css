@@ -88,4 +88,18 @@
   display: flex;
   gap: var(--spacing-2);
   justify-content: flex-end;
+}
+
+.dashboard-title {
+  font-size: var(--font-size-base);
+  font-weight: var(--font-weight-semibold);
+  color: var(--text);
+  margin: 0;
+  line-height: 1;
+}
+
+.dashboard-subtitle {
+  font-size: var(--font-size-sm);
+  color: var(--text-light);
+  margin: 0;
 } 
