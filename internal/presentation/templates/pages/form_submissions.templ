@@ -6,7 +6,7 @@ import (
 )
 
 templ FormSubmissions(data shared.PageData) {
-	@layouts.Dashboard(data, formSubmissionsContent(data))
+	@layouts.Layout(data, formSubmissionsContent(data))
 }
 
 templ formSubmissionsContent(data shared.PageData) {

@@ -6,7 +6,7 @@ import (
 )
 
 templ Profile(data shared.PageData) {
-	@layouts.Dashboard(data, profileContent(data))
+	@layouts.Layout(data, profileContent(data))
 }
 
 templ profileContent(data shared.PageData) {

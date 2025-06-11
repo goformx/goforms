@@ -6,7 +6,7 @@ import (
 )
 
 templ Settings(data shared.PageData) {
-	@layouts.Dashboard(data, settingsContent(data))
+	@layouts.Layout(data, settingsContent(data))
 }
 
 templ settingsContent(data shared.PageData) {

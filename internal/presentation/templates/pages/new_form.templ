@@ -6,7 +6,7 @@ import (
 )
 
 templ NewForm(data shared.PageData) {
-	@layouts.Dashboard(data, newFormContent(data))
+	@layouts.Layout(data, newFormContent(data))
 }
 
 templ newFormContent(data shared.PageData) {

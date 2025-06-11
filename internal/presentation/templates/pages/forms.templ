@@ -6,7 +6,7 @@ import (
 )
 
 templ Forms(data shared.PageData) {
-	@layouts.Dashboard(data, formsContent(data))
+	@layouts.Layout(data, formsContent(data))
 }
 
 templ formsContent(data shared.PageData) {

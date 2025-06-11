@@ -68,7 +68,7 @@ templ FormFieldsContent(data shared.PageData) {
 }
 
 templ EditForm(data shared.PageData) {
-	@layouts.Dashboard(data, editFormContent(data))
+	@layouts.Layout(data, editFormContent(data))
 }
 
 templ editFormContent(data shared.PageData) {
