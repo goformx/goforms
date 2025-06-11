@@ -67,7 +67,7 @@ func (sm *Manager) isPathExempt(path string) bool {
 	}
 
 	// Check if it's a public API endpoint
-	if strings.HasPrefix(path, "/api/public/") {
+	if strings.HasPrefix(path, "/api/v1/public/") {
 		return true
 	}
 
@@ -86,6 +86,13 @@ func (sm *Manager) isPathExempt(path string) bool {
 	// Check public paths (login, signup, etc.)
 	for _, publicPath := range sm.config.PublicPaths {
 		if path == publicPath {
+			return true
+		}
+	}
+
+	// Check exempt paths
+	for _, exemptPath := range sm.config.ExemptPaths {
+		if strings.HasPrefix(path, exemptPath) {
 			return true
 		}
 	}

@@ -45,9 +45,11 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 	e.POST("/signup", h.SignupPost)
 	e.POST("/logout", h.Logout)
 
-	// Validation schema endpoints
-	e.GET("/api/validation/login", h.LoginValidation)
-	e.GET("/api/validation/signup", h.SignupValidation)
+	// API routes
+	api := e.Group("/api/v1")
+	validation := api.Group("/validation")
+	validation.GET("/login", h.LoginValidation)
+	validation.GET("/signup", h.SignupValidation)
 }
 
 // generateValidationSchema generates a validation schema from struct tags
@@ -268,12 +270,16 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 
 // LoginValidation handles the login form validation schema request
 func (h *AuthHandler) LoginValidation(c echo.Context) error {
+	// Set content type to JSON
+	c.Response().Header().Set("Content-Type", "application/json")
 	schema := generateValidationSchema(&user.Login{})
 	return c.JSON(http.StatusOK, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
 func (h *AuthHandler) SignupValidation(c echo.Context) error {
+	// Set content type to JSON
+	c.Response().Header().Set("Content-Type", "application/json")
 	schema := generateValidationSchema(&user.Signup{})
 	return c.JSON(http.StatusOK, schema)
 }

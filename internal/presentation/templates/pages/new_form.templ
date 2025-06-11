@@ -16,7 +16,7 @@ templ newFormContent(data shared.PageData) {
 		</div>
 		<div class="dashboard-body">
 			<div class="form-card">
-				<form id="new-form" class="auth-form" method="POST" action="/forms/new">
+				<form id="new-form" class="auth-form" method="POST" action="/forms">
 					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 					<div id="form_error" class="form-error"></div>
 

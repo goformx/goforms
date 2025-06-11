@@ -41,7 +41,7 @@ class CTAForm {
         try {
           // Submit the form data
           const response = await fetch(
-            `${BASE_URL}/api/forms/${CTA_FORM_ID}/submissions`,
+            `${BASE_URL}/api/v1/forms/${CTA_FORM_ID}/submissions`,
             {
               method: "POST",
               headers: {
