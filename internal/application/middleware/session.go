@@ -220,22 +220,28 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			// Get session cookie
 			cookie, err := c.Cookie(sm.cookieName)
 			if err != nil {
+				sm.logger.Debug("SessionMiddleware: No session cookie found", "path", c.Request().URL.Path)
 				return sm.handleAuthError(c, "no session found")
 			}
+			sm.logger.Debug("SessionMiddleware: Found session cookie", "cookie", cookie.Value, "path", c.Request().URL.Path)
 
 			// Get session from manager
 			session, exists := sm.GetSession(cookie.Value)
 			if !exists {
+				sm.logger.Debug("SessionMiddleware: Session not found", "cookie", cookie.Value, "path", c.Request().URL.Path)
 				return sm.handleAuthError(c, "invalid session")
 			}
+			sm.logger.Debug("SessionMiddleware: Session found", "user_id", session.UserID, "path", c.Request().URL.Path)
 
 			// Check if session is expired
 			if time.Now().After(session.ExpiresAt) {
+				sm.logger.Debug("SessionMiddleware: Session expired", "user_id", session.UserID, "path", c.Request().URL.Path)
 				sm.DeleteSession(cookie.Value)
 				return sm.handleAuthError(c, "session expired")
 			}
 
 			// Store session in context
+			sm.logger.Debug("SessionMiddleware: Setting session in context", "user_id", session.UserID, "path", c.Request().URL.Path)
 			c.Set(SessionKey, session)
 			c.Set("user_id", session.UserID)
 			c.Set("email", session.Email)
@@ -304,13 +310,7 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 		return true
 	}
 
-	// Check for exact homepage match
-	if path == "/" {
-		sm.logger.Debug("SessionMiddleware: Homepage is exempt from session check",
-			"path", path,
-		)
-		return true
-	}
+	// Removed homepage exemption
 
 	// Check other exempt paths
 	exemptPaths := []string{
@@ -319,7 +319,6 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 		"/signup",
 		"/forgot-password",
 		"/contact",
-		"/demo",
 	}
 
 	for _, exemptPath := range exemptPaths {
@@ -377,5 +376,3 @@ func (sm *SessionManager) ClearSessionCookie(c echo.Context) {
 func (sm *SessionManager) GetCookieName() string {
 	return sm.cookieName
 }
-
-// Note: isPublicRoute is defined in middleware.go

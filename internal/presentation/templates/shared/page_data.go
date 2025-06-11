@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/a-h/templ"
+	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -36,14 +37,27 @@ type Message struct {
 // BuildPageData centralizes construction of PageData for handlers
 func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 	csrfToken := ""
+	var currentUser *user.User
 	if c != nil {
 		if token, ok := c.Get("csrf").(string); ok {
 			csrfToken = token
+		}
+
+		// Try to get session from context and populate currentUser
+		if sessionVal := c.Get(middleware.SessionKey); sessionVal != nil {
+			if session, ok := sessionVal.(*middleware.Session); ok && session != nil {
+				currentUser = &user.User{
+					ID:    session.UserID,
+					Email: session.Email,
+					Role:  session.Role,
+				}
+			}
 		}
 	}
 
 	return PageData{
 		Title:         title,
+		User:          currentUser,
 		IsDevelopment: cfg != nil && cfg.App.IsDevelopment(),
 		AssetPath: func(path string) string {
 			if cfg != nil && cfg.App.IsDevelopment() {

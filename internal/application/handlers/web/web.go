@@ -28,6 +28,12 @@ func (h *WebHandler) Register(e *echo.Echo) {
 // handleHome handles the home page request
 func (h *WebHandler) handleHome(c echo.Context) error {
 	data := shared.BuildPageData(h.Config, c, "Home")
+	if h.Logger != nil {
+		h.Logger.Debug("handleHome: data.User", "user", data.User)
+	}
+	if data.User != nil {
+		return c.Redirect(302, "/dashboard")
+	}
 	if err := h.Renderer.Render(c, pages.Home(data)); err != nil {
 		data.Message = &shared.Message{
 			Type: "error",
@@ -41,5 +47,11 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 // handleDemo handles the demo page request
 func (h *WebHandler) handleDemo(c echo.Context) error {
 	data := shared.BuildPageData(h.Config, c, "Demo")
+	if h.Logger != nil {
+		h.Logger.Debug("handleDemo: data.User", "user", data.User)
+	}
+	if data.User != nil {
+		return c.Redirect(302, "/dashboard")
+	}
 	return h.Renderer.Render(c, pages.Demo(data))
 }
