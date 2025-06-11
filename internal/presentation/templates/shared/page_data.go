@@ -24,49 +24,70 @@ type PageData struct {
 	IsDevelopment        bool
 	AssetPath            func(string) string
 	Content              templ.Component
-	FormBuilderAssetPath string   // Path to the form builder JS asset
-	Message              *Message // Optional message to display
+	FormBuilderAssetPath string
+	Message              *Message
 }
 
-// Message represents a user-facing message with a type and text
+// Message represents a user-facing message
 type Message struct {
-	Type string // "error", "success", "info", "warning"
+	Type string
 	Text string
 }
 
-// BuildPageData centralizes construction of PageData for handlers
-func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
-	csrfToken := ""
-	var currentUser *user.User
-	if c != nil {
-		if token, ok := c.Get("csrf").(string); ok {
-			csrfToken = token
-		}
-
-		// Try to get session from context and populate currentUser
-		if sessionVal := c.Get(middleware.SessionKey); sessionVal != nil {
-			if session, ok := sessionVal.(*middleware.Session); ok && session != nil {
-				currentUser = &user.User{
-					ID:    session.UserID,
-					Email: session.Email,
-					Role:  session.Role,
-				}
+// GetCurrentUser extracts session data from Echo's context
+func GetCurrentUser(c echo.Context) *user.User {
+	if c == nil {
+		return nil
+	}
+	sessionVal := c.Get(middleware.SessionKey)
+	if sessionVal != nil {
+		if session, ok := sessionVal.(*middleware.Session); ok && session != nil {
+			return &user.User{
+				ID:    session.UserID,
+				Email: session.Email,
+				Role:  session.Role,
 			}
 		}
 	}
+	return nil
+}
 
+// GetCSRFToken retrieves the CSRF token from context
+func GetCSRFToken(c echo.Context) string {
+	if c == nil {
+		return ""
+	}
+	if token, ok := c.Get("csrf").(string); ok {
+		return token
+	}
+	return ""
+}
+
+// GenerateAssetPath creates asset paths based on environment settings
+func GenerateAssetPath(cfg *config.Config) func(string) string {
+	return func(path string) string {
+		if cfg != nil && cfg.App.IsDevelopment() {
+			return fmt.Sprintf("%s://%s/assets/%s",
+				cfg.App.Scheme, net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort), path)
+		}
+		return fmt.Sprintf("%s://%s/assets/%s",
+			cfg.App.Scheme, net.JoinHostPort(cfg.App.Host, strconv.Itoa(cfg.App.Port)), path)
+	}
+}
+
+// BuildPageData constructs PageData with extracted functions
+func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 	return PageData{
-		Title:         title,
-		User:          currentUser,
-		IsDevelopment: cfg != nil && cfg.App.IsDevelopment(),
-		AssetPath: func(path string) string {
-			if cfg != nil && cfg.App.IsDevelopment() {
-				// In development, serve source files directly from Vite
-				return fmt.Sprintf("%s://%s/assets/%s", cfg.App.Scheme, net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort), path)
-			}
-			// In production, use the built assets
-			return fmt.Sprintf("%s://%s/assets/%s", cfg.App.Scheme, net.JoinHostPort(cfg.App.Host, strconv.Itoa(cfg.App.Port)), path)
-		},
-		CSRFToken: csrfToken,
+		Title:                title,
+		User:                 GetCurrentUser(c),
+		Forms:                []*model.Form{},           // Placeholder, should be populated elsewhere
+		Form:                 nil,                       // Placeholder
+		Submissions:          []*model.FormSubmission{}, // Placeholder
+		CSRFToken:            GetCSRFToken(c),
+		IsDevelopment:        cfg != nil && cfg.App.IsDevelopment(),
+		AssetPath:            GenerateAssetPath(cfg),
+		Content:              nil, // Should be set by a handler
+		FormBuilderAssetPath: "",  // Placeholder
+		Message:              nil, // Can be set dynamically when needed
 	}
 }
