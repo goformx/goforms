@@ -1,10 +1,10 @@
+// Package middleware provides HTTP middleware components.
 package middleware
 
 import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/middleware/session"
-	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
@@ -13,41 +13,37 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		// Session manager
-		func(logger logging.Logger, cfg *config.Config, lc fx.Lifecycle) *session.Manager {
-			sessionConfig := &session.SessionConfig{
-				SessionConfig: &cfg.Session,
-				PublicPaths: []string{
-					"/",
-					"/login",
-					"/signup",
-				},
-				ExemptPaths: []string{
-					"/api/validation/",
-					"/forgot-password",
-					"/contact",
-				},
-				StaticPaths: []string{
-					"/static/",
-					"/assets/",
-					"/images/",
-				},
-			}
-			return session.NewManager(logger, sessionConfig, lc)
-		},
-		// Middleware manager
 		func(
 			logger logging.Logger,
 			cfg *config.Config,
-			userService user.Service,
-			sessionManager *session.Manager,
-		) *Manager {
-			return NewManager(&ManagerConfig{
-				Logger:         logger,
-				Security:       &cfg.Security,
-				UserService:    userService,
-				SessionManager: sessionManager,
-				Config:         cfg,
-			})
+			lc fx.Lifecycle,
+		) *session.Manager {
+			sessionConfig := &session.SessionConfig{
+				Config:        cfg,
+				SessionConfig: &cfg.Session,
+				PublicPaths: []string{
+					"/login",
+					"/signup",
+					"/forgot-password",
+					"/reset-password",
+					"/health",
+					"/metrics",
+				},
+				ExemptPaths: []string{
+					"/api/public",
+					"/api/health",
+					"/api/metrics",
+				},
+				StaticPaths: []string{
+					"/static",
+					"/assets",
+					"/images",
+					"/css",
+					"/js",
+					"/favicon.ico",
+				},
+			}
+			return session.NewManager(logger, sessionConfig, lc)
 		},
 	),
 )

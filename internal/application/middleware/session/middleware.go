@@ -2,6 +2,7 @@ package session
 
 import (
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -68,38 +69,67 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 
 // isPathExempt checks if a path is exempt from session authentication
 func (sm *Manager) isPathExempt(path string) bool {
-	// Check if it's a static file
+	// Skip authentication for:
+	// 1. Static assets (files, images, etc.)
+	// 2. Public API endpoints
+	// 3. Health checks and monitoring
+	// 4. Development tools and debugging endpoints
+	// 5. Public pages (login, signup, etc.)
+
+	// Check if it's a static file or asset
 	if sm.isStaticFile(path) {
 		return true
 	}
 
-	// Check public paths
+	// Check if it's a public API endpoint
+	if strings.HasPrefix(path, "/api/public/") {
+		return true
+	}
+
+	// Check if it's a health check or monitoring endpoint
+	if strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/metrics") {
+		return true
+	}
+
+	// Check if it's a development tool endpoint
+	if sm.config.Config.App.Env == "development" && (strings.HasPrefix(path, "/.well-known/") ||
+		strings.HasPrefix(path, "/debug/") ||
+		strings.HasPrefix(path, "/dev/")) {
+		return true
+	}
+
+	// Check public paths (login, signup, etc.)
 	for _, publicPath := range sm.config.PublicPaths {
 		if path == publicPath {
 			return true
 		}
 	}
 
-	// Check exempt paths
-	for _, exemptPath := range sm.config.ExemptPaths {
-		if path == exemptPath || len(path) > len(exemptPath) && path[:len(exemptPath)] == exemptPath {
-			sm.logger.Debug("SessionMiddleware: Path is exempt from session check",
-				"path", path,
-				"exempt_path", exemptPath,
-			)
-			return true
-		}
-	}
 	return false
 }
 
 // isStaticFile checks if a path is a static file
 func (sm *Manager) isStaticFile(path string) bool {
-	for _, staticPath := range sm.config.StaticPaths {
-		if len(path) > len(staticPath) && path[:len(staticPath)] == staticPath {
+	// Check for common static file extensions
+	staticExtensions := []string{
+		".ico", ".png", ".jpg", ".jpeg", ".gif", ".svg",
+		".css", ".js", ".woff", ".woff2", ".ttf", ".eot",
+		".map", ".json", ".txt", ".xml", ".pdf",
+	}
+
+	for _, ext := range staticExtensions {
+		if strings.HasSuffix(strings.ToLower(path), ext) {
 			return true
 		}
 	}
+
+	// Check static paths
+	for _, staticPath := range sm.config.StaticPaths {
+		if strings.HasPrefix(path, staticPath) {
+			return true
+		}
+	}
+
 	return false
 }
 

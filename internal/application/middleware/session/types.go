@@ -40,6 +40,7 @@ type SessionStorage interface {
 // SessionConfig extends the base config with additional session-specific settings
 type SessionConfig struct {
 	*config.SessionConfig
+	*config.Config
 	PublicPaths  []string `json:"public_paths"`
 	ExemptPaths  []string `json:"exempt_paths"`
 	StaticPaths  []string `json:"static_paths"`

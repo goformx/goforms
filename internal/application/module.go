@@ -2,6 +2,7 @@
 package application
 
 import (
+	"context"
 	"errors"
 
 	"go.uber.org/fx"
@@ -13,10 +14,11 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-// Dependencies contains all application layer dependencies
+// Dependencies holds all application dependencies
 type Dependencies struct {
 	fx.In
 
@@ -27,9 +29,13 @@ type Dependencies struct {
 	// Infrastructure
 	Logger            logging.Logger
 	Config            *config.Config
+	Server            *server.Server
+	DomainModule      fx.Option
+	Presentation      fx.Option
+	MiddlewareModule  fx.Option
 	SessionManager    *session.Manager
-	MiddlewareManager *middleware.Manager
 	Renderer          view.Renderer
+	MiddlewareManager *middleware.Manager
 }
 
 // Validate checks if all required dependencies are present
@@ -42,9 +48,13 @@ func (d *Dependencies) Validate() error {
 		{"FormService", d.FormService},
 		{"Logger", d.Logger},
 		{"Config", d.Config},
+		{"Server", d.Server},
+		{"DomainModule", d.DomainModule},
+		{"Presentation", d.Presentation},
+		{"MiddlewareModule", d.MiddlewareModule},
 		{"SessionManager", d.SessionManager},
-		{"MiddlewareManager", d.MiddlewareManager},
 		{"Renderer", d.Renderer},
+		{"MiddlewareManager", d.MiddlewareManager},
 	}
 
 	for _, r := range required {
@@ -72,46 +82,83 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 	}, nil
 }
 
-// Module provides application dependencies
+// Module represents the application module
 var Module = fx.Options(
 	fx.Provide(
-		// Session manager
-		func(logger logging.Logger, cfg *config.Config, lc fx.Lifecycle) *session.Manager {
-			sessionConfig := &session.SessionConfig{
-				SessionConfig: &cfg.Session,
-				PublicPaths: []string{
-					"/",
-					"/login",
-					"/signup",
-				},
-				ExemptPaths: []string{
-					"/api/validation/",
-					"/forgot-password",
-					"/contact",
-				},
-				StaticPaths: []string{
-					"/static/",
-					"/assets/",
-					"/images/",
-				},
-			}
-			return session.NewManager(logger, sessionConfig, lc)
-		},
-		// Middleware manager
-		func(
-			logger logging.Logger,
-			cfg *config.Config,
-			userService user.Service,
-			sessionManager *session.Manager,
-		) *middleware.Manager {
-			return middleware.NewManager(&middleware.ManagerConfig{
-				Logger:         logger,
-				Security:       &cfg.Security,
-				UserService:    userService,
-				SessionManager: sessionManager,
-				Config:         cfg,
-			})
-		},
+		New,
+		provideMiddlewareManager,
 	),
-	web.Module,
 )
+
+// provideMiddlewareManager creates a new middleware manager
+func provideMiddlewareManager(
+	logger logging.Logger,
+	cfg *config.Config,
+	userService user.Service,
+	sessionManager *session.Manager,
+) *middleware.Manager {
+	return middleware.NewManager(&middleware.ManagerConfig{
+		Logger:         logger,
+		Security:       &cfg.Security,
+		UserService:    userService,
+		Config:         cfg,
+		SessionManager: sessionManager,
+	})
+}
+
+// New creates a new application instance
+func New(lc fx.Lifecycle, deps Dependencies) *Application {
+	app := &Application{
+		logger:           deps.Logger,
+		config:           deps.Config,
+		server:           deps.Server,
+		domainModule:     deps.DomainModule,
+		presentation:     deps.Presentation,
+		middlewareModule: deps.MiddlewareModule,
+		sessionManager:   deps.SessionManager,
+		renderer:         deps.Renderer,
+	}
+
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			return app.Start(ctx)
+		},
+		OnStop: func(ctx context.Context) error {
+			return app.Stop(ctx)
+		},
+	})
+
+	return app
+}
+
+// Application represents the main application
+type Application struct {
+	logger           logging.Logger
+	config           *config.Config
+	server           *server.Server
+	domainModule     fx.Option
+	presentation     fx.Option
+	middlewareModule fx.Option
+	sessionManager   *session.Manager
+	renderer         view.Renderer
+}
+
+// Start starts the application
+func (a *Application) Start(ctx context.Context) error {
+	a.logger.Info("Starting application...")
+
+	// Start the server
+	if err := a.server.Start(); err != nil {
+		return err
+	}
+
+	a.logger.Info("Application started successfully")
+	return nil
+}
+
+// Stop stops the application
+func (a *Application) Stop(ctx context.Context) error {
+	a.logger.Info("Stopping application...")
+	a.logger.Info("Application stopped successfully")
+	return nil
+}

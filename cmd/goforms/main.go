@@ -122,6 +122,7 @@ func main() {
 		infrastructure.Module,
 		domain.Module,
 		application.Module,
+		appmiddleware.Module,
 		presentation.Module,
 		// Invoke setup functions
 		fx.Invoke(setupApplication),
