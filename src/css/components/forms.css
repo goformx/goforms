@@ -3,6 +3,11 @@
   margin-bottom: var(--form-group-gap);
 }
 
+.form-group--center {
+  display: flex;
+  justify-content: center;
+}
+
 .form-label {
   display: block;
   font-weight: var(--form-label-weight);

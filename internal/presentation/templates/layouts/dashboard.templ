@@ -21,9 +21,13 @@ templ Dashboard(data shared.PageData, content templ.Component) {
 			<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css"/>
 		</head>
 		<body>
-			@components.Nav(data)
+			<header>
+				@components.Nav(data)
+			</header>
 			<main>
-				@components.Message(data)
+				if data.Message != nil {
+					@components.Message(data)
+				}
 				@content
 			</main>
 			@components.Footer()

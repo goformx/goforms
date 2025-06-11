@@ -1,37 +1,33 @@
 package layouts
 
 import (
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/templates/components"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
 
 templ Layout(data shared.PageData, content templ.Component) {
-<!DOCTYPE html>
-<html lang="en">
-
-<head>
-	<meta charset="UTF-8" />
-	<meta name="viewport" content="width=device-width, initial-scale=1.0" />
-	<meta name="description" content="Goforms - A self-hosted form backend service built with Go" />
-	<meta name="keywords" content="forms, golang, backend, self-hosted" />
-	<meta name="color-scheme" content="light dark" />
-	<meta name="csrf-token" content={ data.CSRFToken } />
-	<meta name="csrf-param" content="_csrf" />
-	<title>{ data.Title } - Goforms</title>
-
-	<script type="module" src={ data.AssetPath("src/js/main.ts") }></script>
-	<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css"/>
-</head>
-
-<body>
-	@components.Nav(data)
-
-	<main>
-		@content
-	</main>
-
-	@components.Footer()
-</body>
-
-</html>
+	<!DOCTYPE html>
+	<html lang="en">
+		<head>
+			<meta charset="UTF-8"/>
+			<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+			<meta name="description" content="Goforms - A self-hosted form backend service built with Go"/>
+			<meta name="keywords" content="forms, golang, backend, self-hosted"/>
+			<meta name="color-scheme" content="light dark"/>
+			<meta name="csrf-token" content={ data.CSRFToken }/>
+			<meta name="csrf-param" content="_csrf"/>
+			<title>{ data.Title } - Goforms</title>
+			<script type="module" src={ data.AssetPath("src/js/main.ts") }></script>
+			<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css"/>
+		</head>
+		<body>
+			<header>
+				@components.Nav(data)
+			</header>
+			<main>
+				@content
+			</main>
+			@components.Footer()
+		</body>
+	</html>
 }
