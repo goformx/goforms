@@ -16,10 +16,10 @@
   align-items: center;
   height: 100%;
   width: 100%;
-  max-width: var(--container-xl);
-  margin: var(--container-margin);
-  padding-left: var(--container-padding-x-mobile);
-  padding-right: var(--container-padding-x-mobile);
+  max-width: var(--container-max-width);
+  margin: 0 auto;
+  padding: 0 var(--container-padding-x);
+  box-sizing: border-box;
 }
 
 .nav-content {
@@ -76,8 +76,7 @@
 /* Responsive styles */
 @media (max-width: 768px) {
   .nav-container {
-    padding-left: var(--container-padding-x-mobile);
-    padding-right: var(--container-padding-x-mobile);
+    padding: 0 var(--container-padding-x-mobile);
   }
 
   .nav-links {

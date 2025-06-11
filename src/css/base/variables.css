@@ -4,6 +4,9 @@
   --primary-dark: #1d4ed8;
   --secondary: #4f46e5;
   --accent: #8b5cf6;
+  --error: #dc2626;
+  --error-bg: #fef2f2;
+  --error-border: #fecaca;
 
   /* Light Mode (default) */
   --background: #ffffff;
@@ -29,6 +32,9 @@
     --card-border: 1px solid var(--border-color);
     --shadow-sm: 0 1px 2px 0 rgba(0, 0, 0, 0.2);
     --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3);
+    --error: #ef4444;
+    --error-bg: #7f1d1d;
+    --error-border: #991b1b;
   }
 
   /* Typography */
@@ -199,6 +205,8 @@
   --card-padding-mobile: 1.5rem;
   --card-radius: 12px;
   --card-backdrop-blur: 8px;
+  --auth-form-width: 28rem;
+  --auth-container-width: var(--container-sm);
 
   /* Features */
   --features-padding-y: 5rem;
@@ -272,8 +280,6 @@
   --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
 
   /* Message States */
-  --error-bg: var(--background-alt);
-  --error-border: var(--border-color);
   --success-bg: var(--background-alt);
   --success-border: var(--border-color);
   --warning-bg: var(--background-alt);
@@ -306,12 +312,6 @@
   --form-builder-preview-height: 400px;
   --form-builder-field-preview-height: 200px;
   --form-builder-input-height: 2.5rem;
-  --error-color: #ef4444;
-
-  /* Dashboard */
-  --stat-card-min-width: 200px;
-  --card-min-width: 300px;
-  --letter-spacing-wide: 0.05em;
   --success-color: rgb(34, 197, 94);
   --success-bg: rgba(34, 197, 94, 0.1);
 

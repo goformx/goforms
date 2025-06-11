@@ -2,7 +2,6 @@
   background: var(--background);
   border-top: 1px solid var(--border-color);
   padding: var(--spacing-8) 0;
-  margin-top: var(--spacing-12);
   min-height: var(--footer-height);
   display: flex;
   align-items: center;
@@ -87,7 +86,6 @@
 @media (max-width: 768px) {
   .footer {
     padding: var(--spacing-6) 0;
-    margin-top: var(--spacing-8);
   }
 
   .footer-container {
