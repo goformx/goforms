@@ -22,6 +22,7 @@ func NewWebHandler(deps HandlerDeps) (*WebHandler, error) {
 // Register registers the web routes
 func (h *WebHandler) Register(e *echo.Echo) {
 	e.GET("/", h.handleHome)
+	e.GET("/demo", h.handleDemo)
 }
 
 // handleHome handles the home page request
@@ -35,4 +36,10 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 		return pages.Error(data).Render(c.Request().Context(), c.Response().Writer)
 	}
 	return nil
+}
+
+// handleDemo handles the demo page request
+func (h *WebHandler) handleDemo(c echo.Context) error {
+	data := shared.BuildPageData(h.Config, c, "Demo")
+	return h.Renderer.Render(c, pages.Demo(data))
 }
