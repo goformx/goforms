@@ -21,7 +21,7 @@ vars:
     sh: git rev-parse HEAD
   GO_VERSION:
     sh: go version | cut -d ' ' -f 3
-  LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.buildTime={{.BUILD_TIME}} -X main.gitCommit={{.GIT_COMMIT}} -X main.goVersion={{.GO_VERSION}}
+  LDFLAGS: -s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version={{.VERSION}} -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime={{.BUILD_TIME}} -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit={{.GIT_COMMIT}} -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion={{.GO_VERSION}}
   DB_USER: '{{.DB_USER}}'
   DB_PASSWORD: '{{.DB_PASSWORD}}'
   DB_NAME: '{{.DB_NAME}}'
