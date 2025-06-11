@@ -124,10 +124,10 @@ func (m *AssetManager) GetAssetPath(path string) (string, error) {
 
 		// For source files, use the Vite dev server
 		if strings.HasPrefix(path, "src/") {
-			assetPath = fmt.Sprintf("http://%s/%s", hostPort, path)
+			assetPath = fmt.Sprintf("%s://%s/%s", m.config.App.Scheme, hostPort, path)
 		} else {
 			// For built assets, use the Vite dev server with the original path
-			assetPath = fmt.Sprintf("http://%s/assets/%s", hostPort, path)
+			assetPath = fmt.Sprintf("%s://%s/assets/%s", m.config.App.Scheme, hostPort, path)
 		}
 
 		// Cache the result

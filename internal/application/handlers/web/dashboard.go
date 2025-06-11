@@ -41,7 +41,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 		h.Logger.Error("failed to get user forms for dashboard", "error", err)
 		return c.String(http.StatusInternalServerError, "Failed to load forms")
 	}
-	data := shared.BuildPageData(nil, c, "Dashboard")
+	data := shared.BuildPageData(h.Config, c, "Dashboard")
 	data.User = userObj
 	return h.Renderer.Render(c, pages.Dashboard(data, forms))
 }

@@ -3,6 +3,7 @@ package shared
 import (
 	"fmt"
 	"net"
+	"strconv"
 
 	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -34,12 +35,6 @@ type Message struct {
 
 // BuildPageData centralizes construction of PageData for handlers
 func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
-	assetBase := "/assets/"
-	if cfg != nil && cfg.App.IsDevelopment() {
-		hostPort := net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort)
-		assetBase = fmt.Sprintf("http://%s/", hostPort)
-	}
-
 	csrfToken := ""
 	if c != nil {
 		if token, ok := c.Get("csrf").(string); ok {
@@ -50,7 +45,14 @@ func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 	return PageData{
 		Title:         title,
 		IsDevelopment: cfg != nil && cfg.App.IsDevelopment(),
-		AssetPath:     func(path string) string { return assetBase + path },
-		CSRFToken:     csrfToken,
+		AssetPath: func(path string) string {
+			if cfg != nil && cfg.App.IsDevelopment() {
+				// In development, serve source files directly from Vite
+				return fmt.Sprintf("%s://%s/assets/%s", cfg.App.Scheme, net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort), path)
+			}
+			// In production, use the built assets
+			return fmt.Sprintf("%s://%s/assets/%s", cfg.App.Scheme, net.JoinHostPort(cfg.App.Host, strconv.Itoa(cfg.App.Port)), path)
+		},
+		CSRFToken: csrfToken,
 	}
 }

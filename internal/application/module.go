@@ -80,7 +80,7 @@ var Module = fx.Options(
 
 	// Handlers
 	fx.Provide(
-		// Auth handler
+		// Login handler
 		fx.Annotate(
 			func(deps *web.HandlerDeps) (web.Handler, error) {
 				handler, err := web.NewAuthHandler(*deps)
@@ -92,7 +92,7 @@ var Module = fx.Options(
 			fx.ResultTags(`group:"handlers"`),
 		),
 
-		// Web handler
+		// Public web page handlers
 		fx.Annotate(
 			func(deps *web.HandlerDeps) (web.Handler, error) {
 				handler, err := web.NewWebHandler(*deps)
@@ -113,13 +113,10 @@ var Module = fx.Options(
 			fx.ResultTags(`group:"handlers"`),
 		),
 
-		// Demo handler
+		// Dashboard handler
 		fx.Annotate(
 			func(deps *web.HandlerDeps) (web.Handler, error) {
-				handler, err := web.NewDemoHandler(*deps)
-				if err != nil {
-					return nil, err
-				}
+				handler := web.NewDashboardHandler(*deps)
 				return handler, nil
 			},
 			fx.ResultTags(`group:"handlers"`),

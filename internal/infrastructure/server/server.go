@@ -42,7 +42,7 @@ func (s *Server) Address() string {
 
 // URL returns the server's full HTTP URL
 func (s *Server) URL() string {
-	return fmt.Sprintf("http://%s", s.Address())
+	return fmt.Sprintf("%s://%s", s.config.App.Scheme, s.Address())
 }
 
 // Start starts the server and returns when it's ready to accept connections
@@ -121,13 +121,10 @@ func New(
 		})
 	})
 
-	// Serve static files from public directory with proper security headers
-	e.Static("/static", "public")
-	e.Static("/assets", "public/assets")
-
 	// Vite dev server proxy for development mode
 	if cfg.App.IsDevelopment() {
-		viteURL, err := url.Parse(fmt.Sprintf("http://%s",
+		viteURL, err := url.Parse(fmt.Sprintf("%s://%s",
+			cfg.App.Scheme,
 			net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
 		))
 		if err != nil {
@@ -146,15 +143,20 @@ func New(
 				return nil
 			}
 
-			// Proxy all asset requests to Vite dev server
-			e.Group("/assets").Any("/*", echo.WrapHandler(viteProxy))
-			e.Group("/src").Any("/*", echo.WrapHandler(viteProxy))
-			e.Group("/@vite").Any("/*", echo.WrapHandler(viteProxy))
-			e.Group("/node_modules").Any("/*", echo.WrapHandler(viteProxy))
-			e.Group("/js").Any("/*", echo.WrapHandler(viteProxy))
+			// Proxy all Vite-related paths
+			e.Any("/assets/*", echo.WrapHandler(viteProxy))
+			e.Any("/@vite/*", echo.WrapHandler(viteProxy))
+			e.Any("/@fs/*", echo.WrapHandler(viteProxy))
+			e.Any("/@id/*", echo.WrapHandler(viteProxy))
+			e.Any("/node_modules/*", echo.WrapHandler(viteProxy))
+			e.Any("/favicon.ico", echo.WrapHandler(viteProxy))
 
 			logger.Info("Vite dev server proxy configured", "url", viteURL.String())
 		}
+	} else {
+		// Serve static files from public directory with proper security headers
+		e.Static("/static", "public")
+		e.Static("/assets", "public/assets")
 	}
 
 	// Register lifecycle hooks

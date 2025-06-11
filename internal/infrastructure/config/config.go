@@ -36,6 +36,7 @@ type AppConfig struct {
 	LogLevel string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
 
 	// Server Settings
+	Scheme         string        `envconfig:"GOFORMS_APP_SCHEME" default:"http"`
 	Port           int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
 	ReadTimeout    time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
