@@ -124,6 +124,7 @@ func main() {
 		application.Module,
 		appmiddleware.Module,
 		presentation.Module,
+		web.Module,
 		// Invoke setup functions
 		fx.Invoke(setupApplication),
 		fx.Invoke(setupLifecycle),

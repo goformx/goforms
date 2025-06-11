@@ -147,6 +147,17 @@ type Application struct {
 func (a *Application) Start(ctx context.Context) error {
 	a.logger.Info("Starting application...")
 
+	// Get the Echo instance
+	e := a.server.Echo()
+
+	// Register all handlers
+	var handlers []web.Handler
+	fx.Populate(&handlers)
+
+	for _, handler := range handlers {
+		handler.Register(e)
+	}
+
 	// Start the server
 	if err := a.server.Start(); err != nil {
 		return err
