@@ -9,6 +9,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -36,6 +37,7 @@ type Dependencies struct {
 	SessionManager    *session.Manager
 	Renderer          view.Renderer
 	MiddlewareManager *middleware.Manager
+	AccessManager     *access.AccessManager
 }
 
 // Validate checks if all required dependencies are present
@@ -55,6 +57,7 @@ func (d *Dependencies) Validate() error {
 		{"SessionManager", d.SessionManager},
 		{"Renderer", d.Renderer},
 		{"MiddlewareManager", d.MiddlewareManager},
+		{"AccessManager", d.AccessManager},
 	}
 
 	for _, r := range required {
@@ -96,6 +99,7 @@ func provideMiddlewareManager(
 	cfg *config.Config,
 	userService user.Service,
 	sessionManager *session.Manager,
+	accessManager *access.AccessManager,
 ) *middleware.Manager {
 	return middleware.NewManager(&middleware.ManagerConfig{
 		Logger:         logger,
@@ -103,6 +107,7 @@ func provideMiddlewareManager(
 		UserService:    userService,
 		Config:         cfg,
 		SessionManager: sessionManager,
+		AccessManager:  accessManager,
 	})
 }
 
