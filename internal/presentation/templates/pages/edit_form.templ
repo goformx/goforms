@@ -68,39 +68,7 @@ templ FormFieldsContent(data shared.PageData) {
 }
 
 templ EditForm(data shared.PageData) {
-	@layouts.Layout(data, editFormContent(data))
-}
-
-templ editFormContent(data shared.PageData) {
-	<div class="dashboard-content">
-		<div class="dashboard-header">
-			<h1>Edit Form</h1>
-		</div>
-		<div class="dashboard-body">
-			<div class="form-card">
-				<form id="edit-form" class="auth-form" method="POST" action={ templ.SafeURL("/forms/" + data.Form.ID) }>
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-					<div id="form_error" class="form-error"></div>
-
-					<div class="gf-form-group">
-						<label for="title" class="gf-label">Form Title</label>
-						<input type="text" id="title" name="title" required class="gf-input" value={ data.Form.Title } />
-						<div id="title_error" class="error-message"></div>
-					</div>
-
-					<div class="gf-form-group">
-						<label for="description" class="gf-label">Description</label>
-						<textarea id="description" name="description" class="gf-input" rows="3">{ data.Form.Description }</textarea>
-						<div id="description_error" class="error-message"></div>
-					</div>
-
-					<div class="form-actions">
-						<button type="submit" class="gf-button gf-button--primary">Save Changes</button>
-					</div>
-				</form>
-			</div>
-		</div>
-	</div>
+	@layouts.Layout(data, EditFormContent(data))
 }
 
 templ EditFormContent(data shared.PageData) {
