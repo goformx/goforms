@@ -72,6 +72,12 @@ export const validation = {
         validation.clearError(fieldId);
         const value = (input as HTMLInputElement).value;
         const fieldSchema = schemaFields[fieldId];
+
+        // Skip validation for empty fields during real-time validation
+        if (!value && fieldId !== "password") {
+          return;
+        }
+
         // Special handling for confirm_password
         if (fieldId === "confirm_password") {
           const passwordInput = document.getElementById(
