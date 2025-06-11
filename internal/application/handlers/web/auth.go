@@ -115,6 +115,9 @@ func generateValidationSchema(s interface{}) map[string]any {
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Login")
+	if data.User != nil {
+		return c.Redirect(http.StatusSeeOther, "/dashboard")
+	}
 	// Debug log for environment and asset path
 	if h.deps.Config != nil && h.deps.Logger != nil {
 		h.deps.Logger.Debug("Rendering login page",
@@ -181,6 +184,9 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
+	if data.User != nil {
+		return c.Redirect(http.StatusSeeOther, "/dashboard")
+	}
 	return h.deps.Renderer.Render(c, pages.Signup(data))
 }
 
