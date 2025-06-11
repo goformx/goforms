@@ -13,7 +13,25 @@ var Module = fx.Options(
 	fx.Provide(
 		// Session manager
 		func(logger logging.Logger, cfg *config.Config, lc fx.Lifecycle) *SessionManager {
-			return NewSessionManager(logger, &cfg.Session, lc)
+			sessionConfig := &SessionConfig{
+				SessionConfig: &cfg.Session,
+				PublicPaths: []string{
+					"/",
+					"/login",
+					"/signup",
+				},
+				ExemptPaths: []string{
+					"/api/validation/",
+					"/forgot-password",
+					"/contact",
+				},
+				StaticPaths: []string{
+					"/static/",
+					"/assets/",
+					"/images/",
+				},
+			}
+			return NewSessionManager(logger, sessionConfig, lc)
 		},
 		// Middleware manager
 		func(
