@@ -40,7 +40,6 @@ var Module = fx.Options(
 					FormService:       formService,
 				}
 			},
-			fx.ResultTags(`group:"handler_deps"`),
 		),
 	),
 
@@ -52,7 +51,6 @@ var Module = fx.Options(
 				return NewAuthHandler(*deps)
 			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(Handler)),
 		),
 
 		// Web handler - public access
@@ -61,7 +59,6 @@ var Module = fx.Options(
 				return NewWebHandler(*deps)
 			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(Handler)),
 		),
 
 		// Form handler - authenticated access
@@ -70,7 +67,6 @@ var Module = fx.Options(
 				return NewFormHandler(*deps, deps.FormService, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(Handler)),
 		),
 
 		// Dashboard handler - authenticated access
@@ -79,37 +75,44 @@ var Module = fx.Options(
 				return NewDashboardHandler(*deps, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
-			fx.As(new(Handler)),
 		),
 	),
 
 	// Lifecycle hooks
-	fx.Invoke(func(lc fx.Lifecycle, handlers []Handler, logger logging.Logger) {
-		lc.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				for _, h := range handlers {
-					if err := h.Start(ctx); err != nil {
-						logger.Error("failed to start handler", "error", err)
-						return err
+	fx.Invoke(fx.Annotate(
+		func(lc fx.Lifecycle, handlers []Handler, logger logging.Logger) {
+			lc.Append(fx.Hook{
+				OnStart: func(ctx context.Context) error {
+					for _, h := range handlers {
+						if err := h.Start(ctx); err != nil {
+							logger.Error("failed to start handler", "error", err)
+							return err
+						}
 					}
-				}
-				return nil
-			},
-			OnStop: func(ctx context.Context) error {
-				for _, h := range handlers {
-					if err := h.Stop(ctx); err != nil {
-						logger.Error("failed to stop handler", "error", err)
-						return err
+					return nil
+				},
+				OnStop: func(ctx context.Context) error {
+					for _, h := range handlers {
+						if err := h.Stop(ctx); err != nil {
+							logger.Error("failed to stop handler", "error", err)
+							return err
+						}
 					}
-				}
-				return nil
-			},
-		})
-	}),
+					return nil
+				},
+			})
+		},
+		fx.ParamTags(``, `group:"handlers"`),
+	)),
 )
 
 // RegisterHandlers registers all handlers with the Echo instance
-func RegisterHandlers(e *echo.Echo, handlers []Handler, accessManager *access.AccessManager, logger logging.Logger) {
+func RegisterHandlers(
+	e *echo.Echo,
+	handlers []Handler,
+	accessManager *access.AccessManager,
+	logger logging.Logger,
+) {
 	for _, handler := range handlers {
 		// Register routes with appropriate access control
 		switch h := handler.(type) {
