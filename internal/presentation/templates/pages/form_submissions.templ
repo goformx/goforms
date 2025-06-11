@@ -16,13 +16,10 @@ templ FormSubmissionsContent(data shared.PageData) {
 			<div class="dashboard-header">
 				<div class="dashboard-header-left">
 					<h1 class="dashboard-title">Form Submissions</h1>
-					if data.Form != nil {
-						<p class="dashboard-subtitle">View and manage submissions for { data.Form.Title }</p>
-						<a href={ templ.URL("/dashboard/forms/" + data.Form.ID + "/edit") } class="btn btn-outline">Back to Form</a>
-					} else {
-						<p class="dashboard-subtitle">Form not found</p>
-						<a href="/dashboard" class="btn btn-outline">Back to Dashboard</a>
-					}
+					<p class="dashboard-subtitle">View and manage form submissions</p>
+				</div>
+				<div class="dashboard-header-right">
+					<a href={ templ.URL("/forms/" + data.Form.ID + "/edit") } class="btn btn-outline">Back to Form</a>
 				</div>
 			</div>
 

@@ -32,7 +32,11 @@
 /* Page styles */
 @import url("pages/error.css") layer(pages);
 @import url("pages/demo/sections.css") layer(pages);
-@import url("dashboard.css") layer(pages);
+@import url("dashboard/layout.css") layer(pages);
+@import url("dashboard/stats.css") layer(pages);
+@import url("dashboard/forms.css") layer(pages);
+@import url("dashboard/table.css") layer(pages);
+@import url("dashboard/actions.css") layer(pages);
 
 /* Utility styles */
 @import url("utils/animations.css") layer(utils);

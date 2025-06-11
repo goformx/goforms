@@ -119,16 +119,13 @@ export class FormService {
   }
 
   public async deleteForm(formId: string): Promise<void> {
-    const response = await fetch(`/api/v1/forms/${formId}`, {
+    const response = await fetch(`${this.baseUrl}/forms/${formId}`, {
       method: "DELETE",
-      headers: {
-        "X-CSRF-Token": this.csrfToken,
-      },
+      credentials: "include",
     });
 
     if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to delete form");
+      throw new Error("Failed to delete form");
     }
   }
 

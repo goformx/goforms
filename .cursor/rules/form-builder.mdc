@@ -21,9 +21,9 @@ The form builder is implemented using Form.io with custom templates from goforms
 - CSRF protection implemented for all API calls
 
 ## API Endpoints
-- GET `/dashboard/forms/{id}/schema`: Load form schema
-- PUT `/dashboard/forms/{id}/schema`: Save form schema
-- PUT `/dashboard/forms/{id}`: Update form details
+- GET `/forms/{id}/schema`: Load form schema
+- PUT `/forms/{id}/schema`: Save form schema
+- PUT `/forms/{id}`: Update form details
 
 ## Component Configuration
 Basic components (enabled by default):

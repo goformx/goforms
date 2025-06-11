@@ -32,7 +32,7 @@ templ NewFormContent(data shared.PageData) {
 
 			<div class="dashboard-content">
 				<div class="gf-section">
-					<form id="new-form" class="auth-form" method="POST" action="/dashboard/forms" data-validate="newForm">
+					<form id="new-form" class="auth-form" method="POST" action="/forms" data-validate="newForm">
 						<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 						<div id="form_error" class="form-error"></div>
 

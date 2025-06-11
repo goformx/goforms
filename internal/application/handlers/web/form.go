@@ -26,12 +26,12 @@ func NewFormHandler(deps HandlerDeps, formService formdomain.Service) *FormHandl
 
 func (h *FormHandler) Register(e *echo.Echo) {
 	// Web routes
-	e.GET("/dashboard/forms/new", h.handleFormNew)
-	e.POST("/dashboard/forms", h.handleFormCreate)
-	e.GET("/dashboard/forms/:id/edit", h.handleFormEdit)
-	e.PUT("/dashboard/forms/:id", h.handleFormUpdate)
-	e.DELETE("/dashboard/forms/:id", h.handleFormDelete)
-	e.GET("/dashboard/forms/:id/submissions", h.handleFormSubmissions)
+	e.GET("/forms/new", h.handleFormNew)
+	e.POST("/forms", h.handleFormCreate)
+	e.GET("/forms/:id/edit", h.handleFormEdit)
+	e.PUT("/forms/:id", h.handleFormUpdate)
+	e.DELETE("/forms/:id", h.handleFormDelete)
+	e.GET("/forms/:id/submissions", h.handleFormSubmissions)
 
 	// API routes
 	api := e.Group("/api/v1")
@@ -40,7 +40,7 @@ func (h *FormHandler) Register(e *echo.Echo) {
 	forms.PUT("/:id/schema", h.handleFormSchemaUpdate)
 }
 
-// GET /dashboard/forms/new
+// GET /forms/new
 func (h *FormHandler) handleFormNew(c echo.Context) error {
 	// Get user ID from session
 	userIDRaw, ok := c.Get("user_id").(string)
@@ -61,7 +61,7 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 	return h.Renderer.Render(c, pages.NewForm(data))
 }
 
-// POST /dashboard/forms
+// POST /forms
 func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	// Get user ID from session
 	userIDRaw, ok := c.Get("user_id").(string)
@@ -97,10 +97,10 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 		}
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/dashboard/forms/%s/edit", form.ID))
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
-// GET /dashboard/forms/:id/edit
+// GET /forms/:id/edit
 func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
@@ -139,7 +139,7 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	return h.Renderer.Render(c, pages.EditForm(data))
 }
 
-// PUT /dashboard/forms/:id
+// PUT /forms/:id
 func (h *FormHandler) handleFormUpdate(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
@@ -149,7 +149,7 @@ func (h *FormHandler) handleFormUpdate(c echo.Context) error {
 	return response.WebErrorResponse(c, h.Renderer, http.StatusNotImplemented, "Form update not implemented yet")
 }
 
-// DELETE /dashboard/forms/:id
+// DELETE /forms/:id
 func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
@@ -186,7 +186,7 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 	})
 }
 
-// GET /dashboard/forms/:id/submissions
+// GET /forms/:id/submissions
 func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {

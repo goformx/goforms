@@ -91,7 +91,7 @@ templ EditFormContent(data shared.PageData) {
 					<p class="dashboard-subtitle">Configure your form settings and fields</p>
 				</div>
 				<div class="dashboard-header-right">
-					<a href={ templ.SafeURL("/dashboard/forms/" + data.Form.ID + "/submissions") } class="gf-button gf-button--outline">
+					<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/submissions") } class="gf-button gf-button--outline">
 						<i class="bi bi-list-check"></i>
 						<span>View Submissions</span>
 					</a>
