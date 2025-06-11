@@ -19,8 +19,10 @@ templ LoginForm(data shared.PageData) {
 				placeholder="Enter your email"
 				autocomplete="email"
 				aria-required="true"
+				aria-invalid="false"
+				aria-describedby="email_error"
 			/>
-			<div id="email_error" class="error-message"></div>
+			<div id="email_error" class="error-message" role="alert"></div>
 		</div>
 		<div class="form-group">
 			<label for="password" class="form-label">Password</label>
@@ -33,8 +35,10 @@ templ LoginForm(data shared.PageData) {
 				placeholder="Enter your password"
 				autocomplete="current-password"
 				aria-required="true"
+				aria-invalid="false"
+				aria-describedby="password_error"
 			/>
-			<div id="password_error" class="error-message"></div>
+			<div id="password_error" class="error-message" role="alert"></div>
 		</div>
 		<div class="form-group">
 			<button type="submit" class="btn btn-primary">Sign In</button>

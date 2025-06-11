@@ -15,7 +15,7 @@ templ loginContent(data shared.PageData) {
 		<div class="auth-content">
 			@components.Message(data)
 			<div class="auth-container">
-				<div class="auth-card">
+				<div class="auth-form-container">
 					<div class="auth-header">
 						<h2 class="auth-title">Sign in to your account</h2>
 					</div>
@@ -39,7 +39,7 @@ templ loginContentWithError(data shared.PageData, errorMessage string) {
 		<div class="auth-content">
 			@components.Message(data)
 			<div class="auth-container">
-				<div class="auth-card">
+				<div class="auth-form-container">
 					<div class="auth-header">
 						<h2 class="auth-title">Sign in to your account</h2>
 					</div>
