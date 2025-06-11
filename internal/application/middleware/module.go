@@ -22,7 +22,6 @@ var Module = fx.Options(
 				Config:        cfg,
 				SessionConfig: &cfg.Session,
 				PublicPaths: []string{
-					"/",
 					"/login",
 					"/signup",
 					"/forgot-password",

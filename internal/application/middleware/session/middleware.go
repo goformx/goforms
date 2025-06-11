@@ -102,6 +102,12 @@ func (sm *Manager) isPathExempt(path string) bool {
 		}
 	}
 
+	// Special case for homepage - it should go through authentication check
+	// so we can redirect authenticated users to dashboard
+	if path == "/" {
+		return false
+	}
+
 	return false
 }
 
@@ -132,31 +138,51 @@ func (sm *Manager) isStaticFile(path string) bool {
 
 // handleAuthError handles authentication errors
 func (sm *Manager) handleAuthError(c echo.Context, message string) error {
-	// Special case for homepage - if authenticated, redirect to dashboard
-	if c.Request().URL.Path == "/" {
-		// Check if user has a valid session
-		if cookie, err := c.Cookie(sm.cookieName); err == nil {
-			if session, exists := sm.GetSession(cookie.Value); exists && time.Now().Before(session.ExpiresAt) {
-				return c.Redirect(http.StatusSeeOther, "/dashboard")
-			}
+	path := c.Request().URL.Path
+
+	// Check if this is a public path
+	isPublicPath := false
+	for _, publicPath := range sm.config.PublicPaths {
+		if path == publicPath {
+			isPublicPath = true
+			break
 		}
-		// If not authenticated, allow access to homepage
-		return nil
 	}
 
-	// Check if this is an API request
-	isAPIRequest := strings.HasPrefix(c.Request().URL.Path, "/api/")
-	acceptsJSON := strings.Contains(c.Request().Header.Get("Accept"), "application/json")
-
-	if isAPIRequest || acceptsJSON {
-		// Return JSON error response for API requests
-		return c.JSON(http.StatusUnauthorized, map[string]string{
-			"error": message,
-		})
+	// Check if user has a valid session
+	cookie, err := c.Cookie(sm.cookieName)
+	hasValidSession := false
+	if err == nil {
+		if session, exists := sm.GetSession(cookie.Value); exists && time.Now().Before(session.ExpiresAt) {
+			hasValidSession = true
+		}
 	}
 
-	// For web requests, redirect to login
-	return c.Redirect(http.StatusSeeOther, "/login")
+	// If user is authenticated and trying to access a public path, redirect to dashboard
+	if hasValidSession && isPublicPath {
+		return c.Redirect(http.StatusSeeOther, "/dashboard")
+	}
+
+	// If not authenticated and trying to access a protected path, handle accordingly
+	if !hasValidSession {
+		// Check if this is an API request
+		isAPIRequest := strings.HasPrefix(path, "/api/")
+		acceptsJSON := strings.Contains(c.Request().Header.Get("Accept"), "application/json")
+
+		if isAPIRequest || acceptsJSON {
+			// Return JSON error response for API requests
+			return c.JSON(http.StatusUnauthorized, map[string]string{
+				"error": message,
+			})
+		}
+
+		// For web requests, redirect to login
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
+	// If we get here, it means the user is authenticated and accessing a protected path
+	// or unauthenticated and accessing a public path - both are fine
+	return nil
 }
 
 // SetSessionCookie sets the session cookie
