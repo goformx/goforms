@@ -42,7 +42,8 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        styles: resolve(__dirname, "src/css/main.css"),
+        main: resolve(__dirname, "src/css/main.css"),
+        dashboard: resolve(__dirname, "src/css/dashboard.css"),
         app: resolve(__dirname, "src/js/main.ts"),
         validation: resolve(__dirname, "src/js/validation.ts"),
         signup: resolve(__dirname, "src/js/signup.ts"),

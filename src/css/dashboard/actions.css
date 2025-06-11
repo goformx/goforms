@@ -1,0 +1,18 @@
+.dashboard-actions {
+  display: flex;
+  gap: var(--spacing-2);
+}
+
+.dashboard-action {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--spacing-2);
+  padding: var(--spacing-2) var(--spacing-4);
+  font-size: var(--font-size-sm);
+  font-weight: var(--font-weight-medium);
+  border-radius: var(--border-radius);
+}
+
+.dashboard-action-icon {
+  padding: var(--spacing-2);
+} 

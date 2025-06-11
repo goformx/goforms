@@ -13,59 +13,59 @@ templ Dashboard(data shared.PageData, forms []*model.Form) {
 templ DashboardContent(forms []*model.Form) {
 	<div class="dashboard">
 		<div class="dashboard-header">
-			<h1>Dashboard</h1>
-			<a href="/forms/new" class="btn btn-primary">
-				<i class="bi bi-plus-lg"></i>
-				New Form
-			</a>
+			<div class="dashboard-header-left">
+				<h1 class="dashboard-title">Your Forms</h1>
+			</div>
+			<div class="dashboard-header-actions">
+				<a href="/forms/new" class="btn btn-secondary btn-icon" title="Create New Form">
+					<i class="bi bi-plus-lg"></i>
+					<span class="dashboard-action-label">New Form</span>
+				</a>
+			</div>
 		</div>
 
 		<div class="dashboard-content">
-			<div class="forms-section">
-				<h2>Your Forms</h2>
-				if len(forms) == 0 {
-					<div class="empty-state">
-						<i class="bi bi-file-earmark-text"></i>
-						<p>You haven't created any forms yet.</p>
-						<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
-					</div>
-				} else {
-					<div class="forms-grid">
-						for _, form := range forms {
-							<div class="form-card">
-								<div class="form-card-header">
-									<h3>{ form.Title }</h3>
-									<div class="form-actions">
-										<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-icon" title="Edit Form">
-											<i class="bi bi-pencil"></i>
-										</a>
-										<button class="btn btn-icon delete-form" data-form-id={ form.ID } title="Delete Form">
-											<i class="bi bi-trash"></i>
-										</button>
-									</div>
-								</div>
-								<div class="form-card-body">
-									<p class="form-description">{ form.Description }</p>
-									<div class="form-stats">
-										<div class="stat">
-											<i class="bi bi-calendar"></i>
-											<span>Created { form.CreatedAt.Format("Jan 2, 2006") }</span>
-										</div>
-										<div class="stat">
-											<i class="bi bi-pencil-square"></i>
-											<span>Last edited { form.UpdatedAt.Format("Jan 2, 2006") }</span>
-										</div>
-									</div>
-								</div>
-								<div class="form-card-footer">
-									<a href={ templ.SafeURL("/forms/" + form.ID) } class="btn btn-secondary">View Form</a>
-									<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
+			if len(forms) == 0 {
+				<div class="forms-section">
+					<p>You haven't created any forms yet.</p>
+					<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
+				</div>
+			} else {
+				<div class="forms-grid">
+					for _, form := range forms {
+						<div class="form-card">
+							<div class="form-card-header">
+								<h3>{ form.Title }</h3>
+								<div class="form-actions">
+									<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-icon" title="Edit Form">
+										<i class="bi bi-pencil"></i>
+									</a>
+									<button class="btn btn-icon delete-form" data-form-id={ form.ID } title="Delete Form">
+										<i class="bi bi-trash"></i>
+									</button>
 								</div>
 							</div>
-						}
-					</div>
-				}
-			</div>
+							<div class="form-card-body">
+								<p class="form-description">{ form.Description }</p>
+								<div class="form-stats">
+									<div class="stat">
+										<i class="bi bi-calendar"></i>
+										<span>Created { form.CreatedAt.Format("Jan 2, 2006") }</span>
+									</div>
+									<div class="stat">
+										<i class="bi bi-pencil-square"></i>
+										<span>Last edited { form.UpdatedAt.Format("Jan 2, 2006") }</span>
+									</div>
+								</div>
+							</div>
+							<div class="form-card-footer">
+								<a href={ templ.SafeURL("/forms/" + form.ID) } class="btn btn-secondary">View Form</a>
+								<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
+							</div>
+						</div>
+					}
+				</div>
+			}
 		</div>
 	</div>
 } 
