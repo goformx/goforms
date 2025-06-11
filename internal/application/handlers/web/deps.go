@@ -4,7 +4,6 @@ import (
 	"errors"
 
 	"github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/domain/auth"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -17,7 +16,6 @@ type HandlerDeps struct {
 	// Domain services
 	UserService user.Service
 	FormService form.Service
-	AuthService auth.Service
 
 	// Infrastructure
 	Logger            logging.Logger
@@ -43,7 +41,6 @@ func (d *HandlerDeps) Validate() error {
 	}{
 		{"UserService", d.UserService},
 		{"FormService", d.FormService},
-		{"AuthService", d.AuthService},
 		{"Logger", d.Logger},
 		{"Config", d.Config},
 		{"SessionManager", d.SessionManager},
@@ -63,7 +60,6 @@ func (d *HandlerDeps) Validate() error {
 type HandlerParams struct {
 	UserService       user.Service
 	FormService       form.Service
-	AuthService       auth.Service
 	Logger            logging.Logger
 	Config            *config.Config
 	SessionManager    *middleware.SessionManager
@@ -76,7 +72,6 @@ func NewHandlerDeps(params HandlerParams) (*HandlerDeps, error) {
 	deps := &HandlerDeps{
 		UserService:       params.UserService,
 		FormService:       params.FormService,
-		AuthService:       params.AuthService,
 		Logger:            params.Logger,
 		Config:            params.Config,
 		SessionManager:    params.SessionManager,
