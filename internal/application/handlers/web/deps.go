@@ -4,6 +4,7 @@ import (
 	"errors"
 
 	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -11,18 +12,15 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-// HandlerDeps contains all dependencies required by web handlers
+// HandlerDeps contains dependencies for web handlers
 type HandlerDeps struct {
-	// Domain services
-	UserService user.Service
-	FormService form.Service
-
-	// Infrastructure
 	Logger            logging.Logger
 	Config            *config.Config
-	SessionManager    *middleware.SessionManager
+	SessionManager    *session.Manager
 	MiddlewareManager *middleware.Manager
 	Renderer          view.Renderer
+	UserService       user.Service
+	FormService       form.Service
 }
 
 // validateField checks if a field is nil and returns an error if it is
@@ -62,7 +60,7 @@ type HandlerParams struct {
 	FormService       form.Service
 	Logger            logging.Logger
 	Config            *config.Config
-	SessionManager    *middleware.SessionManager
+	SessionManager    *session.Manager
 	MiddlewareManager *middleware.Manager
 	Renderer          view.Renderer
 }

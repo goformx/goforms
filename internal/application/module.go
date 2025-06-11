@@ -8,6 +8,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -26,7 +27,7 @@ type Dependencies struct {
 	// Infrastructure
 	Logger            logging.Logger
 	Config            *config.Config
-	SessionManager    *middleware.SessionManager
+	SessionManager    *session.Manager
 	MiddlewareManager *middleware.Manager
 	Renderer          view.Renderer
 }
@@ -71,57 +72,46 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 	}, nil
 }
 
-// Module provides all application layer dependencies
+// Module provides application dependencies
 var Module = fx.Options(
-	// Include middleware module
-	middleware.Module,
-	// Handler dependencies
 	fx.Provide(
-		NewHandlerDeps,
+		// Session manager
+		func(logger logging.Logger, cfg *config.Config, lc fx.Lifecycle) *session.Manager {
+			sessionConfig := &session.SessionConfig{
+				SessionConfig: &cfg.Session,
+				PublicPaths: []string{
+					"/",
+					"/login",
+					"/signup",
+				},
+				ExemptPaths: []string{
+					"/api/validation/",
+					"/forgot-password",
+					"/contact",
+				},
+				StaticPaths: []string{
+					"/static/",
+					"/assets/",
+					"/images/",
+				},
+			}
+			return session.NewManager(logger, sessionConfig, lc)
+		},
+		// Middleware manager
+		func(
+			logger logging.Logger,
+			cfg *config.Config,
+			userService user.Service,
+			sessionManager *session.Manager,
+		) *middleware.Manager {
+			return middleware.NewManager(&middleware.ManagerConfig{
+				Logger:         logger,
+				Security:       &cfg.Security,
+				UserService:    userService,
+				SessionManager: sessionManager,
+				Config:         cfg,
+			})
+		},
 	),
-
-	// Handlers
-	fx.Provide(
-		// Login handler
-		fx.Annotate(
-			func(deps *web.HandlerDeps) (web.Handler, error) {
-				handler, err := web.NewAuthHandler(*deps)
-				if err != nil {
-					return nil, err
-				}
-				return handler, nil
-			},
-			fx.ResultTags(`group:"handlers"`),
-		),
-
-		// Public web page handlers
-		fx.Annotate(
-			func(deps *web.HandlerDeps) (web.Handler, error) {
-				handler, err := web.NewWebHandler(*deps)
-				if err != nil {
-					return nil, err
-				}
-				return handler, nil
-			},
-			fx.ResultTags(`group:"handlers"`),
-		),
-
-		// Form handler
-		fx.Annotate(
-			func(deps *web.HandlerDeps) (web.Handler, error) {
-				handler := web.NewFormHandler(*deps, deps.FormService)
-				return handler, nil
-			},
-			fx.ResultTags(`group:"handlers"`),
-		),
-
-		// Dashboard handler
-		fx.Annotate(
-			func(deps *web.HandlerDeps) (web.Handler, error) {
-				handler := web.NewDashboardHandler(*deps)
-				return handler, nil
-			},
-			fx.ResultTags(`group:"handlers"`),
-		),
-	),
+	web.Module,
 )

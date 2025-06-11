@@ -6,11 +6,12 @@ import (
 	"strconv"
 
 	"github.com/a-h/templ"
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/application/middleware/session"
 )
 
 // PageData contains common data used across all pages
@@ -26,6 +27,15 @@ type PageData struct {
 	Content              templ.Component
 	FormBuilderAssetPath string
 	Message              *Message
+	Description          string
+	Config               *config.Config
+	Session              *session.Session
+	UserID               string
+	Email                string
+	Role                 string
+	Error                string
+	Success              string
+	Data                 interface{}
 }
 
 // Message represents a user-facing message
@@ -39,13 +49,13 @@ func GetCurrentUser(c echo.Context) *user.User {
 	if c == nil {
 		return nil
 	}
-	sessionVal := c.Get(middleware.SessionKey)
+	sessionVal := c.Get(session.SessionKey)
 	if sessionVal != nil {
-		if session, ok := sessionVal.(*middleware.Session); ok && session != nil {
+		if sess, ok := sessionVal.(*session.Session); ok && sess != nil {
 			return &user.User{
-				ID:    session.UserID,
-				Email: session.Email,
-				Role:  session.Role,
+				ID:    sess.UserID,
+				Email: sess.Email,
+				Role:  sess.Role,
 			}
 		}
 	}
@@ -89,5 +99,35 @@ func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 		Content:              nil, // Should be set by a handler
 		FormBuilderAssetPath: "",  // Placeholder
 		Message:              nil, // Can be set dynamically when needed
+		Description:          "",
+		Config:               cfg,
+		Session:              nil,
+		UserID:               "",
+		Email:                "",
+		Role:                 "",
+		Error:                "",
+		Success:              "",
+		Data:                 nil,
 	}
+}
+
+// NewPageData creates a new PageData instance
+func NewPageData(c echo.Context, cfg *config.Config, data interface{}) *PageData {
+	pd := &PageData{
+		Config: cfg,
+		Data:   data,
+	}
+
+	// Get session data if available
+	sessionVal := c.Get(session.SessionKey)
+	if sessionVal != nil {
+		if sess, ok := sessionVal.(*session.Session); ok && sess != nil {
+			pd.Session = sess
+			pd.UserID = sess.UserID
+			pd.Email = sess.Email
+			pd.Role = sess.Role
+		}
+	}
+
+	return pd
 }

@@ -3,6 +3,7 @@ package middleware
 import (
 	"go.uber.org/fx"
 
+	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -12,8 +13,8 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		// Session manager
-		func(logger logging.Logger, cfg *config.Config, lc fx.Lifecycle) *SessionManager {
-			sessionConfig := &SessionConfig{
+		func(logger logging.Logger, cfg *config.Config, lc fx.Lifecycle) *session.Manager {
+			sessionConfig := &session.SessionConfig{
 				SessionConfig: &cfg.Session,
 				PublicPaths: []string{
 					"/",
@@ -31,14 +32,14 @@ var Module = fx.Options(
 					"/images/",
 				},
 			}
-			return NewSessionManager(logger, sessionConfig, lc)
+			return session.NewManager(logger, sessionConfig, lc)
 		},
 		// Middleware manager
 		func(
 			logger logging.Logger,
 			cfg *config.Config,
 			userService user.Service,
-			sessionManager *SessionManager,
+			sessionManager *session.Manager,
 		) *Manager {
 			return NewManager(&ManagerConfig{
 				Logger:         logger,

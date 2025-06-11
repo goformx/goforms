@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"golang.org/x/time/rate"
 
+	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/user"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -47,7 +48,7 @@ type ManagerConfig struct {
 	Security       *appconfig.SecurityConfig
 	UserService    user.Service
 	Config         *appconfig.Config
-	SessionManager *SessionManager
+	SessionManager *session.Manager
 }
 
 // NewManager creates a new middleware manager
@@ -76,7 +77,7 @@ func NewManager(cfg *ManagerConfig) *Manager {
 }
 
 // GetSessionManager returns the session manager
-func (m *Manager) GetSessionManager() *SessionManager {
+func (m *Manager) GetSessionManager() *session.Manager {
 	return m.config.SessionManager
 }
 
@@ -135,7 +136,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		"app", "goforms",
 		"version", "1.0.0",
 		"environment", m.config.Config.App.Env)
-	e.Use(m.config.SessionManager.SessionMiddleware())
+	e.Use(m.config.SessionManager.Middleware())
 
 	m.logger.Info("middleware setup completed",
 		"app", "goforms",
