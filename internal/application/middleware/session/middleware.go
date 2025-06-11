@@ -21,11 +21,6 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 			cookie, err := c.Cookie(sm.cookieName)
 			if err != nil {
 				sm.logger.Debug("SessionMiddleware: No session cookie found", "path", c.Request().URL.Path)
-				path := c.Request().URL.Path
-				if path == "/" || path == "/login" || path == "/signup" {
-					// Let the handler render the page
-					return next(c)
-				}
 				return sm.handleAuthError(c, "no session found")
 			}
 			sm.logger.Debug("SessionMiddleware: Found session cookie", "cookie", cookie.Value, "path", c.Request().URL.Path)
@@ -34,11 +29,6 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 			session, exists := sm.GetSession(cookie.Value)
 			if !exists {
 				sm.logger.Debug("SessionMiddleware: Session not found", "cookie", cookie.Value, "path", c.Request().URL.Path)
-				path := c.Request().URL.Path
-				if path == "/" || path == "/login" || path == "/signup" {
-					// Let the handler render the page
-					return next(c)
-				}
 				return sm.handleAuthError(c, "invalid session")
 			}
 			sm.logger.Debug("SessionMiddleware: Session found", "user_id", session.UserID, "path", c.Request().URL.Path)
@@ -47,11 +37,6 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 			if time.Now().After(session.ExpiresAt) {
 				sm.logger.Debug("SessionMiddleware: Session expired", "user_id", session.UserID, "path", c.Request().URL.Path)
 				sm.DeleteSession(cookie.Value)
-				path := c.Request().URL.Path
-				if path == "/" || path == "/login" || path == "/signup" {
-					// Let the handler render the page
-					return next(c)
-				}
 				return sm.handleAuthError(c, "session expired")
 			}
 

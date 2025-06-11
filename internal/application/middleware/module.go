@@ -22,6 +22,7 @@ var Module = fx.Options(
 				Config:        cfg,
 				SessionConfig: &cfg.Session,
 				PublicPaths: []string{
+					"/",
 					"/login",
 					"/signup",
 					"/forgot-password",
@@ -34,6 +35,9 @@ var Module = fx.Options(
 					"/api/public",
 					"/api/health",
 					"/api/metrics",
+					"/api/validation",
+					"/api/validation/signup",
+					"/api/validation/login",
 				},
 				StaticPaths: []string{
 					"/static",
