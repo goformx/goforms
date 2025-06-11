@@ -12,6 +12,8 @@ import (
 	"github.com/labstack/gommon/log"
 	"golang.org/x/time/rate"
 
+	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/user"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
@@ -39,7 +41,7 @@ const (
 type Manager struct {
 	logger            logging.Logger
 	config            *ManagerConfig
-	contextMiddleware *ContextMiddleware
+	contextMiddleware *context.Middleware
 }
 
 // ManagerConfig represents the configuration for the middleware manager
@@ -49,6 +51,7 @@ type ManagerConfig struct {
 	UserService    user.Service
 	Config         *appconfig.Config
 	SessionManager *session.Manager
+	AccessManager  *access.AccessManager
 }
 
 // NewManager creates a new middleware manager
@@ -72,7 +75,7 @@ func NewManager(cfg *ManagerConfig) *Manager {
 	return &Manager{
 		logger:            cfg.Logger,
 		config:            cfg,
-		contextMiddleware: NewContextMiddleware(cfg.Logger),
+		contextMiddleware: context.NewMiddleware(cfg.Logger),
 	}
 }
 
@@ -131,12 +134,19 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(setupCSRF(m.config.Config.App.Env == "development"))
 	e.Use(setupRateLimiter(m.config.Security))
 
-	// Register session middleware last
+	// Register session middleware
 	m.logger.Info("registering session middleware",
 		"app", "goforms",
 		"version", m.config.Config.App.Version,
 		"environment", m.config.Config.App.Env)
 	e.Use(m.config.SessionManager.Middleware())
+
+	// Register access control middleware
+	m.logger.Info("registering access control middleware",
+		"app", "goforms",
+		"version", m.config.Config.App.Version,
+		"environment", m.config.Config.App.Env)
+	e.Use(access.Middleware(m.config.AccessManager, m.logger))
 
 	m.logger.Info("middleware setup completed",
 		"app", "goforms",

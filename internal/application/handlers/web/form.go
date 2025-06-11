@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"net/http"
 
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -38,7 +37,7 @@ func (h *FormHandler) Register(e *echo.Echo) {
 	api := e.Group("/api/v1")
 	forms := api.Group("/forms")
 	forms.GET("/:id/schema", h.handleFormSchema)
-	forms.PUT("/:id/schema", h.handleFormSchemaUpdate, middleware.RequireAuth(h.Logger))
+	forms.PUT("/:id/schema", h.handleFormSchemaUpdate)
 }
 
 // GET /forms/new

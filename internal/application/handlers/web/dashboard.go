@@ -3,7 +3,6 @@ package web
 import (
 	"net/http"
 
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -19,8 +18,8 @@ func NewDashboardHandler(deps HandlerDeps) *DashboardHandler {
 }
 
 func (h *DashboardHandler) Register(e *echo.Echo) {
-	// Create dashboard group with RequireAuth middleware
-	dashboard := e.Group("/dashboard", middleware.RequireAuth(h.Logger))
+	// Create dashboard group
+	dashboard := e.Group("/dashboard")
 	dashboard.GET("", h.handleDashboard)
 	dashboard.GET("/forms/:id", h.handleFormView)
 }

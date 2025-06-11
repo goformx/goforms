@@ -4,6 +4,7 @@ package middleware
 import (
 	"go.uber.org/fx"
 
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -12,6 +13,11 @@ import (
 // Module provides middleware dependencies
 var Module = fx.Options(
 	fx.Provide(
+		// Access manager
+		func(logger logging.Logger) *access.AccessManager {
+			return access.NewAccessManager(access.DefaultRules())
+		},
+
 		// Session manager
 		func(
 			logger logging.Logger,

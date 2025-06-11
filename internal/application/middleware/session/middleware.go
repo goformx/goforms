@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/labstack/echo/v4"
 )
 
@@ -42,10 +43,10 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 
 			// Store session in context
 			sm.logger.Debug("SessionMiddleware: Setting session in context", "user_id", session.UserID, "path", c.Request().URL.Path)
-			c.Set(SessionKey, session)
-			c.Set("user_id", session.UserID)
-			c.Set("email", session.Email)
-			c.Set("role", session.Role)
+			c.Set(string(context.SessionKey), session)
+			context.SetUserID(c, session.UserID)
+			context.SetEmail(c, session.Email)
+			context.SetRole(c, session.Role)
 
 			return next(c)
 		}

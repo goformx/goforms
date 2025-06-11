@@ -3,8 +3,8 @@ package form
 import (
 	"context"
 	"fmt"
+	"time"
 
-	"github.com/goformx/goforms/internal/domain/common/ctxutil"
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -38,6 +38,9 @@ func NewService(repo Repository, publisher event.Publisher, logger logging.Logge
 
 // CreateForm creates a new form
 func (s *service) CreateForm(ctx context.Context, userID string, form *model.Form) error {
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+
 	logger := s.logger.WithUserID(userID)
 
 	// Sanitize form data before validation
@@ -66,13 +69,9 @@ func (s *service) CreateForm(ctx context.Context, userID string, form *model.For
 
 // GetForm retrieves a form by ID
 func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
-	form, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		s.logger.Error("failed to get form", "error", err)
-		return nil, err
-	}
-
-	return form, nil
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	defer cancel()
+	return s.repo.GetByID(ctx, id)
 }
 
 // GetUserForms retrieves all forms for a user
@@ -155,7 +154,7 @@ func (s *service) DeleteForm(ctx context.Context, userID, id string) error {
 
 // GetFormSubmissions returns all submissions for a form
 func (s *service) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	ctx, cancel := ctxutil.WithDefaultTimeout(ctx)
+	ctx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
 
 	submissions, err := s.repo.GetFormSubmissions(ctx, formID)
