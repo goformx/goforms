@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
@@ -18,42 +19,48 @@ import (
 
 type FormHandler struct {
 	HandlerDeps
-	FormService formdomain.Service
+	FormService   formdomain.Service
+	AccessManager *access.AccessManager
 }
 
-func NewFormHandler(deps HandlerDeps, formService formdomain.Service) *FormHandler {
-	return &FormHandler{HandlerDeps: deps, FormService: formService}
+func NewFormHandler(deps HandlerDeps, formService formdomain.Service, accessManager *access.AccessManager) *FormHandler {
+	return &FormHandler{
+		HandlerDeps:   deps,
+		FormService:   formService,
+		AccessManager: accessManager,
+	}
 }
 
 func (h *FormHandler) Register(e *echo.Echo) {
-	// Web routes
-	e.GET("/forms/new", h.handleFormNew)
-	e.POST("/forms", h.handleFormCreate)
-	e.GET("/forms/:id/edit", h.handleFormEdit)
-	e.PUT("/forms/:id", h.handleFormUpdate)
-	e.DELETE("/forms/:id", h.handleFormDelete)
-	e.GET("/forms/:id/submissions", h.handleFormSubmissions)
+	// Web routes with access control
+	forms := e.Group("/forms")
+	forms.Use(access.Middleware(h.AccessManager, h.Logger))
+	forms.GET("/new", h.handleFormNew)
+	forms.POST("", h.handleFormCreate)
+	forms.GET("/:id/edit", h.handleFormEdit)
+	forms.PUT("/:id", h.handleFormUpdate)
+	forms.DELETE("/:id", h.handleFormDelete)
+	forms.GET("/:id/submissions", h.handleFormSubmissions)
 
-	// API routes
+	// API routes with access control
 	api := e.Group("/api/v1")
-	forms := api.Group("/forms")
-	forms.GET("/:id/schema", h.handleFormSchema)
-	forms.PUT("/:id/schema", h.handleFormSchemaUpdate)
+	formsAPI := api.Group("/forms")
+	formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
+	formsAPI.GET("/:id/schema", h.handleFormSchema)
+	formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
 }
 
 // GET /forms/new
 func (h *FormHandler) handleFormNew(c echo.Context) error {
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
+	userID, ok := context.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
-	userID := userIDRaw
 
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", "error", err)
+		h.Logger.Error("failed to get user", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
@@ -203,22 +210,20 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 
 // GET /forms/:id/submissions
 func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
+	userID, ok := context.GetUserID(c)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
 	formID := c.Param("id")
 	if formID == "" {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
-	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-	userID := userIDRaw
-
 	// Get user object
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || user == nil {
-		h.Logger.Error("failed to get user (nil or error)", "error", err)
+		h.Logger.Error("failed to get user", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
@@ -231,6 +236,11 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 
 	// Verify form ownership
 	if form.UserID != userID {
+		h.Logger.Error("unauthorized form access attempt",
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"form_id", h.Logger.SanitizeField("form_id", formID),
+			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
+			"error_type", "authorization_error")
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden,
 			"You don't have permission to view submissions for this form")
 	}

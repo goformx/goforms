@@ -1,6 +1,7 @@
 package web
 
 import (
+	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -31,7 +32,7 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 	if h.Logger != nil {
 		h.Logger.Debug("handleHome: data.User", "user", data.User)
 	}
-	if data.User != nil {
+	if context.IsAuthenticated(c) {
 		return c.Redirect(302, "/dashboard")
 	}
 	if err := h.Renderer.Render(c, pages.Home(data)); err != nil {
@@ -50,7 +51,7 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 	if h.Logger != nil {
 		h.Logger.Debug("handleDemo: data.User", "user", data.User)
 	}
-	if data.User != nil {
+	if context.IsAuthenticated(c) {
 		return c.Redirect(302, "/dashboard")
 	}
 	return h.Renderer.Render(c, pages.Demo(data))

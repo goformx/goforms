@@ -6,6 +6,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -117,7 +118,7 @@ func generateValidationSchema(s interface{}) map[string]any {
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Login")
-	if data.User != nil {
+	if context.IsAuthenticated(c) {
 		return c.Redirect(http.StatusSeeOther, "/dashboard")
 	}
 	// Debug log for environment and asset path
@@ -167,17 +168,8 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		return h.deps.Renderer.Render(c, pages.Login(data))
 	}
 
-	// Set session cookie with rolling expiration
-	cookie := &http.Cookie{
-		Name:     h.deps.SessionManager.GetCookieName(),
-		Value:    session,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(SessionDuration.Seconds()),
-	}
-	c.SetCookie(cookie)
+	// Set session cookie using session manager
+	h.deps.SessionManager.SetSessionCookie(c, session)
 
 	// Redirect to dashboard
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
@@ -186,7 +178,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
-	if data.User != nil {
+	if context.IsAuthenticated(c) {
 		return c.Redirect(http.StatusSeeOther, "/dashboard")
 	}
 	return h.deps.Renderer.Render(c, pages.Signup(data))
@@ -235,17 +227,8 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		return h.deps.Renderer.Render(c, pages.Signup(data))
 	}
 
-	// Set session cookie
-	cookie := &http.Cookie{
-		Name:     h.deps.SessionManager.GetCookieName(),
-		Value:    session,
-		Path:     "/",
-		HttpOnly: true,
-		Secure:   true,
-		SameSite: http.SameSiteStrictMode,
-		MaxAge:   int(SessionDuration.Seconds()),
-	}
-	c.SetCookie(cookie)
+	// Set session cookie using session manager
+	h.deps.SessionManager.SetSessionCookie(c, session)
 
 	// Redirect to dashboard
 	return c.Redirect(http.StatusSeeOther, "/dashboard")

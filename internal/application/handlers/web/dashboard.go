@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -12,15 +13,20 @@ import (
 
 type DashboardHandler struct {
 	HandlerDeps
+	AccessManager *access.AccessManager
 }
 
-func NewDashboardHandler(deps HandlerDeps) *DashboardHandler {
-	return &DashboardHandler{HandlerDeps: deps}
+func NewDashboardHandler(deps HandlerDeps, accessManager *access.AccessManager) *DashboardHandler {
+	return &DashboardHandler{
+		HandlerDeps:   deps,
+		AccessManager: accessManager,
+	}
 }
 
 func (h *DashboardHandler) Register(e *echo.Echo) {
-	// Create dashboard group
+	// Create dashboard group with access control
 	dashboard := e.Group("/dashboard")
+	dashboard.Use(access.Middleware(h.AccessManager, h.Logger))
 	dashboard.GET("", h.handleDashboard)
 	dashboard.GET("/forms/:id", h.handleFormView)
 }
