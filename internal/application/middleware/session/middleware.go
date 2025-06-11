@@ -132,6 +132,18 @@ func (sm *Manager) isStaticFile(path string) bool {
 
 // handleAuthError handles authentication errors
 func (sm *Manager) handleAuthError(c echo.Context, message string) error {
+	// Special case for homepage - if authenticated, redirect to dashboard
+	if c.Request().URL.Path == "/" {
+		// Check if user has a valid session
+		if cookie, err := c.Cookie(sm.cookieName); err == nil {
+			if session, exists := sm.GetSession(cookie.Value); exists && time.Now().Before(session.ExpiresAt) {
+				return c.Redirect(http.StatusSeeOther, "/dashboard")
+			}
+		}
+		// If not authenticated, allow access to homepage
+		return nil
+	}
+
 	// Check if this is an API request
 	isAPIRequest := strings.HasPrefix(c.Request().URL.Path, "/api/")
 	acceptsJSON := strings.Contains(c.Request().Header.Get("Accept"), "application/json")
