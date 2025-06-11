@@ -8,7 +8,6 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form"
 	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -75,23 +74,5 @@ var Module = fx.Options(
 		NewEventPublisher,
 		// Database
 		database.New,
-		// Session manager
-		func(logger logging.Logger, cfg *config.Config) *middleware.SessionManager {
-			return middleware.NewSessionManager(logger, &cfg.Session)
-		},
-		// Middleware manager
-		func(
-			core CoreParams,
-			services ServiceParams,
-			sessionManager *middleware.SessionManager,
-		) *middleware.Manager {
-			return middleware.NewManager(&middleware.ManagerConfig{
-				Logger:         core.Logger,
-				Security:       &core.Config.Security,
-				UserService:    services.UserService,
-				SessionManager: sessionManager,
-				Config:         core.Config,
-			})
-		},
 	),
 )

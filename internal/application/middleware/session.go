@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"context"
 	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
@@ -15,6 +16,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
+	"go.uber.org/fx"
 )
 
 const (
@@ -25,6 +27,8 @@ const (
 	// SessionKey is a key used in the context
 	SessionKey     = "session"
 	sessionTimeout = 5 * time.Second
+	// cleanupInterval is how often to run session cleanup
+	cleanupInterval = 1 * time.Hour
 )
 
 // Session represents a user session
@@ -45,10 +49,11 @@ type SessionManager struct {
 	storeFile    string
 	secureCookie bool
 	cookieName   string
+	stopChan     chan struct{}
 }
 
 // NewSessionManager creates a new session manager
-func NewSessionManager(logger logging.Logger, cfg *config.SessionConfig) *SessionManager {
+func NewSessionManager(logger logging.Logger, cfg *config.SessionConfig, lc fx.Lifecycle) *SessionManager {
 	sm := &SessionManager{
 		logger:       logger,
 		sessions:     make(map[string]*Session),
@@ -56,34 +61,94 @@ func NewSessionManager(logger logging.Logger, cfg *config.SessionConfig) *Sessio
 		storeFile:    cfg.StoreFile,
 		secureCookie: cfg.Secure,
 		cookieName:   cfg.CookieName,
+		stopChan:     make(chan struct{}),
 	}
 
-	// Initialize session store with timeout
-	done := make(chan struct{})
-	go func() {
-		defer close(done)
-		// Create tmp directory if it doesn't exist
-		if err := os.MkdirAll(filepath.Dir(sm.storeFile), 0o755); err != nil {
-			logger.Error("failed to create session directory", "error", err)
-			return
-		}
+	// Register lifecycle hooks
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			// Initialize session store
+			if err := sm.initialize(); err != nil {
+				return fmt.Errorf("failed to initialize session store: %w", err)
+			}
 
-		// Load existing sessions
-		if err := sm.loadSessions(); err != nil {
-			logger.Error("failed to load sessions", "error", err)
-			return
-		}
-	}()
+			// Start cleanup routine
+			go sm.cleanupRoutine()
 
-	// Wait for initialization with timeout
-	select {
-	case <-done:
-		logger.Info("session store initialized", "total_sessions", len(sm.sessions))
-	case <-time.After(sessionTimeout):
-		logger.Warn("session store initialization timed out")
-	}
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			// Stop cleanup routine
+			close(sm.stopChan)
+
+			// Save sessions before shutdown
+			if err := sm.saveSessions(); err != nil {
+				sm.logger.Error("failed to save sessions during shutdown", "error", err)
+			}
+
+			return nil
+		},
+	})
 
 	return sm
+}
+
+// initialize sets up the session store
+func (sm *SessionManager) initialize() error {
+	// Create tmp directory if it doesn't exist
+	if err := os.MkdirAll(filepath.Dir(sm.storeFile), 0o755); err != nil {
+		sm.logger.Error("failed to create session directory", "error", err)
+		return fmt.Errorf("failed to create session directory: %w", err)
+	}
+
+	// Load existing sessions
+	if err := sm.loadSessions(); err != nil {
+		sm.logger.Error("failed to load sessions", "error", err)
+		return fmt.Errorf("failed to load sessions: %w", err)
+	}
+
+	sm.logger.Info("session store initialized", "total_sessions", len(sm.sessions))
+	return nil
+}
+
+// cleanupRoutine periodically cleans up expired sessions
+func (sm *SessionManager) cleanupRoutine() {
+	ticker := time.NewTicker(cleanupInterval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ticker.C:
+			sm.cleanupExpiredSessions()
+		case <-sm.stopChan:
+			return
+		}
+	}
+}
+
+// cleanupExpiredSessions removes expired sessions
+func (sm *SessionManager) cleanupExpiredSessions() {
+	sm.mutex.Lock()
+	defer sm.mutex.Unlock()
+
+	now := time.Now()
+	expiredCount := 0
+
+	for id, session := range sm.sessions {
+		if session.ExpiresAt.Before(now) {
+			delete(sm.sessions, id)
+			expiredCount++
+		}
+	}
+
+	if expiredCount > 0 {
+		sm.logger.Info("cleaned up expired sessions", "count", expiredCount, "remaining", len(sm.sessions))
+
+		// Save sessions after cleanup
+		if err := sm.saveSessions(); err != nil {
+			sm.logger.Error("failed to save sessions after cleanup", "error", err)
+		}
+	}
 }
 
 // parseSessionData parses session data into a Session object
@@ -221,6 +286,11 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			cookie, err := c.Cookie(sm.cookieName)
 			if err != nil {
 				sm.logger.Debug("SessionMiddleware: No session cookie found", "path", c.Request().URL.Path)
+				path := c.Request().URL.Path
+				if path == "/" || path == "/login" || path == "/signup" {
+					// Let the handler render the page
+					return next(c)
+				}
 				return sm.handleAuthError(c, "no session found")
 			}
 			sm.logger.Debug("SessionMiddleware: Found session cookie", "cookie", cookie.Value, "path", c.Request().URL.Path)
@@ -229,6 +299,11 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			session, exists := sm.GetSession(cookie.Value)
 			if !exists {
 				sm.logger.Debug("SessionMiddleware: Session not found", "cookie", cookie.Value, "path", c.Request().URL.Path)
+				path := c.Request().URL.Path
+				if path == "/" || path == "/login" || path == "/signup" {
+					// Let the handler render the page
+					return next(c)
+				}
 				return sm.handleAuthError(c, "invalid session")
 			}
 			sm.logger.Debug("SessionMiddleware: Session found", "user_id", session.UserID, "path", c.Request().URL.Path)
@@ -237,6 +312,11 @@ func (sm *SessionManager) SessionMiddleware() echo.MiddlewareFunc {
 			if time.Now().After(session.ExpiresAt) {
 				sm.logger.Debug("SessionMiddleware: Session expired", "user_id", session.UserID, "path", c.Request().URL.Path)
 				sm.DeleteSession(cookie.Value)
+				path := c.Request().URL.Path
+				if path == "/" || path == "/login" || path == "/signup" {
+					// Let the handler render the page
+					return next(c)
+				}
 				return sm.handleAuthError(c, "session expired")
 			}
 
@@ -333,11 +413,18 @@ func (sm *SessionManager) isSessionExempt(path string) bool {
 
 // handleAuthError handles authentication errors
 func (sm *SessionManager) handleAuthError(c echo.Context, message string) error {
+	path := c.Request().URL.Path
+
 	// For API requests, return 401
 	if c.Request().Header.Get("Accept") == "application/json" {
 		return c.JSON(http.StatusUnauthorized, map[string]string{
 			"error": message,
 		})
+	}
+
+	// If already on /login or /signup, just render the page, don't redirect
+	if path == "/login" || path == "/signup" {
+		return nil // Let the handler render the page
 	}
 
 	// For web requests, redirect to login

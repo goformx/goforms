@@ -101,14 +101,14 @@ type DatabaseConfig struct {
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
 	Debug               bool          `envconfig:"GOFORMS_DEBUG" default:"false"`
-	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"20"`
-	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1s"`
+	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"100"`
+	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1m"`
 	SecureCookie        bool          `envconfig:"GOFORMS_SECURE_COOKIE" default:"true"`
 
 	// Rate Limiting
 	RateLimitEnabled    bool          `envconfig:"GOFORMS_RATE_LIMIT_ENABLED" default:"true"`
 	RateLimit           int           `envconfig:"GOFORMS_RATE_LIMIT" default:"100"`
-	RateBurst           int           `envconfig:"GOFORMS_RATE_BURST" default:"5"`
+	RateBurst           int           `envconfig:"GOFORMS_RATE_BURST" default:"20"`
 	RateLimitTimeWindow time.Duration `envconfig:"GOFORMS_RATE_LIMIT_TIME_WINDOW" default:"1m"`
 	RateLimitPerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
 

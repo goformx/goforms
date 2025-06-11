@@ -73,6 +73,8 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 
 // Module provides all application layer dependencies
 var Module = fx.Options(
+	// Include middleware module
+	middleware.Module,
 	// Handler dependencies
 	fx.Provide(
 		NewHandlerDeps,

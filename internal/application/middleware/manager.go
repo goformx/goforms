@@ -206,6 +206,13 @@ func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareF
 			},
 		),
 		IdentifierExtractor: func(c echo.Context) (string, error) {
+			// For login and signup pages, use IP address as identifier
+			path := c.Request().URL.Path
+			if path == "/login" || path == "/signup" {
+				return c.RealIP(), nil
+			}
+
+			// For form submissions, use form ID and origin
 			formID := c.Param("formID")
 			origin := c.Request().Header.Get("Origin")
 			if formID == "" {
