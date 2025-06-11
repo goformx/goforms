@@ -7,7 +7,7 @@ import (
 )
 
 templ Demo(data shared.PageData) {
-	@layouts.Layout(data, DemoContent())
+	@layouts.Layout(data, DemoContent(data))
 }
 
 templ DemoCard(content templ.Component) {
@@ -51,7 +51,7 @@ templ SubmissionsContent() {
 	</div>
 }
 
-templ DemoContent() {
+templ DemoContent(data shared.PageData) {
 	@components.PageHero("Form Backend Demo", "See how easy it is to add Goforms to your website. No backend code required!")
 	<section class="grid-section">
 		<div class="container">
@@ -62,8 +62,5 @@ templ DemoContent() {
 			</div>
 		</div>
 	</section>
-	<script type="module">
-		const path = { data.AssetPath("src/js/demo.ts") };
-		import(path);
-	</script>
+	<script type="module" src={ data.AssetPath("src/js/demo.ts") }></script>
 } 

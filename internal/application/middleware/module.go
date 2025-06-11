@@ -28,6 +28,7 @@ var Module = fx.Options(
 					"/reset-password",
 					"/health",
 					"/metrics",
+					"/demo",
 				},
 				ExemptPaths: []string{
 					"/api/public",
