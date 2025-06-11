@@ -6,6 +6,7 @@ import (
 	"strconv"
 
 	"github.com/a-h/templ"
+	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -44,22 +45,22 @@ type Message struct {
 	Text string
 }
 
-// GetCurrentUser extracts session data from Echo's context
+// GetCurrentUser extracts user data from context
 func GetCurrentUser(c echo.Context) *user.User {
 	if c == nil {
 		return nil
 	}
-	sessionVal := c.Get(session.SessionKey)
-	if sessionVal != nil {
-		if sess, ok := sessionVal.(*session.Session); ok && sess != nil {
-			return &user.User{
-				ID:    sess.UserID,
-				Email: sess.Email,
-				Role:  sess.Role,
-			}
-		}
+	userID, ok := context.GetUserID(c)
+	if !ok {
+		return nil
 	}
-	return nil
+	email, _ := context.GetEmail(c)
+	role, _ := context.GetRole(c)
+	return &user.User{
+		ID:    userID,
+		Email: email,
+		Role:  role,
+	}
 }
 
 // GetCSRFToken retrieves the CSRF token from context
@@ -118,14 +119,14 @@ func NewPageData(c echo.Context, cfg *config.Config, data interface{}) *PageData
 		Data:   data,
 	}
 
-	// Get session data if available
-	sessionVal := c.Get(session.SessionKey)
-	if sessionVal != nil {
-		if sess, ok := sessionVal.(*session.Session); ok && sess != nil {
-			pd.Session = sess
-			pd.UserID = sess.UserID
-			pd.Email = sess.Email
-			pd.Role = sess.Role
+	// Get user data from context
+	if userID, ok := context.GetUserID(c); ok {
+		pd.UserID = userID
+		if email, ok := context.GetEmail(c); ok {
+			pd.Email = email
+		}
+		if role, ok := context.GetRole(c); ok {
+			pd.Role = role
 		}
 	}
 

@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/response"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -63,12 +64,10 @@ func (h *FormHandler) handleFormNew(c echo.Context) error {
 
 // POST /forms
 func (h *FormHandler) handleFormCreate(c echo.Context) error {
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
+	userID, ok := context.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
-	userID := userIDRaw
 
 	// Get and sanitize form data
 	title := sanitize.XSS(c.FormValue("title"))
@@ -141,27 +140,43 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 
 // PUT /forms/:id
 func (h *FormHandler) handleFormUpdate(c echo.Context) error {
+	userID, ok := context.GetUserID(c)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
 	formID := c.Param("id")
 	if formID == "" {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
+
+	// Get form to verify ownership
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
+	if err != nil {
+		h.Logger.Error("failed to get form", "error", err)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
+	}
+
+	// Verify form ownership
+	if form.UserID != userID {
+		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to update this form")
+	}
+
 	// TODO: Parse and update form details
 	return response.WebErrorResponse(c, h.Renderer, http.StatusNotImplemented, "Form update not implemented yet")
 }
 
 // DELETE /forms/:id
 func (h *FormHandler) handleFormDelete(c echo.Context) error {
+	userID, ok := context.GetUserID(c)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
 	formID := c.Param("id")
 	if formID == "" {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
-
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
-	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-	userID := userIDRaw
 
 	// Get form to verify ownership
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
@@ -253,17 +268,15 @@ func (h *FormHandler) handleFormSchema(c echo.Context) error {
 
 // PUT /api/v1/forms/:id/schema
 func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
+	userID, ok := context.GetUserID(c)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
 	formID := c.Param("id")
 	if formID == "" {
 		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
 	}
-
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
-	if !ok {
-		return response.ErrorResponse(c, http.StatusUnauthorized, "Authentication required")
-	}
-	userID := userIDRaw
 
 	// Get existing form
 	form, getErr := h.FormService.GetForm(c.Request().Context(), formID)

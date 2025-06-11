@@ -3,6 +3,7 @@ package web
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -26,24 +27,22 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 
 // handleDashboard handles the dashboard page request
 func (h *DashboardHandler) handleDashboard(c echo.Context) error {
-	reqCtx := c.Request().Context()
-
-	userIDRaw, ok := c.Get("user_id").(string)
-	if !ok || userIDRaw == "" {
+	userID, ok := context.GetUserID(c)
+	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
 	// Fetch user data
-	userObj, err := h.UserService.GetUserByID(reqCtx, userIDRaw)
+	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userObj == nil {
-		h.Logger.Error("user not found after authentication", "user_id", userIDRaw, "path", c.Request().URL.Path)
+		h.Logger.Error("user not found after authentication", "user_id", userID, "path", c.Request().URL.Path)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
 	// Fetch forms data
-	forms, err := h.FormService.GetUserForms(reqCtx, userIDRaw)
+	forms, err := h.FormService.GetUserForms(c.Request().Context(), userID)
 	if err != nil {
-		h.Logger.Error("failed to get user forms", "user_id", userIDRaw, "error", err)
+		h.Logger.Error("failed to get user forms", "user_id", userID, "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to load forms"})
 	}
 
@@ -57,37 +56,34 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 
 // handleFormView handles the form view page request
 func (h *DashboardHandler) handleFormView(c echo.Context) error {
+	userID, ok := context.GetUserID(c)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
 	formID := c.Param("id")
 	if formID == "" {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
-	// Get user ID from session
-	userIDRaw, ok := c.Get("user_id").(string)
-	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-
-	reqCtx := c.Request().Context()
-
 	// Fetch user data
-	userObj, err := h.UserService.GetUserByID(reqCtx, userIDRaw)
+	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userObj == nil {
-		h.Logger.Error("user not found after authentication", "user_id", userIDRaw, "path", c.Request().URL.Path)
+		h.Logger.Error("user not found after authentication", "user_id", userID, "path", c.Request().URL.Path)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
 	// Fetch form data
-	form, err := h.FormService.GetForm(reqCtx, formID)
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil || form == nil {
-		h.Logger.Error("form not found or error loading form", "form_id", formID, "user_id", userIDRaw, "error", err)
+		h.Logger.Error("form not found or error loading form", "form_id", formID, "user_id", userID, "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Resource not found")
 	}
 
 	// Verify form ownership
-	if form.UserID != userIDRaw {
+	if form.UserID != userID {
 		h.Logger.Error("unauthorized form access attempt",
-			"user_id", h.Logger.SanitizeField("user_id", userIDRaw),
+			"user_id", h.Logger.SanitizeField("user_id", userID),
 			"form_id", h.Logger.SanitizeField("form_id", formID),
 			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
 			"error_type", "authorization_error")
