@@ -93,9 +93,14 @@ func (s *ViteAssetServer) RegisterRoutes(e *echo.Echo) error {
 	proxy := httputil.NewSingleHostReverseProxy(parsedURL)
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
 		if s.logger != nil {
+			// Only log the path portion of the URL, limited to 100 characters
+			path := r.URL.Path
+			if len(path) > 100 {
+				path = path[:100] + "..."
+			}
 			s.logger.Error("proxy error",
 				"error", err,
-				"url", r.URL.String(),
+				"path", path,
 			)
 		}
 		http.Error(w, "Proxy Error", http.StatusBadGateway)

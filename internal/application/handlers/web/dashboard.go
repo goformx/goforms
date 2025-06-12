@@ -42,7 +42,16 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	// Fetch user data
 	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userObj == nil {
-		h.Logger.Error("user not found after authentication", "user_id", userID, "path", c.Request().URL.Path)
+		// Sanitize and limit path length
+		path := c.Request().URL.Path
+		if len(path) > 100 {
+			path = path[:100] + "..."
+		}
+		// Only log essential information
+		h.Logger.Error("authentication error",
+			"error", "user not found",
+			"path", path,
+		)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
