@@ -11,7 +11,7 @@ import (
 )
 
 const (
-	// HTTP status codes
+	// StatusFound is the HTTP status code for redirects
 	StatusFound = http.StatusFound // 302
 )
 
@@ -60,7 +60,7 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 		h.Logger.Debug("handleDemo: data.User", "user", data.User)
 	}
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(302, "/dashboard")
+		return c.Redirect(StatusFound, "/dashboard")
 	}
 	return h.Renderer.Render(c, pages.Demo(data))
 }

@@ -79,13 +79,13 @@ func (fs *FileStorage) Save(sessions map[string]*Session) error {
 		}
 	}
 
-	data, err := json.MarshalIndent(sessionsMap, "", "  ")
-	if err != nil {
-		return fmt.Errorf("failed to marshal sessions: %w", err)
+	data, marshalErr := json.MarshalIndent(sessionsMap, "", "  ")
+	if marshalErr != nil {
+		return fmt.Errorf("failed to marshal sessions: %w", marshalErr)
 	}
 
-	if err := os.WriteFile(fs.storeFile, data, 0o600); err != nil {
-		return fmt.Errorf("failed to write session store: %w", err)
+	if writeErr := os.WriteFile(fs.storeFile, data, 0o600); writeErr != nil {
+		return fmt.Errorf("failed to write session store: %w", writeErr)
 	}
 
 	return nil
