@@ -5,138 +5,69 @@ alwaysApply: false
 ---
 # Validation Guidelines
 
-This project uses a comprehensive validation system for ensuring data integrity and business rules.
+## Core Components
 
-## Core Validation Components
+1. **Domain Validation**
+   - Use `Validate()` method on domain models
+   - Return domain-specific errors
+   - Validate business rules and constraints
 
-1. **Validator Interface**
+2. **Input Validation**
+   - Use struct tags for request validation
+   - Validate at API boundaries
+   - Sanitize user input
+
+## Common Patterns
+
+1. **Model Validation**
    ```go
-   type Validator interface {
-       Struct(any) error
-       Var(any, string) error
-       RegisterValidation(string, func(fl validator.FieldLevel) bool) error
+   func (f *Form) Validate() error {
+       if f.Title == "" {
+           return ErrFormTitleRequired
+       }
+       if len(f.Title) < MinTitleLength || len(f.Title) > MaxTitleLength {
+           return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
+       }
+       return f.validateSchema()
    }
    ```
 
-2. **Domain Errors**
+2. **Request Validation**
    ```go
-   type ErrorCode string
-
-   const (
-       ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
-       ErrCodeRequired      ErrorCode = "REQUIRED_FIELD"
-       ErrCodeInvalid       ErrorCode = "INVALID_VALUE"
-       ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
-       ErrCodeInvalidInput  ErrorCode = "INVALID_INPUT"
-   )
+   type CreateFormRequest struct {
+       Title       string `json:"title" validate:"required,min=3,max=100"`
+       Description string `json:"description" validate:"max=500"`
+       Schema      JSON   `json:"schema" validate:"required"`
+   }
    ```
 
-## Validation Patterns
-
-1. **Model Validation**
-   - Use struct tags for basic validation
-   - Implement Validate() method for complex rules
-   - Return domain-specific errors
-   - Include validation context
-
-2. **Input Validation**
-   - Validate at API boundaries
-   - Use middleware for common validations
-   - Return user-friendly error messages
-   - Include field-level errors
-
-3. **Business Rule Validation**
-   - Implement in domain services
-   - Use value objects for complex rules
-   - Maintain validation state
-   - Handle cross-entity validation
-
-## Example Usage
-
-### Model Validation
-```go
-type Form struct {
-    ID          string    `json:"id" validate:"required"`
-    Title       string    `json:"title" validate:"required,min=3,max=100"`
-    Description string    `json:"description" validate:"max=500"`
-    Schema      JSON      `json:"schema" validate:"required"`
-    Active      bool      `json:"active"`
-    CreatedAt   time.Time `json:"created_at"`
-    UpdatedAt   time.Time `json:"updated_at"`
-}
-
-func (f *Form) Validate() error {
-    if f.Title == "" {
-        return errors.New(errors.ErrCodeValidation, "form title is required", nil)
-    }
-    return nil
-}
-```
-
-### Input Validation
-```go
-type CreateFormRequest struct {
-    Title       string `json:"title" validate:"required,min=3,max=100"`
-    Description string `json:"description" validate:"max=500"`
-    Schema      JSON   `json:"schema" validate:"required"`
-}
-
-func (r *CreateFormRequest) Validate() error {
-    validator := validation.New()
-    if err := validator.Struct(r); err != nil {
-        return errors.Wrap(err, errors.ErrCodeValidation, "invalid form data")
-    }
-    return nil
-}
-```
-
-### Business Rule Validation
-```go
-type FormService struct {
-    repo Repository
-}
-
-func (s *FormService) CreateForm(ctx context.Context, req *CreateFormRequest) (*Form, error) {
-    // Validate input
-    if err := req.Validate(); err != nil {
-        return nil, err
-    }
-
-    // Validate business rules
-    if err := s.validateBusinessRules(ctx, req); err != nil {
-        return nil, err
-    }
-
-    // Create form
-    return s.repo.Create(ctx, req)
-}
-```
+3. **Error Handling**
+   ```go
+   if err := form.Validate(); err != nil {
+       var domainErr *domain.Error
+       if errors.As(err, &domainErr) {
+           return c.JSON(domainErr.Code, domainErr)
+       }
+       return c.JSON(http.StatusBadRequest, err)
+   }
+   ```
 
 ## Best Practices
 
-1. **Validation Layers**
-   - Input validation at API layer
-   - Model validation at domain layer
-   - Business rule validation at service layer
-   - Database constraints at persistence layer
+1. **Validation Order**
+   - Syntax validation first
+   - Business rules second
+   - Security checks last
 
-2. **Error Handling**
-   - Use domain-specific error types
-   - Include validation context
-   - Provide user-friendly messages
-   - Maintain error hierarchy
+2. **Error Messages**
+   - Be specific and descriptive
+   - Include field names
+   - Use consistent format
 
-3. **Performance**
-   - Validate early
-   - Cache validation results
-   - Use efficient validators
-   - Handle large datasets
-
-4. **Testing**
-   - Unit test validation rules
-   - Test error cases
-   - Test edge cases
-   - Test performance
+3. **Security**
+   - Sanitize all user input
+   - Validate before processing
+   - Use type-safe validation
 
 # Input Validation Rule: go-sanitize
 
