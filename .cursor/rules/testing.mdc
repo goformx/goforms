@@ -5,47 +5,20 @@ alwaysApply: false
 ---
 # Testing Guidelines
 
-This project uses testify for testing and mocking. Follow these guidelines for all tests.
+## Test Types
 
-## Test Organization
 1. **Unit Tests**
-   - Test domain logic thoroughly
+   - Test domain logic
    - Use table-driven tests
-   - Example: [internal/domain/user/service_test.go](mdc:goforms/internal/domain/user/service_test.go)
+   - Mock dependencies
 
 2. **Integration Tests**
-   - Test infrastructure components
-   - Include database operations
    - Test API endpoints
-   - Example: [test/integration/api/user_test.go](mdc:goforms/test/integration/api/user_test.go)
+   - Test database operations
+   - Use testcontainers
 
-## Mocking
-1. **Mock Store Example** [test/mocks/store/user/store.go](mdc:goforms/test/mocks/store/user/store.go)
-   ```go
-   type MockStore struct {
-       mock.Mock
-   }
-   
-   func (m *MockStore) Create(ctx context.Context, user *User) error {
-       args := m.Called(ctx, user)
-       return args.Error(0)
-   }
-   ```
+## Test Structure
 
-2. **Test Setup**
-   ```go
-   func TestUserService(t *testing.T) {
-       mockStore := NewMockStore()
-       mockLogger := mocklogging.NewMockLogger()
-       service := user.NewService(mockStore, mockLogger)
-   
-       t.Run("test case", func(t *testing.T) {
-           // Test implementation
-       })
-   }
-   ```
-
-## Best Practices
 1. **Table-Driven Tests**
    ```go
    func TestValidation(t *testing.T) {
@@ -54,14 +27,14 @@ This project uses testify for testing and mocking. Follow these guidelines for a
            input   string
            wantErr bool
        }{
-           {"valid input", "test@example.com", false},
-           {"invalid input", "invalid", true},
+           {"valid", "test@example.com", false},
+           {"invalid", "invalid", true},
        }
    
        for _, tt := range tests {
            t.Run(tt.name, func(t *testing.T) {
                err := validate(tt.input)
-               assert.Equal(t, tt.wantErr, err != nil)
+               require.Equal(t, tt.wantErr, err != nil)
            })
        }
    }
@@ -76,127 +49,47 @@ This project uses testify for testing and mocking. Follow these guidelines for a
    })
    ```
 
-3. **Context Usage**
-   ```go
-   ctx := t.Context()
-   // or
-   ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
-   defer cancel()
-   ```
+## Best Practices
 
-## Performance Testing
-1. **Benchmarks**
+1. **Setup**
+   - Use `t.Context()`
+   - Clean up resources
+   - Mock external services
+
+2. **Assertions**
+   - Use `require` for critical checks
+   - Use `assert` for non-critical checks
+   - Test error cases
+
+3. **Cleanup**
    ```go
-   func BenchmarkOperation(b *testing.B) {
-       for i := 0; i < b.N; i++ {
-           operation()
-       }
+   func TestDB(t *testing.T) {
+       db, err := setupDB()
+       require.NoError(t, err)
+       defer db.Close()
+       // ... test ...
    }
    ```
 
-2. **Race Detection**
-   - Run tests with -race flag
-   - Test concurrent operations
-   ```bash
-   go test -race ./...
+## Common Patterns
+
+1. **Mocking**
+   ```go
+   type MockStore struct {
+       mock.Mock
+   }
+   
+   func (m *MockStore) Create(ctx context.Context, user *User) error {
+       args := m.Called(ctx, user)
+       return args.Error(0)
+   }
    ```
 
-## Test Context
-- Always use `t.Context()` instead of `context.Background()` in tests
-- This ensures proper test lifecycle management and cleanup
-```go
-func TestExample(t *testing.T) {
-    ctx := t.Context()
-    // Use ctx for the test
-}
-```
-
-## Resource Cleanup
-- Avoid unnecessary defer statements just before returns
-- Clean up resources explicitly when they're the last operation
-- Use defer for cleanup that must happen regardless of test outcome
-```go
-// Bad - unnecessary defer
-func TestDB(t *testing.T) {
-    // ... test setup ...
-    defer cleanup()
-    return
-}
-
-// Good - explicit cleanup
-func TestDB(t *testing.T) {
-    // ... test setup ...
-    cleanup()
-}
-
-// Good - necessary defer
-func TestDB(t *testing.T) {
-    db, err := setupDB()
-    require.NoError(t, err)
-    defer db.Close() // This should run even if test fails
-    // ... rest of test ...
-}
-```
-
-## Variable Shadowing
-- Avoid shadowing variables in test functions
-- Use unique names for error variables in sequential operations
-```go
-// Bad
-func TestConnection(t *testing.T) {
-    conn, err := connect()
-    if err != nil {
-        t.Fatal(err)
-    }
-    if err := conn.Do(); err != nil { // shadows previous err
-        t.Fatal(err)
-    }
-}
-
-// Good
-func TestConnection(t *testing.T) {
-    conn, err := connect()
-    if err != nil {
-        t.Fatal(err)
-    }
-    doErr := conn.Do()
-    if doErr != nil {
-        t.Fatal(doErr)
-    }
-}
-```
-
-## Integration Tests
-- Use testcontainers for database and external service tests
-- Properly manage container lifecycle
-- Example: [internal/infrastructure/persistence/database/connection_test.go](mdc:goforms/internal/infrastructure/persistence/database/connection_test.go)
-
-## Test Structure
-1. Arrange - Set up test data and conditions
-2. Act - Execute the code under test
-3. Assert - Verify the results
-```go
-func TestSubmission(t *testing.T) {
-    // Arrange
-    data := map[string]any{
-        "field": "value",
-    }
-    
-    // Act
-    submission, err := NewFormSubmission("form1", data, nil)
-    
-    // Assert
-    require.NoError(t, err)
-    require.NotNil(t, submission)
-    require.Equal(t, "value", submission.Data["field"])
-}
-```
-
-## Test Utilities
-- Use `require` package for assertions
-- Use table-driven tests for multiple test cases
-- Create test helpers for common setup/teardown
-
-## Reference Files
-- [internal/infrastructure/persistence/database/connection_test.go](mdc:goforms/internal/infrastructure/persistence/database/connection_test.go)
-- [internal/domain/form/model/form_submission.go](mdc:goforms/internal/domain/form/model/form_submission.go)
+2. **Test Helpers**
+   ```go
+   func setupTestDB(t *testing.T) *sql.DB {
+       db, err := sql.Open("postgres", testDBURL)
+       require.NoError(t, err)
+       return db
+   }
+   ```

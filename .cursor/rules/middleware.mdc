@@ -3,6 +3,85 @@ description:
 globs: internal/application/middleware/**/*.go
 alwaysApply: false
 ---
+# Middleware Guidelines
+
+## Core Components
+
+1. **Context Management** (`internal/application/middleware/context`)
+   - Type-safe context access
+   - User data helpers
+   - Request tracking
+
+2. **Access Control** (`internal/application/middleware/access`)
+   - Public, Authenticated, Admin levels
+   - Route-based rules
+   - Role-based access
+
+3. **Session Management** (`internal/application/middleware/session`)
+   - Secure session handling
+   - Cookie management
+   - Session validation
+
+## Setup Order
+
+1. Basic Middleware
+   ```go
+   e.Use(middleware.Recover())
+   e.Use(middleware.RequestID())
+   e.Use(context.Middleware())
+   e.Use(middleware.Secure())
+   ```
+
+2. Security Middleware
+   ```go
+   e.Use(csrf.Middleware())
+   e.Use(ratelimit.Middleware())
+   e.Use(cors.Middleware())
+   ```
+
+3. Auth Middleware
+   ```go
+   e.Use(session.Middleware())
+   e.Use(access.Middleware())
+   ```
+
+## Common Patterns
+
+1. **Context Usage**
+   ```go
+   // Get user data
+   userID, ok := context.GetUserID(c)
+   if !ok {
+       return c.Redirect(http.StatusSeeOther, "/login")
+   }
+   ```
+
+2. **Session Management**
+   ```go
+   // Create session
+   session, err := sessionManager.CreateSession(userID, email, role)
+   if err != nil {
+       return err
+   }
+   sessionManager.SetSessionCookie(c, session.ID)
+   ```
+
+## Best Practices
+
+1. Security
+   - Enable CSRF protection
+   - Use secure cookies
+   - Set security headers
+   - Implement rate limiting
+
+2. Performance
+   - Skip middleware for static files
+   - Cache session data
+   - Use efficient route matching
+
+3. Error Handling
+   - Log errors with context
+   - Return user-friendly messages
 # Middleware Architecture
 
 ## Overview
