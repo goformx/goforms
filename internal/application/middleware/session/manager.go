@@ -15,7 +15,12 @@ import (
 )
 
 // NewManager creates a new session manager
-func NewManager(logger logging.Logger, cfg *SessionConfig, lc fx.Lifecycle, accessManager *access.AccessManager) *Manager {
+func NewManager(
+	logger logging.Logger,
+	cfg *SessionConfig,
+	lc fx.Lifecycle,
+	accessManager *access.AccessManager,
+) *Manager {
 	// Create tmp directory if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(cfg.StoreFile), 0o755); err != nil {
 		logger.Error("failed to create session directory", "error", err)

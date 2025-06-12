@@ -46,7 +46,7 @@ func (am *AccessManager) AddRule(rule AccessRule) {
 }
 
 // GetRequiredAccess returns the required access level for a path and method
-func (am *AccessManager) GetRequiredAccess(path string, method string) AccessLevel {
+func (am *AccessManager) GetRequiredAccess(path, method string) AccessLevel {
 	for _, rule := range am.rules {
 		if rule.Path == path {
 			// If no methods specified, rule applies to all methods

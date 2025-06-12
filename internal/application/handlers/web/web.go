@@ -2,11 +2,17 @@ package web
 
 import (
 	"context"
+	"net/http"
 
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	// HTTP status codes
+	StatusFound = http.StatusFound // 302
 )
 
 // WebHandler handles web page requests
@@ -34,8 +40,8 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 	if h.Logger != nil {
 		h.Logger.Debug("handleHome: data.User", "user", data.User)
 	}
-	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(302, "/dashboard")
+	if h.isAuthenticated(c) {
+		return c.Redirect(StatusFound, "/dashboard")
 	}
 	if err := h.Renderer.Render(c, pages.Home(data)); err != nil {
 		data.Message = &shared.Message{
@@ -69,4 +75,8 @@ func (h *WebHandler) Start(ctx context.Context) error {
 // This is called during application shutdown.
 func (h *WebHandler) Stop(ctx context.Context) error {
 	return nil // No cleanup needed
+}
+
+func (h *WebHandler) isAuthenticated(c echo.Context) bool {
+	return mwcontext.IsAuthenticated(c)
 }

@@ -26,25 +26,28 @@ func NewFileStorage(storeFile string, logger logging.Logger) *FileStorage {
 
 // Load implements SessionStorage.Load
 func (fs *FileStorage) Load() (map[string]*Session, error) {
-	data, err := os.ReadFile(fs.storeFile)
-	if err != nil {
-		if os.IsNotExist(err) {
+	// Read file
+	data, readErr := os.ReadFile(fs.storeFile)
+	if readErr != nil {
+		if os.IsNotExist(readErr) {
 			return make(map[string]*Session), nil
 		}
-		return nil, fmt.Errorf("failed to read sessions file: %w", err)
+		return nil, fmt.Errorf("failed to read sessions file: %w", readErr)
 	}
 
-	tempSessions := make(map[string]map[string]any)
-	if err := json.Unmarshal(data, &tempSessions); err != nil {
-		return nil, fmt.Errorf("failed to unmarshal sessions: %w", err)
+	// Parse sessions
+	var tempSessions map[string]map[string]any
+	if unmarshalErr := json.Unmarshal(data, &tempSessions); unmarshalErr != nil {
+		return nil, fmt.Errorf("failed to unmarshal sessions: %w", unmarshalErr)
 	}
 
+	// Convert to sessions
 	sessions := make(map[string]*Session)
 	now := time.Now()
 	for id, data := range tempSessions {
-		session, err := fs.parseSessionData(data)
-		if err != nil {
-			fs.logger.Warn("failed to parse session data", "session_id", id, "error", err)
+		session, parseErr := fs.parseSessionData(data)
+		if parseErr != nil {
+			fs.logger.Warn("failed to parse session data", "session_id", id, "error", parseErr)
 			continue
 		}
 
@@ -53,6 +56,11 @@ func (fs *FileStorage) Load() (map[string]*Session, error) {
 		}
 
 		sessions[id] = session
+	}
+
+	// Write file
+	if writeErr := os.WriteFile(fs.storeFile, data, 0o600); writeErr != nil {
+		return nil, fmt.Errorf("failed to write session store: %w", writeErr)
 	}
 
 	return sessions, nil

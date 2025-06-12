@@ -25,6 +25,8 @@ const (
 	SessionDuration = 24 * time.Hour
 	// MinPasswordLength is the minimum required length for passwords
 	MinPasswordLength = 8
+	// XMLHttpRequestHeader is the standard header value for AJAX requests
+	XMLHttpRequestHeader = "XMLHttpRequest"
 )
 
 // NewAuthHandler creates a new auth handler
@@ -55,7 +57,7 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 }
 
 // generateValidationSchema generates a validation schema from struct tags
-func generateValidationSchema(s interface{}) map[string]any {
+func generateValidationSchema(s any) map[string]any {
 	schema := make(map[string]any)
 	t := reflect.TypeOf(s)
 
@@ -69,7 +71,7 @@ func generateValidationSchema(s interface{}) map[string]any {
 		return schema
 	}
 
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		field := t.Field(i)
 		jsonTag := field.Tag.Get("json")
 		if jsonTag == "" || jsonTag == "-" {
@@ -96,10 +98,10 @@ func generateValidationSchema(s interface{}) map[string]any {
 					fieldSchema["type"] = "email"
 					fieldSchema["message"] = "Please enter a valid email address"
 				case strings.HasPrefix(rule, "min="):
-					min := strings.TrimPrefix(rule, "min=")
-					fieldSchema["min"] = min
+					minLength := strings.TrimPrefix(rule, "min=")
+					fieldSchema["min"] = minLength
 					if fieldName == "password" {
-						fieldSchema["message"] = "Password must be at least " + min + " characters long"
+						fieldSchema["message"] = "Password must be at least " + minLength + " characters long"
 					}
 				case strings.HasPrefix(rule, "match="):
 					matchField := strings.TrimPrefix(rule, "match=")
@@ -160,7 +162,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			"error_type", "authentication_error")
 
 		// Handle API requests differently
-		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Invalid email or password",
 			})
@@ -187,7 +189,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			"user_id", h.deps.Logger.SanitizeField("user_id", authenticatedUser.ID))
 
 		// Handle API requests differently
-		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"message": "An error occurred. Please try again.",
 			})
@@ -205,7 +207,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	h.deps.SessionManager.SetSessionCookie(c, session)
 
 	// Handle API requests differently
-	if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
 		return c.JSON(http.StatusOK, map[string]string{
 			"redirect": "/dashboard",
 		})
@@ -249,7 +251,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			"email", h.deps.Logger.SanitizeField("email", email))
 
 		// Check if this is an API request
-		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Unable to create account. Please try again.",
 			})
@@ -270,7 +272,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			"user_id", h.deps.Logger.SanitizeField("user_id", newUser.ID))
 
 		// Check if this is an API request
-		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"message": "An error occurred. Please try again.",
 			})
@@ -287,7 +289,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	h.deps.SessionManager.SetSessionCookie(c, session)
 
 	// Check if this is an API request
-	if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
 		return c.JSON(http.StatusOK, map[string]string{
 			"redirect": "/dashboard",
 		})

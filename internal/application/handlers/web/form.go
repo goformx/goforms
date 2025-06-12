@@ -24,7 +24,12 @@ type FormHandler struct {
 	AccessManager *access.AccessManager
 }
 
-func NewFormHandler(deps HandlerDeps, formService formdomain.Service, accessManager *access.AccessManager) *FormHandler {
+// NewFormHandler creates a new form handler
+func NewFormHandler(
+	deps HandlerDeps,
+	formService formdomain.Service,
+	accessManager *access.AccessManager,
+) *FormHandler {
 	return &FormHandler{
 		HandlerDeps:   deps,
 		FormService:   formService,

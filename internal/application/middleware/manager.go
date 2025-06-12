@@ -86,7 +86,11 @@ func (m *Manager) GetSessionManager() *session.Manager {
 
 // Setup registers all middleware with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
-	m.logger.Info("setting up middleware", "app", "goforms", "version", m.config.Config.App.Version, "environment", m.config.Config.App.Env)
+	m.logger.Info("setting up middleware",
+		"app", "goforms",
+		"version", m.config.Config.App.Version,
+		"environment", m.config.Config.App.Env,
+	)
 
 	// Set Echo's logger to use our custom logger
 	e.Logger = &EchoLogger{logger: m.logger}

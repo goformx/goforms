@@ -36,7 +36,7 @@ type PageData struct {
 	Role                 string
 	Error                string
 	Success              string
-	Data                 interface{}
+	Data                 any
 }
 
 // Message represents a user-facing message

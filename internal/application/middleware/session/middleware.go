@@ -43,7 +43,10 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 			}
 
 			// Store session in context
-			sm.logger.Debug("SessionMiddleware: Setting session in context", "user_id", session.UserID, "path", c.Request().URL.Path)
+			sm.logger.Debug("SessionMiddleware: Setting session in context",
+				"user_id", session.UserID,
+				"path", c.Request().URL.Path,
+			)
 			c.Set(string(context.SessionKey), session)
 			context.SetUserID(c, session.UserID)
 			context.SetEmail(c, session.Email)
@@ -247,16 +250,16 @@ func (sm *Manager) SessionMiddleware() echo.MiddlewareFunc {
 
 			// Refresh session if needed
 			if time.Until(session.ExpiresAt) < sm.expiryTime/2 {
-				// Create new session with same user data
-				newSessionID, err := sm.CreateSession(session.UserID, session.Email, session.Role)
-				if err != nil {
-					sm.logger.Error("failed to refresh session", "error", err)
-				} else {
-					// Delete old session
-					sm.DeleteSession(cookie.Value)
-					// Set new session cookie
-					sm.SetSessionCookie(c, newSessionID)
+				// Create a new session with the same user data
+				newSessionID, createErr := sm.CreateSession(session.UserID, session.Email, session.Role)
+				if createErr != nil {
+					sm.logger.Error("failed to create new session", "error", createErr)
+					return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
 				}
+				// Delete old session
+				sm.DeleteSession(cookie.Value)
+				// Set new session cookie
+				sm.SetSessionCookie(c, newSessionID)
 			}
 
 			return next(c)
