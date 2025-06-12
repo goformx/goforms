@@ -45,7 +45,7 @@ func TestService_CreateForm_minimal(t *testing.T) {
 	publisher.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
 	svc := NewService(repo, publisher, logger)
-	ctx, cancel := context.WithTimeout(context.Background(), 2*time.Second)
+	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
 	err := svc.CreateForm(ctx, userID, form)
