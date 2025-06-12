@@ -2,6 +2,7 @@
 *_templ.go
 tmp/
 
+
 # Binary files
 bin/
 *.exe
