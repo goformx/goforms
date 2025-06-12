@@ -154,9 +154,11 @@ func New(
 			logger.Info("Vite dev server proxy configured", "url", viteURL.String())
 		}
 	} else {
-		// Serve static files from public directory with proper security headers
+		// Serve static files from dist directory with proper security headers
+		e.Static("/assets", "dist/assets")
+		e.Static("/fonts", "dist/fonts")
 		e.Static("/static", "public")
-		e.Static("/assets", "public/assets")
+		e.Static("/favicon.ico", "public/favicon.ico")
 	}
 
 	// Register lifecycle hooks
