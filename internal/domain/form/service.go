@@ -1,88 +1,175 @@
 package form
 
 import (
-	"errors"
+	"context"
+	"fmt"
+	"time"
 
+	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/google/uuid"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/mrz1836/go-sanitize"
 )
 
+const (
+	// DefaultTimeout is the default timeout for form operations
+	DefaultTimeout = 30 * time.Second
+)
+
+type Service interface {
+	CreateForm(ctx context.Context, userID string, form *model.Form) error
+	GetForm(ctx context.Context, id string) (*model.Form, error)
+	GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
+	UpdateForm(ctx context.Context, userID string, form *model.Form) error
+	DeleteForm(ctx context.Context, userID, id string) error
+	GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error)
+}
+
 type service struct {
-	store Store
+	repo      Repository
+	publisher event.Publisher
+	logger    logging.Logger
 }
 
 // NewService creates a new form service instance
-func NewService(store Store) Service {
+func NewService(repo Repository, publisher event.Publisher, logger logging.Logger) *service {
 	return &service{
-		store: store,
+		repo:      repo,
+		publisher: publisher,
+		logger:    logger,
 	}
 }
 
-func (s *service) CreateForm(userID uint, title, description string, schema JSON) (*Form, error) {
-	if title == "" {
-		return nil, errors.New("title is required")
+// CreateForm creates a new form
+func (s *service) CreateForm(ctx context.Context, userID string, form *model.Form) error {
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+
+	logger := s.logger.WithUserID(userID)
+
+	// Sanitize form data before validation
+	form.Title = sanitize.XSS(form.Title)
+	form.Description = sanitize.XSS(form.Description)
+
+	if err := form.Validate(); err != nil {
+		logger.Error("form validation failed", "error", err)
+		return domainerrors.New(domainerrors.ErrCodeInvalidInput, "create form: invalid input", err)
 	}
 
-	if schema == nil {
-		return nil, errors.New("schema is required")
+	form.UserID = userID
+
+	if err := s.repo.Create(ctx, form); err != nil {
+		logger.Error("failed to create form", "error", err)
+		return err
 	}
 
-	form := &Form{
-		ID:          uuid.New().String(),
-		UserID:      userID,
-		Title:       title,
-		Description: description,
-		Schema:      schema,
-		Active:      true,
+	// Publish form created event
+	if pubErr := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); pubErr != nil {
+		logger.Error("failed to publish form created event", "error", pubErr)
 	}
 
-	if err := s.store.Create(form); err != nil {
-		return nil, err
-	}
-
-	return form, nil
+	return nil
 }
 
-func (s *service) GetForm(id string) (*Form, error) {
-	form, err := s.store.GetByID(id)
+// GetForm retrieves a form by ID
+func (s *service) GetForm(ctx context.Context, id string) (*model.Form, error) {
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+	return s.repo.GetByID(ctx, id)
+}
+
+// GetUserForms retrieves all forms for a user
+func (s *service) GetUserForms(ctx context.Context, userID string) ([]*model.Form, error) {
+	logger := s.logger.WithUserID(userID)
+
+	forms, err := s.repo.GetByUserID(ctx, userID)
 	if err != nil {
-		return nil, err
-	}
-
-	if form == nil {
-		return nil, errors.New("form not found")
-	}
-
-	return form, nil
-}
-
-func (s *service) GetUserForms(userID uint) ([]*Form, error) {
-	forms, err := s.store.GetByUserID(userID)
-	if err != nil {
+		logger.Error("failed to get user forms", "error", err)
 		return nil, err
 	}
 
 	return forms, nil
 }
 
-func (s *service) DeleteForm(id string) error {
-	return s.store.Delete(id)
+// UpdateForm updates a form
+func (s *service) UpdateForm(ctx context.Context, userID string, form *model.Form) error {
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+
+	logger := s.logger.WithUserID(userID)
+
+	existingForm, err := s.repo.GetByID(ctx, form.ID)
+	if err != nil {
+		logger.Error("failed to get existing form", "error", err)
+		return err
+	}
+
+	if existingForm.UserID != userID {
+		logger.Error("user does not own form", "user_id", userID, "form_id", form.ID)
+		return domainerrors.New(domainerrors.ErrCodeForbidden, "update form: user does not own form", nil)
+	}
+
+	// Sanitize form data before validation
+	form.Title = sanitize.XSS(form.Title)
+	form.Description = sanitize.XSS(form.Description)
+
+	if validateErr := form.Validate(); validateErr != nil {
+		logger.Error("form validation failed", "error", validateErr)
+		return domainerrors.New(domainerrors.ErrCodeInvalidInput, "update form: invalid input", validateErr)
+	}
+
+	if updateErr := s.repo.Update(ctx, form); updateErr != nil {
+		logger.Error("failed to update form", "error", updateErr)
+		return updateErr
+	}
+
+	// Publish form updated event
+	if pubErr := s.publisher.Publish(ctx, event.NewFormUpdatedEvent(form)); pubErr != nil {
+		logger.Error("failed to publish form updated event", "error", pubErr)
+	}
+
+	return nil
 }
 
-func (s *service) UpdateForm(form *Form) error {
-	if form == nil {
-		return errors.New("form is required")
+// DeleteForm deletes a form
+func (s *service) DeleteForm(ctx context.Context, userID, id string) error {
+	logger := s.logger.WithUserID(userID)
+
+	form, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		logger.Error("failed to get form", "error", err)
+		return err
 	}
 
-	if form.ID == "" {
-		return errors.New("form ID is required")
+	if form.UserID != userID {
+		logger.Error("user does not own form", "user_id", userID, "form_id", id)
+		return domainerrors.New(domainerrors.ErrCodeForbidden, "delete form: user does not own form", nil)
 	}
 
-	// Update the form in the store - the store will handle form existence check
-	return s.store.Update(form)
+	if deleteErr := s.repo.Delete(ctx, id); deleteErr != nil {
+		logger.Error("failed to delete form", "error", deleteErr)
+		return deleteErr
+	}
+
+	// Publish form deleted event
+	if pubErr := s.publisher.Publish(ctx, event.NewFormDeletedEvent(id)); pubErr != nil {
+		logger.Error("failed to publish form deleted event", "error", pubErr)
+	}
+
+	return nil
 }
 
 // GetFormSubmissions returns all submissions for a form
-func (s *service) GetFormSubmissions(formID string) ([]*model.FormSubmission, error) {
-	return s.store.GetFormSubmissions(formID)
+func (s *service) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
+	ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+	defer cancel()
+
+	submissions, err := s.repo.GetFormSubmissions(ctx, formID)
+	if err != nil {
+		s.logger.Error("failed to get form submissions", "error", err)
+		return nil, fmt.Errorf("failed to get form submissions: %w", err)
+	}
+
+	return submissions, nil
 }

@@ -72,6 +72,12 @@ export const validation = {
         validation.clearError(fieldId);
         const value = (input as HTMLInputElement).value;
         const fieldSchema = schemaFields[fieldId];
+
+        // Skip validation for empty fields during real-time validation
+        if (!value && fieldId !== "password") {
+          return;
+        }
+
         // Special handling for confirm_password
         if (fieldId === "confirm_password") {
           const passwordInput = document.getElementById(
@@ -166,18 +172,19 @@ export const validation = {
   },
 
   // CSRF token handling
-  getCSRFToken(): string | null {
-    const meta = document.querySelector('meta[name="csrf-token"]');
+  getCSRFToken(): string {
+    const meta = document.querySelector("meta[name='csrf-token']");
     if (!meta) {
-      console.error("CSRF token meta tag not found");
-      return null;
+      throw new Error(
+        "CSRF token not found. Please refresh the page and try again.",
+      );
     }
     const token = meta.getAttribute("content");
     if (!token) {
-      console.error("CSRF token content is empty");
-      return null;
+      throw new Error(
+        "CSRF token is empty. Please refresh the page and try again.",
+      );
     }
-    console.debug("CSRF token found:", token);
     return token;
   },
 
@@ -186,34 +193,14 @@ export const validation = {
     url: string,
     options: RequestInit = {},
   ): Promise<Response> {
-    // Get CSRF token from meta tag
-    const csrfToken = document
-      .querySelector('meta[name="csrf-token"]')
-      ?.getAttribute("content");
-    // Prepare headers
+    const csrfToken = this.getCSRFToken();
     const headers = new Headers(options.headers || {});
-    if (csrfToken) {
-      headers.set("X-CSRF-Token", csrfToken);
-    }
+    headers.set("X-CSRF-Token", csrfToken);
     headers.set("Content-Type", "application/json");
 
-    // If the request has a body, add CSRF token to it
-    let body = options.body;
-    if (csrfToken && body) {
-      try {
-        const data = JSON.parse(body as string);
-        data._csrf = csrfToken;
-        body = JSON.stringify(data);
-      } catch (e) {
-        console.error("Failed to add CSRF token to request body:", e);
-      }
-    }
-
-    // Make request with CSRF token and credentials
     return fetch(url, {
       ...options,
       headers,
-      body,
       credentials: "include",
     });
   },

@@ -10,7 +10,7 @@ export default defineConfig({
   root: ".",
   publicDir: "public",
   appType: "custom",
-  base: "/",
+  base: "/assets/",
   css: {
     devSourcemap: true,
     modules: {
@@ -28,7 +28,7 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist",
+    outDir: "dist/assets",
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
@@ -42,23 +42,28 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        styles: resolve(__dirname, "src/css/main.css"),
-        app: resolve(__dirname, "src/js/main.ts"),
-        validation: resolve(__dirname, "src/js/validation.ts"),
-        signup: resolve(__dirname, "src/js/signup.ts"),
-        login: resolve(__dirname, "src/js/login.ts"),
-        formBuilder: resolve(__dirname, "src/js/form-builder.ts"),
+        main: "src/js/main.ts",
+        dashboard: "src/js/dashboard.ts",
+        "form-builder": "src/js/form-builder.ts",
+        login: "src/js/login.ts",
+        signup: "src/js/signup.ts",
+        "cta-form": "src/js/cta-form.ts",
       },
       output: {
-        entryFileNames: "assets/js/[name].[hash].js",
-        chunkFileNames: "assets/js/[name].[hash].js",
         assetFileNames: (assetInfo) => {
-          const name = assetInfo.name || "";
-          if (name.endsWith(".css")) {
-            return "assets/css/[name].[hash][extname]";
+          if (assetInfo.name?.endsWith(".css")) {
+            return "css/[name][hash][extname]";
           }
-          return "assets/[name].[hash][extname]";
+          if (
+            assetInfo.name?.endsWith(".woff2") ||
+            assetInfo.name?.endsWith(".woff")
+          ) {
+            return "fonts/[name][extname]";
+          }
+          return "assets/[name][hash][extname]";
         },
+        chunkFileNames: "js/[name][hash].js",
+        entryFileNames: "js/[name][hash].js",
       },
     },
   },
@@ -69,12 +74,13 @@ export default defineConfig({
       "/api": {
         target: "http://localhost:8090",
         changeOrigin: true,
-        secure: false,
-        rewrite: (path) => path.replace(/^\/api/, "/api/v1"),
       },
     },
     hmr: {
+      protocol: "ws",
+      host: "localhost",
       port: 3000,
+      clientPort: 3000,
     },
     host: true,
     middlewareMode: false,
@@ -83,7 +89,7 @@ export default defineConfig({
       allow: [".."],
     },
     watch: {
-      usePolling: false,
+      usePolling: true,
       interval: 1000,
     },
   },

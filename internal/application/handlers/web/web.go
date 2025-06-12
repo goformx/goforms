@@ -1,14 +1,18 @@
 package web
 
 import (
+	"context"
 	"net/http"
 
-	"github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/application/response"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
+	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	// StatusFound is the HTTP status code for redirects
+	StatusFound = http.StatusFound // 302
 )
 
 // WebHandler handles web page requests
@@ -18,15 +22,7 @@ type WebHandler struct {
 
 // NewWebHandler creates a new web handler using HandlerDeps
 func NewWebHandler(deps HandlerDeps) (*WebHandler, error) {
-	if err := deps.Validate(
-		"BaseHandler",
-		"UserService",
-		"SessionManager",
-		"Renderer",
-		"MiddlewareManager",
-		"Config",
-		"Logger",
-	); err != nil {
+	if err := deps.Validate(); err != nil {
 		return nil, err
 	}
 	return &WebHandler{HandlerDeps: deps}, nil
@@ -35,79 +31,52 @@ func NewWebHandler(deps HandlerDeps) (*WebHandler, error) {
 // Register registers the web routes
 func (h *WebHandler) Register(e *echo.Echo) {
 	e.GET("/", h.handleHome)
-	e.GET("/dashboard", h.handleDashboard)
-	e.GET("/forms/:id", h.handleFormView)
+	e.GET("/demo", h.handleDemo)
 }
 
 // handleHome handles the home page request
 func (h *WebHandler) handleHome(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, "Welcome to GoFormX")
-	return h.Renderer.Render(c, pages.Home(data))
+	data := shared.BuildPageData(h.Config, c, "Home")
+	if h.Logger != nil {
+		h.Logger.Debug("handleHome: data.User", "user", data.User)
+	}
+	if h.isAuthenticated(c) {
+		return c.Redirect(StatusFound, "/dashboard")
+	}
+	if err := h.Renderer.Render(c, pages.Home(data)); err != nil {
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: err.Error(),
+		}
+		return pages.Error(data).Render(c.Request().Context(), c.Response().Writer)
+	}
+	return nil
 }
 
-// handleDashboard handles the dashboard page request
-func (h *WebHandler) handleDashboard(c echo.Context) error {
-	h.Logger.Debug("dashboard request",
-		logging.StringField("path", c.Request().URL.Path),
-		logging.StringField("method", c.Request().Method),
-	)
-
-	// Get session from context
-	session, ok := c.Get(middleware.SessionKey).(*middleware.Session)
-	if !ok {
-		h.Logger.Error("no session found in context",
-			logging.StringField("path", c.Request().URL.Path),
-			logging.StringField("method", c.Request().Method),
-		)
-		return response.ErrorResponse(c, http.StatusUnauthorized, "Not authenticated")
+// handleDemo handles the demo page request
+func (h *WebHandler) handleDemo(c echo.Context) error {
+	data := shared.BuildPageData(h.Config, c, "Demo")
+	if h.Logger != nil {
+		h.Logger.Debug("handleDemo: data.User", "user", data.User)
 	}
-
-	h.Logger.Debug("session found in context",
-		logging.UintField("user_id", session.UserID),
-		logging.StringField("email", session.Email),
-		logging.StringField("role", session.Role),
-	)
-
-	// Get user data
-	user, err := h.UserService.GetUserByID(c.Request().Context(), session.UserID)
-	if err != nil {
-		h.Logger.Error("failed to get user data",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", session.UserID),
-		)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get user data")
+	if mwcontext.IsAuthenticated(c) {
+		return c.Redirect(StatusFound, "/dashboard")
 	}
-
-	// Get user's forms
-	forms, err := h.BaseHandler.formService.GetUserForms(session.UserID)
-	if err != nil {
-		h.Logger.Error("failed to get user's forms",
-			logging.ErrorField("error", err),
-			logging.UintField("user_id", session.UserID),
-		)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get forms")
-	}
-
-	data := shared.BuildPageData(h.Config, "Dashboard")
-	data.User = user
-	data.Forms = forms
-	return h.Renderer.Render(c, pages.Dashboard(data))
+	return h.Renderer.Render(c, pages.Demo(data))
 }
 
-// handleFormView handles the form view page request
-func (h *WebHandler) handleFormView(c echo.Context) error {
-	formID := c.Param("id")
-	if formID == "" {
-		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
-	}
+// Start initializes the web handler.
+// This is called during application startup.
+func (h *WebHandler) Start(ctx context.Context) error {
+	return nil // No initialization needed
+}
 
-	form, err := h.BaseHandler.formService.GetForm(formID)
-	if err != nil {
-		h.Logger.Error("failed to get form", logging.ErrorField("error", err))
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
-	}
+// Stop cleans up any resources used by the web handler.
+// This is called during application shutdown.
+func (h *WebHandler) Stop(ctx context.Context) error {
+	return nil // No cleanup needed
+}
 
-	data := shared.BuildPageData(h.Config, form.Title)
-	data.Form = form
-	return h.Renderer.Render(c, pages.Forms(data))
+func (h *WebHandler) isAuthenticated(c echo.Context) bool {
+	return mwcontext.IsAuthenticated(c)
 }

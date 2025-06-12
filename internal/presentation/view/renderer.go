@@ -11,27 +11,30 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// Renderer handles rendering of views using templates
-type Renderer struct {
+// Renderer defines the interface for rendering views
+type Renderer interface {
+	// Render renders a templ component to the response writer
+	Render(c echo.Context, t templ.Component) error
+}
+
+// renderer handles rendering of views using templates
+type renderer struct {
 	logger    logging.Logger
 	templates *template.Template
 }
 
 // NewRenderer creates a new view renderer with the given logger
-func NewRenderer(logger logging.Logger) *Renderer {
-	return &Renderer{
+func NewRenderer(logger logging.Logger) Renderer {
+	return &renderer{
 		logger:    logger,
 		templates: template.New(""),
 	}
 }
 
 // Render renders a templ component to the response writer
-func (r *Renderer) Render(c echo.Context, t templ.Component) error {
+func (r *renderer) Render(c echo.Context, t templ.Component) error {
 	if err := t.Render(c.Request().Context(), c.Response().Writer); err != nil {
-		r.logger.Error("failed to render template",
-			logging.ErrorField("error", err),
-			logging.StringField("template", fmt.Sprintf("%T", t)),
-		)
+		r.logger.Error("failed to render template", "error", err, "template", fmt.Sprintf("%T", t))
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to render page")
 	}
 	return nil

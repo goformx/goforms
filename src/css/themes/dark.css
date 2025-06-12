@@ -1,47 +1,45 @@
-@layer theme {
-  @media (prefers-color-scheme: dark) {
-    :root {
-      --background: #0f172a;
-      --text: #f1f5f9;
-      --text-light: #94a3b8;
-    }
+@media (prefers-color-scheme: dark) {
+  :root {
+    --background: #0f172a;
+    --text: #f1f5f9;
+    --text-light: #94a3b8;
+  }
 
-    .hero {
-      background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
-    }
+  .hero {
+    background: linear-gradient(135deg, #1e293b 0%, #0f172a 100%);
+  }
 
-    .feature-card {
-      background: #1e293b;
-    }
+  .feature-card {
+    background: #1e293b;
+  }
 
-    nav {
-      background: rgba(15, 23, 42, 0.8);
-    }
+  nav {
+    background: rgba(15, 23, 42, 0.8);
+  }
 
-    .button:not(.primary) {
-      background: #1e293b;
-      border-color: #334155;
-    }
+  .button:not(.primary) {
+    background: #1e293b;
+    border-color: #334155;
+  }
 
-    footer {
-      background: #1e293b;
-      border-top-color: #334155;
-    }
+  footer {
+    background: #1e293b;
+    border-top-color: #334155;
+  }
 
-    .messages-section .feature-card {
-      background: rgba(15, 23, 42, 0.7);
-    }
+  .messages-section .feature-card {
+    background: rgba(15, 23, 42, 0.7);
+  }
 
-    .message-card {
-      background: rgba(30, 41, 59, 0.7);
-    }
+  .message-card {
+    background: rgba(30, 41, 59, 0.7);
+  }
 
-    .message-card:hover {
-      background: rgba(30, 41, 59, 0.9);
-    }
+  .message-card:hover {
+    background: rgba(30, 41, 59, 0.9);
+  }
 
-    .message-name {
-      color: #f1f5f9;
-    }
+  .message-name {
+    color: #f1f5f9;
   }
 }

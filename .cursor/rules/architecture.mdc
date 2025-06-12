@@ -3,98 +3,138 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Clean Architecture Guidelines
+# Architecture Guidelines
 
-This project follows a strict clean architecture approach with clear separation of concerns:
+## Overview
+The application follows a layered architecture with clear separation of concerns. The codebase is organized into four main layers: domain, application, infrastructure, and presentation.
 
-## Layer Organization
-- **Domain Layer**: Contains business logic and interfaces
-  - Located in [internal/domain](mdc:internal/domain)
-  - Defines core business rules and interfaces
-  - No external dependencies allowed
+## Directory Structure
 
-- **Infrastructure Layer**: Contains external implementations
-  - Located in [internal/infrastructure](mdc:internal/infrastructure)
-  - Implements domain interfaces
-  - Handles external concerns (database, logging, etc.)
-
-- **Application Layer**: Handles use case orchestration
-  - Located in [internal/application](mdc:internal/application)
-  - Coordinates between domain and infrastructure
-  - Manages business workflows
-
-- **Presentation Layer**: Handles UI/API concerns
-  - Located in [internal/presentation](mdc:internal/presentation)
-  - Implements HTTP handlers and API endpoints
-  - Uses Echo framework for routing
-
-## Key Principles
-1. Dependencies flow inward (domain ← application ← infrastructure/presentation)
-2. Domain layer has no external dependencies
-3. Each package must have a README.md describing its purpose
-4. Interfaces are defined in domain layer
-5. Implementations reside in infrastructure layer
-
-## Package Structure
-Example domain package structure:
 ```
-internal/domain/user/
-├── model.go       # Domain entities and interfaces
-├── service.go     # Business logic implementation
-├── errors.go      # Domain-specific errors
-└── README.md      # Package documentation
+internal/
+├── domain/           # Domain layer
+│   ├── common/       # Shared domain code
+│   ├── form/         # Form domain
+│   └── user/         # User domain
+├── application/      # Application layer
+│   ├── handlers/     # HTTP handlers
+│   ├── middleware/   # HTTP middleware
+│   └── response/     # Response handling
+├── infrastructure/   # Infrastructure layer
+│   ├── config/       # Configuration
+│   ├── database/     # Database access
+│   └── logging/      # Logging
+└── presentation/     # Presentation layer
+    ├── templates/    # HTML templates
+    └── view/         # View rendering
 ```
 
-Example infrastructure package structure:
-```
-internal/infrastructure/persistence/store/
-├── module.go      # DI module definition
-├── store.go       # Store implementation
-└── README.md      # Package documentation
-```
+## Core Components
 
-# Clean Architecture Implementation
+1. Domain Layer
+   - Models and business logic
+   - Service interfaces
+   - Repository interfaces
+   - Example:
+   ```go
+   type Service interface {
+       CreateForm(ctx context.Context, userID string, form *model.Form) error
+       GetForm(ctx context.Context, id string) (*model.Form, error)
+       GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
+       UpdateForm(ctx context.Context, userID string, form *model.Form) error
+       DeleteForm(ctx context.Context, userID, id string) error
+   }
+   ```
 
-This project follows clean architecture principles with clear separation of concerns across layers.
+2. Application Layer
+   - HTTP handlers
+   - Middleware
+   - Response handling
+   - Example:
+   ```go
+   type Handler interface {
+       Register(e *echo.Echo)
+       Start(ctx context.Context) error
+       Stop(ctx context.Context) error
+   }
+   ```
 
-## Domain Layer
-The core business logic resides in the domain layer under `internal/domain/`:
+3. Infrastructure Layer
+   - Configuration
+   - Database access
+   - Logging
+   - Example:
+   ```go
+   type Config struct {
+       App      AppConfig
+       Database DatabaseConfig
+       Security SecurityConfig
+       // ... other configs
+   }
+   ```
 
-### Common Packages
-- [internal/domain/common/errors/errors.go](mdc:internal/domain/common/errors/errors.go): Central error handling
-- [internal/domain/common/validation/validator.go](mdc:internal/domain/common/validation/validator.go): Domain validation
-- [internal/domain/common/events/events.go](mdc:internal/domain/common/events/events.go): Domain events
+4. Presentation Layer
+   - HTML templates
+   - View rendering
+   - Example:
+   ```go
+   type Renderer interface {
+       Render(c echo.Context, template Template) error
+   }
+   ```
 
-### Form Domain
-- [internal/domain/form/model/form_submission.go](mdc:internal/domain/form/model/form_submission.go): Form submission model
-- [internal/domain/form/events/form_events.go](mdc:internal/domain/form/events/form_events.go): Form-specific events
+## Best Practices
 
-## Layer Guidelines
+1. Dependency Management
+   - Use dependency injection
+   - Define clear interfaces
+   - Validate dependencies
+   - Example:
+   ```go
+   type HandlerDeps struct {
+       Logger            logging.Logger
+       Config            *config.Config
+       SessionManager    *session.Manager
+       MiddlewareManager *middleware.Manager
+       Renderer          view.Renderer
+       UserService       user.Service
+       FormService       form.Service
+   }
+   ```
 
-### Domain Layer Rules
-1. Contains business logic and interfaces
-2. No dependencies on external packages
-3. Uses domain events for cross-cutting concerns
-4. Implements proper validation
-5. Defines clear error types
+2. Error Handling
+   - Use domain errors
+   - Log errors with context
+   - Return appropriate responses
+   - Example:
+   ```go
+   if err != nil {
+       h.Logger.Error("failed to get form", "error", err)
+       return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
+   }
+   ```
 
-### Application Layer Rules
-1. Orchestrates use cases
-2. Depends on domain interfaces
-3. Handles transaction boundaries
-4. Manages event dispatching
-5. Implements proper logging
+3. Configuration
+   - Use environment variables
+   - Validate configuration
+   - Provide defaults
+   - Example:
+   ```go
+   type AppConfig struct {
+       Name    string `env:"GOFORMS_APP_NAME" envDefault:"GoForms"`
+       Version string `env:"GOFORMS_APP_VERSION" envDefault:"dev"`
+       Env     string `env:"GOFORMS_APP_ENV" envDefault:"development"`
+   }
+   ```
 
-### Infrastructure Layer Rules
-1. Implements domain interfaces
-2. Handles external dependencies
-3. Manages database connections
-4. Implements proper logging
-5. Handles security concerns
-
-### Presentation Layer Rules
-1. Handles HTTP/API concerns
-2. Uses Echo framework
-3. Implements proper validation
-4. Returns consistent responses
-5. Handles proper error responses
+4. Logging
+   - Use structured logging
+   - Include context
+   - Use appropriate levels
+   - Example:
+   ```go
+   h.Logger.Error("failed to get form",
+       "form_id", formID,
+       "error", err,
+   )
+   ```

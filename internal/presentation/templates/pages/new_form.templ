@@ -6,53 +6,41 @@ import (
 )
 
 templ NewForm(data shared.PageData) {
-	@layouts.Dashboard(shared.PageData{
-		Title:                data.Title,
-		User:                 data.User,
-		Forms:                data.Forms,
-		Form:                 data.Form,
-		Submissions:          data.Submissions,
-		CSRFToken:           data.CSRFToken,
-		IsDevelopment:       data.IsDevelopment,
-		AssetPath:           data.AssetPath,
-		FormBuilderAssetPath: data.FormBuilderAssetPath,
-		Content:             NewFormContent(data),
-	})
+	@layouts.Layout(data, newFormContent(data))
 }
 
-templ NewFormContent(data shared.PageData) {
-	<div class="dashboard-page">
-		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Create New Form</h1>
-					<p class="dashboard-subtitle">Start building your form by providing basic information</p>
+templ newFormContent(data shared.PageData) {
+	<div class="form-page">
+		<div class="form-content">
+			<div class="form-container">
+				<div class="form-card">
+					<div class="form-header">
+						<h1 class="form-title">Create New Form</h1>
+						<p class="form-subtitle">Design your form by adding fields and configuring their properties</p>
+					</div>
+
+					<form id="new-form" class="form" method="POST" action="/forms">
+						<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+						<div class="form-error"></div>
+
+						<div class="gf-form-group">
+							<label for="title" class="gf-label">Form Title</label>
+							<input type="text" id="title" name="title" required class="gf-input" placeholder="Enter form title"/>
+							<div id="title_error" class="error-message"></div>
+						</div>
+
+						<div class="gf-form-group">
+							<label for="description" class="gf-label">Description</label>
+							<textarea id="description" name="description" class="gf-input" rows="3" placeholder="Enter form description"></textarea>
+							<div id="description_error" class="error-message"></div>
+						</div>
+
+						<div class="form-actions">
+							<button type="submit" class="gf-button gf-button--primary">Create Form</button>
+						</div>
+					</form>
 				</div>
-			</div>
-
-			<div class="dashboard-content">
-				<form id="new-form" class="auth-form" method="POST" action="/dashboard/forms" data-validate="newForm">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-					<div id="form_error" class="form-error"></div>
-
-					<div class="gf-form-group">
-						<label for="title" class="gf-label">Form Title</label>
-						<input type="text" id="title" name="title" required class="gf-input" placeholder="Enter form title" />
-						<div id="title_error" class="error-message"></div>
-					</div>
-
-					<div class="gf-form-group">
-						<label for="description" class="gf-label">Description</label>
-						<textarea id="description" name="description" rows="3" class="gf-input" placeholder="Enter form description"></textarea>
-						<div id="description_error" class="error-message"></div>
-					</div>
-
-					<div class="form-actions">
-						<a href="/dashboard" class="gf-button gf-button--outline">Cancel</a>
-						<button type="submit" class="gf-button gf-button--primary">Create Form</button>
-					</div>
-				</form>
 			</div>
 		</div>
 	</div>
-} 
+}

@@ -5,121 +5,139 @@ alwaysApply: false
 ---
 # Infrastructure Module Guide
 
-This guide outlines the best practices and patterns for the infrastructure module in the GoFormX application.
+This guide outlines the best practices for implementing the infrastructure module in the GoFormX application.
 
 ## Core Structure
 
-The main infrastructure module is defined in [internal/infrastructure/module.go](mdc:goforms/goforms/internal/infrastructure/module.go) and follows a modular design pattern using the `fx` dependency injection framework.
+The main infrastructure module is defined in `internal/infrastructure/module.go` and follows a modular design pattern using the `fx` dependency injection framework.
 
 ### Module Organization
 
-The module is split into focused sub-modules:
+The module is organized into focused components:
 
-1. `InfrastructureModule`: Core infrastructure dependencies
+1. Core Infrastructure:
    ```go
-   var InfrastructureModule = fx.Options(
+   var Module = fx.Options(
        fx.Provide(
-           config.New,
-           database.NewDB,
-           func(db *database.Database) *sqlx.DB {
-               return db.DB
-           },
-           fx.Annotate(
-               userstore.NewStore,
-               fx.As(new(user.Store)),
-           ),
-           fx.Annotate(
-               formstore.NewStore,
-               fx.As(new(form.Store)),
-           ),
-           func(logger logging.Logger) *appmiddleware.SessionManager {
-               return appmiddleware.NewSessionManager(logger)
-           },
-           func(
-               core CoreParams,
-               services ServiceParams,
-               sessionManager *appmiddleware.SessionManager,
-           ) *appmiddleware.Manager {
-               return appmiddleware.New(&appmiddleware.ManagerConfig{
-                   Logger:         core.Logger,
-                   Security:       &core.Config.Security,
-                   UserService:    services.UserService,
-                   SessionManager: sessionManager,
-                   Config:         core.Config,
-               })
-           },
+           // Core infrastructure
+           echo.New,
+           server.New,
+           NewEventPublisher,
+           // Database
+           database.New,
        ),
    )
    ```
 
-2. `HandlerModule`: HTTP handlers and routing
+2. Dependency Groups:
+   ```go
+   // CoreParams groups core infrastructure dependencies
+   type CoreParams struct {
+       fx.In
+       Config   *config.Config
+       Logger   logging.Logger
+       Renderer view.Renderer
+       Echo     *echo.Echo
+   }
+
+   // ServiceParams groups business service dependencies
+   type ServiceParams struct {
+       fx.In
+       UserService user.Service
+       FormService form.Service
+   }
+   ```
+
+## What Belongs in Infrastructure
+
+The infrastructure layer should only contain:
+
+1. Core Infrastructure Components:
+   - Database connections
+   - Logging
+   - Configuration
+   - Event system
+   - Server setup
+
+2. External Service Adapters:
+   - Event publishers
+   - Database clients
+   - External API clients
+
+3. Technical Concerns:
+   - Connection management
+   - Resource management
+   - Error handling
+   - Logging infrastructure
+
+## What Does NOT Belong in Infrastructure
+
+The following should be moved to their respective layers:
+
+1. Application Services:
+   - Auth service → application layer
+   - User service → application layer
+   - Form service → application layer
+
+2. Presentation Components:
+   - View renderers → presentation layer
+   - Template engines → presentation layer
+   - UI components → presentation layer
+
+3. Domain Logic:
+   - Business rules → domain layer
+   - Domain services → domain layer
+   - Domain events → domain layer
+   - Repositories and stores → domain layer
 
 ## Handler Registration
 
 Handlers should be registered using the `AnnotateHandler` helper function:
 
 ```go
-AnnotateHandler(func(core CoreParams, services ServiceParams) *wh.DemoHandler {
-    return wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
-})
+func AnnotateHandler(fn any) fx.Option {
+    return fx.Provide(
+        fx.Annotate(
+            fn,
+            fx.As(new(web.Handler)),
+            fx.ResultTags(`group:"handlers"`),
+        ),
+    )
+}
 ```
 
 ### Parameter Organization
 
 Handler dependencies are organized into focused parameter groups:
 
-1. `CoreParams`: Infrastructure dependencies (logging, rendering, config)
+1. `CoreParams`: Infrastructure dependencies (config, logging, rendering, echo)
 2. `ServiceParams`: Business service dependencies
 
 This separation keeps dependencies organized and maintainable.
 
-## Store Management
+## Event System
 
-Store initialization follows these principles:
+The event system follows these principles:
 
-1. Early validation of database connection
-2. Explicit nil checks for each store
-3. Detailed error logging with context
-4. Type safety through Go's type system
-5. **Form and user stores are both provided and required for the domain layer**
+1. Use dependency injection for event publishers
+2. Validate dependencies
+3. Provide clear error messages
+4. Use structured logging
 
-Example store initialization:
+Example event publisher setup:
 ```go
-userStore := store.NewUserStore(db, logger)
-formStore := store.NewFormStore(db, logger)
-if userStore == nil || formStore == nil {
-    logger.Error("failed to create store",
-        logging.String("operation", "store_initialization"),
-        logging.String("store_type", "user/form"),
-        logging.String("error_type", "nil_store"),
-    )
-    return Stores{}, fmt.Errorf("failed to create user or form store")
+type EventPublisherParams struct {
+    fx.In
+    Logger logging.Logger
+}
+
+func NewEventPublisher(p EventPublisherParams) (formevent.Publisher, error) {
+    if p.Logger == nil {
+        return nil, errors.New("logger is required for event publisher")
+    }
+    return event.NewMemoryPublisher(p.Logger), nil
 }
 ```
-
-## Error Handling
-
-The module follows these error handling principles:
-
-1. Fail fast - return errors immediately when detected
-2. Provide detailed error context
-3. Use structured logging for errors
-4. Ensure proper cleanup on failure
-
-## Logging Guidelines
-
-Logging should:
-
-1. Include operation context
-2. Use appropriate log levels:
-   - Error: For failures
-   - Info: For successful operations
-   - Debug: For detailed process information
-3. Include relevant metadata:
-   - Operation name
-   - Store/handler types
-   - Error types
-   - Component status
 
 ## Best Practices
 
@@ -133,3 +151,101 @@ Logging should:
 8. Use proper logging levels
 9. Use interface embedding for logger compatibility
 10. Keep configuration validation close to the config package
+
+## Database Operations
+
+### GORM Usage
+
+1. Use GORM for all database operations:
+   ```go
+   // Example of using GORM for database operations
+   func (s *Store) Create(ctx context.Context, u *user.User) error {
+       result := s.db.WithContext(ctx).Create(u)
+       if result.Error != nil {
+           return fmt.Errorf("failed to create user: %w", result.Error)
+       }
+       return nil
+   }
+   ```
+
+2. Always use context-aware methods:
+   ```go
+   // Good
+   s.db.WithContext(ctx).Where("email = ?", email).First(&u)
+   
+   // Bad
+   s.db.Where("email = ?", email).First(&u)
+   ```
+
+### Connection Management
+
+1. Use the provided database connection:
+   ```go
+   type Store struct {
+       db *database.GormDB
+   }
+   
+   func NewStore(db *database.GormDB) *Store {
+       return &Store{db: db}
+   }
+   ```
+
+2. Configure connection pool settings:
+   ```go
+   sqlDB, err := db.DB()
+   if err != nil {
+       return nil, fmt.Errorf("failed to get database instance: %w", err)
+   }
+   
+   sqlDB.SetMaxOpenConns(cfg.Database.Postgres.MaxOpenConns)
+   sqlDB.SetMaxIdleConns(cfg.Database.Postgres.MaxIdleConns)
+   sqlDB.SetConnMaxLifetime(cfg.Database.Postgres.ConnMaxLifetime)
+   ```
+
+### Error Handling
+
+1. Define custom errors:
+   ```go
+   var (
+       ErrUserNotFound = errors.New("user not found")
+       ErrInvalidInput = errors.New("invalid input")
+   )
+   ```
+
+2. Wrap errors with context:
+   ```go
+   if err := s.db.WithContext(ctx).Create(u).Error; err != nil {
+       return fmt.Errorf("failed to create user: %w", err)
+   }
+   ```
+
+### Logging
+
+1. Use structured logging:
+   ```go
+   logger.Debug("creating user",
+       logging.StringField("email", u.Email),
+       logging.StringField("id", u.ID),
+   )
+   ```
+
+2. Log errors with context:
+   ```go
+   logger.Error("failed to create user",
+       logging.ErrorField("error", err),
+       logging.StringField("email", u.Email),
+   )
+   ```
+
+## Best Practices
+
+1. Keep database operations in the domain layer
+2. Use dependency injection for database connections
+3. Implement proper error handling and logging
+4. Use context for cancellation and timeouts
+5. Follow the repository pattern for data access
+6. Implement proper connection pooling
+7. Use GORM's built-in features for common operations
+8. Keep SQL queries maintainable and readable
+9. Use proper indexing for performance
+10. Validate database configuration

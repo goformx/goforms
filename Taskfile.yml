@@ -21,7 +21,7 @@ vars:
     sh: git rev-parse HEAD
   GO_VERSION:
     sh: go version | cut -d ' ' -f 3
-  LDFLAGS: -s -w -X main.version={{.VERSION}} -X main.buildTime={{.BUILD_TIME}} -X main.gitCommit={{.GIT_COMMIT}} -X main.goVersion={{.GO_VERSION}}
+  LDFLAGS: -s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version={{.VERSION}} -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime={{.BUILD_TIME}} -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit={{.GIT_COMMIT}} -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion={{.GO_VERSION}}
   DB_USER: '{{.DB_USER}}'
   DB_PASSWORD: '{{.DB_PASSWORD}}'
   DB_NAME: '{{.DB_NAME}}'
@@ -43,7 +43,7 @@ tasks:
       - task: install
       - task: generate
       - task: build
-      - task: migrate:up
+      - task: migrate:pg:up
       - task: run
 
   verify:
@@ -73,8 +73,17 @@ tasks:
 
   generate:
     desc: Generate code from templates
+    deps: [generate:mocks]
     cmds:
       - templ generate ./internal/...
+
+  generate:mocks:
+    desc: Generate mock implementations for interfaces
+    cmds:
+      - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
+      - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
+      - mockgen -typed -source=internal/presentation/view/renderer.go -destination=test/mocks/view/mock_renderer.go -package=view
+      - mockgen -typed -source=internal/domain/form/service.go -destination=test/mocks/form/mock_service.go -package=form
 
   build:
     desc: Build the application (frontend and backend in parallel)
@@ -119,6 +128,7 @@ tasks:
     cmds:
       - rm -rf bin/ dist/ node_modules/ coverage/
       - find internal/ -name '*_templ.go' -delete
+      - find test/mocks -name 'mock_*.go' -delete
 
   lint:
     desc: Run linters for all code
@@ -155,7 +165,6 @@ tasks:
     desc: Run all tests
     deps: [generate]
     cmds:
-      - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
       - go test -v ./internal/...
 
   test:cover:

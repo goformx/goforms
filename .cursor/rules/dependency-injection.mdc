@@ -3,103 +3,152 @@ description:
 globs: 
 alwaysApply: true
 ---
-# Dependency Injection Guidelines
+# Dependency Injection Guide
 
-This project uses Uber's fx framework for dependency injection with the following organization:
+This project uses Uber FX for dependency injection. The goal is to keep DI simple, clear, and maintainable while preserving implementation visibility.
 
-## Module Structure
-Each domain area should have its own module.go file:
+## Core Principles
+
+1. **Centralize Core Providers**
+   - Core infrastructure (config, logger, DB, etc.) in `infrastructure.Module`
+   - Domain services in `domain.Module`
+   - Application services in `application.Module`
+   - Keep app-specific wiring in `main.go`
+
+2. **Keep Implementation Visible**
+   - Don't bury implementation details in modules
+   - Keep wiring explicit in `main.go`
+   - Use clear, descriptive names for modules and providers
+
+3. **Use fx Features Judiciously**
+   - Use `fx.Provide` for all injectable components
+   - Use `fx.In` for grouping dependencies only when it improves clarity
+   - Use `fx.Out` only when a constructor must provide multiple values
+   - Use `fx.Annotate` and `fx.As` only when interface casting or grouping is needed
+
+4. **Error Handling and Lifecycle**
+   - Add error handling for all `fx.Provide` functions
+   - Add `OnStart/OnStop` hooks only for components that need resource management
+   - Document any non-obvious DI patterns
+
+## Module Organization
+
+### main.go
 ```go
-fx.Module("domain", 
-  fx.Provide(
-    NewService,
-    NewRepository,
-  ),
-  fx.Invoke(
-    RegisterHandlers,
-  ),
+func main() {
+    app := fx.New(
+        infrastructure.Module, // config, logger, db, repo impls
+        domain.Module,         // domain services, interfaces
+        application.Module,    // handlers, middleware, app services
+        presentation.Module,   // renderers, templates
+        fx.Invoke(registerHandlersAndLifecycle),
+    )
+}
+```
+
+### infrastructure.Module
+```go
+var Module = fx.Options(
+    fx.Provide(
+        config.New,
+        logging.NewFactory,
+        validation.New,
+        database.NewGormDB,
+        // ... other core providers
+    ),
 )
 ```
 
-## Component Guidelines
+### domain.Module
+```go
+var Module = fx.Options(
+    fx.Provide(
+        user.NewService,
+        form.NewService,
+        // ... other domain services
+    ),
+)
+```
 
-### Service Components
-1. Define interfaces in domain layer
-2. Implement in infrastructure layer
-3. Use fx.Annotate for interface bindings
-4. Provide clear lifecycle hooks
+### application.Module
+```go
+var Module = fx.Options(
+    fx.Provide(
+        web.NewHandler,
+        middleware.NewManager,
+        // ... other application services
+    ),
+)
+```
 
-### Repository Components
-1. Define interfaces in domain layer
-2. Implement in infrastructure layer
-3. Use proper connection pooling
-4. Handle transactions appropriately
+## Example Patterns
 
-### Handler Components
-1. Register routes in fx.Invoke
-2. Use echo.Context
-3. Implement proper validation
-4. Return consistent responses
+### Single Provider
+```go
+fx.Provide(NewUserService)
+```
+
+### Grouped Dependencies (fx.In)
+```go
+type HandlerDeps struct {
+    fx.In
+    UserService user.Service
+    Logger      logging.Logger
+}
+```
+
+### Multiple Outputs (fx.Out)
+```go
+type Stores struct {
+    fx.Out
+    UserStore user.Repository
+    FormStore form.Repository
+}
+
+func NewStores(db *database.GormDB, logger logging.Logger) Stores {
+    return Stores{
+        UserStore: userstore.NewStore(db, logger),
+        FormStore: formstore.NewStore(db, logger),
+    }
+}
+```
+
+### Interface Casting (fx.Annotate, fx.As)
+```go
+fx.Provide(
+    fx.Annotate(
+        NewUserService,
+        fx.As(new(user.Service)),
+    ),
+)
+```
+
+### Lifecycle Hooks
+```go
+fx.Provide(
+    func(lc fx.Lifecycle) (*Resource, error) {
+        r := &Resource{}
+        lc.Append(fx.Hook{
+            OnStart: func(ctx context.Context) error {
+                return r.Start()
+            },
+            OnStop: func(ctx context.Context) error {
+                return r.Stop()
+            },
+        })
+        return r, nil
+    },
+)
+```
 
 ## Best Practices
-
-1. Group related components in modules
-2. Use clear, descriptive module names
-3. Handle component lifecycle properly
-4. Use proper error handling
-5. Implement proper logging
-6. Use interface embedding for better compatibility
-7. Keep configuration validation close to the config package
-8. Provide database connections at the infrastructure level
-9. Use fx.Annotate for interface implementations
-10. Keep middleware configuration in the infrastructure module
-
-## Example Modules
-
-### Infrastructure Module
-```go
-fx.Module("infrastructure",
-  fx.Provide(
-    config.New,
-    database.NewDB,
-    func(db *database.Database) *sqlx.DB {
-        return db.DB
-    },
-    fx.Annotate(
-        userstore.NewStore,
-        fx.As(new(user.Store)),
-    ),
-    fx.Annotate(
-        formstore.NewStore,
-        fx.As(new(form.Store)),
-    ),
-    func(logger logging.Logger) *appmiddleware.SessionManager {
-        return appmiddleware.NewSessionManager(logger)
-    },
-    func(
-        core CoreParams,
-        services ServiceParams,
-        sessionManager *appmiddleware.SessionManager,
-    ) *appmiddleware.Manager {
-        return appmiddleware.New(&appmiddleware.ManagerConfig{
-            Logger:         core.Logger,
-            Security:       &core.Config.Security,
-            UserService:    services.UserService,
-            SessionManager: sessionManager,
-            Config:         core.Config,
-        })
-    },
-  ),
-)
-```
-
-### Handler Module
-```go
-fx.Module("handlers",
-  fx.Provide(
-    AnnotateHandler(func(core CoreParams, services ServiceParams) *wh.DemoHandler {
-        return wh.NewDemoHandler(core.Logger, core.Renderer, services.SubscriptionService)
-    }),
-  ),
-)
-```
+- Keep wiring explicit in `main.go`
+- Centralize core providers in infrastructure
+- Use fx.In/fx.Out for complex constructors
+- Document the DI graph with comments
+- Test and iterate on wiring
+- Avoid global variables and init() for DI
+- Prefer explicit, constructor-based injection
+- Only use advanced FX features when necessary
+- Keep modules and providers as simple as possible
+- Document any non-obvious DI patterns

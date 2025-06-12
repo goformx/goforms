@@ -5,16 +5,17 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/validation"
+	"github.com/mrz1836/go-sanitize"
 )
 
 // FormSubmission represents a form submission
 type FormSubmission struct {
-	ID          string            `json:"id"`
-	FormID      string            `json:"form_id"`
-	Data        map[string]any    `json:"data"`
-	SubmittedAt time.Time         `json:"submitted_at"`
-	Status      SubmissionStatus  `json:"status"`
-	Metadata    map[string]string `json:"metadata"`
+	ID          string           `json:"id"`
+	FormID      string           `json:"form_id"`
+	Data        JSON             `json:"data"`
+	SubmittedAt time.Time        `json:"submitted_at"`
+	Status      SubmissionStatus `json:"status"`
+	Metadata    JSON             `json:"metadata"`
 }
 
 // SubmissionStatus represents the status of a form submission
@@ -33,9 +34,14 @@ const (
 
 // Validate validates the form submission
 func (s *FormSubmission) Validate() error {
-	validator := validation.New()
-	if err := validator.Struct(s); err != nil {
-		return errors.Wrap(err, errors.ErrCodeValidation, "form submission validation failed")
+	validator, err := validation.New()
+	if err != nil {
+		return errors.Wrap(err, errors.ErrCodeValidation, "failed to initialize validator")
+	}
+
+	// Use a different variable name to avoid shadowing
+	if validateErr := validator.Struct(s); validateErr != nil {
+		return errors.Wrap(validateErr, errors.ErrCodeValidation, "form submission validation failed")
 	}
 
 	if s.Data == nil {
@@ -44,6 +50,13 @@ func (s *FormSubmission) Validate() error {
 
 	if len(s.Data) == 0 {
 		return errors.New(errors.ErrCodeValidation, "form data cannot be empty", nil)
+	}
+
+	// Sanitize all string values in the form data
+	for key, value := range s.Data {
+		if strValue, ok := value.(string); ok {
+			s.Data[key] = sanitize.XSS(strValue)
+		}
 	}
 
 	return nil
@@ -57,7 +70,7 @@ func (s *FormSubmission) UpdateStatus(status SubmissionStatus) {
 // AddMetadata adds metadata to the submission
 func (s *FormSubmission) AddMetadata(key, value string) {
 	if s.Metadata == nil {
-		s.Metadata = make(map[string]string)
+		s.Metadata = make(JSON)
 	}
 	s.Metadata[key] = value
 }
@@ -67,5 +80,8 @@ func (s *FormSubmission) GetMetadata(key string) string {
 	if s.Metadata == nil {
 		return ""
 	}
-	return s.Metadata[key]
+	if val, ok := s.Metadata[key].(string); ok {
+		return val
+	}
+	return ""
 }

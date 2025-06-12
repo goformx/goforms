@@ -1,234 +1,71 @@
 package pages
 
 import (
-	dform "github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
 
-templ Dashboard(data shared.PageData) {
-	@layouts.Dashboard(shared.PageData{
-		Title:                data.Title,
-		User:                 data.User,
-		Forms:                data.Forms,
-		Form:                 data.Form,
-		Submissions:          data.Submissions,
-		CSRFToken:           data.CSRFToken,
-		IsDevelopment:       data.IsDevelopment,
-		AssetPath:           data.AssetPath,
-		FormBuilderAssetPath: data.FormBuilderAssetPath,
-		Content:             DashboardContent(data),
-	})
+templ Dashboard(data shared.PageData, forms []*model.Form) {
+	@layouts.Layout(data, DashboardContent(forms))
 }
 
-templ DashboardContent(data shared.PageData) {
-	<div class="dashboard-page">
-		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Dashboard</h1>
-					<p class="dashboard-subtitle">Welcome back, { data.User.FirstName }!</p>
-				</div>
-				<div class="dashboard-header-right">
-					<a href="/dashboard/forms/new" class="gf-button gf-button--primary">Create New Form</a>
-				</div>
+templ DashboardContent(forms []*model.Form) {
+	<div class="dashboard">
+		<div class="dashboard-header">
+			<div class="dashboard-header-left">
+				<h1 class="dashboard-title">Your Forms</h1>
 			</div>
-
-			<div class="dashboard-content">
-				<div class="dashboard-stats">
-					<div class="stat-card">
-						<h3>Total Forms</h3>
-						<p class="stat-value">{ len(data.Forms) }</p>
-					</div>
-					<div class="stat-card">
-						<h3>Total Submissions</h3>
-						<p class="stat-value">0</p>
-					</div>
-					<div class="stat-card">
-						<h3>Active Forms</h3>
-						<p class="stat-value">0</p>
-					</div>
-				</div>
-
-				<div class="dashboard-recent">
-					<h2>Your Forms</h2>
-					if len(data.Forms) == 0 {
-						@DashboardEmpty()
-					} else {
-						@DashboardTable(data.Forms, data.CSRFToken)
-					}
-				</div>
+			<div class="dashboard-header-actions">
+				<a href="/forms/new" class="btn btn-secondary btn-icon" title="Create New Form">
+					<i class="bi bi-plus-lg"></i>
+					<span class="dashboard-action-label">New Form</span>
+				</a>
 			</div>
 		</div>
-	</div>
 
-	<!-- Toast notification container -->
-	<div id="toast-container" class="toast-container"></div>
-
-	<style>
-		.toast-container {
-			position: fixed;
-			bottom: 20px;
-			right: 20px;
-			z-index: 1000;
-		}
-
-		.toast {
-			background: var(--color-background);
-			border: 1px solid var(--color-border);
-			border-radius: var(--border-radius);
-			padding: 1rem;
-			margin-top: 0.5rem;
-			box-shadow: var(--shadow-md);
-			display: flex;
-			align-items: center;
-			gap: 0.5rem;
-			animation: slideIn 0.3s ease-out;
-		}
-
-		.toast.success {
-			border-left: 4px solid var(--color-success);
-		}
-
-		.toast.error {
-			border-left: 4px solid var(--color-error);
-		}
-
-		@keyframes slideIn {
-			from {
-				transform: translateX(100%);
-				opacity: 0;
-			}
-			to {
-				transform: translateX(0);
-				opacity: 1;
-			}
-		}
-
-		@keyframes fadeOut {
-			from {
-				opacity: 1;
-			}
-			to {
-				opacity: 0;
-			}
-		}
-	</style>
-
-	<script type="module">
-		import { FormService } from { data.AssetPath("js/services/form-service.js") };
-
-		// Toast notification system
-		function showToast(message, type = 'success') {
-			const container = document.getElementById('toast-container');
-			const toast = document.createElement('div');
-			toast.className = `toast ${type}`;
-			toast.innerHTML = `
-				<i class="bi bi-${type === 'success' ? 'check-circle' : 'exclamation-circle'}"></i>
-				<span>${message}</span>
-			`;
-			container.appendChild(toast);
-
-			// Remove toast after 3 seconds
-			setTimeout(() => {
-				toast.style.animation = 'fadeOut 0.3s ease-out';
-				setTimeout(() => toast.remove(), 300);
-			}, 3000);
-		}
-
-		// Handle form deletion
-		async function handleDeleteForm(formId, formRow) {
-			if (!confirm('Are you sure you want to delete this form? This action cannot be undone.')) {
-				return;
-			}
-
-			try {
-				const formService = FormService.getInstance();
-				await formService.deleteForm(formId);
-				
-				// Remove the form row from the table
-				formRow.remove();
-				
-				// Update the total forms count
-				const totalForms = document.querySelector('.stat-card .stat-value');
-				if (totalForms) {
-					totalForms.textContent = parseInt(totalForms.textContent) - 1;
-				}
-
-				// Show success message
-				showToast('Form deleted successfully');
-
-				// If no forms left, show empty state
-				const table = document.querySelector('.dashboard-table');
-				if (table && !table.querySelector('tbody tr')) {
-					table.remove();
-					document.querySelector('.dashboard-recent').innerHTML = `
-						<h2>Your Forms</h2>
-						<div class="dashboard-empty">
-							<p>You have no forms yet. <a href="/dashboard/forms/new">Create your first form</a>.</p>
+		<div class="dashboard-content">
+			if len(forms) == 0 {
+				<div class="forms-section">
+					<p>You haven't created any forms yet.</p>
+					<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
+				</div>
+			} else {
+				<div class="forms-grid">
+					for _, form := range forms {
+						<div class="form-card">
+							<div class="form-card-header">
+								<h3>{ form.Title }</h3>
+								<div class="form-actions">
+									<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-icon" title="Edit Form">
+										<i class="bi bi-pencil"></i>
+									</a>
+									<button class="btn btn-icon delete-form" data-form-id={ form.ID } title="Delete Form">
+										<i class="bi bi-trash"></i>
+									</button>
+								</div>
+							</div>
+							<div class="form-card-body">
+								<p class="form-description">{ form.Description }</p>
+								<div class="form-stats">
+									<div class="stat">
+										<i class="bi bi-calendar"></i>
+										<span>Created { form.CreatedAt.Format("Jan 2, 2006") }</span>
+									</div>
+									<div class="stat">
+										<i class="bi bi-pencil-square"></i>
+										<span>Last edited { form.UpdatedAt.Format("Jan 2, 2006") }</span>
+									</div>
+								</div>
+							</div>
+							<div class="form-card-footer">
+								<a href={ templ.SafeURL("/forms/" + form.ID) } class="btn btn-secondary">View Form</a>
+								<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
+							</div>
 						</div>
-					`;
-				}
-			} catch (error) {
-				console.error('Failed to delete form:', error);
-				showToast(error.message || 'Failed to delete form', 'error');
+					}
+				</div>
 			}
-		}
-
-		// Add click handlers to delete buttons
-		document.querySelectorAll('.delete-form-btn').forEach(btn => {
-			btn.addEventListener('click', (e) => {
-				e.preventDefault();
-				e.stopPropagation(); // Prevent event bubbling
-				const formId = btn.dataset.formId;
-				const formRow = btn.closest('tr');
-				handleDeleteForm(formId, formRow);
-			});
-		});
-	</script>
-}
-
-templ DashboardEmpty() {
-	<div class="dashboard-empty">
-		<p>You have no forms yet. <a href="/dashboard/forms/new">Create your first form</a>.</p>
-	</div>
-}
-
-templ DashboardTableBody(forms []*dform.Form, csrfToken string) {
-	<tbody>
-	for _, form := range forms {
-		<tr>
-			<td>{ form.Title }</td>
-			<td>{ form.Description }</td>
-			<td>{ form.CreatedAt.Format("Jan 02, 2006 15:04") }</td>
-			<td class="table-actions">
-				<a href={ templ.URL("/dashboard/forms/" + form.ID + "/edit") } class="btn btn-sm">Edit</a>
-				<a href={ templ.URL("/dashboard/forms/" + form.ID + "/submissions") } class="btn btn-sm">Submissions</a>
-				<button 
-					type="button" 
-					class="btn btn-sm btn-danger delete-form-btn" 
-					data-form-id={ form.ID }
-				>
-					Delete
-				</button>
-			</td>
-		</tr>
-	}
-	</tbody>
-}
-
-templ DashboardTable(forms []*dform.Form, csrfToken string) {
-	<div class="dashboard-table">
-		<table>
-			<thead>
-				<tr>
-					<th>Title</th>
-					<th>Description</th>
-					<th>Created</th>
-					<th>Actions</th>
-				</tr>
-			</thead>
-			@DashboardTableBody(forms, csrfToken)
-		</table>
+		</div>
 	</div>
 } 

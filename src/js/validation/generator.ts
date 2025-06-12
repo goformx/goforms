@@ -17,7 +17,7 @@ export async function getValidationSchema(
   schemaName: string,
 ): Promise<z.ZodType<Record<string, string>>> {
   try {
-    const response = await fetch(`/api/validation/${schemaName}`);
+    const response = await fetch(`/api/v1/validation/${schemaName}`);
     if (!response.ok) {
       console.error(
         `Failed to fetch validation schema for ${schemaName}:`,

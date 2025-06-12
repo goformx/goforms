@@ -6,174 +6,124 @@ alwaysApply: false
 # Response Handling Patterns
 
 ## Overview
-The ResponseBuilder service provides a consistent way to handle HTTP responses in the GoFormX application. It encapsulates common response patterns and ensures proper error handling and logging.
+The application uses a simple response package (`internal/application/response`) for consistent HTTP responses. It provides standardized patterns for both API and web responses.
 
-## Response Types
+## Core Components
 
-### 1. JSON Responses
-- Use `BuildJSONResponse` for API endpoints
-- Always specify appropriate status codes
-- Include proper error handling
-```go
-func (h *Handler) GetForm(c echo.Context) error {
-    form, err := h.formService.GetForm(c.Param("id"))
-    if err != nil {
-        return h.responseBuilder.BuildErrorResponse(c, err, http.StatusNotFound, "Form not found")
-    }
-    return h.responseBuilder.BuildJSONResponse(c, form, http.StatusOK)
-}
-```
+1. API Responses
+   - Standardized JSON structure
+   - Success/error handling
+   - Example:
+   ```go
+   type APIResponse struct {
+       Success bool   `json:"success"`
+       Message string `json:"message,omitempty"`
+       Data    any    `json:"data,omitempty"`
+   }
+   ```
 
-### 2. Error Responses
-- Use `BuildErrorResponse` for general errors
-- Use `BuildValidationErrorResponse` for validation errors
-- Use `BuildNotFoundResponse` for not found errors
-- Use `BuildForbiddenResponse` for permission errors
-```go
-func (h *Handler) CreateForm(c echo.Context) error {
-    if err := h.validateForm(c); err != nil {
-        return h.responseBuilder.BuildValidationErrorResponse(c, err)
-    }
-    // ... rest of the handler
-}
-```
+2. Web Responses
+   - HTML template rendering
+   - Error page handling
+   - Example:
+   ```go
+   func WebErrorResponse(c echo.Context, renderer view.Renderer, statusCode int, message string) error {
+       data := shared.BuildPageData(nil, c, "Error")
+       data.Message = &shared.Message{
+           Type: "error",
+           Text: message,
+       }
+       return renderer.Render(c, pages.Error(data))
+   }
+   ```
 
-### 3. Redirect Responses
-- Use `BuildRedirectResponse` for successful form submissions
-- Use `BuildRedirectResponse` for authentication redirects
-```go
-func (h *Handler) SubmitForm(c echo.Context) error {
-    if err := h.formService.SubmitForm(form); err != nil {
-        return h.responseBuilder.BuildErrorResponse(c, err, http.StatusInternalServerError, "Failed to submit form")
-    }
-    return h.responseBuilder.BuildRedirectResponse(c, "/forms", http.StatusSeeOther)
-}
-```
+## Common Patterns
 
-### 4. HTML Responses
-- Use `BuildHTMLResponse` for rendering templates
-- Include proper error handling
-```go
-func (h *Handler) ShowForm(c echo.Context) error {
-    form, err := h.formService.GetForm(c.Param("id"))
-    if err != nil {
-        return h.responseBuilder.BuildNotFoundResponse(c, "Form not found")
-    }
-    return h.responseBuilder.BuildHTMLResponse(c, "form.html", form, http.StatusOK)
-}
-```
+1. API Success Response
+   ```go
+   func Success(c echo.Context, data any) error {
+       return c.JSON(http.StatusOK, APIResponse{
+           Success: true,
+           Data:    data,
+       })
+   }
+   ```
+
+2. API Error Response
+   ```go
+   func ErrorResponse(c echo.Context, statusCode int, message string) error {
+       return c.JSON(statusCode, APIResponse{
+           Success: false,
+           Message: message,
+       })
+   }
+   ```
+
+3. Web Error Response
+   ```go
+   func Error(c echo.Context, message string) error {
+       data := shared.BuildPageData(nil, c, "Error")
+       data.Message = &shared.Message{
+           Type: "error",
+           Text: message,
+       }
+       return pages.Error(data).Render(c.Request().Context(), c.Response().Writer)
+   }
+   ```
 
 ## Best Practices
 
-### 1. Status Codes
-- Use appropriate HTTP status codes
-- Be consistent with status code usage
-- Document status code meanings
+1. Error Handling
+   - Use appropriate status codes
+   - Provide clear error messages
+   - Log errors with context
+   - Example:
+   ```go
+   if err != nil {
+       h.Logger.Error("failed to get form", "error", err)
+       return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
+   }
+   ```
 
-### 2. Error Handling
-- Always include error details in logs
-- Provide meaningful error messages
-- Use appropriate error types
+2. Response Types
+   - Use `Success` for API success responses
+   - Use `ErrorResponse` for API error responses
+   - Use `WebErrorResponse` for web error pages
+   - Use `NotFound` for 404 errors
+   - Use `ServerError` for 500 errors
 
-### 3. Response Format
-- Be consistent with response structure
-- Include necessary metadata
-- Follow API documentation
+3. Logging
+   - Log errors with context
+   - Include relevant fields
+   - Use appropriate log levels
+   - Example:
+   ```go
+   h.Logger.Error("failed to get form",
+       "form_id", formID,
+       "error", err,
+   )
+   ```
 
-### 4. Logging
-- Log all responses
-- Include relevant context
-- Use appropriate log levels
+## Handler Examples
 
-## Implementation Guidelines
+1. API Handler
+   ```go
+   func (h *Handler) GetForm(c echo.Context) error {
+       form, err := h.formService.GetForm(c.Param("id"))
+       if err != nil {
+           return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
+       }
+       return response.Success(c, form)
+   }
+   ```
 
-### 1. Response Builder Usage
-```go
-type Handler struct {
-    responseBuilder *ResponseBuilder
-    // ... other fields
-}
-
-func (h *Handler) HandleRequest(c echo.Context) error {
-    // Use response builder methods
-    return h.responseBuilder.BuildJSONResponse(c, data, http.StatusOK)
-}
-```
-
-### 2. Error Handling
-```go
-func (h *Handler) HandleError(c echo.Context, err error) error {
-    switch {
-    case errors.Is(err, ErrNotFound):
-        return h.responseBuilder.BuildNotFoundResponse(c, err.Error())
-    case errors.Is(err, ErrValidation):
-        return h.responseBuilder.BuildValidationErrorResponse(c, err)
-    default:
-        return h.responseBuilder.BuildErrorResponse(c, err, http.StatusInternalServerError, "Internal server error")
-    }
-}
-```
-
-### 3. Response Logging
-```go
-func (b *ResponseBuilder) BuildJSONResponse(c echo.Context, data interface{}, status int) error {
-    b.logger.Debug("building JSON response",
-        logging.IntField("status", status),
-        logging.StringField("operation", "response_building"),
-    )
-    return c.JSON(status, data)
-}
-```
-
-## Testing Guidelines
-
-### 1. Response Testing
-```go
-func TestHandler_GetForm(t *testing.T) {
-    // Setup
-    responseBuilder := NewResponseBuilder(logger)
-    handler := NewHandler(responseBuilder)
-
-    // Test cases
-    tests := []struct {
-        name       string
-        formID     string
-        wantStatus int
-        wantErr    bool
-    }{
-        // ... test cases
-    }
-
-    // Run tests
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            // ... test implementation
-        })
-    }
-}
-```
-
-### 2. Error Testing
-```go
-func TestResponseBuilder_ErrorResponses(t *testing.T) {
-    // Setup
-    responseBuilder := NewResponseBuilder(logger)
-
-    // Test cases
-    tests := []struct {
-        name       string
-        err        error
-        wantStatus int
-        wantErr    bool
-    }{
-        // ... test cases
-    }
-
-    // Run tests
-    for _, tt := range tests {
-        t.Run(tt.name, func(t *testing.T) {
-            // ... test implementation
-        })
-    }
-}
-```
+2. Web Handler
+   ```go
+   func (h *Handler) EditForm(c echo.Context) error {
+       form, err := h.formService.GetForm(c.Param("id"))
+       if err != nil {
+           return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
+       }
+       return h.Renderer.Render(c, pages.EditForm(data, form))
+   }
+   ```

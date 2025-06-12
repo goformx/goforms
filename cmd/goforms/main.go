@@ -1,222 +1,151 @@
-// Package main is the entry point for the GoFormX application.
-// It sets up the application using dependency injection (via fx),
-// configures the server, and manages the application lifecycle.
+// Package main is the entry point for the GoForms application.
+// It sets up the application using the fx dependency injection framework
+// and manages the application lifecycle including startup and graceful shutdown.
 package main
 
 import (
 	"context"
-	"errors"
 	"fmt"
-	"log"
-	"net/http"
 	"os"
 	"os/signal"
 	"syscall"
 	"time"
 
-	"go.uber.org/zap"
+	"go.uber.org/fx"
 
+	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
-	"github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/domain/form"
-	"github.com/goformx/goforms/internal/domain/user"
+	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/domain"
+	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	formstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/form"
-	userstore "github.com/goformx/goforms/internal/infrastructure/persistence/store/user"
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/infrastructure/server"
+	"github.com/goformx/goforms/internal/presentation"
 	"github.com/labstack/echo/v4"
 )
 
-const (
-	readTimeout  = 5 * time.Second
-	writeTimeout = 10 * time.Second
-	idleTimeout  = 120 * time.Second
-)
+// DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown
+// before forcing termination.
+const DefaultShutdownTimeout = 30 * time.Second
 
-// ShutdownConfig holds configuration for application shutdown
-type ShutdownConfig struct {
-	Timeout time.Duration `envconfig:"GOFORMS_SHUTDOWN_TIMEOUT" default:"5s"`
+// appParams defines the dependency injection parameters for the application.
+// It uses fx.In to automatically inject dependencies provided by the fx container.
+type appParams struct {
+	fx.In
+	Lifecycle         fx.Lifecycle           // Manages application lifecycle hooks
+	Echo              *echo.Echo             // HTTP server framework instance
+	Server            *server.Server         // Custom server implementation
+	Logger            logging.Logger         // Application logger
+	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
+	MiddlewareManager *appmiddleware.Manager // Middleware management
+	Config            *config.Config         // Application configuration
 }
 
-func setupLogger() (logging.Logger, error) {
-	return logging.NewFactory(logging.FactoryConfig{
-		AppName:     "goforms",
-		Version:     "1.0.0",
-		Environment: "development",
-		Fields: map[string]any{
-			"version": "1.0.0",
+// setupHandlers registers all web handlers with the Echo server.
+// It validates that no nil handlers are present and registers each handler
+// with the Echo instance.
+func setupHandlers(handlers []web.Handler, e *echo.Echo) error {
+	for i, handler := range handlers {
+		if handler == nil {
+			return fmt.Errorf("nil handler encountered at index %d", i)
+		}
+		handler.Register(e)
+	}
+	return nil
+}
+
+// setupApplication initializes the application by setting up middleware
+// and registering all web handlers.
+func setupApplication(params appParams) error {
+	params.MiddlewareManager.Setup(params.Echo)
+	return setupHandlers(params.Handlers, params.Echo)
+}
+
+// setupLifecycle configures the application lifecycle hooks for startup and shutdown.
+// It logs application information and manages server startup in a goroutine.
+func setupLifecycle(params appParams) {
+	params.Lifecycle.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			// Log application startup information
+			params.Logger.Info("starting application",
+				"app", params.Config.App.Name,
+				"version", params.Config.App.Version,
+				"environment", params.Config.App.Env,
+			)
+
+			// Start the server in a goroutine to prevent blocking
+			go func() {
+				if err := params.Server.Start(); err != nil {
+					params.Logger.Fatal("server startup failed", "error", err)
+					os.Exit(1)
+				}
+			}()
+
+			return nil
 		},
-	}).CreateLogger()
-}
-
-func setupHandlers(
-	baseHandler *web.BaseHandler,
-	userService user.Service,
-	sessionManager *middleware.SessionManager,
-	middlewareManager *middleware.Manager,
-	cfg *config.Config,
-	logger logging.Logger,
-	formService form.Service,
-) (*web.WebHandler, *web.AuthHandler, *web.FormHandler, *web.DemoHandler, error) {
-	// Initialize renderer
-	renderer := view.NewRenderer(logger)
-
-	webHandler, err := web.NewWebHandler(web.HandlerDeps{
-		BaseHandler:       baseHandler,
-		UserService:       userService,
-		SessionManager:    sessionManager,
-		Renderer:          renderer,
-		MiddlewareManager: middlewareManager,
-		Config:            cfg,
-		Logger:            logger,
+		OnStop: func(ctx context.Context) error {
+			// Log application shutdown information
+			params.Logger.Info("shutting down application",
+				"app", params.Config.App.Name,
+				"version", params.Config.App.Version,
+			)
+			return nil
+		},
 	})
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("create web handler: %w", err)
-	}
-
-	authHandler, err := web.NewAuthHandler(web.HandlerDeps{
-		BaseHandler:       baseHandler,
-		UserService:       userService,
-		SessionManager:    sessionManager,
-		Renderer:          renderer,
-		MiddlewareManager: middlewareManager,
-		Config:            cfg,
-		Logger:            logger,
-	})
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("create auth handler: %w", err)
-	}
-
-	formHandler := web.NewFormHandler(web.HandlerDeps{
-		BaseHandler:       baseHandler,
-		UserService:       userService,
-		SessionManager:    sessionManager,
-		Renderer:          renderer,
-		MiddlewareManager: middlewareManager,
-		Config:            cfg,
-		Logger:            logger,
-	}, formService)
-
-	demoHandler, err := web.NewDemoHandler(web.HandlerDeps{
-		BaseHandler:       baseHandler,
-		UserService:       userService,
-		SessionManager:    sessionManager,
-		Renderer:          renderer,
-		MiddlewareManager: middlewareManager,
-		Config:            cfg,
-		Logger:            logger,
-	})
-	if err != nil {
-		return nil, nil, nil, nil, fmt.Errorf("create demo handler: %w", err)
-	}
-
-	return webHandler, authHandler, formHandler, demoHandler, nil
 }
 
 // main is the entry point of the application.
+// It initializes the dependency injection container, starts the application,
+// and handles graceful shutdown on termination signals.
 func main() {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-
-	// Load configuration
-	cfg, err := config.New()
-	if err != nil {
-		log.Printf("Failed to load configuration: %v", err)
-		return
-	}
-
-	// Initialize logger
-	logger, err := setupLogger()
-	if err != nil {
-		log.Printf("Failed to initialize logger: %v", err)
-		return
-	}
-
-	// Initialize database
-	db, err := database.NewDB(cfg, logger)
-	if err != nil {
-		logger.Fatal("Failed to initialize database", zap.Error(err))
-	}
-
-	// Initialize repositories
-	userRepo := userstore.NewStore(db.DB, logger)
-	formRepo := formstore.NewStore(db.DB, logger)
-
-	// Initialize services
-	userService := user.NewService(userRepo, logger)
-	formService := form.NewService(formRepo)
-
-	// Initialize session manager
-	sessionManager := middleware.NewSessionManager(logger, !cfg.App.IsDevelopment())
-
-	// Initialize middleware manager
-	middlewareManager := middleware.New(&middleware.ManagerConfig{
-		Logger:         logger,
-		Security:       &cfg.Security,
-		UserService:    userService,
-		SessionManager: sessionManager,
-		Config:         cfg,
-	})
-
-	// Initialize base handler
-	baseHandler := web.NewBaseHandler(formService, logger)
-
-	// Initialize handlers
-	webHandler, authHandler, formHandler, demoHandler, err := setupHandlers(
-		baseHandler,
-		userService,
-		sessionManager,
-		middlewareManager,
-		cfg,
-		logger,
-		formService,
+	// Initialize the fx application container with all required modules and providers
+	app := fx.New(
+		// Provide configuration
+		fx.Provide(config.New),
+		// Provide logger factory with configuration
+		fx.Provide(func(cfg *config.Config) logging.Logger {
+			factory := logging.NewFactory(logging.FactoryConfig{
+				AppName:     cfg.App.Name,
+				Version:     cfg.App.Version,
+				Environment: cfg.App.Env,
+				Fields:      map[string]any{},
+			})
+			logger, err := factory.CreateLogger()
+			if err != nil {
+				fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
+				os.Exit(1)
+			}
+			return logger
+		}),
+		// Include all application modules
+		infrastructure.Module,
+		domain.Module,
+		application.Module,
+		appmiddleware.Module,
+		presentation.Module,
+		web.Module,
+		// Invoke setup functions
+		fx.Invoke(setupApplication),
+		fx.Invoke(setupLifecycle),
 	)
-	if err != nil {
-		logger.Fatal("Failed to create handlers", zap.Error(err))
+
+	// Start the application
+	if startErr := app.Start(context.Background()); startErr != nil {
+		fmt.Fprintf(os.Stderr, "Application startup failed: %v\n", startErr)
+		os.Exit(1)
 	}
 
-	// Initialize router
-	router := echo.New()
-
-	// Setup middleware using the middleware manager
-	middlewareManager.Setup(router)
-
-	// Register handlers
-	webHandler.Register(router)
-	authHandler.Register(router)
-	formHandler.Register(router)
-	demoHandler.Register(router)
-
-	// Start server
-	server := &http.Server{
-		Addr:         fmt.Sprintf("%s:%d", cfg.Server.Host, cfg.Server.Port),
-		Handler:      router,
-		ReadTimeout:  readTimeout,
-		WriteTimeout: writeTimeout,
-		IdleTimeout:  idleTimeout,
-	}
-
-	// Start server in a goroutine
-	go func() {
-		serverErr := server.ListenAndServe()
-		if serverErr != nil && !errors.Is(serverErr, http.ErrServerClosed) {
-			logger.Fatal("Failed to start server", zap.Error(serverErr))
-		}
-	}()
+	// Set up signal handling for graceful shutdown
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// Wait for interrupt signal
-	quit := make(chan os.Signal, 1)
-	signal.Notify(quit, syscall.SIGINT, syscall.SIGTERM)
-	<-quit
+	<-sigChan
 
-	// Shutdown server
-	shutdownCtx, shutdownCancel := context.WithTimeout(ctx, cfg.Server.ShutdownTimeout)
-	defer shutdownCancel()
-
-	shutdownErr := server.Shutdown(shutdownCtx)
-	if shutdownErr != nil {
-		logger.Fatal("Failed to shutdown server", zap.Error(shutdownErr))
+	// Attempt graceful shutdown
+	if stopErr := app.Stop(context.Background()); stopErr != nil {
+		fmt.Fprintf(os.Stderr, "Application shutdown failed: %v\n", stopErr)
+		os.Exit(1)
 	}
 }

@@ -84,6 +84,14 @@ function validateFormBuilder(): { builder: HTMLElement; formId: string } {
  * Schema management
  */
 async function getFormSchema(formId: string): Promise<any> {
+  // For new form creation, return a default schema
+  if (formId === "new") {
+    return {
+      type: "object",
+      components: [],
+    };
+  }
+
   const formService = FormService.getInstance();
   try {
     return await formService.getSchema(formId);
@@ -103,14 +111,45 @@ async function createFormBuilder(
   schema: any,
 ): Promise<any> {
   try {
+    // Initialize Formio with project settings
+    Formio.setProjectUrl("https://goforms.io");
+    Formio.setBaseUrl("https://goforms.io");
+
     // Ensure schema has required properties
     const formSchema = {
       ...schema,
-      projectId: "goforms", // Add default projectId
+      projectId: "goforms",
       display: "form",
       components: schema.components || [],
     };
-    return await Formio.builder(container, formSchema, builderOptions);
+
+    // Create builder with options
+    const builder = await Formio.builder(container, formSchema, {
+      ...builderOptions,
+      noDefaultSubmitButton: true,
+      builder: {
+        ...builderOptions.builder,
+        basic: {
+          components: {
+            textfield: true,
+            textarea: true,
+            email: true,
+            phoneNumber: true,
+            number: true,
+            password: true,
+            checkbox: true,
+            selectboxes: true,
+            select: true,
+            radio: true,
+            button: true,
+          },
+        },
+      },
+    });
+
+    // Store builder instance globally
+    window.formBuilder = builder;
+    return builder;
   } catch (error) {
     console.error("Form builder initialization error:", error);
     throw new FormBuilderError(
@@ -123,7 +162,7 @@ async function createFormBuilder(
 /**
  * Event handlers setup
  */
-function setupEventHandlers(builder: any): void {
+function setupEventHandlers(builder: any, formId: string): void {
   const viewSchemaBtn = dom.getElement<HTMLButtonElement>("view-schema-btn");
   if (viewSchemaBtn) {
     viewSchemaBtn.addEventListener("click", () => {
@@ -143,18 +182,20 @@ function setupEventHandlers(builder: any): void {
         saveBtn.disabled = true;
         if (spinner) spinner.style.display = "inline-block";
 
-        // Save the schema and get the response
-        const savedSchema = await builder.saveSchema();
-
-        // Check if we got a valid schema response
-        if (savedSchema && savedSchema.components) {
-          feedback.textContent = "Schema saved successfully.";
-          feedback.className = "schema-save-feedback success";
-        } else {
-          feedback.textContent = "Failed to save schema - invalid response.";
-          feedback.className = "schema-save-feedback error";
+        // Get the current schema using saveSchema
+        const schema = await builder.saveSchema();
+        if (!schema) {
+          throw new Error("Failed to get form schema");
         }
+
+        // Save using form service
+        const formService = FormService.getInstance();
+        await formService.saveSchema(formId, schema);
+
+        feedback.textContent = "Schema saved successfully.";
+        feedback.className = "schema-save-feedback success";
       } catch (error) {
+        console.error("Failed to save form fields:", error);
         feedback.textContent =
           error instanceof Error ? error.message : "Error saving schema.";
         feedback.className = "schema-save-feedback error";
@@ -167,6 +208,26 @@ function setupEventHandlers(builder: any): void {
         }, 3000);
       }
     });
+  }
+
+  // For new form creation, update the hidden schema field before form submission
+  if (formId === "new") {
+    const form = dom.getElement<HTMLFormElement>("new-form");
+    if (form) {
+      form.addEventListener("submit", async (e) => {
+        e.preventDefault();
+        try {
+          const schema = await builder.saveSchema();
+          const schemaInput = dom.getElement<HTMLInputElement>("schema");
+          if (schemaInput) {
+            schemaInput.value = JSON.stringify(schema);
+          }
+          form.submit();
+        } catch (_error) {
+          dom.showError("Failed to save form schema. Please try again.");
+        }
+      });
+    }
   }
 }
 
@@ -183,7 +244,7 @@ async function initializeFormBuilder(): Promise<void> {
     const builder = await createFormBuilder(container, schema);
 
     // Set up event handlers
-    setupEventHandlers(builder);
+    setupEventHandlers(builder, formId);
     setupBuilderEvents(builder, formId, FormService.getInstance());
   } catch (error) {
     if (error instanceof FormBuilderError) {

@@ -3,25 +3,125 @@ description:
 globs: internal/application/middleware/**/*.go
 alwaysApply: false
 ---
-# Middleware Architecture
-
-## Overview
-The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in [internal/application/middleware/middleware.go](mdc:goforms/goforms/internal/application/middleware/middleware.go).
+# Middleware Guidelines
 
 ## Core Components
 
-### Manager
-The `Manager` struct in [internal/application/middleware/middleware.go](mdc:goforms/goforms/internal/application/middleware/middleware.go) handles middleware configuration and setup. It uses dependency injection for logging and configuration.
+1. **Context Management** (`internal/application/middleware/context`)
+   - Type-safe context access
+   - User data helpers
+   - Request tracking
+
+2. **Access Control** (`internal/application/middleware/access`)
+   - Public, Authenticated, Admin levels
+   - Route-based rules
+   - Role-based access
+
+3. **Session Management** (`internal/application/middleware/session`)
+   - Secure session handling
+   - Cookie management
+   - Session validation
+
+## Setup Order
+
+1. Basic Middleware
+   ```go
+   e.Use(middleware.Recover())
+   e.Use(middleware.RequestID())
+   e.Use(context.Middleware())
+   e.Use(middleware.Secure())
+   ```
+
+2. Security Middleware
+   ```go
+   e.Use(csrf.Middleware())
+   e.Use(ratelimit.Middleware())
+   e.Use(cors.Middleware())
+   ```
+
+3. Auth Middleware
+   ```go
+   e.Use(session.Middleware())
+   e.Use(access.Middleware())
+   ```
+
+## Common Patterns
+
+1. **Context Usage**
+   ```go
+   // Get user data
+   userID, ok := context.GetUserID(c)
+   if !ok {
+       return c.Redirect(http.StatusSeeOther, "/login")
+   }
+   ```
+
+2. **Session Management**
+   ```go
+   // Create session
+   session, err := sessionManager.CreateSession(userID, email, role)
+   if err != nil {
+       return err
+   }
+   sessionManager.SetSessionCookie(c, session.ID)
+   ```
+
+## Best Practices
+
+1. Security
+   - Enable CSRF protection
+   - Use secure cookies
+   - Set security headers
+   - Implement rate limiting
+
+2. Performance
+   - Skip middleware for static files
+   - Cache session data
+   - Use efficient route matching
+
+3. Error Handling
+   - Log errors with context
+   - Return user-friendly messages
+# Middleware Architecture
+
+## Overview
+The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in the `internal/application/middleware` directory.
+
+## Core Components
+
+### Context Management
+The context package (`internal/application/middleware/context`) provides:
+- Type-safe access to context values
+- Centralized context handling
+- Consistent error handling
+- User data access helpers
+- Request context management
+
+### Access Control
+The access package (`internal/application/middleware/access`) provides:
+- Granular access control levels (Public, Authenticated, Admin)
+- Centralized access rule configuration
+- Consistent access checking
+- Role-based access control
+- Access denial logging
+
+### Session Management
+The session package (`internal/application/middleware/session`) provides:
+- Secure session handling
+- Session validation
+- Session state management
+- Context integration
+- Cookie management
 
 ### Error Logger
-The error logger middleware in [internal/application/middleware/error_logger.go](mdc:goforms/goforms/internal/application/middleware/error_logger.go) provides:
+The error logger middleware provides:
 - Domain error mapping to HTTP status codes
 - Structured error logging
 - Consistent error responses
 - Error context preservation
 
 ### Request Logger
-The request logger middleware in [internal/application/middleware/logging.go](mdc:goforms/goforms/internal/application/middleware/logging.go) provides:
+The request logger middleware provides:
 - Request/response logging
 - Performance metrics
 - Static file request filtering
@@ -52,7 +152,7 @@ const (
 1. Use the `Manager` for middleware setup
 2. Configure security headers appropriately
 3. Enable CSRF protection for forms
-4. Use proper error handling for type assertions
+4. Use context helpers for type-safe access
 5. Follow the constant naming conventions
 6. Use structured logging with proper context
 7. Implement rate limiting where appropriate
@@ -79,6 +179,7 @@ The middleware setup follows a specific order:
 1. Basic Middleware
    - Recovery
    - Request ID
+   - Context middleware
    - Secure headers
    - Body limit
    - MIME type
@@ -92,31 +193,52 @@ The middleware setup follows a specific order:
 
 3. Authentication Middleware
    - Session validation
-   - Protected routes
-   - Admin routes
+   - Access control
    - Role-based access
 
-## Error Handling
+## Context Management
 
-The error logger middleware provides consistent error handling:
+The context package provides consistent context handling:
 
-1. Domain Error Mapping
-   - Maps domain errors to HTTP status codes
-   - Preserves error context
-   - Provides structured logging
-   - Returns consistent error responses
+1. User Context
+   - Type-safe user ID access
+   - Email and role management
+   - Authentication state
+   - Session integration
 
-2. HTTP Error Handling
-   - Handles Echo HTTP errors
-   - Provides proper status codes
-   - Includes error messages
-   - Logs errors appropriately
+2. Request Context
+   - Request ID tracking
+   - Correlation ID management
+   - Logger context
+   - Performance tracking
 
-3. Unknown Error Handling
-   - Logs unknown errors
-   - Returns 500 status code
-   - Includes generic message
-   - Preserves error context
+3. Error Context
+   - Error state preservation
+   - Stack trace management
+   - Error categorization
+   - Context propagation
+
+## Access Control
+
+The access package provides:
+
+1. Access Levels
+   - Public access
+   - Authenticated access
+   - Admin access
+   - Custom access levels
+
+2. Access Rules
+   - Route-based rules
+   - Role-based rules
+   - Pattern matching
+   - Rule inheritance
+
+3. Access Checking
+   - Consistent validation
+   - Error handling
+   - Logging
+   - Response generation
 
 ## Performance Considerations
 
@@ -138,56 +260,55 @@ The error logger middleware provides consistent error handling:
    - Handle bursts properly
    - Log rate limit events
 
-# Middleware Patterns
-
-## Authentication Middleware
-- Use session-based authentication
-- Implement session validation
-- Check user roles and permissions
-- Handle session expiration
-- Redirect unauthenticated users
-
-## Session Management
-- Validate session cookies
-- Handle session creation and deletion
-- Implement session timeout
-- Manage session state
-- Handle session renewal
-
-## Security Middleware
-- CSRF protection
-- Rate limiting
-- Request validation
-- Security headers
-- Input sanitization
-
 ## Common Patterns
-1. **Route Protection**
-   - Public route maps for exact matches
-   - Prefix lists for common patterns
-   - O(1) lookup optimization
-   - Static file handling
 
-2. **Error Handling**
-   - Structured logging with context
-   - Proper HTTP status codes
-   - Clear error messages
-   - Different log levels
+1. **Context Usage**
+   ```go
+   // Get user data
+   userID, ok := context.GetUserID(c)
+   if !ok {
+       return c.Redirect(http.StatusSeeOther, "/login")
+   }
 
-3. **Security**
-   - Secure cookie settings
-   - Token validation
-   - CSRF protection
-   - Rate limiting
+   // Check authentication
+   if !context.IsAuthenticated(c) {
+       return c.Redirect(http.StatusSeeOther, "/login")
+   }
 
-4. **Performance**
-   - Optimized route matching
-   - Efficient token validation
-   - Context-aware operations
-   - Proper error handling
+   // Get role
+   role, ok := context.GetRole(c)
+   if !ok {
+       return c.Redirect(http.StatusSeeOther, "/login")
+   }
+   ```
+
+2. **Access Control**
+   ```go
+   // Define access rules
+   rules := map[string]access.AccessLevel{
+       "/api/v1/admin/*": access.Admin,
+       "/api/v1/*":       access.Authenticated,
+       "/public/*":       access.Public,
+   }
+
+   // Apply access control
+   e.Use(access.Middleware(accessManager, logger))
+   ```
+
+3. **Session Management**
+   ```go
+   // Create session
+   session, err := sessionManager.CreateSession(userID, email, userAgent)
+   if err != nil {
+       return err
+   }
+
+   // Set session cookie
+   sessionManager.SetSessionCookie(c, session.ID)
+   ```
 
 ## Best Practices
-1. Always use request context
+1. Always use context helpers for user data
 2. Implement proper security attributes
 3. Use structured logging
 4. Optimize route matching

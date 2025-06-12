@@ -47,10 +47,7 @@ func (s *service) CheckHealth(ctx context.Context) (*HealthStatus, error) {
 
 	// Check database connectivity
 	if err := s.repository.PingContext(ctx); err != nil {
-		s.logger.Error("health check failed",
-			logging.ErrorField("error", err),
-			logging.StringField("component", "database"),
-		)
+		s.logger.Error("health check failed", "error", err, "component", "database")
 		status.Status = "unhealthy"
 		status.Components["database"] = "down"
 		return status, err

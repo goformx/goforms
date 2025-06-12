@@ -15,13 +15,12 @@
 @import url("layouts/footer.css") layer(layouts);
 
 /* Component styles */
-@import url("../../node_modules/@formio/js/dist/formio.full.min.css")
-layer(components);
+@import url("../../node_modules/@formio/js/dist/formio.full.min.css") layer(components);
 @import url("components/nav.css") layer(components);
 @import url("components/buttons.css") layer(components);
 @import url("components/grid-items.css") layer(components);
 @import url("components/forms.css") layer(components);
-@import url("components/auth.css") layer(components);
+@import url("components/form.css") layer(components);
 @import url("components/messages.css") layer(components);
 @import url("components/api_response.css") layer(components);
 @import url("components/demo_form.css") layer(components);
@@ -31,8 +30,13 @@ layer(components);
 @import url("form-builder.css") layer(components);
 
 /* Page styles */
-@import url("pages/dashboard.css") layer(pages);
+@import url("pages/error.css") layer(pages);
 @import url("pages/demo/sections.css") layer(pages);
+@import url("dashboard/layout.css") layer(pages);
+@import url("dashboard/stats.css") layer(pages);
+@import url("dashboard/forms.css") layer(pages);
+@import url("dashboard/table.css") layer(pages);
+@import url("dashboard/actions.css") layer(pages);
 
 /* Utility styles */
 @import url("utils/animations.css") layer(utils);

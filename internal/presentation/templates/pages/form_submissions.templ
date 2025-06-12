@@ -1,57 +1,54 @@
 package pages
 
 import (
-	"fmt"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
 
 templ FormSubmissions(data shared.PageData) {
-	@layouts.Dashboard(data)
+	@layouts.Layout(data, formSubmissionsContent(data))
 }
 
-templ FormSubmissionsContent(data shared.PageData) {
-	<div class="dashboard-page">
-		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Form Submissions</h1>
-					<p class="dashboard-subtitle">View and manage submissions for { data.Form.Title }</p>
-				</div>
-				<a href={ templ.URL("/dashboard/forms/" + data.Form.ID + "/edit") } class="btn btn-outline">Back to Form</a>
-			</div>
-
-			<div class="dashboard-content">
-				<div class="dashboard-table">
-					<table>
-						<thead>
-							<tr>
-								<th>Submitted At</th>
-								<th>Status</th>
-								<th>Data</th>
-							</tr>
-						</thead>
-						<tbody>
-							if len(data.Submissions) == 0 {
+templ formSubmissionsContent(data shared.PageData) {
+	<div class="dashboard-content">
+		<div class="dashboard-header">
+			<h1>Form Submissions</h1>
+			<p class="dashboard-subtitle">{ data.Form.Title }</p>
+		</div>
+		<div class="dashboard-body">
+			<div class="submissions-card">
+				if len(data.Submissions) == 0 {
+					<div class="empty-state">
+						<p>No submissions yet</p>
+					</div>
+				} else {
+					<div class="submissions-table">
+						<table>
+							<thead>
 								<tr>
-									<td colspan="3" class="text-center">No submissions yet</td>
+									<th>Submitted At</th>
+									<th>Status</th>
+									<th>Actions</th>
 								</tr>
-							} else {
+							</thead>
+							<tbody>
 								for _, submission := range data.Submissions {
 									<tr>
-										<td>{ submission.SubmittedAt.Format("Jan 02, 2006 15:04:05") }</td>
+										<td>{ submission.SubmittedAt.Format("Jan 2, 2006 15:04:05") }</td>
 										<td>
-											<span class="status-badge status-{ string(submission.Status) }">{ string(submission.Status) }</span>
+											<span class="status-badge status-badge--{ submission.Status }">
+												{ submission.Status }
+											</span>
 										</td>
 										<td>
-											<pre class="submission-data">{ fmt.Sprintf("%v", submission.Data) }</pre>
+											<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/submissions/" + submission.ID) } class="gf-button gf-button--small">View</a>
 										</td>
 									</tr>
 								}
-							}
-						</tbody>
-					</table>
-				</div>
+							</tbody>
+						</table>
+					</div>
+				}
 			</div>
 		</div>
 	</div>

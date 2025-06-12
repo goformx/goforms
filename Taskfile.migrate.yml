@@ -3,12 +3,22 @@ version: '3'
 
 vars:
   MIGRATIONS_DIR: migrations
-  DB_USER: '{{.GOFORMS_DB_USER | default "goforms"}}'
-  DB_PASSWORD: '{{.GOFORMS_DB_PASSWORD | default "goforms"}}'
-  DB_NAME: '{{.GOFORMS_DB_NAME | default "goforms"}}'
-  DB_HOST: '{{.GOFORMS_DB_HOST | default "localhost"}}'
-  DB_PORT: '{{.GOFORMS_DB_PORT | default "3306"}}'
+  # MariaDB/MySQL variables
+  DB_USER: '{{.GOFORMS_MARIADB_USER | default "goforms"}}'
+  DB_PASSWORD: '{{.GOFORMS_MARIADB_PASSWORD | default "goforms"}}'
+  DB_NAME: '{{.GOFORMS_MARIADB_NAME | default "goforms"}}'
+  DB_HOST: '{{.GOFORMS_MARIADB_HOST | default "mariadb"}}'
+  DB_PORT: '{{.GOFORMS_MARIADB_PORT | default "3306"}}'
   DB_URL: mysql://{{.DB_USER}}:{{.DB_PASSWORD}}@tcp({{.DB_HOST}}:{{.DB_PORT}})/{{.DB_NAME}}?multiStatements=true
+
+  # PostgreSQL variables
+  DB_PG_USER: '{{.GOFORMS_POSTGRES_USER | default "goforms"}}'
+  DB_PG_PASSWORD: '{{.GOFORMS_POSTGRES_PASSWORD | default "goforms"}}'
+  DB_PG_NAME: '{{.GOFORMS_POSTGRES_DB | default "goforms"}}'
+  DB_PG_HOST: '{{.GOFORMS_POSTGRES_HOST | default "postgres"}}'
+  DB_PG_PORT: '{{.GOFORMS_POSTGRES_PORT | default "5432"}}'
+  DB_PG_SSLMODE: '{{.GOFORMS_POSTGRES_SSLMODE | default "disable"}}'
+  DB_PG_URL: postgresql://{{.DB_PG_USER}}:{{.DB_PG_PASSWORD}}@{{.DB_PG_HOST}}:{{.DB_PG_PORT}}/{{.DB_PG_NAME}}?sslmode={{.DB_PG_SSLMODE}}
 
 tasks:
   default:
@@ -23,36 +33,70 @@ tasks:
     cmds:
       - migrate create -ext sql -dir {{.MIGRATIONS_DIR}} -seq {{.name}}
 
-  up:
-    desc: Run all pending migrations
+  mariadb:up:
+    desc: Run all pending migrations (MariaDB/MySQL)
     cmds:
-      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" up
+      - migrate -path {{.MIGRATIONS_DIR}}/mariadb -database "{{.DB_URL}}" up
 
-  down:
-    desc: Rollback the last migration
+  mariadb:down:
+    desc: Rollback the last migration (MariaDB/MySQL)
     cmds:
-      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" down
+      - migrate -path {{.MIGRATIONS_DIR}}/mariadb -database "{{.DB_URL}}" down
 
-  down-all:
-    desc: Rollback all migrations
+  mariadb:down-all:
+    desc: Rollback all migrations (MariaDB/MySQL)
     cmds:
-      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" down -all
+      - migrate -path {{.MIGRATIONS_DIR}}/mariadb -database "{{.DB_URL}}" down -all
 
-  version:
-    desc: Show current migration version
+  mariadb:version:
+    desc: Show current migration version (MariaDB/MySQL)
     cmds:
-      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" version
+      - migrate -path {{.MIGRATIONS_DIR}}/mariadb -database "{{.DB_URL}}" version
 
-  force:
-    desc: Force migration version
+  mariadb:force:
+    desc: Force migration version (MariaDB/MySQL)
     requires:
       vars: [version]
     cmds:
-      - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" force {{.version}}
+      - migrate -path {{.MIGRATIONS_DIR}}/mariadb -database "{{.DB_URL}}" force {{.version}}
 
-  fix-dirty:
-    desc: Fix dirty database state
+  mariadb:fix-dirty:
+    desc: Fix dirty database state (MariaDB/MySQL)
     cmds:
       - |
-        CURRENT_VERSION=$(migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" version | cut -d' ' -f1)
-        migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" force $CURRENT_VERSION 
+        CURRENT_VERSION=$(migrate -path {{.MIGRATIONS_DIR}}/mariadb -database "{{.DB_URL}}" version | cut -d' ' -f1)
+        migrate -path {{.MIGRATIONS_DIR}}/mariadb -database "{{.DB_URL}}" force $CURRENT_VERSION
+
+  pg:up:
+    desc: Run all pending migrations (Postgres)
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}}/postgres -database "{{.DB_PG_URL}}" up
+
+  pg:down:
+    desc: Rollback the last migration (Postgres)
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}}/postgres -database "{{.DB_PG_URL}}" down
+
+  pg:down-all:
+    desc: Rollback all migrations (Postgres)
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}}/postgres -database "{{.DB_PG_URL}}" down -all
+
+  pg:version:
+    desc: Show current migration version (Postgres)
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}}/postgres -database "{{.DB_PG_URL}}" version
+
+  pg:force:
+    desc: Force migration version (Postgres)
+    requires:
+      vars: [version]
+    cmds:
+      - migrate -path {{.MIGRATIONS_DIR}}/postgres -database "{{.DB_PG_URL}}" force {{.version}}
+
+  pg:fix-dirty:
+    desc: Fix dirty database state (Postgres)
+    cmds:
+      - |
+        CURRENT_VERSION=$(migrate -path {{.MIGRATIONS_DIR}}/postgres -database "{{.DB_PG_URL}}" version | cut -d' ' -f1)
+        migrate -path {{.MIGRATIONS_DIR}}/postgres -database "{{.DB_PG_URL}}" force $CURRENT_VERSION 

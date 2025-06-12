@@ -1,10 +1,11 @@
-// Package logging provides a unified logging interface using zap
+// Package logging provides a unified logging interface
 package logging
 
 import (
 	"fmt"
+	"os"
+	"strings"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging/config"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -14,14 +15,13 @@ const (
 	LogEncodingConsole = "console"
 	// LogEncodingJSON represents JSON encoding for logs
 	LogEncodingJSON = "json"
+	// EnvironmentDevelopment represents the development environment
+	EnvironmentDevelopment = "development"
+	// MaxPartsLength represents the maximum number of parts in a log message
+	MaxPartsLength = 2
+	// FieldPairSize represents the number of elements in a key-value pair
+	FieldPairSize = 2
 )
-
-// Config holds the configuration for creating a logger
-type Config struct {
-	Level   string
-	AppName string
-	Debug   bool
-}
 
 // FactoryConfig holds the configuration for creating a logger factory
 type FactoryConfig struct {
@@ -29,6 +29,10 @@ type FactoryConfig struct {
 	Version     string
 	Environment string
 	Fields      map[string]any
+	// OutputPaths specifies where to write logs
+	OutputPaths []string
+	// ErrorOutputPaths specifies where to write error logs
+	ErrorOutputPaths []string
 }
 
 // Factory creates loggers based on configuration
@@ -37,6 +41,8 @@ type Factory struct {
 	appName       string
 	version       string
 	environment   string
+	outputPaths   []string
+	errorPaths    []string
 }
 
 // NewFactory creates a new logger factory with the given configuration
@@ -45,14 +51,12 @@ func NewFactory(cfg FactoryConfig) *Factory {
 		cfg.Fields = make(map[string]any)
 	}
 
-	// Ensure version is set
-	if cfg.Version == "" {
-		cfg.Version = "1.0.0"
+	// Set default output paths if not specified
+	if len(cfg.OutputPaths) == 0 {
+		cfg.OutputPaths = []string{"stdout"}
 	}
-
-	// Add version to fields if not present
-	if _, exists := cfg.Fields["version"]; !exists {
-		cfg.Fields["version"] = cfg.Version
+	if len(cfg.ErrorOutputPaths) == 0 {
+		cfg.ErrorOutputPaths = []string{"stderr"}
 	}
 
 	return &Factory{
@@ -60,164 +64,276 @@ func NewFactory(cfg FactoryConfig) *Factory {
 		appName:       cfg.AppName,
 		version:       cfg.Version,
 		environment:   cfg.Environment,
+		outputPaths:   cfg.OutputPaths,
+		errorPaths:    cfg.ErrorOutputPaths,
 	}
 }
 
 // CreateLogger creates a new logger instance with the application name.
 func (f *Factory) CreateLogger() (Logger, error) {
-	// Create base logger
-	zapLog, err := zap.NewDevelopment()
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
-	}
-
-	// Add initial fields
-	logger := zapLog.With(
-		zap.String("app", f.appName),
-		zap.String("version", f.version),
-		zap.String("environment", f.environment),
-	)
-
-	// Add component tracking
-	logger = logger.With(
-		zap.String("component", "application"),
-		zap.String("operation", "startup"),
-	)
-
-	return &ZapLogger{log: logger}, nil
-}
-
-// CreateFromConfig creates a logger based on the provided configuration
-func (f *Factory) CreateFromConfig(cfg *config.Config) (Logger, error) {
 	// Create encoder config
-	encoderConfig := zap.NewDevelopmentEncoderConfig()
-	encoderConfig.EncodeLevel = zapcore.CapitalColorLevelEncoder
-	encoderConfig.EncodeTime = zapcore.ISO8601TimeEncoder
-	encoderConfig.EncodeDuration = zapcore.StringDurationEncoder
-	encoderConfig.EncodeCaller = zapcore.ShortCallerEncoder
-
-	// Parse log level
-	var level zapcore.Level
-	if cfg.Debug {
-		level = zapcore.DebugLevel
-	} else {
-		levelErr := level.UnmarshalText([]byte(cfg.Level))
-		if levelErr != nil {
-			level = zapcore.InfoLevel // fallback
-		}
+	encoderConfig := zapcore.EncoderConfig{
+		TimeKey:        "time",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "msg",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.CapitalColorLevelEncoder,
+		EncodeTime:     zapcore.TimeEncoderOfLayout("15:04:05.000"),
+		EncodeDuration: zapcore.StringDurationEncoder,
+		EncodeCaller: func(caller zapcore.EntryCaller, enc zapcore.PrimitiveArrayEncoder) {
+			// Show only the last two parts of the file path
+			parts := strings.Split(caller.File, "/")
+			if len(parts) > MaxPartsLength {
+				parts = parts[len(parts)-MaxPartsLength:]
+			}
+			file := strings.Join(parts, "/")
+			enc.AppendString(fmt.Sprintf("%s:%d", file, caller.Line))
+		},
 	}
 
-	zapConfig := zap.NewDevelopmentConfig()
-	zapConfig.EncoderConfig = encoderConfig
-	zapConfig.OutputPaths = []string{"stdout"}
-	zapConfig.Encoding = LogEncodingConsole
-	zapConfig.Level = zap.NewAtomicLevelAt(level)
+	// Create console encoder for better readability in development mode
+	encoder := zapcore.NewConsoleEncoder(encoderConfig)
 
-	// Use JSON encoding for production
-	if level >= zapcore.WarnLevel {
-		zapConfig.Encoding = LogEncodingJSON
-	}
+	// Create core with console encoder
+	core := zapcore.NewCore(
+		encoder,
+		zapcore.AddSync(os.Stdout),
+		zapcore.DebugLevel,
+	)
 
-	zapLog, err := zapConfig.Build(
+	// Create logger with options
+	zapLogger := zap.New(core,
 		zap.AddCaller(),
 		zap.AddStacktrace(zapcore.ErrorLevel),
-		zap.Fields(
-			zap.String("app", cfg.AppName),
-		),
+		zap.Development(),
 	)
 
-	if err != nil {
-		return nil, fmt.Errorf("failed to create logger: %w", err)
+	// Create initial fields
+	fields := make([]zap.Field, 0, len(f.initialFields))
+	for k, v := range f.initialFields {
+		fields = append(fields, zap.String(k, fmt.Sprintf("%v", v)))
 	}
 
-	return &ZapLogger{log: zapLog}, nil
+	// Create logger with initial fields
+	zapLogger = zapLogger.With(fields...)
+
+	// Create our logger implementation
+	return newLogger(zapLogger), nil
 }
 
-// ZapLogger implements the Logger interface using zap
-type ZapLogger struct {
-	log *zap.Logger
+// logger implements the Logger interface using zap
+type logger struct {
+	zapLogger *zap.Logger
 }
 
-// GetZapLogger returns the underlying zap logger
-func (l *ZapLogger) GetZapLogger() *zap.Logger {
-	return l.log
+// newLogger creates a new logger instance
+func newLogger(zapLogger *zap.Logger) Logger {
+	return &logger{zapLogger: zapLogger}
 }
 
 // Debug logs a debug message
-func (l *ZapLogger) Debug(msg string, fields ...any) {
-	l.log.Debug(msg, convertToZapFields(fields)...)
+func (l *logger) Debug(msg string, fields ...any) {
+	l.zapLogger.Debug(msg, convertToZapFields(fields)...)
 }
 
 // Info logs an info message
-func (l *ZapLogger) Info(msg string, fields ...any) {
-	l.log.Info(msg, convertToZapFields(fields)...)
+func (l *logger) Info(msg string, fields ...any) {
+	l.zapLogger.Info(msg, convertToZapFields(fields)...)
 }
 
 // Warn logs a warning message
-func (l *ZapLogger) Warn(msg string, fields ...any) {
-	l.log.Warn(msg, convertToZapFields(fields)...)
+func (l *logger) Warn(msg string, fields ...any) {
+	l.zapLogger.Warn(msg, convertToZapFields(fields)...)
 }
 
 // Error logs an error message
-func (l *ZapLogger) Error(msg string, fields ...any) {
-	l.log.Error(msg, convertToZapFields(fields)...)
+func (l *logger) Error(msg string, fields ...any) {
+	l.zapLogger.Error(msg, convertToZapFields(fields)...)
 }
 
 // Fatal logs a fatal message
-func (l *ZapLogger) Fatal(msg string, fields ...any) {
-	l.log.Fatal(msg, convertToZapFields(fields)...)
+func (l *logger) Fatal(msg string, fields ...any) {
+	l.zapLogger.Fatal(msg, convertToZapFields(fields)...)
 }
 
 // With returns a new logger with the given fields
-func (l *ZapLogger) With(fields ...any) Logger {
-	return &ZapLogger{log: l.log.With(convertToZapFields(fields)...)}
+func (l *logger) With(fields ...any) Logger {
+	zapFields := convertToZapFields(fields)
+	return newLogger(l.zapLogger.With(zapFields...))
 }
 
 // WithComponent returns a new logger with the given component
-func (l *ZapLogger) WithComponent(component string) Logger {
-	return l.With(String("component", component))
+func (l *logger) WithComponent(component string) Logger {
+	return l.With("component", component)
 }
 
 // WithOperation returns a new logger with the given operation
-func (l *ZapLogger) WithOperation(operation string) Logger {
-	return l.With(String("operation", operation))
+func (l *logger) WithOperation(operation string) Logger {
+	return l.With("operation", operation)
 }
 
 // WithRequestID returns a new logger with the given request ID
-func (l *ZapLogger) WithRequestID(requestID string) Logger {
-	return l.With(String("request_id", requestID))
+func (l *logger) WithRequestID(requestID string) Logger {
+	return l.With("request_id", requestID)
 }
 
 // WithUserID returns a new logger with the given user ID
-func (l *ZapLogger) WithUserID(userID string) Logger {
-	return l.With(String("user_id", userID))
+func (l *logger) WithUserID(userID string) Logger {
+	return l.With("user_id", l.SanitizeField("user_id", userID))
 }
 
 // WithError returns a new logger with the given error
-func (l *ZapLogger) WithError(err error) Logger {
-	return l.With(Error(err))
+func (l *logger) WithError(err error) Logger {
+	return l.With("error", err)
 }
 
 // WithFields adds multiple fields to the logger
-func (l *ZapLogger) WithFields(fields map[string]any) Logger {
-	zapFields := make([]zap.Field, 0, len(fields))
+func (l *logger) WithFields(fields map[string]any) Logger {
+	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
 	for k, v := range fields {
-		zapFields = append(zapFields, zap.Any(k, v))
+		zapFields = append(zapFields, zap.Any(k, l.SanitizeField(k, v)))
 	}
-	return &ZapLogger{log: l.log.With(zapFields...)}
+	return newLogger(l.zapLogger.With(zapFields...))
 }
 
-// convertToZapFields converts any fields to zap.Field
+var sensitiveKeys = map[string]struct{}{
+	"password":           {},
+	"token":              {},
+	"secret":             {},
+	"key":                {},
+	"credential":         {},
+	"authorization":      {},
+	"cookie":             {},
+	"session":            {},
+	"api_key":            {},
+	"access_token":       {},
+	"refresh_token":      {},
+	"private_key":        {},
+	"public_key":         {},
+	"certificate":        {},
+	"ssn":                {},
+	"credit_card":        {},
+	"bank_account":       {},
+	"phone":              {},
+	"email":              {},
+	"address":            {},
+	"dob":                {},
+	"birth_date":         {},
+	"social_security":    {},
+	"tax_id":             {},
+	"driver_license":     {},
+	"passport":           {},
+	"national_id":        {},
+	"health_record":      {},
+	"medical_record":     {},
+	"insurance":          {},
+	"benefit":            {},
+	"salary":             {},
+	"compensation":       {},
+	"bank_routing":       {},
+	"bank_swift":         {},
+	"iban":               {},
+	"account_number":     {},
+	"pin":                {},
+	"cvv":                {},
+	"cvc":                {},
+	"security_code":      {},
+	"verification_code":  {},
+	"otp":                {},
+	"mfa_code":           {},
+	"2fa_code":           {},
+	"recovery_code":      {},
+	"backup_code":        {},
+	"reset_token":        {},
+	"activation_code":    {},
+	"verification_token": {},
+	"invite_code":        {},
+	"referral_code":      {},
+	"promo_code":         {},
+	"discount_code":      {},
+	"coupon_code":        {},
+	"gift_card":          {},
+	"voucher":            {},
+	"license_key":        {},
+	"product_key":        {},
+	"serial_number":      {},
+	"activation_key":     {},
+	"registration_key":   {},
+	"subscription_key":   {},
+	"membership_key":     {},
+	"access_code":        {},
+	"security_key":       {},
+	"encryption_key":     {},
+	"decryption_key":     {},
+	"signing_key":        {},
+	"verification_key":   {},
+	"authentication_key": {},
+	"authorization_key":  {},
+	"session_key":        {},
+	"cookie_key":         {},
+	"csrf_token":         {},
+	"xsrf_token":         {},
+	"jwt":                {},
+	"jwe":                {},
+	"jws":                {},
+	"oauth_token":        {},
+	"oauth_secret":       {},
+	"oauth_verifier":     {},
+	"oauth_code":         {},
+	"oauth_state":        {},
+	"oauth_nonce":        {},
+	"oauth_scope":        {},
+	"oauth_grant":        {},
+	"oauth_refresh":      {},
+	"oauth_access":       {},
+	"oauth_id":           {},
+	"oauth_key":          {},
+}
+
+// SanitizeField returns a masked version of a sensitive field value
+func (l *logger) SanitizeField(key string, value any) any {
+	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
+		return "****"
+	}
+	return value
+}
+
+// convertToZapFields converts a slice of fields to zap fields
 func convertToZapFields(fields []any) []zap.Field {
-	zapFields := make([]zap.Field, len(fields))
-	for i, f := range fields {
-		switch v := f.(type) {
-		case LogField:
-			zapFields[i] = zap.Any(v.Key, v.Value)
+	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
+	for i := 0; i < len(fields); i += FieldPairSize {
+		if i+1 >= len(fields) {
+			break
+		}
+
+		key, ok := fields[i].(string)
+		if !ok {
+			continue
+		}
+
+		value := fields[i+1]
+		switch v := value.(type) {
+		case string:
+			zapFields = append(zapFields, zap.String(key, v))
+		case int:
+			zapFields = append(zapFields, zap.Int(key, v))
+		case int64:
+			zapFields = append(zapFields, zap.Int64(key, v))
+		case uint:
+			zapFields = append(zapFields, zap.Uint(key, v))
+		case uint64:
+			zapFields = append(zapFields, zap.Uint64(key, v))
+		case float64:
+			zapFields = append(zapFields, zap.Float64(key, v))
+		case bool:
+			zapFields = append(zapFields, zap.Bool(key, v))
 		case error:
-			zapFields[i] = zap.Error(v)
+			zapFields = append(zapFields, zap.Error(v), zap.String(key+"_details", fmt.Sprintf("%+v", v)))
 		default:
-			zapFields[i] = zap.Any("", v)
+			zapFields = append(zapFields, zap.Any(key, v))
 		}
 	}
 	return zapFields

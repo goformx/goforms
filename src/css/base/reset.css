@@ -1,32 +1,40 @@
-@layer base {
-  /* Reset and base styles */
-  * {
-    margin: 0;
-    padding: 0;
-    box-sizing: border-box;
-  }
+/* Set box-sizing globally */
+html {
+  box-sizing: border-box;
+}
+*, *::before, *::after {
+  box-sizing: inherit;
+}
 
-  body {
-    font-family:
-      system-ui,
-      -apple-system,
-      BlinkMacSystemFont,
-      "Segoe UI",
-      Roboto,
-      "Helvetica Neue",
-      Arial,
-      sans-serif;
-    line-height: 1.5;
-    -webkit-font-smoothing: antialiased;
-    -moz-osx-font-smoothing: grayscale;
-  }
+/* Reset and base styles */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+}
 
-  h1 {
-    color: var(--primary-color);
-    margin-bottom: 20px;
-  }
+body {
+  display: flex;
+  flex-direction: column;
+  min-height: 100%;
+  font-family: var(--font-sans);
+  line-height: var(--line-height-normal);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
 
-  p {
-    line-height: 1.6;
-  }
+main {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+}
+
+h1 {
+  color: var(--primary);
+  margin-bottom: var(--spacing-5);
+}
+
+p {
+  line-height: var(--line-height-relaxed);
 }

@@ -6,46 +6,35 @@ import (
 )
 
 templ Profile(data shared.PageData) {
-	@layouts.Dashboard(data)
+	@layouts.Layout(data, profileContent(data))
 }
 
-templ ProfileContent(data shared.PageData) {
-	<div class="dashboard-page">
-		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Profile</h1>
-					<p class="dashboard-subtitle">Manage your account settings and preferences</p>
+templ profileContent(data shared.PageData) {
+	<div class="dashboard-content">
+		<div class="dashboard-header">
+			<h1>Profile</h1>
+		</div>
+		<div class="dashboard-body">
+			<div class="profile-card">
+				<div class="profile-header">
+					<div class="profile-avatar">
+						<span class="avatar-text">{ data.User.FirstName[0:1] }</span>
+					</div>
+					<div class="profile-info">
+						<h2>{ data.User.FirstName } { data.User.LastName }</h2>
+						<p class="profile-email">{ data.User.Email }</p>
+					</div>
 				</div>
-			</div>
-
-			<div class="dashboard-content">
-				<form id="profile-form" class="auth-form" method="POST" action="/profile">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-					<div id="form_error" class="form-error"></div>
-
-					<div class="gf-form-group">
-						<label for="first_name" class="gf-label">First Name</label>
-						<input type="text" id="first_name" name="first_name" required class="gf-input" value={ data.User.FirstName } />
-						<div id="first_name_error" class="error-message"></div>
+				<div class="profile-details">
+					<div class="detail-group">
+						<label>Role</label>
+						<p>{ data.User.Role }</p>
 					</div>
-
-					<div class="gf-form-group">
-						<label for="last_name" class="gf-label">Last Name</label>
-						<input type="text" id="last_name" name="last_name" required class="gf-input" value={ data.User.LastName } />
-						<div id="last_name_error" class="error-message"></div>
+					<div class="detail-group">
+						<label>Member Since</label>
+						<p>{ data.User.CreatedAt.Format("January 2, 2006") }</p>
 					</div>
-
-					<div class="gf-form-group">
-						<label for="email" class="gf-label">Email</label>
-						<input type="email" id="email" name="email" required class="gf-input" value={ data.User.Email } />
-						<div id="email_error" class="error-message"></div>
-					</div>
-
-					<div class="form-actions">
-						<button type="submit" class="gf-button gf-button--primary">Update Profile</button>
-					</div>
-				</form>
+				</div>
 			</div>
 		</div>
 	</div>

@@ -6,87 +6,161 @@ alwaysApply: false
 # Service Layer Architecture
 
 ## Overview
-The service layer in GoFormX follows a clean architecture pattern with clear separation of concerns. Services are organized by domain and functionality, with a focus on maintainability and testability.
+The service layer implements domain-specific business logic with clear separation of concerns. Services are organized by domain (form, user, etc.) and follow a consistent pattern.
 
-## Core Principles
+## Core Components
 
-1. Interface-Based Design
-   - Services are defined by interfaces
-   - Dependencies are injected
-   - Implementation details are hidden
-   - Easy to mock for testing
+1. Service Interface
+   - Defined in domain package
+   - Focused on business operations
+   - Clear method signatures
+   - Example from form service:
+   ```go
+   type Service interface {
+       CreateForm(ctx context.Context, userID string, form *model.Form) error
+       GetForm(ctx context.Context, id string) (*model.Form, error)
+       GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
+       UpdateForm(ctx context.Context, userID string, form *model.Form) error
+       DeleteForm(ctx context.Context, userID, id string) error
+   }
+   ```
 
-2. Domain-Driven Organization
-   - Services are grouped by domain
-   - Clear boundaries between domains
-   - Domain-specific error handling
-   - Domain-specific validation
+2. Service Implementation
+   - Private struct with dependencies
+   - Constructor function
+   - Consistent error handling
+   - Example:
+   ```go
+   type service struct {
+       repo      Repository
+       publisher event.Publisher
+       logger    logging.Logger
+   }
 
-3. Clean Architecture
-   - Services depend on interfaces
-   - Domain models are independent
-   - Infrastructure concerns are isolated
-   - Business logic is centralized
-
-## Service Structure
-
-### Form Operations Service
-Located in [internal/application/services/form_operations/service.go](mdc:goforms/goforms/internal/application/services/form_operations/service.go):
-
-```go
-type Service interface {
-    ValidateAndBindFormData(c echo.Context, form *model.Form) (*model.FormSubmission, error)
-    // ... other methods
-}
-
-type service struct {
-    formService form.Service
-    logger      *zap.Logger
-}
-```
-
-### Page Data Service
-Located in [internal/application/services/page_data/service.go](mdc:goforms/goforms/internal/application/services/page_data/service.go):
-
-```go
-type Service interface {
-    GetDashboardData(usr *user.User) (*shared.PageData, error)
-    GetFormData(usr *user.User, form *model.Form) (*shared.PageData, error)
-    // ... other methods
-}
-```
+   func NewService(repo Repository, publisher event.Publisher, logger logging.Logger) *service {
+       return &service{
+           repo:      repo,
+           publisher: publisher,
+           logger:    logger,
+       }
+   }
+   ```
 
 ## Best Practices
 
-1. Interface Design
-   - Keep interfaces focused
-   - Use meaningful names
-   - Document behavior
-   - Follow Go conventions
+1. Error Handling
+   - Use domain error codes
+   - Provide context in errors
+   - Log errors with details
+   - Example:
+   ```go
+   if err := form.Validate(); err != nil {
+       logger.Error("form validation failed", "error", err)
+       return domainerrors.New(domainerrors.ErrCodeInvalidInput, "create form: invalid input", err)
+   }
+   ```
 
-2. Error Handling
-   - Use domain errors
-   - Provide context
-   - Handle edge cases
-   - Log appropriately
+2. Input Validation
+   - Sanitize user input
+   - Validate domain rules
+   - Check permissions
+   - Example:
+   ```go
+   form.Title = sanitize.XSS(form.Title)
+   form.Description = sanitize.XSS(form.Description)
+   if err := form.Validate(); err != nil {
+       // Handle error
+   }
+   ```
 
-3. Validation
-   - Validate input early
-   - Use domain rules
-   - Provide clear messages
-   - Handle all cases
+3. Event Publishing
+   - Publish domain events
+   - Handle publish errors
+   - Log failures
+   - Example:
+   ```go
+   if pubErr := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); pubErr != nil {
+       logger.Error("failed to publish form created event", "error", pubErr)
+   }
+   ```
 
-4. Logging
+4. Context Usage
+   - Pass context through
+   - Set timeouts
+   - Cancel operations
+   - Example:
+   ```go
+   ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
+   defer cancel()
+   ```
+
+5. Logging
    - Use structured logging
-   - Include context
+   - Include user context
    - Log at appropriate levels
-   - Follow logging guidelines
+   - Example:
+   ```go
+   logger := s.logger.WithUserID(userID)
+   logger.Error("failed to create form", "error", err)
+   ```
 
-5. Testing
-   - Write unit tests
-   - Use mocks
-   - Test edge cases
-   - Follow testing guidelines
+## Common Patterns
+
+1. Repository Pattern
+   - Abstract data access
+   - Domain-specific operations
+   - Error handling
+   - Example:
+   ```go
+   type Repository interface {
+       Create(ctx context.Context, form *model.Form) error
+       GetByID(ctx context.Context, id string) (*model.Form, error)
+       GetByUserID(ctx context.Context, userID string) ([]*model.Form, error)
+       Update(ctx context.Context, form *model.Form) error
+       Delete(ctx context.Context, id string) error
+   }
+   ```
+
+2. Event Publishing
+   - Domain events
+   - Event handlers
+   - Error handling
+   - Example:
+   ```go
+   type Publisher interface {
+       Publish(ctx context.Context, event Event) error
+   }
+   ```
+
+## Testing Guidelines
+
+1. Unit Tests
+   - Mock dependencies
+   - Test error cases
+   - Verify behavior
+   - Example:
+   ```go
+   func TestService_CreateForm(t *testing.T) {
+       mockRepo := &MockRepository{}
+       mockPublisher := &MockPublisher{}
+       mockLogger := &MockLogger{}
+       service := NewService(mockRepo, mockPublisher, mockLogger)
+       // Test implementation
+   }
+   ```
+
+2. Integration Tests
+   - Use test database
+   - Test full flow
+   - Clean up resources
+   - Example:
+   ```go
+   func TestService_Integration(t *testing.T) {
+       db := setupTestDB(t)
+       defer db.Close()
+       // Test implementation
+   }
+   ```
 
 ## Service Dependencies
 
@@ -133,26 +207,6 @@ type Service interface {
    - Context inclusion
    - Appropriate levels
    - Clear messages
-
-## Testing Guidelines
-
-1. Unit Tests
-   - Test each method
-   - Use mocks
-   - Test edge cases
-   - Follow testing guidelines
-
-2. Integration Tests
-   - Test service integration
-   - Use test database
-   - Clean up resources
-   - Follow testing guidelines
-
-3. Test Coverage
-   - Aim for high coverage
-   - Test error cases
-   - Test edge cases
-   - Follow testing guidelines
 
 ## Performance Considerations
 
