@@ -8,6 +8,9 @@ import (
 	"errors"
 	"fmt"
 	"net"
+	"net/http"
+	"net/http/httputil"
+	"net/url"
 	"os"
 	"path/filepath"
 	"strings"
@@ -15,6 +18,7 @@ import (
 
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/labstack/echo/v4"
 )
 
 // AssetType represents the type of asset
@@ -34,6 +38,7 @@ const (
 // ManifestEntry represents an entry in the Vite manifest file
 type ManifestEntry struct {
 	File    string   `json:"file"`
+	Name    string   `json:"name"`
 	Src     string   `json:"src"`
 	IsEntry bool     `json:"isEntry"`
 	CSS     []string `json:"css"`
@@ -52,6 +57,103 @@ type AssetManager struct {
 	logger         logging.Logger
 }
 
+// AssetServer defines the interface for serving assets
+type AssetServer interface {
+	// RegisterRoutes registers the necessary routes for serving assets
+	RegisterRoutes(e *echo.Echo) error
+}
+
+// ViteAssetServer implements AssetServer for Vite development server
+type ViteAssetServer struct {
+	config *config.Config
+	logger logging.Logger
+}
+
+// NewViteAssetServer creates a new Vite asset server
+func NewViteAssetServer(cfg *config.Config, logger logging.Logger) *ViteAssetServer {
+	return &ViteAssetServer{
+		config: cfg,
+		logger: logger,
+	}
+}
+
+// RegisterRoutes registers the Vite dev server proxy routes
+func (s *ViteAssetServer) RegisterRoutes(e *echo.Echo) error {
+	viteURL := fmt.Sprintf("%s://%s:%s",
+		s.config.App.Scheme,
+		s.config.App.ViteDevHost,
+		s.config.App.ViteDevPort,
+	)
+
+	url, err := url.Parse(viteURL)
+	if err != nil {
+		return fmt.Errorf("failed to parse Vite dev server URL: %w", err)
+	}
+
+	proxy := httputil.NewSingleHostReverseProxy(url)
+
+	// Configure proxy to handle WebSocket connections and CORS
+	proxy.ModifyResponse = func(resp *http.Response) error {
+		resp.Header.Set("Access-Control-Allow-Origin", "*")
+		resp.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
+		resp.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
+		return nil
+	}
+
+	// Proxy all Vite-related paths
+	e.Any("/assets/*", echo.WrapHandler(proxy))
+	e.Any("/@vite/*", echo.WrapHandler(proxy))
+	e.Any("/@fs/*", echo.WrapHandler(proxy))
+	e.Any("/@id/*", echo.WrapHandler(proxy))
+	e.Any("/node_modules/*", echo.WrapHandler(proxy))
+	e.Any("/src/*", echo.WrapHandler(proxy))
+	e.Any("/favicon.ico", echo.WrapHandler(proxy))
+
+	s.logger.Info("Vite dev server proxy configured", "url", viteURL)
+	return nil
+}
+
+// StaticAssetServer implements AssetServer for static files in production
+type StaticAssetServer struct {
+	logger logging.Logger
+}
+
+// NewStaticAssetServer creates a new static asset server
+func NewStaticAssetServer(logger logging.Logger) *StaticAssetServer {
+	return &StaticAssetServer{
+		logger: logger,
+	}
+}
+
+// RegisterRoutes registers the static file serving routes
+func (s *StaticAssetServer) RegisterRoutes(e *echo.Echo) error {
+	// Add static file headers middleware
+	e.Use(setupStaticFileHeaders)
+
+	// Serve static files from dist directory
+	e.Static("/assets", "dist/assets")
+	e.Static("/fonts", "dist/fonts")
+	e.Static("/css", "dist/css")
+	e.Static("/js", "dist/js")
+
+	// Serve individual files
+	e.File("/robots.txt", "dist/robots.txt")
+	e.File("/favicon.ico", "dist/favicon.ico")
+
+	s.logger.Info("static asset server configured", "base_dir", "dist")
+	return nil
+}
+
+// setupStaticFileHeaders adds security headers for static files
+func setupStaticFileHeaders(next echo.HandlerFunc) echo.HandlerFunc {
+	return func(c echo.Context) error {
+		// Set security headers for static files
+		c.Response().Header().Set("X-Content-Type-Options", "nosniff")
+		c.Response().Header().Set("Cache-Control", "public, max-age=31536000")
+		return next(c)
+	}
+}
+
 var (
 	// DefaultManager is the default asset manager instance
 	DefaultManager = NewAssetManager()
@@ -59,10 +161,24 @@ var (
 
 // NewAssetManager creates a new asset manager instance
 func NewAssetManager() *AssetManager {
-	return &AssetManager{
+	manager := &AssetManager{
 		manifest:  make(Manifest),
 		pathCache: make(map[string]string),
 	}
+
+	// Try to load manifest immediately
+	if err := manager.loadManifest(); err != nil {
+		if manager.logger != nil {
+			manager.logger.Error("failed to load manifest during initialization", "error", err)
+		}
+	} else if manager.logger != nil {
+		manager.logger.Info("asset manager initialized",
+			"manifest_loaded", manager.manifestLoaded,
+			"manifest_entries", len(manager.manifest),
+		)
+	}
+
+	return manager
 }
 
 // SetConfig sets the application configuration
@@ -131,6 +247,146 @@ func (m *AssetManager) loadManifest() error {
 	return nil
 }
 
+// getDevelopmentAssetPath returns the asset path for development mode
+func (m *AssetManager) getDevelopmentAssetPath(path string) string {
+	hostPort := net.JoinHostPort(m.config.App.ViteDevHost, m.config.App.ViteDevPort)
+
+	// Debug logging
+	if m.logger != nil {
+		m.logger.Debug("getting development asset path",
+			"path", path,
+			"host_port", hostPort,
+		)
+	}
+
+	// For source files, use the Vite dev server
+	if strings.HasPrefix(path, "src/") {
+		return fmt.Sprintf("%s://%s/%s", m.config.App.Scheme, hostPort, path)
+	}
+
+	// Handle different asset types
+	switch {
+	case strings.HasSuffix(path, ".css"):
+		// For CSS files, use the Vite dev server's CSS endpoint
+		return fmt.Sprintf("%s://%s/src/css/%s", m.config.App.Scheme, hostPort, path)
+	case strings.HasSuffix(path, ".ts"), strings.HasSuffix(path, ".js"):
+		// For TypeScript/JavaScript files, use the Vite dev server's JS endpoint
+		// Remove any .js extension since we're using TypeScript
+		baseName := strings.TrimSuffix(path, ".js")
+		baseName = strings.TrimSuffix(baseName, ".ts")
+		return fmt.Sprintf("%s://%s/src/js/%s.ts", m.config.App.Scheme, hostPort, baseName)
+	default:
+		// For other assets, try to serve them directly
+		return fmt.Sprintf("%s://%s/%s", m.config.App.Scheme, hostPort, path)
+	}
+}
+
+// getProductionAssetPath returns the asset path for production mode
+func (m *AssetManager) getProductionAssetPath(path string) (string, error) {
+	// Debug logging
+	if m.logger != nil {
+		m.logger.Debug("getting production asset path",
+			"path", path,
+			"manifest_loaded", m.manifestLoaded,
+			"manifest_entries", len(m.manifest),
+		)
+	}
+
+	// Try to load manifest if not loaded
+	if !m.manifestLoaded {
+		if err := m.loadManifest(); err != nil {
+			if m.logger != nil {
+				m.logger.Error("failed to load manifest", "error", err)
+			}
+		}
+	}
+
+	// First, try to find the entry by its source path
+	// This handles cases where we're looking up by the original source file
+	if entry, ok := m.manifest[path]; ok {
+		if m.logger != nil {
+			m.logger.Debug("found entry in manifest by source path",
+				"path", path,
+				"file", entry.File,
+			)
+		}
+		return entry.File, nil
+	}
+
+	// For CSS files, check if they're referenced in any entry's CSS array
+	if strings.HasSuffix(path, ".css") {
+		for _, entry := range m.manifest {
+			for _, cssFile := range entry.CSS {
+				if strings.HasSuffix(cssFile, path) {
+					if m.logger != nil {
+						m.logger.Debug("found CSS file in manifest entry",
+							"path", path,
+							"file", cssFile,
+						)
+					}
+					return cssFile, nil
+				}
+			}
+		}
+	}
+
+	// Try to find the entry by its name (without extension)
+	baseName := strings.TrimSuffix(path, filepath.Ext(path))
+	for _, entry := range m.manifest {
+		if entry.Name == baseName {
+			if m.logger != nil {
+				m.logger.Debug("found entry in manifest by name",
+					"path", path,
+					"file", entry.File,
+				)
+			}
+			return entry.File, nil
+		}
+	}
+
+	// If we can't find the asset in the manifest, try to construct a path
+	// based on the file extension
+	ext := filepath.Ext(path)
+	if ext == "" {
+		ext = ".js" // Default to .js if no extension
+	}
+
+	// For CSS files, check if there's a corresponding entry in the manifest
+	if strings.HasSuffix(path, ".css") {
+		for _, entry := range m.manifest {
+			if strings.HasSuffix(entry.Src, path) {
+				if m.logger != nil {
+					m.logger.Debug("found CSS file in manifest by source path",
+						"path", path,
+						"file", entry.File,
+					)
+				}
+				return entry.File, nil
+			}
+		}
+	}
+
+	// If we still can't find it, construct a path based on the file type
+	var assetPath string
+	switch {
+	case strings.HasSuffix(path, ".css"):
+		assetPath = fmt.Sprintf("/assets/css/%s.css", baseName)
+	case strings.HasSuffix(path, ".js"):
+		assetPath = fmt.Sprintf("/assets/js/%s.js", baseName)
+	default:
+		assetPath = fmt.Sprintf("/assets/%s%s", baseName, ext)
+	}
+
+	if m.logger != nil {
+		m.logger.Debug("constructed asset path",
+			"path", path,
+			"resolved", assetPath,
+		)
+	}
+
+	return assetPath, nil
+}
+
 // GetAssetPath returns the correct path for an asset based on the environment
 func (m *AssetManager) GetAssetPath(path string) (string, error) {
 	if path == "" {
@@ -152,176 +408,30 @@ func (m *AssetManager) GetAssetPath(path string) (string, error) {
 	}
 	m.mu.RUnlock()
 
+	var assetPath string
+	var err error
+
 	// In development mode, use Vite's dev server
 	if m.config != nil && m.config.App.IsDevelopment() {
-		hostPort := net.JoinHostPort(m.config.App.ViteDevHost, m.config.App.ViteDevPort)
-		var assetPath string
-
-		// For source files, use the Vite dev server
-		if strings.HasPrefix(path, "src/") {
-			assetPath = fmt.Sprintf("%s://%s/%s", m.config.App.Scheme, hostPort, path)
-		} else {
-			// In development, we need to use the entry points directly
-			// Remove any file extension for the entry point
-			entryPoint := strings.TrimSuffix(path, filepath.Ext(path))
-
-			// Handle CSS files differently
-			if strings.HasSuffix(path, ".css") {
-				assetPath = fmt.Sprintf("%s://%s/src/css/%s.css", m.config.App.Scheme, hostPort, entryPoint)
-			} else {
-				assetPath = fmt.Sprintf("%s://%s/src/js/%s.ts", m.config.App.Scheme, hostPort, entryPoint)
-			}
-		}
-
-		if m.logger != nil {
-			m.logger.Debug("development mode asset path", "path", path, "resolved", assetPath)
-		}
-
-		// Cache the result
-		m.mu.Lock()
-		m.pathCache[path] = assetPath
-		m.mu.Unlock()
-
-		return assetPath, nil
-	}
-
-	// In production mode, try to use the manifest
-	if err := m.loadManifest(); err != nil {
-		if m.logger != nil {
-			m.logger.Error("failed to load manifest", "error", err)
-		}
+		assetPath = m.getDevelopmentAssetPath(path)
 	} else {
-		if m.logger != nil {
-			m.logger.Debug("manifest loaded successfully")
-		}
-
-		// Try to find the entry in the manifest
-		if entry, ok := m.manifest[path]; ok {
+		// In production mode, try to use the manifest
+		if err := m.loadManifest(); err != nil {
 			if m.logger != nil {
-				m.logger.Debug("found direct match in manifest", "path", path)
-			}
-
-			// For entry points, use the file directly
-			if entry.IsEntry {
-				assetPath := "/" + entry.File
-				if m.logger != nil {
-					m.logger.Debug("entry point found", "path", path, "resolved", assetPath)
-				}
-
-				// Cache the result
-				m.mu.Lock()
-				m.pathCache[path] = assetPath
-				m.mu.Unlock()
-
-				return assetPath, nil
-			}
-
-			// For CSS files referenced by entries
-			if len(entry.CSS) > 0 {
-				assetPath := "/" + entry.CSS[0]
-				if m.logger != nil {
-					m.logger.Debug("CSS file found", "path", path, "resolved", assetPath)
-				}
-
-				// Cache the result
-				m.mu.Lock()
-				m.pathCache[path] = assetPath
-				m.mu.Unlock()
-
-				return assetPath, nil
-			}
-
-			// For other files
-			assetPath := "/" + entry.File
-			if m.logger != nil {
-				m.logger.Debug("other file found", "path", path, "resolved", assetPath)
-			}
-
-			// Cache the result
-			m.mu.Lock()
-			m.pathCache[path] = assetPath
-			m.mu.Unlock()
-
-			return assetPath, nil
-		}
-
-		// Try to find the entry by its base name (without extension)
-		baseName := strings.TrimSuffix(path, filepath.Ext(path))
-		if m.logger != nil {
-			m.logger.Debug("trying to match by base name", "base_name", baseName)
-		}
-
-		for key, entry := range m.manifest {
-			if strings.TrimSuffix(key, filepath.Ext(key)) == baseName {
-				if m.logger != nil {
-					m.logger.Debug("found match by base name", "key", key, "file", entry.File)
-				}
-
-				if entry.IsEntry {
-					assetPath := "/" + entry.File
-					m.mu.Lock()
-					m.pathCache[path] = assetPath
-					m.mu.Unlock()
-					return assetPath, nil
-				}
-				if len(entry.CSS) > 0 {
-					assetPath := "/" + entry.CSS[0]
-					m.mu.Lock()
-					m.pathCache[path] = assetPath
-					m.mu.Unlock()
-					return assetPath, nil
-				}
-				assetPath := "/" + entry.File
-				m.mu.Lock()
-				m.pathCache[path] = assetPath
-				m.mu.Unlock()
-				return assetPath, nil
+				m.logger.Error("failed to load manifest", "error", err)
 			}
 		}
-
-		// For CSS files, look in the CSS arrays of all entries
-		if strings.HasSuffix(path, ".css") {
-			if m.logger != nil {
-				m.logger.Debug("searching for CSS file", "path", path)
-			}
-			for _, entry := range m.manifest {
-				if entry.CSS != nil {
-					for _, cssFile := range entry.CSS {
-						if strings.HasSuffix(cssFile, filepath.Base(path)) {
-							assetPath := "/" + cssFile
-							if m.logger != nil {
-								m.logger.Debug("found CSS file in manifest", "path", path, "resolved", assetPath)
-							}
-							m.mu.Lock()
-							m.pathCache[path] = assetPath
-							m.mu.Unlock()
-							return assetPath, nil
-						}
-					}
-				}
-			}
+		assetPath, err = m.getProductionAssetPath(path)
+		if err != nil {
+			return "", err
 		}
 	}
 
-	// Fallback to direct asset path if manifest loading failed or entry not found
-	ext := filepath.Ext(path)
-	var assetPath string
-	switch ext {
-	case ".js":
-		assetPath = "/assets/js/" + filepath.Base(path)
-	case ".css":
-		assetPath = "/assets/css/" + filepath.Base(path)
-	default:
-		assetPath = "/assets/" + path
-	}
-
-	if m.logger != nil {
-		m.logger.Debug("using fallback path", "path", path, "resolved", assetPath)
-	}
-
+	// Cache the result
 	m.mu.Lock()
 	m.pathCache[path] = assetPath
 	m.mu.Unlock()
+
 	return assetPath, nil
 }
 

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -100,6 +98,7 @@ func New(
 	cfg *config.Config,
 	e *echo.Echo,
 	middlewareManager *middleware.Manager,
+	assetServer web.AssetServer,
 ) *Server {
 	srv := &Server{
 		echo:   e,
@@ -130,45 +129,9 @@ func New(
 		})
 	})
 
-	// Vite dev server proxy for development mode
-	if cfg.App.IsDevelopment() {
-		viteURL, err := url.Parse(fmt.Sprintf("%s://%s",
-			cfg.App.Scheme,
-			net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
-		))
-		if err != nil {
-			logger.Error("failed to parse Vite dev server URL",
-				"error", err,
-				"host", cfg.App.ViteDevHost,
-				"port", cfg.App.ViteDevPort)
-		} else {
-			viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
-
-			// Configure proxy to handle WebSocket connections and CORS
-			viteProxy.ModifyResponse = func(resp *http.Response) error {
-				resp.Header.Set("Access-Control-Allow-Origin", "*")
-				resp.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				resp.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-				return nil
-			}
-
-			// Proxy all Vite-related paths
-			e.Any("/assets/*", echo.WrapHandler(viteProxy))
-			e.Any("/@vite/*", echo.WrapHandler(viteProxy))
-			e.Any("/@fs/*", echo.WrapHandler(viteProxy))
-			e.Any("/@id/*", echo.WrapHandler(viteProxy))
-			e.Any("/node_modules/*", echo.WrapHandler(viteProxy))
-			e.Any("/src/*", echo.WrapHandler(viteProxy))
-			e.Any("/favicon.ico", echo.WrapHandler(viteProxy))
-
-			logger.Info("Vite dev server proxy configured", "url", viteURL.String())
-		}
-	} else {
-		// Serve static files from dist directory with proper security headers
-		e.Static("/assets", "dist/assets")
-		e.Static("/fonts", "dist/fonts")
-		e.Static("/static", "public")
-		e.File("/favicon.ico", "dist/favicon.ico")
+	// Register asset routes
+	if err := assetServer.RegisterRoutes(e); err != nil {
+		logger.Error("failed to register asset routes", "error", err)
 	}
 
 	// Register lifecycle hooks
