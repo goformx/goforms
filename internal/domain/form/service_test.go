@@ -1,10 +1,11 @@
-package form
+package form_test
 
 import (
 	"context"
 	"testing"
 	"time"
 
+	domainform "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	mockform "github.com/goformx/goforms/test/mocks/form"
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
@@ -44,7 +45,7 @@ func TestService_CreateForm_minimal(t *testing.T) {
 	})
 	publisher.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
-	svc := NewService(repo, publisher, logger)
+	svc := domainform.NewService(repo, publisher, logger)
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
