@@ -1,61 +1,44 @@
 ---
 description: 
-globs: internal/infrastructure/persistence/**/*.go
+globs: internal/**/database/*.go
 alwaysApply: false
 ---
 # Database Guidelines
 
-This project uses PostgreSQL as the primary database with GORM for database operations.
+This project uses PostgreSQL with GORM for database operations. See [internal/infrastructure/database/gorm.go](mdc:goforms/internal/infrastructure/database/gorm.go) for implementation details.
 
-## Key Components
-1. **Database Connection** [internal/infrastructure/database/database.go](mdc:goforms/internal/infrastructure/database/database.go)
-   - Uses GORM for enhanced database operations
-   - Implements proper connection pooling
-   - Handles context propagation
-   - Configures GORM logger
+## Core Components
 
-2. **Store Implementation** [internal/infrastructure/persistence/store/user/store.go](mdc:goforms/internal/infrastructure/persistence/store/user/store.go)
-   - Implements repository pattern
+1. **Database Connection**
+   - Uses GORM with PostgreSQL
+   - Implements connection pooling
+   - Configures prepared statements
+   - Includes query logging
+
+2. **Store Implementation**
+   - Uses repository pattern
+   - Implements context-aware operations
+   - Handles domain errors
    - Uses GORM's query builder
-   - Handles transactions properly
-   - Includes proper error handling
 
 ## Best Practices
+
 1. **Context Usage**
-   - Always use context-aware methods:
    ```go
+   // Always use context-aware methods
    db.WithContext(ctx).First(&user)
    db.WithContext(ctx).Create(&user)
    db.WithContext(ctx).Updates(&user)
    ```
 
-2. **Transaction Handling**
-   ```go
-   err := db.Transaction(func(tx *gorm.DB) error {
-       if err := tx.Create(&user).Error; err != nil {
-           return err
-       }
-       if err := tx.Create(&form).Error; err != nil {
-           return err
-       }
-       return nil
-   })
-   ```
-
-3. **Error Handling**
-   - Use domain-specific errors
-   - Wrap database errors with context
-   - Handle not found case explicitly
+2. **Error Handling**
    ```go
    if errors.Is(err, gorm.ErrRecordNotFound) {
        return nil, domain.ErrNotFound
    }
    ```
 
-4. **Model Organization**
-   - Use GORM tags for field mapping
-   - Implement hooks for lifecycle events
-   - Use validation tags
+3. **Model Organization**
    ```go
    type User struct {
        gorm.Model
@@ -64,19 +47,8 @@ This project uses PostgreSQL as the primary database with GORM for database oper
    }
    ```
 
-## Migration Management
-- Use GORM's auto-migration feature
-- Keep manual migrations for complex changes
-- Store migrations in [migrations](mdc:goforms/migrations) directory
-- Version migrations sequentially
-- Include both up and down migrations
-- Example migration naming:
-  ```
-  000001_create_users_table.up.sql
-  000001_create_users_table.down.sql
-  ```
-
 ## GORM Features
+
 1. **Hooks**
    - BeforeCreate
    - AfterCreate
@@ -85,18 +57,7 @@ This project uses PostgreSQL as the primary database with GORM for database oper
    - BeforeDelete
    - AfterDelete
 
-2. **Validation**
-   - Use struct tags
-   - Custom validators
-   - Pre-save hooks
-
-3. **Relationships**
-   - HasOne
-   - HasMany
-   - BelongsTo
-   - ManyToMany
-
-4. **Query Builder**
+2. **Query Builder**
    - Where conditions
    - Joins
    - Preloading

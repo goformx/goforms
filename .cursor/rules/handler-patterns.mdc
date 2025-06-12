@@ -5,198 +5,162 @@ alwaysApply: false
 ---
 # Handler Patterns
 
-## Structure
-- Handlers should be organized in the `internal/application/handlers/web` package
-- Each handler should be a struct that embeds or uses `BaseHandler`
-- Handlers should receive dependencies through constructor injection
-- Dependencies should include:
-  - BaseHandler
-  - Domain services (UserService, FormService)
-  - Session management
-  - View renderer
-  - Config
-  - Middleware manager
-  - Logger
+## Overview
+Handlers in GoFormX follow a consistent pattern using the `Handler` interface and `HandlerDeps` struct for dependency management. Each handler is responsible for a specific domain area and follows standardized patterns for route registration and request handling.
 
-## Handler Types
+## Core Components
 
-### 1. Base Handler
-```go
-type BaseHandler struct {
-    formService form.Service
-    logger      logging.Logger
-}
-```
+1. Handler Interface
+   ```go
+   type Handler interface {
+       Register(e *echo.Echo)
+       Start(ctx context.Context) error
+       Stop(ctx context.Context) error
+   }
+   ```
 
-### 2. Feature Handlers
-```go
-type WebHandler struct {
-    baseHandler       *BaseHandler
-    userService       domain.UserService
-    sessionManager    *middleware.SessionManager
-    renderer          *view.Renderer
-    middlewareManager *middleware.Manager
-    config            *config.Config
-    logger            logging.Logger
-}
-```
+2. Handler Dependencies
+   ```go
+   type HandlerDeps struct {
+       Logger            logging.Logger
+       Config            *config.Config
+       SessionManager    *session.Manager
+       MiddlewareManager *middleware.Manager
+       Renderer          view.Renderer
+       UserService       user.Service
+       FormService       form.Service
+   }
+   ```
 
-## Registration
-- Handlers should implement a `Register` method that takes an `*echo.Echo` parameter
-- Routes should be registered in the `Register` method
-- Group related routes together (e.g., auth routes, validation routes)
-- Use consistent route patterns:
-  - GET for viewing pages
-  - POST for form submissions
-  - PUT for updates
-  - DELETE for deletions
+## Implementation Patterns
 
-## Response Patterns
-- Use appropriate HTTP status codes:
-  - 200 OK for successful operations
-  - 400 Bad Request for validation errors
-  - 401 Unauthorized for authentication failures
-  - 500 Internal Server Error for unexpected errors
-- For HTML responses, use the renderer with appropriate templates
-- For API responses, use JSON with consistent structure
-- Include CSRF tokens in forms and validate them
+1. Handler Structure
+   ```go
+   type WebHandler struct {
+       HandlerDeps
+   }
 
-## Error Handling
-- Handle domain-specific errors using type assertions
-- Log unexpected errors using the handler's logger
-- Return user-friendly error messages
-- Maintain consistent error response structure
-- Use proper error wrapping and context
+   func NewWebHandler(deps HandlerDeps) (*WebHandler, error) {
+       if err := deps.Validate(); err != nil {
+           return nil, err
+       }
+       return &WebHandler{HandlerDeps: deps}, nil
+   }
+   ```
 
-## Session Management
-- Use the SessionManager for session operations
-- Set secure cookie attributes:
-  - HttpOnly: true
-  - Secure: true
-  - SameSite: Strict
-- Set appropriate cookie expiration times
-- Clear session data on logout
-- Use constants for session configuration
+2. Route Registration
+   ```go
+   func (h *WebHandler) Register(e *echo.Echo) {
+       e.GET("/", h.handleHome)
+       e.GET("/demo", h.handleDemo)
+   }
+   ```
 
-## Validation
-- Implement separate validation endpoints for forms
-- Return validation schemas as JSON
-- Include field-specific validation rules
-- Provide clear error messages for each validation rule
-- Use domain models for request validation
-
-## Security Considerations
-- Always validate user input
-- Use CSRF protection
-- Implement proper session management
-- Follow secure cookie practices
-- Use appropriate HTTP methods for operations
-- Implement rate limiting
-- Use secure headers
+3. Request Handling
+   ```go
+   func (h *WebHandler) handleHome(c echo.Context) error {
+       data := shared.BuildPageData(h.Config, c, "Home")
+       if h.isAuthenticated(c) {
+           return c.Redirect(StatusFound, "/dashboard")
+       }
+       return h.Renderer.Render(c, pages.Home(data))
+   }
+   ```
 
 ## Best Practices
 
-1. **Dependency Management**
+1. Dependency Management
+   - Use `HandlerDeps` for common dependencies
+   - Validate dependencies in constructor
+   - Use dependency injection
+   - Example:
    ```go
-   func NewHandler(
-       baseHandler *BaseHandler,
-       userService domain.UserService,
-       sessionManager *middleware.SessionManager,
-       renderer *view.Renderer,
-       middlewareManager *middleware.Manager,
-       cfg *config.Config,
-       logger logging.Logger,
-   ) *Handler {
-       return &Handler{
-           baseHandler:       baseHandler,
-           userService:       userService,
-           sessionManager:    sessionManager,
-           renderer:          renderer,
-           middlewareManager: middlewareManager,
-           config:            cfg,
-           logger:            logger,
+   func NewHandler(deps HandlerDeps) (*Handler, error) {
+       if err := deps.Validate(); err != nil {
+           return nil, err
        }
+       return &Handler{HandlerDeps: deps}, nil
    }
    ```
 
-2. **Route Registration**
+2. Error Handling
+   - Use domain errors
+   - Log errors with context
+   - Return appropriate responses
+   - Example:
    ```go
-   func (h *Handler) Register(e *echo.Echo) {
-       e.GET("/path", h.handleGet)
-       e.POST("/path", h.handlePost)
+   if err != nil {
+       h.Logger.Error("failed to get form", "error", err)
+       return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
    }
    ```
 
-3. **Request Handling**
+3. Authentication
+   - Check authentication status
+   - Redirect to login when needed
+   - Use session management
+   - Example:
    ```go
-   func (h *Handler) handleRequest(c echo.Context) error {
-       // Get authenticated user
-       userIDRaw, ok := c.Get("user_id").(uint)
-       if !ok {
-           return c.Redirect(http.StatusSeeOther, "/login")
-       }
-       userID := userIDRaw
-
-       // Process request
-       result, err := h.service.Process(userID)
-       if err != nil {
-           h.logger.Error("failed to process request", 
-               logging.ErrorField("error", err))
-           return c.JSON(http.StatusInternalServerError, map[string]string{
-               "error": "Failed to process request",
-           })
-       }
-
-       // Return response
-       return c.JSON(http.StatusOK, result)
+   if !h.isAuthenticated(c) {
+       return c.Redirect(StatusFound, "/login")
    }
    ```
 
-4. **Page Data Construction**
+4. Response Handling
+   - Use appropriate status codes
+   - Return consistent responses
+   - Handle errors properly
+   - Example:
    ```go
-   func (h *Handler) buildPageData(title string) shared.PageData {
-       return shared.PageData{
-           Title:         title,
-           IsDevelopment: true, // TODO: Get from config
-           AssetPath:     func(path string) string { return path },
-       }
+   return h.Renderer.Render(c, pages.Home(data))
+   ```
+
+## Common Patterns
+
+1. Page Data Construction
+   ```go
+   data := shared.BuildPageData(h.Config, c, "Page Title")
+   ```
+
+2. Authentication Check
+   ```go
+   func (h *Handler) isAuthenticated(c echo.Context) bool {
+       return mwcontext.IsAuthenticated(c)
+   }
+   ```
+
+3. User Context
+   ```go
+   userID, ok := mwcontext.GetUserID(c)
+   if !ok {
+       return c.Redirect(StatusFound, "/login")
    }
    ```
 
 ## Testing Guidelines
 
-1. **Unit Testing**
-   - Test handlers in isolation
+1. Unit Tests
    - Mock dependencies
    - Test error cases
-   - Test edge cases
-
-2. **Integration Testing**
-   - Test handler integration with services
-   - Test middleware behavior
-   - Test route registration
-   - Test error handling
-
-3. **Test Structure**
+   - Verify behavior
+   - Example:
    ```go
-   func TestHandler_HandleRequest(t *testing.T) {
-       // Setup
+   func TestHandler_HandleHome(t *testing.T) {
+       mockDeps := &MockHandlerDeps{}
        handler := NewHandler(mockDeps)
+       // Test implementation
+   }
+   ```
 
-       // Test cases
-       tests := []struct {
-           name    string
-           setup   func()
-           wantErr bool
-       }{
-           // Test cases
-       }
-
-       // Run tests
-       for _, tt := range tests {
-           t.Run(tt.name, func(t *testing.T) {
-               // Run test
-           })
-       }
+2. Integration Tests
+   - Test full flow
+   - Use test database
+   - Clean up resources
+   - Example:
+   ```go
+   func TestHandler_Integration(t *testing.T) {
+       deps := setupTestDeps(t)
+       handler := NewHandler(deps)
+       // Test implementation
    }
    ```
