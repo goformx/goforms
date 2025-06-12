@@ -97,11 +97,20 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	// Create console encoder for better readability in development mode
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)
 
-	// Create core with console encoder
+	// Determine log level from environment
+	var level zapcore.Level
+	switch strings.ToLower(f.environment) {
+	case "development":
+		level = zapcore.DebugLevel
+	default:
+		level = zapcore.InfoLevel
+	}
+
+	// Create core with console encoder and configured level
 	core := zapcore.NewCore(
 		encoder,
 		zapcore.AddSync(os.Stdout),
-		zapcore.DebugLevel,
+		level,
 	)
 
 	// Create logger with options
