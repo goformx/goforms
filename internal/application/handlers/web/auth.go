@@ -132,27 +132,41 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	return h.deps.Renderer.Render(c, pages.Login(data))
 }
 
-// LoginPost handles POST /login - processes the login form
+/**
+ * LoginPost handles POST /login - processes the login form
+ *
+ * This handler:
+ * 1. Validates user credentials
+ * 2. Creates a new session on success
+ * 3. Sets session cookie
+ * 4. Returns appropriate response based on request type:
+ *    - JSON response for API requests
+ *    - HTML response with error for regular requests
+ *    - Redirect to dashboard on success
+ */
 func (h *AuthHandler) LoginPost(c echo.Context) error {
 	data := shared.BuildPageData(h.deps.Config, c, "Login")
 
+	// Get form values
 	email := c.FormValue("email")
 	password := c.FormValue("password")
 
-	// Validate credentials using the user service
+	// Authenticate user credentials
 	authenticatedUser, err := h.deps.UserService.Authenticate(c.Request().Context(), email, password)
 	if err != nil {
+		// Log authentication failure
 		h.deps.Logger.Debug("Login failed",
 			"email", h.deps.Logger.SanitizeField("email", email),
 			"error_type", "authentication_error")
 
-		// Check if this is an API request
+		// Handle API requests differently
 		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "Invalid email or password",
 			})
 		}
 
+		// Return error message for regular requests
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "Invalid email or password",
@@ -160,24 +174,26 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		return h.deps.Renderer.Render(c, pages.Login(data))
 	}
 
-	// Create session with rolling expiration
+	// Create new session for authenticated user
 	session, err := h.deps.SessionManager.CreateSession(
 		authenticatedUser.ID,
 		authenticatedUser.Email,
 		c.Request().UserAgent(),
 	)
 	if err != nil {
+		// Log session creation failure
 		h.deps.Logger.Error("Failed to create session",
 			"error", err,
 			"user_id", h.deps.Logger.SanitizeField("user_id", authenticatedUser.ID))
 
-		// Check if this is an API request
+		// Handle API requests differently
 		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
 			return c.JSON(http.StatusInternalServerError, map[string]string{
 				"message": "An error occurred. Please try again.",
 			})
 		}
 
+		// Return error message for regular requests
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "An error occurred. Please try again.",
@@ -185,17 +201,17 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		return h.deps.Renderer.Render(c, pages.Login(data))
 	}
 
-	// Set session cookie using session manager
+	// Set session cookie in response
 	h.deps.SessionManager.SetSessionCookie(c, session)
 
-	// Check if this is an API request
+	// Handle API requests differently
 	if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
 		return c.JSON(http.StatusOK, map[string]string{
 			"redirect": "/dashboard",
 		})
 	}
 
-	// Redirect to dashboard
+	// Redirect to dashboard for regular requests
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
