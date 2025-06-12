@@ -5,37 +5,8 @@ alwaysApply: true
 ---
 # Architecture Guidelines
 
-This project follows a clean architecture pattern with clear separation of concerns and well-defined boundaries.
-
-## Core Architecture
-
-1. **Domain Layer**
-   - Core business logic
-   - Domain models
-   - Domain events
-   - Domain services
-   - Repository interfaces
-
-2. **Application Layer**
-   - Use cases
-   - Service implementations
-   - Command/Query handlers
-   - Event handlers
-   - Validation
-
-3. **Infrastructure Layer**
-   - Repository implementations
-   - External services
-   - Database access
-   - Message queues
-   - Caching
-
-4. **Interface Layer**
-   - HTTP handlers
-   - API endpoints
-   - Web interfaces
-   - Authentication
-   - Authorization
+## Overview
+The application follows a layered architecture with clear separation of concerns. The codebase is organized into four main layers: domain, application, infrastructure, and presentation.
 
 ## Directory Structure
 
@@ -46,112 +17,124 @@ internal/
 │   ├── form/         # Form domain
 │   └── user/         # User domain
 ├── application/      # Application layer
-│   ├── services/     # Service implementations
-│   └── handlers/     # Command/Query handlers
+│   ├── handlers/     # HTTP handlers
+│   ├── middleware/   # HTTP middleware
+│   └── response/     # Response handling
 ├── infrastructure/   # Infrastructure layer
-│   ├── persistence/  # Database access
-│   ├── messaging/    # Message queues
-│   └── cache/        # Caching
-└── interfaces/       # Interface layer
-    ├── http/         # HTTP handlers
-    ├── api/          # API endpoints
-    └── web/          # Web interfaces
+│   ├── config/       # Configuration
+│   ├── database/     # Database access
+│   └── logging/      # Logging
+└── presentation/     # Presentation layer
+    ├── templates/    # HTML templates
+    └── view/         # View rendering
 ```
 
-## Design Principles
+## Core Components
 
-1. **Clean Architecture**
-   - Dependencies point inward
-   - Domain layer is independent
-   - Infrastructure adapts to domain
-   - Interfaces adapt to application
-
-2. **Domain-Driven Design**
-   - Rich domain models
-   - Ubiquitous language
-   - Bounded contexts
-   - Aggregate roots
-
-3. **SOLID Principles**
-   - Single Responsibility
-   - Open/Closed
-   - Liskov Substitution
-   - Interface Segregation
-   - Dependency Inversion
-
-4. **Event-Driven Design**
-   - Domain events
-   - Event handlers
-   - Event sourcing
-   - CQRS
-
-## Implementation Guidelines
-
-1. **Domain Models**
-   ```go
-   type Form struct {
-       ID          string    `json:"id"`
-       UserID      uint      `json:"user_id"`
-       Title       string    `json:"title"`
-       Description string    `json:"description"`
-       Schema      JSON      `json:"schema"`
-       Active      bool      `json:"active"`
-       CreatedAt   time.Time `json:"created_at"`
-       UpdatedAt   time.Time `json:"updated_at"`
-   }
-   ```
-
-2. **Repository Interfaces**
-   ```go
-   type Repository interface {
-       Create(ctx context.Context, form *model.Form) error
-       GetByID(ctx context.Context, id string) (*model.Form, error)
-       GetByUserID(ctx context.Context, userID uint) ([]*model.Form, error)
-       Update(ctx context.Context, form *model.Form) error
-       Delete(ctx context.Context, id string) error
-   }
-   ```
-
-3. **Domain Services**
+1. Domain Layer
+   - Models and business logic
+   - Service interfaces
+   - Repository interfaces
+   - Example:
    ```go
    type Service interface {
-       CreateForm(ctx context.Context, userID uint, title, description string, schema model.JSON) (*model.Form, error)
+       CreateForm(ctx context.Context, userID string, form *model.Form) error
        GetForm(ctx context.Context, id string) (*model.Form, error)
-       GetUserForms(ctx context.Context, userID uint) ([]*model.Form, error)
-       UpdateForm(ctx context.Context, form *model.Form) error
-       DeleteForm(ctx context.Context, id string) error
+       GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
+       UpdateForm(ctx context.Context, userID string, form *model.Form) error
+       DeleteForm(ctx context.Context, userID, id string) error
    }
    ```
 
-4. **Event Handlers**
+2. Application Layer
+   - HTTP handlers
+   - Middleware
+   - Response handling
+   - Example:
    ```go
-   type EventHandler interface {
-       Handle(ctx context.Context, event Event) error
+   type Handler interface {
+       Register(e *echo.Echo)
+       Start(ctx context.Context) error
+       Stop(ctx context.Context) error
+   }
+   ```
+
+3. Infrastructure Layer
+   - Configuration
+   - Database access
+   - Logging
+   - Example:
+   ```go
+   type Config struct {
+       App      AppConfig
+       Database DatabaseConfig
+       Security SecurityConfig
+       // ... other configs
+   }
+   ```
+
+4. Presentation Layer
+   - HTML templates
+   - View rendering
+   - Example:
+   ```go
+   type Renderer interface {
+       Render(c echo.Context, template Template) error
    }
    ```
 
 ## Best Practices
 
-1. **Dependency Injection**
-   - Use constructor injection
+1. Dependency Management
+   - Use dependency injection
    - Define clear interfaces
-   - Use dependency containers
-   - Avoid service locators
+   - Validate dependencies
+   - Example:
+   ```go
+   type HandlerDeps struct {
+       Logger            logging.Logger
+       Config            *config.Config
+       SessionManager    *session.Manager
+       MiddlewareManager *middleware.Manager
+       Renderer          view.Renderer
+       UserService       user.Service
+       FormService       form.Service
+   }
+   ```
 
-2. **Error Handling**
-   - Use domain-specific errors
-   - Handle errors at boundaries
-   - Include error context
-   - Maintain error chain
+2. Error Handling
+   - Use domain errors
+   - Log errors with context
+   - Return appropriate responses
+   - Example:
+   ```go
+   if err != nil {
+       h.Logger.Error("failed to get form", "error", err)
+       return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
+   }
+   ```
 
-3. **Validation**
-   - Validate at boundaries
-   - Use value objects
-   - Implement business rules
-   - Return clear errors
+3. Configuration
+   - Use environment variables
+   - Validate configuration
+   - Provide defaults
+   - Example:
+   ```go
+   type AppConfig struct {
+       Name    string `env:"GOFORMS_APP_NAME" envDefault:"GoForms"`
+       Version string `env:"GOFORMS_APP_VERSION" envDefault:"dev"`
+       Env     string `env:"GOFORMS_APP_ENV" envDefault:"development"`
+   }
+   ```
 
-4. **Testing**
-   - Unit test domain logic
-   - Integration test services
-   - End-to-end test flows
-   - Mock external dependencies
+4. Logging
+   - Use structured logging
+   - Include context
+   - Use appropriate levels
+   - Example:
+   ```go
+   h.Logger.Error("failed to get form",
+       "form_id", formID,
+       "error", err,
+   )
+   ```

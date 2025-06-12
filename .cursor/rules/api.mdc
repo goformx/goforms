@@ -5,41 +5,115 @@ alwaysApply: false
 ---
 # API Development Guidelines
 
-This project uses Echo framework for API development. All endpoints should follow these guidelines.
+## Overview
+The application uses Echo framework for API endpoints, which are integrated into the web handlers. API routes are grouped under `/api/v1` and follow RESTful patterns.
 
 ## API Structure
-1. **Route Organization**
-   - Group routes by feature
-   - Use /v1 prefix for all endpoints
-   - Example:
+
+1. Route Organization
    ```go
-   v1 := e.Group("/v1")
-   users := v1.Group("/users")
-   users.POST("", h.CreateUser)
-   users.GET("/:id", h.GetUser)
+   // Group API routes
+   api := e.Group("/api/v1")
+   formsAPI := api.Group("/forms")
+   formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
+   formsAPI.GET("/:id/schema", h.handleFormSchema)
+   formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
    ```
 
-2. **Handler Structure**
+2. Handler Structure
    ```go
-   func (h *Handler) CreateUser(c echo.Context) error {
-       ctx := c.Request().Context()
-       var req CreateUserRequest
-       
-       if err := c.Bind(&req); err != nil {
-           return echo.NewHTTPError(http.StatusBadRequest, err.Error())
+   func (h *FormHandler) handleFormSchema(c echo.Context) error {
+       formID := c.Param("id")
+       if formID == "" {
+           return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
        }
-       
-       if err := h.validator.ValidateStruct(req); err != nil {
-           return echo.NewHTTPError(http.StatusBadRequest, err.Error())
-       }
-       
-       user, err := h.service.CreateUser(ctx, req)
+
+       form, err := h.FormService.GetForm(c.Request().Context(), formID)
        if err != nil {
-           return h.handleError(err)
+           h.Logger.Error("failed to get form", "error", err)
+           return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
        }
-       
-       return c.JSON(http.StatusCreated, user)
+
+       return response.Success(c, form.Schema)
    }
+   ```
+
+## Response Handling
+
+1. Standard Response Structure
+   ```go
+   type APIResponse struct {
+       Success bool   `json:"success"`
+       Message string `json:"message,omitempty"`
+       Data    any    `json:"data,omitempty"`
+   }
+   ```
+
+2. Response Helpers
+   ```go
+   // Success response
+   func Success(c echo.Context, data any) error {
+       return c.JSON(http.StatusOK, APIResponse{
+           Success: true,
+           Data:    data,
+       })
+   }
+
+   // Error response
+   func ErrorResponse(c echo.Context, statusCode int, message string) error {
+       return c.JSON(statusCode, APIResponse{
+           Success: false,
+           Message: message,
+       })
+   }
+   ```
+
+## Best Practices
+
+1. Error Handling
+   - Use appropriate status codes
+   - Log errors with context
+   - Return consistent error format
+   - Example:
+   ```go
+   if err != nil {
+       h.Logger.Error("failed to get form", "error", err)
+       return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
+   }
+   ```
+
+2. Authentication
+   - Use access middleware
+   - Check permissions
+   - Handle unauthorized access
+   - Example:
+   ```go
+   formsAPI := api.Group("/forms")
+   formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
+   ```
+
+3. Input Validation
+   - Validate required parameters
+   - Sanitize input
+   - Return clear error messages
+   - Example:
+   ```go
+   formID := c.Param("id")
+   if formID == "" {
+       return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+   }
+   ```
+
+4. Logging
+   - Log all errors
+   - Include relevant context
+   - Use appropriate log levels
+   - Example:
+   ```go
+   h.Logger.Error("failed to get form",
+       "form_id", formID,
+       "error", err,
+   )
    ```
 
 ## Request/Response Handling
