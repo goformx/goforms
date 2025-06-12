@@ -14,28 +14,28 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/session"
 )
 
-// PageData contains common data used across all pages
+// PageData represents the data passed to templates
 type PageData struct {
 	Title                string
+	Description          string
+	Keywords             string
+	Author               string
+	Version              string
+	Environment          string
+	AssetPath            func(string) string
 	User                 *user.User
 	Forms                []*model.Form
 	Form                 *model.Form
 	Submissions          []*model.FormSubmission
 	CSRFToken            string
 	IsDevelopment        bool
-	AssetPath            func(string) string
 	Content              templ.Component
 	FormBuilderAssetPath string
 	Message              *Message
-	Description          string
 	Config               *config.Config
 	Session              *session.Session
 	UserID               string
 	Email                string
-	Role                 string
-	Error                string
-	Success              string
-	Data                 any
 }
 
 // Message represents a user-facing message
@@ -115,9 +115,5 @@ func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 		Session:              nil,
 		UserID:               "",
 		Email:                "",
-		Role:                 "",
-		Error:                "",
-		Success:              "",
-		Data:                 nil,
 	}
 }

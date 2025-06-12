@@ -17,8 +17,8 @@ templ Layout(data shared.PageData, content templ.Component) {
 			<meta name="csrf-token" content={ data.CSRFToken }/>
 			<meta name="csrf-param" content="_csrf"/>
 			<title>{ data.Title } - Goforms</title>
-			<script type="module" src={ data.AssetPath("main") }></script>
-			<link rel="stylesheet" href={ data.AssetPath("main.css") } type="text/css"/>
+			<script type="module" src={ data.AssetPath("main.ts") }></script>
+			<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css"/>
 		</head>
 		<body>
 			<header>
