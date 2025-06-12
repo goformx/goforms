@@ -1,25 +1,26 @@
-package model
+package model_test
 
 import (
 	"testing"
 
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/stretchr/testify/require"
 )
 
 func TestForm_Validate(t *testing.T) {
 	tests := []struct {
 		name        string
-		form        *Form
+		form        *model.Form
 		wantErr     bool
 		errContains string
 	}{
 		{
 			name: "valid form",
-			form: NewForm(
+			form: model.NewForm(
 				"user123",
 				"Test Form",
 				"A test form description",
-				JSON{
+				model.JSON{
 					"type": "object",
 					"properties": map[string]any{
 						"name": map[string]any{
@@ -32,11 +33,11 @@ func TestForm_Validate(t *testing.T) {
 		},
 		{
 			name: "empty title",
-			form: NewForm(
+			form: model.NewForm(
 				"user123",
 				"",
 				"A test form description",
-				JSON{
+				model.JSON{
 					"type": "object",
 					"properties": map[string]any{
 						"name": map[string]any{
@@ -50,11 +51,11 @@ func TestForm_Validate(t *testing.T) {
 		},
 		{
 			name: "title too short",
-			form: NewForm(
+			form: model.NewForm(
 				"user123",
 				"Te",
 				"A test form description",
-				JSON{
+				model.JSON{
 					"type": "object",
 					"properties": map[string]any{
 						"name": map[string]any{
@@ -68,7 +69,7 @@ func TestForm_Validate(t *testing.T) {
 		},
 		{
 			name: "description too long",
-			form: NewForm(
+			form: model.NewForm(
 				"user123",
 				"Test Form",
 				"A test form description that is way too long and exceeds the maximum length of 500 characters. "+
@@ -78,12 +79,13 @@ func TestForm_Validate(t *testing.T) {
 					"This is a very long description that should trigger the validation error. "+
 					"We are adding more text to make sure we exceed the limit. "+
 					"Just a few more characters to go... "+
-					"Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "+
+					"Lorem ipsum dolor sit amet, consectetur adipiscing elit. "+
+					"Sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. "+
 					"Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat. "+
 					"Duis aute irure dolor in reprehenderit in voluptate velit esse cillum dolore eu fugiat nulla pariatur. "+
 					"Excepteur sint occaecat cupidatat non proident, sunt in culpa qui officia deserunt mollit anim id est laborum. "+
 					"Sed ut perspiciatis unde omnis iste natus error sit voluptatem accusantium doloremque laudantium.",
-				JSON{
+				model.JSON{
 					"type": "object",
 					"properties": map[string]any{
 						"name": map[string]any{
@@ -97,11 +99,11 @@ func TestForm_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid schema type",
-			form: NewForm(
+			form: model.NewForm(
 				"user123",
 				"Test Form",
 				"A test form description",
-				JSON{
+				model.JSON{
 					"type": "array",
 					"properties": map[string]any{
 						"name": map[string]any{
@@ -115,11 +117,11 @@ func TestForm_Validate(t *testing.T) {
 		},
 		{
 			name: "missing schema properties",
-			form: NewForm(
+			form: model.NewForm(
 				"user123",
 				"Test Form",
 				"A test form description",
-				JSON{
+				model.JSON{
 					"type": "object",
 				},
 			),
@@ -128,11 +130,11 @@ func TestForm_Validate(t *testing.T) {
 		},
 		{
 			name: "invalid property type",
-			form: NewForm(
+			form: model.NewForm(
 				"user123",
 				"Test Form",
 				"A test form description",
-				JSON{
+				model.JSON{
 					"type": "object",
 					"properties": map[string]any{
 						"name": map[string]any{
