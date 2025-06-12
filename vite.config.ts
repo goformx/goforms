@@ -10,7 +10,7 @@ export default defineConfig({
   root: ".",
   publicDir: "public",
   appType: "custom",
-  base: "/assets/",
+  base: "/",
   css: {
     devSourcemap: true,
     modules: {

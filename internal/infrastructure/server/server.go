@@ -16,6 +16,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 const (
@@ -106,6 +107,14 @@ func New(
 		config: cfg,
 	}
 
+	// Initialize asset manager
+	if err := web.SetConfig(cfg); err != nil {
+		logger.Error("failed to initialize asset manager", "error", err)
+	} else {
+		web.SetLogger(logger)
+		logger.Debug("asset manager initialized", "service", "assets")
+	}
+
 	// Log server configuration
 	logger.Info("initializing server",
 		"host", cfg.App.Host,
@@ -149,6 +158,7 @@ func New(
 			e.Any("/@fs/*", echo.WrapHandler(viteProxy))
 			e.Any("/@id/*", echo.WrapHandler(viteProxy))
 			e.Any("/node_modules/*", echo.WrapHandler(viteProxy))
+			e.Any("/src/*", echo.WrapHandler(viteProxy))
 			e.Any("/favicon.ico", echo.WrapHandler(viteProxy))
 
 			logger.Info("Vite dev server proxy configured", "url", viteURL.String())
@@ -158,7 +168,7 @@ func New(
 		e.Static("/assets", "dist/assets")
 		e.Static("/fonts", "dist/fonts")
 		e.Static("/static", "public")
-		e.Static("/favicon.ico", "public/favicon.ico")
+		e.File("/favicon.ico", "dist/favicon.ico")
 	}
 
 	// Register lifecycle hooks

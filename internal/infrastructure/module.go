@@ -71,8 +71,8 @@ var Module = fx.Options(
 		// Core infrastructure
 		echo.New,
 		server.New,
-		NewEventPublisher,
-		// Database
 		database.New,
+		// Event publisher
+		NewEventPublisher,
 	),
 )
