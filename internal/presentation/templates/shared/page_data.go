@@ -1,9 +1,13 @@
 package shared
 
 import (
+	"encoding/json"
 	"fmt"
 	"net"
+	"os"
+	"path/filepath"
 	"strconv"
+	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/application/middleware/context"
@@ -45,6 +49,15 @@ type Message struct {
 	Text string
 }
 
+// ViteManifest represents the structure of the Vite manifest file
+type ViteManifest struct {
+	File   string   `json:"file"`
+	Name   string   `json:"name"`
+	Src    string   `json:"src,omitempty"`
+	CSS    []string `json:"css,omitempty"`
+	Assets []string `json:"assets,omitempty"`
+}
+
 // GetCurrentUser extracts user data from context
 func GetCurrentUser(c echo.Context) *user.User {
 	if c == nil {
@@ -76,11 +89,45 @@ func GetCSRFToken(c echo.Context) string {
 
 // GenerateAssetPath creates asset paths based on environment settings
 func GenerateAssetPath(cfg *config.Config) func(string) string {
+	// Load Vite manifest in production
+	var manifest map[string]ViteManifest
+	if cfg != nil && !cfg.App.IsDevelopment() {
+		manifestPath := filepath.Join("dist", "assets", ".vite", "manifest.json")
+		if data, err := os.ReadFile(manifestPath); err == nil {
+			json.Unmarshal(data, &manifest)
+		}
+	}
+
 	return func(path string) string {
 		if cfg != nil && cfg.App.IsDevelopment() {
 			return fmt.Sprintf("%s://%s/assets/%s",
 				cfg.App.Scheme, net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort), path)
 		}
+
+		// In production, use the manifest to get the correct hashed filenames
+		if manifest != nil {
+			switch {
+			case strings.HasPrefix(path, "src/js/"):
+				if entry, ok := manifest[path]; ok {
+					return fmt.Sprintf("%s://%s/assets/%s",
+						cfg.App.Scheme, net.JoinHostPort(cfg.App.Host, strconv.Itoa(cfg.App.Port)), entry.File)
+				}
+			case strings.HasPrefix(path, "src/css/"):
+				// CSS files are referenced in the JS entry's CSS array
+				for _, entry := range manifest {
+					if entry.CSS != nil {
+						for _, cssFile := range entry.CSS {
+							if strings.HasSuffix(cssFile, filepath.Base(path)) {
+								return fmt.Sprintf("%s://%s/assets/%s",
+									cfg.App.Scheme, net.JoinHostPort(cfg.App.Host, strconv.Itoa(cfg.App.Port)), cssFile)
+							}
+						}
+					}
+				}
+			}
+		}
+
+		// Fallback to direct path if not found in manifest
 		return fmt.Sprintf("%s://%s/assets/%s",
 			cfg.App.Scheme, net.JoinHostPort(cfg.App.Host, strconv.Itoa(cfg.App.Port)), path)
 	}

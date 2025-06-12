@@ -28,12 +28,17 @@ export default defineConfig({
     },
   },
   build: {
-    outDir: "dist/assets",
+    outDir: "dist",
     emptyOutDir: true,
     manifest: true,
     sourcemap: true,
     target: "esnext",
     minify: "terser",
+    modulePreload: {
+      polyfill: true,
+    },
+    cssCodeSplit: true,
+    reportCompressedSize: false,
     terserOptions: {
       compress: {
         drop_console: true,
@@ -51,19 +56,28 @@ export default defineConfig({
       },
       output: {
         assetFileNames: (assetInfo) => {
-          if (assetInfo.name?.endsWith(".css")) {
-            return "css/[name][hash][extname]";
+          if (!assetInfo.name) {
+            return "assets/[name][hash][extname]";
           }
+          const info = assetInfo.name.split(".");
+          const ext = info[info.length - 1];
+          // Skip font files from being processed by Vite
           if (
-            assetInfo.name?.endsWith(".woff2") ||
-            assetInfo.name?.endsWith(".woff")
+            ext === "woff" ||
+            ext === "woff2" ||
+            ext === "ttf" ||
+            ext === "eot"
           ) {
+            // Place all font files in the fonts directory
             return "fonts/[name][extname]";
           }
-          return "assets/[name][hash][extname]";
+          if (ext === "css") {
+            return "assets/css/[name].[hash][extname]";
+          }
+          return "assets/[name].[hash][extname]";
         },
-        chunkFileNames: "js/[name][hash].js",
-        entryFileNames: "js/[name][hash].js",
+        chunkFileNames: "assets/js/[name].[hash].js",
+        entryFileNames: "assets/js/[name].[hash].js",
       },
     },
   },
@@ -132,6 +146,5 @@ export default defineConfig({
     strictPort: true,
   },
   plugins: [ejsPlugin()],
-  // Configure how Vite handles different file types
   assetsInclude: ["**/*.ejs", "**/*.ejs.js"],
 });

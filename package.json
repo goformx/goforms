@@ -5,14 +5,15 @@
   "type": "module",
   "scripts": {
     "dev": "vite",
-    "build": "vite build",
+    "build": "vite build && npm run clean-empty-dirs",
     "lint": "eslint ./src --ext .ts,.tsx,.js,.jsx,.css",
     "lint:fix": "eslint ./src --ext .ts,.tsx,.js,.jsx,.css --fix",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,js,jsx,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,jsx,css}\"",
-    "postinstall": "mkdir -p public/fonts && cp -r node_modules/@formio/js/dist/fonts/* public/fonts/"
+    "postinstall": "mkdir -p public/fonts && cp -r node_modules/@formio/js/dist/fonts/* public/fonts/",
+    "clean-empty-dirs": "find dist -type d -empty -delete"
   },
   "dependencies": {
     "@formio/js": "^5.1.1",
