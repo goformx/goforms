@@ -25,6 +25,7 @@ var Module = fx.Options(
 			logger logging.Logger,
 			cfg *config.Config,
 			lc fx.Lifecycle,
+			accessManager *access.AccessManager,
 		) *session.Manager {
 			sessionConfig := &session.SessionConfig{
 				Config:        cfg,
@@ -55,7 +56,7 @@ var Module = fx.Options(
 					"/favicon.ico",
 				},
 			}
-			return session.NewManager(logger, sessionConfig, lc)
+			return session.NewManager(logger, sessionConfig, lc, accessManager)
 		},
 	),
 )

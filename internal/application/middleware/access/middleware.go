@@ -18,6 +18,14 @@ func Middleware(manager *AccessManager, logger logging.Logger) echo.MiddlewareFu
 			// Get required access level for this route
 			requiredAccess := manager.GetRequiredAccess(path, method)
 
+			// Add debug log for tracing access decisions
+			logger.Debug("access middleware decision",
+				"path", path,
+				"method", method,
+				"required_access", requiredAccess,
+				"is_authenticated", context.IsAuthenticated(c),
+			)
+
 			// Check if user has required access
 			switch requiredAccess {
 			case PublicAccess:

@@ -9,12 +9,13 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"go.uber.org/fx"
 )
 
 // NewManager creates a new session manager
-func NewManager(logger logging.Logger, cfg *SessionConfig, lc fx.Lifecycle) *Manager {
+func NewManager(logger logging.Logger, cfg *SessionConfig, lc fx.Lifecycle, accessManager *access.AccessManager) *Manager {
 	// Create tmp directory if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(cfg.StoreFile), 0o755); err != nil {
 		logger.Error("failed to create session directory", "error", err)
@@ -23,14 +24,15 @@ func NewManager(logger logging.Logger, cfg *SessionConfig, lc fx.Lifecycle) *Man
 	storage := NewFileStorage(cfg.StoreFile, logger)
 
 	sm := &Manager{
-		logger:       logger,
-		storage:      storage,
-		sessions:     make(map[string]*Session),
-		expiryTime:   cfg.TTL,
-		secureCookie: cfg.Secure,
-		cookieName:   cfg.CookieName,
-		stopChan:     make(chan struct{}),
-		config:       cfg,
+		logger:        logger,
+		storage:       storage,
+		sessions:      make(map[string]*Session),
+		expiryTime:    cfg.TTL,
+		secureCookie:  cfg.Secure,
+		cookieName:    cfg.CookieName,
+		stopChan:      make(chan struct{}),
+		config:        cfg,
+		accessManager: accessManager,
 	}
 
 	// Register lifecycle hooks

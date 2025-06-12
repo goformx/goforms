@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/labstack/echo/v4"
 )
@@ -55,6 +56,12 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 
 // isPathExempt checks if a path is exempt from session authentication
 func (sm *Manager) isPathExempt(path string) bool {
+	// Use accessManager to check if the path is public
+	if sm.accessManager != nil {
+		if sm.accessManager.GetRequiredAccess(path, "GET") == access.PublicAccess {
+			return true
+		}
+	}
 	// Skip authentication for:
 	// 1. Static assets (files, images, etc.)
 	// 2. Public API endpoints
@@ -101,12 +108,6 @@ func (sm *Manager) isPathExempt(path string) bool {
 		if strings.HasPrefix(path, exemptPath) {
 			return true
 		}
-	}
-
-	// Special case for homepage - it should go through authentication check
-	// so we can redirect authenticated users to dashboard
-	if path == "/" {
-		return false
 	}
 
 	return false
