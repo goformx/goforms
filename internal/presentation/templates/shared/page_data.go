@@ -1,18 +1,14 @@
 package shared
 
 import (
-	"encoding/json"
 	"fmt"
-	"net"
-	"os"
-	"path/filepath"
-	"strings"
 
 	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/middleware/session"
@@ -50,11 +46,12 @@ type Message struct {
 
 // ViteManifest represents the structure of the Vite manifest file
 type ViteManifest struct {
-	File   string   `json:"file"`
-	Name   string   `json:"name"`
-	Src    string   `json:"src,omitempty"`
-	CSS    []string `json:"css,omitempty"`
-	Assets []string `json:"assets,omitempty"`
+	File    string   `json:"file"`
+	Name    string   `json:"name"`
+	Src     string   `json:"src,omitempty"`
+	CSS     []string `json:"css,omitempty"`
+	Assets  []string `json:"assets,omitempty"`
+	IsEntry bool     `json:"isEntry"`
 }
 
 // GetCurrentUser extracts user data from context
@@ -86,52 +83,16 @@ func GetCSRFToken(c echo.Context) string {
 	return ""
 }
 
-// GenerateAssetPath creates asset paths based on environment settings
+// GenerateAssetPath creates asset paths using the infrastructure AssetManager
 func GenerateAssetPath(cfg *config.Config) func(string) string {
-	// Load Vite manifest in production
-	var manifest map[string]ViteManifest
-	if cfg != nil && !cfg.App.IsDevelopment() {
-		manifestPath := filepath.Join("dist", ".vite", "manifest.json")
-		if data, err := os.ReadFile(manifestPath); err == nil {
-			json.Unmarshal(data, &manifest)
-		} else {
-			// Try alternative manifest location
-			manifestPath = filepath.Join("dist", "manifest.json")
-			if data, err := os.ReadFile(manifestPath); err == nil {
-				json.Unmarshal(data, &manifest)
-			}
-		}
-	}
-
 	return func(path string) string {
-		if cfg != nil && cfg.App.IsDevelopment() {
-			return fmt.Sprintf("%s://%s/assets/%s",
-				cfg.App.Scheme, net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort), path)
+		assetPath, err := web.GetAssetPath(path)
+		if err != nil {
+			// Let the error propagate up - if the asset manager can't resolve the path,
+			// there's likely a real problem that should be handled
+			panic(fmt.Sprintf("failed to resolve asset path: %v", err))
 		}
-
-		// In production, use the manifest to get the correct hashed filenames
-		if manifest != nil {
-			// Try to find the entry in the manifest
-			if entry, ok := manifest[path]; ok {
-				return fmt.Sprintf("/assets/%s", entry.File)
-			}
-
-			// Try to find CSS files
-			if strings.HasSuffix(path, ".css") {
-				for _, entry := range manifest {
-					if entry.CSS != nil {
-						for _, cssFile := range entry.CSS {
-							if strings.HasSuffix(cssFile, filepath.Base(path)) {
-								return fmt.Sprintf("/assets/%s", cssFile)
-							}
-						}
-					}
-				}
-			}
-		}
-
-		// Fallback to direct path if not found in manifest
-		return fmt.Sprintf("/assets/%s", path)
+		return assetPath
 	}
 }
 
