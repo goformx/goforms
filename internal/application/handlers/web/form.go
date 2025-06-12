@@ -107,7 +107,7 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
-// GET /forms/:id/edit
+// handleFormEdit handles the form edit page
 func (h *FormHandler) handleFormEdit(c echo.Context) error {
 	formID := c.Param("id")
 	if formID == "" {
@@ -127,22 +127,26 @@ func (h *FormHandler) handleFormEdit(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
-	f, err := h.FormService.GetForm(c.Request().Context(), formID)
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form", "error", err)
-		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
+		h.Logger.Error("failed to get form",
+			"form_id", formID,
+			"error", err,
+		)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
 	}
 
 	// Verify form ownership
-	if f.UserID != userID {
+	if form.UserID != userID {
 		h.Logger.Error("form ownership verification failed", "form_id", formID, "user_id", userID)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to edit this form")
 	}
 
 	data := shared.BuildPageData(h.Config, c, "Edit Form")
 	data.User = user
-	data.Form = f
-	return h.Renderer.Render(c, pages.EditForm(data))
+	data.Form = form
+
+	return pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer)
 }
 
 // PUT /forms/:id

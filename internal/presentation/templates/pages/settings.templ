@@ -10,71 +10,74 @@ templ Settings(data shared.PageData) {
 }
 
 templ settingsContent(data shared.PageData) {
-	<div class="dashboard-content">
-		<div class="dashboard-header">
-			<h1>Settings</h1>
-		</div>
-		<div class="dashboard-body">
-			<div class="settings-card">
-				<div class="settings-section">
-					<h2>Account Settings</h2>
-					<form id="settings-form" class="auth-form" method="POST" action="/settings">
-						<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-						<div id="form_error" class="form-error"></div>
-
-						<div class="gf-form-group">
-							<label for="first_name" class="gf-label">First Name</label>
-							<input type="text" id="first_name" name="first_name" required class="gf-input" value={ data.User.FirstName } />
-							<div id="first_name_error" class="error-message"></div>
-						</div>
-
-						<div class="gf-form-group">
-							<label for="last_name" class="gf-label">Last Name</label>
-							<input type="text" id="last_name" name="last_name" required class="gf-input" value={ data.User.LastName } />
-							<div id="last_name_error" class="error-message"></div>
-						</div>
-
-						<div class="gf-form-group">
-							<label for="email" class="gf-label">Email</label>
-							<input type="email" id="email" name="email" required class="gf-input" value={ data.User.Email } />
-							<div id="email_error" class="error-message"></div>
-						</div>
-
-						<div class="form-actions">
-							<button type="submit" class="gf-button gf-button--primary">Update Settings</button>
-						</div>
-					</form>
+	<div class="form-page">
+		<div class="form-container">
+			<div class="form-card">
+				<div class="form-header">
+					<h2 class="form-title">Account Settings</h2>
+					<p class="form-subtitle">Update your account information</p>
 				</div>
 
-				<div class="settings-section">
-					<h2>Change Password</h2>
-					<form id="password-form" class="auth-form" method="POST" action="/settings/password">
-						<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
-						<div id="password_form_error" class="form-error"></div>
+				<form id="settings-form" class="form" method="POST" action="/settings">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+					<div class="form-error"></div>
 
-						<div class="gf-form-group">
-							<label for="current_password" class="gf-label">Current Password</label>
-							<input type="password" id="current_password" name="current_password" required class="gf-input" />
-							<div id="current_password_error" class="error-message"></div>
-						</div>
+					<div class="gf-form-group">
+						<label for="email" class="gf-label">Email</label>
+						<input type="email" id="email" name="email" required class="gf-input" placeholder="Enter your email"/>
+						<div id="email_error" class="error-message"></div>
+					</div>
 
-						<div class="gf-form-group">
-							<label for="new_password" class="gf-label">New Password</label>
-							<input type="password" id="new_password" name="new_password" required class="gf-input" />
-							<div id="new_password_error" class="error-message"></div>
-						</div>
+					<div class="gf-form-group">
+						<label for="first_name" class="gf-label">First Name</label>
+						<input type="text" id="first_name" name="first_name" required class="gf-input" placeholder="Enter your first name"/>
+						<div id="first_name_error" class="error-message"></div>
+					</div>
 
-						<div class="gf-form-group">
-							<label for="confirm_password" class="gf-label">Confirm New Password</label>
-							<input type="password" id="confirm_password" name="confirm_password" required class="gf-input" />
-							<div id="confirm_password_error" class="error-message"></div>
-						</div>
+					<div class="gf-form-group">
+						<label for="last_name" class="gf-label">Last Name</label>
+						<input type="text" id="last_name" name="last_name" required class="gf-input" placeholder="Enter your last name"/>
+						<div id="last_name_error" class="error-message"></div>
+					</div>
 
-						<div class="form-actions">
-							<button type="submit" class="gf-button gf-button--primary">Change Password</button>
-						</div>
-					</form>
+					<div class="form-actions">
+						<button type="submit" class="gf-button gf-button--primary">Update Profile</button>
+					</div>
+				</form>
+
+				<div class="form-divider"></div>
+
+				<div class="form-header">
+					<h2 class="form-title">Change Password</h2>
+					<p class="form-subtitle">Update your password</p>
 				</div>
+
+				<form id="password-form" class="form" method="POST" action="/settings/password">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
+					<div class="form-error"></div>
+
+					<div class="gf-form-group">
+						<label for="current_password" class="gf-label">Current Password</label>
+						<input type="password" id="current_password" name="current_password" required class="gf-input" placeholder="Enter your current password"/>
+						<div id="current_password_error" class="error-message"></div>
+					</div>
+
+					<div class="gf-form-group">
+						<label for="new_password" class="gf-label">New Password</label>
+						<input type="password" id="new_password" name="new_password" required class="gf-input" placeholder="Enter your new password"/>
+						<div id="new_password_error" class="error-message"></div>
+					</div>
+
+					<div class="gf-form-group">
+						<label for="confirm_password" class="gf-label">Confirm New Password</label>
+						<input type="password" id="confirm_password" name="confirm_password" required class="gf-input" placeholder="Confirm your new password"/>
+						<div id="confirm_password_error" class="error-message"></div>
+					</div>
+
+					<div class="form-actions">
+						<button type="submit" class="gf-button gf-button--primary">Change Password</button>
+					</div>
+				</form>
 			</div>
 		</div>
 	</div>

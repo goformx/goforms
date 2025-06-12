@@ -1,6 +1,7 @@
 package pages
 
 import (
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
@@ -67,8 +68,77 @@ templ FormFieldsContent(data shared.PageData) {
 	</div>
 }
 
-templ EditForm(data shared.PageData) {
-	@layouts.Layout(data, EditFormContent(data))
+templ EditForm(data shared.PageData, form *model.Form) {
+	@layouts.Layout(data, editFormContent(data, form))
+}
+
+templ editFormContent(data shared.PageData, form *model.Form) {
+	<div class="form-page">
+		<div class="form-content">
+			<div class="form-container">
+				<div class="form-header">
+					<h1 class="form-title">Edit Form</h1>
+					<p class="form-subtitle">Update your form details and design</p>
+				</div>
+
+				<div class="form-layout">
+					<div class="form-details">
+						<div class="form-card">
+							<form method="POST" action="/forms/edit" class="form">
+								<input type="hidden" name="id" value={ form.ID } />
+								<div class="form-group">
+									<label for="title">Form Title</label>
+									<input
+										type="text"
+										id="title"
+										name="title"
+										value={ form.Title }
+										required
+										placeholder="Enter form title"
+									/>
+								</div>
+								<div class="form-group">
+									<label for="description">Description</label>
+									<textarea
+										id="description"
+										name="description"
+										rows="3"
+										placeholder="Enter form description"
+									>{ form.Description }</textarea>
+								</div>
+								<div class="form-group">
+									<label for="status">Status</label>
+									<select id="status" name="status">
+										<option value="draft" selected={ form.Active }>Draft</option>
+										<option value="published" selected={ !form.Active }>Published</option>
+										<option value="archived" selected={ false }>Archived</option>
+									</select>
+								</div>
+								<button type="submit" class="btn btn-primary">Save Changes</button>
+							</form>
+						</div>
+					</div>
+
+					<div class="form-builder-section">
+						<div class="form-builder-card">
+							<div class="form-builder-header">
+								<h2>Form Builder</h2>
+								<p>Design your form by adding and configuring fields</p>
+							</div>
+							<div class="form-builder-container">
+								<div id="form-schema-builder" class="form-builder"></div>
+							</div>
+							<div class="form-builder-actions">
+								<button type="button" class="btn btn-primary" id="save-form-design">
+									Save Form Design
+								</button>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
 }
 
 templ EditFormContent(data shared.PageData) {

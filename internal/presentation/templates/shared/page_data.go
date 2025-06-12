@@ -111,24 +111,3 @@ func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 		Data:                 nil,
 	}
 }
-
-// NewPageData creates a new PageData instance
-func NewPageData(c echo.Context, cfg *config.Config, data interface{}) *PageData {
-	pd := &PageData{
-		Config: cfg,
-		Data:   data,
-	}
-
-	// Get user data from context
-	if userID, ok := context.GetUserID(c); ok {
-		pd.UserID = userID
-		if email, ok := context.GetEmail(c); ok {
-			pd.Email = email
-		}
-		if role, ok := context.GetRole(c); ok {
-			pd.Role = role
-		}
-	}
-
-	return pd
-}
