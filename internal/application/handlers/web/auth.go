@@ -208,6 +208,14 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		h.deps.Logger.Debug("Signup failed",
 			"error", err,
 			"email", h.deps.Logger.SanitizeField("email", email))
+
+		// Check if this is an API request
+		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Unable to create account. Please try again.",
+			})
+		}
+
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "Unable to create account. Please try again.",
@@ -221,6 +229,14 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		h.deps.Logger.Error("Failed to create session after signup",
 			"error", err,
 			"user_id", h.deps.Logger.SanitizeField("user_id", newUser.ID))
+
+		// Check if this is an API request
+		if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"message": "An error occurred. Please try again.",
+			})
+		}
+
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "An error occurred. Please try again.",
@@ -230,6 +246,13 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 
 	// Set session cookie using session manager
 	h.deps.SessionManager.SetSessionCookie(c, session)
+
+	// Check if this is an API request
+	if c.Request().Header.Get("X-Requested-With") == "XMLHttpRequest" {
+		return c.JSON(http.StatusOK, map[string]string{
+			"redirect": "/dashboard",
+		})
+	}
 
 	// Redirect to dashboard
 	return c.Redirect(http.StatusSeeOther, "/dashboard")

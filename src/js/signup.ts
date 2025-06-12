@@ -37,13 +37,55 @@ export function setupSignupForm() {
 
     // Add form submit validation
     form.addEventListener("submit", async (e) => {
+      e.preventDefault(); // Always prevent default to handle submission ourselves
+
+      // Clear any existing errors
+      validation.clearAllErrors();
+
+      // Validate the form
       const result = await validation.validateForm(form, "signup");
       if (!result.success) {
-        e.preventDefault();
         if (result.error) {
           result.error.errors.forEach((err) => {
             validation.showError(err.path[0], err.message);
           });
+        }
+        return;
+      }
+
+      // If validation passes, submit the form
+      try {
+        const formData = new FormData(form);
+        const response = await fetch(form.action, {
+          method: "POST",
+          body: formData,
+          credentials: "include",
+          headers: {
+            "X-Requested-With": "XMLHttpRequest",
+          },
+        });
+
+        if (response.redirected) {
+          window.location.href = response.url;
+        } else if (!response.ok) {
+          const data = await response.json();
+          if (data.message) {
+            const formError = document.getElementById("form_error");
+            if (formError) {
+              formError.textContent = data.message;
+            }
+          }
+        } else {
+          const data = await response.json();
+          if (data.redirect) {
+            window.location.href = data.redirect;
+          }
+        }
+      } catch (error) {
+        console.error("Error submitting form:", error);
+        const formError = document.getElementById("form_error");
+        if (formError) {
+          formError.textContent = "An error occurred. Please try again.";
         }
       }
     });
