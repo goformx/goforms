@@ -71,7 +71,10 @@ export default defineConfig({
       },
     },
     hmr: {
+      protocol: "ws",
+      host: "localhost",
       port: 3000,
+      clientPort: 3000,
     },
     host: true,
     middlewareMode: false,
@@ -80,7 +83,7 @@ export default defineConfig({
       allow: [".."],
     },
     watch: {
-      usePolling: false,
+      usePolling: true,
       interval: 1000,
     },
   },
