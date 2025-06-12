@@ -53,6 +53,14 @@ jobs:
       - name: Generate templ files
         run: templ generate
 
+      - name: Install mockgen
+        run: go install go.uber.org/mock/mockgen@latest
+
+      - name: Generate Mocks
+        run: |
+          mockgen -source=internal/domain/form/service.go -destination=test/mocks/form/service.go -package=form
+          mockgen -source=internal/domain/user/service.go -destination=test/mocks/user/service.go -package=user
+
       - name: Build Frontend
         run: npm run build
 
