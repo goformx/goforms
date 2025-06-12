@@ -286,8 +286,8 @@ templ editFormContent(data shared.PageData, form *model.Form) {
 					throw new Error('Form builder not initialized');
 				}
 
-				const schema = formBuilder.getForm();
-				await formService.updateFormSchema(formId, schema);
+				const schema = await formBuilder.saveSchema();
+				await formService.saveSchema(formId, schema);
 
 				saveFeedback.textContent = 'Form fields saved successfully';
 				saveFeedback.style.color = 'var(--success-color)';
@@ -310,9 +310,7 @@ templ editFormContent(data shared.PageData, form *model.Form) {
 				return;
 			}
 
-			const schema = formBuilder.getForm();
-			console.log('Form Schema:', schema);
-			alert('Form schema logged to console');
+			formBuilder.showJSON();
 		});
 	</script>
 } 

@@ -111,14 +111,45 @@ async function createFormBuilder(
   schema: any,
 ): Promise<any> {
   try {
+    // Initialize Formio with project settings
+    Formio.setProjectUrl("https://goforms.io");
+    Formio.setBaseUrl("https://goforms.io");
+
     // Ensure schema has required properties
     const formSchema = {
       ...schema,
-      projectId: "goforms", // Add default projectId
+      projectId: "goforms",
       display: "form",
       components: schema.components || [],
     };
-    return await Formio.builder(container, formSchema, builderOptions);
+
+    // Create builder with options
+    const builder = await Formio.builder(container, formSchema, {
+      ...builderOptions,
+      noDefaultSubmitButton: true,
+      builder: {
+        ...builderOptions.builder,
+        basic: {
+          components: {
+            textfield: true,
+            textarea: true,
+            email: true,
+            phoneNumber: true,
+            number: true,
+            password: true,
+            checkbox: true,
+            selectboxes: true,
+            select: true,
+            radio: true,
+            button: true,
+          },
+        },
+      },
+    });
+
+    // Store builder instance globally
+    window.formBuilder = builder;
+    return builder;
   } catch (error) {
     console.error("Form builder initialization error:", error);
     throw new FormBuilderError(
@@ -151,18 +182,20 @@ function setupEventHandlers(builder: any, formId: string): void {
         saveBtn.disabled = true;
         if (spinner) spinner.style.display = "inline-block";
 
-        // Save the schema and get the response
-        const savedSchema = await builder.saveSchema();
-
-        // Check if we got a valid schema response
-        if (savedSchema && savedSchema.components) {
-          feedback.textContent = "Schema saved successfully.";
-          feedback.className = "schema-save-feedback success";
-        } else {
-          feedback.textContent = "Failed to save schema - invalid response.";
-          feedback.className = "schema-save-feedback error";
+        // Get the current schema using saveSchema
+        const schema = await builder.saveSchema();
+        if (!schema) {
+          throw new Error("Failed to get form schema");
         }
+
+        // Save using form service
+        const formService = FormService.getInstance();
+        await formService.saveSchema(formId, schema);
+
+        feedback.textContent = "Schema saved successfully.";
+        feedback.className = "schema-save-feedback success";
       } catch (error) {
+        console.error("Failed to save form fields:", error);
         feedback.textContent =
           error instanceof Error ? error.message : "Error saving schema.";
         feedback.className = "schema-save-feedback error";

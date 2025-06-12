@@ -54,6 +54,12 @@ export default defineConfig({
           if (assetInfo.name?.endsWith(".css")) {
             return "css/[name][hash][extname]";
           }
+          if (
+            assetInfo.name?.endsWith(".woff2") ||
+            assetInfo.name?.endsWith(".woff")
+          ) {
+            return "fonts/[name][extname]";
+          }
           return "assets/[name][hash][extname]";
         },
         chunkFileNames: "js/[name][hash].js",
