@@ -48,11 +48,13 @@ export default defineConfig({
     rollupOptions: {
       input: {
         main: "src/js/main.ts",
+        "main.css": "src/css/main.css",
         dashboard: "src/js/dashboard.ts",
         "form-builder": "src/js/form-builder.ts",
         login: "src/js/login.ts",
         signup: "src/js/signup.ts",
         "cta-form": "src/js/cta-form.ts",
+        demo: "src/js/demo.ts",
       },
       output: {
         assetFileNames: (assetInfo) => {
@@ -72,7 +74,7 @@ export default defineConfig({
             return "fonts/[name][extname]";
           }
           if (ext === "css") {
-            return "assets/css/[name].[hash][extname]";
+            return "assets/css/[name].[hash].css";
           }
           return "assets/[name].[hash][extname]";
         },
