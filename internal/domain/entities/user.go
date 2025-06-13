@@ -11,7 +11,6 @@ import (
 
 var (
 	ErrInvalidEmail    = errors.New("invalid email format")
-	ErrInvalidUsername = errors.New("username must be between 3 and 50 characters")
 	ErrInvalidPassword = errors.New("password must be at least 8 characters")
 )
 
@@ -23,7 +22,6 @@ const (
 // User represents a user entity
 type User struct {
 	ID             string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	Username       string         `json:"username" gorm:"not null;size:50"`
 	Email          string         `json:"email" gorm:"uniqueIndex;not null;size:255"`
 	HashedPassword string         `json:"-" gorm:"column:hashed_password;not null;size:255"`
 	FirstName      string         `json:"first_name" gorm:"not null;size:100"`
@@ -61,9 +59,8 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 }
 
 // NewUser creates a new user instance with validation
-func NewUser(username, email, password, firstName, lastName string) (*User, error) {
+func NewUser(email, password, firstName, lastName string) (*User, error) {
 	user := &User{
-		Username:  username,
 		Email:     email,
 		FirstName: firstName,
 		LastName:  lastName,
@@ -91,10 +88,6 @@ func (u *User) Validate() error {
 
 	if u.HashedPassword == "" {
 		return errors.New("password is required")
-	}
-
-	if len(u.Username) < 3 || len(u.Username) > 50 {
-		return ErrInvalidUsername
 	}
 
 	if !isValidEmail(u.Email) {
