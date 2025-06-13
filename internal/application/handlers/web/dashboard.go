@@ -56,7 +56,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	}
 
 	// Fetch forms data
-	forms, err := h.FormService.GetUserForms(c.Request().Context(), userID)
+	forms, err := h.FormService.ListForms(c.Request().Context(), map[string]any{"user_id": userID})
 	if err != nil {
 		h.Logger.Error("failed to get user forms", "user_id", userID, "error", err)
 		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to load forms"})

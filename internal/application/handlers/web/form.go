@@ -94,7 +94,7 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
 
 	// Create the form
 	form := model.NewForm(userID, title, description, schema)
-	err := h.FormService.CreateForm(c.Request().Context(), userID, form)
+	err := h.FormService.CreateForm(c.Request().Context(), form)
 	if err != nil {
 		h.Logger.Error("failed to create form", "error", err)
 
@@ -178,8 +178,17 @@ func (h *FormHandler) handleFormUpdate(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to update this form")
 	}
 
-	// TODO: Parse and update form details
-	return response.WebErrorResponse(c, h.Renderer, http.StatusNotImplemented, "Form update not implemented yet")
+	// Update form fields
+	form.Title = sanitize.XSS(c.FormValue("title"))
+	form.Description = sanitize.XSS(c.FormValue("description"))
+
+	err = h.FormService.UpdateForm(c.Request().Context(), form)
+	if err != nil {
+		h.Logger.Error("failed to update form", "error", err)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to update form")
+	}
+
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 // DELETE /forms/:id
@@ -206,15 +215,13 @@ func (h *FormHandler) handleFormDelete(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to delete this form")
 	}
 
-	// Delete the form
-	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), userID, formID); deleteErr != nil {
-		h.Logger.Error("failed to delete form", "error", deleteErr)
+	err = h.FormService.DeleteForm(c.Request().Context(), formID)
+	if err != nil {
+		h.Logger.Error("failed to delete form", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to delete form")
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
-		"message": "Form deleted successfully",
-	})
+	return c.NoContent(http.StatusNoContent)
 }
 
 // GET /forms/:id/submissions
@@ -229,13 +236,6 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
-	// Get user object
-	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || user == nil {
-		h.Logger.Error("failed to get user", "error", err)
-		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
-	}
-
 	// Get form to verify ownership
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
@@ -245,24 +245,16 @@ func (h *FormHandler) handleFormSubmissions(c echo.Context) error {
 
 	// Verify form ownership
 	if form.UserID != userID {
-		h.Logger.Error("unauthorized form access attempt",
-			"user_id", h.Logger.SanitizeField("user_id", userID),
-			"form_id", h.Logger.SanitizeField("form_id", formID),
-			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
-			"error_type", "authorization_error")
-		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden,
-			"You don't have permission to view submissions for this form")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to view submissions")
 	}
 
-	// Get form submissions
-	submissions, err := h.FormService.GetFormSubmissions(c.Request().Context(), formID)
+	submissions, err := h.FormService.ListFormSubmissions(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form submissions", "error", err)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form submissions")
 	}
 
 	data := shared.BuildPageData(h.Config, c, "Form Submissions")
-	data.User = user
 	data.Form = form
 	data.Submissions = submissions
 
@@ -285,7 +277,7 @@ func (h *FormHandler) handleFormSchema(c echo.Context) error {
 	return c.JSON(http.StatusOK, form.Schema)
 }
 
-// PUT /api/v1/forms/:id/schema
+// handleFormSchemaUpdate handles updating a form's schema
 func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
@@ -294,37 +286,35 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 
 	formID := c.Param("id")
 	if formID == "" {
-		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
 	}
 
-	// Get existing form
-	form, getErr := h.FormService.GetForm(c.Request().Context(), formID)
-	if getErr != nil {
-		h.Logger.Error("failed to get form", "error", getErr)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+	// Get form to verify ownership
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
+	if err != nil {
+		h.Logger.Error("failed to get form", "error", err)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get form")
 	}
 
 	// Verify form ownership
 	if form.UserID != userID {
-		return response.ErrorResponse(c, http.StatusForbidden, "You don't have permission to update this form")
+		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to update this form")
 	}
 
-	// Parse request body
+	// Parse schema from request body
 	var schema model.JSON
-	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&schema); decodeErr != nil {
-		h.Logger.Error("failed to decode request body", "error", decodeErr)
-		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid request body")
+	if err := json.NewDecoder(c.Request().Body).Decode(&schema); err != nil {
+		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Invalid schema format")
 	}
 
 	// Update form schema
 	form.Schema = schema
-	if updateErr := h.FormService.UpdateForm(c.Request().Context(), userID, form); updateErr != nil {
-		h.Logger.Error("failed to update form", "error", updateErr)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form")
+	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
+		h.Logger.Error("failed to update form schema", "error", updateErr)
+		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to update form schema")
 	}
 
-	// Return the updated schema
-	return c.JSON(http.StatusOK, form.Schema)
+	return c.NoContent(http.StatusNoContent)
 }
 
 // Start initializes the form handler.
