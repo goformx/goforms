@@ -7,6 +7,7 @@ import (
 	"time"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -27,19 +28,19 @@ var (
 
 // Service defines the user service interface
 type Service interface {
-	SignUp(ctx context.Context, signup *Signup) (*User, error)
+	SignUp(ctx context.Context, signup *Signup) (*entities.User, error)
 	Login(ctx context.Context, login *Login) (*LoginResponse, error)
 	Logout(ctx context.Context, refreshToken string) error
-	GetUserByID(ctx context.Context, id string) (*User, error)
-	GetUserByEmail(ctx context.Context, email string) (*User, error)
-	UpdateUser(ctx context.Context, user *User) error
+	GetUserByID(ctx context.Context, id string) (*entities.User, error)
+	GetUserByEmail(ctx context.Context, email string) (*entities.User, error)
+	UpdateUser(ctx context.Context, user *entities.User) error
 	DeleteUser(ctx context.Context, id string) error
-	ListUsers(ctx context.Context) ([]User, error)
-	GetByID(ctx context.Context, id string) (*User, error)
+	ListUsers(ctx context.Context, offset, limit int) ([]*entities.User, error)
+	GetByID(ctx context.Context, id string) (*entities.User, error)
 	ValidateToken(ctx context.Context, token string) error
 	GetUserIDFromToken(ctx context.Context, token string) (string, error)
 	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
-	Authenticate(ctx context.Context, email, password string) (*User, error)
+	Authenticate(ctx context.Context, email, password string) (*entities.User, error)
 }
 
 // ServiceImpl implements the Service interface
@@ -57,7 +58,7 @@ func NewService(repo Repository, logger logging.Logger) Service {
 }
 
 // SignUp registers a new user
-func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error) {
+func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.User, error) {
 	// Check if email already exists
 	existingUser, err := s.repo.GetByEmail(ctx, signup.Email)
 	if err != nil {
@@ -70,7 +71,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*User, error)
 	}
 
 	// Create user
-	user := &User{
+	user := &entities.User{
 		Email:     signup.Email,
 		FirstName: signup.FirstName,
 		LastName:  signup.LastName,
@@ -131,17 +132,17 @@ func (s *ServiceImpl) Logout(ctx context.Context, refreshToken string) error {
 }
 
 // GetUserByID retrieves a user by ID
-func (s *ServiceImpl) GetUserByID(ctx context.Context, id string) (*User, error) {
+func (s *ServiceImpl) GetUserByID(ctx context.Context, id string) (*entities.User, error) {
 	return s.repo.GetByID(ctx, id)
 }
 
 // GetUserByEmail retrieves a user by email
-func (s *ServiceImpl) GetUserByEmail(ctx context.Context, email string) (*User, error) {
+func (s *ServiceImpl) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
 	return s.repo.GetByEmail(ctx, email)
 }
 
 // UpdateUser updates a user
-func (s *ServiceImpl) UpdateUser(ctx context.Context, user *User) error {
+func (s *ServiceImpl) UpdateUser(ctx context.Context, user *entities.User) error {
 	return s.repo.Update(ctx, user)
 }
 
@@ -151,13 +152,13 @@ func (s *ServiceImpl) DeleteUser(ctx context.Context, id string) error {
 }
 
 // ListUsers lists all users
-func (s *ServiceImpl) ListUsers(ctx context.Context) ([]User, error) {
-	return s.repo.List(ctx)
+func (s *ServiceImpl) ListUsers(ctx context.Context, offset, limit int) ([]*entities.User, error) {
+	return s.repo.List(ctx, offset, limit)
 }
 
 // GetByID retrieves a user by ID string
-func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*User, error) {
-	return s.repo.GetByIDString(ctx, id)
+func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*entities.User, error) {
+	return s.repo.GetByID(ctx, id)
 }
 
 // ValidateToken validates a token
@@ -188,7 +189,7 @@ func (s *ServiceImpl) IsTokenBlacklisted(ctx context.Context, token string) (boo
 }
 
 // Authenticate matches the domain.UserService interface
-func (s *ServiceImpl) Authenticate(ctx context.Context, email, password string) (*User, error) {
+func (s *ServiceImpl) Authenticate(ctx context.Context, email, password string) (*entities.User, error) {
 	user, err := s.repo.GetByEmail(ctx, email)
 	if err != nil {
 		if domainerrors.GetErrorCode(err) == domainerrors.ErrCodeNotFound {

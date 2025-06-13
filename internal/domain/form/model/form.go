@@ -31,6 +31,16 @@ type Form struct {
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 }
 
+// GetID returns the form's ID
+func (f *Form) GetID() string {
+	return f.ID
+}
+
+// SetID sets the form's ID
+func (f *Form) SetID(id string) {
+	f.ID = id
+}
+
 // TableName specifies the table name for the Form model
 func (f *Form) TableName() string {
 	return "forms"

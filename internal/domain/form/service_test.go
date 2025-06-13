@@ -7,6 +7,7 @@ import (
 
 	domainform "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	mockevents "github.com/goformx/goforms/test/mocks/events"
 	mockform "github.com/goformx/goforms/test/mocks/form"
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 	"github.com/stretchr/testify/require"
@@ -18,14 +19,16 @@ func TestService_CreateForm_minimal(t *testing.T) {
 	t.Cleanup(ctrl.Finish)
 
 	repo := mockform.NewMockRepository(ctrl)
-	publisher := mockform.NewMockPublisher(ctrl)
+	eventBus := mockevents.NewMockEventBus(ctrl)
 	logger := mocklogging.NewMockLogger(ctrl)
 
 	userID := "user123"
+
+	// Create form
 	form := model.NewForm(
 		userID,
 		"Test Form",
-		"A test form description",
+		"Test Description",
 		model.JSON{
 			"type": "object",
 			"properties": map[string]any{
@@ -36,20 +39,19 @@ func TestService_CreateForm_minimal(t *testing.T) {
 		},
 	)
 
-	logger.EXPECT().WithUserID(userID).Return(logger)
-	repo.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, f *model.Form) error {
-		require.NotEmpty(t, f.ID)
+	// Set up mock expectations in the correct order
+	repo.EXPECT().CreateForm(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, f *model.Form) error {
 		require.Equal(t, userID, f.UserID)
 		require.True(t, f.Active)
 		return nil
 	})
-	publisher.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
+	eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
-	svc := domainform.NewService(repo, publisher, logger)
+	svc := domainform.NewService(repo, eventBus, logger)
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
-	err := svc.CreateForm(ctx, userID, form)
+	err := svc.CreateForm(ctx, form)
 	require.NoError(t, err)
 	require.Equal(t, userID, form.UserID)
 	require.NotEmpty(t, form.ID)

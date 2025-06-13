@@ -1,6 +1,12 @@
 // Package domain provides domain services and their dependency injection setup.
 // This module is responsible for providing domain services and interfaces,
 // while keeping implementation details in the infrastructure layer.
+//
+// The domain layer follows clean architecture principles:
+// - Entities: Core business objects
+// - Services: Business logic and use cases
+// - Repositories: Data access interfaces
+// - Events: Domain events for cross-cutting concerns
 package domain
 
 import (
@@ -8,8 +14,8 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/goformx/goforms/internal/domain/common/events"
 	"github.com/goformx/goforms/internal/domain/form"
-	"github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -41,23 +47,23 @@ func NewUserService(p UserServiceParams) (user.Service, error) {
 type FormServiceParams struct {
 	fx.In
 
-	Store          form.Repository
-	EventPublisher event.Publisher
-	Logger         logging.Logger
+	Repository form.Repository
+	EventBus   events.EventBus
+	Logger     logging.Logger
 }
 
 // NewFormService creates a new form service with dependencies
 func NewFormService(p FormServiceParams) (form.Service, error) {
-	if p.Store == nil {
+	if p.Repository == nil {
 		return nil, errors.New("form repository is required")
 	}
-	if p.EventPublisher == nil {
-		return nil, errors.New("event publisher is required")
+	if p.EventBus == nil {
+		return nil, errors.New("event bus is required")
 	}
 	if p.Logger == nil {
 		return nil, errors.New("logger is required")
 	}
-	return form.NewService(p.Store, p.EventPublisher, p.Logger), nil
+	return form.NewService(p.Repository, p.EventBus, p.Logger), nil
 }
 
 // StoreParams groups store dependencies
@@ -70,34 +76,39 @@ type StoreParams struct {
 // Stores groups all store implementations
 type Stores struct {
 	fx.Out
-	UserStore           user.Repository
-	FormStore           form.Repository
-	FormSubmissionStore form.SubmissionStore
+	UserRepository           user.Repository
+	FormRepository           form.Repository
+	FormSubmissionRepository form.SubmissionRepository
 }
 
-// NewStores creates new store instances
+// NewStores creates new store instances with proper validation and error handling
 func NewStores(p StoreParams) (Stores, error) {
 	if p.DB == nil {
 		return Stores{}, errors.New("database connection is required")
 	}
+	if p.Logger == nil {
+		return Stores{}, errors.New("logger is required")
+	}
 
-	userStore := userstore.NewStore(p.DB, p.Logger)
-	formStore := formstore.NewStore(p.DB, p.Logger)
-	formSubmissionStore := formsubmissionstore.NewStore(p.DB, p.Logger)
+	// Initialize repositories
+	userRepo := userstore.NewStore(p.DB, p.Logger)
+	formRepo := formstore.NewStore(p.DB, p.Logger)
+	formSubmissionRepo := formsubmissionstore.NewStore(p.DB, p.Logger)
 
-	if userStore == nil || formStore == nil || formSubmissionStore == nil {
-		p.Logger.Error("failed to create store",
-			"operation", "store_initialization",
-			"store_type", "user/form/submission",
-			"error_type", "nil_store",
+	// Validate repository instances
+	if userRepo == nil || formRepo == nil || formSubmissionRepo == nil {
+		p.Logger.Error("failed to create repository",
+			"operation", "repository_initialization",
+			"repository_type", "user/form/submission",
+			"error_type", "nil_repository",
 		)
-		return Stores{}, errors.New("failed to create store")
+		return Stores{}, errors.New("failed to create repository: one or more repositories are nil")
 	}
 
 	return Stores{
-		UserStore:           userStore,
-		FormStore:           formStore,
-		FormSubmissionStore: formSubmissionStore,
+		UserRepository:           userRepo,
+		FormRepository:           formRepo,
+		FormSubmissionRepository: formSubmissionRepo,
 	}, nil
 }
 
