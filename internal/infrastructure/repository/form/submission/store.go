@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -200,18 +201,38 @@ func (s *Store) GetByFormAndUser(ctx context.Context, formID, userID string) (*m
 	return &submission, nil
 }
 
-// GetSubmissionsByStatus retrieves all submissions with the given status
+// GetSubmissionsByStatus retrieves submissions by status
 func (s *Store) GetSubmissionsByStatus(
 	ctx context.Context,
 	status model.SubmissionStatus,
-) ([]*model.FormSubmission, error) {
+	params common.PaginationParams,
+) (*common.PaginationResult, error) {
 	var submissions []*model.FormSubmission
+	var total int64
+
+	// Get total count
+	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).
+		Where("status = ?", status).
+		Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("failed to count submissions: %w", err)
+	}
+
+	// Get paginated results
 	if err := s.db.WithContext(ctx).
 		Where("status = ?", status).
+		Offset((params.Page - 1) * params.PageSize).
+		Limit(params.PageSize).
 		Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
-	return submissions, nil
+
+	return &common.PaginationResult{
+		Items:      submissions,
+		TotalItems: int(total),
+		Page:       params.Page,
+		PageSize:   params.PageSize,
+		TotalPages: int(math.Ceil(float64(total) / float64(params.PageSize))),
+	}, nil
 }
 
 // GetFormsByStatus returns forms by their active status
@@ -254,4 +275,41 @@ func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]
 		return nil, common.NewDatabaseError("search", "form_submission", "", err)
 	}
 	return submissions, nil
+}
+
+// CreateSubmission creates a new form submission
+func (s *Store) CreateSubmission(ctx context.Context, submission *model.FormSubmission) error {
+	result := s.db.WithContext(ctx).Create(submission)
+	if result.Error != nil {
+		return fmt.Errorf("failed to create form submission: %w", result.Error)
+	}
+	return nil
+}
+
+// DeleteSubmission deletes a form submission
+func (s *Store) DeleteSubmission(ctx context.Context, id string) error {
+	result := s.db.WithContext(ctx).Delete(&model.FormSubmission{}, "id = ?", id)
+	if result.Error != nil {
+		return fmt.Errorf("failed to delete form submission: %w", result.Error)
+	}
+	return nil
+}
+
+// UpdateSubmission updates a form submission
+func (s *Store) UpdateSubmission(ctx context.Context, submission *model.FormSubmission) error {
+	s.logger.Debug("updating submission", "id", submission.ID)
+
+	result := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("id = ?", submission.ID).Updates(submission)
+	if result.Error != nil {
+		s.logger.Error("failed to update submission", "error", result.Error, "id", submission.ID)
+		return common.NewDatabaseError("update", "form_submission", submission.ID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		s.logger.Debug("form submission not found for update",
+			"submission_id", submission.ID,
+		)
+		return common.NewNotFoundError("update", "form_submission", submission.ID)
+	}
+	s.logger.Debug("submission updated", "id", submission.ID)
+	return nil
 }
