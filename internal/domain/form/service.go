@@ -76,15 +76,15 @@ func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
 		return fmt.Errorf("invalid form: %w", err)
 	}
 
-	// Update form
-	if updateErr := s.repository.UpdateForm(ctx, form); updateErr != nil {
+	updateErr := s.repository.UpdateForm(ctx, form)
+	if updateErr != nil {
 		return fmt.Errorf("failed to update form: %w", updateErr)
 	}
 
-	// Publish event
 	event := formevents.NewFormUpdatedEvent(form)
-	if pubErr := s.eventBus.Publish(ctx, event); pubErr != nil {
-		return fmt.Errorf("failed to publish form updated event: %w", pubErr)
+	publishErr := s.eventBus.Publish(ctx, event)
+	if publishErr != nil {
+		return fmt.Errorf("failed to publish update event: %w", publishErr)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -199,17 +200,16 @@ func (s *Store) GetByFormAndUser(ctx context.Context, formID, userID string) (*m
 	return &submission, nil
 }
 
-// GetSubmissionsByStatus retrieves submissions by status
-func (s *Store) GetSubmissionsByStatus(ctx context.Context, status model.SubmissionStatus) ([]*model.FormSubmission, error) {
-	s.logger.Debug("getting submissions by status", "status", status)
-
+// GetSubmissionsByStatus retrieves all submissions with the given status
+func (s *Store) GetSubmissionsByStatus(
+	ctx context.Context,
+	status model.SubmissionStatus,
+) ([]*model.FormSubmission, error) {
 	var submissions []*model.FormSubmission
 	if err := s.db.WithContext(ctx).
 		Where("status = ?", status).
-		Order("created_at DESC").
 		Find(&submissions).Error; err != nil {
-		s.logger.Error("failed to get submissions by status", "error", err, "status", status)
-		return nil, common.NewDatabaseError("get_by_status", "form_submission", string(status), err)
+		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
 	return submissions, nil
 }

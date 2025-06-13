@@ -55,9 +55,17 @@ func (b *MemoryEventBus) PublishBatch(ctx context.Context, eventList []events.Ev
 }
 
 // Subscribe subscribes to an event
-func (b *MemoryEventBus) Subscribe(ctx context.Context, eventName string, handler func(context.Context, events.Event) error) error {
+func (b *MemoryEventBus) Subscribe(
+	ctx context.Context,
+	eventName string,
+	handler func(context.Context, events.Event) error,
+) error {
 	b.handlersMu.Lock()
 	defer b.handlersMu.Unlock()
+
+	if _, exists := b.handlers[eventName]; !exists {
+		b.handlers[eventName] = make([]func(context.Context, events.Event) error, 0)
+	}
 
 	b.handlers[eventName] = append(b.handlers[eventName], handler)
 	return nil

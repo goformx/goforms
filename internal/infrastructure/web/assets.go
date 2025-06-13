@@ -33,6 +33,7 @@ const (
 	AssetTypeImage AssetType = "image"
 	// AssetTypeFont represents font files
 	AssetTypeFont AssetType = "font"
+	MaxPathLength           = 100
 )
 
 // ManifestEntry represents an entry in the Vite manifest file
@@ -95,8 +96,8 @@ func (s *ViteAssetServer) RegisterRoutes(e *echo.Echo) error {
 		if s.logger != nil {
 			// Only log the path portion of the URL, limited to 100 characters
 			path := r.URL.Path
-			if len(path) > 100 {
-				path = path[:100] + "..."
+			if len(path) > MaxPathLength {
+				path = path[:MaxPathLength] + "..."
 			}
 			s.logger.Error("proxy error",
 				"error", err,
@@ -415,6 +416,10 @@ func (m *AssetManager) getProductionAssetPath(path string) string {
 func (m *AssetManager) GetAssetPath(path string) (string, error) {
 	if path == "" {
 		return "", errors.New("path cannot be empty")
+	}
+
+	if len(path) > MaxPathLength {
+		return "", fmt.Errorf("path too long: %s", path)
 	}
 
 	if m.logger != nil {

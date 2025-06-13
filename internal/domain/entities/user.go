@@ -15,6 +15,10 @@ var (
 	ErrInvalidPassword = errors.New("password must be at least 8 characters")
 )
 
+const (
+	MinPasswordLength = 8
+)
+
 // User represents a user entity
 type User struct {
 	ID             string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
@@ -80,6 +84,14 @@ func NewUser(username, email, password, firstName, lastName string) (*User, erro
 
 // Validate performs validation on the user entity
 func (u *User) Validate() error {
+	if u.Email == "" {
+		return errors.New("email is required")
+	}
+
+	if u.HashedPassword == "" {
+		return errors.New("password is required")
+	}
+
 	if len(u.Username) < 3 || len(u.Username) > 50 {
 		return ErrInvalidUsername
 	}

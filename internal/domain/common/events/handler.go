@@ -20,6 +20,8 @@ type HandlerConfig struct {
 	Logger     logging.Logger
 	RetryCount int
 	Timeout    time.Duration
+	RetryDelay time.Duration
+	MaxBackoff time.Duration
 }
 
 // BaseHandler provides common functionality for event handlers
@@ -119,6 +121,8 @@ func (r *EventHandlerRegistry) HandleEvent(ctx context.Context, event Event) err
 func NewHandlerConfig() *HandlerConfig {
 	return &HandlerConfig{
 		Timeout:    DefaultTimeout,
-		RetryCount: DefaultRetries,
+		RetryCount: 3,
+		RetryDelay: time.Second,
+		MaxBackoff: 30 * time.Second,
 	}
 }
