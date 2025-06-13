@@ -133,22 +133,25 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	}
 
 	// Create the submission
-	if err := s.repository.CreateSubmission(ctx, submission); err != nil {
-		return err
+	createErr := s.repository.CreateSubmission(ctx, submission)
+	if createErr != nil {
+		return createErr
 	}
 
 	// Publish form submitted event
 	event := formevents.NewFormSubmittedEvent(submission)
-	if err := s.eventBus.Publish(ctx, event); err != nil {
-		s.logger.Error("failed to publish form submitted event", "error", err)
+	publishErr := s.eventBus.Publish(ctx, event)
+	if publishErr != nil {
+		s.logger.Error("failed to publish form submitted event", "error", publishErr)
 	}
 
 	// Validate the submission
 	validationErr := submission.Validate()
 	isValid := validationErr == nil
 	validationEvent := formevents.NewFormValidatedEvent(submission.FormID, isValid)
-	if err = s.eventBus.Publish(ctx, validationEvent); err != nil {
-		s.logger.Error("failed to publish form validated event", "error", err)
+	validationPublishErr := s.eventBus.Publish(ctx, validationEvent)
+	if validationPublishErr != nil {
+		s.logger.Error("failed to publish form validated event", "error", validationPublishErr)
 	}
 
 	if !isValid {
@@ -156,8 +159,9 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	}
 
 	processingEvent := formevents.NewFormProcessedEvent(submission.FormID, submission.ID)
-	if err = s.eventBus.Publish(ctx, processingEvent); err != nil {
-		s.logger.Error("failed to publish form processed event", "error", err)
+	processingPublishErr := s.eventBus.Publish(ctx, processingEvent)
+	if processingPublishErr != nil {
+		s.logger.Error("failed to publish form processed event", "error", processingPublishErr)
 	}
 
 	return nil

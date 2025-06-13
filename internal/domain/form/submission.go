@@ -19,8 +19,22 @@ type SubmissionRepository interface {
 		formID string,
 		params common.PaginationParams,
 	) (*common.PaginationResult, error)
-	// GetByFormAndUser retrieves a form submission by form ID and user ID
-	GetByFormAndUser(ctx context.Context, formID, userID string) (*model.FormSubmission, error)
+	// GetByFormAndUser retrieves a submission by form ID and user ID
+	GetByFormAndUser(
+		ctx context.Context,
+		formID string,
+		userID string,
+	) (*model.FormSubmission, error)
 	// GetSubmissionsByStatus retrieves submissions by status
-	GetSubmissionsByStatus(ctx context.Context, status model.SubmissionStatus) ([]*model.FormSubmission, error)
+	GetSubmissionsByStatus(
+		ctx context.Context,
+		status model.SubmissionStatus,
+		params common.PaginationParams,
+	) (*common.PaginationResult, error)
+	// CreateSubmission creates a new form submission
+	CreateSubmission(ctx context.Context, submission *model.FormSubmission) error
+	// UpdateSubmission updates an existing form submission
+	UpdateSubmission(ctx context.Context, submission *model.FormSubmission) error
+	// DeleteSubmission deletes a form submission
+	DeleteSubmission(ctx context.Context, id string) error
 }
