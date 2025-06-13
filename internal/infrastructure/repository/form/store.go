@@ -1,4 +1,5 @@
-package form
+// Package repository provides the form repository implementation
+package repository
 
 import (
 	"context"
@@ -12,7 +13,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/repository/common"
 	"github.com/google/uuid"
-	"github.com/jackc/pgconn"
 	"gorm.io/gorm"
 )
 
@@ -24,17 +24,15 @@ type Store struct {
 
 // NewStore creates a new form store
 func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
-	logger.Debug("creating form store",
-		"db_available", db != nil,
-	)
+	logger.Debug("form store initialized", "service", "form")
 	return &Store{
 		db:     db,
 		logger: logger,
 	}
 }
 
-// Create creates a new form
-func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
+// CreateForm creates a new form
+func (s *Store) CreateForm(ctx context.Context, formModel *model.Form) error {
 	if err := s.db.WithContext(ctx).Create(formModel).Error; err != nil {
 		s.logger.Error("failed to create form in database",
 			"form_id", formModel.ID,
@@ -45,8 +43,8 @@ func (s *Store) Create(ctx context.Context, formModel *model.Form) error {
 	return nil
 }
 
-// GetByID retrieves a form by ID
-func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
+// GetFormByID retrieves a form by ID
+func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error) {
 	// Normalize the UUID by trimming spaces and converting to lowercase
 	normalizedID := strings.TrimSpace(strings.ToLower(id))
 
@@ -85,100 +83,22 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.Form, error) {
 	return &formModel, nil
 }
 
-// GetByUserID retrieves all forms for a given user
-func (s *Store) GetByUserID(ctx context.Context, userID string) ([]*model.Form, error) {
-	s.logger.Debug("get by user id request received",
-		"operation", "get_user_forms",
-		"user_id", userID,
-	)
-
+// ListForms retrieves a list of forms
+func (s *Store) ListForms(ctx context.Context, offset, limit int) ([]*model.Form, error) {
 	var forms []*model.Form
-	result := s.db.WithContext(ctx).Where("user_id = ?", userID).Find(&forms)
-
-	if result.Error != nil {
-		// Extract PostgreSQL error details if available
-		var pgErr *pgconn.PgError
-		if errors.As(result.Error, &pgErr) {
-			// Log detailed PostgreSQL error information
-			s.logger.Error("postgres error while getting user forms",
-				"operation", "get_user_forms",
-				"user_id", userID,
-				"error_type", "postgres_error",
-				"sql_state", pgErr.Code,
-				"severity", pgErr.Severity,
-				"message", pgErr.Message,
-				"detail", pgErr.Detail,
-				"hint", pgErr.Hint,
-				"position", pgErr.Position,
-				"internal_position", pgErr.InternalPosition,
-				"internal_query", pgErr.InternalQuery,
-				"where", pgErr.Where,
-				"schema_name", pgErr.SchemaName,
-				"table_name", pgErr.TableName,
-				"column_name", pgErr.ColumnName,
-				"data_type_name", pgErr.DataTypeName,
-				"constraint_name", pgErr.ConstraintName,
-				"file", pgErr.File,
-				"line", pgErr.Line,
-				"routine", pgErr.Routine,
-			)
-
-			// Handle specific PostgreSQL error cases
-			switch pgErr.Code {
-			case "42703": // undefined_column
-				return nil, common.NewDatabaseError(
-					"get_by_user",
-					"form",
-					fmt.Sprintf("user_id:%s - column does not exist", userID),
-					result.Error,
-				)
-			case "42P01": // undefined_table
-				return nil, common.NewDatabaseError(
-					"get_by_user",
-					"form",
-					fmt.Sprintf("user_id:%s - table does not exist", userID),
-					result.Error,
-				)
-			case "23503": // foreign_key_violation
-				return nil, common.NewDatabaseError(
-					"get_by_user",
-					"form",
-					fmt.Sprintf("user_id:%s - invalid user reference", userID),
-					result.Error,
-				)
-			case "23505": // unique_violation
-				return nil, common.NewDatabaseError(
-					"get_by_user",
-					"form",
-					fmt.Sprintf("user_id:%s - duplicate entry", userID),
-					result.Error,
-				)
-			}
-		}
-
-		// Log general database error if not a PostgreSQL error
-		s.logger.Error("database error while getting user forms",
-			"operation", "get_user_forms",
-			"user_id", userID,
-			"error_type", "database_error",
-			"error", result.Error,
-			"error_details", fmt.Sprintf("%+v", result.Error),
+	if err := s.db.WithContext(ctx).Offset(offset).Limit(limit).Find(&forms).Error; err != nil {
+		s.logger.Error("failed to list forms",
+			"offset", offset,
+			"limit", limit,
+			"error", err,
 		)
-
-		return nil, common.NewDatabaseError("get_by_user", "form", fmt.Sprintf("user_id:%s", userID), result.Error)
+		return nil, common.NewDatabaseError("list", "form", "", err)
 	}
-
-	s.logger.Debug("forms retrieved from database",
-		"operation", "get_user_forms",
-		"user_id", userID,
-		"form_count", len(forms),
-	)
-
 	return forms, nil
 }
 
-// Update updates a form
-func (s *Store) Update(ctx context.Context, formModel *model.Form) error {
+// UpdateForm updates a form
+func (s *Store) UpdateForm(ctx context.Context, formModel *model.Form) error {
 	s.logger.Debug("updating form", "form_id", formModel.ID)
 	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("uuid = ?", formModel.ID).Updates(formModel)
 	if result.Error != nil {
@@ -190,8 +110,8 @@ func (s *Store) Update(ctx context.Context, formModel *model.Form) error {
 	return nil
 }
 
-// Delete deletes a form
-func (s *Store) Delete(ctx context.Context, id string) error {
+// DeleteForm deletes a form
+func (s *Store) DeleteForm(ctx context.Context, id string) error {
 	// Normalize the UUID by trimming spaces and converting to lowercase
 	normalizedID := strings.TrimSpace(strings.ToLower(id))
 
@@ -204,102 +124,161 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 		return common.NewInvalidInputError("delete", "form", id, err)
 	}
 
-	s.logger.Debug("deleting form",
-		"form_id", normalizedID,
-	)
-
 	result := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).Delete(&model.Form{})
 	if result.Error != nil {
-		s.logger.Error("database error while deleting form",
+		s.logger.Error("failed to delete form",
 			"form_id", normalizedID,
 			"error", result.Error,
 		)
 		return common.NewDatabaseError("delete", "form", normalizedID, result.Error)
 	}
+
 	if result.RowsAffected == 0 {
 		s.logger.Debug("form not found for deletion",
 			"form_id", normalizedID,
 		)
 		return common.NewNotFoundError("delete", "form", normalizedID)
 	}
-	return nil
-}
 
-// List returns a paginated list of forms
-func (s *Store) List(ctx context.Context, offset, limit int) ([]*model.Form, error) {
-	s.logger.Debug("listing forms", "offset", offset, "limit", limit)
-	var forms []*model.Form
-	if err := s.db.WithContext(ctx).Order("created_at DESC").Offset(offset).Limit(limit).Find(&forms).Error; err != nil {
-		return nil, common.NewDatabaseError("list", "form", "", err)
-	}
-	return forms, nil
-}
-
-// Count returns the total number of forms
-func (s *Store) Count(ctx context.Context) (int, error) {
-	s.logger.Debug("counting forms")
-	var count int64
-	if err := s.db.WithContext(ctx).Model(&model.Form{}).Count(&count).Error; err != nil {
-		return 0, common.NewDatabaseError("count", "form", "", err)
-	}
-	return int(count), nil
-}
-
-// Search searches forms by title or description
-func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]*model.Form, error) {
-	s.logger.Debug("searching forms",
-		"query", query,
-		"offset", offset,
-		"limit", limit,
+	s.logger.Debug("form deleted successfully",
+		"form_id", normalizedID,
 	)
-	var forms []*model.Form
-	searchPattern := "%" + query + "%"
-	if err := s.db.WithContext(ctx).
-		Where("title LIKE ? OR description LIKE ?", searchPattern, searchPattern).
-		Order("created_at DESC").
-		Offset(offset).
-		Limit(limit).
-		Find(&forms).Error; err != nil {
-		return nil, common.NewDatabaseError("search", "form", query, err)
-	}
-	return forms, nil
-}
-
-// GetActiveForms returns all active forms
-func (s *Store) GetActiveForms(ctx context.Context) ([]*model.Form, error) {
-	s.logger.Debug("getting active forms")
-	var forms []*model.Form
-	if err := s.db.WithContext(ctx).
-		Where("active = ?", true).
-		Order("created_at DESC").
-		Find(&forms).Error; err != nil {
-		return nil, common.NewDatabaseError("get_active", "form", "", err)
-	}
-	return forms, nil
+	return nil
 }
 
 // GetFormsByStatus returns forms by their active status
 func (s *Store) GetFormsByStatus(ctx context.Context, active bool) ([]*model.Form, error) {
-	s.logger.Debug("getting forms by status", "active", active)
 	var forms []*model.Form
-	if err := s.db.WithContext(ctx).
-		Where("active = ?", active).
-		Order("created_at DESC").
-		Find(&forms).Error; err != nil {
-		return nil, common.NewDatabaseError("get_by_status", "form", fmt.Sprintf("status:%v", active), err)
+	if err := s.db.WithContext(ctx).Where("active = ?", active).Find(&forms).Error; err != nil {
+		s.logger.Error("failed to get forms by status",
+			"active", active,
+			"error", err,
+		)
+		return nil, common.NewDatabaseError("get_by_status", "form", "", err)
 	}
 	return forms, nil
 }
 
-// GetFormSubmissions retrieves all submissions for a form
-func (s *Store) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	s.logger.Debug("getting form submissions", "form_id", formID)
+// CreateSubmission creates a new form submission
+func (s *Store) CreateSubmission(ctx context.Context, submission *model.FormSubmission) error {
+	if err := s.db.WithContext(ctx).Create(submission).Error; err != nil {
+		s.logger.Error("failed to create form submission",
+			"submission_id", submission.ID,
+			"form_id", submission.FormID,
+			"error", err,
+		)
+		return common.NewDatabaseError("create", "form_submission", submission.ID, err)
+	}
+	return nil
+}
+
+// GetSubmissionByID retrieves a form submission by ID
+func (s *Store) GetSubmissionByID(ctx context.Context, submissionID string) (*model.FormSubmission, error) {
+	var submission model.FormSubmission
+	if err := s.db.WithContext(ctx).Where("uuid = ?", submissionID).First(&submission).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NewNotFoundError("get", "form_submission", submissionID)
+		}
+		return nil, common.NewDatabaseError("get", "form_submission", submissionID, err)
+	}
+	return &submission, nil
+}
+
+// ListSubmissions retrieves all submissions for a form
+func (s *Store) ListSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
 	var submissions []*model.FormSubmission
-	if err := s.db.WithContext(ctx).
-		Where("form_uuid = ?", formID).
-		Order("created_at DESC").
-		Find(&submissions).Error; err != nil {
-		return nil, common.NewDatabaseError("get_submissions", "form", formID, err)
+	if err := s.db.WithContext(ctx).Where("form_id = ?", formID).Find(&submissions).Error; err != nil {
+		s.logger.Error("failed to list form submissions",
+			"form_id", formID,
+			"error", err,
+		)
+		return nil, common.NewDatabaseError("list", "form_submission", formID, err)
+	}
+	return submissions, nil
+}
+
+// UpdateSubmission updates a form submission
+func (s *Store) UpdateSubmission(ctx context.Context, submission *model.FormSubmission) error {
+	result := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("uuid = ?", submission.ID).Updates(submission)
+	if result.Error != nil {
+		s.logger.Error("failed to update form submission",
+			"submission_id", submission.ID,
+			"error", result.Error,
+		)
+		return common.NewDatabaseError("update", "form_submission", submission.ID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return common.NewNotFoundError("update", "form_submission", submission.ID)
+	}
+	return nil
+}
+
+// DeleteSubmission deletes a form submission
+func (s *Store) DeleteSubmission(ctx context.Context, submissionID string) error {
+	result := s.db.WithContext(ctx).Where("uuid = ?", submissionID).Delete(&model.FormSubmission{})
+	if result.Error != nil {
+		s.logger.Error("failed to delete form submission",
+			"submission_id", submissionID,
+			"error", result.Error,
+		)
+		return common.NewDatabaseError("delete", "form_submission", submissionID, result.Error)
+	}
+	if result.RowsAffected == 0 {
+		return common.NewNotFoundError("delete", "form_submission", submissionID)
+	}
+	return nil
+}
+
+// GetByFormID retrieves all submissions for a form
+func (s *Store) GetByFormID(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
+	return s.ListSubmissions(ctx, formID)
+}
+
+// GetByFormIDPaginated returns a paginated list of submissions for a form
+func (s *Store) GetByFormIDPaginated(ctx context.Context, formID string, params common.PaginationParams) (*common.PaginationResult, error) {
+	var submissions []*model.FormSubmission
+	var total int64
+
+	// Get total count
+	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("form_id = ?", formID).Count(&total).Error; err != nil {
+		return nil, common.NewDatabaseError("count", "form_submission", formID, err)
+	}
+
+	// Get paginated results
+	if err := s.db.WithContext(ctx).Where("form_id = ?", formID).Offset(params.GetOffset()).Limit(params.GetLimit()).Find(&submissions).Error; err != nil {
+		return nil, common.NewDatabaseError("list", "form_submission", formID, err)
+	}
+
+	return &common.PaginationResult{
+		Items:      submissions,
+		TotalItems: int(total),
+		Page:       params.Page,
+		PageSize:   params.PageSize,
+		TotalPages: (int(total) + params.PageSize - 1) / params.PageSize,
+	}, nil
+}
+
+// GetByFormAndUser retrieves a form submission by form ID and user ID
+func (s *Store) GetByFormAndUser(ctx context.Context, formID, userID string) (*model.FormSubmission, error) {
+	var submission model.FormSubmission
+	if err := s.db.WithContext(ctx).Where("form_id = ? AND user_id = ?", formID, userID).First(&submission).Error; err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, common.NewNotFoundError("get", "form_submission", fmt.Sprintf("form:%s,user:%s", formID, userID))
+		}
+		return nil, common.NewDatabaseError("get", "form_submission", fmt.Sprintf("form:%s,user:%s", formID, userID), err)
+	}
+	return &submission, nil
+}
+
+// GetSubmissionsByStatus retrieves submissions by status
+func (s *Store) GetSubmissionsByStatus(ctx context.Context, status model.SubmissionStatus) ([]*model.FormSubmission, error) {
+	var submissions []*model.FormSubmission
+	if err := s.db.WithContext(ctx).Where("status = ?", status).Find(&submissions).Error; err != nil {
+		s.logger.Error("failed to get submissions by status",
+			"status", status,
+			"error", err,
+		)
+		return nil, common.NewDatabaseError("get_by_status", "form_submission", "", err)
 	}
 	return submissions, nil
 }

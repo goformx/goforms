@@ -88,8 +88,9 @@ var Module = fx.Options(
 		echo.New,
 		server.New,
 		database.New,
-		// Event publisher
+		// Event system
 		NewEventPublisher,
+		event.NewMemoryEventBus,
 		// Asset server
 		ProvideAssetServer,
 	),
