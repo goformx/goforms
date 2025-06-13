@@ -71,7 +71,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.Use
 	}
 
 	// Create user with default first/last name
-	user, err := entities.NewUser(signup.Email, signup.Password, signup.Email[:strings.Index(signup.Email, "@")], "")
+	user, err := entities.NewUser(signup.Email, signup.Password, signup.Email[:strings.Index(signup.Email, "@")+1], "")
 	if err != nil {
 		s.logger.Error("failed to create user", "error", err)
 		return nil, fmt.Errorf("failed to create user: %w", err)

@@ -2,9 +2,9 @@ package web
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"reflect"
-	"strings"
 	"time"
 
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
@@ -27,6 +27,8 @@ const (
 	MinPasswordLength = 8
 	// XMLHttpRequestHeader is the standard header value for AJAX requests
 	XMLHttpRequestHeader = "XMLHttpRequest"
+	// fieldPassword is the constant for the password field name
+	fieldPassword = "password"
 )
 
 // NewAuthHandler creates a new auth handler
@@ -56,78 +58,54 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 	validation.GET("/signup", h.SignupValidation)
 }
 
-// generateValidationSchema generates a validation schema from struct tags
+func getFieldSchema(field reflect.StructField) map[string]any {
+	fieldSchema := make(map[string]any)
+
+	// Get validation tags
+	validate := field.Tag.Get("validate")
+	if validate != "" {
+		fieldSchema["validate"] = validate
+	}
+
+	// Get min/max length
+	minLen := field.Tag.Get("minlen")
+	if minLen != "" {
+		fieldSchema["minLength"] = minLen
+	}
+	maxLen := field.Tag.Get("maxlen")
+	if maxLen != "" {
+		fieldSchema["maxLength"] = maxLen
+	}
+
+	return fieldSchema
+}
+
+func getPasswordSchema() map[string]any {
+	return map[string]any{
+		"type":      "password",
+		"validate":  "required,min=8",
+		"minLength": "8",
+		"message": "Password must be at least 8 characters long and include " +
+			"uppercase, lowercase, number, and special characters",
+	}
+}
+
 func generateValidationSchema(s any) map[string]any {
-	schema := make(map[string]any)
 	t := reflect.TypeOf(s)
+	schema := make(map[string]any)
 
-	// Handle pointer types
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	// Only process structs
-	if t.Kind() != reflect.Struct {
-		return schema
-	}
-
-	for i := 0; i < t.NumField(); i++ {
+	for i := range t.NumField() {
 		field := t.Field(i)
-		jsonTag := field.Tag.Get("json")
-		if jsonTag == "" || jsonTag == "-" {
-			continue
+		fieldName := field.Tag.Get("json")
+		if fieldName == "" {
+			fieldName = field.Name
 		}
 
-		// Get the first part of the JSON tag (before any comma)
-		fieldName := strings.Split(jsonTag, ",")[0]
-		validateTag := field.Tag.Get("validate")
+		fieldSchema := getFieldSchema(field)
 
-		// Create field schema
-		fieldSchema := make(map[string]any)
-		fieldSchema["type"] = "string" // Default type
-
-		// Parse validation tags
-		if validateTag != "" {
-			rules := strings.Split(validateTag, ",")
-			for _, rule := range rules {
-				switch {
-				case rule == "required":
-					fieldSchema["type"] = "required"
-					fieldSchema["message"] = fieldName + " is required"
-				case rule == "email":
-					fieldSchema["type"] = "email"
-					fieldSchema["message"] = "Please enter a valid email address"
-				case strings.HasPrefix(rule, "min="):
-					minLength := strings.TrimPrefix(rule, "min=")
-					fieldSchema["min"] = minLength
-					if fieldName == "password" {
-						fieldSchema["type"] = "password"
-						fieldSchema["message"] = "Password must be at least " + minLength + " characters long"
-					}
-				case strings.HasPrefix(rule, "eqfield="):
-					matchField := strings.TrimPrefix(rule, "eqfield=")
-					fieldSchema["type"] = "match"
-					fieldSchema["matchField"] = strings.ToLower(matchField)
-					fieldSchema["message"] = "Passwords must match"
-				}
-			}
-		}
-
-		// Special handling for password fields
-		if fieldName == "password" {
-			fieldSchema["type"] = "password"
-			if _, hasMin := fieldSchema["min"]; !hasMin {
-				fieldSchema["min"] = MinPasswordLength
-			}
-			fieldSchema["message"] = "Password must be at least 8 characters long and include uppercase, lowercase, number, and special characters"
-		}
-
-		// Special handling for confirm_password
-		if fieldName == "confirm_password" {
-			fieldSchema["type"] = "match"
-			fieldSchema["matchField"] = "password"
-			fieldSchema["message"] = "Passwords must match"
-			fieldSchema["min"] = MinPasswordLength
+		// Special handling for password field
+		if fieldName == fieldPassword {
+			fieldSchema = getPasswordSchema()
 		}
 
 		schema[fieldName] = fieldSchema
@@ -271,7 +249,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		h.deps.Logger.Error("failed to create user", "error", err)
 
 		// Check for specific error types
-		if err == user.ErrUserExists {
+		if errors.Is(err, user.ErrUserExists) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
 				"message": "This email is already registered. Please try signing in instead.",
 				"field":   "email",
