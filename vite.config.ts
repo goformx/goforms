@@ -10,7 +10,7 @@ export default defineConfig({
   root: ".",
   publicDir: "public",
   appType: "custom",
-  base: "/",
+  base: process.env.NODE_ENV === 'production' ? '/assets/' : '/',
   css: {
     devSourcemap: true,
     modules: {
@@ -27,10 +27,43 @@ export default defineConfig({
       ],
     },
   },
+  server: {
+    port: 3000,
+    strictPort: true,
+    cors: {
+      origin: 'http://localhost:8090', // Your Go server URL
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      credentials: true,
+    },
+    proxy: {
+      "/api": {
+        target: "http://localhost:8090",
+        changeOrigin: true,
+        secure: false,
+      },
+    },
+    hmr: {
+      protocol: "ws",
+      host: "localhost",
+      port: 3000,
+      clientPort: 3000,
+    },
+    host: true,
+    middlewareMode: false,
+    fs: {
+      strict: false,
+      allow: [".."],
+    },
+    watch: {
+      usePolling: true,
+      interval: 1000,
+    },
+    origin: 'http://localhost:3000', // Explicitly set the Vite dev server origin
+  },
   build: {
     outDir: "dist",
     emptyOutDir: true,
-    manifest: true,
+    manifest: true, // Generate manifest.json
     sourcemap: true,
     target: "esnext",
     minify: "terser",
@@ -47,14 +80,14 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        main: "src/js/main.ts",
-        "main.css": "src/css/main.css",
-        dashboard: "src/js/dashboard.ts",
-        "form-builder": "src/js/form-builder.ts",
-        login: "src/js/login.ts",
-        signup: "src/js/signup.ts",
-        "cta-form": "src/js/cta-form.ts",
-        demo: "src/js/demo.ts",
+        main: resolve(__dirname, "src/js/main.ts"),
+        "main.css": resolve(__dirname, "src/css/main.css"),
+        dashboard: resolve(__dirname, "src/js/dashboard.ts"),
+        "form-builder": resolve(__dirname, "src/js/form-builder.ts"),
+        login: resolve(__dirname, "src/js/login.ts"),
+        signup: resolve(__dirname, "src/js/signup.ts"),
+        "cta-form": resolve(__dirname, "src/js/cta-form.ts"),
+        demo: resolve(__dirname, "src/js/demo.ts"),
       },
       output: {
         assetFileNames: (assetInfo) => {
@@ -81,32 +114,6 @@ export default defineConfig({
         chunkFileNames: "assets/js/[name].[hash].js",
         entryFileNames: "assets/js/[name].[hash].js",
       },
-    },
-  },
-  server: {
-    port: 3000,
-    strictPort: true,
-    proxy: {
-      "/api": {
-        target: "http://localhost:8090",
-        changeOrigin: true,
-      },
-    },
-    hmr: {
-      protocol: "ws",
-      host: "localhost",
-      port: 3000,
-      clientPort: 3000,
-    },
-    host: true,
-    middlewareMode: false,
-    fs: {
-      strict: false,
-      allow: [".."],
-    },
-    watch: {
-      usePolling: true,
-      interval: 1000,
     },
   },
   resolve: {
