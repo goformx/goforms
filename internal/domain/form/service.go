@@ -70,21 +70,21 @@ func (s *formService) CreateForm(ctx context.Context, form *model.Form) error {
 	return nil
 }
 
-// UpdateForm updates an existing form
+// UpdateForm updates a form
 func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
 	if err := form.Validate(); err != nil {
-		return fmt.Errorf("invalid form: %w", err)
+		return err
 	}
 
-	updateErr := s.repository.UpdateForm(ctx, form)
-	if updateErr != nil {
-		return fmt.Errorf("failed to update form: %w", updateErr)
+	// Update the form
+	if updateErr := s.repository.UpdateForm(ctx, form); updateErr != nil {
+		return updateErr
 	}
 
+	// Publish form updated event
 	event := formevents.NewFormUpdatedEvent(form)
-	publishErr := s.eventBus.Publish(ctx, event)
-	if publishErr != nil {
-		return fmt.Errorf("failed to publish update event: %w", publishErr)
+	if publishErr := s.eventBus.Publish(ctx, event); publishErr != nil {
+		s.logger.Error("failed to publish form updated event", "error", publishErr)
 	}
 
 	return nil

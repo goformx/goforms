@@ -3,7 +3,6 @@ package events
 import (
 	"context"
 	"fmt"
-	"log"
 	"time"
 
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -15,6 +14,8 @@ const (
 	DefaultRetryCount = 3
 	DefaultRetryDelay = time.Second
 	DefaultMaxBackoff = 30 * time.Second
+	// DefaultRetryTimeout is the default timeout for retry operations
+	DefaultRetryTimeout = 30 * time.Second
 )
 
 // HandlerConfig represents the configuration for an event handler
@@ -45,18 +46,33 @@ func NewBaseHandler(config HandlerConfig) *BaseHandler {
 }
 
 // HandleWithRetry handles an event with retry logic
-func (h *BaseHandler) HandleWithRetry(ctx context.Context, event Event, handler func(ctx context.Context, event Event) error) error {
+func (h *BaseHandler) HandleWithRetry(
+	ctx context.Context,
+	event Event,
+	handler func(ctx context.Context, event Event) error,
+) error {
+	config := h.config
+	config.Timeout = DefaultRetryTimeout
+
+	// Create a context with timeout
+	ctx, cancel := context.WithTimeout(ctx, config.Timeout)
+	defer cancel()
+
 	var lastErr error
 	for i := range h.config.RetryCount {
-		if err := handler(ctx, event); err != nil {
-			lastErr = err
-			log.Printf("Retry %d/%d failed: %v", i+1, h.config.RetryCount, err)
-			time.Sleep(time.Second * time.Duration(i+1))
-			continue
+		select {
+		case <-ctx.Done():
+			return fmt.Errorf("retry timeout after %d attempts: %w", i, lastErr)
+		default:
+			if err := handler(ctx, event); err != nil {
+				lastErr = err
+				time.Sleep(h.config.RetryDelay)
+				continue
+			}
+			return nil
 		}
-		return nil
 	}
-	return fmt.Errorf("event handling failed after %d attempts: %w", h.config.RetryCount, lastErr)
+	return fmt.Errorf("max retries exceeded: %w", lastErr)
 }
 
 // LogEvent logs an event

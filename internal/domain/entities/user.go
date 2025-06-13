@@ -16,6 +16,7 @@ var (
 )
 
 const (
+	// MinPasswordLength is the minimum length required for passwords
 	MinPasswordLength = 8
 )
 
@@ -162,4 +163,12 @@ func (u *User) GetID() string {
 // SetID sets the user's ID
 func (u *User) SetID(id string) {
 	u.ID = id
+}
+
+// ValidatePassword validates a password
+func (u *User) ValidatePassword(password string) error {
+	if len(password) < MinPasswordLength {
+		return ErrInvalidPassword
+	}
+	return nil
 }
