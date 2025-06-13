@@ -6,11 +6,11 @@ alwaysApply: false
 # Service Layer Architecture
 
 ## Overview
-The service layer implements domain-specific business logic with clear separation of concerns. Services are organized by domain (form, user, etc.) and follow a consistent pattern.
+The service layer implements domain-specific business logic with clear separation of concerns. Services are organized by domain (form, user, etc.) and follow a consistent pattern across both backend and frontend.
 
 ## Core Components
 
-1. Service Interface
+1. Backend Service Interface
    - Defined in domain package
    - Focused on business operations
    - Clear method signatures
@@ -25,24 +25,18 @@ The service layer implements domain-specific business logic with clear separatio
    }
    ```
 
-2. Service Implementation
-   - Private struct with dependencies
-   - Constructor function
-   - Consistent error handling
+2. Frontend Service Interface
+   - TypeScript interfaces
+   - API client methods
+   - Error handling
    - Example:
-   ```go
-   type service struct {
-       repo      Repository
-       publisher event.Publisher
-       logger    logging.Logger
-   }
-
-   func NewService(repo Repository, publisher event.Publisher, logger logging.Logger) *service {
-       return &service{
-           repo:      repo,
-           publisher: publisher,
-           logger:    logger,
-       }
+   ```typescript
+   interface FormService {
+       createForm(userId: string, form: Form): Promise<Form>;
+       getForm(id: string): Promise<Form>;
+       getUserForms(userId: string): Promise<Form[]>;
+       updateForm(userId: string, form: Form): Promise<Form>;
+       deleteForm(userId: string, id: string): Promise<void>;
    }
    ```
 
@@ -52,57 +46,31 @@ The service layer implements domain-specific business logic with clear separatio
    - Use domain error codes
    - Provide context in errors
    - Log errors with details
-   - Example:
-   ```go
-   if err := form.Validate(); err != nil {
-       logger.Error("form validation failed", "error", err)
-       return domainerrors.New(domainerrors.ErrCodeInvalidInput, "create form: invalid input", err)
-   }
-   ```
+   - Handle frontend errors gracefully
 
 2. Input Validation
    - Sanitize user input
    - Validate domain rules
    - Check permissions
-   - Example:
-   ```go
-   form.Title = sanitize.XSS(form.Title)
-   form.Description = sanitize.XSS(form.Description)
-   if err := form.Validate(); err != nil {
-       // Handle error
-   }
-   ```
+   - Use TypeScript types
 
 3. Event Publishing
    - Publish domain events
    - Handle publish errors
    - Log failures
-   - Example:
-   ```go
-   if pubErr := s.publisher.Publish(ctx, event.NewFormCreatedEvent(form)); pubErr != nil {
-       logger.Error("failed to publish form created event", "error", pubErr)
-   }
-   ```
+   - Frontend event handling
 
 4. Context Usage
    - Pass context through
    - Set timeouts
    - Cancel operations
-   - Example:
-   ```go
-   ctx, cancel := context.WithTimeout(ctx, DefaultTimeout)
-   defer cancel()
-   ```
+   - Handle loading states
 
 5. Logging
    - Use structured logging
    - Include user context
    - Log at appropriate levels
-   - Example:
-   ```go
-   logger := s.logger.WithUserID(userID)
-   logger.Error("failed to create form", "error", err)
-   ```
+   - Frontend error tracking
 
 ## Common Patterns
 
@@ -110,27 +78,13 @@ The service layer implements domain-specific business logic with clear separatio
    - Abstract data access
    - Domain-specific operations
    - Error handling
-   - Example:
-   ```go
-   type Repository interface {
-       Create(ctx context.Context, form *model.Form) error
-       GetByID(ctx context.Context, id string) (*model.Form, error)
-       GetByUserID(ctx context.Context, userID string) ([]*model.Form, error)
-       Update(ctx context.Context, form *model.Form) error
-       Delete(ctx context.Context, id string) error
-   }
-   ```
+   - Frontend data fetching
 
 2. Event Publishing
    - Domain events
    - Event handlers
    - Error handling
-   - Example:
-   ```go
-   type Publisher interface {
-       Publish(ctx context.Context, event Event) error
-   }
-   ```
+   - Frontend state management
 
 ## Testing Guidelines
 
@@ -138,29 +92,13 @@ The service layer implements domain-specific business logic with clear separatio
    - Mock dependencies
    - Test error cases
    - Verify behavior
-   - Example:
-   ```go
-   func TestService_CreateForm(t *testing.T) {
-       mockRepo := &MockRepository{}
-       mockPublisher := &MockPublisher{}
-       mockLogger := &MockLogger{}
-       service := NewService(mockRepo, mockPublisher, mockLogger)
-       // Test implementation
-   }
-   ```
+   - Frontend component tests
 
 2. Integration Tests
    - Use test database
    - Test full flow
    - Clean up resources
-   - Example:
-   ```go
-   func TestService_Integration(t *testing.T) {
-       db := setupTestDB(t)
-       defer db.Close()
-       // Test implementation
-   }
-   ```
+   - Frontend integration tests
 
 ## Service Dependencies
 
@@ -182,51 +120,25 @@ The service layer implements domain-specific business logic with clear separatio
    - Error handling
    - Configuration
 
-## Service Implementation
+## Frontend Considerations
 
-1. Constructor Pattern
-   - NewService function
-   - Dependency injection
-   - Configuration validation
+1. State Management
+   - Use React Query
+   - Handle loading states
+   - Error boundaries
+   - Optimistic updates
+
+2. API Integration
+   - Type-safe API clients
    - Error handling
+   - Retry logic
+   - Caching
 
-2. Method Implementation
-   - Clear responsibility
-   - Error handling
-   - Input validation
-   - Proper logging
-
-3. Error Handling
-   - Use domain errors
-   - Provide context
-   - Handle all cases
-   - Log appropriately
-
-4. Logging
-   - Structured logging
-   - Context inclusion
-   - Appropriate levels
-   - Clear messages
-
-## Performance Considerations
-
-1. Caching
-   - Cache expensive operations
-   - Use appropriate TTL
-   - Handle cache misses
-   - Monitor cache usage
-
-2. Database Operations
-   - Use transactions
-   - Optimize queries
-   - Handle timeouts
-   - Monitor performance
-
-3. External Services
-   - Handle timeouts
-   - Implement retries
-   - Monitor performance
-   - Handle failures
+3. Performance
+   - Code splitting
+   - Lazy loading
+   - Memoization
+   - Bundle optimization
 
 ## Security Guidelines
 
@@ -234,16 +146,16 @@ The service layer implements domain-specific business logic with clear separatio
    - Validate all input
    - Use domain rules
    - Handle edge cases
-   - Follow security guidelines
+   - XSS prevention
 
 2. Error Handling
    - Don't expose internals
    - Use domain errors
    - Log appropriately
-   - Follow security guidelines
+   - User-friendly messages
 
 3. Access Control
    - Check permissions
    - Validate access
    - Handle unauthorized
-   - Follow security guidelines
+   - Frontend auth checks

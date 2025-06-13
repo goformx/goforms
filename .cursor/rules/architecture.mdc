@@ -6,135 +6,104 @@ alwaysApply: true
 # Architecture Guidelines
 
 ## Overview
-The application follows a layered architecture with clear separation of concerns. The codebase is organized into four main layers: domain, application, infrastructure, and presentation.
+The application follows a layered architecture with clear separation of concerns. The codebase is organized into backend and frontend components, with the backend following a clean architecture pattern and the frontend using modern web technologies.
 
 ## Directory Structure
 
 ```
-internal/
-├── domain/           # Domain layer
-│   ├── common/       # Shared domain code
-│   ├── form/         # Form domain
-│   └── user/         # User domain
-├── application/      # Application layer
-│   ├── handlers/     # HTTP handlers
-│   ├── middleware/   # HTTP middleware
-│   └── response/     # Response handling
-├── infrastructure/   # Infrastructure layer
-│   ├── config/       # Configuration
-│   ├── database/     # Database access
-│   └── logging/      # Logging
-└── presentation/     # Presentation layer
-    ├── templates/    # HTML templates
-    └── view/         # View rendering
+├── internal/           # Backend code
+│   ├── domain/        # Domain layer
+│   │   ├── common/    # Shared domain code
+│   │   ├── form/      # Form domain
+│   │   └── user/      # User domain
+│   ├── application/   # Application layer
+│   │   ├── handlers/  # HTTP handlers
+│   │   ├── middleware/# HTTP middleware
+│   │   └── response/  # Response handling
+│   ├── infrastructure/# Infrastructure layer
+│   │   ├── config/    # Configuration
+│   │   ├── database/  # Database access
+│   │   └── logging/   # Logging
+│   └── presentation/  # Presentation layer
+│       ├── templates/ # HTML templates
+│       └── view/      # View rendering
+├── src/               # Frontend code
+│   ├── js/           # JavaScript/TypeScript source
+│   ├── css/          # Stylesheets
+│   └── types/        # TypeScript type definitions
+├── public/           # Static assets
+├── migrations/       # Database migrations
+└── test/            # Test files
 ```
 
 ## Core Components
 
-1. Domain Layer
-   - Models and business logic
-   - Service interfaces
-   - Repository interfaces
-   - Example:
-   ```go
-   type Service interface {
-       CreateForm(ctx context.Context, userID string, form *model.Form) error
-       GetForm(ctx context.Context, id string) (*model.Form, error)
-       GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
-       UpdateForm(ctx context.Context, userID string, form *model.Form) error
-       DeleteForm(ctx context.Context, userID, id string) error
-   }
-   ```
+1. Backend (Go)
+   - Domain Layer: Models and business logic
+   - Application Layer: HTTP handlers and middleware
+   - Infrastructure Layer: External services and persistence
+   - Presentation Layer: Template rendering and view logic
 
-2. Application Layer
-   - HTTP handlers
-   - Middleware
-   - Response handling
-   - Example:
-   ```go
-   type Handler interface {
-       Register(e *echo.Echo)
-       Start(ctx context.Context) error
-       Stop(ctx context.Context) error
-   }
-   ```
-
-3. Infrastructure Layer
-   - Configuration
-   - Database access
-   - Logging
-   - Example:
-   ```go
-   type Config struct {
-       App      AppConfig
-       Database DatabaseConfig
-       Security SecurityConfig
-       // ... other configs
-   }
-   ```
-
-4. Presentation Layer
-   - HTML templates
-   - View rendering
-   - Example:
-   ```go
-   type Renderer interface {
-       Render(c echo.Context, template Template) error
-   }
-   ```
+2. Frontend (TypeScript/React)
+   - Modern component-based architecture
+   - Type-safe development with TypeScript
+   - CSS modules for styling
+   - Vite for build tooling
 
 ## Best Practices
 
-1. Dependency Management
+1. Backend Development
    - Use dependency injection
    - Define clear interfaces
    - Validate dependencies
-   - Example:
-   ```go
-   type HandlerDeps struct {
-       Logger            logging.Logger
-       Config            *config.Config
-       SessionManager    *session.Manager
-       MiddlewareManager *middleware.Manager
-       Renderer          view.Renderer
-       UserService       user.Service
-       FormService       form.Service
-   }
-   ```
+   - Follow Go best practices
 
-2. Error Handling
+2. Frontend Development
+   - Use TypeScript for type safety
+   - Follow React best practices
+   - Implement responsive design
+   - Use CSS modules for styling
+
+3. Error Handling
    - Use domain errors
    - Log errors with context
    - Return appropriate responses
-   - Example:
-   ```go
-   if err != nil {
-       h.Logger.Error("failed to get form", "error", err)
-       return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
-   }
-   ```
+   - Handle frontend errors gracefully
 
-3. Configuration
+4. Configuration
    - Use environment variables
    - Validate configuration
    - Provide defaults
-   - Example:
-   ```go
-   type AppConfig struct {
-       Name    string `env:"GOFORMS_APP_NAME" envDefault:"GoForms"`
-       Version string `env:"GOFORMS_APP_VERSION" envDefault:"dev"`
-       Env     string `env:"GOFORMS_APP_ENV" envDefault:"development"`
-   }
-   ```
+   - Separate frontend/backend configs
 
-4. Logging
+5. Logging
    - Use structured logging
    - Include context
    - Use appropriate levels
-   - Example:
-   ```go
-   h.Logger.Error("failed to get form",
-       "form_id", formID,
-       "error", err,
-   )
-   ```
+   - Monitor frontend errors
+
+## Development Workflow
+
+1. Backend Development
+   - Write tests first
+   - Follow Go idioms
+   - Use dependency injection
+   - Document APIs
+
+2. Frontend Development
+   - Use TypeScript
+   - Write component tests
+   - Follow React patterns
+   - Use CSS modules
+
+3. Testing
+   - Unit tests for both layers
+   - Integration tests
+   - E2E tests
+   - Performance testing
+
+4. Deployment
+   - Docker containers
+   - CI/CD pipeline
+   - Environment configuration
+   - Monitoring setup

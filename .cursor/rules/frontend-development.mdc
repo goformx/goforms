@@ -1,0 +1,184 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Frontend Development Guidelines
+
+## Overview
+The frontend is built using TypeScript, React, and modern web technologies. It follows a component-based architecture with a focus on type safety, performance, and maintainability.
+
+## Core Technologies
+
+1. TypeScript
+   - Strict type checking
+   - Interface definitions
+   - Type guards
+   - Utility types
+
+2. React
+   - Functional components
+   - Hooks
+   - Context API
+   - Error boundaries
+
+3. Styling
+   - CSS Modules
+   - PostCSS
+   - Responsive design
+   - Design system
+
+4. Build Tools
+   - Vite
+   - ESLint
+   - Prettier
+   - TypeScript compiler
+
+## Component Structure
+
+1. Component Organization
+   ```
+   src/
+   ├── components/          # Reusable components
+   │   ├── common/         # Shared components
+   │   ├── forms/          # Form components
+   │   └── layout/         # Layout components
+   ├── hooks/              # Custom hooks
+   ├── services/           # API services
+   ├── types/              # TypeScript types
+   └── utils/              # Utility functions
+   ```
+
+2. Component Guidelines
+   - Single responsibility
+   - Props interface
+   - Error handling
+   - Loading states
+
+## State Management
+
+1. Local State
+   - useState
+   - useReducer
+   - Context API
+   - Custom hooks
+
+2. Server State
+   - React Query
+   - SWR
+   - Caching
+   - Optimistic updates
+
+3. Form State
+   - React Hook Form
+   - Form validation
+   - Error handling
+   - Submission handling
+
+## API Integration
+
+1. API Client
+   - Type-safe methods
+   - Error handling
+   - Retry logic
+   - Request/response types
+
+2. Authentication
+   - JWT handling
+   - Token refresh
+   - Protected routes
+   - Auth hooks
+
+3. Error Handling
+   - Error boundaries
+   - Toast notifications
+   - Error logging
+   - User feedback
+
+## Performance
+
+1. Code Splitting
+   - Route-based
+   - Component-based
+   - Dynamic imports
+   - Preloading
+
+2. Optimization
+   - Memoization
+   - Virtualization
+   - Lazy loading
+   - Bundle analysis
+
+3. Caching
+   - API responses
+   - Static assets
+   - Service worker
+   - Local storage
+
+## Testing
+
+1. Unit Tests
+   - Component tests
+   - Hook tests
+   - Utility tests
+   - Mock services
+
+2. Integration Tests
+   - User flows
+   - API integration
+   - State management
+   - Error scenarios
+
+3. E2E Tests
+   - Critical paths
+   - User journeys
+   - Browser testing
+   - Performance testing
+
+## Accessibility
+
+1. Standards
+   - WCAG 2.1
+   - ARIA attributes
+   - Keyboard navigation
+   - Screen readers
+
+2. Implementation
+   - Semantic HTML
+   - Focus management
+   - Color contrast
+   - Responsive design
+
+## Security
+
+1. Best Practices
+   - XSS prevention
+   - CSRF protection
+   - Input sanitization
+   - Secure headers
+
+2. Authentication
+   - Token management
+   - Session handling
+   - Secure storage
+   - Logout handling
+
+## Development Workflow
+
+1. Code Quality
+   - ESLint rules
+   - Prettier config
+   - TypeScript strict
+   - Git hooks
+
+2. Build Process
+   - Development server
+   - Production build
+   - Asset optimization
+   - Environment config
+
+3. Deployment
+   - CI/CD pipeline
+   - Version control
+   - Environment vars
+   - Monitoring setup
