@@ -13,7 +13,7 @@ type SubmissionRepository interface {
 	repository.Repository[*model.FormSubmission]
 	// GetByFormID retrieves all submissions for a form
 	GetByFormID(ctx context.Context, formID string) ([]*model.FormSubmission, error)
-	// GetByFormIDPaginated returns a paginated list of submissions for a form
+	// GetByFormIDPaginated retrieves paginated submissions for a form
 	GetByFormIDPaginated(ctx context.Context, formID string, params common.PaginationParams) (*common.PaginationResult, error)
 	// GetByFormAndUser retrieves a form submission by form ID and user ID
 	GetByFormAndUser(ctx context.Context, formID, userID string) (*model.FormSubmission, error)
