@@ -38,7 +38,7 @@ func NewBaseHandler(config HandlerConfig) *BaseHandler {
 		config.RetryCount = 3
 	}
 	if config.Timeout == 0 {
-		config.Timeout = 30 * time.Second
+		config.Timeout = DefaultTimeout
 	}
 	return &BaseHandler{
 		config: config,

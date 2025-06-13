@@ -106,7 +106,7 @@ func (u *User) Validate() error {
 
 // SetPassword hashes and sets the user's password
 func (u *User) SetPassword(password string) error {
-	if len(password) < 8 {
+	if len(password) < MinPasswordLength {
 		return ErrInvalidPassword
 	}
 

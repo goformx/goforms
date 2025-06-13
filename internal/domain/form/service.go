@@ -72,8 +72,8 @@ func (s *formService) CreateForm(ctx context.Context, form *model.Form) error {
 
 // UpdateForm updates a form
 func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
-	if err := form.Validate(); err != nil {
-		return err
+	if validateErr := form.Validate(); validateErr != nil {
+		return validateErr
 	}
 
 	// Update the form
@@ -119,14 +119,14 @@ func (s *formService) ListForms(ctx context.Context, userID string) ([]*model.Fo
 
 // SubmitForm submits a form
 func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubmission) error {
-	if err := submission.Validate(); err != nil {
-		return err
+	if validateErr := submission.Validate(); validateErr != nil {
+		return validateErr
 	}
 
 	// Validate the form exists
-	form, err := s.repository.GetFormByID(ctx, submission.FormID)
-	if err != nil {
-		return err
+	form, getErr := s.repository.GetFormByID(ctx, submission.FormID)
+	if getErr != nil {
+		return getErr
 	}
 	if form == nil {
 		return errors.New("form not found")
@@ -179,19 +179,19 @@ func (s *formService) ListFormSubmissions(ctx context.Context, formID string) ([
 
 // UpdateFormState updates the state of a form
 func (s *formService) UpdateFormState(ctx context.Context, formID, state string) error {
-	form, err := s.repository.GetFormByID(ctx, formID)
-	if err != nil {
-		return fmt.Errorf("failed to get form: %w", err)
+	form, getErr := s.repository.GetFormByID(ctx, formID)
+	if getErr != nil {
+		return fmt.Errorf("failed to get form: %w", getErr)
 	}
 
 	form.Status = state
-	if err := s.repository.UpdateForm(ctx, form); err != nil {
-		return fmt.Errorf("failed to update form state: %w", err)
+	if updateErr := s.repository.UpdateForm(ctx, form); updateErr != nil {
+		return fmt.Errorf("failed to update form state: %w", updateErr)
 	}
 
 	event := formevents.NewFormStateEvent(formID, state)
-	if err := s.eventBus.Publish(ctx, event); err != nil {
-		s.logger.Error("failed to publish form state event", "error", err)
+	if publishErr := s.eventBus.Publish(ctx, event); publishErr != nil {
+		s.logger.Error("failed to publish form state event", "error", publishErr)
 	}
 
 	return nil
