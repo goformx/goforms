@@ -25,9 +25,6 @@ templ Layout(data shared.PageData, content templ.Component) {
 				@components.Nav(data)
 			</header>
 			<main>
-				if data.Message != nil {
-					@components.Message(data)
-				}
 				@content
 			</main>
 			@components.Footer()
