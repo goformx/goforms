@@ -60,60 +60,90 @@ func (h *FormEventHandler) Handle(ctx context.Context, event events.Event) error
 
 // handleFormCreated handles form creation events
 func (h *FormEventHandler) handleFormCreated(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling form created event", "event", event)
+	h.logger.Info("handling form created event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFormUpdated handles form update events
 func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling form updated event", "event", event)
+	h.logger.Info("handling form updated event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFormDeleted handles form deletion events
 func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling form deleted event", "event", event)
+	h.logger.Info("handling form deleted event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFormSubmitted handles form submission events
 func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling form submitted event", "event", event)
+	h.logger.Info("handling form submitted event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFormValidated handles form validation events
 func (h *FormEventHandler) handleFormValidated(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling form validated event", "event", event)
+	h.logger.Info("handling form validated event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFormProcessed handles form processing events
 func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling form processed event", "event", event)
+	h.logger.Info("handling form processed event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFormError handles form error events
 func (h *FormEventHandler) handleFormError(ctx context.Context, event events.Event) error {
-	h.logger.Error("handling form error event", "event", event)
+	h.logger.Error("handling form error event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFormState handles form state events
 func (h *FormEventHandler) handleFormState(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling form state event", "event", event)
+	h.logger.Info("handling form state event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleFieldEvent handles form field events
 func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling field event", "event", event)
+	h.logger.Info("handling field event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }
 
 // handleAnalyticsEvent handles form analytics events
 func (h *FormEventHandler) handleAnalyticsEvent(ctx context.Context, event events.Event) error {
-	h.logger.Info("handling analytics event", "event", event)
+	h.logger.Info("handling analytics event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+	)
 	return nil
 }

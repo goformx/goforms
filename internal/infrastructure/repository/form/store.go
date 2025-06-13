@@ -232,19 +232,24 @@ func (s *Store) GetByFormID(ctx context.Context, formID string) ([]*model.FormSu
 	return s.ListSubmissions(ctx, formID)
 }
 
-// GetByFormIDPaginated returns a paginated list of submissions for a form
-func (s *Store) GetByFormIDPaginated(ctx context.Context, formID string, params common.PaginationParams) (*common.PaginationResult, error) {
-	var submissions []*model.FormSubmission
+// GetByFormIDPaginated retrieves paginated submissions for a form
+func (s *Store) GetByFormIDPaginated(
+	ctx context.Context,
+	formID string,
+	params common.PaginationParams,
+) (*common.PaginationResult, error) {
 	var total int64
-
-	// Get total count
-	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("form_id = ?", formID).Count(&total).Error; err != nil {
-		return nil, common.NewDatabaseError("count", "form_submission", formID, err)
+	query := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("form_id = ?", formID)
+	if err := query.Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("failed to count submissions: %w", err)
 	}
 
-	// Get paginated results
-	if err := s.db.WithContext(ctx).Where("form_id = ?", formID).Offset(params.GetOffset()).Limit(params.GetLimit()).Find(&submissions).Error; err != nil {
-		return nil, common.NewDatabaseError("list", "form_submission", formID, err)
+	var submissions []*model.FormSubmission
+	if err := query.
+		Offset(params.GetOffset()).
+		Limit(params.GetLimit()).
+		Find(&submissions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
 
 	return &common.PaginationResult{
@@ -256,27 +261,32 @@ func (s *Store) GetByFormIDPaginated(ctx context.Context, formID string, params 
 	}, nil
 }
 
-// GetByFormAndUser retrieves a form submission by form ID and user ID
-func (s *Store) GetByFormAndUser(ctx context.Context, formID, userID string) (*model.FormSubmission, error) {
+// GetByFormAndUser retrieves a submission by form ID and user ID
+func (s *Store) GetByFormAndUser(
+	ctx context.Context,
+	formID string,
+	userID string,
+) (*model.FormSubmission, error) {
 	var submission model.FormSubmission
-	if err := s.db.WithContext(ctx).Where("form_id = ? AND user_id = ?", formID, userID).First(&submission).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, common.NewNotFoundError("get", "form_submission", fmt.Sprintf("form:%s,user:%s", formID, userID))
-		}
-		return nil, common.NewDatabaseError("get", "form_submission", fmt.Sprintf("form:%s,user:%s", formID, userID), err)
+	query := s.db.WithContext(ctx).
+		Where("form_id = ? AND user_id = ?", formID, userID).
+		First(&submission)
+	if err := query.Error; err != nil {
+		return nil, fmt.Errorf("failed to get submission: %w", err)
 	}
 	return &submission, nil
 }
 
 // GetSubmissionsByStatus retrieves submissions by status
-func (s *Store) GetSubmissionsByStatus(ctx context.Context, status model.SubmissionStatus) ([]*model.FormSubmission, error) {
+func (s *Store) GetSubmissionsByStatus(
+	ctx context.Context,
+	status model.SubmissionStatus,
+) ([]*model.FormSubmission, error) {
 	var submissions []*model.FormSubmission
-	if err := s.db.WithContext(ctx).Where("status = ?", status).Find(&submissions).Error; err != nil {
-		s.logger.Error("failed to get submissions by status",
-			"status", status,
-			"error", err,
-		)
-		return nil, common.NewDatabaseError("get_by_status", "form_submission", "", err)
+	if err := s.db.WithContext(ctx).
+		Where("status = ?", status).
+		Find(&submissions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
 	return submissions, nil
 }

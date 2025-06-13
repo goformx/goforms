@@ -35,7 +35,10 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 
 // handleDashboard handles the dashboard page request
 func (h *DashboardHandler) handleDashboard(c echo.Context) error {
-	userID := c.Get("user_id").(string)
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
 	forms, err := h.FormService.ListForms(c.Request().Context(), userID)
 	if err != nil {
 		return fmt.Errorf("failed to list forms: %w", err)
