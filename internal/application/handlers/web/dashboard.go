@@ -39,14 +39,28 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
+
+	// Get user data
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil {
+		h.Logger.Error("failed to get user data", "error", err)
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+
+	// Get forms for the user
 	forms, err := h.FormService.ListForms(c.Request().Context(), userID)
 	if err != nil {
+		h.Logger.Error("failed to list forms", "error", err)
 		return fmt.Errorf("failed to list forms: %w", err)
 	}
 
-	return c.Render(http.StatusOK, "dashboard", map[string]any{
-		"forms": forms,
-	})
+	// Build page data
+	data := shared.BuildPageData(h.Config, c, "Dashboard")
+	data.User = user
+	data.Forms = forms
+
+	// Render dashboard template
+	return h.Renderer.Render(c, pages.Dashboard(data, forms))
 }
 
 // handleFormView handles the form view page request

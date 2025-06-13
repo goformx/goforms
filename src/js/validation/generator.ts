@@ -67,6 +67,10 @@ function generateZodRule(rule: ApiValidationRule): z.ZodType<string> {
       zodRule = zodRule.email(rule.message);
       break;
 
+    case "required":
+      zodRule = zodRule.min(1, rule.message);
+      break;
+
     case "password":
       zodRule = zodRule
         .min(rule.min || 8, rule.message)
@@ -81,22 +85,21 @@ function generateZodRule(rule: ApiValidationRule): z.ZodType<string> {
 
     case "match":
       if (rule.matchField) {
+        if (rule.min !== undefined) {
+          zodRule = zodRule.min(rule.min, "Password is too short");
+        }
         zodRule = zodRule.refine(
           (val: string) => {
             const matchField = document.getElementById(
               rule.matchField!,
             ) as HTMLInputElement;
-            return val === matchField?.value;
+            return matchField && val === matchField.value;
           },
           {
             message: rule.message,
           },
         );
       }
-      break;
-
-    case "required":
-      zodRule = zodRule.min(1, rule.message);
       break;
   }
 

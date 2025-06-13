@@ -69,11 +69,13 @@ func NewUser(email, password, firstName, lastName string) (*User, error) {
 		UpdatedAt: time.Now(),
 	}
 
-	if err := user.Validate(); err != nil {
+	// Set password first
+	if err := user.SetPassword(password); err != nil {
 		return nil, err
 	}
 
-	if err := user.SetPassword(password); err != nil {
+	// Then validate
+	if err := user.Validate(); err != nil {
 		return nil, err
 	}
 

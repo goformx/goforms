@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/entities"
@@ -69,8 +70,8 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.Use
 		return nil, ErrUserExists
 	}
 
-	// Create user
-	user, err := entities.NewUser(signup.Email, signup.Password, signup.FirstName, signup.LastName)
+	// Create user with default first/last name
+	user, err := entities.NewUser(signup.Email, signup.Password, signup.Email[:strings.Index(signup.Email, "@")], "")
 	if err != nil {
 		s.logger.Error("failed to create user", "error", err)
 		return nil, fmt.Errorf("failed to create user: %w", err)
@@ -79,7 +80,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.Use
 	// Save user
 	if createErr := s.repo.Create(ctx, user); createErr != nil {
 		s.logger.Error("failed to create user", "error", createErr)
-		return nil, fmt.Errorf("failed to create user: %w", createErr)
+		return nil, fmt.Errorf("create: %w", createErr)
 	}
 
 	return user, nil

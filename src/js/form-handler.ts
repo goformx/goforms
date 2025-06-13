@@ -139,41 +139,233 @@ async function handleFormSubmission(
  * Sends form data to the server via AJAX
  */
 async function sendFormData(form: HTMLFormElement) {
-  return fetch(form.action, {
-    method: "POST",
-    body: new FormData(form),
-    credentials: "include",
-    headers: { "X-Requested-With": "XMLHttpRequest" },
-  });
+  console.group("Form Submission");
+  const csrfToken = validation.getCSRFToken();
+  console.log("CSRF Token:", csrfToken ? "Present" : "Missing");
+  // Convert FormData to JSON for auth endpoints
+  const formData = new FormData(form);
+  const isAuthEndpoint =
+    form.action.includes("/login") || form.action.includes("/signup");
+  // For auth endpoints, clean up the data before sending
+  let body: FormData | string;
+  if (isAuthEndpoint) {
+    const data = Object.fromEntries(formData.entries());
+    // Remove CSRF token from payload since it's in the header
+    delete data.csrf_token;
+    body = JSON.stringify(data);
+    console.log("Cleaned Form Data:", data);
+  } else {
+    body = formData;
+    console.log("Form Data:", Object.fromEntries(formData.entries()));
+  }
+  try {
+    console.log("Sending request to:", form.action);
+    const response = await fetch(form.action, {
+      method: "POST",
+      body,
+      credentials: "include",
+      headers: {
+        "Accept": "application/json",
+        "X-CSRF-Token": csrfToken,
+        ...(isAuthEndpoint && { "Content-Type": "application/json" }),
+      },
+    });
+    console.log("Response status:", response.status);
+    console.log(
+      "Response headers:",
+      Object.fromEntries(response.headers.entries()),
+    );
+    return response;
+  } catch (error) {
+    console.error("Request failed:", error);
+    throw error;
+  } finally {
+    console.groupEnd();
+  }
 }
 
 /**
  * Handles the server's response to the form submission
  */
 async function handleServerResponse(response: Response, form: HTMLFormElement) {
+  console.group("Response Handler");
   try {
     const data = await response.json();
+    console.log("Response data:", data);
 
     if (response.redirected || data.redirect) {
-      window.location.href = response.redirected ? response.url : data.redirect;
-    } else if (!response.ok && data.message) {
-      displayFormError(form, data.message);
+      const redirectUrl = response.redirected ? response.url : data.redirect;
+      console.log("Redirecting to:", redirectUrl);
+      window.location.href = redirectUrl;
+      return;
+    }
+
+    if (!response.ok) {
+      const message = data.message || "An error occurred. Please try again.";
+      console.warn("Request failed:", message);
+      displayFormError(form, message);
+      return;
+    }
+
+    // Handle successful response without redirect
+    if (data.message) {
+      console.log("Success message:", data.message);
+      displayFormSuccess(form, data.message);
     }
   } catch (error) {
     console.error("Error handling server response:", error);
     displayFormError(form, "Error processing server response");
+  } finally {
+    console.groupEnd();
   }
 }
 
 /**
  * Displays an error message in the form's error container
- * Uses a class selector for more flexible error container targeting
  */
 function displayFormError(form: HTMLFormElement, message: string) {
+  console.debug("Displaying error message:", message);
   const formError = form.querySelector(".form-error");
   if (formError) {
     formError.textContent = message;
+    formError.classList.remove("hidden");
   } else {
     console.warn("Form error container not found:", form.id);
+  }
+}
+
+/**
+ * Displays a success message in the form's success container
+ */
+function displayFormSuccess(form: HTMLFormElement, message: string) {
+  console.debug("Displaying success message:", message);
+  const formSuccess = form.querySelector(".form-success");
+  if (formSuccess) {
+    formSuccess.textContent = message;
+    formSuccess.classList.remove("hidden");
+  } else {
+    console.warn("Form success container not found:", form.id);
+  }
+}
+
+export class FormHandler {
+  private form: HTMLFormElement;
+
+  constructor(config: FormConfig) {
+    const formElement = document.querySelector<HTMLFormElement>(
+      `#${config.formId}`,
+    );
+    if (!formElement) {
+      throw new Error(`Form with ID "${config.formId}" not found`);
+    }
+    this.form = formElement;
+
+    validation.setupRealTimeValidation(this.form.id, config.validationType);
+    setupRealTimeValidation(
+      this.form,
+      config.validationType,
+      config.validationDelay,
+    );
+
+    // Setup form submission
+    this.form.addEventListener("submit", (event) =>
+      this.handleFormSubmission(event, config.validationType),
+    );
+  }
+
+  private async sendFormData(formData: FormData): Promise<Response> {
+    console.group("Form Submission");
+    const csrfToken = validation.getCSRFToken();
+    console.log("CSRF Token:", csrfToken ? "Present" : "Missing");
+    // Convert FormData to JSON for auth endpoints
+    const isAuthEndpoint =
+      this.form.action.includes("/login") ||
+      this.form.action.includes("/signup");
+    // For auth endpoints, clean up the data before sending
+    let body: FormData | string;
+    if (isAuthEndpoint) {
+      const data = Object.fromEntries(formData.entries());
+      // Remove CSRF token from payload since it's in the header
+      delete data.csrf_token;
+      body = JSON.stringify(data);
+      console.log("Cleaned Form Data:", data);
+    } else {
+      body = formData;
+      console.log("Form Data:", Object.fromEntries(formData.entries()));
+    }
+    try {
+      console.log("Sending request to:", this.form.action);
+      const response = await fetch(this.form.action, {
+        method: "POST",
+        body,
+        credentials: "include",
+        headers: {
+          "Accept": "application/json",
+          "X-CSRF-Token": csrfToken,
+          ...(isAuthEndpoint && { "Content-Type": "application/json" }),
+        },
+      });
+      console.log("Response status:", response.status);
+      console.log(
+        "Response headers:",
+        Object.fromEntries(response.headers.entries()),
+      );
+      return response;
+    } catch (error) {
+      console.error("Request failed:", error);
+      throw error;
+    } finally {
+      console.groupEnd();
+    }
+  }
+
+  private async handleFormSubmission(
+    event: Event,
+    validationType: string,
+  ): Promise<void> {
+    event.preventDefault();
+    validation.clearAllErrors();
+
+    this.form
+      .querySelectorAll<HTMLInputElement>("input[id]")
+      .forEach((input) => input.setAttribute("aria-invalid", "false"));
+
+    try {
+      const result = await validation.validateForm(this.form, validationType);
+      if (!result.success) {
+        const errorMessage =
+          result.error?.errors?.[0]?.message ||
+          "Please check the form for errors.";
+        this.showError(errorMessage);
+        return;
+      }
+
+      const formData = new FormData(this.form);
+      const response = await this.sendFormData(formData);
+      await handleServerResponse(response, this.form);
+    } catch (error) {
+      console.error("Form submission error:", error);
+      this.showError("An unexpected error occurred. Please try again.");
+    }
+  }
+
+  private showError(message: string, field?: string): void {
+    console.debug(
+      "Displaying error message:",
+      message,
+      field ? `for field: ${field}` : "",
+    );
+    const errorContainer = this.form.querySelector(".form-error");
+    if (errorContainer) {
+      errorContainer.textContent = message;
+      errorContainer.classList.remove("hidden");
+    }
+
+    if (field) {
+      const fieldElement = this.form.querySelector(`[name="${field}"]`);
+      if (fieldElement) {
+        fieldElement.classList.add("error");
+      }
+    }
   }
 }

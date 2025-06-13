@@ -8,11 +8,11 @@
  * - Server response handling
  */
 
-import { setupForm } from "./form-handler";
+import { FormHandler } from "./form-handler";
 
 // Initialize form when DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
-  setupForm({
+  new FormHandler({
     formId: "signup-form",
     validationType: "signup",
   });
