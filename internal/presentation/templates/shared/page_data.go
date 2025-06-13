@@ -5,8 +5,8 @@ import (
 
 	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/application/middleware/context"
+	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/labstack/echo/v4"
@@ -23,7 +23,7 @@ type PageData struct {
 	Version              string
 	Environment          string
 	AssetPath            func(string) string
-	User                 *user.User
+	User                 *entities.User
 	Forms                []*model.Form
 	Form                 *model.Form
 	Submissions          []*model.FormSubmission
@@ -55,7 +55,7 @@ type ViteManifest struct {
 }
 
 // GetCurrentUser extracts user data from context
-func GetCurrentUser(c echo.Context) *user.User {
+func GetCurrentUser(c echo.Context) *entities.User {
 	if c == nil {
 		return nil
 	}
@@ -65,7 +65,7 @@ func GetCurrentUser(c echo.Context) *user.User {
 	}
 	email, _ := context.GetEmail(c)
 	role, _ := context.GetRole(c)
-	return &user.User{
+	return &entities.User{
 		ID:    userID,
 		Email: email,
 		Role:  role,
@@ -116,4 +116,28 @@ func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 		UserID:               "",
 		Email:                "",
 	}
+}
+
+// NewPageData creates a new PageData instance
+func NewPageData(title, description string, user *entities.User) *PageData {
+	return &PageData{
+		Title:       title,
+		Description: description,
+		User:        user,
+	}
+}
+
+// IsAuthenticated checks if the user is authenticated
+func (p *PageData) IsAuthenticated() bool {
+	return p.User != nil
+}
+
+// GetUser returns the current user
+func (p *PageData) GetUser() *entities.User {
+	return p.User
+}
+
+// SetUser sets the current user
+func (p *PageData) SetUser(user *entities.User) {
+	p.User = user
 }
