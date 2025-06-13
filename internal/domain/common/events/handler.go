@@ -11,8 +11,10 @@ import (
 
 const (
 	// DefaultTimeout is the default timeout for event handlers
-	DefaultTimeout = 30 * time.Second
-	DefaultRetries = 3
+	DefaultTimeout    = 30 * time.Second
+	DefaultRetryCount = 3
+	DefaultRetryDelay = time.Second
+	DefaultMaxBackoff = 30 * time.Second
 )
 
 // HandlerConfig represents the configuration for an event handler
@@ -121,8 +123,8 @@ func (r *EventHandlerRegistry) HandleEvent(ctx context.Context, event Event) err
 func NewHandlerConfig() *HandlerConfig {
 	return &HandlerConfig{
 		Timeout:    DefaultTimeout,
-		RetryCount: 3,
-		RetryDelay: time.Second,
-		MaxBackoff: 30 * time.Second,
+		RetryCount: DefaultRetryCount,
+		RetryDelay: DefaultRetryDelay,
+		MaxBackoff: DefaultMaxBackoff,
 	}
 }

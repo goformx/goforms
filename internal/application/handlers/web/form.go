@@ -302,9 +302,9 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 	}
 
 	// Parse schema from request body
-	var schema model.JSON
-	if err := json.NewDecoder(c.Request().Body).Decode(&schema); err != nil {
-		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Invalid schema format")
+	schema, decodeErr := decodeSchema(c)
+	if decodeErr != nil {
+		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, decodeErr.Error())
 	}
 
 	// Update form schema
@@ -315,6 +315,16 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 	}
 
 	return c.NoContent(http.StatusNoContent)
+}
+
+// decodeSchema decodes the form schema from the request body
+func decodeSchema(c echo.Context) (model.JSON, error) {
+	var schema model.JSON
+	decodeErr := json.NewDecoder(c.Request().Body).Decode(&schema)
+	if decodeErr != nil {
+		return nil, fmt.Errorf("failed to decode schema: %w", decodeErr)
+	}
+	return schema, nil
 }
 
 // Start initializes the form handler.
