@@ -5,7 +5,6 @@ import (
 	"errors"
 
 	"github.com/goformx/goforms/internal/domain/common/events"
-	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -14,6 +13,7 @@ var ErrInvalidEventPayload = errors.New("invalid event payload")
 // FormEventHandler handles form-related events
 type FormEventHandler struct {
 	*events.BaseHandler
+	logger logging.Logger
 }
 
 // NewFormEventHandler creates a new form event handler
@@ -23,6 +23,7 @@ func NewFormEventHandler(logger logging.Logger) *FormEventHandler {
 			Logger:     logger,
 			RetryCount: 3,
 		}),
+		logger: logger,
 	}
 }
 
@@ -59,100 +60,60 @@ func (h *FormEventHandler) Handle(ctx context.Context, event events.Event) error
 
 // handleFormCreated handles form creation events
 func (h *FormEventHandler) handleFormCreated(ctx context.Context, event events.Event) error {
-	form, ok := event.Payload().(*model.Form)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "form created", "form_id", form.ID)
+	h.logger.Info("handling form created event", "event", event)
 	return nil
 }
 
 // handleFormUpdated handles form update events
 func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event events.Event) error {
-	form, ok := event.Payload().(*model.Form)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "form updated", "form_id", form.ID)
+	h.logger.Info("handling form updated event", "event", event)
 	return nil
 }
 
 // handleFormDeleted handles form deletion events
 func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event events.Event) error {
-	formID, ok := event.Payload().(string)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "form deleted", "form_id", formID)
+	h.logger.Info("handling form deleted event", "event", event)
 	return nil
 }
 
 // handleFormSubmitted handles form submission events
 func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event events.Event) error {
-	submission, ok := event.Payload().(*model.FormSubmission)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "form submitted", "form_id", submission.FormID)
+	h.logger.Info("handling form submitted event", "event", event)
 	return nil
 }
 
 // handleFormValidated handles form validation events
 func (h *FormEventHandler) handleFormValidated(ctx context.Context, event events.Event) error {
-	payload, ok := event.Payload().(map[string]any)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "form validated", "form_id", payload["form_id"])
+	h.logger.Info("handling form validated event", "event", event)
 	return nil
 }
 
 // handleFormProcessed handles form processing events
 func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event events.Event) error {
-	payload, ok := event.Payload().(map[string]any)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "form processed", "form_id", payload["form_id"])
+	h.logger.Info("handling form processed event", "event", event)
 	return nil
 }
 
 // handleFormError handles form error events
 func (h *FormEventHandler) handleFormError(ctx context.Context, event events.Event) error {
-	payload, ok := event.Payload().(map[string]any)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "error", "form error", "form_id", payload["form_id"], "error", payload["error"])
+	h.logger.Error("handling form error event", "event", event)
 	return nil
 }
 
 // handleFormState handles form state events
 func (h *FormEventHandler) handleFormState(ctx context.Context, event events.Event) error {
-	payload, ok := event.Payload().(map[string]any)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "form state changed", "form_id", payload["form_id"], "state", payload["state"])
+	h.logger.Info("handling form state event", "event", event)
 	return nil
 }
 
 // handleFieldEvent handles form field events
 func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event events.Event) error {
-	payload, ok := event.Payload().(map[string]any)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "field event", "form_id", payload["form_id"], "field_id", payload["field_id"])
+	h.logger.Info("handling field event", "event", event)
 	return nil
 }
 
 // handleAnalyticsEvent handles form analytics events
 func (h *FormEventHandler) handleAnalyticsEvent(ctx context.Context, event events.Event) error {
-	payload, ok := event.Payload().(map[string]any)
-	if !ok {
-		return ErrInvalidEventPayload
-	}
-	h.LogEvent(event, "info", "analytics event", "form_id", payload["form_id"], "event_type", payload["event_type"])
+	h.logger.Info("handling analytics event", "event", event)
 	return nil
 }

@@ -83,13 +83,15 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 	return &formModel, nil
 }
 
-// ListForms retrieves a list of forms
-func (s *Store) ListForms(ctx context.Context, offset, limit int) ([]*model.Form, error) {
+// ListForms retrieves all forms for a user
+func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, error) {
 	var forms []*model.Form
-	if err := s.db.WithContext(ctx).Offset(offset).Limit(limit).Find(&forms).Error; err != nil {
+	if err := s.db.WithContext(ctx).
+		Where("user_id = ?", userID).
+		Order("created_at DESC").
+		Find(&forms).Error; err != nil {
 		s.logger.Error("failed to list forms",
-			"offset", offset,
-			"limit", limit,
+			"user_id", userID,
 			"error", err,
 		)
 		return nil, common.NewDatabaseError("list", "form", "", err)
@@ -147,14 +149,10 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 }
 
 // GetFormsByStatus returns forms by their active status
-func (s *Store) GetFormsByStatus(ctx context.Context, active bool) ([]*model.Form, error) {
+func (s *Store) GetFormsByStatus(ctx context.Context, status string) ([]*model.Form, error) {
 	var forms []*model.Form
-	if err := s.db.WithContext(ctx).Where("active = ?", active).Find(&forms).Error; err != nil {
-		s.logger.Error("failed to get forms by status",
-			"active", active,
-			"error", err,
-		)
-		return nil, common.NewDatabaseError("get_by_status", "form", "", err)
+	if err := s.db.WithContext(ctx).Where("status = ?", status).Find(&forms).Error; err != nil {
+		return nil, fmt.Errorf("failed to get forms by status: %w", err)
 	}
 	return forms, nil
 }

@@ -3,6 +3,7 @@ package form
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/common/events"
@@ -23,12 +24,12 @@ type Service interface {
 	UpdateForm(ctx context.Context, form *model.Form) error
 	DeleteForm(ctx context.Context, formID string) error
 	GetForm(ctx context.Context, formID string) (*model.Form, error)
-	ListForms(ctx context.Context, filter map[string]any) ([]*model.Form, error)
+	ListForms(ctx context.Context, userID string) ([]*model.Form, error)
 	SubmitForm(ctx context.Context, submission *model.FormSubmission) error
 	GetFormSubmission(ctx context.Context, submissionID string) (*model.FormSubmission, error)
 	ListFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error)
-	UpdateFormState(ctx context.Context, formID string, state string) error
-	TrackFormAnalytics(ctx context.Context, formID string, eventType string) error
+	UpdateFormState(ctx context.Context, formID, state string) error
+	TrackFormAnalytics(ctx context.Context, formID, eventType string) error
 }
 
 // formService handles form-related business logic
@@ -50,7 +51,7 @@ func NewService(repository Repository, eventBus events.EventBus, logger logging.
 // CreateForm creates a new form
 func (s *formService) CreateForm(ctx context.Context, form *model.Form) error {
 	if err := form.Validate(); err != nil {
-		return err
+		return fmt.Errorf("form validation failed: %w", err)
 	}
 
 	// Set form ID if not already set
@@ -59,11 +60,10 @@ func (s *formService) CreateForm(ctx context.Context, form *model.Form) error {
 	}
 
 	if err := s.repository.CreateForm(ctx, form); err != nil {
-		return err
+		return fmt.Errorf("failed to create form: %w", err)
 	}
 
-	event := formevents.NewFormCreatedEvent(form)
-	if err := s.eventBus.Publish(ctx, event); err != nil {
+	if err := s.eventBus.Publish(ctx, formevents.NewFormCreatedEvent(form)); err != nil {
 		s.logger.Error("failed to publish form created event", "error", err)
 	}
 
@@ -72,16 +72,14 @@ func (s *formService) CreateForm(ctx context.Context, form *model.Form) error {
 
 // UpdateForm updates an existing form
 func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
-	if err := form.Validate(); err != nil {
-		return err
-	}
+	var err error
 
-	if err := s.repository.UpdateForm(ctx, form); err != nil {
-		return err
+	if err = s.repository.UpdateForm(ctx, form); err != nil {
+		return fmt.Errorf("failed to update form: %w", err)
 	}
 
 	event := formevents.NewFormUpdatedEvent(form)
-	if err := s.eventBus.Publish(ctx, event); err != nil {
+	if err = s.eventBus.Publish(ctx, event); err != nil {
 		s.logger.Error("failed to publish form updated event", "error", err)
 	}
 
@@ -91,11 +89,10 @@ func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
 // DeleteForm deletes a form
 func (s *formService) DeleteForm(ctx context.Context, formID string) error {
 	if err := s.repository.DeleteForm(ctx, formID); err != nil {
-		return err
+		return fmt.Errorf("failed to delete form: %w", err)
 	}
 
-	event := formevents.NewFormDeletedEvent(formID)
-	if err := s.eventBus.Publish(ctx, event); err != nil {
+	if err := s.eventBus.Publish(ctx, formevents.NewFormDeletedEvent(formID)); err != nil {
 		s.logger.Error("failed to publish form deleted event", "error", err)
 	}
 
@@ -108,18 +105,12 @@ func (s *formService) GetForm(ctx context.Context, formID string) (*model.Form, 
 }
 
 // ListForms retrieves a list of forms
-func (s *formService) ListForms(ctx context.Context, filter map[string]any) ([]*model.Form, error) {
-	offset := 0
-	limit := 10
-
-	if v, ok := filter["offset"].(int); ok {
-		offset = v
+func (s *formService) ListForms(ctx context.Context, userID string) ([]*model.Form, error) {
+	forms, err := s.repository.ListForms(ctx, userID)
+	if err != nil {
+		return nil, fmt.Errorf("failed to list forms: %w", err)
 	}
-	if v, ok := filter["limit"].(int); ok {
-		limit = v
-	}
-
-	return s.repository.ListForms(ctx, offset, limit)
+	return forms, nil
 }
 
 // SubmitForm submits a form
@@ -149,20 +140,19 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	}
 
 	// Validate the submission
-	isValid := submission.Validate()
-	validationEvent := formevents.NewFormValidatedEvent(submission.FormID, isValid == nil)
-	if err := s.eventBus.Publish(ctx, validationEvent); err != nil {
+	validationErr := submission.Validate()
+	isValid := validationErr == nil
+	validationEvent := formevents.NewFormValidatedEvent(submission.FormID, isValid)
+	if err = s.eventBus.Publish(ctx, validationEvent); err != nil {
 		s.logger.Error("failed to publish form validated event", "error", err)
 	}
 
-	if isValid != nil {
-		return isValid
+	if !isValid {
+		return validationErr
 	}
 
-	// Process the submission
-	processingID := submission.ID // Using submission ID as processing ID for simplicity
-	processingEvent := formevents.NewFormProcessedEvent(submission.FormID, processingID)
-	if err := s.eventBus.Publish(ctx, processingEvent); err != nil {
+	processingEvent := formevents.NewFormProcessedEvent(submission.FormID, submission.ID)
+	if err = s.eventBus.Publish(ctx, processingEvent); err != nil {
 		s.logger.Error("failed to publish form processed event", "error", err)
 	}
 
@@ -180,19 +170,15 @@ func (s *formService) ListFormSubmissions(ctx context.Context, formID string) ([
 }
 
 // UpdateFormState updates the state of a form
-func (s *formService) UpdateFormState(ctx context.Context, formID string, state string) error {
+func (s *formService) UpdateFormState(ctx context.Context, formID, state string) error {
 	form, err := s.repository.GetFormByID(ctx, formID)
 	if err != nil {
-		return err
-	}
-	if form == nil {
-		return errors.New("form not found")
+		return fmt.Errorf("failed to get form: %w", err)
 	}
 
-	// Update form state
-	form.Active = state == "active"
+	form.Status = state
 	if err := s.repository.UpdateForm(ctx, form); err != nil {
-		return err
+		return fmt.Errorf("failed to update form state: %w", err)
 	}
 
 	event := formevents.NewFormStateEvent(formID, state)
@@ -204,12 +190,10 @@ func (s *formService) UpdateFormState(ctx context.Context, formID string, state 
 }
 
 // TrackFormAnalytics tracks form analytics
-func (s *formService) TrackFormAnalytics(ctx context.Context, formID string, eventType string) error {
+func (s *formService) TrackFormAnalytics(ctx context.Context, formID, eventType string) error {
 	event := formevents.NewAnalyticsEvent(formID, eventType)
 	if err := s.eventBus.Publish(ctx, event); err != nil {
-		s.logger.Error("failed to publish analytics event", "error", err)
-		return err
+		return fmt.Errorf("failed to publish analytics event: %w", err)
 	}
-
 	return nil
 }

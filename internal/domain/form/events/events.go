@@ -72,8 +72,8 @@ func NewFormValidatedEvent(formID string, isValid bool) *FormEvent {
 }
 
 // NewFormProcessedEvent creates a new form processed event
-func NewFormProcessedEvent(formID string, processingID string) *FormEvent {
-	return NewFormEvent(FormProcessedEventType, map[string]any{
+func NewFormProcessedEvent(formID, processingID string) *FormEvent {
+	return NewFormEvent(FormProcessedEventType, map[string]string{
 		"form_id":       formID,
 		"processing_id": processingID,
 	})
@@ -88,24 +88,24 @@ func NewFormErrorEvent(formID string, err error) *FormEvent {
 }
 
 // NewFormStateEvent creates a new form state event
-func NewFormStateEvent(formID string, state string) *FormEvent {
-	return NewFormEvent(FormStateEventType, map[string]any{
+func NewFormStateEvent(formID, state string) *FormEvent {
+	return NewFormEvent(FormStateEventType, map[string]string{
 		"form_id": formID,
 		"state":   state,
 	})
 }
 
 // NewFieldEvent creates a new field event
-func NewFieldEvent(formID string, fieldID string) *FormEvent {
-	return NewFormEvent(FieldEventType, map[string]any{
+func NewFieldEvent(formID, fieldID string) *FormEvent {
+	return NewFormEvent(FieldEventType, map[string]string{
 		"form_id":  formID,
 		"field_id": fieldID,
 	})
 }
 
 // NewAnalyticsEvent creates a new analytics event
-func NewAnalyticsEvent(formID string, eventType string) *FormEvent {
-	return NewFormEvent(AnalyticsEventType, map[string]any{
+func NewAnalyticsEvent(formID, eventType string) *FormEvent {
+	return NewFormEvent(AnalyticsEventType, map[string]string{
 		"form_id":    formID,
 		"event_type": eventType,
 	})

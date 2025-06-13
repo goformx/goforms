@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
@@ -34,40 +35,15 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 
 // handleDashboard handles the dashboard page request
 func (h *DashboardHandler) handleDashboard(c echo.Context) error {
-	userID, ok := mwcontext.GetUserID(c)
-	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-
-	// Fetch user data
-	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || userObj == nil {
-		// Sanitize and limit path length
-		path := c.Request().URL.Path
-		if len(path) > 100 {
-			path = path[:100] + "..."
-		}
-		// Only log essential information
-		h.Logger.Error("authentication error",
-			"error", "user not found",
-			"path", path,
-		)
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-
-	// Fetch forms data
-	forms, err := h.FormService.ListForms(c.Request().Context(), map[string]any{"user_id": userID})
+	userID := c.Get("user_id").(string)
+	forms, err := h.FormService.ListForms(c.Request().Context(), userID)
 	if err != nil {
-		h.Logger.Error("failed to get user forms", "user_id", userID, "error", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to load forms"})
+		return fmt.Errorf("failed to list forms: %w", err)
 	}
 
-	// Build page data
-	data := shared.BuildPageData(h.Config, c, "Dashboard")
-	data.User = userObj
-	data.Forms = forms
-
-	return h.Renderer.Render(c, pages.Dashboard(data, forms))
+	return c.Render(http.StatusOK, "dashboard", map[string]any{
+		"forms": forms,
+	})
 }
 
 // handleFormView handles the form view page request

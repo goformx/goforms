@@ -2,6 +2,7 @@ package event
 
 import (
 	"context"
+	"fmt"
 	"sync"
 
 	"github.com/goformx/goforms/internal/domain/common/events"
@@ -41,10 +42,13 @@ func (b *MemoryEventBus) Publish(ctx context.Context, event events.Event) error 
 }
 
 // PublishBatch publishes multiple events
-func (b *MemoryEventBus) PublishBatch(ctx context.Context, events []events.Event) error {
-	for _, event := range events {
+func (b *MemoryEventBus) PublishBatch(ctx context.Context, eventList []events.Event) error {
+	b.handlersMu.Lock()
+	defer b.handlersMu.Unlock()
+
+	for _, event := range eventList {
 		if err := b.Publish(ctx, event); err != nil {
-			return err
+			return fmt.Errorf("failed to publish event: %w", err)
 		}
 	}
 	return nil

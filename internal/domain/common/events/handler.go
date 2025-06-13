@@ -3,12 +3,18 @@ package events
 import (
 	"context"
 	"fmt"
+	"log"
 	"time"
 
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// HandlerConfig contains configuration for event handlers
+const (
+	// DefaultTimeout is the default timeout for event handlers
+	DefaultTimeout = 30 * time.Second
+)
+
+// HandlerConfig represents the configuration for an event handler
 type HandlerConfig struct {
 	Logger     logging.Logger
 	RetryCount int
@@ -36,28 +42,20 @@ func NewBaseHandler(config HandlerConfig) *BaseHandler {
 // HandleWithRetry handles an event with retry logic
 func (h *BaseHandler) HandleWithRetry(ctx context.Context, event Event, handler func(ctx context.Context, event Event) error) error {
 	var lastErr error
-	for i := 0; i < h.config.RetryCount; i++ {
-		select {
-		case <-ctx.Done():
-			return ctx.Err()
-		default:
-			if err := handler(ctx, event); err != nil {
-				lastErr = err
-				h.config.Logger.Warn("event handling failed, retrying",
-					"event", event.Name(),
-					"attempt", i+1,
-					"error", err,
-				)
-				continue
-			}
-			return nil
+	for i := range h.config.RetryCount {
+		if err := handler(ctx, event); err != nil {
+			lastErr = err
+			log.Printf("Retry %d/%d failed: %v", i+1, h.config.RetryCount, err)
+			time.Sleep(time.Second * time.Duration(i+1))
+			continue
 		}
+		return nil
 	}
-	return fmt.Errorf("event handling failed after %d attempts: %v", h.config.RetryCount, lastErr)
+	return fmt.Errorf("event handling failed after %d attempts: %w", h.config.RetryCount, lastErr)
 }
 
 // LogEvent logs an event
-func (h *BaseHandler) LogEvent(event Event, level string, message string, fields ...any) {
+func (h *BaseHandler) LogEvent(event Event, level, message string, fields ...any) {
 	logger := h.config.Logger.With(
 		"event", event.Name(),
 		"timestamp", event.Timestamp(),
@@ -114,4 +112,13 @@ func (r *EventHandlerRegistry) HandleEvent(ctx context.Context, event Event) err
 		}
 	}
 	return lastErr
+}
+
+// NewHandlerConfig creates a new handler configuration with default values
+func NewHandlerConfig() *HandlerConfig {
+	config := &HandlerConfig{
+		Timeout:    DefaultTimeout,
+		RetryCount: 3,
+	}
+	return config
 }
