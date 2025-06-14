@@ -10,10 +10,17 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+	"go.uber.org/zap"
+	"go.uber.org/zap/zapcore"
 )
 
 func TestFactory_CreateLogger(t *testing.T) {
 	var buf bytes.Buffer
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(&buf),
+		zapcore.DebugLevel,
+	)
 
 	tests := []struct {
 		name      string
@@ -50,9 +57,11 @@ func TestFactory_CreateLogger(t *testing.T) {
 			checkFunc: func(t *testing.T, logger logging.Logger) {
 				// Test that initial fields are included
 				logger.Info("test message")
-				output := buf.String()
-				assert.Contains(t, output, "service=test-service")
-				assert.Contains(t, output, "region=test-region")
+				var output map[string]any
+				err := json.Unmarshal(buf.Bytes(), &output)
+				require.NoError(t, err)
+				assert.Equal(t, "test-service", output["service"])
+				assert.Equal(t, "test-region", output["region"])
 			},
 		},
 	}
@@ -60,7 +69,7 @@ func TestFactory_CreateLogger(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			buf.Reset()
-			factory := logging.NewFactory(tt.config)
+			factory := logging.NewFactory(tt.config).WithTestCore(core)
 			logger, err := factory.CreateLogger()
 			if tt.wantErr {
 				assert.Error(t, err)
@@ -138,11 +147,16 @@ func TestLogger_Sanitization(t *testing.T) {
 
 func TestLogger_ErrorHandling(t *testing.T) {
 	var buf bytes.Buffer
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(&buf),
+		zapcore.DebugLevel,
+	)
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     "test-app",
 		Version:     "1.0.0",
 		Environment: "development",
-	})
+	}).WithTestCore(core)
 	logger, err := factory.CreateLogger()
 	require.NoError(t, err)
 
@@ -168,11 +182,16 @@ func TestLogger_ErrorHandling(t *testing.T) {
 
 func TestLogger_WithMethods(t *testing.T) {
 	var buf bytes.Buffer
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(&buf),
+		zapcore.DebugLevel,
+	)
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     "test-app",
 		Version:     "1.0.0",
 		Environment: "development",
-	})
+	}).WithTestCore(core)
 	logger, err := factory.CreateLogger()
 	require.NoError(t, err)
 
@@ -224,11 +243,16 @@ func TestLogger_WithMethods(t *testing.T) {
 
 func TestLogger_LogLevels(t *testing.T) {
 	var buf bytes.Buffer
+	core := zapcore.NewCore(
+		zapcore.NewJSONEncoder(zap.NewProductionEncoderConfig()),
+		zapcore.AddSync(&buf),
+		zapcore.DebugLevel,
+	)
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     "test-app",
 		Version:     "1.0.0",
 		Environment: "development",
-	})
+	}).WithTestCore(core)
 	logger, err := factory.CreateLogger()
 	require.NoError(t, err)
 
