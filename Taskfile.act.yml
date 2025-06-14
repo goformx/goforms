@@ -9,21 +9,6 @@ tasks:
   all:
     desc: Run all CI jobs in sequence
     cmds:
-    - task default -- setup
-    - task default -- verify
-    - task default -- build
-
-  setup:
-    desc: Run setup job only
-    cmds:
-    - task default -- setup
-
-  verify:
-    desc: Run verify job only
-    cmds:
-    - task default -- verify
-
-  build:
-    desc: Run build job only
-    cmds:
-    - task default -- build
+    - task act:default -- setup
+    - task act:default -- verify
+    - task act:default -- build
