@@ -2,9 +2,9 @@ name: Go CI/CD
 
 on:
   push:
-    branches: [main]
+    branches: [ main ]
   pull_request:
-    branches: [main]
+    branches: [ main ]
 
 env:
   GO_VERSION: "1.24"
@@ -15,7 +15,7 @@ permissions:
   contents: read
 
 jobs:
-  setup:
+  setup-environment:
     name: Setup Environment
     runs-on: ubuntu-latest
     outputs:
@@ -23,34 +23,26 @@ jobs:
       node_version: ${{ env.NODE_VERSION }}
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: go.sum
+          go-version: '1.24'
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: ${{ env.NODE_VERSION }}
+          node-version: '18'
 
   verify:
     name: Verify Code
-    needs: setup
+    needs: setup-environment
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: ${{ env.GO_VERSION }}
-          cache: true
-          cache-dependency-path: go.sum
+          go-version: '1.24'
       - name: Install templ
         run: go install github.com/a-h/templ/cmd/templ@latest
       - name: Generate templ files
@@ -61,17 +53,13 @@ jobs:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
       - name: Install Mockgen
-        run: task install:mockgen
+        run: go install go.uber.org/mock/mockgen@latest
       - name: Generate Mocks
         run: task generate:mocks
       - name: Install Dependencies
         run: task install
       - name: Run Linter
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: latest
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          only-new-issues: false
+        run: task lint
       - name: Run Tests
         run: task test
 
