@@ -31,7 +31,7 @@ type Logger interface {
 	// WithFields adds multiple fields to the logger context
 	WithFields(fields map[string]any) Logger
 	// SanitizeField returns a sanitized version of a field value
-	SanitizeField(key string, value any) any
+	SanitizeField(key string, value any) string
 }
 
 // LogLevel represents the severity of a log message

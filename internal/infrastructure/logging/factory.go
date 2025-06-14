@@ -47,6 +47,8 @@ type Factory struct {
 	environment   string
 	outputPaths   []string
 	errorPaths    []string
+	// Add testCore for test injection
+	testCore zapcore.Core
 }
 
 // NewFactory creates a new logger factory with the given configuration
@@ -71,6 +73,12 @@ func NewFactory(cfg FactoryConfig) *Factory {
 		outputPaths:   cfg.OutputPaths,
 		errorPaths:    cfg.ErrorOutputPaths,
 	}
+}
+
+// WithTestCore allows tests to inject a zapcore.Core for capturing logs
+func (f *Factory) WithTestCore(core zapcore.Core) *Factory {
+	f.testCore = core
+	return f
 }
 
 // CreateLogger creates a new logger instance with the application name.
@@ -110,12 +118,17 @@ func (f *Factory) CreateLogger() (Logger, error) {
 		level = zapcore.InfoLevel
 	}
 
-	// Create core with console encoder and configured level
-	core := zapcore.NewCore(
-		encoder,
-		zapcore.AddSync(os.Stdout),
-		level,
-	)
+	// Use testCore if set (for testing)
+	var core zapcore.Core
+	if f.testCore != nil {
+		core = f.testCore
+	} else {
+		core = zapcore.NewCore(
+			encoder,
+			zapcore.AddSync(os.Stdout),
+			level,
+		)
+	}
 
 	// Create logger with options
 	zapLogger := zap.New(core,
@@ -307,7 +320,7 @@ var sensitiveKeys = map[string]struct{}{
 }
 
 // SanitizeField returns a masked version of a sensitive field value
-func (l *logger) SanitizeField(key string, value any) any {
+func (l *logger) SanitizeField(key string, value any) string {
 	// Check for sensitive keys
 	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
 		return "****"
@@ -329,7 +342,7 @@ func (l *logger) SanitizeField(key string, value any) any {
 		return truncateString(str, MaxStringLength)
 	}
 
-	return value
+	return fmt.Sprintf("%v", value)
 }
 
 // convertToZapFields converts a slice of fields to zap fields
@@ -349,32 +362,14 @@ func convertToZapFields(fields []any) []zap.Field {
 		// Sanitize the value based on its type
 		sanitizedValue := sanitizeValue(key, value)
 
-		switch v := sanitizedValue.(type) {
-		case string:
-			zapFields = append(zapFields, zap.String(key, v))
-		case int:
-			zapFields = append(zapFields, zap.Int(key, v))
-		case int64:
-			zapFields = append(zapFields, zap.Int64(key, v))
-		case uint:
-			zapFields = append(zapFields, zap.Uint(key, v))
-		case uint64:
-			zapFields = append(zapFields, zap.Uint64(key, v))
-		case float64:
-			zapFields = append(zapFields, zap.Float64(key, v))
-		case bool:
-			zapFields = append(zapFields, zap.Bool(key, v))
-		case error:
-			zapFields = append(zapFields, zap.Error(v), zap.String(key+"_details", fmt.Sprintf("%+v", v)))
-		default:
-			zapFields = append(zapFields, zap.Any(key, v))
-		}
+		// Always append as string since sanitizeValue returns string
+		zapFields = append(zapFields, zap.String(key, sanitizedValue))
 	}
 	return zapFields
 }
 
 // sanitizeValue applies appropriate sanitization based on the field type
-func sanitizeValue(key string, value any) any {
+func sanitizeValue(key string, value any) string {
 	// Check for sensitive keys
 	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
 		return "****"
@@ -396,7 +391,7 @@ func sanitizeValue(key string, value any) any {
 		return truncateString(str, MaxStringLength)
 	}
 
-	return value
+	return fmt.Sprintf("%v", value)
 }
 
 // validatePath checks if a string is a valid URL path
