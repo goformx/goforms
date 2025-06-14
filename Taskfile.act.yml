@@ -1,64 +1,29 @@
 version: '3'
-output: 'prefixed'
-
-vars:
-  GO_VERSION: "1.24"
-  NODE_VERSION: "20"
-  ACT_PATH: "/home/linuxbrew/.linuxbrew/bin/act"
 
 tasks:
-  setup:
-    desc: Setup environment (mirrors GitHub Actions setup job)
+  default:
+    desc: Run act with a specific job (e.g. task default -- setup)
     cmds:
-      - go mod download
-      - go mod verify
-      - npm install
-      - npm run typecheck
-
-  verify:
-    desc: Verify code (mirrors GitHub Actions verify job)
-    deps: [setup]  
-    cmds:
-      - go install github.com/a-h/templ/cmd/templ@latest
-      - templ generate
-      - go install go.uber.org/mock/mockgen@latest
-      - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
-      - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
-      - mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
-      - mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
-      - golangci-lint run ./...
-      - go test -v ./internal/...
-
-  build:
-    desc: Build project (mirrors GitHub Actions build job)
-    deps: [verify]
-    cmds:
-      - mkdir -p bin
-      - go build -ldflags "{{.LDFLAGS}}" -o bin/goforms ./cmd/goforms
-      - ls -la bin/
+      - act -j {{.CLI_ARGS}} -W .github/workflows/go.yml --bind --container-architecture linux/amd64
 
   all:
-    desc: Run all act tasks in sequence
-    deps: [setup, verify, build]
-
-  act:setup:
-    desc: Run act setup job
+    desc: Run all CI jobs in sequence
     cmds:
-      - {{.ACT_PATH}} -j setup
+      - task default -- setup
+      - task default -- verify
+      - task default -- build
 
-  act:verify:
-    desc: Run act verify job
+  setup:
+    desc: Run setup job only
     cmds:
-      - {{.ACT_PATH}} -j verify
+      - task default -- setup
 
-  act:build:
-    desc: Run act build job
+  verify:
+    desc: Run verify job only
     cmds:
-      - {{.ACT_PATH}} -j build
+      - task default -- verify
 
-  act:all:
-    desc: Run all act jobs
+  build:
+    desc: Run build job only
     cmds:
-      - {{.ACT_PATH}} -j setup
-      - {{.ACT_PATH}} -j verify
-      - {{.ACT_PATH}} -j build 
+      - task default -- build

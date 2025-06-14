@@ -9,6 +9,9 @@ includes:
   user:
     taskfile: Taskfile.user.yml
     namespace: user
+  act:
+    taskfile: Taskfile.act.yml
+    namespace: act
 
 dotenv: ['.env']
 

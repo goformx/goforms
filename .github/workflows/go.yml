@@ -16,47 +16,21 @@ jobs:
   setup:
     name: Setup Environment
     runs-on: ubuntu-latest
+    outputs:
+      go-cache: ${{ steps.go.outputs.cache-hit }}
     steps:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
       - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-          cache: true
-          cache-dependency-path: go.sum
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-  verify:
-
-    name: Verify Code
-
-    needs: setup
-
-    runs-on: ubuntu-latest
-
-    timeout-minutes: 10
-
-    steps:
-
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      
-      - name: Set up Go
+        id: go
         uses: actions/setup-go@v5
         with:
           go-version: "1.24"
           cache: true
           cache-dependency-path: go.sum
 
-  
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
@@ -67,68 +41,33 @@ jobs:
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
-            version: 3.x
-            repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      # - name: Install mockgen
-      #   run: go install go.uber.org/mock/mockgen@latest
-
-      - name: Install dependencies
-        run: task install:all
-
-      # - name: Generate Mocks
-      #   run: |
-      #     mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
-      #     mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
-      #     mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
-      #     mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
-  
-      - name: Generate code
-        run: task generate:all
-
-      - name: Run Linter
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: latest
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-          only-new-issues: false
-
-      - name: Run Tests
-        run: task test
-
-  build:
-
-    name: Build Project
-    
-    needs: verify
-
-    runs-on: ubuntu-latest
-    
-    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    timeout-minutes: 15
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version: "1.24"
-          cache: true
-          cache-dependency-path: go.sum
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20"
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install templ
         run: go install github.com/a-h/templ/cmd/templ@latest
 
-      - name: Generate templ files
-        run: templ generate
+      - name: Install mockgen
+        run: go install go.uber.org/mock/mockgen@latest
+
+  verify:
+    name: Verify Code
+    needs: setup
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate Mocks
+        run: |
+          mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
+          mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
+          mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
+          mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
+
+      - name: Generate Code
+        run: task generate:all
 
       - name: Install Dependencies
         run: |
@@ -137,11 +76,32 @@ jobs:
           npm install
           npm run typecheck
 
-      - name: Install Task
-        uses: arduino/setup-task@v2
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
         with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
+          version: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Run Tests
+        run: task test
+
+  build:
+    name: Build Project
+    needs: verify
+    runs-on: ubuntu-latest
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Install Dependencies
+        run: |
+          go mod download
+          go mod verify
+          npm install
+          npm run typecheck
 
       - name: Build Application
         run: |
