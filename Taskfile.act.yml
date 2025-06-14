@@ -4,26 +4,26 @@ tasks:
   default:
     desc: Run act with a specific job (e.g. task default -- setup)
     cmds:
-      - act -j {{.CLI_ARGS}} -W .github/workflows/go.yml --bind --container-architecture linux/amd64
+    - act -j {{.CLI_ARGS}} -W .github/workflows/go.yml --bind --container-architecture linux/amd64
 
   all:
     desc: Run all CI jobs in sequence
     cmds:
-      - task default -- setup
-      - task default -- verify
-      - task default -- build
+    - task default -- setup
+    - task default -- verify
+    - task default -- build
 
   setup:
     desc: Run setup job only
     cmds:
-      - task default -- setup
+    - task default -- setup
 
   verify:
     desc: Run verify job only
     cmds:
-      - task default -- verify
+    - task default -- verify
 
   build:
     desc: Run build job only
     cmds:
-      - task default -- build
+    - task default -- build

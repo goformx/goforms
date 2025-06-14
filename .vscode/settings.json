@@ -15,7 +15,7 @@
     "templ.executablePath": "/go/bin/templ",
     "editor.formatOnSave": true,
     "[yaml]": {
-        "editor.defaultFormatter": "kachick.vscode-yamlfmt"
+        "editor.defaultFormatter": "kennylong.kubernetes-yaml-formatter"
     },
     "[github-actions-workflow]": {
         "editor.defaultFormatter": "kachick.vscode-yamlfmt"
