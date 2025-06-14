@@ -3,5 +3,5 @@
 --env GO_VERSION=1.24
 --env NODE_VERSION=18
 --env RUNNING_IN_ACT=true
---secret GITHUB_TOKEN=dummy-token
+--secret GITHUB_TOKEN=${GITHUB_TOKEN}
 --secret-file .env 

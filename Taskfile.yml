@@ -79,6 +79,7 @@ tasks:
 
   generate:mocks:
     desc: Generate mock implementations for interfaces
+    deps: [install]
     cmds:
       - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
       - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form

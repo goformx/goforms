@@ -56,17 +56,13 @@ jobs:
         run: go install github.com/a-h/templ/cmd/templ@latest
       - name: Generate templ files
         run: templ generate
-      - name: Install Dependencies
-        run: |
-          go mod download
-          go mod verify
-          npm install
-          npm run typecheck
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
+      - name: Install Dependencies
+        run: task install
       - name: Generate Mocks
         run: task generate:mocks
       - name: Run Linter
