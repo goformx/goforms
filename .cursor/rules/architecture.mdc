@@ -6,7 +6,20 @@ alwaysApply: true
 # Architecture Guidelines
 
 ## Overview
-The application follows a layered architecture with clear separation of concerns. The codebase is organized into backend and frontend components, with the backend following a clean architecture pattern and the frontend using modern web technologies.
+Here’s a revised “Overview” section that addresses your feedback:
+
+---
+
+## Overview
+
+The application is structured in a layered architecture, dividing the codebase into four main layers:
+- domain
+- application
+- infrastructure
+- presentation.
+
+- The backend is implemented in Go, following a clean architecture pattern that separates business logic (domain), application services, infrastructure concerns (such as database and configuration), and presentation (such as template rendering).
+- The frontend is built with TypeScript and React, using component-based architecture, CSS modules for styling, and Vite as the build tool.
 
 ## Directory Structure
 
