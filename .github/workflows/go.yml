@@ -60,6 +60,13 @@ jobs:
           cache: true
           cache-dependency-path: go.sum
 
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: ${{ env.NODE_VERSION }}
+          cache: ${{ !env.RUNNING_IN_ACT && 'npm' || '' }}
+          cache-dependency-path: ${{ !env.RUNNING_IN_ACT && format('{0}/package-lock.json', github.workspace) || '' }}
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
@@ -73,7 +80,6 @@ jobs:
         run: |
           cd ${{ github.workspace }}
           task install:all
-
 
       - name: Generate Mocks
         run: |
