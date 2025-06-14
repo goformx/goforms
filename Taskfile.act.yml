@@ -3,7 +3,7 @@ output: 'prefixed'
 
 vars:
   GO_VERSION: "1.24"
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
   ACT_PATH: "/home/linuxbrew/.linuxbrew/bin/act"
 
 tasks:
@@ -17,7 +17,7 @@ tasks:
 
   verify:
     desc: Verify code (mirrors GitHub Actions verify job)
-    deps: [setup]
+    deps: [setup]  
     cmds:
       - go install github.com/a-h/templ/cmd/templ@latest
       - templ generate
@@ -34,7 +34,7 @@ tasks:
     deps: [verify]
     cmds:
       - mkdir -p bin
-      - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
+      - go build -ldflags "{{.LDFLAGS}}" -o bin/goforms ./cmd/goforms
       - ls -la bin/
 
   all:

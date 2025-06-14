@@ -2,20 +2,20 @@ name: Go CI/CD
 
 on:
   push:
-    branches: [ main ]
+    branches: [main]
   pull_request:
-    branches: [ main ]
+    branches: [main]
 
 env:
   GO_VERSION: "1.24"
-  NODE_VERSION: "18"
+  NODE_VERSION: "20"
   RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
 
 permissions:
   contents: read
 
 jobs:
-  setup-environment:
+  setup:
     name: Setup Environment
     runs-on: ubuntu-latest
     outputs:
@@ -23,43 +23,75 @@ jobs:
       node_version: ${{ env.NODE_VERSION }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: '18'
+          node-version: ${{ env.NODE_VERSION }}
+          cache: ${{ !env.RUNNING_IN_ACT && 'npm' || '' }}
+          cache-dependency-path: ${{ !env.RUNNING_IN_ACT && format('{0}/package-lock.json', github.workspace) || '' }}
+      - name: Debug Environment
+        run: |
+          echo "Running in act: ${{ env.RUNNING_IN_ACT }}"
+          echo "Workspace: ${{ github.workspace }}"
+          pwd
+          ls -la
 
   verify:
     name: Verify Code
-    needs: setup-environment
+    needs: setup
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version: '1.24'
-      - name: Install templ
-        run: go install github.com/a-h/templ/cmd/templ@latest
-      - name: Generate templ files
-        run: templ generate
+          go-version: ${{ env.GO_VERSION }}
+          cache: true
+          cache-dependency-path: go.sum
+
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install Mockgen
+            version: 3.x
+            repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Install mockgen
         run: go install go.uber.org/mock/mockgen@latest
+
+      - name: Install dependencies
+        run: |
+          cd ${{ github.workspace }}
+          task install:all
+
+
       - name: Generate Mocks
-        run: task generate:mocks
-      - name: Install Dependencies
-        run: task install
+        run: |
+          mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
+          mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
+          mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
+          mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
+  
+      - name: Generate code
+        run: |
+          cd ${{ github.workspace }}
+          task generate:all
       - name: Run Linter
-        run: task lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+          only-new-issues: false
       - name: Run Tests
         run: task test
 
@@ -84,7 +116,12 @@ jobs:
       - name: Generate templ files
         run: templ generate
       - name: Install Dependencies
-        run: task install
+        run: |
+          go mod download
+          go mod verify
+          cd ${{ github.workspace }}
+          npm install
+          npm run typecheck
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
