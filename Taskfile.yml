@@ -60,16 +60,20 @@ tasks:
 
   install:
     desc: Install project dependencies
+    deps: [generate:mocks]
     cmds:
-      - go mod tidy
       - go install github.com/a-h/templ/cmd/templ@latest
       - go install github.com/air-verse/air@latest
       - go install golang.org/x/lint/golint@latest
       - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
-      - go install go.uber.org/mock/mockgen@latest
       - go install -tags 'mysql,postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
       - export PATH=$PATH:$(go env GOPATH)/bin
       - npm install
+
+  install:mockgen:
+    desc: Install mockgen tool
+    cmds:
+      - go install go.uber.org/mock/mockgen@latest
 
   generate:
     desc: Generate code from templates
@@ -79,6 +83,7 @@ tasks:
 
   generate:mocks:
     desc: Generate mock implementations for interfaces
+    deps: [install:mockgen]
     cmds:
       - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
       - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form

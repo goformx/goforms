@@ -60,10 +60,12 @@ jobs:
         with:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
-      - name: Install Dependencies
-        run: task install
+      - name: Install Mockgen
+        run: task install:mockgen
       - name: Generate Mocks
         run: task generate:mocks
+      - name: Install Dependencies
+        run: task install
       - name: Run Linter
         uses: golangci/golangci-lint-action@v8
         with:
