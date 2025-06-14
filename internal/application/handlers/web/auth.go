@@ -77,6 +77,15 @@ func getFieldSchema(field reflect.StructField) map[string]any {
 		fieldSchema["maxLength"] = maxLen
 	}
 
+	// Set type based on validation rules
+	if validate != "" {
+		if validate == "required,email" {
+			fieldSchema["type"] = "email"
+		} else if validate == "required" {
+			fieldSchema["type"] = "string"
+		}
+	}
+
 	return fieldSchema
 }
 
@@ -104,8 +113,18 @@ func generateValidationSchema(s any) map[string]any {
 		fieldSchema := getFieldSchema(field)
 
 		// Special handling for password field
-		if fieldName == fieldPassword {
+		if fieldName == "password" {
 			fieldSchema = getPasswordSchema()
+		}
+
+		// Special handling for confirm_password field
+		if fieldName == "confirm_password" {
+			fieldSchema = map[string]any{
+				"type": "match",
+				"matchField": "password",
+				"message": "Passwords don't match",
+				"min": 8,
+			}
 		}
 
 		schema[fieldName] = fieldSchema
