@@ -12,5 +12,12 @@
         "fmt",
         "--stdin"
     ],
-    "templ.executablePath": "/go/bin/templ"
+    "templ.executablePath": "/go/bin/templ",
+    "editor.formatOnSave": true,
+    "[yaml]": {
+        "editor.defaultFormatter": "kachick.vscode-yamlfmt"
+    },
+    "[github-actions-workflow]": {
+        "editor.defaultFormatter": "kachick.vscode-yamlfmt"
+    }
 }

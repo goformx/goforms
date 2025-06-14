@@ -84,6 +84,7 @@ tasks:
       - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
       - mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
       - mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
+      - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
 
   build:
     desc: Build the application (frontend and backend in parallel)
