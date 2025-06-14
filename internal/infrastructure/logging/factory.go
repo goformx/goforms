@@ -21,6 +21,10 @@ const (
 	MaxPartsLength = 2
 	// FieldPairSize represents the number of elements in a key-value pair
 	FieldPairSize = 2
+	// MaxStringLength represents the maximum length for string fields
+	MaxStringLength = 1000
+	// MaxPathLength represents the maximum length for path fields
+	MaxPathLength = 500
 )
 
 // FactoryConfig holds the configuration for creating a logger factory
@@ -43,6 +47,8 @@ type Factory struct {
 	environment   string
 	outputPaths   []string
 	errorPaths    []string
+	// Add testCore for test injection
+	testCore zapcore.Core
 }
 
 // NewFactory creates a new logger factory with the given configuration
@@ -67,6 +73,12 @@ func NewFactory(cfg FactoryConfig) *Factory {
 		outputPaths:   cfg.OutputPaths,
 		errorPaths:    cfg.ErrorOutputPaths,
 	}
+}
+
+// WithTestCore allows tests to inject a zapcore.Core for capturing logs
+func (f *Factory) WithTestCore(core zapcore.Core) *Factory {
+	f.testCore = core
+	return f
 }
 
 // CreateLogger creates a new logger instance with the application name.
@@ -97,12 +109,26 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	// Create console encoder for better readability in development mode
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)
 
-	// Create core with console encoder
-	core := zapcore.NewCore(
-		encoder,
-		zapcore.AddSync(os.Stdout),
-		zapcore.DebugLevel,
-	)
+	// Determine log level from environment
+	var level zapcore.Level
+	switch strings.ToLower(f.environment) {
+	case "development":
+		level = zapcore.DebugLevel
+	default:
+		level = zapcore.InfoLevel
+	}
+
+	// Use testCore if set (for testing)
+	var core zapcore.Core
+	if f.testCore != nil {
+		core = f.testCore
+	} else {
+		core = zapcore.NewCore(
+			encoder,
+			zapcore.AddSync(os.Stdout),
+			level,
+		)
+	}
 
 	// Create logger with options
 	zapLogger := zap.New(core,
@@ -294,11 +320,29 @@ var sensitiveKeys = map[string]struct{}{
 }
 
 // SanitizeField returns a masked version of a sensitive field value
-func (l *logger) SanitizeField(key string, value any) any {
+func (l *logger) SanitizeField(key string, value any) string {
+	// Check for sensitive keys
 	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
 		return "****"
 	}
-	return value
+
+	// Handle path fields
+	if key == "path" {
+		if path, ok := value.(string); ok {
+			if !validatePath(path) {
+				return "[invalid path]"
+			}
+			return truncateString(path, MaxPathLength)
+		}
+		return "[invalid path type]"
+	}
+
+	// Handle string values
+	if str, ok := value.(string); ok {
+		return truncateString(str, MaxStringLength)
+	}
+
+	return fmt.Sprintf("%v", value)
 }
 
 // convertToZapFields converts a slice of fields to zap fields
@@ -315,26 +359,54 @@ func convertToZapFields(fields []any) []zap.Field {
 		}
 
 		value := fields[i+1]
-		switch v := value.(type) {
-		case string:
-			zapFields = append(zapFields, zap.String(key, v))
-		case int:
-			zapFields = append(zapFields, zap.Int(key, v))
-		case int64:
-			zapFields = append(zapFields, zap.Int64(key, v))
-		case uint:
-			zapFields = append(zapFields, zap.Uint(key, v))
-		case uint64:
-			zapFields = append(zapFields, zap.Uint64(key, v))
-		case float64:
-			zapFields = append(zapFields, zap.Float64(key, v))
-		case bool:
-			zapFields = append(zapFields, zap.Bool(key, v))
-		case error:
-			zapFields = append(zapFields, zap.Error(v), zap.String(key+"_details", fmt.Sprintf("%+v", v)))
-		default:
-			zapFields = append(zapFields, zap.Any(key, v))
-		}
+		// Sanitize the value based on its type
+		sanitizedValue := sanitizeValue(key, value)
+
+		// Always append as string since sanitizeValue returns string
+		zapFields = append(zapFields, zap.String(key, sanitizedValue))
 	}
 	return zapFields
+}
+
+// sanitizeValue applies appropriate sanitization based on the field type
+func sanitizeValue(key string, value any) string {
+	// Check for sensitive keys
+	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
+		return "****"
+	}
+
+	// Handle path fields
+	if key == "path" {
+		if path, ok := value.(string); ok {
+			if !validatePath(path) {
+				return "[invalid path]"
+			}
+			return truncateString(path, MaxPathLength)
+		}
+		return "[invalid path type]"
+	}
+
+	// Handle string values
+	if str, ok := value.(string); ok {
+		return truncateString(str, MaxStringLength)
+	}
+
+	return fmt.Sprintf("%v", value)
+}
+
+// validatePath checks if a string is a valid URL path
+func validatePath(path string) bool {
+	if len(path) > MaxPathLength {
+		return false
+	}
+	// Basic path validation - should start with / and contain only valid characters
+	return path != "" && path[0] == '/' && !strings.ContainsAny(path, "\\<>\"'")
+}
+
+// truncateString truncates a string to the maximum allowed length
+func truncateString(s string, maxLen int) string {
+	if len(s) > maxLen {
+		return s[:maxLen] + "..."
+	}
+	return s
 }

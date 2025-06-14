@@ -16,6 +16,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
+	infraweb "github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -65,14 +66,32 @@ func AnnotateHandler(fn any) fx.Option {
 	)
 }
 
+// AssetServerParams groups the dependencies for creating an asset server
+type AssetServerParams struct {
+	fx.In
+	Config *config.Config
+	Logger logging.Logger
+}
+
+// ProvideAssetServer creates an appropriate asset server based on the environment
+func ProvideAssetServer(p AssetServerParams) infraweb.AssetServer {
+	if p.Config.App.IsDevelopment() {
+		return infraweb.NewViteAssetServer(p.Config, p.Logger)
+	}
+	return infraweb.NewStaticAssetServer(p.Logger)
+}
+
 // Module provides infrastructure dependencies
 var Module = fx.Options(
 	fx.Provide(
 		// Core infrastructure
 		echo.New,
 		server.New,
-		NewEventPublisher,
-		// Database
 		database.New,
+		// Event system
+		NewEventPublisher,
+		event.NewMemoryEventBus,
+		// Asset server
+		ProvideAssetServer,
 	),
 )

@@ -3,19 +3,16 @@ package form
 import (
 	"context"
 	"errors"
-	"time"
 
+	"github.com/goformx/goforms/internal/domain/common/events"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// FormEvent is a local interface for form event handling
-// It matches the event types defined in form_events.go
-// (Data, EventType, Timestamp)
-type FormEvent interface {
-	Data() any
-	EventType() string
-	Timestamp() time.Time
-}
+var ErrInvalidEventPayload = errors.New("invalid event payload")
+
+const (
+	DefaultRetryCount = 3
+)
 
 // FormEventHandler handles form-related events
 type FormEventHandler struct {
@@ -30,17 +27,13 @@ func NewFormEventHandler(logger logging.Logger) *FormEventHandler {
 }
 
 // Handle handles form events
-func (h *FormEventHandler) Handle(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With(
-		"event_type", event.EventType(),
+func (h *FormEventHandler) Handle(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form event",
+		"event_name", event.Name(),
 		"timestamp", event.Timestamp(),
 	)
 
-	// Log event receipt
-	logger.Debug("handling form event")
-
-	// Handle different event types
-	switch event.EventType() {
+	switch event.Name() {
 	case string(FormCreatedEventType):
 		return h.handleFormCreated(ctx, event)
 	case string(FormUpdatedEventType):
@@ -62,270 +55,110 @@ func (h *FormEventHandler) Handle(ctx context.Context, event FormEvent) error {
 	case string(AnalyticsEventType):
 		return h.handleAnalyticsEvent(ctx, event)
 	default:
-		logger.Warn("unknown event type")
-		return errors.New("unknown event type")
+		h.logger.Warn("unknown event type",
+			"event_name", event.Name(),
+			"timestamp", event.Timestamp(),
+		)
+		return nil
 	}
 }
 
-// handleFormCreated handles form creation events
-func (h *FormEventHandler) handleFormCreated(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.created")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form creation with context
-	logger.Info("form created",
-		"form_id", data["form_id"],
-		"user_id", data["user_id"],
-		"trace_id", ctx.Value("trace_id"),
+// handleFormCreated handles form created events
+func (h *FormEventHandler) handleFormCreated(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form created event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
-// handleFormUpdated handles form update events
-func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.updated")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form update with context
-	logger.Info("form updated",
-		"form_id", data["form_id"],
-		"user_id", data["user_id"],
-		"trace_id", ctx.Value("trace_id"),
+// handleFormUpdated handles form updated events
+func (h *FormEventHandler) handleFormUpdated(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form updated event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
-// handleFormDeleted handles form deletion events
-func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.deleted")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form deletion with context
-	logger.Info("form deleted",
-		"form_id", data["form_id"],
-		"user_id", data["user_id"],
-		"trace_id", ctx.Value("trace_id"),
+// handleFormDeleted handles form deleted events
+func (h *FormEventHandler) handleFormDeleted(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form deleted event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
-// handleFormSubmitted handles form submission events
-func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.submitted")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form submission with context
-	logger.Info("form submitted",
-		"form_id", data["form_id"],
-		"submission_id", data["submission_id"],
-		"trace_id", ctx.Value("trace_id"),
+// handleFormSubmitted handles form submitted events
+func (h *FormEventHandler) handleFormSubmitted(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form submitted event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
-// handleFormValidated handles form validation events
-func (h *FormEventHandler) handleFormValidated(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.validated")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form validation with context
-	logger.Info("form validated",
-		"form_id", data["form_id"],
-		"is_valid", data["is_valid"],
-		"trace_id", ctx.Value("trace_id"),
+// handleFormValidated handles form validated events
+func (h *FormEventHandler) handleFormValidated(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form validated event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
-// handleFormProcessed handles form processing events
-func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.processed")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form processing with context
-	logger.Info("form processed",
-		"form_id", data["form_id"],
-		"processing_id", data["processing_id"],
-		"trace_id", ctx.Value("trace_id"),
+// handleFormProcessed handles form processed events
+func (h *FormEventHandler) handleFormProcessed(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form processed event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
 // handleFormError handles form error events
-func (h *FormEventHandler) handleFormError(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.error")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form error with context
-	logger.Error("form error",
-		"form_id", data["form_id"],
-		"error", data["error"],
-		"error_type", data["error_type"],
-		"trace_id", ctx.Value("trace_id"),
+func (h *FormEventHandler) handleFormError(ctx context.Context, event events.Event) error {
+	h.logger.Error("handling form error event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
 // handleFormState handles form state events
-func (h *FormEventHandler) handleFormState(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.state")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log form state change with context
-	logger.Info("form state changed",
-		"form_id", data["form_id"],
-		"state", data["state"],
-		"trace_id", ctx.Value("trace_id"),
+func (h *FormEventHandler) handleFormState(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling form state event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
 // handleFieldEvent handles field events
-func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.field")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log field event with context
-	logger.Info("field event",
-		"form_id", data["form_id"],
-		"field_id", data["field_id"],
-		"field_name", data["field_name"],
-		"trace_id", ctx.Value("trace_id"),
+func (h *FormEventHandler) handleFieldEvent(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling field event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }
 
 // handleAnalyticsEvent handles analytics events
-func (h *FormEventHandler) handleAnalyticsEvent(ctx context.Context, event FormEvent) error {
-	logger := h.logger.With("event_type", "form.analytics")
-
-	// Check for context cancellation
-	if ctx.Err() != nil {
-		return ctx.Err()
-	}
-
-	// Extract event data
-	data, ok := event.Data().(map[string]any)
-	if !ok {
-		return errors.New("invalid event data type")
-	}
-
-	// Log analytics event with context
-	logger.Info("analytics event",
-		"form_id", data["form_id"],
-		"event_type", data["event_type"],
-		"user_id", data["user_id"],
-		"trace_id", ctx.Value("trace_id"),
+func (h *FormEventHandler) handleAnalyticsEvent(ctx context.Context, event events.Event) error {
+	h.logger.Info("handling analytics event",
+		"event_name", event.Name(),
+		"timestamp", event.Timestamp(),
+		"request_id", ctx.Value("request_id"),
 	)
-
-	// Add any additional processing here
 	return nil
 }

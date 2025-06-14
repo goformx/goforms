@@ -2,41 +2,40 @@ package shared
 
 import (
 	"fmt"
-	"net"
-	"strconv"
 
 	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/application/middleware/context"
+	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/middleware/session"
 )
 
-// PageData contains common data used across all pages
+// PageData represents the data passed to templates
 type PageData struct {
 	Title                string
-	User                 *user.User
+	Description          string
+	Keywords             string
+	Author               string
+	Version              string
+	Environment          string
+	AssetPath            func(string) string
+	User                 *entities.User
 	Forms                []*model.Form
 	Form                 *model.Form
 	Submissions          []*model.FormSubmission
 	CSRFToken            string
 	IsDevelopment        bool
-	AssetPath            func(string) string
 	Content              templ.Component
 	FormBuilderAssetPath string
 	Message              *Message
-	Description          string
 	Config               *config.Config
 	Session              *session.Session
 	UserID               string
 	Email                string
-	Role                 string
-	Error                string
-	Success              string
-	Data                 any
 }
 
 // Message represents a user-facing message
@@ -45,8 +44,18 @@ type Message struct {
 	Text string
 }
 
+// ViteManifest represents the structure of the Vite manifest file
+type ViteManifest struct {
+	File    string   `json:"file"`
+	Name    string   `json:"name"`
+	Src     string   `json:"src,omitempty"`
+	CSS     []string `json:"css,omitempty"`
+	Assets  []string `json:"assets,omitempty"`
+	IsEntry bool     `json:"isEntry"`
+}
+
 // GetCurrentUser extracts user data from context
-func GetCurrentUser(c echo.Context) *user.User {
+func GetCurrentUser(c echo.Context) *entities.User {
 	if c == nil {
 		return nil
 	}
@@ -56,7 +65,7 @@ func GetCurrentUser(c echo.Context) *user.User {
 	}
 	email, _ := context.GetEmail(c)
 	role, _ := context.GetRole(c)
-	return &user.User{
+	return &entities.User{
 		ID:    userID,
 		Email: email,
 		Role:  role,
@@ -74,15 +83,16 @@ func GetCSRFToken(c echo.Context) string {
 	return ""
 }
 
-// GenerateAssetPath creates asset paths based on environment settings
+// GenerateAssetPath creates asset paths using the infrastructure AssetManager
 func GenerateAssetPath(cfg *config.Config) func(string) string {
 	return func(path string) string {
-		if cfg != nil && cfg.App.IsDevelopment() {
-			return fmt.Sprintf("%s://%s/assets/%s",
-				cfg.App.Scheme, net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort), path)
+		assetPath, err := web.GetAssetPath(path)
+		if err != nil {
+			// Let the error propagate up - if the asset manager can't resolve the path,
+			// there's likely a real problem that should be handled
+			panic(fmt.Sprintf("failed to resolve asset path: %v", err))
 		}
-		return fmt.Sprintf("%s://%s/assets/%s",
-			cfg.App.Scheme, net.JoinHostPort(cfg.App.Host, strconv.Itoa(cfg.App.Port)), path)
+		return assetPath
 	}
 }
 
@@ -105,9 +115,29 @@ func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 		Session:              nil,
 		UserID:               "",
 		Email:                "",
-		Role:                 "",
-		Error:                "",
-		Success:              "",
-		Data:                 nil,
 	}
+}
+
+// NewPageData creates a new PageData instance
+func NewPageData(title, description string, user *entities.User) *PageData {
+	return &PageData{
+		Title:       title,
+		Description: description,
+		User:        user,
+	}
+}
+
+// IsAuthenticated checks if the user is authenticated
+func (p *PageData) IsAuthenticated() bool {
+	return p.User != nil
+}
+
+// GetUser returns the current user
+func (p *PageData) GetUser() *entities.User {
+	return p.User
+}
+
+// SetUser sets the current user
+func (p *PageData) SetUser(user *entities.User) {
+	p.User = user
 }

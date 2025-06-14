@@ -1,8 +1,10 @@
 package components
 
-import "github.com/goformx/goforms/internal/domain/user"
+import (
+	"github.com/goformx/goforms/internal/domain/entities"
+)
 
-templ UserProfile(user user.User) {
+templ UserProfile(user *entities.User) {
     <div class="bg-white shadow overflow-hidden sm:rounded-lg">
         <div class="px-4 py-5 sm:px-6">
             <h3 class="text-lg leading-6 font-medium text-gray-900">

@@ -15,7 +15,8 @@ var Module = fx.Options(
 	fx.Provide(
 		// Access manager
 		func(logger logging.Logger) *access.AccessManager {
-			manager := access.NewAccessManager(access.DefaultRules())
+			config := access.DefaultConfig()
+			manager := access.NewAccessManager(config, access.DefaultRules())
 			logger.Debug("access manager initialized", "service", "access")
 			return manager
 		},

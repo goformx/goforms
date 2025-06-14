@@ -5,91 +5,155 @@ alwaysApply: false
 ---
 # Testing Guidelines
 
+## Overview
+The codebase uses a comprehensive testing strategy covering both backend and frontend components. Tests are organized by type and follow consistent patterns for maintainability and reliability.
+
 ## Test Types
 
-1. **Unit Tests**
-   - Test domain logic
-   - Use table-driven tests
+1. Unit Tests
+   - Backend: Go unit tests
+   - Frontend: Component tests
    - Mock dependencies
+   - Test edge cases
 
-2. **Integration Tests**
-   - Test API endpoints
-   - Test database operations
-   - Use testcontainers
+2. Integration Tests
+   - Backend: API integration
+   - Frontend: Component integration
+   - Database integration
+   - External services
 
-## Test Structure
+3. E2E Tests
+   - User flows
+   - Critical paths
+   - Browser testing
+   - Performance testing
 
-1. **Table-Driven Tests**
+## Backend Testing
+
+1. Unit Tests
    ```go
-   func TestValidation(t *testing.T) {
-       tests := []struct {
-           name    string
-           input   string
-           wantErr bool
-       }{
-           {"valid", "test@example.com", false},
-           {"invalid", "invalid", true},
-       }
-   
-       for _, tt := range tests {
-           t.Run(tt.name, func(t *testing.T) {
-               err := validate(tt.input)
-               require.Equal(t, tt.wantErr, err != nil)
-           })
-       }
+   func TestService_CreateForm(t *testing.T) {
+       mockRepo := &MockRepository{}
+       mockPublisher := &MockPublisher{}
+       mockLogger := &MockLogger{}
+       service := NewService(mockRepo, mockPublisher, mockLogger)
+       // Test implementation
    }
    ```
 
-2. **Error Testing**
+2. Integration Tests
    ```go
-   t.Run("error case", func(t *testing.T) {
-       err := someFunction()
-       require.Error(t, err)
-       assert.ErrorIs(t, err, expectedError)
-   })
+   func TestService_Integration(t *testing.T) {
+       db := setupTestDB(t)
+       defer db.Close()
+       // Test implementation
+   }
    ```
+
+3. API Tests
+   ```go
+   func TestHandler_CreateForm(t *testing.T) {
+       e := echo.New()
+       req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"title":"Test"}`))
+       rec := httptest.NewRecorder()
+       c := e.NewContext(req, rec)
+       // Test implementation
+   }
+   ```
+
+## Frontend Testing
+
+1. Component Tests
+   ```typescript
+   describe('FormComponent', () => {
+     it('renders form fields correctly', () => {
+       const { getByLabelText } = render(<FormComponent />);
+       expect(getByLabelText('Title')).toBeInTheDocument();
+     });
+   });
+   ```
+
+2. Hook Tests
+   ```typescript
+   describe('useForm', () => {
+     it('handles form submission', async () => {
+       const { result } = renderHook(() => useForm());
+       await act(async () => {
+         await result.current.submit({ title: 'Test' });
+       });
+       expect(result.current.isSuccess).toBe(true);
+     });
+   });
+   ```
+
+3. Integration Tests
+   ```typescript
+   describe('Form Flow', () => {
+     it('completes form submission', async () => {
+       render(<FormPage />);
+       await userEvent.type(screen.getByLabelText('Title'), 'Test');
+       await userEvent.click(screen.getByText('Submit'));
+       expect(await screen.findByText('Success')).toBeInTheDocument();
+     });
+   });
+   ```
+
+## Test Organization
+
+1. Directory Structure
+   ```
+   ├── test/                # Backend tests
+   │   ├── unit/           # Unit tests
+   │   ├── integration/    # Integration tests
+   │   └── e2e/           # E2E tests
+   └── src/                # Frontend tests
+       ├── __tests__/     # Test files
+       ├── __mocks__/     # Mock files
+       └── test-utils/    # Test utilities
+   ```
+
+2. Naming Conventions
+   - Backend: `*_test.go`
+   - Frontend: `*.test.tsx`
+   - Test files: `*.spec.ts`
+   - Mock files: `*.mock.ts`
+
+## Test Utilities
+
+1. Backend
+   - Test fixtures
+   - Mock generators
+   - Database helpers
+   - HTTP test helpers
+
+2. Frontend
+   - Test renderers
+   - Mock providers
+   - User event helpers
+   - API mocks
 
 ## Best Practices
 
-1. **Setup**
-   - Use `t.Context()`
-   - Clean up resources
+1. Test Coverage
+   - Aim for high coverage
+   - Focus on critical paths
+   - Test edge cases
+   - Monitor coverage
+
+2. Test Data
+   - Use fixtures
+   - Generate test data
+   - Clean up after tests
+   - Isolate test data
+
+3. Performance
+   - Run tests in parallel
+   - Optimize test setup
+   - Use test databases
    - Mock external services
 
-2. **Assertions**
-   - Use `require` for critical checks
-   - Use `assert` for non-critical checks
-   - Test error cases
-
-3. **Cleanup**
-   ```go
-   func TestDB(t *testing.T) {
-       db, err := setupDB()
-       require.NoError(t, err)
-       defer db.Close()
-       // ... test ...
-   }
-   ```
-
-## Common Patterns
-
-1. **Mocking**
-   ```go
-   type MockStore struct {
-       mock.Mock
-   }
-   
-   func (m *MockStore) Create(ctx context.Context, user *User) error {
-       args := m.Called(ctx, user)
-       return args.Error(0)
-   }
-   ```
-
-2. **Test Helpers**
-   ```go
-   func setupTestDB(t *testing.T) *sql.DB {
-       db, err := sql.Open("postgres", testDBURL)
-       require.NoError(t, err)
-       return db
-   }
-   ```
+4. Maintenance
+   - Keep tests simple
+   - Update with changes
+   - Remove obsolete tests
+   - Document test patterns

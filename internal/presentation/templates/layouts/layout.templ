@@ -17,7 +17,7 @@ templ Layout(data shared.PageData, content templ.Component) {
 			<meta name="csrf-token" content={ data.CSRFToken }/>
 			<meta name="csrf-param" content="_csrf"/>
 			<title>{ data.Title } - Goforms</title>
-			<script type="module" src={ data.AssetPath("src/js/main.ts") }></script>
+			<script type="module" src={ data.AssetPath("main.ts") }></script>
 			<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css"/>
 		</head>
 		<body>
@@ -25,9 +25,6 @@ templ Layout(data shared.PageData, content templ.Component) {
 				@components.Nav(data)
 			</header>
 			<main>
-				if data.Message != nil {
-					@components.Message(data)
-				}
 				@content
 			</main>
 			@components.Footer()

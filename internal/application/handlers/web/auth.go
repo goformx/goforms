@@ -2,9 +2,9 @@ package web
 
 import (
 	"context"
+	"errors"
 	"net/http"
 	"reflect"
-	"strings"
 	"time"
 
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
@@ -27,6 +27,8 @@ const (
 	MinPasswordLength = 8
 	// XMLHttpRequestHeader is the standard header value for AJAX requests
 	XMLHttpRequestHeader = "XMLHttpRequest"
+	// fieldPassword is the constant for the password field name
+	fieldPassword = "password"
 )
 
 // NewAuthHandler creates a new auth handler
@@ -56,60 +58,54 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 	validation.GET("/signup", h.SignupValidation)
 }
 
-// generateValidationSchema generates a validation schema from struct tags
+func getFieldSchema(field reflect.StructField) map[string]any {
+	fieldSchema := make(map[string]any)
+
+	// Get validation tags
+	validate := field.Tag.Get("validate")
+	if validate != "" {
+		fieldSchema["validate"] = validate
+	}
+
+	// Get min/max length
+	minLen := field.Tag.Get("minlen")
+	if minLen != "" {
+		fieldSchema["minLength"] = minLen
+	}
+	maxLen := field.Tag.Get("maxlen")
+	if maxLen != "" {
+		fieldSchema["maxLength"] = maxLen
+	}
+
+	return fieldSchema
+}
+
+func getPasswordSchema() map[string]any {
+	return map[string]any{
+		"type":      "password",
+		"validate":  "required,min=8",
+		"minLength": "8",
+		"message": "Password must be at least 8 characters long and include " +
+			"uppercase, lowercase, number, and special characters",
+	}
+}
+
 func generateValidationSchema(s any) map[string]any {
-	schema := make(map[string]any)
 	t := reflect.TypeOf(s)
-
-	// Handle pointer types
-	if t.Kind() == reflect.Ptr {
-		t = t.Elem()
-	}
-
-	// Only process structs
-	if t.Kind() != reflect.Struct {
-		return schema
-	}
+	schema := make(map[string]any)
 
 	for i := range t.NumField() {
 		field := t.Field(i)
-		jsonTag := field.Tag.Get("json")
-		if jsonTag == "" || jsonTag == "-" {
-			continue
+		fieldName := field.Tag.Get("json")
+		if fieldName == "" {
+			fieldName = field.Name
 		}
 
-		// Get the first part of the JSON tag (before any comma)
-		fieldName := strings.Split(jsonTag, ",")[0]
-		validateTag := field.Tag.Get("validate")
+		fieldSchema := getFieldSchema(field)
 
-		// Create field schema
-		fieldSchema := make(map[string]any)
-		fieldSchema["type"] = "string" // Default type
-
-		// Parse validation tags
-		if validateTag != "" {
-			rules := strings.Split(validateTag, ",")
-			for _, rule := range rules {
-				switch {
-				case rule == "required":
-					fieldSchema["min"] = 1
-					fieldSchema["message"] = fieldName + " is required"
-				case rule == "email":
-					fieldSchema["type"] = "email"
-					fieldSchema["message"] = "Please enter a valid email address"
-				case strings.HasPrefix(rule, "min="):
-					minLength := strings.TrimPrefix(rule, "min=")
-					fieldSchema["min"] = minLength
-					if fieldName == "password" {
-						fieldSchema["message"] = "Password must be at least " + minLength + " characters long"
-					}
-				case strings.HasPrefix(rule, "match="):
-					matchField := strings.TrimPrefix(rule, "match=")
-					fieldSchema["type"] = "match"
-					fieldSchema["matchField"] = matchField
-					fieldSchema["message"] = "Passwords must match"
-				}
-			}
+		// Special handling for password field
+		if fieldName == fieldPassword {
+			fieldSchema = getPasswordSchema()
 		}
 
 		schema[fieldName] = fieldSchema
@@ -147,66 +143,61 @@ func (h *AuthHandler) Login(c echo.Context) error {
  *    - Redirect to dashboard on success
  */
 func (h *AuthHandler) LoginPost(c echo.Context) error {
-	data := shared.BuildPageData(h.deps.Config, c, "Login")
-
-	// Get form values
-	email := c.FormValue("email")
-	password := c.FormValue("password")
-
-	// Authenticate user credentials
-	authenticatedUser, err := h.deps.UserService.Authenticate(c.Request().Context(), email, password)
-	if err != nil {
-		// Log authentication failure
-		h.deps.Logger.Debug("Login failed",
-			"email", h.deps.Logger.SanitizeField("email", email),
-			"error_type", "authentication_error")
-
-		// Handle API requests differently
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Invalid email or password",
-			})
-		}
-
-		// Return error message for regular requests
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "Invalid email or password",
-		}
-		return h.deps.Renderer.Render(c, pages.Login(data))
-	}
-
-	// Create new session for authenticated user
-	session, err := h.deps.SessionManager.CreateSession(
-		authenticatedUser.ID,
-		authenticatedUser.Email,
-		c.Request().UserAgent(),
+	var (
+		email    string
+		password string
 	)
-	if err != nil {
-		// Log session creation failure
-		h.deps.Logger.Error("Failed to create session",
-			"error", err,
-			"user_id", h.deps.Logger.SanitizeField("user_id", authenticatedUser.ID))
 
-		// Handle API requests differently
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": "An error occurred. Please try again.",
+	// Check content type to determine how to parse the request
+	contentType := c.Request().Header.Get("Content-Type")
+	if contentType == "application/json" {
+		// Parse JSON request
+		var data struct {
+			Email    string `json:"email"`
+			Password string `json:"password"`
+		}
+		if err := c.Bind(&data); err != nil {
+			h.deps.Logger.Error("failed to parse JSON request", "error", err)
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Invalid request format",
 			})
 		}
-
-		// Return error message for regular requests
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "An error occurred. Please try again.",
-		}
-		return h.deps.Renderer.Render(c, pages.Login(data))
+		email = data.Email
+		password = data.Password
+	} else {
+		// Parse form data
+		email = c.FormValue("email")
+		password = c.FormValue("password")
 	}
 
-	// Set session cookie in response
+	// Sanitize email
+	email = sanitize.Email(email, false)
+
+	// Validate credentials
+	loginResp, err := h.deps.UserService.Login(c.Request().Context(), &user.Login{
+		Email:    email,
+		Password: password,
+	})
+	if err != nil {
+		h.deps.Logger.Error("login failed", "error", err)
+		return c.JSON(http.StatusUnauthorized, map[string]string{
+			"message": "Invalid email or password",
+		})
+	}
+
+	// Create session
+	session, err := h.deps.SessionManager.CreateSession(loginResp.User.ID, loginResp.User.Email, c.Request().UserAgent())
+	if err != nil {
+		h.deps.Logger.Error("failed to create session", "error", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"message": "Failed to create session",
+		})
+	}
+
+	// Set session cookie
 	h.deps.SessionManager.SetSessionCookie(c, session)
 
-	// Handle API requests differently
+	// Return success
 	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
 		return c.JSON(http.StatusOK, map[string]string{
 			"redirect": "/dashboard",
@@ -226,77 +217,67 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 	return h.deps.Renderer.Render(c, pages.Signup(data))
 }
 
-// SignupPost handles POST /signup - processes the signup form
+// SignupPost handles the signup form submission
 func (h *AuthHandler) SignupPost(c echo.Context) error {
-	data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
+	var signup user.Signup
 
-	// Get and sanitize form values
-	email := sanitize.Email(c.FormValue("email"), false)
-	password := c.FormValue("password")
-	firstName := sanitize.XSS(c.FormValue("first_name"))
-	lastName := sanitize.XSS(c.FormValue("last_name"))
-
-	// Create user
-	signup := &user.Signup{
-		Email:     email,
-		Password:  password,
-		FirstName: firstName,
-		LastName:  lastName,
+	// Check content type to determine how to parse the request
+	contentType := c.Request().Header.Get("Content-Type")
+	if contentType == "application/json" {
+		// Parse JSON request directly into signup struct
+		if err := c.Bind(&signup); err != nil {
+			h.deps.Logger.Error("failed to parse JSON request", "error", err)
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Invalid request format",
+			})
+		}
+	} else {
+		// Parse form data
+		signup = user.Signup{
+			Email:           c.FormValue("email"),
+			Password:        c.FormValue("password"),
+			ConfirmPassword: c.FormValue("confirm_password"),
+		}
 	}
 
-	newUser, err := h.deps.UserService.SignUp(c.Request().Context(), signup)
-	if err != nil {
-		h.deps.Logger.Debug("Signup failed",
-			"error", err,
-			"email", h.deps.Logger.SanitizeField("email", email))
+	// Sanitize email
+	signup.Email = sanitize.Email(signup.Email, false)
 
-		// Check if this is an API request
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
+	// Create user
+	newUser, err := h.deps.UserService.SignUp(c.Request().Context(), &signup)
+	if err != nil {
+		h.deps.Logger.Error("failed to create user", "error", err)
+
+		// Check for specific error types
+		if errors.Is(err, user.ErrUserExists) {
 			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Unable to create account. Please try again.",
+				"message": "This email is already registered. Please try signing in instead.",
+				"field":   "email",
 			})
 		}
 
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "Unable to create account. Please try again.",
-		}
-		return h.deps.Renderer.Render(c, pages.Signup(data))
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"message": "Unable to create account. Please try again.",
+		})
 	}
 
 	// Create session for new user
 	session, err := h.deps.SessionManager.CreateSession(newUser.ID, newUser.Email, c.Request().UserAgent())
 	if err != nil {
-		h.deps.Logger.Error("Failed to create session after signup",
-			"error", err,
-			"user_id", h.deps.Logger.SanitizeField("user_id", newUser.ID))
-
-		// Check if this is an API request
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": "An error occurred. Please try again.",
-			})
-		}
-
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "An error occurred. Please try again.",
-		}
-		return h.deps.Renderer.Render(c, pages.Signup(data))
-	}
-
-	// Set session cookie using session manager
-	h.deps.SessionManager.SetSessionCookie(c, session)
-
-	// Check if this is an API request
-	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-		return c.JSON(http.StatusOK, map[string]string{
-			"redirect": "/dashboard",
+		h.deps.Logger.Error("failed to create session", "error", err)
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"message": "Account created but unable to sign in. Please try logging in.",
 		})
 	}
 
-	// Redirect to dashboard
-	return c.Redirect(http.StatusSeeOther, "/dashboard")
+	// Set session cookie
+	h.deps.SessionManager.SetSessionCookie(c, session)
+
+	// Return success
+	return c.JSON(http.StatusOK, map[string]string{
+		"message":  "Account created successfully!",
+		"redirect": "/dashboard",
+	})
 }
 
 // Logout handles POST /logout - processes the logout request

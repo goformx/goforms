@@ -10,7 +10,7 @@ export default defineConfig({
   root: ".",
   publicDir: "public",
   appType: "custom",
-  base: "/assets/",
+  base: process.env.NODE_ENV === 'production' ? '/assets/' : '/',
   css: {
     devSourcemap: true,
     modules: {
@@ -27,53 +27,19 @@ export default defineConfig({
       ],
     },
   },
-  build: {
-    outDir: "dist/assets",
-    emptyOutDir: true,
-    manifest: true,
-    sourcemap: true,
-    target: "esnext",
-    minify: "terser",
-    terserOptions: {
-      compress: {
-        drop_console: true,
-        drop_debugger: true,
-      },
-    },
-    rollupOptions: {
-      input: {
-        main: "src/js/main.ts",
-        dashboard: "src/js/dashboard.ts",
-        "form-builder": "src/js/form-builder.ts",
-        login: "src/js/login.ts",
-        signup: "src/js/signup.ts",
-        "cta-form": "src/js/cta-form.ts",
-      },
-      output: {
-        assetFileNames: (assetInfo) => {
-          if (assetInfo.name?.endsWith(".css")) {
-            return "css/[name][hash][extname]";
-          }
-          if (
-            assetInfo.name?.endsWith(".woff2") ||
-            assetInfo.name?.endsWith(".woff")
-          ) {
-            return "fonts/[name][extname]";
-          }
-          return "assets/[name][hash][extname]";
-        },
-        chunkFileNames: "js/[name][hash].js",
-        entryFileNames: "js/[name][hash].js",
-      },
-    },
-  },
   server: {
     port: 3000,
     strictPort: true,
+    cors: {
+      origin: 'http://localhost:8090', // Your Go server URL
+      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      credentials: true,
+    },
     proxy: {
       "/api": {
         target: "http://localhost:8090",
         changeOrigin: true,
+        secure: false,
       },
     },
     hmr: {
@@ -91,6 +57,63 @@ export default defineConfig({
     watch: {
       usePolling: true,
       interval: 1000,
+    },
+    origin: 'http://localhost:3000', // Explicitly set the Vite dev server origin
+  },
+  build: {
+    outDir: "dist",
+    emptyOutDir: true,
+    manifest: true, // Generate manifest.json
+    sourcemap: true,
+    target: "esnext",
+    minify: "terser",
+    modulePreload: {
+      polyfill: true,
+    },
+    cssCodeSplit: true,
+    reportCompressedSize: false,
+    terserOptions: {
+      compress: {
+        drop_console: true,
+        drop_debugger: true,
+      },
+    },
+    rollupOptions: {
+      input: {
+        main: resolve(__dirname, "src/js/main.ts"),
+        "main.css": resolve(__dirname, "src/css/main.css"),
+        dashboard: resolve(__dirname, "src/js/dashboard.ts"),
+        "form-builder": resolve(__dirname, "src/js/form-builder.ts"),
+        login: resolve(__dirname, "src/js/login.ts"),
+        signup: resolve(__dirname, "src/js/signup.ts"),
+        "cta-form": resolve(__dirname, "src/js/cta-form.ts"),
+        demo: resolve(__dirname, "src/js/demo.ts"),
+      },
+      output: {
+        assetFileNames: (assetInfo) => {
+          if (!assetInfo.name) {
+            return "assets/[name][hash][extname]";
+          }
+          const info = assetInfo.name.split(".");
+          const ext = info[info.length - 1];
+          // Skip font files from being processed by Vite
+          if (
+            ext === "woff" ||
+            ext === "woff2" ||
+            ext === "ttf" ||
+            ext === "eot"
+          ) {
+            // Place all font files in the fonts directory
+            return "fonts/[name][extname]";
+          }
+          if (ext === "css") {
+            return "assets/css/[name].[hash].css";
+          }
+          return "assets/[name].[hash][extname]";
+        },
+        chunkFileNames: "assets/js/[name].[hash].js",
+        entryFileNames: "assets/js/[name].[hash].js",
+      },
     },
   },
   resolve: {
@@ -132,6 +155,5 @@ export default defineConfig({
     strictPort: true,
   },
   plugins: [ejsPlugin()],
-  // Configure how Vite handles different file types
   assetsInclude: ["**/*.ejs", "**/*.ejs.js"],
 });

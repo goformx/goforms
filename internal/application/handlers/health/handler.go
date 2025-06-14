@@ -3,7 +3,7 @@ package health
 import (
 	"net/http"
 
-	"github.com/goformx/goforms/internal/domain/services/health"
+	"github.com/goformx/goforms/internal/infrastructure/health"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 )

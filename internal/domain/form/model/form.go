@@ -13,10 +13,37 @@ import (
 )
 
 const (
-	MinTitleLength       = 3
-	MaxTitleLength       = 100
+	MinTitleLength = 3
+	// MaxTitleLength is the maximum length for a form title
+	MaxTitleLength = 100
+	// MaxDescriptionLength is the maximum length for a form description
 	MaxDescriptionLength = 500
+	// MaxFields is the maximum number of fields allowed in a form
+	MaxFields = 50
 )
+
+// Field represents a form field
+type Field struct {
+	ID        string    `json:"id" gorm:"primaryKey"`
+	FormID    string    `json:"form_id" gorm:"not null"`
+	Label     string    `json:"label" gorm:"size:100;not null"`
+	Type      string    `json:"type" gorm:"size:20;not null"`
+	Required  bool      `json:"required" gorm:"not null;default:false"`
+	Options   []string  `json:"options" gorm:"type:json"`
+	CreatedAt time.Time `json:"created_at" gorm:"not null"`
+	UpdatedAt time.Time `json:"updated_at" gorm:"not null"`
+}
+
+// Validate validates the field
+func (f *Field) Validate() error {
+	if f.Label == "" {
+		return errors.New("label is required")
+	}
+	if f.Type == "" {
+		return errors.New("type is required")
+	}
+	return nil
+}
 
 // Form represents a form in the system
 type Form struct {
@@ -29,6 +56,18 @@ type Form struct {
 	CreatedAt   time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
 	UpdatedAt   time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+	Fields      []Field        `json:"fields" gorm:"foreignKey:FormID"`
+	Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
+}
+
+// GetID returns the form's ID
+func (f *Form) GetID() string {
+	return f.ID
+}
+
+// SetID sets the form's ID
+func (f *Form) SetID(id string) {
+	f.ID = id
 }
 
 // TableName specifies the table name for the Form model
@@ -184,20 +223,26 @@ func (f *Form) validateSchema() error {
 
 // Validate validates the form
 func (f *Form) Validate() error {
-	// Validate title
 	if f.Title == "" {
-		return ErrFormTitleRequired
+		return errors.New("title is required")
 	}
-
-	if len(f.Title) < MinTitleLength || len(f.Title) > MaxTitleLength {
+	if len(f.Title) < MinTitleLength {
 		return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
 	}
-
-	// Validate description length
+	if len(f.Title) > MaxTitleLength {
+		return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
+	}
 	if len(f.Description) > MaxDescriptionLength {
 		return fmt.Errorf("description must not exceed %d characters", MaxDescriptionLength)
 	}
-
+	if len(f.Fields) > MaxFields {
+		return fmt.Errorf("form cannot have more than %d fields", MaxFields)
+	}
+	for i := range f.Fields {
+		if err := f.Fields[i].Validate(); err != nil {
+			return fmt.Errorf("invalid field: %w", err)
+		}
+	}
 	return f.validateSchema()
 }
 

@@ -5,8 +5,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
 	"strconv"
 	"time"
 
@@ -16,6 +14,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 const (
@@ -99,11 +98,20 @@ func New(
 	cfg *config.Config,
 	e *echo.Echo,
 	middlewareManager *middleware.Manager,
+	assetServer web.AssetServer,
 ) *Server {
 	srv := &Server{
 		echo:   e,
 		logger: logger,
 		config: cfg,
+	}
+
+	// Initialize asset manager
+	if err := web.SetConfig(cfg); err != nil {
+		logger.Error("failed to initialize asset manager", "error", err)
+	} else {
+		web.SetLogger(logger)
+		logger.Debug("asset manager initialized", "service", "assets")
 	}
 
 	// Log server configuration
@@ -121,42 +129,9 @@ func New(
 		})
 	})
 
-	// Vite dev server proxy for development mode
-	if cfg.App.IsDevelopment() {
-		viteURL, err := url.Parse(fmt.Sprintf("%s://%s",
-			cfg.App.Scheme,
-			net.JoinHostPort(cfg.App.ViteDevHost, cfg.App.ViteDevPort),
-		))
-		if err != nil {
-			logger.Error("failed to parse Vite dev server URL",
-				"error", err,
-				"host", cfg.App.ViteDevHost,
-				"port", cfg.App.ViteDevPort)
-		} else {
-			viteProxy := httputil.NewSingleHostReverseProxy(viteURL)
-
-			// Configure proxy to handle WebSocket connections and CORS
-			viteProxy.ModifyResponse = func(resp *http.Response) error {
-				resp.Header.Set("Access-Control-Allow-Origin", "*")
-				resp.Header.Set("Access-Control-Allow-Methods", "GET, POST, PUT, DELETE, OPTIONS")
-				resp.Header.Set("Access-Control-Allow-Headers", "Content-Type, Authorization")
-				return nil
-			}
-
-			// Proxy all Vite-related paths
-			e.Any("/assets/*", echo.WrapHandler(viteProxy))
-			e.Any("/@vite/*", echo.WrapHandler(viteProxy))
-			e.Any("/@fs/*", echo.WrapHandler(viteProxy))
-			e.Any("/@id/*", echo.WrapHandler(viteProxy))
-			e.Any("/node_modules/*", echo.WrapHandler(viteProxy))
-			e.Any("/favicon.ico", echo.WrapHandler(viteProxy))
-
-			logger.Info("Vite dev server proxy configured", "url", viteURL.String())
-		}
-	} else {
-		// Serve static files from public directory with proper security headers
-		e.Static("/static", "public")
-		e.Static("/assets", "public/assets")
+	// Register asset routes
+	if err := assetServer.RegisterRoutes(e); err != nil {
+		logger.Error("failed to register asset routes", "error", err)
 	}
 
 	// Register lifecycle hooks

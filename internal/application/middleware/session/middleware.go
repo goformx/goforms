@@ -116,24 +116,35 @@ func (sm *Manager) isPathExempt(path string) bool {
 	return false
 }
 
-// isStaticFile checks if a path is a static file
+// isStaticFile checks if a path corresponds to a static file
 func (sm *Manager) isStaticFile(path string) bool {
-	// Check for common static file extensions
+	// List of static file extensions
 	staticExtensions := []string{
-		".ico", ".png", ".jpg", ".jpeg", ".gif", ".svg",
-		".css", ".js", ".woff", ".woff2", ".ttf", ".eot",
-		".map", ".json", ".txt", ".xml", ".pdf",
+		".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".ico",
+		".svg", ".woff", ".woff2", ".ttf", ".eot", ".otf",
+		".pdf", ".txt", ".xml", ".json", ".webp", ".webm",
+		".mp4", ".mp3", ".wav", ".ogg", ".map",
 	}
 
+	// Check if the path ends with any static file extension
 	for _, ext := range staticExtensions {
 		if strings.HasSuffix(strings.ToLower(path), ext) {
 			return true
 		}
 	}
 
-	// Check static paths
-	for _, staticPath := range sm.config.StaticPaths {
-		if strings.HasPrefix(path, staticPath) {
+	// Check if the path starts with common static asset paths
+	staticPaths := []string{
+		"/assets/",
+		"/static/",
+		"/images/",
+		"/css/",
+		"/js/",
+		"/fonts/",
+	}
+
+	for _, prefix := range staticPaths {
+		if strings.HasPrefix(path, prefix) {
 			return true
 		}
 	}

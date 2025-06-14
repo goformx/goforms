@@ -1,6 +1,9 @@
 # Generated files
 *_templ.go
 tmp/
+mock_*.go
+*_mock.go
+test/mocks/
 
 # Binary files
 bin/
@@ -18,7 +21,6 @@ bin/
 
 # IDE specific files
 .idea/
-.vscode/
 *.swp
 *.swo
 

@@ -4,18 +4,29 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
-	"github.com/goformx/goforms/internal/infrastructure/validation"
 	"github.com/mrz1836/go-sanitize"
 )
 
 // FormSubmission represents a form submission
 type FormSubmission struct {
-	ID          string           `json:"id"`
-	FormID      string           `json:"form_id"`
-	Data        JSON             `json:"data"`
-	SubmittedAt time.Time        `json:"submitted_at"`
-	Status      SubmissionStatus `json:"status"`
-	Metadata    JSON             `json:"metadata"`
+	ID          string           `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
+	FormID      string           `json:"form_id" gorm:"not null;index;type:uuid"`
+	Data        JSON             `json:"data" gorm:"type:jsonb;not null"`
+	SubmittedAt time.Time        `json:"submitted_at" gorm:"not null"`
+	Status      SubmissionStatus `json:"status" gorm:"not null;size:20"`
+	Metadata    JSON             `json:"metadata" gorm:"type:jsonb"`
+	CreatedAt   time.Time        `json:"created_at" gorm:"not null;autoCreateTime"`
+	UpdatedAt   time.Time        `json:"updated_at" gorm:"not null;autoUpdateTime"`
+}
+
+// GetID returns the submission's ID
+func (fs *FormSubmission) GetID() string {
+	return fs.ID
+}
+
+// SetID sets the submission's ID
+func (fs *FormSubmission) SetID(id string) {
+	fs.ID = id
 }
 
 // SubmissionStatus represents the status of a form submission
@@ -33,33 +44,64 @@ const (
 )
 
 // Validate validates the form submission
-func (s *FormSubmission) Validate() error {
-	validator, err := validation.New()
-	if err != nil {
-		return errors.Wrap(err, errors.ErrCodeValidation, "failed to initialize validator")
+func (fs *FormSubmission) Validate() error {
+	if fs.FormID == "" {
+		return errors.New(errors.ErrCodeValidation, "form ID is required", nil)
 	}
 
-	// Use a different variable name to avoid shadowing
-	if validateErr := validator.Struct(s); validateErr != nil {
-		return errors.Wrap(validateErr, errors.ErrCodeValidation, "form submission validation failed")
+	if fs.Data == nil {
+		return errors.New(errors.ErrCodeValidation, "submission data is required", nil)
 	}
 
-	if s.Data == nil {
-		return errors.New(errors.ErrCodeValidation, "form data is required", nil)
-	}
-
-	if len(s.Data) == 0 {
-		return errors.New(errors.ErrCodeValidation, "form data cannot be empty", nil)
-	}
-
-	// Sanitize all string values in the form data
-	for key, value := range s.Data {
-		if strValue, ok := value.(string); ok {
-			s.Data[key] = sanitize.XSS(strValue)
-		}
+	if fs.Status == "" {
+		fs.Status = SubmissionStatusPending
 	}
 
 	return nil
+}
+
+// Sanitize sanitizes the form submission data
+func (fs *FormSubmission) Sanitize() {
+	if fs.Data != nil {
+		for key, value := range fs.Data {
+			if strValue, ok := value.(string); ok {
+				fs.Data[key] = sanitize.XSS(strValue)
+			}
+		}
+	}
+	if fs.Metadata != nil {
+		for key, value := range fs.Metadata {
+			if strValue, ok := value.(string); ok {
+				fs.Metadata[key] = sanitize.XSS(strValue)
+			}
+		}
+	}
+}
+
+// SetStatus sets the submission status
+func (fs *FormSubmission) SetStatus(status SubmissionStatus) {
+	fs.Status = status
+	fs.UpdatedAt = time.Now()
+}
+
+// IsCompleted returns whether the submission is completed
+func (fs *FormSubmission) IsCompleted() bool {
+	return fs.Status == SubmissionStatusCompleted
+}
+
+// IsFailed returns whether the submission failed
+func (fs *FormSubmission) IsFailed() bool {
+	return fs.Status == SubmissionStatusFailed
+}
+
+// IsPending returns whether the submission is pending
+func (fs *FormSubmission) IsPending() bool {
+	return fs.Status == SubmissionStatusPending
+}
+
+// IsProcessing returns whether the submission is being processed
+func (fs *FormSubmission) IsProcessing() bool {
+	return fs.Status == SubmissionStatusProcessing
 }
 
 // UpdateStatus updates the submission status

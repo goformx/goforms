@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
@@ -34,30 +35,31 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 
 // handleDashboard handles the dashboard page request
 func (h *DashboardHandler) handleDashboard(c echo.Context) error {
-	userID, ok := mwcontext.GetUserID(c)
+	userID, ok := c.Get("user_id").(string)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
-	// Fetch user data
-	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || userObj == nil {
-		h.Logger.Error("user not found after authentication", "user_id", userID, "path", c.Request().URL.Path)
+	// Get user data
+	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil {
+		h.Logger.Error("failed to get user data", "error", err)
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
-	// Fetch forms data
-	forms, err := h.FormService.GetUserForms(c.Request().Context(), userID)
+	// Get forms for the user
+	forms, err := h.FormService.ListForms(c.Request().Context(), userID)
 	if err != nil {
-		h.Logger.Error("failed to get user forms", "user_id", userID, "error", err)
-		return c.JSON(http.StatusInternalServerError, map[string]string{"error": "Failed to load forms"})
+		h.Logger.Error("failed to list forms", "error", err)
+		return fmt.Errorf("failed to list forms: %w", err)
 	}
 
 	// Build page data
 	data := shared.BuildPageData(h.Config, c, "Dashboard")
-	data.User = userObj
+	data.User = user
 	data.Forms = forms
 
+	// Render dashboard template
 	return h.Renderer.Render(c, pages.Dashboard(data, forms))
 }
 
@@ -76,7 +78,9 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 	// Fetch user data
 	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userObj == nil {
-		h.Logger.Error("user not found after authentication", "user_id", userID, "path", c.Request().URL.Path)
+		h.Logger.Error("user not found after authentication",
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"path", h.Logger.SanitizeField("path", c.Request().URL.Path))
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
