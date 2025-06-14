@@ -4,7 +4,7 @@ tasks:
   default:
     desc: Run act with a specific job (e.g. task default -- setup)
     cmds:
-    - act -j {{.CLI_ARGS}} -W .github/workflows/go.yml --bind --container-architecture linux/amd64
+    - act -j {{.CLI_ARGS}} -W .github/workflows/go.yml --bind -P ubuntu-latest=catthehacker/ubuntu:act-latest
 
   all:
     desc: Run all CI jobs in sequence
