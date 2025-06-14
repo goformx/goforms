@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"time"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
@@ -54,6 +55,7 @@ func (h *FormHandler) Register(e *echo.Echo) {
 	formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
 	formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
+	formsAPI.POST("/:id/submit", h.HandleFormSubmit)
 }
 
 // GET /forms/new
@@ -325,6 +327,55 @@ func decodeSchema(c echo.Context) (model.JSON, error) {
 		return nil, fmt.Errorf("failed to decode schema: %w", decodeErr)
 	}
 	return schema, nil
+}
+
+// POST /api/v1/forms/:id/submit
+func (h *FormHandler) HandleFormSubmit(c echo.Context) error {
+	formID := c.Param("id")
+	if formID == "" {
+		return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+	}
+
+	// Get form to verify it exists
+	form, err := h.FormService.GetForm(c.Request().Context(), formID)
+	if err != nil {
+		h.Logger.Error("failed to get form", "error", err)
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form")
+	}
+	if form == nil {
+		return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
+	}
+
+	// Parse submission data
+	var submissionData model.JSON
+	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&submissionData); decodeErr != nil {
+		h.Logger.Error("failed to decode submission data", "error", decodeErr)
+		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid submission data")
+	}
+
+	// Create submission
+	submission := &model.FormSubmission{
+		FormID:      formID,
+		Data:        submissionData,
+		SubmittedAt: time.Now(),
+		Status:      model.SubmissionStatusPending,
+	}
+
+	// Submit form
+	err = h.FormService.SubmitForm(c.Request().Context(), submission)
+	if err != nil {
+		h.Logger.Error("failed to submit form", "error", err)
+		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to submit form")
+	}
+
+	return c.JSON(http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Form submitted successfully",
+		"data": map[string]any{
+			"submission_id": submission.ID,
+			"status":        submission.Status,
+		},
+	})
 }
 
 // Start initializes the form handler.

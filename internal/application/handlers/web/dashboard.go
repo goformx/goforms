@@ -78,7 +78,9 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 	// Fetch user data
 	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userObj == nil {
-		h.Logger.Error("user not found after authentication", "user_id", userID, "path", c.Request().URL.Path)
+		h.Logger.Error("user not found after authentication",
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"path", h.Logger.SanitizeField("path", c.Request().URL.Path))
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 

@@ -21,6 +21,10 @@ const (
 	MaxPartsLength = 2
 	// FieldPairSize represents the number of elements in a key-value pair
 	FieldPairSize = 2
+	// MaxStringLength represents the maximum length for string fields
+	MaxStringLength = 1000
+	// MaxPathLength represents the maximum length for path fields
+	MaxPathLength = 500
 )
 
 // FactoryConfig holds the configuration for creating a logger factory
@@ -304,9 +308,27 @@ var sensitiveKeys = map[string]struct{}{
 
 // SanitizeField returns a masked version of a sensitive field value
 func (l *logger) SanitizeField(key string, value any) any {
+	// Check for sensitive keys
 	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
 		return "****"
 	}
+
+	// Handle path fields
+	if key == "path" {
+		if path, ok := value.(string); ok {
+			if !validatePath(path) {
+				return "[invalid path]"
+			}
+			return truncateString(path, MaxPathLength)
+		}
+		return "[invalid path type]"
+	}
+
+	// Handle string values
+	if str, ok := value.(string); ok {
+		return truncateString(str, MaxStringLength)
+	}
+
 	return value
 }
 
@@ -324,7 +346,10 @@ func convertToZapFields(fields []any) []zap.Field {
 		}
 
 		value := fields[i+1]
-		switch v := value.(type) {
+		// Sanitize the value based on its type
+		sanitizedValue := sanitizeValue(key, value)
+
+		switch v := sanitizedValue.(type) {
 		case string:
 			zapFields = append(zapFields, zap.String(key, v))
 		case int:
@@ -346,4 +371,47 @@ func convertToZapFields(fields []any) []zap.Field {
 		}
 	}
 	return zapFields
+}
+
+// sanitizeValue applies appropriate sanitization based on the field type
+func sanitizeValue(key string, value any) any {
+	// Check for sensitive keys
+	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
+		return "****"
+	}
+
+	// Handle path fields
+	if key == "path" {
+		if path, ok := value.(string); ok {
+			if !validatePath(path) {
+				return "[invalid path]"
+			}
+			return truncateString(path, MaxPathLength)
+		}
+		return "[invalid path type]"
+	}
+
+	// Handle string values
+	if str, ok := value.(string); ok {
+		return truncateString(str, MaxStringLength)
+	}
+
+	return value
+}
+
+// validatePath checks if a string is a valid URL path
+func validatePath(path string) bool {
+	if len(path) > MaxPathLength {
+		return false
+	}
+	// Basic path validation - should start with / and contain only valid characters
+	return path != "" && path[0] == '/' && !strings.ContainsAny(path, "\\<>\"'")
+}
+
+// truncateString truncates a string to the maximum allowed length
+func truncateString(s string, maxLen int) string {
+	if len(s) > maxLen {
+		return s[:maxLen] + "..."
+	}
+	return s
 }
