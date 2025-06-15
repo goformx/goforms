@@ -245,13 +245,13 @@ func TestDefaultRules(t *testing.T) {
 
 	// Test that essential rules are present
 	essentialPaths := map[string]access.AccessLevel{
-		"/":                access.PublicAccess,
-		"/login":           access.PublicAccess,
-		"/signup":          access.PublicAccess,
-		"/dashboard":       access.AuthenticatedAccess,
-		"/admin":           access.AdminAccess,
-		"/api/v1/forms":    access.AuthenticatedAccess,
-		"/api/v1/admin":    access.AdminAccess,
+		"/":             access.PublicAccess,
+		"/login":        access.PublicAccess,
+		"/signup":       access.PublicAccess,
+		"/dashboard":    access.AuthenticatedAccess,
+		"/admin":        access.AdminAccess,
+		"/api/v1/forms": access.AuthenticatedAccess,
+		"/api/v1/admin": access.AdminAccess,
 	}
 
 	for path, expectedLevel := range essentialPaths {
@@ -265,4 +265,4 @@ func TestDefaultRules(t *testing.T) {
 		}
 		assert.True(t, found, "Path %s should be in default rules", path)
 	}
-} 
+}
