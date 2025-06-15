@@ -254,22 +254,76 @@ func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 			}
 
 			stats := sqlDB.Stats()
-			db.logger.Info("database connection pool status",
-				"max_open_connections", stats.MaxOpenConnections,
-				"open_connections", stats.OpenConnections,
-				"in_use", stats.InUse,
-				"idle", stats.Idle,
-				"wait_count", stats.WaitCount,
-				"wait_duration", stats.WaitDuration,
-				"max_idle_closed", stats.MaxIdleClosed,
-				"max_lifetime_closed", stats.MaxLifetimeClosed)
+
+			// Common metrics for both databases
+			metrics := map[string]interface{}{
+				"max_open_connections": stats.MaxOpenConnections,
+				"open_connections":     stats.OpenConnections,
+				"in_use":               stats.InUse,
+				"idle":                 stats.Idle,
+				"wait_count":           stats.WaitCount,
+				"wait_duration":        stats.WaitDuration,
+				"max_idle_closed":      stats.MaxIdleClosed,
+				"max_lifetime_closed":  stats.MaxLifetimeClosed,
+			}
+
+			// Add database-specific metrics
+			switch db.Dialector.Name() {
+			case "postgres":
+				// PostgreSQL-specific metrics
+				var pgStats struct {
+					ActiveConnections  int64
+					IdleConnections    int64
+					WaitingConnections int64
+				}
+				if err := db.Raw("SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active'").Scan(&pgStats.ActiveConnections).Error; err == nil {
+					metrics["pg_active_connections"] = pgStats.ActiveConnections
+				}
+				if err := db.Raw("SELECT count(*) as idle_connections FROM pg_stat_activity WHERE state = 'idle'").Scan(&pgStats.IdleConnections).Error; err == nil {
+					metrics["pg_idle_connections"] = pgStats.IdleConnections
+				}
+				if err := db.Raw("SELECT count(*) as waiting_connections FROM pg_stat_activity WHERE wait_event_type IS NOT NULL").Scan(&pgStats.WaitingConnections).Error; err == nil {
+					metrics["pg_waiting_connections"] = pgStats.WaitingConnections
+				}
+
+			case "mysql":
+				// MariaDB-specific metrics
+				var mysqlStats struct {
+					ThreadsConnected int64
+					ThreadsRunning   int64
+					ThreadsWaiting   int64
+				}
+				if err := db.Raw("SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Threads_running', 'Threads_waiting')").Scan(&mysqlStats).Error; err == nil {
+					metrics["mysql_threads_connected"] = mysqlStats.ThreadsConnected
+					metrics["mysql_threads_running"] = mysqlStats.ThreadsRunning
+					metrics["mysql_threads_waiting"] = mysqlStats.ThreadsWaiting
+				}
+			}
+
+			// Log all metrics
+			db.logger.Info("database connection pool status", metrics)
 
 			// Alert on high connection usage
-			if float64(stats.InUse)/float64(stats.MaxOpenConnections) > ConnectionPoolWarningThreshold {
+			usageRatio := float64(stats.InUse) / float64(stats.MaxOpenConnections)
+			if usageRatio > ConnectionPoolWarningThreshold {
 				db.logger.Warn("database connection pool usage is high",
 					"in_use", stats.InUse,
 					"max_open", stats.MaxOpenConnections,
-					"usage_percentage", float64(stats.InUse)/float64(stats.MaxOpenConnections)*ConnectionPoolPercentageMultiplier)
+					"usage_percentage", usageRatio*ConnectionPoolPercentageMultiplier)
+			}
+
+			// Alert on long wait times
+			if stats.WaitDuration > time.Second*5 {
+				db.logger.Warn("database connection wait time is high",
+					"wait_duration", stats.WaitDuration,
+					"wait_count", stats.WaitCount)
+			}
+
+			// Alert on connection errors
+			if stats.MaxIdleClosed > 0 || stats.MaxLifetimeClosed > 0 {
+				db.logger.Warn("database connections are being closed",
+					"max_idle_closed", stats.MaxIdleClosed,
+					"max_lifetime_closed", stats.MaxLifetimeClosed)
 			}
 		}
 	}

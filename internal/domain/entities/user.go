@@ -2,6 +2,7 @@ package entities
 
 import (
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -58,28 +59,41 @@ func (u *User) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
+// AfterFind is a GORM hook that runs after finding a user
+func (u *User) AfterFind(tx *gorm.DB) error {
+	// Ensure UUID is properly formatted
+	if u.ID != "" {
+		// Try to parse as UUID to validate format
+		if _, err := uuid.Parse(u.ID); err != nil {
+			return fmt.Errorf("invalid UUID format: %w", err)
+		}
+	}
+	return nil
+}
+
 // NewUser creates a new user instance with validation
 func NewUser(email, password, firstName, lastName string) (*User, error) {
-	user := &User{
-		Email:     email,
-		FirstName: firstName,
-		LastName:  lastName,
-		Active:    true,
-		CreatedAt: time.Now(),
-		UpdatedAt: time.Now(),
+	if email == "" {
+		return nil, ErrInvalidEmail
+	}
+	if len(password) < MinPasswordLength {
+		return nil, ErrInvalidPassword
 	}
 
-	// Set password first
-	if err := user.SetPassword(password); err != nil {
-		return nil, err
+	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
+	if err != nil {
+		return nil, fmt.Errorf("failed to hash password: %w", err)
 	}
 
-	// Then validate
-	if err := user.Validate(); err != nil {
-		return nil, err
-	}
-
-	return user, nil
+	return &User{
+		ID:             uuid.New().String(),
+		Email:          email,
+		HashedPassword: string(hashedPassword),
+		FirstName:      firstName,
+		LastName:       lastName,
+		Role:           "user",
+		Active:         true,
+	}, nil
 }
 
 // Validate performs validation on the user entity

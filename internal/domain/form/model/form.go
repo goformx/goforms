@@ -106,7 +106,7 @@ func (j *JSON) Scan(value any) error {
 
 	bytes, ok := value.([]byte)
 	if !ok {
-		return fmt.Errorf("failed to unmarshal JSONB value: %v", value)
+		return fmt.Errorf("failed to unmarshal JSON value: %v", value)
 	}
 
 	result := make(map[string]any)
@@ -120,11 +120,32 @@ func (j *JSON) Scan(value any) error {
 }
 
 // Value implements the driver.Valuer interface for JSON
-func (j *JSON) Value() (driver.Value, error) {
+func (j JSON) Value() (driver.Value, error) {
 	if j == nil {
-		return nil, errors.New("cannot convert nil JSON to value")
+		return nil, nil
 	}
-	return json.Marshal(*j)
+	return json.Marshal(j)
+}
+
+// MarshalJSON implements the json.Marshaler interface for JSON
+func (j JSON) MarshalJSON() ([]byte, error) {
+	if j == nil {
+		return []byte("null"), nil
+	}
+	return json.Marshal(map[string]any(j))
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface for JSON
+func (j *JSON) UnmarshalJSON(data []byte) error {
+	if j == nil {
+		return errors.New("JSON: UnmarshalJSON on nil pointer")
+	}
+	var v map[string]any
+	if err := json.Unmarshal(data, &v); err != nil {
+		return err
+	}
+	*j = JSON(v)
+	return nil
 }
 
 // NewForm creates a new form instance
