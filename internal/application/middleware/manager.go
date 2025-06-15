@@ -18,6 +18,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/version"
 )
 
 const (
@@ -86,10 +87,13 @@ func (m *Manager) GetSessionManager() *session.Manager {
 
 // Setup registers all middleware with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
+	versionInfo := version.GetInfo()
 	m.logger.Info("setting up middleware",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
+		"version", versionInfo.Version,
 		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit,
 	)
 
 	// Set Echo's logger to use our custom logger
@@ -101,8 +105,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Logger.SetLevel(log.DEBUG)
 		m.logger.Info("development mode enabled",
 			"app", "goforms",
-			"version", m.config.Config.App.Version,
-			"environment", m.config.Config.App.Env)
+			"version", versionInfo.Version,
+			"environment", m.config.Config.App.Env,
+			"build_time", versionInfo.BuildTime,
+			"git_commit", versionInfo.GitCommit)
 	} else {
 		e.Logger.SetLevel(log.INFO)
 	}
@@ -141,21 +147,27 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Register session middleware
 	m.logger.Info("registering session middleware",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
-		"environment", m.config.Config.App.Env)
+		"version", versionInfo.Version,
+		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit)
 	e.Use(m.config.SessionManager.Middleware())
 
 	// Register access control middleware
 	m.logger.Info("registering access control middleware",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
-		"environment", m.config.Config.App.Env)
+		"version", versionInfo.Version,
+		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit)
 	e.Use(access.Middleware(m.config.AccessManager, m.logger))
 
 	m.logger.Info("middleware setup completed",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
-		"environment", m.config.Config.App.Env)
+		"version", versionInfo.Version,
+		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit)
 
 	m.logger.Debug("middleware manager initialized", "service", "middleware")
 }
