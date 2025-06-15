@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -64,24 +65,47 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		},
 	)
 
-	// Build DSN for PostgreSQL
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Database.Postgres.Host,
-		cfg.Database.Postgres.Port,
-		cfg.Database.Postgres.User,
-		cfg.Database.Postgres.Password,
-		cfg.Database.Postgres.Name,
-		cfg.Database.Postgres.SSLMode,
-	)
-
-	// Open connection
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	// Configure GORM
+	gormConfig := &gorm.Config{
 		Logger: gormLogger,
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
 		PrepareStmt: true, // Enable prepared statements for better performance
-	})
+	}
+
+	var db *gorm.DB
+	var err error
+
+	// Create database connection based on the selected driver
+	switch cfg.Database.Connection {
+	case "postgres":
+		// Build DSN for PostgreSQL
+		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			cfg.Database.Host,
+			cfg.Database.Port,
+			cfg.Database.Username,
+			cfg.Database.Password,
+			cfg.Database.Database,
+			cfg.Database.SSLMode,
+		)
+		db, err = gorm.Open(postgres.Open(dsn), gormConfig)
+
+	case "mariadb":
+		// Build DSN for MariaDB
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
+			cfg.Database.Username,
+			cfg.Database.Password,
+			cfg.Database.Host,
+			cfg.Database.Port,
+			cfg.Database.Database,
+		)
+		db, err = gorm.Open(mysql.Open(dsn), gormConfig)
+
+	default:
+		return nil, fmt.Errorf("unsupported database connection type: %s", cfg.Database.Connection)
+	}
+
 	if err != nil {
 		appLogger.Error("failed to connect to database", "error", err)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -93,9 +117,9 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	sqlDB.SetMaxOpenConns(cfg.Database.Postgres.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(cfg.Database.Postgres.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(cfg.Database.Postgres.ConnMaxLifetime)
+	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
 
 	// Verify connection
 	if pingErr := sqlDB.Ping(); pingErr != nil {
@@ -104,9 +128,10 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	}
 
 	appLogger.Info("database connection established",
-		"host", cfg.Database.Postgres.Host,
-		"port", cfg.Database.Postgres.Port,
-		"max_open_conns", cfg.Database.Postgres.MaxOpenConns)
+		"driver", cfg.Database.Connection,
+		"host", cfg.Database.Host,
+		"port", cfg.Database.Port,
+		"max_open_conns", cfg.Database.MaxOpenConns)
 
 	return &GormDB{
 		DB:     db,

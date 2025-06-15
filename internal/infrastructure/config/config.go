@@ -56,33 +56,22 @@ func (c *AppConfig) IsDevelopment() bool {
 
 // DatabaseConfig holds all database-related configuration
 type DatabaseConfig struct {
-	// MariaDB Configuration
-	MariaDB struct {
-		Host            string        `envconfig:"GOFORMS_MARIADB_HOST" validate:"required"`
-		Port            int           `envconfig:"GOFORMS_MARIADB_PORT" default:"3306"`
-		User            string        `envconfig:"GOFORMS_MARIADB_USER" validate:"required"`
-		Password        string        `envconfig:"GOFORMS_MARIADB_PASSWORD" validate:"required"`
-		Name            string        `envconfig:"GOFORMS_MARIADB_NAME" validate:"required"`
-		MaxOpenConns    int           `envconfig:"GOFORMS_MARIADB_MAX_OPEN_CONNS" default:"25"`
-		MaxIdleConns    int           `envconfig:"GOFORMS_MARIADB_MAX_IDLE_CONNS" default:"5"`
-		ConnMaxLifetime time.Duration `envconfig:"GOFORMS_MARIADB_CONN_MAX_LIFETIME" default:"5m"`
-	} `envconfig:"GOFORMS_MARIADB"`
+	// Common database settings
+	Connection      string        `envconfig:"GOFORMS_DB_CONNECTION" default:"mariadb"`
+	Host            string        `envconfig:"GOFORMS_DB_HOST" validate:"required"`
+	Port            int           `envconfig:"GOFORMS_DB_PORT" default:"3306"`
+	Database        string        `envconfig:"GOFORMS_DB_DATABASE" validate:"required"`
+	Username        string        `envconfig:"GOFORMS_DB_USERNAME" validate:"required"`
+	Password        string        `envconfig:"GOFORMS_DB_PASSWORD" validate:"required"`
+	MaxOpenConns    int           `envconfig:"GOFORMS_DB_MAX_OPEN_CONNS" default:"25"`
+	MaxIdleConns    int           `envconfig:"GOFORMS_DB_MAX_IDLE_CONNS" default:"5"`
+	ConnMaxLifetime time.Duration `envconfig:"GOFORMS_DB_CONN_MAX_LIFETIME" default:"5m"`
 
-	// PostgreSQL Configuration
-	Postgres struct {
-		Host            string        `envconfig:"GOFORMS_POSTGRES_HOST" validate:"required"`
-		Port            int           `envconfig:"GOFORMS_POSTGRES_PORT" default:"5432"`
-		User            string        `envconfig:"GOFORMS_POSTGRES_USER" validate:"required"`
-		Password        string        `envconfig:"GOFORMS_POSTGRES_PASSWORD" validate:"required"`
-		Name            string        `envconfig:"GOFORMS_POSTGRES_DB" validate:"required"`
-		SSLMode         string        `envconfig:"GOFORMS_POSTGRES_SSLMODE" default:"disable"`
-		MaxOpenConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_OPEN_CONNS" default:"25"`
-		MaxIdleConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_IDLE_CONNS" default:"5"`
-		ConnMaxLifetime time.Duration `envconfig:"GOFORMS_POSTGRES_CONN_MAX_LIFETIME" default:"5m"`
-	} `envconfig:"GOFORMS_POSTGRES"`
+	// PostgreSQL specific settings
+	SSLMode string `envconfig:"GOFORMS_DB_SSLMODE" default:"disable"`
 
-	// Active database driver
-	Driver string `envconfig:"GOFORMS_DB_DRIVER" default:"mariadb"`
+	// MariaDB specific settings
+	RootPassword string `envconfig:"GOFORMS_DB_ROOT_PASSWORD"`
 
 	// Logging configuration
 	Logging struct {
@@ -263,69 +252,38 @@ func (c *Config) validateAppConfig() error {
 	return nil
 }
 
-// validateMariaDBConfig validates MariaDB configuration
-func (c *Config) validateMariaDBConfig() error {
-	var errs []string
-
-	if c.Database.MariaDB.Host == "" {
-		errs = append(errs, "MariaDB host is required")
-	}
-	if c.Database.MariaDB.Port <= 0 || c.Database.MariaDB.Port > 65535 {
-		errs = append(errs, "MariaDB port must be between 1 and 65535")
-	}
-	if c.Database.MariaDB.User == "" {
-		errs = append(errs, "MariaDB user is required")
-	}
-	if c.Database.MariaDB.Password == "" {
-		errs = append(errs, "MariaDB password is required")
-	}
-	if c.Database.MariaDB.Name == "" {
-		errs = append(errs, "MariaDB database name is required")
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("MariaDB config validation errors: %s", strings.Join(errs, "; "))
-	}
-
-	return nil
-}
-
-// validatePostgresConfig validates PostgreSQL configuration
-func (c *Config) validatePostgresConfig() error {
-	var errs []string
-
-	if c.Database.Postgres.Host == "" {
-		errs = append(errs, "PostgreSQL host is required")
-	}
-	if c.Database.Postgres.Port <= 0 || c.Database.Postgres.Port > 65535 {
-		errs = append(errs, "PostgreSQL port must be between 1 and 65535")
-	}
-	if c.Database.Postgres.User == "" {
-		errs = append(errs, "PostgreSQL user is required")
-	}
-	if c.Database.Postgres.Password == "" {
-		errs = append(errs, "PostgreSQL password is required")
-	}
-	if c.Database.Postgres.Name == "" {
-		errs = append(errs, "PostgreSQL database name is required")
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("PostgreSQL config validation errors: %s", strings.Join(errs, "; "))
-	}
-
-	return nil
-}
-
 // validateDatabaseConfig validates database configuration
 func (c *Config) validateDatabaseConfig() error {
 	var errs []string
 
-	if err := c.validateMariaDBConfig(); err != nil {
-		errs = append(errs, err.Error())
+	if c.Database.Host == "" {
+		errs = append(errs, "database host is required")
 	}
-	if err := c.validatePostgresConfig(); err != nil {
-		errs = append(errs, err.Error())
+	if c.Database.Port <= 0 || c.Database.Port > 65535 {
+		errs = append(errs, "database port must be between 1 and 65535")
+	}
+	if c.Database.Username == "" {
+		errs = append(errs, "database username is required")
+	}
+	if c.Database.Password == "" {
+		errs = append(errs, "database password is required")
+	}
+	if c.Database.Database == "" {
+		errs = append(errs, "database name is required")
+	}
+
+	// Validate database-specific settings
+	switch c.Database.Connection {
+	case "postgres":
+		if c.Database.SSLMode == "" {
+			errs = append(errs, "PostgreSQL SSL mode is required")
+		}
+	case "mariadb":
+		if c.Database.RootPassword == "" {
+			errs = append(errs, "MariaDB root password is required")
+		}
+	default:
+		errs = append(errs, "unsupported database connection type")
 	}
 
 	if len(errs) > 0 {
