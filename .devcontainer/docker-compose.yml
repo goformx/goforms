@@ -11,6 +11,14 @@ services:
     ports:
       - "8090:8090"
       - "3000:3000"
+    environment:
+      - GOFORMS_DB_CONNECTION=mariadb
+      - GOFORMS_DB_HOST=mariadb
+      - GOFORMS_DB_PORT=3306
+      - GOFORMS_DB_DATABASE=goforms
+      - GOFORMS_DB_USERNAME=goforms
+      - GOFORMS_DB_PASSWORD=goforms
+      - GOFORMS_DB_ROOT_PASSWORD=toor
     depends_on:
       mariadb:
         condition: service_healthy

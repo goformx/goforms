@@ -9,11 +9,13 @@ services:
     environment:
       - APP_HOST=0.0.0.0
       - APP_PORT=8090
-      - DB_HOST=db
-      - DB_PORT=3306
-      - DB_USER=${DB_USER}
-      - DB_PASSWORD=${DB_PASSWORD}
-      - DB_NAME=${DB_NAME}
+      - GOFORMS_DB_CONNECTION=mariadb
+      - GOFORMS_DB_HOST=db
+      - GOFORMS_DB_PORT=3306
+      - GOFORMS_DB_DATABASE=${DB_NAME}
+      - GOFORMS_DB_USERNAME=${DB_USER}
+      - GOFORMS_DB_PASSWORD=${DB_PASSWORD}
+      - GOFORMS_DB_ROOT_PASSWORD=${DB_ROOT_PASSWORD}
       - SECURITY_CORS_ALLOWED_ORIGINS=https://goforms.streetcode.net
     depends_on:
       db:
