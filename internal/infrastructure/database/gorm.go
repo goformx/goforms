@@ -263,7 +263,7 @@ func (db *GormDB) collectAndLogMetrics() {
 	db.logger.Debug("collectAndLogMetrics called")
 	sqlDB, err := db.DB.DB()
 	if err != nil {
-		db.logger.Error("failed to get database instance", map[string]interface{}{"error": err})
+		db.logger.Error("failed to get database instance", map[string]any{"error": err})
 		return
 	}
 
@@ -283,12 +283,12 @@ func (db *GormDB) collectAndLogMetrics() {
 	db.addDatabaseSpecificMetrics(metrics)
 
 	// Log the metrics
-	db.logger.Info("database connection pool status", map[string]interface{}{"metrics": metrics})
+	db.logger.Info("database connection pool status", map[string]any{"metrics": metrics})
 
 	// Check for high usage
 	if float64(stats.InUse)/float64(stats.MaxOpenConnections) > ConnectionPoolWarningThreshold {
 		db.logger.Warn("database connection pool usage is high",
-			map[string]interface{}{
+			map[string]any{
 				"in_use":   stats.InUse,
 				"max_open": stats.MaxOpenConnections,
 			})
@@ -297,7 +297,7 @@ func (db *GormDB) collectAndLogMetrics() {
 	// Check for long wait times
 	if stats.WaitDuration > time.Second*5 {
 		db.logger.Warn("database connection wait time is high",
-			map[string]interface{}{
+			map[string]any{
 				"wait_duration": stats.WaitDuration,
 				"wait_count":    stats.WaitCount,
 			})
@@ -323,17 +323,23 @@ func (db *GormDB) addPostgresMetrics(metrics map[string]any) {
 	}
 
 	// Get active connections
-	if err := db.DB.Raw("SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active'").Scan(&pgStats.ActiveConnections).Error; err == nil {
+	if err := db.DB.Raw(
+		"SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active'",
+	).Scan(&pgStats.ActiveConnections).Error; err == nil {
 		metrics["postgres_active_connections"] = pgStats.ActiveConnections
 	}
 
 	// Get idle connections
-	if err := db.DB.Raw("SELECT count(*) as idle_connections FROM pg_stat_activity WHERE state = 'idle'").Scan(&pgStats.IdleConnections).Error; err == nil {
+	if err := db.DB.Raw(
+		"SELECT count(*) as idle_connections FROM pg_stat_activity WHERE state = 'idle'",
+	).Scan(&pgStats.IdleConnections).Error; err == nil {
 		metrics["postgres_idle_connections"] = pgStats.IdleConnections
 	}
 
 	// Get waiting connections
-	if err := db.DB.Raw("SELECT count(*) as waiting_connections FROM pg_stat_activity WHERE wait_event_type IS NOT NULL").Scan(&pgStats.WaitingConnections).Error; err == nil {
+	if err := db.DB.Raw(
+		"SELECT count(*) as waiting_connections FROM pg_stat_activity WHERE wait_event_type IS NOT NULL",
+	).Scan(&pgStats.WaitingConnections).Error; err == nil {
 		metrics["postgres_waiting_connections"] = pgStats.WaitingConnections
 	}
 }
@@ -345,7 +351,9 @@ func (db *GormDB) addMySQLMetrics(metrics map[string]any) {
 		Value        string
 	}
 
-	if err := db.DB.Raw("SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Threads_running', 'Threads_waiting')").Scan(&mysqlStats).Error; err == nil {
+	if err := db.DB.Raw(
+		"SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Threads_running', 'Threads_waiting')",
+	).Scan(&mysqlStats).Error; err == nil {
 		for _, stat := range mysqlStats {
 			metrics["mysql_"+strings.ToLower(stat.VariableName)] = stat.Value
 		}

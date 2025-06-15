@@ -2,6 +2,7 @@ package health
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"time"
 
@@ -27,7 +28,7 @@ func (c *VersionChecker) Check(ctx context.Context) error {
 
 	// Check if version is set
 	if info.Version == version.UnknownVersion {
-		return fmt.Errorf("version not set")
+		return errors.New("version not set")
 	}
 
 	// Check if build time is valid
@@ -39,7 +40,7 @@ func (c *VersionChecker) Check(ctx context.Context) error {
 
 	// Check if git commit is set
 	if info.GitCommit == version.UnknownVersion {
-		return fmt.Errorf("git commit not set")
+		return errors.New("git commit not set")
 	}
 
 	// Log version info

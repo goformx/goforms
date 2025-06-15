@@ -22,6 +22,10 @@ const (
 	MaxFields = 50
 )
 
+var (
+	ErrInvalidJSON = errors.New("invalid JSON")
+)
+
 // Field represents a form field
 type Field struct {
 	ID        string    `json:"id" gorm:"primaryKey"`
@@ -94,7 +98,7 @@ func (f *Form) BeforeUpdate(tx *gorm.DB) error {
 	return nil
 }
 
-// JSON is a type alias for map[string]any to represent JSON data
+// JSON is a custom type for handling JSON data
 type JSON map[string]any
 
 // Scan implements the sql.Scanner interface for JSON
@@ -120,32 +124,27 @@ func (j *JSON) Scan(value any) error {
 }
 
 // Value implements the driver.Valuer interface for JSON
-func (j JSON) Value() (driver.Value, error) {
+func (j *JSON) Value() (driver.Value, error) {
 	if j == nil {
-		return nil, nil
+		return nil, ErrInvalidJSON
 	}
-	return json.Marshal(j)
+	return json.Marshal(*j)
 }
 
-// MarshalJSON implements the json.Marshaler interface for JSON
-func (j JSON) MarshalJSON() ([]byte, error) {
+// MarshalJSON implements the json.Marshaler interface
+func (j *JSON) MarshalJSON() ([]byte, error) {
 	if j == nil {
-		return []byte("null"), nil
+		return nil, ErrInvalidJSON
 	}
-	return json.Marshal(map[string]any(j))
+	return json.Marshal(*j)
 }
 
-// UnmarshalJSON implements the json.Unmarshaler interface for JSON
+// UnmarshalJSON implements the json.Unmarshaler interface
 func (j *JSON) UnmarshalJSON(data []byte) error {
 	if j == nil {
-		return errors.New("JSON: UnmarshalJSON on nil pointer")
+		return ErrInvalidJSON
 	}
-	var v map[string]any
-	if err := json.Unmarshal(data, &v); err != nil {
-		return err
-	}
-	*j = JSON(v)
-	return nil
+	return json.Unmarshal(data, (*map[string]any)(j))
 }
 
 // NewForm creates a new form instance
