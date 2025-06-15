@@ -28,7 +28,8 @@
                 "humao.rest-client",
                 "docker.docker",
                 "a-h.templ",
-                "cweijan.vscode-mysql-client2"
+                "cweijan.vscode-mysql-client2",
+                "hbenl.vscode-test-explorer"
             ],
             "[go]": {
                 "editor.defaultFormatter": "golang.go"
@@ -41,7 +42,11 @@
             }
         }
     },
-    "forwardPorts": [3000, 8090, 8098],
+    "forwardPorts": [
+        3000,
+        8090,
+        8098
+    ],
     "mounts": [
         "type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/vscode/.ssh"
     ],
