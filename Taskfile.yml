@@ -111,6 +111,7 @@ tasks:
     - generate:mocks:form
     - generate:mocks:events
     - generate:mocks:user
+    - generate:mocks:database
 
   generate:mocks:logging:
     desc: Generate logging mocks
@@ -140,6 +141,13 @@ tasks:
     cmds:
     - mkdir -p test/mocks/user
     - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
+
+  generate:mocks:database:
+    desc: Generate database mocks
+    deps: [ install:mockgen ]
+    cmds:
+    - mkdir -p test/mocks/database
+    - mockgen -typed -source=internal/infrastructure/database/gorm.go -destination=test/mocks/database/mock_gorm.go -package=database
 
   build:all:
     desc: Build the entire application
