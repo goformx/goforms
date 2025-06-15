@@ -1,9 +1,44 @@
 // Package version provides version information for the application.
 // It is designed to be populated at build time using ldflags.
 //
-// Example usage:
+// Features:
+// - Semantic versioning support
+// - Build time tracking
+// - Git commit tracking
+// - Go version tracking
+// - Version comparison
+// - Development/Release detection
+// - Version validation
 //
-//	go build -ldflags "-X github.com/goformx/goforms/internal/infrastructure/version.Version=1.0.0"
+// Usage:
+//
+//  1. Build with version information:
+//     go build -ldflags "-X github.com/goformx/goforms/internal/infrastructure/version.Version=1.0.0"
+//
+//  2. Get version information:
+//     info := version.GetInfo()
+//     fmt.Printf("Version: %s\n", info.Version)
+//
+//  3. Check version status:
+//     if info.IsDev() {
+//     // Handle development version
+//     }
+//
+//  4. Compare versions:
+//     if info.Compare(otherInfo) > 0 {
+//     // Handle version upgrade
+//     }
+//
+//  5. Validate version:
+//     if err := info.Validate(); err != nil {
+//     // Handle validation error
+//     }
+//
+// The package integrates with:
+// - Health checks (internal/infrastructure/health)
+// - Metrics (internal/infrastructure/metrics)
+// - Logging (internal/infrastructure/logging)
+// - Server (internal/infrastructure/server)
 package version
 
 import (
