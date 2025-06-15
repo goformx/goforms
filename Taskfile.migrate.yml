@@ -26,38 +26,38 @@ tasks:
     requires:
       vars: [ name ]
     cmds:
-    - migrate create -ext sql -dir {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -seq {{.name}}
+    - migrate create -ext sql -dir {{.MIGRATIONS_DIR}} -seq {{.name}}
 
   up:
     desc: Run all pending migrations
     cmds:
-    - migrate -path {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -database "{{.DB_URL}}" up
+    - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" up
 
   down:
     desc: Rollback the last migration
     cmds:
-    - migrate -path {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -database "{{.DB_URL}}" down
+    - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" down
 
   down-all:
     desc: Rollback all migrations
     cmds:
-    - migrate -path {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -database "{{.DB_URL}}" down -all
+    - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" down -all
 
   version:
     desc: Show current migration version
     cmds:
-    - migrate -path {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -database "{{.DB_URL}}" version
+    - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" version
 
   force:
     desc: Force migration version
     requires:
       vars: [ version ]
     cmds:
-    - migrate -path {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -database "{{.DB_URL}}" force {{.version}}
+    - migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" force {{.version}}
 
   fix-dirty:
     desc: Fix dirty database state
     cmds:
     - |
-      CURRENT_VERSION=$(migrate -path {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -database "{{.DB_URL}}" version | cut -d' ' -f1)
-      migrate -path {{.MIGRATIONS_DIR}}/{{.DB_CONNECTION}} -database "{{.DB_URL}}" force $CURRENT_VERSION 
+      CURRENT_VERSION=$(migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" version | cut -d' ' -f1)
+      migrate -path {{.MIGRATIONS_DIR}} -database "{{.DB_URL}}" force $CURRENT_VERSION 

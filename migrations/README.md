@@ -24,16 +24,18 @@ GOFORMS_DB_PORT=5432  # 3306 for MariaDB
 GOFORMS_DB_DATABASE=goforms
 GOFORMS_DB_USERNAME=goforms
 GOFORMS_DB_PASSWORD=goforms
+GOFORMS_DB_SSLMODE=disable  # Only used for PostgreSQL
 ```
 
 ### Apply Migrations
 
 ```bash
-# Apply migrations to PostgreSQL
-go run cmd/migrate/main.go -db postgres -dsn "host=localhost port=5432 user=goforms password=goforms dbname=goforms sslmode=disable"
+# Apply migrations using task
+task migrate:up
 
-# Apply migrations to MariaDB
-go run cmd/migrate/main.go -db mariadb -dsn "goforms:goforms@tcp(localhost:3306)/goforms"
+# Or directly using migrate command
+migrate -path migrations -database "postgresql://goforms:goforms@localhost:5432/goforms?sslmode=disable" up
+migrate -path migrations -database "goforms:goforms@tcp(localhost:3306)/goforms?multiStatements=true" up
 ```
 
 ## Creating New Migrations
