@@ -27,8 +27,6 @@ const (
 	MinPasswordLength = 8
 	// XMLHttpRequestHeader is the standard header value for AJAX requests
 	XMLHttpRequestHeader = "XMLHttpRequest"
-	// fieldPassword is the constant for the password field name
-	fieldPassword = "password"
 )
 
 // NewAuthHandler creates a new auth handler
@@ -92,9 +90,9 @@ func getFieldSchema(field reflect.StructField) map[string]any {
 func getPasswordSchema() map[string]any {
 	return map[string]any{
 		"type":      "password",
-		"validate":  "required,min=8",
-		"minLength": "8",
-		"message": "Password must be at least 8 characters long and include " +
+		"validate":  "required,min=" + string(rune(MinPasswordLength)),
+		"minLength": string(rune(MinPasswordLength)),
+		"message": "Password must be at least " + string(rune(MinPasswordLength)) + " characters long and include " +
 			"uppercase, lowercase, number, and special characters",
 	}
 }
@@ -120,10 +118,10 @@ func generateValidationSchema(s any) map[string]any {
 		// Special handling for confirm_password field
 		if fieldName == "confirm_password" {
 			fieldSchema = map[string]any{
-				"type": "match",
+				"type":       "match",
 				"matchField": "password",
-				"message": "Passwords don't match",
-				"min": 8,
+				"message":    "Passwords don't match",
+				"min":        MinPasswordLength,
 			}
 		}
 
