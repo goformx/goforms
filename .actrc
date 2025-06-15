@@ -4,4 +4,6 @@
 --env NODE_VERSION=20
 --env RUNNING_IN_ACT=true
 --secret GITHUB_TOKEN=${GITHUB_TOKEN}
---secret-file .env 
+--secret-file .env
+--container-architecture linux/amd64
+--workflows .github/workflows/go.yml 

@@ -19,12 +19,24 @@ jobs:
     outputs:
       go-cache: ${{ steps.go.outputs.cache-hit }}
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
           lfs: true
           submodules: recursive
+
+      - name: Debug - List files
+        run: |
+          pwd
+          ls -la
+          echo "Current directory contents:"
+          find . -type f -name "Taskfile.yml" -o -name "package.json"
+          echo "Taskfile exists: $(test -f Taskfile.yml && echo 'yes' || echo 'no')"
+          echo "package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
+          echo "Environment:"
+          env | sort
 
       - name: Set up Go
         id: go
@@ -48,8 +60,21 @@ jobs:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
+      - name: Debug - Check Task installation
+        run: |
+          which task
+          task --version
+          echo "PATH: $PATH"
+          echo "Current directory: $(pwd)"
+          echo "Directory contents:"
+          ls -la
+
       - name: Install dependencies
-        run: task install:all
+        run: |
+          echo "Running task --list"
+          task --list
+          echo "Running task install:all"
+          task install:all
 
   verify:
     name: Verify Code
