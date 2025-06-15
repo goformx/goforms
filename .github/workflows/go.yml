@@ -27,17 +27,6 @@ jobs:
           lfs: true
           submodules: recursive
 
-      - name: Debug - List files
-        run: |
-          pwd
-          ls -la
-          echo "Current directory contents:"
-          find . -type f -name "Taskfile.yml" -o -name "package.json"
-          echo "Taskfile exists: $(test -f Taskfile.yml && echo 'yes' || echo 'no')"
-          echo "package.json exists: $(test -f package.json && echo 'yes' || echo 'no')"
-          echo "Environment:"
-          env | sort
-
       - name: Set up Go
         id: go
         uses: actions/setup-go@v5
@@ -60,16 +49,19 @@ jobs:
           version: 3.x
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-      - name: Debug - Check Task installation
-        run: |
-          which task
-          task --version
-          echo "PATH: $PATH"
-          echo "Current directory: $(pwd)"
-          echo "Directory contents:"
-          ls -la
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        id: go-tools-cache
+        with:
+          path: |
+            ~/go/bin
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
 
       - name: Install dependencies
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: |
           echo "Running task --list"
           task --list
@@ -103,14 +95,32 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        id: go-tools-cache
+        with:
+          path: |
+            ~/go/bin
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
+
+      - name: Install dependencies
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
+        run: task install:all
+
       - name: Generate Mocks
         run: task generate:mocks:all
 
       - name: Generate Code
         run: task generate:all
-
-      - name: Install Dependencies
-        run: task install:all
 
       - name: Lint
         uses: golangci/golangci-lint-action@v8
@@ -150,7 +160,25 @@ jobs:
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
-      - name: Install Dependencies
+      - name: Install Task
+        uses: arduino/setup-task@v2
+        with:
+          version: 3.x
+          repo-token: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Cache Go tools
+        uses: actions/cache@v4
+        id: go-tools-cache
+        with:
+          path: |
+            ~/go/bin
+            ~/.cache/go-build
+          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.mod') }}
+          restore-keys: |
+            ${{ runner.os }}-go-tools-
+
+      - name: Install dependencies
+        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: task install:all
 
       - name: Build Application
