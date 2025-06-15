@@ -144,10 +144,10 @@ tasks:
 
   generate:mocks:database:
     desc: Generate database mocks
-    deps: [ install:mockgen ]
+    deps: [install:mockgen]
     cmds:
-    - mkdir -p test/mocks/database
-    - mockgen -typed -source=internal/infrastructure/database/gorm.go -destination=test/mocks/database/mock_gorm.go -package=database
+      - mkdir -p test/mocks/database
+      - mockgen -source=internal/infrastructure/database/interface.go -destination=test/mocks/database/mock_db.go -package=database
 
   build:all:
     desc: Build the entire application

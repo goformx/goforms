@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"gorm.io/driver/mysql"
@@ -35,6 +36,9 @@ type GormDB struct {
 	*gorm.DB
 	logger logging.Logger
 }
+
+// TickerDuration controls how often the connection pool is monitored
+var TickerDuration = 1 * time.Minute
 
 // New creates a new GORM database connection
 func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
@@ -236,95 +240,114 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		"error", err)
 }
 
-// MonitorConnectionPool periodically checks the database connection pool status
+// MonitorConnectionPool monitors the database connection pool and logs metrics
 func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute)
+	db.logger.Debug("starting MonitorConnectionPool")
+	ticker := time.NewTicker(TickerDuration)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
+			db.logger.Debug("MonitorConnectionPool context done")
 			return
 		case <-ticker.C:
-			sqlDB, err := db.DB.DB()
-			if err != nil {
-				db.logger.Error("failed to get database instance for monitoring",
-					"error", err)
-				continue
-			}
+			db.logger.Debug("MonitorConnectionPool tick")
+			db.collectAndLogMetrics()
+		}
+	}
+}
 
-			stats := sqlDB.Stats()
+// collectAndLogMetrics collects and logs database connection pool metrics
+func (db *GormDB) collectAndLogMetrics() {
+	db.logger.Debug("collectAndLogMetrics called")
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		db.logger.Error("failed to get database instance", map[string]interface{}{"error": err})
+		return
+	}
 
-			// Common metrics for both databases
-			metrics := map[string]interface{}{
-				"max_open_connections": stats.MaxOpenConnections,
-				"open_connections":     stats.OpenConnections,
-				"in_use":               stats.InUse,
-				"idle":                 stats.Idle,
-				"wait_count":           stats.WaitCount,
-				"wait_duration":        stats.WaitDuration,
-				"max_idle_closed":      stats.MaxIdleClosed,
-				"max_lifetime_closed":  stats.MaxLifetimeClosed,
-			}
+	stats := sqlDB.Stats()
+	metrics := map[string]any{
+		"max_open_connections": stats.MaxOpenConnections,
+		"open_connections":     stats.OpenConnections,
+		"in_use":               stats.InUse,
+		"idle":                 stats.Idle,
+		"wait_count":           stats.WaitCount,
+		"wait_duration":        stats.WaitDuration,
+		"max_idle_closed":      stats.MaxIdleClosed,
+		"max_lifetime_closed":  stats.MaxLifetimeClosed,
+	}
 
-			// Add database-specific metrics
-			switch db.Dialector.Name() {
-			case "postgres":
-				// PostgreSQL-specific metrics
-				var pgStats struct {
-					ActiveConnections  int64
-					IdleConnections    int64
-					WaitingConnections int64
-				}
-				if err := db.Raw("SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active'").Scan(&pgStats.ActiveConnections).Error; err == nil {
-					metrics["pg_active_connections"] = pgStats.ActiveConnections
-				}
-				if err := db.Raw("SELECT count(*) as idle_connections FROM pg_stat_activity WHERE state = 'idle'").Scan(&pgStats.IdleConnections).Error; err == nil {
-					metrics["pg_idle_connections"] = pgStats.IdleConnections
-				}
-				if err := db.Raw("SELECT count(*) as waiting_connections FROM pg_stat_activity WHERE wait_event_type IS NOT NULL").Scan(&pgStats.WaitingConnections).Error; err == nil {
-					metrics["pg_waiting_connections"] = pgStats.WaitingConnections
-				}
+	// Add database-specific metrics
+	db.addDatabaseSpecificMetrics(metrics)
 
-			case "mysql":
-				// MariaDB-specific metrics
-				var mysqlStats struct {
-					ThreadsConnected int64
-					ThreadsRunning   int64
-					ThreadsWaiting   int64
-				}
-				if err := db.Raw("SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Threads_running', 'Threads_waiting')").Scan(&mysqlStats).Error; err == nil {
-					metrics["mysql_threads_connected"] = mysqlStats.ThreadsConnected
-					metrics["mysql_threads_running"] = mysqlStats.ThreadsRunning
-					metrics["mysql_threads_waiting"] = mysqlStats.ThreadsWaiting
-				}
-			}
+	// Log the metrics
+	db.logger.Info("database connection pool status", map[string]interface{}{"metrics": metrics})
 
-			// Log all metrics
-			db.logger.Info("database connection pool status", metrics)
+	// Check for high usage
+	if float64(stats.InUse)/float64(stats.MaxOpenConnections) > ConnectionPoolWarningThreshold {
+		db.logger.Warn("database connection pool usage is high",
+			map[string]interface{}{
+				"in_use":   stats.InUse,
+				"max_open": stats.MaxOpenConnections,
+			})
+	}
 
-			// Alert on high connection usage
-			usageRatio := float64(stats.InUse) / float64(stats.MaxOpenConnections)
-			if usageRatio > ConnectionPoolWarningThreshold {
-				db.logger.Warn("database connection pool usage is high",
-					"in_use", stats.InUse,
-					"max_open", stats.MaxOpenConnections,
-					"usage_percentage", usageRatio*ConnectionPoolPercentageMultiplier)
-			}
+	// Check for long wait times
+	if stats.WaitDuration > time.Second*5 {
+		db.logger.Warn("database connection wait time is high",
+			map[string]interface{}{
+				"wait_duration": stats.WaitDuration,
+				"wait_count":    stats.WaitCount,
+			})
+	}
+}
 
-			// Alert on long wait times
-			if stats.WaitDuration > time.Second*5 {
-				db.logger.Warn("database connection wait time is high",
-					"wait_duration", stats.WaitDuration,
-					"wait_count", stats.WaitCount)
-			}
+// addDatabaseSpecificMetrics adds database-specific metrics to the metrics map
+func (db *GormDB) addDatabaseSpecificMetrics(metrics map[string]any) {
+	switch db.DB.Dialector.Name() {
+	case "postgres":
+		db.addPostgresMetrics(metrics)
+	case "mysql":
+		db.addMySQLMetrics(metrics)
+	}
+}
 
-			// Alert on connection errors
-			if stats.MaxIdleClosed > 0 || stats.MaxLifetimeClosed > 0 {
-				db.logger.Warn("database connections are being closed",
-					"max_idle_closed", stats.MaxIdleClosed,
-					"max_lifetime_closed", stats.MaxLifetimeClosed)
-			}
+// addPostgresMetrics adds PostgreSQL-specific metrics
+func (db *GormDB) addPostgresMetrics(metrics map[string]any) {
+	var pgStats struct {
+		ActiveConnections  int64
+		IdleConnections    int64
+		WaitingConnections int64
+	}
+
+	// Get active connections
+	if err := db.DB.Raw("SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active'").Scan(&pgStats.ActiveConnections).Error; err == nil {
+		metrics["postgres_active_connections"] = pgStats.ActiveConnections
+	}
+
+	// Get idle connections
+	if err := db.DB.Raw("SELECT count(*) as idle_connections FROM pg_stat_activity WHERE state = 'idle'").Scan(&pgStats.IdleConnections).Error; err == nil {
+		metrics["postgres_idle_connections"] = pgStats.IdleConnections
+	}
+
+	// Get waiting connections
+	if err := db.DB.Raw("SELECT count(*) as waiting_connections FROM pg_stat_activity WHERE wait_event_type IS NOT NULL").Scan(&pgStats.WaitingConnections).Error; err == nil {
+		metrics["postgres_waiting_connections"] = pgStats.WaitingConnections
+	}
+}
+
+// addMySQLMetrics adds MySQL-specific metrics
+func (db *GormDB) addMySQLMetrics(metrics map[string]any) {
+	var mysqlStats []struct {
+		VariableName string
+		Value        string
+	}
+
+	if err := db.DB.Raw("SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Threads_running', 'Threads_waiting')").Scan(&mysqlStats).Error; err == nil {
+		for _, stat := range mysqlStats {
+			metrics["mysql_"+strings.ToLower(stat.VariableName)] = stat.Value
 		}
 	}
 }
@@ -334,4 +357,17 @@ func (db *GormDB) Ping(ctx context.Context) error {
 	defer cancel()
 
 	return db.DB.WithContext(pingCtx).Raw("SELECT 1").Error
+}
+
+// NewWithDB creates a new GormDB instance with an existing DB connection
+func NewWithDB(db *gorm.DB, appLogger logging.Logger) *GormDB {
+	return &GormDB{
+		DB:     db,
+		logger: appLogger,
+	}
+}
+
+// GetDB returns the underlying GORM DB instance
+func (db *GormDB) GetDB() *gorm.DB {
+	return db.DB
 }
