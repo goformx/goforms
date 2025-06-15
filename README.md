@@ -6,7 +6,7 @@ A modern Go web application for form management with MariaDB backend.
 
 - Email subscription system with validation
 - RESTful API using Echo framework
-- MariaDB database with migrations
+- PostgreSQL database with migrations
 - Dependency injection using Uber FX
 - Structured logging with Zap
 - Rate limiting and CORS support
@@ -17,7 +17,7 @@ A modern Go web application for form management with MariaDB backend.
 ## Tech Stack
 
 - Go 1.24
-- MariaDB 10.11
+- PostgreSQL 17
 - Echo v4 web framework
 - Uber FX for dependency injection
 - Zap for structured logging
