@@ -185,6 +185,7 @@ jobs:
         run: |
           mkdir -p bin
           task install:frontend
+          task generate:templ
           task build:all
 
       - name: List Artifacts
