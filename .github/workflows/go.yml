@@ -184,6 +184,7 @@ jobs:
       - name: Build
         run: |
           mkdir -p bin
+          task install:frontend
           task build:all
 
       - name: List Artifacts
