@@ -30,7 +30,6 @@ type Config struct {
 type AppConfig struct {
 	// Application Info
 	Name     string `envconfig:"GOFORMS_APP_NAME" default:"GoFormX"`
-	Version  string `envconfig:"GOFORMS_APP_VERSION"`
 	Env      string `envconfig:"GOFORMS_APP_ENV" default:"production"`
 	Debug    bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
 	LogLevel string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`

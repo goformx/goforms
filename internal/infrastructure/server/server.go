@@ -14,6 +14,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
@@ -80,11 +81,14 @@ func (s *Server) Start() error {
 	case err := <-errored:
 		return fmt.Errorf("server failed to start: %w", err)
 	case <-started:
+		versionInfo := version.GetInfo()
 		s.logger.Info("server started",
 			"host", s.config.App.Host,
 			"port", s.config.App.Port,
 			"environment", s.config.App.Env,
-			"version", s.config.App.Version)
+			"version", versionInfo.Version,
+			"build_time", versionInfo.BuildTime,
+			"git_commit", versionInfo.GitCommit)
 		return nil
 	case <-time.After(DefaultStartupTimeout):
 		return fmt.Errorf("server startup timed out after %v", DefaultStartupTimeout)

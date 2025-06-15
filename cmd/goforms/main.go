@@ -21,6 +21,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
+	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/presentation"
 	"github.com/labstack/echo/v4"
 )
@@ -67,11 +68,14 @@ func setupApplication(params appParams) error {
 func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
+			versionInfo := version.GetInfo()
 			// Log application startup information
 			params.Logger.Info("starting application",
 				"app", params.Config.App.Name,
-				"version", params.Config.App.Version,
+				"version", versionInfo.Version,
 				"environment", params.Config.App.Env,
+				"build_time", versionInfo.BuildTime,
+				"git_commit", versionInfo.GitCommit,
 			)
 
 			// Start the server in a goroutine to prevent blocking
@@ -85,10 +89,13 @@ func setupLifecycle(params appParams) {
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			versionInfo := version.GetInfo()
 			// Log application shutdown information
 			params.Logger.Info("shutting down application",
 				"app", params.Config.App.Name,
-				"version", params.Config.App.Version,
+				"version", versionInfo.Version,
+				"build_time", versionInfo.BuildTime,
+				"git_commit", versionInfo.GitCommit,
 			)
 			return nil
 		},
@@ -105,9 +112,10 @@ func main() {
 		fx.Provide(config.New),
 		// Provide logger factory with configuration
 		fx.Provide(func(cfg *config.Config) logging.Logger {
+			versionInfo := version.GetInfo()
 			factory := logging.NewFactory(logging.FactoryConfig{
 				AppName:     cfg.App.Name,
-				Version:     cfg.App.Version,
+				Version:     versionInfo.Version,
 				Environment: cfg.App.Env,
 				Fields:      map[string]any{},
 			})
