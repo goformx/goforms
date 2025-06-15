@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 
 [build]
   # Commands to run before building
-  pre_cmd = ["task generate"]
+  pre_cmd = ["task generate:all"]
   # Build command
   cmd = "go build -o ./tmp/main ./cmd/goforms"
   # Binary file yields from `cmd`
@@ -32,7 +32,7 @@ tmp_dir = "tmp"
   # Delay after sending Interrupt signal (ms)
   kill_delay = 500
   # Delay before triggering rebuild on file changes (ms)
-  delay = 2000
+  delay = 1000
   # Follow symlinks
   follow_symlink = false
 
@@ -45,9 +45,9 @@ tmp_dir = "tmp"
 
 [log]
   # Show log time
-  time = false
+  time = true
   # Show file changes
-  main_only = true
+  main_only = false
 
 # [misc]
   # Delete tmp directory on exit

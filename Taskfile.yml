@@ -169,7 +169,9 @@ tasks:
     deps: [ generate:all ]
     cmds:
     - mkdir -p tmp
-    - air
+    - task: generate:templ
+    - task: generate:mocks:all
+    - air -c .air.toml
 
   dev:frontend:
     desc: Run frontend dev server
