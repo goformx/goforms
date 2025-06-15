@@ -181,10 +181,10 @@ jobs:
         if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: task install:all
 
-      - name: Build Application
+      - name: Build
         run: |
           mkdir -p bin
-          task build
+          task build:all
 
       - name: List Artifacts
         run: ls -la bin/
