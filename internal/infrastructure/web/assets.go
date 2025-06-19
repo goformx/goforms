@@ -114,6 +114,7 @@ func (s *ViteAssetServer) RegisterRoutes(e *echo.Echo) error {
 	e.Any("/@vite/*", echo.WrapHandler(proxy))
 	e.Any("/@fs/*", echo.WrapHandler(proxy))
 	e.Any("/@id/*", echo.WrapHandler(proxy))
+	e.Any("/favicon.ico", echo.WrapHandler(proxy))
 
 	return nil
 }
