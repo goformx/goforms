@@ -84,22 +84,27 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 	// Fetch form data
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil || form == nil {
-		h.Logger.Error("form not found or error loading form",
-			"form_id", h.Logger.SanitizeField("form_id", formID),
+		h.Logger.Warn("form access attempt failed",
 			"user_id", h.Logger.SanitizeField("user_id", userID),
-			"error", err)
+			"form_id_length", len(formID),
+			"error_type", "form_not_found")
 		return h.HandleNotFound(c, "Resource not found")
 	}
 
 	// Verify form ownership
 	if form.UserID != userID {
-		h.Logger.Error("unauthorized form access attempt",
+		h.Logger.Warn("unauthorized form access attempt",
 			"user_id", h.Logger.SanitizeField("user_id", userID),
-			"form_id", h.Logger.SanitizeField("form_id", formID),
+			"form_id_length", len(formID),
 			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
 			"error_type", "authorization_error")
 		return h.HandleForbidden(c, "You don't have permission to view this form")
 	}
+
+	h.Logger.Debug("form accessed successfully",
+		"user_id", h.Logger.SanitizeField("user_id", userID),
+		"form_id_length", len(formID),
+		"form_title", h.Logger.SanitizeField("form_title", form.Title))
 
 	data := shared.BuildPageData(h.Config, c, "Form View")
 	data.User = userObj

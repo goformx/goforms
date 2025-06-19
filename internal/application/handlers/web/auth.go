@@ -210,7 +210,9 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateLoginSchema()
 
-	h.Logger.Info("Generated login validation schema successfully", "schema", schema)
+	h.Logger.Debug("Generated login validation schema",
+		"schema_fields_count", len(schema),
+		"endpoint", "login_validation")
 	return c.JSON(constants.StatusOK, schema)
 }
 
@@ -225,7 +227,9 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateSignupSchema()
 
-	h.Logger.Info("Generated signup validation schema successfully", "schema", schema)
+	h.Logger.Debug("Generated signup validation schema",
+		"schema_fields_count", len(schema),
+		"endpoint", "signup_validation")
 	return c.JSON(constants.StatusOK, schema)
 }
 
