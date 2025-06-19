@@ -356,34 +356,19 @@ func TestService_IsValidEmail(t *testing.T) {
 	service := sanitization.NewService()
 
 	tests := []struct {
-		name     string
 		input    string
 		expected bool
 	}{
-		{
-			name:     "valid email",
-			input:    "test@example.com",
-			expected: true,
-		},
-		{
-			name:     "invalid email",
-			input:    "invalid-email",
-			expected: false,
-		},
-		{
-			name:     "empty string",
-			input:    "",
-			expected: false,
-		},
+		{"test@example.com", true},
+		{"invalid-email", false},
+		{"", false},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := service.IsValidEmail(tt.input)
-			if result != tt.expected {
-				t.Errorf("IsValidEmail() = %v, want %v", result, tt.expected)
-			}
-		})
+		result := sanitization.IsValidEmail(service, tt.input)
+		if result != tt.expected {
+			t.Errorf("IsValidEmail(%q) = %v, want %v", tt.input, result, tt.expected)
+		}
 	}
 }
 
@@ -391,39 +376,21 @@ func TestService_IsValidURL(t *testing.T) {
 	service := sanitization.NewService()
 
 	tests := []struct {
-		name     string
 		input    string
 		expected bool
 	}{
-		{
-			name:     "valid http URL",
-			input:    "http://example.com",
-			expected: true,
-		},
-		{
-			name:     "valid https URL",
-			input:    "https://example.com",
-			expected: true,
-		},
-		{
-			name:     "invalid URL",
-			input:    "not-a-url",
-			expected: false,
-		},
-		{
-			name:     "empty string",
-			input:    "",
-			expected: false,
-		},
+		{"http://example.com", true},
+		{"https://example.com", true},
+		{"ftp://example.com", false},
+		{"invalid-url", false},
+		{"", false},
 	}
 
 	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			result := service.IsValidURL(tt.input)
-			if result != tt.expected {
-				t.Errorf("IsValidURL() = %v, want %v", result, tt.expected)
-			}
-		})
+		result := sanitization.IsValidURL(service, tt.input)
+		if result != tt.expected {
+			t.Errorf("IsValidURL(%q) = %v, want %v", tt.input, result, tt.expected)
+		}
 	}
 }
 

@@ -28,9 +28,7 @@ type ServiceInterface interface {
 	SanitizeJSON(data any) any
 	SanitizeWithOptions(input string, opts SanitizeOptions) string
 
-	// Validation methods
-	IsValidEmail(input string) bool
-	IsValidURL(input string) bool
+	// Validation methods (removed: IsValidEmail, IsValidURL)
 }
 
 // Ensure Service implements ServiceInterface
