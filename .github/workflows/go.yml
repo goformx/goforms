@@ -68,6 +68,9 @@ jobs:
           echo "Running task install:all"
           task install:all
 
+      - name: Install frontend dependencies
+        run: task install:frontend
+
       - name: Build Frontend
         run: task build:frontend
 
@@ -130,6 +133,9 @@ jobs:
       - name: Install dependencies
         if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: task install:all
+
+      - name: Install frontend dependencies
+        run: task install:frontend
 
       - name: Build Frontend
         run: task build:frontend
@@ -198,6 +204,9 @@ jobs:
       - name: Install dependencies
         if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: task install:all
+
+      - name: Install frontend dependencies
+        run: task install:frontend
 
       - name: Build Frontend
         run: task build:frontend
