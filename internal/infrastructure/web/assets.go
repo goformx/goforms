@@ -198,16 +198,16 @@ func (s *EmbeddedAssetServer) RegisterRoutes(e *echo.Echo) error {
 
 	// Serve individual files from embedded filesystem
 	e.GET("/robots.txt", func(c echo.Context) error {
-		data, err := fs.ReadFile(distSubFS, "robots.txt")
-		if err != nil {
+		data, readErr := fs.ReadFile(distSubFS, "robots.txt")
+		if readErr != nil {
 			return c.NoContent(http.StatusNotFound)
 		}
 		c.Response().Header().Set("Content-Type", "text/plain")
 		return c.Blob(http.StatusOK, "text/plain", data)
 	})
 	e.GET("/favicon.ico", func(c echo.Context) error {
-		data, err := fs.ReadFile(distSubFS, "favicon.ico")
-		if err != nil {
+		data, readErr := fs.ReadFile(distSubFS, "favicon.ico")
+		if readErr != nil {
 			return c.NoContent(http.StatusNotFound)
 		}
 		c.Response().Header().Set("Content-Type", "image/x-icon")

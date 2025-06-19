@@ -1,202 +1,237 @@
-# GoForms Implementation TODOs
+# GoForms Code Quality Improvements TODO
 
-## Error Handling Improvements
+## Overview
+This document outlines the plan to fix DRY (Don't Repeat Yourself), SoC (Separation of Concerns), SRP (Single Responsibility Principle), and best practices violations identified in the codebase review.
 
-### Phase 1: Error Types and Utilities
-- [x] Create centralized error package
-  - [x] Define common domain errors
-  - [x] Define form-specific errors
-  - [x] Define user-specific errors
-  - [x] Create error wrapping utilities
-- [ ] Fix exhaustive switch cases in error handling
-  - [ ] Update HTTPStatus() method
-  - [ ] Update error type checking utilities
-  - [ ] Update error translation
-  - [ ] Update error middleware
+## Priority Levels
+- 🔴 **Critical**: Must be fixed immediately
+- 🟡 **High**: Should be fixed soon
+- 🟢 **Medium**: Nice to have
+- 🔵 **Low**: Future improvement
 
-### Phase 2: Domain Layer Error Handling
-- [ ] Update User Service
-  - [ ] Implement error wrapping in CreateUser
-  - [ ] Implement error wrapping in GetUser
-  - [ ] Implement error wrapping in UpdateUser
-  - [ ] Implement error wrapping in DeleteUser
-- [ ] Update Form Service
-  - [ ] Implement error wrapping in CreateForm
-  - [ ] Implement error wrapping in GetForm
-  - [ ] Implement error wrapping in SubmitForm
-  - [ ] Implement error wrapping in UpdateForm
+## 🔴 Critical Issues
 
-### Phase 3: Application Layer Error Handling
-- [x] Update Web Handlers
-  - [x] Implement consistent error responses
-  - [x] Add error type mapping to HTTP status codes
-  - [x] Add error response formatting
-- [ ] Update Middleware
-  - [ ] Add error handling middleware
-  - [ ] Implement panic recovery
-  - [ ] Add request validation error handling
-- [ ] Fix error type assertions
-  - [ ] Update validator.go to use errors.As
-  - [ ] Update error handling in validation package
+### 1. Error Handling Duplication
+**Problem**: Multiple error handling implementations across different layers
+**Files**: `internal/application/middleware/error_handler.go`
+**Status**: 🔴 Critical
 
-## Validation Improvements
+#### Tasks:
+- [ ] Create unified error handler interface
+- [ ] Consolidate duplicate error handling functions
+- [ ] Remove standalone error handling functions
+- [ ] Update all handlers to use unified error handler
+- [ ] Add tests for unified error handler
 
-### Phase 1: Input Validation
-- [ ] Remove manual phone number validation
-  - [ ] Use dedicated phone validation service (e.g., Twilio)
-  - [ ] Implement phone verification flow
-  - [ ] Add phone number normalization
-- [ ] Enhance password validation
-  - [ ] Add password strength meter
-  - [ ] Add common password check
-  - [ ] Add password history check
-- [ ] Add email validation
-  - [ ] Add MX record check
-  - [ ] Add disposable email check
-  - [ ] Add email verification flow
+### 2. Inconsistent Error Response Formats
+**Problem**: Multiple different error response formats used throughout codebase
+**Files**: Multiple handler files
+**Status**: 🔴 Critical
 
-### Phase 2: Business Rule Validation
-- [ ] Add cross-field validation
-  - [ ] Add date range validation
-  - [ ] Add conditional validation
-  - [ ] Add dependent field validation
-- [ ] Add form-specific validation
-  - [ ] Add form schema validation
-  - [ ] Add form response validation
-  - [ ] Add form access validation
+#### Tasks:
+- [ ] Define standard error response structure
+- [ ] Create error response builder
+- [ ] Update all error responses to use standard format
+- [ ] Add validation for error response format
+- [ ] Update tests to verify response format
 
-### Phase 3: Validation Infrastructure
-- [ ] Add validation caching
-  - [ ] Cache validation results
-  - [ ] Cache validation rules
-  - [ ] Cache validation errors
-- [ ] Add validation metrics
-  - [ ] Track validation errors
-  - [ ] Track validation performance
-  - [ ] Track validation usage
+## 🟡 High Priority Issues
 
-## Logging Improvements
+### 3. Handler Responsibility Violations
+**Problem**: Handlers doing too many things (SRP violation)
+**Files**: `internal/application/handlers/web/auth.go`
+**Status**: 🟡 High
 
-### Phase 1: Logging Infrastructure
-- [ ] Define logging fields and constants
-  - [ ] Common fields (operation, error, duration)
-  - [ ] User-specific fields
-  - [ ] Form-specific fields
-  - [ ] Request-specific fields
-- [ ] Enhance Logger interface
-  - [ ] Add With() method for context
-  - [ ] Add structured logging methods
-  - [ ] Add log level control
+#### Tasks:
+- [ ] Split AuthHandler into smaller, focused components
+- [ ] Create RequestParser for handling different content types
+- [ ] Create ResponseBuilder for handling different response types
+- [ ] Create AuthService for business logic
+- [ ] Update dependency injection
+- [ ] Add tests for new components
 
-### Phase 2: Domain Layer Logging
-- [ ] Update User Service
-  - [ ] Add operation logging
-  - [ ] Add error logging
-  - [ ] Add success logging
-  - [ ] Add debug logging
-- [ ] Update Form Service
-  - [ ] Add operation logging
-  - [ ] Add error logging
-  - [ ] Add success logging
-  - [ ] Add debug logging
+### 4. Scattered Configuration
+**Problem**: Middleware configuration hardcoded in multiple places
+**Files**: `internal/application/middleware/module.go`
+**Status**: 🟡 High
 
-### Phase 3: Application Layer Logging
-- [ ] Update Web Handlers
-  - [ ] Add request logging
-  - [ ] Add response logging
-  - [ ] Add error logging
-  - [ ] Add performance logging
-- [ ] Update Middleware
-  - [ ] Add request tracking
-  - [ ] Add performance metrics
-  - [ ] Add error tracking
-  - [ ] Add access logging
+#### Tasks:
+- [ ] Create centralized middleware configuration
+- [ ] Move path configurations to config files
+- [ ] Create configuration provider interface
+- [ ] Update middleware to use centralized config
+- [ ] Add configuration validation
+- [ ] Add tests for configuration
 
-### Phase 4: Infrastructure Layer Logging
-- [ ] Update Database Operations
-  - [ ] Add query logging
-  - [ ] Add transaction logging
-  - [ ] Add error logging
-- [ ] Update Event System
-  - [ ] Add event publishing logs
-  - [ ] Add event handling logs
-  - [ ] Add error logging
+### 5. Magic Numbers and Hardcoded Values
+**Problem**: HTTP status codes and other constants scattered throughout codebase
+**Files**: Multiple files
+**Status**: 🟡 High
 
-## Testing and Validation
+#### Tasks:
+- [ ] Create response constants file
+- [ ] Replace all hardcoded HTTP status codes
+- [ ] Create redirect path constants
+- [ ] Create timeout constants
+- [ ] Update all files to use constants
+- [ ] Add validation for constant usage
 
-### Phase 1: Error Handling Tests
-- [ ] Add error type tests
-- [ ] Add error wrapping tests
-- [ ] Add error response tests
-- [ ] Add error middleware tests
+## 🟢 Medium Priority Issues
 
-### Phase 2: Logging Tests
-- [ ] Add logger interface tests
-- [ ] Add structured logging tests
-- [ ] Add log level tests
-- [ ] Add context propagation tests
+### 6. Inconsistent Logging Patterns
+**Problem**: Inconsistent logging across different components
+**Files**: Multiple files
+**Status**: 🟢 Medium
 
-## Documentation
+#### Tasks:
+- [ ] Define standard logging interface
+- [ ] Create structured logging helpers
+- [ ] Add request/response logging middleware
+- [ ] Standardize log levels and formats
+- [ ] Add correlation IDs for request tracking
+- [ ] Update all components to use standard logging
 
-### Phase 1: Error Handling Documentation
-- [ ] Document error types
-- [ ] Document error handling patterns
-- [ ] Document error response format
-- [ ] Add error handling examples
+### 7. Missing Error Context
+**Problem**: Errors lack sufficient context for debugging
+**Files**: Multiple files
+**Status**: 🟢 Medium
 
-### Phase 2: Logging Documentation
-- [ ] Document logging fields
-- [ ] Document log levels
-- [ ] Document logging patterns
-- [ ] Add logging examples
+#### Tasks:
+- [ ] Add error context builder
+- [ ] Include request context in errors
+- [ ] Add user context to errors
+- [ ] Add operation context to errors
+- [ ] Create error context validation
+- [ ] Update error handling to include context
 
-## Performance Considerations
+### 8. Inconsistent Validation Patterns
+**Problem**: Different validation approaches across components
+**Files**: Multiple files
+**Status**: 🟢 Medium
 
-### Phase 1: Logging Performance
-- [ ] Implement log sampling
-- [ ] Add log buffering
-- [ ] Configure log rotation
-- [ ] Set up log retention
+#### Tasks:
+- [ ] Create unified validation interface
+- [ ] Standardize validation error messages
+- [ ] Add validation result types
+- [ ] Create validation context
+- [ ] Update all validation to use unified interface
+- [ ] Add validation tests
 
-### Phase 2: Error Handling Performance
-- [ ] Optimize error wrapping
-- [ ] Add error caching
-- [ ] Implement error aggregation
-- [ ] Add error reporting
+## 🔵 Low Priority Issues
 
-## Monitoring and Observability
+### 9. Performance Optimizations
+**Problem**: Potential performance issues in middleware and handlers
+**Files**: Multiple files
+**Status**: 🔵 Low
 
-### Phase 1: Logging Metrics
-- [ ] Add log volume metrics
-- [ ] Add log level distribution
-- [ ] Add error rate metrics
-- [ ] Add performance metrics
+#### Tasks:
+- [ ] Add middleware performance monitoring
+- [ ] Optimize route matching
+- [ ] Add caching for static file checks
+- [ ] Implement connection pooling
+- [ ] Add performance benchmarks
+- [ ] Optimize database queries
 
-### Phase 2: Error Metrics
-- [ ] Add error rate tracking
-- [ ] Add error type distribution
-- [ ] Add error impact metrics
-- [ ] Add error resolution metrics
+### 10. Documentation Improvements
+**Problem**: Inconsistent or missing documentation
+**Files**: Multiple files
+**Status**: 🔵 Low
 
-## Security Considerations
+#### Tasks:
+- [ ] Add package-level documentation
+- [ ] Document all public interfaces
+- [ ] Add example usage
+- [ ] Create architecture diagrams
+- [ ] Add API documentation
+- [ ] Create contribution guidelines
 
-### Phase 1: Logging Security
-- [ ] Implement log sanitization
-- [ ] Add sensitive data masking
-- [ ] Configure log access control
-- [ ] Add audit logging
+## Implementation Plan
 
-### Phase 2: Error Security
-- [ ] Implement error sanitization
-- [ ] Add error rate limiting
-- [ ] Configure error access control
-- [ ] Add security error tracking
+### Phase 1: Critical Fixes (Week 1)
+1. Fix error handling duplication
+2. Standardize error response formats
+3. Create response constants
 
-## Code Quality Improvements
-- [ ] Fix error type assertions using errors.As
-- [ ] Fix exhaustive switch cases
-- [ ] Replace fmt.Printf with logger
-- [ ] Fix unlambda issues in module.go
-- [ ] Fix shadow variable declarations
-- [ ] Fix nilnil returns
-- [ ] Replace fmt.Errorf with errors.New where appropriate 
+### Phase 2: High Priority Fixes (Week 2)
+1. Split handler responsibilities
+2. Centralize configuration
+3. Replace magic numbers
+
+### Phase 3: Medium Priority Fixes (Week 3)
+1. Standardize logging patterns
+2. Add error context
+3. Unify validation patterns
+
+### Phase 4: Low Priority Fixes (Week 4)
+1. Performance optimizations
+2. Documentation improvements
+3. Final testing and validation
+
+## Success Criteria
+
+### Code Quality Metrics
+- [ ] Zero duplicate error handling code
+- [ ] Consistent error response format across all endpoints
+- [ ] All handlers follow SRP
+- [ ] Centralized configuration management
+- [ ] No hardcoded magic numbers
+- [ ] Consistent logging patterns
+- [ ] Comprehensive error context
+- [ ] Unified validation patterns
+
+### Testing Requirements
+- [ ] 90%+ test coverage for new components
+- [ ] All error scenarios covered
+- [ ] Integration tests for all handlers
+- [ ] Performance benchmarks
+- [ ] Load testing for critical paths
+
+### Documentation Requirements
+- [ ] Updated API documentation
+- [ ] Architecture diagrams
+- [ ] Code examples
+- [ ] Migration guide
+- [ ] Best practices guide
+
+## Risk Mitigation
+
+### Breaking Changes
+- [ ] Maintain backward compatibility where possible
+- [ ] Use feature flags for gradual rollout
+- [ ] Comprehensive testing before deployment
+- [ ] Rollback plan ready
+
+### Performance Impact
+- [ ] Monitor performance during implementation
+- [ ] Benchmark before and after changes
+- [ ] Optimize critical paths first
+- [ ] Load test all changes
+
+### Team Coordination
+- [ ] Communicate changes to team
+- [ ] Review code changes thoroughly
+- [ ] Update development guidelines
+- [ ] Train team on new patterns
+
+## Notes
+- All changes should be made incrementally
+- Each phase should be completed and tested before moving to the next
+- Performance impact should be monitored throughout
+- Documentation should be updated as changes are made
+- Team should be informed of all breaking changes
+
+## Review Process
+1. Review each item systematically
+2. Implement changes incrementally
+3. Test thoroughly after each change
+4. Update documentation
+5. Mark items as completed
+6. Move to next priority level
+
+## Next Steps
+1. Start with Phase 1 (Critical Fixes)
+2. Focus on error handling duplication first
+3. Create unified error handler
+4. Update all handlers to use new pattern
+5. Add comprehensive tests
+6. Move to Phase 2 
