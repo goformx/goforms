@@ -87,7 +87,7 @@ tasks:
 
   generate:
     desc: Generate all code artifacts
-    deps: [ generate:templ, generate:mocks:all ]
+    deps: [ generate:templ, generate:mocks ]
 
   generate:templ:
     desc: Generate templ files
