@@ -14,13 +14,13 @@ import (
 )
 
 type DashboardHandler struct {
-	HandlerDeps
+	*BaseHandler
 	AccessManager *access.AccessManager
 }
 
-func NewDashboardHandler(deps HandlerDeps, accessManager *access.AccessManager) *DashboardHandler {
+func NewDashboardHandler(base *BaseHandler, accessManager *access.AccessManager) *DashboardHandler {
 	return &DashboardHandler{
-		HandlerDeps:   deps,
+		BaseHandler:   base,
 		AccessManager: accessManager,
 	}
 }

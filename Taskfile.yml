@@ -121,10 +121,16 @@ tasks:
     - mkdir -p test/mocks/logging
     - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
 
+  generate:mocks:form:service:
+    desc: Generate form.Service mock
+    cmds:
+    - mkdir -p test/mocks/form
+    - mockgen -typed -source=internal/domain/form/service.go -destination=test/mocks/form/mock_service.go -package=form -mock_names=Service=MockService
+
   generate:mocks:form:
     desc: Generate form mocks
     cmds:
-    - mkdir -p test/mocks/form
+    - task: generate:mocks:form:service
     - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
     - mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
 

@@ -17,7 +17,7 @@ import (
 
 // AuthHandler handles authentication-related requests
 type AuthHandler struct {
-	deps HandlerDeps
+	*BaseHandler
 }
 
 const (
@@ -30,13 +30,13 @@ const (
 )
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(deps HandlerDeps) (*AuthHandler, error) {
-	if err := deps.Validate(); err != nil {
-		return nil, err
+func NewAuthHandler(base *BaseHandler) (*AuthHandler, error) {
+	if base == nil {
+		return nil, errors.New("base handler cannot be nil")
 	}
 
 	return &AuthHandler{
-		deps: deps,
+		BaseHandler: base,
 	}, nil
 }
 
@@ -53,7 +53,7 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 
 // TestEndpoint is a simple test endpoint to verify JSON responses work
 func (h *AuthHandler) TestEndpoint(c echo.Context) error {
-	h.deps.Logger.Info("TestEndpoint called")
+	h.Logger.Info("TestEndpoint called")
 	return c.JSON(http.StatusOK, map[string]string{
 		"message": "Test endpoint working",
 		"status":  "success",
@@ -121,18 +121,18 @@ func generateValidationSchema(s any) map[string]any {
 
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
-	data := shared.BuildPageData(h.deps.Config, c, "Login")
+	data := shared.BuildPageData(h.Config, c, "Login")
 	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(http.StatusSeeOther, "/dashboard")
 	}
 	// Debug log for environment and asset path
-	if h.deps.Config != nil && h.deps.Logger != nil {
-		h.deps.Logger.Debug("Rendering login page",
-			"env", h.deps.Config.App.Env,
+	if h.Config != nil && h.Logger != nil {
+		h.Logger.Debug("Rendering login page",
+			"env", h.Config.App.Env,
 			"assetPath", data.AssetPath("src/js/login.ts"),
 		)
 	}
-	return h.deps.Renderer.Render(c, pages.Login(data))
+	return h.Renderer.Render(c, pages.Login(data))
 }
 
 /**
@@ -162,7 +162,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			Password string `json:"password"`
 		}
 		if err := c.Bind(&data); err != nil {
-			h.deps.Logger.Error("failed to parse JSON request", "error", err)
+			h.Logger.Error("failed to parse JSON request", "error", err)
 
 			// Check if this is an AJAX request
 			if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -172,12 +172,12 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			}
 
 			// For regular form submissions, render the login page with error
-			data := shared.BuildPageData(h.deps.Config, c, "Login")
+			data := shared.BuildPageData(h.Config, c, "Login")
 			data.Message = &shared.Message{
 				Type: "error",
 				Text: "Invalid request format",
 			}
-			return h.deps.Renderer.Render(c, pages.Login(data))
+			return h.Renderer.Render(c, pages.Login(data))
 		}
 		email = data.Email
 		password = data.Password
@@ -191,12 +191,12 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	email = sanitize.Email(email, false)
 
 	// Validate credentials
-	loginResp, err := h.deps.UserService.Login(c.Request().Context(), &user.Login{
+	loginResp, err := h.UserService.Login(c.Request().Context(), &user.Login{
 		Email:    email,
 		Password: password,
 	})
 	if err != nil {
-		h.deps.Logger.Error("login failed", "error", err)
+		h.Logger.Error("login failed", "error", err)
 
 		// Check if this is an AJAX request
 		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -206,18 +206,18 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		}
 
 		// For regular form submissions, render the login page with error
-		data := shared.BuildPageData(h.deps.Config, c, "Login")
+		data := shared.BuildPageData(h.Config, c, "Login")
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "Invalid email or password",
 		}
-		return h.deps.Renderer.Render(c, pages.Login(data))
+		return h.Renderer.Render(c, pages.Login(data))
 	}
 
 	// Create session
-	session, err := h.deps.SessionManager.CreateSession(loginResp.User.ID, loginResp.User.Email, c.Request().UserAgent())
+	session, err := h.SessionManager.CreateSession(loginResp.User.ID, loginResp.User.Email, c.Request().UserAgent())
 	if err != nil {
-		h.deps.Logger.Error("failed to create session", "error", err)
+		h.Logger.Error("failed to create session", "error", err)
 
 		// Check if this is an AJAX request
 		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -227,16 +227,16 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		}
 
 		// For regular form submissions, render the login page with error
-		data := shared.BuildPageData(h.deps.Config, c, "Login")
+		data := shared.BuildPageData(h.Config, c, "Login")
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "Failed to create session. Please try again.",
 		}
-		return h.deps.Renderer.Render(c, pages.Login(data))
+		return h.Renderer.Render(c, pages.Login(data))
 	}
 
 	// Set session cookie
-	h.deps.SessionManager.SetSessionCookie(c, session)
+	h.SessionManager.SetSessionCookie(c, session)
 
 	// Return success
 	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -251,11 +251,11 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
-	data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
+	data := shared.BuildPageData(h.Config, c, "Sign Up")
 	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(http.StatusSeeOther, "/dashboard")
 	}
-	return h.deps.Renderer.Render(c, pages.Signup(data))
+	return h.Renderer.Render(c, pages.Signup(data))
 }
 
 // SignupPost handles the signup form submission
@@ -267,7 +267,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	if contentType == "application/json" {
 		// Parse JSON request directly into signup struct
 		if err := c.Bind(&signup); err != nil {
-			h.deps.Logger.Error("failed to parse JSON request", "error", err)
+			h.Logger.Error("failed to parse JSON request", "error", err)
 
 			// Check if this is an AJAX request
 			if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -277,12 +277,12 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			}
 
 			// For regular form submissions, render the signup page with error
-			data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
+			data := shared.BuildPageData(h.Config, c, "Sign Up")
 			data.Message = &shared.Message{
 				Type: "error",
 				Text: "Invalid request format",
 			}
-			return h.deps.Renderer.Render(c, pages.Signup(data))
+			return h.Renderer.Render(c, pages.Signup(data))
 		}
 	} else {
 		// Parse form data
@@ -297,9 +297,9 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	signup.Email = sanitize.Email(signup.Email, false)
 
 	// Create user
-	newUser, err := h.deps.UserService.SignUp(c.Request().Context(), &signup)
+	newUser, err := h.UserService.SignUp(c.Request().Context(), &signup)
 	if err != nil {
-		h.deps.Logger.Error("failed to create user", "error", err)
+		h.Logger.Error("failed to create user", "error", err)
 
 		// Check if this is an AJAX request
 		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -317,7 +317,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		}
 
 		// For regular form submissions, render the signup page with error
-		data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
+		data := shared.BuildPageData(h.Config, c, "Sign Up")
 		if errors.Is(err, user.ErrUserExists) {
 			data.Message = &shared.Message{
 				Type: "error",
@@ -329,13 +329,13 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 				Text: "Unable to create account. Please try again.",
 			}
 		}
-		return h.deps.Renderer.Render(c, pages.Signup(data))
+		return h.Renderer.Render(c, pages.Signup(data))
 	}
 
 	// Create session for new user
-	session, err := h.deps.SessionManager.CreateSession(newUser.ID, newUser.Email, c.Request().UserAgent())
+	session, err := h.SessionManager.CreateSession(newUser.ID, newUser.Email, c.Request().UserAgent())
 	if err != nil {
-		h.deps.Logger.Error("failed to create session", "error", err)
+		h.Logger.Error("failed to create session", "error", err)
 
 		// Check if this is an AJAX request
 		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -345,16 +345,16 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		}
 
 		// For regular form submissions, render the signup page with error
-		data := shared.BuildPageData(h.deps.Config, c, "Sign Up")
+		data := shared.BuildPageData(h.Config, c, "Sign Up")
 		data.Message = &shared.Message{
 			Type: "error",
 			Text: "Account created but unable to sign in. Please try logging in.",
 		}
-		return h.deps.Renderer.Render(c, pages.Signup(data))
+		return h.Renderer.Render(c, pages.Signup(data))
 	}
 
 	// Set session cookie
-	h.deps.SessionManager.SetSessionCookie(c, session)
+	h.SessionManager.SetSessionCookie(c, session)
 
 	// Return success
 	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
@@ -371,23 +371,23 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 // Logout handles POST /logout - processes the logout request
 func (h *AuthHandler) Logout(c echo.Context) error {
 	// Get session cookie
-	cookie, err := c.Cookie(h.deps.SessionManager.GetCookieName())
+	cookie, err := c.Cookie(h.SessionManager.GetCookieName())
 	if err != nil {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
 
 	// Delete session
-	h.deps.SessionManager.DeleteSession(cookie.Value)
+	h.SessionManager.DeleteSession(cookie.Value)
 
 	// Clear session cookie
-	h.deps.SessionManager.ClearSessionCookie(c)
+	h.SessionManager.ClearSessionCookie(c)
 
 	return c.Redirect(http.StatusSeeOther, "/login")
 }
 
 // LoginValidation handles the login form validation schema request
 func (h *AuthHandler) LoginValidation(c echo.Context) error {
-	h.deps.Logger.Info("LoginValidation endpoint called",
+	h.Logger.Info("LoginValidation endpoint called",
 		"method", c.Request().Method,
 		"path", c.Request().URL.Path,
 		"remote_addr", c.Request().RemoteAddr)
@@ -398,13 +398,13 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	// Generate schema with simple error handling
 	schema := generateValidationSchema(user.Login{})
 
-	h.deps.Logger.Info("Generated login validation schema successfully", "schema", schema)
+	h.Logger.Info("Generated login validation schema successfully", "schema", schema)
 	return c.JSON(http.StatusOK, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
 func (h *AuthHandler) SignupValidation(c echo.Context) error {
-	h.deps.Logger.Info("SignupValidation endpoint called",
+	h.Logger.Info("SignupValidation endpoint called",
 		"method", c.Request().Method,
 		"path", c.Request().URL.Path,
 		"remote_addr", c.Request().RemoteAddr)
@@ -415,7 +415,7 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	// Generate schema with simple error handling
 	schema := generateValidationSchema(user.Signup{})
 
-	h.deps.Logger.Info("Generated signup validation schema successfully", "schema", schema)
+	h.Logger.Info("Generated signup validation schema successfully", "schema", schema)
 	return c.JSON(http.StatusOK, schema)
 }
 

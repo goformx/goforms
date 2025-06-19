@@ -10,6 +10,7 @@ import (
 	"testing"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
+	"github.com/goformx/goforms/internal/application/middleware/session"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/view"
@@ -23,7 +24,7 @@ import (
 	"go.uber.org/mock/gomock"
 )
 
-func TestFormHandler_SubmitForm(t *testing.T) {
+func TestFormAPIHandler_SubmitForm(t *testing.T) {
 	// Create test form
 	testForm := &model.Form{
 		ID:          "test-form-1",
@@ -54,15 +55,15 @@ func TestFormHandler_SubmitForm(t *testing.T) {
 		mockEventBus := mockevents.NewMockEventBus(ctrl)
 		mockLogger := mocklogging.NewMockLogger(ctrl)
 		mockUserService := mockuser.NewMockService(ctrl)
+		mockFormService := mockform.NewMockService(ctrl)
+		mockSessionManager := &session.Manager{} // Create a real session manager for tests
+
+		// Setup base handler
+		baseHandler := web.NewBaseHandler(mockLogger, nil, mockUserService, mockFormService, view.NewRenderer(mockLogger), mockSessionManager)
 
 		// Setup handler with fresh mocks
-		h := &web.FormHandler{
-			HandlerDeps: web.HandlerDeps{
-				Logger:      mockLogger,
-				UserService: mockUserService,
-				Renderer:    view.NewRenderer(mockLogger),
-			},
-			FormService: formdomain.NewService(mockRepo, mockEventBus, mockLogger),
+		h := &web.FormAPIHandler{
+			FormBaseHandler: web.NewFormBaseHandler(baseHandler, formdomain.NewService(mockRepo, mockEventBus, mockLogger)),
 		}
 
 		// Setup mock expectations
@@ -116,15 +117,15 @@ func TestFormHandler_SubmitForm(t *testing.T) {
 		mockEventBus := mockevents.NewMockEventBus(ctrl)
 		mockLogger := mocklogging.NewMockLogger(ctrl)
 		mockUserService := mockuser.NewMockService(ctrl)
+		mockFormService := mockform.NewMockService(ctrl)
+		mockSessionManager := &session.Manager{} // Create a real session manager for tests
+
+		// Setup base handler
+		baseHandler := web.NewBaseHandler(mockLogger, nil, mockUserService, mockFormService, view.NewRenderer(mockLogger), mockSessionManager)
 
 		// Setup handler with fresh mocks
-		h := &web.FormHandler{
-			HandlerDeps: web.HandlerDeps{
-				Logger:      mockLogger,
-				UserService: mockUserService,
-				Renderer:    view.NewRenderer(mockLogger),
-			},
-			FormService: formdomain.NewService(mockRepo, mockEventBus, mockLogger),
+		h := &web.FormAPIHandler{
+			FormBaseHandler: web.NewFormBaseHandler(baseHandler, formdomain.NewService(mockRepo, mockEventBus, mockLogger)),
 		}
 
 		// Setup mock expectations
@@ -156,15 +157,15 @@ func TestFormHandler_SubmitForm(t *testing.T) {
 		mockEventBus := mockevents.NewMockEventBus(ctrl)
 		mockLogger := mocklogging.NewMockLogger(ctrl)
 		mockUserService := mockuser.NewMockService(ctrl)
+		mockFormService := mockform.NewMockService(ctrl)
+		mockSessionManager := &session.Manager{} // Create a real session manager for tests
+
+		// Setup base handler
+		baseHandler := web.NewBaseHandler(mockLogger, nil, mockUserService, mockFormService, view.NewRenderer(mockLogger), mockSessionManager)
 
 		// Setup handler with fresh mocks
-		h := &web.FormHandler{
-			HandlerDeps: web.HandlerDeps{
-				Logger:      mockLogger,
-				UserService: mockUserService,
-				Renderer:    view.NewRenderer(mockLogger),
-			},
-			FormService: formdomain.NewService(mockRepo, mockEventBus, mockLogger),
+		h := &web.FormAPIHandler{
+			FormBaseHandler: web.NewFormBaseHandler(baseHandler, formdomain.NewService(mockRepo, mockEventBus, mockLogger)),
 		}
 
 		// Setup mock expectations
@@ -199,15 +200,15 @@ func TestFormHandler_SubmitForm(t *testing.T) {
 		mockEventBus := mockevents.NewMockEventBus(ctrl)
 		mockLogger := mocklogging.NewMockLogger(ctrl)
 		mockUserService := mockuser.NewMockService(ctrl)
+		mockFormService := mockform.NewMockService(ctrl)
+		mockSessionManager := &session.Manager{} // Create a real session manager for tests
+
+		// Setup base handler
+		baseHandler := web.NewBaseHandler(mockLogger, nil, mockUserService, mockFormService, view.NewRenderer(mockLogger), mockSessionManager)
 
 		// Setup handler with fresh mocks
-		h := &web.FormHandler{
-			HandlerDeps: web.HandlerDeps{
-				Logger:      mockLogger,
-				UserService: mockUserService,
-				Renderer:    view.NewRenderer(mockLogger),
-			},
-			FormService: formdomain.NewService(mockRepo, mockEventBus, mockLogger),
+		h := &web.FormAPIHandler{
+			FormBaseHandler: web.NewFormBaseHandler(baseHandler, formdomain.NewService(mockRepo, mockEventBus, mockLogger)),
 		}
 
 		// Setup mock expectations

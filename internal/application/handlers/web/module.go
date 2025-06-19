@@ -20,6 +20,21 @@ import (
 var Module = fx.Options(
 	// Core dependencies
 	fx.Provide(
+		// Base handler for common functionality
+		fx.Annotate(
+			func(
+				logger logging.Logger,
+				cfg *config.Config,
+				userService user.Service,
+				formService form.Service,
+				renderer view.Renderer,
+				sessionManager *session.Manager,
+			) *BaseHandler {
+				return NewBaseHandler(logger, cfg, userService, formService, renderer, sessionManager)
+			},
+		),
+
+		// Legacy HandlerDeps for backward compatibility
 		fx.Annotate(
 			func(
 				logger logging.Logger,
@@ -47,32 +62,40 @@ var Module = fx.Options(
 	fx.Provide(
 		// Auth handler - public access
 		fx.Annotate(
-			func(deps *HandlerDeps) (Handler, error) {
-				return NewAuthHandler(*deps)
+			func(base *BaseHandler) (Handler, error) {
+				return NewAuthHandler(base)
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
 
 		// Web handler - public access
 		fx.Annotate(
-			func(deps *HandlerDeps) (Handler, error) {
-				return NewWebHandler(*deps)
+			func(base *BaseHandler) (Handler, error) {
+				return NewWebHandler(base)
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
 
-		// Form handler - authenticated access
+		// Form Web handler - authenticated access
 		fx.Annotate(
-			func(deps *HandlerDeps, accessManager *access.AccessManager) (Handler, error) {
-				return NewFormHandler(*deps, deps.FormService, accessManager), nil
+			func(base *BaseHandler, formService form.Service) (Handler, error) {
+				return NewFormWebHandler(base, formService), nil
+			},
+			fx.ResultTags(`group:"handlers"`),
+		),
+
+		// Form API handler - authenticated access
+		fx.Annotate(
+			func(base *BaseHandler, formService form.Service, accessManager *access.AccessManager) (Handler, error) {
+				return NewFormAPIHandler(base, formService, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
 
 		// Dashboard handler - authenticated access
 		fx.Annotate(
-			func(deps *HandlerDeps, accessManager *access.AccessManager) (Handler, error) {
-				return NewDashboardHandler(*deps, accessManager), nil
+			func(base *BaseHandler, accessManager *access.AccessManager) (Handler, error) {
+				return NewDashboardHandler(base, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
@@ -135,22 +158,13 @@ func RegisterHandlers(
 			e.GET("/", h.handleHome)
 			e.GET("/demo", h.handleDemo)
 
-		case *FormHandler:
-			// Authenticated routes
-			forms := e.Group("/forms")
-			forms.Use(access.Middleware(accessManager, logger))
-			forms.GET("/new", h.handleFormNew)
-			forms.POST("", h.handleFormCreate)
-			forms.GET("/:id/edit", h.handleFormEdit)
-			forms.PUT("/:id", h.handleFormUpdate)
-			forms.DELETE("/:id", h.handleFormDelete)
-			forms.GET("/:id/submissions", h.handleFormSubmissions)
+		case *FormWebHandler:
+			// Web UI routes with access control
+			h.RegisterRoutes(e, accessManager)
 
+		case *FormAPIHandler:
 			// API routes
-			api := e.Group("/api/v1")
-			formsAPI := api.Group("/forms")
-			formsAPI.GET("/:id/schema", h.handleFormSchema)
-			formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
+			h.RegisterRoutes(e)
 
 		case *DashboardHandler:
 			// Authenticated routes
