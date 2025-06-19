@@ -85,23 +85,23 @@ var Module = fx.Options(
 		),
 
 		// Middleware manager
-		fx.Annotate(
-			func(
-				logger logging.Logger,
-				cfg *config.Config,
-				userService user.Service,
-				sessionManager *session.Manager,
-				accessManager *access.AccessManager,
-			) *Manager {
-				return NewManager(&ManagerConfig{
-					Logger:         logger,
-					Security:       &cfg.Security,
-					UserService:    userService,
-					Config:         cfg,
-					SessionManager: sessionManager,
-					AccessManager:  accessManager,
-				})
-			},
-		),
+		// fx.Annotate(
+		// 	func(
+		// 		logger logging.Logger,
+		// 		cfg *config.Config,
+		// 		userService user.Service,
+		// 		sessionManager *session.Manager,
+		// 		accessManager *access.AccessManager,
+		// 	) *Manager {
+		// 		return NewManager(&ManagerConfig{
+		// 			Logger:         logger,
+		// 			Security:       &cfg.Security,
+		// 			UserService:    userService,
+		// 			Config:         cfg,
+		// 			SessionManager: sessionManager,
+		// 			AccessManager:  accessManager,
+		// 		})
+		// 	},
+		// ),
 	),
 )

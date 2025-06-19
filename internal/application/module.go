@@ -11,6 +11,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/session"
+	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -91,6 +92,7 @@ var Module = fx.Options(
 		New,
 		provideMiddlewareManager,
 	),
+	validation.Module,
 )
 
 // provideMiddlewareManager creates a new middleware manager
