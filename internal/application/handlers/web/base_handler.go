@@ -73,7 +73,7 @@ func (h *BaseHandler) BuildPageData(c echo.Context, title string) shared.PageDat
 
 // HandleError handles common error scenarios
 func (h *BaseHandler) HandleError(c echo.Context, err error, message string) error {
-	h.Logger.Error(message, "error", err)
+	// Use the error handler for sanitized logging instead of logging raw error
 	return h.ErrorHandler.HandleError(err, c, message)
 }
 

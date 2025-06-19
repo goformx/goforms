@@ -84,7 +84,10 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 	// Fetch form data
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil || form == nil {
-		h.Logger.Error("form not found or error loading form", "form_id", formID, "user_id", userID, "error", err)
+		h.Logger.Error("form not found or error loading form",
+			"form_id", h.Logger.SanitizeField("form_id", formID),
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"error", err)
 		return h.HandleNotFound(c, "Resource not found")
 	}
 

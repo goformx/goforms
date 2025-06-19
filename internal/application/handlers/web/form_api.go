@@ -82,14 +82,12 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 	// Parse schema from request body
 	schema, decodeErr := decodeSchema(c)
 	if decodeErr != nil {
-		h.Logger.Error("failed to decode schema", "error", decodeErr)
 		return h.HandleError(c, decodeErr, "Failed to decode schema")
 	}
 
 	// Update form schema
 	form.Schema = schema
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
-		h.Logger.Error("failed to update form schema", "error", updateErr)
 		return h.HandleError(c, updateErr, "Failed to update form schema")
 	}
 
@@ -106,7 +104,6 @@ func (h *FormAPIHandler) HandleFormSubmit(c echo.Context) error {
 	// Parse submission data
 	var submissionData model.JSON
 	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&submissionData); decodeErr != nil {
-		h.Logger.Error("failed to decode submission data", "error", decodeErr)
 		return h.HandleError(c, decodeErr, "Invalid submission data")
 	}
 
@@ -121,7 +118,6 @@ func (h *FormAPIHandler) HandleFormSubmit(c echo.Context) error {
 	// Submit form
 	err = h.FormService.SubmitForm(c.Request().Context(), submission)
 	if err != nil {
-		h.Logger.Error("failed to submit form", "error", err)
 		return h.HandleError(c, err, "Failed to submit form")
 	}
 

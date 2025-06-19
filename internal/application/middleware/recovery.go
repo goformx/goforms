@@ -3,6 +3,7 @@ package middleware
 import (
 	"errors"
 	"net/http"
+	"strings"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -25,6 +26,19 @@ func Recovery(logger logging.Logger) echo.MiddlewareFunc {
 	}
 }
 
+// sanitizePath sanitizes a URL path for safe logging
+func sanitizePath(path string) string {
+	if path == "" {
+		return ""
+	}
+
+	// Remove newline characters to prevent log injection
+	path = strings.ReplaceAll(path, "\n", "")
+	path = strings.ReplaceAll(path, "\r", "")
+
+	return path
+}
+
 // handlePanic converts a panic value to an error
 func handlePanic(r any) error {
 	switch x := r.(type) {
@@ -43,7 +57,7 @@ func handleError(c echo.Context, err error, logger logging.Logger) {
 	logger = logger.With(
 		"request_id", c.Request().Header.Get("X-Request-ID"),
 		"method", c.Request().Method,
-		"path", c.Request().URL.Path,
+		"path", sanitizePath(c.Request().URL.Path),
 		"remote_addr", c.Request().RemoteAddr,
 	)
 

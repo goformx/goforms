@@ -3,7 +3,9 @@ package response
 import (
 	"errors"
 	"fmt"
+	"html"
 	"net/http"
+	"strings"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -22,14 +24,59 @@ func NewErrorHandler(logger logging.Logger) *ErrorHandler {
 	}
 }
 
+// sanitizeError sanitizes an error message for safe logging
+func (h *ErrorHandler) sanitizeError(err error) string {
+	if err == nil {
+		return ""
+	}
+
+	// Get the error message
+	errMsg := err.Error()
+
+	// Remove newline characters to prevent log injection
+	errMsg = strings.ReplaceAll(errMsg, "\n", " ")
+	errMsg = strings.ReplaceAll(errMsg, "\r", " ")
+
+	// HTML encode to prevent HTML injection
+	errMsg = html.EscapeString(errMsg)
+
+	return errMsg
+}
+
+// sanitizePath sanitizes a URL path for safe logging
+func (h *ErrorHandler) sanitizePath(path string) string {
+	if path == "" {
+		return ""
+	}
+
+	// Remove newline characters to prevent log injection
+	path = strings.ReplaceAll(path, "\n", "")
+	path = strings.ReplaceAll(path, "\r", "")
+
+	return path
+}
+
+// sanitizeRequestID sanitizes a request ID for safe logging
+func (h *ErrorHandler) sanitizeRequestID(requestID string) string {
+	if requestID == "" {
+		return ""
+	}
+
+	// Remove newline characters to prevent log injection
+	requestID = strings.ReplaceAll(requestID, "\n", "")
+	requestID = strings.ReplaceAll(requestID, "\r", "")
+
+	return requestID
+}
+
 // HandleError handles errors consistently across the application
 func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) error {
-	requestID := c.Request().Header.Get("X-Trace-Id")
+	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
 	userID, _ := c.Get("user_id").(string)
 	if h.logger != nil {
 		h.logger.Error("request error",
-			"error", err,
-			"path", c.Request().URL.Path,
+			"error", h.sanitizeError(err),
+			"path", h.sanitizePath(c.Request().URL.Path),
 			"method", c.Request().Method,
 			"request_id", requestID,
 			"user_id", userID,
@@ -49,7 +96,7 @@ func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) er
 // HandleDomainError handles domain-specific errors
 func (h *ErrorHandler) HandleDomainError(err *domainerrors.DomainError, c echo.Context) error {
 	statusCode := h.getStatusCode(err.Code)
-	requestID := c.Request().Header.Get("X-Trace-Id")
+	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
 	userID, _ := c.Get("user_id").(string)
 
 	// Check if this is an AJAX request
@@ -95,7 +142,7 @@ func (h *ErrorHandler) handleDomainError(err *domainerrors.DomainError, c echo.C
 // handleUnknownError handles unknown errors
 func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message string) error {
 	statusCode := http.StatusInternalServerError
-	requestID := c.Request().Header.Get("X-Trace-Id")
+	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
 	userID, _ := c.Get("user_id").(string)
 	if h.isAJAXRequest(c) {
 		return c.JSON(statusCode, map[string]any{
