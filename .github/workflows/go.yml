@@ -8,16 +8,17 @@ on:
 
 env:
   RUNNING_IN_ACT: ${{ github.actor == 'nektos/act' }}
+  GO_VERSION_FILE: 'go.mod'
+  NODE_VERSION: '20.19.2'
+  TASK_VERSION: '3.x'
 
 permissions:
   contents: read
 
 jobs:
-  setup:
-    name: Setup Environment
+  test:
+    name: Test & Lint
     runs-on: ubuntu-latest
-    outputs:
-      go-cache: ${{ steps.go.outputs.cache-hit }}
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
@@ -28,10 +29,9 @@ jobs:
           submodules: recursive
 
       - name: Set up Go
-        id: go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: true
           cache: true
           cache-dependency-path: go.sum
@@ -39,19 +39,18 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.19.2"
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
-          version: 3.x
+          version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Go tools
         uses: actions/cache@v4
-        id: go-tools-cache
         with:
           path: |
             ~/go/bin
@@ -61,24 +60,15 @@ jobs:
             ${{ runner.os }}-go-tools-
 
       - name: Install dependencies
-        if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: |
-          echo "Running task --list"
-          task --list
-          echo "Running task install:all"
           task install:all
+          task install:frontend
 
-      - name: Install frontend dependencies
-        run: task install:frontend
-
-      - name: Build Frontend
-        run: task build:frontend
-
-      - name: Generate Mocks
-        run: task generate:mocks:all
-
-      - name: Generate Code
-        run: task generate:all
+      - name: Generate code & build frontend
+        run: |
+          task build:frontend
+          task generate:mocks:all
+          task generate:all
 
       - name: Lint
         uses: golangci/golangci-lint-action@v8
@@ -86,83 +76,18 @@ jobs:
           version: latest
           github-token: ${{ secrets.GITHUB_TOKEN }}
 
-  verify:
-    name: Verify Code
-    needs: setup
-    runs-on: ubuntu-latest
-    steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-          fetch-tags: true
-          lfs: true
-          submodules: recursive
-
-      - name: Set up Go
-        uses: actions/setup-go@v5
-        with:
-          go-version-file: 'go.mod'
-          check-latest: true
-          cache: true
-          cache-dependency-path: go.sum
-
-      - name: Set up Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "20.19.2"
-          cache: 'npm'
-          cache-dependency-path: package-lock.json
-
-      - name: Install Task
-        uses: arduino/setup-task@v2
-        with:
-          version: 3.x
-          repo-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Cache Go tools
-        uses: actions/cache@v4
-        id: go-tools-cache
-        with:
-          path: |
-            ~/go/bin
-            ~/.cache/go-build
-          key: ${{ runner.os }}-go-tools-${{ hashFiles('**/go.mod') }}
-          restore-keys: |
-            ${{ runner.os }}-go-tools-
-
-      - name: Install dependencies
-        if: steps.go-tools-cache.outputs.cache-hit != 'true'
-        run: task install:all
-
-      - name: Install frontend dependencies
-        run: task install:frontend
-
-      - name: Build Frontend
-        run: task build:frontend
-
-      - name: Generate Mocks
-        run: task generate:mocks:all
-
-      - name: Generate Code
-        run: task generate:all
-
-      - name: Lint
-        uses: golangci/golangci-lint-action@v8
-        with:
-          version: latest
-          github-token: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Run Tests
+      - name: Run tests
         run: task test
 
   build:
     name: Build Project
-    needs: verify
+    needs: test
     runs-on: ubuntu-latest
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v4
+      - name: Checkout repository
+        uses: actions/checkout@v4
         with:
           fetch-depth: 0
           fetch-tags: true
@@ -172,7 +97,7 @@ jobs:
       - name: Set up Go
         uses: actions/setup-go@v5
         with:
-          go-version-file: 'go.mod'
+          go-version-file: ${{ env.GO_VERSION_FILE }}
           check-latest: true
           cache: true
           cache-dependency-path: go.sum
@@ -180,19 +105,18 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20.19.2"
+          node-version: ${{ env.NODE_VERSION }}
           cache: 'npm'
           cache-dependency-path: package-lock.json
 
       - name: Install Task
         uses: arduino/setup-task@v2
         with:
-          version: 3.x
+          version: ${{ env.TASK_VERSION }}
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Cache Go tools
         uses: actions/cache@v4
-        id: go-tools-cache
         with:
           path: |
             ~/go/bin
@@ -201,21 +125,14 @@ jobs:
           restore-keys: |
             ${{ runner.os }}-go-tools-
 
-      - name: Install dependencies
-        if: steps.go-tools-cache.outputs.cache-hit != 'true'
-        run: task install:all
-
-      - name: Install frontend dependencies
-        run: task install:frontend
-
-      - name: Build Frontend
-        run: task build:frontend
-
-      - name: Build
+      - name: Install dependencies & build
         run: |
-          mkdir -p bin
+          task install:all
+          task install:frontend
+          task build:frontend
           task generate:templ
+          mkdir -p bin
           task build:all
 
-      - name: List Artifacts
+      - name: List build artifacts
         run: ls -la bin/
