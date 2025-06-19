@@ -114,9 +114,9 @@ type SecurityConfig struct {
 	CorsMaxAge           int      `envconfig:"CORS_MAX_AGE" default:"3600"`
 
 	// Form-specific CORS settings
-	FormCorsAllowedOrigins []string `envconfig:"FORM_CORS_ALLOWED_ORIGINS" default:"*"`
+	FormCorsAllowedOrigins []string `envconfig:"FORM_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
 	FormCorsAllowedMethods []string `envconfig:"FORM_CORS_ALLOWED_METHODS" default:"GET,POST,OPTIONS"`
-	FormCorsAllowedHeaders []string `envconfig:"FORM_CORS_ALLOWED_HEADERS" default:"Content-Type"`
+	FormCorsAllowedHeaders []string `envconfig:"FORM_CORS_ALLOWED_HEADERS" default:"Content-Type,Accept,Origin,X-Requested-With"`
 
 	// CSRF settings
 	CSRFConfig CSRFConfig `envconfig:"CSRF"`
