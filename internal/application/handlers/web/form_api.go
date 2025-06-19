@@ -9,6 +9,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/response"
+	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/labstack/echo/v4"
@@ -20,9 +21,9 @@ type FormAPIHandler struct {
 	AccessManager *access.AccessManager
 }
 
-func NewFormAPIHandler(base *BaseHandler, formService formdomain.Service, accessManager *access.AccessManager) *FormAPIHandler {
+func NewFormAPIHandler(base *BaseHandler, formService formdomain.Service, accessManager *access.AccessManager, formValidator *validation.FormValidator) *FormAPIHandler {
 	return &FormAPIHandler{
-		FormBaseHandler: NewFormBaseHandler(base, formService),
+		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
 		AccessManager:   accessManager,
 	}
 }

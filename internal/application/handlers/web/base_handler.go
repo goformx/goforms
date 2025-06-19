@@ -2,7 +2,6 @@ package web
 
 import (
 	"context"
-	"errors"
 	"net/http"
 
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
@@ -74,11 +73,6 @@ func (h *BaseHandler) HandleError(c echo.Context, err error, message string) err
 	return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, message)
 }
 
-// HandleValidationError handles validation errors with specific messages
-func (h *BaseHandler) HandleValidationError(c echo.Context, message string) error {
-	return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, message)
-}
-
 // HandleNotFound handles not found errors
 func (h *BaseHandler) HandleNotFound(c echo.Context, message string) error {
 	return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, message)
@@ -87,33 +81,6 @@ func (h *BaseHandler) HandleNotFound(c echo.Context, message string) error {
 // HandleForbidden handles forbidden access errors
 func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
 	return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, message)
-}
-
-// ValidateFormID validates that a form ID parameter exists
-func (h *BaseHandler) ValidateFormID(c echo.Context) (string, error) {
-	formID := c.Param("id")
-	if formID == "" {
-		return "", errors.New("Form ID is required")
-	}
-	return formID, nil
-}
-
-// ValidateUserOwnership verifies that a resource belongs to the authenticated user
-func (h *BaseHandler) ValidateUserOwnership(c echo.Context, resourceUserID string) error {
-	userID, ok := mwcontext.GetUserID(c)
-	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
-	}
-
-	if resourceUserID != userID {
-		h.Logger.Error("ownership verification failed",
-			"resource_user_id", resourceUserID,
-			"request_user_id", userID)
-		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden,
-			"You don't have permission to access this resource")
-	}
-
-	return nil
 }
 
 // Start provides default lifecycle initialization

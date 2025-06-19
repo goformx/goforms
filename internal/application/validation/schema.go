@@ -2,6 +2,8 @@ package validation
 
 import (
 	"reflect"
+
+	"github.com/goformx/goforms/internal/domain/user"
 )
 
 // SchemaGenerator provides functionality to generate validation schemas from struct tags
@@ -75,27 +77,10 @@ func (sg *SchemaGenerator) GenerateValidationSchema(s any) map[string]any {
 
 // GenerateLoginSchema generates the validation schema for login forms
 func (sg *SchemaGenerator) GenerateLoginSchema() map[string]any {
-	// Import the user package to get the Login struct
-	// This is a placeholder - the actual struct should be imported
-	type Login struct {
-		Email    string `json:"email" validate:"required,email"`
-		Password string `json:"password" validate:"required,min=8"`
-	}
-
-	return sg.GenerateValidationSchema(Login{})
+	return sg.GenerateValidationSchema(user.Login{})
 }
 
 // GenerateSignupSchema generates the validation schema for signup forms
 func (sg *SchemaGenerator) GenerateSignupSchema() map[string]any {
-	// Import the user package to get the Signup struct
-	// This is a placeholder - the actual struct should be imported
-	type Signup struct {
-		Email           string `json:"email" validate:"required,email"`
-		Password        string `json:"password" validate:"required,min=8"`
-		ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=password"`
-		FirstName       string `json:"first_name" validate:"required"`
-		LastName        string `json:"last_name" validate:"required"`
-	}
-
-	return sg.GenerateValidationSchema(Signup{})
+	return sg.GenerateValidationSchema(user.Signup{})
 }

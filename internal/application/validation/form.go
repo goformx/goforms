@@ -2,6 +2,7 @@ package validation
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/response"
@@ -56,14 +57,36 @@ func (fv *FormValidator) HandleFormError(c echo.Context, err error, message stri
 
 // ValidateFormData validates form data against a schema
 func (fv *FormValidator) ValidateFormData(data map[string]any, schema map[string]any) error {
-	// This is a placeholder for form data validation
-	// In a real implementation, this would validate the data against the schema
+	// Basic validation - check if required fields are present
+	for fieldName, fieldSchema := range schema {
+		if fieldSchemaMap, ok := fieldSchema.(map[string]any); ok {
+			if validate, hasValidate := fieldSchemaMap["validate"].(string); hasValidate {
+				if validate == "required" {
+					if value, exists := data[fieldName]; !exists || value == "" {
+						return fmt.Errorf("field %s is required", fieldName)
+					}
+				}
+			}
+		}
+	}
 	return nil
 }
 
 // ValidateFormSchema validates a form schema structure
 func (fv *FormValidator) ValidateFormSchema(schema map[string]any) error {
-	// This is a placeholder for schema validation
-	// In a real implementation, this would validate the schema structure
+	// Basic schema validation - check if schema has required structure
+	if schema == nil {
+		return fmt.Errorf("schema cannot be nil")
+	}
+	
+	// Check if schema has basic form structure
+	if _, hasType := schema["type"]; !hasType {
+		return fmt.Errorf("schema must have a type field")
+	}
+	
+	if _, hasComponents := schema["components"]; !hasComponents {
+		return fmt.Errorf("schema must have a components field")
+	}
+	
 	return nil
 }

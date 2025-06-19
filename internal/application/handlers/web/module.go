@@ -86,16 +86,16 @@ var Module = fx.Options(
 
 		// Form Web handler - authenticated access
 		fx.Annotate(
-			func(base *BaseHandler, formService form.Service) (Handler, error) {
-				return NewFormWebHandler(base, formService), nil
+			func(base *BaseHandler, formService form.Service, formValidator *validation.FormValidator) (Handler, error) {
+				return NewFormWebHandler(base, formService, formValidator), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
 
 		// Form API handler - authenticated access
 		fx.Annotate(
-			func(base *BaseHandler, formService form.Service, accessManager *access.AccessManager) (Handler, error) {
-				return NewFormAPIHandler(base, formService, accessManager), nil
+			func(base *BaseHandler, formService form.Service, accessManager *access.AccessManager, formValidator *validation.FormValidator) (Handler, error) {
+				return NewFormAPIHandler(base, formService, accessManager, formValidator), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),

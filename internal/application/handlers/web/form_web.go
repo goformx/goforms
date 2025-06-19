@@ -7,6 +7,7 @@ import (
 	"net/http"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -19,9 +20,9 @@ type FormWebHandler struct {
 	*FormBaseHandler
 }
 
-func NewFormWebHandler(base *BaseHandler, formService formdomain.Service) *FormWebHandler {
+func NewFormWebHandler(base *BaseHandler, formService formdomain.Service, formValidator *validation.FormValidator) *FormWebHandler {
 	return &FormWebHandler{
-		FormBaseHandler: NewFormBaseHandler(base, formService),
+		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
 	}
 }
 

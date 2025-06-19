@@ -1,6 +1,9 @@
 package web
 
 import (
+	"net/http"
+
+	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/labstack/echo/v4"
@@ -9,22 +12,24 @@ import (
 // FormBaseHandler extends BaseHandler with form-specific functionality
 type FormBaseHandler struct {
 	*BaseHandler
-	FormService formdomain.Service
+	FormService   formdomain.Service
+	FormValidator *validation.FormValidator
 }
 
 // NewFormBaseHandler creates a new form base handler
-func NewFormBaseHandler(base *BaseHandler, formService formdomain.Service) *FormBaseHandler {
+func NewFormBaseHandler(base *BaseHandler, formService formdomain.Service, formValidator *validation.FormValidator) *FormBaseHandler {
 	return &FormBaseHandler{
-		BaseHandler: base,
-		FormService: formService,
+		BaseHandler:   base,
+		FormService:   formService,
+		FormValidator: formValidator,
 	}
 }
 
 // GetFormByID retrieves a form by ID with error handling
 func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
-	formID, err := h.ValidateFormID(c)
+	formID, err := h.FormValidator.ValidateFormID(c)
 	if err != nil {
-		return nil, h.HandleValidationError(c, err.Error())
+		return nil, h.FormValidator.HandleFormValidationError(c, err.Error())
 	}
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
@@ -38,7 +43,11 @@ func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 
 // RequireFormOwnership verifies the user owns the form
 func (h *FormBaseHandler) RequireFormOwnership(c echo.Context, form *model.Form) error {
-	return h.ValidateUserOwnership(c, form.UserID)
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		return c.Redirect(http.StatusSeeOther, "/login")
+	}
+	return h.FormValidator.ValidateUserOwnership(c, form.UserID, userID)
 }
 
 // GetFormWithOwnership gets a form and verifies ownership in one call
@@ -57,11 +66,10 @@ func (h *FormBaseHandler) GetFormWithOwnership(c echo.Context) (*model.Form, err
 
 // HandleFormError handles form-specific errors
 func (h *FormBaseHandler) HandleFormError(c echo.Context, err error, message string) error {
-	h.Logger.Error("form operation failed", "error", err, "message", message)
-	return h.HandleError(c, err, message)
+	return h.FormValidator.HandleFormError(c, err, message)
 }
 
 // HandleFormValidationError handles form validation errors
 func (h *FormBaseHandler) HandleFormValidationError(c echo.Context, message string) error {
-	return h.HandleValidationError(c, message)
+	return h.FormValidator.HandleFormValidationError(c, message)
 }
