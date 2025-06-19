@@ -8,7 +8,6 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	middlewareconfig "github.com/goformx/goforms/internal/application/middleware/config"
 	"github.com/goformx/goforms/internal/application/middleware/context"
-	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -23,9 +22,6 @@ var Module = fx.Options(
 
 		// Context middleware
 		context.NewMiddleware,
-
-		// Request utilities
-		request.NewUtils,
 
 		// Auth middleware
 		fx.Annotate(
