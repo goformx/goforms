@@ -17,7 +17,9 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
+	"github.com/goformx/goforms/internal/infrastructure/version"
 	infraweb "github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
@@ -97,6 +99,32 @@ var Module = fx.Options(
 		echo.New,
 		server.New,
 		database.New,
+		// Sanitization service
+		fx.Annotate(
+			sanitization.NewService,
+			fx.As(new(sanitization.ServiceInterface)),
+		),
+		// Logging factory with sanitization service
+		fx.Annotate(
+			func(cfg *config.Config, sanitizer sanitization.ServiceInterface) *logging.Factory {
+				return logging.NewFactory(logging.FactoryConfig{
+					AppName:     cfg.App.Name,
+					Version:     version.Version,
+					Environment: cfg.App.Env,
+					Fields: map[string]any{
+						"app":     cfg.App.Name,
+						"version": version.Version,
+						"env":     cfg.App.Env,
+					},
+				}, sanitizer)
+			},
+		),
+		// Logger instance
+		fx.Annotate(
+			func(factory *logging.Factory) (logging.Logger, error) {
+				return factory.CreateLogger()
+			},
+		),
 		// Event system
 		NewEventPublisher,
 		event.NewMemoryEventBus,

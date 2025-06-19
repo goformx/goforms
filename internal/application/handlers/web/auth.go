@@ -10,10 +10,10 @@ import (
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/validation"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
-	"github.com/mrz1836/go-sanitize"
 )
 
 // AuthHandler handles authentication-related requests
@@ -25,6 +25,7 @@ type AuthHandler struct {
 	RequestParser   *AuthRequestParser
 	ResponseBuilder *AuthResponseBuilder
 	AuthService     *AuthService
+	Sanitizer       sanitization.ServiceInterface
 }
 
 const (
@@ -45,9 +46,11 @@ func NewAuthHandler(
 	requestParser *AuthRequestParser,
 	responseBuilder *AuthResponseBuilder,
 	authService *AuthService,
+	sanitizer sanitization.ServiceInterface,
 ) (*AuthHandler, error) {
 	if base == nil || authMiddleware == nil || requestUtils == nil ||
-		schemaGenerator == nil || requestParser == nil || responseBuilder == nil || authService == nil {
+		schemaGenerator == nil || requestParser == nil || responseBuilder == nil ||
+		authService == nil || sanitizer == nil {
 		return nil, errors.New("missing required dependencies for AuthHandler")
 	}
 	return &AuthHandler{
@@ -58,6 +61,7 @@ func NewAuthHandler(
 		RequestParser:   requestParser,
 		ResponseBuilder: responseBuilder,
 		AuthService:     authService,
+		Sanitizer:       sanitizer,
 	}, nil
 }
 
@@ -74,7 +78,6 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 
 // TestEndpoint is a simple test endpoint to verify JSON responses work
 func (h *AuthHandler) TestEndpoint(c echo.Context) error {
-	h.Logger.Info("TestEndpoint called")
 	return c.JSON(constants.StatusOK, map[string]string{
 		"message": "Test endpoint working",
 		"status":  "success",
@@ -86,13 +89,6 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	data := shared.BuildPageData(h.Config, c, "Login")
 	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
-	}
-	// Debug log for environment and asset path
-	if h.Config != nil && h.Logger != nil {
-		h.Logger.Debug("Rendering login page",
-			"env", h.Config.App.Env,
-			"assetPath", data.AssetPath("src/js/login.ts"),
-		)
 	}
 	return h.Renderer.Render(c, pages.Login(data))
 }
@@ -120,7 +116,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
 	}
 
-	email = sanitize.Email(email, false)
+	email = h.Sanitizer.Email(email)
 
 	_, sessionID, err := h.AuthService.Login(c.Request().Context(), email, password, c.Request().UserAgent())
 	if err != nil {
@@ -163,7 +159,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
 	}
 
-	signup.Email = sanitize.Email(signup.Email, false)
+	signup.Email = h.Sanitizer.Email(signup.Email)
 
 	_, sessionID, err := h.AuthService.Signup(c.Request().Context(), signup, c.Request().UserAgent())
 	if err != nil {

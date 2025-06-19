@@ -3,24 +3,25 @@ package response
 import (
 	"errors"
 	"fmt"
-	"html"
 	"net/http"
-	"strings"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/labstack/echo/v4"
 )
 
 // ErrorHandler provides unified error handling across the application
 type ErrorHandler struct {
-	logger logging.Logger
+	logger    logging.Logger
+	sanitizer sanitization.ServiceInterface
 }
 
 // NewErrorHandler creates a new error handler instance
-func NewErrorHandler(logger logging.Logger) *ErrorHandler {
+func NewErrorHandler(logger logging.Logger, sanitizer sanitization.ServiceInterface) *ErrorHandler {
 	return &ErrorHandler{
-		logger: logger,
+		logger:    logger,
+		sanitizer: sanitizer,
 	}
 }
 
@@ -30,17 +31,9 @@ func (h *ErrorHandler) sanitizeError(err error) string {
 		return ""
 	}
 
-	// Get the error message
+	// Get the error message and sanitize it
 	errMsg := err.Error()
-
-	// Remove newline characters to prevent log injection
-	errMsg = strings.ReplaceAll(errMsg, "\n", " ")
-	errMsg = strings.ReplaceAll(errMsg, "\r", " ")
-
-	// HTML encode to prevent HTML injection
-	errMsg = html.EscapeString(errMsg)
-
-	return errMsg
+	return h.sanitizer.SingleLine(errMsg)
 }
 
 // sanitizePath sanitizes a URL path for safe logging
@@ -49,11 +42,8 @@ func (h *ErrorHandler) sanitizePath(path string) string {
 		return ""
 	}
 
-	// Remove newline characters to prevent log injection
-	path = strings.ReplaceAll(path, "\n", "")
-	path = strings.ReplaceAll(path, "\r", "")
-
-	return path
+	// Use the sanitization service to clean the path
+	return h.sanitizer.SingleLine(path)
 }
 
 // sanitizeRequestID sanitizes a request ID for safe logging
@@ -62,11 +52,8 @@ func (h *ErrorHandler) sanitizeRequestID(requestID string) string {
 		return ""
 	}
 
-	// Remove newline characters to prevent log injection
-	requestID = strings.ReplaceAll(requestID, "\n", "")
-	requestID = strings.ReplaceAll(requestID, "\r", "")
-
-	return requestID
+	// Use the sanitization service to clean the request ID
+	return h.sanitizer.SingleLine(requestID)
 }
 
 // HandleError handles errors consistently across the application

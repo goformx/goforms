@@ -3,10 +3,10 @@ package logging
 
 import (
 	"fmt"
-	"html"
 	"os"
 	"strings"
 
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 )
@@ -48,12 +48,13 @@ type Factory struct {
 	environment   string
 	outputPaths   []string
 	errorPaths    []string
+	sanitizer     sanitization.ServiceInterface
 	// Add testCore for test injection
 	testCore zapcore.Core
 }
 
 // NewFactory creates a new logger factory with the given configuration
-func NewFactory(cfg FactoryConfig) *Factory {
+func NewFactory(cfg FactoryConfig, sanitizer sanitization.ServiceInterface) *Factory {
 	if cfg.Fields == nil {
 		cfg.Fields = make(map[string]any)
 	}
@@ -73,6 +74,7 @@ func NewFactory(cfg FactoryConfig) *Factory {
 		environment:   cfg.Environment,
 		outputPaths:   cfg.OutputPaths,
 		errorPaths:    cfg.ErrorOutputPaths,
+		sanitizer:     sanitizer,
 	}
 }
 
@@ -148,83 +150,73 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	zapLogger = zapLogger.With(fields...)
 
 	// Create our logger implementation
-	return newLogger(zapLogger), nil
+	return newLogger(zapLogger, f.sanitizer), nil
 }
 
 // logger implements the Logger interface using zap
 type logger struct {
 	zapLogger *zap.Logger
+	sanitizer sanitization.ServiceInterface
 }
 
 // newLogger creates a new logger instance
-func newLogger(zapLogger *zap.Logger) Logger {
-	return &logger{zapLogger: zapLogger}
+func newLogger(zapLogger *zap.Logger, sanitizer sanitization.ServiceInterface) Logger {
+	return &logger{
+		zapLogger: zapLogger,
+		sanitizer: sanitizer,
+	}
 }
 
 // sanitizeMessage sanitizes a log message for safe logging
-func sanitizeMessage(msg string) string {
+func sanitizeMessage(msg string, sanitizer sanitization.ServiceInterface) string {
 	if msg == "" {
 		return ""
 	}
 
-	// Remove newline characters to prevent log injection
-	msg = strings.ReplaceAll(msg, "\n", " ")
-	msg = strings.ReplaceAll(msg, "\r", " ")
-
-	// HTML encode to prevent HTML injection
-	msg = html.EscapeString(msg)
-
-	return msg
+	// Use the sanitization service to clean the message
+	return sanitizer.SingleLine(msg)
 }
 
 // sanitizeError sanitizes an error for safe logging
-func sanitizeError(err error) string {
+func sanitizeError(err error, sanitizer sanitization.ServiceInterface) string {
 	if err == nil {
 		return ""
 	}
 
-	// Get the error message
+	// Get the error message and sanitize it
 	errMsg := err.Error()
-
-	// Remove newline characters to prevent log injection
-	errMsg = strings.ReplaceAll(errMsg, "\n", " ")
-	errMsg = strings.ReplaceAll(errMsg, "\r", " ")
-
-	// HTML encode to prevent HTML injection
-	errMsg = html.EscapeString(errMsg)
-
-	return errMsg
+	return sanitizer.SingleLine(errMsg)
 }
 
 // Debug logs a debug message
 func (l *logger) Debug(msg string, fields ...any) {
-	l.zapLogger.Debug(sanitizeMessage(msg), convertToZapFields(fields)...)
+	l.zapLogger.Debug(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
 }
 
 // Info logs an info message
 func (l *logger) Info(msg string, fields ...any) {
-	l.zapLogger.Info(sanitizeMessage(msg), convertToZapFields(fields)...)
+	l.zapLogger.Info(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
 }
 
 // Warn logs a warning message
 func (l *logger) Warn(msg string, fields ...any) {
-	l.zapLogger.Warn(sanitizeMessage(msg), convertToZapFields(fields)...)
+	l.zapLogger.Warn(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
 }
 
 // Error logs an error message
 func (l *logger) Error(msg string, fields ...any) {
-	l.zapLogger.Error(sanitizeMessage(msg), convertToZapFields(fields)...)
+	l.zapLogger.Error(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
 }
 
 // Fatal logs a fatal message
 func (l *logger) Fatal(msg string, fields ...any) {
-	l.zapLogger.Fatal(sanitizeMessage(msg), convertToZapFields(fields)...)
+	l.zapLogger.Fatal(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
 }
 
 // With returns a new logger with the given fields
 func (l *logger) With(fields ...any) Logger {
-	zapFields := convertToZapFields(fields)
-	return newLogger(l.zapLogger.With(zapFields...))
+	zapFields := convertToZapFields(fields, l.sanitizer)
+	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer)
 }
 
 // WithComponent returns a new logger with the given component
@@ -249,7 +241,7 @@ func (l *logger) WithUserID(userID string) Logger {
 
 // WithError returns a new logger with the given error
 func (l *logger) WithError(err error) Logger {
-	return l.With("error", sanitizeError(err))
+	return l.With("error", sanitizeError(err, l.sanitizer))
 }
 
 // WithFields adds multiple fields to the logger
@@ -258,7 +250,7 @@ func (l *logger) WithFields(fields map[string]any) Logger {
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, l.SanitizeField(k, v)))
 	}
-	return newLogger(l.zapLogger.With(zapFields...))
+	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer)
 }
 
 var sensitiveKeys = map[string]struct{}{
@@ -364,7 +356,7 @@ func (l *logger) SanitizeField(key string, value any) string {
 
 	// Handle error values specially
 	if err, ok := value.(error); ok {
-		return sanitizeError(err)
+		return sanitizeError(err, l.sanitizer)
 	}
 
 	// Handle path fields
@@ -373,22 +365,22 @@ func (l *logger) SanitizeField(key string, value any) string {
 			if !validatePath(path) {
 				return "[invalid path]"
 			}
-			return sanitizeString(truncateString(path, MaxPathLength))
+			return sanitizeString(truncateString(path, MaxPathLength), l.sanitizer)
 		}
 		return "[invalid path type]"
 	}
 
 	// Handle string values
 	if str, ok := value.(string); ok {
-		return sanitizeString(truncateString(str, MaxStringLength))
+		return sanitizeString(truncateString(str, MaxStringLength), l.sanitizer)
 	}
 
 	// For other types, convert to string and sanitize
-	return sanitizeString(fmt.Sprintf("%v", value))
+	return sanitizeString(fmt.Sprintf("%v", value), l.sanitizer)
 }
 
 // convertToZapFields converts a slice of fields to zap fields
-func convertToZapFields(fields []any) []zap.Field {
+func convertToZapFields(fields []any, sanitizer sanitization.ServiceInterface) []zap.Field {
 	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
 	for i := 0; i < len(fields); i += FieldPairSize {
 		if i+1 >= len(fields) {
@@ -402,7 +394,7 @@ func convertToZapFields(fields []any) []zap.Field {
 
 		value := fields[i+1]
 		// Sanitize the value based on its type
-		sanitizedValue := sanitizeValue(key, value)
+		sanitizedValue := sanitizeValue(key, value, sanitizer)
 
 		// Always append as string since sanitizeValue returns string
 		zapFields = append(zapFields, zap.String(key, sanitizedValue))
@@ -411,7 +403,7 @@ func convertToZapFields(fields []any) []zap.Field {
 }
 
 // sanitizeValue applies appropriate sanitization based on the field type
-func sanitizeValue(key string, value any) string {
+func sanitizeValue(key string, value any, sanitizer sanitization.ServiceInterface) string {
 	// Check for sensitive keys
 	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
 		return "****"
@@ -419,7 +411,7 @@ func sanitizeValue(key string, value any) string {
 
 	// Handle error values specially
 	if err, ok := value.(error); ok {
-		return sanitizeError(err)
+		return sanitizeError(err, sanitizer)
 	}
 
 	// Handle path fields
@@ -428,34 +420,28 @@ func sanitizeValue(key string, value any) string {
 			if !validatePath(path) {
 				return "[invalid path]"
 			}
-			return sanitizeString(truncateString(path, MaxPathLength))
+			return sanitizeString(truncateString(path, MaxPathLength), sanitizer)
 		}
 		return "[invalid path type]"
 	}
 
 	// Handle string values
 	if str, ok := value.(string); ok {
-		return sanitizeString(truncateString(str, MaxStringLength))
+		return sanitizeString(truncateString(str, MaxStringLength), sanitizer)
 	}
 
 	// For other types, convert to string and sanitize
-	return sanitizeString(fmt.Sprintf("%v", value))
+	return sanitizeString(fmt.Sprintf("%v", value), sanitizer)
 }
 
 // sanitizeString sanitizes a string for safe logging
-func sanitizeString(s string) string {
+func sanitizeString(s string, sanitizer sanitization.ServiceInterface) string {
 	if s == "" {
 		return ""
 	}
 
-	// Remove newline characters to prevent log injection
-	s = strings.ReplaceAll(s, "\n", " ")
-	s = strings.ReplaceAll(s, "\r", " ")
-
-	// HTML encode to prevent HTML injection
-	s = html.EscapeString(s)
-
-	return s
+	// Use the sanitization service to clean the string
+	return sanitizer.SingleLine(s)
 }
 
 // validatePath checks if a string is a valid URL path

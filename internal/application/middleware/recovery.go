@@ -3,22 +3,22 @@ package middleware
 import (
 	"errors"
 	"net/http"
-	"strings"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/labstack/echo/v4"
 )
 
 // Recovery returns a middleware that recovers from panics
-func Recovery(logger logging.Logger) echo.MiddlewareFunc {
+func Recovery(logger logging.Logger, sanitizer sanitization.ServiceInterface) echo.MiddlewareFunc {
 	logger = logger.WithComponent("recovery")
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			defer func() {
 				if r := recover(); r != nil {
 					err := handlePanic(r)
-					handleError(c, err, logger)
+					handleError(c, err, logger, sanitizer)
 				}
 			}()
 			return next(c)
@@ -27,16 +27,13 @@ func Recovery(logger logging.Logger) echo.MiddlewareFunc {
 }
 
 // sanitizePath sanitizes a URL path for safe logging
-func sanitizePath(path string) string {
+func sanitizePath(path string, sanitizer sanitization.ServiceInterface) string {
 	if path == "" {
 		return ""
 	}
 
-	// Remove newline characters to prevent log injection
-	path = strings.ReplaceAll(path, "\n", "")
-	path = strings.ReplaceAll(path, "\r", "")
-
-	return path
+	// Use the sanitization service to clean the path
+	return sanitizer.SingleLine(path)
 }
 
 // handlePanic converts a panic value to an error
@@ -52,12 +49,12 @@ func handlePanic(r any) error {
 }
 
 // handleError sends an appropriate error response
-func handleError(c echo.Context, err error, logger logging.Logger) {
+func handleError(c echo.Context, err error, logger logging.Logger, sanitizer sanitization.ServiceInterface) {
 	// Create a logger with request context
 	logger = logger.With(
 		"request_id", c.Request().Header.Get("X-Request-ID"),
 		"method", c.Request().Method,
-		"path", sanitizePath(c.Request().URL.Path),
+		"path", sanitizePath(c.Request().URL.Path, sanitizer),
 		"remote_addr", c.Request().RemoteAddr,
 	)
 

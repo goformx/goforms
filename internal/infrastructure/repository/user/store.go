@@ -22,7 +22,6 @@ type Store struct {
 
 // NewStore creates a new user store
 func NewStore(db *database.GormDB, logger logging.Logger) user.Repository {
-	logger.Debug("user store initialized", "service", "user")
 	return &Store{
 		db:     db,
 		logger: logger,

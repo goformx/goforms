@@ -4,7 +4,7 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
-	"github.com/mrz1836/go-sanitize"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
 // FormSubmission represents a form submission
@@ -60,19 +60,19 @@ func (fs *FormSubmission) Validate() error {
 	return nil
 }
 
-// Sanitize sanitizes the form submission data
-func (fs *FormSubmission) Sanitize() {
+// Sanitize sanitizes the form submission data using the provided sanitizer
+func (fs *FormSubmission) Sanitize(sanitizer sanitization.ServiceInterface) {
 	if fs.Data != nil {
 		for key, value := range fs.Data {
 			if strValue, ok := value.(string); ok {
-				fs.Data[key] = sanitize.XSS(strValue)
+				fs.Data[key] = sanitizer.String(strValue)
 			}
 		}
 	}
 	if fs.Metadata != nil {
 		for key, value := range fs.Metadata {
 			if strValue, ok := value.(string); ok {
-				fs.Metadata[key] = sanitize.XSS(strValue)
+				fs.Metadata[key] = sanitizer.String(strValue)
 			}
 		}
 	}

@@ -15,23 +15,17 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
-	"github.com/goformx/goforms/internal/application/response"
 )
 
 // Module provides web handler dependencies
 var Module = fx.Options(
 	// Core dependencies
 	fx.Provide(
-		// ErrorHandler for unified error handling
-		fx.Annotate(
-			func(logger logging.Logger) response.ErrorHandlerInterface {
-				return response.NewErrorHandler(logger)
-			},
-		),
 		// Base handler for common functionality
 		fx.Annotate(
 			NewBaseHandler,
@@ -78,10 +72,11 @@ var Module = fx.Options(
 				requestParser *AuthRequestParser,
 				responseBuilder *AuthResponseBuilder,
 				authService *AuthService,
+				sanitizer sanitization.ServiceInterface,
 			) (Handler, error) {
 				return NewAuthHandler(
 					base, authMiddleware, requestUtils, schemaGenerator,
-					requestParser, responseBuilder, authService,
+					requestParser, responseBuilder, authService, sanitizer,
 				)
 			},
 			fx.ResultTags(`group:"handlers"`),
@@ -97,8 +92,13 @@ var Module = fx.Options(
 
 		// Form Web handler - authenticated access
 		fx.Annotate(
-			func(base *BaseHandler, formService form.Service, formValidator *validation.FormValidator) (Handler, error) {
-				return NewFormWebHandler(base, formService, formValidator), nil
+			func(
+				base *BaseHandler,
+				formService form.Service,
+				formValidator *validation.FormValidator,
+				sanitizer sanitization.ServiceInterface,
+			) (Handler, error) {
+				return NewFormWebHandler(base, formService, formValidator, sanitizer), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),

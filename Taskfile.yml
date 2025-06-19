@@ -114,6 +114,7 @@ tasks:
     - task: generate:mocks:form
     - task: generate:mocks:events
     - task: generate:mocks:user
+    - task: generate:mocks:sanitization
 
   generate:mocks:logging:
     desc: Generate logging mocks
@@ -145,6 +146,12 @@ tasks:
     cmds:
     - mkdir -p test/mocks/user
     - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
+
+  generate:mocks:sanitization:
+    desc: Generate sanitization service mock
+    cmds:
+    - mkdir -p test/mocks/sanitization
+    - mockgen -typed -source=internal/infrastructure/sanitization/interface.go -destination=test/mocks/sanitization/mock_service.go -package=sanitization -mock_names=ServiceInterface=MockService
 
   build:all:
     desc: Build the entire application

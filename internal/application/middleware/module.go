@@ -35,9 +35,7 @@ var Module = fx.Options(
 		// Access manager with centralized configuration
 		fx.Annotate(
 			func(logger logging.Logger, middlewareConfig *middlewareconfig.MiddlewareConfig) *access.AccessManager {
-				manager := access.NewAccessManager(middlewareConfig.Access, middlewareConfig.GetAccessRules())
-				logger.Debug("access manager initialized", "service", "access")
-				return manager
+				return access.NewAccessManager(middlewareConfig.Access, middlewareConfig.GetAccessRules())
 			},
 		),
 
@@ -53,25 +51,5 @@ var Module = fx.Options(
 				return session.NewManager(logger, middlewareConfig.Session, lc, accessManager)
 			},
 		),
-
-		// Middleware manager
-		// fx.Annotate(
-		// 	func(
-		// 		logger logging.Logger,
-		// 		cfg *config.Config,
-		// 		userService user.Service,
-		// 		sessionManager *session.Manager,
-		// 		accessManager *access.AccessManager,
-		// 	) *Manager {
-		// 		return NewManager(&ManagerConfig{
-		// 			Logger:         logger,
-		// 			Security:       &cfg.Security,
-		// 			UserService:    userService,
-		// 			Config:         cfg,
-		// 			SessionManager: sessionManager,
-		// 			AccessManager:  accessManager,
-		// 		})
-		// 	},
-		// ),
 	),
 )

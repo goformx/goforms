@@ -10,23 +10,26 @@ import (
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/labstack/echo/v4"
-	"github.com/mrz1836/go-sanitize"
 )
 
 // FormWebHandler handles web UI form operations
 type FormWebHandler struct {
 	*FormBaseHandler
+	Sanitizer sanitization.ServiceInterface
 }
 
 func NewFormWebHandler(
 	base *BaseHandler,
 	formService formdomain.Service,
 	formValidator *validation.FormValidator,
+	sanitizer sanitization.ServiceInterface,
 ) *FormWebHandler {
 	return &FormWebHandler{
 		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
+		Sanitizer:       sanitizer,
 	}
 }
 
@@ -76,8 +79,8 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	}
 
 	// Get and sanitize form data
-	title := sanitize.XSS(c.FormValue("title"))
-	description := sanitize.XSS(c.FormValue("description"))
+	title := h.Sanitizer.String(c.FormValue("title"))
+	description := h.Sanitizer.String(c.FormValue("description"))
 
 	// Create a valid initial schema
 	schema := model.JSON{
@@ -135,8 +138,8 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	}
 
 	// Update form fields
-	form.Title = sanitize.XSS(c.FormValue("title"))
-	form.Description = sanitize.XSS(c.FormValue("description"))
+	form.Title = h.Sanitizer.String(c.FormValue("title"))
+	form.Description = h.Sanitizer.String(c.FormValue("description"))
 
 	err = h.FormService.UpdateForm(c.Request().Context(), form)
 	if err != nil {

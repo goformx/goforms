@@ -115,7 +115,6 @@ func New(
 		logger.Error("failed to initialize asset manager", "error", err)
 	} else {
 		web.SetLogger(logger)
-		logger.Debug("asset manager initialized", "service", "assets")
 	}
 
 	// Log server configuration

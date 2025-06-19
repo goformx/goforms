@@ -54,30 +54,25 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 	// Always try to get session cookie and validate it
 	cookie, err := c.Cookie(sm.cookieName)
 	if err != nil {
-		sm.logger.Debug("SessionMiddleware: No session cookie found", "path", path)
 		// For public paths, continue without authentication
 		if sm.isPublicPath(path) {
 			return next(c)
 		}
 		return sm.handleAuthError(c, "no session found")
 	}
-	sm.logger.Debug("SessionMiddleware: Found session cookie", "cookie", cookie.Value, "path", path)
 
 	// Get session from manager
 	session, exists := sm.GetSession(cookie.Value)
 	if !exists {
-		sm.logger.Debug("SessionMiddleware: Session not found", "cookie", cookie.Value, "path", path)
 		// For public paths, continue without authentication
 		if sm.isPublicPath(path) {
 			return next(c)
 		}
 		return sm.handleAuthError(c, "invalid session")
 	}
-	sm.logger.Debug("SessionMiddleware: Session found", "user_id", session.UserID, "path", path)
 
 	// Check if session is expired
 	if time.Now().After(session.ExpiresAt) {
-		sm.logger.Debug("SessionMiddleware: Session expired", "user_id", session.UserID, "path", path)
 		sm.DeleteSession(cookie.Value)
 		// For public paths, continue without authentication
 		if sm.isPublicPath(path) {
@@ -87,10 +82,6 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 	}
 
 	// Store session in context (always do this if we have a valid session)
-	sm.logger.Debug("SessionMiddleware: Setting session in context",
-		"user_id", session.UserID,
-		"path", path,
-	)
 	c.Set(string(context.SessionKey), session)
 	context.SetUserID(c, session.UserID)
 	context.SetEmail(c, session.Email)
