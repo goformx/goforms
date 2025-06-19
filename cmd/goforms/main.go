@@ -16,6 +16,7 @@ import (
 	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -40,19 +41,22 @@ type appParams struct {
 	Logger            logging.Logger         // Application logger
 	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
 	MiddlewareManager *appmiddleware.Manager // Middleware management
+	AccessManager     *access.AccessManager  // Access control management
 	Config            *config.Config         // Application configuration
 }
 
 // setupHandlers registers all web handlers with the Echo server.
 // It validates that no nil handlers are present and registers each handler
 // with the Echo instance.
-func setupHandlers(handlers []web.Handler, e *echo.Echo) error {
+func setupHandlers(handlers []web.Handler, e *echo.Echo, accessManager *access.AccessManager, logger logging.Logger) error {
 	for i, handler := range handlers {
 		if handler == nil {
 			return fmt.Errorf("nil handler encountered at index %d", i)
 		}
-		handler.Register(e)
 	}
+
+	// Use the RegisterHandlers function to properly register routes with access control
+	web.RegisterHandlers(e, handlers, accessManager, logger)
 	return nil
 }
 
@@ -60,7 +64,7 @@ func setupHandlers(handlers []web.Handler, e *echo.Echo) error {
 // and registering all web handlers.
 func setupApplication(params appParams) error {
 	params.MiddlewareManager.Setup(params.Echo)
-	return setupHandlers(params.Handlers, params.Echo)
+	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
 }
 
 // setupLifecycle configures the application lifecycle hooks for startup and shutdown.

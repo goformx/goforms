@@ -86,37 +86,40 @@ type DatabaseConfig struct {
 	} `envconfig:"GOFORMS_DB_LOGGING"`
 }
 
+// CSRFConfig holds CSRF-related configuration
+type CSRFConfig struct {
+	Enabled bool   `envconfig:"ENABLED" default:"true"`
+	Secret  string `envconfig:"SECRET" validate:"required"`
+}
+
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	Debug               bool          `envconfig:"GOFORMS_DEBUG" default:"false"`
-	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"100"`
-	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1m"`
-	SecureCookie        bool          `envconfig:"GOFORMS_SECURE_COOKIE" default:"true"`
+	Debug               bool          `envconfig:"DEBUG" default:"false"`
+	FormRateLimit       float64       `envconfig:"FORM_RATE_LIMIT" default:"100"`
+	FormRateLimitWindow time.Duration `envconfig:"FORM_RATE_LIMIT_WINDOW" default:"1m"`
+	SecureCookie        bool          `envconfig:"SECURE_COOKIE" default:"true"`
 
 	// Rate Limiting
-	RateLimitEnabled    bool          `envconfig:"GOFORMS_RATE_LIMIT_ENABLED" default:"true"`
-	RateLimit           int           `envconfig:"GOFORMS_RATE_LIMIT" default:"100"`
-	RateBurst           int           `envconfig:"GOFORMS_RATE_BURST" default:"20"`
-	RateLimitTimeWindow time.Duration `envconfig:"GOFORMS_RATE_LIMIT_TIME_WINDOW" default:"1m"`
-	RateLimitPerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
+	RateLimitEnabled    bool          `envconfig:"RATE_LIMIT_ENABLED" default:"true"`
+	RateLimit           int           `envconfig:"RATE_LIMIT" default:"100"`
+	RateBurst           int           `envconfig:"RATE_BURST" default:"20"`
+	RateLimitTimeWindow time.Duration `envconfig:"RATE_LIMIT_TIME_WINDOW" default:"1m"`
+	RateLimitPerIP      bool          `envconfig:"RATE_LIMIT_PER_IP" default:"true"`
 
 	// CORS settings
-	CorsAllowedOrigins   []string `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
-	CorsAllowedMethods   []string `envconfig:"GOFORMS_CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	CorsAllowedHeaders   []string `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS" default:"Content-Type,Authorization"`
-	CorsAllowCredentials bool     `envconfig:"GOFORMS_CORS_ALLOW_CREDENTIALS" default:"true"`
-	CorsMaxAge           int      `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
+	CorsAllowedOrigins   []string `envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
+	CorsAllowedMethods   []string `envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
+	CorsAllowedHeaders   []string `envconfig:"CORS_ALLOWED_HEADERS" default:"Content-Type,Authorization"`
+	CorsAllowCredentials bool     `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
+	CorsMaxAge           int      `envconfig:"CORS_MAX_AGE" default:"3600"`
 
 	// Form-specific CORS settings
-	FormCorsAllowedOrigins []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_ORIGINS" default:"*"`
-	FormCorsAllowedMethods []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_METHODS" default:"GET,POST,OPTIONS"`
-	FormCorsAllowedHeaders []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_HEADERS" default:"Content-Type"`
+	FormCorsAllowedOrigins []string `envconfig:"FORM_CORS_ALLOWED_ORIGINS" default:"*"`
+	FormCorsAllowedMethods []string `envconfig:"FORM_CORS_ALLOWED_METHODS" default:"GET,POST,OPTIONS"`
+	FormCorsAllowedHeaders []string `envconfig:"FORM_CORS_ALLOWED_HEADERS" default:"Content-Type"`
 
 	// CSRF settings
-	CSRFConfig struct {
-		Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
-		Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
-	} `envconfig:"GOFORMS_CSRF"`
+	CSRFConfig CSRFConfig `envconfig:"CSRF"`
 }
 
 // EmailConfig holds email-related configuration

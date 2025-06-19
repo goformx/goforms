@@ -1,6 +1,124 @@
 # Database Migrations
 
-This directory contains database migrations that work with both PostgreSQL and MariaDB. The migrations use database-agnostic SQL where possible and include database-specific features when needed.
+This directory contains database migrations for GoForms, organized by database type to support both PostgreSQL and MariaDB.
+
+## Structure
+
+```
+migrations/
+├── postgresql/          # PostgreSQL-specific migrations
+│   ├── 1970010101_create_users_table.up.sql
+│   ├── 1970010101_create_users_table.down.sql
+│   ├── 1983010101_create_forms_table.up.sql
+│   ├── 1983010101_create_forms_table.down.sql
+│   ├── 1991080601_create_form_submissions.up.sql
+│   ├── 1991080601_create_form_submissions.down.sql
+│   ├── 2004020401_create_form_schemas.up.sql
+│   └── 2004020401_create_form_schemas.down.sql
+├── mariadb/             # MariaDB-specific migrations
+│   ├── 1970010101_create_users_table.up.sql
+│   ├── 1970010101_create_users_table.down.sql
+│   ├── 1983010101_create_forms_table.up.sql
+│   ├── 1983010101_create_forms_table.down.sql
+│   ├── 1991080601_create_form_submissions.up.sql
+│   ├── 1991080601_create_form_submissions.down.sql
+│   ├── 2004020401_create_form_schemas.up.sql
+│   └── 2004020401_create_form_schemas.down.sql
+└── README.md
+```
+
+## Database Support
+
+### PostgreSQL
+- Uses triggers and functions for `updated_at` timestamp updates
+- Supports JSON data types natively
+- Uses `DO $$` blocks for conditional logic
+
+### MariaDB
+- Uses `ON UPDATE CURRENT_TIMESTAMP` for automatic timestamp updates
+- Supports JSON data types
+- Simpler migration structure without triggers
+
+## Usage
+
+The migration system automatically selects the appropriate migration directory based on the `GOFORMS_DB_CONNECTION` environment variable:
+
+- `postgres` → uses `migrations/postgresql/`
+- `mariadb` → uses `migrations/mariadb/`
+
+### Commands
+
+```bash
+# Run migrations
+task migrate:up
+
+# Rollback last migration
+task migrate:down
+
+# Rollback all migrations
+task migrate:down-all
+
+# Show current version
+task migrate:version
+
+# Create new migration
+task migrate:create name=add_new_table
+
+# Force migration version (fix dirty state)
+task migrate:force version=1970010101
+```
+
+## Environment Variables
+
+Set these environment variables to configure the database connection:
+
+```bash
+# Database type (postgres or mariadb)
+GOFORMS_DB_CONNECTION=postgres
+
+# Database connection details
+GOFORMS_DB_HOST=localhost
+GOFORMS_DB_PORT=5432
+GOFORMS_DB_DATABASE=goforms
+GOFORMS_DB_USERNAME=goforms
+GOFORMS_DB_PASSWORD=goforms
+
+# PostgreSQL specific
+GOFORMS_DB_SSLMODE=disable
+```
+
+## Creating New Migrations
+
+When creating new migrations, you'll need to create files in both directories:
+
+1. Create the migration in the appropriate directory:
+   ```bash
+   task migrate:create name=add_new_feature
+   ```
+
+2. Copy the generated files to both directories:
+   ```bash
+   cp migrations/postgresql/*.sql migrations/mariadb/
+   ```
+
+3. Modify each file to use the appropriate database syntax:
+   - **PostgreSQL**: Use triggers and functions for `updated_at`
+   - **MariaDB**: Use `ON UPDATE CURRENT_TIMESTAMP`
+
+## Migration Naming Convention
+
+Migrations follow the format: `YYYYMMDDHHMMSS_description.up.sql`
+
+Example: `1970010101_create_users_table.up.sql`
+
+## Best Practices
+
+1. **Always create both PostgreSQL and MariaDB versions** of each migration
+2. **Test migrations on both database types** before deploying
+3. **Use descriptive names** for migration files
+4. **Keep migrations atomic** - one logical change per migration
+5. **Include down migrations** for rollback capability
+6. **Document any database-specific logic** in comments
 
 ## Migration Files
 

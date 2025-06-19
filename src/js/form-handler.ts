@@ -167,6 +167,7 @@ async function sendFormData(form: HTMLFormElement) {
       headers: {
         "Accept": "application/json",
         "X-CSRF-Token": csrfToken,
+        "X-Requested-With": "XMLHttpRequest",
         ...(isAuthEndpoint && { "Content-Type": "application/json" }),
       },
     });
@@ -302,6 +303,7 @@ export class FormHandler {
         headers: {
           "Accept": "application/json",
           "X-CSRF-Token": csrfToken,
+          "X-Requested-With": "XMLHttpRequest",
           ...(isAuthEndpoint && { "Content-Type": "application/json" }),
         },
       });
