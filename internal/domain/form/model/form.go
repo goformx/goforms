@@ -89,6 +89,10 @@ func (f *Form) BeforeCreate(tx *gorm.DB) error {
 		f.Active = true
 	}
 
+	if f.Status == "" {
+		f.Status = "draft"
+	}
+
 	return nil
 }
 
@@ -158,6 +162,7 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Description: description,
 		Schema:      schema,
 		Active:      true,
+		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
 	}

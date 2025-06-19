@@ -14,38 +14,52 @@ import (
 func (sm *Manager) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Skip session check for exempt paths
-			if sm.isPathExempt(c.Request().URL.Path) {
+			path := c.Request().URL.Path
+
+			// Check if this is a path that should skip session processing entirely
+			if sm.shouldSkipSession(path) {
 				return next(c)
 			}
 
-			// Get session cookie
+			// Always try to get session cookie and validate it
 			cookie, err := c.Cookie(sm.cookieName)
 			if err != nil {
-				sm.logger.Debug("SessionMiddleware: No session cookie found", "path", c.Request().URL.Path)
+				sm.logger.Debug("SessionMiddleware: No session cookie found", "path", path)
+				// For public paths, continue without authentication
+				if sm.isPublicPath(path) {
+					return next(c)
+				}
 				return sm.handleAuthError(c, "no session found")
 			}
-			sm.logger.Debug("SessionMiddleware: Found session cookie", "cookie", cookie.Value, "path", c.Request().URL.Path)
+			sm.logger.Debug("SessionMiddleware: Found session cookie", "cookie", cookie.Value, "path", path)
 
 			// Get session from manager
 			session, exists := sm.GetSession(cookie.Value)
 			if !exists {
-				sm.logger.Debug("SessionMiddleware: Session not found", "cookie", cookie.Value, "path", c.Request().URL.Path)
+				sm.logger.Debug("SessionMiddleware: Session not found", "cookie", cookie.Value, "path", path)
+				// For public paths, continue without authentication
+				if sm.isPublicPath(path) {
+					return next(c)
+				}
 				return sm.handleAuthError(c, "invalid session")
 			}
-			sm.logger.Debug("SessionMiddleware: Session found", "user_id", session.UserID, "path", c.Request().URL.Path)
+			sm.logger.Debug("SessionMiddleware: Session found", "user_id", session.UserID, "path", path)
 
 			// Check if session is expired
 			if time.Now().After(session.ExpiresAt) {
-				sm.logger.Debug("SessionMiddleware: Session expired", "user_id", session.UserID, "path", c.Request().URL.Path)
+				sm.logger.Debug("SessionMiddleware: Session expired", "user_id", session.UserID, "path", path)
 				sm.DeleteSession(cookie.Value)
+				// For public paths, continue without authentication
+				if sm.isPublicPath(path) {
+					return next(c)
+				}
 				return sm.handleAuthError(c, "session expired")
 			}
 
-			// Store session in context
+			// Store session in context (always do this if we have a valid session)
 			sm.logger.Debug("SessionMiddleware: Setting session in context",
 				"user_id", session.UserID,
-				"path", c.Request().URL.Path,
+				"path", path,
 			)
 			c.Set(string(context.SessionKey), session)
 			context.SetUserID(c, session.UserID)
@@ -57,58 +71,57 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 	}
 }
 
-// isPathExempt checks if a path is exempt from session authentication
-func (sm *Manager) isPathExempt(path string) bool {
-	// Use accessManager to check if the path is public
-	if sm.accessManager != nil {
-		if sm.accessManager.GetRequiredAccess(path, "GET") == access.PublicAccess {
-			return true
-		}
-	}
-	// Skip authentication for:
-	// 1. Static assets (files, images, etc.)
-	// 2. Public API endpoints
-	// 3. Health checks and monitoring
-	// 4. Development tools and debugging endpoints
-	// 5. Public pages (login, signup, etc.)
-
-	// Check if it's a static file or asset
+// shouldSkipSession checks if a path should skip session processing entirely
+func (sm *Manager) shouldSkipSession(path string) bool {
+	// Skip session processing for static files and assets
 	if sm.isStaticFile(path) {
 		return true
 	}
 
-	// Check if it's a public API endpoint
+	// Skip session processing for API endpoints that don't need authentication
 	if strings.HasPrefix(path, "/api/v1/public/") {
 		return true
 	}
 
-	// Check if it's a validation endpoint
+	// Skip session processing for validation endpoints
 	if strings.HasPrefix(path, "/api/v1/validation/") {
 		return true
 	}
 
-	// Check if it's a health check or monitoring endpoint
+	// Skip session processing for health check or monitoring endpoints
 	if strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/metrics") {
 		return true
 	}
 
-	// Check if it's a development tool endpoint
+	// Skip session processing for development tool endpoints
 	if sm.config.Config.App.Env == "development" && (strings.HasPrefix(path, "/.well-known/") ||
 		strings.HasPrefix(path, "/debug/") ||
 		strings.HasPrefix(path, "/dev/")) {
 		return true
 	}
 
-	// Check public paths (login, signup, etc.)
-	for _, publicPath := range sm.config.PublicPaths {
-		if path == publicPath {
+	// Skip session processing for exempt paths
+	for _, exemptPath := range sm.config.ExemptPaths {
+		if strings.HasPrefix(path, exemptPath) {
 			return true
 		}
 	}
 
-	// Check exempt paths
-	for _, exemptPath := range sm.config.ExemptPaths {
-		if strings.HasPrefix(path, exemptPath) {
+	return false
+}
+
+// isPublicPath checks if a path is public (but still needs session checking)
+func (sm *Manager) isPublicPath(path string) bool {
+	// Use accessManager to check if the path is public
+	if sm.accessManager != nil {
+		if sm.accessManager.GetRequiredAccess(path, "GET") == access.PublicAccess {
+			return true
+		}
+	}
+
+	// Check public paths from config
+	for _, publicPath := range sm.config.PublicPaths {
+		if path == publicPath {
 			return true
 		}
 	}
@@ -225,55 +238,4 @@ func (sm *Manager) ClearSessionCookie(c echo.Context) {
 	cookie.SameSite = http.SameSiteLaxMode
 	cookie.Expires = time.Now().Add(-1 * time.Hour)
 	c.SetCookie(cookie)
-}
-
-// SessionMiddleware creates a new session middleware
-func (sm *Manager) SessionMiddleware() echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-
-			// Skip session check for exempt paths
-			if sm.isPathExempt(path) {
-				return next(c)
-			}
-
-			// Get session cookie
-			cookie, err := c.Cookie(sm.cookieName)
-			if err != nil {
-				return sm.handleAuthError(c, "no session found")
-			}
-
-			// Get session from manager
-			session, exists := sm.GetSession(cookie.Value)
-			if !exists {
-				return sm.handleAuthError(c, "invalid session")
-			}
-
-			// Check session expiration
-			if session.ExpiresAt.Before(time.Now()) {
-				return sm.handleAuthError(c, "session expired")
-			}
-
-			// Set user ID in context
-			c.Set("user_id", session.UserID)
-			c.Set("user_email", session.Email)
-
-			// Refresh session if needed
-			if time.Until(session.ExpiresAt) < sm.expiryTime/2 {
-				// Create a new session with the same user data
-				newSessionID, createErr := sm.CreateSession(session.UserID, session.Email, session.Role)
-				if createErr != nil {
-					sm.logger.Error("failed to create new session", "error", createErr)
-					return echo.NewHTTPError(http.StatusInternalServerError, "Internal server error")
-				}
-				// Delete old session
-				sm.DeleteSession(cookie.Value)
-				// Set new session cookie
-				sm.SetSessionCookie(c, newSessionID)
-			}
-
-			return next(c)
-		}
-	}
 }
