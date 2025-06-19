@@ -56,6 +56,12 @@ func (h *FormHandler) Register(e *echo.Echo) {
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
 	formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
 	formsAPI.POST("/:id/submit", h.HandleFormSubmit)
+
+	// Public API routes (no authentication required)
+	// These are for embedded forms on external websites
+	publicAPI := e.Group("/api/v1")
+	publicFormsAPI := publicAPI.Group("/forms")
+	publicFormsAPI.GET("/:id/schema", h.handleFormSchema)
 }
 
 // GET /forms/new
@@ -272,9 +278,12 @@ func (h *FormHandler) handleFormSchema(c echo.Context) error {
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form schema", "error", err)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to get form schema")
+		h.Logger.Error("failed to get form schema", "form_id", formID, "error", err)
+		return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
 	}
+
+	// Set content type for JSON response
+	c.Response().Header().Set("Content-Type", "application/json")
 
 	return c.JSON(http.StatusOK, form.Schema)
 }
@@ -300,12 +309,14 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 
 	// Verify form ownership
 	if form.UserID != userID {
+		h.Logger.Error("form ownership verification failed", "form_id", formID, "form_user_id", form.UserID, "request_user_id", userID)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to update this form")
 	}
 
 	// Parse schema from request body
 	schema, decodeErr := decodeSchema(c)
 	if decodeErr != nil {
+		h.Logger.Error("failed to decode schema", "error", decodeErr)
 		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, decodeErr.Error())
 	}
 
@@ -316,7 +327,7 @@ func (h *FormHandler) handleFormSchemaUpdate(c echo.Context) error {
 		return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to update form schema")
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.JSON(http.StatusOK, form.Schema)
 }
 
 // decodeSchema decodes the form schema from the request body
