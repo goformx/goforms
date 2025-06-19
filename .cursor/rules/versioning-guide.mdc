@@ -1,0 +1,149 @@
+---
+description: App versioning
+globs: 
+alwaysApply: false
+---
+# Versioning Guide
+
+This guide outlines the versioning system and best practices for the GoFormX application.
+
+## Version Management
+
+The application uses a centralized versioning system defined in [internal/infrastructure/version/version.go](mdc:internal/infrastructure/version/version.go). This system provides:
+
+1. Semantic versioning through git tags
+2. Build-time information injection
+3. Git commit tracking
+4. Go version tracking
+
+## Version Information Structure
+
+The version information is structured as follows:
+
+```go
+type Info struct {
+    Version   string    // Semantic version (e.g., "v1.0.0")
+    BuildTime string    // Build timestamp
+    GitCommit string    // Git commit hash
+    GoVersion string    // Go version used for build
+}
+```
+
+## Build-Time Injection
+
+Version information is injected at build time using ldflags, as defined in [Taskfile.yml](mdc:Taskfile.yml):
+
+```yaml
+LDFLAGS: -s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version={{.VERSION}} -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime={{.BUILD_TIME}} -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit={{.GIT_COMMIT}} -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion={{.GO_VERSION}}
+```
+
+## Usage in Application
+
+### Server Logging
+
+Version information is used in server logging, as shown in [internal/infrastructure/server/server.go](mdc:internal/infrastructure/server/server.go):
+
+```go
+versionInfo := version.GetInfo()
+s.logger.Info("server started",
+    "host", s.config.App.Host,
+    "port", s.config.App.Port,
+    "environment", s.config.App.Env,
+    "version", versionInfo.Version,
+    "build_time", versionInfo.BuildTime,
+    "git_commit", versionInfo.GitCommit)
+```
+
+### Application Lifecycle
+
+Version information is used in application lifecycle management, as shown in [cmd/goforms/main.go](mdc:cmd/goforms/main.go):
+
+```go
+versionInfo := version.GetInfo()
+params.Logger.Info("starting application",
+    "app", params.Config.App.Name,
+    "version", versionInfo.Version,
+    "environment", params.Config.App.Env,
+    "build_time", versionInfo.BuildTime,
+    "git_commit", versionInfo.GitCommit)
+```
+
+## Best Practices
+
+1. **Version Tagging**:
+   - Use semantic versioning (e.g., v1.0.0)
+   - Tag releases in git: `git tag v1.0.0`
+   - Push tags: `git push origin v1.0.0`
+
+2. **Version Access**:
+   - Use `version.GetInfo()` to access version information
+   - Don't hardcode version numbers in code
+   - Don't store version in configuration files
+
+3. **Build Process**:
+   - Always build with version information
+   - Use the provided Taskfile tasks for building
+   - Ensure CI/CD pipelines include version injection
+
+4. **Logging**:
+   - Include version information in startup/shutdown logs
+   - Use structured logging with version fields
+   - Include build time and git commit for debugging
+
+5. **Error Handling**:
+   - Include version information in error reports
+   - Use version info for debugging and support
+   - Log version changes in changelog
+
+## Version Validation
+
+The version package includes validation methods:
+
+```go
+// IsDev returns true if the version is a development version
+func (i Info) IsDev() bool {
+    return i.Version == "dev"
+}
+
+// IsRelease returns true if the version is a release version
+func (i Info) IsRelease() bool {
+    return !i.IsDev() && !strings.HasPrefix(i.Version, "v")
+}
+
+// IsPreRelease returns true if the version is a pre-release version
+func (i Info) IsPreRelease() bool {
+    return !i.IsDev() && strings.HasPrefix(i.Version, "v")
+}
+```
+
+## Version Comparison
+
+The version package provides comparison functionality:
+
+```go
+// Compare compares this version with another version
+func (i Info) Compare(other Info) int {
+    return strings.Compare(i.Version, other.Version)
+}
+```
+
+## Integration with CI/CD
+
+The versioning system integrates with CI/CD through GitHub Actions, as defined in [.github/workflows/release.yml](mdc:.github/workflows/release.yml) and [.github/workflows/go.yml](mdc:.github/workflows/go.yml).
+
+## Troubleshooting
+
+1. **Missing Version Information**:
+   - Check if build was performed with correct ldflags
+   - Verify git tags are present
+   - Check CI/CD pipeline configuration
+
+2. **Version Mismatch**:
+   - Verify git tag matches expected version
+   - Check build process for correct version injection
+   - Validate version format in git tags
+
+3. **Build Time Issues**:
+   - Check system time synchronization
+   - Verify build environment configuration
+   - Check CI/CD pipeline time settings

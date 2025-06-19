@@ -1,0 +1,258 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Form Status Management
+
+## Overview
+Form status management in GoFormX follows a specific pattern where forms have a status field with default values, proper validation, and consistent UI handling.
+
+## Status Values
+
+### Available Statuses
+- `draft` - Form is being created/edited (default)
+- `published` - Form is live and accepting submissions
+- `archived` - Form is no longer active
+
+### Status Transitions
+```
+draft → published → archived
+draft → archived
+published → archived
+```
+
+## Implementation Patterns
+
+### Model Definition
+```go
+type Form struct {
+    ID          string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
+    UserID      string         `json:"user_id" gorm:"not null;index;type:uuid"`
+    Title       string         `json:"title" gorm:"not null;size:100"`
+    Description string         `json:"description" gorm:"size:500"`
+    Schema      JSON           `json:"schema" gorm:"type:jsonb;not null"`
+    Active      bool           `json:"active" gorm:"not null;default:true"`
+    Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
+    CreatedAt   time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
+    UpdatedAt   time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
+    DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
+}
+```
+
+### Constructor with Default Status
+```go
+func NewForm(userID, title, description string, schema JSON) *Form {
+    now := time.Now()
+    return &Form{
+        ID:          uuid.New().String(),
+        UserID:      userID,
+        Title:       title,
+        Description: description,
+        Schema:      schema,
+        Active:      true,
+        Status:      "draft", // Explicit default
+        CreatedAt:   now,
+        UpdatedAt:   now,
+    }
+}
+```
+
+### BeforeCreate Hook Safety
+```go
+func (f *Form) BeforeCreate(tx *gorm.DB) error {
+    if f.ID == "" {
+        f.ID = uuid.New().String()
+    }
+
+    if !f.Active {
+        f.Active = true
+    }
+
+    if f.Status == "" {
+        f.Status = "draft" // Safety check
+    }
+
+    return nil
+}
+```
+
+## Database Schema
+
+### Migration Definition
+```sql
+CREATE TABLE IF NOT EXISTS forms (
+    uuid VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    schema JSON NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+);
+```
+
+### Adding Status Column to Existing Tables
+```sql
+-- Add status column to existing forms table
+ALTER TABLE forms ADD COLUMN IF NOT EXISTS status VARCHAR(20) NOT NULL DEFAULT 'draft';
+```
+
+## UI Patterns
+
+### Status Selection in Templates
+```templ
+<div class="form-group">
+    <label for="status">Status</label>
+    <select id="status" name="status" class="gf-input">
+        <option value="draft" selected={ form.Status == "draft" }>Draft</option>
+        <option value="published" selected={ form.Status == "published" }>Published</option>
+        <option value="archived" selected={ form.Status == "archived" }>Archived</option>
+    </select>
+</div>
+```
+
+### Status Display
+```templ
+<div class="form-status">
+    <span class="status-badge status-{ form.Status }">
+        { strings.Title(form.Status) }
+    </span>
+</div>
+```
+
+### Status-Based Actions
+```templ
+<div class="form-actions">
+    if form.Status == "draft" {
+        <button type="button" class="btn btn-primary" onclick="publishForm()">Publish</button>
+        <button type="button" class="btn btn-outline" onclick="archiveForm()">Archive</button>
+    } else if form.Status == "published" {
+        <button type="button" class="btn btn-warning" onclick="unpublishForm()">Unpublish</button>
+        <button type="button" class="btn btn-outline" onclick="archiveForm()">Archive</button>
+    } else if form.Status == "archived" {
+        <button type="button" class="btn btn-primary" onclick="restoreForm()">Restore</button>
+    }
+</div>
+```
+
+## Service Layer Patterns
+
+### Status Validation
+```go
+func (f *Form) ValidateStatus() error {
+    validStatuses := []string{"draft", "published", "archived"}
+    for _, status := range validStatuses {
+        if f.Status == status {
+            return nil
+        }
+    }
+    return errors.New("invalid form status")
+}
+```
+
+### Status Update Methods
+```go
+// Update form status directly
+func (f *Form) UpdateStatus(status string) error {
+    validStatuses := []string{"draft", "published", "archived"}
+    for _, validStatus := range validStatuses {
+        if status == validStatus {
+            f.Status = status
+            f.UpdatedAt = time.Now()
+            return nil
+        }
+    }
+    return errors.New("invalid form status")
+}
+
+// Convenience methods for common status changes
+func (f *Form) SetDraft() {
+    f.Status = "draft"
+    f.Active = true
+    f.UpdatedAt = time.Now()
+}
+
+func (f *Form) SetPublished() {
+    f.Status = "published"
+    f.Active = true
+    f.UpdatedAt = time.Now()
+}
+
+func (f *Form) SetArchived() {
+    f.Status = "archived"
+    f.Active = false
+    f.UpdatedAt = time.Now()
+}
+```
+
+## Best Practices
+
+### 1. Default Values
+- Always set explicit defaults in constructors
+- Use database defaults as backup
+- Add safety checks in hooks
+
+### 2. Status Validation
+- Validate status values before saving
+- Check status transitions are valid
+- Provide clear error messages
+
+### 3. UI Consistency
+- Use consistent status display
+- Show appropriate actions per status
+- Handle status changes gracefully
+
+### 4. Database Consistency
+- Use database constraints for status values
+- Set appropriate defaults
+- Handle status updates atomically
+
+## Testing Patterns
+
+### Status Validation Tests
+```go
+func TestForm_ValidateStatus(t *testing.T) {
+    tests := []struct {
+        name    string
+        status  string
+        wantErr bool
+    }{
+        {"valid draft", "draft", false},
+        {"valid published", "published", false},
+        {"valid archived", "archived", false},
+        {"invalid status", "invalid", true},
+    }
+
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            form := &Form{Status: tt.status}
+            err := form.ValidateStatus()
+            if (err != nil) != tt.wantErr {
+                t.Errorf("ValidateStatus() error = %v, wantErr %v", err, tt.wantErr)
+            }
+        })
+    }
+}
+```
+
+### Status Update Tests
+```go
+func TestForm_UpdateStatus(t *testing.T) {
+    form := &Form{Status: "draft"}
+    
+    // Test valid status update
+    err := form.UpdateStatus("published")
+    assert.NoError(t, err)
+    assert.Equal(t, "published", form.Status)
+    
+    // Test invalid status
+    err = form.UpdateStatus("invalid")
+    assert.Error(t, err)
+    assert.Equal(t, "published", form.Status) // Status unchanged
+}
+```

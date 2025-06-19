@@ -1,0 +1,248 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Error Handling Patterns
+
+## Overview
+GoFormX implements a comprehensive error handling system with both standard errors and domain-specific errors, consistent error responses, and proper error propagation across layers.
+
+## Core Error System
+
+### DomainError Structure
+```go
+type DomainError struct {
+    Code    ErrorCode
+    Message string
+    Err     error
+    Context map[string]any
+}
+```
+
+### Error Codes
+```go
+const (
+    // Validation errors
+    ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
+    ErrCodeRequired      ErrorCode = "REQUIRED_FIELD"
+    ErrCodeInvalid       ErrorCode = "INVALID_VALUE"
+    ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
+    ErrCodeInvalidInput  ErrorCode = "INVALID_INPUT"
+
+    // Authentication errors
+    ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
+    ErrCodeForbidden        ErrorCode = "FORBIDDEN"
+    ErrCodeInvalidToken     ErrorCode = "INVALID_TOKEN"
+    ErrCodeAuthentication   ErrorCode = "AUTHENTICATION_ERROR"
+    ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
+
+    // Resource errors
+    ErrCodeNotFound      ErrorCode = "NOT_FOUND"
+    ErrCodeConflict      ErrorCode = "CONFLICT"
+    ErrCodeBadRequest    ErrorCode = "BAD_REQUEST"
+    ErrCodeServerError   ErrorCode = "SERVER_ERROR"
+    ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
+)
+```
+
+## Error Creation Patterns
+
+### Standard Errors (for simple cases)
+```go
+// Simple validation errors
+var (
+    ErrFormTitleRequired = errors.New("form title is required")
+    ErrFormSchemaRequired = errors.New("form schema is required")
+    ErrFormNotFound = errors.New("form not found")
+    ErrFormInvalid = errors.New("form is invalid")
+)
+
+// Inline errors
+if f.Title == "" {
+    return errors.New("title is required")
+}
+```
+
+### Domain Errors (for complex cases)
+```go
+// Domain error with context
+err := domainerrors.New(domainerrors.ErrCodeValidation, "invalid form data", nil).
+    WithContext("form_id", formID).
+    WithContext("field", "title")
+
+// Wrapping errors
+err := domainerrors.Wrap(originalErr, domainerrors.ErrCodeValidation, "form validation failed")
+```
+
+## Handler Error Patterns
+
+### Service Layer Error Handling
+```go
+func (s *FormService) CreateForm(ctx context.Context, req *CreateFormRequest) (*Form, error) {
+    // Validate input
+    if err := req.Validate(); err != nil {
+        return nil, domainerrors.Wrap(err, domainerrors.ErrCodeValidation, "invalid form data")
+    }
+
+    // Create form
+    form, err := s.repo.Create(ctx, req)
+    if err != nil {
+        return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to create form")
+    }
+
+    return form, nil
+}
+```
+
+### Handler Error Response
+```go
+func (h *FormHandler) handleFormCreate(c echo.Context) error {
+    // ... validation logic
+    
+    if err != nil {
+        h.Logger.Error("failed to create form", "error", err)
+        
+        // Check for specific validation errors
+        switch {
+        case errors.Is(err, model.ErrFormTitleRequired):
+            return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form title is required")
+        case errors.Is(err, model.ErrFormSchemaRequired):
+            return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form schema is required")
+        default:
+            return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to create form")
+        }
+    }
+    
+    return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+}
+```
+
+## Validation Error Patterns
+
+### Request Validation
+```go
+type CreateFormRequest struct {
+    Title       string `json:"title" validate:"required,min=3,max=100"`
+    Description string `json:"description" validate:"max=500"`
+    Schema      JSON   `json:"schema" validate:"required"`
+}
+
+func (req *CreateFormRequest) Validate() error {
+    if req.Title == "" {
+        return errors.New("title is required")
+    }
+    if len(req.Title) < 3 {
+        return errors.New("title must be at least 3 characters")
+    }
+    return nil
+}
+```
+
+### Model Validation
+```go
+func (f *Form) Validate() error {
+    if f.Title == "" {
+        return errors.New("form title is required")
+    }
+    if len(f.Title) < MinTitleLength {
+        return errors.New("title too short")
+    }
+    return f.validateSchema()
+}
+```
+
+## Best Practices
+
+### 1. Error Type Selection
+- Use standard `errors.New()` for simple validation errors
+- Use `domainerrors.New()` for complex errors with context
+- Use `domainerrors.Wrap()` when wrapping existing errors
+
+### 2. Error Handling
+- Handle errors at appropriate level
+- Log errors with context
+- Maintain error chain
+- Clean up resources
+
+### 3. Error Response
+- Use consistent format
+- Include error details
+- Set appropriate status codes
+- Handle all error types
+
+### 4. Error Logging
+- Log at appropriate level
+- Include error context
+- Add request details
+- Maintain error chain
+
+## Common Patterns
+
+### Error Type Checking
+```go
+// Check for specific error types
+if errors.Is(err, user.ErrUserExists) {
+    return c.JSON(http.StatusBadRequest, map[string]string{
+        "message": "This email is already registered",
+        "field":   "email",
+    })
+}
+
+// Check for domain errors
+var domainErr *errors.DomainError
+if errors.As(err, &domainErr) {
+    return c.JSON(getStatusCode(domainErr.Code), domainErr)
+}
+```
+
+### Error Recovery
+```go
+func (h *Handler) handlePanic(c echo.Context) error {
+    defer func() {
+        if r := recover(); r != nil {
+            h.Logger.Error("panic recovered", "panic", r)
+            c.JSON(http.StatusInternalServerError, map[string]string{
+                "error": "Internal server error",
+            })
+        }
+    }()
+    
+    return h.next(c)
+}
+```
+
+### Error Sanitization
+```go
+func sanitizeError(err error) error {
+    // Don't expose internal errors to users
+    if isInternalError(err) {
+        return errors.New(errors.ErrCodeServerError, "Internal server error", err)
+    }
+    return err
+}
+```
+
+## Testing Error Patterns
+
+### Error Testing
+```go
+func TestFormValidation_EmptyTitle(t *testing.T) {
+    form := &Form{Title: ""}
+    err := form.Validate()
+    
+    var domainErr *errors.DomainError
+    assert.True(t, errors.As(err, &domainErr))
+    assert.Equal(t, errors.ErrCodeRequired, domainErr.Code)
+    assert.Contains(t, domainErr.Message, "title is required")
+}
+```
+
+### Error Response Testing
+```go
+func TestHandler_ErrorResponse(t *testing.T) {
+    // Test that errors are properly converted to HTTP responses
+    // Test that error details are included
+    // Test that status codes are correct
+}
+```

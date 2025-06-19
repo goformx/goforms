@@ -1,75 +1,77 @@
 package pages
 
 import (
-	"github.com/goformx/goforms/internal/presentation/templates/layouts"
-	"github.com/goformx/goforms/internal/presentation/templates/components"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+"github.com/goformx/goforms/internal/presentation/templates/layouts"
+"github.com/goformx/goforms/internal/presentation/templates/components"
+"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
 
 templ Login(data shared.PageData) {
-	@layouts.Layout(data, loginContent(data))
+@layouts.Layout(data, loginContent(data))
 }
 
 templ loginContent(data shared.PageData) {
-	<div class="form-page">
-		<div class="form-content">
-			@components.Message(data)
-			<div class="form-container">
-				<div class="form-card">
-					<div class="form-header">
-						<h2 class="form-title">Sign in to your account</h2>
+<div class="form-page">
+	<div class="form-content">
+		@components.Message(data)
+		<div class="form-container">
+			<div class="form-card">
+				<div class="form-header">
+					<h2 class="form-title">Sign in to your account</h2>
+				</div>
+
+				<form id="login-form" class="form" method="POST" action="/login" data-validate="login">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+					<div class="form-error"></div>
+
+					<div class="gf-form-group">
+						<label for="email" class="gf-label">Email</label>
+						<input type="email" id="email" name="email" required class="gf-input"
+							placeholder="Enter your email" />
+						<div id="email_error" class="error-message"></div>
 					</div>
 
-					<form id="login-form" class="form" method="POST" action="/login" data-validate="login">
-						<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
-						<div class="form-error"></div>
+					<div class="gf-form-group">
+						<label for="password" class="gf-label">Password</label>
+						<input type="password" id="password" name="password" required class="gf-input"
+							placeholder="Enter your password" />
+						<div id="password_error" class="error-message"></div>
+					</div>
 
-						<div class="gf-form-group">
-							<label for="email" class="gf-label">Email</label>
-							<input type="email" id="email" name="email" required class="gf-input" placeholder="Enter your email"/>
-							<div id="email_error" class="error-message"></div>
-						</div>
+					<div class="form-actions">
+						<button type="submit" class="gf-button gf-button--primary">Sign in</button>
+					</div>
 
-						<div class="gf-form-group">
-							<label for="password" class="gf-label">Password</label>
-							<input type="password" id="password" name="password" required class="gf-input" placeholder="Enter your password"/>
-							<div id="password_error" class="error-message"></div>
-						</div>
-
-						<div class="form-actions">
-							<button type="submit" class="gf-button gf-button--primary">Sign in</button>
-						</div>
-
-						<div class="form-alt-action">
-							<a href="/forgot-password">Forgot your password?</a>
-						</div>
-					</form>
-				</div>
+					<div class="form-alt-action">
+						<a href="/forgot-password">Forgot your password?</a>
+					</div>
+				</form>
 			</div>
 		</div>
 	</div>
+</div>
 }
 
 templ LoginPage(data shared.PageData) {
-	@components.LoginForm(data)
+@components.LoginForm(data)
 }
 
 templ LoginWithError(data shared.PageData, errorMessage string) {
-	@layouts.Layout(data, loginContentWithError(data, errorMessage))
+@layouts.Layout(data, loginContentWithError(data, errorMessage))
 }
 
 templ loginContentWithError(data shared.PageData, errorMessage string) {
-	<div class="auth-page">
-		<div class="auth-content">
-			<div class="auth-container">
-				<div class="auth-form-container">
-					<div class="auth-header">
-						<h2 class="auth-title">Sign in to your account</h2>
-					</div>
-					<div class="form-error">{ errorMessage }</div>
-					@components.LoginForm(data)
+<div class="auth-page">
+	<div class="auth-content">
+		<div class="auth-container">
+			<div class="auth-form-container">
+				<div class="auth-header">
+					<h2 class="auth-title">Sign in to your account</h2>
 				</div>
+				<div class="form-error">{ errorMessage }</div>
+				@components.LoginForm(data)
 			</div>
 		</div>
 	</div>
-} 
+</div>
+}

@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -18,6 +19,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/version"
 )
 
 const (
@@ -33,6 +35,8 @@ const (
 	DefaultRateLimit = 20
 	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
 	CookieMaxAge = 86400
+	// FormCorsMaxAge is the maximum age for form-specific CORS settings
+	FormCorsMaxAge = 3600
 	// FieldPairSize represents the number of elements in a key-value pair
 	FieldPairSize = 2
 )
@@ -86,10 +90,13 @@ func (m *Manager) GetSessionManager() *session.Manager {
 
 // Setup registers all middleware with the Echo instance
 func (m *Manager) Setup(e *echo.Echo) {
+	versionInfo := version.GetInfo()
 	m.logger.Info("setting up middleware",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
+		"version", versionInfo.Version,
 		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit,
 	)
 
 	// Set Echo's logger to use our custom logger
@@ -101,8 +108,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Logger.SetLevel(log.DEBUG)
 		m.logger.Info("development mode enabled",
 			"app", "goforms",
-			"version", m.config.Config.App.Version,
-			"environment", m.config.Config.App.Env)
+			"version", versionInfo.Version,
+			"environment", m.config.Config.App.Env,
+			"build_time", versionInfo.BuildTime,
+			"git_commit", versionInfo.GitCommit)
 	} else {
 		e.Logger.SetLevel(log.INFO)
 	}
@@ -125,13 +134,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Use(echomw.Logger())
 	}
 	e.Use(echomw.Recover())
-	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
-		AllowOrigins:     m.config.Security.CorsAllowedOrigins,
-		AllowMethods:     m.config.Security.CorsAllowedMethods,
-		AllowHeaders:     m.config.Security.CorsAllowedHeaders,
-		AllowCredentials: m.config.Security.CorsAllowCredentials,
-		MaxAge:           m.config.Security.CorsMaxAge,
-	}))
+	e.Use(setupCORS(m.config.Security))
 
 	// Register security middleware
 	e.Use(setupSecurityHeadersMiddleware())
@@ -141,21 +144,27 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Register session middleware
 	m.logger.Info("registering session middleware",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
-		"environment", m.config.Config.App.Env)
+		"version", versionInfo.Version,
+		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit)
 	e.Use(m.config.SessionManager.Middleware())
 
 	// Register access control middleware
 	m.logger.Info("registering access control middleware",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
-		"environment", m.config.Config.App.Env)
+		"version", versionInfo.Version,
+		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit)
 	e.Use(access.Middleware(m.config.AccessManager, m.logger))
 
 	m.logger.Info("middleware setup completed",
 		"app", "goforms",
-		"version", m.config.Config.App.Version,
-		"environment", m.config.Config.App.Env)
+		"version", versionInfo.Version,
+		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit)
 
 	m.logger.Debug("middleware manager initialized", "service", "middleware")
 }
@@ -187,10 +196,11 @@ func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
 				return false
 			}
 
-			// Skip CSRF for API endpoints with valid Authorization header
+			// Skip CSRF for API endpoints with valid Authorization header or CSRF token
 			if strings.HasPrefix(path, "/api/") {
 				authHeader := c.Request().Header.Get("Authorization")
-				if authHeader != "" {
+				csrfToken := c.Request().Header.Get("X-Csrf-Token")
+				if authHeader != "" || csrfToken != "" {
 					return true
 				}
 			}
@@ -425,4 +435,100 @@ func (l *EchoLogger) SetOutput(w io.Writer) {
 
 func (l *EchoLogger) Output() io.Writer {
 	return os.Stdout
+}
+
+func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			method := c.Request().Method
+
+			// Check if this is a form-related endpoint
+			isFormEndpoint := strings.HasPrefix(path, "/api/v1/forms/") &&
+				(strings.HasSuffix(path, "/schema") || strings.HasSuffix(path, "/submit"))
+
+			corsConfig := getCORSConfig(securityConfig, isFormEndpoint)
+
+			// Handle preflight requests
+			if method == "OPTIONS" {
+				return handlePreflightRequest(c, corsConfig)
+			}
+
+			// Handle actual requests
+			return handleActualRequest(c, corsConfig, next)
+		}
+	}
+}
+
+// getCORSConfig returns the appropriate CORS configuration based on endpoint type
+func getCORSConfig(securityConfig *appconfig.SecurityConfig, isFormEndpoint bool) *corsConfig {
+	if isFormEndpoint {
+		// Use form-specific CORS settings for form endpoints
+		return &corsConfig{
+			allowedOrigins:   securityConfig.FormCorsAllowedOrigins,
+			allowedMethods:   securityConfig.FormCorsAllowedMethods,
+			allowedHeaders:   securityConfig.FormCorsAllowedHeaders,
+			allowCredentials: false, // Forms don't need credentials
+			maxAge:           FormCorsMaxAge,
+		}
+	}
+
+	// Use general CORS settings for other endpoints
+	return &corsConfig{
+		allowedOrigins:   securityConfig.CorsAllowedOrigins,
+		allowedMethods:   securityConfig.CorsAllowedMethods,
+		allowedHeaders:   securityConfig.CorsAllowedHeaders,
+		allowCredentials: securityConfig.CorsAllowCredentials,
+		maxAge:           securityConfig.CorsMaxAge,
+	}
+}
+
+// corsConfig holds CORS configuration
+type corsConfig struct {
+	allowedOrigins   []string
+	allowedMethods   []string
+	allowedHeaders   []string
+	allowCredentials bool
+	maxAge           int
+}
+
+// handlePreflightRequest handles OPTIONS requests
+func handlePreflightRequest(c echo.Context, config *corsConfig) error {
+	origin := c.Request().Header.Get("Origin")
+
+	if isOriginAllowed(origin, config.allowedOrigins) {
+		c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+		c.Response().Header().Set("Access-Control-Allow-Methods", strings.Join(config.allowedMethods, ","))
+		c.Response().Header().Set("Access-Control-Allow-Headers", strings.Join(config.allowedHeaders, ","))
+		if config.allowCredentials {
+			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+		c.Response().Header().Set("Access-Control-Max-Age", strconv.Itoa(config.maxAge))
+		return c.NoContent(http.StatusNoContent)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+// handleActualRequest handles actual requests (non-OPTIONS)
+func handleActualRequest(c echo.Context, config *corsConfig, next echo.HandlerFunc) error {
+	origin := c.Request().Header.Get("Origin")
+	if origin != "" && isOriginAllowed(origin, config.allowedOrigins) {
+		c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+		if config.allowCredentials {
+			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+	}
+
+	return next(c)
+}
+
+// isOriginAllowed checks if the origin is in the allowed origins list
+func isOriginAllowed(origin string, allowedOrigins []string) bool {
+	for _, allowedOrigin := range allowedOrigins {
+		if allowedOrigin == "*" || allowedOrigin == origin {
+			return true
+		}
+	}
+	return false
 }

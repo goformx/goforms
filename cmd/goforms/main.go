@@ -16,11 +16,13 @@ import (
 	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
+	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/presentation"
 	"github.com/labstack/echo/v4"
 )
@@ -39,19 +41,27 @@ type appParams struct {
 	Logger            logging.Logger         // Application logger
 	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
 	MiddlewareManager *appmiddleware.Manager // Middleware management
+	AccessManager     *access.AccessManager  // Access control management
 	Config            *config.Config         // Application configuration
 }
 
 // setupHandlers registers all web handlers with the Echo server.
 // It validates that no nil handlers are present and registers each handler
 // with the Echo instance.
-func setupHandlers(handlers []web.Handler, e *echo.Echo) error {
+func setupHandlers(
+	handlers []web.Handler,
+	e *echo.Echo,
+	accessManager *access.AccessManager,
+	logger logging.Logger,
+) error {
 	for i, handler := range handlers {
 		if handler == nil {
 			return fmt.Errorf("nil handler encountered at index %d", i)
 		}
-		handler.Register(e)
 	}
+
+	// Use the RegisterHandlers function to properly register routes with access control
+	web.RegisterHandlers(e, handlers, accessManager, logger)
 	return nil
 }
 
@@ -59,7 +69,7 @@ func setupHandlers(handlers []web.Handler, e *echo.Echo) error {
 // and registering all web handlers.
 func setupApplication(params appParams) error {
 	params.MiddlewareManager.Setup(params.Echo)
-	return setupHandlers(params.Handlers, params.Echo)
+	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
 }
 
 // setupLifecycle configures the application lifecycle hooks for startup and shutdown.
@@ -67,11 +77,14 @@ func setupApplication(params appParams) error {
 func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
+			versionInfo := version.GetInfo()
 			// Log application startup information
 			params.Logger.Info("starting application",
 				"app", params.Config.App.Name,
-				"version", params.Config.App.Version,
+				"version", versionInfo.Version,
 				"environment", params.Config.App.Env,
+				"build_time", versionInfo.BuildTime,
+				"git_commit", versionInfo.GitCommit,
 			)
 
 			// Start the server in a goroutine to prevent blocking
@@ -85,10 +98,13 @@ func setupLifecycle(params appParams) {
 			return nil
 		},
 		OnStop: func(ctx context.Context) error {
+			versionInfo := version.GetInfo()
 			// Log application shutdown information
 			params.Logger.Info("shutting down application",
 				"app", params.Config.App.Name,
-				"version", params.Config.App.Version,
+				"version", versionInfo.Version,
+				"build_time", versionInfo.BuildTime,
+				"git_commit", versionInfo.GitCommit,
 			)
 			return nil
 		},
@@ -105,9 +121,10 @@ func main() {
 		fx.Provide(config.New),
 		// Provide logger factory with configuration
 		fx.Provide(func(cfg *config.Config) logging.Logger {
+			versionInfo := version.GetInfo()
 			factory := logging.NewFactory(logging.FactoryConfig{
 				AppName:     cfg.App.Name,
-				Version:     cfg.App.Version,
+				Version:     versionInfo.Version,
 				Environment: cfg.App.Env,
 				Fields:      map[string]any{},
 			})

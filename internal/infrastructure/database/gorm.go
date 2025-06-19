@@ -4,8 +4,10 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
+	"gorm.io/driver/mysql"
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
 	"gorm.io/gorm/logger"
@@ -34,6 +36,9 @@ type GormDB struct {
 	*gorm.DB
 	logger logging.Logger
 }
+
+// TickerDuration controls how often the connection pool is monitored
+var TickerDuration = 1 * time.Minute
 
 // New creates a new GORM database connection
 func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
@@ -64,24 +69,47 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		},
 	)
 
-	// Build DSN for PostgreSQL
-	dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-		cfg.Database.Postgres.Host,
-		cfg.Database.Postgres.Port,
-		cfg.Database.Postgres.User,
-		cfg.Database.Postgres.Password,
-		cfg.Database.Postgres.Name,
-		cfg.Database.Postgres.SSLMode,
-	)
-
-	// Open connection
-	db, err := gorm.Open(postgres.Open(dsn), &gorm.Config{
+	// Configure GORM
+	gormConfig := &gorm.Config{
 		Logger: gormLogger,
 		NowFunc: func() time.Time {
 			return time.Now().UTC()
 		},
 		PrepareStmt: true, // Enable prepared statements for better performance
-	})
+	}
+
+	var db *gorm.DB
+	var err error
+
+	// Create database connection based on the selected driver
+	switch cfg.Database.Connection {
+	case "postgres":
+		// Build DSN for PostgreSQL
+		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+			cfg.Database.Host,
+			cfg.Database.Port,
+			cfg.Database.Username,
+			cfg.Database.Password,
+			cfg.Database.Database,
+			cfg.Database.SSLMode,
+		)
+		db, err = gorm.Open(postgres.Open(dsn), gormConfig)
+
+	case "mariadb":
+		// Build DSN for MariaDB
+		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
+			cfg.Database.Username,
+			cfg.Database.Password,
+			cfg.Database.Host,
+			cfg.Database.Port,
+			cfg.Database.Database,
+		)
+		db, err = gorm.Open(mysql.Open(dsn), gormConfig)
+
+	default:
+		return nil, fmt.Errorf("unsupported database connection type: %s", cfg.Database.Connection)
+	}
+
 	if err != nil {
 		appLogger.Error("failed to connect to database", "error", err)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
@@ -93,9 +121,9 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 		return nil, fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	sqlDB.SetMaxOpenConns(cfg.Database.Postgres.MaxOpenConns)
-	sqlDB.SetMaxIdleConns(cfg.Database.Postgres.MaxIdleConns)
-	sqlDB.SetConnMaxLifetime(cfg.Database.Postgres.ConnMaxLifetime)
+	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
+	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
+	sqlDB.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
 
 	// Verify connection
 	if pingErr := sqlDB.Ping(); pingErr != nil {
@@ -104,9 +132,10 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	}
 
 	appLogger.Info("database connection established",
-		"host", cfg.Database.Postgres.Host,
-		"port", cfg.Database.Postgres.Port,
-		"max_open_conns", cfg.Database.Postgres.MaxOpenConns)
+		"driver", cfg.Database.Connection,
+		"host", cfg.Database.Host,
+		"port", cfg.Database.Port,
+		"max_open_conns", cfg.Database.MaxOpenConns)
 
 	return &GormDB{
 		DB:     db,
@@ -211,41 +240,122 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		"error", err)
 }
 
-// MonitorConnectionPool periodically checks the database connection pool status
+// MonitorConnectionPool monitors the database connection pool and logs metrics
 func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
-	ticker := time.NewTicker(time.Minute)
+	db.logger.Debug("starting MonitorConnectionPool")
+	ticker := time.NewTicker(TickerDuration)
 	defer ticker.Stop()
 
 	for {
 		select {
 		case <-ctx.Done():
+			db.logger.Debug("MonitorConnectionPool context done")
 			return
 		case <-ticker.C:
-			sqlDB, err := db.DB.DB()
-			if err != nil {
-				db.logger.Error("failed to get database instance for monitoring",
-					"error", err)
-				continue
-			}
+			db.logger.Debug("MonitorConnectionPool tick")
+			db.collectAndLogMetrics()
+		}
+	}
+}
 
-			stats := sqlDB.Stats()
-			db.logger.Info("database connection pool status",
-				"max_open_connections", stats.MaxOpenConnections,
-				"open_connections", stats.OpenConnections,
-				"in_use", stats.InUse,
-				"idle", stats.Idle,
-				"wait_count", stats.WaitCount,
-				"wait_duration", stats.WaitDuration,
-				"max_idle_closed", stats.MaxIdleClosed,
-				"max_lifetime_closed", stats.MaxLifetimeClosed)
+// collectAndLogMetrics collects and logs database connection pool metrics
+func (db *GormDB) collectAndLogMetrics() {
+	db.logger.Debug("collectAndLogMetrics called")
+	sqlDB, err := db.DB.DB()
+	if err != nil {
+		db.logger.Error("failed to get database instance", map[string]any{"error": err})
+		return
+	}
 
-			// Alert on high connection usage
-			if float64(stats.InUse)/float64(stats.MaxOpenConnections) > ConnectionPoolWarningThreshold {
-				db.logger.Warn("database connection pool usage is high",
-					"in_use", stats.InUse,
-					"max_open", stats.MaxOpenConnections,
-					"usage_percentage", float64(stats.InUse)/float64(stats.MaxOpenConnections)*ConnectionPoolPercentageMultiplier)
-			}
+	stats := sqlDB.Stats()
+	metrics := map[string]any{
+		"max_open_connections": stats.MaxOpenConnections,
+		"open_connections":     stats.OpenConnections,
+		"in_use":               stats.InUse,
+		"idle":                 stats.Idle,
+		"wait_count":           stats.WaitCount,
+		"wait_duration":        stats.WaitDuration,
+		"max_idle_closed":      stats.MaxIdleClosed,
+		"max_lifetime_closed":  stats.MaxLifetimeClosed,
+	}
+
+	// Add database-specific metrics
+	db.addDatabaseSpecificMetrics(metrics)
+
+	// Log the metrics
+	db.logger.Info("database connection pool status", map[string]any{"metrics": metrics})
+
+	// Check for high usage
+	if float64(stats.InUse)/float64(stats.MaxOpenConnections) > ConnectionPoolWarningThreshold {
+		db.logger.Warn("database connection pool usage is high",
+			map[string]any{
+				"in_use":   stats.InUse,
+				"max_open": stats.MaxOpenConnections,
+			})
+	}
+
+	// Check for long wait times
+	if stats.WaitDuration > time.Second*5 {
+		db.logger.Warn("database connection wait time is high",
+			map[string]any{
+				"wait_duration": stats.WaitDuration,
+				"wait_count":    stats.WaitCount,
+			})
+	}
+}
+
+// addDatabaseSpecificMetrics adds database-specific metrics to the metrics map
+func (db *GormDB) addDatabaseSpecificMetrics(metrics map[string]any) {
+	switch db.DB.Dialector.Name() {
+	case "postgres":
+		db.addPostgresMetrics(metrics)
+	case "mysql":
+		db.addMySQLMetrics(metrics)
+	}
+}
+
+// addPostgresMetrics adds PostgreSQL-specific metrics
+func (db *GormDB) addPostgresMetrics(metrics map[string]any) {
+	var pgStats struct {
+		ActiveConnections  int64
+		IdleConnections    int64
+		WaitingConnections int64
+	}
+
+	// Get active connections
+	if err := db.DB.Raw(
+		"SELECT count(*) as active_connections FROM pg_stat_activity WHERE state = 'active'",
+	).Scan(&pgStats.ActiveConnections).Error; err == nil {
+		metrics["postgres_active_connections"] = pgStats.ActiveConnections
+	}
+
+	// Get idle connections
+	if err := db.DB.Raw(
+		"SELECT count(*) as idle_connections FROM pg_stat_activity WHERE state = 'idle'",
+	).Scan(&pgStats.IdleConnections).Error; err == nil {
+		metrics["postgres_idle_connections"] = pgStats.IdleConnections
+	}
+
+	// Get waiting connections
+	if err := db.DB.Raw(
+		"SELECT count(*) as waiting_connections FROM pg_stat_activity WHERE wait_event_type IS NOT NULL",
+	).Scan(&pgStats.WaitingConnections).Error; err == nil {
+		metrics["postgres_waiting_connections"] = pgStats.WaitingConnections
+	}
+}
+
+// addMySQLMetrics adds MySQL-specific metrics
+func (db *GormDB) addMySQLMetrics(metrics map[string]any) {
+	var mysqlStats []struct {
+		VariableName string
+		Value        string
+	}
+
+	if err := db.DB.Raw(
+		"SHOW STATUS WHERE Variable_name IN ('Threads_connected', 'Threads_running', 'Threads_waiting')",
+	).Scan(&mysqlStats).Error; err == nil {
+		for _, stat := range mysqlStats {
+			metrics["mysql_"+strings.ToLower(stat.VariableName)] = stat.Value
 		}
 	}
 }
@@ -255,4 +365,17 @@ func (db *GormDB) Ping(ctx context.Context) error {
 	defer cancel()
 
 	return db.DB.WithContext(pingCtx).Raw("SELECT 1").Error
+}
+
+// NewWithDB creates a new GormDB instance with an existing DB connection
+func NewWithDB(db *gorm.DB, appLogger logging.Logger) *GormDB {
+	return &GormDB{
+		DB:     db,
+		logger: appLogger,
+	}
+}
+
+// GetDB returns the underlying GORM DB instance
+func (db *GormDB) GetDB() *gorm.DB {
+	return db.DB
 }

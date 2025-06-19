@@ -7,7 +7,10 @@ import (
 
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/auth"
+	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/middleware/session"
+	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -20,6 +23,12 @@ import (
 var Module = fx.Options(
 	// Core dependencies
 	fx.Provide(
+		// Base handler for common functionality
+		fx.Annotate(
+			NewBaseHandler,
+		),
+
+		// Legacy HandlerDeps for backward compatibility
 		fx.Annotate(
 			func(
 				logger logging.Logger,
@@ -47,32 +56,50 @@ var Module = fx.Options(
 	fx.Provide(
 		// Auth handler - public access
 		fx.Annotate(
-			func(deps *HandlerDeps) (Handler, error) {
-				return NewAuthHandler(*deps)
+			func(
+				base *BaseHandler,
+				authMiddleware *auth.Middleware,
+				requestUtils *request.Utils,
+				schemaGenerator *validation.SchemaGenerator,
+			) (Handler, error) {
+				return NewAuthHandler(base, authMiddleware, requestUtils, schemaGenerator)
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
 
 		// Web handler - public access
 		fx.Annotate(
-			func(deps *HandlerDeps) (Handler, error) {
-				return NewWebHandler(*deps)
+			func(base *BaseHandler, authMiddleware *auth.Middleware) (Handler, error) {
+				return NewWebHandler(base, authMiddleware)
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
 
-		// Form handler - authenticated access
+		// Form Web handler - authenticated access
 		fx.Annotate(
-			func(deps *HandlerDeps, accessManager *access.AccessManager) (Handler, error) {
-				return NewFormHandler(*deps, deps.FormService, accessManager), nil
+			func(base *BaseHandler, formService form.Service, formValidator *validation.FormValidator) (Handler, error) {
+				return NewFormWebHandler(base, formService, formValidator), nil
+			},
+			fx.ResultTags(`group:"handlers"`),
+		),
+
+		// Form API handler - authenticated access
+		fx.Annotate(
+			func(
+				base *BaseHandler,
+				formService form.Service,
+				accessManager *access.AccessManager,
+				formValidator *validation.FormValidator,
+			) (Handler, error) {
+				return NewFormAPIHandler(base, formService, accessManager, formValidator), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
 
 		// Dashboard handler - authenticated access
 		fx.Annotate(
-			func(deps *HandlerDeps, accessManager *access.AccessManager) (Handler, error) {
-				return NewDashboardHandler(*deps, accessManager), nil
+			func(base *BaseHandler, accessManager *access.AccessManager) (Handler, error) {
+				return NewDashboardHandler(base, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
@@ -106,6 +133,88 @@ var Module = fx.Options(
 	)),
 )
 
+// RouteRegistrar handles route registration for all handlers
+type RouteRegistrar struct {
+	handlers      []Handler
+	accessManager *access.AccessManager
+	logger        logging.Logger
+}
+
+// NewRouteRegistrar creates a new route registrar
+func NewRouteRegistrar(
+	handlers []Handler,
+	accessManager *access.AccessManager,
+	logger logging.Logger,
+) *RouteRegistrar {
+	return &RouteRegistrar{
+		handlers:      handlers,
+		accessManager: accessManager,
+		logger:        logger,
+	}
+}
+
+// RegisterAll registers all handler routes
+func (rr *RouteRegistrar) RegisterAll(e *echo.Echo) {
+	for _, handler := range rr.handlers {
+		rr.registerHandlerRoutes(e, handler)
+	}
+}
+
+// registerHandlerRoutes registers routes for a specific handler
+func (rr *RouteRegistrar) registerHandlerRoutes(e *echo.Echo, handler Handler) {
+	switch h := handler.(type) {
+	case *AuthHandler:
+		rr.registerAuthRoutes(e, h)
+	case *WebHandler:
+		rr.registerWebRoutes(e, h)
+	case *FormWebHandler:
+		rr.registerFormWebRoutes(e, h)
+	case *FormAPIHandler:
+		rr.registerFormAPIRoutes(e, h)
+	case *DashboardHandler:
+		rr.registerDashboardRoutes(e, h)
+	}
+}
+
+// registerAuthRoutes registers authentication routes
+func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
+	// Public routes
+	e.GET("/login", h.Login)
+	e.POST("/login", h.LoginPost)
+	e.GET("/signup", h.Signup)
+	e.POST("/signup", h.SignupPost)
+	e.POST("/logout", h.Logout)
+
+	// API routes with validation
+	api := e.Group("/api/v1")
+	validationGroup := api.Group("/validation")
+	validationGroup.GET("/login", h.LoginValidation)
+	validationGroup.GET("/signup", h.SignupValidation)
+}
+
+// registerWebRoutes registers public web routes
+func (rr *RouteRegistrar) registerWebRoutes(e *echo.Echo, h *WebHandler) {
+	e.GET("/", h.handleHome)
+	e.GET("/demo", h.handleDemo)
+}
+
+// registerFormWebRoutes registers form web UI routes
+func (rr *RouteRegistrar) registerFormWebRoutes(e *echo.Echo, h *FormWebHandler) {
+	h.RegisterRoutes(e, rr.accessManager)
+}
+
+// registerFormAPIRoutes registers form API routes
+func (rr *RouteRegistrar) registerFormAPIRoutes(e *echo.Echo, h *FormAPIHandler) {
+	h.RegisterRoutes(e)
+}
+
+// registerDashboardRoutes registers dashboard routes
+func (rr *RouteRegistrar) registerDashboardRoutes(e *echo.Echo, h *DashboardHandler) {
+	dashboard := e.Group("/dashboard")
+	dashboard.Use(access.Middleware(rr.accessManager, rr.logger))
+	dashboard.GET("", h.handleDashboard)
+}
+
 // RegisterHandlers registers all handlers with the Echo instance
 func RegisterHandlers(
 	e *echo.Echo,
@@ -113,50 +222,6 @@ func RegisterHandlers(
 	accessManager *access.AccessManager,
 	logger logging.Logger,
 ) {
-	for _, handler := range handlers {
-		// Register routes with appropriate access control
-		switch h := handler.(type) {
-		case *AuthHandler:
-			// Public routes
-			e.GET("/login", h.Login)
-			e.POST("/login", h.LoginPost)
-			e.GET("/signup", h.Signup)
-			e.POST("/signup", h.SignupPost)
-			e.POST("/logout", h.Logout)
-
-			// API routes with validation
-			api := e.Group("/api/v1")
-			validation := api.Group("/validation")
-			validation.GET("/login", h.LoginValidation)
-			validation.GET("/signup", h.SignupValidation)
-
-		case *WebHandler:
-			// Public routes
-			e.GET("/", h.handleHome)
-			e.GET("/demo", h.handleDemo)
-
-		case *FormHandler:
-			// Authenticated routes
-			forms := e.Group("/forms")
-			forms.Use(access.Middleware(accessManager, logger))
-			forms.GET("/new", h.handleFormNew)
-			forms.POST("", h.handleFormCreate)
-			forms.GET("/:id/edit", h.handleFormEdit)
-			forms.PUT("/:id", h.handleFormUpdate)
-			forms.DELETE("/:id", h.handleFormDelete)
-			forms.GET("/:id/submissions", h.handleFormSubmissions)
-
-			// API routes
-			api := e.Group("/api/v1")
-			formsAPI := api.Group("/forms")
-			formsAPI.GET("/:id/schema", h.handleFormSchema)
-			formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
-
-		case *DashboardHandler:
-			// Authenticated routes
-			dashboard := e.Group("/dashboard")
-			dashboard.Use(access.Middleware(accessManager, logger))
-			dashboard.GET("", h.handleDashboard)
-		}
-	}
+	registrar := NewRouteRegistrar(handlers, accessManager, logger)
+	registrar.RegisterAll(e)
 }

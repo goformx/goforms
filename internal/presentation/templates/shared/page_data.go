@@ -21,6 +21,8 @@ type PageData struct {
 	Keywords             string
 	Author               string
 	Version              string
+	BuildTime            string
+	GitCommit            string
 	Environment          string
 	AssetPath            func(string) string
 	User                 *entities.User

@@ -52,7 +52,7 @@ func getErrorMessage(e validator.FieldError) string {
 	field := getFieldName(e)
 
 	switch e.Tag() {
-	case "required":
+	case ValidateRequired:
 		return fmt.Sprintf("%s is required", field)
 	case "email":
 		return fmt.Sprintf("%s must be a valid email address", field)
@@ -68,7 +68,7 @@ func getErrorMessage(e validator.FieldError) string {
 		return fmt.Sprintf("%s must be a valid URL", field)
 	case "phone":
 		return fmt.Sprintf("%s must be a valid phone number", field)
-	case "password":
+	case ValidatePassword:
 		return fmt.Sprintf("%s must contain at least 8 characters, including uppercase, lowercase, "+
 			"number and special character", field)
 	case "date":

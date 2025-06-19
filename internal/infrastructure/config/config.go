@@ -30,7 +30,6 @@ type Config struct {
 type AppConfig struct {
 	// Application Info
 	Name     string `envconfig:"GOFORMS_APP_NAME" default:"GoFormX"`
-	Version  string `envconfig:"GOFORMS_APP_VERSION"`
 	Env      string `envconfig:"GOFORMS_APP_ENV" default:"production"`
 	Debug    bool   `envconfig:"GOFORMS_APP_DEBUG" default:"false"`
 	LogLevel string `envconfig:"GOFORMS_APP_LOGLEVEL" default:"info"`
@@ -56,33 +55,22 @@ func (c *AppConfig) IsDevelopment() bool {
 
 // DatabaseConfig holds all database-related configuration
 type DatabaseConfig struct {
-	// MariaDB Configuration
-	MariaDB struct {
-		Host            string        `envconfig:"GOFORMS_MARIADB_HOST" validate:"required"`
-		Port            int           `envconfig:"GOFORMS_MARIADB_PORT" default:"3306"`
-		User            string        `envconfig:"GOFORMS_MARIADB_USER" validate:"required"`
-		Password        string        `envconfig:"GOFORMS_MARIADB_PASSWORD" validate:"required"`
-		Name            string        `envconfig:"GOFORMS_MARIADB_NAME" validate:"required"`
-		MaxOpenConns    int           `envconfig:"GOFORMS_MARIADB_MAX_OPEN_CONNS" default:"25"`
-		MaxIdleConns    int           `envconfig:"GOFORMS_MARIADB_MAX_IDLE_CONNS" default:"5"`
-		ConnMaxLifetime time.Duration `envconfig:"GOFORMS_MARIADB_CONN_MAX_LIFETIME" default:"5m"`
-	} `envconfig:"GOFORMS_MARIADB"`
+	// Common database settings
+	Connection      string        `envconfig:"GOFORMS_DB_CONNECTION" default:"mariadb"`
+	Host            string        `envconfig:"GOFORMS_DB_HOST" validate:"required"`
+	Port            int           `envconfig:"GOFORMS_DB_PORT" default:"3306"`
+	Database        string        `envconfig:"GOFORMS_DB_DATABASE" validate:"required"`
+	Username        string        `envconfig:"GOFORMS_DB_USERNAME" validate:"required"`
+	Password        string        `envconfig:"GOFORMS_DB_PASSWORD" validate:"required"`
+	MaxOpenConns    int           `envconfig:"GOFORMS_DB_MAX_OPEN_CONNS" default:"25"`
+	MaxIdleConns    int           `envconfig:"GOFORMS_DB_MAX_IDLE_CONNS" default:"5"`
+	ConnMaxLifetime time.Duration `envconfig:"GOFORMS_DB_CONN_MAX_LIFETIME" default:"5m"`
 
-	// PostgreSQL Configuration
-	Postgres struct {
-		Host            string        `envconfig:"GOFORMS_POSTGRES_HOST" validate:"required"`
-		Port            int           `envconfig:"GOFORMS_POSTGRES_PORT" default:"5432"`
-		User            string        `envconfig:"GOFORMS_POSTGRES_USER" validate:"required"`
-		Password        string        `envconfig:"GOFORMS_POSTGRES_PASSWORD" validate:"required"`
-		Name            string        `envconfig:"GOFORMS_POSTGRES_DB" validate:"required"`
-		SSLMode         string        `envconfig:"GOFORMS_POSTGRES_SSLMODE" default:"disable"`
-		MaxOpenConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_OPEN_CONNS" default:"25"`
-		MaxIdleConns    int           `envconfig:"GOFORMS_POSTGRES_MAX_IDLE_CONNS" default:"5"`
-		ConnMaxLifetime time.Duration `envconfig:"GOFORMS_POSTGRES_CONN_MAX_LIFETIME" default:"5m"`
-	} `envconfig:"GOFORMS_POSTGRES"`
+	// PostgreSQL specific settings
+	SSLMode string `envconfig:"GOFORMS_DB_SSLMODE" default:"disable"`
 
-	// Active database driver
-	Driver string `envconfig:"GOFORMS_DB_DRIVER" default:"mariadb"`
+	// MariaDB specific settings
+	RootPassword string `envconfig:"GOFORMS_DB_ROOT_PASSWORD"`
 
 	// Logging configuration
 	Logging struct {
@@ -98,37 +86,40 @@ type DatabaseConfig struct {
 	} `envconfig:"GOFORMS_DB_LOGGING"`
 }
 
+// CSRFConfig holds CSRF-related configuration
+type CSRFConfig struct {
+	Enabled bool   `envconfig:"ENABLED" default:"true"`
+	Secret  string `envconfig:"SECRET" validate:"required"`
+}
+
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	Debug               bool          `envconfig:"GOFORMS_DEBUG" default:"false"`
-	FormRateLimit       float64       `envconfig:"GOFORMS_FORM_RATE_LIMIT" default:"100"`
-	FormRateLimitWindow time.Duration `envconfig:"GOFORMS_FORM_RATE_LIMIT_WINDOW" default:"1m"`
-	SecureCookie        bool          `envconfig:"GOFORMS_SECURE_COOKIE" default:"true"`
+	Debug               bool          `envconfig:"DEBUG" default:"false"`
+	FormRateLimit       float64       `envconfig:"FORM_RATE_LIMIT" default:"100"`
+	FormRateLimitWindow time.Duration `envconfig:"FORM_RATE_LIMIT_WINDOW" default:"1m"`
+	SecureCookie        bool          `envconfig:"SECURE_COOKIE" default:"true"`
 
 	// Rate Limiting
-	RateLimitEnabled    bool          `envconfig:"GOFORMS_RATE_LIMIT_ENABLED" default:"true"`
-	RateLimit           int           `envconfig:"GOFORMS_RATE_LIMIT" default:"100"`
-	RateBurst           int           `envconfig:"GOFORMS_RATE_BURST" default:"20"`
-	RateLimitTimeWindow time.Duration `envconfig:"GOFORMS_RATE_LIMIT_TIME_WINDOW" default:"1m"`
-	RateLimitPerIP      bool          `envconfig:"GOFORMS_RATE_LIMIT_PER_IP" default:"true"`
+	RateLimitEnabled    bool          `envconfig:"RATE_LIMIT_ENABLED" default:"true"`
+	RateLimit           int           `envconfig:"RATE_LIMIT" default:"100"`
+	RateBurst           int           `envconfig:"RATE_BURST" default:"20"`
+	RateLimitTimeWindow time.Duration `envconfig:"RATE_LIMIT_TIME_WINDOW" default:"1m"`
+	RateLimitPerIP      bool          `envconfig:"RATE_LIMIT_PER_IP" default:"true"`
 
 	// CORS settings
-	CorsAllowedOrigins   []string `envconfig:"GOFORMS_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
-	CorsAllowedMethods   []string `envconfig:"GOFORMS_CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	CorsAllowedHeaders   []string `envconfig:"GOFORMS_CORS_ALLOWED_HEADERS" default:"Content-Type,Authorization"`
-	CorsAllowCredentials bool     `envconfig:"GOFORMS_CORS_ALLOW_CREDENTIALS" default:"true"`
-	CorsMaxAge           int      `envconfig:"GOFORMS_CORS_MAX_AGE" default:"3600"`
+	CorsAllowedOrigins   []string `envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
+	CorsAllowedMethods   []string `envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
+	CorsAllowedHeaders   []string `envconfig:"CORS_ALLOWED_HEADERS" default:"Content-Type,Authorization"`
+	CorsAllowCredentials bool     `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
+	CorsMaxAge           int      `envconfig:"CORS_MAX_AGE" default:"3600"`
 
 	// Form-specific CORS settings
-	FormCorsAllowedOrigins []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_ORIGINS" default:"*"`
-	FormCorsAllowedMethods []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_METHODS" default:"GET,POST,OPTIONS"`
-	FormCorsAllowedHeaders []string `envconfig:"GOFORMS_FORM_CORS_ALLOWED_HEADERS" default:"Content-Type"`
+	FormCorsAllowedOrigins []string `envconfig:"FORM_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
+	FormCorsAllowedMethods []string `envconfig:"FORM_CORS_ALLOWED_METHODS" default:"GET,POST,OPTIONS"`
+	FormCorsAllowedHeaders []string `envconfig:"FORM_CORS_ALLOWED_HEADERS" default:"Content-Type,Accept,Origin"`
 
 	// CSRF settings
-	CSRFConfig struct {
-		Enabled bool   `envconfig:"GOFORMS_CSRF_ENABLED" default:"true"`
-		Secret  string `envconfig:"GOFORMS_CSRF_SECRET" validate:"required"`
-	} `envconfig:"GOFORMS_CSRF"`
+	CSRFConfig CSRFConfig `envconfig:"CSRF"`
 }
 
 // EmailConfig holds email-related configuration
@@ -263,69 +254,38 @@ func (c *Config) validateAppConfig() error {
 	return nil
 }
 
-// validateMariaDBConfig validates MariaDB configuration
-func (c *Config) validateMariaDBConfig() error {
-	var errs []string
-
-	if c.Database.MariaDB.Host == "" {
-		errs = append(errs, "MariaDB host is required")
-	}
-	if c.Database.MariaDB.Port <= 0 || c.Database.MariaDB.Port > 65535 {
-		errs = append(errs, "MariaDB port must be between 1 and 65535")
-	}
-	if c.Database.MariaDB.User == "" {
-		errs = append(errs, "MariaDB user is required")
-	}
-	if c.Database.MariaDB.Password == "" {
-		errs = append(errs, "MariaDB password is required")
-	}
-	if c.Database.MariaDB.Name == "" {
-		errs = append(errs, "MariaDB database name is required")
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("MariaDB config validation errors: %s", strings.Join(errs, "; "))
-	}
-
-	return nil
-}
-
-// validatePostgresConfig validates PostgreSQL configuration
-func (c *Config) validatePostgresConfig() error {
-	var errs []string
-
-	if c.Database.Postgres.Host == "" {
-		errs = append(errs, "PostgreSQL host is required")
-	}
-	if c.Database.Postgres.Port <= 0 || c.Database.Postgres.Port > 65535 {
-		errs = append(errs, "PostgreSQL port must be between 1 and 65535")
-	}
-	if c.Database.Postgres.User == "" {
-		errs = append(errs, "PostgreSQL user is required")
-	}
-	if c.Database.Postgres.Password == "" {
-		errs = append(errs, "PostgreSQL password is required")
-	}
-	if c.Database.Postgres.Name == "" {
-		errs = append(errs, "PostgreSQL database name is required")
-	}
-
-	if len(errs) > 0 {
-		return fmt.Errorf("PostgreSQL config validation errors: %s", strings.Join(errs, "; "))
-	}
-
-	return nil
-}
-
 // validateDatabaseConfig validates database configuration
 func (c *Config) validateDatabaseConfig() error {
 	var errs []string
 
-	if err := c.validateMariaDBConfig(); err != nil {
-		errs = append(errs, err.Error())
+	if c.Database.Host == "" {
+		errs = append(errs, "database host is required")
 	}
-	if err := c.validatePostgresConfig(); err != nil {
-		errs = append(errs, err.Error())
+	if c.Database.Port <= 0 || c.Database.Port > 65535 {
+		errs = append(errs, "database port must be between 1 and 65535")
+	}
+	if c.Database.Username == "" {
+		errs = append(errs, "database username is required")
+	}
+	if c.Database.Password == "" {
+		errs = append(errs, "database password is required")
+	}
+	if c.Database.Database == "" {
+		errs = append(errs, "database name is required")
+	}
+
+	// Validate database-specific settings
+	switch c.Database.Connection {
+	case "postgres":
+		if c.Database.SSLMode == "" {
+			errs = append(errs, "PostgreSQL SSL mode is required")
+		}
+	case "mariadb":
+		if c.Database.RootPassword == "" {
+			errs = append(errs, "MariaDB root password is required")
+		}
+	default:
+		errs = append(errs, "unsupported database connection type")
 	}
 
 	if len(errs) > 0 {

@@ -11,39 +11,24 @@ services:
     ports:
       - "8090:8090"
       - "3000:3000"
+    environment:
+      - GOFORMS_DB_CONNECTION=postgres
+      - GOFORMS_DB_HOST=postgres
+      - GOFORMS_DB_PORT=5432
+      - GOFORMS_DB_DATABASE=goforms
+      - GOFORMS_DB_USERNAME=goforms
+      - GOFORMS_DB_PASSWORD=goforms
+      - GOFORMS_DB_SSLMODE=disable
     depends_on:
-      mariadb:
-        condition: service_healthy
       postgres:
         condition: service_healthy
-
-  mariadb:
-    image: mariadb:10.11
-    restart: unless-stopped
-    volumes:
-      - mariadb-data:/var/lib/mysql
-      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
-    environment:
-      - MARIADB_ROOT_PASSWORD=toor
-      - MARIADB_USER=goforms
-      - MARIADB_PASSWORD=goforms
-      - MARIADB_DATABASE=goforms
-    ports:
-      - "3306:3306"
-    healthcheck:
-      test: ["CMD", "mysqladmin", "ping", "-h", "localhost"]
-      interval: 10s
-      timeout: 10s
-      retries: 10
-    networks:
-      - app-net
 
   postgres:
     image: postgres:latest
     restart: unless-stopped
     volumes:
       - postgres-data:/var/lib/postgresql/data
-      - ./init-postgres.sql:/docker-entrypoint-initdb.d/init.sql
+      - ./init-scripts/init-postgres.sql:/docker-entrypoint-initdb.d/init.sql
     environment:
       - POSTGRES_USER=goforms
       - POSTGRES_PASSWORD=goforms
@@ -64,15 +49,12 @@ services:
     networks:
       - app-net
     depends_on:
-      mariadb:
-        condition: service_healthy
       postgres:
         condition: service_healthy
     ports:
       - "8098:8080"
 
 volumes:
-  mariadb-data:
   postgres-data:
 networks:
   app-net:
