@@ -87,7 +87,8 @@ func (s *Service) XML(input string) string {
 
 // TrimAndSanitize trims whitespace and sanitizes a string
 func (s *Service) TrimAndSanitize(input string) string {
-	return s.String(strings.TrimSpace(input))
+	trimmed := strings.TrimSpace(input)
+	return s.HTML(trimmed)
 }
 
 // TrimAndSanitizeEmail trims whitespace and sanitizes an email
@@ -100,7 +101,7 @@ func (s *Service) SanitizeMap(data map[string]any) {
 	for key, value := range data {
 		switch v := value.(type) {
 		case string:
-			data[key] = s.String(v)
+			data[key] = s.TrimAndSanitize(v)
 		case map[string]any:
 			s.SanitizeMap(v)
 		case []any:
@@ -114,7 +115,7 @@ func (s *Service) SanitizeSlice(data []any) {
 	for i, value := range data {
 		switch v := value.(type) {
 		case string:
-			data[i] = s.String(v)
+			data[i] = s.TrimAndSanitize(v)
 		case map[string]any:
 			s.SanitizeMap(v)
 		case []any:
@@ -206,17 +207,17 @@ func (s *Service) SanitizeFormData(data, fieldTypes map[string]string) map[strin
 
 		switch fieldType {
 		case "email":
-			result[key] = s.Email(value)
+			result[key] = s.TrimAndSanitizeEmail(value)
 		case "url":
-			result[key] = s.URL(value)
+			result[key] = s.URL(strings.TrimSpace(value))
 		case "path":
-			result[key] = s.Path(value)
+			result[key] = s.Path(strings.TrimSpace(value))
 		case "html":
-			result[key] = s.HTML(value)
+			result[key] = s.HTML(strings.TrimSpace(value))
 		case "numeric":
-			result[key] = s.Numeric(value)
+			result[key] = s.Numeric(strings.TrimSpace(value))
 		default:
-			result[key] = s.String(value)
+			result[key] = s.TrimAndSanitize(value)
 		}
 	}
 	return result
@@ -226,7 +227,7 @@ func (s *Service) SanitizeFormData(data, fieldTypes map[string]string) map[strin
 func (s *Service) SanitizeJSON(data any) any {
 	switch v := data.(type) {
 	case string:
-		return s.String(v)
+		return s.TrimAndSanitize(v)
 	case map[string]any:
 		sanitized := make(map[string]any)
 		for key, value := range v {

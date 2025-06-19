@@ -170,7 +170,7 @@ func TestService_TrimAndSanitize(t *testing.T) {
 		{
 			name:     "with XSS",
 			input:    "  <script>alert('test');</script>  ",
-			expected: ">alert('test');</",
+			expected: "alert('test');",
 		},
 		{
 			name:     "empty string",
