@@ -1,0 +1,178 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Asset Serving Guide
+
+## Overview
+GoForms implements a flexible asset serving system that supports both development (Vite dev server) and production (embedded filesystem) modes.
+
+## Architecture
+
+### Asset Server Interface
+The asset serving system is defined by the `AssetServer` interface in [internal/infrastructure/web/assets.go](mdc:internal/infrastructure/web/assets.go):
+
+```go
+type AssetServer interface {
+    RegisterRoutes(e *echo.Echo) error
+}
+```
+
+### Implementation Types
+1. **ViteAssetServer**: Proxies requests to Vite dev server (development)
+2. **EmbeddedAssetServer**: Serves files from embedded filesystem (production)
+3. **StaticAssetServer**: Serves files from filesystem (fallback)
+
+## Dependency Injection
+
+### Provider Configuration
+Asset server selection is handled in [internal/infrastructure/module.go](mdc:internal/infrastructure/module.go):
+
+```go
+func ProvideAssetServer(p AssetServerParams) infraweb.AssetServer {
+    if p.Config.App.IsDevelopment() {
+        return infraweb.NewViteAssetServer(p.Config, p.Logger)
+    }
+    
+    if p.DistFS != zeroFS {
+        return infraweb.NewEmbeddedAssetServer(p.Logger, p.DistFS)
+    }
+    return infraweb.NewStaticAssetServer(p.Logger)
+}
+```
+
+### Embedded Filesystem Injection
+The embedded filesystem is provided in [main.go](mdc:main.go):
+```go
+fx.Provide(func() embed.FS {
+    return distFS
+}),
+```
+
+## Development Mode (ViteAssetServer)
+
+### Features
+- Proxies requests to Vite dev server at `localhost:3000`
+- Supports hot module replacement
+- Handles source maps and development assets
+- Routes: `/src/*`, `/@vite/*`, `/@fs/*`, `/@id/*`
+
+### Configuration
+- **Host**: `GOFORMS_VITE_DEV_HOST` (default: localhost)
+- **Port**: `GOFORMS_VITE_DEV_PORT` (default: 3000)
+- **Scheme**: `GOFORMS_APP_SCHEME` (default: http)
+
+## Production Mode (EmbeddedAssetServer)
+
+### Features
+- Serves files from embedded `dist/` filesystem
+- Proper MIME type detection
+- Security headers for static files
+- Support for all asset types (JS, CSS, fonts, images)
+
+### File Structure Mapping
+```
+URL Path                    → Embedded Path
+/assets/js/*               → dist/assets/js/*
+/assets/css/*              → dist/assets/css/*
+/assets/fonts/*            → dist/fonts/*
+/robots.txt                → dist/robots.txt
+/favicon.ico               → dist/favicon.ico
+```
+
+### Implementation Details
+- Uses `http.FileServer` with `echo.WrapHandler`
+- Creates sub-filesystems for different asset types
+- Strips URL prefixes to map to correct embedded paths
+
+## Security Headers
+
+### Static File Headers
+All asset servers apply security headers via `setupStaticFileHeaders`:
+- `X-Content-Type-Options: nosniff`
+- `Cache-Control: public, max-age=31536000`
+
+### Content Type Detection
+The asset server automatically detects and sets proper MIME types:
+- `.js` → `application/javascript`
+- `.css` → `text/css`
+- `.woff2` → `font/woff2`
+- `.woff` → `font/woff`
+- `.ico` → `image/x-icon`
+
+## Troubleshooting
+
+### Common Issues
+
+#### 404 Errors for Assets
+1. **Check file existence**: Verify files exist in `dist/` directory
+2. **Check URL mapping**: Ensure URL paths match embedded filesystem structure
+3. **Check environment**: Verify `GOFORMS_APP_ENV` is set correctly
+
+#### Wrong Content Types
+1. **Check MIME type detection**: Verify file extensions are handled
+2. **Check browser console**: Look for MIME type warnings
+3. **Test with curl**: Check response headers
+
+#### Font Loading Issues
+1. **Check font directory**: Ensure fonts are in `dist/fonts/`
+2. **Check CORS**: Verify font files are served with correct headers
+3. **Check file paths**: Ensure CSS references match served paths
+
+### Debugging Commands
+
+#### Test Asset Serving
+```bash
+# Test JavaScript file
+curl -I http://localhost:8090/assets/js/main.CqLJyd_F.js
+
+# Test CSS file
+curl -I http://localhost:8090/assets/css/main.BK9UPkBG.css
+
+# Test font file
+curl -I http://localhost:8090/assets/fonts/bootstrap-icons.woff2
+```
+
+#### Check Embedded Filesystem
+```bash
+# List embedded files (requires test program)
+go run -c 'package main; import "embed"; //go:embed dist; var fs embed.FS; func main() { entries, _ := fs.ReadDir("dist"); for _, e := range entries { println(e.Name()) } }'
+```
+
+### Environment Testing
+
+#### Development Mode
+```bash
+export GOFORMS_APP_ENV=development
+./bin/goforms
+# Assets served from Vite dev server
+```
+
+#### Production Mode
+```bash
+export GOFORMS_APP_ENV=production
+./bin/goforms
+# Assets served from embedded filesystem
+```
+
+## Best Practices
+
+1. **Always rebuild after frontend changes**: Embedded assets require full rebuild
+2. **Test both environments**: Verify assets work in development and production
+3. **Use proper file paths**: Ensure CSS/JS references match served paths
+4. **Check content types**: Verify assets are served with correct MIME types
+5. **Monitor server logs**: Check for asset serving errors and debug information
+
+## Configuration
+
+### Environment Variables
+- `GOFORMS_APP_ENV`: Controls asset server selection
+- `GOFORMS_VITE_DEV_HOST`: Vite dev server host
+- `GOFORMS_VITE_DEV_PORT`: Vite dev server port
+- `GOFORMS_APP_SCHEME`: Protocol scheme (http/https)
+
+### Build Configuration
+- Frontend assets must be built to `dist/` directory
+- Vite manifest should be generated for asset versioning
+- Font files should be placed in `dist/fonts/` directory
