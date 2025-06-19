@@ -4,9 +4,11 @@
 package web
 
 import (
+	"embed"
 	"encoding/json"
 	"errors"
 	"fmt"
+	"io/fs"
 	"net"
 	"net/http"
 	"net/http/httputil"
@@ -144,6 +146,75 @@ func (s *StaticAssetServer) RegisterRoutes(e *echo.Echo) error {
 	e.File("/favicon.ico", "dist/favicon.ico")
 
 	s.logger.Info("static asset server configured", "base_dir", "dist")
+	return nil
+}
+
+// EmbeddedAssetServer implements AssetServer for embedded static files in production
+type EmbeddedAssetServer struct {
+	logger logging.Logger
+	distFS embed.FS
+}
+
+// NewEmbeddedAssetServer creates a new embedded asset server
+func NewEmbeddedAssetServer(logger logging.Logger, distFS embed.FS) *EmbeddedAssetServer {
+	return &EmbeddedAssetServer{
+		logger: logger,
+		distFS: distFS,
+	}
+}
+
+// RegisterRoutes registers the embedded static file serving routes
+func (s *EmbeddedAssetServer) RegisterRoutes(e *echo.Echo) error {
+	// Add static file headers middleware
+	e.Use(setupStaticFileHeaders)
+
+	// Create a sub-filesystem for the dist directory
+	distSubFS, err := fs.Sub(s.distFS, "dist")
+	if err != nil {
+		return fmt.Errorf("failed to create dist sub-filesystem: %w", err)
+	}
+
+	// Create a sub-filesystem for the assets directory
+	assetsSubFS, err := fs.Sub(distSubFS, "assets")
+	if err != nil {
+		return fmt.Errorf("failed to create assets sub-filesystem: %w", err)
+	}
+
+	// Create a sub-filesystem for the fonts directory
+	fontsSubFS, err := fs.Sub(distSubFS, "fonts")
+	if err != nil {
+		return fmt.Errorf("failed to create fonts sub-filesystem: %w", err)
+	}
+
+	// Create file server for embedded assets
+	assetHandler := http.FileServer(http.FS(assetsSubFS))
+	fontHandler := http.FileServer(http.FS(fontsSubFS))
+
+	// Serve assets using the file server - strip the /assets prefix and serve from assets directory
+	e.GET("/assets/*", echo.WrapHandler(http.StripPrefix("/assets/", assetHandler)))
+
+	// Serve fonts using the file server - strip the /assets/fonts prefix and serve from fonts directory
+	e.GET("/assets/fonts/*", echo.WrapHandler(http.StripPrefix("/assets/fonts/", fontHandler)))
+
+	// Serve individual files from embedded filesystem
+	e.GET("/robots.txt", func(c echo.Context) error {
+		data, readErr := fs.ReadFile(distSubFS, "robots.txt")
+		if readErr != nil {
+			return c.NoContent(http.StatusNotFound)
+		}
+		c.Response().Header().Set("Content-Type", "text/plain")
+		return c.Blob(http.StatusOK, "text/plain", data)
+	})
+	e.GET("/favicon.ico", func(c echo.Context) error {
+		data, readErr := fs.ReadFile(distSubFS, "favicon.ico")
+		if readErr != nil {
+			return c.NoContent(http.StatusNotFound)
+		}
+		c.Response().Header().Set("Content-Type", "image/x-icon")
+		return c.Blob(http.StatusOK, "image/x-icon", data)
+	})
+
+	s.logger.Info("embedded asset server configured", "base_dir", "dist")
 	return nil
 }
 

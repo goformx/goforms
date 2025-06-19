@@ -7,6 +7,8 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
+	"embed"
+
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/domain/form"
 	formevent "github.com/goformx/goforms/internal/domain/form/event"
@@ -71,12 +73,19 @@ type AssetServerParams struct {
 	fx.In
 	Config *config.Config
 	Logger logging.Logger
+	DistFS embed.FS
 }
 
 // ProvideAssetServer creates an appropriate asset server based on the environment
 func ProvideAssetServer(p AssetServerParams) infraweb.AssetServer {
 	if p.Config.App.IsDevelopment() {
 		return infraweb.NewViteAssetServer(p.Config, p.Logger)
+	}
+
+	// In production, use embedded filesystem if available, otherwise fall back to filesystem
+	var zeroFS embed.FS
+	if p.DistFS != zeroFS {
+		return infraweb.NewEmbeddedAssetServer(p.Logger, p.DistFS)
 	}
 	return infraweb.NewStaticAssetServer(p.Logger)
 }

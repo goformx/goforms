@@ -5,6 +5,7 @@ package main
 
 import (
 	"context"
+	"embed"
 	"fmt"
 	"os"
 	"os/signal"
@@ -26,6 +27,9 @@ import (
 	"github.com/goformx/goforms/internal/presentation"
 	"github.com/labstack/echo/v4"
 )
+
+//go:embed dist
+var distFS embed.FS
 
 // DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown
 // before forcing termination.
@@ -119,6 +123,10 @@ func main() {
 	app := fx.New(
 		// Provide configuration
 		fx.Provide(config.New),
+		// Provide embedded filesystem
+		fx.Provide(func() embed.FS {
+			return distFS
+		}),
 		// Provide logger factory with configuration
 		fx.Provide(func(cfg *config.Config) logging.Logger {
 			versionInfo := version.GetInfo()

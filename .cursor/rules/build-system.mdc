@@ -1,0 +1,139 @@
+---
+description: 
+globs: 
+alwaysApply: false
+---
+# Build System Guide
+
+## Overview
+GoForms uses a multi-stage build system with Task for orchestration, Vite for frontend building, and Go for backend compilation.
+
+## Key Files
+
+### Task Orchestration
+- [Taskfile.yml](mdc:Taskfile.yml): Main task definitions and build orchestration
+- [Taskfile.migrate.yml](mdc:Taskfile.migrate.yml): Database migration tasks
+- [Taskfile.user.yml](mdc:Taskfile.user.yml): User management tasks
+
+### Frontend Build
+- [package.json](mdc:package.json): Frontend dependencies and scripts
+- [vite.config.ts](mdc:vite.config.ts): Vite build configuration
+- [tsconfig.json](mdc:tsconfig.json): TypeScript configuration
+
+### Backend Build
+- [main.go](mdc:main.go): Main application entry point (moved from cmd/goforms/)
+- [go.mod](mdc:go.mod): Go module dependencies
+
+## Build Process
+
+### Complete Build Pipeline
+```bash
+task default  # Runs: install:all → generate:all → build:all → migrate:pg:up → run
+```
+
+### Individual Stages
+1. **Install Dependencies**: `task install:all`
+   - Installs Go tools and frontend dependencies
+2. **Generate Code**: `task generate:all`
+   - Generates templ files and mocks
+3. **Build Application**: `task build:all`
+   - Builds frontend and backend
+4. **Run Application**: `task run`
+
+## Development Workflow
+
+### Development Mode
+```bash
+task dev  # Runs both frontend and backend in development mode
+```
+
+### Backend Development
+```bash
+task dev:backend  # Runs backend with hot reload using Air
+```
+
+### Frontend Development
+```bash
+task dev:frontend  # Runs Vite dev server
+```
+
+## Build Artifacts
+
+### Frontend Build
+- **Output Directory**: `dist/`
+- **Assets**: JavaScript, CSS, fonts, and other static files
+- **Manifest**: Vite generates a manifest for asset versioning
+
+### Backend Build
+- **Binary**: `bin/goforms`
+- **Embedded Assets**: The `dist/` directory is embedded into the binary
+- **Version Info**: Build time, git commit, and version are embedded
+
+## Task Commands
+
+### Core Tasks
+- `task build:all` - Build entire application
+- `task build:frontend` - Build frontend only
+- `task build:backend` - Build backend only
+- `task run` - Run the compiled application
+
+### Development Tasks
+- `task dev` - Run development environment
+- `task dev:backend` - Run backend with hot reload
+- `task dev:frontend` - Run frontend dev server
+
+### Code Quality
+- `task lint:all` - Run all linters
+- `task test` - Run unit tests
+- `task test:cover` - Run tests with coverage
+
+### Code Generation
+- `task generate:all` - Generate all code artifacts
+- `task generate:templ` - Generate templ files
+- `task generate:mocks:all` - Generate all mocks
+
+## Environment Configuration
+
+### Development
+- Uses Vite dev server for frontend assets
+- Hot reload enabled for both frontend and backend
+- Debug logging enabled
+
+### Production
+- Uses embedded assets from the binary
+- Optimized builds with minification
+- Production logging configuration
+
+## Build Configuration
+
+### Frontend (Vite)
+- **Entry Points**: Multiple entry points for different pages
+- **Output**: Optimized assets with hashing for cache busting
+- **Target**: ESNext for modern browsers
+- **Minification**: Terser for JavaScript, CSS minification
+
+### Backend (Go)
+- **Entry Point**: [main.go](mdc:main.go) in root directory
+- **Output**: `bin/goforms` binary
+- **Embedding**: `dist/` directory embedded using Go's embed feature
+- **Version Info**: Embedded via ldflags
+
+## Troubleshooting
+
+### Common Build Issues
+1. **Missing main.go**: Ensure [main.go](mdc:main.go) is in the root directory
+2. **Embedded assets not found**: Rebuild after frontend changes
+3. **Task not found**: Install Task runner: `go install github.com/go-task/task/v3/cmd/task@latest`
+
+### Development Issues
+1. **Hot reload not working**: Check Air configuration in [.air.toml](mdc:.air.toml)
+2. **Vite dev server issues**: Check [vite.config.ts](mdc:vite.config.ts) configuration
+3. **Asset serving problems**: Verify environment is set correctly (development vs production)
+
+## Best Practices
+
+1. **Always use Task commands**: Don't run build commands directly
+2. **Rebuild after frontend changes**: Embedded assets require full rebuild
+3. **Test both environments**: Verify development and production modes work
+4. **Check generated files**: Ensure templ and mock files are up to date
+5. **Use proper environment variables**: Set `GOFORMS_APP_ENV` appropriately
