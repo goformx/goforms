@@ -15,6 +15,17 @@ func (sm *Manager) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			path := c.Request().URL.Path
+			method := c.Request().Method
+
+			// Special handling for schema endpoints
+			if strings.HasSuffix(path, "/schema") && strings.HasPrefix(path, "/api/v1/forms/") {
+				// For GET requests to schema endpoints, allow without authentication (for embedded forms)
+				if method == "GET" {
+					return next(c)
+				}
+				// For PUT requests to schema endpoints, require authentication
+				// Continue with normal session processing
+			}
 
 			// Check if this is a path that should skip session processing entirely
 			if sm.shouldSkipSession(path) {

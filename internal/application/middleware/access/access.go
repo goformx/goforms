@@ -1,6 +1,7 @@
 package access
 
 import (
+	"fmt"
 	"strings"
 
 	"github.com/goformx/goforms/internal/domain/common/errors"
@@ -117,6 +118,35 @@ func (am *AccessManager) IsAdminPath(path string) bool {
 	return false
 }
 
+// matchPathPattern checks if a path matches a pattern with parameters
+func matchPathPattern(pattern, path string) bool {
+	// Split both pattern and path into segments
+	patternSegments := strings.Split(pattern, "/")
+	pathSegments := strings.Split(path, "/")
+
+	// Check if they have the same number of segments
+	if len(patternSegments) != len(pathSegments) {
+		return false
+	}
+
+	// Compare each segment
+	for i, patternSeg := range patternSegments {
+		pathSeg := pathSegments[i]
+
+		// If pattern segment starts with ":", it's a parameter - always match
+		if strings.HasPrefix(patternSeg, ":") {
+			continue
+		}
+
+		// Otherwise, segments must match exactly
+		if patternSeg != pathSeg {
+			return false
+		}
+	}
+
+	return true
+}
+
 // GetRequiredAccess returns the required access level for a path and method
 func (am *AccessManager) GetRequiredAccess(path, method string) AccessLevel {
 	// Check if path is public
@@ -129,9 +159,9 @@ func (am *AccessManager) GetRequiredAccess(path, method string) AccessLevel {
 		return AdminAccess
 	}
 
-	// Check specific rules
+	// Check specific rules with pattern matching
 	for _, rule := range am.rules {
-		if rule.Path == path {
+		if matchPathPattern(rule.Path, path) {
 			// If no methods specified, rule applies to all methods
 			if len(rule.Methods) == 0 {
 				return rule.AccessLevel
@@ -176,6 +206,9 @@ func DefaultRules() []AccessRule {
 		// Public API endpoints
 		{Path: "/api/v1/public", AccessLevel: PublicAccess},
 
+		// Public form endpoints (for embedded forms) - GET only
+		{Path: "/api/v1/forms/:id/schema", AccessLevel: PublicAccess, Methods: []string{"GET"}},
+
 		// Static assets
 		{Path: "/static", AccessLevel: PublicAccess},
 		{Path: "/assets", AccessLevel: PublicAccess},
@@ -198,5 +231,28 @@ func DefaultRules() []AccessRule {
 		{Path: "/api/v1/admin", AccessLevel: AdminAccess},
 		{Path: "/api/v1/admin/users", AccessLevel: AdminAccess},
 		{Path: "/api/v1/admin/forms", AccessLevel: AdminAccess},
+	}
+}
+
+// TestMatchPathPattern is a simple test function to verify pattern matching
+func TestMatchPathPattern() {
+	testCases := []struct {
+		pattern string
+		path    string
+		expect  bool
+	}{
+		{"/api/v1/forms/:id/schema", "/api/v1/forms/61af2a0f-5b54-476f-9bf6-c2ee6ce5b822/schema", true},
+		{"/api/v1/forms/:id/schema", "/api/v1/forms/123/schema", true},
+		{"/api/v1/forms/:id/schema", "/api/v1/forms/123/submit", false},
+		{"/api/v1/forms/:id/schema", "/api/v1/forms/schema", false},
+		{"/api/v1/forms/:id/schema", "/api/v1/forms/123/schema/extra", false},
+	}
+
+	for _, tc := range testCases {
+		result := matchPathPattern(tc.pattern, tc.path)
+		if result != tc.expect {
+			panic(fmt.Sprintf("Pattern matching failed: %s vs %s, expected %v, got %v",
+				tc.pattern, tc.path, tc.expect, result))
+		}
 	}
 }

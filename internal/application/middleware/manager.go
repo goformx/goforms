@@ -131,13 +131,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Use(echomw.Logger())
 	}
 	e.Use(echomw.Recover())
-	e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
-		AllowOrigins:     m.config.Security.CorsAllowedOrigins,
-		AllowMethods:     m.config.Security.CorsAllowedMethods,
-		AllowHeaders:     m.config.Security.CorsAllowedHeaders,
-		AllowCredentials: m.config.Security.CorsAllowCredentials,
-		MaxAge:           m.config.Security.CorsMaxAge,
-	}))
+	e.Use(setupCORS(m.config.Security))
 
 	// Register security middleware
 	e.Use(setupSecurityHeadersMiddleware())
@@ -199,10 +193,11 @@ func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
 				return false
 			}
 
-			// Skip CSRF for API endpoints with valid Authorization header
+			// Skip CSRF for API endpoints with valid Authorization header or CSRF token
 			if strings.HasPrefix(path, "/api/") {
 				authHeader := c.Request().Header.Get("Authorization")
-				if authHeader != "" {
+				csrfToken := c.Request().Header.Get("X-CSRF-Token")
+				if authHeader != "" || csrfToken != "" {
 					return true
 				}
 			}
@@ -437,4 +432,85 @@ func (l *EchoLogger) SetOutput(w io.Writer) {
 
 func (l *EchoLogger) Output() io.Writer {
 	return os.Stdout
+}
+
+func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			method := c.Request().Method
+
+			// Check if this is a form-related endpoint
+			isFormEndpoint := strings.HasPrefix(path, "/api/v1/forms/") &&
+				(strings.HasSuffix(path, "/schema") || strings.HasSuffix(path, "/submit"))
+
+			var allowedOrigins []string
+			var allowedMethods []string
+			var allowedHeaders []string
+			var allowCredentials bool
+			var maxAge int
+
+			if isFormEndpoint {
+				// Use form-specific CORS settings for form endpoints
+				allowedOrigins = securityConfig.FormCorsAllowedOrigins
+				allowedMethods = securityConfig.FormCorsAllowedMethods
+				allowedHeaders = securityConfig.FormCorsAllowedHeaders
+				allowCredentials = false // Forms don't need credentials
+				maxAge = 3600
+			} else {
+				// Use general CORS settings for other endpoints
+				allowedOrigins = securityConfig.CorsAllowedOrigins
+				allowedMethods = securityConfig.CorsAllowedMethods
+				allowedHeaders = securityConfig.CorsAllowedHeaders
+				allowCredentials = securityConfig.CorsAllowCredentials
+				maxAge = securityConfig.CorsMaxAge
+			}
+
+			// Handle preflight requests
+			if method == "OPTIONS" {
+				origin := c.Request().Header.Get("Origin")
+
+				// Check if origin is allowed
+				originAllowed := false
+				for _, allowedOrigin := range allowedOrigins {
+					if allowedOrigin == "*" || allowedOrigin == origin {
+						originAllowed = true
+						break
+					}
+				}
+
+				if originAllowed {
+					c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+					c.Response().Header().Set("Access-Control-Allow-Methods", strings.Join(allowedMethods, ","))
+					c.Response().Header().Set("Access-Control-Allow-Headers", strings.Join(allowedHeaders, ","))
+					if allowCredentials {
+						c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+					}
+					c.Response().Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", maxAge))
+					return c.NoContent(http.StatusNoContent)
+				}
+			}
+
+			// Handle actual requests
+			origin := c.Request().Header.Get("Origin")
+			if origin != "" {
+				originAllowed := false
+				for _, allowedOrigin := range allowedOrigins {
+					if allowedOrigin == "*" || allowedOrigin == origin {
+						originAllowed = true
+						break
+					}
+				}
+
+				if originAllowed {
+					c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+					if allowCredentials {
+						c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+					}
+				}
+			}
+
+			return next(c)
+		}
+	}
 }
