@@ -39,17 +39,13 @@ vars:
   TEST_DB_HOST: '{{.TEST_DB_HOST}}'
   TEST_DB_PORT: '{{.TEST_DB_PORT}}'
 
-  PROD_USER: '{{.PROD_USER}}'
-  PROD_SERVER: '{{.PROD_SERVER}}'
-  PROD_LOG_PATH: '{{.PROD_LOG_PATH}}'
-
 tasks:
   default:
     desc: Run full dev setup pipeline
     cmds:
-    - task: install:all
-    - task: generate:all
-    - task: build:all
+    - task: install
+    - task: generate
+    - task: build
     - task: migrate:pg:up
     - task: run
 
@@ -70,14 +66,14 @@ tasks:
     cmds:
     - npm run format
 
-  install:all:
+  install:
     desc: Install all project dependencies
     deps: [ install:go-tools, install:frontend ]
 
   install:go-tools:
     desc: Install Go development tools
-    deps: [ install:mockgen ]
     cmds:
+    - go install go.uber.org/mock/mockgen@latest
     - go install github.com/a-h/templ/cmd/templ@latest
     - go install github.com/air-verse/air@latest
     - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
@@ -89,15 +85,7 @@ tasks:
     cmds:
     - npm install
 
-  install:mockgen:
-    desc: Install mockgen tool
-    cmds:
-    - |
-      if ! command -v mockgen >/dev/null 2>&1; then
-        go install go.uber.org/mock/mockgen@latest
-      fi
-
-  generate:all:
+  generate:
     desc: Generate all code artifacts
     deps: [ generate:templ, generate:mocks:all ]
 
@@ -106,56 +94,23 @@ tasks:
     cmds:
     - templ generate ./internal/...
 
-  generate:mocks:all:
+  generate:mocks:
     desc: Generate all mock implementations
-    deps: [ install:mockgen ]
     cmds:
-    - task: generate:mocks:logging
-    - task: generate:mocks:form
-    - task: generate:mocks:events
-    - task: generate:mocks:user
-    - task: generate:mocks:sanitization
-
-  generate:mocks:logging:
-    desc: Generate logging mocks
-    cmds:
-    - mkdir -p test/mocks/logging
     - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
-
-  generate:mocks:form:service:
-    desc: Generate form.Service mock
-    cmds:
-    - mkdir -p test/mocks/form
     - mockgen -typed -source=internal/domain/form/service.go -destination=test/mocks/form/mock_service.go -package=form -mock_names=Service=MockService
-
-  generate:mocks:form:
-    desc: Generate form mocks
-    cmds:
-    - task: generate:mocks:form:service
     - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
     - mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
-
-  generate:mocks:events:
-    desc: Generate events mocks
-    cmds:
-    - mkdir -p test/mocks/events
     - mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
-
-  generate:mocks:user:
-    desc: Generate user mocks
-    cmds:
-    - mkdir -p test/mocks/user
     - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
-
-  generate:mocks:sanitization:
-    desc: Generate sanitization service mock
-    cmds:
-    - mkdir -p test/mocks/sanitization
     - mockgen -typed -source=internal/infrastructure/sanitization/interface.go -destination=test/mocks/sanitization/mock_service.go -package=sanitization -mock_names=ServiceInterface=MockService
 
-  build:all:
+  build:
     desc: Build the entire application
-    deps: [ generate:all, build:frontend, build:backend ]
+    cmds:
+    - task: generate
+    - task: build:frontend
+    - task: build:backend
 
   build:frontend:
     desc: Build the frontend application
@@ -178,11 +133,8 @@ tasks:
 
   dev:backend:
     desc: Run backend with hot reload
-    deps: [ generate:all ]
+    deps: [ generate ]
     cmds:
-    - mkdir -p tmp
-    - task: generate:templ
-    - task: generate:mocks:all
     - air -c .air.toml
 
   dev:frontend:
@@ -197,30 +149,15 @@ tasks:
     - find internal/ -name '*_templ.go' -delete
     - find test/mocks -name 'mock_*.go' -delete
 
-  lint:all:
+  lint:
     desc: Run all linters
-    deps: [ lint:backend:all, lint:frontend ]
+    deps: [ lint:backend, lint:frontend ]
 
-  lint:backend:all:
+  lint:backend:
     desc: Run all backend linters
     deps:
-    - lint:backend:fmt
-    - lint:backend:vet
-    - lint:backend:golangci
-
-  lint:backend:fmt:
-    desc: Format Go code
-    cmds:
     - go fmt ./...
-
-  lint:backend:vet:
-    desc: Run Go vet
-    cmds:
     - go vet ./...
-
-  lint:backend:golangci:
-    desc: Run golangci-lint
-    cmds:
     - golangci-lint run ./...
 
   lint:frontend:
@@ -228,34 +165,15 @@ tasks:
     cmds:
     - npm run lint
 
-  lint:fix:all:
-    desc: Fix all linting issues
-    deps: [ lint:fix:backend, lint:fix:frontend ]
-
-  lint:fix:backend:
-    desc: Auto-fix backend lint issues
-    cmds:
-    - go fmt ./...
-
-  lint:fix:frontend:
-    desc: Auto-fix frontend lint issues
-    cmds:
-    - npm run lint:fix
-
   test:
     desc: Run unit tests
-    deps: [ generate:all ]
+    deps: [ generate ]
     cmds:
     - go test -v ./internal/...
 
   test:cover:
     desc: Run tests and generate coverage report
-    deps: [ generate:all ]
+    deps: [ generate ]
     cmds:
     - go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
     - go tool cover -html=coverage.out -o coverage.html
-
-  logs:
-    desc: View production logs
-    cmds:
-    - ssh {{.PROD_USER}}@{{.PROD_SERVER}} "tail -f -n 100 {{.PROD_LOG_PATH}}/goforms.{out,err}.log"

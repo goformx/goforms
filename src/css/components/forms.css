@@ -27,7 +27,9 @@
   background: var(--form-input-bg);
   color: var(--form-input-color);
   font-size: var(--form-input-size);
-  transition: border-color var(--form-transition-duration) var(--form-transition-timing), box-shadow var(--form-transition-duration) var(--form-transition-timing);
+  transition:
+    border-color var(--form-transition-duration) var(--form-transition-timing),
+    box-shadow var(--form-transition-duration) var(--form-transition-timing);
   outline: none;
   margin-bottom: var(--form-group-gap);
 }

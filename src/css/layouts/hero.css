@@ -24,11 +24,7 @@
       var(--hero-accent-1) 0%,
       transparent 50%
     ),
-    radial-gradient(
-      circle at 80% 70%,
-      var(--hero-accent-2) 0%,
-      transparent 50%
-    );
+    radial-gradient(circle at 80% 70%, var(--hero-accent-2) 0%, transparent 50%);
   z-index: 0;
 }
 

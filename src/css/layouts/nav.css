@@ -29,7 +29,8 @@
     color: var(--text);
     text-decoration: none;
     opacity: 1;
-    transition: opacity var(--nav-transition-duration) var(--nav-transition-timing);
+    transition: opacity var(--nav-transition-duration)
+      var(--nav-transition-timing);
   }
 
   .nav-logo:hover {
@@ -47,7 +48,8 @@
     text-decoration: none;
     font-weight: var(--nav-link-weight);
     font-size: var(--font-size-base);
-    transition: color var(--nav-transition-duration) var(--nav-transition-timing);
+    transition: color var(--nav-transition-duration)
+      var(--nav-transition-timing);
     padding: var(--spacing-2) var(--spacing-4);
     border-radius: var(--border-radius);
   }
@@ -60,7 +62,8 @@
   .nav-links svg {
     width: 20px;
     height: 20px;
-    transition: transform var(--nav-transition-duration) var(--nav-transition-timing);
+    transition: transform var(--nav-transition-duration)
+      var(--nav-transition-timing);
   }
 
   .nav-links a:hover svg {
@@ -81,4 +84,4 @@
       padding: var(--spacing-2) var(--spacing-3);
     }
   }
-} 
+}
