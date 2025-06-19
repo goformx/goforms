@@ -2,12 +2,9 @@ package web
 
 import (
 	"context"
-	"fmt"
-	"net/http"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
-	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
@@ -37,21 +34,21 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	userID, ok := c.Get("user_id").(string)
 	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return h.HandleForbidden(c, "User not authenticated")
 	}
 
 	// Get user data
 	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil {
 		h.Logger.Error("failed to get user data", "error", err)
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return h.HandleError(c, err, "Failed to get user data")
 	}
 
 	// Get forms for the user
 	forms, err := h.FormService.ListForms(c.Request().Context(), userID)
 	if err != nil {
 		h.Logger.Error("failed to list forms", "error", err)
-		return fmt.Errorf("failed to list forms: %w", err)
+		return h.HandleError(c, err, "Failed to list forms")
 	}
 
 	// Build page data
@@ -67,12 +64,12 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 func (h *DashboardHandler) handleFormView(c echo.Context) error {
 	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return h.HandleForbidden(c, "User not authenticated")
 	}
 
 	formID := c.Param("id")
 	if formID == "" {
-		return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form ID is required")
+		return h.HandleError(c, nil, "Form ID is required")
 	}
 
 	// Fetch user data
@@ -81,14 +78,14 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 		h.Logger.Error("user not found after authentication",
 			"user_id", h.Logger.SanitizeField("user_id", userID),
 			"path", h.Logger.SanitizeField("path", c.Request().URL.Path))
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return h.HandleNotFound(c, "User not found")
 	}
 
 	// Fetch form data
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil || form == nil {
 		h.Logger.Error("form not found or error loading form", "form_id", formID, "user_id", userID, "error", err)
-		return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Resource not found")
+		return h.HandleNotFound(c, "Resource not found")
 	}
 
 	// Verify form ownership
@@ -98,7 +95,7 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 			"form_id", h.Logger.SanitizeField("form_id", formID),
 			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
 			"error_type", "authorization_error")
-		return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, "You don't have permission to view this form")
+		return h.HandleForbidden(c, "You don't have permission to view this form")
 	}
 
 	data := shared.BuildPageData(h.Config, c, "Form View")

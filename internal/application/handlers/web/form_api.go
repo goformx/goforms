@@ -8,7 +8,6 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -59,7 +58,7 @@ func (h *FormAPIHandler) Register(e *echo.Echo) {
 func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 	form, err := h.GetFormByID(c)
 	if err != nil {
-		return err
+		return h.HandleError(c, err, "Failed to get form schema")
 	}
 
 	// Set content type for JSON response
@@ -72,26 +71,26 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 	_, err := h.RequireAuthenticatedUser(c)
 	if err != nil {
-		return err
+		return h.HandleError(c, err, "Authentication required")
 	}
 
 	form, err := h.GetFormWithOwnership(c)
 	if err != nil {
-		return err
+		return h.HandleError(c, err, "Unauthorized or form not found")
 	}
 
 	// Parse schema from request body
 	schema, decodeErr := decodeSchema(c)
 	if decodeErr != nil {
 		h.Logger.Error("failed to decode schema", "error", decodeErr)
-		return response.ErrorResponse(c, http.StatusBadRequest, decodeErr.Error())
+		return h.HandleError(c, decodeErr, "Failed to decode schema")
 	}
 
 	// Update form schema
 	form.Schema = schema
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
 		h.Logger.Error("failed to update form schema", "error", updateErr)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to update form schema")
+		return h.HandleError(c, updateErr, "Failed to update form schema")
 	}
 
 	return c.JSON(http.StatusOK, form.Schema)
@@ -101,14 +100,14 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 func (h *FormAPIHandler) HandleFormSubmit(c echo.Context) error {
 	form, err := h.GetFormByID(c)
 	if err != nil {
-		return err
+		return h.HandleError(c, err, "Failed to get form for submission")
 	}
 
 	// Parse submission data
 	var submissionData model.JSON
 	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&submissionData); decodeErr != nil {
 		h.Logger.Error("failed to decode submission data", "error", decodeErr)
-		return response.ErrorResponse(c, http.StatusBadRequest, "Invalid submission data")
+		return h.HandleError(c, decodeErr, "Invalid submission data")
 	}
 
 	// Create submission
@@ -123,7 +122,7 @@ func (h *FormAPIHandler) HandleFormSubmit(c echo.Context) error {
 	err = h.FormService.SubmitForm(c.Request().Context(), submission)
 	if err != nil {
 		h.Logger.Error("failed to submit form", "error", err)
-		return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to submit form")
+		return h.HandleError(c, err, "Failed to submit form")
 	}
 
 	return c.JSON(http.StatusOK, map[string]any{

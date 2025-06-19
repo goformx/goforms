@@ -1,8 +1,6 @@
 package web
 
 import (
-	"net/http"
-
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -33,7 +31,7 @@ func NewFormBaseHandler(
 func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 	formID, err := h.FormValidator.ValidateFormID(c)
 	if err != nil {
-		return nil, h.FormValidator.HandleFormValidationError(c, err.Error())
+		return nil, h.HandleError(c, err, "Invalid form ID")
 	}
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
@@ -49,9 +47,17 @@ func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 func (h *FormBaseHandler) RequireFormOwnership(c echo.Context, form *model.Form) error {
 	userID, ok := c.Get("user_id").(string)
 	if !ok {
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return h.HandleForbidden(c, "User not authenticated")
 	}
-	return h.FormValidator.ValidateUserOwnership(c, form.UserID, userID)
+
+	if form.UserID != userID {
+		h.Logger.Error("ownership verification failed",
+			"resource_user_id", form.UserID,
+			"request_user_id", userID)
+		return h.HandleForbidden(c, "You don't have permission to access this resource")
+	}
+
+	return nil
 }
 
 // GetFormWithOwnership gets a form and verifies ownership in one call
@@ -66,14 +72,4 @@ func (h *FormBaseHandler) GetFormWithOwnership(c echo.Context) (*model.Form, err
 	}
 
 	return form, nil
-}
-
-// HandleFormError handles form-specific errors
-func (h *FormBaseHandler) HandleFormError(c echo.Context, err error, message string) error {
-	return h.FormValidator.HandleFormError(c, err, message)
-}
-
-// HandleFormValidationError handles form validation errors
-func (h *FormBaseHandler) HandleFormValidationError(c echo.Context, message string) error {
-	return h.FormValidator.HandleFormValidationError(c, message)
 }

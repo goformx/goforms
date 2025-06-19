@@ -94,11 +94,11 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		// Check for specific validation errors
 		switch {
 		case errors.Is(err, model.ErrFormTitleRequired):
-			return h.HandleFormValidationError(c, "Form title is required")
+			return h.HandleError(c, err, "Form title is required")
 		case errors.Is(err, model.ErrFormSchemaRequired):
-			return h.HandleFormValidationError(c, "Form schema is required")
+			return h.HandleError(c, err, "Form schema is required")
 		default:
-			return h.HandleFormError(c, err, "Failed to create form")
+			return h.HandleError(c, err, "Failed to create form")
 		}
 	}
 
@@ -141,7 +141,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	err = h.FormService.UpdateForm(c.Request().Context(), form)
 	if err != nil {
 		h.Logger.Error("failed to update form", "error", err)
-		return h.HandleFormError(c, err, "Failed to update form")
+		return h.HandleError(c, err, "Failed to update form")
 	}
 
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
@@ -161,7 +161,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 	err = h.FormService.DeleteForm(c.Request().Context(), form.ID)
 	if err != nil {
 		h.Logger.Error("failed to delete form", "error", err)
-		return h.HandleFormError(c, err, "Failed to delete form")
+		return h.HandleError(c, err, "Failed to delete form")
 	}
 
 	return c.NoContent(http.StatusNoContent)
@@ -181,7 +181,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	submissions, err := h.FormService.ListFormSubmissions(c.Request().Context(), form.ID)
 	if err != nil {
 		h.Logger.Error("failed to get form submissions", "error", err)
-		return h.HandleFormError(c, err, "Failed to get form submissions")
+		return h.HandleError(c, err, "Failed to get form submissions")
 	}
 
 	data := h.BuildPageData(c, "Form Submissions")

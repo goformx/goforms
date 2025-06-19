@@ -17,12 +17,20 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/application/response"
 )
 
 // Module provides web handler dependencies
 var Module = fx.Options(
 	// Core dependencies
 	fx.Provide(
+		// ErrorHandler for unified error handling
+		fx.Annotate(
+			func(logger logging.Logger) response.ErrorHandlerInterface {
+				return response.NewErrorHandler(logger)
+			},
+		),
 		// Base handler for common functionality
 		fx.Annotate(
 			NewBaseHandler,
