@@ -38,11 +38,9 @@ var Module = fx.Options(
 		),
 
 		// Auth components for SRP compliance
-		fx.Provide(
-			NewAuthRequestParser,
-			NewAuthResponseBuilder,
-			NewAuthService,
-		),
+		NewAuthRequestParser,
+		NewAuthResponseBuilder,
+		NewAuthService,
 
 		// Legacy HandlerDeps for backward compatibility
 		fx.Annotate(
