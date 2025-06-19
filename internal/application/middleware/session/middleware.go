@@ -197,14 +197,8 @@ func (sm *Manager) isStaticFile(path string) bool {
 func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 	path := c.Request().URL.Path
 
-	// Check if this is a public path
-	isPublicPath := false
-	for _, publicPath := range sm.config.PublicPaths {
-		if path == publicPath {
-			isPublicPath = true
-			break
-		}
-	}
+	// Check if this is a public path using the access manager
+	isPublicPath := sm.isPublicPath(path)
 
 	// Check if user has a valid session
 	cookie, err := c.Cookie(sm.cookieName)
