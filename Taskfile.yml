@@ -158,12 +158,12 @@ tasks:
   build:backend:
     desc: Build the backend application
     cmds:
-    - go build -ldflags "{{.LDFLAGS}}" -o bin/server ./cmd/goforms
+    - go build -ldflags "{{.LDFLAGS}}" -o bin/goforms main.go
 
   run:
     desc: Run the compiled application
     cmds:
-    - ./bin/server
+    - ./bin/goforms
 
   dev:
     desc: Run development environment (frontend + backend)

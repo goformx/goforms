@@ -6,7 +6,7 @@ tmp_dir = "tmp"
   # Commands to run before building
   pre_cmd = ["task generate:all"]
   # Build command
-  cmd = "go build -o ./tmp/main ./cmd/goforms"
+  cmd = "go build -o ./tmp/main ./main.go"
   # Binary file yields from `cmd`
   bin = "tmp/main"
   # Full binary path
