@@ -2,8 +2,8 @@ package web
 
 import (
 	"context"
-	"net/http"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/application/response"
@@ -54,7 +54,7 @@ func NewBaseHandler(
 func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, error) {
 	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
-		return nil, c.Redirect(http.StatusSeeOther, "/login")
+		return nil, c.Redirect(constants.StatusSeeOther, constants.PathLogin)
 	}
 
 	userEntity, err := h.UserService.GetUserByID(c.Request().Context(), userID)

@@ -6,6 +6,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
+	middlewareconfig "github.com/goformx/goforms/internal/application/middleware/config"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/middleware/session"
@@ -17,6 +18,9 @@ import (
 var Module = fx.Options(
 	// Core middleware components
 	fx.Provide(
+		// Centralized middleware configuration
+		middlewareconfig.NewMiddlewareConfig,
+
 		// Context middleware
 		context.NewMiddleware,
 
@@ -28,55 +32,25 @@ var Module = fx.Options(
 			auth.NewMiddleware,
 		),
 
-		// Access manager
+		// Access manager with centralized configuration
 		fx.Annotate(
-			func(logger logging.Logger) *access.AccessManager {
-				config := access.DefaultConfig()
-				manager := access.NewAccessManager(config, access.DefaultRules())
+			func(logger logging.Logger, middlewareConfig *middlewareconfig.MiddlewareConfig) *access.AccessManager {
+				manager := access.NewAccessManager(middlewareConfig.Access, middlewareConfig.GetAccessRules())
 				logger.Debug("access manager initialized", "service", "access")
 				return manager
 			},
 		),
 
-		// Session manager
+		// Session manager with centralized configuration
 		fx.Annotate(
 			func(
 				logger logging.Logger,
 				cfg *config.Config,
 				lc fx.Lifecycle,
 				accessManager *access.AccessManager,
+				middlewareConfig *middlewareconfig.MiddlewareConfig,
 			) *session.Manager {
-				sessionConfig := &session.SessionConfig{
-					Config:        cfg,
-					SessionConfig: &cfg.Session,
-					PublicPaths: []string{
-						"/",
-						"/login",
-						"/signup",
-						"/forgot-password",
-						"/reset-password",
-						"/health",
-						"/metrics",
-						"/demo",
-					},
-					ExemptPaths: []string{
-						"/api/v1/validation",
-						"/api/v1/validation/login",
-						"/api/v1/validation/signup",
-						"/api/v1/public",
-						"/api/v1/health",
-						"/api/v1/metrics",
-					},
-					StaticPaths: []string{
-						"/static",
-						"/assets",
-						"/images",
-						"/css",
-						"/js",
-						"/favicon.ico",
-					},
-				}
-				return session.NewManager(logger, sessionConfig, lc, accessManager)
+				return session.NewManager(logger, middlewareConfig.Session, lc, accessManager)
 			},
 		),
 

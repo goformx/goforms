@@ -4,8 +4,8 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
@@ -102,7 +102,7 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		}
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+	return c.Redirect(constants.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 func (h *FormWebHandler) handleEdit(c echo.Context) error {
@@ -144,7 +144,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to update form")
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+	return c.Redirect(constants.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 func (h *FormWebHandler) handleDelete(c echo.Context) error {
@@ -164,7 +164,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to delete form")
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.NoContent(constants.StatusNoContent)
 }
 
 func (h *FormWebHandler) handleSubmissions(c echo.Context) error {

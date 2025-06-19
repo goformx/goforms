@@ -4,9 +4,9 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"net/http"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
@@ -34,7 +34,7 @@ func NewFormAPIHandler(
 
 func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 	// API routes with access control
-	api := e.Group("/api/v1")
+	api := e.Group(constants.PathAPIv1)
 	formsAPI := api.Group("/forms")
 	formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
@@ -42,7 +42,7 @@ func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 
 	// Public API routes (no authentication required)
 	// These are for embedded forms on external websites
-	publicAPI := e.Group("/api/v1")
+	publicAPI := e.Group(constants.PathAPIv1)
 	publicFormsAPI := publicAPI.Group("/forms")
 	publicFormsAPI.GET("/:id/schema", h.handleFormSchema)
 	publicFormsAPI.POST("/:id/submit", h.HandleFormSubmit)
@@ -64,7 +64,7 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 	// Set content type for JSON response
 	c.Response().Header().Set("Content-Type", "application/json")
 
-	return c.JSON(http.StatusOK, form.Schema)
+	return c.JSON(constants.StatusOK, form.Schema)
 }
 
 // PUT /api/v1/forms/:id/schema
@@ -93,7 +93,7 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 		return h.HandleError(c, updateErr, "Failed to update form schema")
 	}
 
-	return c.JSON(http.StatusOK, form.Schema)
+	return c.JSON(constants.StatusOK, form.Schema)
 }
 
 // POST /api/v1/forms/:id/submit
@@ -125,7 +125,7 @@ func (h *FormAPIHandler) HandleFormSubmit(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to submit form")
 	}
 
-	return c.JSON(http.StatusOK, map[string]any{
+	return c.JSON(constants.StatusOK, map[string]any{
 		"success": true,
 		"message": "Form submitted successfully",
 		"data": map[string]any{

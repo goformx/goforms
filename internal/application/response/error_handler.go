@@ -24,11 +24,15 @@ func NewErrorHandler(logger logging.Logger) *ErrorHandler {
 
 // HandleError handles errors consistently across the application
 func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) error {
+	requestID := c.Request().Header.Get("X-Trace-Id")
+	userID, _ := c.Get("user_id").(string)
 	if h.logger != nil {
 		h.logger.Error("request error",
 			"error", err,
 			"path", c.Request().URL.Path,
 			"method", c.Request().Method,
+			"request_id", requestID,
+			"user_id", userID,
 		)
 	}
 
@@ -45,13 +49,17 @@ func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) er
 // HandleDomainError handles domain-specific errors
 func (h *ErrorHandler) HandleDomainError(err *domainerrors.DomainError, c echo.Context) error {
 	statusCode := h.getStatusCode(err.Code)
+	requestID := c.Request().Header.Get("X-Trace-Id")
+	userID, _ := c.Get("user_id").(string)
 
 	// Check if this is an AJAX request
 	if h.isAJAXRequest(c) {
 		return c.JSON(statusCode, map[string]any{
-			"error":   string(err.Code),
-			"message": err.Message,
-			"details": err.Context,
+			"error":      string(err.Code),
+			"message":    err.Message,
+			"details":    err.Context,
+			"request_id": requestID,
+			"user_id":    userID,
 		})
 	}
 
@@ -87,11 +95,14 @@ func (h *ErrorHandler) handleDomainError(err *domainerrors.DomainError, c echo.C
 // handleUnknownError handles unknown errors
 func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message string) error {
 	statusCode := http.StatusInternalServerError
-
+	requestID := c.Request().Header.Get("X-Trace-Id")
+	userID, _ := c.Get("user_id").(string)
 	if h.isAJAXRequest(c) {
 		return c.JSON(statusCode, map[string]any{
-			"error":   "INTERNAL_ERROR",
-			"message": message,
+			"error":      "INTERNAL_ERROR",
+			"message":    message,
+			"request_id": requestID,
+			"user_id":    userID,
 		})
 	}
 
