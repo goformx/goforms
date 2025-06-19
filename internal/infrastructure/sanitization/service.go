@@ -1,6 +1,7 @@
 package sanitization
 
 import (
+	"html"
 	"reflect"
 	"strings"
 
@@ -94,6 +95,34 @@ func (s *Service) TrimAndSanitize(input string) string {
 // TrimAndSanitizeEmail trims whitespace and sanitizes an email
 func (s *Service) TrimAndSanitizeEmail(input string) string {
 	return s.Email(strings.TrimSpace(input))
+}
+
+// SanitizeForLogging sanitizes a string specifically for safe logging
+// This method prevents log injection attacks by removing newlines, null bytes,
+// HTML tags, and HTML escaping the content
+func (s *Service) SanitizeForLogging(input string) string {
+	if input == "" {
+		return ""
+	}
+
+	// First, remove any newline characters that could be used for log injection
+	input = strings.ReplaceAll(input, "\n", " ")
+	input = strings.ReplaceAll(input, "\r", " ")
+	input = strings.ReplaceAll(input, "\r\n", " ")
+
+	// Remove any null bytes
+	input = strings.ReplaceAll(input, "\x00", "")
+
+	// Use the sanitization service to clean the string (removes HTML tags, etc.)
+	input = s.SingleLine(input)
+
+	// HTML escape the string to prevent HTML injection if logs are displayed in HTML
+	input = html.EscapeString(input)
+
+	// Trim any extra whitespace that might have been introduced
+	input = strings.TrimSpace(input)
+
+	return input
 }
 
 // SanitizeMap sanitizes a map of string keys to any values

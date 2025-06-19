@@ -409,3 +409,61 @@ func TestService_SanitizeSlice(t *testing.T) {
 	assert.Equal(t, "item2", data[1])
 	assert.Equal(t, "item3", data[2])
 }
+
+func TestService_SanitizeForLogging(t *testing.T) {
+	service := sanitization.NewService()
+
+	tests := []struct {
+		name     string
+		input    string
+		expected string
+	}{
+		{
+			name:     "newline injection",
+			input:    "normal message\nmalicious log entry",
+			expected: "normal message malicious log entry",
+		},
+		{
+			name:     "carriage return injection",
+			input:    "normal message\rmalicious log entry",
+			expected: "normal message malicious log entry",
+		},
+		{
+			name:     "null byte injection",
+			input:    "normal message\x00malicious log entry",
+			expected: "normal messagemalicious log entry",
+		},
+		{
+			name:     "HTML injection",
+			input:    "normal message<script>alert('xss')</script>",
+			expected: "normal message&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;",
+		},
+		{
+			name:     "mixed injection",
+			input:    "normal\nmessage<script>alert('xss')</script>\r\n",
+			expected: "normal message&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;",
+		},
+		{
+			name:     "HTML entities",
+			input:    "message with < and > and &",
+			expected: "message with &lt; and &gt; and &amp;",
+		},
+		{
+			name:     "empty string",
+			input:    "",
+			expected: "",
+		},
+		{
+			name:     "whitespace only",
+			input:    "   \n\r   ",
+			expected: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result := service.SanitizeForLogging(tt.input)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}

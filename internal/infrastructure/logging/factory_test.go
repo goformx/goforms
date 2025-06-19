@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	mocksanitization "github.com/goformx/goforms/test/mocks/sanitization"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -29,6 +30,9 @@ func TestFactory_CreateLogger(t *testing.T) {
 	mockSanitizer := mocksanitization.NewMockService(ctrl)
 	// Configure mock expectations - use AnyTimes() for all possible calls
 	mockSanitizer.EXPECT().SingleLine(gomock.Any()).DoAndReturn(func(input string) string {
+		return input
+	}).AnyTimes()
+	mockSanitizer.EXPECT().SanitizeForLogging(gomock.Any()).DoAndReturn(func(input string) string {
 		return input
 	}).AnyTimes()
 
@@ -100,6 +104,9 @@ func TestLogger_Sanitization(t *testing.T) {
 	mockSanitizer := mocksanitization.NewMockService(ctrl)
 	// Configure mock expectations for sanitization tests - use AnyTimes() for all possible calls
 	mockSanitizer.EXPECT().SingleLine(gomock.Any()).DoAndReturn(func(input string) string {
+		return input
+	}).AnyTimes()
+	mockSanitizer.EXPECT().SanitizeForLogging(gomock.Any()).DoAndReturn(func(input string) string {
 		return input
 	}).AnyTimes()
 
@@ -177,6 +184,9 @@ func TestLogger_ErrorHandling(t *testing.T) {
 	mockSanitizer.EXPECT().SingleLine(gomock.Any()).DoAndReturn(func(input string) string {
 		return input
 	}).AnyTimes()
+	mockSanitizer.EXPECT().SanitizeForLogging(gomock.Any()).DoAndReturn(func(input string) string {
+		return input
+	}).AnyTimes()
 
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     "test-app",
@@ -220,6 +230,9 @@ func TestLogger_WithMethods(t *testing.T) {
 	mockSanitizer.EXPECT().SingleLine(gomock.Any()).DoAndReturn(func(input string) string {
 		return input
 	}).AnyTimes()
+	mockSanitizer.EXPECT().SanitizeForLogging(gomock.Any()).DoAndReturn(func(input string) string {
+		return input
+	}).AnyTimes()
 
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     "test-app",
@@ -257,6 +270,9 @@ func TestLogger_LogLevels(t *testing.T) {
 	mockSanitizer.EXPECT().SingleLine(gomock.Any()).DoAndReturn(func(input string) string {
 		return input
 	}).AnyTimes()
+	mockSanitizer.EXPECT().SanitizeForLogging(gomock.Any()).DoAndReturn(func(input string) string {
+		return input
+	}).AnyTimes()
 
 	factory := logging.NewFactory(logging.FactoryConfig{
 		AppName:     "test-app",
@@ -278,4 +294,84 @@ func TestLogger_LogLevels(t *testing.T) {
 	assert.Contains(t, output, "info message")
 	assert.Contains(t, output, "warn message")
 	assert.Contains(t, output, "error message")
+}
+
+func TestLogger_LogInjectionProtection(t *testing.T) {
+	factory := logging.NewFactory(logging.FactoryConfig{
+		AppName:     "test",
+		Version:     "1.0.0",
+		Environment: "development",
+	}, sanitization.NewService())
+
+	// Test malicious inputs that could be used for log injection
+	maliciousInputs := []struct {
+		name     string
+		input    string
+		expected string // What we expect after sanitization
+	}{
+		{
+			name:     "newline injection",
+			input:    "normal message\nmalicious log entry",
+			expected: "normal message malicious log entry",
+		},
+		{
+			name:     "carriage return injection",
+			input:    "normal message\rmalicious log entry",
+			expected: "normal message malicious log entry",
+		},
+		{
+			name:     "null byte injection",
+			input:    "normal message\x00malicious log entry",
+			expected: "normal messagemalicious log entry",
+		},
+		{
+			name:     "HTML injection",
+			input:    "normal message<script>alert('xss')</script>",
+			expected: "normal message&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;",
+		},
+		{
+			name:     "mixed injection",
+			input:    "normal\nmessage<script>alert('xss')</script>\r\n",
+			expected: "normal message&lt;script&gt;alert(&#39;xss&#39;)&lt;/script&gt;",
+		},
+	}
+
+	for _, tt := range maliciousInputs {
+		t.Run(tt.name, func(t *testing.T) {
+			var captured string
+			testCore := zapcore.NewCore(
+				zapcore.NewConsoleEncoder(zap.NewDevelopmentEncoderConfig()),
+				zapcore.AddSync(&testWriter{&captured}),
+				zapcore.DebugLevel,
+			)
+
+			testLogger, err := factory.WithTestCore(testCore).CreateLogger()
+			require.NoError(t, err)
+
+			testLogger.Info(tt.input)
+
+			// The log output will always end with a newline, so allow it
+			trimmed := strings.TrimSuffix(captured, "\n")
+			assert.Contains(t, trimmed, tt.expected)
+			// Only check for newlines in the message part, not the whole log line
+			fields := strings.Split(trimmed, "\t")
+			if len(fields) > 3 {
+				msg := fields[3]
+				assert.NotContains(t, msg, "\n")
+				assert.NotContains(t, msg, "\r")
+				assert.NotContains(t, msg, "\x00")
+			}
+			assert.NotContains(t, trimmed, "<script>")
+		})
+	}
+}
+
+// testWriter is a simple writer for capturing log output in tests
+type testWriter struct {
+	content *string
+}
+
+func (w *testWriter) Write(p []byte) (n int, err error) {
+	*w.content += string(p)
+	return len(p), nil
 }

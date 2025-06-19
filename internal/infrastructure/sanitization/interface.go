@@ -20,6 +20,9 @@ type ServiceInterface interface {
 	TrimAndSanitize(input string) string
 	TrimAndSanitizeEmail(input string) string
 
+	// Log-specific sanitization
+	SanitizeForLogging(input string) string
+
 	// Complex data structure sanitization
 	SanitizeMap(data map[string]any)
 	SanitizeSlice(data []any)

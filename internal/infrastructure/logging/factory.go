@@ -167,14 +167,9 @@ func newLogger(zapLogger *zap.Logger, sanitizer sanitization.ServiceInterface) L
 	}
 }
 
-// sanitizeMessage sanitizes a log message for safe logging
+// sanitizeMessage sanitizes a log message to prevent log injection attacks
 func sanitizeMessage(msg string, sanitizer sanitization.ServiceInterface) string {
-	if msg == "" {
-		return ""
-	}
-
-	// Use the sanitization service to clean the message
-	return sanitizer.SingleLine(msg)
+	return sanitizer.SanitizeForLogging(msg)
 }
 
 // sanitizeError sanitizes an error for safe logging
@@ -185,7 +180,9 @@ func sanitizeError(err error, sanitizer sanitization.ServiceInterface) string {
 
 	// Get the error message and sanitize it
 	errMsg := err.Error()
-	return sanitizer.SingleLine(errMsg)
+
+	// Apply the same sanitization as regular messages
+	return sanitizer.SanitizeForLogging(errMsg)
 }
 
 // Debug logs a debug message
@@ -436,12 +433,7 @@ func sanitizeValue(key string, value any, sanitizer sanitization.ServiceInterfac
 
 // sanitizeString sanitizes a string for safe logging
 func sanitizeString(s string, sanitizer sanitization.ServiceInterface) string {
-	if s == "" {
-		return ""
-	}
-
-	// Use the sanitization service to clean the string
-	return sanitizer.SingleLine(s)
+	return sanitizer.SanitizeForLogging(s)
 }
 
 // validatePath checks if a string is a valid URL path
