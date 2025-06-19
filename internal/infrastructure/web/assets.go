@@ -189,10 +189,10 @@ func (s *EmbeddedAssetServer) RegisterRoutes(e *echo.Echo) error {
 	// Create file server for embedded assets
 	assetHandler := http.FileServer(http.FS(assetsSubFS))
 	fontHandler := http.FileServer(http.FS(fontsSubFS))
-	
+
 	// Serve assets using the file server - strip the /assets prefix and serve from assets directory
 	e.GET("/assets/*", echo.WrapHandler(http.StripPrefix("/assets/", assetHandler)))
-	
+
 	// Serve fonts using the file server - strip the /assets/fonts prefix and serve from fonts directory
 	e.GET("/assets/fonts/*", echo.WrapHandler(http.StripPrefix("/assets/fonts/", fontHandler)))
 
