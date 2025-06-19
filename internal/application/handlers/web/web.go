@@ -57,8 +57,8 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 	}
 
 	// User is not authenticated, render home page
-	if err := h.Renderer.Render(c, pages.Home(data)); err != nil {
-		return h.HandleError(c, err, "Failed to render home page")
+	if renderErr := h.Renderer.Render(c, pages.Home(data)); renderErr != nil {
+		return h.HandleError(c, renderErr, "Failed to render home page")
 	}
 	return nil
 }

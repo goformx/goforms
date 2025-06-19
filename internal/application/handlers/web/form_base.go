@@ -17,7 +17,11 @@ type FormBaseHandler struct {
 }
 
 // NewFormBaseHandler creates a new form base handler
-func NewFormBaseHandler(base *BaseHandler, formService formdomain.Service, formValidator *validation.FormValidator) *FormBaseHandler {
+func NewFormBaseHandler(
+	base *BaseHandler,
+	formService formdomain.Service,
+	formValidator *validation.FormValidator,
+) *FormBaseHandler {
 	return &FormBaseHandler{
 		BaseHandler:   base,
 		FormService:   formService,
@@ -57,8 +61,8 @@ func (h *FormBaseHandler) GetFormWithOwnership(c echo.Context) (*model.Form, err
 		return nil, err
 	}
 
-	if err := h.RequireFormOwnership(c, form); err != nil {
-		return nil, err
+	if ownershipErr := h.RequireFormOwnership(c, form); ownershipErr != nil {
+		return nil, ownershipErr
 	}
 
 	return form, nil

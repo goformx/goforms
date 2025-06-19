@@ -10,6 +10,12 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+const (
+	// Validation rules
+	ValidateRequired = "required"
+	ValidatePassword = "password"
+)
+
 // FormValidator provides form-specific validation utilities
 type FormValidator struct {
 	logger logging.Logger
@@ -56,19 +62,34 @@ func (fv *FormValidator) HandleFormError(c echo.Context, err error, message stri
 }
 
 // ValidateFormData validates form data against a schema
-func (fv *FormValidator) ValidateFormData(data map[string]any, schema map[string]any) error {
+func (fv *FormValidator) ValidateFormData(data, schema map[string]any) error {
 	// Basic validation - check if required fields are present
 	for fieldName, fieldSchema := range schema {
-		if fieldSchemaMap, ok := fieldSchema.(map[string]any); ok {
-			if validate, hasValidate := fieldSchemaMap["validate"].(string); hasValidate {
-				if validate == "required" {
-					if value, exists := data[fieldName]; !exists || value == "" {
-						return fmt.Errorf("field %s is required", fieldName)
-					}
-				}
-			}
+		if err := fv.validateField(fieldName, fieldSchema, data); err != nil {
+			return err
 		}
 	}
+	return nil
+}
+
+// validateField validates a single field against the schema
+func (fv *FormValidator) validateField(fieldName string, fieldSchema any, data map[string]any) error {
+	fieldSchemaMap, ok := fieldSchema.(map[string]any)
+	if !ok {
+		return nil // Skip non-map field schemas
+	}
+
+	validate, hasValidate := fieldSchemaMap["validate"].(string)
+	if !hasValidate {
+		return nil // Skip fields without validation rules
+	}
+
+	if validate == ValidateRequired {
+		if value, exists := data[fieldName]; !exists || value == "" {
+			return fmt.Errorf("field %s is required", fieldName)
+		}
+	}
+
 	return nil
 }
 
@@ -76,17 +97,17 @@ func (fv *FormValidator) ValidateFormData(data map[string]any, schema map[string
 func (fv *FormValidator) ValidateFormSchema(schema map[string]any) error {
 	// Basic schema validation - check if schema has required structure
 	if schema == nil {
-		return fmt.Errorf("schema cannot be nil")
+		return errors.New("schema cannot be nil")
 	}
-	
+
 	// Check if schema has basic form structure
 	if _, hasType := schema["type"]; !hasType {
-		return fmt.Errorf("schema must have a type field")
+		return errors.New("schema must have a type field")
 	}
-	
+
 	if _, hasComponents := schema["components"]; !hasComponents {
-		return fmt.Errorf("schema must have a components field")
+		return errors.New("schema must have a components field")
 	}
-	
+
 	return nil
 }

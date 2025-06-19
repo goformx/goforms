@@ -20,8 +20,8 @@ import (
 // AuthHandler handles authentication-related requests
 type AuthHandler struct {
 	*BaseHandler
-	AuthMiddleware *auth.Middleware
-	RequestUtils   *request.Utils
+	AuthMiddleware  *auth.Middleware
+	RequestUtils    *request.Utils
 	SchemaGenerator *validation.SchemaGenerator
 }
 
@@ -36,8 +36,8 @@ const (
 
 // NewAuthHandler creates a new auth handler
 func NewAuthHandler(
-	base *BaseHandler, 
-	authMiddleware *auth.Middleware, 
+	base *BaseHandler,
+	authMiddleware *auth.Middleware,
 	requestUtils *request.Utils,
 	schemaGenerator *validation.SchemaGenerator,
 ) (*AuthHandler, error) {
@@ -265,58 +265,13 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	// Create user
 	newUser, err := h.UserService.SignUp(c.Request().Context(), &signup)
 	if err != nil {
-		h.Logger.Error("failed to create user", "error", err)
-
-		// Check if this is an AJAX request
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-			// Check for specific error types
-			if errors.Is(err, user.ErrUserExists) {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"message": "This email is already registered. Please try signing in instead.",
-					"field":   "email",
-				})
-			}
-
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Unable to create account. Please try again.",
-			})
-		}
-
-		// For regular form submissions, render the signup page with error
-		data := shared.BuildPageData(h.Config, c, "Sign Up")
-		if errors.Is(err, user.ErrUserExists) {
-			data.Message = &shared.Message{
-				Type: "error",
-				Text: "This email is already registered. Please try signing in instead.",
-			}
-		} else {
-			data.Message = &shared.Message{
-				Type: "error",
-				Text: "Unable to create account. Please try again.",
-			}
-		}
-		return h.Renderer.Render(c, pages.Signup(data))
+		return h.handleSignupError(c, err)
 	}
 
 	// Create session for new user
 	session, err := h.SessionManager.CreateSession(newUser.ID, newUser.Email, c.Request().UserAgent())
 	if err != nil {
-		h.Logger.Error("failed to create session", "error", err)
-
-		// Check if this is an AJAX request
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": "Account created but unable to sign in. Please try logging in.",
-			})
-		}
-
-		// For regular form submissions, render the signup page with error
-		data := shared.BuildPageData(h.Config, c, "Sign Up")
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "Account created but unable to sign in. Please try logging in.",
-		}
-		return h.Renderer.Render(c, pages.Signup(data))
+		return h.handleSessionCreationError(c, err)
 	}
 
 	// Set session cookie
@@ -332,6 +287,71 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 
 	// Redirect to dashboard for regular requests
 	return c.Redirect(http.StatusSeeOther, "/dashboard")
+}
+
+// handleSignupError handles signup errors for both AJAX and regular requests
+func (h *AuthHandler) handleSignupError(c echo.Context, err error) error {
+	h.Logger.Error("failed to create user", "error", err)
+
+	// Check if this is an AJAX request
+	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
+		return h.handleSignupErrorAJAX(c, err)
+	}
+
+	// For regular form submissions, render the signup page with error
+	return h.handleSignupErrorRegular(c, err)
+}
+
+// handleSignupErrorAJAX handles signup errors for AJAX requests
+func (h *AuthHandler) handleSignupErrorAJAX(c echo.Context, err error) error {
+	// Check for specific error types
+	if errors.Is(err, user.ErrUserExists) {
+		return c.JSON(http.StatusBadRequest, map[string]string{
+			"message": "This email is already registered. Please try signing in instead.",
+			"field":   "email",
+		})
+	}
+
+	return c.JSON(http.StatusBadRequest, map[string]string{
+		"message": "Unable to create account. Please try again.",
+	})
+}
+
+// handleSignupErrorRegular handles signup errors for regular form submissions
+func (h *AuthHandler) handleSignupErrorRegular(c echo.Context, err error) error {
+	data := shared.BuildPageData(h.Config, c, "Sign Up")
+	if errors.Is(err, user.ErrUserExists) {
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: "This email is already registered. Please try signing in instead.",
+		}
+	} else {
+		data.Message = &shared.Message{
+			Type: "error",
+			Text: "Unable to create account. Please try again.",
+		}
+	}
+	return h.Renderer.Render(c, pages.Signup(data))
+}
+
+// handleSessionCreationError handles session creation errors for both AJAX and regular requests
+func (h *AuthHandler) handleSessionCreationError(c echo.Context, err error) error {
+	h.Logger.Error("failed to create session", "error", err)
+
+	// Check if this is an AJAX request
+	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
+		return c.JSON(http.StatusInternalServerError, map[string]string{
+			"message": "Account created but unable to sign in. Please try logging in.",
+		})
+	}
+
+	// For regular form submissions, render the signup page with error
+	data := shared.BuildPageData(h.Config, c, "Sign Up")
+	data.Message = &shared.Message{
+		Type: "error",
+		Text: "Account created but unable to sign in. Please try logging in.",
+	}
+	return h.Renderer.Render(c, pages.Signup(data))
 }
 
 // Logout handles POST /logout - processes the logout request

@@ -9,7 +9,6 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/middleware/session"
-	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
@@ -19,18 +18,14 @@ var Module = fx.Options(
 	// Core middleware components
 	fx.Provide(
 		// Context middleware
-		func(logger logging.Logger) *context.Middleware {
-			return context.NewMiddleware(logger)
-		},
+		context.NewMiddleware,
 
 		// Request utilities
 		request.NewUtils,
 
 		// Auth middleware
 		fx.Annotate(
-			func(logger logging.Logger, userService user.Service) *auth.Middleware {
-				return auth.NewMiddleware(logger, userService)
-			},
+			auth.NewMiddleware,
 		),
 
 		// Access manager

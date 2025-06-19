@@ -48,7 +48,12 @@ type appParams struct {
 // setupHandlers registers all web handlers with the Echo server.
 // It validates that no nil handlers are present and registers each handler
 // with the Echo instance.
-func setupHandlers(handlers []web.Handler, e *echo.Echo, accessManager *access.AccessManager, logger logging.Logger) error {
+func setupHandlers(
+	handlers []web.Handler,
+	e *echo.Echo,
+	accessManager *access.AccessManager,
+	logger logging.Logger,
+) error {
 	for i, handler := range handlers {
 		if handler == nil {
 			return fmt.Errorf("nil handler encountered at index %d", i)

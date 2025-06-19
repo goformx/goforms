@@ -30,7 +30,7 @@ type BaseHandler struct {
 // NewBaseHandler creates a new base handler with common dependencies
 func NewBaseHandler(
 	logger logging.Logger,
-	config *config.Config,
+	cfg *config.Config,
 	userService user.Service,
 	formService form.Service,
 	renderer view.Renderer,
@@ -38,7 +38,7 @@ func NewBaseHandler(
 ) *BaseHandler {
 	return &BaseHandler{
 		Logger:         logger,
-		Config:         config,
+		Config:         cfg,
 		UserService:    userService,
 		FormService:    formService,
 		Renderer:       renderer,
@@ -53,13 +53,13 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 		return nil, c.Redirect(http.StatusSeeOther, "/login")
 	}
 
-	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || user == nil {
+	userEntity, err := h.UserService.GetUserByID(c.Request().Context(), userID)
+	if err != nil || userEntity == nil {
 		h.Logger.Error("failed to get user", "error", err)
 		return nil, response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
 	}
 
-	return user, nil
+	return userEntity, nil
 }
 
 // BuildPageData creates page data with common fields

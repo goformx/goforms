@@ -5,6 +5,7 @@ import (
 	"io"
 	"net/http"
 	"os"
+	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
@@ -34,6 +35,8 @@ const (
 	DefaultRateLimit = 20
 	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
 	CookieMaxAge = 86400
+	// FormCorsMaxAge is the maximum age for form-specific CORS settings
+	FormCorsMaxAge = 3600
 	// FieldPairSize represents the number of elements in a key-value pair
 	FieldPairSize = 2
 )
@@ -196,7 +199,7 @@ func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
 			// Skip CSRF for API endpoints with valid Authorization header or CSRF token
 			if strings.HasPrefix(path, "/api/") {
 				authHeader := c.Request().Header.Get("Authorization")
-				csrfToken := c.Request().Header.Get("X-CSRF-Token")
+				csrfToken := c.Request().Header.Get("X-Csrf-Token")
 				if authHeader != "" || csrfToken != "" {
 					return true
 				}
@@ -444,73 +447,88 @@ func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 			isFormEndpoint := strings.HasPrefix(path, "/api/v1/forms/") &&
 				(strings.HasSuffix(path, "/schema") || strings.HasSuffix(path, "/submit"))
 
-			var allowedOrigins []string
-			var allowedMethods []string
-			var allowedHeaders []string
-			var allowCredentials bool
-			var maxAge int
-
-			if isFormEndpoint {
-				// Use form-specific CORS settings for form endpoints
-				allowedOrigins = securityConfig.FormCorsAllowedOrigins
-				allowedMethods = securityConfig.FormCorsAllowedMethods
-				allowedHeaders = securityConfig.FormCorsAllowedHeaders
-				allowCredentials = false // Forms don't need credentials
-				maxAge = 3600
-			} else {
-				// Use general CORS settings for other endpoints
-				allowedOrigins = securityConfig.CorsAllowedOrigins
-				allowedMethods = securityConfig.CorsAllowedMethods
-				allowedHeaders = securityConfig.CorsAllowedHeaders
-				allowCredentials = securityConfig.CorsAllowCredentials
-				maxAge = securityConfig.CorsMaxAge
-			}
+			corsConfig := getCORSConfig(securityConfig, isFormEndpoint)
 
 			// Handle preflight requests
 			if method == "OPTIONS" {
-				origin := c.Request().Header.Get("Origin")
-
-				// Check if origin is allowed
-				originAllowed := false
-				for _, allowedOrigin := range allowedOrigins {
-					if allowedOrigin == "*" || allowedOrigin == origin {
-						originAllowed = true
-						break
-					}
-				}
-
-				if originAllowed {
-					c.Response().Header().Set("Access-Control-Allow-Origin", origin)
-					c.Response().Header().Set("Access-Control-Allow-Methods", strings.Join(allowedMethods, ","))
-					c.Response().Header().Set("Access-Control-Allow-Headers", strings.Join(allowedHeaders, ","))
-					if allowCredentials {
-						c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
-					}
-					c.Response().Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", maxAge))
-					return c.NoContent(http.StatusNoContent)
-				}
+				return handlePreflightRequest(c, corsConfig)
 			}
 
 			// Handle actual requests
-			origin := c.Request().Header.Get("Origin")
-			if origin != "" {
-				originAllowed := false
-				for _, allowedOrigin := range allowedOrigins {
-					if allowedOrigin == "*" || allowedOrigin == origin {
-						originAllowed = true
-						break
-					}
-				}
-
-				if originAllowed {
-					c.Response().Header().Set("Access-Control-Allow-Origin", origin)
-					if allowCredentials {
-						c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
-					}
-				}
-			}
-
-			return next(c)
+			return handleActualRequest(c, corsConfig, next)
 		}
 	}
+}
+
+// getCORSConfig returns the appropriate CORS configuration based on endpoint type
+func getCORSConfig(securityConfig *appconfig.SecurityConfig, isFormEndpoint bool) *corsConfig {
+	if isFormEndpoint {
+		// Use form-specific CORS settings for form endpoints
+		return &corsConfig{
+			allowedOrigins:   securityConfig.FormCorsAllowedOrigins,
+			allowedMethods:   securityConfig.FormCorsAllowedMethods,
+			allowedHeaders:   securityConfig.FormCorsAllowedHeaders,
+			allowCredentials: false, // Forms don't need credentials
+			maxAge:           FormCorsMaxAge,
+		}
+	}
+
+	// Use general CORS settings for other endpoints
+	return &corsConfig{
+		allowedOrigins:   securityConfig.CorsAllowedOrigins,
+		allowedMethods:   securityConfig.CorsAllowedMethods,
+		allowedHeaders:   securityConfig.CorsAllowedHeaders,
+		allowCredentials: securityConfig.CorsAllowCredentials,
+		maxAge:           securityConfig.CorsMaxAge,
+	}
+}
+
+// corsConfig holds CORS configuration
+type corsConfig struct {
+	allowedOrigins   []string
+	allowedMethods   []string
+	allowedHeaders   []string
+	allowCredentials bool
+	maxAge           int
+}
+
+// handlePreflightRequest handles OPTIONS requests
+func handlePreflightRequest(c echo.Context, config *corsConfig) error {
+	origin := c.Request().Header.Get("Origin")
+
+	if isOriginAllowed(origin, config.allowedOrigins) {
+		c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+		c.Response().Header().Set("Access-Control-Allow-Methods", strings.Join(config.allowedMethods, ","))
+		c.Response().Header().Set("Access-Control-Allow-Headers", strings.Join(config.allowedHeaders, ","))
+		if config.allowCredentials {
+			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+		c.Response().Header().Set("Access-Control-Max-Age", strconv.Itoa(config.maxAge))
+		return c.NoContent(http.StatusNoContent)
+	}
+
+	return c.NoContent(http.StatusNoContent)
+}
+
+// handleActualRequest handles actual requests (non-OPTIONS)
+func handleActualRequest(c echo.Context, config *corsConfig, next echo.HandlerFunc) error {
+	origin := c.Request().Header.Get("Origin")
+	if origin != "" && isOriginAllowed(origin, config.allowedOrigins) {
+		c.Response().Header().Set("Access-Control-Allow-Origin", origin)
+		if config.allowCredentials {
+			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+		}
+	}
+
+	return next(c)
+}
+
+// isOriginAllowed checks if the origin is in the allowed origins list
+func isOriginAllowed(origin string, allowedOrigins []string) bool {
+	for _, allowedOrigin := range allowedOrigins {
+		if allowedOrigin == "*" || allowedOrigin == origin {
+			return true
+		}
+	}
+	return false
 }

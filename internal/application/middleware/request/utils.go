@@ -25,7 +25,7 @@ const (
 )
 
 // ParseRequestData parses request data based on content type
-func (ru *Utils) ParseRequestData(c echo.Context, target interface{}) error {
+func (ru *Utils) ParseRequestData(c echo.Context, target any) error {
 	contentType := c.Request().Header.Get("Content-Type")
 
 	switch {

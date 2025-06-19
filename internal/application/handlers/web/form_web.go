@@ -20,7 +20,11 @@ type FormWebHandler struct {
 	*FormBaseHandler
 }
 
-func NewFormWebHandler(base *BaseHandler, formService formdomain.Service, formValidator *validation.FormValidator) *FormWebHandler {
+func NewFormWebHandler(
+	base *BaseHandler,
+	formService formdomain.Service,
+	formValidator *validation.FormValidator,
+) *FormWebHandler {
 	return &FormWebHandler{
 		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
 	}

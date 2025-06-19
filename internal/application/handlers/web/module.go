@@ -25,16 +25,7 @@ var Module = fx.Options(
 	fx.Provide(
 		// Base handler for common functionality
 		fx.Annotate(
-			func(
-				logger logging.Logger,
-				cfg *config.Config,
-				userService user.Service,
-				formService form.Service,
-				renderer view.Renderer,
-				sessionManager *session.Manager,
-			) *BaseHandler {
-				return NewBaseHandler(logger, cfg, userService, formService, renderer, sessionManager)
-			},
+			NewBaseHandler,
 		),
 
 		// Legacy HandlerDeps for backward compatibility
@@ -94,7 +85,12 @@ var Module = fx.Options(
 
 		// Form API handler - authenticated access
 		fx.Annotate(
-			func(base *BaseHandler, formService form.Service, accessManager *access.AccessManager, formValidator *validation.FormValidator) (Handler, error) {
+			func(
+				base *BaseHandler,
+				formService form.Service,
+				accessManager *access.AccessManager,
+				formValidator *validation.FormValidator,
+			) (Handler, error) {
 				return NewFormAPIHandler(base, formService, accessManager, formValidator), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
@@ -191,9 +187,9 @@ func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
 
 	// API routes with validation
 	api := e.Group("/api/v1")
-	validation := api.Group("/validation")
-	validation.GET("/login", h.LoginValidation)
-	validation.GET("/signup", h.SignupValidation)
+	validationGroup := api.Group("/validation")
+	validationGroup.GET("/login", h.LoginValidation)
+	validationGroup.GET("/signup", h.SignupValidation)
 }
 
 // registerWebRoutes registers public web routes

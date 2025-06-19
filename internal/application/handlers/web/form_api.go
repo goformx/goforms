@@ -21,7 +21,12 @@ type FormAPIHandler struct {
 	AccessManager *access.AccessManager
 }
 
-func NewFormAPIHandler(base *BaseHandler, formService formdomain.Service, accessManager *access.AccessManager, formValidator *validation.FormValidator) *FormAPIHandler {
+func NewFormAPIHandler(
+	base *BaseHandler,
+	formService formdomain.Service,
+	accessManager *access.AccessManager,
+	formValidator *validation.FormValidator,
+) *FormAPIHandler {
 	return &FormAPIHandler{
 		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
 		AccessManager:   accessManager,
