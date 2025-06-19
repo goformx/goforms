@@ -26,6 +26,16 @@ const (
 	MaxStringLength = 1000
 	// MaxPathLength represents the maximum length for path fields
 	MaxPathLength = 500
+	// UUIDLength represents the standard UUID length
+	UUIDLength = 36
+	// UUIDParts represents the number of parts in a UUID
+	UUIDParts = 5
+	// UUIDMinMaskLen represents the minimum length for UUID masking
+	UUIDMinMaskLen = 8
+	// UUIDMaskPrefixLen represents the prefix length for UUID masking
+	UUIDMaskPrefixLen = 8
+	// UUIDMaskSuffixLen represents the suffix length for UUID masking
+	UUIDMaskSuffixLen = 4
 )
 
 // FactoryConfig holds the configuration for creating a logger factory
@@ -359,39 +369,17 @@ func (l *logger) SanitizeField(key string, value any) string {
 
 	// Handle path fields
 	if key == "path" {
-		if path, ok := value.(string); ok {
-			if !validatePath(path) {
-				return "[invalid path]"
-			}
-			return sanitizeString(truncateString(path, MaxPathLength), l.sanitizer)
-		}
-		return "[invalid path type]"
+		return sanitizePathField(value, l.sanitizer)
 	}
 
 	// Handle user agent fields
 	if key == "user_agent" {
-		if ua, ok := value.(string); ok {
-			if !validateUserAgent(ua) {
-				return "[invalid user agent]"
-			}
-			return sanitizeString(truncateString(ua, MaxStringLength), l.sanitizer)
-		}
-		return "[invalid user agent type]"
+		return sanitizeUserAgentField(value, l.sanitizer)
 	}
 
 	// Handle UUID-like fields (form_id, user_id, etc.)
-	if strings.Contains(strings.ToLower(key), "id") && !strings.Contains(strings.ToLower(key), "length") {
-		if id, ok := value.(string); ok {
-			if !validateUUID(id) {
-				return "[invalid uuid format]"
-			}
-			// For UUIDs, we return a masked version for security
-			if len(id) >= 8 {
-				return id[:8] + "..." + id[len(id)-4:]
-			}
-			return "[invalid uuid length]"
-		}
-		return "[invalid uuid type]"
+	if isUUIDField(key) {
+		return sanitizeUUIDField(value)
 	}
 
 	// Handle string values
@@ -426,11 +414,71 @@ func convertToZapFields(fields []any, sanitizer sanitization.ServiceInterface) [
 	return zapFields
 }
 
+// sanitizeRequestID handles request_id field validation
+func sanitizeRequestID(value any) string {
+	if id, ok := value.(string); ok {
+		if !validateUUID(id) {
+			return "[invalid request id]"
+		}
+		return id
+	}
+	return "[invalid request id type]"
+}
+
+// sanitizePathField handles path field validation and sanitization
+func sanitizePathField(value any, sanitizer sanitization.ServiceInterface) string {
+	if path, ok := value.(string); ok {
+		if !validatePath(path) {
+			return "[invalid path]"
+		}
+		return sanitizeString(truncateString(path, MaxPathLength), sanitizer)
+	}
+	return "[invalid path type]"
+}
+
+// sanitizeUserAgentField handles user agent field validation and sanitization
+func sanitizeUserAgentField(value any, sanitizer sanitization.ServiceInterface) string {
+	if ua, ok := value.(string); ok {
+		if !validateUserAgent(ua) {
+			return "[invalid user agent]"
+		}
+		return sanitizeString(truncateString(ua, MaxStringLength), sanitizer)
+	}
+	return "[invalid user agent type]"
+}
+
+// sanitizeUUIDField handles UUID-like field validation and masking
+func sanitizeUUIDField(value any) string {
+	if id, ok := value.(string); ok {
+		if !validateUUID(id) {
+			return "[invalid uuid format]"
+		}
+		// For UUIDs, we return a masked version for security
+		if len(id) >= UUIDMinMaskLen {
+			return id[:UUIDMaskPrefixLen] + "..." + id[len(id)-UUIDMaskSuffixLen:]
+		}
+		return "[invalid uuid length]"
+	}
+	return "[invalid uuid type]"
+}
+
+// isUUIDField checks if a field key represents a UUID field that should be masked
+func isUUIDField(key string) bool {
+	return strings.Contains(strings.ToLower(key), "id") &&
+		!strings.Contains(strings.ToLower(key), "length") &&
+		key != "request_id"
+}
+
 // sanitizeValue applies appropriate sanitization based on the field type
 func sanitizeValue(key string, value any, sanitizer sanitization.ServiceInterface) string {
 	// Check for sensitive keys
 	if _, ok := sensitiveKeys[strings.ToLower(key)]; ok {
 		return "****"
+	}
+
+	// Special handling for request_id
+	if key == "request_id" {
+		return sanitizeRequestID(value)
 	}
 
 	// Handle error values specially
@@ -440,39 +488,17 @@ func sanitizeValue(key string, value any, sanitizer sanitization.ServiceInterfac
 
 	// Handle path fields
 	if key == "path" {
-		if path, ok := value.(string); ok {
-			if !validatePath(path) {
-				return "[invalid path]"
-			}
-			return sanitizeString(truncateString(path, MaxPathLength), sanitizer)
-		}
-		return "[invalid path type]"
+		return sanitizePathField(value, sanitizer)
 	}
 
 	// Handle user agent fields
 	if key == "user_agent" {
-		if ua, ok := value.(string); ok {
-			if !validateUserAgent(ua) {
-				return "[invalid user agent]"
-			}
-			return sanitizeString(truncateString(ua, MaxStringLength), sanitizer)
-		}
-		return "[invalid user agent type]"
+		return sanitizeUserAgentField(value, sanitizer)
 	}
 
 	// Handle UUID-like fields (form_id, user_id, etc.)
-	if strings.Contains(strings.ToLower(key), "id") && !strings.Contains(strings.ToLower(key), "length") {
-		if id, ok := value.(string); ok {
-			if !validateUUID(id) {
-				return "[invalid uuid format]"
-			}
-			// For UUIDs, we return a masked version for security
-			if len(id) >= 8 {
-				return id[:8] + "..." + id[len(id)-4:]
-			}
-			return "[invalid uuid length]"
-		}
-		return "[invalid uuid type]"
+	if isUUIDField(key) {
+		return sanitizeUUIDField(value)
 	}
 
 	// Handle string values
@@ -525,7 +551,7 @@ func truncateString(s string, maxLen int) string {
 
 // validateUUID checks if a string is a valid UUID format
 func validateUUID(uuidStr string) bool {
-	if len(uuidStr) != 36 { // Standard UUID length
+	if len(uuidStr) != UUIDLength { // Standard UUID length
 		return false
 	}
 
@@ -539,13 +565,16 @@ func validateUUID(uuidStr string) bool {
 
 	// Check UUID format (8-4-4-4-12)
 	parts := strings.Split(uuidStr, "-")
-	if len(parts) != 5 {
+	if len(parts) != UUIDParts {
 		return false
 	}
 
-	if len(parts[0]) != 8 || len(parts[1]) != 4 || len(parts[2]) != 4 ||
-		len(parts[3]) != 4 || len(parts[4]) != 12 {
-		return false
+	// Check each part length
+	expectedLengths := []int{8, 4, 4, 4, 12}
+	for i, part := range parts {
+		if len(part) != expectedLengths[i] {
+			return false
+		}
 	}
 
 	return true
