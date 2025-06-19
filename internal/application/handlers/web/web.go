@@ -2,8 +2,10 @@ package web
 
 import (
 	"context"
+	"errors"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/middleware/auth"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/labstack/echo/v4"
 )
@@ -16,11 +18,23 @@ const (
 // WebHandler handles web page requests
 type WebHandler struct {
 	*BaseHandler
+	AuthMiddleware *auth.Middleware
 }
 
 // NewWebHandler creates a new web handler using BaseHandler
-func NewWebHandler(base *BaseHandler) (*WebHandler, error) {
-	return &WebHandler{BaseHandler: base}, nil
+func NewWebHandler(base *BaseHandler, authMiddleware *auth.Middleware) (*WebHandler, error) {
+	if base == nil {
+		return nil, errors.New("base handler cannot be nil")
+	}
+
+	if authMiddleware == nil {
+		return nil, errors.New("auth middleware cannot be nil")
+	}
+
+	return &WebHandler{
+		BaseHandler:    base,
+		AuthMiddleware: authMiddleware,
+	}, nil
 }
 
 // Register registers the web routes

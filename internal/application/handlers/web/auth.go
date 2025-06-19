@@ -4,10 +4,12 @@ import (
 	"context"
 	"errors"
 	"net/http"
-	"reflect"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/middleware/auth"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
+	"github.com/goformx/goforms/internal/application/middleware/request"
+	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
@@ -18,6 +20,9 @@ import (
 // AuthHandler handles authentication-related requests
 type AuthHandler struct {
 	*BaseHandler
+	AuthMiddleware *auth.Middleware
+	RequestUtils   *request.Utils
+	SchemaGenerator *validation.SchemaGenerator
 }
 
 const (
@@ -30,13 +35,33 @@ const (
 )
 
 // NewAuthHandler creates a new auth handler
-func NewAuthHandler(base *BaseHandler) (*AuthHandler, error) {
+func NewAuthHandler(
+	base *BaseHandler, 
+	authMiddleware *auth.Middleware, 
+	requestUtils *request.Utils,
+	schemaGenerator *validation.SchemaGenerator,
+) (*AuthHandler, error) {
 	if base == nil {
 		return nil, errors.New("base handler cannot be nil")
 	}
 
+	if authMiddleware == nil {
+		return nil, errors.New("auth middleware cannot be nil")
+	}
+
+	if requestUtils == nil {
+		return nil, errors.New("request utils cannot be nil")
+	}
+
+	if schemaGenerator == nil {
+		return nil, errors.New("schema generator cannot be nil")
+	}
+
 	return &AuthHandler{
-		BaseHandler: base,
+		BaseHandler:     base,
+		AuthMiddleware:  authMiddleware,
+		RequestUtils:    requestUtils,
+		SchemaGenerator: schemaGenerator,
 	}, nil
 }
 
@@ -58,65 +83,6 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 		"message": "Test endpoint working",
 		"status":  "success",
 	})
-}
-
-func getFieldSchema(field reflect.StructField) map[string]any {
-	fieldSchema := make(map[string]any)
-
-	// Get validation tags
-	validate := field.Tag.Get("validate")
-	if validate != "" {
-		fieldSchema["validate"] = validate
-	}
-
-	// Get min/max length
-	minLen := field.Tag.Get("minlen")
-	if minLen != "" {
-		fieldSchema["minLength"] = minLen
-	}
-	maxLen := field.Tag.Get("maxlen")
-	if maxLen != "" {
-		fieldSchema["maxLength"] = maxLen
-	}
-
-	// Set type and message based on validation rules
-	if validate != "" {
-		if validate == "required,email" {
-			fieldSchema["type"] = "email"
-			fieldSchema["message"] = "Please enter a valid email address"
-		} else if validate == "required" {
-			fieldSchema["type"] = "string"
-			fieldSchema["message"] = "This field is required"
-		} else if validate == "required,min=8" {
-			fieldSchema["type"] = "password"
-			fieldSchema["min"] = "8"
-			fieldSchema["message"] = "Password must be at least 8 characters long and include uppercase, lowercase, number, and special characters"
-		} else if validate == "required,eqfield=password" {
-			fieldSchema["type"] = "match"
-			fieldSchema["matchField"] = "password"
-			fieldSchema["message"] = "Passwords don't match"
-		}
-	}
-
-	return fieldSchema
-}
-
-func generateValidationSchema(s any) map[string]any {
-	t := reflect.TypeOf(s)
-	schema := make(map[string]any)
-
-	for i := range t.NumField() {
-		field := t.Field(i)
-		fieldName := field.Tag.Get("json")
-		if fieldName == "" {
-			fieldName = field.Name
-		}
-
-		fieldSchema := getFieldSchema(field)
-		schema[fieldName] = fieldSchema
-	}
-
-	return schema
 }
 
 // Login handles GET /login - displays the login form
@@ -390,13 +356,11 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	h.Logger.Info("LoginValidation endpoint called",
 		"method", c.Request().Method,
 		"path", c.Request().URL.Path,
-		"remote_addr", c.Request().RemoteAddr)
+		"user_agent", c.Request().UserAgent(),
+		"remote_addr", c.RealIP())
 
-	// Set content type to JSON
-	c.Response().Header().Set("Content-Type", "application/json")
-
-	// Generate schema with simple error handling
-	schema := generateValidationSchema(user.Login{})
+	// Generate schema using the validation package
+	schema := h.SchemaGenerator.GenerateLoginSchema()
 
 	h.Logger.Info("Generated login validation schema successfully", "schema", schema)
 	return c.JSON(http.StatusOK, schema)
@@ -407,13 +371,11 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	h.Logger.Info("SignupValidation endpoint called",
 		"method", c.Request().Method,
 		"path", c.Request().URL.Path,
-		"remote_addr", c.Request().RemoteAddr)
+		"user_agent", c.Request().UserAgent(),
+		"remote_addr", c.RealIP())
 
-	// Set content type to JSON
-	c.Response().Header().Set("Content-Type", "application/json")
-
-	// Generate schema with simple error handling
-	schema := generateValidationSchema(user.Signup{})
+	// Generate schema using the validation package
+	schema := h.SchemaGenerator.GenerateSignupSchema()
 
 	h.Logger.Info("Generated signup validation schema successfully", "schema", schema)
 	return c.JSON(http.StatusOK, schema)

@@ -1,10 +1,11 @@
 package web
 
 import (
+	"context"
 	"errors"
 	"net/http"
 
-	"github.com/goformx/goforms/internal/application/middleware/context"
+	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/entities"
@@ -48,7 +49,7 @@ func NewBaseHandler(
 
 // RequireAuthenticatedUser ensures the user is authenticated and returns the user object
 func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, error) {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return nil, c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -99,7 +100,7 @@ func (h *BaseHandler) ValidateFormID(c echo.Context) (string, error) {
 
 // ValidateUserOwnership verifies that a resource belongs to the authenticated user
 func (h *BaseHandler) ValidateUserOwnership(c echo.Context, resourceUserID string) error {
-	userID, ok := context.GetUserID(c)
+	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
 		return c.Redirect(http.StatusSeeOther, "/login")
 	}
@@ -113,4 +114,21 @@ func (h *BaseHandler) ValidateUserOwnership(c echo.Context, resourceUserID strin
 	}
 
 	return nil
+}
+
+// Start provides default lifecycle initialization
+func (h *BaseHandler) Start(ctx context.Context) error {
+	// Default implementation - no initialization needed
+	return nil
+}
+
+// Stop provides default lifecycle cleanup
+func (h *BaseHandler) Stop(ctx context.Context) error {
+	// Default implementation - no cleanup needed
+	return nil
+}
+
+// Register provides default route registration
+func (h *BaseHandler) Register(e *echo.Echo) {
+	// Default implementation - routes registered by RegisterHandlers
 }
