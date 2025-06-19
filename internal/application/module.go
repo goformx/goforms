@@ -130,7 +130,10 @@ func provideRequestUtils(sanitizer sanitization.ServiceInterface) *request.Utils
 }
 
 // provideErrorHandler creates a new error handler with sanitization service
-func provideErrorHandler(logger logging.Logger, sanitizer sanitization.ServiceInterface) response.ErrorHandlerInterface {
+func provideErrorHandler(
+	logger logging.Logger,
+	sanitizer sanitization.ServiceInterface,
+) response.ErrorHandlerInterface {
 	return response.NewErrorHandler(logger, sanitizer)
 }
 

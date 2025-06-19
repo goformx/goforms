@@ -95,36 +95,91 @@ func (s *Service) TrimAndSanitizeEmail(input string) string {
 	return s.Email(strings.TrimSpace(input))
 }
 
-// SanitizeMap sanitizes all string values in a map
-func (s *Service) SanitizeMap(data map[string]interface{}) {
+// SanitizeMap sanitizes a map of string keys to any values
+func (s *Service) SanitizeMap(data map[string]any) {
 	for key, value := range data {
 		switch v := value.(type) {
 		case string:
 			data[key] = s.String(v)
-		case map[string]interface{}:
+		case map[string]any:
 			s.SanitizeMap(v)
-		case []interface{}:
+		case []any:
 			s.SanitizeSlice(v)
 		}
 	}
 }
 
-// SanitizeSlice sanitizes all string values in a slice
-func (s *Service) SanitizeSlice(data []interface{}) {
+// SanitizeSlice sanitizes a slice of any values
+func (s *Service) SanitizeSlice(data []any) {
 	for i, value := range data {
 		switch v := value.(type) {
 		case string:
 			data[i] = s.String(v)
-		case map[string]interface{}:
+		case map[string]any:
 			s.SanitizeMap(v)
-		case []interface{}:
+		case []any:
 			s.SanitizeSlice(v)
+		}
+	}
+}
+
+// sanitizeStructField handles sanitization of individual struct fields
+func (s *Service) sanitizeStructField(field reflect.Value) {
+	switch field.Kind() {
+	case reflect.String:
+		if field.CanSet() {
+			field.SetString(s.String(field.String()))
+		}
+	case reflect.Struct:
+		s.SanitizeStruct(field.Interface())
+	case reflect.Slice:
+		s.sanitizeSliceField(field)
+	case reflect.Map:
+		s.sanitizeMapField(field)
+	case reflect.Ptr:
+		if !field.IsNil() {
+			s.sanitizeStructField(field.Elem())
+		}
+	case reflect.Invalid, reflect.Bool, reflect.Int, reflect.Int8, reflect.Int16,
+		reflect.Int32, reflect.Int64, reflect.Uint, reflect.Uint8, reflect.Uint16,
+		reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64,
+		reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.Func,
+		reflect.Interface, reflect.UnsafePointer:
+		// Skip other types (bool, int, float, etc.)
+	}
+}
+
+// sanitizeSliceField handles sanitization of slice fields
+func (s *Service) sanitizeSliceField(field reflect.Value) {
+	if field.Type().Elem().Kind() == reflect.String {
+		for i := range field.Len() {
+			if field.Index(i).CanSet() {
+				field.Index(i).SetString(s.String(field.Index(i).String()))
+			}
+		}
+	}
+}
+
+// sanitizeMapField handles sanitization of map fields
+func (s *Service) sanitizeMapField(field reflect.Value) {
+	if field.Type().Key().Kind() == reflect.String {
+		iter := field.MapRange()
+		for iter.Next() {
+			key := iter.Key()
+			value := iter.Value()
+			if value.Kind() == reflect.String {
+				field.SetMapIndex(key, reflect.ValueOf(s.String(value.String())))
+			}
 		}
 	}
 }
 
 // SanitizeStruct sanitizes all string fields in a struct
-func (s *Service) SanitizeStruct(obj interface{}) {
+func (s *Service) SanitizeStruct(obj any) {
+	if obj == nil {
+		return
+	}
+
 	v := reflect.ValueOf(obj)
 	if v.Kind() == reflect.Ptr {
 		v = v.Elem()
@@ -134,89 +189,58 @@ func (s *Service) SanitizeStruct(obj interface{}) {
 		return
 	}
 
-	for i := 0; i < v.NumField(); i++ {
+	for i := range v.NumField() {
 		field := v.Field(i)
-
-		// Skip unexported fields
-		if !field.CanSet() {
-			continue
-		}
-
-		switch field.Kind() {
-		case reflect.String:
-			if field.CanSet() {
-				field.SetString(s.String(field.String()))
-			}
-		case reflect.Struct:
-			if field.CanAddr() {
-				s.SanitizeStruct(field.Addr().Interface())
-			}
-		case reflect.Slice:
-			if field.Type().Elem().Kind() == reflect.String {
-				for j := 0; j < field.Len(); j++ {
-					if field.Index(j).CanSet() {
-						field.Index(j).SetString(s.String(field.Index(j).String()))
-					}
-				}
-			}
-		}
+		s.sanitizeStructField(field)
 	}
 }
 
-// SanitizeFormData sanitizes form data with specific field types
-func (s *Service) SanitizeFormData(data map[string]string, fieldTypes map[string]string) map[string]string {
-	sanitized := make(map[string]string)
-
+// SanitizeFormData sanitizes form data based on field types
+func (s *Service) SanitizeFormData(data, fieldTypes map[string]string) map[string]string {
+	result := make(map[string]string)
 	for key, value := range data {
 		fieldType, exists := fieldTypes[key]
 		if !exists {
-			fieldType = "string" // default to string sanitization
+			fieldType = "string" // default to string
 		}
 
-		switch strings.ToLower(fieldType) {
+		switch fieldType {
 		case "email":
-			sanitized[key] = s.TrimAndSanitizeEmail(value)
+			result[key] = s.Email(value)
 		case "url":
-			sanitized[key] = s.URL(value)
+			result[key] = s.URL(value)
 		case "path":
-			sanitized[key] = s.Path(value)
+			result[key] = s.Path(value)
 		case "html":
-			sanitized[key] = s.HTML(value)
-		case "alpha":
-			sanitized[key] = s.Alpha(value, false)
-		case "alphanumeric":
-			sanitized[key] = s.AlphaNumeric(value, false)
+			result[key] = s.HTML(value)
 		case "numeric":
-			sanitized[key] = s.Numeric(value)
-		case "singleline":
-			sanitized[key] = s.SingleLine(value)
+			result[key] = s.Numeric(value)
 		default:
-			sanitized[key] = s.TrimAndSanitize(value)
+			result[key] = s.String(value)
 		}
 	}
-
-	return sanitized
+	return result
 }
 
 // SanitizeJSON sanitizes JSON data recursively
-func (s *Service) SanitizeJSON(data interface{}) interface{} {
+func (s *Service) SanitizeJSON(data any) any {
 	switch v := data.(type) {
 	case string:
 		return s.String(v)
-	case map[string]interface{}:
-		sanitized := make(map[string]interface{})
+	case map[string]any:
+		sanitized := make(map[string]any)
 		for key, value := range v {
 			sanitized[key] = s.SanitizeJSON(value)
 		}
 		return sanitized
-	case []interface{}:
-		sanitized := make([]interface{}, len(v))
+	case []any:
+		sanitized := make([]any, len(v))
 		for i, value := range v {
 			sanitized[i] = s.SanitizeJSON(value)
 		}
 		return sanitized
 	default:
-		return v
+		return data
 	}
 }
 

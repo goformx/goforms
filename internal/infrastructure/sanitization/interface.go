@@ -2,7 +2,7 @@ package sanitization
 
 // ServiceInterface defines the interface for sanitization operations
 type ServiceInterface interface {
-	// Basic sanitization methods
+	// Basic string sanitization methods
 	String(input string) string
 	Email(input string) string
 	URL(input string) string
@@ -17,19 +17,15 @@ type ServiceInterface interface {
 	SingleLine(input string) string
 	Scripts(input string) string
 	XML(input string) string
-
-	// Convenience methods
 	TrimAndSanitize(input string) string
 	TrimAndSanitizeEmail(input string) string
 
-	// Complex data sanitization
-	SanitizeMap(data map[string]interface{})
-	SanitizeSlice(data []interface{})
-	SanitizeStruct(obj interface{})
+	// Complex data structure sanitization
+	SanitizeMap(data map[string]any)
+	SanitizeSlice(data []any)
+	SanitizeStruct(obj any)
 	SanitizeFormData(data map[string]string, fieldTypes map[string]string) map[string]string
-	SanitizeJSON(data interface{}) interface{}
-
-	// Advanced sanitization
+	SanitizeJSON(data any) any
 	SanitizeWithOptions(input string, opts SanitizeOptions) string
 
 	// Validation methods

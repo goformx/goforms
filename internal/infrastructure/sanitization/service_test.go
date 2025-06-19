@@ -1,18 +1,21 @@
-package sanitization
+package sanitization_test
 
 import (
 	"testing"
+
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
+	"github.com/stretchr/testify/assert"
 )
 
 func TestNewService(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 	if service == nil {
 		t.Error("NewService() returned nil")
 	}
 }
 
 func TestService_String(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -47,7 +50,7 @@ func TestService_String(t *testing.T) {
 }
 
 func TestService_Email(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -82,7 +85,7 @@ func TestService_Email(t *testing.T) {
 }
 
 func TestService_URL(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -117,7 +120,7 @@ func TestService_URL(t *testing.T) {
 }
 
 func TestService_HTML(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -152,7 +155,7 @@ func TestService_HTML(t *testing.T) {
 }
 
 func TestService_TrimAndSanitize(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -187,7 +190,7 @@ func TestService_TrimAndSanitize(t *testing.T) {
 }
 
 func TestService_TrimAndSanitizeEmail(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -217,39 +220,26 @@ func TestService_TrimAndSanitizeEmail(t *testing.T) {
 }
 
 func TestService_SanitizeMap(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
-	data := map[string]interface{}{
-		"name":    "<script>alert('test');</script>",
-		"email":   "test@example.com",
-		"message": "Hello, World!",
-		"nested": map[string]interface{}{
-			"field": "<b>Bold</b> text",
+	data := map[string]any{
+		"name":  "  John Doe  ",
+		"email": "  test@example.com  ",
+		"nested": map[string]any{
+			"title": "  <b>Test Title</b>  ",
 		},
 	}
 
 	service.SanitizeMap(data)
 
-	if data["name"] != ">alert('test');</" {
-		t.Errorf("SanitizeMap() did not sanitize name field correctly")
-	}
-
-	if data["email"] != "test@example.com" {
-		t.Errorf("SanitizeMap() changed valid email")
-	}
-
-	if data["message"] != "Hello, World!" {
-		t.Errorf("SanitizeMap() changed plain text")
-	}
-
-	nested := data["nested"].(map[string]interface{})
-	if nested["field"] != "<b>Bold</b> text" {
-		t.Errorf("SanitizeMap() did not sanitize nested field correctly")
-	}
+	assert.Equal(t, "John Doe", data["name"])
+	assert.Equal(t, "test@example.com", data["email"])
+	nested := data["nested"].(map[string]any)
+	assert.Equal(t, "Test Title", nested["title"])
 }
 
 func TestService_SanitizeFormData(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	data := map[string]string{
 		"name":    "  John Doe  ",
@@ -285,51 +275,41 @@ func TestService_SanitizeFormData(t *testing.T) {
 }
 
 func TestService_SanitizeJSON(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
-	data := map[string]interface{}{
-		"name":  "<script>alert('test');</script>",
-		"email": "test@example.com",
-		"tags":  []interface{}{"<b>tag1</b>", "tag2"},
-		"nested": map[string]interface{}{
-			"field": "<p>content</p>",
+	data := map[string]any{
+		"name":  "  John Doe  ",
+		"email": "  test@example.com  ",
+		"tags":  []any{"<b>tag1</b>", "tag2"},
+		"nested": map[string]any{
+			"title": "  <b>Test Title</b>  ",
 		},
 	}
 
-	result := service.SanitizeJSON(data).(map[string]interface{})
+	result := service.SanitizeJSON(data).(map[string]any)
 
-	if result["name"] != ">alert('test');</" {
-		t.Errorf("SanitizeJSON() did not sanitize name field correctly")
-	}
-
-	if result["email"] != "test@example.com" {
-		t.Errorf("SanitizeJSON() changed valid email")
-	}
-
-	tags := result["tags"].([]interface{})
-	if tags[0] != "<b>tag1</b>" {
-		t.Errorf("SanitizeJSON() did not sanitize array element correctly")
-	}
-
-	nested := result["nested"].(map[string]interface{})
-	if nested["field"] != "<p>content</p>" {
-		t.Errorf("SanitizeJSON() did not sanitize nested field correctly")
-	}
+	assert.Equal(t, "John Doe", result["name"])
+	assert.Equal(t, "test@example.com", result["email"])
+	tags := result["tags"].([]any)
+	assert.Equal(t, "tag1", tags[0])
+	assert.Equal(t, "tag2", tags[1])
+	nested := result["nested"].(map[string]any)
+	assert.Equal(t, "Test Title", nested["title"])
 }
 
 func TestService_SanitizeWithOptions(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
 		input    string
-		opts     SanitizeOptions
+		opts     sanitization.SanitizeOptions
 		expected string
 	}{
 		{
 			name:  "trim whitespace",
 			input: "  Hello, World!  ",
-			opts: SanitizeOptions{
+			opts: sanitization.SanitizeOptions{
 				TrimWhitespace: true,
 			},
 			expected: "Hello, World!",
@@ -337,7 +317,7 @@ func TestService_SanitizeWithOptions(t *testing.T) {
 		{
 			name:  "remove HTML",
 			input: "<p>Hello <b>World</b></p>",
-			opts: SanitizeOptions{
+			opts: sanitization.SanitizeOptions{
 				RemoveHTML: true,
 			},
 			expected: "Hello World",
@@ -345,7 +325,7 @@ func TestService_SanitizeWithOptions(t *testing.T) {
 		{
 			name:  "max length",
 			input: "This is a very long string that should be truncated",
-			opts: SanitizeOptions{
+			opts: sanitization.SanitizeOptions{
 				MaxLength: 20,
 			},
 			expected: "This is a very long ",
@@ -353,7 +333,7 @@ func TestService_SanitizeWithOptions(t *testing.T) {
 		{
 			name:  "all options",
 			input: "  <p>Hello <b>World</b></p>  ",
-			opts: SanitizeOptions{
+			opts: sanitization.SanitizeOptions{
 				TrimWhitespace: true,
 				RemoveHTML:     true,
 				MaxLength:      10,
@@ -373,7 +353,7 @@ func TestService_SanitizeWithOptions(t *testing.T) {
 }
 
 func TestService_IsValidEmail(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -408,7 +388,7 @@ func TestService_IsValidEmail(t *testing.T) {
 }
 
 func TestService_IsValidURL(t *testing.T) {
-	service := NewService()
+	service := sanitization.NewService()
 
 	tests := []struct {
 		name     string
@@ -445,4 +425,20 @@ func TestService_IsValidURL(t *testing.T) {
 			}
 		})
 	}
+}
+
+func TestService_SanitizeSlice(t *testing.T) {
+	service := sanitization.NewService()
+
+	data := []any{
+		"  item1  ",
+		"  <b>item2</b>  ",
+		"  item3  ",
+	}
+
+	service.SanitizeSlice(data)
+
+	assert.Equal(t, "item1", data[0])
+	assert.Equal(t, "item2", data[1])
+	assert.Equal(t, "item3", data[2])
 }

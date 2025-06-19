@@ -5,6 +5,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"math"
 
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -41,7 +42,7 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.FormSubmission, 
 	var submission model.FormSubmission
 	if err := s.db.WithContext(ctx).Where("id = ?", id).First(&submission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
+			return nil, fmt.Errorf("form submission not found: %s", id)
 		}
 		return nil, fmt.Errorf("failed to get form submission: %w", err)
 	}
@@ -82,48 +83,105 @@ func (s *Store) List(ctx context.Context, offset, limit int) ([]*model.FormSubmi
 	return submissions, nil
 }
 
-// GetByFormIDPaginated retrieves paginated submissions for a specific form
-func (s *Store) GetByFormIDPaginated(ctx context.Context, formID string, params common.PaginationParams) (*common.PaginationResult, error) {
-	var submissions []*model.FormSubmission
-	var total int64
-
-	// Get total count for this form
-	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("form_id = ?", formID).Count(&total).Error; err != nil {
-		return nil, fmt.Errorf("failed to count form submissions: %w", err)
-	}
-
-	// Get paginated results for this form
-	if err := s.db.WithContext(ctx).Where("form_id = ?", formID).Offset(params.GetOffset()).Limit(params.GetLimit()).Find(&submissions).Error; err != nil {
-		return nil, fmt.Errorf("failed to get paginated form submissions: %w", err)
+// buildPaginationResult creates a pagination result from submissions and total count
+func (s *Store) buildPaginationResult(
+	submissions []*model.FormSubmission,
+	total int64,
+	params common.PaginationParams,
+) *common.PaginationResult {
+	// Convert to interface slice
+	items := make([]any, len(submissions))
+	for i, submission := range submissions {
+		items[i] = submission
 	}
 
 	return &common.PaginationResult{
-		Items:      submissions,
+		Items:      items,
 		TotalItems: int(total),
 		Page:       params.Page,
 		PageSize:   params.PageSize,
-		TotalPages: (int(total) + params.PageSize - 1) / params.PageSize,
-	}, nil
+		TotalPages: int(math.Ceil(float64(total) / float64(params.PageSize))),
+	}
+}
+
+// buildEmptyPaginationResult creates an empty pagination result
+func (s *Store) buildEmptyPaginationResult(params common.PaginationParams) *common.PaginationResult {
+	return &common.PaginationResult{
+		Items:      []any{},
+		TotalItems: 0,
+		Page:       params.Page,
+		PageSize:   params.PageSize,
+		TotalPages: 0,
+	}
+}
+
+// GetByFormIDPaginated retrieves form submissions by form ID with pagination
+func (s *Store) GetByFormIDPaginated(
+	ctx context.Context,
+	formID string,
+	params common.PaginationParams,
+) (*common.PaginationResult, error) {
+	var submissions []*model.FormSubmission
+	var total int64
+
+	// Count total submissions for this form
+	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).
+		Where("form_id = ?", formID).Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("failed to count submissions: %w", err)
+	}
+
+	// If no submissions found, return empty result
+	if total == 0 {
+		return s.buildEmptyPaginationResult(params), nil
+	}
+
+	// Get paginated submissions
+	if err := s.db.WithContext(ctx).Where("form_id = ?", formID).
+		Offset(params.GetOffset()).Limit(params.GetLimit()).
+		Find(&submissions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get submissions: %w", err)
+	}
+
+	return s.buildPaginationResult(submissions, total, params), nil
 }
 
 // CountByFormID counts submissions for a specific form
 func (s *Store) CountByFormID(ctx context.Context, formID string) (int64, error) {
 	var count int64
-	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("form_id = ?", formID).Count(&count).Error; err != nil {
+	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).
+		Where("form_id = ?", formID).Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to count form submissions: %w", err)
 	}
 	return count, nil
 }
 
-// GetByFormIDAndUserID retrieves a submission by form ID and user ID
-func (s *Store) GetByFormIDAndUserID(ctx context.Context, formID, userID string) (*model.FormSubmission, error) {
+// GetByFormIDAndUserID retrieves a specific submission by form ID and user ID
+func (s *Store) GetByFormIDAndUserID(
+	ctx context.Context,
+	formID string,
+	userID string,
+) (*model.FormSubmission, error) {
 	var submission model.FormSubmission
-	if err := s.db.WithContext(ctx).Where("form_id = ? AND user_id = ?", formID, userID).First(&submission).Error; err != nil {
-		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, nil
-		}
-		return nil, fmt.Errorf("failed to get form submission by form and user: %w", err)
+
+	// Count submissions for this form and user
+	var count int64
+	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).
+		Where("form_id = ?", formID).Count(&count).Error; err != nil {
+		return nil, fmt.Errorf("failed to count submissions: %w", err)
 	}
+
+	// If no submissions found, return not found error
+	if count == 0 {
+		return nil, fmt.Errorf("no submissions found for form %s and user %s", formID, userID)
+	}
+
+	// Get the submission
+	if err := s.db.WithContext(ctx).
+		Where("form_id = ? AND user_id = ?", formID, userID).
+		First(&submission).Error; err != nil {
+		return nil, fmt.Errorf("failed to get submission: %w", err)
+	}
+
 	return &submission, nil
 }
 
@@ -169,9 +227,14 @@ func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]
 }
 
 // UpdateStatus updates the status of a form submission
-func (s *Store) UpdateStatus(ctx context.Context, id string, status model.SubmissionStatus) error {
-	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).Where("id = ?", id).Update("status", status).Error; err != nil {
-		return fmt.Errorf("failed to update form submission status: %w", err)
+func (s *Store) UpdateStatus(
+	ctx context.Context,
+	id string,
+	status model.SubmissionStatus,
+) error {
+	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).
+		Where("id = ?", id).Update("status", status).Error; err != nil {
+		return fmt.Errorf("failed to update submission status: %w", err)
 	}
 	return nil
 }
@@ -205,35 +268,32 @@ func (s *Store) GetByFormAndUser(ctx context.Context, formID, userID string) (*m
 	return s.GetByFormIDAndUserID(ctx, formID, userID)
 }
 
-// GetSubmissionsByStatus retrieves submissions by status
-func (s *Store) GetSubmissionsByStatus(ctx context.Context, status model.SubmissionStatus, params common.PaginationParams) (*common.PaginationResult, error) {
-	submissions, err := s.GetByStatus(ctx, status)
-	if err != nil {
-		return nil, err
+// GetSubmissionsByStatus retrieves form submissions by status with pagination
+func (s *Store) GetSubmissionsByStatus(
+	ctx context.Context,
+	status model.SubmissionStatus,
+	params common.PaginationParams,
+) (*common.PaginationResult, error) {
+	var submissions []*model.FormSubmission
+	var total int64
+
+	// Count total submissions with this status
+	if err := s.db.WithContext(ctx).Model(&model.FormSubmission{}).
+		Where("status = ?", status).Count(&total).Error; err != nil {
+		return nil, fmt.Errorf("failed to count submissions: %w", err)
 	}
 
-	// Simple pagination implementation
-	start := params.GetOffset()
-	end := start + params.GetLimit()
-	if start >= len(submissions) {
-		return &common.PaginationResult{
-			Items:      []*model.FormSubmission{},
-			TotalItems: len(submissions),
-			Page:       params.Page,
-			PageSize:   params.PageSize,
-			TotalPages: (len(submissions) + params.PageSize - 1) / params.PageSize,
-		}, nil
+	// If no submissions found, return empty result
+	if total == 0 {
+		return s.buildEmptyPaginationResult(params), nil
 	}
 
-	if end > len(submissions) {
-		end = len(submissions)
+	// Get paginated submissions
+	if err := s.db.WithContext(ctx).Where("status = ?", status).
+		Offset(params.GetOffset()).Limit(params.GetLimit()).
+		Find(&submissions).Error; err != nil {
+		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
 
-	return &common.PaginationResult{
-		Items:      submissions[start:end],
-		TotalItems: len(submissions),
-		Page:       params.Page,
-		PageSize:   params.PageSize,
-		TotalPages: (len(submissions) + params.PageSize - 1) / params.PageSize,
-	}, nil
+	return s.buildPaginationResult(submissions, total, params), nil
 }
