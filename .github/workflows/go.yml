@@ -68,6 +68,21 @@ jobs:
           echo "Running task install:all"
           task install:all
 
+      - name: Build Frontend
+        run: task build:frontend
+
+      - name: Generate Mocks
+        run: task generate:mocks:all
+
+      - name: Generate Code
+        run: task generate:all
+
+      - name: Lint
+        uses: golangci/golangci-lint-action@v8
+        with:
+          version: latest
+          github-token: ${{ secrets.GITHUB_TOKEN }}
+
   verify:
     name: Verify Code
     needs: setup
@@ -115,6 +130,9 @@ jobs:
       - name: Install dependencies
         if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: task install:all
+
+      - name: Build Frontend
+        run: task build:frontend
 
       - name: Generate Mocks
         run: task generate:mocks:all
@@ -181,10 +199,12 @@ jobs:
         if: steps.go-tools-cache.outputs.cache-hit != 'true'
         run: task install:all
 
+      - name: Build Frontend
+        run: task build:frontend
+
       - name: Build
         run: |
           mkdir -p bin
-          task install:frontend
           task generate:templ
           task build:all
 

@@ -11,6 +11,20 @@ This document outlines the plan to fix DRY (Don't Repeat Yourself), SoC (Separat
 
 ## 🔴 Critical Issues
 
+### 0. CI/CD Build Failure
+**Problem**: `//go:embed dist` directive causing build failure in CI environment
+**Files**: `main.go`, `internal/infrastructure/module.go`, `.github/workflows/go.yml`
+**Status**: ✅ Complete
+
+#### Tasks:
+- [x] Restore embed directive in main.go
+- [x] Ensure dist directory is built before linting in CI
+- [x] Add frontend build step to CI workflow
+- [x] Verify CI/CD pipeline passes
+- [x] Test application builds and runs correctly
+
+**Solution**: Added a frontend build step (`task build:frontend`) before the linting step in the CI workflow to ensure the `dist` directory exists when the Go linter runs. This preserves the embed functionality for production deployments while fixing the CI build issue.
+
 ### 1. Error Handling Duplication
 **Problem**: Multiple error handling implementations across different layers
 **Files**: `internal/application/middleware/error_handler.go`
