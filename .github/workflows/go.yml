@@ -61,14 +61,14 @@ jobs:
 
       - name: Install dependencies
         run: |
-          task install:all
+          task install
           task install:frontend
 
       - name: Generate code & build frontend
         run: |
           task build:frontend
-          task generate:mocks:all
-          task generate:all
+          task generate:mocks
+          task generate
 
       - name: Lint
         uses: golangci/golangci-lint-action@v8
@@ -127,12 +127,12 @@ jobs:
 
       - name: Install dependencies & build
         run: |
-          task install:all
+          task install
           task install:frontend
           task build:frontend
           task generate:templ
           mkdir -p bin
-          task build:all
+          task build:backend
 
       - name: List build artifacts
         run: ls -la bin/

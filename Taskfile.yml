@@ -52,7 +52,7 @@ tasks:
   ci:
     desc: Run local GitHub Actions CI using act
     cmds:
-    - task: act:all
+    - task: act
 
   verify:
     desc: Verify frontend code quality and types

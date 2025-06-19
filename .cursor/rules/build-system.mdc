@@ -28,15 +28,15 @@ GoForms uses a multi-stage build system with Task for orchestration, Vite for fr
 
 ### Complete Build Pipeline
 ```bash
-task default  # Runs: install:all → generate:all → build:all → migrate:pg:up → run
+task default  # Runs: install → generate → build → migrate:pg:up → run
 ```
 
 ### Individual Stages
-1. **Install Dependencies**: `task install:all`
+1. **Install Dependencies**: `task install`
    - Installs Go tools and frontend dependencies
-2. **Generate Code**: `task generate:all`
+2. **Generate Code**: `task generate`
    - Generates templ files and mocks
-3. **Build Application**: `task build:all`
+3. **Build Application**: `task build`
    - Builds frontend and backend
 4. **Run Application**: `task run`
 
@@ -72,7 +72,7 @@ task dev:frontend  # Runs Vite dev server
 ## Task Commands
 
 ### Core Tasks
-- `task build:all` - Build entire application
+- `task build` - Build entire application
 - `task build:frontend` - Build frontend only
 - `task build:backend` - Build backend only
 - `task run` - Run the compiled application
@@ -83,14 +83,14 @@ task dev:frontend  # Runs Vite dev server
 - `task dev:frontend` - Run frontend dev server
 
 ### Code Quality
-- `task lint:all` - Run all linters
+- `task lint` - Run all linters
 - `task test` - Run unit tests
 - `task test:cover` - Run tests with coverage
 
 ### Code Generation
-- `task generate:all` - Generate all code artifacts
+- `task generate` - Generate all code artifacts
 - `task generate:templ` - Generate templ files
-- `task generate:mocks:all` - Generate all mocks
+- `task generate:mocks` - Generate all mocks
 
 ## Environment Configuration
 
