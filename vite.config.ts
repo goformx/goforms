@@ -80,14 +80,14 @@ export default defineConfig({
     },
     rollupOptions: {
       input: {
-        main: resolve(__dirname, "src/js/main.ts"),
+        main: resolve(__dirname, "src/js/pages/main.ts"),
         "main.css": resolve(__dirname, "src/css/main.css"),
-        dashboard: resolve(__dirname, "src/js/dashboard.ts"),
-        "form-builder": resolve(__dirname, "src/js/form-builder.ts"),
-        login: resolve(__dirname, "src/js/login.ts"),
-        signup: resolve(__dirname, "src/js/signup.ts"),
-        "cta-form": resolve(__dirname, "src/js/cta-form.ts"),
-        demo: resolve(__dirname, "src/js/demo.ts"),
+        dashboard: resolve(__dirname, "src/js/pages/dashboard.ts"),
+        "form-builder": resolve(__dirname, "src/js/pages/form-builder.ts"),
+        login: resolve(__dirname, "src/js/pages/login.ts"),
+        signup: resolve(__dirname, "src/js/pages/signup.ts"),
+        "cta-form": resolve(__dirname, "src/js/pages/cta-form.ts"),
+        demo: resolve(__dirname, "src/js/pages/demo.ts"),
       },
       output: {
         assetFileNames: (assetInfo) => {

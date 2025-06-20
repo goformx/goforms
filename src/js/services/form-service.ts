@@ -17,12 +17,10 @@ export interface FormSchema {
 export class FormService {
   private static instance: FormService;
   private baseUrl: string;
-  private csrfToken: string;
 
   private constructor() {
     this.baseUrl = window.location.origin;
     console.debug("FormService initialized with base URL:", this.baseUrl);
-    this.csrfToken = this.getCSRFToken();
   }
 
   public static getInstance(): FormService {
@@ -35,14 +33,6 @@ export class FormService {
   public setBaseUrl(url: string): void {
     this.baseUrl = url;
     console.debug("FormService base URL updated to:", this.baseUrl);
-  }
-
-  private getCSRFToken(): string {
-    const metaTag = document.querySelector('meta[name="csrf-token"]');
-    if (!metaTag) {
-      throw new Error("CSRF token not found");
-    }
-    return metaTag.getAttribute("content") || "";
   }
 
   async getSchema(formId: string): Promise<FormSchema> {
@@ -70,7 +60,7 @@ export class FormService {
           method: "PUT",
           headers: {
             "Content-Type": "application/json",
-            "X-CSRF-Token": this.csrfToken,
+            "X-Requested-With": "XMLHttpRequest",
           },
           body: JSON.stringify(schema),
         },
@@ -104,7 +94,7 @@ export class FormService {
       method: "PUT",
       headers: {
         "Content-Type": "application/json",
-        "X-CSRF-Token": this.csrfToken,
+        "X-Requested-With": "XMLHttpRequest",
       },
       body: JSON.stringify(details),
     });

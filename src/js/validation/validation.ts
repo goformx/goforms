@@ -1,5 +1,8 @@
 import { z } from "zod";
-import { getValidationSchema } from "./validation/generator";
+import { getValidationSchema } from "./generator";
+import { ValidationManager } from "../utils/validation-manager";
+import { ErrorManager } from "../utils/error-manager";
+import { Logger } from "../utils/logger";
 
 // Types
 export type FormData = Record<string, string>;
@@ -14,33 +17,21 @@ export type ValidationResult = {
   };
 };
 
-// Schema cache
+// Legacy schema cache for backward compatibility
 const schemaCache: Record<string, z.ZodType<Record<string, string>>> = {};
 
 export const validation = {
   clearError(fieldId: string): void {
-    const errorElement = document.getElementById(`${fieldId}_error`);
-    if (errorElement) {
-      errorElement.textContent = "";
-    }
-    const input = document.getElementById(fieldId) as HTMLInputElement;
-    if (input) {
-      input.classList.remove("error");
-    }
+    ErrorManager.clearFieldError(fieldId);
   },
 
   showError(fieldId: string, message: string): void {
-    const errorElement = document.getElementById(`${fieldId}_error`);
-    if (errorElement) {
-      errorElement.textContent = message;
-    }
-    const input = document.getElementById(fieldId) as HTMLInputElement;
-    if (input) {
-      input.classList.add("error");
-    }
+    ErrorManager.showFieldError(fieldId, message);
   },
 
   clearAllErrors(): void {
+    // This method is kept for backward compatibility
+    // It clears all errors globally, which is less precise than the new ErrorManager
     document.querySelectorAll(".error-message").forEach((el) => {
       el.textContent = "";
     });
@@ -53,7 +44,7 @@ export const validation = {
     formId: string,
     schemaName: string,
   ): Promise<void> {
-    const form = document.getElementById(formId);
+    const form = document.getElementById(formId) as HTMLFormElement;
     if (!form) return;
 
     let schema = schemaCache[schemaName];
@@ -117,102 +108,51 @@ export const validation = {
     form: HTMLFormElement,
     schemaName: string,
   ): Promise<ValidationResult> {
-    let schema = schemaCache[schemaName];
-    if (!schema) {
-      schema = await getValidationSchema(schemaName);
-      schemaCache[schemaName] = schema;
-    }
-    if (!schema) {
+    // Use the new ValidationManager for better error handling
+    try {
+      return await ValidationManager.validateForm(form, schemaName);
+    } catch (error) {
+      Logger.error("Form validation failed:", error);
       return {
         success: false,
         error: {
-          errors: [{ path: [], message: "Invalid schema name" }],
+          errors: [{ path: [], message: "Validation failed" }],
         },
       };
-    }
-    const formData = new FormData(form);
-    const data = Object.fromEntries(formData.entries());
-    try {
-      const result = schema.parse(data);
-      return { success: true, data: result };
-    } catch (error) {
-      if (error instanceof z.ZodError) {
-        return {
-          success: false,
-          error: {
-            errors: error.errors.map((err) => ({
-              path: err.path.map((p) => String(p)),
-              message: err.message,
-            })),
-          },
-        };
-      }
-      throw error;
     }
   },
 
   showErrors: (form: HTMLFormElement, errors: Record<string, string>) => {
-    Object.entries(errors).forEach(([field, message]) => {
-      const input = form.querySelector(`[name="${field}"]`) as HTMLInputElement;
-      if (input) {
-        const errorElement = document.createElement("div");
-        errorElement.className = "error-message";
-        errorElement.textContent = message;
-        input.parentElement?.appendChild(errorElement);
-        input.classList.add("error");
-      }
-    });
+    ErrorManager.showErrors(form, errors);
   },
 
   clearErrors: (form: HTMLFormElement) => {
-    form.querySelectorAll(".error-message").forEach((el) => el.remove());
-    form
-      .querySelectorAll(".error")
-      .forEach((el) => el.classList.remove("error"));
+    ErrorManager.clearErrors(form);
   },
 
-  // CSRF token handling
+  // CSRF token handling - now delegated to HttpClient
   getCSRFToken(): string {
     const meta = document.querySelector("meta[name='csrf-token']");
-    if (!meta) {
-      throw new Error(
-        "CSRF token not found. Please refresh the page and try again.",
-      );
+    if (meta) {
+      const token = meta.getAttribute("content");
+      if (token) {
+        return token;
+      }
     }
-    const token = meta.getAttribute("content");
-    if (!token) {
-      throw new Error(
-        "CSRF token is empty. Please refresh the page and try again.",
-      );
-    }
-    return token;
+
+    throw new Error(
+      "CSRF token not found. Please refresh the page and try again.",
+    );
   },
 
-  // Common fetch with CSRF
-  async fetchWithCSRF(
+  // Common fetch with authentication - now delegated to HttpClient
+  async fetchWithAuth(
     url: string,
     options: RequestInit = {},
   ): Promise<Response> {
-    const csrfToken = this.getCSRFToken();
-    const headers = new Headers(options.headers || {});
-    headers.set("X-CSRF-Token", csrfToken);
-    headers.set("Content-Type", "application/json");
-
-    return fetch(url, {
-      ...options,
-      headers,
-      credentials: "include",
-    });
+    // This method is kept for backward compatibility
+    // New code should use HttpClient directly
+    const { HttpClient } = await import("../utils/http-client");
+    return HttpClient.request(url, options);
   },
-
-  // JWT token management
-  // getJWTToken(): string | null {
-  //   return localStorage.getItem("jwt_token");
-  // }
-  // setJWTToken(token: string): void {
-  //   localStorage.setItem("jwt_token", token);
-  // }
-  // clearJWTToken(): void {
-  //   localStorage.removeItem("jwt_token");
-  // }
 };

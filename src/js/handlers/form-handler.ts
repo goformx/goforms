@@ -8,7 +8,7 @@
  * - Server communication
  */
 
-import { validation } from "./validation";
+import { validation } from "../validation/validation";
 
 export interface FormConfig {
   formId: string;
@@ -160,16 +160,30 @@ async function sendFormData(form: HTMLFormElement) {
   }
   try {
     console.log("Sending request to:", form.action);
+
+    // Debug: Log cookies that will be sent
+    console.log("Cookies that will be sent:", document.cookie);
+
+    const headers: Record<string, string> = {
+      Accept: "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+    };
+
+    // Add CSRF token to headers for auth endpoints
+    if (isAuthEndpoint && csrfToken) {
+      headers["X-Csrf-Token"] = csrfToken;
+    }
+
+    // Add Content-Type for auth endpoints
+    if (isAuthEndpoint) {
+      headers["Content-Type"] = "application/json";
+    }
+
     const response = await fetch(form.action, {
       method: "POST",
       body,
       credentials: "include",
-      headers: {
-        Accept: "application/json",
-        "X-CSRF-Token": csrfToken,
-        "X-Requested-With": "XMLHttpRequest",
-        ...(isAuthEndpoint && { "Content-Type": "application/json" }),
-      },
+      headers,
     });
     console.log("Response status:", response.status);
     console.log(
@@ -277,48 +291,54 @@ export class FormHandler {
   private async sendFormData(formData: FormData): Promise<Response> {
     console.group("Form Submission");
     const csrfToken = validation.getCSRFToken();
-    console.log("CSRF Token:", csrfToken ? "Present" : "Missing");
-    // Convert FormData to JSON for auth endpoints
+    console.log("CSRF Token from hidden input:", csrfToken);
+
+    // Debug: Check if CSRF token is in form data
+    const formDataObj = Object.fromEntries(formData.entries());
+    console.log("CSRF token in form data:", formDataObj.csrf_token);
+
+    // For auth endpoints, send as form data so CSRF middleware can find the token
     const isAuthEndpoint =
       this.form.action.includes("/login") ||
       this.form.action.includes("/signup");
-    // For auth endpoints, clean up the data before sending
+
     let body: FormData | string;
+    const headers: Record<string, string> = {};
+
     if (isAuthEndpoint) {
-      const data = Object.fromEntries(formData.entries());
-      // Remove CSRF token from payload since it's in the header
-      delete data.csrf_token;
-      body = JSON.stringify(data);
-      console.log("Cleaned Form Data:", data);
+      // Create a new FormData with the correct field name for CSRF
+      const newFormData = new FormData();
+
+      // Copy all form fields
+      for (const [key, value] of formData.entries()) {
+        if (key === "csrf_token") {
+          // Rename csrf_token to _csrf to match CSRF middleware expectation
+          newFormData.append("_csrf", value as string);
+        } else {
+          newFormData.append(key, value);
+        }
+      }
+
+      // Debug: Show what's in the new FormData
+      console.log("New FormData contents:");
+      for (const [key, value] of newFormData.entries()) {
+        console.log(`${key}: ${value}`);
+      }
+
+      body = newFormData;
+      // Don't set Content-Type, let the browser set it with boundary for FormData
     } else {
       body = formData;
-      console.log("Form Data:", Object.fromEntries(formData.entries()));
     }
-    try {
-      console.log("Sending request to:", this.form.action);
-      const response = await fetch(this.form.action, {
-        method: "POST",
-        body,
-        credentials: "include",
-        headers: {
-          Accept: "application/json",
-          "X-CSRF-Token": csrfToken,
-          "X-Requested-With": "XMLHttpRequest",
-          ...(isAuthEndpoint && { "Content-Type": "application/json" }),
-        },
-      });
-      console.log("Response status:", response.status);
-      console.log(
-        "Response headers:",
-        Object.fromEntries(response.headers.entries()),
-      );
-      return response;
-    } catch (error) {
-      console.error("Request failed:", error);
-      throw error;
-    } finally {
-      console.groupEnd();
-    }
+
+    console.log("Sending request to:", this.form.action);
+    console.log("Cookies that will be sent:", document.cookie);
+
+    return validation.fetchWithAuth(this.form.action, {
+      method: this.form.method,
+      body,
+      headers,
+    });
   }
 
   private async handleFormSubmission(
