@@ -1,11 +1,22 @@
 # Build stage
 FROM node:20-alpine AS frontend-builder
 
+# Install git for npm packages that require it
+RUN apk add --no-cache git
+
 WORKDIR /app
 
 # Copy package files
 COPY package*.json ./
-RUN npm ci --only=production
+
+# Create public/fonts directory before npm install to avoid postinstall script issues
+RUN mkdir -p public/fonts
+
+# Install all dependencies, skipping problematic postinstall scripts
+RUN npm ci --ignore-scripts
+
+# Manually copy fonts (equivalent to postinstall script)
+RUN cp -r node_modules/@formio/js/dist/fonts/* public/fonts/
 
 # Copy frontend source
 COPY src/ ./src/
@@ -34,7 +45,7 @@ COPY --from=frontend-builder /app/dist ./dist
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build \
-    -ldflags="-s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version=$(git describe --tags --always --dirty) -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime=$(date -u '+%Y-%m-%d_%H:%M:%S') -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit=$(git rev-parse HEAD) -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion=$(go version | cut -d ' ' -f 3)" \
+    -ldflags="-s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version=$(git describe --tags --always --dirty 2>/dev/null || echo 'dev') -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime=$(date -u '+%Y-%m-%d_%H:%M:%S') -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit=$(git rev-parse HEAD 2>/dev/null || echo 'unknown') -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion=$(go version | cut -d ' ' -f 3)" \
     -o bin/goforms main.go
 
 # Production stage
