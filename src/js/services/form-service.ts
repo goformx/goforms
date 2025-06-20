@@ -20,10 +20,7 @@ export class FormService {
   private csrfToken: string;
 
   private constructor() {
-    this.baseUrl =
-      process.env.NODE_ENV === "production"
-        ? "https://goformx.com"
-        : window.location.origin;
+    this.baseUrl = window.location.origin;
     console.debug("FormService initialized with base URL:", this.baseUrl);
     this.csrfToken = this.getCSRFToken();
   }
