@@ -1,0 +1,110 @@
+version: '3.8'
+
+services:
+  # GoForms Application (Development)
+  goforms-dev:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    restart: unless-stopped
+    ports:
+      - "8090:8090"
+      - "3000:3000" # Vite dev server
+    environment:
+      # Application Configuration
+      - GOFORMS_APP_NAME=GoFormX
+      - GOFORMS_APP_ENV=development
+      - GOFORMS_APP_DEBUG=true
+      - GOFORMS_APP_LOGLEVEL=debug
+      - GOFORMS_APP_SCHEME=http
+      - GOFORMS_APP_PORT=8090
+      - GOFORMS_APP_HOST=0.0.0.0
+
+      # Database Configuration
+      - GOFORMS_DB_CONNECTION=postgres
+      - GOFORMS_DB_HOST=postgres-dev
+      - GOFORMS_DB_PORT=5432
+      - GOFORMS_DB_NAME=${POSTGRES_DB:-goforms_dev}
+      - GOFORMS_DB_USER=${POSTGRES_USER:-goforms}
+      - GOFORMS_DB_PASSWORD=${POSTGRES_PASSWORD:-devpassword}
+      - GOFORMS_DB_MAX_OPEN=25
+      - GOFORMS_DB_MAX_IDLE=5
+      - GOFORMS_DB_TIMEOUT=5
+
+      # Security Configuration (Development)
+      - GOFORMS_SESSION_SECRET=dev-session-secret-32-chars-long
+      - GOFORMS_SECURITY_CSRF_SECRET=dev-csrf-secret-32-chars-long
+      - GOFORMS_SECURE_COOKIES=false
+
+      # CORS Configuration (Development)
+      - GOFORMS_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8090
+      - GOFORMS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+      - GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With
+      - GOFORMS_CORS_ALLOW_CREDENTIALS=true
+      - GOFORMS_CORS_MAX_AGE=3600
+
+      # Development Settings
+      - GOFORMS_VITE_DEV_HOST=0.0.0.0
+      - GOFORMS_VITE_DEV_PORT=3000
+
+      # Timeouts
+      - GOFORMS_READ_TIMEOUT=30s
+      - GOFORMS_WRITE_TIMEOUT=30s
+      - GOFORMS_IDLE_TIMEOUT=120s
+      - GOFORMS_REQUEST_TIMEOUT=60s
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - goforms-dev-network
+    volumes:
+      - .:/app
+      - goforms-dev-logs:/app/logs
+      - go-cache:/go
+      - node-cache:/app/node_modules
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL Database (Development)
+  postgres-dev:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      - POSTGRES_DB=${POSTGRES_DB:-goforms_dev}
+      - POSTGRES_USER=${POSTGRES_USER:-goforms}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD:-devpassword}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - goforms-dev-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-goforms} -d ${POSTGRES_DB:-goforms_dev}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  goforms-dev-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.21.0.0/16
+
+volumes:
+  postgres-dev-data:
+    driver: local
+  goforms-dev-logs:
+    driver: local
+  go-cache:
+    driver: local
+  node-cache:
+    driver: local

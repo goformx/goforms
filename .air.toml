@@ -6,35 +6,47 @@ tmp_dir = "tmp"
   # Commands to run before building
   pre_cmd = ["task generate"]
   # Build command
-  cmd = "go build -o ./tmp/main ./main.go"
+  cmd = "go build -o ./tmp/main ."
   # Binary file yields from `cmd`
-  bin = "tmp/main"
+  bin = "./tmp/main"
   # Full binary path
   full_bin = ""
   # Watch these filename extensions
   include_ext = ["go", "tpl", "tmpl", "html", "templ"]
   # Ignore these directories
-  exclude_dir = ["assets", "tmp", "vendor", "test", "node_modules", "docker", "bin", "deployments", "docs", "dist"]
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules", "dist"]
   # Watch these directories if you specified
   include_dir = []
   # Exclude files
   exclude_file = []
   # Exclude unchanged files
-  exclude_unchanged = true
+  exclude_unchanged = false
   # Exclude files matching these regular expressions
-  exclude_regex = ["_test.go", "_templ.go"]
+  exclude_regex = ["_test.go"]
   # This log file places in your tmp_dir
-  log = "air_errors.log"
+  log = "build-errors.log"
   # Stop running old binary when build errors occur
   stop_on_error = true
   # Send Interrupt signal before killing process
-  send_interrupt = true
+  send_interrupt = false
   # Delay after sending Interrupt signal (ms)
-  kill_delay = 500
+  kill_delay = "0s"
   # Delay before triggering rebuild on file changes (ms)
   delay = 1000
   # Follow symlinks
   follow_symlink = false
+  # Additional arguments for the build command
+  args_bin = []
+  # Poll for changes
+  poll = false
+  # Poll interval
+  poll_interval = 0
+  # Rerun
+  rerun = false
+  # Rerun delay
+  rerun_delay = 500
+  # Stop running old binary when build errors occur
+  stop_on_root = false
 
 [color]
   # Customize each part's color
@@ -45,13 +57,13 @@ tmp_dir = "tmp"
 
 [log]
   # Show log time
-  time = true
+  time = false
   # Show file changes
   main_only = false
 
 # [misc]
   # Delete tmp directory on exit
-  # clean_on_exit = true
+  clean_on_exit = false
 
 [proxy]
   app_port = 0
@@ -60,6 +72,6 @@ tmp_dir = "tmp"
 
 [screen]
   # Clear terminal screen on rebuild
-  clear_on_rebuild = true
+  clear_on_rebuild = false
   # Keep scroll position when clearing screen
   keep_scroll = true
