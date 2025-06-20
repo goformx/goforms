@@ -1,4 +1,4 @@
-package integration
+package integration_test
 
 import (
 	"bytes"
@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestFormBuilderCriticalEndpoints tests the most critical form builder endpoints
@@ -67,11 +65,13 @@ func TestFormBuilderCriticalEndpoints(t *testing.T) {
 					"title": "Updated Form Title",
 				}
 				payloadBytes, err := json.Marshal(payload)
-				require.NoError(t, err)
+				if err != nil {
+					t.Fatalf("Failed to marshal payload: %v", err)
+				}
 				req = httptest.NewRequest(tt.method, tt.endpoint, bytes.NewBuffer(payloadBytes))
 				req.Header.Set("Content-Type", "application/json")
 			} else {
-				req = httptest.NewRequest(tt.method, tt.endpoint, nil)
+				req = httptest.NewRequest(tt.method, tt.endpoint, http.NoBody)
 			}
 
 			rec := httptest.NewRecorder()
@@ -96,7 +96,7 @@ func TestFormBuilderCriticalEndpoints(t *testing.T) {
 
 			// This test documents what endpoints are critical
 			// In a real implementation, these would be tested with actual handlers
-			assert.True(t, true, "Critical endpoint documented: %s", tt.description)
+			t.Logf("Critical endpoint documented: %s", tt.description)
 		})
 	}
 }
@@ -119,7 +119,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test CSRF protection
 				t.Log("CSRF protection must be implemented for all form builder endpoints")
-				assert.True(t, true, "CSRF protection requirement documented")
+				t.Log("CSRF protection requirement documented")
 			},
 		},
 		{
@@ -129,7 +129,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test authentication requirements
 				t.Log("Authentication must be required for all form builder endpoints")
-				assert.True(t, true, "Authentication requirement documented")
+				t.Log("Authentication requirement documented")
 			},
 		},
 		{
@@ -139,7 +139,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test authorization requirements
 				t.Log("Authorization must prevent access to other users' forms")
-				assert.True(t, true, "Authorization requirement documented")
+				t.Log("Authorization requirement documented")
 			},
 		},
 		{
@@ -149,7 +149,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test input validation
 				t.Log("Input validation must prevent malicious schema data")
-				assert.True(t, true, "Input validation requirement documented")
+				t.Log("Input validation requirement documented")
 			},
 		},
 	}
@@ -181,7 +181,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test timeout handling
 				t.Log("Network timeouts must be handled with user-friendly messages")
-				assert.True(t, true, "Timeout handling requirement documented")
+				t.Log("Timeout handling requirement documented")
 			},
 		},
 		{
@@ -191,7 +191,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test invalid schema handling
 				t.Log("Invalid schema must be rejected with clear error messages")
-				assert.True(t, true, "Schema validation requirement documented")
+				t.Log("Schema validation requirement documented")
 			},
 		},
 		{
@@ -201,7 +201,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test permission error handling
 				t.Log("Permission errors must be handled with appropriate messages")
-				assert.True(t, true, "Permission handling requirement documented")
+				t.Log("Permission handling requirement documented")
 			},
 		},
 		{
@@ -211,7 +211,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			testFunc: func(t *testing.T) {
 				// TODO: Test server error handling
 				t.Log("Server errors must be handled with retry options")
-				assert.True(t, true, "Server error handling requirement documented")
+				t.Log("Server error handling requirement documented")
 			},
 		},
 	}
@@ -272,9 +272,9 @@ func TestFormBuilderAssetLoadingCritical(t *testing.T) {
 			// This would require setting up the asset manager in test environment
 
 			if asset.critical {
-				assert.True(t, true, "Critical asset documented: %s", asset.path)
+				t.Logf("Critical asset documented: %s", asset.path)
 			} else {
-				assert.True(t, true, "Asset documented: %s", asset.path)
+				t.Logf("Asset documented: %s", asset.path)
 			}
 		})
 	}

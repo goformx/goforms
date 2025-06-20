@@ -1,4 +1,4 @@
-package integration
+package integration_test
 
 import (
 	"bytes"
@@ -8,8 +8,6 @@ import (
 	"testing"
 
 	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
 )
 
 // TestAuthenticationCriticalFlow tests the critical authentication flow
@@ -93,11 +91,13 @@ func TestAuthenticationCriticalFlow(t *testing.T) {
 
 			if tt.payload != nil {
 				payloadBytes, err := json.Marshal(tt.payload)
-				require.NoError(t, err)
+				if err != nil {
+					t.Fatalf("Failed to marshal payload: %v", err)
+				}
 				req = httptest.NewRequest(tt.method, tt.endpoint, bytes.NewBuffer(payloadBytes))
 				req.Header.Set("Content-Type", "application/json")
 			} else {
-				req = httptest.NewRequest(tt.method, tt.endpoint, nil)
+				req = httptest.NewRequest(tt.method, tt.endpoint, http.NoBody)
 			}
 
 			rec := httptest.NewRecorder()
@@ -118,9 +118,9 @@ func TestAuthenticationCriticalFlow(t *testing.T) {
 			// This test documents what auth endpoints are critical
 			// In a real implementation, these would be tested with actual handlers
 			if tt.critical {
-				assert.True(t, true, "Critical auth endpoint documented: %s", tt.description)
+				t.Logf("Critical auth endpoint documented: %s", tt.description)
 			} else {
-				assert.True(t, true, "Auth endpoint documented: %s", tt.description)
+				t.Logf("Auth endpoint documented: %s", tt.description)
 			}
 		})
 	}
@@ -145,7 +145,7 @@ func TestSessionManagementCritical(t *testing.T) {
 				// TODO: Test session creation
 				t.Log("Session must be created with user ID, email, and role")
 				t.Log("Session must have appropriate expiration time")
-				assert.True(t, true, "Session creation requirement documented")
+				t.Log("Session creation requirement documented")
 			},
 		},
 		{
@@ -156,7 +156,7 @@ func TestSessionManagementCritical(t *testing.T) {
 				// TODO: Test session validation
 				t.Log("Session validation must check session exists and is not expired")
 				t.Log("Session validation must extract user data into context")
-				assert.True(t, true, "Session validation requirement documented")
+				t.Log("Session validation requirement documented")
 			},
 		},
 		{
@@ -167,7 +167,7 @@ func TestSessionManagementCritical(t *testing.T) {
 				// TODO: Test session expiration
 				t.Log("Expired sessions must return 401 Unauthorized")
 				t.Log("Session expiration must be configurable")
-				assert.True(t, true, "Session expiration requirement documented")
+				t.Log("Session expiration requirement documented")
 			},
 		},
 		{
@@ -178,7 +178,7 @@ func TestSessionManagementCritical(t *testing.T) {
 				// TODO: Test session cleanup
 				t.Log("Logout must clear session data")
 				t.Log("Logout must set expired session cookie")
-				assert.True(t, true, "Session cleanup requirement documented")
+				t.Log("Session cleanup requirement documented")
 			},
 		},
 		{
@@ -190,7 +190,7 @@ func TestSessionManagementCritical(t *testing.T) {
 				t.Log("Session cookies must be HttpOnly")
 				t.Log("Session cookies must be Secure in production")
 				t.Log("Session cookies must have SameSite attribute")
-				assert.True(t, true, "Session security requirement documented")
+				t.Log("Session security requirement documented")
 			},
 		},
 	}
@@ -223,7 +223,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 				// TODO: Test password hashing
 				t.Log("Passwords must never be stored in plain text")
 				t.Log("Password hashing must use appropriate cost factor")
-				assert.True(t, true, "Password hashing requirement documented")
+				t.Log("Password hashing requirement documented")
 			},
 		},
 		{
@@ -234,7 +234,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 				// TODO: Test rate limiting
 				t.Log("Login attempts must be limited per IP address")
 				t.Log("Rate limiting must have appropriate time windows")
-				assert.True(t, true, "Rate limiting requirement documented")
+				t.Log("Rate limiting requirement documented")
 			},
 		},
 		{
@@ -245,7 +245,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 				// TODO: Test CSRF protection
 				t.Log("Login and signup forms must include CSRF tokens")
 				t.Log("CSRF tokens must be validated on form submission")
-				assert.True(t, true, "CSRF protection requirement documented")
+				t.Log("CSRF protection requirement documented")
 			},
 		},
 		{
@@ -257,7 +257,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 				t.Log("Email addresses must be validated")
 				t.Log("Passwords must meet complexity requirements")
 				t.Log("Input must be sanitized to prevent injection")
-				assert.True(t, true, "Input validation requirement documented")
+				t.Log("Input validation requirement documented")
 			},
 		},
 		{
@@ -269,7 +269,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 				t.Log("Authentication pages must set Content-Security-Policy")
 				t.Log("Authentication pages must set X-Frame-Options")
 				t.Log("Authentication pages must set X-Content-Type-Options")
-				assert.True(t, true, "Secure headers requirement documented")
+				t.Log("Secure headers requirement documented")
 			},
 		},
 	}
@@ -302,7 +302,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 				// TODO: Test invalid credentials
 				t.Log("Invalid credentials must show appropriate error message")
 				t.Log("Error message must not reveal if user exists")
-				assert.True(t, true, "Invalid credentials handling documented")
+				t.Log("Invalid credentials handling documented")
 			},
 		},
 		{
@@ -313,7 +313,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 				// TODO: Test account lockout
 				t.Log("Account lockout must be temporary")
 				t.Log("Lockout must be communicated clearly to user")
-				assert.True(t, true, "Account lockout handling documented")
+				t.Log("Account lockout handling documented")
 			},
 		},
 		{
@@ -324,7 +324,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 				// TODO: Test session timeout
 				t.Log("Session timeout must redirect to login")
 				t.Log("User must be informed about session expiration")
-				assert.True(t, true, "Session timeout handling documented")
+				t.Log("Session timeout handling documented")
 			},
 		},
 		{
@@ -335,7 +335,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 				// TODO: Test database errors
 				t.Log("Database errors must not expose sensitive information")
 				t.Log("Database errors must be logged appropriately")
-				assert.True(t, true, "Database error handling documented")
+				t.Log("Database error handling documented")
 			},
 		},
 	}
@@ -368,7 +368,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 				// TODO: Test middleware integration
 				t.Log("Auth middleware must be properly registered")
 				t.Log("Auth middleware must handle all protected routes")
-				assert.True(t, true, "Middleware integration documented")
+				t.Log("Middleware integration documented")
 			},
 		},
 		{
@@ -379,7 +379,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 				// TODO: Test database integration
 				t.Log("User creation must store data in database")
 				t.Log("User lookup must retrieve data from database")
-				assert.True(t, true, "Database integration documented")
+				t.Log("Database integration documented")
 			},
 		},
 		{
@@ -391,7 +391,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 				t.Log("Login attempts must be logged")
 				t.Log("Failed login attempts must be logged")
 				t.Log("Logout events must be logged")
-				assert.True(t, true, "Logging integration documented")
+				t.Log("Logging integration documented")
 			},
 		},
 	}
