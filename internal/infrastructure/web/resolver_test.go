@@ -1,0 +1,234 @@
+package web
+
+import (
+	"context"
+	"embed"
+	"testing"
+
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	mocklogging "github.com/goformx/goforms/test/mocks/logging"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+)
+
+func TestDevelopmentAssetResolver(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Scheme:      "http",
+			ViteDevHost: "localhost",
+			ViteDevPort: "3000",
+		},
+	}
+	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	// Set up logger expectations - Debug calls with 3 arguments (msg, key1, value1)
+	mockLogger.EXPECT().Debug("resolving development asset path", "path", gomock.Any(), "host_port", gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug("development asset resolved", "input", gomock.Any(), "output", gomock.Any()).AnyTimes()
+
+	resolver := NewDevelopmentAssetResolver(cfg, mockLogger)
+
+	tests := []struct {
+		name     string
+		path     string
+		expected string
+	}{
+		{
+			name:     "src file",
+			path:     "src/js/main.ts",
+			expected: "http://localhost:3000/src/js/main.ts",
+		},
+		{
+			name:     "css file",
+			path:     "main.css",
+			expected: "http://localhost:3000/src/css/main.css",
+		},
+		{
+			name:     "js file",
+			path:     "main.js",
+			expected: "http://localhost:3000/src/js/main.ts",
+		},
+		{
+			name:     "ts file",
+			path:     "main.ts",
+			expected: "http://localhost:3000/src/js/main.ts",
+		},
+		{
+			name:     "other file",
+			path:     "image.png",
+			expected: "http://localhost:3000/image.png",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := resolver.ResolveAssetPath(context.Background(), tt.path)
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestProductionAssetResolver(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	manifest := Manifest{
+		"main.js": {
+			File: "assets/main.abc123.js",
+		},
+		"style.css": {
+			File: "assets/style.def456.css",
+		},
+	}
+	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	// Set up logger expectations - Debug calls with 3 arguments (msg, key1, value1)
+	mockLogger.EXPECT().Debug("resolving production asset path", "path", gomock.Any(), "manifest_entries", gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug("production asset resolved", "input", gomock.Any(), "output", gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug("asset not found in manifest", "path", gomock.Any(), "available_keys", gomock.Any()).AnyTimes()
+
+	resolver := NewProductionAssetResolver(manifest, mockLogger)
+
+	tests := []struct {
+		name        string
+		path        string
+		expected    string
+		expectError bool
+	}{
+		{
+			name:     "existing js file",
+			path:     "main.js",
+			expected: "/assets/main.abc123.js",
+		},
+		{
+			name:     "existing css file",
+			path:     "style.css",
+			expected: "/assets/style.def456.css",
+		},
+		{
+			name:        "non-existent file",
+			path:        "missing.js",
+			expectError: true,
+		},
+		{
+			name:        "empty path",
+			path:        "",
+			expectError: true,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			result, err := resolver.ResolveAssetPath(context.Background(), tt.path)
+			if tt.expectError {
+				assert.Error(t, err)
+				return
+			}
+			require.NoError(t, err)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
+func TestAssetManager(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Env:         "development",
+			Scheme:      "http",
+			ViteDevHost: "localhost",
+			ViteDevPort: "3000",
+		},
+	}
+	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	// Set up logger expectations
+	mockLogger.EXPECT().Info("asset manager initialized in development mode").Times(1)
+	mockLogger.EXPECT().Debug("asset manager resolving path", "input_path", gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug("asset path found in cache", "input_path", gomock.Any(), "cached_path", gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug("asset path resolved", "input_path", gomock.Any(), "resolved_path", gomock.Any(), "environment", gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug("asset path cache cleared").AnyTimes()
+	// Development resolver logging calls
+	mockLogger.EXPECT().Debug("resolving development asset path", "path", gomock.Any(), "host_port", gomock.Any()).AnyTimes()
+	mockLogger.EXPECT().Debug("development asset resolved", "input", gomock.Any(), "output", gomock.Any()).AnyTimes()
+
+	// Create an empty embed.FS for testing
+	var distFS embed.FS
+
+	manager, err := NewAssetManager(cfg, mockLogger, distFS)
+	require.NoError(t, err)
+	assert.NotNil(t, manager)
+
+	// Test asset path resolution
+	path := manager.AssetPath("main.js")
+	assert.Equal(t, "http://localhost:3000/src/js/main.ts", path)
+
+	// Test caching
+	path2 := manager.AssetPath("main.js")
+	assert.Equal(t, path, path2)
+
+	// Test asset type detection
+	assetType := manager.GetAssetType("main.js")
+	assert.Equal(t, AssetTypeJS, assetType)
+
+	assetType = manager.GetAssetType("style.css")
+	assert.Equal(t, AssetTypeCSS, assetType)
+
+	// Test cache clearing
+	manager.ClearCache()
+}
+
+func TestAssetManager_ProductionMode(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Env: "production",
+		},
+	}
+	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	// Set up logger expectations for production mode
+	mockLogger.EXPECT().Debug("loading manifest from embedded filesystem", "path", "dist/.vite/manifest.json").AnyTimes()
+
+	// Create a mock embed.FS with manifest
+	var distFS embed.FS
+	// Note: In a real test, you'd need to create an actual embed.FS with a manifest file
+	// For this test, we'll expect an error since the manifest won't exist
+
+	manager, err := NewAssetManager(cfg, mockLogger, distFS)
+	// In production mode with no manifest, this should fail
+	assert.Error(t, err)
+	assert.Nil(t, manager)
+}
+
+func TestAssetManager_ErrorHandling(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	// Test with nil config
+	manager, err := NewAssetManager(nil, mockLogger, embed.FS{})
+	assert.Error(t, err)
+	assert.Nil(t, manager)
+	assert.Contains(t, err.Error(), "config is required")
+
+	// Test with nil logger
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Env: "development",
+		},
+	}
+	manager, err = NewAssetManager(cfg, nil, embed.FS{})
+	assert.Error(t, err)
+	assert.Nil(t, manager)
+	assert.Contains(t, err.Error(), "logger is required")
+}

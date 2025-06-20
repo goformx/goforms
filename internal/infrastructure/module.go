@@ -128,7 +128,7 @@ var Module = fx.Options(
 		ProvideAssetServer,
 		// Asset manager
 		fx.Annotate(
-			func(distFS embed.FS, logger logging.Logger, cfg *config.Config) *infraweb.AssetManager {
+			func(distFS embed.FS, logger logging.Logger, cfg *config.Config) (*infraweb.AssetManager, error) {
 				return infraweb.NewAssetManager(cfg, logger, distFS)
 			},
 		),
