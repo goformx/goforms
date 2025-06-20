@@ -17,11 +17,6 @@ jobs:
       contents: read
       security-events: write
 
-    strategy:
-      fail-fast: false
-      matrix:
-        language: [ 'go' ]
-
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
@@ -33,26 +28,38 @@ jobs:
         cache: true
         cache-dependency-path: go.sum
 
-    - name: Install templ
-      run: go install github.com/a-h/templ/cmd/templ@latest
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
+      with:
+        node-version: '20'
+        cache: 'npm'
 
-    - name: Generate templ files
-      run: templ generate
+    - name: Install Task
+      uses: arduino/setup-task@v2
+      with:
+        version: '3.x'
+        repo-token: ${{ secrets.GITHUB_TOKEN }}
 
-    - name: Install mockgen
-      run: go install go.uber.org/mock/mockgen@latest
-
-    - name: Generate Mocks
+    - name: Install Go tools
       run: |
-        mockgen -source=internal/domain/form/service.go -destination=test/mocks/form/service.go -package=form
-        mockgen -source=internal/domain/user/service.go -destination=test/mocks/user/service.go -package=user
+        task install:go-tools
+
+    - name: Generate Go files
+      run: |
+        task generate
+
+    - name: Install frontend dependencies
+      run: npm ci
+
+    - name: Build frontend
+      run: npm run build
 
     - name: Initialize CodeQL
       uses: github/codeql-action/init@v3
       with:
-        languages: ${{ matrix.language }}
+        # Remove language specification to auto-detect
         queries: security-extended
         tools: linked
 
     - name: Perform CodeQL Analysis
-      uses: github/codeql-action/analyze@v3 
+      uses: github/codeql-action/analyze@v3

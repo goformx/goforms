@@ -177,3 +177,21 @@ tasks:
     cmds:
     - go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
     - go tool cover -html=coverage.out -o coverage.html
+
+  test:integration:
+    desc: Run integration tests
+    cmds:
+    - go test -v -tags=integration ./test/integration/...
+
+  security:go:
+    desc: Run Go security checks
+    cmds:
+    - go list -json -deps ./... | nancy sleuth
+    - staticcheck ./...
+
+  pre-commit:
+    desc: Pre-commit quality checks
+    cmds:
+    - task: format
+    - task: lint
+    - task: test
