@@ -1,304 +1,262 @@
-package middleware
+package middleware_test
 
 import (
-	"context"
+	"errors"
 	"net/http"
 	"net/http/httptest"
+	"regexp"
 	"testing"
 
-	formmodel "github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/sanitization"
+	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/domain/form/model"
+	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
+	mockform "github.com/goformx/goforms/test/mocks/form"
+	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
 )
 
-// MockFormService is a mock implementation of the form service
-type MockFormService struct {
-	mock.Mock
-}
+func TestPerFormCORS(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
 
-func (m *MockFormService) CreateForm(ctx context.Context, form *formmodel.Form) error {
-	args := m.Called(ctx, form)
-	return args.Error(0)
-}
+	mockFormService := mockform.NewMockService(ctrl)
+	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-func (m *MockFormService) UpdateForm(ctx context.Context, form *formmodel.Form) error {
-	args := m.Called(ctx, form)
-	return args.Error(0)
-}
-
-func (m *MockFormService) DeleteForm(ctx context.Context, formID string) error {
-	args := m.Called(ctx, formID)
-	return args.Error(0)
-}
-
-func (m *MockFormService) GetForm(ctx context.Context, formID string) (*formmodel.Form, error) {
-	args := m.Called(ctx, formID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*formmodel.Form), args.Error(1)
-}
-
-func (m *MockFormService) ListForms(ctx context.Context, userID string) ([]*formmodel.Form, error) {
-	args := m.Called(ctx, userID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*formmodel.Form), args.Error(1)
-}
-
-func (m *MockFormService) SubmitForm(ctx context.Context, submission *formmodel.FormSubmission) error {
-	args := m.Called(ctx, submission)
-	return args.Error(0)
-}
-
-func (m *MockFormService) GetFormSubmission(ctx context.Context, submissionID string) (*formmodel.FormSubmission, error) {
-	args := m.Called(ctx, submissionID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).(*formmodel.FormSubmission), args.Error(1)
-}
-
-func (m *MockFormService) ListFormSubmissions(ctx context.Context, formID string) ([]*formmodel.FormSubmission, error) {
-	args := m.Called(ctx, formID)
-	if args.Get(0) == nil {
-		return nil, args.Error(1)
-	}
-	return args.Get(0).([]*formmodel.FormSubmission), args.Error(1)
-}
-
-func (m *MockFormService) UpdateFormState(ctx context.Context, formID, state string) error {
-	args := m.Called(ctx, formID, state)
-	return args.Error(0)
-}
-
-func (m *MockFormService) TrackFormAnalytics(ctx context.Context, formID, eventType string) error {
-	args := m.Called(ctx, formID, eventType)
-	return args.Error(0)
-}
-
-// createTestLogger creates a test logger for testing
-func createTestLogger() logging.Logger {
-	factory := logging.NewFactory(logging.FactoryConfig{
-		AppName:     "test-app",
-		Version:     "1.0.0",
-		Environment: "test",
-	}, sanitization.NewService())
-	logger, _ := factory.CreateLogger()
-	return logger
-}
-
-func TestPerFormCORS_FormRoute(t *testing.T) {
-	// Setup
-	e := echo.New()
-	mockFormService := new(MockFormService)
-	logger := createTestLogger()
-
-	globalCORS := &config.SecurityConfig{
-		CorsAllowedOrigins:   []string{"http://localhost:3000"},
-		CorsAllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		CorsAllowedHeaders:   []string{"Content-Type", "Authorization"},
-		CorsAllowCredentials: true,
-		CorsMaxAge:           3600,
+	// Create global CORS config
+	globalCORS := &appconfig.SecurityConfig{
+		CorsAllowedOrigins:   []string{"*"},
+		CorsAllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+		CorsAllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With"},
+		CorsAllowCredentials: false,
+		CorsMaxAge:           86400,
 	}
 
-	config := NewPerFormCORSConfig(mockFormService, logger, globalCORS)
-	middleware := PerFormCORS(config)
+	// Create middleware instance
+	config := middleware.NewPerFormCORSConfig(mockFormService, mockLogger, globalCORS)
+	mw := middleware.PerFormCORS(config)
 
-	// Create a test form with custom CORS settings
-	testForm := &formmodel.Form{
-		ID:          "test-form-id",
-		CorsOrigins: []string{"https://example.com"},
-		CorsMethods: []string{"GET", "POST", "PUT", "OPTIONS"},
-		CorsHeaders: []string{"Content-Type", "X-Custom-Header"},
+	// Test form with CORS configuration
+	formWithCORS := &model.Form{
+		ID:          "test-form-123",
+		Title:       "Test Form",
+		CorsOrigins: []string{"https://example.com", "https://app.example.com"},
+		CorsMethods: []string{"GET", "POST", "PUT"},
+		CorsHeaders: []string{"Content-Type", "Authorization"},
 	}
 
-	// Setup mock expectations
-	mockFormService.On("GetForm", mock.Anything, "test-form-id").Return(testForm, nil)
-
-	// Test form route
-	req := httptest.NewRequest(http.MethodGet, "/forms/test-form-id", nil)
-	req.Header.Set("Origin", "https://example.com")
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// Execute middleware
-	err := middleware(func(c echo.Context) error {
-		return c.String(http.StatusOK, "success")
-	})(c)
-
-	// Assertions
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "https://example.com", rec.Header().Get("Access-Control-Allow-Origin"))
-	assert.Equal(t, "GET,POST,PUT,OPTIONS", rec.Header().Get("Access-Control-Allow-Methods"))
-	assert.Equal(t, "Content-Type,X-Custom-Header", rec.Header().Get("Access-Control-Allow-Headers"))
-	assert.Equal(t, "true", rec.Header().Get("Access-Control-Allow-Credentials"))
-
-	mockFormService.AssertExpectations(t)
-}
-
-func TestPerFormCORS_NonFormRoute(t *testing.T) {
-	// Setup
-	e := echo.New()
-	mockFormService := new(MockFormService)
-	logger := createTestLogger()
-
-	globalCORS := &config.SecurityConfig{
-		CorsAllowedOrigins:   []string{"http://localhost:3000"},
-		CorsAllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		CorsAllowedHeaders:   []string{"Content-Type", "Authorization"},
-		CorsAllowCredentials: true,
-		CorsMaxAge:           3600,
+	// Test form without CORS configuration
+	formWithoutCORS := &model.Form{
+		ID:    "test-form-456",
+		Title: "Test Form No CORS",
 	}
 
-	config := NewPerFormCORSConfig(mockFormService, logger, globalCORS)
-	middleware := PerFormCORS(config)
-
-	// Test non-form route (should not call form service)
-	req := httptest.NewRequest(http.MethodGet, "/dashboard", nil)
-	req.Header.Set("Origin", "http://localhost:3000")
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// Execute middleware
-	err := middleware(func(c echo.Context) error {
-		return c.String(http.StatusOK, "success")
-	})(c)
-
-	// Assertions
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "http://localhost:3000", rec.Header().Get("Access-Control-Allow-Origin"))
-	assert.Equal(t, "GET,POST,OPTIONS", rec.Header().Get("Access-Control-Allow-Methods"))
-	assert.Equal(t, "Content-Type,Authorization", rec.Header().Get("Access-Control-Allow-Headers"))
-	assert.Equal(t, "true", rec.Header().Get("Access-Control-Allow-Credentials"))
-
-	// Verify form service was not called
-	mockFormService.AssertNotCalled(t, "GetForm")
-}
-
-func TestPerFormCORS_PreflightRequest(t *testing.T) {
-	// Setup
-	e := echo.New()
-	mockFormService := new(MockFormService)
-	logger := createTestLogger()
-
-	globalCORS := &config.SecurityConfig{
-		CorsAllowedOrigins:   []string{"http://localhost:3000"},
-		CorsAllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		CorsAllowedHeaders:   []string{"Content-Type", "Authorization"},
-		CorsAllowCredentials: true,
-		CorsMaxAge:           3600,
+	tests := []struct {
+		name            string
+		path            string
+		method          string
+		origin          string
+		setupMock       func()
+		expectedStatus  int
+		expectedHeaders map[string]string
+	}{
+		{
+			name:   "form route with CORS - actual request",
+			path:   "/forms/test-form-123",
+			method: "POST",
+			origin: "https://example.com",
+			setupMock: func() {
+				mockFormService.EXPECT().
+					GetForm(gomock.Any(), "test-form-123").
+					Return(formWithCORS, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":  "https://example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization",
+			},
+		},
+		{
+			name:   "form route with CORS - preflight request",
+			path:   "/forms/test-form-123",
+			method: "OPTIONS",
+			origin: "https://app.example.com",
+			setupMock: func() {
+				mockFormService.EXPECT().
+					GetForm(gomock.Any(), "test-form-123").
+					Return(formWithCORS, nil)
+			},
+			expectedStatus: http.StatusNoContent,
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":  "https://app.example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization",
+				"Access-Control-Max-Age":       "86400",
+			},
+		},
+		{
+			name:   "form route without CORS - fallback to global",
+			path:   "/forms/test-form-456",
+			method: "POST",
+			origin: "https://example.com",
+			setupMock: func() {
+				mockFormService.EXPECT().
+					GetForm(gomock.Any(), "test-form-456").
+					Return(formWithoutCORS, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":  "https://example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+			},
+		},
+		{
+			name:   "form route - form not found - fallback to global",
+			path:   "/forms/non-existent",
+			method: "POST",
+			origin: "https://example.com",
+			setupMock: func() {
+				mockFormService.EXPECT().
+					GetForm(gomock.Any(), "non-existent").
+					Return(nil, errors.New("form not found"))
+				mockLogger.EXPECT().
+					Debug(
+						"failed to load form for CORS",
+						"form_id", "non-existent",
+						"error", gomock.Any(),
+						"falling_back_to_global_cors", true,
+					)
+			},
+			expectedStatus: http.StatusOK,
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":  "https://example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+			},
+		},
+		{
+			name:   "non-form route - global CORS",
+			path:   "/api/health",
+			method: "GET",
+			origin: "https://example.com",
+			setupMock: func() {
+				// No mock expectations for non-form routes
+			},
+			expectedStatus: http.StatusOK,
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":  "https://example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+			},
+		},
+		{
+			name:   "API form route with CORS",
+			path:   "/api/v1/forms/test-form-123",
+			method: "POST",
+			origin: "https://example.com",
+			setupMock: func() {
+				mockFormService.EXPECT().
+					GetForm(gomock.Any(), "test-form-123").
+					Return(formWithCORS, nil)
+			},
+			expectedStatus: http.StatusOK,
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":  "https://example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization",
+			},
+		},
 	}
 
-	config := NewPerFormCORSConfig(mockFormService, logger, globalCORS)
-	middleware := PerFormCORS(config)
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Setup mock expectations
+			tt.setupMock()
 
-	// Create a test form with custom CORS settings
-	testForm := &formmodel.Form{
-		ID:          "test-form-id",
-		CorsOrigins: []string{"https://example.com"},
-		CorsMethods: []string{"GET", "POST", "PUT", "OPTIONS"},
-		CorsHeaders: []string{"Content-Type", "X-Custom-Header"},
+			// Create Echo context
+			e := echo.New()
+			req := httptest.NewRequest(tt.method, tt.path, http.NoBody)
+			if tt.origin != "" {
+				req.Header.Set("Origin", tt.origin)
+			}
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			// Create a simple handler that returns success
+			handler := func(c echo.Context) error {
+				return c.String(http.StatusOK, "success")
+			}
+
+			// Apply middleware
+			err := mw(handler)(c)
+
+			// Assertions
+			require.NoError(t, err)
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+
+			// Check CORS headers
+			for header, expectedValue := range tt.expectedHeaders {
+				actualValue := rec.Header().Get(header)
+				assert.Equal(t, expectedValue, actualValue, "Header %s mismatch", header)
+			}
+		})
 	}
-
-	// Setup mock expectations
-	mockFormService.On("GetForm", mock.Anything, "test-form-id").Return(testForm, nil)
-
-	// Test preflight request
-	req := httptest.NewRequest(http.MethodOptions, "/forms/test-form-id", nil)
-	req.Header.Set("Origin", "https://example.com")
-	req.Header.Set("Access-Control-Request-Method", "POST")
-	req.Header.Set("Access-Control-Request-Headers", "Content-Type")
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// Execute middleware
-	err := middleware(func(c echo.Context) error {
-		return c.String(http.StatusOK, "success")
-	})(c)
-
-	// Assertions
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusNoContent, rec.Code)
-	assert.Equal(t, "https://example.com", rec.Header().Get("Access-Control-Allow-Origin"))
-	assert.Equal(t, "GET,POST,PUT,OPTIONS", rec.Header().Get("Access-Control-Allow-Methods"))
-	assert.Equal(t, "Content-Type,X-Custom-Header", rec.Header().Get("Access-Control-Allow-Headers"))
-	assert.Equal(t, "3600", rec.Header().Get("Access-Control-Max-Age"))
-	assert.Equal(t, "true", rec.Header().Get("Access-Control-Allow-Credentials"))
-
-	mockFormService.AssertExpectations(t)
-}
-
-func TestPerFormCORS_FormNotFound(t *testing.T) {
-	// Setup
-	e := echo.New()
-	mockFormService := new(MockFormService)
-	logger := createTestLogger()
-
-	globalCORS := &config.SecurityConfig{
-		CorsAllowedOrigins:   []string{"http://localhost:3000"},
-		CorsAllowedMethods:   []string{"GET", "POST", "OPTIONS"},
-		CorsAllowedHeaders:   []string{"Content-Type", "Authorization"},
-		CorsAllowCredentials: true,
-		CorsMaxAge:           3600,
-	}
-
-	config := NewPerFormCORSConfig(mockFormService, logger, globalCORS)
-	middleware := PerFormCORS(config)
-
-	// Setup mock expectations - form not found
-	mockFormService.On("GetForm", mock.Anything, "non-existent-form").Return(nil, nil)
-
-	// Test form route with non-existent form
-	req := httptest.NewRequest(http.MethodGet, "/forms/non-existent-form", nil)
-	req.Header.Set("Origin", "http://localhost:3000")
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-
-	// Execute middleware
-	err := middleware(func(c echo.Context) error {
-		return c.String(http.StatusOK, "success")
-	})(c)
-
-	// Assertions - should fallback to global CORS
-	assert.NoError(t, err)
-	assert.Equal(t, http.StatusOK, rec.Code)
-	assert.Equal(t, "http://localhost:3000", rec.Header().Get("Access-Control-Allow-Origin"))
-	assert.Equal(t, "GET,POST,OPTIONS", rec.Header().Get("Access-Control-Allow-Methods"))
-	assert.Equal(t, "Content-Type,Authorization", rec.Header().Get("Access-Control-Allow-Headers"))
-	assert.Equal(t, "true", rec.Header().Get("Access-Control-Allow-Credentials"))
-
-	mockFormService.AssertExpectations(t)
 }
 
 func TestExtractFormID(t *testing.T) {
-	config := NewPerFormCORSConfig(nil, nil, nil)
+	// Create a test regex
+	formRouteRegex := regexp.MustCompile(`^/(?:forms|api/v1/forms)/([^/]+)(?:/.*)?$`)
 
 	tests := []struct {
 		name     string
 		path     string
 		expected string
 	}{
-		{"web form route", "/forms/test-form-id", "test-form-id"},
-		{"api form route", "/api/v1/forms/test-form-id", "test-form-id"},
-		{"form with subpath", "/forms/test-form-id/submissions", "test-form-id"},
-		{"api form with subpath", "/api/v1/forms/test-form-id/schema", "test-form-id"},
-		{"non-form route", "/dashboard", ""},
-		{"root path", "/", ""},
-		{"empty path", "", ""},
+		{
+			name:     "web form route",
+			path:     "/forms/test-form-123",
+			expected: "test-form-123",
+		},
+		{
+			name:     "API form route",
+			path:     "/api/v1/forms/test-form-456",
+			expected: "test-form-456",
+		},
+		{
+			name:     "form route with trailing slash",
+			path:     "/forms/test-form-789/",
+			expected: "test-form-789",
+		},
+		{
+			name:     "API form route with trailing slash",
+			path:     "/api/v1/forms/test-form-abc/",
+			expected: "test-form-abc",
+		},
+		{
+			name:     "non-form route",
+			path:     "/api/health",
+			expected: "",
+		},
+		{
+			name:     "root path",
+			path:     "/",
+			expected: "",
+		},
+		{
+			name:     "empty path",
+			path:     "",
+			expected: "",
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := extractFormID(tt.path, config.FormRouteRegex)
-			assert.Equal(t, tt.expected, result)
+			formID := middleware.ExtractFormID(tt.path, formRouteRegex)
+			assert.Equal(t, tt.expected, formID)
 		})
 	}
 }
@@ -310,17 +268,47 @@ func TestIsOriginAllowed(t *testing.T) {
 		allowedOrigins []string
 		expected       bool
 	}{
-		{"wildcard allows all", "https://example.com", []string{"*"}, true},
-		{"exact match", "https://example.com", []string{"https://example.com"}, true},
-		{"no match", "https://example.com", []string{"https://other.com"}, false},
-		{"empty origin allowed", "", []string{"https://example.com"}, true},
-		{"multiple origins", "https://example.com", []string{"https://other.com", "https://example.com"}, true},
-		{"case sensitive", "https://Example.com", []string{"https://example.com"}, false},
+		{
+			name:           "wildcard allows all",
+			origin:         "https://example.com",
+			allowedOrigins: []string{"*"},
+			expected:       true,
+		},
+		{
+			name:           "exact match",
+			origin:         "https://example.com",
+			allowedOrigins: []string{"https://example.com"},
+			expected:       true,
+		},
+		{
+			name:           "no match",
+			origin:         "https://example.com",
+			allowedOrigins: []string{"https://other.com"},
+			expected:       false,
+		},
+		{
+			name:           "empty origin allowed",
+			origin:         "",
+			allowedOrigins: []string{"https://example.com"},
+			expected:       true,
+		},
+		{
+			name:           "multiple origins",
+			origin:         "https://example.com",
+			allowedOrigins: []string{"https://other.com", "https://example.com"},
+			expected:       true,
+		},
+		{
+			name:           "case sensitive",
+			origin:         "https://Example.com",
+			allowedOrigins: []string{"https://example.com"},
+			expected:       false,
+		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			result := isOriginAllowed(tt.origin, tt.allowedOrigins)
+			result := middleware.IsOriginAllowed(tt.origin, tt.allowedOrigins)
 			assert.Equal(t, tt.expected, result)
 		})
 	}

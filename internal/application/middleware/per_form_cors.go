@@ -1,9 +1,9 @@
 package middleware
 
 import (
-	"fmt"
 	"net/http"
 	"regexp"
+	"strconv"
 	"strings"
 
 	formdomain "github.com/goformx/goforms/internal/domain/form"
@@ -11,6 +11,10 @@ import (
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
+)
+
+const (
+	formIDMatchIndex = 2
 )
 
 // PerFormCORSConfig holds configuration for the per-form CORS middleware
@@ -29,7 +33,6 @@ func NewPerFormCORSConfig(
 ) *PerFormCORSConfig {
 	// Regex to match form routes: /forms/:id or /api/v1/forms/:id
 	formRouteRegex := regexp.MustCompile(`^/(?:forms|api/v1/forms)/([^/]+)(?:/.*)?$`)
-
 	return &PerFormCORSConfig{
 		FormService:    formService,
 		Logger:         logger,
@@ -43,7 +46,7 @@ func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			// Check if this is a form route
-			formID := extractFormID(c.Request().URL.Path, config.FormRouteRegex)
+			formID := ExtractFormID(c.Request().URL.Path, config.FormRouteRegex)
 			if formID == "" {
 				// Not a form route, apply global CORS
 				return applyGlobalCORS(c, config.GlobalCORS, next)
@@ -52,18 +55,22 @@ func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 			// Load form CORS configuration
 			form, err := config.FormService.GetForm(c.Request().Context(), formID)
 			if err != nil {
-				config.Logger.Debug("failed to load form for CORS",
+				config.Logger.Debug(
+					"failed to load form for CORS",
 					"form_id", formID,
 					"error", err,
-					"falling_back_to_global_cors", true)
+					"falling_back_to_global_cors", true,
+				)
 				// Fallback to global CORS
 				return applyGlobalCORS(c, config.GlobalCORS, next)
 			}
 
 			if form == nil {
-				config.Logger.Debug("form not found for CORS",
+				config.Logger.Debug(
+					"form not found for CORS",
 					"form_id", formID,
-					"falling_back_to_global_cors", true)
+					"falling_back_to_global_cors", true,
+				)
 				// Fallback to global CORS
 				return applyGlobalCORS(c, config.GlobalCORS, next)
 			}
@@ -74,17 +81,22 @@ func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 	}
 }
 
-// extractFormID extracts the form ID from the URL path
-func extractFormID(path string, formRouteRegex *regexp.Regexp) string {
+// ExtractFormID extracts the form ID from the URL path
+func ExtractFormID(path string, formRouteRegex *regexp.Regexp) string {
 	matches := formRouteRegex.FindStringSubmatch(path)
-	if len(matches) < 2 {
+	if len(matches) < formIDMatchIndex {
 		return ""
 	}
 	return matches[1]
 }
 
 // applyFormCORS applies form-specific CORS headers
-func applyFormCORS(c echo.Context, form *formmodel.Form, globalCORS *appconfig.SecurityConfig, next echo.HandlerFunc) error {
+func applyFormCORS(
+	c echo.Context,
+	form *formmodel.Form,
+	globalCORS *appconfig.SecurityConfig,
+	next echo.HandlerFunc,
+) error {
 	// Get form CORS configuration
 	origins, methods, headers := form.GetCorsConfig()
 
@@ -101,15 +113,25 @@ func applyFormCORS(c echo.Context, form *formmodel.Form, globalCORS *appconfig.S
 
 	// Handle preflight requests
 	if c.Request().Method == http.MethodOptions {
-		return handlePreflight(c, origins, methods, headers, globalCORS.CorsAllowCredentials, globalCORS.CorsMaxAge)
+		return handlePreflight(
+			c, origins, methods, headers,
+			globalCORS.CorsAllowCredentials, globalCORS.CorsMaxAge,
+		)
 	}
 
 	// Handle actual requests
-	return handleActualRequest(c, origins, methods, headers, globalCORS.CorsAllowCredentials, next)
+	return handleActualRequest(
+		c, origins, methods, headers,
+		globalCORS.CorsAllowCredentials, next,
+	)
 }
 
 // applyGlobalCORS applies global CORS headers as fallback
-func applyGlobalCORS(c echo.Context, globalCORS *appconfig.SecurityConfig, next echo.HandlerFunc) error {
+func applyGlobalCORS(
+	c echo.Context,
+	globalCORS *appconfig.SecurityConfig,
+	next echo.HandlerFunc,
+) error {
 	// Handle preflight requests
 	if c.Request().Method == http.MethodOptions {
 		return handlePreflight(
@@ -134,11 +156,16 @@ func applyGlobalCORS(c echo.Context, globalCORS *appconfig.SecurityConfig, next 
 }
 
 // handlePreflight handles OPTIONS preflight requests
-func handlePreflight(c echo.Context, origins, methods, headers []string, allowCredentials bool, maxAge int) error {
+func handlePreflight(
+	c echo.Context,
+	origins, methods, headers []string,
+	allowCredentials bool,
+	maxAge int,
+) error {
 	origin := c.Request().Header.Get("Origin")
 
 	// Check if origin is allowed
-	if !isOriginAllowed(origin, origins) {
+	if !IsOriginAllowed(origin, origins) {
 		return c.NoContent(http.StatusForbidden)
 	}
 
@@ -146,7 +173,7 @@ func handlePreflight(c echo.Context, origins, methods, headers []string, allowCr
 	c.Response().Header().Set("Access-Control-Allow-Origin", origin)
 	c.Response().Header().Set("Access-Control-Allow-Methods", strings.Join(methods, ","))
 	c.Response().Header().Set("Access-Control-Allow-Headers", strings.Join(headers, ","))
-	c.Response().Header().Set("Access-Control-Max-Age", fmt.Sprintf("%d", maxAge))
+	c.Response().Header().Set("Access-Control-Max-Age", strconv.Itoa(maxAge))
 
 	if allowCredentials {
 		c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
@@ -156,11 +183,16 @@ func handlePreflight(c echo.Context, origins, methods, headers []string, allowCr
 }
 
 // handleActualRequest handles actual CORS requests
-func handleActualRequest(c echo.Context, origins, methods, headers []string, allowCredentials bool, next echo.HandlerFunc) error {
+func handleActualRequest(
+	c echo.Context,
+	origins, methods, headers []string,
+	allowCredentials bool,
+	next echo.HandlerFunc,
+) error {
 	origin := c.Request().Header.Get("Origin")
 
 	// Check if origin is allowed
-	if !isOriginAllowed(origin, origins) {
+	if !IsOriginAllowed(origin, origins) {
 		return c.NoContent(http.StatusForbidden)
 	}
 
@@ -176,8 +208,8 @@ func handleActualRequest(c echo.Context, origins, methods, headers []string, all
 	return next(c)
 }
 
-// isOriginAllowed checks if the origin is allowed based on the CORS configuration
-func isOriginAllowed(origin string, allowedOrigins []string) bool {
+// IsOriginAllowed checks if the origin is allowed based on the CORS configuration
+func IsOriginAllowed(origin string, allowedOrigins []string) bool {
 	if origin == "" {
 		return true // No origin header, allow
 	}
