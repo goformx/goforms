@@ -8,6 +8,7 @@ import (
 
 	"database/sql/driver"
 
+	"github.com/goformx/goforms/internal/domain/common/types"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -64,9 +65,9 @@ type Form struct {
 	Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
 
 	// CORS settings for form embedding
-	CorsOrigins []string `json:"cors_origins" gorm:"type:json;default:'[]'"`
-	CorsMethods []string `json:"cors_methods" gorm:"type:json;default:'[\"GET\",\"POST\",\"OPTIONS\"]'"`
-	CorsHeaders []string `json:"cors_headers" gorm:"type:json;default:'[\"Content-Type\",\"Accept\",\"Origin\"]'"`
+	CorsOrigins types.StringArray `json:"cors_origins" gorm:"type:json"`
+	CorsMethods types.StringArray `json:"cors_methods" gorm:"type:json"`
+	CorsHeaders types.StringArray `json:"cors_headers" gorm:"type:json"`
 }
 
 // GetID returns the form's ID
@@ -170,9 +171,9 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
-		CorsOrigins: []string{},
-		CorsMethods: []string{"GET", "POST", "OPTIONS"},
-		CorsHeaders: []string{"Content-Type", "Accept", "Origin"},
+		CorsOrigins: types.StringArray{},
+		CorsMethods: types.StringArray{"GET", "POST", "OPTIONS"},
+		CorsHeaders: types.StringArray{"Content-Type", "Accept", "Origin"},
 	}
 }
 
@@ -305,32 +306,21 @@ func (f *Form) Activate() {
 
 // GetCorsConfig returns the CORS configuration for this form
 func (f *Form) GetCorsConfig() (origins, methods, headers []string) {
-	// Use form-specific CORS settings if available, otherwise use defaults
 	if len(f.CorsOrigins) > 0 {
-		origins = f.CorsOrigins
-	} else {
-		// Default to allowing all origins if none specified
-		origins = []string{"*"}
+		origins = []string(f.CorsOrigins)
 	}
-
 	if len(f.CorsMethods) > 0 {
-		methods = f.CorsMethods
-	} else {
-		methods = []string{"GET", "POST", "OPTIONS"}
+		methods = []string(f.CorsMethods)
 	}
-
 	if len(f.CorsHeaders) > 0 {
-		headers = f.CorsHeaders
-	} else {
-		headers = []string{"Content-Type", "Accept", "Origin"}
+		headers = []string(f.CorsHeaders)
 	}
-
-	return origins, methods, headers
+	return
 }
 
 // SetCorsConfig sets the CORS configuration for this form
 func (f *Form) SetCorsConfig(origins, methods, headers []string) {
-	f.CorsOrigins = origins
-	f.CorsMethods = methods
-	f.CorsHeaders = headers
+	f.CorsOrigins = types.StringArray(origins)
+	f.CorsMethods = types.StringArray(methods)
+	f.CorsHeaders = types.StringArray(headers)
 }
