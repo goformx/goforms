@@ -14,6 +14,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
+	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -50,6 +51,7 @@ type ManagerConfig struct {
 	Logger         logging.Logger
 	Security       *appconfig.SecurityConfig
 	UserService    user.Service
+	FormService    formdomain.Service
 	Config         *appconfig.Config
 	SessionManager *session.Manager
 	AccessManager  *access.AccessManager
@@ -136,7 +138,11 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Use(echomw.Logger())
 	}
 	e.Use(echomw.Recover())
-	e.Use(CORS(m.config.Security))
+
+	// Use PerFormCORS middleware for form-specific CORS handling
+	// This middleware will handle CORS for form routes and fallback to global CORS for other routes
+	perFormCORSConfig := NewPerFormCORSConfig(m.config.FormService, m.logger, m.config.Security)
+	e.Use(PerFormCORS(perFormCORSConfig))
 
 	// Register security middleware
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
