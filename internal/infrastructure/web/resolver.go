@@ -67,9 +67,9 @@ type DevelopmentAssetResolver struct {
 }
 
 // NewDevelopmentAssetResolver creates a new development asset resolver
-func NewDevelopmentAssetResolver(config *config.Config, logger logging.Logger) *DevelopmentAssetResolver {
+func NewDevelopmentAssetResolver(cfg *config.Config, logger logging.Logger) *DevelopmentAssetResolver {
 	return &DevelopmentAssetResolver{
-		config: config,
+		config: cfg,
 		logger: logger,
 	}
 }
@@ -123,14 +123,14 @@ func loadManifestFromFS(distFS embed.FS, logger logging.Logger) (Manifest, error
 		"path", manifestPath,
 	)
 
-	data, err := fs.ReadFile(distFS, manifestPath)
-	if err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrManifestNotFound, err.Error())
+	data, readErr := fs.ReadFile(distFS, manifestPath)
+	if readErr != nil {
+		return nil, fmt.Errorf("%w: %s", ErrManifestNotFound, readErr.Error())
 	}
 
 	var manifest Manifest
-	if err := json.Unmarshal(data, &manifest); err != nil {
-		return nil, fmt.Errorf("%w: %s", ErrInvalidManifest, err.Error())
+	if unmarshalErr := json.Unmarshal(data, &manifest); unmarshalErr != nil {
+		return nil, fmt.Errorf("%w: %s", ErrInvalidManifest, unmarshalErr.Error())
 	}
 
 	logger.Info("manifest loaded successfully",
