@@ -174,7 +174,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		"method", c.Request().Method,
 		"content_type", c.Request().Header.Get("Content-Type"),
 		"csrf_token_form", c.FormValue("_csrf"),
-		"csrf_token_header", c.Request().Header.Get("X-CSRF-Token"),
+		"csrf_token_header", c.Request().Header.Get("X-Csrf-Token"),
 		"csrf_token_header_lower", c.Request().Header.Get("X-Csrf-Token"),
 	)
 

@@ -10,11 +10,11 @@ import (
 type StringArray []string
 
 // Value implements the driver.Valuer interface.
-func (a StringArray) Value() (driver.Value, error) {
+func (a *StringArray) Value() (driver.Value, error) {
 	if a == nil {
 		return "[]", nil
 	}
-	return json.Marshal(a)
+	return json.Marshal(*a)
 }
 
 // Scan implements the sql.Scanner interface.
@@ -35,8 +35,8 @@ func (a *StringArray) Scan(src any) error {
 }
 
 // MarshalJSON implements json.Marshaler.
-func (a StringArray) MarshalJSON() ([]byte, error) {
-	return json.Marshal([]string(a))
+func (a *StringArray) MarshalJSON() ([]byte, error) {
+	return json.Marshal([]string(*a))
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
