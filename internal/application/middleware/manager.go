@@ -36,8 +36,6 @@ const (
 	DefaultRateLimit = 20
 	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
 	CookieMaxAge = 86400
-	// FormCorsMaxAge is the maximum age for form-specific CORS settings
-	FormCorsMaxAge = 3600
 	// FieldPairSize represents the number of elements in a key-value pair
 	FieldPairSize = 2
 )
@@ -250,9 +248,9 @@ func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareF
 	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
 		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
 			echomw.RateLimiterMemoryStoreConfig{
-				Rate:      rate.Limit(securityConfig.FormRateLimit),
-				Burst:     RateLimitBurst,
-				ExpiresIn: securityConfig.FormRateLimitWindow,
+				Rate:      rate.Limit(securityConfig.RateLimit),
+				Burst:     securityConfig.RateBurst,
+				ExpiresIn: securityConfig.RateLimitTimeWindow,
 			},
 		),
 		IdentifierExtractor: func(c echo.Context) (string, error) {
@@ -465,14 +463,17 @@ func (l *EchoLogger) Output() io.Writer {
 func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			path := c.Request().URL.Path
 			method := c.Request().Method
 
-			// Check if this is a form-related endpoint
-			isFormEndpoint := strings.HasPrefix(path, "/api/v1/forms/") &&
-				(strings.HasSuffix(path, "/schema") || strings.HasSuffix(path, "/submit"))
-
-			corsConfig := getCORSConfig(securityConfig, isFormEndpoint)
+			// Use general CORS settings for all endpoints
+			// Form-specific CORS will be handled by the dashboard/form configuration
+			corsConfig := &corsConfig{
+				allowedOrigins:   securityConfig.CorsAllowedOrigins,
+				allowedMethods:   securityConfig.CorsAllowedMethods,
+				allowedHeaders:   securityConfig.CorsAllowedHeaders,
+				allowCredentials: securityConfig.CorsAllowCredentials,
+				maxAge:           securityConfig.CorsMaxAge,
+			}
 
 			// Handle preflight requests
 			if method == "OPTIONS" {
@@ -482,29 +483,6 @@ func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 			// Handle actual requests
 			return handleActualRequest(c, corsConfig, next)
 		}
-	}
-}
-
-// getCORSConfig returns the appropriate CORS configuration based on endpoint type
-func getCORSConfig(securityConfig *appconfig.SecurityConfig, isFormEndpoint bool) *corsConfig {
-	if isFormEndpoint {
-		// Use form-specific CORS settings for form endpoints
-		return &corsConfig{
-			allowedOrigins:   securityConfig.FormCorsAllowedOrigins,
-			allowedMethods:   securityConfig.FormCorsAllowedMethods,
-			allowedHeaders:   securityConfig.FormCorsAllowedHeaders,
-			allowCredentials: false, // Forms don't need credentials
-			maxAge:           FormCorsMaxAge,
-		}
-	}
-
-	// Use general CORS settings for other endpoints
-	return &corsConfig{
-		allowedOrigins:   securityConfig.CorsAllowedOrigins,
-		allowedMethods:   securityConfig.CorsAllowedMethods,
-		allowedHeaders:   securityConfig.CorsAllowedHeaders,
-		allowCredentials: securityConfig.CorsAllowCredentials,
-		maxAge:           securityConfig.CorsMaxAge,
 	}
 }
 
