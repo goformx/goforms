@@ -13,6 +13,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
@@ -27,6 +28,7 @@ type BaseHandler struct {
 	Renderer       view.Renderer
 	SessionManager *session.Manager
 	ErrorHandler   response.ErrorHandlerInterface
+	AssetManager   *web.AssetManager
 }
 
 // NewBaseHandler creates a new base handler with common dependencies
@@ -38,6 +40,7 @@ func NewBaseHandler(
 	renderer view.Renderer,
 	sessionManager *session.Manager,
 	errorHandler response.ErrorHandlerInterface,
+	assetManager *web.AssetManager,
 ) *BaseHandler {
 	return &BaseHandler{
 		Logger:         logger,
@@ -47,6 +50,7 @@ func NewBaseHandler(
 		Renderer:       renderer,
 		SessionManager: sessionManager,
 		ErrorHandler:   errorHandler,
+		AssetManager:   assetManager,
 	}
 }
 
@@ -68,7 +72,7 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 
 // BuildPageData creates page data with common fields
 func (h *BaseHandler) BuildPageData(c echo.Context, title string) shared.PageData {
-	return shared.BuildPageData(h.Config, c, title)
+	return shared.BuildPageData(h.Config, h.AssetManager, c, title)
 }
 
 // HandleError handles common error scenarios

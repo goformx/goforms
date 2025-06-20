@@ -52,7 +52,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	}
 
 	// Build page data
-	data := shared.BuildPageData(h.Config, c, "Dashboard")
+	data := shared.BuildPageData(h.Config, h.AssetManager, c, "Dashboard")
 	data.User = user
 	data.Forms = forms
 
@@ -106,7 +106,7 @@ func (h *DashboardHandler) handleFormView(c echo.Context) error {
 		"form_id_length", len(formID),
 		"form_title", h.Logger.SanitizeField("form_title", form.Title))
 
-	data := shared.BuildPageData(h.Config, c, "Form View")
+	data := shared.BuildPageData(h.Config, h.AssetManager, c, "Form View")
 	data.User = userObj
 	data.Form = form
 	return h.Renderer.Render(c, pages.Forms(data))

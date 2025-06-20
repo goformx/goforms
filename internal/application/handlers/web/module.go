@@ -20,6 +20,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 // Module provides web handler dependencies
@@ -29,6 +30,7 @@ var Module = fx.Options(
 		// Base handler for common functionality
 		fx.Annotate(
 			NewBaseHandler,
+			fx.ParamTags(``, ``, ``, ``, ``, ``, ``, ``),
 		),
 
 		// Auth components for SRP compliance
@@ -73,10 +75,11 @@ var Module = fx.Options(
 				responseBuilder *AuthResponseBuilder,
 				authService *AuthService,
 				sanitizer sanitization.ServiceInterface,
+				assetManager *web.AssetManager,
 			) (Handler, error) {
 				return NewAuthHandler(
 					base, authMiddleware, requestUtils, schemaGenerator,
-					requestParser, responseBuilder, authService, sanitizer,
+					requestParser, responseBuilder, authService, sanitizer, assetManager,
 				)
 			},
 			fx.ResultTags(`group:"handlers"`),

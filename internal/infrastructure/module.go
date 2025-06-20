@@ -84,12 +84,8 @@ func ProvideAssetServer(p AssetServerParams) infraweb.AssetServer {
 		return infraweb.NewViteAssetServer(p.Config, p.Logger)
 	}
 
-	// In production, use embedded filesystem if available, otherwise fall back to filesystem
-	var zeroFS embed.FS
-	if p.DistFS != zeroFS {
-		return infraweb.NewEmbeddedAssetServer(p.Logger, p.DistFS)
-	}
-	return infraweb.NewStaticAssetServer(p.Logger)
+	// In production, always use embedded filesystem
+	return infraweb.NewEmbeddedAssetServer(p.Logger, p.DistFS)
 }
 
 // Module provides infrastructure dependencies
@@ -130,5 +126,11 @@ var Module = fx.Options(
 		event.NewMemoryEventBus,
 		// Asset server
 		ProvideAssetServer,
+		// Asset manager
+		fx.Annotate(
+			func(distFS embed.FS, logger logging.Logger, cfg *config.Config) *infraweb.AssetManager {
+				return infraweb.NewAssetManager(cfg, logger, distFS)
+			},
+		),
 	),
 )

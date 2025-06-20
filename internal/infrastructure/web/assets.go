@@ -13,7 +13,6 @@ import (
 	"net/http"
 	"net/http/httputil"
 	"net/url"
-	"os"
 	"path/filepath"
 	"strings"
 	"sync"
@@ -58,12 +57,37 @@ type AssetManager struct {
 	pathCache      map[string]string
 	mu             sync.RWMutex
 	logger         logging.Logger
+	distFS         embed.FS // Add embedded filesystem for production
 }
 
 // AssetServer defines the interface for serving assets
 type AssetServer interface {
 	// RegisterRoutes registers the necessary routes for serving assets
 	RegisterRoutes(e *echo.Echo) error
+}
+
+// WebModule encapsulates the asset manager and server to eliminate global state
+type WebModule struct {
+	AssetManager *AssetManager
+	AssetServer  AssetServer
+}
+
+// NewWebModule creates a new web module with proper dependency injection
+func NewWebModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) *WebModule {
+	manager := NewAssetManager(cfg, logger, distFS)
+
+	var server AssetServer
+	if cfg.App.IsDevelopment() {
+		server = NewViteAssetServer(cfg, logger)
+	} else {
+		// In production, always use embedded filesystem
+		server = NewEmbeddedAssetServer(logger, distFS)
+	}
+
+	return &WebModule{
+		AssetManager: manager,
+		AssetServer:  server,
+	}
 }
 
 // ViteAssetServer implements AssetServer for Vite development server
@@ -95,17 +119,15 @@ func (s *ViteAssetServer) RegisterRoutes(e *echo.Echo) error {
 	// Create a proxy for the Vite dev server
 	proxy := httputil.NewSingleHostReverseProxy(parsedURL)
 	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		if s.logger != nil {
-			// Only log the path portion of the URL, limited to 100 characters
-			path := r.URL.Path
-			if len(path) > MaxPathLength {
-				path = path[:MaxPathLength] + "..."
-			}
-			s.logger.Error("proxy error",
-				"error", err,
-				"path", path,
-			)
+		// Only log the path portion of the URL, limited to 100 characters
+		path := r.URL.Path
+		if len(path) > MaxPathLength {
+			path = path[:MaxPathLength] + "..."
 		}
+		s.logger.Error("proxy error",
+			"error", err,
+			"path", path,
+		)
 		http.Error(w, "Proxy Error", http.StatusBadGateway)
 	}
 
@@ -116,37 +138,6 @@ func (s *ViteAssetServer) RegisterRoutes(e *echo.Echo) error {
 	e.Any("/@id/*", echo.WrapHandler(proxy))
 	e.Any("/favicon.ico", echo.WrapHandler(proxy))
 
-	return nil
-}
-
-// StaticAssetServer implements AssetServer for static files in production
-type StaticAssetServer struct {
-	logger logging.Logger
-}
-
-// NewStaticAssetServer creates a new static asset server
-func NewStaticAssetServer(logger logging.Logger) *StaticAssetServer {
-	return &StaticAssetServer{
-		logger: logger,
-	}
-}
-
-// RegisterRoutes registers the static file serving routes
-func (s *StaticAssetServer) RegisterRoutes(e *echo.Echo) error {
-	// Add static file headers middleware
-	e.Use(setupStaticFileHeaders)
-
-	// Serve static files from dist directory
-	e.Static("/assets", "dist/assets")
-	e.Static("/fonts", "dist/fonts")
-	e.Static("/css", "dist/css")
-	e.Static("/js", "dist/js")
-
-	// Serve individual files
-	e.File("/robots.txt", "dist/robots.txt")
-	e.File("/favicon.ico", "dist/favicon.ico")
-
-	s.logger.Info("static asset server configured", "base_dir", "dist")
 	return nil
 }
 
@@ -229,24 +220,24 @@ func setupStaticFileHeaders(next echo.HandlerFunc) echo.HandlerFunc {
 	}
 }
 
-var (
-	// DefaultManager is the default asset manager instance
-	DefaultManager = NewAssetManager()
-)
-
 // NewAssetManager creates a new asset manager instance
-func NewAssetManager() *AssetManager {
+func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS ...embed.FS) *AssetManager {
 	manager := &AssetManager{
 		manifest:  make(Manifest),
 		pathCache: make(map[string]string),
+		config:    cfg,
+		logger:    logger,
+	}
+
+	// Set embedded filesystem if provided
+	if len(distFS) > 0 {
+		manager.distFS = distFS[0]
 	}
 
 	// Try to load manifest immediately
 	if err := manager.loadManifest(); err != nil {
-		if manager.logger != nil {
-			manager.logger.Error("failed to load manifest during initialization", "error", err)
-		}
-	} else if manager.logger != nil {
+		manager.logger.Error("failed to load manifest during initialization", "error", err)
+	} else {
 		manager.logger.Info("asset manager initialized",
 			"manifest_loaded", manager.manifestLoaded,
 			"manifest_entries", len(manager.manifest),
@@ -254,24 +245,6 @@ func NewAssetManager() *AssetManager {
 	}
 
 	return manager
-}
-
-// SetConfig sets the application configuration
-func (m *AssetManager) SetConfig(cfg *config.Config) error {
-	if cfg == nil {
-		return errors.New("config cannot be nil")
-	}
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.config = cfg
-	return nil
-}
-
-// SetLogger sets the logger for the asset manager
-func (m *AssetManager) SetLogger(logger logging.Logger) {
-	m.mu.Lock()
-	defer m.mu.Unlock()
-	m.logger = logger
 }
 
 // loadManifest attempts to load the Vite manifest file
@@ -283,43 +256,29 @@ func (m *AssetManager) loadManifest() error {
 		return nil
 	}
 
-	// Try primary manifest location
-	manifestPath := filepath.Join("dist", ".vite", "manifest.json")
-	if m.logger != nil {
-		m.logger.Debug("attempting to load manifest", "path", manifestPath)
-	}
+	var data []byte
+	var err error
 
-	data, err := os.ReadFile(manifestPath)
-	if err != nil && !os.IsNotExist(err) {
-		return fmt.Errorf("failed to read manifest file: %w", err)
-	}
+	// Try to load from embedded filesystem
+	manifestPath := "dist/.vite/manifest.json"
+	m.logger.Debug("attempting to load manifest from embedded filesystem", "path", manifestPath)
 
-	// If primary location fails, try alternative location
+	data, err = fs.ReadFile(m.distFS, manifestPath)
 	if err != nil {
-		if m.logger != nil {
-			m.logger.Debug("manifest file not found, trying alternative location", "path", manifestPath)
-		}
-		manifestPath = filepath.Join("dist", "manifest.json")
-		data, err = os.ReadFile(manifestPath)
-		if err != nil {
-			if m.logger != nil {
-				m.logger.Debug("alternative manifest file not found", "path", manifestPath, "error", err)
-			}
-			// Manifest doesn't exist, initialize empty manifest
-			m.manifest = make(Manifest)
-			m.manifestLoaded = true
-			return nil
-		}
+		return fmt.Errorf("failed to read manifest from embedded filesystem: %w", err)
 	}
 
-	if err = json.Unmarshal(data, &m.manifest); err != nil {
-		return fmt.Errorf("failed to parse manifest file: %w", err)
+	// Parse the manifest
+	if unmarshalErr := json.Unmarshal(data, &m.manifest); unmarshalErr != nil {
+		return fmt.Errorf("failed to parse manifest: %w", unmarshalErr)
 	}
 
-	if m.logger != nil {
-		m.logger.Debug("manifest loaded successfully", "entries", len(m.manifest))
-	}
 	m.manifestLoaded = true
+
+	m.logger.Info("manifest loaded successfully",
+		"entries", len(m.manifest),
+	)
+
 	return nil
 }
 
@@ -328,12 +287,10 @@ func (m *AssetManager) getDevelopmentAssetPath(path string) string {
 	hostPort := net.JoinHostPort(m.config.App.ViteDevHost, m.config.App.ViteDevPort)
 
 	// Debug logging
-	if m.logger != nil {
-		m.logger.Debug("getting development asset path",
-			"path", path,
-			"host_port", hostPort,
-		)
-	}
+	m.logger.Debug("getting development asset path",
+		"path", path,
+		"host_port", hostPort,
+	)
 
 	// For source files, use the Vite dev server
 	if strings.HasPrefix(path, "src/") {
@@ -357,179 +314,110 @@ func (m *AssetManager) getDevelopmentAssetPath(path string) string {
 	}
 }
 
-// findAssetBySourcePath looks for an asset in the manifest by its source path
-func (m *AssetManager) findAssetBySourcePath(path string) (string, bool) {
-	if entry, ok := m.manifest[path]; ok {
-		if m.logger != nil {
-			m.logger.Debug("found entry in manifest by source path",
-				"path", path,
-				"file", entry.File,
-			)
-		}
+// getManifestKeys returns a slice of all keys in the manifest for debugging
+func getManifestKeys(manifest Manifest) []string {
+	keys := make([]string, 0, len(manifest))
+	for key := range manifest {
+		keys = append(keys, key)
+	}
+	return keys
+}
+
+// findAssetInManifest searches for an asset in the loaded manifest
+func (m *AssetManager) findAssetInManifest(path string) (string, bool) {
+	m.logger.Debug("searching manifest for asset",
+		"path", path,
+		"manifest_entries", len(m.manifest),
+	)
+
+	// Only allow exact match
+	if entry, found := m.manifest[path]; found {
+		m.logger.Debug("exact match found in manifest",
+			"path", path,
+			"manifest_file", entry.File,
+		)
 		return entry.File, true
 	}
-	return "", false
-}
 
-// findAssetByName looks for an asset in the manifest by its name (without extension)
-func (m *AssetManager) findAssetByName(path string) (string, bool) {
-	baseName := strings.TrimSuffix(path, filepath.Ext(path))
-	for _, entry := range m.manifest {
-		if entry.Name == baseName {
-			if m.logger != nil {
-				m.logger.Debug("found entry in manifest by name",
-					"path", path,
-					"file", entry.File,
-				)
-			}
-			return entry.File, true
-		}
-	}
-	return "", false
-}
-
-// findCSSAsset looks for a CSS asset in the manifest's CSS arrays
-func (m *AssetManager) findCSSAsset(path string) (string, bool) {
-	if !strings.HasSuffix(path, ".css") {
-		return "", false
-	}
-
-	for _, entry := range m.manifest {
-		for _, cssFile := range entry.CSS {
-			if strings.HasSuffix(cssFile, path) {
-				if m.logger != nil {
-					m.logger.Debug("found CSS file in manifest entry",
-						"path", path,
-						"file", cssFile,
-					)
-				}
-				return cssFile, true
-			}
-		}
-	}
-	return "", false
-}
-
-// findAssetInManifest looks for an asset in the manifest by various criteria
-func (m *AssetManager) findAssetInManifest(path string) (string, bool) {
-	// Try each lookup method in sequence
-	if assetPath, found := m.findAssetBySourcePath(path); found {
-		return assetPath, true
-	}
-
-	if assetPath, found := m.findAssetByName(path); found {
-		return assetPath, true
-	}
-
-	if assetPath, found := m.findCSSAsset(path); found {
-		return assetPath, true
-	}
+	m.logger.Debug("asset not found in manifest",
+		"path", path,
+		"available_keys", getManifestKeys(m.manifest),
+	)
 
 	return "", false
-}
-
-// constructAssetPath creates a path for an asset based on its type
-func (m *AssetManager) constructAssetPath(path string) string {
-	baseName := strings.TrimSuffix(path, filepath.Ext(path))
-	ext := filepath.Ext(path)
-	if ext == "" {
-		ext = ".js" // Default to .js if no extension
-	}
-
-	var assetPath string
-	switch {
-	case strings.HasSuffix(path, ".css"):
-		assetPath = fmt.Sprintf("/assets/css/%s.css", baseName)
-	case strings.HasSuffix(path, ".js"):
-		assetPath = fmt.Sprintf("/assets/js/%s.js", baseName)
-	default:
-		assetPath = fmt.Sprintf("/assets/%s%s", baseName, ext)
-	}
-
-	if m.logger != nil {
-		m.logger.Debug("constructed asset path",
-			"path", path,
-			"resolved", assetPath,
-		)
-	}
-
-	return assetPath
 }
 
 // getProductionAssetPath returns the asset path for production mode
 func (m *AssetManager) getProductionAssetPath(path string) string {
-	if m.logger != nil {
-		m.logger.Debug("getting production asset path",
-			"path", path,
-			"manifest_loaded", m.manifestLoaded,
-			"manifest_entries", len(m.manifest),
-		)
-	}
+	m.logger.Debug("getting production asset path",
+		"path", path,
+		"manifest_loaded", m.manifestLoaded,
+		"manifest_entries", len(m.manifest),
+	)
 
 	// Try to load manifest if not loaded
 	if !m.manifestLoaded {
 		if err := m.loadManifest(); err != nil {
-			if m.logger != nil {
-				m.logger.Error("failed to load manifest", "error", err)
-			}
+			m.logger.Error("failed to load manifest", "error", err)
 		}
 	}
 
 	// Try to find the asset in the manifest
 	if assetPath, found := m.findAssetInManifest(path); found {
+		// Ensure the path starts with a slash for proper URL construction
+		if !strings.HasPrefix(assetPath, "/") {
+			assetPath = "/" + assetPath
+		}
+		m.logger.Debug("asset found in manifest",
+			"input_path", path,
+			"manifest_path", assetPath,
+		)
 		return assetPath
 	}
 
-	// If not found, construct a path
-	return m.constructAssetPath(path)
+	m.logger.Debug("asset not found in manifest",
+		"input_path", path,
+	)
+	return ""
 }
 
-// GetAssetPath returns the correct path for an asset based on the environment
-func (m *AssetManager) GetAssetPath(path string) (string, error) {
-	if path == "" {
-		return "", errors.New("path cannot be empty")
-	}
-
-	if len(path) > MaxPathLength {
-		return "", fmt.Errorf("path too long: %s", path)
-	}
-
-	if m.logger != nil {
-		m.logger.Debug("resolving asset path", "path", path)
-	}
+// AssetPath returns the resolved asset path for the given input path
+func (m *AssetManager) AssetPath(path string) string {
+	m.logger.Debug("asset manager resolving path",
+		"input_path", path,
+		"manifest_loaded", m.manifestLoaded,
+		"manifest_entries", len(m.manifest),
+	)
 
 	// Check cache first
 	m.mu.RLock()
-	if cached, ok := m.pathCache[path]; ok {
+	if cachedPath, found := m.pathCache[path]; found {
 		m.mu.RUnlock()
-		if m.logger != nil {
-			m.logger.Debug("cache hit", "path", path, "cached", cached)
-		}
-		return cached, nil
+		m.logger.Debug("asset path found in cache", "input_path", path, "cached_path", cachedPath)
+		return cachedPath
 	}
 	m.mu.RUnlock()
 
-	var assetPath string
-
-	// In development mode, use Vite's dev server
-	if m.config != nil && m.config.App.IsDevelopment() {
-		assetPath = m.getDevelopmentAssetPath(path)
+	// Resolve the path
+	var resolvedPath string
+	if m.config.App.Env == "production" {
+		resolvedPath = m.getProductionAssetPath(path)
 	} else {
-		// In production mode, try to use the manifest
-		if manifestErr := m.loadManifest(); manifestErr != nil {
-			if m.logger != nil {
-				m.logger.Error("failed to load manifest", "error", manifestErr)
-			}
-		}
-		assetPath = m.getProductionAssetPath(path)
+		resolvedPath = m.getDevelopmentAssetPath(path)
 	}
 
 	// Cache the result
 	m.mu.Lock()
-	m.pathCache[path] = assetPath
+	m.pathCache[path] = resolvedPath
 	m.mu.Unlock()
 
-	return assetPath, nil
+	m.logger.Debug("asset path resolved",
+		"input_path", path,
+		"resolved_path", resolvedPath,
+		"environment", m.config.App.Env,
+	)
+
+	return resolvedPath
 }
 
 // GetAssetType returns the type of asset based on its path
@@ -554,24 +442,4 @@ func (m *AssetManager) ClearCache() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pathCache = make(map[string]string)
-}
-
-// SetConfig sets the configuration for the default asset manager
-func SetConfig(cfg *config.Config) error {
-	return DefaultManager.SetConfig(cfg)
-}
-
-// SetLogger sets the logger for the default asset manager
-func SetLogger(logger logging.Logger) {
-	DefaultManager.SetLogger(logger)
-}
-
-// GetAssetPath returns the asset path using the default asset manager
-func GetAssetPath(path string) (string, error) {
-	return DefaultManager.GetAssetPath(path)
-}
-
-// GetAssetType returns the asset type using the default asset manager
-func GetAssetType(path string) AssetType {
-	return DefaultManager.GetAssetType(path)
 }
