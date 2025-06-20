@@ -3,16 +3,20 @@ package request
 import (
 	"encoding/json"
 
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/labstack/echo/v4"
-	"github.com/mrz1836/go-sanitize"
 )
 
 // Utils provides common request processing utilities
-type Utils struct{}
+type Utils struct {
+	Sanitizer sanitization.ServiceInterface
+}
 
 // NewUtils creates a new request utils instance
-func NewUtils() *Utils {
-	return &Utils{}
+func NewUtils(sanitizer sanitization.ServiceInterface) *Utils {
+	return &Utils{
+		Sanitizer: sanitizer,
+	}
 }
 
 // ContentType represents the type of content in a request
@@ -37,14 +41,14 @@ func (ru *Utils) ParseRequestData(c echo.Context, target any) error {
 	}
 }
 
-// SanitizeString sanitizes a string input
+// SanitizeString sanitizes a string input using XSS protection
 func (ru *Utils) SanitizeString(input string) string {
-	return sanitize.XSS(input)
+	return ru.Sanitizer.String(input)
 }
 
 // SanitizeEmail sanitizes an email input
 func (ru *Utils) SanitizeEmail(input string) string {
-	return sanitize.Email(input, false)
+	return ru.Sanitizer.Email(input)
 }
 
 // IsAJAXRequest checks if the request is an AJAX request

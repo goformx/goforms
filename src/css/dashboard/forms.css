@@ -33,13 +33,17 @@
   background: var(--card-bg);
   border-radius: var(--card-radius);
   box-shadow: var(--shadow-md);
-  transition: box-shadow 0.2s, transform 0.2s;
+  transition:
+    box-shadow 0.2s,
+    transform 0.2s;
   border: none;
   overflow: hidden;
 }
 
 .form-card:hover {
-  box-shadow: var(--shadow-md), 0 8px 24px 0 var(--primary-shadow-hover, rgba(37, 99, 235, 0.10));
+  box-shadow:
+    var(--shadow-md),
+    0 8px 24px 0 var(--primary-shadow-hover, rgba(37, 99, 235, 0.1));
   transform: translateY(-2px) scale(1.01);
 }
 
@@ -102,4 +106,4 @@
   font-size: var(--font-size-sm);
   color: var(--text-light);
   margin: 0;
-} 
+}

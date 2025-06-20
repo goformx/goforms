@@ -18,14 +18,6 @@ func Middleware(manager *AccessManager, logger logging.Logger) echo.MiddlewareFu
 			// Get required access level for this route
 			requiredAccess := manager.GetRequiredAccess(path, method)
 
-			// Add debug log for tracing access decisions
-			logger.Debug("access middleware decision",
-				"path", path,
-				"method", method,
-				"required_access", requiredAccess,
-				"is_authenticated", context.IsAuthenticated(c),
-			)
-
 			// Check if user has required access
 			switch requiredAccess {
 			case PublicAccess:
@@ -35,12 +27,6 @@ func Middleware(manager *AccessManager, logger logging.Logger) echo.MiddlewareFu
 			case AuthenticatedAccess:
 				// Check if user is authenticated
 				if !context.IsAuthenticated(c) {
-					logger.Debug("access denied: authentication required",
-						"path", path,
-						"method", method,
-						"ip", c.RealIP(),
-						"user_agent", c.Request().UserAgent(),
-					)
 					return c.Redirect(http.StatusSeeOther, "/login")
 				}
 				return next(c)
@@ -48,24 +34,10 @@ func Middleware(manager *AccessManager, logger logging.Logger) echo.MiddlewareFu
 			case AdminAccess:
 				// Check if user is authenticated and is an admin
 				if !context.IsAuthenticated(c) {
-					logger.Debug("access denied: authentication required",
-						"path", path,
-						"method", method,
-						"ip", c.RealIP(),
-						"user_agent", c.Request().UserAgent(),
-					)
 					return c.Redirect(http.StatusSeeOther, "/login")
 				}
 
 				if !context.IsAdmin(c) {
-					userID, _ := context.GetUserID(c)
-					logger.Debug("access denied: admin access required",
-						"path", path,
-						"method", method,
-						"user_id", userID,
-						"ip", c.RealIP(),
-						"user_agent", c.Request().UserAgent(),
-					)
 					return c.JSON(http.StatusForbidden, map[string]string{
 						"error": "Admin access required",
 					})
@@ -75,12 +47,6 @@ func Middleware(manager *AccessManager, logger logging.Logger) echo.MiddlewareFu
 			default:
 				// Default to requiring authentication
 				if !context.IsAuthenticated(c) {
-					logger.Debug("access denied: authentication required",
-						"path", path,
-						"method", method,
-						"ip", c.RealIP(),
-						"user_agent", c.Request().UserAgent(),
-					)
 					return c.Redirect(http.StatusSeeOther, "/login")
 				}
 				return next(c)

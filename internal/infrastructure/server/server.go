@@ -110,14 +110,6 @@ func New(
 		config: cfg,
 	}
 
-	// Initialize asset manager
-	if err := web.SetConfig(cfg); err != nil {
-		logger.Error("failed to initialize asset manager", "error", err)
-	} else {
-		web.SetLogger(logger)
-		logger.Debug("asset manager initialized", "service", "assets")
-	}
-
 	// Log server configuration
 	logger.Info("initializing server",
 		"host", cfg.App.Host,

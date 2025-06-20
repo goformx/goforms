@@ -5,6 +5,7 @@ import (
 	"errors"
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -53,7 +54,7 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 
 	// Check if user is authenticated and redirect to dashboard
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(StatusFound, "/dashboard")
+		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
 	}
 
 	// User is not authenticated, render home page
@@ -72,7 +73,7 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 
 	// Check if user is authenticated and redirect to dashboard
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(StatusFound, "/dashboard")
+		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
 	}
 
 	// User is not authenticated, render demo page

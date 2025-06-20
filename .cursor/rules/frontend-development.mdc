@@ -1,184 +1,307 @@
 ---
-description:
-globs:
+description: 
+globs: *.ts,*.css,*.js,src/**/*
 alwaysApply: false
 ---
 # Frontend Development Guidelines
 
 ## Overview
-The frontend is built using TypeScript, React, and modern web technologies. It follows a component-based architecture with a focus on type safety, performance, and maintainability.
+The frontend is built using vanilla TypeScript with templ templates, not React as previously documented. It follows a modular architecture with a focus on type safety, performance, and maintainability.
 
 ## Core Technologies
 
-1. TypeScript
+1. **TypeScript**
    - Strict type checking
    - Interface definitions
    - Type guards
    - Utility types
 
-2. React
-   - Functional components
-   - Hooks
-   - Context API
-   - Error boundaries
+2. **Vanilla TypeScript (No React)**
+   - Modular TypeScript files
+   - DOM manipulation
+   - Event handling
+   - Form validation
 
-3. Styling
-   - CSS Modules
-   - PostCSS
+3. **Templ Templates**
+   - Server-side HTML templates
+   - Type-safe template rendering
+   - Component-based structure
+   - Template inheritance
+
+4. **Styling**
+   - CSS modules
+   - PostCSS processing
    - Responsive design
    - Design system
 
-4. Build Tools
-   - Vite
-   - ESLint
-   - Prettier
+5. **Build Tools**
+   - Vite for development and building
+   - ESLint for code quality
+   - Prettier for formatting
    - TypeScript compiler
 
-## Component Structure
+## Project Structure
 
-1. Component Organization
-   ```
-   src/
-   ├── components/          # Reusable components
-   │   ├── common/         # Shared components
-   │   ├── forms/          # Form components
-   │   └── layout/         # Layout components
-   ├── hooks/              # Custom hooks
-   ├── services/           # API services
-   ├── types/              # TypeScript types
-   └── utils/              # Utility functions
-   ```
+```
+src/
+├── js/                    # TypeScript source files
+│   ├── constants/        # Application constants
+│   ├── handlers/         # Event handlers
+│   ├── schema/          # Form schema definitions
+│   ├── services/        # API services
+│   ├── types/           # TypeScript type definitions
+│   ├── utils/           # Utility functions
+│   ├── validation/      # Validation logic
+│   ├── form-builder.ts  # Form builder functionality
+│   ├── form-handler.ts  # Form submission handling
+│   ├── login.ts         # Login functionality
+│   ├── main.ts          # Main entry point
+│   └── validation.ts    # Validation utilities
+├── css/                  # Stylesheets
+│   ├── base/            # Base styles
+│   ├── components/      # Component styles
+│   ├── dashboard/       # Dashboard styles
+│   ├── layouts/         # Layout styles
+│   ├── pages/           # Page-specific styles
+│   ├── themes/          # Theme styles
+│   └── utils/           # Utility styles
+└── types/               # TypeScript type definitions
+```
 
-2. Component Guidelines
-   - Single responsibility
-   - Props interface
-   - Error handling
-   - Loading states
+## Build System
+
+### Vite Configuration
+- **Development**: Hot Module Replacement (HMR) with WebSocket
+- **Production**: Asset optimization and minification
+- **TypeScript**: ESNext target for modern browsers
+- **CSS**: PostCSS processing with autoprefixer
+- **Assets**: Automatic handling of fonts, images, and other static files
+
+### Development Mode
+- Assets served from Vite dev server at `http://localhost:3000`
+- Hot Module Replacement (HMR) for instant updates
+- Source maps for debugging
+- Proxy configuration for API requests
+- Fast refresh for TypeScript files
+
+### Production Build
+- Assets built to `dist/` directory
+- CSS files in `dist/assets/css/`
+- JavaScript files in `dist/assets/js/`
+- Fonts and images in `dist/assets/`
+- Manifest file for asset versioning
+- Console and debugger statements removed
+
+## Component Patterns
+
+### TypeScript Modules
+```typescript
+// Modular TypeScript files
+export class FormHandler {
+    private form: HTMLFormElement;
+    
+    constructor(formId: string) {
+        this.form = document.getElementById(formId) as HTMLFormElement;
+        this.setupListeners();
+    }
+    
+    private setupListeners(): void {
+        this.form.addEventListener('submit', this.handleSubmit.bind(this));
+    }
+    
+    private async handleSubmit(event: Event): Promise<void> {
+        // Form submission logic
+    }
+}
+```
+
+### Event Handling
+```typescript
+// Event-driven architecture
+class EventManager {
+    private listeners: Map<string, Function[]> = new Map();
+    
+    on(event: string, callback: Function): void {
+        if (!this.listeners.has(event)) {
+            this.listeners.set(event, []);
+        }
+        this.listeners.get(event)!.push(callback);
+    }
+    
+    emit(event: string, data?: any): void {
+        const callbacks = this.listeners.get(event) || [];
+        callbacks.forEach(callback => callback(data));
+    }
+}
+```
 
 ## State Management
 
-1. Local State
-   - useState
-   - useReducer
-   - Context API
-   - Custom hooks
+### Local State
+- Module-level state management
+- Event-driven state updates
+- DOM state synchronization
+- Form state handling
 
-2. Server State
-   - React Query
-   - SWR
-   - Caching
-   - Optimistic updates
+### Server State
+- API service modules
+- Request/response caching
+- Error handling
+- Loading states
 
-3. Form State
-   - React Hook Form
-   - Form validation
-   - Error handling
-   - Submission handling
+### Form State
+- Real-time validation
+- Error display
+- Success feedback
+- Form reset functionality
 
 ## API Integration
 
-1. API Client
-   - Type-safe methods
-   - Error handling
-   - Retry logic
-   - Request/response types
+### API Client
+```typescript
+// Type-safe API service
+export class FormService {
+    private baseURL: string;
+    
+    constructor() {
+        this.baseURL = window.location.origin;
+    }
+    
+    async createForm(data: FormData): Promise<Form> {
+        const response = await fetch(`${this.baseURL}/api/v1/forms`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'X-CSRF-Token': this.getCSRFToken(),
+            },
+            body: JSON.stringify(data),
+        });
+        
+        if (!response.ok) {
+            throw new Error(`HTTP error! status: ${response.status}`);
+        }
+        
+        return response.json();
+    }
+}
+```
 
-2. Authentication
-   - JWT handling
-   - Token refresh
-   - Protected routes
-   - Auth hooks
+### Authentication
+- CSRF token handling
+- Session management
+- Protected route handling
+- Error handling
 
-3. Error Handling
-   - Error boundaries
-   - Toast notifications
-   - Error logging
-   - User feedback
+### Error Handling
+- Structured error responses
+- User-friendly error messages
+- Error logging
+- Graceful degradation
+
+## Validation
+
+### Client-Side Validation
+```typescript
+// Zod-based validation
+import { z } from "zod";
+
+const formSchema = z.object({
+    title: z.string().min(3).max(100),
+    email: z.string().email(),
+    message: z.string().max(500),
+});
+
+export const validation = {
+    validateForm(form: HTMLFormElement, schema: z.ZodType): ValidationResult {
+        const formData = new FormData(form);
+        const data = Object.fromEntries(formData);
+        
+        try {
+            const validated = schema.parse(data);
+            return { success: true, data: validated };
+        } catch (error) {
+            return { success: false, error };
+        }
+    }
+};
+```
+
+### Real-Time Validation
+- Field-level validation
+- Immediate feedback
+- Error display
+- Success indicators
 
 ## Performance
 
-1. Code Splitting
-   - Route-based
-   - Component-based
-   - Dynamic imports
-   - Preloading
+### Code Organization
+- Modular TypeScript files
+- Lazy loading where appropriate
+- Efficient DOM queries
+- Event delegation
 
-2. Optimization
-   - Memoization
-   - Virtualization
-   - Lazy loading
-   - Bundle analysis
+### Asset Optimization
+- Vite's built-in optimization
+- CSS minification
+- JavaScript minification
+- Asset hashing for cache busting
 
-3. Caching
-   - API responses
-   - Static assets
-   - Service worker
-   - Local storage
-
-## Testing
-
-1. Unit Tests
-   - Component tests
-   - Hook tests
-   - Utility tests
-   - Mock services
-
-2. Integration Tests
-   - User flows
-   - API integration
-   - State management
-   - Error scenarios
-
-3. E2E Tests
-   - Critical paths
-   - User journeys
-   - Browser testing
-   - Performance testing
-
-## Accessibility
-
-1. Standards
-   - WCAG 2.1
-   - ARIA attributes
-   - Keyboard navigation
-   - Screen readers
-
-2. Implementation
-   - Semantic HTML
-   - Focus management
-   - Color contrast
-   - Responsive design
+### Caching
+- Browser caching strategies
+- API response caching
+- Local storage for user preferences
+- Service worker for offline support
 
 ## Security
 
-1. Best Practices
-   - XSS prevention
-   - CSRF protection
-   - Input sanitization
-   - Secure headers
+### Best Practices
+- CSRF protection
+- Input sanitization
+- XSS prevention
+- Secure headers
 
-2. Authentication
-   - Token management
-   - Session handling
-   - Secure storage
-   - Logout handling
+### Authentication
+- CSRF token management
+- Session handling
+- Secure storage
+- Logout handling
 
 ## Development Workflow
 
-1. Code Quality
-   - ESLint rules
-   - Prettier config
-   - TypeScript strict
-   - Git hooks
+### Code Quality
+- ESLint rules for TypeScript
+- Prettier configuration
+- TypeScript strict mode
+- Git hooks for pre-commit checks
 
-2. Build Process
-   - Development server
-   - Production build
-   - Asset optimization
-   - Environment config
+### Build Process
+- Development server with HMR
+- Production build optimization
+- Asset optimization
+- Environment configuration
 
-3. Deployment
-   - CI/CD pipeline
-   - Version control
-   - Environment vars
-   - Monitoring setup
+### Testing
+- Unit tests for utility functions
+- Integration tests for API services
+- E2E tests for critical flows
+- Performance testing
+
+## Best Practices
+
+### Code Organization
+1. **Modular Structure**: Keep files focused and single-purpose
+2. **Type Safety**: Use TypeScript interfaces and types
+3. **Error Handling**: Implement comprehensive error handling
+4. **Performance**: Optimize for performance and user experience
+
+### Development Practices
+1. **TypeScript**: Use strict TypeScript configuration
+2. **ESLint**: Follow linting rules for code quality
+3. **Prettier**: Maintain consistent code formatting
+4. **Testing**: Write tests for critical functionality
+
+### Asset Management
+1. **Development**: Use Vite dev server for hot reload
+2. **Production**: Optimize assets for production deployment
+3. **Versioning**: Use asset hashing for cache busting
+4. **Security**: Apply security headers to all assets

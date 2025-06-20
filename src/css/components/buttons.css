@@ -8,7 +8,9 @@
   border-radius: var(--button-radius);
   font-weight: var(--button-font-weight);
   font-size: var(--button-font-size);
-  transition: var(--button-transition), box-shadow 0.2s;
+  transition:
+    var(--button-transition),
+    box-shadow 0.2s;
   cursor: pointer;
   text-decoration: none;
   border: none;
@@ -27,7 +29,8 @@
   font-weight: 700;
 }
 
-.btn-primary:hover, .btn-primary:focus {
+.btn-primary:hover,
+.btn-primary:focus {
   background: linear-gradient(135deg, var(--primary-dark), var(--accent));
   box-shadow: var(--button-primary-shadow-hover);
   transform: var(--button-transform-hover);
@@ -44,7 +47,8 @@
   box-shadow: none;
 }
 
-.btn-secondary:hover, .btn-secondary:focus {
+.btn-secondary:hover,
+.btn-secondary:focus {
   background: var(--background-alt);
   color: var(--primary-dark);
   border-color: var(--primary-dark);
@@ -60,7 +64,8 @@
   font-weight: 600;
 }
 
-.btn-outline:hover, .btn-outline:focus {
+.btn-outline:hover,
+.btn-outline:focus {
   background: var(--primary);
   color: var(--button-primary-color);
   box-shadow: var(--shadow-sm);
@@ -76,10 +81,14 @@
   background: var(--background-alt);
   color: var(--primary);
   border: none;
-  transition: background 0.2s, color 0.2s, box-shadow 0.2s;
+  transition:
+    background 0.2s,
+    color 0.2s,
+    box-shadow 0.2s;
 }
 
-.btn-icon:hover, .btn-icon:focus {
+.btn-icon:hover,
+.btn-icon:focus {
   background: var(--primary);
   color: var(--button-primary-color);
   box-shadow: var(--shadow-sm);
@@ -89,12 +98,14 @@
 
 /* Button Sizes */
 .btn-sm {
-  padding: calc(var(--button-padding-y) * 0.75) calc(var(--button-padding-x) * 0.75);
+  padding: calc(var(--button-padding-y) * 0.75)
+    calc(var(--button-padding-x) * 0.75);
   font-size: calc(var(--button-font-size) * 0.875);
 }
 
 .btn-lg {
-  padding: calc(var(--button-padding-y) * 1.25) calc(var(--button-padding-x) * 1.25);
+  padding: calc(var(--button-padding-y) * 1.25)
+    calc(var(--button-padding-x) * 1.25);
   font-size: calc(var(--button-font-size) * 1.25);
 }
 
@@ -165,7 +176,8 @@
   border-radius: var(--button-radius);
 }
 
-.btn-text:hover, .btn-text:focus {
+.btn-text:hover,
+.btn-text:focus {
   background: var(--background-alt);
   color: var(--primary-dark);
   outline: 2px solid var(--primary);

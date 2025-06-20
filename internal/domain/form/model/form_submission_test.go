@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/stretchr/testify/require"
 )
 
@@ -81,6 +82,8 @@ func TestFormSubmission_Validate(t *testing.T) {
 }
 
 func TestFormSubmission_Sanitize(t *testing.T) {
+	sanitizer := sanitization.NewService()
+
 	tests := []struct {
 		name     string
 		input    *model.FormSubmission
@@ -132,7 +135,7 @@ func TestFormSubmission_Sanitize(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			tt.input.Sanitize()
+			tt.input.Sanitize(sanitizer)
 			require.Equal(t, tt.expected.Data, tt.input.Data)
 			require.Equal(t, tt.expected.Metadata, tt.input.Metadata)
 		})

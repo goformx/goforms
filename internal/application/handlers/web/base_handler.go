@@ -2,16 +2,18 @@ package web
 
 import (
 	"context"
-	"net/http"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/application/response"
+	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
@@ -25,6 +27,8 @@ type BaseHandler struct {
 	FormService    form.Service
 	Renderer       view.Renderer
 	SessionManager *session.Manager
+	ErrorHandler   response.ErrorHandlerInterface
+	AssetManager   *web.AssetManager
 }
 
 // NewBaseHandler creates a new base handler with common dependencies
@@ -35,6 +39,8 @@ func NewBaseHandler(
 	formService form.Service,
 	renderer view.Renderer,
 	sessionManager *session.Manager,
+	errorHandler response.ErrorHandlerInterface,
+	assetManager *web.AssetManager,
 ) *BaseHandler {
 	return &BaseHandler{
 		Logger:         logger,
@@ -43,6 +49,8 @@ func NewBaseHandler(
 		FormService:    formService,
 		Renderer:       renderer,
 		SessionManager: sessionManager,
+		ErrorHandler:   errorHandler,
+		AssetManager:   assetManager,
 	}
 }
 
@@ -50,13 +58,13 @@ func NewBaseHandler(
 func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, error) {
 	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
-		return nil, c.Redirect(http.StatusSeeOther, "/login")
+		return nil, c.Redirect(constants.StatusSeeOther, constants.PathLogin)
 	}
 
 	userEntity, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userEntity == nil {
 		h.Logger.Error("failed to get user", "error", err)
-		return nil, response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to get user")
+		return nil, h.HandleError(c, err, "Failed to get user")
 	}
 
 	return userEntity, nil
@@ -64,23 +72,25 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 
 // BuildPageData creates page data with common fields
 func (h *BaseHandler) BuildPageData(c echo.Context, title string) shared.PageData {
-	return shared.BuildPageData(h.Config, c, title)
+	return shared.BuildPageData(h.Config, h.AssetManager, c, title)
 }
 
 // HandleError handles common error scenarios
 func (h *BaseHandler) HandleError(c echo.Context, err error, message string) error {
-	h.Logger.Error(message, "error", err)
-	return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, message)
+	// Use the error handler for sanitized logging instead of logging raw error
+	return h.ErrorHandler.HandleError(err, c, message)
 }
 
 // HandleNotFound handles not found errors
 func (h *BaseHandler) HandleNotFound(c echo.Context, message string) error {
-	return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, message)
+	return h.ErrorHandler.HandleNotFoundError(message, c)
 }
 
 // HandleForbidden handles forbidden access errors
 func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
-	return response.WebErrorResponse(c, h.Renderer, http.StatusForbidden, message)
+	return h.ErrorHandler.HandleDomainError(
+		domainerrors.New(domainerrors.ErrCodeForbidden, message, nil), c,
+	)
 }
 
 // Start provides default lifecycle initialization

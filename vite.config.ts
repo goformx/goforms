@@ -10,7 +10,7 @@ export default defineConfig({
   root: ".",
   publicDir: "public",
   appType: "custom",
-  base: process.env.NODE_ENV === 'production' ? '/assets/' : '/',
+  base: process.env.NODE_ENV === "production" ? "/assets/" : "/",
   css: {
     devSourcemap: true,
     modules: {
@@ -31,8 +31,8 @@ export default defineConfig({
     port: 3000,
     strictPort: true,
     cors: {
-      origin: 'http://localhost:8090', // Your Go server URL
-      methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
+      origin: "http://localhost:8090", // Your Go server URL
+      methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
       credentials: true,
     },
     proxy: {
@@ -58,7 +58,7 @@ export default defineConfig({
       usePolling: true,
       interval: 1000,
     },
-    origin: 'http://localhost:3000', // Explicitly set the Vite dev server origin
+    origin: "http://localhost:3000", // Explicitly set the Vite dev server origin
   },
   build: {
     outDir: "dist",

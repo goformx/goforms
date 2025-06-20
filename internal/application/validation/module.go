@@ -1,6 +1,7 @@
 package validation
 
 import (
+	infra_validation "github.com/goformx/goforms/internal/infrastructure/validation"
 	"go.uber.org/fx"
 )
 
@@ -8,7 +9,7 @@ import (
 var Module = fx.Options(
 	fx.Provide(
 		// Core validator
-		New,
+		infra_validation.New,
 
 		// Schema generator
 		NewSchemaGenerator,

@@ -19,6 +19,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/version"
 )
 
@@ -56,6 +57,7 @@ type ManagerConfig struct {
 	Config         *appconfig.Config
 	SessionManager *session.Manager
 	AccessManager  *access.AccessManager
+	Sanitizer      sanitization.ServiceInterface
 }
 
 // NewManager creates a new middleware manager
@@ -74,6 +76,10 @@ func NewManager(cfg *ManagerConfig) *Manager {
 
 	if cfg.SessionManager == nil {
 		panic("session manager is required")
+	}
+
+	if cfg.Sanitizer == nil {
+		panic("sanitizer is required")
 	}
 
 	return &Manager{
@@ -117,7 +123,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	}
 
 	// Add recovery middleware first to catch panics
-	e.Use(Recovery(m.logger))
+	e.Use(Recovery(m.logger, m.config.Sanitizer))
 
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
@@ -165,8 +171,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 		"environment", m.config.Config.App.Env,
 		"build_time", versionInfo.BuildTime,
 		"git_commit", versionInfo.GitCommit)
-
-	m.logger.Debug("middleware manager initialized", "service", "middleware")
 }
 
 // setupCSRF creates and configures CSRF middleware

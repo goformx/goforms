@@ -15,8 +15,12 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/application/constants"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 // Module provides web handler dependencies
@@ -26,7 +30,13 @@ var Module = fx.Options(
 		// Base handler for common functionality
 		fx.Annotate(
 			NewBaseHandler,
+			fx.ParamTags(``, ``, ``, ``, ``, ``, ``, ``),
 		),
+
+		// Auth components for SRP compliance
+		NewAuthRequestParser,
+		NewAuthResponseBuilder,
+		NewAuthService,
 
 		// Legacy HandlerDeps for backward compatibility
 		fx.Annotate(
@@ -61,8 +71,16 @@ var Module = fx.Options(
 				authMiddleware *auth.Middleware,
 				requestUtils *request.Utils,
 				schemaGenerator *validation.SchemaGenerator,
+				requestParser *AuthRequestParser,
+				responseBuilder *AuthResponseBuilder,
+				authService *AuthService,
+				sanitizer sanitization.ServiceInterface,
+				assetManager *web.AssetManager,
 			) (Handler, error) {
-				return NewAuthHandler(base, authMiddleware, requestUtils, schemaGenerator)
+				return NewAuthHandler(
+					base, authMiddleware, requestUtils, schemaGenerator,
+					requestParser, responseBuilder, authService, sanitizer, assetManager,
+				)
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
@@ -77,8 +95,13 @@ var Module = fx.Options(
 
 		// Form Web handler - authenticated access
 		fx.Annotate(
-			func(base *BaseHandler, formService form.Service, formValidator *validation.FormValidator) (Handler, error) {
-				return NewFormWebHandler(base, formService, formValidator), nil
+			func(
+				base *BaseHandler,
+				formService form.Service,
+				formValidator *validation.FormValidator,
+				sanitizer sanitization.ServiceInterface,
+			) (Handler, error) {
+				return NewFormWebHandler(base, formService, formValidator, sanitizer), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
@@ -179,23 +202,23 @@ func (rr *RouteRegistrar) registerHandlerRoutes(e *echo.Echo, handler Handler) {
 // registerAuthRoutes registers authentication routes
 func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
 	// Public routes
-	e.GET("/login", h.Login)
-	e.POST("/login", h.LoginPost)
-	e.GET("/signup", h.Signup)
-	e.POST("/signup", h.SignupPost)
-	e.POST("/logout", h.Logout)
+	e.GET(constants.PathLogin, h.Login)
+	e.POST(constants.PathLoginPost, h.LoginPost)
+	e.GET(constants.PathSignup, h.Signup)
+	e.POST(constants.PathSignupPost, h.SignupPost)
+	e.POST(constants.PathLogout, h.Logout)
 
 	// API routes with validation
-	api := e.Group("/api/v1")
-	validationGroup := api.Group("/validation")
-	validationGroup.GET("/login", h.LoginValidation)
-	validationGroup.GET("/signup", h.SignupValidation)
+	api := e.Group(constants.PathAPIV1)
+	validationGroup := api.Group(constants.PathValidation)
+	validationGroup.GET(constants.PathLogin, h.LoginValidation)
+	validationGroup.GET(constants.PathSignup, h.SignupValidation)
 }
 
 // registerWebRoutes registers public web routes
 func (rr *RouteRegistrar) registerWebRoutes(e *echo.Echo, h *WebHandler) {
-	e.GET("/", h.handleHome)
-	e.GET("/demo", h.handleDemo)
+	e.GET(constants.PathHome, h.handleHome)
+	e.GET(constants.PathDemo, h.handleDemo)
 }
 
 // registerFormWebRoutes registers form web UI routes
@@ -210,7 +233,7 @@ func (rr *RouteRegistrar) registerFormAPIRoutes(e *echo.Echo, h *FormAPIHandler)
 
 // registerDashboardRoutes registers dashboard routes
 func (rr *RouteRegistrar) registerDashboardRoutes(e *echo.Echo, h *DashboardHandler) {
-	dashboard := e.Group("/dashboard")
+	dashboard := e.Group(constants.PathDashboard)
 	dashboard.Use(access.Middleware(rr.accessManager, rr.logger))
 	dashboard.GET("", h.handleDashboard)
 }

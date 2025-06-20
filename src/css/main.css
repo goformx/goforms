@@ -15,7 +15,8 @@
 @import url("layouts/footer.css") layer(layouts);
 
 /* Component styles */
-@import url("../../node_modules/@formio/js/dist/formio.full.min.css") layer(components);
+@import url("../../node_modules/@formio/js/dist/formio.full.min.css")
+layer(components);
 @import url("components/nav.css") layer(components);
 @import url("components/buttons.css") layer(components);
 @import url("components/grid-items.css") layer(components);

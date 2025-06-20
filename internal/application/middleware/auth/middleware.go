@@ -13,15 +13,21 @@ import (
 
 // Middleware provides authentication utilities for handlers
 type Middleware struct {
-	logger      logging.Logger
-	userService user.Service
+	logger       logging.Logger
+	userService  user.Service
+	errorHandler response.ErrorHandlerInterface
 }
 
 // NewMiddleware creates a new auth middleware
-func NewMiddleware(logger logging.Logger, userService user.Service) *Middleware {
+func NewMiddleware(
+	logger logging.Logger,
+	userService user.Service,
+	errorHandler response.ErrorHandlerInterface,
+) *Middleware {
 	return &Middleware{
-		logger:      logger,
-		userService: userService,
+		logger:       logger,
+		userService:  userService,
+		errorHandler: errorHandler,
 	}
 }
 
@@ -78,7 +84,7 @@ func (am *Middleware) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 	userEntity, err := am.userService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userEntity == nil {
 		am.logger.Error("failed to get user", "error", err)
-		return nil, response.WebErrorResponse(c, nil, http.StatusInternalServerError, "Failed to get user")
+		return nil, am.errorHandler.HandleError(err, c, "Failed to get user")
 	}
 
 	return userEntity, nil

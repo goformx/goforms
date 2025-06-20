@@ -15,8 +15,9 @@
   border: 1px solid var(--border-color);
   border-radius: var(--border-radius);
   padding: var(--spacing-6);
-  transition: transform var(--transition-duration) var(--transition-timing),
-              box-shadow var(--transition-duration) var(--transition-timing);
+  transition:
+    transform var(--transition-duration) var(--transition-timing),
+    box-shadow var(--transition-duration) var(--transition-timing);
 }
 
 .feature-card:hover {
@@ -58,4 +59,4 @@
     grid-template-columns: 1fr;
     gap: var(--spacing-6);
   }
-} 
+}

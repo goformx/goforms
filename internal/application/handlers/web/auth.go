@@ -3,18 +3,18 @@ package web
 import (
 	"context"
 	"errors"
-	"net/http"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/validation"
-	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/labstack/echo/v4"
-	"github.com/mrz1836/go-sanitize"
 )
 
 // AuthHandler handles authentication-related requests
@@ -23,6 +23,11 @@ type AuthHandler struct {
 	AuthMiddleware  *auth.Middleware
 	RequestUtils    *request.Utils
 	SchemaGenerator *validation.SchemaGenerator
+	RequestParser   *AuthRequestParser
+	ResponseBuilder *AuthResponseBuilder
+	AuthService     *AuthService
+	Sanitizer       sanitization.ServiceInterface
+	AssetManager    *web.AssetManager
 }
 
 const (
@@ -40,28 +45,27 @@ func NewAuthHandler(
 	authMiddleware *auth.Middleware,
 	requestUtils *request.Utils,
 	schemaGenerator *validation.SchemaGenerator,
+	requestParser *AuthRequestParser,
+	responseBuilder *AuthResponseBuilder,
+	authService *AuthService,
+	sanitizer sanitization.ServiceInterface,
+	assetManager *web.AssetManager,
 ) (*AuthHandler, error) {
-	if base == nil {
-		return nil, errors.New("base handler cannot be nil")
+	if base == nil || authMiddleware == nil || requestUtils == nil ||
+		schemaGenerator == nil || requestParser == nil || responseBuilder == nil ||
+		authService == nil || sanitizer == nil || assetManager == nil {
+		return nil, errors.New("missing required dependencies for AuthHandler")
 	}
-
-	if authMiddleware == nil {
-		return nil, errors.New("auth middleware cannot be nil")
-	}
-
-	if requestUtils == nil {
-		return nil, errors.New("request utils cannot be nil")
-	}
-
-	if schemaGenerator == nil {
-		return nil, errors.New("schema generator cannot be nil")
-	}
-
 	return &AuthHandler{
 		BaseHandler:     base,
 		AuthMiddleware:  authMiddleware,
 		RequestUtils:    requestUtils,
 		SchemaGenerator: schemaGenerator,
+		RequestParser:   requestParser,
+		ResponseBuilder: responseBuilder,
+		AuthService:     authService,
+		Sanitizer:       sanitizer,
+		AssetManager:    assetManager,
 	}, nil
 }
 
@@ -72,14 +76,13 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 	// This method is required to satisfy the Handler interface
 
 	// Add a simple test endpoint to verify JSON responses work
-	api := e.Group("/api/v1")
+	api := e.Group(constants.PathAPIv1)
 	api.GET("/test", h.TestEndpoint)
 }
 
 // TestEndpoint is a simple test endpoint to verify JSON responses work
 func (h *AuthHandler) TestEndpoint(c echo.Context) error {
-	h.Logger.Info("TestEndpoint called")
-	return c.JSON(http.StatusOK, map[string]string{
+	return c.JSON(constants.StatusOK, map[string]string{
 		"message": "Test endpoint working",
 		"status":  "success",
 	})
@@ -87,16 +90,9 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, c, "Login")
+	data := shared.BuildPageData(h.Config, h.AssetManager, c, "Login")
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(http.StatusSeeOther, "/dashboard")
-	}
-	// Debug log for environment and asset path
-	if h.Config != nil && h.Logger != nil {
-		h.Logger.Debug("Rendering login page",
-			"env", h.Config.App.Env,
-			"assetPath", data.AssetPath("src/js/login.ts"),
-		)
+		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
 	}
 	return h.Renderer.Render(c, pages.Login(data))
 }
@@ -114,244 +110,80 @@ func (h *AuthHandler) Login(c echo.Context) error {
  *    - Redirect to dashboard on success
  */
 func (h *AuthHandler) LoginPost(c echo.Context) error {
-	var (
-		email    string
-		password string
-	)
-
-	// Check content type to determine how to parse the request
-	contentType := c.Request().Header.Get("Content-Type")
-	if contentType == "application/json" {
-		// Parse JSON request
-		var data struct {
-			Email    string `json:"email"`
-			Password string `json:"password"`
+	email, password, err := h.RequestParser.ParseLogin(c)
+	if err != nil {
+		h.Logger.Error("failed to parse login request", "error", err)
+		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
+			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
 		}
-		if err := c.Bind(&data); err != nil {
-			h.Logger.Error("failed to parse JSON request", "error", err)
-
-			// Check if this is an AJAX request
-			if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"message": "Invalid request format",
-				})
-			}
-
-			// For regular form submissions, render the login page with error
-			data := shared.BuildPageData(h.Config, c, "Login")
-			data.Message = &shared.Message{
-				Type: "error",
-				Text: "Invalid request format",
-			}
-			return h.Renderer.Render(c, pages.Login(data))
-		}
-		email = data.Email
-		password = data.Password
-	} else {
-		// Parse form data
-		email = c.FormValue("email")
-		password = c.FormValue("password")
+		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Login")
+		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
 	}
 
-	// Sanitize email
-	email = sanitize.Email(email, false)
+	email = h.Sanitizer.Email(email)
 
-	// Validate credentials
-	loginResp, err := h.UserService.Login(c.Request().Context(), &user.Login{
-		Email:    email,
-		Password: password,
-	})
+	_, sessionID, err := h.AuthService.Login(c.Request().Context(), email, password, c.Request().UserAgent())
 	if err != nil {
 		h.Logger.Error("login failed", "error", err)
-
-		// Check if this is an AJAX request
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"message": "Invalid email or password",
-			})
+		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
+			return h.ResponseBuilder.AJAXError(c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials)
 		}
-
-		// For regular form submissions, render the login page with error
-		data := shared.BuildPageData(h.Config, c, "Login")
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "Invalid email or password",
-		}
-		return h.Renderer.Render(c, pages.Login(data))
+		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Login")
+		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
 	}
 
-	// Create session
-	session, err := h.SessionManager.CreateSession(loginResp.User.ID, loginResp.User.Email, c.Request().UserAgent())
-	if err != nil {
-		h.Logger.Error("failed to create session", "error", err)
+	h.SessionManager.SetSessionCookie(c, sessionID)
 
-		// Check if this is an AJAX request
-		if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": "Failed to create session",
-			})
-		}
-
-		// For regular form submissions, render the login page with error
-		data := shared.BuildPageData(h.Config, c, "Login")
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "Failed to create session. Please try again.",
-		}
-		return h.Renderer.Render(c, pages.Login(data))
-	}
-
-	// Set session cookie
-	h.SessionManager.SetSessionCookie(c, session)
-
-	// Return success
-	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-		return c.JSON(http.StatusOK, map[string]string{
-			"redirect": "/dashboard",
+	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
+		return c.JSON(constants.StatusOK, map[string]string{
+			"redirect": constants.PathDashboard,
 		})
 	}
-
-	// Redirect to dashboard for regular requests
-	return c.Redirect(http.StatusSeeOther, "/dashboard")
+	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
 
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, c, "Sign Up")
+	data := shared.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(http.StatusSeeOther, "/dashboard")
+		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
 	}
 	return h.Renderer.Render(c, pages.Signup(data))
 }
 
 // SignupPost handles the signup form submission
 func (h *AuthHandler) SignupPost(c echo.Context) error {
-	var signup user.Signup
-
-	// Check content type to determine how to parse the request
-	contentType := c.Request().Header.Get("Content-Type")
-	if contentType == "application/json" {
-		// Parse JSON request directly into signup struct
-		if err := c.Bind(&signup); err != nil {
-			h.Logger.Error("failed to parse JSON request", "error", err)
-
-			// Check if this is an AJAX request
-			if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-				return c.JSON(http.StatusBadRequest, map[string]string{
-					"message": "Invalid request format",
-				})
-			}
-
-			// For regular form submissions, render the signup page with error
-			data := shared.BuildPageData(h.Config, c, "Sign Up")
-			data.Message = &shared.Message{
-				Type: "error",
-				Text: "Invalid request format",
-			}
-			return h.Renderer.Render(c, pages.Signup(data))
-		}
-	} else {
-		// Parse form data
-		signup = user.Signup{
-			Email:           c.FormValue("email"),
-			Password:        c.FormValue("password"),
-			ConfirmPassword: c.FormValue("confirm_password"),
-		}
-	}
-
-	// Sanitize email
-	signup.Email = sanitize.Email(signup.Email, false)
-
-	// Create user
-	newUser, err := h.UserService.SignUp(c.Request().Context(), &signup)
+	signup, err := h.RequestParser.ParseSignup(c)
 	if err != nil {
-		return h.handleSignupError(c, err)
+		h.Logger.Error("failed to parse signup request", "error", err)
+		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
+			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
+		}
+		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
 	}
 
-	// Create session for new user
-	session, err := h.SessionManager.CreateSession(newUser.ID, newUser.Email, c.Request().UserAgent())
+	signup.Email = h.Sanitizer.Email(signup.Email)
+
+	_, sessionID, err := h.AuthService.Signup(c.Request().Context(), signup, c.Request().UserAgent())
 	if err != nil {
-		return h.handleSessionCreationError(c, err)
-	}
-
-	// Set session cookie
-	h.SessionManager.SetSessionCookie(c, session)
-
-	// Return success
-	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-		return c.JSON(http.StatusOK, map[string]string{
-			"message":  "Account created successfully!",
-			"redirect": "/dashboard",
-		})
-	}
-
-	// Redirect to dashboard for regular requests
-	return c.Redirect(http.StatusSeeOther, "/dashboard")
-}
-
-// handleSignupError handles signup errors for both AJAX and regular requests
-func (h *AuthHandler) handleSignupError(c echo.Context, err error) error {
-	h.Logger.Error("failed to create user", "error", err)
-
-	// Check if this is an AJAX request
-	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-		return h.handleSignupErrorAJAX(c, err)
-	}
-
-	// For regular form submissions, render the signup page with error
-	return h.handleSignupErrorRegular(c, err)
-}
-
-// handleSignupErrorAJAX handles signup errors for AJAX requests
-func (h *AuthHandler) handleSignupErrorAJAX(c echo.Context, err error) error {
-	// Check for specific error types
-	if errors.Is(err, user.ErrUserExists) {
-		return c.JSON(http.StatusBadRequest, map[string]string{
-			"message": "This email is already registered. Please try signing in instead.",
-			"field":   "email",
-		})
-	}
-
-	return c.JSON(http.StatusBadRequest, map[string]string{
-		"message": "Unable to create account. Please try again.",
-	})
-}
-
-// handleSignupErrorRegular handles signup errors for regular form submissions
-func (h *AuthHandler) handleSignupErrorRegular(c echo.Context, err error) error {
-	data := shared.BuildPageData(h.Config, c, "Sign Up")
-	if errors.Is(err, user.ErrUserExists) {
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "This email is already registered. Please try signing in instead.",
+		h.Logger.Error("signup failed", "error", err)
+		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
+			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, "Unable to create account. Please try again.")
 		}
-	} else {
-		data.Message = &shared.Message{
-			Type: "error",
-			Text: "Unable to create account. Please try again.",
-		}
+		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+		return h.ResponseBuilder.HTMLFormError(c, "signup", data, "Unable to create account. Please try again.")
 	}
-	return h.Renderer.Render(c, pages.Signup(data))
-}
 
-// handleSessionCreationError handles session creation errors for both AJAX and regular requests
-func (h *AuthHandler) handleSessionCreationError(c echo.Context, err error) error {
-	h.Logger.Error("failed to create session", "error", err)
+	h.SessionManager.SetSessionCookie(c, sessionID)
 
-	// Check if this is an AJAX request
-	if c.Request().Header.Get("X-Requested-With") == XMLHttpRequestHeader {
-		return c.JSON(http.StatusInternalServerError, map[string]string{
-			"message": "Account created but unable to sign in. Please try logging in.",
+	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
+		return c.JSON(constants.StatusOK, map[string]string{
+			"message":  constants.MsgSignupSuccess,
+			"redirect": constants.PathDashboard,
 		})
 	}
-
-	// For regular form submissions, render the signup page with error
-	data := shared.BuildPageData(h.Config, c, "Sign Up")
-	data.Message = &shared.Message{
-		Type: "error",
-		Text: "Account created but unable to sign in. Please try logging in.",
-	}
-	return h.Renderer.Render(c, pages.Signup(data))
+	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
 
 // Logout handles POST /logout - processes the logout request
@@ -359,7 +191,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	// Get session cookie
 	cookie, err := c.Cookie(h.SessionManager.GetCookieName())
 	if err != nil {
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return c.Redirect(constants.StatusSeeOther, constants.PathLogin)
 	}
 
 	// Delete session
@@ -368,7 +200,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	// Clear session cookie
 	h.SessionManager.ClearSessionCookie(c)
 
-	return c.Redirect(http.StatusSeeOther, "/login")
+	return c.Redirect(constants.StatusSeeOther, constants.PathLogin)
 }
 
 // LoginValidation handles the login form validation schema request
@@ -382,8 +214,10 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateLoginSchema()
 
-	h.Logger.Info("Generated login validation schema successfully", "schema", schema)
-	return c.JSON(http.StatusOK, schema)
+	h.Logger.Debug("Generated login validation schema",
+		"schema_fields_count", len(schema),
+		"endpoint", "login_validation")
+	return c.JSON(constants.StatusOK, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
@@ -397,8 +231,10 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateSignupSchema()
 
-	h.Logger.Info("Generated signup validation schema successfully", "schema", schema)
-	return c.JSON(http.StatusOK, schema)
+	h.Logger.Debug("Generated signup validation schema",
+		"schema_fields_count", len(schema),
+		"endpoint", "signup_validation")
+	return c.JSON(constants.StatusOK, schema)
 }
 
 // Start initializes the auth handler.

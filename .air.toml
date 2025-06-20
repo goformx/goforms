@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 
 [build]
   # Commands to run before building
-  pre_cmd = ["task generate:all"]
+  pre_cmd = ["task generate"]
   # Build command
   cmd = "go build -o ./tmp/main ./main.go"
   # Binary file yields from `cmd`

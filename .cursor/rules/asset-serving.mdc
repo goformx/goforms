@@ -1,59 +1,61 @@
 ---
 description: 
 globs: 
-alwaysApply: false
+alwaysApply: true
 ---
 # Asset Serving Guide
 
 ## Overview
-GoForms implements a flexible asset serving system that supports both development (Vite dev server) and production (embedded filesystem) modes.
+GoForms implements a flexible asset serving system that supports both development (Vite dev server) and production (embedded filesystem) modes. The system uses an `AssetResolver` interface to separate resolution logic from management.
 
 ## Architecture
 
-### Asset Server Interface
-The asset serving system is defined by the `AssetServer` interface in [internal/infrastructure/web/assets.go](mdc:internal/infrastructure/web/assets.go):
+### AssetResolver Interface
+The asset serving system is defined by the `AssetResolver` interface in [internal/infrastructure/web/types.go](mdc:internal/infrastructure/web/types.go):
 
 ```go
-type AssetServer interface {
-    RegisterRoutes(e *echo.Echo) error
+type AssetResolver interface {
+    ResolveAssetPath(ctx context.Context, path string) (string, error)
 }
 ```
 
 ### Implementation Types
-1. **ViteAssetServer**: Proxies requests to Vite dev server (development)
-2. **EmbeddedAssetServer**: Serves files from embedded filesystem (production)
-3. **StaticAssetServer**: Serves files from filesystem (fallback)
+1. **DevelopmentAssetResolver**: Resolves paths to Vite dev server (development)
+2. **ProductionAssetResolver**: Resolves paths using Vite manifest (production)
+3. **AssetManager**: Coordinates asset resolution and provides context support
 
 ## Dependency Injection
 
 ### Provider Configuration
-Asset server selection is handled in [internal/infrastructure/module.go](mdc:internal/infrastructure/module.go):
+Asset resolver selection is handled in [internal/infrastructure/module.go](mdc:internal/infrastructure/module.go):
 
 ```go
-func ProvideAssetServer(p AssetServerParams) infraweb.AssetServer {
+func ProvideAssetResolver(p AssetResolverParams) (web.AssetResolver, error) {
     if p.Config.App.IsDevelopment() {
-        return infraweb.NewViteAssetServer(p.Config, p.Logger)
+        return web.NewDevelopmentAssetResolver(p.Config, p.Logger), nil
     }
     
-    if p.DistFS != zeroFS {
-        return infraweb.NewEmbeddedAssetServer(p.Logger, p.DistFS)
+    if p.Manifest == nil {
+        return nil, errors.New("manifest is required for production asset resolver")
     }
-    return infraweb.NewStaticAssetServer(p.Logger)
+    
+    return web.NewProductionAssetResolver(p.Manifest, p.Logger), nil
 }
 ```
 
-### Embedded Filesystem Injection
-The embedded filesystem is provided in [main.go](mdc:main.go):
+### Asset Manager Setup
+The asset manager is provided with context support:
+
 ```go
-fx.Provide(func() embed.FS {
-    return distFS
-}),
+func ProvideAssetManager(resolver web.AssetResolver, logger logging.Logger) *web.AssetManager {
+    return web.NewAssetManager(resolver, logger)
+}
 ```
 
-## Development Mode (ViteAssetServer)
+## Development Mode (DevelopmentAssetResolver)
 
 ### Features
-- Proxies requests to Vite dev server at `localhost:3000`
+- Resolves paths to Vite dev server at `localhost:3000`
 - Supports hot module replacement
 - Handles source maps and development assets
 - Routes: `/src/*`, `/@vite/*`, `/@fs/*`, `/@id/*`
@@ -63,33 +65,98 @@ fx.Provide(func() embed.FS {
 - **Port**: `GOFORMS_VITE_DEV_PORT` (default: 3000)
 - **Scheme**: `GOFORMS_APP_SCHEME` (default: http)
 
-## Production Mode (EmbeddedAssetServer)
+### Example Usage
+```go
+// In templates
+<script type="module" src={ data.AssetPath("src/js/main.ts") }></script>
+<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css" />
+
+// Resolves to:
+// http://localhost:3000/src/js/main.ts
+// http://localhost:3000/src/css/main.css
+```
+
+## Production Mode (ProductionAssetResolver)
 
 ### Features
-- Serves files from embedded `dist/` filesystem
-- Proper MIME type detection
-- Security headers for static files
-- Support for all asset types (JS, CSS, fonts, images)
+- Resolves paths using Vite manifest
+- Supports asset hashing for cache busting
+- Handles CSS dependencies
+- Provides fallback for missing assets
 
-### File Structure Mapping
-```
-URL Path                    → Embedded Path
-/assets/js/*               → dist/assets/js/*
-/assets/css/*              → dist/assets/css/*
-/assets/fonts/*            → dist/fonts/*
-/robots.txt                → dist/robots.txt
-/favicon.ico               → dist/favicon.ico
+### Manifest Structure
+The Vite manifest (`dist/.vite/manifest.json`) contains:
+```json
+{
+  "src/js/main.ts": {
+    "file": "assets/main-abc123.js",
+    "src": "src/js/main.ts",
+    "isEntry": true,
+    "css": ["assets/main-xyz789.css"]
+  }
+}
 ```
 
-### Implementation Details
-- Uses `http.FileServer` with `echo.WrapHandler`
-- Creates sub-filesystems for different asset types
-- Strips URL prefixes to map to correct embedded paths
+### Example Usage
+```go
+// In templates
+<script type="module" src={ data.AssetPath("src/js/main.ts") }></script>
+<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css" />
+
+// Resolves to:
+// /assets/main-abc123.js
+// /assets/main-xyz789.css
+```
+
+## Asset Manager
+
+### Context Support
+The asset manager provides context-aware asset resolution:
+
+```go
+type AssetManager struct {
+    resolver web.AssetResolver
+    logger   logging.Logger
+}
+
+func (am *AssetManager) ResolveAssetPath(ctx context.Context, path string) (string, error) {
+    // Add context logging
+    am.logger.Debug("resolving asset path", "path", path)
+    
+    resolved, err := am.resolver.ResolveAssetPath(ctx, path)
+    if err != nil {
+        am.logger.Error("failed to resolve asset path", "path", path, "error", err)
+        return "", err
+    }
+    
+    am.logger.Debug("asset path resolved", "original", path, "resolved", resolved)
+    return resolved, nil
+}
+```
+
+### Error Handling
+- Graceful fallback for missing assets
+- Context-aware error logging
+- Development vs production error handling
+- Asset path validation
+
+## Asset Server Implementation
+
+### Asset Server Interface
+```go
+type AssetServer interface {
+    RegisterRoutes(e *echo.Echo) error
+}
+```
+
+### Implementation Types
+1. **ViteAssetServer**: Proxies requests to Vite dev server (development)
+2. **EmbeddedAssetServer**: Serves files from embedded filesystem (production)
 
 ## Security Headers
 
 ### Static File Headers
-All asset servers apply security headers via `setupStaticFileHeaders`:
+All asset servers apply security headers:
 - `X-Content-Type-Options: nosniff`
 - `Cache-Control: public, max-age=31536000`
 
@@ -101,13 +168,41 @@ The asset server automatically detects and sets proper MIME types:
 - `.woff` → `font/woff`
 - `.ico` → `image/x-icon`
 
+## Template Integration
+
+### Page Data Integration
+Asset paths are resolved through the page data:
+
+```go
+type PageData struct {
+    // ... other fields
+    AssetPath func(string) string
+}
+
+func (pd *PageData) AssetPath(path string) string {
+    resolved, err := pd.AssetManager.ResolveAssetPath(context.Background(), path)
+    if err != nil {
+        // Fallback to original path
+        return path
+    }
+    return resolved
+}
+```
+
+### Template Usage
+```html
+<!-- In templ templates -->
+<script type="module" src={ data.AssetPath("src/js/form-builder.ts") }></script>
+<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css" />
+```
+
 ## Troubleshooting
 
 ### Common Issues
 
 #### 404 Errors for Assets
-1. **Check file existence**: Verify files exist in `dist/` directory
-2. **Check URL mapping**: Ensure URL paths match embedded filesystem structure
+1. **Check file existence**: Verify files exist in `src/` directory
+2. **Check manifest**: Verify manifest contains expected entries
 3. **Check environment**: Verify `GOFORMS_APP_ENV` is set correctly
 
 #### Wrong Content Types
@@ -115,20 +210,20 @@ The asset server automatically detects and sets proper MIME types:
 2. **Check browser console**: Look for MIME type warnings
 3. **Test with curl**: Check response headers
 
-#### Font Loading Issues
-1. **Check font directory**: Ensure fonts are in `dist/fonts/`
-2. **Check CORS**: Verify font files are served with correct headers
-3. **Check file paths**: Ensure CSS references match served paths
+#### Asset Resolution Issues
+1. **Check resolver type**: Verify correct resolver for environment
+2. **Check manifest**: Ensure manifest is properly loaded
+3. **Check logging**: Review asset resolution logs
 
 ### Debugging Commands
 
-#### Test Asset Serving
+#### Test Asset Resolution
 ```bash
 # Test JavaScript file
-curl -I http://localhost:8090/assets/js/main.CqLJyd_F.js
+curl -I http://localhost:8090/assets/js/main.js
 
 # Test CSS file
-curl -I http://localhost:8090/assets/css/main.BK9UPkBG.css
+curl -I http://localhost:8090/assets/css/main.css
 
 # Test font file
 curl -I http://localhost:8090/assets/fonts/bootstrap-icons.woff2
@@ -136,7 +231,7 @@ curl -I http://localhost:8090/assets/fonts/bootstrap-icons.woff2
 
 #### Check Embedded Filesystem
 ```bash
-# List embedded files (requires test program)
+# List embedded files
 go run -c 'package main; import "embed"; //go:embed dist; var fs embed.FS; func main() { entries, _ := fs.ReadDir("dist"); for _, e := range entries { println(e.Name()) } }'
 ```
 
@@ -146,28 +241,30 @@ go run -c 'package main; import "embed"; //go:embed dist; var fs embed.FS; func 
 ```bash
 export GOFORMS_APP_ENV=development
 ./bin/goforms
-# Assets served from Vite dev server
+# Assets resolved to Vite dev server
 ```
 
 #### Production Mode
 ```bash
 export GOFORMS_APP_ENV=production
 ./bin/goforms
-# Assets served from embedded filesystem
+# Assets resolved using manifest
 ```
 
 ## Best Practices
 
 1. **Always rebuild after frontend changes**: Embedded assets require full rebuild
 2. **Test both environments**: Verify assets work in development and production
-3. **Use proper file paths**: Ensure CSS/JS references match served paths
+3. **Use proper file paths**: Ensure CSS/JS references match source paths
 4. **Check content types**: Verify assets are served with correct MIME types
-5. **Monitor server logs**: Check for asset serving errors and debug information
+5. **Monitor server logs**: Check for asset resolution errors and debug information
+6. **Use context**: Pass context through asset resolution for better logging
+7. **Handle errors gracefully**: Provide fallbacks for missing assets
 
 ## Configuration
 
 ### Environment Variables
-- `GOFORMS_APP_ENV`: Controls asset server selection
+- `GOFORMS_APP_ENV`: Controls asset resolver selection
 - `GOFORMS_VITE_DEV_HOST`: Vite dev server host
 - `GOFORMS_VITE_DEV_PORT`: Vite dev server port
 - `GOFORMS_APP_SCHEME`: Protocol scheme (http/https)

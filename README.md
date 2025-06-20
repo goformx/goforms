@@ -40,7 +40,7 @@ A modern Go web application for form management with MariaDB backend.
 3. Start Development:
    - Click "Reopen in Container" when prompted
    - Copy environment file: `cp .env.example .env`
-   - Install dependencies: `task install:all`
+   - Install dependencies: `task install`
    - Start server: `task dev`
 
 4. View the application at `http://localhost:8090`

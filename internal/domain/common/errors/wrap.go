@@ -8,10 +8,6 @@ import (
 
 // WrapError wraps an error with a domain error
 func WrapError(err error, code ErrorCode, message string) error {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		return domainErr
-	}
 	return &DomainError{
 		Code:    code,
 		Message: message,

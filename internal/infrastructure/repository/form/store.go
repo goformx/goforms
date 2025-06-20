@@ -24,7 +24,6 @@ type Store struct {
 
 // NewStore creates a new form store
 func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
-	logger.Debug("form store initialized", "service", "form")
 	return &Store{
 		db:     db,
 		logger: logger,
@@ -50,36 +49,31 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 
 	// Validate UUID format
 	if _, err := uuid.Parse(normalizedID); err != nil {
-		s.logger.Error("invalid form ID format",
-			"form_id", id,
-			"error", err,
-		)
+		s.logger.Warn("invalid form ID format received",
+			"id_length", len(id),
+			"error_type", "invalid_uuid_format")
 		return nil, common.NewInvalidInputError("get", "form", id, err)
 	}
-
-	s.logger.Debug("getting form by id",
-		"form_id", normalizedID,
-	)
 
 	var formModel model.Form
 	if err := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Debug("form not found",
-				"form_id", normalizedID,
-			)
+			s.logger.Debug("form not found in database",
+				"id_length", len(normalizedID),
+				"error_type", "not_found")
 			return nil, common.NewNotFoundError("get", "form", normalizedID)
 		}
 		s.logger.Error("database error while getting form",
-			"form_id", normalizedID,
+			"id_length", len(normalizedID),
 			"error", err,
-		)
+			"error_type", "database_error")
 		return nil, common.NewDatabaseError("get", "form", normalizedID, err)
 	}
 
 	s.logger.Debug("form retrieved successfully",
-		"form_id", formModel.ID,
-		"title", formModel.Title,
-	)
+		"id_length", len(normalizedID),
+		"form_title", formModel.Title)
+
 	return &formModel, nil
 }
 
@@ -101,7 +95,6 @@ func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, er
 
 // UpdateForm updates a form
 func (s *Store) UpdateForm(ctx context.Context, formModel *model.Form) error {
-	s.logger.Debug("updating form", "form_id", formModel.ID)
 	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("uuid = ?", formModel.ID).Updates(formModel)
 	if result.Error != nil {
 		return common.NewDatabaseError("update", "form", formModel.ID, result.Error)
@@ -119,32 +112,31 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 
 	// Validate UUID format
 	if _, err := uuid.Parse(normalizedID); err != nil {
-		s.logger.Error("invalid form ID format",
-			"form_id", id,
-			"error", err,
-		)
+		s.logger.Warn("invalid form ID format received for deletion",
+			"id_length", len(id),
+			"error_type", "invalid_uuid_format")
 		return common.NewInvalidInputError("delete", "form", id, err)
 	}
 
 	result := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).Delete(&model.Form{})
 	if result.Error != nil {
 		s.logger.Error("failed to delete form",
-			"form_id", normalizedID,
+			"id_length", len(normalizedID),
 			"error", result.Error,
-		)
+			"error_type", "database_error")
 		return common.NewDatabaseError("delete", "form", normalizedID, result.Error)
 	}
 
 	if result.RowsAffected == 0 {
 		s.logger.Debug("form not found for deletion",
-			"form_id", normalizedID,
-		)
+			"id_length", len(normalizedID),
+			"error_type", "not_found")
 		return common.NewNotFoundError("delete", "form", normalizedID)
 	}
 
 	s.logger.Debug("form deleted successfully",
-		"form_id", normalizedID,
-	)
+		"id_length", len(normalizedID))
+
 	return nil
 }
 

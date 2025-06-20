@@ -4,29 +4,32 @@ import (
 	"context"
 	"errors"
 	"fmt"
-	"net/http"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/labstack/echo/v4"
-	"github.com/mrz1836/go-sanitize"
 )
 
 // FormWebHandler handles web UI form operations
 type FormWebHandler struct {
 	*FormBaseHandler
+	Sanitizer sanitization.ServiceInterface
 }
 
 func NewFormWebHandler(
 	base *BaseHandler,
 	formService formdomain.Service,
 	formValidator *validation.FormValidator,
+	sanitizer sanitization.ServiceInterface,
 ) *FormWebHandler {
 	return &FormWebHandler{
 		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
+		Sanitizer:       sanitizer,
 	}
 }
 
@@ -76,8 +79,8 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	}
 
 	// Get and sanitize form data
-	title := sanitize.XSS(c.FormValue("title"))
-	description := sanitize.XSS(c.FormValue("description"))
+	title := h.Sanitizer.String(c.FormValue("title"))
+	description := h.Sanitizer.String(c.FormValue("description"))
 
 	// Create a valid initial schema
 	schema := model.JSON{
@@ -94,15 +97,15 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		// Check for specific validation errors
 		switch {
 		case errors.Is(err, model.ErrFormTitleRequired):
-			return h.HandleFormValidationError(c, "Form title is required")
+			return h.HandleError(c, err, "Form title is required")
 		case errors.Is(err, model.ErrFormSchemaRequired):
-			return h.HandleFormValidationError(c, "Form schema is required")
+			return h.HandleError(c, err, "Form schema is required")
 		default:
-			return h.HandleFormError(c, err, "Failed to create form")
+			return h.HandleError(c, err, "Failed to create form")
 		}
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+	return c.Redirect(constants.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 func (h *FormWebHandler) handleEdit(c echo.Context) error {
@@ -119,6 +122,7 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	data := h.BuildPageData(c, "Edit Form")
 	data.User = user
 	data.Form = form
+	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/form-builder.ts")
 
 	return pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer)
 }
@@ -135,16 +139,16 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	}
 
 	// Update form fields
-	form.Title = sanitize.XSS(c.FormValue("title"))
-	form.Description = sanitize.XSS(c.FormValue("description"))
+	form.Title = h.Sanitizer.String(c.FormValue("title"))
+	form.Description = h.Sanitizer.String(c.FormValue("description"))
 
 	err = h.FormService.UpdateForm(c.Request().Context(), form)
 	if err != nil {
 		h.Logger.Error("failed to update form", "error", err)
-		return h.HandleFormError(c, err, "Failed to update form")
+		return h.HandleError(c, err, "Failed to update form")
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+	return c.Redirect(constants.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 func (h *FormWebHandler) handleDelete(c echo.Context) error {
@@ -161,10 +165,10 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 	err = h.FormService.DeleteForm(c.Request().Context(), form.ID)
 	if err != nil {
 		h.Logger.Error("failed to delete form", "error", err)
-		return h.HandleFormError(c, err, "Failed to delete form")
+		return h.HandleError(c, err, "Failed to delete form")
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.NoContent(constants.StatusNoContent)
 }
 
 func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
@@ -181,7 +185,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	submissions, err := h.FormService.ListFormSubmissions(c.Request().Context(), form.ID)
 	if err != nil {
 		h.Logger.Error("failed to get form submissions", "error", err)
-		return h.HandleFormError(c, err, "Failed to get form submissions")
+		return h.HandleError(c, err, "Failed to get form submissions")
 	}
 
 	data := h.BuildPageData(c, "Form Submissions")

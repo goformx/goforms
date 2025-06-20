@@ -10,14 +10,18 @@ import (
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/middleware/session"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/labstack/echo/v4"
 )
 
 // Dependencies holds all application dependencies
@@ -39,6 +43,7 @@ type Dependencies struct {
 	Renderer          view.Renderer
 	MiddlewareManager *middleware.Manager
 	AccessManager     *access.AccessManager
+	Sanitizer         sanitization.ServiceInterface
 }
 
 // Validate checks if all required dependencies are present
@@ -59,6 +64,7 @@ func (d *Dependencies) Validate() error {
 		{"Renderer", d.Renderer},
 		{"MiddlewareManager", d.MiddlewareManager},
 		{"AccessManager", d.AccessManager},
+		{"Sanitizer", d.Sanitizer},
 	}
 
 	for _, r := range required {
@@ -91,6 +97,9 @@ var Module = fx.Options(
 	fx.Provide(
 		New,
 		provideMiddlewareManager,
+		provideRequestUtils,
+		provideErrorHandler,
+		provideRecoveryMiddleware,
 	),
 	validation.Module,
 )
@@ -102,6 +111,7 @@ func provideMiddlewareManager(
 	userService user.Service,
 	sessionManager *session.Manager,
 	accessManager *access.AccessManager,
+	sanitizer sanitization.ServiceInterface,
 ) *middleware.Manager {
 	return middleware.NewManager(&middleware.ManagerConfig{
 		Logger:         logger,
@@ -110,7 +120,26 @@ func provideMiddlewareManager(
 		Config:         cfg,
 		SessionManager: sessionManager,
 		AccessManager:  accessManager,
+		Sanitizer:      sanitizer,
 	})
+}
+
+// provideRequestUtils creates a new request utils instance with sanitization service
+func provideRequestUtils(sanitizer sanitization.ServiceInterface) *request.Utils {
+	return request.NewUtils(sanitizer)
+}
+
+// provideErrorHandler creates a new error handler with sanitization service
+func provideErrorHandler(
+	logger logging.Logger,
+	sanitizer sanitization.ServiceInterface,
+) response.ErrorHandlerInterface {
+	return response.NewErrorHandler(logger, sanitizer)
+}
+
+// provideRecoveryMiddleware creates a new recovery middleware with sanitization service
+func provideRecoveryMiddleware(logger logging.Logger, sanitizer sanitization.ServiceInterface) echo.MiddlewareFunc {
+	return middleware.Recovery(logger, sanitizer)
 }
 
 // New creates a new application instance

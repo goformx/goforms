@@ -28,7 +28,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-//go:embed dist
+//go:embed all:dist
 var distFS embed.FS
 
 // DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown
@@ -126,22 +126,6 @@ func main() {
 		// Provide embedded filesystem
 		fx.Provide(func() embed.FS {
 			return distFS
-		}),
-		// Provide logger factory with configuration
-		fx.Provide(func(cfg *config.Config) logging.Logger {
-			versionInfo := version.GetInfo()
-			factory := logging.NewFactory(logging.FactoryConfig{
-				AppName:     cfg.App.Name,
-				Version:     versionInfo.Version,
-				Environment: cfg.App.Env,
-				Fields:      map[string]any{},
-			})
-			logger, err := factory.CreateLogger()
-			if err != nil {
-				fmt.Fprintf(os.Stderr, "Failed to initialize logger: %v\n", err)
-				os.Exit(1)
-			}
-			return logger
 		}),
 		// Include all application modules
 		infrastructure.Module,

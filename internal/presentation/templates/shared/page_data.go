@@ -1,8 +1,6 @@
 package shared
 
 import (
-	"fmt"
-
 	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/entities"
@@ -85,21 +83,15 @@ func GetCSRFToken(c echo.Context) string {
 	return ""
 }
 
-// GenerateAssetPath creates asset paths using the infrastructure AssetManager
-func GenerateAssetPath(cfg *config.Config) func(string) string {
+// GenerateAssetPath creates asset paths using the provided AssetManager
+func GenerateAssetPath(manager *web.AssetManager) func(string) string {
 	return func(path string) string {
-		assetPath, err := web.GetAssetPath(path)
-		if err != nil {
-			// Let the error propagate up - if the asset manager can't resolve the path,
-			// there's likely a real problem that should be handled
-			panic(fmt.Sprintf("failed to resolve asset path: %v", err))
-		}
-		return assetPath
+		return manager.AssetPath(path)
 	}
 }
 
 // BuildPageData constructs PageData with extracted functions
-func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
+func BuildPageData(cfg *config.Config, manager *web.AssetManager, c echo.Context, title string) PageData {
 	return PageData{
 		Title:                title,
 		User:                 GetCurrentUser(c),
@@ -107,8 +99,8 @@ func BuildPageData(cfg *config.Config, c echo.Context, title string) PageData {
 		Form:                 nil,                       // Placeholder
 		Submissions:          []*model.FormSubmission{}, // Placeholder
 		CSRFToken:            GetCSRFToken(c),
-		IsDevelopment:        cfg != nil && cfg.App.IsDevelopment(),
-		AssetPath:            GenerateAssetPath(cfg),
+		IsDevelopment:        cfg.App.IsDevelopment(),
+		AssetPath:            GenerateAssetPath(manager),
 		Content:              nil, // Should be set by a handler
 		FormBuilderAssetPath: "",  // Placeholder
 		Message:              nil, // Can be set dynamically when needed

@@ -1,159 +1,355 @@
 ---
 description: 
-globs: internal/**/*_test.go
+globs: internal/**/*_test.go,test/**/*
 alwaysApply: false
 ---
 # Testing Guidelines
 
 ## Overview
-The codebase uses a comprehensive testing strategy covering both backend and frontend components. Tests are organized by type and follow consistent patterns for maintainability and reliability.
+GoForms implements a comprehensive testing strategy with unit tests, integration tests, and mock implementations. The testing infrastructure supports both backend and frontend testing.
 
-## Test Types
+## Test Structure
 
-1. Unit Tests
-   - Backend: Go unit tests
-   - Frontend: Component tests
-   - Mock dependencies
-   - Test edge cases
+### Directory Organization
+```
+test/
+├── integration/          # Integration tests
+│   ├── auth_session_test.go    # Authentication and session tests
+│   └── form_builder_test.go    # Form builder integration tests
+└── mocks/               # Mock implementations
+    ├── events/          # Event system mocks
+    ├── form/            # Form service mocks
+    ├── logging/         # Logger mocks
+    ├── sanitization/    # Sanitization service mocks
+    └── user/            # User service mocks
+```
 
-2. Integration Tests
-   - Backend: API integration
-   - Frontend: Component integration
-   - Database integration
-   - External services
+### Backend Tests
+- **Unit Tests**: Located alongside source files (`*_test.go`)
+- **Integration Tests**: Located in `test/integration/`
+- **Mock Generation**: Automated mock generation using `mockgen`
 
-3. E2E Tests
-   - User flows
-   - Critical paths
-   - Browser testing
-   - Performance testing
+### Frontend Tests
+- **Unit Tests**: For utility functions and services
+- **Integration Tests**: For API integration and form handling
+- **E2E Tests**: For critical user flows
 
-## Backend Testing
+## Mock System
 
-1. Unit Tests
-   ```go
-   func TestService_CreateForm(t *testing.T) {
-       mockRepo := &MockRepository{}
-       mockPublisher := &MockPublisher{}
-       mockLogger := &MockLogger{}
-       service := NewService(mockRepo, mockPublisher, mockLogger)
-       // Test implementation
-   }
-   ```
+### Mock Generation
+Mocks are automatically generated using `mockgen` in the Taskfile:
 
-2. Integration Tests
-   ```go
-   func TestService_Integration(t *testing.T) {
-       db := setupTestDB(t)
-       defer db.Close()
-       // Test implementation
-   }
-   ```
+```yaml
+generate:mocks:
+    desc: Generate all mock implementations
+    cmds:
+    - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
+    - mockgen -typed -source=internal/domain/form/service.go -destination=test/mocks/form/mock_service.go -package=form -mock_names=Service=MockService
+    - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
+    - mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
+    - mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
+    - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
+    - mockgen -typed -source=internal/infrastructure/sanitization/interface.go -destination=test/mocks/sanitization/mock_service.go -package=sanitization -mock_names=ServiceInterface=MockService
+```
 
-3. API Tests
-   ```go
-   func TestHandler_CreateForm(t *testing.T) {
-       e := echo.New()
-       req := httptest.NewRequest(http.MethodPost, "/", strings.NewReader(`{"title":"Test"}`))
-       rec := httptest.NewRecorder()
-       c := e.NewContext(req, rec)
-       // Test implementation
-   }
-   ```
+### Mock Usage
+```go
+// Using mocks in tests
+func TestFormService_CreateForm(t *testing.T) {
+    // Create mock dependencies
+    mockRepo := form.NewMockRepository(t)
+    mockEventBus := events.NewMockEventBus(t)
+    mockLogger := logging.NewMockLogger(t)
+    
+    // Set up expectations
+    mockRepo.EXPECT().
+        Create(mock.Anything, mock.Anything).
+        Return(&Form{ID: "test-id"}, nil)
+    
+    mockEventBus.EXPECT().
+        Publish(mock.Anything, mock.Anything).
+        Return(nil)
+    
+    // Create service with mocks
+    service := form.NewService(mockRepo, mockEventBus, mockLogger)
+    
+    // Test the service
+    result, err := service.CreateForm(context.Background(), &CreateFormRequest{
+        Title: "Test Form",
+    })
+    
+    // Assertions
+    assert.NoError(t, err)
+    assert.NotNil(t, result)
+    assert.Equal(t, "test-id", result.ID)
+}
+```
 
-## Frontend Testing
+## Integration Tests
 
-1. Component Tests
-   ```typescript
-   describe('FormComponent', () => {
-     it('renders form fields correctly', () => {
-       const { getByLabelText } = render(<FormComponent />);
-       expect(getByLabelText('Title')).toBeInTheDocument();
-     });
-   });
-   ```
+### Authentication Tests
+Integration tests for authentication and session management:
 
-2. Hook Tests
-   ```typescript
-   describe('useForm', () => {
-     it('handles form submission', async () => {
-       const { result } = renderHook(() => useForm());
-       await act(async () => {
-         await result.current.submit({ title: 'Test' });
-       });
-       expect(result.current.isSuccess).toBe(true);
-     });
-   });
-   ```
+```go
+func TestAuthSession_LoginFlow(t *testing.T) {
+    // Test complete login flow
+    // - User registration
+    // - Login with credentials
+    // - Session validation
+    // - Logout
+}
+```
 
-3. Integration Tests
-   ```typescript
-   describe('Form Flow', () => {
-     it('completes form submission', async () => {
-       render(<FormPage />);
-       await userEvent.type(screen.getByLabelText('Title'), 'Test');
-       await userEvent.click(screen.getByText('Submit'));
-       expect(await screen.findByText('Success')).toBeInTheDocument();
-     });
-   });
-   ```
+### Form Builder Tests
+Integration tests for form builder functionality:
 
-## Test Organization
+```go
+func TestFormBuilder_CompleteFlow(t *testing.T) {
+    // Test complete form builder flow
+    // - Form creation
+    // - Schema building
+    // - Form submission
+    // - Data retrieval
+}
+```
 
-1. Directory Structure
-   ```
-   ├── test/                # Backend tests
-   │   ├── unit/           # Unit tests
-   │   ├── integration/    # Integration tests
-   │   └── e2e/           # E2E tests
-   └── src/                # Frontend tests
-       ├── __tests__/     # Test files
-       ├── __mocks__/     # Mock files
-       └── test-utils/    # Test utilities
-   ```
+## Unit Tests
 
-2. Naming Conventions
-   - Backend: `*_test.go`
-   - Frontend: `*.test.tsx`
-   - Test files: `*.spec.ts`
-   - Mock files: `*.mock.ts`
+### Domain Layer Tests
+```go
+func TestForm_Validate(t *testing.T) {
+    tests := []struct {
+        name    string
+        form    *Form
+        wantErr bool
+    }{
+        {
+            name: "valid form",
+            form: &Form{
+                Title:  "Test Form",
+                Schema: `{"components": []}`,
+            },
+            wantErr: false,
+        },
+        {
+            name: "empty title",
+            form: &Form{
+                Title:  "",
+                Schema: `{"components": []}`,
+            },
+            wantErr: true,
+        },
+    }
+    
+    for _, tt := range tests {
+        t.Run(tt.name, func(t *testing.T) {
+            err := tt.form.Validate()
+            if tt.wantErr {
+                assert.Error(t, err)
+            } else {
+                assert.NoError(t, err)
+            }
+        })
+    }
+}
+```
+
+### Error Handling Tests
+```go
+func TestDomainErrors_Wrap(t *testing.T) {
+    originalErr := errors.New("original error")
+    
+    wrappedErr := domainerrors.Wrap(originalErr, domainerrors.ErrCodeValidation, "validation failed")
+    
+    var domainErr *domainerrors.DomainError
+    assert.True(t, errors.As(wrappedErr, &domainErr))
+    assert.Equal(t, domainerrors.ErrCodeValidation, domainErr.Code)
+    assert.Contains(t, domainErr.Message, "validation failed")
+    assert.Equal(t, originalErr, domainErr.Err)
+}
+```
+
+## Frontend Tests
+
+### TypeScript Unit Tests
+```typescript
+// Utility function tests
+describe('validation', () => {
+    it('validates email correctly', () => {
+        const result = validation.validateEmail('test@example.com');
+        expect(result).toBe(true);
+    });
+    
+    it('rejects invalid email', () => {
+        const result = validation.validateEmail('invalid-email');
+        expect(result).toBe(false);
+    });
+});
+```
+
+### API Service Tests
+```typescript
+// Mock fetch for API tests
+global.fetch = jest.fn();
+
+describe('FormService', () => {
+    it('creates form successfully', async () => {
+        const mockResponse = { id: 'test-id', title: 'Test Form' };
+        (fetch as jest.Mock).mockResolvedValueOnce({
+            ok: true,
+            json: async () => mockResponse,
+        });
+        
+        const service = new FormService();
+        const result = await service.createForm({ title: 'Test Form' });
+        
+        expect(result).toEqual(mockResponse);
+    });
+});
+```
 
 ## Test Utilities
 
-1. Backend
-   - Test fixtures
-   - Mock generators
-   - Database helpers
-   - HTTP test helpers
+### Test Helpers
+```go
+// Common test utilities
+func createTestForm() *Form {
+    return &Form{
+        ID:          "test-id",
+        Title:       "Test Form",
+        Description: "Test Description",
+        Schema:      `{"components": []}`,
+        UserID:      "user-id",
+        Status:      "draft",
+        CreatedAt:   time.Now(),
+        UpdatedAt:   time.Now(),
+    }
+}
 
-2. Frontend
-   - Test renderers
-   - Mock providers
-   - User event helpers
-   - API mocks
+func createTestUser() *User {
+    return &User{
+        ID:        "user-id",
+        Email:     "test@example.com",
+        Name:      "Test User",
+        CreatedAt: time.Now(),
+        UpdatedAt: time.Now(),
+    }
+}
+```
+
+### Database Test Helpers
+```go
+// Database test setup
+func setupTestDB(t *testing.T) *gorm.DB {
+    db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+    require.NoError(t, err)
+    
+    // Run migrations
+    err = db.AutoMigrate(&Form{}, &User{}, &FormSubmission{})
+    require.NoError(t, err)
+    
+    return db
+}
+```
+
+## Test Configuration
+
+### Environment Setup
+```go
+// Test environment configuration
+func setupTestEnvironment(t *testing.T) {
+    // Set test environment variables
+    os.Setenv("GOFORMS_APP_ENV", "test")
+    os.Setenv("GOFORMS_DB_CONNECTION", "sqlite")
+    os.Setenv("GOFORMS_DB_DSN", ":memory:")
+}
+```
+
+### Test Cleanup
+```go
+// Test cleanup utilities
+func cleanupTestData(t *testing.T, db *gorm.DB) {
+    // Clean up test data
+    db.Exec("DELETE FROM forms")
+    db.Exec("DELETE FROM users")
+    db.Exec("DELETE FROM form_submissions")
+}
+```
 
 ## Best Practices
 
-1. Test Coverage
-   - Aim for high coverage
-   - Focus on critical paths
-   - Test edge cases
-   - Monitor coverage
+### Test Organization
+1. **Test Structure**: Follow Go testing conventions
+2. **Test Naming**: Use descriptive test names
+3. **Test Isolation**: Each test should be independent
+4. **Test Data**: Use fixtures and helpers for test data
 
-2. Test Data
-   - Use fixtures
-   - Generate test data
-   - Clean up after tests
-   - Isolate test data
+### Test Coverage
+1. **Unit Tests**: Test individual functions and methods
+2. **Integration Tests**: Test component interactions
+3. **E2E Tests**: Test complete user flows
+4. **Error Cases**: Test error handling and edge cases
 
-3. Performance
-   - Run tests in parallel
-   - Optimize test setup
-   - Use test databases
-   - Mock external services
+### Mock Usage
+1. **Mock Generation**: Use `mockgen` for consistent mocks
+2. **Mock Expectations**: Set clear expectations for mocks
+3. **Mock Verification**: Verify mock calls in assertions
+4. **Mock Cleanup**: Clean up mocks after tests
 
-4. Maintenance
-   - Keep tests simple
-   - Update with changes
-   - Remove obsolete tests
-   - Document test patterns
+### Performance
+1. **Test Speed**: Keep tests fast and efficient
+2. **Parallel Testing**: Use `t.Parallel()` where appropriate
+3. **Test Databases**: Use in-memory databases for tests
+4. **Resource Cleanup**: Clean up resources after tests
+
+## Running Tests
+
+### Backend Tests
+```bash
+# Run all tests
+go test ./...
+
+# Run specific test
+go test ./internal/domain/form
+
+# Run with coverage
+go test -cover ./...
+
+# Run with verbose output
+go test -v ./...
+```
+
+### Frontend Tests
+```bash
+# Run TypeScript tests
+npm test
+
+# Run with coverage
+npm run test:coverage
+
+# Run specific test file
+npm test -- validation.test.ts
+```
+
+### Integration Tests
+```bash
+# Run integration tests
+go test ./test/integration/...
+
+# Run with database
+task test:integration
+```
+
+## Continuous Integration
+
+### Test Pipeline
+1. **Unit Tests**: Run on every commit
+2. **Integration Tests**: Run on pull requests
+3. **E2E Tests**: Run on main branch
+4. **Coverage Reports**: Generate and track coverage
+
+### Test Quality
+1. **Linting**: Ensure test code follows linting rules
+2. **Coverage**: Maintain minimum coverage thresholds
+3. **Performance**: Monitor test execution time
+4. **Reliability**: Ensure tests are flake-free

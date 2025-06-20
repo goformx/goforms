@@ -40,7 +40,8 @@
   color: var(--text);
   text-decoration: none;
   opacity: 1;
-  transition: opacity var(--nav-transition-duration) var(--nav-transition-timing);
+  transition: opacity var(--nav-transition-duration)
+    var(--nav-transition-timing);
 }
 
 .nav-logo:hover {
