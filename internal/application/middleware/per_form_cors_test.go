@@ -124,6 +124,9 @@ func TestPerFormCORS(t *testing.T) {
 					GetForm(gomock.Any(), "non-existent").
 					Return(nil, errors.New("form not found"))
 				mockLogger.EXPECT().
+					SanitizeField("form_id", "non-existent").
+					Return("non-existent")
+				mockLogger.EXPECT().
 					Debug(
 						"failed to load form for CORS",
 						"form_id", "non-existent",
