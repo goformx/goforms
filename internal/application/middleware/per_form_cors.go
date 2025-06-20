@@ -57,7 +57,7 @@ func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 			if err != nil {
 				config.Logger.Debug(
 					"failed to load form for CORS",
-					"form_id", formID,
+					"form_id", config.Logger.SanitizeField("form_id", formID),
 					"error", err,
 					"falling_back_to_global_cors", true,
 				)
@@ -68,7 +68,7 @@ func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 			if form == nil {
 				config.Logger.Debug(
 					"form not found for CORS",
-					"form_id", formID,
+					"form_id", config.Logger.SanitizeField("form_id", formID),
 					"falling_back_to_global_cors", true,
 				)
 				// Fallback to global CORS
