@@ -1,10 +1,11 @@
-package middleware
+package middleware_test
 
 import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
 
+	"github.com/goformx/goforms/internal/application/middleware"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
@@ -21,7 +22,7 @@ func TestCORS_AllowOrigin(t *testing.T) {
 			MaxAge:           3600,
 		},
 	}
-	e.Use(CORS(cfg))
+	e.Use(middleware.CORS(cfg))
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
 	})
