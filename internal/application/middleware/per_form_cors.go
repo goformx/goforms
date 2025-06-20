@@ -102,27 +102,27 @@ func applyFormCORS(
 
 	// Use form CORS settings if available, otherwise fallback to global
 	if len(origins) == 0 {
-		origins = globalCORS.CorsAllowedOrigins
+		origins = globalCORS.CORS.AllowedOrigins
 	}
 	if len(methods) == 0 {
-		methods = globalCORS.CorsAllowedMethods
+		methods = globalCORS.CORS.AllowedMethods
 	}
 	if len(headers) == 0 {
-		headers = globalCORS.CorsAllowedHeaders
+		headers = globalCORS.CORS.AllowedHeaders
 	}
 
 	// Handle preflight requests
 	if c.Request().Method == http.MethodOptions {
 		return handlePreflight(
 			c, origins, methods, headers,
-			globalCORS.CorsAllowCredentials, globalCORS.CorsMaxAge,
+			globalCORS.CORS.AllowCredentials, globalCORS.CORS.MaxAge,
 		)
 	}
 
 	// Handle actual requests
 	return handleActualRequest(
 		c, origins, methods, headers,
-		globalCORS.CorsAllowCredentials, next,
+		globalCORS.CORS.AllowCredentials, next,
 	)
 }
 
@@ -136,21 +136,21 @@ func applyGlobalCORS(
 	if c.Request().Method == http.MethodOptions {
 		return handlePreflight(
 			c,
-			globalCORS.CorsAllowedOrigins,
-			globalCORS.CorsAllowedMethods,
-			globalCORS.CorsAllowedHeaders,
-			globalCORS.CorsAllowCredentials,
-			globalCORS.CorsMaxAge,
+			globalCORS.CORS.AllowedOrigins,
+			globalCORS.CORS.AllowedMethods,
+			globalCORS.CORS.AllowedHeaders,
+			globalCORS.CORS.AllowCredentials,
+			globalCORS.CORS.MaxAge,
 		)
 	}
 
 	// Handle actual requests
 	return handleActualRequest(
 		c,
-		globalCORS.CorsAllowedOrigins,
-		globalCORS.CorsAllowedMethods,
-		globalCORS.CorsAllowedHeaders,
-		globalCORS.CorsAllowCredentials,
+		globalCORS.CORS.AllowedOrigins,
+		globalCORS.CORS.AllowedMethods,
+		globalCORS.CORS.AllowedHeaders,
+		globalCORS.CORS.AllowCredentials,
 		next,
 	)
 }

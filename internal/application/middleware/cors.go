@@ -10,10 +10,10 @@ import (
 // CORS creates and configures CORS middleware using Echo's built-in implementation
 func CORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 	return echomw.CORSWithConfig(echomw.CORSConfig{
-		AllowOrigins:     securityConfig.CorsAllowedOrigins,
-		AllowMethods:     securityConfig.CorsAllowedMethods,
-		AllowHeaders:     securityConfig.CorsAllowedHeaders,
-		AllowCredentials: securityConfig.CorsAllowCredentials,
-		MaxAge:           securityConfig.CorsMaxAge,
+		AllowOrigins:     securityConfig.CORS.AllowedOrigins,
+		AllowMethods:     securityConfig.CORS.AllowedMethods,
+		AllowHeaders:     securityConfig.CORS.AllowedHeaders,
+		AllowCredentials: securityConfig.CORS.AllowCredentials,
+		MaxAge:           securityConfig.CORS.MaxAge,
 	})
 }

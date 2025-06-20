@@ -13,59 +13,19 @@ type MiddlewareConfig struct {
 	Access *access.Config
 	// Session configuration
 	Session *session.SessionConfig
-	// Security configuration
-	Security *SecurityConfig
-	// Rate limiting configuration
-	RateLimit *RateLimitConfig
-	// Logging configuration
-	Logging *LoggingConfig
-}
-
-// SecurityConfig holds security-related middleware configuration
-type SecurityConfig struct {
-	// CSRF protection
-	CSRFEnabled bool
-	CSRFSecret  string
-	// CORS configuration
-	CORSEnabled bool
-	CORSOrigins []string
-	// Security headers
-	SecurityHeaders map[string]string
-	// Content Security Policy
-	CSPEnabled    bool
-	CSPDirectives string
-}
-
-// RateLimitConfig holds rate limiting configuration
-type RateLimitConfig struct {
-	Enabled     bool
-	Requests    int
-	Window      int // seconds
-	Burst       int
-	SkipPaths   []string
-	SkipMethods []string
-}
-
-// LoggingConfig holds logging middleware configuration
-type LoggingConfig struct {
-	Enabled      bool
-	LogRequests  bool
-	LogResponses bool
-	LogErrors    bool
-	LogUserAgent bool
-	LogIPAddress bool
-	SkipPaths    []string
-	SkipMethods  []string
+	// Security configuration (references infrastructure config)
+	Security *config.SecurityConfig
+	// Logging configuration (references infrastructure config)
+	Logging *config.LoggingConfig
 }
 
 // NewMiddlewareConfig creates a new middleware configuration from the application config
 func NewMiddlewareConfig(appConfig *config.Config) *MiddlewareConfig {
 	return &MiddlewareConfig{
-		Access:    newAccessConfig(),
-		Session:   newSessionConfig(appConfig),
-		Security:  newSecurityConfig(appConfig),
-		RateLimit: newRateLimitConfig(),
-		Logging:   newLoggingConfig(),
+		Access:   newAccessConfig(),
+		Session:  newSessionConfig(appConfig),
+		Security: &appConfig.Security, // Direct reference to infrastructure config
+		Logging:  &appConfig.Logging,  // Direct reference to infrastructure config
 	}
 }
 
@@ -130,71 +90,6 @@ func newSessionConfig(appConfig *config.Config) *session.SessionConfig {
 			constants.PathFonts,
 			constants.PathFavicon,
 		},
-	}
-}
-
-// newSecurityConfig creates the security configuration
-func newSecurityConfig(appConfig *config.Config) *SecurityConfig {
-	return &SecurityConfig{
-		CSRFEnabled: appConfig.Security.CSRFConfig.Enabled,
-		CSRFSecret:  appConfig.Security.CSRFConfig.Secret,
-		CORSEnabled: true,
-		CORSOrigins: []string{"*"}, // Configure based on environment
-		SecurityHeaders: map[string]string{
-			"X-Frame-Options":           "DENY",
-			"X-Content-Type-Options":    "nosniff",
-			"X-XSS-Protection":          "1; mode=block",
-			"Referrer-Policy":           "strict-origin-when-cross-origin",
-			"Strict-Transport-Security": "max-age=31536000; includeSubDomains",
-		},
-		CSPEnabled: appConfig.App.Env == constants.EnvProduction,
-		CSPDirectives: "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline'; " +
-			"style-src 'self' 'unsafe-inline'; " +
-			"img-src 'self' data:; " +
-			"font-src 'self'; " +
-			"connect-src 'self'; " +
-			"frame-ancestors 'none'; " +
-			"base-uri 'self'; " +
-			"form-action 'self'",
-	}
-}
-
-// newRateLimitConfig creates the rate limiting configuration
-func newRateLimitConfig() *RateLimitConfig {
-	return &RateLimitConfig{
-		Enabled:  true,
-		Requests: constants.DefaultRateLimit,
-		Window:   constants.RateLimitWindow,
-		Burst:    constants.RateLimitBurst,
-		SkipPaths: []string{
-			constants.PathHealth,
-			constants.PathMetrics,
-			constants.PathAPIHealth,
-			constants.PathAPIMetrics,
-		},
-		SkipMethods: []string{"GET", "HEAD", "OPTIONS"},
-	}
-}
-
-// newLoggingConfig creates the logging configuration
-func newLoggingConfig() *LoggingConfig {
-	return &LoggingConfig{
-		Enabled:      true,
-		LogRequests:  true,
-		LogResponses: false, // Only log responses for errors
-		LogErrors:    true,
-		LogUserAgent: true,
-		LogIPAddress: true,
-		SkipPaths: []string{
-			constants.PathHealth,
-			constants.PathMetrics,
-			constants.PathAPIHealth,
-			constants.PathAPIMetrics,
-			constants.PathFavicon,
-			constants.PathRobotsTxt,
-		},
-		SkipMethods: []string{"HEAD", "OPTIONS"},
 	}
 }
 

@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
+	"golang.org/x/time/rate"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
@@ -146,29 +147,33 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Register security middleware
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         "1; mode=block",
-		ContentTypeNosniff:    "nosniff",
-		XFrameOptions:         "DENY",
+		XSSProtection:         m.config.Security.Headers.XXSSProtection,
+		ContentTypeNosniff:    m.config.Security.Headers.XContentTypeOptions,
+		XFrameOptions:         m.config.Security.Headers.XFrameOptions,
 		HSTSMaxAge:            HSTSOneYear,
 		HSTSExcludeSubdomains: false,
-		ContentSecurityPolicy: "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline'; " +
-			"style-src 'self' 'unsafe-inline'; " +
-			"img-src 'self' data:; " +
-			"font-src 'self'; " +
-			"connect-src 'self'; " +
-			"frame-ancestors 'none'; " +
-			"base-uri 'self'; " +
-			"form-action 'self'",
+		ContentSecurityPolicy: m.config.Security.GetCSPDirectives(&m.config.Config.App),
 	}))
+
+	// Set security config in context for other middleware
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			c.Set("security_config", m.config.Security)
+			return next(c)
+		}
+	})
 
 	// Add additional security headers not covered by Echo's Secure middleware
 	e.Use(setupAdditionalSecurityHeadersMiddleware())
 
-	if m.config.Security.CSRFConfig.Enabled {
-		e.Use(setupCSRF(&m.config.Security.CSRFConfig, m.config.Config.App.Env == "development"))
+	if m.config.Security.CSRF.Enabled {
+		e.Use(setupCSRF(&m.config.Security.CSRF, m.config.Config.App.Env == "development"))
 	}
-	e.Use(RateLimiter(m.config.Security))
+
+	// Setup rate limiting using infrastructure config
+	if m.config.Security.RateLimit.Enabled {
+		e.Use(m.setupRateLimiting())
+	}
 
 	// Register session middleware
 	m.logger.Info("registering session middleware",
@@ -270,9 +275,18 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 func setupAdditionalSecurityHeadersMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Add additional security headers not covered by Echo's Secure middleware
-			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
-			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+			// Get security config from context or use defaults
+			securityConfig, ok := c.Get("security_config").(*appconfig.SecurityConfig)
+			if !ok {
+				// Fallback to default values if config not available
+				c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+				c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+			} else {
+				// Use configured values
+				c.Response().Header().Set("Referrer-Policy", securityConfig.Headers.ReferrerPolicy)
+				c.Response().Header().Set("Strict-Transport-Security", securityConfig.Headers.StrictTransportSecurity)
+				c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+			}
 
 			return next(c)
 		}
@@ -439,4 +453,65 @@ func (l *EchoLogger) SetOutput(w io.Writer) {
 
 func (l *EchoLogger) Output() io.Writer {
 	return os.Stdout
+}
+
+// setupRateLimiting creates and configures rate limiting middleware using infrastructure config
+func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
+	rateLimitConfig := m.config.Security.RateLimit
+
+	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
+		Skipper: func(c echo.Context) bool {
+			path := c.Request().URL.Path
+			method := c.Request().Method
+
+			// Skip paths from config
+			for _, skipPath := range rateLimitConfig.SkipPaths {
+				if strings.HasPrefix(path, skipPath) {
+					return true
+				}
+			}
+
+			// Skip methods from config
+			for _, skipMethod := range rateLimitConfig.SkipMethods {
+				if method == skipMethod {
+					return true
+				}
+			}
+
+			return false
+		},
+		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
+			echomw.RateLimiterMemoryStoreConfig{
+				Rate:      rate.Limit(rateLimitConfig.Requests),
+				Burst:     rateLimitConfig.Burst,
+				ExpiresIn: rateLimitConfig.Window,
+			},
+		),
+		IdentifierExtractor: func(c echo.Context) (string, error) {
+			// For login and signup pages, use IP address as identifier
+			path := c.Request().URL.Path
+			if path == "/login" || path == "/signup" {
+				return c.RealIP(), nil
+			}
+
+			// For form submissions, use form ID and origin
+			formID := c.Param("formID")
+			origin := c.Request().Header.Get("Origin")
+			if formID == "" {
+				formID = "unknown"
+			}
+			if origin == "" {
+				origin = "unknown"
+			}
+			return fmt.Sprintf("%s:%s", formID, origin), nil
+		},
+		ErrorHandler: func(c echo.Context, err error) error {
+			return echo.NewHTTPError(http.StatusTooManyRequests,
+				"Rate limit exceeded: too many requests from the same form or origin")
+		},
+		DenyHandler: func(c echo.Context, identifier string, err error) error {
+			return echo.NewHTTPError(http.StatusTooManyRequests,
+				"Rate limit exceeded: please try again later")
+		},
+	})
 }

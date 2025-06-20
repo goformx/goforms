@@ -16,9 +16,9 @@ func RateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
 		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
 			echomw.RateLimiterMemoryStoreConfig{
-				Rate:      rate.Limit(securityConfig.RateLimit),
-				Burst:     securityConfig.RateBurst,
-				ExpiresIn: securityConfig.RateLimitTimeWindow,
+				Rate:      rate.Limit(securityConfig.RateLimit.Requests),
+				Burst:     securityConfig.RateLimit.Burst,
+				ExpiresIn: securityConfig.RateLimit.Window,
 			},
 		),
 		IdentifierExtractor: func(c echo.Context) (string, error) {

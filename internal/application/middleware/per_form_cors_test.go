@@ -27,11 +27,13 @@ func TestPerFormCORS(t *testing.T) {
 
 	// Create global CORS config
 	globalCORS := &appconfig.SecurityConfig{
-		CorsAllowedOrigins:   []string{"*"},
-		CorsAllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-		CorsAllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With"},
-		CorsAllowCredentials: false,
-		CorsMaxAge:           86400,
+		CORS: appconfig.CORSConfig{
+			AllowedOrigins:   []string{"*"},
+			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With"},
+			AllowCredentials: false,
+			MaxAge:           86400,
+		},
 	}
 
 	// Create middleware instance

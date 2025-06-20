@@ -103,27 +103,93 @@ type CSRFConfig struct {
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	Debug               bool          `envconfig:"DEBUG" default:"false"`
-	FormRateLimit       float64       `envconfig:"FORM_RATE_LIMIT" default:"100"`
-	FormRateLimitWindow time.Duration `envconfig:"FORM_RATE_LIMIT_WINDOW" default:"1m"`
-	SecureCookie        bool          `envconfig:"SECURE_COOKIE" default:"true"`
+	// CSRF protection
+	CSRF CSRFConfig `envconfig:"CSRF"`
 
-	// Rate Limiting
-	RateLimitEnabled    bool          `envconfig:"RATE_LIMIT_ENABLED" default:"true"`
-	RateLimit           int           `envconfig:"RATE_LIMIT" default:"100"`
-	RateBurst           int           `envconfig:"RATE_BURST" default:"20"`
-	RateLimitTimeWindow time.Duration `envconfig:"RATE_LIMIT_TIME_WINDOW" default:"1m"`
-	RateLimitPerIP      bool          `envconfig:"RATE_LIMIT_PER_IP" default:"true"`
+	// CORS configuration
+	CORS CORSConfig `envconfig:"CORS"`
 
-	// CORS settings
-	CorsAllowedOrigins   []string `envconfig:"CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
-	CorsAllowedMethods   []string `envconfig:"CORS_ALLOWED_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	CorsAllowedHeaders   []string `envconfig:"CORS_ALLOWED_HEADERS" default:"Content-Type,Authorization"`
-	CorsAllowCredentials bool     `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
-	CorsMaxAge           int      `envconfig:"CORS_MAX_AGE" default:"3600"`
+	// Rate limiting configuration
+	RateLimit RateLimitConfig `envconfig:"RATE_LIMIT"`
 
-	// CSRF settings
-	CSRFConfig CSRFConfig `envconfig:"CSRF"`
+	// Security headers configuration
+	Headers SecurityHeadersConfig `envconfig:"HEADERS"`
+
+	// Content Security Policy configuration
+	CSP CSPConfig `envconfig:"CSP"`
+
+	// Cookie security
+	SecureCookie bool `envconfig:"GOFORMS_SECURITY_SECURE_COOKIE" default:"true"`
+
+	// Debug mode
+	Debug bool `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
+}
+
+// CORSConfig holds CORS-related configuration
+type CORSConfig struct {
+	Enabled          bool     `envconfig:"GOFORMS_SECURITY_CORS_ENABLED" default:"true"`
+	AllowedOrigins   []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:3000"`
+	AllowedMethods   []string `envconfig:"GOFORMS_SECURITY_CORS_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
+	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization"`
+	AllowCredentials bool     `envconfig:"GOFORMS_SECURITY_CORS_CREDENTIALS" default:"true"`
+	MaxAge           int      `envconfig:"GOFORMS_SECURITY_CORS_MAX_AGE" default:"3600"`
+}
+
+// RateLimitConfig holds rate limiting configuration
+type RateLimitConfig struct {
+	Enabled     bool          `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_ENABLED" default:"true"`
+	Requests    int           `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_REQUESTS" default:"100"`
+	Window      time.Duration `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_WINDOW" default:"1m"`
+	Burst       int           `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_BURST" default:"20"`
+	PerIP       bool          `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_PER_IP" default:"true"`
+	SkipPaths   []string      `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_SKIP_PATHS"`
+	SkipMethods []string      `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_SKIP_METHODS" default:"GET,HEAD,OPTIONS"`
+}
+
+// SecurityHeadersConfig holds security headers configuration
+type SecurityHeadersConfig struct {
+	XFrameOptions           string `envconfig:"GOFORMS_SECURITY_X_FRAME_OPTIONS" default:"DENY"`
+	XContentTypeOptions     string `envconfig:"GOFORMS_SECURITY_X_CONTENT_TYPE_OPTIONS" default:"nosniff"`
+	XXSSProtection          string `envconfig:"GOFORMS_SECURITY_X_XSS_PROTECTION" default:"1; mode=block"`
+	ReferrerPolicy          string `envconfig:"GOFORMS_SECURITY_REFERRER_POLICY" default:"strict-origin-when-cross-origin"`
+	StrictTransportSecurity string `envconfig:"GOFORMS_SECURITY_HSTS" default:"max-age=31536000; includeSubDomains"`
+}
+
+// CSPConfig holds Content Security Policy configuration
+type CSPConfig struct {
+	Enabled    bool   `envconfig:"GOFORMS_SECURITY_CSP_ENABLED" default:"true"`
+	Directives string `envconfig:"GOFORMS_SECURITY_CSP_DIRECTIVES"`
+}
+
+// GetCSPDirectives returns the Content Security Policy directives based on environment
+func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
+	if appConfig.IsDevelopment() {
+		return "default-src 'self'; " +
+			"script-src 'self' 'unsafe-inline' http://localhost:3000; " +
+			"style-src 'self' 'unsafe-inline' http://localhost:3000; " +
+			"img-src 'self' data:; " +
+			"font-src 'self' http://localhost:3000; " +
+			"connect-src 'self' http://localhost:3000 ws://localhost:3000; " +
+			"frame-ancestors 'none'; " +
+			"base-uri 'self'; " +
+			"form-action 'self'"
+	}
+
+	// If custom CSP directives are provided via environment, use them
+	if s.CSP.Directives != "" {
+		return s.CSP.Directives
+	}
+
+	// Generate CSP directives based on environment
+	return "default-src 'self'; " +
+		"script-src 'self' 'unsafe-inline'; " +
+		"style-src 'self' 'unsafe-inline'; " +
+		"img-src 'self' data:; " +
+		"font-src 'self'; " +
+		"connect-src 'self'; " +
+		"frame-ancestors 'none'; " +
+		"base-uri 'self'; " +
+		"form-action 'self'"
 }
 
 // EmailConfig holds email-related configuration
@@ -303,14 +369,8 @@ func (c *Config) validateDatabaseConfig() error {
 func (c *Config) validateSecurityConfig() error {
 	var errs []string
 
-	if c.Security.CSRFConfig.Enabled && c.Security.CSRFConfig.Secret == "" {
+	if c.Security.CSRF.Enabled && c.Security.CSRF.Secret == "" {
 		errs = append(errs, "CSRF secret is required when CSRF is enabled")
-	}
-	if c.Security.FormRateLimit <= 0 {
-		errs = append(errs, "form rate limit must be positive")
-	}
-	if c.Security.FormRateLimitWindow <= 0 {
-		errs = append(errs, "form rate limit window must be positive")
 	}
 
 	if len(errs) > 0 {
