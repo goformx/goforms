@@ -22,6 +22,53 @@ alwaysApply: false
    - Cookie management
    - Session validation
 
+## Constants and Configuration
+
+### Centralized Constants
+All middleware constants are centralized in `internal/application/constants/constants.go`:
+
+```go
+// Middleware Constants
+const (
+    NonceSize = 32
+    HSTSOneYear = 31536000
+    DefaultTokenLength = 32
+    CookieMaxAge = 86400
+    FieldPairSize = 2
+    DefaultUnknown = "unknown"
+)
+
+// Path Constants
+const (
+    PathLogin = "/login"
+    PathSignup = "/signup"
+    PathResetPassword = "/reset-password"
+    // ... other paths
+)
+
+// Static File Extensions
+var StaticFileExtensions = []string{
+    ".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".ico",
+    ".svg", ".woff", ".woff2", ".ttf", ".eot",
+}
+
+// IsStaticFile checks if the given path is a static file
+func IsStaticFile(path string) bool
+```
+
+### Path Management
+Use the centralized `PathManager` for path-related logic:
+
+```go
+// Get path manager from DI
+pathManager := constants.NewPathManager()
+
+// Check path types
+if pathManager.IsPublicPath(path) { ... }
+if pathManager.IsStaticPath(path) { ... }
+if pathManager.IsAdminPath(path) { ... }
+```
+
 ## Setup Order
 
 1. Basic Middleware
@@ -52,7 +99,7 @@ alwaysApply: false
    // Get user data
    userID, ok := context.GetUserID(c)
    if !ok {
-       return c.Redirect(http.StatusSeeOther, "/login")
+       return c.Redirect(http.StatusSeeOther, constants.PathLogin)
    }
    ```
 
@@ -66,23 +113,51 @@ alwaysApply: false
    sessionManager.SetSessionCookie(c, session.ID)
    ```
 
+3. **Static File Detection**
+   ```go
+   // Use centralized static file detection
+   if constants.IsStaticFile(path) {
+       return true
+   }
+   ```
+
+4. **Path Checking**
+   ```go
+   // Use constants for path comparisons
+   if path == constants.PathLogin || path == constants.PathSignup {
+       // Handle auth paths
+   }
+   ```
+
 ## Best Practices
 
-1. Security
+1. **Constants Usage**
+   - Always use `constants.*` for fixed values
+   - Use `constants.IsStaticFile()` for static file detection
+   - Use `constants.Path*` for path comparisons
+   - Use `constants.DefaultUnknown` for unknown identifiers
+
+2. **Configuration**
+   - Use infrastructure config only for environment-configurable values
+   - Keep constants in the constants package
+   - Use PathManager for complex path logic
+
+3. **Security**
    - Enable CSRF protection
    - Use secure cookies
    - Set security headers
    - Implement rate limiting
 
-2. Performance
-   - Skip middleware for static files
+4. **Performance**
+   - Skip middleware for static files using `constants.IsStaticFile()`
    - Cache session data
    - Use efficient route matching
 
-3. Error Handling
+5. **Error Handling**
    - Log errors with context
    - Return user-friendly messages
-# Middleware Architecture
+
+## Middleware Architecture
 
 ## Overview
 The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in the `internal/application/middleware` directory.
@@ -135,19 +210,6 @@ Security middleware components include:
 - CORS configuration with proper origins
 - Static file handling with proper MIME types
 
-## Constants and Configuration
-
-```go
-const (
-    NonceSize = 32
-    HSTSOneYear = 31536000
-    DefaultTokenLength = 32
-    RateLimitBurst = 5
-    DefaultRateLimit = 20
-    CookieMaxAge = 86400
-)
-```
-
 ## Best Practices
 1. Use the `Manager` for middleware setup
 2. Configure security headers appropriately
@@ -156,7 +218,7 @@ const (
 5. Follow the constant naming conventions
 6. Use structured logging with proper context
 7. Implement rate limiting where appropriate
-8. Handle static files efficiently
+8. Handle static files efficiently using `constants.IsStaticFile()`
 9. Use proper MIME type detection
 10. Implement proper error mapping
 
@@ -245,74 +307,46 @@ The access package provides:
 1. Route Matching
    - Optimize route matching
    - Use efficient data structures
-   - Cache static file checks
+   - Cache static file checks using `constants.IsStaticFile()`
    - Minimize middleware overhead
 
 2. Static File Handling
-   - Skip unnecessary middleware
+   - Skip unnecessary middleware using `constants.IsStaticFile()`
    - Use proper MIME types
    - Cache static file checks
    - Optimize file serving
 
-3. Rate Limiting
-   - Use efficient storage
-   - Configure appropriate limits
-   - Handle bursts properly
-   - Log rate limit events
+## Dependency Injection
 
-## Common Patterns
+The middleware module uses FX for dependency injection:
 
-1. **Context Usage**
-   ```go
-   // Get user data
-   userID, ok := context.GetUserID(c)
-   if !ok {
-       return c.Redirect(http.StatusSeeOther, "/login")
-   }
+```go
+var Module = fx.Options(
+    fx.Provide(
+        constants.NewPathManager,
+        // Access manager using path manager
+        fx.Annotate(
+            func(logger logging.Logger, pathManager *constants.PathManager) *access.AccessManager {
+                // Configure access manager with path manager
+            },
+        ),
+        // Session manager using path manager
+        fx.Annotate(
+            func(logger logging.Logger, cfg *config.Config, pathManager *constants.PathManager) *session.Manager {
+                // Configure session manager with path manager
+            },
+        ),
+        // Middleware manager
+        NewManager,
+    ),
+)
+```
 
-   // Check authentication
-   if !context.IsAuthenticated(c) {
-       return c.Redirect(http.StatusSeeOther, "/login")
-   }
+## Migration Notes
 
-   // Get role
-   role, ok := context.GetRole(c)
-   if !ok {
-       return c.Redirect(http.StatusSeeOther, "/login")
-   }
-   ```
-
-2. **Access Control**
-   ```go
-   // Define access rules
-   rules := map[string]access.AccessLevel{
-       "/api/v1/admin/*": access.Admin,
-       "/api/v1/*":       access.Authenticated,
-       "/public/*":       access.Public,
-   }
-
-   // Apply access control
-   e.Use(access.Middleware(accessManager, logger))
-   ```
-
-3. **Session Management**
-   ```go
-   // Create session
-   session, err := sessionManager.CreateSession(userID, email, userAgent)
-   if err != nil {
-       return err
-   }
-
-   // Set session cookie
-   sessionManager.SetSessionCookie(c, session.ID)
-   ```
-
-## Best Practices
-1. Always use context helpers for user data
-2. Implement proper security attributes
-3. Use structured logging
-4. Optimize route matching
-5. Handle errors appropriately
-6. Protect sensitive routes
-7. Implement rate limiting
-8. Use secure defaults
+- **Deprecated**: Hardcoded constants in middleware files
+- **Deprecated**: `MiddlewareConfig` in infrastructure config
+- **Deprecated**: Duplicate path definitions across middleware
+- **Use**: `constants.*` for all fixed values
+- **Use**: `PathManager` for complex path logic
+- **Use**: Infrastructure config only for environment-configurable values

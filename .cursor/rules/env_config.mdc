@@ -9,6 +9,31 @@ alwaysApply: true
 
 The application uses [envconfig](mdc:https:/github.com/kelseyhightower/envconfig) to load environment variables. All configuration is defined in [internal/infrastructure/config/config.go](mdc:internal/infrastructure/config/config.go).
 
+## Configuration vs Constants
+
+### What Belongs in Config (Environment-Configurable)
+- Database connection strings and settings
+- Server ports, hosts, and timeouts
+- Security secrets and keys
+- CORS origins and settings
+- Rate limiting thresholds
+- Logging levels and outputs
+- Session timeouts and settings
+- Email server configurations
+- File upload limits
+- Environment-specific settings
+
+### What Belongs in Constants (Fixed Values)
+- Application paths and routes
+- Static file extensions
+- HTTP status codes
+- Validation rules and limits
+- Default values for forms
+- Security constants (nonce sizes, token lengths)
+- Business logic constants
+
+**Rule**: If a value can change between environments or deployments, it belongs in config. If it's a fixed application constant, it belongs in `internal/application/constants/`.
+
 ## Configuration Structure
 
 ### App Configuration
@@ -23,10 +48,10 @@ type AppConfig struct {
     Scheme         string        `envconfig:"GOFORMS_APP_SCHEME" default:"http"`
     Port           int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
     Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
-    ReadTimeout    time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
-    WriteTimeout   time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
-    IdleTimeout    time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
-    RequestTimeout time.Duration `envconfig:"GOFORMS_REQUEST_TIMEOUT" default:"30s"`
+    ReadTimeout    time.Duration `envconfig:"GOFORMS_APP_READ_TIMEOUT" default:"5s"`
+    WriteTimeout   time.Duration `envconfig:"GOFORMS_APP_WRITE_TIMEOUT" default:"10s"`
+    IdleTimeout    time.Duration `envconfig:"GOFORMS_APP_IDLE_TIMEOUT" default:"120s"`
+    RequestTimeout time.Duration `envconfig:"GOFORMS_APP_REQUEST_TIMEOUT" default:"30s"`
     
     // Development Settings
     ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
@@ -37,34 +62,55 @@ type AppConfig struct {
 ### Database Configuration
 ```go
 type DatabaseConfig struct {
-    Connection string `envconfig:"GOFORMS_DB_CONNECTION" default:"postgres"`
-    DSN        string `envconfig:"GOFORMS_DB_DSN" required:"true"`
-    MaxOpen    int    `envconfig:"GOFORMS_DB_MAX_OPEN" default:"25"`
-    MaxIdle    int    `envconfig:"GOFORMS_DB_MAX_IDLE" default:"5"`
-    Timeout    int    `envconfig:"GOFORMS_DB_TIMEOUT" default:"5"`
+    Connection      string        `envconfig:"GOFORMS_DB_CONNECTION" default:"mariadb"`
+    Host            string        `envconfig:"GOFORMS_DB_HOST" validate:"required"`
+    Port            int           `envconfig:"GOFORMS_DB_PORT" default:"3306"`
+    Database        string        `envconfig:"GOFORMS_DB_DATABASE" validate:"required"`
+    Username        string        `envconfig:"GOFORMS_DB_USERNAME" validate:"required"`
+    Password        string        `envconfig:"GOFORMS_DB_PASSWORD" validate:"required"`
+    MaxOpenConns    int           `envconfig:"GOFORMS_DB_MAX_OPEN_CONNS" default:"25"`
+    MaxIdleConns    int           `envconfig:"GOFORMS_DB_MAX_IDLE_CONNS" default:"5"`
+    ConnMaxLifetime time.Duration `envconfig:"GOFORMS_DB_CONN_MAX_LIFETIME" default:"5m"`
 }
 ```
 
 ### Security Configuration
 ```go
 type SecurityConfig struct {
-    SessionSecret string `envconfig:"GOFORMS_SESSION_SECRET" required:"true"`
-    SecureCookies bool   `envconfig:"GOFORMS_SECURE_COOKIES" default:"false"`
+    // CSRF protection
+    CSRF CSRFConfig `envconfig:"CSRF"`
     
-    // CSRF Configuration
-    CSRFConfig struct {
-        Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
-        Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
-        TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
-        TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-CSRF-Token,form:_csrf,cookie:_csrf"`
-        ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
-        CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
-        CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
-        CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
-        CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
-        CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Strict"`
-        CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
-    } `envconfig:"CSRF"`
+    // CORS configuration
+    CORS CORSConfig `envconfig:"CORS"`
+    
+    // Rate limiting configuration
+    RateLimit RateLimitConfig `envconfig:"RATE_LIMIT"`
+    
+    // Security headers configuration
+    Headers SecurityHeadersConfig `envconfig:"HEADERS"`
+    
+    // Content Security Policy configuration
+    CSP CSPConfig `envconfig:"CSP"`
+    
+    // Cookie security
+    SecureCookie bool `envconfig:"GOFORMS_SECURITY_SECURE_COOKIE" default:"true"`
+    
+    // Debug mode
+    Debug bool `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
+}
+
+type CSRFConfig struct {
+    Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
+    Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
+    TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
+    TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-Csrf-Token"`
+    ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
+    CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
+    CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
+    CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
+    CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
+    CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Strict"`
+    CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
 }
 ```
 
@@ -73,7 +119,8 @@ type SecurityConfig struct {
 1. **Prefix**: All environment variables must be prefixed with `GOFORMS_`
 2. **Config only**: All env values will be handled by our config package. Do not use `os.Getenv()` directly.
 3. **Location**: `.env` file must be in the root directory
-4. **Security**:
+4. **Separation**: Keep constants in `internal/application/constants/`, config in `internal/infrastructure/config/`
+5. **Security**:
    - Session secret must be at least 32 characters
    - CSRF secret must be at least 32 characters
    - Use secure cookie settings in production
@@ -85,7 +132,11 @@ type SecurityConfig struct {
 ### Required Variables
 ```bash
 # Database
-GOFORMS_DB_DSN=postgres://username:password@localhost:5432/goforms
+GOFORMS_DB_HOST=localhost
+GOFORMS_DB_PORT=3306
+GOFORMS_DB_DATABASE=goforms
+GOFORMS_DB_USERNAME=username
+GOFORMS_DB_PASSWORD=password
 
 # Security
 GOFORMS_SESSION_SECRET=your-32-character-session-secret-here
@@ -106,22 +157,22 @@ GOFORMS_APP_PORT=8090
 GOFORMS_APP_HOST=0.0.0.0
 
 # Database
-GOFORMS_DB_CONNECTION=postgres
-GOFORMS_DB_MAX_OPEN=25
-GOFORMS_DB_MAX_IDLE=5
-GOFORMS_DB_TIMEOUT=5
+GOFORMS_DB_CONNECTION=mariadb
+GOFORMS_DB_MAX_OPEN_CONNS=25
+GOFORMS_DB_MAX_IDLE_CONNS=5
+GOFORMS_DB_CONN_MAX_LIFETIME=5m
 
 # Development
 GOFORMS_VITE_DEV_HOST=localhost
 GOFORMS_VITE_DEV_PORT=3000
 
 # Security
-GOFORMS_SECURE_COOKIES=false
+GOFORMS_SECURITY_SECURE_COOKIE=false
 
 # CSRF Configuration
 GOFORMS_SECURITY_CSRF_ENABLED=true
 GOFORMS_SECURITY_CSRF_TOKEN_LENGTH=32
-GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP=header:X-CSRF-Token,form:_csrf,cookie:_csrf
+GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP=header:X-Csrf-Token
 GOFORMS_SECURITY_CSRF_CONTEXT_KEY=csrf
 GOFORMS_SECURITY_CSRF_COOKIE_NAME=_csrf
 GOFORMS_SECURITY_CSRF_COOKIE_PATH=/
@@ -131,11 +182,20 @@ GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE=Strict
 GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE=86400
 
 # CORS Configuration
-GOFORMS_CORS_ALLOWED_ORIGINS=http://localhost:3000
-GOFORMS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
-GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization
-GOFORMS_CORS_ALLOW_CREDENTIALS=true
-GOFORMS_CORS_MAX_AGE=3600
+GOFORMS_SECURITY_CORS_ENABLED=true
+GOFORMS_SECURITY_CORS_ORIGINS=http://localhost:3000
+GOFORMS_SECURITY_CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
+GOFORMS_SECURITY_CORS_HEADERS=Content-Type,Authorization
+GOFORMS_SECURITY_CORS_CREDENTIALS=true
+GOFORMS_SECURITY_CORS_MAX_AGE=3600
+
+# Rate Limiting
+GOFORMS_SECURITY_RATE_LIMIT_ENABLED=true
+GOFORMS_SECURITY_RATE_LIMIT_REQUESTS=100
+GOFORMS_SECURITY_RATE_LIMIT_WINDOW=1m
+GOFORMS_SECURITY_RATE_LIMIT_BURST=20
+GOFORMS_SECURITY_RATE_LIMIT_PER_IP=true
+GOFORMS_SECURITY_RATE_LIMIT_SKIP_METHODS=GET,HEAD,OPTIONS
 ```
 
 ## Environment-Specific Configuration
@@ -145,7 +205,7 @@ GOFORMS_CORS_MAX_AGE=3600
 GOFORMS_APP_ENV=development
 GOFORMS_APP_DEBUG=true
 GOFORMS_APP_LOGLEVEL=debug
-GOFORMS_SECURE_COOKIES=false
+GOFORMS_SECURITY_SECURE_COOKIE=false
 ```
 
 ### Production Environment
@@ -153,7 +213,7 @@ GOFORMS_SECURE_COOKIES=false
 GOFORMS_APP_ENV=production
 GOFORMS_APP_DEBUG=false
 GOFORMS_APP_LOGLEVEL=info
-GOFORMS_SECURE_COOKIES=true
+GOFORMS_SECURITY_SECURE_COOKIE=true
 GOFORMS_APP_SCHEME=https
 ```
 
@@ -162,7 +222,8 @@ GOFORMS_APP_SCHEME=https
 GOFORMS_APP_ENV=test
 GOFORMS_APP_DEBUG=true
 GOFORMS_APP_LOGLEVEL=debug
-GOFORMS_DB_DSN=sqlite://:memory:
+GOFORMS_DB_CONNECTION=sqlite
+GOFORMS_DB_DATABASE=:memory:
 ```
 
 ## Database Configuration
@@ -170,19 +231,27 @@ GOFORMS_DB_DSN=sqlite://:memory:
 ### PostgreSQL
 ```bash
 GOFORMS_DB_CONNECTION=postgres
-GOFORMS_DB_DSN=postgres://username:password@localhost:5432/goforms?sslmode=disable
+GOFORMS_DB_HOST=localhost
+GOFORMS_DB_PORT=5432
+GOFORMS_DB_DATABASE=goforms
+GOFORMS_DB_USERNAME=username
+GOFORMS_DB_PASSWORD=password
 ```
 
 ### MariaDB
 ```bash
 GOFORMS_DB_CONNECTION=mariadb
-GOFORMS_DB_DSN=user:password@tcp(localhost:3306)/goforms?parseTime=true
+GOFORMS_DB_HOST=localhost
+GOFORMS_DB_PORT=3306
+GOFORMS_DB_DATABASE=goforms
+GOFORMS_DB_USERNAME=username
+GOFORMS_DB_PASSWORD=password
 ```
 
 ### SQLite (Development/Testing)
 ```bash
 GOFORMS_DB_CONNECTION=sqlite
-GOFORMS_DB_DSN=./goforms.db
+GOFORMS_DB_DATABASE=./goforms.db
 ```
 
 ## Security Configuration
@@ -194,7 +263,7 @@ GOFORMS_SESSION_SECRET=$(openssl rand -hex 32)
 GOFORMS_SECURITY_CSRF_SECRET=$(openssl rand -hex 32)
 
 # Cookie settings
-GOFORMS_SECURE_COOKIES=true  # Set to true in production
+GOFORMS_SECURITY_SECURE_COOKIE=true  # Set to true in production
 ```
 
 ### Production Security
@@ -202,7 +271,7 @@ GOFORMS_SECURE_COOKIES=true  # Set to true in production
 # Production settings
 GOFORMS_APP_ENV=production
 GOFORMS_APP_DEBUG=false
-GOFORMS_SECURE_COOKIES=true
+GOFORMS_SECURITY_SECURE_COOKIE=true
 GOFORMS_APP_SCHEME=https
 ```
 
@@ -220,7 +289,7 @@ When debugging configuration issues:
 
 #### Missing Required Variables
 ```
-Error: required key GOFORMS_DB_DSN missing value
+Error: required key GOFORMS_DB_HOST missing value
 ```
 **Solution**: Set the required environment variable in your `.env` file.
 
@@ -232,7 +301,7 @@ Error: invalid value "not-a-number" for GOFORMS_APP_PORT
 
 #### Invalid Duration Format
 ```
-Error: invalid duration "5" for GOFORMS_READ_TIMEOUT
+Error: invalid duration "5" for GOFORMS_APP_READ_TIMEOUT
 ```
 **Solution**: Use proper duration format (e.g., "5s", "1m", "1h").
 
@@ -244,3 +313,4 @@ Error: invalid duration "5" for GOFORMS_READ_TIMEOUT
 4. **Validate configuration**: Test configuration loading in each environment
 5. **Document defaults**: Keep configuration documentation up to date
 6. **Use secrets management**: In production, use proper secrets management
+7. **Keep constants separate**: Don't put fixed values in config
