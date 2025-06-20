@@ -28,7 +28,7 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
-//go:embed dist
+//go:embed all:dist
 var distFS embed.FS
 
 // DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown
