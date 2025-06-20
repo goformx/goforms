@@ -2,6 +2,7 @@ package server
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"net"
 	"net/http"
@@ -19,12 +20,10 @@ import (
 )
 
 const (
-	// DefaultReadHeaderTimeout is the default timeout for reading request headers
-	DefaultReadHeaderTimeout = 5 * time.Second
-	// DefaultShutdownTimeout is the default timeout for graceful shutdown
-	DefaultShutdownTimeout = 10 * time.Second
-	// DefaultStartupTimeout is the default timeout for server startup
-	DefaultStartupTimeout = 5 * time.Second
+	// StartupTimeout is the timeout for server startup
+	StartupTimeout = 5 * time.Second
+	// ShutdownTimeout is the timeout for graceful shutdown
+	ShutdownTimeout = 10 * time.Second
 )
 
 // Server handles HTTP server lifecycle and configuration
@@ -51,7 +50,10 @@ func (s *Server) Start() error {
 	s.server = &http.Server{
 		Addr:              addr,
 		Handler:           s.echo,
-		ReadHeaderTimeout: DefaultReadHeaderTimeout,
+		ReadTimeout:       s.config.App.ReadTimeout,
+		WriteTimeout:      s.config.App.WriteTimeout,
+		IdleTimeout:       s.config.App.IdleTimeout,
+		ReadHeaderTimeout: s.config.App.ReadTimeout,
 	}
 
 	// Create channels for server startup coordination
@@ -90,8 +92,8 @@ func (s *Server) Start() error {
 			"build_time", versionInfo.BuildTime,
 			"git_commit", versionInfo.GitCommit)
 		return nil
-	case <-time.After(DefaultStartupTimeout):
-		return fmt.Errorf("server startup timed out after %v", DefaultStartupTimeout)
+	case <-time.After(StartupTimeout):
+		return errors.New("server startup timed out after 5 seconds")
 	}
 }
 
@@ -142,11 +144,11 @@ func New(
 
 			srv.logger.Info("shutting down server")
 
-			shutdownCtx, cancel := context.WithTimeout(ctx, DefaultShutdownTimeout)
+			shutdownCtx, cancel := context.WithTimeout(ctx, ShutdownTimeout)
 			defer cancel()
 
 			if err := srv.server.Shutdown(shutdownCtx); err != nil {
-				srv.logger.Error("server shutdown error", "error", err, "timeout", DefaultShutdownTimeout)
+				srv.logger.Error("server shutdown error", "error", err, "timeout", ShutdownTimeout)
 				return fmt.Errorf("server shutdown error: %w", err)
 			}
 

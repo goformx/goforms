@@ -29,13 +29,15 @@ const (
 
 // Middleware provides context handling for HTTP requests
 type Middleware struct {
-	logger logging.Logger
+	logger         logging.Logger
+	requestTimeout time.Duration
 }
 
 // NewMiddleware creates a new context middleware
-func NewMiddleware(logger logging.Logger) *Middleware {
+func NewMiddleware(logger logging.Logger, requestTimeout time.Duration) *Middleware {
 	return &Middleware{
-		logger: logger,
+		logger:         logger,
+		requestTimeout: requestTimeout,
 	}
 }
 
@@ -51,7 +53,7 @@ func (m *Middleware) WithContext() echo.MiddlewareFunc {
 			}
 
 			// Create request context with timeout
-			ctx, cancel := context.WithTimeout(c.Request().Context(), RequestTimeout)
+			ctx, cancel := context.WithTimeout(c.Request().Context(), m.requestTimeout)
 			defer cancel()
 
 			// Add request ID and logger to context

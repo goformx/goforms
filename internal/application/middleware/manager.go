@@ -85,7 +85,7 @@ func NewManager(cfg *ManagerConfig) *Manager {
 	return &Manager{
 		logger:            cfg.Logger,
 		config:            cfg,
-		contextMiddleware: context.NewMiddleware(cfg.Logger),
+		contextMiddleware: context.NewMiddleware(cfg.Logger, cfg.Config.App.RequestTimeout),
 	}
 }
 

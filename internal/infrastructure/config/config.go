@@ -38,10 +38,10 @@ type AppConfig struct {
 	Scheme         string        `envconfig:"GOFORMS_APP_SCHEME" default:"http"`
 	Port           int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
-	ReadTimeout    time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
-	WriteTimeout   time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
-	IdleTimeout    time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
-	RequestTimeout time.Duration `envconfig:"GOFORMS_REQUEST_TIMEOUT" default:"30s"`
+	ReadTimeout    time.Duration `envconfig:"GOFORMS_APP_READ_TIMEOUT" default:"5s"`
+	WriteTimeout   time.Duration `envconfig:"GOFORMS_APP_WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout    time.Duration `envconfig:"GOFORMS_APP_IDLE_TIMEOUT" default:"120s"`
+	RequestTimeout time.Duration `envconfig:"GOFORMS_APP_REQUEST_TIMEOUT" default:"30s"`
 
 	// Development Settings
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
