@@ -197,7 +197,7 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 	}
 
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
-		TokenLength:    uint8(tokenLength),
+		TokenLength:    uint8(tokenLength), // #nosec G115
 		TokenLookup:    csrfConfig.TokenLookup,
 		ContextKey:     csrfConfig.ContextKey,
 		CookieName:     csrfConfig.CookieName,
