@@ -139,7 +139,26 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(CORS(m.config.Security))
 
 	// Register security middleware
-	e.Use(setupSecurityHeadersMiddleware())
+	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
+		XSSProtection:         "1; mode=block",
+		ContentTypeNosniff:    "nosniff",
+		XFrameOptions:         "DENY",
+		HSTSMaxAge:            HSTSOneYear,
+		HSTSExcludeSubdomains: false,
+		ContentSecurityPolicy: "default-src 'self'; " +
+			"script-src 'self' 'unsafe-inline'; " +
+			"style-src 'self' 'unsafe-inline'; " +
+			"img-src 'self' data:; " +
+			"font-src 'self'; " +
+			"connect-src 'self'; " +
+			"frame-ancestors 'none'; " +
+			"base-uri 'self'; " +
+			"form-action 'self'",
+	}))
+
+	// Add additional security headers not covered by Echo's Secure middleware
+	e.Use(setupAdditionalSecurityHeadersMiddleware())
+
 	if m.config.Security.CSRFConfig.Enabled {
 		e.Use(setupCSRF(&m.config.Security.CSRFConfig, m.config.Config.App.Env == "development"))
 	}
@@ -241,14 +260,11 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 	})
 }
 
-// setupSecurityHeadersMiddleware creates and configures security headers middleware
-func setupSecurityHeadersMiddleware() echo.MiddlewareFunc {
+// setupAdditionalSecurityHeadersMiddleware creates and configures additional security headers middleware
+func setupAdditionalSecurityHeadersMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Set security headers
-			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
-			c.Response().Header().Set("X-Frame-Options", "DENY")
-			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
+			// Add additional security headers not covered by Echo's Secure middleware
 			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
 			c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 
