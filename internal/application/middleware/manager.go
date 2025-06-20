@@ -216,6 +216,14 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 			path := c.Request().URL.Path
 			method := c.Request().Method
 
+			// Add debugging in development mode
+			if isDevelopment {
+				c.Logger().Debug("CSRF middleware processing request",
+					"path", path,
+					"method", method,
+					"token_lookup", csrfConfig.TokenLookup)
+			}
+
 			// Skip CSRF for static files
 			if constants.IsStaticFile(path) {
 				return true
@@ -248,6 +256,17 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 			}
 
 			return false
+		},
+		ErrorHandler: func(err error, c echo.Context) error {
+			// Add debugging in development mode
+			if isDevelopment {
+				c.Logger().Error("CSRF validation failed",
+					"error", err.Error(),
+					"path", c.Request().URL.Path,
+					"method", c.Request().Method,
+					"token_lookup", csrfConfig.TokenLookup)
+			}
+			return c.NoContent(http.StatusForbidden)
 		},
 	})
 }

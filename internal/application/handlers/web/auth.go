@@ -153,6 +153,21 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 
 // SignupPost handles the signup form submission
 func (h *AuthHandler) SignupPost(c echo.Context) error {
+	// Add debugging in development mode
+	if h.Config.App.IsDevelopment() {
+		c.Logger().Debug("Signup request received",
+			"content_type", c.Request().Header.Get("Content-Type"),
+			"method", c.Request().Method)
+
+		// Log form data
+		if err := c.Request().ParseForm(); err == nil {
+			c.Logger().Debug("Form data received",
+				"csrf_token", c.Request().FormValue("_csrf"),
+				"email", c.Request().FormValue("email"),
+				"has_password", c.Request().FormValue("password") != "")
+		}
+	}
+
 	signup, err := h.RequestParser.ParseSignup(c)
 	if err != nil {
 		h.Logger.Error("failed to parse signup request", "error", err)
