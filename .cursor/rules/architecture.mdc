@@ -6,117 +6,179 @@ alwaysApply: true
 # Architecture Guidelines
 
 ## Overview
-Here’s a revised “Overview” section that addresses your feedback:
-
----
-
-## Overview
 
 The application is structured in a layered architecture, dividing the codebase into four main layers:
-- domain
-- application
-- infrastructure
-- presentation.
+- **domain**: Business logic, entities, and domain services
+- **application**: HTTP handlers, middleware, and orchestration
+- **infrastructure**: External concerns like database, configuration, and web serving
+- **presentation**: Template rendering and view logic
 
-- The backend is implemented in Go, following a clean architecture pattern that separates business logic (domain), application services, infrastructure concerns (such as database and configuration), and presentation (such as template rendering).
-- The frontend is built with TypeScript and React, using component-based architecture, CSS modules for styling, and Vite as the build tool.
+The backend is implemented in Go, following a clean architecture pattern. The frontend uses vanilla TypeScript with templ templates, not React as previously documented.
 
 ## Directory Structure
 
 ```
 ├── internal/           # Backend code
 │   ├── domain/        # Domain layer
-│   │   ├── common/    # Shared domain code
-│   │   ├── form/      # Form domain
-│   │   └── user/      # User domain
+│   │   ├── common/    # Shared domain code (errors, events, interfaces)
+│   │   ├── entities/  # Core business objects
+│   │   ├── form/      # Form domain (models, services, repositories)
+│   │   └── user/      # User domain (services, repositories, types)
 │   ├── application/   # Application layer
-│   │   ├── handlers/  # HTTP handlers
-│   │   ├── middleware/# HTTP middleware
-│   │   └── response/  # Response handling
+│   │   ├── constants/ # Application constants
+│   │   ├── handlers/  # HTTP handlers (web, health)
+│   │   ├── middleware/# HTTP middleware (auth, access, session, etc.)
+│   │   ├── response/  # Response handling
+│   │   ├── services/  # Application services
+│   │   └── validation/# Request validation
 │   ├── infrastructure/# Infrastructure layer
-│   │   ├── config/    # Configuration
-│   │   ├── database/  # Database access
-│   │   └── logging/   # Logging
+│   │   ├── config/    # Configuration management
+│   │   ├── database/  # Database connections
+│   │   ├── event/     # Event system
+│   │   ├── health/    # Health checks
+│   │   ├── logging/   # Logging infrastructure
+│   │   ├── metrics/   # Metrics and monitoring
+│   │   ├── repository/# Repository implementations
+│   │   ├── sanitization/# Input sanitization
+│   │   ├── server/    # HTTP server setup
+│   │   ├── validation/# Validation infrastructure
+│   │   ├── version/   # Version information
+│   │   └── web/       # Asset serving and web utilities
 │   └── presentation/  # Presentation layer
-│       ├── templates/ # HTML templates
-│       └── view/      # View rendering
+│       ├── templates/ # HTML templates (templ)
+│       └── view/      # View rendering logic
 ├── src/               # Frontend code
-│   ├── js/           # JavaScript/TypeScript source
+│   ├── js/           # TypeScript source files
 │   ├── css/          # Stylesheets
 │   └── types/        # TypeScript type definitions
 ├── public/           # Static assets
-├── migrations/       # Database migrations
+├── migrations/       # Database migrations (PostgreSQL/MariaDB)
 └── test/            # Test files
+    ├── integration/ # Integration tests
+    └── mocks/       # Mock implementations
 ```
 
 ## Core Components
 
-1. Backend (Go)
-   - Domain Layer: Models and business logic
-   - Application Layer: HTTP handlers and middleware
-   - Infrastructure Layer: External services and persistence
-   - Presentation Layer: Template rendering and view logic
+### Backend (Go)
+- **Domain Layer**: Models, business logic, and domain services
+- **Application Layer**: HTTP handlers, middleware, and orchestration
+- **Infrastructure Layer**: External services, persistence, and configuration
+- **Presentation Layer**: Template rendering using templ
 
-2. Frontend (TypeScript/React)
-   - Modern component-based architecture
-   - Type-safe development with TypeScript
-   - CSS modules for styling
-   - Vite for build tooling
+### Frontend (TypeScript)
+- **Vanilla TypeScript**: No React framework, uses templ templates
+- **Type-safe development**: Strict TypeScript configuration
+- **CSS modules**: Component-specific styling
+- **Vite**: Build tool and development server
 
-## Best Practices
+## Dependency Injection
 
-1. Backend Development
-   - Use dependency injection
-   - Define clear interfaces
-   - Validate dependencies
-   - Follow Go best practices
+### Main Application Setup
+The application uses Uber FX for dependency injection, configured in [main.go](mdc:main.go):
 
-2. Frontend Development
-   - Use TypeScript for type safety
-   - Follow React best practices
-   - Implement responsive design
-   - Use CSS modules for styling
+```go
+app := fx.New(
+    infrastructure.Module,
+    domain.Module,
+    application.Module,
+    presentation.Module,
+    fx.Invoke(setupApplication),
+    fx.Invoke(setupLifecycle),
+)
+```
 
-3. Error Handling
-   - Use domain errors
-   - Log errors with context
-   - Return appropriate responses
-   - Handle frontend errors gracefully
+### Module Organization
+- **Infrastructure Module**: Core infrastructure providers (config, logger, DB, etc.)
+- **Domain Module**: Domain services and repositories
+- **Application Module**: Handlers and middleware
+- **Presentation Module**: Template renderers
 
-4. Configuration
-   - Use environment variables
-   - Validate configuration
-   - Provide defaults
-   - Separate frontend/backend configs
+## Entry Point
 
-5. Logging
-   - Use structured logging
-   - Include context
-   - Use appropriate levels
-   - Monitor frontend errors
+### Main Application
+The application entry point is [main.go](mdc:main.go) in the root directory.
+
+### Key Responsibilities
+- Dependency injection setup
+- Embedded filesystem configuration
+- Application lifecycle management
+- Server startup and shutdown
+
+## File Organization Patterns
+
+### Go Files
+- **Interfaces**: Defined in domain layer
+- **Implementations**: Located in infrastructure layer
+- **Services**: Business logic in domain, orchestration in application
+- **Handlers**: HTTP handling in application layer
+
+### Frontend Files
+- **TypeScript**: Modular TypeScript files in `src/js/`
+- **Styles**: CSS files in `src/css/`
+- **Types**: TypeScript definitions in `src/types/`
+- **Templates**: HTML templates using templ in `internal/presentation/templates/`
+
+## Configuration Management
+
+### Environment Configuration
+Configuration is centralized in [internal/infrastructure/config/config.go](mdc:internal/infrastructure/config/config.go) using environment variables with `GOFORMS_` prefix.
+
+### Key Configuration Areas
+- **Database**: Connection settings and migrations
+- **Server**: Host, port, and server configuration
+- **Assets**: Development vs production asset serving
+- **Security**: Session, CSRF, and security settings
+
+## Database Architecture
+
+### Migration System
+Database migrations are located in [migrations/](mdc:migrations) with support for both PostgreSQL and MariaDB.
+
+### Repository Pattern
+- **Interfaces**: Defined in domain layer
+- **Implementations**: Located in infrastructure layer
+- **Common Patterns**: Pagination, error handling, and transaction management
+
+## Security Architecture
+
+### Authentication & Authorization
+- **Session Management**: Secure session handling
+- **Middleware**: Authentication and access control middleware
+- **CSRF Protection**: Cross-site request forgery protection
+
+### Asset Security
+- **Content Security Policy**: Security headers for static assets
+- **Secure Headers**: X-Frame-Options, X-Content-Type-Options, etc.
 
 ## Development Workflow
 
-1. Backend Development
-   - Write tests first
-   - Follow Go idioms
-   - Use dependency injection
-   - Document APIs
+### Local Development
+1. **Backend**: Hot reload with Air
+2. **Frontend**: Vite dev server with HMR
+3. **Database**: Local PostgreSQL/MariaDB with migrations
 
-2. Frontend Development
-   - Use TypeScript
-   - Write component tests
-   - Follow React patterns
-   - Use CSS modules
+### Production Deployment
+1. **Build**: Frontend assets built to `dist/`
+2. **Embed**: Assets embedded into Go binary
+3. **Deploy**: Single binary deployment
 
-3. Testing
-   - Unit tests for both layers
-   - Integration tests
-   - E2E tests
-   - Performance testing
+## Best Practices
 
-4. Deployment
-   - Docker containers
-   - CI/CD pipeline
-   - Environment configuration
-   - Monitoring setup
+### Code Organization
+1. **Layer Separation**: Maintain clear boundaries between layers
+2. **Dependency Direction**: Dependencies point inward toward domain
+3. **Interface Segregation**: Define interfaces in domain, implement in infrastructure
+4. **Error Handling**: Use domain-specific errors throughout
+
+### Development Practices
+1. **Dependency Injection**: Use FX for all dependencies
+2. **Configuration**: Centralize configuration management
+3. **Logging**: Use structured logging with context
+4. **Testing**: Unit tests for each layer
+
+### Asset Management
+1. **Development**: Use Vite dev server for hot reload
+2. **Production**: Embed assets for single binary deployment
+3. **Versioning**: Use asset hashing for cache busting
+4. **Security**: Apply security headers to all assets

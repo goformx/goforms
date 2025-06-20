@@ -5,60 +5,318 @@ alwaysApply: false
 ---
 # Database Guidelines
 
-This project uses PostgreSQL with GORM for database operations. See [internal/infrastructure/database/gorm.go](mdc:goforms/internal/infrastructure/database/gorm.go) for implementation details.
+This project uses GORM with PostgreSQL/MariaDB for database operations. See [internal/infrastructure/database/gorm.go](mdc:internal/infrastructure/database/gorm.go) for implementation details.
 
 ## Core Components
 
-1. **Database Connection**
-   - Uses GORM with PostgreSQL
-   - Implements connection pooling
-   - Configures prepared statements
-   - Includes query logging
+### Database Connection
+- Uses GORM with PostgreSQL/MariaDB support
+- Implements connection pooling
+- Configures prepared statements
+- Includes query logging
+- Supports multiple database types
 
-2. **Store Implementation**
-   - Uses repository pattern
-   - Implements context-aware operations
-   - Handles domain errors
-   - Uses GORM's query builder
+### Store Implementation
+- Uses repository pattern
+- Implements context-aware operations
+- Handles domain errors
+- Uses GORM's query builder
+- Supports both PostgreSQL and MariaDB
+
+## Database Configuration
+
+### Environment Variables
+```bash
+# Database type (postgres, mariadb, sqlite)
+GOFORMS_DB_CONNECTION=postgres
+
+# Database connection string
+GOFORMS_DB_DSN=postgres://username:password@localhost:5432/goforms
+
+# Connection pool settings
+GOFORMS_DB_MAX_OPEN=25
+GOFORMS_DB_MAX_IDLE=5
+GOFORMS_DB_TIMEOUT=5
+```
+
+### Supported Databases
+1. **PostgreSQL**: Primary production database
+2. **MariaDB**: Alternative production database
+3. **SQLite**: Development and testing
 
 ## Best Practices
 
-1. **Context Usage**
-   ```go
-   // Always use context-aware methods
-   db.WithContext(ctx).First(&user)
-   db.WithContext(ctx).Create(&user)
-   db.WithContext(ctx).Updates(&user)
-   ```
+### Context Usage
+```go
+// Always use context-aware methods
+db.WithContext(ctx).First(&user)
+db.WithContext(ctx).Create(&user)
+db.WithContext(ctx).Updates(&user)
+db.WithContext(ctx).Delete(&user)
+```
 
-2. **Error Handling**
-   ```go
-   if errors.Is(err, gorm.ErrRecordNotFound) {
-       return nil, domain.ErrNotFound
-   }
-   ```
+### Error Handling
+```go
+// Handle GORM errors and convert to domain errors
+if errors.Is(err, gorm.ErrRecordNotFound) {
+    return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "record not found", err)
+}
 
-3. **Model Organization**
-   ```go
-   type User struct {
-       gorm.Model
-       Email    string `gorm:"uniqueIndex;not null" validate:"required,email"`
-       Password string `gorm:"not null" validate:"required"`
-   }
-   ```
+if err != nil {
+    return nil, domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "database operation failed")
+}
+```
+
+### Model Organization
+```go
+type User struct {
+    gorm.Model
+    UUID      string    `gorm:"type:varchar(36);primaryKey;default:gen_random_uuid()"`
+    Email     string    `gorm:"uniqueIndex;not null" validate:"required,email"`
+    Password  string    `gorm:"not null" validate:"required"`
+    Name      string    `gorm:"not null" validate:"required"`
+    CreatedAt time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+    UpdatedAt time.Time `gorm:"not null;default:CURRENT_TIMESTAMP"`
+    DeletedAt gorm.DeletedAt `gorm:"index"`
+}
+```
+
+### Repository Pattern
+```go
+type Repository interface {
+    Create(ctx context.Context, entity *Entity) error
+    FindByID(ctx context.Context, id string) (*Entity, error)
+    Update(ctx context.Context, entity *Entity) error
+    Delete(ctx context.Context, id string) error
+    List(ctx context.Context, filters ...Filter) ([]*Entity, error)
+}
+```
 
 ## GORM Features
 
-1. **Hooks**
-   - BeforeCreate
-   - AfterCreate
-   - BeforeUpdate
-   - AfterUpdate
-   - BeforeDelete
-   - AfterDelete
+### Hooks
+```go
+type Form struct {
+    gorm.Model
+    // ... fields
+}
 
-2. **Query Builder**
-   - Where conditions
-   - Joins
-   - Preloading
-   - Scopes
+func (f *Form) BeforeCreate(tx *gorm.DB) error {
+    if f.UUID == "" {
+        f.UUID = uuid.New().String()
+    }
+    return nil
+}
+
+func (f *Form) AfterCreate(tx *gorm.DB) error {
+    // Publish domain event
+    return nil
+}
+```
+
+### Query Builder
+```go
+// Where conditions
+db.Where("status = ?", "active").Find(&forms)
+
+// Joins
+db.Joins("JOIN users ON forms.user_id = users.uuid").Find(&forms)
+
+// Preloading
+db.Preload("User").Preload("Submissions").Find(&forms)
+
+// Scopes
+db.Scopes(ActiveForms, UserForms(userID)).Find(&forms)
+```
+
+### Scopes
+```go
+func ActiveForms(db *gorm.DB) *gorm.DB {
+    return db.Where("status = ?", "active")
+}
+
+func UserForms(userID string) func(db *gorm.DB) *gorm.DB {
+    return func(db *gorm.DB) *gorm.DB {
+        return db.Where("user_id = ?", userID)
+    }
+}
+```
+
+## Database Testing
+
+### Testing Patterns
+
+#### Mocking Database Connections
+```go
+// Use test-specific wrapper for configuration
+type testGormDB struct {
+    *GormDB
+    tickerDuration time.Duration
+}
+```
+
+#### Logger Expectations
+```go
+mockLogger.EXPECT().
+    Debug(gomock.Any(), gomock.Any()).
+    AnyTimes()
+```
+
+#### Test Timeouts
+```go
+ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+defer cancel()
+```
+
+### Test Structure
+```go
+func TestDatabaseOperation(t *testing.T) {
+    // 1. Setup
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
+    
+    // 2. Create mocks
+    mockLogger := mocklogging.NewMockLogger(ctrl)
+    
+    // 3. Set expectations
+    mockLogger.EXPECT().
+        Debug(gomock.Any(), gomock.Any()).
+        AnyTimes()
+    
+    // 4. Create test instance
+    db := &testGormDB{
+        GormDB: &GormDB{
+            DB:     gormDB,
+            logger: mockLogger,
+        },
+        tickerDuration: testTickerDuration,
+    }
+    
+    // 5. Run test
+    ctx, cancel := context.WithTimeout(context.Background(), 100*time.Millisecond)
+    defer cancel()
+    
+    // 6. Verify results
+    // ... assertions ...
+}
+```
+
+### Test Helpers
+```go
+// Database test setup
+func setupTestDB(t *testing.T) *gorm.DB {
+    db, err := gorm.Open(sqlite.Open(":memory:"), &gorm.Config{})
+    require.NoError(t, err)
+    
+    // Run migrations
+    err = db.AutoMigrate(&Form{}, &User{}, &FormSubmission{})
+    require.NoError(t, err)
+    
+    return db
+}
+
+// Test cleanup
+func cleanupTestData(t *testing.T, db *gorm.DB) {
+    db.Exec("DELETE FROM forms")
+    db.Exec("DELETE FROM users")
+    db.Exec("DELETE FROM form_submissions")
+}
+```
+
+## Best Practices
+
+### Test Isolation
+- Use test-specific wrappers instead of modifying package variables
+- Each test should have its own configuration
+- Clean up resources with `defer`
+
+### Mocking Strategy
+- Use `go.uber.org/mock/gomock` for mocking
+- Mock interfaces, not implementations
+- Set up expectations before running the test
+
+### Timing Control
+- Use short durations for testing (e.g., 10ms)
+- Use context timeouts to prevent hanging tests
+- Wait for expected operations to complete
+
+### Error Handling
+- Test both success and error cases
+- Verify error messages and types
+- Clean up resources in error cases
+
+## Common Pitfalls
+
+### Avoid Package Variable Modification
+- Don't modify package variables in tests
+- Use test-specific configuration instead
+
+### Resource Cleanup
+- Always use `defer` for cleanup
+- Cancel contexts after tests
+- Close database connections
+
+### Timing Issues
+- Don't rely on exact timing
+- Use appropriate timeouts
+- Wait for expected operations
+
+### Mock Expectations
+- Set up all expected calls
+- Use `AnyTimes()` for debug logs
+- Verify important calls with `Times(n)`
+
+## Migration System
+
+### Migration Structure
+Database migrations are located in [migrations/](mdc:migrations) with support for both PostgreSQL and MariaDB.
+
+### Migration Patterns
+```sql
+-- PostgreSQL
+CREATE TABLE IF NOT EXISTS forms (
+    uuid VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    schema JSON NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+);
+
+-- MariaDB
+CREATE TABLE IF NOT EXISTS forms (
+    uuid VARCHAR(36) PRIMARY KEY,
+    user_id VARCHAR(36) NOT NULL,
+    title VARCHAR(255) NOT NULL,
+    description TEXT,
+    schema JSON NOT NULL,
+    active BOOLEAN NOT NULL DEFAULT true,
+    status VARCHAR(20) NOT NULL DEFAULT 'draft',
+    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+    deleted_at TIMESTAMP NULL,
+    FOREIGN KEY (user_id) REFERENCES users (uuid) ON DELETE CASCADE
+);
+```
+
+## Performance Considerations
+
+### Connection Pooling
+- Configure appropriate pool sizes
+- Monitor connection usage
+- Set proper timeouts
+
+### Query Optimization
+- Use indexes appropriately
+- Avoid N+1 queries with preloading
+- Use pagination for large datasets
+
+### Monitoring
+- Log slow queries
+- Monitor connection pool usage
+- Track query performance
