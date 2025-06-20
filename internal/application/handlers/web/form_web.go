@@ -4,16 +4,24 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/validation"
+	"github.com/goformx/goforms/internal/domain/common/types"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/labstack/echo/v4"
+)
+
+// Default CORS settings for forms
+const (
+	DefaultCorsMethods = "GET,POST,OPTIONS"
+	DefaultCorsHeaders = "Content-Type,Accept,Origin"
 )
 
 // FormWebHandler handles web UI form operations
@@ -41,7 +49,7 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Acce
 	forms.GET("/new", h.handleNew)
 	forms.POST("", h.handleCreate)
 	forms.GET("/:id/edit", h.handleEdit)
-	forms.PUT("/:id", h.handleUpdate)
+	forms.POST("/:id/edit", h.handleUpdate)
 	forms.DELETE("/:id", h.handleDelete)
 	forms.GET("/:id/submissions", h.handleSubmissions)
 }
@@ -85,13 +93,13 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 
 	// CORS config (comma-separated values from form input)
 	corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins"))
-	corsMethods := h.Sanitizer.String(c.FormValue("cors_methods"))
-	corsHeaders := h.Sanitizer.String(c.FormValue("cors_headers"))
 
 	// Parse comma-separated values into string slices
-	origins := parseCSV(corsOrigins)
-	methods := parseCSV(corsMethods)
-	headers := parseCSV(corsHeaders)
+	origins := types.StringArray(parseCSV(corsOrigins))
+
+	// Use sensible defaults for methods and headers
+	methods := types.StringArray(parseCSV(DefaultCorsMethods))
+	headers := types.StringArray(parseCSV(DefaultCorsHeaders))
 
 	// Create a valid initial schema
 	schema := model.JSON{
@@ -134,6 +142,13 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 		return err
 	}
 
+	// Debug logging for form data
+	h.Logger.Debug("Form edit page loaded",
+		"form_id", form.ID,
+		"form_title", form.Title,
+		"form_status", form.Status,
+	)
+
 	data := h.BuildPageData(c, "Edit Form")
 	data.User = user
 	data.Form = form
@@ -153,17 +168,34 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return err
 	}
 
+	// Debug logging for form submission
+	h.Logger.Debug("Form update request received",
+		"path", c.Request().URL.Path,
+		"method", c.Request().Method,
+		"content_type", c.Request().Header.Get("Content-Type"),
+		"csrf_token_form", c.FormValue("_csrf"),
+		"csrf_token_header", c.Request().Header.Get("X-CSRF-Token"),
+		"csrf_token_header_lower", c.Request().Header.Get("X-Csrf-Token"),
+	)
+
 	// Update form fields
 	form.Title = h.Sanitizer.String(c.FormValue("title"))
 	form.Description = h.Sanitizer.String(c.FormValue("description"))
+	form.Status = h.Sanitizer.String(c.FormValue("status"))
 
 	// CORS config (comma-separated values from form input)
 	corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins"))
-	corsMethods := h.Sanitizer.String(c.FormValue("cors_methods"))
-	corsHeaders := h.Sanitizer.String(c.FormValue("cors_headers"))
-	form.CorsOrigins = parseCSV(corsOrigins)
-	form.CorsMethods = parseCSV(corsMethods)
-	form.CorsHeaders = parseCSV(corsHeaders)
+
+	// Parse comma-separated values into string slices
+	origins := types.StringArray(parseCSV(corsOrigins))
+
+	// Use sensible defaults for methods and headers
+	methods := types.StringArray(parseCSV(DefaultCorsMethods))
+	headers := types.StringArray(parseCSV(DefaultCorsHeaders))
+
+	form.CorsOrigins = origins
+	form.CorsMethods = methods
+	form.CorsHeaders = headers
 
 	err = h.FormService.UpdateForm(c.Request().Context(), form)
 	if err != nil {
@@ -171,7 +203,12 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to update form")
 	}
 
-	return c.Redirect(constants.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+	// Return success response instead of redirect
+	return c.JSON(http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Form updated successfully",
+		"form_id": form.ID,
+	})
 }
 
 func (h *FormWebHandler) handleDelete(c echo.Context) error {

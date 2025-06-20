@@ -5,13 +5,11 @@ import (
 	"io"
 	"net/http"
 	"os"
-	"strconv"
 	"strings"
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
 	"github.com/labstack/gommon/log"
-	"golang.org/x/time/rate"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
@@ -138,14 +136,14 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Use(echomw.Logger())
 	}
 	e.Use(echomw.Recover())
-	e.Use(setupCORS(m.config.Security))
+	e.Use(CORS(m.config.Security))
 
 	// Register security middleware
 	e.Use(setupSecurityHeadersMiddleware())
 	if m.config.Security.CSRFConfig.Enabled {
 		e.Use(setupCSRF(&m.config.Security.CSRFConfig, m.config.Config.App.Env == "development"))
 	}
-	e.Use(setupRateLimiter(m.config.Security))
+	e.Use(RateLimiter(m.config.Security))
 
 	// Register session middleware
 	m.logger.Info("registering session middleware",
@@ -239,45 +237,6 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 			}
 
 			return false
-		},
-	})
-}
-
-// setupRateLimiter creates and configures rate limiter middleware
-func setupRateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
-	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
-		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
-			echomw.RateLimiterMemoryStoreConfig{
-				Rate:      rate.Limit(securityConfig.RateLimit),
-				Burst:     securityConfig.RateBurst,
-				ExpiresIn: securityConfig.RateLimitTimeWindow,
-			},
-		),
-		IdentifierExtractor: func(c echo.Context) (string, error) {
-			// For login and signup pages, use IP address as identifier
-			path := c.Request().URL.Path
-			if path == "/login" || path == "/signup" {
-				return c.RealIP(), nil
-			}
-
-			// For form submissions, use form ID and origin
-			formID := c.Param("formID")
-			origin := c.Request().Header.Get("Origin")
-			if formID == "" {
-				formID = "unknown"
-			}
-			if origin == "" {
-				origin = "unknown"
-			}
-			return fmt.Sprintf("%s:%s", formID, origin), nil
-		},
-		ErrorHandler: func(c echo.Context, err error) error {
-			return echo.NewHTTPError(http.StatusTooManyRequests,
-				"Rate limit exceeded: too many requests from the same form or origin")
-		},
-		DenyHandler: func(c echo.Context, identifier string, err error) error {
-			return echo.NewHTTPError(http.StatusTooManyRequests,
-				"Rate limit exceeded: please try again later")
 		},
 	})
 }
@@ -458,80 +417,4 @@ func (l *EchoLogger) SetOutput(w io.Writer) {
 
 func (l *EchoLogger) Output() io.Writer {
 	return os.Stdout
-}
-
-func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
-	return func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			method := c.Request().Method
-
-			// Use general CORS settings for all endpoints
-			// Form-specific CORS will be implemented when the dashboard is ready
-			config := &corsConfig{
-				allowedOrigins:   securityConfig.CorsAllowedOrigins,
-				allowedMethods:   securityConfig.CorsAllowedMethods,
-				allowedHeaders:   securityConfig.CorsAllowedHeaders,
-				allowCredentials: securityConfig.CorsAllowCredentials,
-				maxAge:           securityConfig.CorsMaxAge,
-			}
-
-			// Handle preflight requests
-			if method == "OPTIONS" {
-				return handlePreflightRequest(c, config)
-			}
-
-			// Handle actual requests
-			return handleActualRequest(c, config, next)
-		}
-	}
-}
-
-// corsConfig holds CORS configuration
-type corsConfig struct {
-	allowedOrigins   []string
-	allowedMethods   []string
-	allowedHeaders   []string
-	allowCredentials bool
-	maxAge           int
-}
-
-// handlePreflightRequest handles OPTIONS requests
-func handlePreflightRequest(c echo.Context, config *corsConfig) error {
-	origin := c.Request().Header.Get("Origin")
-
-	if isOriginAllowed(origin, config.allowedOrigins) {
-		c.Response().Header().Set("Access-Control-Allow-Origin", origin)
-		c.Response().Header().Set("Access-Control-Allow-Methods", strings.Join(config.allowedMethods, ","))
-		c.Response().Header().Set("Access-Control-Allow-Headers", strings.Join(config.allowedHeaders, ","))
-		if config.allowCredentials {
-			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
-		}
-		c.Response().Header().Set("Access-Control-Max-Age", strconv.Itoa(config.maxAge))
-		return c.NoContent(http.StatusNoContent)
-	}
-
-	return c.NoContent(http.StatusNoContent)
-}
-
-// handleActualRequest handles actual requests (non-OPTIONS)
-func handleActualRequest(c echo.Context, config *corsConfig, next echo.HandlerFunc) error {
-	origin := c.Request().Header.Get("Origin")
-	if origin != "" && isOriginAllowed(origin, config.allowedOrigins) {
-		c.Response().Header().Set("Access-Control-Allow-Origin", origin)
-		if config.allowCredentials {
-			c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
-		}
-	}
-
-	return next(c)
-}
-
-// isOriginAllowed checks if the origin is in the allowed origins list
-func isOriginAllowed(origin string, allowedOrigins []string) bool {
-	for _, allowedOrigin := range allowedOrigins {
-		if allowedOrigin == "*" || allowedOrigin == origin {
-			return true
-		}
-	}
-	return false
 }
