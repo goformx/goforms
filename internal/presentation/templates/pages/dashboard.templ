@@ -3,10 +3,10 @@ package pages
 import (
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ Dashboard(data shared.PageData, forms []*model.Form) {
+templ Dashboard(data view.PageData, forms []*model.Form) {
 	@layouts.Layout(data, DashboardContent(forms))
 }
 

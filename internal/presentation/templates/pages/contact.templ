@@ -2,14 +2,14 @@ package pages
 
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ Contact(data shared.PageData) {
+templ Contact(data view.PageData) {
 	@layouts.Layout(data, contactContent(data))
 }
 
-templ contactContent(data shared.PageData) {
+templ contactContent(data view.PageData) {
 	<div class="contact-page">
 		<div class="contact-container">
 			<div class="contact-card">

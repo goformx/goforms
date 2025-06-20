@@ -2,14 +2,14 @@ package pages
 
 import (
 "github.com/goformx/goforms/internal/presentation/templates/layouts"
-"github.com/goformx/goforms/internal/presentation/templates/shared"
+"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ NewForm(data shared.PageData) {
+templ NewForm(data view.PageData) {
 @layouts.Layout(data, newFormContent(data))
 }
 
-templ newFormContent(data shared.PageData) {
+templ newFormContent(data view.PageData) {
 <div class="form-page">
 	<div class="form-content">
 		<div class="form-container">

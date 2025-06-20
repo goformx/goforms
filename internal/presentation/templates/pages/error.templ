@@ -2,14 +2,14 @@ package pages
 
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ Error(data shared.PageData) {
+templ Error(data view.PageData) {
 	@layouts.Layout(data, ErrorContent(data))
 }
 
-templ ErrorContent(data shared.PageData) {
+templ ErrorContent(data view.PageData) {
 	<div class="error-page">
 		<i class="bi bi-exclamation-circle"></i>
 		<h1>Error</h1>

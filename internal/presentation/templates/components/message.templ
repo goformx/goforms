@@ -1,14 +1,15 @@
 package components
 
 import (
-"github.com/goformx/goforms/internal/presentation/templates/shared"
-"fmt"
+	"fmt"
+
+	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ Message(data shared.PageData) {
+templ Message(data view.PageData) {
 if data.Message != nil {
 <div class={ fmt.Sprintf("message-area %s", data.Message.Type) }>
-	<i class={ fmt.Sprintf("bi bi-%s", shared.GetMessageIcon(data.Message.Type)) }></i>
+	<i class={ fmt.Sprintf("bi bi-%s", view.GetMessageIcon(data.Message.Type)) }></i>
 	<span>{ data.Message.Text }</span>
 </div>
 }

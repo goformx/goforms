@@ -2,14 +2,14 @@ package pages
 
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ Forms(data shared.PageData) {
+templ Forms(data view.PageData) {
 	@layouts.Layout(data, formsContent(data))
 }
 
-templ formsContent(data shared.PageData) {
+templ formsContent(data view.PageData) {
 	<div class="dashboard-content">
 		<div class="dashboard-header">
 			<h1>Forms</h1>

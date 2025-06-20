@@ -4,7 +4,6 @@ import (
 	"net/http"
 
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
@@ -25,8 +24,8 @@ func (b *AuthResponseBuilder) AJAXError(c echo.Context, status int, message stri
 }
 
 // HTMLFormError renders the form page with an error message
-func (b *AuthResponseBuilder) HTMLFormError(c echo.Context, page string, data shared.PageData, message string) error {
-	data.Message = &shared.Message{
+func (b *AuthResponseBuilder) HTMLFormError(c echo.Context, page string, data view.PageData, message string) error {
+	data.Message = &view.Message{
 		Type: "error",
 		Text: message,
 	}

@@ -1,4 +1,4 @@
-package shared
+package view
 
 import (
 	"github.com/a-h/templ"
@@ -134,4 +134,19 @@ func (p *PageData) GetUser() *entities.User {
 // SetUser sets the current user
 func (p *PageData) SetUser(user *entities.User) {
 	p.User = user
+}
+
+func GetMessageIcon(msgType string) string {
+	switch msgType {
+	case "success":
+		return "check-circle"
+	case "error":
+		return "exclamation-triangle"
+	case "info":
+		return "info-circle"
+	case "warning":
+		return "exclamation-circle"
+	default:
+		return "info-circle"
+	}
 }

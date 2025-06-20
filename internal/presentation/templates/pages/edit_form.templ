@@ -3,7 +3,7 @@ package pages
 import (
 "github.com/goformx/goforms/internal/domain/form/model"
 "github.com/goformx/goforms/internal/presentation/templates/layouts"
-"github.com/goformx/goforms/internal/presentation/templates/shared"
+"github.com/goformx/goforms/internal/presentation/view"
 "strings"
 )
 
@@ -27,17 +27,17 @@ templ FormFieldGroup(label string, id string, input templ.Component, errorId str
 </div>
 }
 
-templ FormTitleInput(data shared.PageData) {
+templ FormTitleInput(data view.PageData) {
 <input type="text" id="title" name="title" required class="gf-input" value={ data.Form.Title }
 	placeholder="Enter form title" />
 }
 
-templ FormDescriptionInput(data shared.PageData) {
+templ FormDescriptionInput(data view.PageData) {
 <textarea id="description" name="description" rows="3" class="gf-input"
 	placeholder="Enter form description">{ data.Form.Description }</textarea>
 }
 
-templ FormDetailsContent(data shared.PageData) {
+templ FormDetailsContent(data view.PageData) {
 <form id="edit-form" class="auth-form" method="POST" data-validate="editForm">
 	<input type="hidden" name="_csrf" value={ data.CSRFToken } />
 	<div id="form_error" class="form-error"></div>
@@ -50,7 +50,7 @@ templ FormDetailsContent(data shared.PageData) {
 </form>
 }
 
-templ FormFieldsContent(data shared.PageData) {
+templ FormFieldsContent(data view.PageData) {
 <div class="formio-form-builder">
 	<div class="form-fields-toolbar">
 		<!-- Removed search input -->
@@ -71,11 +71,11 @@ templ FormFieldsContent(data shared.PageData) {
 </div>
 }
 
-templ EditForm(data shared.PageData, form *model.Form) {
+templ EditForm(data view.PageData, form *model.Form) {
 @layouts.Layout(data, editFormContent(data, form))
 }
 
-templ editFormContent(data shared.PageData, form *model.Form) {
+templ editFormContent(data view.PageData, form *model.Form) {
 <div class="dashboard-page">
 	<meta name="csrf-token" content={ data.CSRFToken } />
 	<div class="dashboard-container">

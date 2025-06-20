@@ -3,14 +3,14 @@ package pages
 import (
 "github.com/goformx/goforms/internal/presentation/templates/layouts"
 "github.com/goformx/goforms/internal/presentation/templates/components"
-"github.com/goformx/goforms/internal/presentation/templates/shared"
+"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ Login(data shared.PageData) {
+templ Login(data view.PageData) {
 @layouts.Layout(data, loginContent(data))
 }
 
-templ loginContent(data shared.PageData) {
+templ loginContent(data view.PageData) {
 <div class="form-page">
 	<div class="form-content">
 		@components.Message(data)
@@ -52,15 +52,15 @@ templ loginContent(data shared.PageData) {
 </div>
 }
 
-templ LoginPage(data shared.PageData) {
+templ LoginPage(data view.PageData) {
 @components.LoginForm(data)
 }
 
-templ LoginWithError(data shared.PageData, errorMessage string) {
+templ LoginWithError(data view.PageData, errorMessage string) {
 @layouts.Layout(data, loginContentWithError(data, errorMessage))
 }
 
-templ loginContentWithError(data shared.PageData, errorMessage string) {
+templ loginContentWithError(data view.PageData, errorMessage string) {
 <div class="auth-page">
 	<div class="auth-content">
 		<div class="auth-container">

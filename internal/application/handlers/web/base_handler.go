@@ -14,7 +14,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
@@ -71,8 +70,8 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 }
 
 // BuildPageData creates page data with common fields
-func (h *BaseHandler) BuildPageData(c echo.Context, title string) shared.PageData {
-	return shared.BuildPageData(h.Config, h.AssetManager, c, title)
+func (h *BaseHandler) BuildPageData(c echo.Context, title string) view.PageData {
+	return view.BuildPageData(h.Config, h.AssetManager, c, title)
 }
 
 // HandleError handles common error scenarios

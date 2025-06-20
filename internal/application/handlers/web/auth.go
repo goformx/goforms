@@ -13,7 +13,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
 )
 
@@ -90,7 +90,7 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, h.AssetManager, c, "Login")
+	data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
 	}
@@ -116,7 +116,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
 		}
-		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Login")
+		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -128,7 +128,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials)
 		}
-		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Login")
+		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
 	}
 
@@ -144,7 +144,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
-	data := shared.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+	data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
 	}
@@ -159,7 +159,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
 		}
-		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -171,7 +171,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, "Unable to create account. Please try again.")
 		}
-		data := shared.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 		return h.ResponseBuilder.HTMLFormError(c, "signup", data, "Unable to create account. Please try again.")
 	}
 

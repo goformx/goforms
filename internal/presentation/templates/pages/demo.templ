@@ -3,10 +3,10 @@ package pages
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
 	"github.com/goformx/goforms/internal/presentation/templates/components"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-templ Demo(data shared.PageData) {
+templ Demo(data view.PageData) {
 	@layouts.Layout(data, DemoContent(data))
 }
 
@@ -51,7 +51,7 @@ templ SubmissionsContent() {
 	</div>
 }
 
-templ DemoContent(data shared.PageData) {
+templ DemoContent(data view.PageData) {
 	@components.PageHero("Form Backend Demo", "See how easy it is to add Goforms to your website. No backend code required!")
 	<section class="grid-section">
 		<div class="container">
