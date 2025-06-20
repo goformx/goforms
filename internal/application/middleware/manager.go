@@ -466,8 +466,8 @@ func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 			method := c.Request().Method
 
 			// Use general CORS settings for all endpoints
-			// Form-specific CORS will be handled by the dashboard/form configuration
-			corsConfig := &corsConfig{
+			// Form-specific CORS will be implemented when the dashboard is ready
+			config := &corsConfig{
 				allowedOrigins:   securityConfig.CorsAllowedOrigins,
 				allowedMethods:   securityConfig.CorsAllowedMethods,
 				allowedHeaders:   securityConfig.CorsAllowedHeaders,
@@ -477,11 +477,11 @@ func setupCORS(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 
 			// Handle preflight requests
 			if method == "OPTIONS" {
-				return handlePreflightRequest(c, corsConfig)
+				return handlePreflightRequest(c, config)
 			}
 
 			// Handle actual requests
-			return handleActualRequest(c, corsConfig, next)
+			return handleActualRequest(c, config, next)
 		}
 	}
 }

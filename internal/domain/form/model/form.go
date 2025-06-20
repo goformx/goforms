@@ -62,6 +62,11 @@ type Form struct {
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 	Fields      []Field        `json:"fields" gorm:"foreignKey:FormID"`
 	Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
+
+	// CORS settings for form embedding
+	CorsOrigins []string `json:"cors_origins" gorm:"type:json;default:'[]'"`
+	CorsMethods []string `json:"cors_methods" gorm:"type:json;default:'[\"GET\",\"POST\",\"OPTIONS\"]'"`
+	CorsHeaders []string `json:"cors_headers" gorm:"type:json;default:'[\"Content-Type\",\"Accept\",\"Origin\"]'"`
 }
 
 // GetID returns the form's ID
@@ -165,6 +170,9 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
+		CorsOrigins: []string{},
+		CorsMethods: []string{"GET", "POST", "OPTIONS"},
+		CorsHeaders: []string{"Content-Type", "Accept", "Origin"},
 	}
 }
 
@@ -293,4 +301,36 @@ func (f *Form) Deactivate() {
 func (f *Form) Activate() {
 	f.Active = true
 	f.UpdatedAt = time.Now()
+}
+
+// GetCorsConfig returns the CORS configuration for this form
+func (f *Form) GetCorsConfig() (origins, methods, headers []string) {
+	// Use form-specific CORS settings if available, otherwise use defaults
+	if len(f.CorsOrigins) > 0 {
+		origins = f.CorsOrigins
+	} else {
+		// Default to allowing all origins if none specified
+		origins = []string{"*"}
+	}
+
+	if len(f.CorsMethods) > 0 {
+		methods = f.CorsMethods
+	} else {
+		methods = []string{"GET", "POST", "OPTIONS"}
+	}
+
+	if len(f.CorsHeaders) > 0 {
+		headers = f.CorsHeaders
+	} else {
+		headers = []string{"Content-Type", "Accept", "Origin"}
+	}
+
+	return origins, methods, headers
+}
+
+// SetCorsConfig sets the CORS configuration for this form
+func (f *Form) SetCorsConfig(origins, methods, headers []string) {
+	f.CorsOrigins = origins
+	f.CorsMethods = methods
+	f.CorsHeaders = headers
 }
