@@ -28,7 +28,7 @@ func TestManager_SetsCSPHeader(t *testing.T) {
 		return c.String(http.StatusOK, "ok")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 

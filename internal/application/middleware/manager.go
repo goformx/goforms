@@ -12,6 +12,7 @@ import (
 	"github.com/labstack/gommon/log"
 	"golang.org/x/time/rate"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
@@ -21,23 +22,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/version"
-)
-
-const (
-	// NonceSize is the size of the nonce in bytes (32 bytes = 256 bits)
-	NonceSize = 32
-	// HSTSOneYear is the number of seconds in one year
-	HSTSOneYear = 31536000
-	// DefaultTokenLength is the default length for generated tokens
-	DefaultTokenLength = 32
-	// RateLimitBurst is the number of requests allowed in a burst
-	RateLimitBurst = 5
-	// DefaultRateLimit is the default number of requests allowed per second
-	DefaultRateLimit = 20
-	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
-	CookieMaxAge = 86400
-	// FieldPairSize represents the number of elements in a key-value pair
-	FieldPairSize = 2
 )
 
 // Manager handles middleware configuration and setup
@@ -50,10 +34,9 @@ type Manager struct {
 // ManagerConfig represents the configuration for the middleware manager
 type ManagerConfig struct {
 	Logger         logging.Logger
-	Security       *appconfig.SecurityConfig
+	Config         *appconfig.Config // Single source of truth
 	UserService    user.Service
 	FormService    formdomain.Service
-	Config         *appconfig.Config
 	SessionManager *session.Manager
 	AccessManager  *access.AccessManager
 	Sanitizer      sanitization.ServiceInterface
@@ -63,10 +46,6 @@ type ManagerConfig struct {
 func NewManager(cfg *ManagerConfig) *Manager {
 	if cfg == nil {
 		panic("config is required")
-	}
-
-	if cfg.Security == nil {
-		panic("security config is required")
 	}
 
 	if cfg.UserService == nil {
@@ -105,10 +84,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 	)
 
 	// Set Echo's logger to use our custom logger
-	e.Logger = &EchoLogger{logger: m.logger}
+	e.Logger = &EchoLogger{logger: m.logger, config: m.config}
 
 	// Enable debug mode and set log level
-	e.Debug = m.config.Security.Debug
+	e.Debug = m.config.Config.Security.Debug
 	if m.config.Config.App.IsDevelopment() {
 		e.Logger.SetLevel(log.DEBUG)
 		m.logger.Info("development mode enabled",
@@ -142,23 +121,23 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Use PerFormCORS middleware for form-specific CORS handling
 	// This middleware will handle CORS for form routes and fallback to global CORS for other routes
-	perFormCORSConfig := NewPerFormCORSConfig(m.config.FormService, m.logger, m.config.Security)
+	perFormCORSConfig := NewPerFormCORSConfig(m.config.FormService, m.logger, &m.config.Config.Security)
 	e.Use(PerFormCORS(perFormCORSConfig))
 
 	// Register security middleware
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         m.config.Security.Headers.XXSSProtection,
-		ContentTypeNosniff:    m.config.Security.Headers.XContentTypeOptions,
-		XFrameOptions:         m.config.Security.Headers.XFrameOptions,
-		HSTSMaxAge:            HSTSOneYear,
+		XSSProtection:         m.config.Config.Security.Headers.XXSSProtection,
+		ContentTypeNosniff:    m.config.Config.Security.Headers.XContentTypeOptions,
+		XFrameOptions:         m.config.Config.Security.Headers.XFrameOptions,
+		HSTSMaxAge:            constants.HSTSOneYear,
 		HSTSExcludeSubdomains: false,
-		ContentSecurityPolicy: m.config.Security.GetCSPDirectives(&m.config.Config.App),
+		ContentSecurityPolicy: m.config.Config.Security.GetCSPDirectives(&m.config.Config.App),
 	}))
 
 	// Set security config in context for other middleware
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			c.Set("security_config", m.config.Security)
+			c.Set("security_config", m.config.Config.Security)
 			return next(c)
 		}
 	})
@@ -166,12 +145,12 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Add additional security headers not covered by Echo's Secure middleware
 	e.Use(setupAdditionalSecurityHeadersMiddleware())
 
-	if m.config.Security.CSRF.Enabled {
-		e.Use(setupCSRF(&m.config.Security.CSRF, m.config.Config.App.Env == "development"))
+	if m.config.Config.Security.CSRF.Enabled {
+		e.Use(setupCSRF(&m.config.Config.Security.CSRF, m.config.Config.App.Env == "development"))
 	}
 
 	// Setup rate limiting using infrastructure config
-	if m.config.Security.RateLimit.Enabled {
+	if m.config.Config.Security.RateLimit.Enabled {
 		e.Use(m.setupRateLimiting())
 	}
 
@@ -219,7 +198,7 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 	// Ensure token length is within bounds for uint8
 	tokenLength := csrfConfig.TokenLength
 	if tokenLength <= 0 || tokenLength > 255 {
-		tokenLength = 32 // Default to 32 if out of bounds
+		tokenLength = constants.DefaultTokenLength // Use constant
 	}
 
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
@@ -238,7 +217,7 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 			method := c.Request().Method
 
 			// Skip CSRF for static files
-			if isStaticFile(path) {
+			if constants.IsStaticFile(path) {
 				return true
 			}
 
@@ -262,7 +241,9 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 			}
 
 			// Never skip CSRF for login, signup, or password reset
-			if path == "/login" || path == "/signup" || path == "/reset-password" {
+			if path == constants.PathLogin ||
+				path == constants.PathSignup ||
+				path == constants.PathResetPassword {
 				return false
 			}
 
@@ -293,23 +274,10 @@ func setupAdditionalSecurityHeadersMiddleware() echo.MiddlewareFunc {
 	}
 }
 
-// isStaticFile checks if the given path is a static file
-func isStaticFile(path string) bool {
-	staticExtensions := []string{
-		".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".ico",
-		".svg", ".woff", ".woff2", ".ttf", ".eot",
-	}
-	for _, ext := range staticExtensions {
-		if strings.HasSuffix(path, ext) {
-			return true
-		}
-	}
-	return false
-}
-
 // EchoLogger implements echo.Logger interface using our custom logger
 type EchoLogger struct {
 	logger logging.Logger
+	config *ManagerConfig
 }
 
 func (l *EchoLogger) Print(i ...any) {
@@ -321,7 +289,7 @@ func (l *EchoLogger) Printf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Printj(j log.JSON) {
-	fields := make([]any, 0, len(j)*FieldPairSize)
+	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -337,7 +305,7 @@ func (l *EchoLogger) Debugf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Debugj(j log.JSON) {
-	fields := make([]any, 0, len(j)*FieldPairSize)
+	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -353,7 +321,7 @@ func (l *EchoLogger) Infof(format string, args ...any) {
 }
 
 func (l *EchoLogger) Infoj(j log.JSON) {
-	fields := make([]any, 0, len(j)*FieldPairSize)
+	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -369,7 +337,7 @@ func (l *EchoLogger) Warnf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Warnj(j log.JSON) {
-	fields := make([]any, 0, len(j)*FieldPairSize)
+	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -385,7 +353,7 @@ func (l *EchoLogger) Errorf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Errorj(j log.JSON) {
-	fields := make([]any, 0, len(j)*FieldPairSize)
+	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -401,7 +369,7 @@ func (l *EchoLogger) Fatalf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Fatalj(j log.JSON) {
-	fields := make([]any, 0, len(j)*FieldPairSize)
+	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -419,7 +387,7 @@ func (l *EchoLogger) Panicf(format string, args ...any) {
 }
 
 func (l *EchoLogger) Panicj(j log.JSON) {
-	fields := make([]any, 0, len(j)*FieldPairSize)
+	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
@@ -457,7 +425,7 @@ func (l *EchoLogger) Output() io.Writer {
 
 // setupRateLimiting creates and configures rate limiting middleware using infrastructure config
 func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
-	rateLimitConfig := m.config.Security.RateLimit
+	rateLimitConfig := m.config.Config.Security.RateLimit
 
 	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
 		Skipper: func(c echo.Context) bool {
@@ -490,7 +458,7 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 		IdentifierExtractor: func(c echo.Context) (string, error) {
 			// For login and signup pages, use IP address as identifier
 			path := c.Request().URL.Path
-			if path == "/login" || path == "/signup" {
+			if path == constants.PathLogin || path == constants.PathSignup || path == constants.PathResetPassword {
 				return c.RealIP(), nil
 			}
 
@@ -498,10 +466,10 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 			formID := c.Param("formID")
 			origin := c.Request().Header.Get("Origin")
 			if formID == "" {
-				formID = "unknown"
+				formID = constants.DefaultUnknown
 			}
 			if origin == "" {
-				origin = "unknown"
+				origin = constants.DefaultUnknown
 			}
 			return fmt.Sprintf("%s:%s", formID, origin), nil
 		},

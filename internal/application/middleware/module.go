@@ -2,50 +2,133 @@
 package middleware
 
 import (
-	"go.uber.org/fx"
-
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/middleware/auth"
-	middlewareconfig "github.com/goformx/goforms/internal/application/middleware/config"
-	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
+	formdomain "github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
+	"go.uber.org/fx"
 )
 
-// Module provides middleware dependencies
+// Module provides all middleware dependencies
 var Module = fx.Options(
-	// Core middleware components
 	fx.Provide(
-		// Centralized middleware configuration
-		middlewareconfig.NewMiddlewareConfig,
+		// Path manager for centralized path management
+		constants.NewPathManager,
 
-		// Context middleware
-		context.NewMiddleware,
-
-		// Auth middleware
+		// Access manager using path manager
 		fx.Annotate(
-			auth.NewMiddleware,
-		),
-
-		// Access manager with centralized configuration
-		fx.Annotate(
-			func(logger logging.Logger, middlewareConfig *middlewareconfig.MiddlewareConfig) *access.AccessManager {
-				return access.NewAccessManager(middlewareConfig.Access, middlewareConfig.GetAccessRules())
+			func(logger logging.Logger, pathManager *constants.PathManager) *access.AccessManager {
+				config := &access.Config{
+					DefaultAccess: access.AuthenticatedAccess,
+					PublicPaths:   pathManager.PublicPaths,
+					AdminPaths:    pathManager.AdminPaths,
+				}
+				rules := generateAccessRules(pathManager)
+				return access.NewAccessManager(config, rules)
 			},
 		),
 
-		// Session manager with centralized configuration
+		// Session manager using path manager
 		fx.Annotate(
 			func(
 				logger logging.Logger,
 				cfg *config.Config,
 				lc fx.Lifecycle,
 				accessManager *access.AccessManager,
-				middlewareConfig *middlewareconfig.MiddlewareConfig,
+				pathManager *constants.PathManager,
 			) *session.Manager {
-				return session.NewManager(logger, middlewareConfig.Session, lc, accessManager)
+				sessionConfig := &session.SessionConfig{
+					SessionConfig: &cfg.Session,
+					Config:        cfg,
+					PublicPaths:   pathManager.PublicPaths,
+					StaticPaths:   pathManager.StaticPaths,
+				}
+				return session.NewManager(logger, sessionConfig, lc, accessManager)
+			},
+		),
+
+		// Manager with simplified config - direct infrastructure config usage
+		fx.Annotate(
+			func(
+				logger logging.Logger,
+				cfg *config.Config,
+				userService user.Service,
+				formService formdomain.Service,
+				sessionManager *session.Manager,
+				accessManager *access.AccessManager,
+				sanitizer sanitization.ServiceInterface,
+			) *Manager {
+				return NewManager(&ManagerConfig{
+					Logger:         logger,
+					Config:         cfg, // Single source of truth
+					UserService:    userService,
+					FormService:    formService,
+					SessionManager: sessionManager,
+					AccessManager:  accessManager,
+					Sanitizer:      sanitizer,
+				})
 			},
 		),
 	),
 )
+
+// generateAccessRules creates access rules using the path manager
+func generateAccessRules(pathManager *constants.PathManager) []access.AccessRule {
+	rules := []access.AccessRule{}
+
+	// Public routes
+	for _, path := range pathManager.PublicPaths {
+		rules = append(rules, access.AccessRule{
+			Path:        path,
+			AccessLevel: access.PublicAccess,
+		})
+	}
+
+	// API validation endpoints
+	for _, path := range pathManager.APIValidationPaths {
+		rules = append(rules, access.AccessRule{
+			Path:        path,
+			AccessLevel: access.PublicAccess,
+		})
+	}
+
+	// Static assets
+	for _, path := range pathManager.StaticPaths {
+		rules = append(rules, access.AccessRule{
+			Path:        path,
+			AccessLevel: access.PublicAccess,
+		})
+	}
+
+	// Admin routes
+	for _, path := range pathManager.AdminPaths {
+		rules = append(rules, access.AccessRule{
+			Path:        path,
+			AccessLevel: access.AdminAccess,
+		})
+	}
+
+	// Add specific API rules
+	rules = append(rules, []access.AccessRule{
+		// Public form endpoints (for embedded forms) - GET only
+		{Path: constants.PathAPIForms + "/:id/schema", AccessLevel: access.PublicAccess, Methods: []string{"GET"}},
+
+		// Authenticated routes
+		{Path: constants.PathDashboard, AccessLevel: access.AuthenticatedAccess},
+		{Path: constants.PathForms, AccessLevel: access.AuthenticatedAccess},
+		{Path: constants.PathForms + "/:id", AccessLevel: access.AuthenticatedAccess},
+		{Path: constants.PathAPIForms, AccessLevel: access.AuthenticatedAccess},
+		{Path: constants.PathAPIForms + "/:id", AccessLevel: access.AuthenticatedAccess},
+
+		// Admin API routes
+		{Path: constants.PathAPIAdmin, AccessLevel: access.AdminAccess},
+		{Path: constants.PathAPIAdminUsers, AccessLevel: access.AdminAccess},
+		{Path: constants.PathAPIAdminForms, AccessLevel: access.AdminAccess},
+	}...)
+
+	return rules
+}

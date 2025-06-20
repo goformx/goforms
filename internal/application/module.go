@@ -116,10 +116,9 @@ func provideMiddlewareManager(
 ) *middleware.Manager {
 	return middleware.NewManager(&middleware.ManagerConfig{
 		Logger:         logger,
-		Security:       &cfg.Security,
+		Config:         cfg,
 		UserService:    userService,
 		FormService:    formService,
-		Config:         cfg,
 		SessionManager: sessionManager,
 		AccessManager:  accessManager,
 		Sanitizer:      sanitizer,
