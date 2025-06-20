@@ -144,7 +144,9 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 	// Register security middleware
 	e.Use(setupSecurityHeadersMiddleware())
-	e.Use(setupCSRF(m.config.Config.App.Env == "development"))
+	if m.config.Security.CSRFConfig.Enabled {
+		e.Use(setupCSRF(&m.config.Security.CSRFConfig, m.config.Config.App.Env == "development"))
+	}
 	e.Use(setupRateLimiter(m.config.Security))
 
 	// Register session middleware
@@ -174,18 +176,37 @@ func (m *Manager) Setup(e *echo.Echo) {
 }
 
 // setupCSRF creates and configures CSRF middleware
-func setupCSRF(isDevelopment bool) echo.MiddlewareFunc {
+func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.MiddlewareFunc {
+	// Convert string SameSite to http.SameSite
+	var sameSite http.SameSite
+	switch csrfConfig.CookieSameSite {
+	case "Lax":
+		sameSite = http.SameSiteLaxMode
+	case "Strict":
+		sameSite = http.SameSiteStrictMode
+	case "None":
+		sameSite = http.SameSiteNoneMode
+	default:
+		sameSite = http.SameSiteStrictMode
+	}
+
+	// Ensure token length is within bounds for uint8
+	tokenLength := csrfConfig.TokenLength
+	if tokenLength <= 0 || tokenLength > 255 {
+		tokenLength = 32 // Default to 32 if out of bounds
+	}
+
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
-		TokenLength:    DefaultTokenLength,
-		TokenLookup:    "header:X-CSRF-Token,form:_csrf,cookie:_csrf",
-		ContextKey:     "csrf",
-		CookieName:     "_csrf",
-		CookiePath:     "/",
-		CookieDomain:   "",
+		TokenLength:    uint8(tokenLength),
+		TokenLookup:    csrfConfig.TokenLookup,
+		ContextKey:     csrfConfig.ContextKey,
+		CookieName:     csrfConfig.CookieName,
+		CookiePath:     csrfConfig.CookiePath,
+		CookieDomain:   csrfConfig.CookieDomain,
 		CookieSecure:   !isDevelopment,
-		CookieHTTPOnly: true,
-		CookieSameSite: http.SameSiteStrictMode,
-		CookieMaxAge:   CookieMaxAge,
+		CookieHTTPOnly: csrfConfig.CookieHTTPOnly,
+		CookieSameSite: sameSite,
+		CookieMaxAge:   csrfConfig.CookieMaxAge,
 		Skipper: func(c echo.Context) bool {
 			path := c.Request().URL.Path
 			method := c.Request().Method

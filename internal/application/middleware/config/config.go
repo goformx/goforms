@@ -136,7 +136,7 @@ func newSessionConfig(appConfig *config.Config) *session.SessionConfig {
 // newSecurityConfig creates the security configuration
 func newSecurityConfig(appConfig *config.Config) *SecurityConfig {
 	return &SecurityConfig{
-		CSRFEnabled: appConfig.App.Env == constants.EnvProduction,
+		CSRFEnabled: appConfig.Security.CSRFConfig.Enabled,
 		CSRFSecret:  appConfig.Security.CSRFConfig.Secret,
 		CORSEnabled: true,
 		CORSOrigins: []string{"*"}, // Configure based on environment

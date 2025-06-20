@@ -88,8 +88,17 @@ type DatabaseConfig struct {
 
 // CSRFConfig holds CSRF-related configuration
 type CSRFConfig struct {
-	Enabled bool   `envconfig:"ENABLED" default:"true"`
-	Secret  string `envconfig:"SECRET" validate:"required"`
+	Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
+	Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
+	TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
+	TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-CSRF-Token"`
+	ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
+	CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
+	CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
+	CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
+	CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
+	CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Strict"`
+	CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
 }
 
 // SecurityConfig contains security-related settings
@@ -299,8 +308,8 @@ func (c *Config) validateDatabaseConfig() error {
 func (c *Config) validateSecurityConfig() error {
 	var errs []string
 
-	if c.Security.CSRFConfig.Secret == "" {
-		errs = append(errs, "CSRF secret is required")
+	if c.Security.CSRFConfig.Enabled && c.Security.CSRFConfig.Secret == "" {
+		errs = append(errs, "CSRF secret is required when CSRF is enabled")
 	}
 	if c.Security.FormRateLimit <= 0 {
 		errs = append(errs, "form rate limit must be positive")
