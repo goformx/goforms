@@ -1,6 +1,9 @@
 package constants
 
-import "net/http"
+import (
+	"net/http"
+	"strings"
+)
 
 // HTTP Status Codes
 const (
@@ -266,3 +269,35 @@ const (
 	UserStatusSuspended = "suspended"
 	UserStatusPending   = "pending"
 )
+
+// Middleware Constants
+const (
+	// NonceSize is the size of the nonce in bytes (32 bytes = 256 bits)
+	NonceSize = 32
+	// HSTSOneYear is the number of seconds in one year
+	HSTSOneYear = 31536000
+	// DefaultTokenLength is the default length for generated tokens
+	DefaultTokenLength = 32
+	// CookieMaxAge is the maximum age of cookies in seconds (24 hours)
+	CookieMaxAge = 86400
+	// FieldPairSize represents the number of elements in a key-value pair
+	FieldPairSize = 2
+	// DefaultUnknown is the default value for unknown identifiers
+	DefaultUnknown = "unknown"
+)
+
+// StaticFileExtensions contains all supported static file extensions
+var StaticFileExtensions = []string{
+	".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".ico",
+	".svg", ".woff", ".woff2", ".ttf", ".eot",
+}
+
+// IsStaticFile checks if the given path is a static file
+func IsStaticFile(path string) bool {
+	for _, ext := range StaticFileExtensions {
+		if strings.HasSuffix(path, ext) {
+			return true
+		}
+	}
+	return false
+}
