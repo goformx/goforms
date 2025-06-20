@@ -8,6 +8,7 @@ import (
 	echomw "github.com/labstack/echo/v4/middleware"
 	"golang.org/x/time/rate"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 )
 
@@ -24,7 +25,7 @@ func RateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 		IdentifierExtractor: func(c echo.Context) (string, error) {
 			// For login and signup pages, use IP address as identifier
 			path := c.Request().URL.Path
-			if path == "/login" || path == "/signup" {
+			if path == constants.PathLogin || path == constants.PathSignup {
 				return c.RealIP(), nil
 			}
 
@@ -32,10 +33,10 @@ func RateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 			formID := c.Param("formID")
 			origin := c.Request().Header.Get("Origin")
 			if formID == "" {
-				formID = "unknown"
+				formID = constants.DefaultUnknown
 			}
 			if origin == "" {
-				origin = "unknown"
+				origin = constants.DefaultUnknown
 			}
 			return fmt.Sprintf("%s:%s", formID, origin), nil
 		},

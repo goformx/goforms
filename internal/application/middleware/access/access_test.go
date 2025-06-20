@@ -3,6 +3,7 @@ package access_test
 import (
 	"testing"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -68,7 +69,7 @@ func TestAccessManager_IsAdminPath(t *testing.T) {
 		},
 		{
 			name:     "non-admin path",
-			path:     "/dashboard",
+			path:     constants.PathDashboard,
 			expected: false,
 		},
 	}
@@ -93,19 +94,19 @@ func TestAccessManager_GetRequiredAccess(t *testing.T) {
 	}{
 		{
 			name:     "public path",
-			path:     "/login",
+			path:     constants.PathLogin,
 			method:   "GET",
 			expected: access.PublicAccess,
 		},
 		{
 			name:     "authenticated path",
-			path:     "/dashboard",
+			path:     constants.PathDashboard,
 			method:   "GET",
 			expected: access.AuthenticatedAccess,
 		},
 		{
 			name:     "admin path",
-			path:     "/admin/users",
+			path:     constants.PathAdmin,
 			method:   "GET",
 			expected: access.AdminAccess,
 		},
@@ -194,8 +195,8 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid config",
 			config: &access.Config{
 				DefaultAccess: access.AuthenticatedAccess,
-				PublicPaths:   []string{"/login"},
-				AdminPaths:    []string{"/admin"},
+				PublicPaths:   []string{constants.PathLogin},
+				AdminPaths:    []string{constants.PathAdmin},
 			},
 			expectError: false,
 		},
@@ -203,8 +204,8 @@ func TestConfig_Validate(t *testing.T) {
 			name: "invalid default access level",
 			config: &access.Config{
 				DefaultAccess: 999, // Invalid access level
-				PublicPaths:   []string{"/login"},
-				AdminPaths:    []string{"/admin"},
+				PublicPaths:   []string{constants.PathLogin},
+				AdminPaths:    []string{constants.PathAdmin},
 			},
 			expectError: true,
 		},
@@ -212,8 +213,8 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid public access level",
 			config: &access.Config{
 				DefaultAccess: access.PublicAccess,
-				PublicPaths:   []string{"/login"},
-				AdminPaths:    []string{"/admin"},
+				PublicPaths:   []string{constants.PathLogin},
+				AdminPaths:    []string{constants.PathAdmin},
 			},
 			expectError: false,
 		},
@@ -221,8 +222,8 @@ func TestConfig_Validate(t *testing.T) {
 			name: "valid admin access level",
 			config: &access.Config{
 				DefaultAccess: access.AdminAccess,
-				PublicPaths:   []string{"/login"},
-				AdminPaths:    []string{"/admin"},
+				PublicPaths:   []string{constants.PathLogin},
+				AdminPaths:    []string{constants.PathAdmin},
 			},
 			expectError: false,
 		},
@@ -245,13 +246,13 @@ func TestDefaultRules(t *testing.T) {
 
 	// Test that essential rules are present
 	essentialPaths := map[string]access.AccessLevel{
-		"/":             access.PublicAccess,
-		"/login":        access.PublicAccess,
-		"/signup":       access.PublicAccess,
-		"/dashboard":    access.AuthenticatedAccess,
-		"/admin":        access.AdminAccess,
-		"/api/v1/forms": access.AuthenticatedAccess,
-		"/api/v1/admin": access.AdminAccess,
+		constants.PathHome:      access.PublicAccess,
+		constants.PathLogin:     access.PublicAccess,
+		constants.PathSignup:    access.PublicAccess,
+		constants.PathDashboard: access.AuthenticatedAccess,
+		constants.PathAdmin:     access.AdminAccess,
+		constants.PathAPIForms:  access.AuthenticatedAccess,
+		constants.PathAPIAdmin:  access.AdminAccess,
 	}
 
 	for path, expectedLevel := range essentialPaths {

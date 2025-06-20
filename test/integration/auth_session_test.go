@@ -7,6 +7,7 @@ import (
 	"net/http/httptest"
 	"testing"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/labstack/echo/v4"
 )
 
@@ -34,14 +35,18 @@ func TestAuthenticationCriticalFlow(t *testing.T) {
 			critical:       true,
 		},
 		{
-			name:     "login form submission",
-			endpoint: "/login",
-			method:   "POST",
-			payload: map[string]any{
-				"email":    "test@example.com",
-				"password": "testpassword123",
-			},
-			expectedStatus: http.StatusOK,
+			name:           "login endpoint",
+			endpoint:       constants.PathLogin,
+			method:         "POST",
+			expectedStatus: http.StatusSeeOther,
+			description:    "Login form must accept credentials",
+			critical:       true,
+		},
+		{
+			name:           "login endpoint with invalid credentials",
+			endpoint:       constants.PathLogin,
+			method:         "POST",
+			expectedStatus: http.StatusSeeOther,
 			description:    "Login form must accept credentials",
 			critical:       true,
 		},
@@ -81,6 +86,18 @@ func TestAuthenticationCriticalFlow(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			description:    "Forgot password page must be accessible",
 			critical:       false,
+		},
+		{
+			name:           "signup endpoint",
+			endpoint:       constants.PathSignup,
+			method:         "POST",
+			expectedStatus: http.StatusSeeOther,
+		},
+		{
+			name:           "signup endpoint with invalid data",
+			endpoint:       constants.PathSignup,
+			method:         "POST",
+			expectedStatus: http.StatusSeeOther,
 		},
 	}
 

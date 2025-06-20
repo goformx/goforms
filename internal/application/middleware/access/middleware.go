@@ -3,6 +3,7 @@ package access
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
@@ -27,14 +28,14 @@ func Middleware(manager *AccessManager, logger logging.Logger) echo.MiddlewareFu
 			case AuthenticatedAccess:
 				// Check if user is authenticated
 				if !context.IsAuthenticated(c) {
-					return c.Redirect(http.StatusSeeOther, "/login")
+					return c.Redirect(http.StatusSeeOther, constants.PathLogin)
 				}
 				return next(c)
 
 			case AdminAccess:
 				// Check if user is authenticated and is an admin
 				if !context.IsAuthenticated(c) {
-					return c.Redirect(http.StatusSeeOther, "/login")
+					return c.Redirect(http.StatusSeeOther, constants.PathLogin)
 				}
 
 				if !context.IsAdmin(c) {
@@ -47,7 +48,7 @@ func Middleware(manager *AccessManager, logger logging.Logger) echo.MiddlewareFu
 			default:
 				// Default to requiring authentication
 				if !context.IsAuthenticated(c) {
-					return c.Redirect(http.StatusSeeOther, "/login")
+					return c.Redirect(http.StatusSeeOther, constants.PathLogin)
 				}
 				return next(c)
 			}

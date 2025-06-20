@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -24,7 +25,7 @@ func NewDashboardHandler(base *BaseHandler, accessManager *access.AccessManager)
 
 func (h *DashboardHandler) Register(e *echo.Echo) {
 	// Create dashboard group with access control
-	dashboard := e.Group("/dashboard")
+	dashboard := e.Group(constants.PathDashboard)
 	dashboard.Use(access.Middleware(h.AccessManager, h.Logger))
 	dashboard.GET("", h.handleDashboard)
 	dashboard.GET("/forms/:id", h.handleFormView)

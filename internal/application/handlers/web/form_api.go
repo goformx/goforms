@@ -35,7 +35,7 @@ func NewFormAPIHandler(
 func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 	// API routes with access control
 	api := e.Group(constants.PathAPIv1)
-	formsAPI := api.Group("/forms")
+	formsAPI := api.Group(constants.PathForms)
 	formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
 	formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
@@ -43,7 +43,7 @@ func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 	// Public API routes (no authentication required)
 	// These are for embedded forms on external websites
 	publicAPI := e.Group(constants.PathAPIv1)
-	publicFormsAPI := publicAPI.Group("/forms")
+	publicFormsAPI := publicAPI.Group(constants.PathForms)
 	publicFormsAPI.GET("/:id/schema", h.handleFormSchema)
 	publicFormsAPI.POST("/:id/submit", h.HandleFormSubmit)
 }

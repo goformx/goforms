@@ -5,6 +5,7 @@ import (
 	"strings"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/labstack/echo/v4"
@@ -202,7 +203,7 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 
 	// If user is authenticated and trying to access a public path, redirect to dashboard
 	if hasValidSession && isPublicPath {
-		return c.Redirect(http.StatusSeeOther, "/dashboard")
+		return c.Redirect(http.StatusSeeOther, constants.PathDashboard)
 	}
 
 	// If not authenticated and trying to access a protected path, handle accordingly
@@ -219,7 +220,7 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 		}
 
 		// For web requests, redirect to login
-		return c.Redirect(http.StatusSeeOther, "/login")
+		return c.Redirect(http.StatusSeeOther, constants.PathLogin)
 	}
 
 	// If we get here, it means the user is authenticated and accessing a protected path

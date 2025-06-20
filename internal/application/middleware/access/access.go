@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/domain/common/errors"
 )
 
@@ -41,22 +42,22 @@ func DefaultConfig() *Config {
 	return &Config{
 		DefaultAccess: AuthenticatedAccess,
 		PublicPaths: []string{
-			"/login",
-			"/signup",
-			"/forgot-password",
-			"/reset-password",
-			"/verify-email",
-			"/assets",
-			"/fonts",
-			"/css",
-			"/js",
-			"/favicon.ico",
-			"/robots.txt",
-			"/static",
-			"/images",
+			constants.PathLogin,
+			constants.PathSignup,
+			constants.PathForgotPassword,
+			constants.PathResetPassword,
+			constants.PathVerifyEmail,
+			constants.PathAssets,
+			constants.PathFonts,
+			constants.PathCSS,
+			constants.PathJS,
+			constants.PathFavicon,
+			constants.PathRobotsTxt,
+			constants.PathStatic,
+			constants.PathImages,
 		},
 		AdminPaths: []string{
-			"/admin",
+			constants.PathAdmin,
 		},
 	}
 }
@@ -190,47 +191,34 @@ func (c *Config) Validate() error {
 // DefaultRules returns the default access rules for the application
 func DefaultRules() []AccessRule {
 	return []AccessRule{
-		// Public routes
-		{Path: "/", AccessLevel: PublicAccess},
-		{Path: "/login", AccessLevel: PublicAccess},
-		{Path: "/signup", AccessLevel: PublicAccess},
-		{Path: "/demo", AccessLevel: PublicAccess},
-		{Path: "/health", AccessLevel: PublicAccess},
-		{Path: "/metrics", AccessLevel: PublicAccess},
+		// Public paths
+		{Path: constants.PathLogin, AccessLevel: PublicAccess},
+		{Path: constants.PathSignup, AccessLevel: PublicAccess},
+		{Path: constants.PathForgotPassword, AccessLevel: PublicAccess},
+		{Path: constants.PathResetPassword, AccessLevel: PublicAccess},
+		{Path: constants.PathVerifyEmail, AccessLevel: PublicAccess},
+		{Path: constants.PathDemo, AccessLevel: PublicAccess},
+		{Path: constants.PathHealth, AccessLevel: PublicAccess},
+		{Path: constants.PathMetrics, AccessLevel: PublicAccess},
 
-		// API validation endpoints
-		{Path: "/api/v1/validation", AccessLevel: PublicAccess},
-		{Path: "/api/v1/validation/login", AccessLevel: PublicAccess},
-		{Path: "/api/v1/validation/signup", AccessLevel: PublicAccess},
+		// Static asset paths
+		{Path: constants.PathAssets, AccessLevel: PublicAccess},
+		{Path: constants.PathFonts, AccessLevel: PublicAccess},
+		{Path: constants.PathCSS, AccessLevel: PublicAccess},
+		{Path: constants.PathJS, AccessLevel: PublicAccess},
+		{Path: constants.PathImages, AccessLevel: PublicAccess},
+		{Path: constants.PathStatic, AccessLevel: PublicAccess},
+		{Path: constants.PathFavicon, AccessLevel: PublicAccess},
+		{Path: constants.PathRobotsTxt, AccessLevel: PublicAccess},
 
-		// Public API endpoints
-		{Path: "/api/v1/public", AccessLevel: PublicAccess},
+		// Authenticated paths
+		{Path: constants.PathDashboard, AccessLevel: AuthenticatedAccess},
+		{Path: constants.PathForms, AccessLevel: AuthenticatedAccess},
+		{Path: constants.PathProfile, AccessLevel: AuthenticatedAccess},
+		{Path: constants.PathSettings, AccessLevel: AuthenticatedAccess},
 
-		// Public form endpoints (for embedded forms) - GET only
-		{Path: "/api/v1/forms/:id/schema", AccessLevel: PublicAccess, Methods: []string{"GET"}},
-
-		// Static assets
-		{Path: "/static", AccessLevel: PublicAccess},
-		{Path: "/assets", AccessLevel: PublicAccess},
-		{Path: "/images", AccessLevel: PublicAccess},
-		{Path: "/css", AccessLevel: PublicAccess},
-		{Path: "/js", AccessLevel: PublicAccess},
-		{Path: "/favicon.ico", AccessLevel: PublicAccess},
-
-		// Authenticated routes
-		{Path: "/dashboard", AccessLevel: AuthenticatedAccess},
-		{Path: "/forms", AccessLevel: AuthenticatedAccess},
-		{Path: "/forms/:id", AccessLevel: AuthenticatedAccess},
-		{Path: "/api/v1/forms", AccessLevel: AuthenticatedAccess},
-		{Path: "/api/v1/forms/:id", AccessLevel: AuthenticatedAccess},
-
-		// Admin routes
-		{Path: "/admin", AccessLevel: AdminAccess},
-		{Path: "/admin/users", AccessLevel: AdminAccess},
-		{Path: "/admin/forms", AccessLevel: AdminAccess},
-		{Path: "/api/v1/admin", AccessLevel: AdminAccess},
-		{Path: "/api/v1/admin/users", AccessLevel: AdminAccess},
-		{Path: "/api/v1/admin/forms", AccessLevel: AdminAccess},
+		// Admin paths
+		{Path: constants.PathAdmin, AccessLevel: AdminAccess},
 	}
 }
 

@@ -3,6 +3,7 @@ package auth
 import (
 	"net/http"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/domain/entities"
@@ -78,7 +79,8 @@ func (am *Middleware) RedirectIfAuthenticated(c echo.Context, redirectPath strin
 func (am *Middleware) RequireAuthenticatedUser(c echo.Context) (*entities.User, error) {
 	userID, ok := context.GetUserID(c)
 	if !ok {
-		return nil, c.Redirect(http.StatusSeeOther, "/login")
+		// No session found, redirect to login
+		return nil, c.Redirect(http.StatusSeeOther, constants.PathLogin)
 	}
 
 	userEntity, err := am.userService.GetUserByID(c.Request().Context(), userID)

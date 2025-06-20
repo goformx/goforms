@@ -43,7 +43,7 @@ func NewFormWebHandler(
 }
 
 func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.AccessManager) {
-	forms := e.Group("/forms")
+	forms := e.Group(constants.PathForms)
 	forms.Use(access.Middleware(accessManager, h.Logger))
 
 	forms.GET("/new", h.handleNew)
