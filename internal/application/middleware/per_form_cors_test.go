@@ -142,6 +142,32 @@ func TestPerFormCORS(t *testing.T) {
 			},
 		},
 		{
+			name:   "form route - form returns nil without error - fallback to global",
+			path:   "/forms/nil-form",
+			method: "POST",
+			origin: "https://example.com",
+			setupMock: func() {
+				mockFormService.EXPECT().
+					GetForm(gomock.Any(), "nil-form").
+					Return(nil, nil)
+				mockLogger.EXPECT().
+					SanitizeField("form_id", "nil-form").
+					Return("nil-form")
+				mockLogger.EXPECT().
+					Debug(
+						"form not found for CORS",
+						"form_id", "nil-form",
+						"falling_back_to_global_cors", true,
+					)
+			},
+			expectedStatus: http.StatusOK,
+			expectedHeaders: map[string]string{
+				"Access-Control-Allow-Origin":  "https://example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+			},
+		},
+		{
 			name:   "non-form route - global CORS",
 			path:   "/api/health",
 			method: "GET",
