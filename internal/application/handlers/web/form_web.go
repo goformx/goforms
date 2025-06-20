@@ -168,16 +168,6 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return err
 	}
 
-	// Debug logging for form submission
-	h.Logger.Debug("Form update request received",
-		"path", c.Request().URL.Path,
-		"method", c.Request().Method,
-		"content_type", c.Request().Header.Get("Content-Type"),
-		"csrf_token_form", c.FormValue("_csrf"),
-		"csrf_token_header", c.Request().Header.Get("X-Csrf-Token"),
-		"csrf_token_header_lower", c.Request().Header.Get("X-Csrf-Token"),
-	)
-
 	// Update form fields
 	form.Title = h.Sanitizer.String(c.FormValue("title"))
 	form.Description = h.Sanitizer.String(c.FormValue("description"))
