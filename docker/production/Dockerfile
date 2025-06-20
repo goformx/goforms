@@ -37,11 +37,11 @@ WORKDIR /app
 COPY go.mod go.sum ./
 RUN go mod download
 
+# Copy built frontend assets first
+COPY --from=frontend-builder /app/dist ./dist
+
 # Copy source code
 COPY . .
-
-# Copy built frontend assets
-COPY --from=frontend-builder /app/dist ./dist
 
 # Build the application
 RUN CGO_ENABLED=0 GOOS=linux go build \
