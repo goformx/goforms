@@ -4,6 +4,7 @@ package middleware
 import (
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/auth"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -18,6 +19,9 @@ var Module = fx.Options(
 	fx.Provide(
 		// Path manager for centralized path management
 		constants.NewPathManager,
+
+		// Auth middleware
+		auth.NewMiddleware,
 
 		// Access manager using path manager
 		fx.Annotate(

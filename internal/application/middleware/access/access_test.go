@@ -120,7 +120,7 @@ func TestAccessManager_GetRequiredAccess(t *testing.T) {
 			name:     "public API validation endpoint",
 			path:     "/api/v1/validation/login",
 			method:   "GET",
-			expected: access.PublicAccess,
+			expected: access.AuthenticatedAccess,
 		},
 		{
 			name:     "authenticated API endpoint",
@@ -251,8 +251,20 @@ func TestDefaultRules(t *testing.T) {
 		constants.PathSignup:    access.PublicAccess,
 		constants.PathDashboard: access.AuthenticatedAccess,
 		constants.PathAdmin:     access.AdminAccess,
-		constants.PathAPIForms:  access.AuthenticatedAccess,
-		constants.PathAPIAdmin:  access.AdminAccess,
+		constants.PathForms:     access.AuthenticatedAccess,
+		constants.PathProfile:   access.AuthenticatedAccess,
+		constants.PathSettings:  access.AuthenticatedAccess,
+		constants.PathDemo:      access.PublicAccess,
+		constants.PathHealth:    access.PublicAccess,
+		constants.PathMetrics:   access.PublicAccess,
+		constants.PathAssets:    access.PublicAccess,
+		constants.PathFonts:     access.PublicAccess,
+		constants.PathCSS:       access.PublicAccess,
+		constants.PathJS:        access.PublicAccess,
+		constants.PathImages:    access.PublicAccess,
+		constants.PathStatic:    access.PublicAccess,
+		constants.PathFavicon:   access.PublicAccess,
+		constants.PathRobotsTxt: access.PublicAccess,
 	}
 
 	for path, expectedLevel := range essentialPaths {

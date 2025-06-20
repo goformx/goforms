@@ -192,6 +192,7 @@ func (c *Config) Validate() error {
 func DefaultRules() []AccessRule {
 	return []AccessRule{
 		// Public paths
+		{Path: constants.PathHome, AccessLevel: PublicAccess},
 		{Path: constants.PathLogin, AccessLevel: PublicAccess},
 		{Path: constants.PathSignup, AccessLevel: PublicAccess},
 		{Path: constants.PathForgotPassword, AccessLevel: PublicAccess},

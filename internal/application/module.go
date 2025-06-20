@@ -96,34 +96,12 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 var Module = fx.Options(
 	fx.Provide(
 		New,
-		provideMiddlewareManager,
 		provideRequestUtils,
 		provideErrorHandler,
 		provideRecoveryMiddleware,
 	),
 	validation.Module,
 )
-
-// provideMiddlewareManager creates a new middleware manager
-func provideMiddlewareManager(
-	logger logging.Logger,
-	cfg *config.Config,
-	userService user.Service,
-	formService form.Service,
-	sessionManager *session.Manager,
-	accessManager *access.AccessManager,
-	sanitizer sanitization.ServiceInterface,
-) *middleware.Manager {
-	return middleware.NewManager(&middleware.ManagerConfig{
-		Logger:         logger,
-		Config:         cfg,
-		UserService:    userService,
-		FormService:    formService,
-		SessionManager: sessionManager,
-		AccessManager:  accessManager,
-		Sanitizer:      sanitizer,
-	})
-}
 
 // provideRequestUtils creates a new request utils instance with sanitization service
 func provideRequestUtils(sanitizer sanitization.ServiceInterface) *request.Utils {
