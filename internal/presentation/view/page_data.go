@@ -136,6 +136,7 @@ func (p *PageData) SetUser(user *entities.User) {
 	p.User = user
 }
 
+// GetMessageIcon returns the appropriate Bootstrap icon name for a message type
 func GetMessageIcon(msgType string) string {
 	switch msgType {
 	case "success":
