@@ -14,6 +14,10 @@
         "editor.defaultFormatter": "golang.go",
         "editor.formatOnSave": true
     },
+    "[typescript]": {
+        "editor.defaultFormatter": "vscode.typescript-language-features",
+        "editor.formatOnSave": false
+    },
     "[templ]": {
         "editor.defaultFormatter": "a-h.templ",
         "editor.formatOnSave": false
