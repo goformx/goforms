@@ -1,46 +1,69 @@
 package pages
 
 import (
-	"github.com/goformx/goforms/internal/presentation/templates/layouts"
-	"github.com/goformx/goforms/internal/presentation/templates/shared"
+"github.com/goformx/goforms/internal/presentation/templates/layouts"
+"github.com/goformx/goforms/internal/presentation/templates/shared"
 )
 
 templ NewForm(data shared.PageData) {
-	@layouts.Layout(data, newFormContent(data))
+@layouts.Layout(data, newFormContent(data))
 }
 
 templ newFormContent(data shared.PageData) {
-	<div class="form-page">
-		<div class="form-content">
-			<div class="form-container">
-				<div class="form-card">
-					<div class="form-header">
-						<h1 class="form-title">Create New Form</h1>
-						<p class="form-subtitle">Design your form by adding fields and configuring their properties</p>
+<div class="form-page">
+	<div class="form-content">
+		<div class="form-container">
+			<div class="form-card">
+				<div class="form-header">
+					<h1 class="form-title">Create New Form</h1>
+					<p class="form-subtitle">Design your form by adding fields and configuring their properties</p>
+				</div>
+
+				<form id="new-form" class="form" method="POST" action="/forms">
+					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
+					<div class="form-error"></div>
+
+					<div class="gf-form-group">
+						<label for="title" class="gf-label">Form Title</label>
+						<input type="text" id="title" name="title" required class="gf-input"
+							placeholder="Enter form title" />
+						<div id="title_error" class="error-message"></div>
 					</div>
 
-					<form id="new-form" class="form" method="POST" action="/forms">
-						<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
-						<div class="form-error"></div>
+					<div class="gf-form-group">
+						<label for="description" class="gf-label">Description</label>
+						<textarea id="description" name="description" class="gf-input" rows="3"
+							placeholder="Enter form description"></textarea>
+						<div id="description_error" class="error-message"></div>
+					</div>
 
-						<div class="gf-form-group">
-							<label for="title" class="gf-label">Form Title</label>
-							<input type="text" id="title" name="title" required class="gf-input" placeholder="Enter form title"/>
-							<div id="title_error" class="error-message"></div>
-						</div>
+					<div class="gf-form-group">
+						<label for="cors_origins" class="gf-label">Allowed Origins (comma-separated)</label>
+						<input type="text" id="cors_origins" name="cors_origins" class="gf-input"
+							placeholder="e.g. *,https://example.com" />
+						<div id="cors_origins_error" class="error-message"></div>
+					</div>
 
-						<div class="gf-form-group">
-							<label for="description" class="gf-label">Description</label>
-							<textarea id="description" name="description" class="gf-input" rows="3" placeholder="Enter form description"></textarea>
-							<div id="description_error" class="error-message"></div>
-						</div>
+					<div class="gf-form-group">
+						<label for="cors_methods" class="gf-label">Allowed Methods (comma-separated)</label>
+						<input type="text" id="cors_methods" name="cors_methods" class="gf-input"
+							placeholder="e.g. GET,POST,OPTIONS" />
+						<div id="cors_methods_error" class="error-message"></div>
+					</div>
 
-						<div class="form-actions">
-							<button type="submit" class="gf-button gf-button--primary">Create Form</button>
-						</div>
-					</form>
-				</div>
+					<div class="gf-form-group">
+						<label for="cors_headers" class="gf-label">Allowed Headers (comma-separated)</label>
+						<input type="text" id="cors_headers" name="cors_headers" class="gf-input"
+							placeholder="e.g. Content-Type,Accept,Origin" />
+						<div id="cors_headers_error" class="error-message"></div>
+					</div>
+
+					<div class="form-actions">
+						<button type="submit" class="gf-button gf-button--primary">Create Form</button>
+					</div>
+				</form>
 			</div>
 		</div>
 	</div>
+</div>
 }

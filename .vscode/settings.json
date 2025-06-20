@@ -4,20 +4,27 @@
         "--path-mode=abs",
         "--fast-only"
     ],
-    "go.formatTool": "custom",
-    "go.alternateTools": {
-        "customFormatter": "golangci-lint"
-    },
+    "go.formatTool": "gofmt",
     "go.formatFlags": [
-        "fmt",
-        "--stdin"
+        "-s"
     ],
     "templ.executablePath": "/go/bin/templ",
     "editor.formatOnSave": true,
+    "[go]": {
+        "editor.defaultFormatter": "golang.go",
+        "editor.formatOnSave": true
+    },
+    "[templ]": {
+        "editor.defaultFormatter": "a-h.templ",
+        "editor.formatOnSave": false
+    },
     "[yaml]": {
         "editor.defaultFormatter": "kennylong.kubernetes-yaml-formatter"
     },
     "[github-actions-workflow]": {
         "editor.defaultFormatter": "kachick.vscode-yamlfmt"
+    },
+    "files.associations": {
+        "*.templ": "templ"
     }
 }

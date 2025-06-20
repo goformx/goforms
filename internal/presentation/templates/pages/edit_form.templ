@@ -4,6 +4,7 @@ import (
 "github.com/goformx/goforms/internal/domain/form/model"
 "github.com/goformx/goforms/internal/presentation/templates/layouts"
 "github.com/goformx/goforms/internal/presentation/templates/shared"
+"strings"
 )
 
 // Reusable card section for forms using a slot (content func())
@@ -84,8 +85,7 @@ templ editFormContent(data shared.PageData, form *model.Form) {
 				<p class="dashboard-subtitle">Configure your form settings and fields</p>
 			</div>
 			<div class="dashboard-header-right">
-				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/submissions" ) }
-					class="gf-button gf-button--outline">
+				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/submissions") } class="gf-button gf-button--outline">
 					<i class="bi bi-list-check"></i>
 					<span>View Submissions</span>
 				</a>
@@ -120,6 +120,19 @@ templ editFormContent(data shared.PageData, form *model.Form) {
 									<option value="published" selected={ form.Status=="published" }>Published</option>
 									<option value="archived" selected={ form.Status=="archived" }>Archived</option>
 								</select>
+							</div>
+
+							<div class="form-group">
+								<label for="cors_origins">Allowed Origins (comma-separated)</label>
+								<input type="text" id="cors_origins" name="cors_origins" class="gf-input" placeholder="e.g. *,https://example.com" value={ strings.Join(form.CorsOrigins, ",") } />
+							</div>
+							<div class="form-group">
+								<label for="cors_methods">Allowed Methods (comma-separated)</label>
+								<input type="text" id="cors_methods" name="cors_methods" class="gf-input" placeholder="e.g. GET,POST,OPTIONS" value={ strings.Join(form.CorsMethods, ",") } />
+							</div>
+							<div class="form-group">
+								<label for="cors_headers">Allowed Headers (comma-separated)</label>
+								<input type="text" id="cors_headers" name="cors_headers" class="gf-input" placeholder="e.g. Content-Type,Accept,Origin" value={ strings.Join(form.CorsHeaders, ",") } />
 							</div>
 
 							<div class="form-actions">

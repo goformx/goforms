@@ -4,6 +4,7 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
@@ -82,6 +83,16 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	title := h.Sanitizer.String(c.FormValue("title"))
 	description := h.Sanitizer.String(c.FormValue("description"))
 
+	// CORS config (comma-separated values from form input)
+	corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins"))
+	corsMethods := h.Sanitizer.String(c.FormValue("cors_methods"))
+	corsHeaders := h.Sanitizer.String(c.FormValue("cors_headers"))
+
+	// Parse comma-separated values into string slices
+	origins := parseCSV(corsOrigins)
+	methods := parseCSV(corsMethods)
+	headers := parseCSV(corsHeaders)
+
 	// Create a valid initial schema
 	schema := model.JSON{
 		"type":       "object",
@@ -90,6 +101,10 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 
 	// Create the form
 	form := model.NewForm(user.ID, title, description, schema)
+	form.CorsOrigins = origins
+	form.CorsMethods = methods
+	form.CorsHeaders = headers
+
 	err = h.FormService.CreateForm(c.Request().Context(), form)
 	if err != nil {
 		h.Logger.Error("failed to create form", "error", err)
@@ -141,6 +156,14 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Update form fields
 	form.Title = h.Sanitizer.String(c.FormValue("title"))
 	form.Description = h.Sanitizer.String(c.FormValue("description"))
+
+	// CORS config (comma-separated values from form input)
+	corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins"))
+	corsMethods := h.Sanitizer.String(c.FormValue("cors_methods"))
+	corsHeaders := h.Sanitizer.String(c.FormValue("cors_headers"))
+	form.CorsOrigins = parseCSV(corsOrigins)
+	form.CorsMethods = parseCSV(corsMethods)
+	form.CorsHeaders = parseCSV(corsHeaders)
 
 	err = h.FormService.UpdateForm(c.Request().Context(), form)
 	if err != nil {
@@ -194,4 +217,20 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	data.Submissions = submissions
 
 	return h.Renderer.Render(c, pages.FormSubmissions(data))
+}
+
+// parseCSV parses a comma-separated string into a slice of strings, trimming whitespace and skipping empty values
+func parseCSV(input string) []string {
+	if input == "" {
+		return nil
+	}
+	parts := strings.Split(input, ",")
+	var result []string
+	for _, part := range parts {
+		trimmed := strings.TrimSpace(part)
+		if trimmed != "" {
+			result = append(result, trimmed)
+		}
+	}
+	return result
 }
