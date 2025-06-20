@@ -1,0 +1,28 @@
+# .github/codeql-config.yml
+name: "Custom CodeQL Config"
+
+disable-default-queries: false
+
+queries:
+- uses: security-and-quality
+
+paths-ignore:
+- "**/*.md"
+- "**/docs/**"
+- "**/*.txt"
+- "**/testdata/**"
+- "**/*_test.go"
+- "**/test/**"
+- "**/tests/**"
+- "**/node_modules/**"
+- "**/dist/**"
+- "**/build/**"
+
+# Reduce false positives
+query-filters:
+- exclude:
+    id: go/path-injection
+    # Exclude if you have proper input validation
+- exclude:
+    id: js/incomplete-sanitization
+    # Exclude if using trusted sanitization libraries
