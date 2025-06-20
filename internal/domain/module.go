@@ -69,7 +69,7 @@ func NewFormService(p FormServiceParams) (form.Service, error) {
 // StoreParams groups store dependencies
 type StoreParams struct {
 	fx.In
-	DB     *database.GormDB
+	DB     database.DB
 	Logger logging.Logger
 }
 
@@ -90,10 +90,16 @@ func NewStores(p StoreParams) (Stores, error) {
 		return Stores{}, errors.New("logger is required")
 	}
 
+	// Cast to the concrete type that repositories expect
+	gormDB, ok := p.DB.(*database.GormDB)
+	if !ok {
+		return Stores{}, errors.New("database connection is not of expected type *database.GormDB")
+	}
+
 	// Initialize repositories
-	userRepo := userstore.NewStore(p.DB, p.Logger)
-	formRepo := formstore.NewStore(p.DB, p.Logger)
-	formSubmissionRepo := formsubmissionstore.NewStore(p.DB, p.Logger)
+	userRepo := userstore.NewStore(gormDB, p.Logger)
+	formRepo := formstore.NewStore(gormDB, p.Logger)
+	formSubmissionRepo := formsubmissionstore.NewStore(gormDB, p.Logger)
 
 	// Validate repository instances
 	if userRepo == nil || formRepo == nil || formSubmissionRepo == nil {

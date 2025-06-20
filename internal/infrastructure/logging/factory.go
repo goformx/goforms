@@ -48,6 +48,7 @@ type FactoryConfig struct {
 	OutputPaths []string
 	// ErrorOutputPaths specifies where to write error logs
 	ErrorOutputPaths []string
+	LogLevel         string
 }
 
 // Factory creates loggers based on configuration
@@ -61,6 +62,7 @@ type Factory struct {
 	sanitizer     sanitization.ServiceInterface
 	// Add testCore for test injection
 	testCore zapcore.Core
+	LogLevel string
 }
 
 // NewFactory creates a new logger factory with the given configuration
@@ -85,6 +87,7 @@ func NewFactory(cfg FactoryConfig, sanitizer sanitization.ServiceInterface) *Fac
 		outputPaths:   cfg.OutputPaths,
 		errorPaths:    cfg.ErrorOutputPaths,
 		sanitizer:     sanitizer,
+		LogLevel:      cfg.LogLevel,
 	}
 }
 
@@ -122,13 +125,30 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	// Create console encoder for better readability in development mode
 	encoder := zapcore.NewConsoleEncoder(encoderConfig)
 
-	// Determine log level from environment
+	// Determine log level from config
 	var level zapcore.Level
-	switch strings.ToLower(f.environment) {
-	case "development":
-		level = zapcore.DebugLevel
-	default:
-		level = zapcore.InfoLevel
+	if f.LogLevel != "" {
+		switch strings.ToLower(f.LogLevel) {
+		case "debug":
+			level = zapcore.DebugLevel
+		case "info":
+			level = zapcore.InfoLevel
+		case "warn":
+			level = zapcore.WarnLevel
+		case "error":
+			level = zapcore.ErrorLevel
+		case "fatal":
+			level = zapcore.FatalLevel
+		default:
+			level = zapcore.InfoLevel
+		}
+	} else {
+		switch strings.ToLower(f.environment) {
+		case "development":
+			level = zapcore.DebugLevel
+		default:
+			level = zapcore.InfoLevel
+		}
 	}
 
 	// Use testCore if set (for testing)

@@ -8,6 +8,7 @@ import (
 
 	"database/sql/driver"
 
+	"github.com/goformx/goforms/internal/domain/common/types"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -62,6 +63,11 @@ type Form struct {
 	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
 	Fields      []Field        `json:"fields" gorm:"foreignKey:FormID"`
 	Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
+
+	// CORS settings for form embedding
+	CorsOrigins types.StringArray `json:"cors_origins" gorm:"type:json"`
+	CorsMethods types.StringArray `json:"cors_methods" gorm:"type:json"`
+	CorsHeaders types.StringArray `json:"cors_headers" gorm:"type:json"`
 }
 
 // GetID returns the form's ID
@@ -165,6 +171,9 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
+		CorsOrigins: types.StringArray{},
+		CorsMethods: types.StringArray{"GET", "POST", "OPTIONS"},
+		CorsHeaders: types.StringArray{"Content-Type", "Accept", "Origin"},
 	}
 }
 
@@ -293,4 +302,25 @@ func (f *Form) Deactivate() {
 func (f *Form) Activate() {
 	f.Active = true
 	f.UpdatedAt = time.Now()
+}
+
+// GetCorsConfig returns the CORS configuration for this form
+func (f *Form) GetCorsConfig() (origins, methods, headers []string) {
+	if len(f.CorsOrigins) > 0 {
+		origins = []string(f.CorsOrigins)
+	}
+	if len(f.CorsMethods) > 0 {
+		methods = []string(f.CorsMethods)
+	}
+	if len(f.CorsHeaders) > 0 {
+		headers = []string(f.CorsHeaders)
+	}
+	return
+}
+
+// SetCorsConfig sets the CORS configuration for this form
+func (f *Form) SetCorsConfig(origins, methods, headers []string) {
+	f.CorsOrigins = types.StringArray(origins)
+	f.CorsMethods = types.StringArray(methods)
+	f.CorsHeaders = types.StringArray(headers)
 }

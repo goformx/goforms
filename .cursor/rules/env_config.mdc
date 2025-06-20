@@ -49,8 +49,22 @@ type DatabaseConfig struct {
 ```go
 type SecurityConfig struct {
     SessionSecret string `envconfig:"GOFORMS_SESSION_SECRET" required:"true"`
-    CSRFSecret    string `envconfig:"GOFORMS_CSRF_SECRET" required:"true"`
     SecureCookies bool   `envconfig:"GOFORMS_SECURE_COOKIES" default:"false"`
+    
+    // CSRF Configuration
+    CSRFConfig struct {
+        Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
+        Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
+        TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
+        TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-CSRF-Token,form:_csrf,cookie:_csrf"`
+        ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
+        CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
+        CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
+        CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
+        CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
+        CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Strict"`
+        CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
+    } `envconfig:"CSRF"`
 }
 ```
 
@@ -75,7 +89,7 @@ GOFORMS_DB_DSN=postgres://username:password@localhost:5432/goforms
 
 # Security
 GOFORMS_SESSION_SECRET=your-32-character-session-secret-here
-GOFORMS_CSRF_SECRET=your-32-character-csrf-secret-here
+GOFORMS_SECURITY_CSRF_SECRET=your-32-character-csrf-secret-here
 ```
 
 ### Optional Variables
@@ -103,6 +117,25 @@ GOFORMS_VITE_DEV_PORT=3000
 
 # Security
 GOFORMS_SECURE_COOKIES=false
+
+# CSRF Configuration
+GOFORMS_SECURITY_CSRF_ENABLED=true
+GOFORMS_SECURITY_CSRF_TOKEN_LENGTH=32
+GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP=header:X-CSRF-Token,form:_csrf,cookie:_csrf
+GOFORMS_SECURITY_CSRF_CONTEXT_KEY=csrf
+GOFORMS_SECURITY_CSRF_COOKIE_NAME=_csrf
+GOFORMS_SECURITY_CSRF_COOKIE_PATH=/
+GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN=
+GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY=true
+GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE=Strict
+GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE=86400
+
+# CORS Configuration
+GOFORMS_CORS_ALLOWED_ORIGINS=http://localhost:3000
+GOFORMS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization
+GOFORMS_CORS_ALLOW_CREDENTIALS=true
+GOFORMS_CORS_MAX_AGE=3600
 ```
 
 ## Environment-Specific Configuration
@@ -158,7 +191,7 @@ GOFORMS_DB_DSN=./goforms.db
 ```bash
 # Generate secure secrets
 GOFORMS_SESSION_SECRET=$(openssl rand -hex 32)
-GOFORMS_CSRF_SECRET=$(openssl rand -hex 32)
+GOFORMS_SECURITY_CSRF_SECRET=$(openssl rand -hex 32)
 
 # Cookie settings
 GOFORMS_SECURE_COOKIES=true  # Set to true in production

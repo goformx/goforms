@@ -38,10 +38,10 @@ type AppConfig struct {
 	Scheme         string        `envconfig:"GOFORMS_APP_SCHEME" default:"http"`
 	Port           int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
-	ReadTimeout    time.Duration `envconfig:"GOFORMS_READ_TIMEOUT" default:"5s"`
-	WriteTimeout   time.Duration `envconfig:"GOFORMS_WRITE_TIMEOUT" default:"10s"`
-	IdleTimeout    time.Duration `envconfig:"GOFORMS_IDLE_TIMEOUT" default:"120s"`
-	RequestTimeout time.Duration `envconfig:"GOFORMS_REQUEST_TIMEOUT" default:"30s"`
+	ReadTimeout    time.Duration `envconfig:"GOFORMS_APP_READ_TIMEOUT" default:"5s"`
+	WriteTimeout   time.Duration `envconfig:"GOFORMS_APP_WRITE_TIMEOUT" default:"10s"`
+	IdleTimeout    time.Duration `envconfig:"GOFORMS_APP_IDLE_TIMEOUT" default:"120s"`
+	RequestTimeout time.Duration `envconfig:"GOFORMS_APP_REQUEST_TIMEOUT" default:"30s"`
 
 	// Development Settings
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
@@ -88,8 +88,17 @@ type DatabaseConfig struct {
 
 // CSRFConfig holds CSRF-related configuration
 type CSRFConfig struct {
-	Enabled bool   `envconfig:"ENABLED" default:"true"`
-	Secret  string `envconfig:"SECRET" validate:"required"`
+	Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
+	Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
+	TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
+	TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-Csrf-Token"`
+	ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
+	CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
+	CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
+	CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
+	CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
+	CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Strict"`
+	CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
 }
 
 // SecurityConfig contains security-related settings
@@ -112,11 +121,6 @@ type SecurityConfig struct {
 	CorsAllowedHeaders   []string `envconfig:"CORS_ALLOWED_HEADERS" default:"Content-Type,Authorization"`
 	CorsAllowCredentials bool     `envconfig:"CORS_ALLOW_CREDENTIALS" default:"true"`
 	CorsMaxAge           int      `envconfig:"CORS_MAX_AGE" default:"3600"`
-
-	// Form-specific CORS settings
-	FormCorsAllowedOrigins []string `envconfig:"FORM_CORS_ALLOWED_ORIGINS" default:"http://localhost:3000"`
-	FormCorsAllowedMethods []string `envconfig:"FORM_CORS_ALLOWED_METHODS" default:"GET,POST,OPTIONS"`
-	FormCorsAllowedHeaders []string `envconfig:"FORM_CORS_ALLOWED_HEADERS" default:"Content-Type,Accept,Origin"`
 
 	// CSRF settings
 	CSRFConfig CSRFConfig `envconfig:"CSRF"`
@@ -299,8 +303,8 @@ func (c *Config) validateDatabaseConfig() error {
 func (c *Config) validateSecurityConfig() error {
 	var errs []string
 
-	if c.Security.CSRFConfig.Secret == "" {
-		errs = append(errs, "CSRF secret is required")
+	if c.Security.CSRFConfig.Enabled && c.Security.CSRFConfig.Secret == "" {
+		errs = append(errs, "CSRF secret is required when CSRF is enabled")
 	}
 	if c.Security.FormRateLimit <= 0 {
 		errs = append(errs, "form rate limit must be positive")
