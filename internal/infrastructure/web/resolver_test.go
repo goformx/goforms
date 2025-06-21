@@ -42,7 +42,7 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		{
 			name:     "src file",
 			path:     "src/js/pages/main.ts",
-			expected: "http://localhost:3000/src/js/main.ts",
+			expected: "http://localhost:3000/src/js/pages/main.ts",
 		},
 		{
 			name:     "css file",
@@ -52,12 +52,12 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		{
 			name:     "js file",
 			path:     "main.js",
-			expected: "http://localhost:3000/src/js/main.ts",
+			expected: "http://localhost:3000/src/js/pages/main.ts",
 		},
 		{
 			name:     "ts file",
 			path:     "main.ts",
-			expected: "http://localhost:3000/src/js/main.ts",
+			expected: "http://localhost:3000/src/js/pages/main.ts",
 		},
 		{
 			name:     "other file",
@@ -185,7 +185,7 @@ func TestAssetManager(t *testing.T) {
 	assert.NotNil(t, manager)
 
 	path := manager.AssetPath("main.js")
-	assert.Equal(t, "http://localhost:3000/src/js/main.ts", path)
+	assert.Equal(t, "http://localhost:3000/src/js/pages/main.ts", path)
 
 	path2 := manager.AssetPath("main.js")
 	assert.Equal(t, path, path2)

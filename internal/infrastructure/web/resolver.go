@@ -90,12 +90,18 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path st
 	var resolvedPath string
 	switch {
 	case strings.HasPrefix(path, "src/"):
+		// If path already starts with src/, use it as-is
 		resolvedPath = fmt.Sprintf("%s://%s/%s", r.config.App.Scheme, hostPort, path)
 	case strings.HasSuffix(path, ".css"):
 		resolvedPath = fmt.Sprintf("%s://%s/src/css/%s", r.config.App.Scheme, hostPort, path)
 	case strings.HasSuffix(path, ".ts"), strings.HasSuffix(path, ".js"):
 		baseName := strings.TrimSuffix(strings.TrimSuffix(path, ".js"), ".ts")
-		resolvedPath = fmt.Sprintf("%s://%s/src/js/%s.ts", r.config.App.Scheme, hostPort, baseName)
+		// Special handling for main.ts/js - it's now in pages/
+		if baseName == "main" {
+			resolvedPath = fmt.Sprintf("%s://%s/src/js/pages/%s.ts", r.config.App.Scheme, hostPort, baseName)
+		} else {
+			resolvedPath = fmt.Sprintf("%s://%s/src/js/%s.ts", r.config.App.Scheme, hostPort, baseName)
+		}
 	default:
 		resolvedPath = fmt.Sprintf("%s://%s/%s", r.config.App.Scheme, hostPort, path)
 	}
