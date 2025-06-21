@@ -1,250 +1,134 @@
-import { HttpClient } from "../../core/http-client";
-import { ErrorManager } from "../../utils/error-manager";
-import { ValidationManager } from "../../utils/validation-manager";
-import { Logger } from "../../core/logger";
-
-export interface FormConfig {
-  formId: string;
-  validationType: string;
-  validationDelay?: number;
-}
+// ===== src/js/forms/handlers/enhanced-form-handler.ts =====
+import type { FormConfig } from "../types/form-types";
+import { validation } from "../validation/validation";
+import { ValidationHandler } from "./validation-handler";
+import { ResponseHandler } from "./response-handler";
+import { UIManager } from "./ui-manager";
+import { isAuthenticationEndpoint } from "../utils/endpoint-utils";
 
 /**
- * Enhanced form handler that consolidates all form handling logic
+ * Class-based form handler for more complex use cases
  */
 export class EnhancedFormHandler {
   private form: HTMLFormElement;
   private validationType: string;
-  private validationDelay: number;
-  private isSubmitting = false;
 
   constructor(config: FormConfig) {
-    this.form = this.findForm(config.formId);
+    const formElement = document.querySelector<HTMLFormElement>(
+      `#${config.formId}`,
+    );
+    if (!formElement) {
+      throw new Error(`Form with ID "${config.formId}" not found`);
+    }
+
+    this.form = formElement;
     this.validationType = config.validationType;
-    this.validationDelay = config.validationDelay ?? 300;
 
-    this.initialize();
+    this.initialize(config);
   }
 
-  private findForm(formId: string): HTMLFormElement {
-    const form = document.querySelector<HTMLFormElement>(`#${formId}`);
-    if (!form) {
-      throw new Error(`Form with ID "${formId}" not found`);
-    }
-    return form;
-  }
+  private initialize(config: FormConfig): void {
+    validation.setupRealTimeValidation(this.form.id, config.validationType);
 
-  private initialize(): void {
-    this.setupRealTimeValidation();
-    this.setupFormSubmission();
-    Logger.debug(`Form handler initialized for: ${this.form.id}`);
-  }
-
-  private setupRealTimeValidation(): void {
-    const debouncedValidation = this.debounce(
-      (input: HTMLInputElement) => this.validateField(input),
-      this.validationDelay,
+    this.form.addEventListener("submit", (event) =>
+      this.handleFormSubmission(event),
     );
-
-    this.form
-      .querySelectorAll<HTMLInputElement>("input[id]")
-      .forEach((input) => {
-        input.addEventListener("input", () => debouncedValidation(input));
-
-        // Special handling for password field to validate confirm_password
-        if (input.name === "password") {
-          input.addEventListener("input", () => {
-            const confirmInput = this.form.querySelector<HTMLInputElement>(
-              "input[name='confirm_password']",
-            );
-            if (confirmInput && confirmInput.value) {
-              debouncedValidation(confirmInput);
-            }
-          });
-        }
-      });
   }
 
-  private async validateField(input: HTMLInputElement): Promise<void> {
-    ErrorManager.clearFieldError(input.id);
+  private async sendFormData(formData: FormData): Promise<Response> {
+    console.group("Form Submission - Enhanced Handler");
 
-    const result = await ValidationManager.validateField(
-      input.name || input.id,
-      input.value,
-      this.validationType,
-      this.form,
-    );
+    try {
+      const csrfToken = validation.getCSRFToken();
+      console.log("CSRF Token from meta tag:", csrfToken);
+      console.log("Sending request to:", this.form.action);
+      console.log("Cookies that will be sent:", document.cookie);
 
-    if (!result.valid && result.error) {
-      ErrorManager.showFieldError(input.id, result.error);
-    }
-  }
+      const isAuthEndpoint = isAuthenticationEndpoint(this.form.action);
 
-  private setupFormSubmission(): void {
-    this.form.addEventListener("submit", (event) => {
-      event.preventDefault();
-      if (!this.isSubmitting) {
-        this.handleSubmission();
+      if (isAuthEndpoint) {
+        return this.sendAuthRequest(formData, csrfToken);
+      } else {
+        return this.sendStandardRequest(formData);
       }
+    } finally {
+      console.groupEnd();
+    }
+  }
+
+  private async sendAuthRequest(
+    formData: FormData,
+    csrfToken: string | null,
+  ): Promise<Response> {
+    const data = Object.fromEntries(formData.entries());
+    delete data.csrf_token; // Remove from payload
+
+    const headers: Record<string, string> = {
+      "Content-Type": "application/json",
+      "Accept": "application/json",
+      "X-Requested-With": "XMLHttpRequest",
+    };
+
+    if (csrfToken) {
+      headers["X-Csrf-Token"] = csrfToken;
+    }
+
+    console.log("Cleaned Form Data:", data);
+
+    return await fetch(this.form.action, {
+      method: "POST",
+      body: JSON.stringify(data),
+      credentials: "include",
+      headers,
     });
   }
 
-  private async handleSubmission(): Promise<void> {
-    if (this.isSubmitting) return;
+  private async sendStandardRequest(formData: FormData): Promise<Response> {
+    // Remove CSRF token from form data since fetchWithAuth should add it to headers
+    const cleanFormData = new FormData();
+    for (const [key, value] of formData.entries()) {
+      if (key !== "csrf_token") {
+        cleanFormData.append(key, value);
+      }
+    }
 
-    this.isSubmitting = true;
-    this.setSubmitButtonState(true);
-    ErrorManager.clearAllErrors(this.form);
+    return validation.fetchWithAuth(this.form.action, {
+      method: this.form.method,
+      body: cleanFormData,
+    });
+  }
+
+  private async handleFormSubmission(event: Event): Promise<void> {
+    event.preventDefault();
 
     try {
-      // Validate entire form
-      const validationResult = await ValidationManager.validateForm(
+      const isValid = await ValidationHandler.validateFormSubmission(
         this.form,
         this.validationType,
       );
 
-      if (!validationResult.success) {
-        this.displayValidationErrors(validationResult.error?.errors || []);
+      if (!isValid) {
+        this.showError("Please check the form for errors.");
         return;
       }
 
-      // Submit form
-      const response = await this.submitForm();
-      await this.handleResponse(response);
+      const formData = new FormData(this.form);
+      const response = await this.sendFormData(formData);
+      await ResponseHandler.handleServerResponse(response, this.form);
     } catch (error) {
-      Logger.error("Form submission failed:", error);
-      ErrorManager.showFormError(
-        this.form,
-        "An unexpected error occurred. Please try again.",
-      );
-    } finally {
-      this.isSubmitting = false;
-      this.setSubmitButtonState(false);
+      console.error("Form submission error:", error);
+      this.showError("An unexpected error occurred. Please try again.");
     }
   }
 
-  private setSubmitButtonState(disabled: boolean): void {
-    const submitButton = this.form.querySelector<HTMLButtonElement>(
-      "button[type='submit']",
-    );
-    if (submitButton) {
-      submitButton.disabled = disabled;
-      submitButton.textContent = disabled
-        ? "Submitting..."
-        : submitButton.dataset.originalText || "Submit";
+  private showError(message: string, field?: string): void {
+    UIManager.displayFormError(this.form, message);
 
-      if (!submitButton.dataset.originalText) {
-        submitButton.dataset.originalText = submitButton.textContent;
+    if (field) {
+      const fieldElement = this.form.querySelector(`[name="${field}"]`);
+      if (fieldElement) {
+        fieldElement.classList.add("error");
       }
     }
-  }
-
-  private displayValidationErrors(
-    errors: Array<{ path: string[]; message: string }>,
-  ): void {
-    errors.forEach((error) => {
-      const fieldId = error.path[0];
-      if (fieldId) {
-        // Try to find by ID first, then by name
-        let input = document.getElementById(fieldId) as HTMLInputElement | null;
-        if (!input) {
-          input = this.form.querySelector<HTMLInputElement>(
-            `input[name="${fieldId}"]`,
-          );
-        }
-
-        if (input && input.id) {
-          ErrorManager.showFieldError(input.id, error.message);
-        }
-      }
-    });
-  }
-
-  private async submitForm(): Promise<Response> {
-    const formData = new FormData(this.form);
-    Logger.debug(
-      "Submitting form data:",
-      Object.fromEntries(formData.entries()),
-    );
-
-    return HttpClient.post(this.form.action, formData);
-  }
-
-  private async handleResponse(response: Response): Promise<void> {
-    try {
-      // Check if response has content before trying to parse JSON
-      const contentType = response.headers.get("content-type");
-      const hasContent =
-        contentType && contentType.includes("application/json");
-
-      let data: any = {};
-
-      if (hasContent) {
-        try {
-          data = await response.json();
-          Logger.debug("Response data:", data);
-        } catch (parseError) {
-          Logger.error("Failed to parse JSON response:", parseError);
-          // Continue with empty data object
-        }
-      } else {
-        Logger.debug("Response has no JSON content, status:", response.status);
-      }
-
-      if (response.redirected || data.redirect) {
-        const redirectUrl = response.redirected ? response.url : data.redirect;
-        Logger.log("Redirecting to:", redirectUrl);
-        window.location.href = redirectUrl;
-        return;
-      }
-
-      if (!response.ok) {
-        const errorMessage =
-          data.message ||
-          (response.status === 403
-            ? "Access forbidden. Please refresh the page and try again."
-            : response.status === 401
-              ? "Authentication required."
-              : `Request failed with status ${response.status}`);
-
-        ErrorManager.showFormError(this.form, errorMessage);
-        return;
-      }
-
-      // Handle success
-      if (data.message) {
-        ErrorManager.showFormSuccess(this.form, data.message);
-      }
-    } catch (error) {
-      Logger.error("Error processing response:", error);
-      ErrorManager.showFormError(this.form, "Error processing server response");
-    }
-  }
-
-  private debounce<T extends (...args: any[]) => any>(
-    fn: T,
-    delay: number,
-  ): (...args: Parameters<T>) => void {
-    let timer: NodeJS.Timeout;
-    return (...args: Parameters<T>) => {
-      clearTimeout(timer);
-      timer = setTimeout(() => fn(...args), delay);
-    };
-  }
-
-  // Public methods for external use
-  public reset(): void {
-    this.form.reset();
-    ErrorManager.clearAllErrors(this.form);
-  }
-
-  public getFormData(): FormData {
-    return new FormData(this.form);
-  }
-
-  public isValid(): Promise<boolean> {
-    return ValidationManager.validateForm(this.form, this.validationType).then(
-      (result) => result.success,
-    );
   }
 }
