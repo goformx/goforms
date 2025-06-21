@@ -1,6 +1,7 @@
-import { Formio } from "@formio/js";
+import { FormBuilder, Formio } from "@formio/js";
 import goforms from "@goformx/formio";
 import { FormService } from "../forms/services/form-service";
+import type { FormSchema } from "../forms/services/form-service";
 import { builderOptions } from "../utils/constants/builder-config";
 import { setupBuilderEvents } from "../forms/handlers/builder-events";
 
@@ -11,7 +12,7 @@ import "@formio/js/dist/formio.full.min.css";
 Formio.use(goforms);
 
 /**
- * Error handling utility
+ * Form builder error handling
  */
 class FormBuilderError extends Error {
   constructor(
@@ -24,7 +25,7 @@ class FormBuilderError extends Error {
 }
 
 /**
- * DOM utility functions
+ * DOM utilities
  */
 const dom = {
   getElement<T extends HTMLElement>(id: string): T | null {
@@ -83,11 +84,11 @@ function validateFormBuilder(): { builder: HTMLElement; formId: string } {
 /**
  * Schema management
  */
-async function getFormSchema(formId: string): Promise<any> {
+async function getFormSchema(formId: string): Promise<FormSchema> {
   // For new form creation, return a default schema
   if (formId === "new") {
     return {
-      type: "object",
+      display: "form",
       components: [],
     };
   }
@@ -108,7 +109,7 @@ async function getFormSchema(formId: string): Promise<any> {
  */
 async function createFormBuilder(
   container: HTMLElement,
-  schema: any,
+  schema: FormSchema,
 ): Promise<any> {
   try {
     // Initialize Formio with project settings
