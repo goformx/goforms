@@ -1,6 +1,5 @@
-
 // ===== src/js/forms/handlers/response-handler.ts =====
-import { ServerResponse } from "../types/form-types";
+import type { ServerResponse } from "../types/form-types";
 import { UIManager } from "./ui-manager";
 
 export class ResponseHandler {
@@ -16,7 +15,7 @@ export class ResponseHandler {
     try {
       const contentType = response.headers.get("content-type");
       let data: ServerResponse = {};
-      
+
       // Only try to parse JSON if the response has JSON content
       if (contentType && contentType.includes("application/json")) {
         data = await response.json();
