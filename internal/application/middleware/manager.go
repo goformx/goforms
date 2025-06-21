@@ -182,29 +182,8 @@ func (m *Manager) Setup(e *echo.Echo) {
 
 // setupCSRF creates and configures CSRF middleware
 func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.MiddlewareFunc {
-	// Convert string SameSite to http.SameSite
-	var sameSite http.SameSite
-	switch csrfConfig.CookieSameSite {
-	case "Lax":
-		sameSite = http.SameSiteLaxMode
-	case "Strict":
-		sameSite = http.SameSiteStrictMode
-	case "None":
-		sameSite = http.SameSiteNoneMode
-	default:
-		// In development, default to Lax for cross-origin support
-		if isDevelopment {
-			sameSite = http.SameSiteLaxMode
-		} else {
-			sameSite = http.SameSiteStrictMode
-		}
-	}
-
-	// Ensure token length is within bounds for uint8
-	tokenLength := csrfConfig.TokenLength
-	if tokenLength <= 0 || tokenLength > 255 {
-		tokenLength = constants.DefaultTokenLength // Use constant
-	}
+	sameSite := getSameSite(csrfConfig.CookieSameSite, isDevelopment)
+	tokenLength := getTokenLength(csrfConfig.TokenLength)
 
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
 		TokenLength:    uint8(tokenLength), // #nosec G115
@@ -217,68 +196,107 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 		CookieHTTPOnly: csrfConfig.CookieHTTPOnly,
 		CookieSameSite: sameSite,
 		CookieMaxAge:   csrfConfig.CookieMaxAge,
-		Skipper: func(c echo.Context) bool {
-			path := c.Request().URL.Path
-			method := c.Request().Method
-
-			// Add debugging in development mode
-			if isDevelopment {
-				c.Logger().Debug("CSRF middleware processing request",
-					"path", path,
-					"method", method,
-					"token_lookup", csrfConfig.TokenLookup,
-					"origin", c.Request().Header.Get("Origin"),
-					"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "")
-			}
-
-			// Skip CSRF for static files
-			if constants.IsStaticFile(path) {
-				return true
-			}
-
-			// Skip CSRF validation for safe methods, but still generate token
-			if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
-				return false
-			}
-
-			// Skip CSRF for API endpoints with valid Authorization header or CSRF token
-			if strings.HasPrefix(path, "/api/") {
-				authHeader := c.Request().Header.Get("Authorization")
-				csrfToken := c.Request().Header.Get("X-Csrf-Token")
-				if authHeader != "" || csrfToken != "" {
-					return true
-				}
-			}
-
-			// Skip CSRF for validation endpoints
-			if strings.HasPrefix(path, "/api/validation/") {
-				return true
-			}
-
-			// Never skip CSRF for login, signup, or password reset
-			if path == constants.PathLogin ||
-				path == constants.PathSignup ||
-				path == constants.PathResetPassword {
-				return false
-			}
-
-			return false
-		},
-		ErrorHandler: func(err error, c echo.Context) error {
-			// Add debugging in development mode
-			if isDevelopment {
-				c.Logger().Error("CSRF validation failed",
-					"error", err.Error(),
-					"path", c.Request().URL.Path,
-					"method", c.Request().Method,
-					"token_lookup", csrfConfig.TokenLookup,
-					"origin", c.Request().Header.Get("Origin"),
-					"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "",
-					"cookies", c.Request().Header.Get("Cookie"))
-			}
-			return c.NoContent(http.StatusForbidden)
-		},
+		Skipper:        createCSRFSkipper(csrfConfig, isDevelopment),
+		ErrorHandler:   createCSRFErrorHandler(csrfConfig, isDevelopment),
 	})
+}
+
+// getSameSite converts string SameSite to http.SameSite
+func getSameSite(cookieSameSite string, isDevelopment bool) http.SameSite {
+	switch cookieSameSite {
+	case "Lax":
+		return http.SameSiteLaxMode
+	case "Strict":
+		return http.SameSiteStrictMode
+	case "None":
+		return http.SameSiteNoneMode
+	default:
+		// In development, default to Lax for cross-origin support
+		if isDevelopment {
+			return http.SameSiteLaxMode
+		}
+		return http.SameSiteStrictMode
+	}
+}
+
+// getTokenLength ensures token length is within bounds for uint8
+func getTokenLength(tokenLength int) int {
+	if tokenLength <= 0 || tokenLength > 255 {
+		return constants.DefaultTokenLength
+	}
+	return tokenLength
+}
+
+// createCSRFSkipper creates the CSRF skipper function
+func createCSRFSkipper(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) func(c echo.Context) bool {
+	return func(c echo.Context) bool {
+		path := c.Request().URL.Path
+		method := c.Request().Method
+
+		// Add debugging in development mode
+		if isDevelopment {
+			c.Logger().Debug("CSRF middleware processing request",
+				"path", path,
+				"method", method,
+				"token_lookup", csrfConfig.TokenLookup,
+				"origin", c.Request().Header.Get("Origin"),
+				"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "")
+		}
+
+		// Skip CSRF for static files
+		if constants.IsStaticFile(path) {
+			return true
+		}
+
+		// Skip CSRF validation for safe methods, but still generate token
+		if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
+			return false
+		}
+
+		// Skip CSRF for API endpoints with valid Authorization header or CSRF token
+		if strings.HasPrefix(path, "/api/") {
+			authHeader := c.Request().Header.Get("Authorization")
+			csrfToken := c.Request().Header.Get("X-Csrf-Token")
+			if authHeader != "" || csrfToken != "" {
+				return true
+			}
+		}
+
+		// Skip CSRF for validation endpoints
+		if strings.HasPrefix(path, "/api/validation/") {
+			return true
+		}
+
+		// Never skip CSRF for login, signup, or password reset
+		if path == constants.PathLogin ||
+			path == constants.PathSignup ||
+			path == constants.PathResetPassword {
+			return false
+		}
+
+		return false
+	}
+}
+
+// createCSRFErrorHandler creates the CSRF error handler function
+func createCSRFErrorHandler(
+	csrfConfig *appconfig.CSRFConfig,
+	isDevelopment bool,
+) func(err error, c echo.Context) error {
+	return func(err error, c echo.Context) error {
+		// Add debugging in development mode
+		if isDevelopment {
+			c.Logger().Error("CSRF validation failed",
+				"error", err.Error(),
+				"path", c.Request().URL.Path,
+				"method", c.Request().Method,
+				"token_lookup", csrfConfig.TokenLookup,
+				"origin", c.Request().Header.Get("Origin"),
+				"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "",
+				"cookies", c.Request().Header.Get("Cookie"))
+		}
+		return c.NoContent(http.StatusForbidden)
+	}
 }
 
 // setupAdditionalSecurityHeadersMiddleware creates and configures additional security headers middleware

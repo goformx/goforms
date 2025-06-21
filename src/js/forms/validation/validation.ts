@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { getValidationSchema } from "./generator";
-import { ValidationManager } from "../utils/validation-manager";
-import { ErrorManager } from "../utils/error-manager";
-import { Logger } from "../utils/logger";
+import { ValidationManager } from "../../utils/validation-manager";
+import { ErrorManager } from "../../utils/error-manager";
+import { Logger } from "../../core/logger";
 
 // Types
 export type FormData = Record<string, string>;
@@ -152,7 +152,7 @@ export const validation = {
   ): Promise<Response> {
     // This method is kept for backward compatibility
     // New code should use HttpClient directly
-    const { HttpClient } = await import("../utils/http-client");
+    const { HttpClient } = await import("../../core/http-client");
     return HttpClient.request(url, options);
   },
 };

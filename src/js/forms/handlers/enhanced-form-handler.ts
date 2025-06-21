@@ -1,7 +1,7 @@
-import { HttpClient } from "../core/http-client";
-import { ErrorManager } from "../utils/error-manager";
-import { ValidationManager } from "../utils/validation-manager";
-import { Logger } from "../core/logger";
+import { HttpClient } from "../../core/http-client";
+import { ErrorManager } from "../../utils/error-manager";
+import { ValidationManager } from "../../utils/validation-manager";
+import { Logger } from "../../core/logger";
 
 export interface FormConfig {
   formId: string;

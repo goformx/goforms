@@ -1,4 +1,4 @@
-import { FormBuilderError } from "../utils/errors";
+import { FormBuilderError } from "../../core/errors";
 import DOMPurify from "dompurify";
 
 export interface FormSchema {

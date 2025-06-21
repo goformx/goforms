@@ -1,4 +1,4 @@
-import { FormService } from "../services/form-service";
+import { FormService } from "../forms/services/form-service";
 
 async function deleteForm(formId: string) {
   if (

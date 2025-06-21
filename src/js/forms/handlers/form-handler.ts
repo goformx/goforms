@@ -3,7 +3,7 @@
  *
  * Provides shared functionality for form handling including:
  * - Real-time validation with debouncing
- * - Form submission
+ * - Form submission with CSRF protection
  * - Centralized error handling
  * - Server communication
  */
@@ -13,15 +13,16 @@ import { validation } from "../validation/validation";
 export interface FormConfig {
   formId: string;
   validationType: string;
-  validationDelay?: number; // Optional delay for debounced validation
+  validationDelay?: number;
+}
+
+interface ServerResponse {
+  message?: string;
+  redirect?: string;
 }
 
 /**
  * Debounces a function to prevent excessive calls
- *
- * @param fn - Function to debounce
- * @param delay - Delay in milliseconds
- * @returns Debounced function
  */
 function debounce<T extends (...args: any[]) => any>(
   fn: T,
@@ -36,24 +37,17 @@ function debounce<T extends (...args: any[]) => any>(
 
 /**
  * Sets up a form with validation and submission handling
- *
- * @param config - Form configuration including form ID and validation type
  */
-export function setupForm(config: FormConfig) {
-  // Use querySelector for better type safety
+export function setupForm(config: FormConfig): void {
   const form = document.querySelector<HTMLFormElement>(`#${config.formId}`);
   if (!form) {
     console.error(`Form with ID "${config.formId}" not found`);
     return;
   }
 
-  // Initialize validation
   validation.setupRealTimeValidation(form.id, config.validationType);
-
-  // Setup real-time validation with debouncing
   setupRealTimeValidation(form, config.validationType, config.validationDelay);
 
-  // Setup form submission
   form.addEventListener("submit", (event) =>
     handleFormSubmission(event, form, config.validationType),
   );
@@ -66,8 +60,10 @@ function setupRealTimeValidation(
   form: HTMLFormElement,
   validationType: string,
   delay = 300,
-) {
-  form.querySelectorAll<HTMLInputElement>("input[id]").forEach((input) => {
+): void {
+  const inputs = form.querySelectorAll<HTMLInputElement>("input[id]");
+
+  inputs.forEach((input) => {
     input.addEventListener(
       "input",
       debounce(() => handleInputValidation(input, form, validationType), delay),
@@ -82,15 +78,15 @@ async function handleInputValidation(
   input: HTMLInputElement,
   form: HTMLFormElement,
   validationType: string,
-) {
+): Promise<void> {
   try {
     validation.clearError(input.id);
     input.setAttribute("aria-invalid", "false");
 
     const result = await validation.validateForm(form, validationType);
 
-    if (!result.success) {
-      result.error?.errors?.forEach((err) => {
+    if (!result.success && result.error?.errors) {
+      result.error.errors.forEach((err) => {
         if (err.path[0] === input.id) {
           validation.showError(input.id, err.message);
           input.setAttribute("aria-invalid", "true");
@@ -110,23 +106,20 @@ async function handleFormSubmission(
   event: Event,
   form: HTMLFormElement,
   validationType: string,
-) {
+): Promise<void> {
   event.preventDefault();
   validation.clearAllErrors();
 
   // Reset aria-invalid attributes
-  form
-    .querySelectorAll<HTMLInputElement>("input[id]")
-    .forEach((input) => input.setAttribute("aria-invalid", "false"));
+  const inputs = form.querySelectorAll<HTMLInputElement>("input[id]");
+  inputs.forEach((input) => input.setAttribute("aria-invalid", "false"));
 
   try {
-    // Validate form
     const result = await validation.validateForm(form, validationType);
     if (!result.success) {
-      throw result.error; // Throw for unified error handling
+      throw result.error;
     }
 
-    // Submit form data and handle response
     const response = await sendFormData(form);
     await handleServerResponse(response, form);
   } catch (error) {
@@ -138,46 +131,23 @@ async function handleFormSubmission(
 /**
  * Sends form data to the server via AJAX
  */
-async function sendFormData(form: HTMLFormElement) {
+async function sendFormData(form: HTMLFormElement): Promise<Response> {
   console.group("Form Submission");
-  const csrfToken = validation.getCSRFToken();
-  console.log("CSRF Token:", csrfToken ? "Present" : "Missing");
-  // Convert FormData to JSON for auth endpoints
-  const formData = new FormData(form);
-  const isAuthEndpoint =
-    form.action.includes("/login") || form.action.includes("/signup");
-  // For auth endpoints, clean up the data before sending
-  let body: FormData | string;
-  if (isAuthEndpoint) {
-    const data = Object.fromEntries(formData.entries());
-    // Remove CSRF token from payload since it's in the header
-    delete data.csrf_token;
-    body = JSON.stringify(data);
-    console.log("Cleaned Form Data:", data);
-  } else {
-    body = formData;
-    console.log("Form Data:", Object.fromEntries(formData.entries()));
-  }
-  try {
-    console.log("Sending request to:", form.action);
 
-    // Debug: Log cookies that will be sent
+  try {
+    const csrfToken = validation.getCSRFToken();
+    const formData = new FormData(form);
+    const isAuthEndpoint = isAuthenticationEndpoint(form.action);
+
+    console.log("CSRF Token:", csrfToken ? "Present" : "Missing");
+    console.log("Sending request to:", form.action);
     console.log("Cookies that will be sent:", document.cookie);
 
-    const headers: Record<string, string> = {
-      Accept: "application/json",
-      "X-Requested-With": "XMLHttpRequest",
-    };
-
-    // Add CSRF token to headers for auth endpoints
-    if (isAuthEndpoint && csrfToken) {
-      headers["X-Csrf-Token"] = csrfToken;
-    }
-
-    // Add Content-Type for auth endpoints
-    if (isAuthEndpoint) {
-      headers["Content-Type"] = "application/json";
-    }
+    const { body, headers } = prepareRequestData(
+      formData,
+      isAuthEndpoint,
+      csrfToken,
+    );
 
     const response = await fetch(form.action, {
       method: "POST",
@@ -185,11 +155,13 @@ async function sendFormData(form: HTMLFormElement) {
       credentials: "include",
       headers,
     });
+
     console.log("Response status:", response.status);
     console.log(
       "Response headers:",
       Object.fromEntries(response.headers.entries()),
     );
+
     return response;
   } catch (error) {
     console.error("Request failed:", error);
@@ -200,16 +172,57 @@ async function sendFormData(form: HTMLFormElement) {
 }
 
 /**
+ * Checks if the endpoint is an authentication endpoint
+ */
+function isAuthenticationEndpoint(action: string): boolean {
+  return action.includes("/login") || action.includes("/signup");
+}
+
+/**
+ * Prepares request data and headers based on endpoint type
+ */
+function prepareRequestData(
+  formData: FormData,
+  isAuthEndpoint: boolean,
+  csrfToken: string | null,
+): { body: FormData | string; headers: Record<string, string> } {
+  const headers: Record<string, string> = {
+    Accept: "application/json",
+    "X-Requested-With": "XMLHttpRequest",
+  };
+
+  if (isAuthEndpoint) {
+    const data = Object.fromEntries(formData.entries());
+    delete data.csrf_token; // Remove CSRF token from payload since it's in the header
+
+    if (csrfToken) {
+      headers["X-Csrf-Token"] = csrfToken;
+    }
+    headers["Content-Type"] = "application/json";
+
+    console.log("Cleaned Form Data:", data);
+    return { body: JSON.stringify(data), headers };
+  } else {
+    console.log("Form Data:", Object.fromEntries(formData.entries()));
+    return { body: formData, headers };
+  }
+}
+
+/**
  * Handles the server's response to the form submission
  */
-async function handleServerResponse(response: Response, form: HTMLFormElement) {
+async function handleServerResponse(
+  response: Response,
+  form: HTMLFormElement,
+): Promise<void> {
   console.group("Response Handler");
+
   try {
-    const data = await response.json();
+    const data: ServerResponse = await response.json();
     console.log("Response data:", data);
 
     if (response.redirected || data.redirect) {
-      const redirectUrl = response.redirected ? response.url : data.redirect;
+      const redirectUrl = response.redirected ? response.url : data.redirect!;
       console.log("Redirecting to:", redirectUrl);
       window.location.href = redirectUrl;
       return;
@@ -222,7 +235,6 @@ async function handleServerResponse(response: Response, form: HTMLFormElement) {
       return;
     }
 
-    // Handle successful response without redirect
     if (data.message) {
       console.log("Success message:", data.message);
       displayFormSuccess(form, data.message);
@@ -238,9 +250,10 @@ async function handleServerResponse(response: Response, form: HTMLFormElement) {
 /**
  * Displays an error message in the form's error container
  */
-function displayFormError(form: HTMLFormElement, message: string) {
+function displayFormError(form: HTMLFormElement, message: string): void {
   console.debug("Displaying error message:", message);
   const formError = form.querySelector(".form-error");
+
   if (formError) {
     formError.textContent = message;
     formError.classList.remove("hidden");
@@ -252,9 +265,10 @@ function displayFormError(form: HTMLFormElement, message: string) {
 /**
  * Displays a success message in the form's success container
  */
-function displayFormSuccess(form: HTMLFormElement, message: string) {
+function displayFormSuccess(form: HTMLFormElement, message: string): void {
   console.debug("Displaying success message:", message);
   const formSuccess = form.querySelector(".form-success");
+
   if (formSuccess) {
     formSuccess.textContent = message;
     formSuccess.classList.remove("hidden");
@@ -263,8 +277,12 @@ function displayFormSuccess(form: HTMLFormElement, message: string) {
   }
 }
 
+/**
+ * Class-based form handler for more complex use cases
+ */
 export class FormHandler {
   private form: HTMLFormElement;
+  private validationType: string;
 
   constructor(config: FormConfig) {
     const formElement = document.querySelector<HTMLFormElement>(
@@ -273,8 +291,14 @@ export class FormHandler {
     if (!formElement) {
       throw new Error(`Form with ID "${config.formId}" not found`);
     }
-    this.form = formElement;
 
+    this.form = formElement;
+    this.validationType = config.validationType;
+
+    this.initialize(config);
+  }
+
+  private initialize(config: FormConfig): void {
     validation.setupRealTimeValidation(this.form.id, config.validationType);
     setupRealTimeValidation(
       this.form,
@@ -282,47 +306,50 @@ export class FormHandler {
       config.validationDelay,
     );
 
-    // Setup form submission
     this.form.addEventListener("submit", (event) =>
-      this.handleFormSubmission(event, config.validationType),
+      this.handleFormSubmission(event),
     );
   }
 
   private async sendFormData(formData: FormData): Promise<Response> {
     console.group("Form Submission");
-    const csrfToken = validation.getCSRFToken();
-    console.log("CSRF Token from meta tag:", csrfToken);
 
-    // Remove any csrf_token from form data since we're using headers
-    const cleanFormData = new FormData();
-    for (const [key, value] of formData.entries()) {
-      if (key !== "csrf_token") {
-        cleanFormData.append(key, value);
+    try {
+      const csrfToken = validation.getCSRFToken();
+      console.log("CSRF Token from meta tag:", csrfToken);
+
+      // Remove CSRF token from form data since we're using headers
+      const cleanFormData = new FormData();
+      for (const [key, value] of formData.entries()) {
+        if (key !== "csrf_token") {
+          cleanFormData.append(key, value);
+        }
       }
+
+      console.log("Sending request to:", this.form.action);
+      console.log("Cookies that will be sent:", document.cookie);
+
+      return validation.fetchWithAuth(this.form.action, {
+        method: this.form.method,
+        body: cleanFormData,
+      });
+    } finally {
+      console.groupEnd();
     }
-
-    console.log("Sending request to:", this.form.action);
-    console.log("Cookies that will be sent:", document.cookie);
-
-    return validation.fetchWithAuth(this.form.action, {
-      method: this.form.method,
-      body: cleanFormData,
-    });
   }
 
-  private async handleFormSubmission(
-    event: Event,
-    validationType: string,
-  ): Promise<void> {
+  private async handleFormSubmission(event: Event): Promise<void> {
     event.preventDefault();
     validation.clearAllErrors();
 
-    this.form
-      .querySelectorAll<HTMLInputElement>("input[id]")
-      .forEach((input) => input.setAttribute("aria-invalid", "false"));
+    const inputs = this.form.querySelectorAll<HTMLInputElement>("input[id]");
+    inputs.forEach((input) => input.setAttribute("aria-invalid", "false"));
 
     try {
-      const result = await validation.validateForm(this.form, validationType);
+      const result = await validation.validateForm(
+        this.form,
+        this.validationType,
+      );
       if (!result.success) {
         const errorMessage =
           result.error?.errors?.[0]?.message ||
@@ -346,6 +373,7 @@ export class FormHandler {
       message,
       field ? `for field: ${field}` : "",
     );
+
     const errorContainer = this.form.querySelector(".form-error");
     if (errorContainer) {
       errorContainer.textContent = message;
