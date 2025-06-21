@@ -1,13 +1,6 @@
 import { FormBuilderError } from "../utils/errors";
 import DOMPurify from "dompurify";
 
-// Add global type declaration
-declare global {
-  interface Window {
-    CSRF_TOKEN?: string;
-  }
-}
-
 export interface FormSchema {
   display: string;
   components: any[];

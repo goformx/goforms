@@ -97,7 +97,7 @@ type CSRFConfig struct {
 	CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
 	CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
 	CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
-	CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Strict"`
+	CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Lax"`
 	CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
 }
 
@@ -130,7 +130,7 @@ type CORSConfig struct {
 	Enabled          bool     `envconfig:"GOFORMS_SECURITY_CORS_ENABLED" default:"true"`
 	AllowedOrigins   []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:3000"`
 	AllowedMethods   []string `envconfig:"GOFORMS_SECURITY_CORS_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization"`
+	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization,X-Csrf-Token,X-Requested-With"`
 	AllowCredentials bool     `envconfig:"GOFORMS_SECURITY_CORS_CREDENTIALS" default:"true"`
 	MaxAge           int      `envconfig:"GOFORMS_SECURITY_CORS_MAX_AGE" default:"3600"`
 }

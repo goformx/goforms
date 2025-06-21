@@ -14,29 +14,6 @@ export class HttpClient {
     return meta.content;
   }
 
-  private static isAuthEndpoint(url: string): boolean {
-    return url.includes("/login") || url.includes("/signup");
-  }
-
-  private static prepareFormDataForAuth(formData: FormData): FormData {
-    const newFormData = new FormData();
-
-    // Copy all form fields, renaming csrf_token to _csrf for middleware compatibility
-    for (const [key, value] of formData.entries()) {
-      if (key === "csrf_token") {
-        newFormData.append("_csrf", value as string);
-      } else {
-        newFormData.append(key, value);
-      }
-    }
-
-    Logger.debug(
-      "Prepared auth FormData:",
-      Object.fromEntries(newFormData.entries()),
-    );
-    return newFormData;
-  }
-
   static async request(
     url: string,
     options: RequestInit = {},
@@ -102,17 +79,10 @@ export class HttpClient {
     body?: FormData | string,
     options: RequestInit = {},
   ): Promise<Response> {
-    let processedBody = body;
-
-    // Special handling for auth endpoints with FormData
-    if (body instanceof FormData && this.isAuthEndpoint(url)) {
-      processedBody = this.prepareFormDataForAuth(body);
-    }
-
     return this.request(url, {
       ...options,
       method: "POST",
-      body: processedBody,
+      body,
     });
   }
 

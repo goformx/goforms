@@ -59,3 +59,37 @@ We welcome contributions! Please see our [Contributing Guide](docs/development/R
 ## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
+
+## Development Setup
+
+### CSRF Configuration for Development
+
+When running the frontend (localhost:3000) and backend (localhost:8090) on different ports, you need to configure CSRF properly for cross-origin requests:
+
+1. **Set CSRF Cookie SameSite to Lax**: This allows cookies to be sent in cross-origin requests
+2. **Disable Secure Flag**: In development, cookies don't need to be HTTPS-only
+3. **Include CSRF Headers in CORS**: Allow the `X-Csrf-Token` header
+
+The application automatically configures these settings in development mode, but you can override them with environment variables:
+
+```bash
+# CSRF Configuration for Development
+GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE=Lax
+GOFORMS_SECURITY_SECURE_COOKIE=false
+
+# CORS Configuration
+GOFORMS_SECURITY_CORS_ENABLED=true
+GOFORMS_SECURITY_CORS_ORIGINS=http://localhost:3000
+GOFORMS_SECURITY_CORS_CREDENTIALS=true
+```
+
+### Troubleshooting CSRF Issues
+
+If you encounter 403 Forbidden errors with CSRF token mismatch:
+
+1. **Clear Browser Cookies**: Old CSRF cookies may be invalid
+2. **Restart the Backend**: Ensure new CSRF configuration is loaded
+3. **Check Browser Console**: Verify CSRF token is being sent in headers
+4. **Check Network Tab**: Ensure cookies are being sent with requests
+
+The frontend automatically includes CSRF tokens in the `X-Csrf-Token` header for all non-GET requests.

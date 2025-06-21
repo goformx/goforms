@@ -192,7 +192,12 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 	case "None":
 		sameSite = http.SameSiteNoneMode
 	default:
-		sameSite = http.SameSiteStrictMode
+		// In development, default to Lax for cross-origin support
+		if isDevelopment {
+			sameSite = http.SameSiteLaxMode
+		} else {
+			sameSite = http.SameSiteStrictMode
+		}
 	}
 
 	// Ensure token length is within bounds for uint8
@@ -208,7 +213,7 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 		CookieName:     csrfConfig.CookieName,
 		CookiePath:     csrfConfig.CookiePath,
 		CookieDomain:   csrfConfig.CookieDomain,
-		CookieSecure:   !isDevelopment,
+		CookieSecure:   !isDevelopment, // In development, don't require HTTPS
 		CookieHTTPOnly: csrfConfig.CookieHTTPOnly,
 		CookieSameSite: sameSite,
 		CookieMaxAge:   csrfConfig.CookieMaxAge,
@@ -221,7 +226,9 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 				c.Logger().Debug("CSRF middleware processing request",
 					"path", path,
 					"method", method,
-					"token_lookup", csrfConfig.TokenLookup)
+					"token_lookup", csrfConfig.TokenLookup,
+					"origin", c.Request().Header.Get("Origin"),
+					"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "")
 			}
 
 			// Skip CSRF for static files
@@ -264,7 +271,10 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 					"error", err.Error(),
 					"path", c.Request().URL.Path,
 					"method", c.Request().Method,
-					"token_lookup", csrfConfig.TokenLookup)
+					"token_lookup", csrfConfig.TokenLookup,
+					"origin", c.Request().Header.Get("Origin"),
+					"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "",
+					"cookies", c.Request().Header.Get("Cookie"))
 			}
 			return c.NoContent(http.StatusForbidden)
 		},

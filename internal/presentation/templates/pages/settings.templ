@@ -19,7 +19,6 @@ templ settingsContent(data view.PageData) {
 				</div>
 
 				<form id="settings-form" class="form" method="POST" action="/settings">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
 					<div class="form-error"></div>
 
 					<div class="gf-form-group">
@@ -53,7 +52,6 @@ templ settingsContent(data view.PageData) {
 				</div>
 
 				<form id="password-form" class="form" method="POST" action="/settings/password">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken }/>
 					<div class="form-error"></div>
 
 					<div class="gf-form-group">

@@ -21,20 +21,59 @@ templ loginContent(data view.PageData) {
 				</div>
 
 				<form id="login-form" class="form" method="POST" action="/login" data-validate="login">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 					<div class="form-error"></div>
 
 					<div class="gf-form-group">
 						<label for="email" class="gf-label">Email</label>
-						<input type="email" id="email" name="email" required class="gf-input"
-							placeholder="Enter your email" />
+						if data.IsDevelopment {
+							<input 
+								type="email" 
+								id="email" 
+								name="email" 
+								required 
+								class="gf-input"
+								placeholder="Enter your email" 
+								autocomplete="email"
+								value="test@example.com"
+							/>
+						} else {
+							<input 
+								type="email" 
+								id="email" 
+								name="email" 
+								required 
+								class="gf-input"
+								placeholder="Enter your email" 
+								autocomplete="email"
+							/>
+						}
 						<div id="email_error" class="error-message"></div>
 					</div>
 
 					<div class="gf-form-group">
 						<label for="password" class="gf-label">Password</label>
-						<input type="password" id="password" name="password" required class="gf-input"
-							placeholder="Enter your password" />
+						if data.IsDevelopment {
+							<input 
+								type="password" 
+								id="password" 
+								name="password" 
+								required 
+								class="gf-input"
+								placeholder="Enter your password" 
+								autocomplete="current-password"
+								value="Test123!"
+							/>
+						} else {
+							<input 
+								type="password" 
+								id="password" 
+								name="password" 
+								required 
+								class="gf-input"
+								placeholder="Enter your password" 
+								autocomplete="current-password"
+							/>
+						}
 						<div id="password_error" class="error-message"></div>
 					</div>
 

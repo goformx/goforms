@@ -6,7 +6,6 @@ import (
 
 templ LoginForm(data view.PageData) {
 	<form id="login-form" class="auth-form" method="POST" action="/login" data-validate="login">
-		<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 		<div id="form_error" class="form-error"></div>
 		<div class="form-group">
 			<label for="email" class="form-label">Email</label>

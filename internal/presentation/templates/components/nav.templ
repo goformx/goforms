@@ -49,7 +49,6 @@ templ Nav(data view.PageData) {
 				</a>
 				} else {
 				<form action="/logout" method="POST" class="nav-form">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 					<button type="submit" class="nav-link">Logout</button>
 				</form>
 				}

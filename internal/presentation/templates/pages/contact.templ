@@ -18,7 +18,6 @@ templ contactContent(data view.PageData) {
 					<p class="contact-subtitle">Have a question or feedback? We'd love to hear from you.</p>
 				</div>
 				<form id="contact-form" class="contact-form" method="POST" action="/contact">
-					<input type="hidden" name="csrf_token" value={ data.CSRFToken } />
 					<div id="form_error" class="form-error"></div>
 
 					<div class="gf-form-group">

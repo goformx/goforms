@@ -291,44 +291,14 @@ export class FormHandler {
   private async sendFormData(formData: FormData): Promise<Response> {
     console.group("Form Submission");
     const csrfToken = validation.getCSRFToken();
-    console.log("CSRF Token from hidden input:", csrfToken);
+    console.log("CSRF Token from meta tag:", csrfToken);
 
-    // Debug: Check if CSRF token is in form data
-    const formDataObj = Object.fromEntries(formData.entries());
-    console.log("CSRF token in form data:", formDataObj.csrf_token);
-
-    // For auth endpoints, send as form data so CSRF middleware can find the token
-    const isAuthEndpoint =
-      this.form.action.includes("/login") ||
-      this.form.action.includes("/signup");
-
-    let body: FormData | string;
-    const headers: Record<string, string> = {};
-
-    if (isAuthEndpoint) {
-      // Create a new FormData with the correct field name for CSRF
-      const newFormData = new FormData();
-
-      // Copy all form fields
-      for (const [key, value] of formData.entries()) {
-        if (key === "csrf_token") {
-          // Rename csrf_token to _csrf to match CSRF middleware expectation
-          newFormData.append("_csrf", value as string);
-        } else {
-          newFormData.append(key, value);
-        }
+    // Remove any csrf_token from form data since we're using headers
+    const cleanFormData = new FormData();
+    for (const [key, value] of formData.entries()) {
+      if (key !== "csrf_token") {
+        cleanFormData.append(key, value);
       }
-
-      // Debug: Show what's in the new FormData
-      console.log("New FormData contents:");
-      for (const [key, value] of newFormData.entries()) {
-        console.log(`${key}: ${value}`);
-      }
-
-      body = newFormData;
-      // Don't set Content-Type, let the browser set it with boundary for FormData
-    } else {
-      body = formData;
     }
 
     console.log("Sending request to:", this.form.action);
@@ -336,8 +306,7 @@ export class FormHandler {
 
     return validation.fetchWithAuth(this.form.action, {
       method: this.form.method,
-      body,
-      headers,
+      body: cleanFormData,
     });
   }
 
