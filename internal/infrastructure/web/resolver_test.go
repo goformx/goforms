@@ -41,7 +41,7 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 	}{
 		{
 			name:     "src file",
-			path:     "src/js/main.ts",
+			path:     "src/js/pages/main.ts",
 			expected: "http://localhost:3000/src/js/main.ts",
 		},
 		{

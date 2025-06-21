@@ -20,7 +20,6 @@ templ newFormContent(data view.PageData) {
 				</div>
 
 				<form id="new-form" class="form" method="POST" action="/forms">
-					<input type="hidden" name="_csrf" value={ data.CSRFToken } />
 					<div class="form-error"></div>
 
 					<div class="gf-form-group">

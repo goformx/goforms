@@ -172,8 +172,24 @@ export class EnhancedFormHandler {
 
   private async handleResponse(response: Response): Promise<void> {
     try {
-      const data = await response.json();
-      Logger.debug("Response data:", data);
+      // Check if response has content before trying to parse JSON
+      const contentType = response.headers.get("content-type");
+      const hasContent =
+        contentType && contentType.includes("application/json");
+
+      let data: any = {};
+
+      if (hasContent) {
+        try {
+          data = await response.json();
+          Logger.debug("Response data:", data);
+        } catch (parseError) {
+          Logger.error("Failed to parse JSON response:", parseError);
+          // Continue with empty data object
+        }
+      } else {
+        Logger.debug("Response has no JSON content, status:", response.status);
+      }
 
       if (response.redirected || data.redirect) {
         const redirectUrl = response.redirected ? response.url : data.redirect;
@@ -183,10 +199,15 @@ export class EnhancedFormHandler {
       }
 
       if (!response.ok) {
-        ErrorManager.showFormError(
-          this.form,
-          data.message || "Submission failed",
-        );
+        const errorMessage =
+          data.message ||
+          (response.status === 403
+            ? "Access forbidden. Please refresh the page and try again."
+            : response.status === 401
+              ? "Authentication required."
+              : `Request failed with status ${response.status}`);
+
+        ErrorManager.showFormError(this.form, errorMessage);
         return;
       }
 
@@ -195,7 +216,7 @@ export class EnhancedFormHandler {
         ErrorManager.showFormSuccess(this.form, data.message);
       }
     } catch (error) {
-      Logger.error("Error parsing response:", error);
+      Logger.error("Error processing response:", error);
       ErrorManager.showFormError(this.form, "Error processing server response");
     }
   }

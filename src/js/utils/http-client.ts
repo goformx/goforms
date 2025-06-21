@@ -5,25 +5,13 @@ import { Logger } from "./logger";
  */
 export class HttpClient {
   private static getCSRFToken(): string {
-    // Try meta tag first
     const meta = document.querySelector<HTMLMetaElement>(
       "meta[name='csrf-token']",
     );
-    if (meta?.content) {
-      return meta.content;
+    if (!meta?.content) {
+      throw new Error("Catastrophic. CSRF token not found.");
     }
-
-    // Try hidden input as fallback
-    const input = document.querySelector<HTMLInputElement>(
-      "input[name='csrf_token']",
-    );
-    if (input?.value) {
-      return input.value;
-    }
-
-    throw new Error(
-      "CSRF token not found. Please refresh the page and try again.",
-    );
+    return meta.content;
   }
 
   private static isAuthEndpoint(url: string): boolean {
@@ -64,9 +52,7 @@ export class HttpClient {
       if (options.method !== "GET") {
         try {
           const csrfToken = this.getCSRFToken();
-          if (this.isAuthEndpoint(url)) {
-            headers.set("X-Csrf-Token", csrfToken);
-          }
+          headers.set("X-Csrf-Token", csrfToken);
           Logger.log("CSRF Token:", csrfToken ? "Present" : "Missing");
         } catch (error) {
           Logger.error("CSRF token error:", error);
