@@ -144,6 +144,8 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
+	// Force CSRF token generation
+	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)

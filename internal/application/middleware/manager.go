@@ -106,6 +106,19 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
 
+	// Add request tracking middleware for debugging
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if m.config.Config.App.IsDevelopment() {
+				c.Logger().Debug("Request received",
+					"path", c.Request().URL.Path,
+					"method", c.Request().Method,
+					"user_agent", c.Request().UserAgent())
+			}
+			return next(c)
+		}
+	})
+
 	// Register basic middleware
 	if m.config.Config.App.IsDevelopment() {
 		// Use console format in development
@@ -117,7 +130,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 		// Use JSON format in production
 		e.Use(echomw.Logger())
 	}
-	e.Use(echomw.Recover())
 
 	// Use PerFormCORS middleware for form-specific CORS handling
 	// This middleware will handle CORS for form routes and fallback to global CORS for other routes
@@ -146,7 +158,14 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Use(setupAdditionalSecurityHeadersMiddleware())
 
 	if m.config.Config.Security.CSRF.Enabled {
-		e.Use(setupCSRF(&m.config.Config.Security.CSRF, m.config.Config.App.Env == "development"))
+		m.logger.Info("CSRF middleware enabled",
+			"enabled", m.config.Config.Security.CSRF.Enabled,
+			"token_lookup", m.config.Config.Security.CSRF.TokenLookup)
+		csrfMiddleware := setupCSRF(&m.config.Config.Security.CSRF, m.config.Config.App.Env == "development")
+		e.Use(csrfMiddleware)
+		m.logger.Info("CSRF middleware registered")
+	} else {
+		m.logger.Info("CSRF middleware disabled")
 	}
 
 	// Setup rate limiting using infrastructure config
@@ -161,7 +180,16 @@ func (m *Manager) Setup(e *echo.Echo) {
 		"environment", m.config.Config.App.Env,
 		"build_time", versionInfo.BuildTime,
 		"git_commit", versionInfo.GitCommit)
-	e.Use(m.config.SessionManager.Middleware())
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if m.config.Config.App.IsDevelopment() {
+				c.Logger().Debug("Session middleware processing request",
+					"path", c.Request().URL.Path,
+					"method", c.Request().Method)
+			}
+			return m.config.SessionManager.Middleware()(next)(c)
+		}
+	})
 
 	// Register access control middleware
 	m.logger.Info("registering access control middleware",
@@ -170,7 +198,16 @@ func (m *Manager) Setup(e *echo.Echo) {
 		"environment", m.config.Config.App.Env,
 		"build_time", versionInfo.BuildTime,
 		"git_commit", versionInfo.GitCommit)
-	e.Use(access.Middleware(m.config.AccessManager, m.logger))
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			if m.config.Config.App.IsDevelopment() {
+				c.Logger().Debug("Access middleware processing request",
+					"path", c.Request().URL.Path,
+					"method", c.Request().Method)
+			}
+			return access.Middleware(m.config.AccessManager, m.logger)(next)(c)
+		}
+	})
 
 	m.logger.Info("middleware setup completed",
 		"app", "goforms",
@@ -233,6 +270,13 @@ func createCSRFSkipper(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) fun
 		path := c.Request().URL.Path
 		method := c.Request().Method
 
+		// Always log when CSRF skipper is called (for debugging)
+		if isDevelopment {
+			c.Logger().Debug("CSRF skipper called",
+				"path", path,
+				"method", method)
+		}
+
 		// Add debugging in development mode
 		if isDevelopment {
 			c.Logger().Debug("CSRF middleware processing request",
@@ -240,30 +284,46 @@ func createCSRFSkipper(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) fun
 				"method", method,
 				"token_lookup", csrfConfig.TokenLookup,
 				"origin", c.Request().Header.Get("Origin"),
-				"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "")
+				"csrf_token_present", c.Request().Header.Get("X-CSRF-Token") != "",
+				"is_development", isDevelopment,
+				"path_signup", constants.PathSignup,
+				"path_matches_signup", path == constants.PathSignup,
+				"method_post", method == http.MethodPost)
 		}
 
 		// Skip CSRF for static files
 		if constants.IsStaticFile(path) {
+			if isDevelopment {
+				c.Logger().Debug("Skipping CSRF for static file", "path", path)
+			}
 			return true
 		}
 
 		// Skip CSRF validation for safe methods, but still generate token
 		if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
+			if isDevelopment {
+				c.Logger().Debug("CSRF middleware will generate token for safe method", "method", method)
+			}
 			return false
 		}
 
 		// Skip CSRF for API endpoints with valid Authorization header or CSRF token
 		if strings.HasPrefix(path, "/api/") {
 			authHeader := c.Request().Header.Get("Authorization")
-			csrfToken := c.Request().Header.Get("X-Csrf-Token")
+			csrfToken := c.Request().Header.Get("X-CSRF-Token")
 			if authHeader != "" || csrfToken != "" {
+				if isDevelopment {
+					c.Logger().Debug("Skipping CSRF for API endpoint with auth/token", "path", path)
+				}
 				return true
 			}
 		}
 
 		// Skip CSRF for validation endpoints
 		if strings.HasPrefix(path, "/api/validation/") {
+			if isDevelopment {
+				c.Logger().Debug("Skipping CSRF for validation endpoint", "path", path)
+			}
 			return true
 		}
 
@@ -271,9 +331,15 @@ func createCSRFSkipper(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) fun
 		if path == constants.PathLogin ||
 			path == constants.PathSignup ||
 			path == constants.PathResetPassword {
+			if isDevelopment {
+				c.Logger().Debug("CSRF validation required for auth endpoint", "path", path, "method", method)
+			}
 			return false
 		}
 
+		if isDevelopment {
+			c.Logger().Debug("CSRF validation required for endpoint", "path", path, "method", method)
+		}
 		return false
 	}
 }
@@ -286,14 +352,33 @@ func createCSRFErrorHandler(
 	return func(err error, c echo.Context) error {
 		// Add debugging in development mode
 		if isDevelopment {
+			// Get the actual token from the request
+			csrfToken := c.Request().Header.Get("X-CSRF-Token")
+
+			// Get the token from context (if available)
+			contextToken := ""
+			if token, ok := c.Get(csrfConfig.ContextKey).(string); ok {
+				contextToken = token
+			}
+
+			// Get cookies for debugging
+			cookies := c.Request().Header.Get("Cookie")
+
 			c.Logger().Error("CSRF validation failed",
 				"error", err.Error(),
 				"path", c.Request().URL.Path,
 				"method", c.Request().Method,
 				"token_lookup", csrfConfig.TokenLookup,
 				"origin", c.Request().Header.Get("Origin"),
-				"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "",
-				"cookies", c.Request().Header.Get("Cookie"))
+				"csrf_token_present", csrfToken != "",
+				"csrf_token_length", len(csrfToken),
+				"csrf_token_value", csrfToken,
+				"context_token_present", contextToken != "",
+				"context_token_length", len(contextToken),
+				"context_token_value", contextToken,
+				"cookies", cookies,
+				"content_type", c.Request().Header.Get("Content-Type"),
+				"user_agent", c.Request().UserAgent())
 		}
 		return c.NoContent(http.StatusForbidden)
 	}

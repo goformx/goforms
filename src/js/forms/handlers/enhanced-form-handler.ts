@@ -42,6 +42,7 @@ export class EnhancedFormHandler {
       const csrfToken = validation.getCSRFToken();
       console.log("CSRF Token from meta tag:", csrfToken);
       console.log("Sending request to:", this.form.action);
+      console.log("All cookies:", document.cookie);
       console.log("Cookies that will be sent:", document.cookie);
 
       const isAuthEndpoint = isAuthenticationEndpoint(this.form.action);
@@ -70,7 +71,7 @@ export class EnhancedFormHandler {
     };
 
     if (csrfToken) {
-      headers["X-Csrf-Token"] = csrfToken;
+      headers["X-CSRF-Token"] = csrfToken;
     }
 
     console.log("Cleaned Form Data:", data);

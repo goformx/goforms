@@ -62,7 +62,7 @@ export class RequestHandler {
 
     // Always add CSRF token to headers if available
     if (csrfToken) {
-      headers["X-Csrf-Token"] = csrfToken;
+      headers["X-CSRF-Token"] = csrfToken;
     }
 
     if (isAuthEndpoint) {

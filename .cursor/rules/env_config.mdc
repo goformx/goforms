@@ -103,7 +103,7 @@ type CSRFConfig struct {
     Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
     Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
     TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
-    TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-Csrf-Token"`
+    TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-CSRF-Token"`
     ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
     CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
     CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
@@ -172,7 +172,7 @@ GOFORMS_SECURITY_SECURE_COOKIE=false
 # CSRF Configuration
 GOFORMS_SECURITY_CSRF_ENABLED=true
 GOFORMS_SECURITY_CSRF_TOKEN_LENGTH=32
-GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP=header:X-Csrf-Token
+GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP=header:X-CSRF-Token
 GOFORMS_SECURITY_CSRF_CONTEXT_KEY=csrf
 GOFORMS_SECURITY_CSRF_COOKIE_NAME=_csrf
 GOFORMS_SECURITY_CSRF_COOKIE_PATH=/

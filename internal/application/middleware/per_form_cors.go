@@ -132,6 +132,15 @@ func applyGlobalCORS(
 	globalCORS *appconfig.SecurityConfig,
 	next echo.HandlerFunc,
 ) error {
+	// Add debug logging
+	if c.Logger() != nil {
+		c.Logger().Debug("PerFormCORS: applying global CORS",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"origin", c.Request().Header.Get("Origin"),
+			"allowed_origins", globalCORS.CORS.AllowedOrigins)
+	}
+
 	// Handle preflight requests
 	if c.Request().Method == http.MethodOptions {
 		return handlePreflight(

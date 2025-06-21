@@ -29,7 +29,7 @@ export class HttpClient {
       if (options.method !== "GET") {
         try {
           const csrfToken = this.getCSRFToken();
-          headers.set("X-Csrf-Token", csrfToken);
+          headers.set("X-CSRF-Token", csrfToken);
           Logger.log("CSRF Token:", csrfToken ? "Present" : "Missing");
         } catch (error) {
           Logger.error("CSRF token error:", error);
