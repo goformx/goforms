@@ -127,10 +127,11 @@ type SecurityConfig struct {
 
 // CORSConfig holds CORS-related configuration
 type CORSConfig struct {
-	Enabled          bool     `envconfig:"GOFORMS_SECURITY_CORS_ENABLED" default:"true"`
-	AllowedOrigins   []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:3000"`
-	AllowedMethods   []string `envconfig:"GOFORMS_SECURITY_CORS_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization,X-Csrf-Token,X-Requested-With"` // nolint:gosec // This is a valid header
+	Enabled        bool     `envconfig:"GOFORMS_SECURITY_CORS_ENABLED" default:"true"`
+	AllowedOrigins []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:3000"`
+	AllowedMethods []string `envconfig:"GOFORMS_SECURITY_CORS_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
+	//nolint:lll // This is a valid header
+	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization,X-Csrf-Token,X-Requested-With"`
 	AllowCredentials bool     `envconfig:"GOFORMS_SECURITY_CORS_CREDENTIALS" default:"true"`
 	MaxAge           int      `envconfig:"GOFORMS_SECURITY_CORS_MAX_AGE" default:"3600"`
 }
