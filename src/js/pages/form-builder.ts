@@ -1,4 +1,4 @@
-import { FormBuilder, Formio } from "@formio/js";
+import { Formio } from "@formio/js";
 import goforms from "@goformx/formio";
 import { FormService } from "../forms/services/form-service";
 import type { FormSchema } from "../forms/services/form-service";
