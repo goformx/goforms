@@ -76,12 +76,8 @@ func (m *Manager) GetSessionManager() *session.Manager {
 func (m *Manager) Setup(e *echo.Echo) {
 	versionInfo := version.GetInfo()
 	m.logger.Info("setting up middleware",
-		"app", "goforms",
 		"version", versionInfo.Version,
-		"environment", m.config.Config.App.Env,
-		"build_time", versionInfo.BuildTime,
-		"git_commit", versionInfo.GitCommit,
-	)
+		"environment", m.config.Config.App.Env)
 
 	// Set Echo's logger to use our custom logger
 	e.Logger = &EchoLogger{logger: m.logger, config: m.config}
@@ -90,12 +86,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	e.Debug = m.config.Config.Security.Debug
 	if m.config.Config.App.IsDevelopment() {
 		e.Logger.SetLevel(log.DEBUG)
-		m.logger.Info("development mode enabled",
-			"app", "goforms",
-			"version", versionInfo.Version,
-			"environment", m.config.Config.App.Env,
-			"build_time", versionInfo.BuildTime,
-			"git_commit", versionInfo.GitCommit)
+		m.logger.Info("development mode enabled")
 	} else {
 		e.Logger.SetLevel(log.INFO)
 	}
@@ -109,12 +100,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	// Setup authentication middleware
 	m.setupAuthMiddleware(e)
 
-	m.logger.Info("middleware setup completed",
-		"app", "goforms",
-		"version", versionInfo.Version,
-		"environment", m.config.Config.App.Env,
-		"build_time", versionInfo.BuildTime,
-		"git_commit", versionInfo.GitCommit)
+	m.logger.Info("middleware setup completed")
 }
 
 // setupBasicMiddleware sets up basic middleware like recovery, context, and logging
@@ -124,19 +110,6 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
-
-	// Add request tracking middleware for debugging
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			if m.config.Config.App.IsDevelopment() {
-				c.Logger().Debug("Request received",
-					"path", c.Request().URL.Path,
-					"method", c.Request().Method,
-					"user_agent", c.Request().UserAgent())
-			}
-			return next(c)
-		}
-	})
 
 	// Register basic middleware
 	if m.config.Config.App.IsDevelopment() {
@@ -180,14 +153,8 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(setupAdditionalSecurityHeadersMiddleware())
 
 	if m.config.Config.Security.CSRF.Enabled {
-		m.logger.Info("CSRF middleware enabled",
-			"enabled", m.config.Config.Security.CSRF.Enabled,
-			"token_lookup", m.config.Config.Security.CSRF.TokenLookup)
 		csrfMiddleware := setupCSRF(&m.config.Config.Security.CSRF, m.config.Config.App.Env == "development")
 		e.Use(csrfMiddleware)
-		m.logger.Info("CSRF middleware registered")
-	} else {
-		m.logger.Info("CSRF middleware disabled")
 	}
 
 	// Setup rate limiting using infrastructure config
@@ -198,43 +165,11 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 
 // setupAuthMiddleware sets up authentication-related middleware
 func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
-	versionInfo := version.GetInfo()
-
 	// Register session middleware
-	m.logger.Info("registering session middleware",
-		"app", "goforms",
-		"version", versionInfo.Version,
-		"environment", m.config.Config.App.Env,
-		"build_time", versionInfo.BuildTime,
-		"git_commit", versionInfo.GitCommit)
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			if m.config.Config.App.IsDevelopment() {
-				c.Logger().Debug("Session middleware processing request",
-					"path", c.Request().URL.Path,
-					"method", c.Request().Method)
-			}
-			return m.config.SessionManager.Middleware()(next)(c)
-		}
-	})
+	e.Use(m.config.SessionManager.Middleware())
 
 	// Register access control middleware
-	m.logger.Info("registering access control middleware",
-		"app", "goforms",
-		"version", versionInfo.Version,
-		"environment", m.config.Config.App.Env,
-		"build_time", versionInfo.BuildTime,
-		"git_commit", versionInfo.GitCommit)
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			if m.config.Config.App.IsDevelopment() {
-				c.Logger().Debug("Access middleware processing request",
-					"path", c.Request().URL.Path,
-					"method", c.Request().Method)
-			}
-			return access.Middleware(m.config.AccessManager, m.logger)(next)(c)
-		}
-	})
+	e.Use(access.Middleware(m.config.AccessManager, m.logger))
 }
 
 // setupCSRF creates and configures CSRF middleware

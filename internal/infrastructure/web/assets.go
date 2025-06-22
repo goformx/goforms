@@ -43,7 +43,6 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 	// Create appropriate resolver based on environment
 	if cfg.App.IsDevelopment() {
 		manager.resolver = NewDevelopmentAssetResolver(cfg, logger)
-		logger.Info("asset manager initialized in development mode")
 	} else {
 		// Load manifest for production
 		manifest, err := loadManifestFromFS(distFS, logger)
@@ -51,9 +50,6 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 			return nil, fmt.Errorf("failed to load manifest: %w", err)
 		}
 		manager.resolver = NewProductionAssetResolver(manifest, logger)
-		logger.Info("asset manager initialized in production mode",
-			"manifest_entries", len(manifest),
-		)
 	}
 
 	return manager, nil
@@ -79,18 +75,10 @@ func (m *AssetManager) ResolveAssetPath(ctx context.Context, path string) (strin
 		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}
 
-	m.logger.Debug("asset manager resolving path",
-		"input_path", path,
-	)
-
 	// Check cache first
 	m.mu.RLock()
 	if cachedPath, found := m.pathCache[path]; found {
 		m.mu.RUnlock()
-		m.logger.Debug("asset path found in cache",
-			"input_path", path,
-			"cached_path", cachedPath,
-		)
 		return cachedPath, nil
 	}
 	m.mu.RUnlock()
@@ -105,12 +93,6 @@ func (m *AssetManager) ResolveAssetPath(ctx context.Context, path string) (strin
 	m.mu.Lock()
 	m.pathCache[path] = resolvedPath
 	m.mu.Unlock()
-
-	m.logger.Debug("asset path resolved",
-		"input_path", path,
-		"resolved_path", resolvedPath,
-		"environment", m.config.App.Env,
-	)
 
 	return resolvedPath, nil
 }
@@ -137,7 +119,6 @@ func (m *AssetManager) ClearCache() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
 	m.pathCache = make(map[string]string)
-	m.logger.Debug("asset path cache cleared")
 }
 
 // NewWebModule creates a new web module with proper dependency injection

@@ -179,8 +179,6 @@ func NewRouteRegistrar(
 
 // RegisterAll registers all handler routes
 func (rr *RouteRegistrar) RegisterAll(e *echo.Echo) {
-	rr.logger.Info("Registering all handlers", "handler_count", len(rr.handlers))
-
 	for i, handler := range rr.handlers {
 		rr.logger.Info("Registering handler",
 			"index", i,
@@ -213,14 +211,6 @@ func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
 	e.GET(constants.PathSignup, h.Signup)
 	e.POST(constants.PathSignupPost, h.SignupPost)
 	e.POST(constants.PathLogout, h.Logout)
-
-	// Add debug logging for route registration
-	rr.logger.Info("Auth routes registered",
-		"login_get", constants.PathLogin,
-		"login_post", constants.PathLoginPost,
-		"signup_get", constants.PathSignup,
-		"signup_post", constants.PathSignupPost,
-		"logout_post", constants.PathLogout)
 
 	// API routes with validation
 	api := e.Group(constants.PathAPIV1)
@@ -262,14 +252,8 @@ func RegisterHandlers(
 	registrar := NewRouteRegistrar(handlers, accessManager, logger)
 	registrar.RegisterAll(e)
 
-	// Debug: List all registered routes
+	// Log route count for debugging without listing every route
 	if logger != nil {
-		logger.Info("All registered routes:")
-		for _, route := range e.Routes() {
-			logger.Info("Route registered",
-				"method", route.Method,
-				"path", route.Path,
-				"name", route.Name)
-		}
+		logger.Info("Route registration completed", "total_routes", len(e.Routes()))
 	}
 }

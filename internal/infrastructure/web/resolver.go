@@ -34,17 +34,8 @@ func (r *ProductionAssetResolver) ResolveAssetPath(ctx context.Context, path str
 		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}
 
-	r.logger.Debug("resolving production asset path",
-		"path", path,
-		"manifest_entries", len(r.manifest),
-	)
-
 	entry, found := r.manifest[path]
 	if !found {
-		r.logger.Debug("asset not found in manifest",
-			"path", path,
-			"available_keys", strings.Join(getManifestKeys(r.manifest), ", "),
-		)
 		return "", fmt.Errorf("%w: %s", ErrAssetNotFound, path)
 	}
 
@@ -53,10 +44,6 @@ func (r *ProductionAssetResolver) ResolveAssetPath(ctx context.Context, path str
 		assetPath = "/" + assetPath
 	}
 
-	r.logger.Debug("production asset resolved",
-		"input", path,
-		"output", assetPath,
-	)
 	return assetPath, nil
 }
 
@@ -82,11 +69,6 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path st
 
 	hostPort := net.JoinHostPort(r.config.App.ViteDevHost, r.config.App.ViteDevPort)
 
-	r.logger.Debug("resolving development asset path",
-		"path", path,
-		"host_port", hostPort,
-	)
-
 	var resolvedPath string
 	switch {
 	case strings.HasPrefix(path, "src/"):
@@ -106,10 +88,6 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path st
 		resolvedPath = fmt.Sprintf("%s://%s/%s", r.config.App.Scheme, hostPort, path)
 	}
 
-	r.logger.Debug("development asset resolved",
-		"input", path,
-		"output", resolvedPath,
-	)
 	return resolvedPath, nil
 }
 
@@ -125,9 +103,6 @@ func getManifestKeys(manifest Manifest) []string {
 // loadManifestFromFS loads the manifest from the embedded filesystem
 func loadManifestFromFS(distFS embed.FS, logger logging.Logger) (Manifest, error) {
 	manifestPath := "dist/.vite/manifest.json"
-	logger.Debug("loading manifest from embedded filesystem",
-		"path", manifestPath,
-	)
 
 	data, readErr := fs.ReadFile(distFS, manifestPath)
 	if readErr != nil {

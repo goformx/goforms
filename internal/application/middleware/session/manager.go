@@ -82,7 +82,6 @@ func (sm *Manager) initialize() error {
 	sm.sessions = sessions
 	sm.mutex.Unlock()
 
-	sm.logger.Info("session store initialized", "total_sessions", len(sm.sessions))
 	return nil
 }
 

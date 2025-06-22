@@ -155,21 +155,6 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 
 // SignupPost handles the signup form submission
 func (h *AuthHandler) SignupPost(c echo.Context) error {
-	// Add debugging in development mode
-	if h.Config.App.IsDevelopment() {
-		c.Logger().Debug("Signup request received",
-			"content_type", c.Request().Header.Get("Content-Type"),
-			"method", c.Request().Method)
-
-		// Log form data
-		if err := c.Request().ParseForm(); err == nil {
-			c.Logger().Debug("Form data received",
-				"csrf_token", c.Request().FormValue("_csrf"),
-				"email", c.Request().FormValue("email"),
-				"has_password", c.Request().FormValue("password") != "")
-		}
-	}
-
 	signup, err := h.RequestParser.ParseSignup(c)
 	if err != nil {
 		h.Logger.Error("failed to parse signup request", "error", err)
@@ -222,35 +207,17 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 
 // LoginValidation handles the login form validation schema request
 func (h *AuthHandler) LoginValidation(c echo.Context) error {
-	h.Logger.Info("LoginValidation endpoint called",
-		"method", c.Request().Method,
-		"path", c.Request().URL.Path,
-		"user_agent", c.Request().UserAgent(),
-		"remote_addr", c.RealIP())
-
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateLoginSchema()
 
-	h.Logger.Debug("Generated login validation schema",
-		"schema_fields_count", len(schema),
-		"endpoint", "login_validation")
 	return c.JSON(constants.StatusOK, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
 func (h *AuthHandler) SignupValidation(c echo.Context) error {
-	h.Logger.Info("SignupValidation endpoint called",
-		"method", c.Request().Method,
-		"path", c.Request().URL.Path,
-		"user_agent", c.Request().UserAgent(),
-		"remote_addr", c.RealIP())
-
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateSignupSchema()
 
-	h.Logger.Debug("Generated signup validation schema",
-		"schema_fields_count", len(schema),
-		"endpoint", "signup_validation")
 	return c.JSON(constants.StatusOK, schema)
 }
 
