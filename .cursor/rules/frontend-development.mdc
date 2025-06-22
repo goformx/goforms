@@ -172,7 +172,7 @@ export class FormService {
             method: 'POST',
             headers: {
                 'Content-Type': 'application/json',
-                'X-CSRF-Token': this.getCSRFToken(),
+                'X-Csrf-Token': this.getCSRFToken(),
             },
             body: JSON.stringify(data),
         });

@@ -68,7 +68,7 @@ When running the frontend (localhost:3000) and backend (localhost:8090) on diffe
 
 1. **Set CSRF Cookie SameSite to Lax**: This allows cookies to be sent in cross-origin requests
 2. **Disable Secure Flag**: In development, cookies don't need to be HTTPS-only
-3. **Include CSRF Headers in CORS**: Allow the `X-CSRF-Token` header
+3. **Include CSRF Headers in CORS**: Allow the `X-Csrf-Token` header
 
 The application automatically configures these settings in development mode, but you can override them with environment variables:
 
@@ -92,4 +92,4 @@ If you encounter 403 Forbidden errors with CSRF token mismatch:
 3. **Check Browser Console**: Verify CSRF token is being sent in headers
 4. **Check Network Tab**: Ensure cookies are being sent with requests
 
-The frontend automatically includes CSRF tokens in the `X-CSRF-Token` header for all non-GET requests.
+The frontend automatically includes CSRF tokens in the `X-Csrf-Token` header for all non-GET requests.

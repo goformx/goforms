@@ -71,7 +71,7 @@ export class EnhancedFormHandler {
     };
 
     if (csrfToken) {
-      headers["X-CSRF-Token"] = csrfToken;
+      headers["X-Csrf-Token"] = csrfToken;
     }
 
     console.log("Cleaned Form Data:", data);

@@ -91,7 +91,7 @@ type CSRFConfig struct {
 	Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
 	Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
 	TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
-	TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-CSRF-Token"`
+	TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-Csrf-Token"`
 	ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
 	CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
 	CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
@@ -131,7 +131,7 @@ type CORSConfig struct {
 	AllowedOrigins []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:3000"`
 	AllowedMethods []string `envconfig:"GOFORMS_SECURITY_CORS_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
 	//nolint:lll // This is a valid header
-	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization,X-CSRF-Token,X-Requested-With"`
+	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization,X-Csrf-Token,X-Requested-With"`
 	AllowCredentials bool     `envconfig:"GOFORMS_SECURITY_CORS_CREDENTIALS" default:"true"`
 	MaxAge           int      `envconfig:"GOFORMS_SECURITY_CORS_MAX_AGE" default:"3600"`
 }

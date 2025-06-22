@@ -100,6 +100,25 @@ func (m *Manager) Setup(e *echo.Echo) {
 		e.Logger.SetLevel(log.INFO)
 	}
 
+	// Setup basic middleware
+	m.setupBasicMiddleware(e)
+
+	// Setup security middleware
+	m.setupSecurityMiddleware(e)
+
+	// Setup authentication middleware
+	m.setupAuthMiddleware(e)
+
+	m.logger.Info("middleware setup completed",
+		"app", "goforms",
+		"version", versionInfo.Version,
+		"environment", m.config.Config.App.Env,
+		"build_time", versionInfo.BuildTime,
+		"git_commit", versionInfo.GitCommit)
+}
+
+// setupBasicMiddleware sets up basic middleware like recovery, context, and logging
+func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Add recovery middleware first to catch panics
 	e.Use(Recovery(m.logger, m.config.Sanitizer))
 
@@ -130,7 +149,10 @@ func (m *Manager) Setup(e *echo.Echo) {
 		// Use JSON format in production
 		e.Use(echomw.Logger())
 	}
+}
 
+// setupSecurityMiddleware sets up security-related middleware
+func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	// Use PerFormCORS middleware for form-specific CORS handling
 	// This middleware will handle CORS for form routes and fallback to global CORS for other routes
 	perFormCORSConfig := NewPerFormCORSConfig(m.config.FormService, m.logger, &m.config.Config.Security)
@@ -172,6 +194,11 @@ func (m *Manager) Setup(e *echo.Echo) {
 	if m.config.Config.Security.RateLimit.Enabled {
 		e.Use(m.setupRateLimiting())
 	}
+}
+
+// setupAuthMiddleware sets up authentication-related middleware
+func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
+	versionInfo := version.GetInfo()
 
 	// Register session middleware
 	m.logger.Info("registering session middleware",
@@ -208,13 +235,6 @@ func (m *Manager) Setup(e *echo.Echo) {
 			return access.Middleware(m.config.AccessManager, m.logger)(next)(c)
 		}
 	})
-
-	m.logger.Info("middleware setup completed",
-		"app", "goforms",
-		"version", versionInfo.Version,
-		"environment", m.config.Config.App.Env,
-		"build_time", versionInfo.BuildTime,
-		"git_commit", versionInfo.GitCommit)
 }
 
 // setupCSRF creates and configures CSRF middleware
@@ -233,7 +253,7 @@ func setupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 		CookieHTTPOnly: csrfConfig.CookieHTTPOnly,
 		CookieSameSite: sameSite,
 		CookieMaxAge:   csrfConfig.CookieMaxAge,
-		Skipper:        createCSRFSkipper(csrfConfig, isDevelopment),
+		Skipper:        createCSRFSkipper(isDevelopment),
 		ErrorHandler:   createCSRFErrorHandler(csrfConfig, isDevelopment),
 	})
 }
@@ -264,84 +284,90 @@ func getTokenLength(tokenLength int) int {
 	return tokenLength
 }
 
-// createCSRFSkipper creates the CSRF skipper function
-func createCSRFSkipper(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) func(c echo.Context) bool {
+// createCSRFSkipper creates a function that determines if CSRF protection should be skipped
+func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 	return func(c echo.Context) bool {
-		path := c.Request().URL.Path
-		method := c.Request().Method
-
-		// Always log when CSRF skipper is called (for debugging)
-		if isDevelopment {
-			c.Logger().Debug("CSRF skipper called",
-				"path", path,
-				"method", method)
-		}
-
-		// Add debugging in development mode
-		if isDevelopment {
-			c.Logger().Debug("CSRF middleware processing request",
-				"path", path,
-				"method", method,
-				"token_lookup", csrfConfig.TokenLookup,
-				"origin", c.Request().Header.Get("Origin"),
-				"csrf_token_present", c.Request().Header.Get("X-CSRF-Token") != "",
-				"is_development", isDevelopment,
-				"path_signup", constants.PathSignup,
-				"path_matches_signup", path == constants.PathSignup,
-				"method_post", method == http.MethodPost)
-		}
-
-		// Skip CSRF for static files
-		if constants.IsStaticFile(path) {
-			if isDevelopment {
-				c.Logger().Debug("Skipping CSRF for static file", "path", path)
-			}
+		// Skip CSRF for GET, HEAD, OPTIONS requests
+		if isSafeMethod(c.Request().Method) {
 			return true
 		}
 
-		// Skip CSRF validation for safe methods, but still generate token
-		if method == http.MethodGet || method == http.MethodHead || method == http.MethodOptions {
-			if isDevelopment {
-				c.Logger().Debug("CSRF middleware will generate token for safe method", "method", method)
-			}
-			return false
-		}
-
-		// Skip CSRF for API endpoints with valid Authorization header or CSRF token
-		if strings.HasPrefix(path, "/api/") {
-			authHeader := c.Request().Header.Get("Authorization")
-			csrfToken := c.Request().Header.Get("X-CSRF-Token")
-			if authHeader != "" || csrfToken != "" {
-				if isDevelopment {
-					c.Logger().Debug("Skipping CSRF for API endpoint with auth/token", "path", path)
-				}
-				return true
-			}
-		}
-
-		// Skip CSRF for validation endpoints
-		if strings.HasPrefix(path, "/api/validation/") {
-			if isDevelopment {
-				c.Logger().Debug("Skipping CSRF for validation endpoint", "path", path)
-			}
+		// Skip CSRF for API routes in development
+		if isDevelopment && isAPIRoute(c.Request().URL.Path) {
 			return true
 		}
 
-		// Never skip CSRF for login, signup, or password reset
-		if path == constants.PathLogin ||
-			path == constants.PathSignup ||
-			path == constants.PathResetPassword {
-			if isDevelopment {
-				c.Logger().Debug("CSRF validation required for auth endpoint", "path", path, "method", method)
-			}
-			return false
+		// Skip CSRF for health check routes
+		if isHealthRoute(c.Request().URL.Path) {
+			return true
 		}
 
-		if isDevelopment {
-			c.Logger().Debug("CSRF validation required for endpoint", "path", path, "method", method)
+		// Skip CSRF for static asset routes
+		if isStaticRoute(c.Request().URL.Path) {
+			return true
 		}
+
+		// Skip CSRF for form submission endpoints (handled by form-specific CORS)
+		if isFormSubmissionRoute(c.Request().URL.Path) {
+			return true
+		}
+
 		return false
 	}
+}
+
+// isSafeMethod checks if the HTTP method is safe (doesn't modify state)
+func isSafeMethod(method string) bool {
+	safeMethods := []string{"GET", "HEAD", "OPTIONS"}
+	for _, safe := range safeMethods {
+		if method == safe {
+			return true
+		}
+	}
+	return false
+}
+
+// isAPIRoute checks if the path is an API route
+func isAPIRoute(path string) bool {
+	return strings.HasPrefix(path, "/api/")
+}
+
+// isHealthRoute checks if the path is a health check route
+func isHealthRoute(path string) bool {
+	healthRoutes := []string{"/health", "/health/", "/healthz", "/healthz/"}
+	for _, route := range healthRoutes {
+		if path == route {
+			return true
+		}
+	}
+	return false
+}
+
+// isStaticRoute checks if the path is a static asset route
+func isStaticRoute(path string) bool {
+	staticPrefixes := []string{"/assets/", "/static/", "/public/", "/favicon.ico"}
+	for _, prefix := range staticPrefixes {
+		if strings.HasPrefix(path, prefix) {
+			return true
+		}
+	}
+	return false
+}
+
+// isFormSubmissionRoute checks if the path is a form submission endpoint
+func isFormSubmissionRoute(path string) bool {
+	// Check for form submission patterns
+	submissionPatterns := []string{
+		"/forms/", // Form endpoints
+		"/submit", // Direct submission endpoints
+	}
+
+	for _, pattern := range submissionPatterns {
+		if strings.Contains(path, pattern) {
+			return true
+		}
+	}
+	return false
 }
 
 // createCSRFErrorHandler creates the CSRF error handler function
@@ -353,7 +379,7 @@ func createCSRFErrorHandler(
 		// Add debugging in development mode
 		if isDevelopment {
 			// Get the actual token from the request
-			csrfToken := c.Request().Header.Get("X-CSRF-Token")
+			csrfToken := c.Request().Header.Get("X-Csrf-Token")
 
 			// Get the token from context (if available)
 			contextToken := ""
