@@ -222,8 +222,12 @@ func getTokenLength(tokenLength int) int {
 // createCSRFSkipper creates a function that determines if CSRF protection should be skipped
 func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 	return func(c echo.Context) bool {
-		// Skip CSRF for GET, HEAD, OPTIONS requests
+		// For GET requests, only skip CSRF if it's not an auth page that needs token generation
 		if isSafeMethod(c.Request().Method) {
+			// Allow CSRF token generation for auth pages
+			if isAuthPage(c.Request().URL.Path) {
+				return false
+			}
 			return true
 		}
 
@@ -299,6 +303,17 @@ func isFormSubmissionRoute(path string) bool {
 
 	for _, pattern := range submissionPatterns {
 		if strings.Contains(path, pattern) {
+			return true
+		}
+	}
+	return false
+}
+
+// isAuthPage checks if the path is an authentication page that needs CSRF token generation
+func isAuthPage(path string) bool {
+	authPages := []string{"/login", "/signup", "/forgot-password", "/reset-password"}
+	for _, page := range authPages {
+		if path == page {
 			return true
 		}
 	}

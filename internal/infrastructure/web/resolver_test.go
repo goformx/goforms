@@ -89,16 +89,6 @@ func TestProductionAssetResolver(t *testing.T) {
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-	mockLogger.EXPECT().Debug(
-		"resolving production asset path", "path", gomock.Any(), "manifest_entries", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"production asset resolved", "input", gomock.Any(), "output", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"asset not found in manifest", "path", gomock.Any(), "available_keys", gomock.Any(),
-	).AnyTimes()
-
 	resolver := web.NewProductionAssetResolver(manifest, mockLogger)
 
 	tests := []struct {
@@ -156,28 +146,6 @@ func TestAssetManager(t *testing.T) {
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
-	mockLogger.EXPECT().Info(
-		"asset manager initialized in development mode",
-	).Times(1)
-	mockLogger.EXPECT().Debug(
-		"asset manager resolving path", "input_path", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"asset path found in cache", "input_path", gomock.Any(), "cached_path", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"asset path resolved", "input_path", gomock.Any(), "resolved_path", gomock.Any(), "environment", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"asset path cache cleared",
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"resolving development asset path", "path", gomock.Any(), "host_port", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(),
-	).AnyTimes()
-
 	var distFS embed.FS
 
 	manager, err := web.NewAssetManager(cfg, mockLogger, distFS)
@@ -209,10 +177,6 @@ func TestAssetManager_ProductionMode(t *testing.T) {
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
-
-	mockLogger.EXPECT().Debug(
-		"loading manifest from embedded filesystem", "path", "dist/.vite/manifest.json",
-	).AnyTimes()
 
 	var distFS embed.FS
 

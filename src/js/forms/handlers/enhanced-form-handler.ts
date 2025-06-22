@@ -14,12 +14,17 @@ export class EnhancedFormHandler {
   private validationType: string;
 
   constructor(config: FormConfig) {
+    console.log("EnhancedFormHandler: Initializing with config:", config);
+
     const formElement = document.querySelector<HTMLFormElement>(
       `#${config.formId}`,
     );
     if (!formElement) {
       throw new Error(`Form with ID "${config.formId}" not found`);
     }
+
+    console.log("EnhancedFormHandler: Form element found:", formElement);
+    console.log("EnhancedFormHandler: Form action:", formElement.action);
 
     this.form = formElement;
     this.validationType = config.validationType;
@@ -100,24 +105,28 @@ export class EnhancedFormHandler {
   }
 
   private async handleFormSubmission(event: Event): Promise<void> {
+    console.log("EnhancedFormHandler: Form submission intercepted");
     event.preventDefault();
 
     try {
+      console.log("EnhancedFormHandler: Starting form validation");
       const isValid = await ValidationHandler.validateFormSubmission(
         this.form,
         this.validationType,
       );
 
       if (!isValid) {
+        console.log("EnhancedFormHandler: Form validation failed");
         this.showError("Please check the form for errors.");
         return;
       }
 
+      console.log("EnhancedFormHandler: Form validation passed, sending data");
       const formData = new FormData(this.form);
       const response = await this.sendFormData(formData);
       await ResponseHandler.handleServerResponse(response, this.form);
     } catch (error) {
-      console.error("Form submission error:", error);
+      console.error("EnhancedFormHandler: Form submission error:", error);
       this.showError("An unexpected error occurred. Please try again.");
     }
   }

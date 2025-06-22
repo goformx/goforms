@@ -4,12 +4,29 @@
  * Initializes and configures the login form using the enhanced form handler.
  */
 
-import { EnhancedFormHandler } from "../forms/handlers/enhanced-form-handler";
+console.log("login.ts: Script loaded and executing");
 
-// Initialize form when DOM is ready
+import { EnhancedFormHandler } from "../forms/handlers/enhanced-form-handler.js";
+import type { FormConfig } from "../forms/types/form-types.js";
+
+console.log("login.ts: Imports completed");
+
+// Initialize the login form handler
 document.addEventListener("DOMContentLoaded", () => {
-  new EnhancedFormHandler({
-    formId: "login-form",
-    validationType: "login",
-  });
+  console.log("login.ts: DOMContentLoaded event fired");
+  
+  try {
+    const config: FormConfig = {
+      formId: "login-form",
+      validationType: "login",
+    };
+
+    console.log("login.ts: Creating EnhancedFormHandler with config:", config);
+    new EnhancedFormHandler(config);
+    console.log("login.ts: EnhancedFormHandler created successfully");
+  } catch (error) {
+    console.error("login.ts: Error creating EnhancedFormHandler:", error);
+  }
 });
+
+console.log("login.ts: Script execution completed");

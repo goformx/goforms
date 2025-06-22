@@ -91,15 +91,6 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path st
 	return resolvedPath, nil
 }
 
-// getManifestKeys returns a slice of all keys in the manifest for debugging
-func getManifestKeys(manifest Manifest) []string {
-	keys := make([]string, 0, len(manifest))
-	for key := range manifest {
-		keys = append(keys, key)
-	}
-	return keys
-}
-
 // loadManifestFromFS loads the manifest from the embedded filesystem
 func loadManifestFromFS(distFS embed.FS, logger logging.Logger) (Manifest, error) {
 	manifestPath := "dist/.vite/manifest.json"

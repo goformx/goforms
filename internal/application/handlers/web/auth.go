@@ -90,6 +90,8 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
+	// Force CSRF token generation
+	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 	if mwcontext.IsAuthenticated(c) {
 		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
