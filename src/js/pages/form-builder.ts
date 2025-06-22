@@ -215,19 +215,25 @@ function setupEventHandlers(builder: any, formId: string): void {
   if (formId === "new") {
     const form = dom.getElement<HTMLFormElement>("new-form");
     if (form) {
-      form.addEventListener("submit", async (e) => {
-        e.preventDefault();
-        try {
-          const schema = await builder.saveSchema();
-          const schemaInput = dom.getElement<HTMLInputElement>("schema");
-          if (schemaInput) {
-            schemaInput.value = JSON.stringify(schema);
+      // Only add the submit handler if we're on the form builder page (not the new form page)
+      const isFormBuilderPage = dom.getElement<HTMLElement>(
+        "form-schema-builder",
+      );
+      if (isFormBuilderPage) {
+        form.addEventListener("submit", async (e) => {
+          e.preventDefault();
+          try {
+            const schema = await builder.saveSchema();
+            const schemaInput = dom.getElement<HTMLInputElement>("schema");
+            if (schemaInput) {
+              schemaInput.value = JSON.stringify(schema);
+            }
+            form.submit();
+          } catch (_error) {
+            dom.showError("Failed to save form schema. Please try again.");
           }
-          form.submit();
-        } catch (_error) {
-          dom.showError("Failed to save form schema. Please try again.");
-        }
-      });
+        });
+      }
     }
   }
 }

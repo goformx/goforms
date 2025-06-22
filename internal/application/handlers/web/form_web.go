@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"errors"
-	"fmt"
 	"net/http"
 	"strings"
 
@@ -91,27 +90,19 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	title := h.Sanitizer.String(c.FormValue("title"))
 	description := h.Sanitizer.String(c.FormValue("description"))
 
-	// CORS config (comma-separated values from form input)
-	corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins"))
-
-	// Parse comma-separated values into string slices
-	origins := types.StringArray(parseCSV(corsOrigins))
-
-	// Use sensible defaults for methods and headers
-	methods := types.StringArray(parseCSV(DefaultCorsMethods))
-	headers := types.StringArray(parseCSV(DefaultCorsHeaders))
-
 	// Create a valid initial schema
 	schema := model.JSON{
 		"type":       "object",
 		"components": []any{},
 	}
 
-	// Create the form
+	// Create the form with default CORS settings
 	form := model.NewForm(user.ID, title, description, schema)
-	form.CorsOrigins = origins
-	form.CorsMethods = methods
-	form.CorsHeaders = headers
+
+	// Only override CORS settings if user provides custom values
+	if corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins")); corsOrigins != "" {
+		form.CorsOrigins = types.StringArray(parseCSV(corsOrigins))
+	}
 
 	err = h.FormService.CreateForm(c.Request().Context(), form)
 	if err != nil {
@@ -120,15 +111,26 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		// Check for specific validation errors
 		switch {
 		case errors.Is(err, model.ErrFormTitleRequired):
-			return h.HandleError(c, err, "Form title is required")
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Form title is required",
+			})
 		case errors.Is(err, model.ErrFormSchemaRequired):
-			return h.HandleError(c, err, "Form schema is required")
+			return c.JSON(http.StatusBadRequest, map[string]string{
+				"message": "Form schema is required",
+			})
 		default:
-			return h.HandleError(c, err, "Failed to create form")
+			return c.JSON(http.StatusInternalServerError, map[string]string{
+				"message": "Failed to create form",
+			})
 		}
 	}
 
-	return c.Redirect(constants.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+	// Return success response with form ID
+	return c.JSON(http.StatusOK, map[string]any{
+		"success": true,
+		"message": "Form created successfully",
+		"form_id": form.ID,
+	})
 }
 
 func (h *FormWebHandler) handleEdit(c echo.Context) error {
@@ -173,19 +175,10 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	form.Description = h.Sanitizer.String(c.FormValue("description"))
 	form.Status = h.Sanitizer.String(c.FormValue("status"))
 
-	// CORS config (comma-separated values from form input)
-	corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins"))
-
-	// Parse comma-separated values into string slices
-	origins := types.StringArray(parseCSV(corsOrigins))
-
-	// Use sensible defaults for methods and headers
-	methods := types.StringArray(parseCSV(DefaultCorsMethods))
-	headers := types.StringArray(parseCSV(DefaultCorsHeaders))
-
-	form.CorsOrigins = origins
-	form.CorsMethods = methods
-	form.CorsHeaders = headers
+	// Only override CORS settings if user provides custom values
+	if corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins")); corsOrigins != "" {
+		form.CorsOrigins = types.StringArray(parseCSV(corsOrigins))
+	}
 
 	err = h.FormService.UpdateForm(c.Request().Context(), form)
 	if err != nil {
@@ -249,7 +242,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 // parseCSV parses a comma-separated string into a slice of strings, trimming whitespace and skipping empty values
 func parseCSV(input string) []string {
 	if input == "" {
-		return nil
+		return []string{} // Return empty slice instead of nil
 	}
 	parts := strings.Split(input, ",")
 	var result []string
