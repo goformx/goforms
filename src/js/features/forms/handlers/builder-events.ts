@@ -1,15 +1,10 @@
 import { Logger } from "@/core/logger";
 
-interface EventHandler {
-  original: (event: Event) => void;
-  wrapped: (event: Event) => void;
-}
-
 /**
  * Event manager for form builder interactions
  */
 export class BuilderEventManager {
-  private handlers = new Map<string, EventHandler[]>();
+  private handlers = new Map<string, Array<(event: Event) => void>>();
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private element: HTMLElement;
 
@@ -54,8 +49,7 @@ export class BuilderEventManager {
         this.debounceTimers.set(timerKey, timerId);
       };
 
-      // Store both original handler and wrapped handler
-      handlers.push({ original: handler, wrapped: debouncedHandler });
+      handlers.push(debouncedHandler);
       this.element.addEventListener(eventType, debouncedHandler);
     } else {
       // Regular handler
@@ -67,8 +61,7 @@ export class BuilderEventManager {
         }
       };
 
-      // Store both original handler and wrapped handler
-      handlers.push({ original: handler, wrapped: wrappedHandler });
+      handlers.push(wrappedHandler);
       this.element.addEventListener(eventType, wrappedHandler);
     }
   }
@@ -83,10 +76,10 @@ export class BuilderEventManager {
     const handlers = this.handlers.get(eventType);
     if (!handlers) return;
 
-    const index = handlers.findIndex((h) => h.original === handler);
+    const index = handlers.indexOf(handler);
     if (index > -1) {
       const removedHandler = handlers.splice(index, 1)[0];
-      this.element.removeEventListener(eventType, removedHandler.wrapped);
+      this.element.removeEventListener(eventType, removedHandler);
     }
   }
 
@@ -96,7 +89,7 @@ export class BuilderEventManager {
   removeAllEventListeners(): void {
     for (const [eventType, handlers] of this.handlers) {
       for (const handler of handlers) {
-        this.element.removeEventListener(eventType, handler.wrapped);
+        this.element.removeEventListener(eventType, handler);
       }
     }
     this.handlers.clear();
@@ -140,4 +133,45 @@ export class BuilderEventManager {
  */
 export function createEventManager(element: HTMLElement): BuilderEventManager {
   return new BuilderEventManager(element);
+}
+
+/**
+ * Set up event handlers for the form builder
+ */
+export function setupBuilderEvents(
+  builder: any,
+  formId: string,
+  formService: any,
+): void {
+  // Create event manager for the builder element
+  const eventManager = createEventManager(builder.element);
+
+  // Set up form change events
+  eventManager.addEventListener(
+    "change",
+    async (_event) => {
+      try {
+        // Handle form changes - save schema when form changes
+        const schema = builder.form;
+        await formService.saveSchema(formId, schema);
+        Logger.debug("Form schema saved:", formId);
+      } catch (error) {
+        Logger.error("Error handling form change:", error);
+      }
+    },
+    { debounce: 500 },
+  );
+
+  // Set up form submission events - fix the unused parameter
+  eventManager.addEventListener("submit", async (_event) => {
+    try {
+      // Handle form submission
+      Logger.debug("Form submitted");
+    } catch (error) {
+      Logger.error("Error handling form submission:", error);
+    }
+  });
+
+  // Store the event manager on the builder for cleanup
+  (builder as any).eventManager = eventManager;
 }

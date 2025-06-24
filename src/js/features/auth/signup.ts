@@ -4,6 +4,7 @@
  * Initializes and configures the signup form using the enhanced form handler.
  */
 
+import { Logger } from "@/core/logger";
 import { EnhancedFormHandler } from "@/features/forms/handlers/enhanced-form-handler";
 import type { FormConfig } from "@/shared/types/form-types";
 
@@ -12,11 +13,11 @@ document.addEventListener("DOMContentLoaded", () => {
   try {
     const config: FormConfig = {
       formId: "signup-form",
-      validationType: "signup",
+      validationType: "onSubmit",
     };
 
     new EnhancedFormHandler(config);
   } catch (error) {
-    console.error("Error creating EnhancedFormHandler:", error);
+    Logger.error("Error creating EnhancedFormHandler:", error);
   }
 });

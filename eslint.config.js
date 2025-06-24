@@ -102,4 +102,11 @@ export default defineConfig([
       "no-debugger": "error", // Prevent debugger statements
     },
   },
+  // Logger utility - allow console statements
+  {
+    files: ["src/js/core/logger.ts"],
+    rules: {
+      "no-console": "off", // Allow console statements in logger utility
+    },
+  },
 ]);

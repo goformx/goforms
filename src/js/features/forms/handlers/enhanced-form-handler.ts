@@ -1,4 +1,5 @@
 // ===== src/js/forms/handlers/enhanced-form-handler.ts =====
+import { Logger } from "@/core/logger";
 import type { FormConfig } from "@/shared/types/form-types";
 import { validation } from "@/features/forms/validation/validation";
 import { ValidationHandler } from "./validation-handler";
@@ -15,7 +16,7 @@ export class EnhancedFormHandler {
   private validationType: string;
 
   constructor(config: FormConfig) {
-    console.log("EnhancedFormHandler: Initializing with config:", config);
+    Logger.debug("EnhancedFormHandler: Initializing with config:", config);
 
     const formElement = document.querySelector<HTMLFormElement>(
       `#${config.formId}`,
@@ -24,8 +25,8 @@ export class EnhancedFormHandler {
       throw new Error(`Form with ID "${config.formId}" not found`);
     }
 
-    console.log("EnhancedFormHandler: Form element found:", formElement);
-    console.log("EnhancedFormHandler: Form action:", formElement.action);
+    Logger.debug("EnhancedFormHandler: Form element found:", formElement);
+    Logger.debug("EnhancedFormHandler: Form action:", formElement.action);
 
     this.form = formElement;
     this.validationType = config.validationType;
@@ -42,14 +43,14 @@ export class EnhancedFormHandler {
   }
 
   private async sendFormData(formData: FormData): Promise<Response> {
-    console.group("Form Submission - Enhanced Handler");
+    Logger.group("Form Submission - Enhanced Handler");
 
     try {
       const csrfToken = validation.getCSRFToken();
-      console.log("CSRF Token from meta tag:", csrfToken);
-      console.log("Sending request to:", this.form.action);
-      console.log("All cookies:", document.cookie);
-      console.log("Cookies that will be sent:", document.cookie);
+      Logger.debug("CSRF Token from meta tag:", csrfToken);
+      Logger.debug("Sending request to:", this.form.action);
+      Logger.debug("All cookies:", document.cookie);
+      Logger.debug("Cookies that will be sent:", document.cookie);
 
       const isAuthEndpoint = isAuthenticationEndpoint(this.form.action);
 
@@ -59,7 +60,7 @@ export class EnhancedFormHandler {
         return this.sendStandardRequest(formData);
       }
     } finally {
-      console.groupEnd();
+      Logger.groupEnd();
     }
   }
 
@@ -80,7 +81,7 @@ export class EnhancedFormHandler {
       headers["X-Csrf-Token"] = csrfToken;
     }
 
-    console.log("Cleaned Form Data:", data);
+    Logger.debug("Cleaned Form Data:", data);
 
     return await HttpClient.post(this.form.action, JSON.stringify(data), {
       headers,
@@ -103,28 +104,28 @@ export class EnhancedFormHandler {
   }
 
   private async handleFormSubmission(event: Event): Promise<void> {
-    console.log("EnhancedFormHandler: Form submission intercepted");
+    Logger.debug("EnhancedFormHandler: Form submission intercepted");
     event.preventDefault();
 
     try {
-      console.log("EnhancedFormHandler: Starting form validation");
+      Logger.debug("EnhancedFormHandler: Starting form validation");
       const isValid = await ValidationHandler.validateFormSubmission(
         this.form,
         this.validationType,
       );
 
       if (!isValid) {
-        console.log("EnhancedFormHandler: Form validation failed");
+        Logger.debug("EnhancedFormHandler: Form validation failed");
         this.showError("Please check the form for errors.");
         return;
       }
 
-      console.log("EnhancedFormHandler: Form validation passed, sending data");
+      Logger.debug("EnhancedFormHandler: Form validation passed, sending data");
       const formData = new FormData(this.form);
       const response = await this.sendFormData(formData);
       await ResponseHandler.handleServerResponse(response, this.form);
     } catch (error) {
-      console.error("EnhancedFormHandler: Form submission error:", error);
+      Logger.error("EnhancedFormHandler: Form submission error:", error);
       this.showError("An unexpected error occurred. Please try again.");
     }
   }

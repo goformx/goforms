@@ -3,6 +3,7 @@ import {
   BuilderEventManager,
   createEventManager,
 } from "@/features/forms/handlers/builder-events";
+import { Logger } from "@/core/logger";
 
 describe("BuilderEventManager", () => {
   let eventManager: BuilderEventManager;
@@ -160,10 +161,8 @@ describe("BuilderEventManager", () => {
         throw new Error("Test error");
       };
 
-      // Mock console.error to avoid noise in tests
-      const consoleSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
+      // Mock Logger.error instead of console.error
+      const loggerSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
 
       eventManager.addEventListener("click", throwingHandler);
       eventManager.addEventListener("click", errorHandler);
@@ -171,9 +170,13 @@ describe("BuilderEventManager", () => {
       mockBuilder.element.click();
 
       expect(errorHandler).toHaveBeenCalled();
+      expect(loggerSpy).toHaveBeenCalledWith(
+        "Event handler error:",
+        expect.any(Error),
+      );
 
-      // Restore console.error
-      consoleSpy.mockRestore();
+      // Restore Logger.error
+      loggerSpy.mockRestore();
     });
 
     it("should handle errors in debounced handlers gracefully", () => {
@@ -184,10 +187,8 @@ describe("BuilderEventManager", () => {
         throw new Error("Test error");
       };
 
-      // Mock console.error to avoid noise in tests
-      const consoleSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
+      // Mock Logger.error instead of console.error
+      const loggerSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
 
       eventManager.addEventListener("input", throwingHandler, {
         debounce: 100,
@@ -198,9 +199,13 @@ describe("BuilderEventManager", () => {
       vi.advanceTimersByTime(100);
 
       expect(errorHandler).toHaveBeenCalled();
+      expect(loggerSpy).toHaveBeenCalledWith(
+        "Event handler error:",
+        expect.any(Error),
+      );
 
-      // Restore console.error and timers
-      consoleSpy.mockRestore();
+      // Restore Logger.error and timers
+      loggerSpy.mockRestore();
       vi.useRealTimers();
     });
 
@@ -211,10 +216,8 @@ describe("BuilderEventManager", () => {
         throw new Error("Test error");
       };
 
-      // Mock console.error to avoid noise in tests
-      const consoleSpy = vi
-        .spyOn(console, "error")
-        .mockImplementation(() => {});
+      // Mock Logger.error instead of console.error
+      const loggerSpy = vi.spyOn(Logger, "error").mockImplementation(() => {});
 
       eventManager.addEventListener("click", handler1);
       eventManager.addEventListener("click", throwingHandler);
@@ -224,9 +227,13 @@ describe("BuilderEventManager", () => {
 
       expect(handler1).toHaveBeenCalled();
       expect(handler2).toHaveBeenCalled();
+      expect(loggerSpy).toHaveBeenCalledWith(
+        "Event handler error:",
+        expect.any(Error),
+      );
 
-      // Restore console.error
-      consoleSpy.mockRestore();
+      // Restore Logger.error
+      loggerSpy.mockRestore();
     });
   });
 });
