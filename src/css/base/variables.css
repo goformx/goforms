@@ -38,12 +38,21 @@
   }
 
   /* Typography */
-  --font-sans:
-    -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue",
-    Arial, sans-serif;
-  --font-mono:
-    ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono",
-    "Courier New", monospace;
+  --font-sans: -apple-system,
+  BlinkMacSystemFont,
+  "Segoe UI",
+  Roboto,
+  "Helvetica Neue",
+  Arial,
+  sans-serif;
+  --font-mono: ui-monospace,
+  SFMono-Regular,
+  Menlo,
+  Monaco,
+  Consolas,
+  "Liberation Mono",
+  "Courier New",
+  monospace;
   --font-size-xs: 0.75rem;
   --font-size-sm: 0.875rem;
   --font-size-base: 1rem;
@@ -84,9 +93,12 @@
   --spacing-64: 16rem;
 
   /* Container System */
-  --container-max-width: var(--breakpoint-xl); /* Default to xl breakpoint */
-  --container-padding-x: var(--spacing-8); /* 2rem on desktop */
-  --container-padding-x-mobile: var(--spacing-4); /* 1rem on mobile */
+  --container-max-width: var(--breakpoint-xl);
+  /* Default to xl breakpoint */
+  --container-padding-x: var(--spacing-8);
+  /* 2rem on desktop */
+  --container-padding-x-mobile: var(--spacing-4);
+  /* 1rem on mobile */
   --container-margin: 0 auto;
 
   /* Container Size Variants */
@@ -122,17 +134,14 @@
   --button-transform-hover: translateY(-2px);
 
   /* Primary Button */
-  --button-primary-gradient: linear-gradient(
-    135deg,
+  --button-primary-gradient: linear-gradient(135deg,
     var(--primary),
-    var(--accent)
-  );
+    var(--accent));
   --button-primary-color: white;
-  --button-primary-shadow:
-    0 4px 6px -1px rgba(37, 99, 235, 0.2), 0 2px 4px -2px rgba(37, 99, 235, 0.1);
-  --button-primary-shadow-hover:
-    0 8px 12px -1px rgba(37, 99, 235, 0.3),
-    0 4px 8px -2px rgba(37, 99, 235, 0.2);
+  --button-primary-shadow: 0 4px 6px -1px rgba(37, 99, 235, 0.2),
+  0 2px 4px -2px rgba(37, 99, 235, 0.1);
+  --button-primary-shadow-hover: 0 8px 12px -1px rgba(37, 99, 235, 0.3),
+  0 4px 8px -2px rgba(37, 99, 235, 0.2);
 
   /* Secondary Button */
   --button-secondary-bg: rgba(255, 255, 255, 0.1);
@@ -145,22 +154,18 @@
   /* Hero */
   --hero-padding-y: 8rem;
   --hero-padding-y-mobile: 6rem;
-  --hero-bg-gradient: linear-gradient(
-    180deg,
+  --hero-bg-gradient: linear-gradient(180deg,
     rgba(15, 23, 42, 0) 0%,
-    rgba(15, 23, 42, 0.8) 100%
-  );
+    rgba(15, 23, 42, 0.8) 100%);
   --hero-min-height: calc(100vh - var(--nav-height));
   --hero-container-width: 800px;
   --hero-title-size: 4.5rem;
   --hero-title-size-mobile: 3rem;
   --hero-title-weight: 800;
   --hero-title-spacing: -0.02em;
-  --hero-title-gradient: linear-gradient(
-    135deg,
+  --hero-title-gradient: linear-gradient(135deg,
     var(--primary) 0%,
-    var(--accent) 100%
-  );
+    var(--accent) 100%);
   --hero-title-margin: 1.5rem;
   --hero-title-margin-mobile: 1rem;
   --hero-subtitle-size: 1.5rem;
@@ -229,7 +234,8 @@
   --grid-columns-mobile: 1fr;
 
   /* Breakpoints */
-  --breakpoint-xs: 480px; /* Mobile phones */
+  --breakpoint-xs: 480px;
+  /* Mobile phones */
   --breakpoint-sm: 640px;
   --breakpoint-md: 768px;
   --breakpoint-lg: 1024px;
@@ -290,10 +296,11 @@
   --border-radius: 0.5rem;
   --border-radius-lg: 0.75rem;
   --border-radius-sm: 0.25rem;
+  --radius-sm: 0.25rem;
 
   /* Shadows */
-  --shadow-lg:
-    0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+  --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1),
+  0 4px 6px -2px rgba(0, 0, 0, 0.05);
 
   /* Background States */
   --background-hover: rgba(30, 41, 59, 0.7);
@@ -320,7 +327,10 @@
   --warning-bg: rgba(245, 158, 11, 0.1);
   --info-color: #3b82f6;
   --info-bg: rgba(59, 130, 246, 0.1);
+  --error-color: #ef4444;
   --error-bg: rgba(239, 68, 68, 0.1);
+  --success-color: rgb(34, 197, 94);
+  --success-bg: rgba(34, 197, 94, 0.1);
   --transition-fast: 0.2s ease;
 
   /* Buttons */
