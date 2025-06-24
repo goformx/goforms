@@ -84,6 +84,7 @@ tasks:
     desc: Install frontend dependencies
     cmds:
     - npm install
+    - npm run postinstall
 
   generate:
     desc: Generate all code artifacts
@@ -156,9 +157,9 @@ tasks:
   lint:backend:
     desc: Run all backend linters
     cmds:
-      - go fmt ./...
-      - go vet ./...
-      - golangci-lint run ./...
+    - go fmt ./...
+    - go vet ./...
+    - golangci-lint run ./...
 
   lint:frontend:
     desc: Run frontend linters
@@ -166,13 +167,32 @@ tasks:
     - npm run lint
 
   test:
-    desc: Run unit tests
+    desc: Run all tests (frontend + backend)
+    deps: [ test:frontend, test:backend ]
+
+  test:frontend:
+    desc: Run frontend tests
+    cmds:
+    - npm run test
+    - npm run test:coverage
+
+  test:backend:
+    desc: Run backend unit tests
     deps: [ generate ]
     cmds:
     - go test -v ./internal/...
 
   test:cover:
     desc: Run tests and generate coverage report
+    deps: [ test:frontend:cover, test:backend:cover ]
+
+  test:frontend:cover:
+    desc: Run frontend tests with coverage
+    cmds:
+    - npm run test:coverage
+
+  test:backend:cover:
+    desc: Run backend tests and generate coverage report
     deps: [ generate ]
     cmds:
     - go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
