@@ -38,10 +38,10 @@ cleanURL := sanitizer.URL("https://example.com")
 
 ```go
 // Sanitize complex data structures
-data := map[string]interface{}{
+data := map[string]any{
     "name": "<script>alert('xss')</script>John",
     "email": "john@example.com",
-    "nested": map[string]interface{}{
+    "nested": map[string]any{
         "comment": "<b>Bold</b> text",
     },
 }
@@ -108,11 +108,11 @@ if sanitizer.IsValidURL(input) {
 - `TrimAndSanitizeEmail(input string) string` - Trim whitespace and sanitize email
 
 ### Complex Data Sanitization
-- `SanitizeMap(data map[string]interface{})` - Sanitize map values recursively
-- `SanitizeSlice(data []interface{})` - Sanitize slice values recursively
-- `SanitizeStruct(obj interface{})` - Sanitize struct string fields
+- `SanitizeMap(data map[string]any)` - Sanitize map values recursively
+- `SanitizeSlice(data []any)` - Sanitize slice values recursively
+- `SanitizeStruct(obj any)` - Sanitize struct string fields
 - `SanitizeFormData(data map[string]string, fieldTypes map[string]string) map[string]string` - Sanitize form data with field types
-- `SanitizeJSON(data interface{}) interface{}` - Sanitize JSON data recursively
+- `SanitizeJSON(data any) any` - Sanitize JSON data recursively
 
 ### Advanced Features
 - `SanitizeWithOptions(input string, opts SanitizeOptions) string` - Sanitize with custom options
