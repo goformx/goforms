@@ -56,8 +56,20 @@ type AssetServer interface {
 	RegisterRoutes(e *echo.Echo) error
 }
 
+// AssetManagerInterface defines the contract for asset management
+type AssetManagerInterface interface {
+	// AssetPath returns the resolved asset path for the given input path
+	AssetPath(path string) string
+	// ResolveAssetPath resolves asset paths with context and proper error handling
+	ResolveAssetPath(ctx context.Context, path string) (string, error)
+	// GetAssetType returns the type of asset based on its path
+	GetAssetType(path string) AssetType
+	// ClearCache clears the asset path cache
+	ClearCache()
+}
+
 // WebModule encapsulates the asset manager and server to eliminate global state
 type WebModule struct {
-	AssetManager *AssetManager
+	AssetManager AssetManagerInterface
 	AssetServer  AssetServer
 }

@@ -84,14 +84,14 @@ func GetCSRFToken(c echo.Context) string {
 }
 
 // GenerateAssetPath creates asset paths using the provided AssetManager
-func GenerateAssetPath(manager *web.AssetManager) func(string) string {
+func GenerateAssetPath(manager web.AssetManagerInterface) func(string) string {
 	return func(path string) string {
 		return manager.AssetPath(path)
 	}
 }
 
 // BuildPageData constructs PageData with extracted functions
-func BuildPageData(cfg *config.Config, manager *web.AssetManager, c echo.Context, title string) PageData {
+func BuildPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.Context, title string) PageData {
 	return PageData{
 		Title:                title,
 		User:                 GetCurrentUser(c),
