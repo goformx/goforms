@@ -1,3 +1,4 @@
+import { Logger } from "@/core/logger";
 import { z } from "zod";
 
 interface ApiValidationRule {
@@ -19,7 +20,7 @@ export async function getValidationSchema(
   try {
     const response = await fetch(`/api/v1/validation/${schemaName}`);
     if (!response.ok) {
-      console.error(
+      Logger.error(
         `Failed to fetch validation schema for ${schemaName}:`,
         response.status,
       );
@@ -29,7 +30,7 @@ export async function getValidationSchema(
     const schema: ApiValidationSchema = await response.json();
     return generateZodSchema(schema);
   } catch (error) {
-    console.error(`Error fetching validation schema for ${schemaName}:`, error);
+    Logger.error(`Error fetching validation schema for ${schemaName}:`, error);
     throw error;
   }
 }

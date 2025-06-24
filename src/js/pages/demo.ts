@@ -1,3 +1,5 @@
+import { Logger } from "@/core/logger";
+
 // Types and Interfaces
 interface DOMIds {
   DEMO_FORM: string;
@@ -33,25 +35,22 @@ const DOM_IDS: DOMIds = {
 };
 
 const TEMPLATES: Templates = {
-  API_RESPONSE: (type: string, data: unknown): string => `
-    <div class="api-response ${type}">
-      <div class="api-response-header">
-        <span class="api-response-type">${type.toUpperCase()}</span>
-        <span class="api-response-time">${formatDate(new Date())}</span>
+  API_RESPONSE: (type: string, data: unknown) => `
+    <div class="api-response api-response--${type}">
+      <div class="api-response__header">
+        <span class="api-response__type">${type.toUpperCase()}</span>
+        <span class="api-response__timestamp">${new Date().toLocaleTimeString()}</span>
       </div>
-      <pre class="api-response-data">${JSON.stringify(data, null, 2)}</pre>
+      <div class="api-response__content">
+        <pre>${JSON.stringify(data, null, 2)}</pre>
+      </div>
     </div>
   `,
   DEFAULT_RESPONSE: `
-    <div class="api-response default">
-      <div class="api-response-header">
-        <span class="api-response-type">Waiting</span>
+    <div class="api-response api-response--default">
+      <div class="api-response__content">
+        <p>No API responses yet. Submit the form to see responses here.</p>
       </div>
-      <pre class="api-response-data">// Submit the form to see the API response
-{
-  "status": "waiting",
-  "message": "No responses yet"
-}</pre>
     </div>
   `,
 };
@@ -66,13 +65,13 @@ const formatDate = (date: Date): string => {
 
 const logDebug = (message: string, data?: unknown): void => {
   const timestamp = new Date().toISOString();
-  console.debug(`[${timestamp}] ${message}`, data ?? "");
+  Logger.debug(`[${timestamp}] ${message}`, data ?? "");
 };
 
 const logError = (message: string, error: Error): void => {
   const timestamp = new Date().toISOString();
-  console.error(`[${timestamp}] ${message}`, error);
-  if (error?.stack) console.error(`[${timestamp}] Error stack:`, error.stack);
+  Logger.error(`[${timestamp}] ${message}`, error);
+  if (error?.stack) Logger.error(`[${timestamp}] Error stack:`, error.stack);
 };
 
 // DOM Helpers

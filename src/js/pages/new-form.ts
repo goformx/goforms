@@ -5,11 +5,11 @@ import { Logger } from "@/core/logger";
  * Initialize the new form page
  */
 function initializeNewForm(): void {
-  console.log("Initializing new form page");
+  Logger.debug("Initializing new form page");
 
   const form = document.getElementById("new-form") as HTMLFormElement;
   if (!form) {
-    console.error("New form not found");
+    Logger.error("New form not found");
     return;
   }
 
@@ -18,7 +18,7 @@ function initializeNewForm(): void {
     await handleFormSubmission(form);
   });
 
-  console.log("New form handler initialized successfully");
+  Logger.debug("New form handler initialized successfully");
 }
 
 /**
@@ -26,7 +26,7 @@ function initializeNewForm(): void {
  */
 async function handleFormSubmission(form: HTMLFormElement): Promise<void> {
   try {
-    Logger.log("Submitting new form");
+    Logger.debug("Submitting new form");
 
     const formData = new FormData(form);
 
@@ -37,24 +37,13 @@ async function handleFormSubmission(form: HTMLFormElement): Promise<void> {
       return;
     }
 
-    const response = await HttpClient.request("/forms", {
-      method: "POST",
-      body: formData,
-    });
+    const result = await HttpClient.post("/forms", formData);
 
-    if (response.ok) {
+    if (result && result.form_id) {
       // Redirect to the form edit page
-      const result = await response.json().catch(() => ({ form_id: null }));
-      if (result.form_id) {
-        window.location.href = `/forms/${result.form_id}/edit`;
-      } else {
-        window.location.href = "/forms";
-      }
+      window.location.href = `/forms/${result.form_id}/edit`;
     } else {
-      const errorData = await response
-        .json()
-        .catch(() => ({ message: "Failed to create form" }));
-      showError(errorData.message || "Failed to create form");
+      window.location.href = "/forms";
     }
   } catch (error) {
     Logger.error("Form submission error:", error);

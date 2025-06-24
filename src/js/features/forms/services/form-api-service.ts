@@ -1,3 +1,4 @@
+import { Logger } from "@/core/logger";
 import { FormBuilderError } from "@/core/errors/form-builder-error";
 import { HttpClient } from "@/core/http-client";
 import DOMPurify from "dompurify";
@@ -12,7 +13,7 @@ export class FormApiService {
 
   private constructor() {
     this.baseUrl = window.location.origin;
-    console.debug("FormApiService initialized with base URL:", this.baseUrl);
+    Logger.debug("FormApiService initialized with base URL:", this.baseUrl);
   }
 
   public static getInstance(): FormApiService {
@@ -24,12 +25,12 @@ export class FormApiService {
 
   public setBaseUrl(url: string): void {
     this.baseUrl = url;
-    console.debug("FormApiService base URL updated to:", this.baseUrl);
+    Logger.debug("FormApiService base URL updated to:", this.baseUrl);
   }
 
   async getSchema(formId: string): Promise<FormSchema> {
     const url = `${this.baseUrl}/api/v1/forms/${formId}/schema`;
-    console.debug("Fetching schema from:", url);
+    Logger.debug("Fetching schema from:", url);
 
     try {
       const response = await HttpClient.get(url);

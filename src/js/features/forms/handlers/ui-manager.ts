@@ -1,17 +1,19 @@
 // ===== src/js/forms/handlers/ui-manager.ts =====
+import { Logger } from "@/core/logger";
+
 export class UIManager {
   /**
    * Displays an error message in the form's error container
    */
   static displayFormError(form: HTMLFormElement, message: string): void {
-    console.debug("Displaying error message:", message);
+    Logger.debug("Displaying error message:", message);
     const formError = form.querySelector(".form-error");
 
     if (formError) {
       formError.textContent = message;
       formError.classList.remove("hidden");
     } else {
-      console.warn("Form error container not found:", form.id);
+      Logger.warn("Form error container not found:", form.id);
     }
   }
 
@@ -19,14 +21,14 @@ export class UIManager {
    * Displays a success message in the form's success container
    */
   static displayFormSuccess(form: HTMLFormElement, message: string): void {
-    console.debug("Displaying success message:", message);
+    Logger.debug("Displaying success message:", message);
     const formSuccess = form.querySelector(".form-success");
 
     if (formSuccess) {
       formSuccess.textContent = message;
       formSuccess.classList.remove("hidden");
     } else {
-      console.warn("Form success container not found:", form.id);
+      Logger.warn("Form success container not found:", form.id);
     }
   }
 

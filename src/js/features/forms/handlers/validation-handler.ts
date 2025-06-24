@@ -1,4 +1,5 @@
 // ===== src/js/forms/handlers/validation-handler.ts =====
+import { Logger } from "@/core/logger";
 import { validation } from "@/features/forms/validation/validation";
 import { debounce } from "@/shared/utils/debounce";
 import { UIManager } from "./ui-manager";
@@ -48,7 +49,7 @@ export class ValidationHandler {
         });
       }
     } catch (error) {
-      console.error("Validation error:", error);
+      Logger.error("Validation error:", error);
       UIManager.displayFormError(form, "Validation error occurred");
     }
   }
@@ -70,7 +71,7 @@ export class ValidationHandler {
       }
       return true;
     } catch (error) {
-      console.error("Form validation failed:", error);
+      Logger.error("Form validation failed:", error);
       return false;
     }
   }

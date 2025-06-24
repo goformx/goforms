@@ -108,8 +108,8 @@ export default function ejsPlugin(): Plugin {
             : `export default ${JSON.stringify(content)};`,
           map: null,
         };
-      } catch (error) {
-        console.warn(`Error processing file: ${id}`, error);
+      } catch (_error) {
+        // Silently handle file processing errors in build tools
         return null;
       }
     },

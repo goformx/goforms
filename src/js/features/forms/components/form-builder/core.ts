@@ -1,8 +1,9 @@
+import { Logger } from "@/core/logger";
 import { Formio } from "@formio/js";
 import { FormService } from "@/features/forms/services/form-service";
 import type { FormSchema } from "@/features/forms/services/form-service";
 import { builderOptions } from "@/core/config/builder-config";
-import { FormBuilderError } from "@/core/errors/form-builder-error";
+import { FormBuilderError, ErrorCode } from "@/core/errors/form-builder-error";
 import { dom } from "@/shared/utils/dom-utils";
 import { formState } from "@/features/forms/state/form-state";
 
@@ -17,6 +18,7 @@ export function validateFormBuilder(): {
   if (!builder) {
     throw new FormBuilderError(
       "Form builder element not found",
+      ErrorCode.FORM_NOT_FOUND,
       "Form builder element not found. Please refresh the page.",
     );
   }
@@ -25,6 +27,7 @@ export function validateFormBuilder(): {
   if (!formId) {
     throw new FormBuilderError(
       "Form ID not found",
+      ErrorCode.FORM_NOT_FOUND,
       "Form ID not found. Please refresh the page.",
     );
   }
@@ -50,6 +53,7 @@ export async function getFormSchema(formId: string): Promise<FormSchema> {
   } catch {
     throw new FormBuilderError(
       "Failed to fetch schema",
+      ErrorCode.LOAD_FAILED,
       "Failed to load form schema. Please try again later.",
     );
   }
@@ -102,9 +106,10 @@ export async function createFormBuilder(
     formState.set("formBuilder", builder);
     return builder;
   } catch (error) {
-    console.error("Form builder initialization error:", error);
+    Logger.error("Form builder initialization error:", error);
     throw new FormBuilderError(
       "Failed to initialize builder",
+      ErrorCode.SCHEMA_ERROR,
       "Failed to initialize form builder. Please refresh the page.",
     );
   }

@@ -1,3 +1,5 @@
+import { Logger } from "@/core/logger";
+
 /**
  * Handles DOM manipulation and UI operations for forms
  */
@@ -39,7 +41,7 @@ export class FormUIService {
             this.removeFormCard(button);
             this.checkEmptyState();
           } catch (error) {
-            console.error("Failed to delete form:", error);
+            Logger.error("Failed to delete form:", error);
             this.showError("Failed to delete form. Please try again.");
           }
         });
@@ -78,7 +80,7 @@ export class FormUIService {
    */
   private showError(message: string): void {
     // You can implement a more sophisticated error display system here
-    console.error(message);
+    Logger.error(message);
     // For now, just log to console. In a real app, you'd show a toast or modal
   }
 
@@ -86,7 +88,7 @@ export class FormUIService {
    * Show success message to user
    */
   showSuccess(message: string): void {
-    console.log(message);
+    Logger.debug(message);
     // Implement success message display
   }
 

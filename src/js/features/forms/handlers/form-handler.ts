@@ -1,4 +1,5 @@
 // ===== src/js/forms/handlers/form-handler.ts =====
+import { Logger } from "@/core/logger";
 import type { FormConfig } from "@/shared/types/form-types";
 import { validation } from "@/features/forms/validation/validation";
 import { ValidationHandler } from "@/features/forms/handlers/validation-handler";
@@ -12,7 +13,7 @@ import { UIManager } from "@/features/forms/handlers/ui-manager";
 export function setupForm(config: FormConfig): void {
   const form = document.querySelector<HTMLFormElement>(`#${config.formId}`);
   if (!form) {
-    console.error(`Form with ID "${config.formId}" not found`);
+    Logger.error(`Form with ID "${config.formId}" not found`);
     return;
   }
 
@@ -52,7 +53,7 @@ async function handleFormSubmission(
     const response = await RequestHandler.sendFormData(form);
     await ResponseHandler.handleServerResponse(response, form);
   } catch (error) {
-    console.error("Form submission error:", error);
+    Logger.error("Form submission error:", error);
     UIManager.displayFormError(form, "An error occurred. Please try again.");
   }
 }

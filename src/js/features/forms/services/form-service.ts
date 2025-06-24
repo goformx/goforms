@@ -1,5 +1,7 @@
-import { FormApiService, type FormSchema } from "./form-api-service";
+import { Logger } from "@/core/logger";
+import { FormApiService } from "./form-api-service";
 import { FormUIService } from "./form-ui-service";
+import type { FormSchema } from "@/shared/types/form-types";
 
 /**
  * Main form service that orchestrates API and UI operations
@@ -71,7 +73,7 @@ export class FormService {
 }
 
 // Re-export the FormSchema type for backward compatibility
-export type { FormSchema } from "./form-api-service";
+export type { FormSchema } from "@/shared/types/form-types";
 
 // Initialize form deletion handlers
 document.addEventListener("DOMContentLoaded", () => {
@@ -110,7 +112,7 @@ document.addEventListener("DOMContentLoaded", () => {
           `;
         }
       } catch (error) {
-        console.error("Failed to delete form:", error);
+        Logger.error("Failed to delete form:", error);
         alert(error instanceof Error ? error.message : "Failed to delete form");
       }
     });

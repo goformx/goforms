@@ -1,4 +1,5 @@
 // ===== src/js/forms/handlers/request-handler.ts =====
+import { Logger } from "@/core/logger";
 import { validation } from "@/features/forms/validation/validation";
 import type { RequestOptions } from "@/shared/types/form-types";
 import { isAuthenticationEndpoint } from "@/shared/utils/endpoint-utils";
@@ -8,16 +9,16 @@ export class RequestHandler {
    * Sends form data to the server via AJAX
    */
   static async sendFormData(form: HTMLFormElement): Promise<Response> {
-    console.group("Form Submission");
+    Logger.group("Form Submission");
 
     try {
       const csrfToken = validation.getCSRFToken();
       const formData = new FormData(form);
       const isAuthEndpoint = isAuthenticationEndpoint(form.action);
 
-      console.log("CSRF Token:", csrfToken ? "Present" : "Missing");
-      console.log("Sending request to:", form.action);
-      console.log("Cookies that will be sent:", document.cookie);
+      Logger.debug("CSRF Token:", csrfToken ? "Present" : "Missing");
+      Logger.debug("Sending request to:", form.action);
+      Logger.debug("Cookies that will be sent:", document.cookie);
 
       const { body, headers } = this.prepareRequestData(
         formData,
@@ -32,18 +33,18 @@ export class RequestHandler {
         headers,
       });
 
-      console.log("Response status:", response.status);
-      console.log(
+      Logger.debug("Response status:", response.status);
+      Logger.debug(
         "Response headers:",
         Object.fromEntries(response.headers.entries()),
       );
 
       return response;
     } catch (error) {
-      console.error("Request failed:", error);
+      Logger.error("Request failed:", error);
       throw error;
     } finally {
-      console.groupEnd();
+      Logger.groupEnd();
     }
   }
 
@@ -71,11 +72,11 @@ export class RequestHandler {
       delete data.csrf_token;
 
       headers["Content-Type"] = "application/json";
-      console.log("Cleaned Form Data:", data);
+      Logger.debug("Cleaned Form Data:", data);
       return { body: JSON.stringify(data), headers };
     } else {
       // For non-auth endpoints, keep CSRF token in form data AND headers
-      console.log("Form Data:", Object.fromEntries(formData.entries()));
+      Logger.debug("Form Data:", Object.fromEntries(formData.entries()));
       return { body: formData, headers };
     }
   }

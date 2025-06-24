@@ -1,3 +1,4 @@
+import { Logger } from "@/core/logger";
 import { FormService } from "@/features/forms/services/form-service";
 
 async function deleteForm(formId: string) {
@@ -14,7 +15,7 @@ async function deleteForm(formId: string) {
     await formService.deleteForm(formId);
     window.location.reload();
   } catch (error: unknown) {
-    console.error("Failed to delete form:", error);
+    Logger.error("Failed to delete form:", error);
     alert(
       error instanceof Error
         ? error.message

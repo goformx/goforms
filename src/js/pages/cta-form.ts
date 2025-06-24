@@ -1,3 +1,4 @@
+import { Logger } from "@/core/logger";
 import { Formio } from "@formio/js";
 import { FormService } from "@/features/forms/services/form-service";
 
@@ -56,12 +57,12 @@ class CTAForm {
           this.showMessage("Thank you! We'll be in touch soon.", "success");
           this.formInstance.resetForm();
         } catch (error) {
-          console.error("Form submission error:", error);
+          Logger.error("Form submission error:", error);
           this.showMessage("Something went wrong. Please try again.", "error");
         }
       });
     } catch (error) {
-      console.error("Failed to initialize CTA form:", error);
+      Logger.error("Failed to initialize CTA form:", error);
       this.showMessage(
         "Failed to load form. Please refresh the page.",
         "error",

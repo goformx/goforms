@@ -1,3 +1,5 @@
+import { Logger } from "@/core/logger";
+
 type EventHandler = (data: any) => void;
 
 export class FormEventService {
@@ -18,7 +20,7 @@ export class FormEventService {
   }
 
   private generateSessionId(): string {
-    return Math.random().toString(36).substring(2, 15);
+    return `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
 
   // Event registration
@@ -26,11 +28,14 @@ export class FormEventService {
     if (!this.eventHandlers.has(eventType)) {
       this.eventHandlers.set(eventType, new Set());
     }
-    this.eventHandlers.get(eventType)?.add(handler);
+    this.eventHandlers.get(eventType)!.add(handler);
   }
 
   public off(eventType: string, handler: EventHandler): void {
-    this.eventHandlers.get(eventType)?.delete(handler);
+    const handlers = this.eventHandlers.get(eventType);
+    if (handlers) {
+      handlers.delete(handler);
+    }
   }
 
   // Event emission
@@ -41,7 +46,7 @@ export class FormEventService {
         try {
           handler(data);
         } catch (error) {
-          console.error(`Error in event handler for ${eventType}:`, error);
+          Logger.error(`Error in event handler for ${eventType}:`, error);
         }
       });
     }
