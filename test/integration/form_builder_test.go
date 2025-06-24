@@ -238,7 +238,7 @@ func TestFormBuilderAssetLoadingCritical(t *testing.T) {
 	}{
 		{
 			name:        "form builder JavaScript",
-			path:        "src/js/form-builder.ts",
+			path:        "src/js/pages/form-builder.ts",
 			description: "Main form builder JavaScript file",
 			critical:    true,
 		},
