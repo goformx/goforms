@@ -197,49 +197,6 @@ func newLogger(zapLogger *zap.Logger, sanitizer sanitization.ServiceInterface) L
 	}
 }
 
-// sanitizeMessage sanitizes a log message to prevent log injection attacks
-func sanitizeMessage(msg string, sanitizer sanitization.ServiceInterface) string {
-	return sanitizer.SanitizeForLogging(msg)
-}
-
-// sanitizeError sanitizes an error for safe logging
-func sanitizeError(err error, sanitizer sanitization.ServiceInterface) string {
-	if err == nil {
-		return ""
-	}
-
-	// Get the error message and sanitize it
-	errMsg := err.Error()
-
-	// Apply the same sanitization as regular messages
-	return sanitizer.SanitizeForLogging(errMsg)
-}
-
-// Debug logs a debug message
-func (l *logger) Debug(msg string, fields ...any) {
-	l.zapLogger.Debug(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Info logs an info message
-func (l *logger) Info(msg string, fields ...any) {
-	l.zapLogger.Info(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Warn logs a warning message
-func (l *logger) Warn(msg string, fields ...any) {
-	l.zapLogger.Warn(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Error logs an error message
-func (l *logger) Error(msg string, fields ...any) {
-	l.zapLogger.Error(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Fatal logs a fatal message
-func (l *logger) Fatal(msg string, fields ...any) {
-	l.zapLogger.Fatal(sanitizeMessage(msg, l.sanitizer), convertToZapFields(fields, l.sanitizer)...)
-}
-
 // With returns a new logger with the given fields
 func (l *logger) With(fields ...any) Logger {
 	zapFields := convertToZapFields(fields, l.sanitizer)
@@ -332,6 +289,44 @@ func convertToZapFields(fields []any, sanitizer sanitization.ServiceInterface) [
 		zapFields = append(zapFields, zap.String(key, sanitizedValue))
 	}
 	return zapFields
+}
+
+// sanitizeError sanitizes an error for safe logging
+func sanitizeError(err error, sanitizer sanitization.ServiceInterface) string {
+	if err == nil {
+		return ""
+	}
+
+	// Get the error message and sanitize it
+	errMsg := err.Error()
+
+	// Apply the same sanitization as regular messages
+	return sanitizer.SanitizeForLogging(errMsg)
+}
+
+// Debug logs a debug message
+func (l *logger) Debug(msg string, fields ...any) {
+	l.zapLogger.Debug(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Info logs an info message
+func (l *logger) Info(msg string, fields ...any) {
+	l.zapLogger.Info(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Warn logs a warning message
+func (l *logger) Warn(msg string, fields ...any) {
+	l.zapLogger.Warn(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Error logs an error message
+func (l *logger) Error(msg string, fields ...any) {
+	l.zapLogger.Error(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Fatal logs a fatal message
+func (l *logger) Fatal(msg string, fields ...any) {
+	l.zapLogger.Fatal(msg, convertToZapFields(fields, l.sanitizer)...)
 }
 
 // sanitizeRequestID handles request_id field validation
