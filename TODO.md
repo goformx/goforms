@@ -106,6 +106,13 @@
   - [x] Extract AuthHelper for authentication patterns
   - [x] Reduce code duplication in handlers
   - [x] Improve separation of concerns
+- [x] Refactor form_api.go to improve route organization and error handling
+  - [x] Separate authenticated and public route registration
+  - [x] Implement centralized error handling using FormErrorHandler
+  - [x] Use FormRequestProcessor for input processing
+  - [x] Use FormResponseBuilder for standardized responses
+  - [x] Remove duplicate route registrations
+  - [x] Improve dependency injection with proper sanitizer injection
 
 ## Code Review Notes
 
@@ -213,31 +220,31 @@
 
 ## Next Priority Task
 
-**🎯 RECOMMENDED NEXT TASK: Refactor form_api.go to improve route organization and error handling**
+**🎯 RECOMMENDED NEXT TASK: Implement comprehensive form validation system**
 
 **Why this should be next:**
-1. **High Impact**: Will improve API consistency and maintainability
-2. **Logical Progression**: Builds on the successful form_web.go refactoring
-3. **Route Organization**: Will fix the mixed authenticated/public route issues
-4. **Error Handling**: Will standardize error responses across API endpoints
+1. **High Impact**: Will significantly improve form reliability and user experience
+2. **Foundation**: Better validation will prevent data integrity issues
+3. **User Experience**: Proper validation feedback improves form usability
+4. **Security**: Server-side validation prevents malicious submissions
+5. **Consistency**: Standardized validation across all form types
 
 **Specific steps:**
-1. Consolidate route registration with clear separation of authenticated vs public routes
-2. Extract `RegisterAuthenticatedRoutes()` and `RegisterPublicRoutes()` methods
-3. Implement centralized error handling using `FormErrorHandler`
-4. Use `FormRequestProcessor` for input processing
-5. Use `FormResponseBuilder` for standardized responses
-6. Remove duplicate route registration logic
+1. Create form schema validation rules and constraints
+2. Implement client-side validation generation from schema
+3. Add server-side validation for form submissions
+4. Create validation error response standardization
+5. Add form field type validation (text, email, number, etc.)
+6. Implement conditional validation rules (required_if, etc.)
+7. Add validation testing and error handling
 
-**Estimated effort:** 2-3 hours
-**Dependencies:** None (can leverage existing FormErrorHandler and FormResponseBuilder)
+**Estimated time:** 3-4 hours
 
 **Benefits:**
-- Cleaner route organization
-- Consistent error handling
-- Better separation of concerns
-- Improved maintainability
-- Reduced code duplication
+- Improved data quality and form reliability
+- Better user experience with clear validation feedback
+- Enhanced security through server-side validation
+- Consistent validation behavior across the application
 
 ## Notes
 
