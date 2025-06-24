@@ -49,8 +49,17 @@ export async function getFormSchema(formId: string): Promise<FormSchema> {
 
   const formService = FormService.getInstance();
   try {
-    return await formService.getSchema(formId);
-  } catch {
+    const schema = await formService.getSchema(formId);
+    Logger.info("Schema fetched successfully:", schema);
+    return schema;
+  } catch (error) {
+    Logger.error("Error in getFormSchema:", error);
+    Logger.error("Error type:", typeof error);
+    Logger.error(
+      "Error message:",
+      error instanceof Error ? error.message : String(error),
+    );
+
     throw new FormBuilderError(
       "Failed to fetch schema",
       ErrorCode.LOAD_FAILED,

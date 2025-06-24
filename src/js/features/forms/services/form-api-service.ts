@@ -33,20 +33,33 @@ export class FormApiService {
     Logger.debug("Fetching schema from:", url);
 
     try {
-      const response = await HttpClient.get(url);
-      if (!response.ok) {
-        throw FormBuilderError.networkError(
-          `Failed to fetch schema: ${response.status} ${response.statusText}`,
-          url,
-          response.status,
+      // HttpClient.get returns parsed JSON data directly, not a Response object
+      const data = await HttpClient.get(url);
+
+      // Validate the schema structure
+      if (!data || typeof data !== "object") {
+        throw FormBuilderError.schemaError(
+          "Invalid schema format received from server",
         );
       }
-      const data = await response.json();
+
+      // Ensure it has the expected FormSchema structure
+      if (!("components" in data) || !Array.isArray(data.components)) {
+        throw FormBuilderError.schemaError(
+          "Schema missing required 'components' array",
+        );
+      }
+
       return data as FormSchema;
     } catch (error) {
+      Logger.error("Error in getSchema:", error);
+
+      // If it's already a FormBuilderError, re-throw it
       if (error instanceof FormBuilderError) {
         throw error;
       }
+
+      // For any other error, wrap it appropriately
       throw FormBuilderError.loadFailed(
         "Failed to load form schema",
         formId,

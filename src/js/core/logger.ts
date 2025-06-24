@@ -45,4 +45,10 @@ export class Logger {
       console.table(data);
     }
   }
+
+  static info(...args: any[]): void {
+    if (this.isDevelopment) {
+      console.info(...args);
+    }
+  }
 }
