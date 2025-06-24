@@ -1,268 +1,136 @@
-import { Formio } from "@formio/js";
-import { FormService } from "@/features/forms/services/form-service";
-import type { FormSchema } from "@/features/forms/services/form-service";
-import { debounce } from "lodash";
-import { showSchemaModal } from "@/features/forms/components/form-builder/schema-modal";
-import { dom } from "@/shared/utils/dom-utils";
-import { formState } from "@/features/forms/state/form-state";
-
-export interface FormBuilderWithSchema extends Formio {
-  form: FormSchema;
-  saveSchema: () => Promise<FormSchema>;
-  element?: HTMLElement;
-}
-
-// Define event handlers map type
-type EventHandlerMap = {
-  [key: string]: (builder: FormBuilderWithSchema) => void;
-};
+import { Logger } from "@/core/logger";
 
 /**
- * Manages event listeners and timers to prevent memory leaks
+ * Event manager for form builder interactions
  */
 export class BuilderEventManager {
-  private eventHandlers = new Map<string, AbortController>();
-  private debounceTimers = new Map<string, NodeJS.Timeout>();
-  private builder: FormBuilderWithSchema;
-  private formId: string;
+  private handlers = new Map<string, Array<(event: Event) => void>>();
+  private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
+  private element: HTMLElement;
 
-  constructor(
-    builder: FormBuilderWithSchema,
-    formId: string,
-    _formService: FormService,
-  ) {
-    this.builder = builder;
-    this.formId = formId;
+  constructor(element: HTMLElement) {
+    this.element = element;
   }
 
   /**
-   * Add event listener with automatic cleanup
+   * Add event listener with optional debouncing
    */
   addEventListener(
     eventType: string,
-    handler: EventListener,
-    element?: Element,
+    handler: (event: Event) => void,
+    options: { debounce?: number } = {},
   ): void {
-    const controller = new AbortController();
-    const target = element || this.builder.element || document;
-    const handlerId = `${eventType}-${Date.now()}`;
+    if (!this.handlers.has(eventType)) {
+      this.handlers.set(eventType, []);
+    }
 
-    target.addEventListener(eventType, handler, {
-      signal: controller.signal,
-    });
+    const handlers = this.handlers.get(eventType)!;
 
-    this.eventHandlers.set(handlerId, controller);
+    if (options.debounce) {
+      // Create debounced handler
+      const debouncedHandler = (event: Event) => {
+        const timerKey = `${eventType}-${handler.toString()}`;
+
+        // Clear existing timer
+        if (this.debounceTimers.has(timerKey)) {
+          clearTimeout(this.debounceTimers.get(timerKey)!);
+        }
+
+        // Set new timer
+        const timerId = setTimeout(() => {
+          try {
+            handler(event);
+          } catch (error) {
+            Logger.error("Event handler error:", error);
+          }
+          this.debounceTimers.delete(timerKey);
+        }, options.debounce);
+
+        this.debounceTimers.set(timerKey, timerId);
+      };
+
+      handlers.push(debouncedHandler);
+      this.element.addEventListener(eventType, debouncedHandler);
+    } else {
+      // Regular handler
+      const wrappedHandler = (event: Event) => {
+        try {
+          handler(event);
+        } catch (error) {
+          Logger.error("Event handler error:", error);
+        }
+      };
+
+      handlers.push(wrappedHandler);
+      this.element.addEventListener(eventType, wrappedHandler);
+    }
   }
 
   /**
-   * Add debounced event listener with cleanup
+   * Remove event listener
    */
-  addDebouncedEventListener(
+  removeEventListener(
     eventType: string,
-    handler: (builder: FormBuilderWithSchema) => void,
-    delay: number = 300,
+    handler: (event: Event) => void,
   ): void {
-    const debouncedHandler = debounce(() => handler(this.builder), delay);
-    const handlerId = `${eventType}-debounced`;
+    const handlers = this.handlers.get(eventType);
+    if (!handlers) return;
 
-    // Store the timer for cleanup
-    this.debounceTimers.set(
-      handlerId,
-      debouncedHandler.flush as unknown as NodeJS.Timeout,
-    );
-
-    this.addEventListener(eventType, debouncedHandler);
+    const index = handlers.indexOf(handler);
+    if (index > -1) {
+      const removedHandler = handlers.splice(index, 1)[0];
+      this.element.removeEventListener(eventType, removedHandler);
+    }
   }
 
   /**
-   * Remove specific event listener
+   * Remove all event listeners
    */
-  removeEventListener(eventType: string): void {
-    const handlerId = Array.from(this.eventHandlers.keys()).find((key) =>
-      key.startsWith(eventType),
-    );
-
-    if (handlerId) {
-      const controller = this.eventHandlers.get(handlerId);
-      if (controller) {
-        controller.abort();
-        this.eventHandlers.delete(handlerId);
+  removeAllEventListeners(): void {
+    for (const [eventType, handlers] of this.handlers) {
+      for (const handler of handlers) {
+        this.element.removeEventListener(eventType, handler);
       }
     }
+    this.handlers.clear();
+    this.clearDebounceTimers();
   }
 
   /**
    * Clear all debounce timers
    */
-  clearDebounceTimers(): void {
-    this.debounceTimers.forEach((timer) => {
-      if (timer && typeof timer === "function") {
-        clearTimeout(timer as unknown as NodeJS.Timeout);
-      }
-    });
+  private clearDebounceTimers(): void {
+    for (const timerId of this.debounceTimers.values()) {
+      clearTimeout(timerId);
+    }
     this.debounceTimers.clear();
   }
 
   /**
-   * Comprehensive cleanup of all event listeners and timers
+   * Get number of handlers for an event type
    */
-  cleanup(): void {
-    // Clean up all event listeners
-    this.eventHandlers.forEach((controller) => controller.abort());
-    this.eventHandlers.clear();
-
-    // Clear all timers
-    this.clearDebounceTimers();
-
-    // Remove from state management
-    formState.delete("formBuilderInstance");
-
-    console.debug(
-      `BuilderEventManager: Cleaned up ${this.eventHandlers.size} event handlers and ${this.debounceTimers.size} timers for form ${this.formId}`,
-    );
+  getHandlerCount(eventType: string): number {
+    return this.handlers.get(eventType)?.length || 0;
   }
 
   /**
-   * Get cleanup statistics for debugging
+   * Check if event type has handlers
    */
-  getCleanupStats(): { eventHandlers: number; timers: number } {
-    return {
-      eventHandlers: this.eventHandlers.size,
-      timers: this.debounceTimers.size,
-    };
+  hasHandlers(eventType: string): boolean {
+    return this.getHandlerCount(eventType) > 0;
+  }
+
+  /**
+   * Clean up resources
+   */
+  cleanup(): void {
+    this.removeAllEventListeners();
   }
 }
 
-// Define event handlers map as a constant
-const EVENT_MAP: EventHandlerMap = {
-  change: (_builder: FormBuilderWithSchema) => {
-    // Only log changes, no automatic saving
-    console.debug("Form builder change detected");
-  },
-  saveComponent: (_builder: FormBuilderWithSchema) => {
-    // Only log component saves, no automatic saving
-    console.debug("Form component saved");
-  },
-};
-
-export const setupBuilderEvents = (
-  builder: Formio,
-  formId: string,
-  formService: FormService,
-): BuilderEventManager => {
-  const typedBuilder = builder as FormBuilderWithSchema;
-
-  // Create event manager instance
-  const eventManager = new BuilderEventManager(
-    typedBuilder,
-    formId,
-    formService,
-  );
-
-  // Create a promise that will be resolved with the save result
-  let savePromise: Promise<FormSchema> | null = null;
-
-  // Create the save function
-  const saveFunction = async (): Promise<FormSchema> => {
-    try {
-      const savedSchema = await formService.saveSchema(
-        formId,
-        typedBuilder.form,
-      );
-      if (!savedSchema) {
-        throw new Error("No schema returned from server");
-      }
-
-      // Update the builder's form with the saved schema
-      typedBuilder.form = savedSchema;
-
-      return savedSchema;
-    } catch (error) {
-      // Re-throw with a more descriptive error
-      throw new Error(
-        `Failed to save form schema: ${error instanceof Error ? error.message : "Unknown error"}`,
-      );
-    }
-  };
-
-  // Add saveSchema method to the builder instance
-  typedBuilder.saveSchema = async (): Promise<FormSchema> => {
-    // If there's an ongoing save, return its promise
-    if (savePromise) {
-      return savePromise;
-    }
-
-    // Start a new save
-    savePromise = saveFunction();
-    try {
-      const result = await savePromise;
-      if (!result) {
-        throw new Error("No schema returned from save operation");
-      }
-      return result;
-    } finally {
-      // Clear the promise after it's done
-      savePromise = null;
-    }
-  };
-
-  // Register all event handlers with debouncing
-  Object.entries(EVENT_MAP).forEach(([event, handler]) => {
-    eventManager.addDebouncedEventListener(event, handler);
-  });
-
-  // Store builder instance in state management instead of global window
-  formState.set("formBuilderInstance", typedBuilder);
-
-  // Set up View Schema button handler
-  setupViewSchemaHandler(typedBuilder, eventManager);
-
-  // Set up cleanup on page unload
-  window.addEventListener("beforeunload", () => {
-    eventManager.cleanup();
-  });
-
-  return eventManager;
-};
-
 /**
- * Set up the View Schema button functionality
+ * Create a new event manager for an element
  */
-function setupViewSchemaHandler(
-  builder: FormBuilderWithSchema,
-  eventManager: BuilderEventManager,
-): void {
-  const viewSchemaBtn = dom.getElement<HTMLButtonElement>("view-schema-btn");
-  if (!viewSchemaBtn) return;
-
-  const handleViewSchema = async () => {
-    try {
-      // Get the current schema
-      const schema = await builder.saveSchema();
-      if (!schema) {
-        throw new Error("Failed to get form schema");
-      }
-
-      // Show the schema in a formatted way
-      const schemaString = JSON.stringify(schema, null, 2);
-      showSchemaModal(schemaString);
-    } catch (error) {
-      console.error("Failed to get schema:", error);
-      dom.showError("Failed to get form schema. Please try again.");
-    }
-  };
-
-  // Add event listener with cleanup
-  eventManager.addEventListener("click", handleViewSchema, viewSchemaBtn);
+export function createEventManager(element: HTMLElement): BuilderEventManager {
+  return new BuilderEventManager(element);
 }
-
-/**
- * Cleanup function to be called when form builder is destroyed
- */
-export const cleanupBuilderEvents = (
-  eventManager: BuilderEventManager,
-): void => {
-  if (eventManager) {
-    eventManager.cleanup();
-  }
-};
