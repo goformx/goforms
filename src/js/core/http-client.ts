@@ -1,4 +1,5 @@
 import { Logger } from "@/core/logger";
+import { FormBuilderError } from "@/core/errors/form-builder-error";
 
 /**
  * Unified HTTP client for making authenticated requests
@@ -14,10 +15,41 @@ export class HttpClient {
     return meta.content;
   }
 
-  static async request(
+  private static async handleResponse(response: Response): Promise<any> {
+    Logger.log("Response status:", response.status);
+    Logger.log(
+      "Response headers:",
+      Object.fromEntries(response.headers.entries()),
+    );
+
+    if (!response.ok) {
+      throw FormBuilderError.networkError(
+        `HTTP ${response.status}: ${response.statusText}`,
+        response.url,
+        response.status,
+      );
+    }
+
+    // Try to parse JSON, fallback to text for empty responses
+    const text = await response.text();
+    if (!text) {
+      return null;
+    }
+
+    try {
+      return JSON.parse(text);
+    } catch (parseError) {
+      // If JSON parsing fails, return the text
+      Logger.warn("Failed to parse JSON response, returning text:", text);
+      Logger.debug("Parse error details:", parseError);
+      return text;
+    }
+  }
+
+  private static async makeRequest(
     url: string,
     options: RequestInit = {},
-  ): Promise<Response> {
+  ): Promise<any> {
     Logger.group("HTTP Request");
     Logger.log("URL:", url);
     Logger.log("Method:", options.method || "GET");
@@ -33,7 +65,7 @@ export class HttpClient {
           Logger.log("CSRF Token status verified");
         } catch (error) {
           Logger.error("CSRF token error:", error);
-          throw error;
+          throw FormBuilderError.networkError("CSRF token not found", url);
         }
       }
 
@@ -55,53 +87,74 @@ export class HttpClient {
         credentials: "include",
       });
 
-      Logger.log("Response status:", response.status);
-      Logger.log(
-        "Response headers:",
-        Object.fromEntries(response.headers.entries()),
-      );
-
-      return response;
+      return await this.handleResponse(response);
     } catch (error) {
       Logger.error("Request failed:", error);
-      throw error;
+
+      // If it's already a FormBuilderError, re-throw it
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+
+      // Convert other errors to FormBuilderError
+      throw FormBuilderError.networkError(
+        `Network error: ${error instanceof Error ? error.message : String(error)}`,
+        url,
+      );
     } finally {
       Logger.groupEnd();
     }
   }
 
-  static async get(url: string, options: RequestInit = {}): Promise<Response> {
-    return this.request(url, { ...options, method: "GET" });
+  static async get(url: string, options: RequestInit = {}): Promise<any> {
+    return this.makeRequest(url, { ...options, method: "GET" });
   }
 
   static async post(
     url: string,
-    body?: FormData | string,
+    body?: FormData | string | object,
     options: RequestInit = {},
-  ): Promise<Response> {
-    return this.request(url, {
+  ): Promise<any> {
+    let requestBody: FormData | string | undefined = body as
+      | FormData
+      | string
+      | undefined;
+
+    // Convert objects to JSON string
+    if (body && typeof body === "object" && !(body instanceof FormData)) {
+      requestBody = JSON.stringify(body);
+    }
+
+    return this.makeRequest(url, {
       ...options,
       method: "POST",
-      body,
+      body: requestBody,
     });
   }
 
   static async put(
     url: string,
-    body?: FormData | string,
+    body?: FormData | string | object,
     options: RequestInit = {},
-  ): Promise<Response> {
-    return this.request(url, {
+  ): Promise<any> {
+    let requestBody: FormData | string | undefined = body as
+      | FormData
+      | string
+      | undefined;
+
+    // Convert objects to JSON string
+    if (body && typeof body === "object" && !(body instanceof FormData)) {
+      requestBody = JSON.stringify(body);
+    }
+
+    return this.makeRequest(url, {
       ...options,
       method: "PUT",
-      body,
+      body: requestBody,
     });
   }
 
-  static async delete(
-    url: string,
-    options: RequestInit = {},
-  ): Promise<Response> {
-    return this.request(url, { ...options, method: "DELETE" });
+  static async delete(url: string, options: RequestInit = {}): Promise<any> {
+    return this.makeRequest(url, { ...options, method: "DELETE" });
   }
 }
