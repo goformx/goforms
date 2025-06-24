@@ -1,9 +1,9 @@
 import { Formio } from "@formio/js";
-import { FormService } from "../features/forms/services/form-service";
-import type { FormSchema } from "../features/forms/services/form-service";
-import { builderOptions } from "./config/builder-config";
-import { FormBuilderError } from "./errors/form-builder-error";
-import { dom } from "../shared/utils/dom-utils";
+import { FormService } from "../../services/form-service";
+import type { FormSchema } from "../../services/form-service";
+import { builderOptions } from "../../../../core/config/builder-config";
+import { FormBuilderError } from "../../../../core/errors/form-builder-error";
+import { dom } from "../../../../shared/utils/dom-utils";
 
 /**
  * Form builder validation

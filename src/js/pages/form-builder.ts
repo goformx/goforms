@@ -13,7 +13,7 @@ import {
   validateFormBuilder,
   getFormSchema,
   createFormBuilder,
-} from "../core/form-builder-core";
+} from "../features/forms/components/form-builder/core";
 
 // Register templates
 Formio.use(goforms);

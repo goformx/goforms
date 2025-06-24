@@ -1,5 +1,5 @@
 import "@fortawesome/fontawesome-free/css/all.min.css";
-import "../features/forms/components/form-builder/form-builder-sidebar";
+import "../features/forms/components/form-builder/sidebar";
 // @ts-expect-error Vite module preload polyfill
 import "vite/modulepreload-polyfill";
 
