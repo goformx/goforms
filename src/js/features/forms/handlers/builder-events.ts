@@ -2,6 +2,8 @@ import { Formio } from "@formio/js";
 import { FormService } from "../services/form-service";
 import type { FormSchema } from "../services/form-service";
 import { debounce } from "lodash";
+import { showSchemaModal } from "../components/form-builder/schema-modal";
+import { dom } from "../../../shared/utils/dom-utils";
 
 interface FormBuilderWithSchema extends Formio {
   form: FormSchema;
@@ -91,4 +93,32 @@ export const setupBuilderEvents = (
 
   // Store builder instance globally
   window.formBuilderInstance = typedBuilder;
+
+  // Set up View Schema button handler
+  setupViewSchemaHandler(typedBuilder);
 };
+
+/**
+ * Set up the View Schema button functionality
+ */
+function setupViewSchemaHandler(builder: FormBuilderWithSchema): void {
+  const viewSchemaBtn = dom.getElement<HTMLButtonElement>("view-schema-btn");
+  if (!viewSchemaBtn) return;
+
+  viewSchemaBtn.addEventListener("click", async () => {
+    try {
+      // Get the current schema
+      const schema = await builder.saveSchema();
+      if (!schema) {
+        throw new Error("Failed to get form schema");
+      }
+
+      // Show the schema in a formatted way
+      const schemaString = JSON.stringify(schema, null, 2);
+      showSchemaModal(schemaString);
+    } catch (error) {
+      console.error("Failed to get schema:", error);
+      dom.showError("Failed to get form schema. Please try again.");
+    }
+  });
+}
