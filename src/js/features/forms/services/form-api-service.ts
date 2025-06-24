@@ -1,12 +1,7 @@
 import { FormBuilderError } from "@/core/errors/form-builder-error";
 import { HttpClient } from "@/core/http-client";
 import DOMPurify from "dompurify";
-
-export interface FormSchema {
-  display: string;
-  components: any[];
-  [key: string]: any;
-}
+import type { FormSchema } from "@/shared/types/form-types";
 
 /**
  * Handles all HTTP operations for forms
@@ -36,20 +31,30 @@ export class FormApiService {
     const url = `${this.baseUrl}/api/v1/forms/${formId}/schema`;
     console.debug("Fetching schema from:", url);
 
-    const response = await HttpClient.get(url);
-    if (!response.ok) {
-      console.error(
-        "Failed to fetch schema:",
-        response.status,
-        response.statusText,
+    try {
+      const response = await HttpClient.get(url);
+      if (!response.ok) {
+        throw FormBuilderError.networkError(
+          `Failed to fetch schema: ${response.status} ${response.statusText}`,
+          url,
+          response.status,
+        );
+      }
+      const data = await response.json();
+      return data as FormSchema;
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.loadFailed(
+        "Failed to load form schema",
+        formId,
+        error instanceof Error ? error : undefined,
       );
-      throw new Error("Failed to load form schema");
     }
-    const data = await response.json();
-    return data as FormSchema;
   }
 
-  async saveSchema(formId: string, schema: any): Promise<any> {
+  async saveSchema(formId: string, schema: FormSchema): Promise<FormSchema> {
     try {
       const response = await HttpClient.put(
         `${this.baseUrl}/api/v1/forms/${formId}/schema`,
@@ -57,24 +62,33 @@ export class FormApiService {
       );
 
       if (!response.ok) {
-        throw new Error(`Failed to save schema: ${response.statusText}`);
+        throw FormBuilderError.networkError(
+          `Failed to save schema: ${response.statusText}`,
+          `${this.baseUrl}/api/v1/forms/${formId}/schema`,
+          response.status,
+        );
       }
 
       const data = await response.json();
       if (!data || typeof data !== "object") {
-        throw new Error("Invalid response from server");
+        throw FormBuilderError.schemaError("Invalid response from server");
       }
 
       if (!data.components || !Array.isArray(data.components)) {
-        throw new Error("Invalid schema structure in response");
+        throw FormBuilderError.schemaError(
+          "Invalid schema structure in response",
+        );
       }
 
-      return data;
+      return data as FormSchema;
     } catch (error) {
-      console.error("Error saving schema:", error);
-      throw new FormBuilderError(
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.saveFailed(
         "Failed to save schema",
-        error instanceof Error ? error.message : String(error),
+        formId,
+        error instanceof Error ? error : undefined,
       );
     }
   }
@@ -83,63 +97,130 @@ export class FormApiService {
     formId: string,
     details: { title: string; description: string },
   ): Promise<void> {
-    const response = await HttpClient.put(
-      `${this.baseUrl}/dashboard/forms/${formId}`,
-      JSON.stringify(details),
-    );
+    try {
+      const response = await HttpClient.put(
+        `${this.baseUrl}/dashboard/forms/${formId}`,
+        JSON.stringify(details),
+      );
 
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update form details");
+      if (!response.ok) {
+        const error = await response.json();
+        throw FormBuilderError.networkError(
+          error.message || "Failed to update form details",
+          `${this.baseUrl}/dashboard/forms/${formId}`,
+          response.status,
+        );
+      }
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.saveFailed(
+        "Failed to update form details",
+        formId,
+        error instanceof Error ? error : undefined,
+      );
     }
   }
 
   public async deleteForm(formId: string): Promise<void> {
-    const response = await HttpClient.delete(`${this.baseUrl}/forms/${formId}`);
+    try {
+      const response = await HttpClient.delete(
+        `${this.baseUrl}/forms/${formId}`,
+      );
 
-    if (!response.ok) {
-      throw new Error("Failed to delete form");
+      if (!response.ok) {
+        throw FormBuilderError.networkError(
+          "Failed to delete form",
+          `${this.baseUrl}/forms/${formId}`,
+          response.status,
+        );
+      }
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.saveFailed(
+        "Failed to delete form",
+        formId,
+        error instanceof Error ? error : undefined,
+      );
     }
   }
 
   async submitForm(formId: string, data: FormData): Promise<Response> {
-    // Sanitize the form data before sending
-    const sanitizedData = this.sanitizeFormData(data);
+    try {
+      // Sanitize the form data before sending
+      const sanitizedData = this.sanitizeFormData(data);
 
-    const response = await HttpClient.post(
-      `${this.baseUrl}/api/v1/forms/${formId}/submit`,
-      JSON.stringify(sanitizedData),
-    );
+      const response = await HttpClient.post(
+        `${this.baseUrl}/api/v1/forms/${formId}/submit`,
+        JSON.stringify(sanitizedData),
+      );
 
-    if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ message: "Failed to submit form" }));
-      throw new Error(error.message || "Failed to submit form");
+      if (!response.ok) {
+        const error = await response
+          .json()
+          .catch(() => ({ message: "Failed to submit form" }));
+        throw FormBuilderError.networkError(
+          error.message || "Failed to submit form",
+          `${this.baseUrl}/api/v1/forms/${formId}/submit`,
+          response.status,
+        );
+      }
+
+      return response;
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.saveFailed(
+        "Failed to submit form",
+        formId,
+        error instanceof Error ? error : undefined,
+      );
     }
-
-    return response;
   }
 
-  // Helper function to sanitize form data
-  private sanitizeFormData(data: any): any {
-    if (typeof data !== "object" || data === null) {
+  /**
+   * Comprehensive sanitization for all data types
+   */
+  private sanitizeFormData(data: unknown): unknown {
+    // Handle null and undefined
+    if (data === null || data === undefined) {
       return data;
     }
 
-    const sanitized: any = Array.isArray(data) ? [] : {};
-
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value === "string") {
-        // Use DOMPurify for string sanitization
-        sanitized[key] = DOMPurify.sanitize(value);
-      } else if (typeof value === "object" && value !== null) {
-        sanitized[key] = this.sanitizeFormData(value);
-      } else {
-        sanitized[key] = value;
-      }
+    // Handle primitive types
+    if (typeof data === "string") {
+      return DOMPurify.sanitize(data);
     }
 
-    return sanitized;
+    if (typeof data === "number" || typeof data === "boolean") {
+      return data;
+    }
+
+    // Handle arrays
+    if (Array.isArray(data)) {
+      return data.map((item) => this.sanitizeFormData(item));
+    }
+
+    // Handle objects
+    if (typeof data === "object") {
+      const sanitized: Record<string, unknown> = {};
+
+      for (const [key, value] of Object.entries(
+        data as Record<string, unknown>,
+      )) {
+        // Sanitize the key as well
+        const sanitizedKey = DOMPurify.sanitize(key);
+        sanitized[sanitizedKey] = this.sanitizeFormData(value);
+      }
+
+      return sanitized;
+    }
+
+    // For any other type, return as is
+    return data;
   }
 }

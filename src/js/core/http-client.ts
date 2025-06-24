@@ -30,7 +30,7 @@ export class HttpClient {
         try {
           const csrfToken = this.getCSRFToken();
           headers.set("X-Csrf-Token", csrfToken);
-          Logger.log("CSRF Token:", csrfToken ? "Present" : "Missing");
+          Logger.log("CSRF Token status verified");
         } catch (error) {
           Logger.error("CSRF token error:", error);
           throw error;
