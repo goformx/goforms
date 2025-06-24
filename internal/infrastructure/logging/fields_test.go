@@ -408,7 +408,7 @@ func TestCustomField(t *testing.T) {
 		},
 		{
 			name:      "custom sanitization",
-			key:       "data",
+			key:       "description",
 			value:     "original value",
 			sanitizer: func(v interface{}) string { return "custom sanitized" },
 			expected:  "custom sanitized",

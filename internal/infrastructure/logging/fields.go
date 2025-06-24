@@ -29,6 +29,7 @@ var sensitivePatterns = []string{
 	"csrf_token", "xsrf_token", "oauth_token", "oauth_secret", "oauth_verifier",
 	"oauth_code", "oauth_state", "oauth_nonce", "oauth_scope", "oauth_grant",
 	"oauth_refresh", "oauth_access", "oauth_id", "oauth_key", "form_id",
+	"data", "user_data", "personal_data", "sensitive_data",
 }
 
 // isSensitiveKey checks if a key matches any sensitive pattern
