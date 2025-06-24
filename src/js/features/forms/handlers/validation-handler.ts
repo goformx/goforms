@@ -1,6 +1,6 @@
 // ===== src/js/forms/handlers/validation-handler.ts =====
 import { validation } from "../validation/validation";
-import { debounce } from "../utils/debounce";
+import { debounce } from "../../../shared/utils/debounce";
 import { UIManager } from "./ui-manager";
 
 export class ValidationHandler {

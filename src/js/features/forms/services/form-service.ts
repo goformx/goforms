@@ -1,4 +1,4 @@
-import { FormBuilderError } from "../../core/errors";
+import { FormBuilderError } from "../../../core/errors/form-builder-error";
 import DOMPurify from "dompurify";
 
 export interface FormSchema {
@@ -75,7 +75,10 @@ export class FormService {
       return data;
     } catch (error) {
       console.error("Error saving schema:", error);
-      throw new FormBuilderError("Failed to save schema", error);
+      throw new FormBuilderError(
+        "Failed to save schema",
+        error instanceof Error ? error.message : String(error),
+      );
     }
   }
 

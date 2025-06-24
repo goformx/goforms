@@ -1,11 +1,8 @@
 import { Formio } from "@formio/js";
-import { FormService } from "../forms/services/form-service";
+import { FormService } from "../features/forms/services/form-service";
 
 const CTA_FORM_ID = "61af2a0f-5b54-476f-9bf6-c2ee6ce5b822";
-const BASE_URL =
-  process.env.NODE_ENV === "production"
-    ? "https://goformx.com"
-    : "http://localhost:8090";
+const BASE_URL = window.location.origin;
 
 class CTAForm {
   private formService: FormService;

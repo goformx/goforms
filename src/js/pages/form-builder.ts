@@ -14,7 +14,6 @@ import {
   getFormSchema,
   createFormBuilder,
 } from "../core/form-builder-core";
-import { setupEventHandlers } from "../features/forms/handlers/builder-events";
 
 // Register templates
 Formio.use(goforms);
@@ -32,7 +31,6 @@ async function initializeFormBuilder(): Promise<void> {
     const builder = await createFormBuilder(container, schema);
 
     // Set up event handlers
-    setupEventHandlers(builder, formId);
     setupBuilderEvents(builder, formId, FormService.getInstance());
   } catch (error) {
     if (error instanceof FormBuilderError) {

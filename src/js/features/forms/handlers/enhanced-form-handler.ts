@@ -1,10 +1,10 @@
 // ===== src/js/forms/handlers/enhanced-form-handler.ts =====
-import type { FormConfig } from "../types/form-types";
+import type { FormConfig } from "../../../shared/types/form-types";
 import { validation } from "../validation/validation";
 import { ValidationHandler } from "./validation-handler";
 import { ResponseHandler } from "./response-handler";
 import { UIManager } from "./ui-manager";
-import { isAuthenticationEndpoint } from "../utils/endpoint-utils";
+import { isAuthenticationEndpoint } from "../../../shared/utils/endpoint-utils";
 
 /**
  * Class-based form handler for more complex use cases
