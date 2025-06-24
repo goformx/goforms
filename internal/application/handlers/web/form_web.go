@@ -128,6 +128,7 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 	// Build page data
 	data := h.BuildPageData(c, "Form Preview")
 	data.Form = form
+	data.FormPreviewAssetPath = h.AssetManager.AssetPath("src/js/pages/form-preview.ts")
 
 	// Render form preview template
 	return h.Renderer.Render(c, pages.FormPreview(data, form))

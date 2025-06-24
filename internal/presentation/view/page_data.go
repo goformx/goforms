@@ -31,6 +31,7 @@ type PageData struct {
 	IsDevelopment        bool
 	Content              templ.Component
 	FormBuilderAssetPath string
+	FormPreviewAssetPath string
 	Message              *Message
 	Config               *config.Config
 	Session              *session.Session
@@ -103,6 +104,7 @@ func BuildPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo
 		AssetPath:            GenerateAssetPath(manager),
 		Content:              nil, // Should be set by a handler
 		FormBuilderAssetPath: "",  // Placeholder
+		FormPreviewAssetPath: "",  // Placeholder
 		Message:              nil, // Can be set dynamically when needed
 		Description:          "",
 		Config:               cfg,

@@ -48,7 +48,7 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 								}
 								
 								if form.Schema != nil && len(form.Schema) > 0 {
-									<div class="form-renderer" id="form-renderer">
+									<div class="form-renderer" id="form-renderer" data-form-schema={ formatJSONForJS(form.Schema) } data-form-id={ form.ID }>
 										<!-- Form will be rendered here by JavaScript -->
 										<div class="form-loading">
 											<i class="bi bi-hourglass-split"></i>
@@ -105,13 +105,24 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 	</div>
 
 	if form.Schema != nil && len(form.Schema) > 0 {
-		<script type="module">
-			// Initialize form renderer with schema
-			const schema = { formatJSONForJS(form.Schema) };
-			// This will be handled by the form renderer JavaScript
-			window.formSchema = schema;
-			window.formId = "{ form.ID }";
-		</script>
+		@templ.JSONScript("form-preview-data", data.FormPreviewAssetPath)
+		
+		if data.IsDevelopment {
+			<script type="module" id="form-preview-script" data-form-preview-path={ data.AssetPath("src/js/pages/form-preview.ts") }>
+				if (document.getElementById('form-renderer')) {
+					const script = document.getElementById('form-preview-script');
+					const path = script.getAttribute('data-form-preview-path');
+					await import(path);
+				}
+			</script>
+		} else {
+			<script type="module">
+				const path = JSON.parse(document.getElementById('form-preview-data').textContent);
+				if (document.getElementById('form-renderer')) {
+					await import(path);
+				}
+			</script>
+		}
 	}
 }
 
