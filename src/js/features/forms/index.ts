@@ -2,8 +2,8 @@
 // Main entry point for form handling
 export { setupForm } from "./handlers/form-handler";
 export { EnhancedFormHandler } from "./handlers/enhanced-form-handler";
-export type { FormConfig, ServerResponse } from "../forms/types/form-types";
+export type { FormConfig, ServerResponse } from "@/shared/types/form-types";
 
 // Re-export utilities if needed externally
-export { debounce } from "./utils/debounce";
-export { isAuthenticationEndpoint } from "./utils/endpoint-utils";
+export { debounce } from "@/shared/utils/debounce";
+export { isAuthenticationEndpoint } from "@/shared/utils/endpoint-utils";

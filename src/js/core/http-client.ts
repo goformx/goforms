@@ -1,4 +1,4 @@
-import { Logger } from "../core/logger";
+import { Logger } from "@/core/logger";
 
 /**
  * Unified HTTP client for making authenticated requests

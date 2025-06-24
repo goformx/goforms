@@ -1,15 +1,22 @@
 /**
  * Signup Form Handler
  *
- * This module handles the signup form functionality using the enhanced form handler
+ * Initializes and configures the signup form using the enhanced form handler.
  */
 
-import { EnhancedFormHandler } from "../forms/handlers/enhanced-form-handler";
+import { EnhancedFormHandler } from "@/features/forms/handlers/enhanced-form-handler";
+import type { FormConfig } from "@/shared/types/form-types";
 
-// Initialize form when DOM is ready
+// Initialize the signup form handler
 document.addEventListener("DOMContentLoaded", () => {
-  new EnhancedFormHandler({
-    formId: "signup-form",
-    validationType: "signup",
-  });
+  try {
+    const config: FormConfig = {
+      formId: "signup-form",
+      validationType: "signup",
+    };
+
+    new EnhancedFormHandler(config);
+  } catch (error) {
+    console.error("Error creating EnhancedFormHandler:", error);
+  }
 });

@@ -118,7 +118,11 @@ export default defineConfig({
   },
   resolve: {
     alias: {
-      "@": resolve(__dirname, "src"),
+      "@": resolve(__dirname, "src/js"),
+      "@/core": resolve(__dirname, "src/js/core"),
+      "@/features": resolve(__dirname, "src/js/features"),
+      "@/shared": resolve(__dirname, "src/js/shared"),
+      "@/pages": resolve(__dirname, "src/js/pages"),
       "@goformx/formio": resolve(__dirname, "node_modules/@goformx/formio"),
     },
     extensions: [

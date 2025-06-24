@@ -1,5 +1,5 @@
 // ===== src/js/forms/handlers/response-handler.ts =====
-import type { ServerResponse } from "../types/form-types";
+import type { ServerResponse } from "@/shared/types/form-types";
 import { UIManager } from "./ui-manager";
 
 export class ResponseHandler {

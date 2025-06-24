@@ -1,9 +1,10 @@
 import { Formio } from "@formio/js";
 import { FormService } from "../../services/form-service";
 import type { FormSchema } from "../../services/form-service";
-import { builderOptions } from "../../../../core/config/builder-config";
-import { FormBuilderError } from "../../../../core/errors/form-builder-error";
-import { dom } from "../../../../shared/utils/dom-utils";
+import { builderOptions } from "@/core/config/builder-config";
+import { FormBuilderError } from "@/core/errors/form-builder-error";
+import { dom } from "@/shared/utils/dom-utils";
+import { formState } from "../../state/form-state";
 
 /**
  * Form builder validation
@@ -97,8 +98,8 @@ export async function createFormBuilder(
       },
     });
 
-    // Store builder instance globally
-    window.formBuilder = builder;
+    // Store builder instance in state management instead of global window
+    formState.set("formBuilder", builder);
     return builder;
   } catch (error) {
     console.error("Form builder initialization error:", error);

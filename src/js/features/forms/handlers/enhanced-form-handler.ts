@@ -1,10 +1,11 @@
 // ===== src/js/forms/handlers/enhanced-form-handler.ts =====
-import type { FormConfig } from "../../../shared/types/form-types";
+import type { FormConfig } from "@/shared/types/form-types";
 import { validation } from "../validation/validation";
 import { ValidationHandler } from "./validation-handler";
 import { ResponseHandler } from "./response-handler";
 import { UIManager } from "./ui-manager";
-import { isAuthenticationEndpoint } from "../../../shared/utils/endpoint-utils";
+import { isAuthenticationEndpoint } from "@/shared/utils/endpoint-utils";
+import { HttpClient } from "@/core/http-client";
 
 /**
  * Class-based form handler for more complex use cases
@@ -81,16 +82,13 @@ export class EnhancedFormHandler {
 
     console.log("Cleaned Form Data:", data);
 
-    return await fetch(this.form.action, {
-      method: "POST",
-      body: JSON.stringify(data),
-      credentials: "include",
+    return await HttpClient.post(this.form.action, JSON.stringify(data), {
       headers,
     });
   }
 
   private async sendStandardRequest(formData: FormData): Promise<Response> {
-    // Remove CSRF token from form data since fetchWithAuth should add it to headers
+    // Remove CSRF token from form data since HttpClient should add it to headers
     const cleanFormData = new FormData();
     for (const [key, value] of formData.entries()) {
       if (key !== "csrf_token") {

@@ -3,18 +3,12 @@ import { FormService } from "../services/form-service";
 import type { FormSchema } from "../services/form-service";
 import { debounce } from "lodash";
 import { showSchemaModal } from "../components/form-builder/schema-modal";
-import { dom } from "../../../shared/utils/dom-utils";
+import { dom } from "@/shared/utils/dom-utils";
+import { formState } from "../state/form-state";
 
 interface FormBuilderWithSchema extends Formio {
   form: FormSchema;
   saveSchema: () => Promise<FormSchema>;
-}
-
-// Extend Window interface globally
-declare global {
-  interface Window {
-    formBuilderInstance?: FormBuilderWithSchema;
-  }
 }
 
 // Define event handlers map type
@@ -91,8 +85,8 @@ export const setupBuilderEvents = (
     builder.on(event, () => handler(typedBuilder));
   });
 
-  // Store builder instance globally
-  window.formBuilderInstance = typedBuilder;
+  // Store builder instance in state management instead of global window
+  formState.set("formBuilderInstance", typedBuilder);
 
   // Set up View Schema button handler
   setupViewSchemaHandler(typedBuilder);

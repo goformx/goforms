@@ -1,6 +1,6 @@
 import { z } from "zod";
-import { getValidationSchema } from "../../features/forms/validation/generator";
-import { Logger } from "../../core/logger";
+import { getValidationSchema } from "@/features/forms/validation/generator";
+import { Logger } from "@/core/logger";
 
 export type FormData = Record<string, string>;
 export type ValidationResult = {

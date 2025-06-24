@@ -1,4 +1,5 @@
-import { FormBuilderError } from "../../../core/errors/form-builder-error";
+import { FormBuilderError } from "@/core/errors/form-builder-error";
+import { HttpClient } from "@/core/http-client";
 import DOMPurify from "dompurify";
 
 export interface FormSchema {
@@ -32,7 +33,7 @@ export class FormService {
     const url = `${this.baseUrl}/api/v1/forms/${formId}/schema`;
     console.debug("Fetching schema from:", url);
 
-    const response = await fetch(url);
+    const response = await HttpClient.get(url);
     if (!response.ok) {
       console.error(
         "Failed to fetch schema:",
@@ -47,16 +48,9 @@ export class FormService {
 
   async saveSchema(formId: string, schema: any): Promise<any> {
     try {
-      const response = await fetch(
+      const response = await HttpClient.put(
         `${this.baseUrl}/api/v1/forms/${formId}/schema`,
-        {
-          method: "PUT",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Requested-With": "XMLHttpRequest",
-          },
-          body: JSON.stringify(schema),
-        },
+        JSON.stringify(schema),
       );
 
       if (!response.ok) {
@@ -86,14 +80,10 @@ export class FormService {
     formId: string,
     details: { title: string; description: string },
   ): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/dashboard/forms/${formId}`, {
-      method: "PUT",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Requested-With": "XMLHttpRequest",
-      },
-      body: JSON.stringify(details),
-    });
+    const response = await HttpClient.put(
+      `${this.baseUrl}/dashboard/forms/${formId}`,
+      JSON.stringify(details),
+    );
 
     if (!response.ok) {
       const error = await response.json();
@@ -102,10 +92,7 @@ export class FormService {
   }
 
   public async deleteForm(formId: string): Promise<void> {
-    const response = await fetch(`${this.baseUrl}/forms/${formId}`, {
-      method: "DELETE",
-      credentials: "include",
-    });
+    const response = await HttpClient.delete(`${this.baseUrl}/forms/${formId}`);
 
     if (!response.ok) {
       throw new Error("Failed to delete form");
@@ -138,16 +125,9 @@ export class FormService {
     // Sanitize the form data before sending
     const sanitizedData = this.sanitizeFormData(data);
 
-    const response = await fetch(
+    const response = await HttpClient.post(
       `${this.baseUrl}/api/v1/forms/${formId}/submit`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Accept: "application/json",
-        },
-        body: JSON.stringify(sanitizedData),
-      },
+      JSON.stringify(sanitizedData),
     );
 
     if (!response.ok) {

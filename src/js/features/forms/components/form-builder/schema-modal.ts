@@ -1,4 +1,4 @@
-import { dom } from "../../../../shared/utils/dom-utils";
+import { dom } from "@/shared/utils/dom-utils";
 
 /**
  * Show schema in a modal dialog

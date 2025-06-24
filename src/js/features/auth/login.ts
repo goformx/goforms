@@ -6,8 +6,8 @@
 
 console.log("login.ts: Script loaded and executing");
 
-import { EnhancedFormHandler } from "../forms/handlers/enhanced-form-handler.js";
-import type { FormConfig } from "../forms/types/form-types.js";
+import { EnhancedFormHandler } from "@/features/forms/handlers/enhanced-form-handler";
+import type { FormConfig } from "@/shared/types/form-types";
 
 console.log("login.ts: Imports completed");
 

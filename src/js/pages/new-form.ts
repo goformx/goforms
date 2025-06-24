@@ -1,5 +1,5 @@
-import { HttpClient } from "../core/http-client";
-import { Logger } from "../core/logger";
+import { HttpClient } from "@/core/http-client";
+import { Logger } from "@/core/logger";
 
 /**
  * Initialize the new form page

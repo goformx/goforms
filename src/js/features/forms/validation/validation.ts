@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { getValidationSchema } from "./generator";
-import { ValidationManager } from "../../../shared/utils/validation-manager";
-import { ErrorManager } from "../../../shared/utils/error-manager";
-import { Logger } from "../../../core/logger";
+import { ValidationManager } from "@/shared/utils/validation-manager";
+import { ErrorManager } from "@/shared/utils/error-manager";
+import { Logger } from "@/core/logger";
 
 // Types
 export type FormData = Record<string, string>;

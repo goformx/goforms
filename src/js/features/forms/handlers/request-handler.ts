@@ -1,7 +1,7 @@
 // ===== src/js/forms/handlers/request-handler.ts =====
 import { validation } from "../validation/validation";
-import type { RequestOptions } from "../types/form-types";
-import { isAuthenticationEndpoint } from "../utils/endpoint-utils";
+import type { RequestOptions } from "@/shared/types/form-types";
+import { isAuthenticationEndpoint } from "@/shared/utils/endpoint-utils";
 
 export class RequestHandler {
   /**
