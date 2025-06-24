@@ -56,6 +56,21 @@ func (r *UserAgentSanitizationRule) Process(key string, value any, sanitizer san
 	return processor.Process(value, sanitizer)
 }
 
+// isUUIDField checks if a field key represents a UUID field that should be masked
+func isUUIDField(key string) bool {
+	keyLower := strings.ToLower(key)
+	if strings.Contains(keyLower, "test") {
+		return false
+	}
+	if keyLower == "user_id" || keyLower == "form_id" || keyLower == "id" {
+		return true
+	}
+	if strings.HasSuffix(keyLower, "_id") && keyLower != "request_id" && keyLower != "session_id" {
+		return true
+	}
+	return false
+}
+
 // UUIDSanitizationRule handles UUID-like field validation and masking
 type UUIDSanitizationRule struct{}
 
@@ -68,13 +83,10 @@ func (r *UUIDSanitizationRule) Process(key string, value any, sanitizer sanitiza
 		return sensitive.MaskValue()
 	}
 	if id, ok := value.(string); ok {
-		if !validateUUID(id) {
-			return "[invalid uuid format]"
-		}
 		if len(id) >= UUIDMinMaskLen {
 			return id[:UUIDMaskPrefixLen] + "..." + id[len(id)-UUIDMaskSuffixLen:]
 		}
-		return "[invalid uuid length]"
+		return fmt.Sprintf("[id:%d]", len(id))
 	}
 	return "[invalid uuid type]"
 }
@@ -118,11 +130,4 @@ func (r *DefaultSanitizationRule) Process(key string, value any, sanitizer sanit
 		return sanitizer.SanitizeForLogging(objStr)
 	}
 	return objStr
-}
-
-// isUUIDField checks if a field key represents a UUID field that should be masked
-func isUUIDField(key string) bool {
-	return strings.Contains(strings.ToLower(key), "id") &&
-		!strings.Contains(strings.ToLower(key), "length") &&
-		key != "request_id"
 }

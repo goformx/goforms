@@ -9,6 +9,7 @@ import (
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/labstack/echo/v4"
 )
 
@@ -68,6 +69,7 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Acce
 	forms.POST("/:id/edit", h.handleUpdate)
 	forms.DELETE("/:id", h.handleDelete)
 	forms.GET("/:id/submissions", h.handleSubmissions)
+	forms.GET("/:id/preview", h.handlePreview)
 }
 
 // Register satisfies the Handler interface
@@ -84,4 +86,49 @@ func (h *FormWebHandler) Start(ctx context.Context) error {
 // Stop satisfies the Handler interface
 func (h *FormWebHandler) Stop(ctx context.Context) error {
 	return nil // No cleanup needed
+}
+
+// handlePreview handles the form preview page request
+func (h *FormWebHandler) handlePreview(c echo.Context) error {
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		return h.HandleForbidden(c, "User not authenticated")
+	}
+
+	formID := c.Param("id")
+	if formID == "" {
+		return h.HandleError(c, nil, "Form ID is required")
+	}
+
+	// Fetch form data using the domain service
+	form, err := h.FormBaseHandler.FormService.GetForm(c.Request().Context(), formID)
+	if err != nil || form == nil {
+		h.Logger.Warn("form preview access attempt failed",
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"form_id_length", len(formID),
+			"error_type", "form_not_found")
+		return h.HandleNotFound(c, "Form not found")
+	}
+
+	// Verify form ownership
+	if form.UserID != userID {
+		h.Logger.Warn("unauthorized form preview access attempt",
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"form_id_length", len(formID),
+			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
+			"error_type", "authorization_error")
+		return h.HandleForbidden(c, "You don't have permission to preview this form")
+	}
+
+	h.Logger.Debug("form preview accessed successfully",
+		"user_id", h.Logger.SanitizeField("user_id", userID),
+		"form_id_length", len(formID),
+		"form_title", h.Logger.SanitizeField("form_title", form.Title))
+
+	// Build page data
+	data := h.BuildPageData(c, "Form Preview")
+	data.Form = form
+
+	// Render form preview template
+	return h.Renderer.Render(c, pages.FormPreview(data, form))
 }

@@ -19,6 +19,6 @@ var Patterns = []string{
 	"verification_key", "authentication_key", "session_key", "cookie_key",
 	"csrf_token", "xsrf_token", "oauth_token", "oauth_secret", "oauth_verifier",
 	"oauth_code", "oauth_state", "oauth_nonce", "oauth_scope", "oauth_grant",
-	"oauth_refresh", "oauth_access", "oauth_id", "oauth_key", "form_id",
+	"oauth_refresh", "oauth_access", "oauth_id", "oauth_key",
 	"data", "user_data", "personal_data", "sensitive_data",
 }

@@ -97,10 +97,10 @@ func TestUUIDField(t *testing.T) {
 		expected string
 	}{
 		{
-			name:     "sensitive key should be masked",
+			name:     "form_id should use UUID masking",
 			key:      "form_id",
 			value:    "550e8400-e29b-41d4-a716-446655440000",
-			expected: "****",
+			expected: "550e8400...0000",
 		},
 		{
 			name:     "valid UUID should be masked",

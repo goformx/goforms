@@ -5,7 +5,6 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/view"
 	"github.com/labstack/echo/v4"
@@ -28,7 +27,6 @@ func (h *DashboardHandler) Register(e *echo.Echo) {
 	dashboard := e.Group(constants.PathDashboard)
 	dashboard.Use(access.Middleware(h.AccessManager, h.Logger))
 	dashboard.GET("", h.handleDashboard)
-	dashboard.GET("/forms/:id", h.handleFormView)
 }
 
 // handleDashboard handles the dashboard page request
@@ -59,58 +57,6 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 
 	// Render dashboard template
 	return h.Renderer.Render(c, pages.Dashboard(data, forms))
-}
-
-// handleFormView handles the form view page request
-func (h *DashboardHandler) handleFormView(c echo.Context) error {
-	userID, ok := mwcontext.GetUserID(c)
-	if !ok {
-		return h.HandleForbidden(c, "User not authenticated")
-	}
-
-	formID := c.Param("id")
-	if formID == "" {
-		return h.HandleError(c, nil, "Form ID is required")
-	}
-
-	// Fetch user data
-	userObj, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil || userObj == nil {
-		h.Logger.Error("user not found after authentication",
-			"user_id", h.Logger.SanitizeField("user_id", userID),
-			"path", h.Logger.SanitizeField("path", c.Request().URL.Path))
-		return h.HandleNotFound(c, "User not found")
-	}
-
-	// Fetch form data
-	form, err := h.FormService.GetForm(c.Request().Context(), formID)
-	if err != nil || form == nil {
-		h.Logger.Warn("form access attempt failed",
-			"user_id", h.Logger.SanitizeField("user_id", userID),
-			"form_id_length", len(formID),
-			"error_type", "form_not_found")
-		return h.HandleNotFound(c, "Resource not found")
-	}
-
-	// Verify form ownership
-	if form.UserID != userID {
-		h.Logger.Warn("unauthorized form access attempt",
-			"user_id", h.Logger.SanitizeField("user_id", userID),
-			"form_id_length", len(formID),
-			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
-			"error_type", "authorization_error")
-		return h.HandleForbidden(c, "You don't have permission to view this form")
-	}
-
-	h.Logger.Debug("form accessed successfully",
-		"user_id", h.Logger.SanitizeField("user_id", userID),
-		"form_id_length", len(formID),
-		"form_title", h.Logger.SanitizeField("form_title", form.Title))
-
-	data := view.BuildPageData(h.Config, h.AssetManager, c, "Form View")
-	data.User = userObj
-	data.Form = form
-	return h.Renderer.Render(c, pages.Forms(data))
 }
 
 // Start initializes the dashboard handler.

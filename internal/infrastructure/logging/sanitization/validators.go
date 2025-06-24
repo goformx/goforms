@@ -30,37 +30,6 @@ func validatePath(path string) bool {
 	return true
 }
 
-// validateUUID checks if a string is a valid UUID format
-func validateUUID(uuidStr string) bool {
-	if len(uuidStr) != UUIDLength { // Standard UUID length
-		return false
-	}
-
-	// Check for valid UUID characters (hex + hyphens)
-	validChars := "0123456789abcdefABCDEF-"
-	for _, char := range uuidStr {
-		if !strings.ContainsRune(validChars, char) {
-			return false
-		}
-	}
-
-	// Check UUID format (8-4-4-4-12)
-	parts := strings.Split(uuidStr, "-")
-	if len(parts) != UUIDParts {
-		return false
-	}
-
-	// Check each part length
-	expectedLengths := []int{8, 4, 4, 4, 12}
-	for i, part := range parts {
-		if len(part) != expectedLengths[i] {
-			return false
-		}
-	}
-
-	return true
-}
-
 // validateUserAgent checks if a string is a valid user agent
 func validateUserAgent(userAgent string) bool {
 	if len(userAgent) > MaxStringLength {
