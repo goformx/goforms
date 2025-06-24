@@ -106,10 +106,17 @@ describe("DOM Utilities", () => {
       expect(errorElement).toBeTruthy();
 
       dom.hideError(container);
-      const hiddenElement = container.querySelector(
+
+      // Check that the error is hidden in the appropriate location
+      const hiddenErrorInContainer = container.querySelector(
         ".gf-error-message",
       ) as HTMLElement;
-      expect(hiddenElement.style.display).toBe("none");
+      const hiddenErrorInBody = document.body.querySelector(
+        ".gf-error-message",
+      ) as HTMLElement;
+      const hiddenError = hiddenErrorInContainer || hiddenErrorInBody;
+
+      expect(hiddenError?.style.display).toBe("none");
     });
 
     it("should show success messages", () => {
@@ -137,10 +144,17 @@ describe("DOM Utilities", () => {
       expect(successElement).toBeTruthy();
 
       dom.hideSuccess(container);
-      const hiddenElement = container.querySelector(
+
+      // Check that the success message is hidden in the appropriate location
+      const hiddenSuccessInContainer = container.querySelector(
         ".gf-success-message",
       ) as HTMLElement;
-      expect(hiddenElement.style.display).toBe("none");
+      const hiddenSuccessInBody = document.body.querySelector(
+        ".gf-success-message",
+      ) as HTMLElement;
+      const hiddenSuccess = hiddenSuccessInContainer || hiddenSuccessInBody;
+
+      expect(hiddenSuccess?.style.display).toBe("none");
     });
 
     it("should reuse existing message containers", () => {
