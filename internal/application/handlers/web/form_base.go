@@ -1,6 +1,7 @@
 package web
 
 import (
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -31,15 +32,19 @@ func NewFormBaseHandler(
 func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 	formID, err := h.FormValidator.ValidateFormID(c)
 	if err != nil {
-		h.HandleError(c, err, "Invalid form ID")
-		return nil, echo.NewHTTPError(400, "Invalid form ID")
+		if handleErr := h.HandleError(c, err, "Invalid form ID"); handleErr != nil {
+			h.Logger.Error("failed to handle error", "error", handleErr)
+		}
+		return nil, echo.NewHTTPError(constants.StatusBadRequest, "Invalid form ID")
 	}
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", "form_id", formID, "error", err)
-		h.HandleNotFound(c, "Form not found")
-		return nil, echo.NewHTTPError(404, "Form not found")
+		if handleErr := h.HandleNotFound(c, "Form not found"); handleErr != nil {
+			h.Logger.Error("failed to handle not found", "error", handleErr)
+		}
+		return nil, echo.NewHTTPError(constants.StatusNotFound, "Form not found")
 	}
 
 	return form, nil
@@ -49,16 +54,20 @@ func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 func (h *FormBaseHandler) RequireFormOwnership(c echo.Context, form *model.Form) error {
 	userID, ok := c.Get("user_id").(string)
 	if !ok {
-		h.HandleForbidden(c, "User not authenticated")
-		return echo.NewHTTPError(401, "User not authenticated")
+		if handleErr := h.HandleForbidden(c, "User not authenticated"); handleErr != nil {
+			h.Logger.Error("failed to handle forbidden", "error", handleErr)
+		}
+		return echo.NewHTTPError(constants.StatusUnauthorized, "User not authenticated")
 	}
 
 	if form.UserID != userID {
 		h.Logger.Error("ownership verification failed",
 			"resource_user_id", form.UserID,
 			"request_user_id", userID)
-		h.HandleForbidden(c, "You don't have permission to access this resource")
-		return echo.NewHTTPError(403, "You don't have permission to access this resource")
+		if handleErr := h.HandleForbidden(c, "You don't have permission to access this resource"); handleErr != nil {
+			h.Logger.Error("failed to handle forbidden", "error", handleErr)
+		}
+		return echo.NewHTTPError(constants.StatusForbidden, "You don't have permission to access this resource")
 	}
 
 	return nil

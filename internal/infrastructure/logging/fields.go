@@ -19,7 +19,7 @@ func Sensitive(key string, value any) zap.Field {
 }
 
 // Sanitized creates a field with sanitized string data
-func Sanitized(key string, value string) zap.Field {
+func Sanitized(key, value string) zap.Field {
 	if sensitive.IsKey(key) {
 		return zap.String(key, sensitive.MaskValue())
 	}
@@ -27,7 +27,7 @@ func Sanitized(key string, value string) zap.Field {
 }
 
 // SafeString creates a field with a safe string value (no sanitization)
-func SafeString(key string, value string) zap.Field {
+func SafeString(key, value string) zap.Field {
 	if sensitive.IsKey(key) {
 		return zap.String(key, sensitive.MaskValue())
 	}
@@ -35,7 +35,7 @@ func SafeString(key string, value string) zap.Field {
 }
 
 // UUID creates a field with masked UUID values
-func UUID(key string, value string) zap.Field {
+func UUID(key, value string) zap.Field {
 	if sensitive.IsKey(key) {
 		return zap.String(key, sensitive.MaskValue())
 	}
@@ -50,7 +50,7 @@ func UUID(key string, value string) zap.Field {
 }
 
 // Path creates a field with sanitized path data
-func Path(key string, value string) zap.Field {
+func Path(key, value string) zap.Field {
 	if sensitive.IsKey(key) {
 		return zap.String(key, sensitive.MaskValue())
 	}
@@ -74,15 +74,15 @@ func Path(key string, value string) zap.Field {
 	}
 
 	// Truncate if too long
-	if len(value) > 500 {
-		value = value[:500] + "..."
+	if len(value) > MaxPathLength {
+		value = value[:MaxPathLength] + "..."
 	}
 
 	return zap.String(key, sanitize.SingleLine(value))
 }
 
 // UserAgent creates a field with sanitized user agent data
-func UserAgent(key string, value string) zap.Field {
+func UserAgent(key, value string) zap.Field {
 	if sensitive.IsKey(key) {
 		return zap.String(key, sensitive.MaskValue())
 	}
@@ -98,8 +98,8 @@ func UserAgent(key string, value string) zap.Field {
 	}
 
 	// Truncate if too long
-	if len(value) > 1000 {
-		value = value[:1000] + "..."
+	if len(value) > MaxUserAgentLength {
+		value = value[:MaxUserAgentLength] + "..."
 	}
 
 	return zap.String(key, sanitize.SingleLine(value))
@@ -121,7 +121,7 @@ func Error(key string, err error) zap.Field {
 }
 
 // RequestID creates a field with validated request ID
-func RequestID(key string, value string) zap.Field {
+func RequestID(key, value string) zap.Field {
 	if sensitive.IsKey(key) {
 		return zap.String(key, sensitive.MaskValue())
 	}
@@ -145,12 +145,12 @@ func CustomField(key string, value any, sanitizer func(any) string) zap.Field {
 }
 
 // MaskedField creates a field with custom masking
-func MaskedField(key string, value string, mask string) zap.Field {
+func MaskedField(key, value, mask string) zap.Field {
 	return zap.String(key, mask)
 }
 
 // TruncatedField creates a field with truncated value
-func TruncatedField(key string, value string, maxLength int) zap.Field {
+func TruncatedField(key, value string, maxLength int) zap.Field {
 	if sensitive.IsKey(key) {
 		return zap.String(key, sensitive.MaskValue())
 	}

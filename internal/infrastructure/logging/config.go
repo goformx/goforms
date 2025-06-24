@@ -20,7 +20,7 @@ func setDefaultPaths(cfg *FactoryConfig) {
 }
 
 // parseLogLevel converts string level to zap level
-func parseLogLevel(level string, environment string) zapcore.Level {
+func parseLogLevel(level, environment string) zapcore.Level {
 	if level != "" {
 		switch strings.ToLower(level) {
 		case "debug":

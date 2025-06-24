@@ -14,7 +14,11 @@ type logger struct {
 }
 
 // newLogger creates a new logger instance
-func newLogger(zapLogger *zap.Logger, sanitizer sanitization.ServiceInterface, fieldSanitizer *loggingsanitization.FieldSanitizer) Logger {
+func newLogger(
+	zapLogger *zap.Logger,
+	sanitizer sanitization.ServiceInterface,
+	fieldSanitizer *loggingsanitization.FieldSanitizer,
+) Logger {
 	return &logger{
 		zapLogger:      zapLogger,
 		sanitizer:      sanitizer,

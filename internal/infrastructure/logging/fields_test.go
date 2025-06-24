@@ -6,6 +6,7 @@ import (
 
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
 )
@@ -320,7 +321,7 @@ func TestSensitiveObject(t *testing.T) {
 			// Test marshaling
 			encoder := zapcore.NewMapObjectEncoder()
 			err := obj.MarshalLogObject(encoder)
-			assert.NoError(t, err)
+			require.NoError(t, err)
 
 			// Check the result
 			if tt.expected == "****" {
@@ -347,8 +348,7 @@ func TestFieldIntegration(t *testing.T) {
 		logging.Error("error", errors.New("test error")),
 	)
 
-	// This should not panic and should log correctly
-	assert.True(t, true, "Logging with custom fields should work")
+	// This should not panic and should log correctly (no assertion needed)
 }
 
 func TestTruncatedField(t *testing.T) {

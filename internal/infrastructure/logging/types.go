@@ -16,6 +16,8 @@ const (
 	MaxStringLength = 1000
 	// MaxPathLength represents the maximum length for path fields
 	MaxPathLength = 500
+	// MaxUserAgentLength represents the maximum length for user agent fields
+	MaxUserAgentLength = 1000
 	// UUIDLength represents the standard UUID length
 	UUIDLength = 36
 	// UUIDParts represents the number of parts in a UUID

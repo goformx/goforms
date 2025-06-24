@@ -212,7 +212,7 @@ func IsValidation(err error) bool {
 			ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
 			return true
 		case ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
-			ErrCodeNotFound, ErrCodeConflict, ErrCodeServerError,
+			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeServerError,
 			ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase,
 			ErrCodeTimeout, ErrCodeFormNotFound, ErrCodeFormAccessDenied, ErrCodeUserNotFound,
 			ErrCodeUserExists, ErrCodeUserUnauthorized:
