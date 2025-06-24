@@ -1,20 +1,23 @@
-import { FormBuilderError } from "@/core/errors/form-builder-error";
-import { HttpClient } from "@/core/http-client";
-import DOMPurify from "dompurify";
+import { FormApiService, type FormSchema } from "./form-api-service";
+import { FormUIService } from "./form-ui-service";
 
-export interface FormSchema {
-  display: string;
-  components: any[];
-  [key: string]: any;
-}
-
+/**
+ * Main form service that orchestrates API and UI operations
+ * This is now a facade that delegates to focused services
+ */
 export class FormService {
   private static instance: FormService;
-  private baseUrl: string;
+  private apiService: FormApiService;
+  private uiService: FormUIService;
 
   private constructor() {
-    this.baseUrl = window.location.origin;
-    console.debug("FormService initialized with base URL:", this.baseUrl);
+    this.apiService = FormApiService.getInstance();
+    this.uiService = FormUIService.getInstance();
+
+    // Initialize UI handlers
+    this.uiService.initializeFormDeletionHandlers(
+      this.apiService.deleteForm.bind(this.apiService),
+    );
   }
 
   public static getInstance(): FormService {
@@ -25,121 +28,50 @@ export class FormService {
   }
 
   public setBaseUrl(url: string): void {
-    this.baseUrl = url;
-    console.debug("FormService base URL updated to:", this.baseUrl);
+    this.apiService.setBaseUrl(url);
   }
 
+  // Delegate API operations to FormApiService
   async getSchema(formId: string): Promise<FormSchema> {
-    const url = `${this.baseUrl}/api/v1/forms/${formId}/schema`;
-    console.debug("Fetching schema from:", url);
-
-    const response = await HttpClient.get(url);
-    if (!response.ok) {
-      console.error(
-        "Failed to fetch schema:",
-        response.status,
-        response.statusText,
-      );
-      throw new Error("Failed to load form schema");
-    }
-    const data = await response.json();
-    return data as FormSchema;
+    return this.apiService.getSchema(formId);
   }
 
   async saveSchema(formId: string, schema: any): Promise<any> {
-    try {
-      const response = await HttpClient.put(
-        `${this.baseUrl}/api/v1/forms/${formId}/schema`,
-        JSON.stringify(schema),
-      );
-
-      if (!response.ok) {
-        throw new Error(`Failed to save schema: ${response.statusText}`);
-      }
-
-      const data = await response.json();
-      if (!data || typeof data !== "object") {
-        throw new Error("Invalid response from server");
-      }
-
-      if (!data.components || !Array.isArray(data.components)) {
-        throw new Error("Invalid schema structure in response");
-      }
-
-      return data;
-    } catch (error) {
-      console.error("Error saving schema:", error);
-      throw new FormBuilderError(
-        "Failed to save schema",
-        error instanceof Error ? error.message : String(error),
-      );
-    }
+    return this.apiService.saveSchema(formId, schema);
   }
 
   async updateFormDetails(
     formId: string,
     details: { title: string; description: string },
   ): Promise<void> {
-    const response = await HttpClient.put(
-      `${this.baseUrl}/dashboard/forms/${formId}`,
-      JSON.stringify(details),
-    );
-
-    if (!response.ok) {
-      const error = await response.json();
-      throw new Error(error.message || "Failed to update form details");
-    }
+    await this.apiService.updateFormDetails(formId, details);
+    this.uiService.updateFormCard(formId, details);
+    this.uiService.showSuccess("Form updated successfully");
   }
 
   public async deleteForm(formId: string): Promise<void> {
-    const response = await HttpClient.delete(`${this.baseUrl}/forms/${formId}`);
-
-    if (!response.ok) {
-      throw new Error("Failed to delete form");
-    }
-  }
-
-  // Helper function to sanitize form data
-  private sanitizeFormData(data: any): any {
-    if (typeof data !== "object" || data === null) {
-      return data;
-    }
-
-    const sanitized: any = Array.isArray(data) ? [] : {};
-
-    for (const [key, value] of Object.entries(data)) {
-      if (typeof value === "string") {
-        // Use DOMPurify for string sanitization
-        sanitized[key] = DOMPurify.sanitize(value);
-      } else if (typeof value === "object" && value !== null) {
-        sanitized[key] = this.sanitizeFormData(value);
-      } else {
-        sanitized[key] = value;
-      }
-    }
-
-    return sanitized;
+    return this.apiService.deleteForm(formId);
   }
 
   async submitForm(formId: string, data: FormData): Promise<Response> {
-    // Sanitize the form data before sending
-    const sanitizedData = this.sanitizeFormData(data);
+    return this.apiService.submitForm(formId, data);
+  }
 
-    const response = await HttpClient.post(
-      `${this.baseUrl}/api/v1/forms/${formId}/submit`,
-      JSON.stringify(sanitizedData),
-    );
+  // Expose UI service methods for external use
+  showSuccess(message: string): void {
+    this.uiService.showSuccess(message);
+  }
 
-    if (!response.ok) {
-      const error = await response
-        .json()
-        .catch(() => ({ message: "Failed to submit form" }));
-      throw new Error(error.message || "Failed to submit form");
-    }
-
-    return response;
+  updateFormCard(
+    formId: string,
+    updates: { title?: string; description?: string },
+  ): void {
+    this.uiService.updateFormCard(formId, updates);
   }
 }
+
+// Re-export the FormSchema type for backward compatibility
+export type { FormSchema } from "./form-api-service";
 
 // Initialize form deletion handlers
 document.addEventListener("DOMContentLoaded", () => {
