@@ -9,16 +9,6 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
-// validateConfig validates the factory configuration
-func validateConfig(cfg FactoryConfig) error {
-	// Add any necessary validation logic here
-	// For now, basic validation
-	if cfg.AppName == "" {
-		// Could return error or set default
-	}
-	return nil
-}
-
 // setDefaultPaths sets default output paths if not specified
 func setDefaultPaths(cfg *FactoryConfig) {
 	if len(cfg.OutputPaths) == 0 {

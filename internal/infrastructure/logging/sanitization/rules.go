@@ -112,7 +112,7 @@ func (r *DefaultSanitizationRule) Matches(key string) bool {
 }
 
 func (r *DefaultSanitizationRule) Process(key string, value any, sanitizer sanitization.ServiceInterface) string {
-	// Check if this is a sensitive key first
+	// Always mask sensitive keys, regardless of value type
 	if isSensitiveKey(key) {
 		return "****"
 	}
@@ -136,14 +136,25 @@ func (r *DefaultSanitizationRule) Process(key string, value any, sanitizer sanit
 // isSensitiveKey checks if a key matches any sensitive pattern
 func isSensitiveKey(key string) bool {
 	sensitivePatterns := []string{
-		"password", "passwd", "pwd", "secret", "key", "token", "auth", "credential",
-		"private", "sensitive", "confidential", "hidden", "masked", "encrypted",
-		"hash", "salt", "nonce", "challenge", "response", "signature", "certificate",
-		"session", "cookie", "jwt", "bearer", "api_key", "apikey", "access_key",
-		"secret_key", "private_key", "public_key", "ssh_key", "gpg_key", "pgp_key",
-		"oauth_token", "oauth_secret", "oauth_key", "oauth_code", "oauth_state",
-		"oauth_nonce", "oauth_scope", "oauth_grant", "oauth_refresh", "oauth_access",
-		"oauth_id", "oauth_key", "form_id",
+		"password", "token", "secret", "key", "credential", "authorization",
+		"cookie", "session", "api_key", "access_token", "private_key",
+		"public_key", "certificate", "ssn", "credit_card", "bank_account",
+		"phone", "email", "address", "dob", "birth_date", "social_security",
+		"tax_id", "driver_license", "passport", "national_id", "health_record",
+		"medical_record", "insurance", "benefit", "salary", "compensation",
+		"bank_routing", "bank_swift", "iban", "account_number", "pin",
+		"cvv", "cvc", "security_code", "verification_code", "otp",
+		"mfa_code", "2fa_code", "recovery_code", "backup_code", "reset_token",
+		"activation_code", "verification_token", "invite_code", "referral_code",
+		"promo_code", "discount_code", "coupon_code", "gift_card", "voucher",
+		"license_key", "product_key", "serial_number", "activation_key",
+		"registration_key", "subscription_key", "membership_key", "access_code",
+		"security_key", "encryption_key", "decryption_key", "signing_key",
+		"verification_key", "authentication_key", "session_key", "cookie_key",
+		"csrf_token", "xsrf_token", "oauth_token", "oauth_secret", "oauth_verifier",
+		"oauth_code", "oauth_state", "oauth_nonce", "oauth_scope", "oauth_grant",
+		"oauth_refresh", "oauth_access", "oauth_id", "oauth_key", "form_id",
+		"data", "user_data", "personal_data", "sensitive_data",
 	}
 
 	keyLower := strings.ToLower(key)

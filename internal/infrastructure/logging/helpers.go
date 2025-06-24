@@ -1,8 +1,6 @@
 package logging
 
 import (
-	"strings"
-
 	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"go.uber.org/zap"
@@ -46,27 +44,4 @@ func sanitizeError(err error, sanitizer sanitization.ServiceInterface) string {
 		return sanitizer.SanitizeForLogging(errMsg)
 	}
 	return errMsg
-}
-
-// sanitizeString sanitizes a string for safe logging
-func sanitizeString(s string, sanitizer sanitization.ServiceInterface) string {
-	if sanitizer != nil {
-		return sanitizer.SanitizeForLogging(s)
-	}
-	return s
-}
-
-// truncateString truncates a string to the maximum allowed length
-func truncateString(s string, maxLen int) string {
-	if len(s) > maxLen {
-		return s[:maxLen] + "..."
-	}
-	return s
-}
-
-// isUUIDField checks if a field key represents a UUID field that should be masked
-func isUUIDField(key string) bool {
-	return strings.Contains(strings.ToLower(key), "id") &&
-		!strings.Contains(strings.ToLower(key), "length") &&
-		key != "request_id"
 }
