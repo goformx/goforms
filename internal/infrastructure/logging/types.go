@@ -1,37 +1,59 @@
 // Package logging provides a unified logging interface
 package logging
 
-// Logger defines the interface for application logging
-type Logger interface {
-	// Basic logging methods
-	// Debug is used for detailed information, typically useful only for diagnosing problems
-	Debug(msg string, fields ...any)
-	// Info is used for general operational entries about what's happening inside the application
-	Info(msg string, fields ...any)
-	// Warn is used for potentially harmful situations
-	Warn(msg string, fields ...any)
-	// Error is used for error events that might still allow the application to continue running
-	Error(msg string, fields ...any)
-	// Fatal is used for very severe error events that will presumably lead the application to abort
-	Fatal(msg string, fields ...any)
+const (
+	// LogEncodingConsole represents console encoding for logs
+	LogEncodingConsole = "console"
+	// LogEncodingJSON represents JSON encoding for logs
+	LogEncodingJSON = "json"
+	// EnvironmentDevelopment represents the development environment
+	EnvironmentDevelopment = "development"
+	// MaxPartsLength represents the maximum number of parts in a log message
+	MaxPartsLength = 2
+	// FieldPairSize represents the number of elements in a key-value pair
+	FieldPairSize = 2
+	// MaxStringLength represents the maximum length for string fields
+	MaxStringLength = 1000
+	// MaxPathLength represents the maximum length for path fields
+	MaxPathLength = 500
+	// UUIDLength represents the standard UUID length
+	UUIDLength = 36
+	// UUIDParts represents the number of parts in a UUID
+	UUIDParts = 5
+	// UUIDMinMaskLen represents the minimum length for UUID masking
+	UUIDMinMaskLen = 8
+	// UUIDMaskPrefixLen represents the prefix length for UUID masking
+	UUIDMaskPrefixLen = 4
+	// UUIDMaskSuffixLen represents the suffix length for UUID masking
+	UUIDMaskSuffixLen = 4
+)
 
-	// Context methods
-	// With adds fields to the logger context
+// Logger interface defines the logging contract
+type Logger interface {
+	Debug(msg string, fields ...any)
+	Info(msg string, fields ...any)
+	Warn(msg string, fields ...any)
+	Error(msg string, fields ...any)
+	Fatal(msg string, fields ...any)
 	With(fields ...any) Logger
-	// WithComponent adds a component name to the logger context
 	WithComponent(component string) Logger
-	// WithOperation adds an operation name to the logger context
 	WithOperation(operation string) Logger
-	// WithRequestID adds a request ID to the logger context
 	WithRequestID(requestID string) Logger
-	// WithUserID adds a user ID to the logger context (sanitized)
 	WithUserID(userID string) Logger
-	// WithError adds an error to the logger context
 	WithError(err error) Logger
-	// WithFields adds multiple fields to the logger context
 	WithFields(fields map[string]any) Logger
-	// SanitizeField returns a sanitized version of a field value
 	SanitizeField(key string, value any) string
+}
+
+// FactoryConfig holds configuration for logger factory
+type FactoryConfig struct {
+	AppName          string
+	Version          string
+	Environment      string
+	LogLevel         string
+	OutputPaths      []string
+	ErrorOutputPaths []string
+	Fields           map[string]any
 }
 
 // LogLevel represents the severity of a log message
