@@ -230,7 +230,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 
 @templ.JSONScript("form-builder-data", data.FormBuilderAssetPath)
 if data.IsDevelopment {
-<script type="module" id="form-builder-script" data-form-builder-path={ data.AssetPath("src/js/form-builder.ts") }>
+<script type="module" id="form-builder-script" data-form-builder-path={ data.AssetPath("src/js/pages/form-builder.ts") }>
 	if (document.getElementById('form-schema-builder')) {
 		const script = document.getElementById('form-builder-script');
 		const path = script.getAttribute('data-form-builder-path');

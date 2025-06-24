@@ -68,7 +68,7 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	data := h.BuildPageData(c, "Edit Form")
 	data.User = user
 	data.Form = form
-	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/form-builder.ts")
+	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/pages/form-builder.ts")
 
 	return pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer)
 }

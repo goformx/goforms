@@ -166,8 +166,9 @@ type CSPConfig struct {
 func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 	if appConfig.IsDevelopment() {
 		return "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline' http://localhost:3000; " +
-			"style-src 'self' 'unsafe-inline' http://localhost:3000; " +
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 https://cdn.form.io blob:; " +
+			"worker-src 'self' blob:; " +
+			"style-src 'self' 'unsafe-inline' http://localhost:3000 https://cdn.form.io; " +
 			"img-src 'self' data:; " +
 			"font-src 'self' http://localhost:3000; " +
 			"connect-src 'self' http://localhost:3000 ws://localhost:3000; " +
