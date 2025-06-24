@@ -230,7 +230,7 @@ func (l *logger) WithError(err error) Logger {
 
 // WithFields adds multiple fields to the logger
 func (l *logger) WithFields(fields map[string]any) Logger {
-	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
+	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.Any(k, l.SanitizeField(k, v)))
 	}
@@ -268,6 +268,33 @@ func (l *logger) SanitizeField(key string, value any) string {
 	return sanitizeString(fmt.Sprintf("%v", value), l.sanitizer)
 }
 
+// Debug logs a debug message
+func (l *logger) Debug(msg string, fields ...any) {
+	l.zapLogger.Debug(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Info logs an info message
+func (l *logger) Info(msg string, fields ...any) {
+	l.zapLogger.Info(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Warn logs a warning message
+func (l *logger) Warn(msg string, fields ...any) {
+	l.zapLogger.Warn(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Error logs an error message
+func (l *logger) Error(msg string, fields ...any) {
+	l.zapLogger.Error(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Fatal logs a fatal message
+func (l *logger) Fatal(msg string, fields ...any) {
+	l.zapLogger.Fatal(msg, convertToZapFields(fields, l.sanitizer)...)
+}
+
+// Helper functions that are actually used
+
 // convertToZapFields converts a slice of fields to zap fields
 func convertToZapFields(fields []any, sanitizer sanitization.ServiceInterface) []zap.Field {
 	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
@@ -302,42 +329,6 @@ func sanitizeError(err error, sanitizer sanitization.ServiceInterface) string {
 
 	// Apply the same sanitization as regular messages
 	return sanitizer.SanitizeForLogging(errMsg)
-}
-
-// Debug logs a debug message
-func (l *logger) Debug(msg string, fields ...any) {
-	l.zapLogger.Debug(msg, convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Info logs an info message
-func (l *logger) Info(msg string, fields ...any) {
-	l.zapLogger.Info(msg, convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Warn logs a warning message
-func (l *logger) Warn(msg string, fields ...any) {
-	l.zapLogger.Warn(msg, convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Error logs an error message
-func (l *logger) Error(msg string, fields ...any) {
-	l.zapLogger.Error(msg, convertToZapFields(fields, l.sanitizer)...)
-}
-
-// Fatal logs a fatal message
-func (l *logger) Fatal(msg string, fields ...any) {
-	l.zapLogger.Fatal(msg, convertToZapFields(fields, l.sanitizer)...)
-}
-
-// sanitizeRequestID handles request_id field validation
-func sanitizeRequestID(value any) string {
-	if id, ok := value.(string); ok {
-		if !validateUUID(id) {
-			return "[invalid request id]"
-		}
-		return id
-	}
-	return "[invalid request id type]"
 }
 
 // sanitizePathField handles path field validation and sanitization
@@ -386,11 +377,6 @@ func isUUIDField(key string) bool {
 
 // sanitizeValue applies appropriate sanitization based on the field type
 func sanitizeValue(key string, value any, sanitizer sanitization.ServiceInterface) string {
-	// Special handling for request_id
-	if key == "request_id" {
-		return sanitizeRequestID(value)
-	}
-
 	// Handle error values specially
 	if err, ok := value.(error); ok {
 		return sanitizeError(err, sanitizer)

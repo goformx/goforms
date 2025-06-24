@@ -115,59 +115,46 @@ func TestLogger_Sanitization(t *testing.T) {
 		Version:     "1.0.0",
 		Environment: "development",
 	}, mockSanitizer)
-	logger, err := factory.CreateLogger()
+	_, err := factory.CreateLogger()
 	require.NoError(t, err)
 
-	tests := []struct {
-		name     string
-		key      string
-		value    any
-		expected string
-	}{
-		{
-			name:     "sensitive field - password",
-			key:      "password",
-			value:    "secret123",
-			expected: "****",
-		},
-		{
-			name:     "sensitive field - token",
-			key:      "token",
-			value:    "abc123",
-			expected: "****",
-		},
-		{
-			name:     "non-sensitive field",
-			key:      "name",
-			value:    "John Doe",
-			expected: "John Doe",
-		},
-		{
-			name:     "path field - valid",
-			key:      "path",
-			value:    "/api/v1/users",
-			expected: "/api/v1/users",
-		},
-		{
-			name:     "path field - invalid",
-			key:      "path",
-			value:    "/api/v1/users<script>alert(1)</script>",
-			expected: "[invalid path]",
-		},
-		{
-			name:     "long string field",
-			key:      "description",
-			value:    strings.Repeat("a", 2000),
-			expected: strings.Repeat("a", 1000) + "...",
-		},
-	}
+	// Test the new field wrappers instead of the old SanitizeField method
+	t.Run("sensitive field - password", func(t *testing.T) {
+		field := logging.Sensitive("password", "secret123")
+		assert.Equal(t, "password", field.Key)
+		assert.Equal(t, "****", field.String)
+	})
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			sanitized := logger.SanitizeField(tt.key, tt.value)
-			assert.Equal(t, tt.expected, sanitized)
-		})
-	}
+	t.Run("sensitive field - token", func(t *testing.T) {
+		field := logging.Sensitive("token", "abc123")
+		assert.Equal(t, "token", field.Key)
+		assert.Equal(t, "****", field.String)
+	})
+
+	t.Run("non-sensitive field", func(t *testing.T) {
+		field := logging.Sensitive("name", "John Doe")
+		assert.Equal(t, "name", field.Key)
+		assert.Equal(t, "John Doe", field.String)
+	})
+
+	t.Run("path field - valid", func(t *testing.T) {
+		field := logging.Path("path", "/api/v1/users")
+		assert.Equal(t, "path", field.Key)
+		assert.Equal(t, "/api/v1/users", field.String)
+	})
+
+	t.Run("path field - invalid", func(t *testing.T) {
+		field := logging.Path("path", "/api/v1/users<script>alert(1)</script>")
+		assert.Equal(t, "path", field.Key)
+		assert.Equal(t, "[invalid path]", field.String)
+	})
+
+	t.Run("long string field", func(t *testing.T) {
+		longString := strings.Repeat("a", 2000)
+		field := logging.TruncatedField("description", longString, 1000)
+		assert.Equal(t, "description", field.Key)
+		assert.Equal(t, strings.Repeat("a", 1000)+"...", field.String)
+	})
 }
 
 func TestLogger_ErrorHandling(t *testing.T) {
