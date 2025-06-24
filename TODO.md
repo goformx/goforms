@@ -28,13 +28,21 @@
   - [x] Use custom logic only for dynamic schemas (user-defined forms)
   - [x] Remove/replace custom comprehensive validator for static cases
   - [x] Document when to use validator/v10 vs custom logic
-  - [ ] Implement client-side validation generation for dynamic schemas
+  - [x] **Fix CORS database error** - Changed CORS fields from StringArray to JSON type to fix PostgreSQL JSON column compatibility
+  - [x] **Test form creation** - Successfully creates forms without database errors
+  - [ ] **Debug validation endpoint** - Current issue: nil pointer dereference in `/api/v1/forms/:id/validation` endpoint
+    - [ ] Fix nil pointer dereference in `handleFormValidationSchema` method
+    - [ ] Add proper error handling for form not found cases
+    - [ ] Test validation endpoint with valid form ID
+  - [ ] Test the new validation endpoint from the frontend (ensure the client fetches /api/v1/forms/:id/validation for dynamic forms)
+  - [ ] Implement or enhance client-side code to use the new validation schema for real-time validation
   - [ ] Add server-side validation for dynamic form submissions
   - [ ] Create validation error response standardization for dynamic forms
   - [ ] Add form field type validation for dynamic schemas
-  - [ ] Implement conditional validation rules for dynamic schemas
-  - [ ] Test the new validation endpoint from the frontend (ensure the client fetches /api/v1/forms/:id/validation for dynamic forms)
-  - [ ] Implement or enhance client-side code to use the new validation schema for real-time validation
+  - [ ] Implement conditional validation rules for dynamic forms
+  - [ ] Add validation logging and monitoring
+  - [ ] Create validation performance optimization
+  - [ ] Add validation caching for frequently accessed schemas
 - [ ] **Add comprehensive logging for debugging**
   - [ ] Add structured logging with context
   - [ ] Implement request/response logging middleware
@@ -225,31 +233,37 @@
 
 ## Next Priority Task
 
-**🎯 RECOMMENDED NEXT TASK: Implement comprehensive form validation system**
+**🎯 RECOMMENDED NEXT TASK: Debug validation endpoint nil pointer dereference**
 
 **Why this should be next:**
-1. **High Impact**: Will significantly improve form reliability and user experience
-2. **Foundation**: Better validation will prevent data integrity issues
-3. **User Experience**: Proper validation feedback improves form usability
-4. **Security**: Server-side validation prevents malicious submissions
-5. **Consistency**: Standardized validation across all form types
+1. **Critical Issue**: The validation endpoint is crashing with a nil pointer dereference
+2. **Blocking Progress**: Cannot test validation functionality until this is fixed
+3. **High Impact**: Validation is a core feature that needs to work properly
+4. **Quick Fix**: Should be a straightforward debugging and error handling fix
+5. **Foundation**: Need this working before implementing client-side validation
 
 **Specific steps:**
-1. Create form schema validation rules and constraints
-2. Implement client-side validation generation from schema
-3. Add server-side validation for form submissions
-4. Create validation error response standardization
-5. Add form field type validation (text, email, number, etc.)
-6. Implement conditional validation rules (required_if, etc.)
-7. Add validation testing and error handling
+1. **Debug the nil pointer dereference** in `handleFormValidationSchema` method
+2. **Add proper error handling** for form not found cases
+3. **Test with valid form ID** to ensure endpoint works correctly
+4. **Add logging** to track validation endpoint usage
+5. **Verify error responses** are properly formatted
 
-**Estimated time:** 3-4 hours
+**Root cause analysis from logs:**
+- Form not found in database: `"form 8aebb843-4428-467a-b4fa-7f31999eae54 Error: record not found"`
+- Nil pointer dereference in `form_api.go:103`
+- Need to handle case where form doesn't exist
+
+**Estimated time:** 30-60 minutes
 
 **Benefits:**
-- Improved data quality and form reliability
-- Better user experience with clear validation feedback
-- Enhanced security through server-side validation
-- Consistent validation behavior across the application
+- Fixes critical crash in validation endpoint
+- Enables testing of validation functionality
+- Improves error handling and user experience
+- Allows progression to client-side validation implementation
+
+**Previous recommendation:** Implement comprehensive form validation system
+**Current status:** CORS database error fixed, form creation working, validation endpoint needs debugging
 
 ## Notes
 
