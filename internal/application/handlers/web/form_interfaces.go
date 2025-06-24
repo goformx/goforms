@@ -57,4 +57,6 @@ type FormErrorHandler interface {
 	HandleSubmissionError(c echo.Context, err error) error
 	HandleValidationError(c echo.Context, err error) error
 	HandleOwnershipError(c echo.Context, err error) error
+	HandleFormNotFoundError(c echo.Context, formID string) error
+	HandleFormAccessError(c echo.Context, err error) error
 }

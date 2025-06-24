@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"errors"
 	"time"
 
 	"github.com/goformx/goforms/internal/application/constants"
@@ -89,6 +90,12 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to get form schema")
 	}
 
+	// Check if form is nil (should not happen with proper error handling, but safety check)
+	if form == nil {
+		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
+		return h.ErrorHandler.HandleFormNotFoundError(c, "")
+	}
+
 	return h.ResponseBuilder.BuildSchemaResponse(c, form.Schema)
 }
 
@@ -97,6 +104,18 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 	form, err := h.GetFormByID(c)
 	if err != nil {
 		return h.HandleError(c, err, "Failed to get form for validation schema")
+	}
+
+	// Check if form is nil (should not happen with proper error handling, but safety check)
+	if form == nil {
+		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
+		return h.ErrorHandler.HandleFormNotFoundError(c, "")
+	}
+
+	// Check if form schema is nil or empty
+	if form.Schema == nil {
+		h.Logger.Warn("form schema is nil", "form_id", form.ID)
+		return c.JSON(constants.StatusOK, map[string]any{})
 	}
 
 	// Generate client-side validation rules from form schema
@@ -142,6 +161,18 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	form, err := h.GetFormByID(c)
 	if err != nil {
 		return h.HandleError(c, err, "Failed to get form for submission")
+	}
+
+	// Check if form is nil (should not happen with proper error handling, but safety check)
+	if form == nil {
+		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
+		return h.ErrorHandler.HandleFormNotFoundError(c, "")
+	}
+
+	// Check if form schema is nil or empty
+	if form.Schema == nil {
+		h.Logger.Warn("form schema is nil", "form_id", form.ID)
+		return h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required"))
 	}
 
 	// Process and validate submission request
