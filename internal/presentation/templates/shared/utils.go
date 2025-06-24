@@ -29,7 +29,7 @@ func GetCorsOriginsString(corsOrigins model.JSON) string {
 	if originsArr, ok := corsOrigins["origins"].([]any); ok {
 		var origins []string
 		for _, origin := range originsArr {
-			if originStr, ok := origin.(string); ok {
+			if originStr, originOk := origin.(string); originOk {
 				origins = append(origins, originStr)
 			}
 		}

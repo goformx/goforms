@@ -329,39 +329,29 @@ func (f *Form) Activate() {
 	f.UpdatedAt = time.Now()
 }
 
+// extractStringSlice extracts a string slice from JSON array
+func extractStringSlice(data JSON, key string) []string {
+	var result []string
+	if data == nil {
+		return result
+	}
+
+	if arr, ok := data[key].([]any); ok {
+		for _, item := range arr {
+			if str, strOk := item.(string); strOk {
+				result = append(result, str)
+			}
+		}
+	}
+
+	return result
+}
+
 // GetCorsConfig returns the CORS configuration for this form
 func (f *Form) GetCorsConfig() (origins, methods, headers []string) {
-	// Convert JSON to string slices
-	if f.CorsOrigins != nil {
-		if originsArr, ok := f.CorsOrigins["origins"].([]any); ok {
-			for _, origin := range originsArr {
-				if originStr, ok := origin.(string); ok {
-					origins = append(origins, originStr)
-				}
-			}
-		}
-	}
-
-	if f.CorsMethods != nil {
-		if methodsArr, ok := f.CorsMethods["methods"].([]any); ok {
-			for _, method := range methodsArr {
-				if methodStr, ok := method.(string); ok {
-					methods = append(methods, methodStr)
-				}
-			}
-		}
-	}
-
-	if f.CorsHeaders != nil {
-		if headersArr, ok := f.CorsHeaders["headers"].([]any); ok {
-			for _, header := range headersArr {
-				if headerStr, ok := header.(string); ok {
-					headers = append(headers, headerStr)
-				}
-			}
-		}
-	}
-
+	origins = extractStringSlice(f.CorsOrigins, "origins")
+	methods = extractStringSlice(f.CorsMethods, "methods")
+	headers = extractStringSlice(f.CorsHeaders, "headers")
 	return origins, methods, headers
 }
 

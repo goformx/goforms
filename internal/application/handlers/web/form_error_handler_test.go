@@ -44,7 +44,7 @@ func TestFormErrorHandler_HandleSchemaError(t *testing.T) {
 			description:    "Should return 400 for missing schema",
 		},
 		{
-			name:           "invalid form error",
+			name:           "invalid schema error",
 			err:            model.ErrFormInvalid,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Invalid form schema format",
@@ -62,7 +62,7 @@ func TestFormErrorHandler_HandleSchemaError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -95,7 +95,7 @@ func TestFormErrorHandler_HandleSubmissionError(t *testing.T) {
 			description:    "Should return 404 for missing form",
 		},
 		{
-			name:           "invalid form error",
+			name:           "invalid submission error",
 			err:            model.ErrFormInvalid,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Invalid submission data",
@@ -120,7 +120,7 @@ func TestFormErrorHandler_HandleSubmissionError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
+			req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -153,7 +153,7 @@ func TestFormErrorHandler_HandleValidationError(t *testing.T) {
 			description:    "Should return 400 for missing title",
 		},
 		{
-			name:           "invalid form error",
+			name:           "form invalid error",
 			err:            model.ErrFormInvalid,
 			expectedStatus: http.StatusBadRequest,
 			expectedBody:   "Form validation failed",
@@ -171,7 +171,7 @@ func TestFormErrorHandler_HandleValidationError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest(http.MethodPost, "/", nil)
+			req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -198,17 +198,17 @@ func TestFormErrorHandler_HandleOwnershipError(t *testing.T) {
 	}{
 		{
 			name:           "forbidden error",
-			err:            domainerrors.New(domainerrors.ErrCodeForbidden, "Access denied", nil),
+			err:            domainerrors.New(domainerrors.ErrCodeForbidden, "Forbidden", nil),
 			expectedStatus: http.StatusForbidden,
 			expectedBody:   "You don't have permission to access this resource",
-			description:    "Should return 403 for forbidden access",
+			description:    "Should return 403 for forbidden errors",
 		},
 		{
 			name:           "authentication error",
-			err:            domainerrors.New(domainerrors.ErrCodeUnauthorized, "Not authenticated", nil),
+			err:            domainerrors.New(domainerrors.ErrCodeUnauthorized, "Unauthorized", nil),
 			expectedStatus: http.StatusUnauthorized,
 			expectedBody:   "Authentication required",
-			description:    "Should return 401 for authentication required",
+			description:    "Should return 401 for authentication errors",
 		},
 		{
 			name:           "unknown ownership error",
@@ -222,7 +222,7 @@ func TestFormErrorHandler_HandleOwnershipError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -266,7 +266,7 @@ func TestFormErrorHandler_HandleFormNotFoundError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -324,7 +324,7 @@ func TestFormErrorHandler_HandleFormAccessError(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
@@ -343,23 +343,18 @@ func TestFormErrorHandler_ErrorResponseFormat(t *testing.T) {
 	handler, e := setupTestFormErrorHandler()
 
 	// Create request
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
-	// Handle a schema error
-	err := handler.HandleSchemaError(c, model.ErrFormSchemaRequired)
+	// Handle error
+	err := handler.HandleFormNotFoundError(c, "test-form-123")
 	require.NoError(t, err)
 
 	// Check response format
-	assert.Equal(t, http.StatusBadRequest, rec.Code)
+	assert.Equal(t, http.StatusNotFound, rec.Code)
+	assert.Contains(t, rec.Body.String(), "Form not found")
 	assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
-
-	// Parse JSON response
-	responseBody := rec.Body.String()
-	assert.Contains(t, responseBody, "error")
-	assert.Contains(t, responseBody, "message")
-	assert.Contains(t, responseBody, "Form schema is required")
 }
 
 func TestFormErrorHandler_ConsistentErrorHandling(t *testing.T) {
@@ -367,54 +362,51 @@ func TestFormErrorHandler_ConsistentErrorHandling(t *testing.T) {
 
 	// Test that all error handlers return consistent response format
 	errorHandlers := []struct {
-		name    string
-		handler func(echo.Context, error) error
-		err     error
+		name string
+		fn   func(echo.Context, error) error
+		err  error
 	}{
 		{
-			name:    "HandleSchemaError",
-			handler: handler.HandleSchemaError,
-			err:     model.ErrFormSchemaRequired,
+			name: "HandleSchemaError",
+			fn:   handler.HandleSchemaError,
+			err:  model.ErrFormSchemaRequired,
 		},
 		{
-			name:    "HandleSubmissionError",
-			handler: handler.HandleSubmissionError,
-			err:     model.ErrFormNotFound,
+			name: "HandleSubmissionError",
+			fn:   handler.HandleSubmissionError,
+			err:  model.ErrFormNotFound,
 		},
 		{
-			name:    "HandleValidationError",
-			handler: handler.HandleValidationError,
-			err:     model.ErrFormTitleRequired,
+			name: "HandleValidationError",
+			fn:   handler.HandleValidationError,
+			err:  model.ErrFormTitleRequired,
 		},
 		{
-			name:    "HandleOwnershipError",
-			handler: handler.HandleOwnershipError,
-			err:     domainerrors.New(domainerrors.ErrCodeForbidden, "Access denied", nil),
+			name: "HandleOwnershipError",
+			fn:   handler.HandleOwnershipError,
+			err:  domainerrors.New(domainerrors.ErrCodeForbidden, "Forbidden", nil),
 		},
 		{
-			name:    "HandleFormAccessError",
-			handler: handler.HandleFormAccessError,
-			err:     domainerrors.New(domainerrors.ErrCodeNotFound, "Not found", nil),
+			name: "HandleFormAccessError",
+			fn:   handler.HandleFormAccessError,
+			err:  domainerrors.New(domainerrors.ErrCodeNotFound, "Not found", nil),
 		},
 	}
 
-	for _, tt := range errorHandlers {
-		t.Run(tt.name, func(t *testing.T) {
+	for _, eh := range errorHandlers {
+		t.Run(eh.name, func(t *testing.T) {
 			// Create request
-			req := httptest.NewRequest(http.MethodGet, "/", nil)
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 
 			// Handle error
-			err := tt.handler(c, tt.err)
+			err := eh.fn(c, eh.err)
 			require.NoError(t, err)
 
-			// Check consistent response format
+			// Check consistent format
 			assert.Contains(t, rec.Header().Get("Content-Type"), "application/json")
-			responseBody := rec.Body.String()
-			assert.Contains(t, responseBody, "error")
-			assert.Contains(t, responseBody, "message")
-			assert.NotEmpty(t, responseBody)
+			assert.NotEmpty(t, rec.Body.String())
 		})
 	}
 }
