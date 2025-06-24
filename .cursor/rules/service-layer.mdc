@@ -6,156 +6,357 @@ alwaysApply: false
 # Service Layer Architecture
 
 ## Overview
-The service layer implements domain-specific business logic with clear separation of concerns. Services are organized by domain (form, user, etc.) and follow a consistent pattern across both backend and frontend.
+The service layer implements domain-specific business logic with clear separation of concerns. Services are organized by domain (form, user, etc.) and follow a consistent pattern across both backend and frontend. The frontend uses a three-tier service architecture: API services, UI services, and orchestration services.
 
-## Core Components
+## Frontend Service Architecture
 
-1. Backend Service Interface
-   - Defined in domain package
-   - Focused on business operations
-   - Clear method signatures
-   - Example from form service:
-   ```go
-   type Service interface {
-       CreateForm(ctx context.Context, userID string, form *model.Form) error
-       GetForm(ctx context.Context, id string) (*model.Form, error)
-       GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
-       UpdateForm(ctx context.Context, userID string, form *model.Form) error
-       DeleteForm(ctx context.Context, userID, id string) error
-   }
-   ```
+### Three-Tier Service Pattern
+The frontend implements a three-tier service architecture for better separation of concerns:
 
-2. Frontend Service Interface
-   - TypeScript interfaces
-   - API client methods
-   - Error handling
-   - Example:
-   ```typescript
-   interface FormService {
-       createForm(userId: string, form: Form): Promise<Form>;
-       getForm(id: string): Promise<Form>;
-       getUserForms(userId: string): Promise<Form[]>;
-       updateForm(userId: string, form: Form): Promise<Form>;
-       deleteForm(userId: string, id: string): Promise<void>;
-   }
-   ```
+1. **API Services** - Handle HTTP operations only
+2. **UI Services** - Handle DOM manipulation only  
+3. **Orchestration Services** - Coordinate between API and UI services
+
+```typescript
+// 1. API Service - HTTP operations only
+export class FormApiService {
+  async getSchema(formId: string): Promise<FormSchema> {
+    const response = await HttpClient.get(`/api/forms/${formId}/schema`);
+    return response.json();
+  }
+  
+  async saveSchema(formId: string, schema: any): Promise<any> {
+    const response = await HttpClient.put(`/api/forms/${formId}/schema`, schema);
+    return response.json();
+  }
+  
+  async deleteForm(formId: string): Promise<void> {
+    await HttpClient.delete(`/api/forms/${formId}`);
+  }
+}
+
+// 2. UI Service - DOM manipulation only
+export class FormUIService {
+  initializeFormDeletionHandlers(callback: (formId: string) => Promise<void>): void {
+    const deleteButtons = document.querySelectorAll('[data-form-delete]');
+    deleteButtons.forEach(button => {
+      button.addEventListener('click', async (e) => {
+        const formId = (e.target as HTMLElement).dataset.formId;
+        if (formId) {
+          await callback(formId);
+        }
+      });
+    });
+  }
+  
+  updateFormCard(formId: string, updates: any): void {
+    const card = document.querySelector(`[data-form-id="${formId}"]`);
+    if (card) {
+      // Update card content
+    }
+  }
+  
+  showSuccess(message: string): void {
+    // Show success message
+  }
+}
+
+// 3. Orchestration Service - Coordinates API and UI
+export class FormService {
+  private apiService: FormApiService;
+  private uiService: FormUIService;
+  
+  constructor() {
+    this.apiService = new FormApiService();
+    this.uiService = new FormUIService();
+  }
+  
+  async updateFormDetails(formId: string, details: any): Promise<void> {
+    try {
+      await this.apiService.updateFormDetails(formId, details);
+      this.uiService.updateFormCard(formId, details);
+      this.uiService.showSuccess("Form updated successfully");
+    } catch (error) {
+      this.uiService.showError("Failed to update form");
+      throw error;
+    }
+  }
+}
+```
+
+### Service Responsibilities
+
+#### API Services
+- **Purpose**: Handle all HTTP communication
+- **Responsibilities**:
+  - Making HTTP requests
+  - Handling response parsing
+  - Managing request headers
+  - Error handling for network issues
+- **Dependencies**: HttpClient, error classes
+- **No DOM manipulation**: Pure HTTP operations
+
+#### UI Services
+- **Purpose**: Handle all DOM manipulation
+- **Responsibilities**:
+  - DOM element selection and manipulation
+  - Event listener management
+  - UI state updates
+  - User feedback (messages, loading states)
+- **Dependencies**: DOM utilities, shared types
+- **No HTTP calls**: Pure DOM operations
+
+#### Orchestration Services
+- **Purpose**: Coordinate between API and UI services
+- **Responsibilities**:
+  - Business logic coordination
+  - Error handling and recovery
+  - State management
+  - User experience flow
+- **Dependencies**: API services, UI services, state management
+- **Facade Pattern**: Provides clean interface to consumers
+
+## Backend Service Architecture
+
+### Service Interface Pattern
+Backend services follow the domain-driven design pattern:
+
+```go
+type Service interface {
+    CreateForm(ctx context.Context, userID string, form *model.Form) error
+    GetForm(ctx context.Context, id string) (*model.Form, error)
+    GetUserForms(ctx context.Context, userID string) ([]*model.Form, error)
+    UpdateForm(ctx context.Context, userID string, form *model.Form) error
+    DeleteForm(ctx context.Context, userID, id string) error
+}
+```
+
+### Service Implementation
+```go
+type service struct {
+    repo   Repository
+    logger logging.Logger
+    events EventPublisher
+}
+
+func (s *service) CreateForm(ctx context.Context, userID string, form *model.Form) error {
+    // Business logic
+    if err := form.Validate(); err != nil {
+        return domainerrors.Wrap(err, domainerrors.ErrCodeValidation, "invalid form data")
+    }
+    
+    // Persistence
+    if err := s.repo.Create(ctx, form); err != nil {
+        return domainerrors.Wrap(err, domainerrors.ErrCodeServerError, "failed to create form")
+    }
+    
+    // Event publishing
+    if err := s.events.Publish(ctx, events.FormCreated{FormID: form.ID}); err != nil {
+        s.logger.Error("failed to publish form created event", "error", err)
+    }
+    
+    return nil
+}
+```
 
 ## Best Practices
 
-1. Error Handling
-   - Use domain error codes
-   - Provide context in errors
-   - Log errors with details
-   - Handle frontend errors gracefully
+### 1. Service Separation
+- **Single Responsibility**: Each service has one clear purpose
+- **Dependency Injection**: Services receive dependencies through constructor
+- **Interface Segregation**: Define focused interfaces
+- **No Cross-Contamination**: API services don't manipulate DOM, UI services don't make HTTP calls
 
-2. Input Validation
-   - Sanitize user input
-   - Validate domain rules
-   - Check permissions
-   - Use TypeScript types
+### 2. Error Handling
+```typescript
+// API Service Error Handling
+async getForm(formId: string): Promise<Form> {
+  try {
+    const response = await HttpClient.get(`/api/forms/${formId}`);
+    if (!response.ok) {
+      throw new FormBuilderError(
+        "Failed to fetch form",
+        `Unable to load form ${formId}. Please try again.`
+      );
+    }
+    return await response.json();
+  } catch (error) {
+    if (error instanceof FormBuilderError) {
+      throw error;
+    }
+    throw new FormBuilderError(
+      "Network error",
+      "Unable to connect to server. Please check your connection."
+    );
+  }
+}
 
-3. Event Publishing
-   - Publish domain events
-   - Handle publish errors
-   - Log failures
-   - Frontend event handling
+// UI Service Error Handling
+showError(message: string): void {
+  const errorContainer = document.getElementById('error-messages');
+  if (errorContainer) {
+    errorContainer.textContent = message;
+    errorContainer.style.display = 'block';
+  }
+}
+```
 
-4. Context Usage
-   - Pass context through
-   - Set timeouts
-   - Cancel operations
-   - Handle loading states
+### 3. State Management
+```typescript
+// State Management Class
+export class FormState {
+  private state = new Map<string, any>();
+  
+  set(key: string, value: any): void {
+    this.state.set(key, value);
+  }
+  
+  get<T>(key: string): T | undefined {
+    return this.state.get(key) as T | undefined;
+  }
+  
+  clear(): void {
+    this.state.clear();
+  }
+}
 
-5. Logging
-   - Use structured logging
-   - Include user context
-   - Log at appropriate levels
-   - Frontend error tracking
+// Usage in Services
+export class FormService {
+  private state: FormState;
+  
+  constructor() {
+    this.state = new FormState();
+  }
+  
+  async loadForm(formId: string): Promise<void> {
+    const form = await this.apiService.getForm(formId);
+    this.state.set('currentForm', form);
+    this.uiService.displayForm(form);
+  }
+}
+```
+
+### 4. Input Validation
+- **Frontend**: Client-side validation with immediate feedback
+- **Backend**: Server-side validation with domain rules
+- **Type Safety**: Use TypeScript interfaces and validation libraries
+- **Sanitization**: Clean user input before processing
+
+### 5. Event Publishing
+```go
+// Backend Event Publishing
+func (s *service) CreateForm(ctx context.Context, userID string, form *model.Form) error {
+    // ... business logic ...
+    
+    event := events.FormCreated{
+        FormID:   form.ID,
+        UserID:   userID,
+        Title:    form.Title,
+        CreatedAt: time.Now(),
+    }
+    
+    if err := s.events.Publish(ctx, event); err != nil {
+        s.logger.Error("failed to publish form created event", "error", err)
+        // Don't fail the operation for event publishing errors
+    }
+    
+    return nil
+}
+```
 
 ## Common Patterns
 
-1. Repository Pattern
-   - Abstract data access
-   - Domain-specific operations
-   - Error handling
-   - Frontend data fetching
+### 1. Repository Pattern
+- **Backend**: Abstract data access with domain-specific operations
+- **Frontend**: API services act as repositories for remote data
 
-2. Event Publishing
-   - Domain events
-   - Event handlers
-   - Error handling
-   - Frontend state management
+### 2. Facade Pattern
+- **Orchestration Services**: Provide simplified interface to complex subsystems
+- **Service Composition**: Combine multiple services into higher-level operations
+
+### 3. Observer Pattern
+- **Event Handling**: Services can subscribe to events from other services
+- **State Synchronization**: Keep UI in sync with data changes
 
 ## Testing Guidelines
 
-1. Unit Tests
-   - Mock dependencies
-   - Test error cases
-   - Verify behavior
-   - Frontend component tests
+### 1. Unit Tests
+```typescript
+// API Service Tests
+describe('FormApiService', () => {
+  it('should fetch form schema', async () => {
+    const service = new FormApiService();
+    const schema = await service.getSchema('form-123');
+    expect(schema).toBeDefined();
+  });
+});
 
-2. Integration Tests
-   - Use test database
-   - Test full flow
-   - Clean up resources
-   - Frontend integration tests
+// UI Service Tests
+describe('FormUIService', () => {
+  it('should update form card', () => {
+    const service = new FormUIService();
+    service.updateFormCard('form-123', { title: 'New Title' });
+    // Verify DOM updates
+  });
+});
+```
+
+### 2. Integration Tests
+- **Service Integration**: Test orchestration services with mocked dependencies
+- **End-to-End**: Test complete user workflows
+- **Error Scenarios**: Test error handling and recovery
 
 ## Service Dependencies
 
-1. Domain Services
+### Frontend Dependencies
+1. **Core Services**
+   - HttpClient for API communication
+   - Logger for debugging and monitoring
+   - Error classes for consistent error handling
+
+2. **Feature Services**
+   - FormApiService, FormUIService, FormService
+   - AuthApiService, AuthUIService, AuthService
+   - State management services
+
+3. **Shared Dependencies**
+   - DOM utilities
+   - Type definitions
+   - Validation utilities
+
+### Backend Dependencies
+1. **Domain Services**
    - Form service
    - User service
    - Submission service
    - Template service
 
-2. Infrastructure
-   - Database
-   - Cache
+2. **Infrastructure**
+   - Database repositories
+   - Cache services
    - File storage
    - External services
 
-3. Cross-Cutting Concerns
+3. **Cross-Cutting Concerns**
    - Logging
    - Metrics
    - Error handling
    - Configuration
 
-## Frontend Considerations
-
-1. State Management
-   - Use React Query
-   - Handle loading states
-   - Error boundaries
-   - Optimistic updates
-
-2. API Integration
-   - Type-safe API clients
-   - Error handling
-   - Retry logic
-   - Caching
-
-3. Performance
-   - Code splitting
-   - Lazy loading
-   - Memoization
-   - Bundle optimization
-
 ## Security Guidelines
 
-1. Input Validation
-   - Validate all input
-   - Use domain rules
-   - Handle edge cases
-   - XSS prevention
+### 1. Input Validation
+- **Frontend**: Client-side validation for user experience
+- **Backend**: Server-side validation for security
+- **Sanitization**: Clean all user input
+- **Type Safety**: Use TypeScript for compile-time validation
 
-2. Error Handling
-   - Don't expose internals
-   - Use domain errors
-   - Log appropriately
-   - User-friendly messages
+### 2. Error Handling
+- **Don't expose internals**: Use generic error messages for users
+- **Log appropriately**: Include context for debugging
+- **Graceful degradation**: Handle failures gracefully
 
-3. Access Control
-   - Check permissions
-   - Validate access
-   - Handle unauthorized
-   - Frontend auth checks
+### 3. Access Control
+- **Permission checking**: Validate user permissions
+- **Resource ownership**: Ensure users can only access their resources
+- **Frontend validation**: Provide immediate feedback for unauthorized actions
