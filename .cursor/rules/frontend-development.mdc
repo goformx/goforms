@@ -6,21 +6,21 @@ alwaysApply: false
 # Frontend Development Guidelines
 
 ## Overview
-The frontend is built using vanilla TypeScript with templ templates, not React as previously documented. It follows a modular architecture with a focus on type safety, performance, and maintainability.
+The frontend is built using vanilla TypeScript with templ templates, following a modern modular architecture with path mapping, service separation, and clean dependency management. The codebase has been refactored to follow enterprise-grade patterns.
 
 ## Core Technologies
 
 1. **TypeScript**
-   - Strict type checking
-   - Interface definitions
-   - Type guards
-   - Utility types
+   - Strict type checking enabled
+   - Interface definitions and type guards
+   - Utility types and generics
+   - Path mapping for clean imports
 
 2. **Vanilla TypeScript (No React)**
-   - Modular TypeScript files
-   - DOM manipulation
-   - Event handling
-   - Form validation
+   - Modular TypeScript files with clear separation
+   - DOM manipulation with type safety
+   - Event handling with proper cleanup
+   - Form validation with real-time feedback
 
 3. **Templ Templates**
    - Server-side HTML templates
@@ -29,34 +29,46 @@ The frontend is built using vanilla TypeScript with templ templates, not React a
    - Template inheritance
 
 4. **Styling**
-   - CSS modules
-   - PostCSS processing
-   - Responsive design
-   - Design system
+   - CSS modules for component isolation
+   - PostCSS processing with autoprefixer
+   - Responsive design principles
+   - Design system consistency
 
 5. **Build Tools**
    - Vite for development and building
    - ESLint for code quality
    - Prettier for formatting
-   - TypeScript compiler
+   - TypeScript compiler with strict mode
 
 ## Project Structure
 
 ```
 src/
 ├── js/                    # TypeScript source files
-│   ├── constants/        # Application constants
-│   ├── handlers/         # Event handlers
-│   ├── schema/          # Form schema definitions
-│   ├── services/        # API services
-│   ├── types/           # TypeScript type definitions
-│   ├── utils/           # Utility functions
-│   ├── validation/      # Validation logic
-│   ├── form-builder.ts  # Form builder functionality
-│   ├── form-handler.ts  # Form submission handling
-│   ├── login.ts         # Login functionality
-│   ├── main.ts          # Main entry point
-│   └── validation.ts    # Validation utilities
+│   ├── core/             # Core application functionality
+│   │   ├── config/       # Configuration files
+│   │   ├── errors/       # Error classes and handling
+│   │   ├── http-client.ts # HTTP client utilities
+│   │   └── logger.ts     # Logging utilities
+│   ├── features/         # Feature-based organization
+│   │   ├── auth/         # Authentication feature
+│   │   │   ├── login.ts
+│   │   │   └── signup.ts
+│   │   └── forms/        # Forms feature (main functionality)
+│   │       ├── components/ # UI components
+│   │       ├── handlers/   # Event and request handlers
+│   │       ├── services/   # Business logic services
+│   │       ├── state/      # State management
+│   │       ├── validation/ # Form validation logic
+│   │       └── index.ts    # Feature entry point
+│   ├── pages/            # Page-level components
+│   │   ├── dashboard.ts
+│   │   ├── form-builder.ts
+│   │   ├── login.ts
+│   │   └── main.ts
+│   └── shared/           # Shared utilities and types
+│       ├── types/        # TypeScript type definitions
+│       └── utils/        # Utility functions
 ├── css/                  # Stylesheets
 │   ├── base/            # Base styles
 │   ├── components/      # Component styles
@@ -68,6 +80,120 @@ src/
 └── types/               # TypeScript type definitions
 ```
 
+## Import Standards
+
+### Path Mapping
+Use path mapping for all imports to ensure consistency and maintainability:
+
+```typescript
+// ✅ Correct - Use path mapping
+import { FormBuilderError } from "@/core/errors/form-builder-error";
+import { HttpClient } from "@/core/http-client";
+import { FormService } from "@/features/forms/services/form-service";
+import { dom } from "@/shared/utils/dom-utils";
+import type { FormConfig } from "@/shared/types/form-types";
+
+// ❌ Avoid - Relative imports
+import { FormBuilderError } from "../../../core/errors/form-builder-error";
+import { FormService } from "../services/form-service";
+```
+
+### Path Mapping Configuration
+- `@/core/*` - Core application functionality
+- `@/features/*` - Feature-specific code
+- `@/shared/*` - Shared utilities and types
+- `@/pages/*` - Page-level components
+
+## Service Architecture
+
+### Service Separation Pattern
+Services are separated by responsibility for better maintainability:
+
+```typescript
+// FormApiService - HTTP operations only
+export class FormApiService {
+  async getSchema(formId: string): Promise<FormSchema> { /* ... */ }
+  async saveSchema(formId: string, schema: any): Promise<any> { /* ... */ }
+  async deleteForm(formId: string): Promise<void> { /* ... */ }
+}
+
+// FormUIService - DOM manipulation only
+export class FormUIService {
+  initializeFormDeletionHandlers(callback: (formId: string) => Promise<void>): void { /* ... */ }
+  updateFormCard(formId: string, updates: any): void { /* ... */ }
+  showSuccess(message: string): void { /* ... */ }
+}
+
+// FormService - Orchestration (facade pattern)
+export class FormService {
+  private apiService: FormApiService;
+  private uiService: FormUIService;
+  
+  async updateFormDetails(formId: string, details: any): Promise<void> {
+    await this.apiService.updateFormDetails(formId, details);
+    this.uiService.updateFormCard(formId, details);
+    this.uiService.showSuccess("Form updated successfully");
+  }
+}
+```
+
+### State Management
+Use proper state management instead of global variables:
+
+```typescript
+// ✅ Correct - State management class
+export class FormState {
+  private state = new Map<string, any>();
+  
+  set(key: string, value: any): void {
+    this.state.set(key, value);
+  }
+  
+  get<T>(key: string): T | undefined {
+    return this.state.get(key) as T | undefined;
+  }
+}
+
+// ❌ Avoid - Global window assignments
+window.formBuilder = builder;
+window.formBuilderInstance = typedBuilder;
+```
+
+## HTTP Client Standards
+
+### Consistent HTTP Operations
+Use the centralized HttpClient for all HTTP operations:
+
+```typescript
+// ✅ Correct - Use HttpClient
+const response = await HttpClient.get(url);
+const response = await HttpClient.post(url, data);
+const response = await HttpClient.put(url, data);
+const response = await HttpClient.delete(url);
+
+// ❌ Avoid - Direct fetch calls
+const response = await fetch(url, { /* ... */ });
+```
+
+### Error Handling
+Implement consistent error handling patterns:
+
+```typescript
+try {
+  const response = await HttpClient.get(url);
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+  return await response.json();
+} catch (error) {
+  console.error("API request failed:", error);
+  throw new FormBuilderError(
+    "Failed to fetch data",
+    "Unable to load data. Please try again."
+  );
+}
+```
+
 ## Build System
 
 ### Vite Configuration
@@ -76,6 +202,7 @@ src/
 - **TypeScript**: ESNext target for modern browsers
 - **CSS**: PostCSS processing with autoprefixer
 - **Assets**: Automatic handling of fonts, images, and other static files
+- **Path Mapping**: Configured in both tsconfig.json and vite.config.ts
 
 ### Development Mode
 - Assets served from Vite dev server at `http://localhost:3000`
@@ -96,7 +223,7 @@ src/
 
 ### TypeScript Modules
 ```typescript
-// Modular TypeScript files
+// Modular TypeScript files with proper imports
 export class FormHandler {
     private form: HTMLFormElement;
     
@@ -117,7 +244,7 @@ export class FormHandler {
 
 ### Event Handling
 ```typescript
-// Event-driven architecture
+// Event-driven architecture with proper cleanup
 class EventManager {
     private listeners: Map<string, Function[]> = new Map();
     
@@ -132,6 +259,14 @@ class EventManager {
         const callbacks = this.listeners.get(event) || [];
         callbacks.forEach(callback => callback(data));
     }
+    
+    off(event: string, callback: Function): void {
+        const callbacks = this.listeners.get(event) || [];
+        const index = callbacks.indexOf(callback);
+        if (index > -1) {
+            callbacks.splice(index, 1);
+        }
+    }
 }
 ```
 
@@ -144,164 +279,90 @@ class EventManager {
 - Form state handling
 
 ### Server State
-- API service modules
-- Request/response caching
-- Error handling
-- Loading states
+- API service modules with proper error handling
+- Request/response caching strategies
+- Loading states and user feedback
+- Optimistic updates where appropriate
 
 ### Form State
-- Real-time validation
-- Error display
-- Success feedback
+- Real-time validation with immediate feedback
+- Error display and success indicators
 - Form reset functionality
+- State persistence where needed
 
 ## API Integration
 
 ### API Client
 ```typescript
-// Type-safe API service
+// Type-safe API service using HttpClient
 export class FormService {
-    private baseURL: string;
+    private apiService: FormApiService;
     
     constructor() {
-        this.baseURL = window.location.origin;
+        this.apiService = FormApiService.getInstance();
     }
     
     async createForm(data: FormData): Promise<Form> {
-        const response = await fetch(`${this.baseURL}/api/v1/forms`, {
-            method: 'POST',
-            headers: {
-                'Content-Type': 'application/json',
-                'X-Csrf-Token': this.getCSRFToken(),
-            },
-            body: JSON.stringify(data),
-        });
-        
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        
-        return response.json();
+        return this.apiService.createForm(data);
     }
 }
 ```
 
 ### Authentication
-- CSRF token handling
-- Session management
+- CSRF token handling through HttpClient
+- Session management with proper security
 - Protected route handling
-- Error handling
+- Comprehensive error handling
 
 ### Error Handling
-- Structured error responses
-- User-friendly error messages
-- Error logging
-- Graceful degradation
+- Structured error responses with user-friendly messages
+- Proper error logging for debugging
+- Graceful degradation for network issues
+- Consistent error display patterns
 
 ## Validation
 
 ### Client-Side Validation
 ```typescript
-// Zod-based validation
-import { z } from "zod";
-
-const formSchema = z.object({
-    title: z.string().min(3).max(100),
-    email: z.string().email(),
-    message: z.string().max(500),
-});
-
-export const validation = {
-    validateForm(form: HTMLFormElement, schema: z.ZodType): ValidationResult {
-        const formData = new FormData(form);
-        const data = Object.fromEntries(formData);
-        
-        try {
-            const validated = schema.parse(data);
-            return { success: true, data: validated };
-        } catch (error) {
-            return { success: false, error };
-        }
+// Validation with proper error handling
+export class ValidationHandler {
+    static async validateFormSubmission(
+        form: HTMLFormElement,
+        validationType: string
+    ): Promise<boolean> {
+        // Validation logic with proper error handling
     }
-};
+}
 ```
 
 ### Real-Time Validation
-- Field-level validation
-- Immediate feedback
-- Error display
-- Success indicators
-
-## Performance
-
-### Code Organization
-- Modular TypeScript files
-- Lazy loading where appropriate
-- Efficient DOM queries
-- Event delegation
-
-### Asset Optimization
-- Vite's built-in optimization
-- CSS minification
-- JavaScript minification
-- Asset hashing for cache busting
-
-### Caching
-- Browser caching strategies
-- API response caching
-- Local storage for user preferences
-- Service worker for offline support
-
-## Security
-
-### Best Practices
-- CSRF protection
-- Input sanitization
-- XSS prevention
-- Secure headers
-
-### Authentication
-- CSRF token management
-- Session handling
-- Secure storage
-- Logout handling
-
-## Development Workflow
-
-### Code Quality
-- ESLint rules for TypeScript
-- Prettier configuration
-- TypeScript strict mode
-- Git hooks for pre-commit checks
-
-### Build Process
-- Development server with HMR
-- Production build optimization
-- Asset optimization
-- Environment configuration
-
-### Testing
-- Unit tests for utility functions
-- Integration tests for API services
-- E2E tests for critical flows
-- Performance testing
+- Field-level validation with immediate feedback
+- Error display and success indicators
+- Validation state management
+- Performance optimization with debouncing
 
 ## Best Practices
 
 ### Code Organization
-1. **Modular Structure**: Keep files focused and single-purpose
-2. **Type Safety**: Use TypeScript interfaces and types
-3. **Error Handling**: Implement comprehensive error handling
-4. **Performance**: Optimize for performance and user experience
+1. **Feature-based structure** - Organize by features, not types
+2. **Service separation** - Separate API, UI, and business logic
+3. **Path mapping** - Use consistent import paths
+4. **State management** - Avoid global variables
 
 ### Development Practices
-1. **TypeScript**: Use strict TypeScript configuration
-2. **ESLint**: Follow linting rules for code quality
-3. **Prettier**: Maintain consistent code formatting
-4. **Testing**: Write tests for critical functionality
+1. **TypeScript strict mode** - Enable all strict checks
+2. **ESLint rules** - Follow linting guidelines
+3. **Prettier formatting** - Maintain consistent code style
+4. **Testing** - Write tests for critical functionality
 
-### Asset Management
-1. **Development**: Use Vite dev server for hot reload
-2. **Production**: Optimize assets for production deployment
-3. **Versioning**: Use asset hashing for cache busting
-4. **Security**: Apply security headers to all assets
+### Performance
+1. **Code splitting** - Use dynamic imports for large modules
+2. **Asset optimization** - Optimize images and fonts
+3. **Caching strategies** - Implement proper caching
+4. **Bundle analysis** - Monitor bundle sizes
+
+### Security
+1. **CSRF protection** - Use tokens for all state-changing requests
+2. **Input sanitization** - Sanitize all user inputs
+3. **XSS prevention** - Use proper escaping and validation
+4. **Secure headers** - Implement security headers
