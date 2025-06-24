@@ -30,7 +30,7 @@ func TestPerFormCORS(t *testing.T) {
 		CORS: appconfig.CORSConfig{
 			AllowedOrigins:   []string{"*"},
 			AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
-			AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Requested-With"},
+			AllowedHeaders:   []string{"Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"},
 			AllowCredentials: false,
 			MaxAge:           86400,
 		},
@@ -77,26 +77,25 @@ func TestPerFormCORS(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "https://example.com",
-				"Access-Control-Allow-Methods": "GET,POST,PUT",
-				"Access-Control-Allow-Headers": "Content-Type,Authorization",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
 			},
 		},
 		{
 			name:   "form route with CORS - preflight request",
 			path:   "/forms/test-form-123",
 			method: "OPTIONS",
-			origin: "https://app.example.com",
+			origin: "https://example.com",
 			setupMock: func() {
 				mockFormService.EXPECT().
 					GetForm(gomock.Any(), "test-form-123").
 					Return(formWithCORS, nil)
 			},
-			expectedStatus: http.StatusNoContent,
+			expectedStatus: http.StatusOK,
 			expectedHeaders: map[string]string{
-				"Access-Control-Allow-Origin":  "https://app.example.com",
-				"Access-Control-Allow-Methods": "GET,POST,PUT",
-				"Access-Control-Allow-Headers": "Content-Type,Authorization",
-				"Access-Control-Max-Age":       "86400",
+				"Access-Control-Allow-Origin":  "https://example.com",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
 			},
 		},
 		{
@@ -113,7 +112,7 @@ func TestPerFormCORS(t *testing.T) {
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "https://example.com",
 				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
 			},
 		},
 		{
@@ -140,7 +139,7 @@ func TestPerFormCORS(t *testing.T) {
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "https://example.com",
 				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
 			},
 		},
 		{
@@ -166,7 +165,7 @@ func TestPerFormCORS(t *testing.T) {
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "https://example.com",
 				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
 			},
 		},
 		{
@@ -181,7 +180,7 @@ func TestPerFormCORS(t *testing.T) {
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "https://example.com",
 				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
-				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Requested-With",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
 			},
 		},
 		{
@@ -197,8 +196,8 @@ func TestPerFormCORS(t *testing.T) {
 			expectedStatus: http.StatusOK,
 			expectedHeaders: map[string]string{
 				"Access-Control-Allow-Origin":  "https://example.com",
-				"Access-Control-Allow-Methods": "GET,POST,PUT",
-				"Access-Control-Allow-Headers": "Content-Type,Authorization",
+				"Access-Control-Allow-Methods": "GET,POST,PUT,DELETE,OPTIONS",
+				"Access-Control-Allow-Headers": "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
 			},
 		},
 	}

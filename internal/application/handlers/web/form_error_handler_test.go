@@ -214,7 +214,7 @@ func TestFormErrorHandler_HandleOwnershipError(t *testing.T) {
 			name:           "unknown ownership error",
 			err:            domainerrors.New(domainerrors.ErrCodeForbidden, "unknown ownership error", nil),
 			expectedStatus: http.StatusForbidden,
-			expectedBody:   "Access denied",
+			expectedBody:   "You don't have permission to access this resource",
 			description:    "Should return 403 for unknown ownership errors",
 		},
 	}
@@ -302,15 +302,15 @@ func TestFormErrorHandler_HandleFormAccessError(t *testing.T) {
 			name:           "forbidden error",
 			err:            domainerrors.New(domainerrors.ErrCodeForbidden, "Forbidden", nil),
 			expectedStatus: http.StatusForbidden,
-			expectedBody:   "Access denied",
+			expectedBody:   "You don't have permission to access this resource",
 			description:    "Should return 403 for forbidden errors",
 		},
 		{
 			name:           "authentication error",
 			err:            domainerrors.New(domainerrors.ErrCodeUnauthorized, "Unauthorized", nil),
-			expectedStatus: http.StatusForbidden,
-			expectedBody:   "Access denied",
-			description:    "Should return 403 for authentication errors",
+			expectedStatus: http.StatusUnauthorized,
+			expectedBody:   "Authentication required",
+			description:    "Should return 401 for authentication errors",
 		},
 		{
 			name:           "unknown access error",

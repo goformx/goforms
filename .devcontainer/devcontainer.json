@@ -29,7 +29,8 @@
                 "docker.docker",
                 "a-h.templ",
                 "cweijan.vscode-mysql-client2",
-                "hbenl.vscode-test-explorer"
+                "hbenl.vscode-test-explorer",
+                "ms-vscode.test-adapter-converter"
             ],
             "[go]": {
                 "editor.defaultFormatter": "golang.go"

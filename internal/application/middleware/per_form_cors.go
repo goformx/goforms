@@ -98,17 +98,38 @@ func applyFormCORS(
 	next echo.HandlerFunc,
 ) error {
 	// Get form CORS configuration
-	origins, methods, headers := form.GetCorsConfig()
+	formOrigins, formMethods, formHeaders := form.GetCorsConfig()
 
-	// Use form CORS settings if available, otherwise fallback to global
+	// Merge form CORS settings with global settings
+	// Use form settings if available, otherwise fallback to global
+	origins := formOrigins
 	if len(origins) == 0 {
 		origins = globalCORS.CORS.AllowedOrigins
 	}
+
+	methods := formMethods
 	if len(methods) == 0 {
 		methods = globalCORS.CORS.AllowedMethods
 	}
-	if len(headers) == 0 {
-		headers = globalCORS.CORS.AllowedHeaders
+
+	// Merge headers: form headers + global headers (avoid duplicates)
+	headers := make([]string, 0)
+	headerSet := make(map[string]bool)
+
+	// Add form headers first
+	for _, header := range formHeaders {
+		if !headerSet[header] {
+			headers = append(headers, header)
+			headerSet[header] = true
+		}
+	}
+
+	// Add global headers (if not already added)
+	for _, header := range globalCORS.CORS.AllowedHeaders {
+		if !headerSet[header] {
+			headers = append(headers, header)
+			headerSet[header] = true
+		}
 	}
 
 	// Handle preflight requests
@@ -188,7 +209,7 @@ func handlePreflight(
 		c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
 	}
 
-	return c.NoContent(http.StatusNoContent)
+	return c.NoContent(http.StatusOK)
 }
 
 // handleActualRequest handles actual CORS requests

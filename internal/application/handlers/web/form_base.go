@@ -31,13 +31,15 @@ func NewFormBaseHandler(
 func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 	formID, err := h.FormValidator.ValidateFormID(c)
 	if err != nil {
-		return nil, h.HandleError(c, err, "Invalid form ID")
+		h.HandleError(c, err, "Invalid form ID")
+		return nil, echo.NewHTTPError(400, "Invalid form ID")
 	}
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form", "form_id", formID, "error", err)
-		return nil, h.HandleNotFound(c, "Form not found")
+		h.HandleNotFound(c, "Form not found")
+		return nil, echo.NewHTTPError(404, "Form not found")
 	}
 
 	return form, nil
@@ -47,14 +49,16 @@ func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 func (h *FormBaseHandler) RequireFormOwnership(c echo.Context, form *model.Form) error {
 	userID, ok := c.Get("user_id").(string)
 	if !ok {
-		return h.HandleForbidden(c, "User not authenticated")
+		h.HandleForbidden(c, "User not authenticated")
+		return echo.NewHTTPError(401, "User not authenticated")
 	}
 
 	if form.UserID != userID {
 		h.Logger.Error("ownership verification failed",
 			"resource_user_id", form.UserID,
 			"request_user_id", userID)
-		return h.HandleForbidden(c, "You don't have permission to access this resource")
+		h.HandleForbidden(c, "You don't have permission to access this resource")
+		return echo.NewHTTPError(403, "You don't have permission to access this resource")
 	}
 
 	return nil
