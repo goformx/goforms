@@ -245,7 +245,7 @@ func test() {
 ```go
 // ❌ Bad
 type Data struct {
-    Values map[string]interface{} `json:"values"`
+    Values map[string]any `json:"values"`
 }
 
 // ✅ Good
