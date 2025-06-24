@@ -153,6 +153,27 @@ export const validation = {
     // This method is kept for backward compatibility
     // New code should use HttpClient directly
     const { HttpClient } = await import("../../../core/http-client");
-    return HttpClient.request(url, options);
+
+    // Use the appropriate HttpClient method based on the HTTP method
+    const method = options.method?.toUpperCase() || "GET";
+
+    switch (method) {
+      case "GET":
+        return HttpClient.get(url, options) as Promise<Response>;
+      case "POST": {
+        // Handle body properly - convert null/undefined to undefined
+        const postBody = options.body || undefined;
+        return HttpClient.post(url, postBody, options) as Promise<Response>;
+      }
+      case "PUT": {
+        // Handle body properly - convert null/undefined to undefined
+        const putBody = options.body || undefined;
+        return HttpClient.put(url, putBody, options) as Promise<Response>;
+      }
+      case "DELETE":
+        return HttpClient.delete(url, options) as Promise<Response>;
+      default:
+        throw new Error(`Unsupported HTTP method: ${method}`);
+    }
   },
 };

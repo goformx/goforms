@@ -20,26 +20,19 @@ var (
 	ErrInvalidCredentials = domainerrors.New(domainerrors.ErrCodeAuthentication, "invalid credentials", nil)
 	// ErrUserExists indicates that a user with the given email already exists
 	ErrUserExists = domainerrors.New(domainerrors.ErrCodeAlreadyExists, "user already exists", nil)
-	// ErrInvalidToken indicates that the provided token is invalid
-	ErrInvalidToken = domainerrors.New(domainerrors.ErrCodeInvalidToken, "invalid token", nil)
-	// ErrTokenExpired indicates that the provided token has expired
-	ErrTokenExpired = domainerrors.New(domainerrors.ErrCodeInvalidToken, "token has expired", nil)
 )
 
 // Service defines the user service interface
 type Service interface {
 	SignUp(ctx context.Context, signup *Signup) (*entities.User, error)
 	Login(ctx context.Context, login *Login) (*LoginResponse, error)
-	Logout(ctx context.Context, refreshToken string) error
+	Logout(ctx context.Context) error
 	GetUserByID(ctx context.Context, id string) (*entities.User, error)
 	GetUserByEmail(ctx context.Context, email string) (*entities.User, error)
 	UpdateUser(ctx context.Context, user *entities.User) error
 	DeleteUser(ctx context.Context, id string) error
 	ListUsers(ctx context.Context, offset, limit int) ([]*entities.User, error)
 	GetByID(ctx context.Context, id string) (*entities.User, error)
-	ValidateToken(ctx context.Context, token string) error
-	GetUserIDFromToken(ctx context.Context, token string) (string, error)
-	IsTokenBlacklisted(ctx context.Context, token string) (bool, error)
 	Authenticate(ctx context.Context, email, password string) (*entities.User, error)
 }
 
@@ -102,22 +95,14 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, 
 		return nil, ErrInvalidCredentials
 	}
 
-	// TODO: Implement proper token generation
-	// For now, return dummy tokens
-	tokenPair := &TokenPair{
-		AccessToken:  "dummy_access_token",
-		RefreshToken: "dummy_refresh_token",
-	}
-
 	return &LoginResponse{
-		User:  user,
-		Token: tokenPair,
+		User: user,
 	}, nil
 }
 
-// Logout blacklists a refresh token
-func (s *ServiceImpl) Logout(ctx context.Context, refreshToken string) error {
-	// TODO: Implement token blacklisting
+// Logout handles user logout
+func (s *ServiceImpl) Logout(ctx context.Context) error {
+	// Session-based logout is handled by session middleware
 	return nil
 }
 
@@ -149,33 +134,6 @@ func (s *ServiceImpl) ListUsers(ctx context.Context, offset, limit int) ([]*enti
 // GetByID retrieves a user by ID string
 func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*entities.User, error) {
 	return s.repo.GetByID(ctx, id)
-}
-
-// ValidateToken validates a token
-func (s *ServiceImpl) ValidateToken(ctx context.Context, token string) error {
-	if token == "" {
-		return ErrInvalidToken
-	}
-	// TODO: Implement proper JWT validation
-	return nil
-}
-
-// GetUserIDFromToken extracts the user ID from a token
-func (s *ServiceImpl) GetUserIDFromToken(ctx context.Context, token string) (string, error) {
-	if token == "" {
-		return "", ErrInvalidToken
-	}
-	// TODO: Implement proper JWT parsing
-	return "", nil
-}
-
-// IsTokenBlacklisted checks if a token is blacklisted
-func (s *ServiceImpl) IsTokenBlacklisted(ctx context.Context, token string) (bool, error) {
-	if token == "" {
-		return false, ErrInvalidToken
-	}
-	// TODO: Implement proper token blacklist check
-	return false, nil
 }
 
 // Authenticate matches the domain.UserService interface

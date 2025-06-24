@@ -54,7 +54,7 @@ func getHTTPStatusCode(code ErrorCode) int {
 		ErrCodeBadRequest, ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid,
 		ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
 		return http.StatusBadRequest
-	case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication:
+	case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeAuthentication:
 		return http.StatusUnauthorized
 	case ErrCodeForbidden, ErrCodeFormAccessDenied, ErrCodeInsufficientRole:
 		return http.StatusForbidden

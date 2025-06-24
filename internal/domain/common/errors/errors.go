@@ -20,7 +20,6 @@ const (
 	// Authentication errors
 	ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
 	ErrCodeForbidden        ErrorCode = "FORBIDDEN"
-	ErrCodeInvalidToken     ErrorCode = "INVALID_TOKEN"
 	ErrCodeAuthentication   ErrorCode = "AUTHENTICATION_ERROR"
 	ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
 
@@ -92,7 +91,7 @@ func GetHTTPStatus(code ErrorCode) int {
 		ErrCodeBadRequest, ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid,
 		ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
 		return http.StatusBadRequest
-	case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication:
+	case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeAuthentication:
 		return http.StatusUnauthorized
 	case ErrCodeForbidden, ErrCodeFormAccessDenied, ErrCodeInsufficientRole:
 		return http.StatusForbidden
@@ -148,7 +147,6 @@ var (
 	// Authentication errors
 	ErrUnauthorized     = New(ErrCodeUnauthorized, "unauthorized", nil)
 	ErrForbidden        = New(ErrCodeForbidden, "forbidden", nil)
-	ErrInvalidToken     = New(ErrCodeInvalidToken, "invalid token", nil)
 	ErrAuthentication   = New(ErrCodeAuthentication, "authentication error", nil)
 	ErrInsufficientRole = New(ErrCodeInsufficientRole, "insufficient role", nil)
 
@@ -193,7 +191,7 @@ func IsNotFound(err error) bool {
 		case ErrCodeNotFound, ErrCodeFormNotFound, ErrCodeUserNotFound:
 			return true
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
 			ErrCodeInsufficientRole, ErrCodeConflict, ErrCodeBadRequest, ErrCodeServerError,
 			ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase,
 			ErrCodeTimeout, ErrCodeFormValidation, ErrCodeFormSubmission, ErrCodeFormAccessDenied,
@@ -213,8 +211,8 @@ func IsValidation(err error) bool {
 			ErrCodeBadRequest, ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid,
 			ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
 			return true
-		case ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
-			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeServerError,
+		case ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
+			ErrCodeNotFound, ErrCodeConflict, ErrCodeServerError,
 			ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase,
 			ErrCodeTimeout, ErrCodeFormNotFound, ErrCodeFormAccessDenied, ErrCodeUserNotFound,
 			ErrCodeUserExists, ErrCodeUserUnauthorized:
@@ -232,7 +230,7 @@ func IsFormError(err error) bool {
 			ErrCodeFormAccessDenied, ErrCodeFormInvalid, ErrCodeFormExpired:
 			return true
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
 			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
 			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
 			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeUserNotFound,
@@ -251,7 +249,7 @@ func IsUserError(err error) bool {
 			ErrCodeUserInvalid, ErrCodeUserUnauthorized:
 			return true
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
 			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
 			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
 			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeFormValidation,
@@ -267,8 +265,8 @@ func IsAuthenticationError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
 		switch domainErr.Code {
-		case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeInvalidToken,
-			ErrCodeAuthentication, ErrCodeInsufficientRole:
+		case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeAuthentication,
+			ErrCodeInsufficientRole:
 			return true
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
 			ErrCodeForbidden, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
@@ -291,7 +289,7 @@ func IsSystemError(err error) bool {
 			ErrCodeStartup, ErrCodeShutdown, ErrCodeTimeout:
 			return true
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
 			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
 			ErrCodeAlreadyExists, ErrCodeFormValidation, ErrCodeFormNotFound,
 			ErrCodeFormSubmission, ErrCodeFormAccessDenied, ErrCodeFormInvalid,
@@ -310,7 +308,7 @@ func IsConflictError(err error) bool {
 		case ErrCodeConflict, ErrCodeAlreadyExists, ErrCodeUserExists:
 			return true
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeInvalidToken, ErrCodeAuthentication,
+			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
 			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeBadRequest, ErrCodeServerError,
 			ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout,
 			ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
@@ -330,7 +328,7 @@ func IsForbiddenError(err error) bool {
 		case ErrCodeForbidden, ErrCodeFormAccessDenied, ErrCodeInsufficientRole:
 			return true
 		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeInvalidToken, ErrCodeAuthentication, ErrCodeNotFound,
+			ErrCodeUnauthorized, ErrCodeAuthentication, ErrCodeNotFound,
 			ErrCodeConflict, ErrCodeBadRequest, ErrCodeServerError, ErrCodeAlreadyExists,
 			ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout,
 			ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,

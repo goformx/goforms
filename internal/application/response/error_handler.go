@@ -149,7 +149,7 @@ func (h *ErrorHandler) getStatusCode(code domainerrors.ErrorCode) int {
 	case domainerrors.ErrCodeValidation, domainerrors.ErrCodeRequired, domainerrors.ErrCodeInvalid,
 		domainerrors.ErrCodeInvalidFormat, domainerrors.ErrCodeInvalidInput:
 		return http.StatusBadRequest
-	case domainerrors.ErrCodeUnauthorized, domainerrors.ErrCodeAuthentication, domainerrors.ErrCodeInvalidToken:
+	case domainerrors.ErrCodeUnauthorized, domainerrors.ErrCodeAuthentication:
 		return http.StatusUnauthorized
 	case domainerrors.ErrCodeForbidden, domainerrors.ErrCodeInsufficientRole:
 		return http.StatusForbidden

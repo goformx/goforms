@@ -13,12 +13,6 @@ type Login struct {
 	Password string `json:"password" validate:"required"`
 }
 
-type TokenPair struct {
-	AccessToken  string
-	RefreshToken string
-}
-
 type LoginResponse struct {
-	User  *entities.User
-	Token *TokenPair
+	User *entities.User
 }
