@@ -5,6 +5,7 @@ alwaysApply: true
 ---
 # Error Handling Guidelines
 
+## Overview
 This project implements a comprehensive error handling system for consistent error management across all layers.
 
 ## Core Error System
@@ -26,35 +27,25 @@ const (
     ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
     ErrCodeRequired      ErrorCode = "REQUIRED_FIELD"
     ErrCodeInvalid       ErrorCode = "INVALID_VALUE"
-    ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
-    ErrCodeInvalidInput  ErrorCode = "INVALID_INPUT"
-
+    
     // Authentication errors
-    ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
-    ErrCodeForbidden        ErrorCode = "FORBIDDEN"
-    ErrCodeInvalidToken     ErrorCode = "INVALID_TOKEN"
-    ErrCodeAuthentication   ErrorCode = "AUTHENTICATION_ERROR"
-    ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
-
+    ErrCodeUnauthorized  ErrorCode = "UNAUTHORIZED"
+    ErrCodeForbidden     ErrorCode = "FORBIDDEN"
+    
     // Resource errors
     ErrCodeNotFound      ErrorCode = "NOT_FOUND"
     ErrCodeConflict      ErrorCode = "CONFLICT"
-    ErrCodeBadRequest    ErrorCode = "BAD_REQUEST"
     ErrCodeServerError   ErrorCode = "SERVER_ERROR"
-    ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
 )
 ```
 
 ## Error Creation Patterns
 
-### Standard Errors (for simple cases)
+### Standard Errors (simple cases)
 ```go
-// Simple validation errors
 var (
     ErrFormTitleRequired = errors.New("form title is required")
-    ErrFormSchemaRequired = errors.New("form schema is required")
     ErrFormNotFound = errors.New("form not found")
-    ErrFormInvalid = errors.New("form is invalid")
 )
 
 // Inline errors
@@ -63,7 +54,7 @@ if f.Title == "" {
 }
 ```
 
-### Domain Errors (for complex cases)
+### Domain Errors (complex cases)
 ```go
 // Domain error with context
 err := domainerrors.New(domainerrors.ErrCodeValidation, "invalid form data", nil).
@@ -75,12 +66,6 @@ err := domainerrors.Wrap(originalErr, domainerrors.ErrCodeValidation, "form vali
 ```
 
 ## Error Handling Patterns
-
-### Domain Layer
-- Use domain-specific errors
-- Include error context
-- Wrap underlying errors
-- Maintain error hierarchy
 
 ### Service Layer
 ```go
@@ -103,8 +88,6 @@ func (s *FormService) CreateForm(ctx context.Context, req *CreateFormRequest) (*
 ### Handler Error Response
 ```go
 func (h *FormHandler) handleFormCreate(c echo.Context) error {
-    // ... validation logic
-    
     if err != nil {
         h.Logger.Error("failed to create form", "error", err)
         
@@ -112,8 +95,6 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
         switch {
         case errors.Is(err, model.ErrFormTitleRequired):
             return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form title is required")
-        case errors.Is(err, model.ErrFormSchemaRequired):
-            return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form schema is required")
         default:
             return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to create form")
         }
@@ -213,78 +194,27 @@ if errors.As(err, &domainErr) {
 }
 ```
 
-### Error Recovery
-```go
-func (h *Handler) handlePanic(c echo.Context) error {
-    defer func() {
-        if r := recover(); r != nil {
-            h.Logger.Error("panic recovered", "panic", r)
-            c.JSON(http.StatusInternalServerError, map[string]string{
-                "error": "Internal server error",
-            })
-        }
-    }()
-    
-    return h.next(c)
-}
-```
-
-### Error Sanitization
-```go
-func sanitizeError(err error) error {
-    // Don't expose internal errors to users
-    if isInternalError(err) {
-        return errors.New(errors.ErrCodeServerError, "Internal server error", err)
-    }
-    return err
-}
-```
-
 ## Best Practices
 
-### 1. Error Type Selection
-- Use standard `errors.New()` for simple validation errors
-- Use `domainerrors.New()` for complex errors with context
-- Use `domainerrors.Wrap()` when wrapping existing errors
+1. **Error Type Selection**
+   - Use standard `errors.New()` for simple validation errors
+   - Use `domainerrors.New()` for complex errors with context
+   - Use `domainerrors.Wrap()` when wrapping existing errors
 
-### 2. Error Handling
-- Handle errors at appropriate level
-- Log errors with context
-- Maintain error chain
-- Clean up resources
+2. **Error Handling**
+   - Handle errors at appropriate level
+   - Log errors with context
+   - Maintain error chain
+   - Clean up resources
 
-### 3. Error Response
-- Use consistent format
-- Include error details
-- Set appropriate status codes
-- Handle all error types
+3. **Error Response**
+   - Use consistent format
+   - Include error details
+   - Set appropriate status codes
+   - Handle all error types
 
-### 4. Error Logging
-- Log at appropriate level
-- Include error context
-- Add request details
-- Maintain error chain
-
-## Testing Error Patterns
-
-### Error Testing
-```go
-func TestFormValidation_EmptyTitle(t *testing.T) {
-    form := &Form{Title: ""}
-    err := form.Validate()
-    
-    var domainErr *errors.DomainError
-    assert.True(t, errors.As(err, &domainErr))
-    assert.Equal(t, errors.ErrCodeRequired, domainErr.Code)
-    assert.Contains(t, domainErr.Message, "title is required")
-}
-```
-
-### Error Response Testing
-```go
-func TestHandler_ErrorResponse(t *testing.T) {
-    // Test that errors are properly converted to HTTP responses
-    // Test that error details are included
-    // Test that status codes are correct
-}
-```
+4. **Error Logging**
+   - Log at appropriate level
+   - Include error context
+   - Add request details
+   - Maintain error chain

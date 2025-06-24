@@ -7,128 +7,77 @@ alwaysApply: true
 
 ## Overview
 
-The application is structured in a layered architecture, dividing the codebase into four main layers:
+The application follows a clean architecture pattern with four main layers:
 - **domain**: Business logic, entities, and domain services
 - **application**: HTTP handlers, middleware, and orchestration
-- **infrastructure**: External concerns like database, configuration, and web serving
+- **infrastructure**: External concerns (database, config, web serving)
 - **presentation**: Template rendering and view logic
 
-The backend is implemented in Go, following a clean architecture pattern. The frontend uses vanilla TypeScript with templ templates, following modern architectural patterns with path mapping, service separation, and clean dependency management.
+Backend: Go with clean architecture
+Frontend: Vanilla TypeScript with templ templates
 
 ## Directory Structure
 
 ```
 ├── internal/           # Backend code
-│   ├── domain/        # Domain layer
-│   │   ├── common/    # Shared domain code (errors, events, interfaces)
-│   │   ├── entities/  # Core business objects
-│   │   ├── form/      # Form domain (models, services, repositories)
-│   │   └── user/      # User domain (services, repositories, types)
-│   ├── application/   # Application layer
-│   │   ├── constants/ # Application constants
-│   │   ├── handlers/  # HTTP handlers (web, health)
-│   │   ├── middleware/# HTTP middleware (auth, access, session, etc.)
-│   │   ├── response/  # Response handling
-│   │   ├── services/  # Application services
-│   │   └── validation/# Request validation
-│   ├── infrastructure/# Infrastructure layer
-│   │   ├── config/    # Configuration management
-│   │   ├── database/  # Database connections
-│   │   ├── event/     # Event system
-│   │   ├── health/    # Health checks
-│   │   ├── logging/   # Logging infrastructure
-│   │   ├── metrics/   # Metrics and monitoring
-│   │   ├── repository/# Repository implementations
-│   │   ├── sanitization/# Input sanitization
-│   │   ├── server/    # HTTP server setup
-│   │   ├── validation/# Validation infrastructure
-│   │   ├── version/   # Version information
-│   │   └── web/       # Asset serving and web utilities
-│   └── presentation/  # Presentation layer
-│       ├── templates/ # HTML templates (templ)
-│       └── view/      # View rendering logic
+│   ├── domain/        # Business logic and entities
+│   ├── application/   # HTTP handlers and middleware
+│   ├── infrastructure/# External services and config
+│   └── presentation/  # Templates and view logic
 ├── src/               # Frontend code
 │   ├── js/           # TypeScript source files
-│   │   ├── core/     # Core application functionality
-│   │   │   ├── config/       # Configuration files
-│   │   │   ├── errors/       # Error classes and handling
-│   │   │   ├── http-client.ts # HTTP client utilities
-│   │   │   └── logger.ts     # Logging utilities
+│   │   ├── core/     # Core functionality (config, errors, http-client)
 │   │   ├── features/ # Feature-based organization
-│   │   │   ├── auth/         # Authentication feature
-│   │   │   └── forms/        # Forms feature (main functionality)
-│   │   │       ├── components/ # UI components
-│   │   │       ├── handlers/   # Event and request handlers
-│   │   │       ├── services/   # Business logic services
-│   │   │       ├── state/      # State management
-│   │   │       ├── validation/ # Form validation logic
-│   │   │       └── index.ts    # Feature entry point
 │   │   ├── pages/    # Page-level components
 │   │   └── shared/   # Shared utilities and types
-│   │       ├── types/        # TypeScript type definitions
-│   │       └── utils/        # Utility functions
-│   ├── css/          # Stylesheets
-│   └── types/        # TypeScript type definitions
-├── public/           # Static assets
-├── migrations/       # Database migrations (PostgreSQL/MariaDB)
-└── test/            # Test files
-    ├── integration/ # Integration tests
-    └── mocks/       # Mock implementations
+│   └── css/          # Stylesheets
+├── migrations/        # Database migrations
+└── test/             # Test files
 ```
 
-## Core Components
+## Core Patterns
 
-### Backend (Go)
-- **Domain Layer**: Models, business logic, and domain services
-- **Application Layer**: HTTP handlers, middleware, and orchestration
-- **Infrastructure Layer**: External services, persistence, and configuration
-- **Presentation Layer**: Template rendering using templ
+### Frontend Architecture
+- **Feature-based**: Organize by features, not types
+- **Service Separation**: API, UI, and orchestration services
+- **Path Mapping**: Use `@/core/*`, `@/features/*`, `@/shared/*`
+- **State Management**: Avoid global variables, use proper state classes
+- **HTTP Client**: Centralized HttpClient for all operations
 
-### Frontend (TypeScript)
-- **Feature-based Architecture**: Organized by features, not types
-- **Service Separation**: API, UI, and business logic separated
-- **Path Mapping**: Clean imports using `@/core/*`, `@/features/*`, `@/shared/*`
-- **State Management**: Proper state management without global variables
-- **HTTP Client**: Centralized HttpClient for all HTTP operations
-- **Type Safety**: Strict TypeScript configuration with comprehensive types
+### Backend Architecture
+- **Dependency Injection**: Uber FX for DI
+- **Repository Pattern**: Data access abstraction
+- **Service Layer**: Business logic orchestration
+- **Handler Pattern**: HTTP request handling
+- **Middleware**: Cross-cutting concerns
 
-## Frontend Architecture Patterns
-
-### Import Standards
-Use path mapping for all imports to ensure consistency and maintainability:
+## Import Standards
 
 ```typescript
-// ✅ Correct - Use path mapping
+// ✅ Use path mapping
 import { FormBuilderError } from "@/core/errors/form-builder-error";
 import { HttpClient } from "@/core/http-client";
 import { FormService } from "@/features/forms/services/form-service";
-import { dom } from "@/shared/utils/dom-utils";
-import type { FormConfig } from "@/shared/types/form-types";
 
-// ❌ Avoid - Relative imports
+// ❌ Avoid relative imports
 import { FormBuilderError } from "../../../core/errors/form-builder-error";
-import { FormService } from "../services/form-service";
 ```
 
-### Service Architecture
-Services are separated by responsibility for better maintainability:
+## Service Architecture
 
+### Frontend Three-Tier Pattern
 ```typescript
-// FormApiService - HTTP operations only
+// 1. API Service - HTTP operations only
 export class FormApiService {
   async getSchema(formId: string): Promise<FormSchema> { /* ... */ }
-  async saveSchema(formId: string, schema: any): Promise<any> { /* ... */ }
-  async deleteForm(formId: string): Promise<void> { /* ... */ }
 }
 
-// FormUIService - DOM manipulation only
+// 2. UI Service - DOM manipulation only
 export class FormUIService {
-  initializeFormDeletionHandlers(callback: (formId: string) => Promise<void>): void { /* ... */ }
   updateFormCard(formId: string, updates: any): void { /* ... */ }
-  showSuccess(message: string): void { /* ... */ }
 }
 
-// FormService - Orchestration (facade pattern)
+// 3. Orchestration Service - Coordinates API and UI
 export class FormService {
   private apiService: FormApiService;
   private uiService: FormUIService;
@@ -136,176 +85,40 @@ export class FormService {
   async updateFormDetails(formId: string, details: any): Promise<void> {
     await this.apiService.updateFormDetails(formId, details);
     this.uiService.updateFormCard(formId, details);
-    this.uiService.showSuccess("Form updated successfully");
   }
 }
 ```
 
-### State Management
-Use proper state management instead of global variables:
-
-```typescript
-// ✅ Correct - State management class
-export class FormState {
-  private state = new Map<string, any>();
-  
-  set(key: string, value: any): void {
-    this.state.set(key, value);
-  }
-  
-  get<T>(key: string): T | undefined {
-    return this.state.get(key) as T | undefined;
-  }
+### Backend Service Pattern
+```go
+type Service interface {
+    CreateForm(ctx context.Context, userID string, form *model.Form) error
+    GetForm(ctx context.Context, id string) (*model.Form, error)
 }
 
-// ❌ Avoid - Global window assignments
-window.formBuilder = builder;
-window.formBuilderInstance = typedBuilder;
-```
-
-### HTTP Client Standards
-Use the centralized HttpClient for all HTTP operations:
-
-```typescript
-// ✅ Correct - Use HttpClient
-const response = await HttpClient.get(url);
-const response = await HttpClient.post(url, data);
-const response = await HttpClient.put(url, data);
-const response = await HttpClient.delete(url);
-
-// ❌ Avoid - Direct fetch calls
-const response = await fetch(url, { /* ... */ });
+type service struct {
+    repo   Repository
+    logger logging.Logger
+}
 ```
 
 ## Dependency Injection
 
-### Main Application Setup
-The application uses Uber FX for dependency injection, configured in [main.go](mdc:main.go):
-
 ```go
 app := fx.New(
-    infrastructure.Module,
-    domain.Module,
-    application.Module,
-    presentation.Module,
+    infrastructure.Module, // config, logger, db
+    domain.Module,         // domain services
+    application.Module,    // handlers, middleware
+    presentation.Module,   // templates
     fx.Invoke(setupApplication),
-    fx.Invoke(setupLifecycle),
 )
 ```
 
-### Module Organization
-- **Infrastructure Module**: Core infrastructure providers (config, logger, DB, etc.)
-- **Domain Module**: Domain services and repositories
-- **Application Module**: Handlers and middleware
-- **Presentation Module**: Template renderers
-
-## Entry Point
-
-### Main Application
-The application entry point is [main.go](mdc:main.go) in the root directory.
-
-### Key Responsibilities
-- Dependency injection setup
-- Embedded filesystem configuration
-- Application lifecycle management
-- Server startup and shutdown
-
-## File Organization Patterns
-
-### Go Files
-- **Interfaces**: Defined in domain layer
-- **Implementations**: Located in infrastructure layer
-- **Services**: Business logic in domain, orchestration in application
-- **Handlers**: HTTP handling in application layer
-
-### Frontend Files
-- **Feature-based**: Organize by features, not types
-- **Service Separation**: Separate API, UI, and business logic
-- **Path Mapping**: Use consistent import paths with `@/` prefix
-- **State Management**: Avoid global variables, use proper state classes
-- **TypeScript**: Modular TypeScript files with strict typing
-- **Styles**: CSS files in `src/css/` with component isolation
-- **Types**: TypeScript definitions in `src/js/shared/types/`
-- **Templates**: HTML templates using templ in `internal/presentation/templates/`
-
-## Configuration Management
-
-### Environment Configuration
-Configuration is centralized in [internal/infrastructure/config/config.go](mdc:internal/infrastructure/config/config.go) using environment variables with `GOFORMS_` prefix.
-
-### Frontend Configuration
-- **Path Mapping**: Configured in both `tsconfig.json` and `vite.config.ts`
-- **Build Tools**: Vite for development and production builds
-- **TypeScript**: Strict mode enabled with comprehensive type checking
-
-### Key Configuration Areas
-- **Database**: Connection settings and migrations
-- **Server**: Host, port, and server configuration
-- **Assets**: Development vs production asset serving
-- **Security**: Session, CSRF, and security settings
-- **Frontend**: Path mapping, build optimization, and development tools
-
-## Database Architecture
-
-### Migration System
-Database migrations are located in [migrations/](mdc:migrations) with support for both PostgreSQL and MariaDB.
-
-### Repository Pattern
-- **Interfaces**: Defined in domain layer
-- **Implementations**: Located in infrastructure layer
-- **Common Patterns**: Pagination, error handling, and transaction management
-
-## Security Architecture
-
-### Authentication & Authorization
-- **Session Management**: Secure session handling
-- **Middleware**: Authentication and access control middleware
-- **CSRF Protection**: Cross-site request forgery protection
-
-### Frontend Security
-- **CSRF Tokens**: Automatically handled by HttpClient
-- **Input Sanitization**: Proper sanitization of user inputs
-- **XSS Prevention**: Use proper escaping and validation
-- **Secure Headers**: Implement security headers
-
-### Asset Security
-- **Content Security Policy**: Security headers for static assets
-- **Secure Headers**: X-Frame-Options, X-Content-Type-Options, etc.
-
-## Development Workflow
-
-### Local Development
-1. **Backend**: Hot reload with Air
-2. **Frontend**: Vite dev server with HMR and path mapping
-3. **Database**: Local PostgreSQL/MariaDB with migrations
-
-### Production Deployment
-1. **Build**: Frontend assets built to `dist/` with optimization
-2. **Embed**: Assets embedded into Go binary
-3. **Deploy**: Single binary deployment
-
 ## Best Practices
 
-### Code Organization
 1. **Layer Separation**: Maintain clear boundaries between layers
-2. **Feature-based Structure**: Organize frontend by features, not types
+2. **Feature-based Structure**: Organize frontend by features
 3. **Service Separation**: Separate API, UI, and business logic
-4. **Path Mapping**: Use consistent import paths with `@/` prefix
+4. **Path Mapping**: Use consistent import paths
 5. **Dependency Direction**: Dependencies point inward toward domain
 6. **Interface Segregation**: Define interfaces in domain, implement in infrastructure
-7. **Error Handling**: Use domain-specific errors throughout
-
-### Development Practices
-1. **Dependency Injection**: Use FX for all dependencies
-2. **Configuration**: Centralize configuration management
-3. **Logging**: Use structured logging with context
-4. **Testing**: Unit tests for each layer
-5. **TypeScript**: Use strict mode with comprehensive typing
-6. **Import Standards**: Use path mapping for all imports
-
-### Asset Management
-1. **Development**: Use Vite dev server for hot reload
-2. **Production**: Embed assets for single binary deployment
-3. **Versioning**: Use asset hashing for cache busting
-4. **Security**: Apply security headers to all assets
-5. **Path Mapping**: Configured in both TypeScript and Vite

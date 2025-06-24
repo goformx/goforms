@@ -10,159 +10,119 @@ The application uses Echo framework for API endpoints, which are integrated into
 
 ## API Structure
 
-1. Route Organization
-   ```go
-   // Group API routes
-   api := e.Group("/api/v1")
-   formsAPI := api.Group("/forms")
-   formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
-   formsAPI.GET("/:id/schema", h.handleFormSchema)
-   formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
-   ```
+### Route Organization
+```go
+// Group API routes
+api := e.Group("/api/v1")
+formsAPI := api.Group("/forms")
+formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
+formsAPI.GET("/:id/schema", h.handleFormSchema)
+formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
+```
 
-2. Handler Structure
-   ```go
-   func (h *FormHandler) handleFormSchema(c echo.Context) error {
-       formID := c.Param("id")
-       if formID == "" {
-           return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
-       }
+### Handler Structure
+```go
+func (h *FormHandler) handleFormSchema(c echo.Context) error {
+    formID := c.Param("id")
+    if formID == "" {
+        return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+    }
 
-       form, err := h.FormService.GetForm(c.Request().Context(), formID)
-       if err != nil {
-           h.Logger.Error("failed to get form", "error", err)
-           return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
-       }
+    form, err := h.FormService.GetForm(c.Request().Context(), formID)
+    if err != nil {
+        h.Logger.Error("failed to get form", "error", err)
+        return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
+    }
 
-       return response.Success(c, form.Schema)
-   }
-   ```
-
-## Response Handling
-
-1. Standard Response Structure
-   ```go
-   type APIResponse struct {
-       Success bool   `json:"success"`
-       Message string `json:"message,omitempty"`
-       Data    any    `json:"data,omitempty"`
-   }
-   ```
-
-2. Response Helpers
-   ```go
-   // Success response
-   func Success(c echo.Context, data any) error {
-       return c.JSON(http.StatusOK, APIResponse{
-           Success: true,
-           Data:    data,
-       })
-   }
-
-   // Error response
-   func ErrorResponse(c echo.Context, statusCode int, message string) error {
-       return c.JSON(statusCode, APIResponse{
-           Success: false,
-           Message: message,
-       })
-   }
-   ```
+    return response.Success(c, form.Schema)
+}
+```
 
 ## Best Practices
 
-1. Error Handling
-   - Use appropriate status codes
-   - Log errors with context
-   - Return consistent error format
-   - Example:
-   ```go
-   if err != nil {
-       h.Logger.Error("failed to get form", "error", err)
-       return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
-   }
-   ```
+### Error Handling
+- Use appropriate status codes
+- Log errors with context
+- Return consistent error format
+- Example:
+```go
+if err != nil {
+    h.Logger.Error("failed to get form", "error", err)
+    return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
+}
+```
 
-2. Authentication
-   - Use access middleware
-   - Check permissions
-   - Handle unauthorized access
-   - Example:
-   ```go
-   formsAPI := api.Group("/forms")
-   formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
-   ```
+### Authentication
+- Use access middleware
+- Check permissions
+- Handle unauthorized access
+- Example:
+```go
+formsAPI := api.Group("/forms")
+formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
+```
 
-3. Input Validation
-   - Validate required parameters
-   - Sanitize input
-   - Return clear error messages
-   - Example:
-   ```go
-   formID := c.Param("id")
-   if formID == "" {
-       return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
-   }
-   ```
+### Input Validation
+- Validate required parameters
+- Sanitize input
+- Return clear error messages
+- Example:
+```go
+formID := c.Param("id")
+if formID == "" {
+    return response.ErrorResponse(c, http.StatusBadRequest, "Form ID is required")
+}
+```
 
-4. Logging
-   - Log all errors
-   - Include relevant context
-   - Use appropriate log levels
-   - Example:
-   ```go
-   h.Logger.Error("failed to get form",
-       "form_id", formID,
-       "error", err,
-   )
-   ```
+### Logging
+- Log all errors
+- Include relevant context
+- Use appropriate log levels
+- Example:
+```go
+h.Logger.Error("failed to get form",
+    "form_id", formID,
+    "error", err,
+)
+```
 
 ## Request/Response Handling
-1. **Request Validation**
-   - Use struct tags for validation
-   - Example: [internal/domain/user/model.go](mdc:goforms/internal/domain/user/model.go)
-   ```go
-   type CreateUserRequest struct {
-       Email     string `json:"email" validate:"required,email"`
-       Password  string `json:"password" validate:"required,min=8"`
-       FirstName string `json:"first_name" validate:"required"`
-       LastName  string `json:"last_name" validate:"required"`
-   }
-   ```
 
-2. **Error Responses**
-   - Use consistent error format
-   - Include appropriate status codes
-   - Example:
-   ```go
-   type ErrorResponse struct {
-       Code    int    `json:"code"`
-       Message string `json:"message"`
-   }
-   ```
+### Request Validation
+- Use struct tags for validation
+- Example:
+```go
+type CreateUserRequest struct {
+    Email     string `json:"email" validate:"required,email"`
+    Password  string `json:"password" validate:"required,min=8"`
+    FirstName string `json:"first_name" validate:"required"`
+    LastName  string `json:"last_name" validate:"required"`
+}
+```
 
-## Authentication
-1. **Session Authentication**
+### Authentication
 - Use secure session cookies for authentication
 - Implement proper session management
 - Handle session expiration and renewal
 - Validate session state for each request
 
 ## Documentation
-1. **OpenAPI/Swagger**
-   - Document all endpoints
-   - Include request/response examples
-   - Example:
-   ```go
-   // @Summary Create user
-   // @Description Create a new user
-   // @Tags users
-   // @Accept json
-   // @Produce json
-   // @Param user body CreateUserRequest true "User info"
-   // @Success 201 {object} User
-   // @Failure 400 {object} ErrorResponse
-   // @Router /v1/users [post]
-   ```
+
+### OpenAPI/Swagger
+- Document all endpoints
+- Include request/response examples
+- Example:
+```go
+// @Summary Create user
+// @Description Create a new user
+// @Tags users
+// @Accept json
+// @Produce json
+// @Param user body CreateUserRequest true "User info"
+// @Success 201 {object} User
+// @Failure 400 {object} ErrorResponse
+// @Router /v1/users [post]
+```
 
 ## Rate Limiting
 ```go

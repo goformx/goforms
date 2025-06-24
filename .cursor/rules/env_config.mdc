@@ -5,7 +5,7 @@ alwaysApply: true
 ---
 # Environment Configuration
 
-> **CRITICAL NOTE**: The AI agent (me) CANNOT access, create, or modify `.env` files due to security restrictions. I can only provide guidance on what should be in the file and help debug configuration issues.
+> **CRITICAL NOTE**: The AI agent CANNOT access, create, or modify `.env` files due to security restrictions. I can only provide guidance on what should be in the file and help debug configuration issues.
 
 The application uses [envconfig](mdc:https:/github.com/kelseyhightower/envconfig) to load environment variables. All configuration is defined in [internal/infrastructure/config/config.go](mdc:internal/infrastructure/config/config.go).
 
@@ -19,8 +19,6 @@ The application uses [envconfig](mdc:https:/github.com/kelseyhightower/envconfig
 - Rate limiting thresholds
 - Logging levels and outputs
 - Session timeouts and settings
-- Email server configurations
-- File upload limits
 - Environment-specific settings
 
 ### What Belongs in Constants (Fixed Values)
@@ -50,8 +48,6 @@ type AppConfig struct {
     Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
     ReadTimeout    time.Duration `envconfig:"GOFORMS_APP_READ_TIMEOUT" default:"5s"`
     WriteTimeout   time.Duration `envconfig:"GOFORMS_APP_WRITE_TIMEOUT" default:"10s"`
-    IdleTimeout    time.Duration `envconfig:"GOFORMS_APP_IDLE_TIMEOUT" default:"120s"`
-    RequestTimeout time.Duration `envconfig:"GOFORMS_APP_REQUEST_TIMEOUT" default:"30s"`
     
     // Development Settings
     ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
@@ -86,31 +82,11 @@ type SecurityConfig struct {
     // Rate limiting configuration
     RateLimit RateLimitConfig `envconfig:"RATE_LIMIT"`
     
-    // Security headers configuration
-    Headers SecurityHeadersConfig `envconfig:"HEADERS"`
-    
-    // Content Security Policy configuration
-    CSP CSPConfig `envconfig:"CSP"`
-    
     // Cookie security
     SecureCookie bool `envconfig:"GOFORMS_SECURITY_SECURE_COOKIE" default:"true"`
     
     // Debug mode
     Debug bool `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
-}
-
-type CSRFConfig struct {
-    Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
-    Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
-    TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
-    TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-Csrf-Token"`
-    ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
-    CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
-    CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
-    CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
-    CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
-    CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Strict"`
-    CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
 }
 ```
 
@@ -127,9 +103,8 @@ type CSRFConfig struct {
    - Configure proper session timeout
    - Set secure headers
 
-## Environment Variables
+## Required Environment Variables
 
-### Required Variables
 ```bash
 # Database
 GOFORMS_DB_HOST=localhost
@@ -143,7 +118,8 @@ GOFORMS_SESSION_SECRET=your-32-character-session-secret-here
 GOFORMS_SECURITY_CSRF_SECRET=your-32-character-csrf-secret-here
 ```
 
-### Optional Variables
+## Optional Environment Variables
+
 ```bash
 # Application
 GOFORMS_APP_NAME=GoFormX
@@ -156,46 +132,12 @@ GOFORMS_APP_SCHEME=http
 GOFORMS_APP_PORT=8090
 GOFORMS_APP_HOST=0.0.0.0
 
-# Database
-GOFORMS_DB_CONNECTION=mariadb
-GOFORMS_DB_MAX_OPEN_CONNS=25
-GOFORMS_DB_MAX_IDLE_CONNS=5
-GOFORMS_DB_CONN_MAX_LIFETIME=5m
-
 # Development
 GOFORMS_VITE_DEV_HOST=localhost
 GOFORMS_VITE_DEV_PORT=3000
 
 # Security
 GOFORMS_SECURITY_SECURE_COOKIE=false
-
-# CSRF Configuration
-GOFORMS_SECURITY_CSRF_ENABLED=true
-GOFORMS_SECURITY_CSRF_TOKEN_LENGTH=32
-GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP=header:X-Csrf-Token
-GOFORMS_SECURITY_CSRF_CONTEXT_KEY=csrf
-GOFORMS_SECURITY_CSRF_COOKIE_NAME=_csrf
-GOFORMS_SECURITY_CSRF_COOKIE_PATH=/
-GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN=
-GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY=true
-GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE=Strict
-GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE=86400
-
-# CORS Configuration
-GOFORMS_SECURITY_CORS_ENABLED=true
-GOFORMS_SECURITY_CORS_ORIGINS=http://localhost:3000
-GOFORMS_SECURITY_CORS_METHODS=GET,POST,PUT,DELETE,OPTIONS
-GOFORMS_SECURITY_CORS_HEADERS=Content-Type,Authorization
-GOFORMS_SECURITY_CORS_CREDENTIALS=true
-GOFORMS_SECURITY_CORS_MAX_AGE=3600
-
-# Rate Limiting
-GOFORMS_SECURITY_RATE_LIMIT_ENABLED=true
-GOFORMS_SECURITY_RATE_LIMIT_REQUESTS=100
-GOFORMS_SECURITY_RATE_LIMIT_WINDOW=1m
-GOFORMS_SECURITY_RATE_LIMIT_BURST=20
-GOFORMS_SECURITY_RATE_LIMIT_PER_IP=true
-GOFORMS_SECURITY_RATE_LIMIT_SKIP_METHODS=GET,HEAD,OPTIONS
 ```
 
 ## Environment-Specific Configuration
@@ -215,15 +157,6 @@ GOFORMS_APP_DEBUG=false
 GOFORMS_APP_LOGLEVEL=info
 GOFORMS_SECURITY_SECURE_COOKIE=true
 GOFORMS_APP_SCHEME=https
-```
-
-### Test Environment
-```bash
-GOFORMS_APP_ENV=test
-GOFORMS_APP_DEBUG=true
-GOFORMS_APP_LOGLEVEL=debug
-GOFORMS_DB_CONNECTION=sqlite
-GOFORMS_DB_DATABASE=:memory:
 ```
 
 ## Database Configuration
@@ -264,15 +197,6 @@ GOFORMS_SECURITY_CSRF_SECRET=$(openssl rand -hex 32)
 
 # Cookie settings
 GOFORMS_SECURITY_SECURE_COOKIE=true  # Set to true in production
-```
-
-### Production Security
-```bash
-# Production settings
-GOFORMS_APP_ENV=production
-GOFORMS_APP_DEBUG=false
-GOFORMS_SECURITY_SECURE_COOKIE=true
-GOFORMS_APP_SCHEME=https
 ```
 
 ## Debugging

@@ -5,22 +5,25 @@ alwaysApply: false
 ---
 # Middleware Guidelines
 
+## Overview
+The middleware implementation follows a clean architecture pattern with clear separation of concerns in the `internal/application/middleware` directory.
+
 ## Core Components
 
-1. **Context Management** (`internal/application/middleware/context`)
-   - Type-safe context access
-   - User data helpers
-   - Request tracking
+### Context Management (`internal/application/middleware/context`)
+- Type-safe context access
+- User data helpers
+- Request tracking
 
-2. **Access Control** (`internal/application/middleware/access`)
-   - Public, Authenticated, Admin levels
-   - Route-based rules
-   - Role-based access
+### Access Control (`internal/application/middleware/access`)
+- Public, Authenticated, Admin levels
+- Route-based rules
+- Role-based access
 
-3. **Session Management** (`internal/application/middleware/session`)
-   - Secure session handling
-   - Cookie management
-   - Session validation
+### Session Management (`internal/application/middleware/session`)
+- Secure session handling
+- Cookie management
+- Session validation
 
 ## Constants and Configuration
 
@@ -43,7 +46,6 @@ const (
     PathLogin = "/login"
     PathSignup = "/signup"
     PathResetPassword = "/reset-password"
-    // ... other paths
 )
 
 // Static File Extensions
@@ -94,40 +96,40 @@ if pathManager.IsAdminPath(path) { ... }
 
 ## Common Patterns
 
-1. **Context Usage**
-   ```go
-   // Get user data
-   userID, ok := context.GetUserID(c)
-   if !ok {
-       return c.Redirect(http.StatusSeeOther, constants.PathLogin)
-   }
-   ```
+### Context Usage
+```go
+// Get user data
+userID, ok := context.GetUserID(c)
+if !ok {
+    return c.Redirect(http.StatusSeeOther, constants.PathLogin)
+}
+```
 
-2. **Session Management**
-   ```go
-   // Create session
-   session, err := sessionManager.CreateSession(userID, email, role)
-   if err != nil {
-       return err
-   }
-   sessionManager.SetSessionCookie(c, session.ID)
-   ```
+### Session Management
+```go
+// Create session
+session, err := sessionManager.CreateSession(userID, email, role)
+if err != nil {
+    return err
+}
+sessionManager.SetSessionCookie(c, session.ID)
+```
 
-3. **Static File Detection**
-   ```go
-   // Use centralized static file detection
-   if constants.IsStaticFile(path) {
-       return true
-   }
-   ```
+### Static File Detection
+```go
+// Use centralized static file detection
+if constants.IsStaticFile(path) {
+    return true
+}
+```
 
-4. **Path Checking**
-   ```go
-   // Use constants for path comparisons
-   if path == constants.PathLogin || path == constants.PathSignup {
-       // Handle auth paths
-   }
-   ```
+### Path Checking
+```go
+// Use constants for path comparisons
+if path == constants.PathLogin || path == constants.PathSignup {
+    // Handle auth paths
+}
+```
 
 ## Best Practices
 
@@ -156,197 +158,3 @@ if pathManager.IsAdminPath(path) { ... }
 5. **Error Handling**
    - Log errors with context
    - Return user-friendly messages
-
-## Middleware Architecture
-
-## Overview
-The middleware implementation follows a clean architecture pattern with clear separation of concerns. The main middleware components are located in the `internal/application/middleware` directory.
-
-## Core Components
-
-### Context Management
-The context package (`internal/application/middleware/context`) provides:
-- Type-safe access to context values
-- Centralized context handling
-- Consistent error handling
-- User data access helpers
-- Request context management
-
-### Access Control
-The access package (`internal/application/middleware/access`) provides:
-- Granular access control levels (Public, Authenticated, Admin)
-- Centralized access rule configuration
-- Consistent access checking
-- Role-based access control
-- Access denial logging
-
-### Session Management
-The session package (`internal/application/middleware/session`) provides:
-- Secure session handling
-- Session validation
-- Session state management
-- Context integration
-- Cookie management
-
-### Error Logger
-The error logger middleware provides:
-- Domain error mapping to HTTP status codes
-- Structured error logging
-- Consistent error responses
-- Error context preservation
-
-### Request Logger
-The request logger middleware provides:
-- Request/response logging
-- Performance metrics
-- Static file request filtering
-- Structured logging with context
-
-### Security Middleware
-Security middleware components include:
-- CSRF protection with secure defaults
-- Rate limiting with configurable thresholds
-- Security headers with proper CSP
-- CORS configuration with proper origins
-- Static file handling with proper MIME types
-
-## Best Practices
-1. Use the `Manager` for middleware setup
-2. Configure security headers appropriately
-3. Enable CSRF protection for forms
-4. Use context helpers for type-safe access
-5. Follow the constant naming conventions
-6. Use structured logging with proper context
-7. Implement rate limiting where appropriate
-8. Handle static files efficiently using `constants.IsStaticFile()`
-9. Use proper MIME type detection
-10. Implement proper error mapping
-
-## Security Guidelines
-1. Always enable CSRF protection for forms
-2. Use secure cookie settings
-3. Implement proper Content Security Policy
-4. Set appropriate security headers
-5. Use SameSite strict mode for cookies
-6. Enable HTTP-only flag for sensitive cookies
-7. Implement proper token validation
-8. Use rate limiting for sensitive endpoints
-9. Configure CORS properly
-10. Handle static files securely
-
-## Middleware Setup
-
-The middleware setup follows a specific order:
-
-1. Basic Middleware
-   - Recovery
-   - Request ID
-   - Context middleware
-   - Secure headers
-   - Body limit
-   - MIME type
-   - Static file handling
-
-2. Security Middleware
-   - Security headers
-   - CORS
-   - CSRF
-   - Rate limiting
-
-3. Authentication Middleware
-   - Session validation
-   - Access control
-   - Role-based access
-
-## Context Management
-
-The context package provides consistent context handling:
-
-1. User Context
-   - Type-safe user ID access
-   - Email and role management
-   - Authentication state
-   - Session integration
-
-2. Request Context
-   - Request ID tracking
-   - Correlation ID management
-   - Logger context
-   - Performance tracking
-
-3. Error Context
-   - Error state preservation
-   - Stack trace management
-   - Error categorization
-   - Context propagation
-
-## Access Control
-
-The access package provides:
-
-1. Access Levels
-   - Public access
-   - Authenticated access
-   - Admin access
-   - Custom access levels
-
-2. Access Rules
-   - Route-based rules
-   - Role-based rules
-   - Pattern matching
-   - Rule inheritance
-
-3. Access Checking
-   - Consistent validation
-   - Error handling
-   - Logging
-   - Response generation
-
-## Performance Considerations
-
-1. Route Matching
-   - Optimize route matching
-   - Use efficient data structures
-   - Cache static file checks using `constants.IsStaticFile()`
-   - Minimize middleware overhead
-
-2. Static File Handling
-   - Skip unnecessary middleware using `constants.IsStaticFile()`
-   - Use proper MIME types
-   - Cache static file checks
-   - Optimize file serving
-
-## Dependency Injection
-
-The middleware module uses FX for dependency injection:
-
-```go
-var Module = fx.Options(
-    fx.Provide(
-        constants.NewPathManager,
-        // Access manager using path manager
-        fx.Annotate(
-            func(logger logging.Logger, pathManager *constants.PathManager) *access.AccessManager {
-                // Configure access manager with path manager
-            },
-        ),
-        // Session manager using path manager
-        fx.Annotate(
-            func(logger logging.Logger, cfg *config.Config, pathManager *constants.PathManager) *session.Manager {
-                // Configure session manager with path manager
-            },
-        ),
-        // Middleware manager
-        NewManager,
-    ),
-)
-```
-
-## Migration Notes
-
-- **Deprecated**: Hardcoded constants in middleware files
-- **Deprecated**: `MiddlewareConfig` in infrastructure config
-- **Deprecated**: Duplicate path definitions across middleware
-- **Use**: `constants.*` for all fixed values
-- **Use**: `PathManager` for complex path logic
-- **Use**: Infrastructure config only for environment-configurable values

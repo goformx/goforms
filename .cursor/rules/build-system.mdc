@@ -6,7 +6,7 @@ alwaysApply: false
 # Build System Guide
 
 ## Overview
-GoForms uses a multi-stage build system with Task for orchestration, Vite for frontend building, and Go for backend compilation. The frontend build system includes path mapping for clean imports and modern development patterns.
+GoForms uses a multi-stage build system with Task for orchestration, Vite for frontend building, and Go for backend compilation.
 
 ## Key Files
 
@@ -17,65 +17,13 @@ GoForms uses a multi-stage build system with Task for orchestration, Vite for fr
 
 ### Frontend Build
 - [package.json](mdc:package.json): Frontend dependencies and scripts
-- [vite.config.ts](mdc:vite.config.ts): Vite build configuration with path mapping
-- [tsconfig.json](mdc:tsconfig.json): TypeScript configuration with path mapping
-- [eslint.config.js](mdc:eslint.config.js): ESLint configuration for code quality
+- [vite.config.ts](mdc:vite.config.ts): Vite build configuration
+- [tsconfig.json](mdc:tsconfig.json): TypeScript configuration
+- [eslint.config.js](mdc:eslint.config.js): ESLint configuration
 
 ### Backend Build
-- [main.go](mdc:main.go): Main application entry point (moved from cmd/goforms/)
+- [main.go](mdc:main.go): Main application entry point
 - [go.mod](mdc:go.mod): Go module dependencies
-
-## Path Mapping Configuration
-
-### TypeScript Configuration (`tsconfig.json`)
-```json
-{
-  "compilerOptions": {
-    "baseUrl": ".",
-    "paths": {
-      "@/*": ["src/js/*"],
-      "@/core/*": ["src/js/core/*"],
-      "@/features/*": ["src/js/features/*"],
-      "@/shared/*": ["src/js/shared/*"],
-      "@/pages/*": ["src/js/pages/*"]
-    }
-  }
-}
-```
-
-### Vite Configuration (`vite.config.ts`)
-```typescript
-import { resolve } from 'path';
-
-export default defineConfig({
-  resolve: {
-    alias: {
-      "@": resolve(__dirname, "src/js"),
-      "@/core": resolve(__dirname, "src/js/core"),
-      "@/features": resolve(__dirname, "src/js/features"),
-      "@/shared": resolve(__dirname, "src/js/shared"),
-      "@/pages": resolve(__dirname, "src/js/pages"),
-    },
-  },
-  // ... other configuration
-});
-```
-
-### Import Standards
-All imports should use path mapping for consistency:
-
-```typescript
-// ✅ Correct - Use path mapping
-import { FormBuilderError } from "@/core/errors/form-builder-error";
-import { HttpClient } from "@/core/http-client";
-import { FormService } from "@/features/forms/services/form-service";
-import { dom } from "@/shared/utils/dom-utils";
-import type { FormConfig } from "@/shared/types/form-types";
-
-// ❌ Avoid - Relative imports
-import { FormBuilderError } from "../../../core/errors/form-builder-error";
-import { FormService } from "../services/form-service";
-```
 
 ## Build Process
 
@@ -107,7 +55,7 @@ task dev:backend  # Runs backend with hot reload using Air
 
 ### Frontend Development
 ```bash
-task dev:frontend  # Runs Vite dev server with path mapping
+task dev:frontend  # Runs Vite dev server
 ```
 
 ## Build Artifacts
@@ -116,7 +64,6 @@ task dev:frontend  # Runs Vite dev server with path mapping
 - **Output Directory**: `dist/`
 - **Assets**: JavaScript, CSS, fonts, and other static files
 - **Manifest**: Vite generates a manifest for asset versioning
-- **Path Mapping**: All imports resolved to correct paths
 
 ### Backend Build
 - **Binary**: `bin/goforms`
@@ -152,13 +99,11 @@ task dev:frontend  # Runs Vite dev server with path mapping
 - Uses Vite dev server for frontend assets
 - Hot reload enabled for both frontend and backend
 - Debug logging enabled
-- Path mapping configured for development
 
 ### Production
 - Uses embedded assets from the binary
 - Optimized builds with minification
 - Production logging configuration
-- Path mapping resolved to production paths
 
 ## Build Configuration
 
@@ -167,7 +112,6 @@ task dev:frontend  # Runs Vite dev server with path mapping
 - **Output**: Optimized assets with hashing for cache busting
 - **Target**: ESNext for modern browsers
 - **Minification**: Terser for JavaScript, CSS minification
-- **Path Mapping**: Configured in both TypeScript and Vite
 - **TypeScript**: Strict mode with comprehensive type checking
 
 ### Backend (Go)
@@ -176,79 +120,13 @@ task dev:frontend  # Runs Vite dev server with path mapping
 - **Embedding**: `dist/` directory embedded using Go's embed feature
 - **Version Info**: Embedded via ldflags
 
-## Service Architecture
-
-### Three-Tier Service Pattern
-The frontend build supports a three-tier service architecture:
-
-1. **API Services** - Handle HTTP operations only
-2. **UI Services** - Handle DOM manipulation only
-3. **Orchestration Services** - Coordinate between API and UI services
-
-```typescript
-// Example service structure
-import { FormApiService } from "@/features/forms/services/form-api-service";
-import { FormUIService } from "@/features/forms/services/form-ui-service";
-import { FormService } from "@/features/forms/services/form-service";
-```
-
 ## Troubleshooting
 
 ### Common Build Issues
 1. **Missing main.go**: Ensure [main.go](mdc:main.go) is in the root directory
 2. **Embedded assets not found**: Rebuild after frontend changes
 3. **Task not found**: Install Task runner: `go install github.com/go-task/task/v3/cmd/task@latest`
-4. **Path mapping errors**: Ensure both `tsconfig.json` and `vite.config.ts` have matching aliases
 
 ### Development Issues
 1. **Hot reload not working**: Check Air configuration in [.air.toml](mdc:.air.toml)
 2. **Vite dev server issues**: Check [vite.config.ts](mdc:vite.config.ts) configuration
-3. **Asset serving problems**: Verify environment is set correctly (development vs production)
-4. **Import resolution errors**: Check path mapping configuration in both TypeScript and Vite
-
-### Path Mapping Issues
-1. **Import not found**: Verify path mapping is configured correctly
-2. **Build errors**: Check that all imports use the correct path mapping
-3. **VS Code not recognizing imports**: Restart TypeScript language server
-
-## Best Practices
-
-### 1. Import Standards
-- **Always use path mapping**: Use `@/` prefix for all internal imports
-- **Consistent paths**: Use the full path mapping (e.g., `@/features/forms/services/form-service`)
-- **Type imports**: Use `import type` for type-only imports
-- **No relative imports**: Avoid `../` or `./` except for same-directory files
-
-### 2. Build Process
-- **Always use Task commands**: Don't run build commands directly
-- **Rebuild after frontend changes**: Embedded assets require full rebuild
-- **Test both environments**: Verify development and production modes work
-- **Check generated files**: Ensure templ and mock files are up to date
-- **Use proper environment variables**: Set `GOFORMS_APP_ENV` appropriately
-
-### 3. Service Architecture
-- **Service separation**: Keep API, UI, and orchestration services separate
-- **Single responsibility**: Each service should have one clear purpose
-- **Dependency injection**: Services should receive dependencies through constructor
-- **No cross-contamination**: API services don't manipulate DOM, UI services don't make HTTP calls
-
-### 4. Development Workflow
-- **Feature-based organization**: Organize code by features, not types
-- **State management**: Use proper state classes instead of global variables
-- **Error handling**: Implement consistent error handling patterns
-- **Type safety**: Use TypeScript strict mode with comprehensive typing
-
-## Validation
-
-### Build Validation
-After making changes:
-1. Run `npm run build` to check for import errors
-2. Test the application to ensure functionality works
-3. Check that VS Code auto-imports use the new paths
-4. Verify that both development and production builds work
-
-### Import Validation
-- All imports should use path mapping
-- No relative imports except for same-directory files
-- Type imports should use `import type`
-- Import order should follow: external → core → features → shared → pages
