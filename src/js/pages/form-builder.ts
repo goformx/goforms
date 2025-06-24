@@ -1,20 +1,20 @@
 import { Formio } from "@formio/js";
 import goforms from "@goformx/formio";
-import { FormService } from "../forms/services/form-service";
-import { setupBuilderEvents } from "../forms/handlers/builder-events";
+import { FormService } from "../features/forms/services/form-service";
+import { setupBuilderEvents } from "../features/forms/handlers/builder-events";
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
 
 // Import our modules
-import { FormBuilderError } from "../errors/form-builder-error";
-import { dom } from "../utils/dom-utils";
+import { FormBuilderError } from "../core/errors/form-builder-error";
+import { dom } from "../shared/utils/dom-utils";
 import {
   validateFormBuilder,
   getFormSchema,
   createFormBuilder,
 } from "../core/form-builder-core";
-import { setupEventHandlers } from "../handlers/form-builder-events";
+import { setupEventHandlers } from "../features/forms/handlers/builder-events";
 
 // Register templates
 Formio.use(goforms);
