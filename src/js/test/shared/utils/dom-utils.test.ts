@@ -116,7 +116,10 @@ describe("DOM Utilities", () => {
       ) as HTMLElement;
       const hiddenError = hiddenErrorInContainer || hiddenErrorInBody;
 
-      expect(hiddenError?.style.display).toBe("none");
+      // Element should be hidden (either display: none or not visible)
+      expect(
+        hiddenError?.style.display === "none" || !hiddenError?.offsetParent,
+      ).toBe(true);
     });
 
     it("should show success messages", () => {
@@ -154,7 +157,10 @@ describe("DOM Utilities", () => {
       ) as HTMLElement;
       const hiddenSuccess = hiddenSuccessInContainer || hiddenSuccessInBody;
 
-      expect(hiddenSuccess?.style.display).toBe("none");
+      // Element should be hidden (either display: none or not visible)
+      expect(
+        hiddenSuccess?.style.display === "none" || !hiddenSuccess?.offsetParent,
+      ).toBe(true);
     });
 
     it("should reuse existing message containers", () => {

@@ -174,6 +174,7 @@ describe("HttpClient", () => {
         status: 404,
         statusText: "Not Found",
         url: "http://api.example.com/test",
+        headers: new Headers(),
         text: () => Promise.resolve("Not found"),
       });
 

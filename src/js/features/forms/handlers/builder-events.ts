@@ -1,10 +1,15 @@
 import { Logger } from "@/core/logger";
 
+interface EventHandler {
+  original: (event: Event) => void;
+  wrapped: (event: Event) => void;
+}
+
 /**
  * Event manager for form builder interactions
  */
 export class BuilderEventManager {
-  private handlers = new Map<string, Array<(event: Event) => void>>();
+  private handlers = new Map<string, EventHandler[]>();
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private element: HTMLElement;
 
@@ -49,7 +54,8 @@ export class BuilderEventManager {
         this.debounceTimers.set(timerKey, timerId);
       };
 
-      handlers.push(debouncedHandler);
+      // Store both original handler and wrapped handler
+      handlers.push({ original: handler, wrapped: debouncedHandler });
       this.element.addEventListener(eventType, debouncedHandler);
     } else {
       // Regular handler
@@ -61,7 +67,8 @@ export class BuilderEventManager {
         }
       };
 
-      handlers.push(wrappedHandler);
+      // Store both original handler and wrapped handler
+      handlers.push({ original: handler, wrapped: wrappedHandler });
       this.element.addEventListener(eventType, wrappedHandler);
     }
   }
@@ -76,10 +83,10 @@ export class BuilderEventManager {
     const handlers = this.handlers.get(eventType);
     if (!handlers) return;
 
-    const index = handlers.indexOf(handler);
+    const index = handlers.findIndex((h) => h.original === handler);
     if (index > -1) {
       const removedHandler = handlers.splice(index, 1)[0];
-      this.element.removeEventListener(eventType, removedHandler);
+      this.element.removeEventListener(eventType, removedHandler.wrapped);
     }
   }
 
@@ -89,7 +96,7 @@ export class BuilderEventManager {
   removeAllEventListeners(): void {
     for (const [eventType, handlers] of this.handlers) {
       for (const handler of handlers) {
-        this.element.removeEventListener(eventType, handler);
+        this.element.removeEventListener(eventType, handler.wrapped);
       }
     }
     this.handlers.clear();
