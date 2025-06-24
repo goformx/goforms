@@ -14,7 +14,7 @@ console.log("login.ts: Imports completed");
 // Initialize the login form handler
 document.addEventListener("DOMContentLoaded", () => {
   console.log("login.ts: DOMContentLoaded event fired");
-  
+
   try {
     const config: FormConfig = {
       formId: "login-form",

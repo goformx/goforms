@@ -1,19 +1,14 @@
+// internal/application/handlers/web/form_web.go
 package web
 
 import (
 	"context"
-	"errors"
-	"net/http"
-	"strings"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/validation"
-	"github.com/goformx/goforms/internal/domain/common/types"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
-	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/labstack/echo/v4"
 )
 
@@ -26,21 +21,43 @@ const (
 // FormWebHandler handles web UI form operations
 type FormWebHandler struct {
 	*FormBaseHandler
-	Sanitizer sanitization.ServiceInterface
+	Sanitizer        sanitization.ServiceInterface
+	RequestProcessor FormRequestProcessor
+	ResponseBuilder  FormResponseBuilder
+	ErrorHandler     FormErrorHandler
+	FormService      *FormService
+	AuthHelper       *AuthHelper
 }
 
+// NewFormWebHandler creates a new FormWebHandler instance
 func NewFormWebHandler(
 	base *BaseHandler,
 	formService formdomain.Service,
 	formValidator *validation.FormValidator,
 	sanitizer sanitization.ServiceInterface,
 ) *FormWebHandler {
+	// Create base handler
+	formBaseHandler := NewFormBaseHandler(base, formService, formValidator)
+
+	// Create dependencies
+	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator)
+	responseBuilder := NewFormResponseBuilder()
+	errorHandler := NewFormErrorHandler(responseBuilder)
+	formServiceHandler := NewFormService(formService, base.Logger)
+	authHelper := NewAuthHelper(formBaseHandler)
+
 	return &FormWebHandler{
-		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
-		Sanitizer:       sanitizer,
+		FormBaseHandler:  formBaseHandler,
+		Sanitizer:        sanitizer,
+		RequestProcessor: requestProcessor,
+		ResponseBuilder:  responseBuilder,
+		ErrorHandler:     errorHandler,
+		FormService:      formServiceHandler,
+		AuthHelper:       authHelper,
 	}
 }
 
+// RegisterRoutes registers all form-related routes
 func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.AccessManager) {
 	forms := e.Group(constants.PathForms)
 	forms.Use(access.Middleware(accessManager, h.Logger))
@@ -67,190 +84,4 @@ func (h *FormWebHandler) Start(ctx context.Context) error {
 // Stop satisfies the Handler interface
 func (h *FormWebHandler) Stop(ctx context.Context) error {
 	return nil // No cleanup needed
-}
-
-func (h *FormWebHandler) handleNew(c echo.Context) error {
-	user, err := h.RequireAuthenticatedUser(c)
-	if err != nil {
-		return err
-	}
-
-	data := h.BuildPageData(c, "New Form")
-	data.User = user
-	return h.Renderer.Render(c, pages.NewForm(data))
-}
-
-func (h *FormWebHandler) handleCreate(c echo.Context) error {
-	user, err := h.RequireAuthenticatedUser(c)
-	if err != nil {
-		return err
-	}
-
-	// Get and sanitize form data
-	title := h.Sanitizer.String(c.FormValue("title"))
-	description := h.Sanitizer.String(c.FormValue("description"))
-
-	// Create a valid initial schema
-	schema := model.JSON{
-		"type":       "object",
-		"components": []any{},
-	}
-
-	// Create the form with default CORS settings
-	form := model.NewForm(user.ID, title, description, schema)
-
-	// Only override CORS settings if user provides custom values
-	if corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins")); corsOrigins != "" {
-		form.CorsOrigins = types.StringArray(parseCSV(corsOrigins))
-	}
-
-	err = h.FormService.CreateForm(c.Request().Context(), form)
-	if err != nil {
-		h.Logger.Error("failed to create form", "error", err)
-
-		// Check for specific validation errors
-		switch {
-		case errors.Is(err, model.ErrFormTitleRequired):
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Form title is required",
-			})
-		case errors.Is(err, model.ErrFormSchemaRequired):
-			return c.JSON(http.StatusBadRequest, map[string]string{
-				"message": "Form schema is required",
-			})
-		default:
-			return c.JSON(http.StatusInternalServerError, map[string]string{
-				"message": "Failed to create form",
-			})
-		}
-	}
-
-	// Return success response with form ID
-	return c.JSON(http.StatusOK, map[string]any{
-		"success": true,
-		"message": "Form created successfully",
-		"form_id": form.ID,
-	})
-}
-
-func (h *FormWebHandler) handleEdit(c echo.Context) error {
-	user, err := h.RequireAuthenticatedUser(c)
-	if err != nil {
-		return err
-	}
-
-	form, err := h.GetFormWithOwnership(c)
-	if err != nil {
-		return err
-	}
-
-	// Debug logging for form data
-	h.Logger.Debug("Form edit page loaded",
-		"form_id", form.ID,
-		"form_title", form.Title,
-		"form_status", form.Status,
-	)
-
-	data := h.BuildPageData(c, "Edit Form")
-	data.User = user
-	data.Form = form
-	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/form-builder.ts")
-
-	return pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer)
-}
-
-func (h *FormWebHandler) handleUpdate(c echo.Context) error {
-	_, err := h.RequireAuthenticatedUser(c)
-	if err != nil {
-		return err
-	}
-
-	form, err := h.GetFormWithOwnership(c)
-	if err != nil {
-		return err
-	}
-
-	// Update form fields
-	form.Title = h.Sanitizer.String(c.FormValue("title"))
-	form.Description = h.Sanitizer.String(c.FormValue("description"))
-	form.Status = h.Sanitizer.String(c.FormValue("status"))
-
-	// Only override CORS settings if user provides custom values
-	if corsOrigins := h.Sanitizer.String(c.FormValue("cors_origins")); corsOrigins != "" {
-		form.CorsOrigins = types.StringArray(parseCSV(corsOrigins))
-	}
-
-	err = h.FormService.UpdateForm(c.Request().Context(), form)
-	if err != nil {
-		h.Logger.Error("failed to update form", "error", err)
-		return h.HandleError(c, err, "Failed to update form")
-	}
-
-	// Return success response instead of redirect
-	return c.JSON(http.StatusOK, map[string]any{
-		"success": true,
-		"message": "Form updated successfully",
-		"form_id": form.ID,
-	})
-}
-
-func (h *FormWebHandler) handleDelete(c echo.Context) error {
-	_, err := h.RequireAuthenticatedUser(c)
-	if err != nil {
-		return err
-	}
-
-	form, err := h.GetFormWithOwnership(c)
-	if err != nil {
-		return err
-	}
-
-	err = h.FormService.DeleteForm(c.Request().Context(), form.ID)
-	if err != nil {
-		h.Logger.Error("failed to delete form", "error", err)
-		return h.HandleError(c, err, "Failed to delete form")
-	}
-
-	return c.NoContent(constants.StatusNoContent)
-}
-
-func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
-	user, err := h.RequireAuthenticatedUser(c)
-	if err != nil {
-		return err
-	}
-
-	form, err := h.GetFormWithOwnership(c)
-	if err != nil {
-		return err
-	}
-
-	submissions, err := h.FormService.ListFormSubmissions(c.Request().Context(), form.ID)
-	if err != nil {
-		h.Logger.Error("failed to get form submissions", "error", err)
-		return h.HandleError(c, err, "Failed to get form submissions")
-	}
-
-	data := h.BuildPageData(c, "Form Submissions")
-	data.User = user
-	data.Form = form
-	data.Submissions = submissions
-
-	return h.Renderer.Render(c, pages.FormSubmissions(data))
-}
-
-// parseCSV parses a comma-separated string into a slice of strings, trimming whitespace and skipping empty values
-func parseCSV(input string) []string {
-	if input == "" {
-		return []string{} // Return empty slice instead of nil
-	}
-	parts := strings.Split(input, ",")
-	var result []string
-	for _, part := range parts {
-		trimmed := strings.TrimSpace(part)
-		if trimmed != "" {
-			result = append(result, trimmed)
-		}
-	}
-	return result
 }

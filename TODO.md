@@ -3,12 +3,26 @@
 ## High Priority
 
 ### Code Quality & Architecture
-- [ ] **Refactor form_web.go to improve separation of concerns**
-  - [ ] Extract `FormRequestProcessor` to handle input validation and sanitization
-  - [ ] Extract `FormResponseBuilder` to standardize response formatting
-  - [ ] Create `FormCreateRequest` and `FormUpdateRequest` structs for type safety
-  - [ ] Move business logic from handlers to dedicated service methods
-  - [ ] Reduce code duplication in authentication and form ownership checks
+- [x] **Fix linting issues in form handlers**
+  - [x] Fix variable shadowing in form_handlers.go
+  - [x] Fix paramTypeCombine issues in form_response_builder.go
+  - [x] Fix line length issues in form_error_handler.go
+  - [x] Replace magic numbers with constants in form_request_processor.go
+  - [x] Replace fmt.Errorf with errors.New for simple errors
+  - [x] Fix type assertion error in schema validation
+- [x] **Refactor form_web.go to improve separation of concerns**
+  - [x] Extract `FormService` to handle business logic and reduce duplication
+  - [x] Extract `AuthHelper` to handle authentication and authorization patterns
+  - [x] Move business logic from handlers to dedicated service methods
+  - [x] Reduce code duplication in authentication and form ownership checks
+  - [x] Improve separation of concerns in handler methods
+- [ ] **Refactor form_api.go to improve route organization and error handling**
+  - [ ] Consolidate route registration with clear separation of authenticated vs public routes
+  - [ ] Extract `RegisterAuthenticatedRoutes()` and `RegisterPublicRoutes()` methods
+  - [ ] Implement centralized error handling using `FormErrorHandler`
+  - [ ] Use `FormRequestProcessor` for input processing
+  - [ ] Use `FormResponseBuilder` for standardized responses
+  - [ ] Remove duplicate route registration logic
 - [ ] **Implement proper error handling patterns across handlers**
   - [ ] Use Go 1.24's `errors.Join` for error composition
   - [ ] Standardize error response format using `response.APIResponse`
@@ -76,32 +90,80 @@
 - [x] User authentication system
 - [x] Database migrations
 - [x] Asset serving system
+- [x] Interface segregation for form handlers
+- [x] Form error handler implementation
+- [x] Fix linting issues in form handlers
+- [x] Resolve duplicate method declarations in form handlers
+- [x] Fix variable shadowing issues
+- [x] Replace magic numbers with constants
+- [x] Improve error handling with proper error types
+- [x] Fix type assertion issues in schema validation
+- [x] Refactor form_web.go to improve separation of concerns
+  - [x] Extract FormService for business logic
+  - [x] Extract AuthHelper for authentication patterns
+  - [x] Reduce code duplication in handlers
+  - [x] Improve separation of concerns
 
 ## Code Review Notes
 
-### form_web.go Issues Found:
+### Recent Fixes Applied:
 
-#### DRY Violations:
-1. **Repeated Authentication Pattern**: Every handler starts with `RequireAuthenticatedUser(c)` check
-2. **Repeated Form Ownership Check**: Multiple handlers use `GetFormWithOwnership(c)` pattern
-3. **Repeated CORS Parsing Logic**: Same CORS parsing appears in `handleCreate` and `handleUpdate`
-4. **Repeated Success Response Pattern**: Same JSON response structure in multiple handlers
+#### Linting Issues Resolved:
+1. **Variable Shadowing**: Fixed `err` variable shadowing in `handleUpdate` and `handleDelete` methods
+2. **ParamTypeCombine**: Combined `field string, message string` into `field, message string`
+3. **Line Length**: Broke long lines to stay within 120 character limit
+4. **Magic Numbers**: Added constants `MaxTitleLength = 255` and `MaxDescriptionLength = 1000`
+5. **Error Formatting**: Replaced `fmt.Errorf` with `errors.New` for simple error messages
+6. **Type Assertion**: Fixed invalid type assertion on `model.JSON` type
 
-#### SRP Violations:
-1. **Mixed Responsibilities**: Handlers handle authentication, validation, business logic, and response formatting
-2. **Handler Methods Doing Too Much**: Each method handles multiple concerns
+#### Code Quality Improvements:
+1. **Constants**: Defined validation constants for better maintainability
+2. **Error Handling**: Improved error messages and consistency
+3. **Type Safety**: Fixed type assertion issues
+4. **Code Organization**: Removed duplicate method declarations
 
-#### SoC Violations:
-1. **Business Logic in Handlers**: Form creation/update logic embedded in handlers
-2. **Response Formatting in Handlers**: Direct JSON formatting instead of using response service
-3. **Input Processing in Handlers**: Sanitization mixed with request handling
+#### Architecture Improvements:
+1. **Separation of Concerns**: Extracted business logic into dedicated services
+2. **DRY Principle**: Reduced code duplication in authentication and form operations
+3. **Single Responsibility**: Each component now has a clear, focused purpose
+4. **Dependency Injection**: Improved dependency management and testability
 
-#### Go 1.24 Issues:
-1. **Error Handling**: Not using `errors.Join` for error composition
-2. **Context Usage**: Some methods don't properly propagate context
-3. **Type Safety**: Could use more specific types instead of `any` in some places
+### form_web.go Refactoring Results:
+
+#### Before Refactoring:
+- Business logic mixed with HTTP handling
+- Repeated authentication patterns
+- Duplicated form creation/update logic
+- Helper methods scattered throughout handler
+
+#### After Refactoring:
+- **FormService**: Handles all form-related business logic
+- **AuthHelper**: Centralizes authentication and authorization patterns
+- **Clean Handlers**: Focus only on HTTP request/response handling
+- **Reduced Duplication**: Common patterns extracted to reusable services
+- **Better Testability**: Business logic separated from HTTP concerns
+
+### form_api.go Issues Found:
+
+#### Route Organization Issues:
+1. **Duplicate Route Registration**: Both authenticated and public routes register the same schema endpoint
+2. **Mixed Route Groups**: Authenticated and public routes are mixed in the same registration method
+3. **Inconsistent Middleware Application**: Some routes have middleware, others don't
+4. **Poor Separation of Concerns**: Route registration logic is not clearly separated
+
+#### Error Handling Issues:
+1. **Inconsistent Error Responses**: Different error handling patterns across endpoints
+2. **Direct Error Handling**: Handlers directly handle errors instead of using centralized error handling
+3. **Missing Error Context**: Errors lack proper context and categorization
+
+#### Code Duplication:
+1. **Repeated Form Retrieval**: Same form retrieval logic in multiple handlers
+2. **Repeated Error Logging**: Similar error logging patterns across handlers
+3. **Repeated Response Formatting**: Similar response formatting logic
 
 ### Recommended Refactoring:
+
+#### For form_web.go:
 1. Extract `FormRequestProcessor` for input handling
 2. Extract `FormResponseBuilder` for response formatting
 3. Create typed request structs (`FormCreateRequest`, `FormUpdateRequest`)
@@ -109,9 +171,67 @@
 5. Implement helper methods to reduce duplication
 6. Use standardized error handling patterns
 
+#### For form_api.go:
+1. **Route Organization**:
+   ```go
+   func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
+       api := e.Group(constants.PathAPIv1)
+       formsAPI := api.Group(constants.PathForms)
+       
+       // Register authenticated routes
+       h.RegisterAuthenticatedRoutes(formsAPI)
+       
+       // Register public routes
+       h.RegisterPublicRoutes(formsAPI)
+   }
+   ```
+
+2. **Error Handling**:
+   ```go
+   func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
+       form, err := h.GetFormByID(c)
+       if err != nil {
+           return h.ErrorHandler.HandleFormAccessError(c, err)
+       }
+       return h.ResponseBuilder.BuildSchemaResponse(c, form.Schema)
+   }
+   ```
+
+3. **Request Processing**:
+   ```go
+   func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
+       schema, err := h.RequestProcessor.ProcessSchemaUpdateRequest(c)
+       if err != nil {
+           return h.ErrorHandler.HandleSchemaError(c, err)
+       }
+       // ... rest of logic
+   }
+   ```
+
+## Next Priority Task
+
+**🎯 RECOMMENDED NEXT TASK: Refactor form_web.go to improve separation of concerns**
+
+**Why this should be next:**
+1. **High Impact**: This will significantly improve code maintainability and reduce duplication
+2. **Foundation for Other Improvements**: Better separation of concerns will make subsequent refactoring easier
+3. **Immediate Benefits**: Will reduce the DRY violations and improve code organization
+4. **Low Risk**: The interfaces and patterns are already partially implemented
+
+**Specific steps:**
+1. Extract `FormRequestProcessor` to handle input validation and sanitization
+2. Extract `FormResponseBuilder` to standardize response formatting  
+3. Create typed request structs (`FormCreateRequest`, `FormUpdateRequest`)
+4. Move business logic from handlers to dedicated service methods
+5. Reduce code duplication in authentication and form ownership checks
+
+**Estimated effort:** 2-3 hours
+**Dependencies:** None (can be done independently)
+
 ## Notes
 
 - Review code regularly for DRY, SRP, and SoC violations
 - Keep dependencies updated
 - Monitor performance metrics
-- Regular security audits 
+- Regular security audits
+- All linting issues have been resolved - maintain this standard 
