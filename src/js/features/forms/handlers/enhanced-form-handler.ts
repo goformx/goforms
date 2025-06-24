@@ -1,6 +1,6 @@
 // ===== src/js/forms/handlers/enhanced-form-handler.ts =====
 import type { FormConfig } from "@/shared/types/form-types";
-import { validation } from "../validation/validation";
+import { validation } from "@/features/forms/validation/validation";
 import { ValidationHandler } from "./validation-handler";
 import { ResponseHandler } from "./response-handler";
 import { UIManager } from "./ui-manager";

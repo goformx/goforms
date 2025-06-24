@@ -1,5 +1,5 @@
 // ===== src/js/forms/handlers/request-handler.ts =====
-import { validation } from "../validation/validation";
+import { validation } from "@/features/forms/validation/validation";
 import type { RequestOptions } from "@/shared/types/form-types";
 import { isAuthenticationEndpoint } from "@/shared/utils/endpoint-utils";
 

@@ -1,10 +1,10 @@
 // ===== src/js/forms/handlers/form-handler.ts =====
-import type { FormConfig } from "../types/form-types";
-import { validation } from "../validation/validation";
-import { ValidationHandler } from "../handlers/validation-handler";
-import { RequestHandler } from "../handlers/request-handler";
-import { ResponseHandler } from "../handlers/response-handler";
-import { UIManager } from "../handlers/ui-manager";
+import type { FormConfig } from "@/shared/types/form-types";
+import { validation } from "@/features/forms/validation/validation";
+import { ValidationHandler } from "@/features/forms/handlers/validation-handler";
+import { RequestHandler } from "@/features/forms/handlers/request-handler";
+import { ResponseHandler } from "@/features/forms/handlers/response-handler";
+import { UIManager } from "@/features/forms/handlers/ui-manager";
 
 /**
  * Sets up a form with validation and submission handling

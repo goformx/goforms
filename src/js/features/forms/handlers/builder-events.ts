@@ -1,10 +1,10 @@
 import { Formio } from "@formio/js";
-import { FormService } from "../services/form-service";
-import type { FormSchema } from "../services/form-service";
+import { FormService } from "@/features/forms/services/form-service";
+import type { FormSchema } from "@/features/forms/services/form-service";
 import { debounce } from "lodash";
-import { showSchemaModal } from "../components/form-builder/schema-modal";
+import { showSchemaModal } from "@/features/forms/components/form-builder/schema-modal";
 import { dom } from "@/shared/utils/dom-utils";
-import { formState } from "../state/form-state";
+import { formState } from "@/features/forms/state/form-state";
 
 interface FormBuilderWithSchema extends Formio {
   form: FormSchema;
