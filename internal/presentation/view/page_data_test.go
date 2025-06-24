@@ -26,7 +26,7 @@ func TestGetCurrentUser(t *testing.T) {
 			name: "user with all fields",
 			setupCtx: func() echo.Context {
 				e := echo.New()
-				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 				rec := httptest.NewRecorder()
 				c := e.NewContext(req, rec)
 
@@ -46,7 +46,7 @@ func TestGetCurrentUser(t *testing.T) {
 			name: "user with only ID",
 			setupCtx: func() echo.Context {
 				e := echo.New()
-				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 				rec := httptest.NewRecorder()
 				c := e.NewContext(req, rec)
 
@@ -64,7 +64,7 @@ func TestGetCurrentUser(t *testing.T) {
 			name: "no user ID in context",
 			setupCtx: func() echo.Context {
 				e := echo.New()
-				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 				rec := httptest.NewRecorder()
 				c := e.NewContext(req, rec)
 
@@ -100,7 +100,7 @@ func TestGetCSRFToken(t *testing.T) {
 			name: "CSRF token present",
 			setupCtx: func() echo.Context {
 				e := echo.New()
-				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 				rec := httptest.NewRecorder()
 				c := e.NewContext(req, rec)
 
@@ -114,7 +114,7 @@ func TestGetCSRFToken(t *testing.T) {
 			name: "no CSRF token",
 			setupCtx: func() echo.Context {
 				e := echo.New()
-				req := httptest.NewRequest(http.MethodGet, "/", nil)
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 				rec := httptest.NewRecorder()
 				c := e.NewContext(req, rec)
 
@@ -180,7 +180,7 @@ func TestBuildPageData(t *testing.T) {
 	mockManager := webmocks.NewMockAssetManagerInterface(ctrl)
 
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", nil)
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
