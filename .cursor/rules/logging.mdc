@@ -6,46 +6,337 @@ alwaysApply: false
 # Logging Standards
 
 ## Overview
-Logging is implemented using Uber's zap logger throughout the application. The logging configuration is managed through the middleware and infrastructure layers.
+GoForms implements a comprehensive logging system using Uber's zap logger with unified sensitive data detection and sanitization. The logging package provides both field-based constructors and rule-based sanitization for maximum flexibility.
 
-## Implementation
-The main logging implementation is referenced in [internal/application/middleware/middleware.go](mdc:goforms/internal/application/middleware/middleware.go) and [internal/application/middleware/csrf.go](mdc:goforms/internal/application/middleware/csrf.go).
+## Architecture
 
-### Required Fields
-All log entries should include:
-- Request ID (when available)
-- Component name
-- Action being performed
-- Relevant context data
-- Error details (when applicable)
+### Single Source of Truth
+- **Sensitive Patterns**: All sensitive data patterns are defined in `internal/infrastructure/logging/sensitive/patterns.go`
+- **Detection Logic**: Unified detection in `internal/infrastructure/logging/sensitive/detector.go`
+- **Consistent Masking**: All sensitive data is masked as `"****"` using `sensitive.MaskValue()`
 
-### Log Levels
-Use appropriate log levels:
-1. Debug: Detailed information for debugging
-2. Info: General operational events
-3. Warn: Potentially harmful situations
-4. Error: Error events that might still allow the app to continue
+### Package Structure
+```
+internal/infrastructure/logging/
+├── factory.go              # Logger factory and configuration
+├── logger.go               # Logger implementation
+├── config.go               # Configuration validation and setup
+├── fields.go               # Field constructors (primary API)
+├── helpers.go              # Utility functions
+├── types.go                # Interfaces and constants
+├── sensitive/              # Single source of truth for sensitive data
+│   ├── patterns.go         # All sensitive patterns
+│   └── detector.go         # Detection and masking logic
+└── sanitization/           # Rule-based sanitization
+    ├── sanitizer.go        # Field sanitizer coordination
+    ├── rules.go            # Sanitization rules
+    ├── processors.go       # Field processing logic
+    ├── validators.go       # Validation functions
+    └── constants.go        # Sanitization constants
+```
 
-### Middleware Logging
-When implementing middleware logging:
-1. Log middleware initialization
-2. Log configuration details
-3. Log security-related events
-4. Include relevant request context
-5. Use structured logging fields
+## Usage Patterns
 
-### Error Logging
-For error logging:
-1. Include stack traces
-2. Add context information
-3. Use appropriate error levels
-4. Don't log sensitive data
-5. Include request IDs for correlation
+### Field-Based API (Recommended)
+Use the field constructors for simple, type-safe logging:
 
-### Performance Logging
-When logging performance metrics:
-1. Include timing information
-2. Log slow operations
-3. Monitor resource usage
-4. Track middleware performance
-5. Log rate limiting events
+```go
+// Basic sensitive data masking
+logger.Info("user login", logging.Sensitive("password", "secret123"))
+
+// Type-specific field constructors
+logger.Info("request processed",
+    logging.UUID("user_id", "550e8400-e29b-41d4-a716-446655440000"),
+    logging.Path("path", "/api/v1/users"),
+    logging.Error("error", err),
+    logging.Sanitized("message", "Hello\nWorld"),
+)
+
+// Custom sanitization
+logger.Info("custom field", 
+    logging.CustomField("data", value, func(v any) string {
+        return "custom sanitized"
+    }),
+)
+
+// Complex objects
+logger.Info("user data", 
+    logging.NewSensitiveObject("user_data", userMap).Field(),
+)
+```
+
+### Rule-Based Sanitization
+For advanced use cases, use the sanitization rules directly:
+
+```go
+fieldSanitizer := sanitization.NewFieldSanitizer()
+sanitizedValue := fieldSanitizer.Sanitize("password", "secret123", sanitizer)
+```
+
+## Sensitive Data Handling
+
+### Automatic Detection
+The system automatically detects and masks sensitive data based on field keys:
+
+```go
+// These will all be masked as "****"
+logging.Sensitive("password", "secret123")
+logging.Sensitive("api_key", "abc123")
+logging.Sensitive("user_data", userData)
+logging.Sensitive("personal_data", personalInfo)
+```
+
+### Sensitive Patterns
+The system recognizes these patterns (and more):
+- Authentication: `password`, `token`, `secret`, `api_key`, `access_token`
+- Personal: `email`, `phone`, `address`, `ssn`, `credit_card`
+- Financial: `bank_account`, `iban`, `account_number`, `pin`
+- Security: `private_key`, `certificate`, `oauth_token`
+- Data: `data`, `user_data`, `personal_data`, `sensitive_data`
+
+### Adding New Patterns
+To add new sensitive patterns, update `sensitive/patterns.go`:
+
+```go
+var Patterns = []string{
+    // ... existing patterns
+    "new_sensitive_pattern", // ADD NEW PATTERNS HERE
+}
+```
+
+## Log Levels and Usage
+
+### Debug Level
+```go
+logger.Debug("detailed operation info",
+    logging.StringField("component", "user-service"),
+    logging.StringField("operation", "validate-email"),
+    logging.StringField("email", "user@example.com"), // Will be masked if email is sensitive
+)
+```
+
+### Info Level
+```go
+logger.Info("user action completed",
+    logging.StringField("user_id", userID),
+    logging.StringField("action", "form_submitted"),
+    logging.StringField("form_id", formID),
+)
+```
+
+### Warn Level
+```go
+logger.Warn("potential issue detected",
+    logging.ErrorField("error", err),
+    logging.StringField("component", "payment-processor"),
+    logging.StringField("user_id", userID),
+)
+```
+
+### Error Level
+```go
+logger.Error("operation failed",
+    logging.ErrorField("error", err),
+    logging.StringField("component", "database"),
+    logging.StringField("operation", "create_user"),
+    logging.StringField("user_id", userID),
+)
+```
+
+## Best Practices
+
+### 1. Always Use Structured Logging
+```go
+// ✅ Good
+logger.Info("user login successful",
+    logging.StringField("user_id", userID),
+    logging.StringField("ip_address", ipAddress),
+    logging.StringField("user_agent", userAgent),
+)
+
+// ❌ Bad
+logger.Info("user login successful")
+```
+
+### 2. Use Appropriate Field Types
+```go
+// ✅ Use specific field constructors
+logger.Info("request processed",
+    logging.UUID("user_id", userID),
+    logging.Path("path", requestPath),
+    logging.Error("error", err),
+)
+
+// ❌ Don't use generic fields for specific types
+logger.Info("request processed",
+    logging.StringField("user_id", userID),
+    logging.StringField("path", requestPath),
+)
+```
+
+### 3. Never Log Sensitive Data
+```go
+// ✅ Good - sensitive data is automatically masked
+logger.Info("authentication", logging.Sensitive("password", password))
+
+// ❌ Bad - don't log sensitive data directly
+logger.Info("authentication", logging.StringField("password", password))
+```
+
+### 4. Include Context for Debugging
+```go
+logger.Error("database operation failed",
+    logging.ErrorField("error", err),
+    logging.StringField("operation", "create_user"),
+    logging.StringField("table", "users"),
+    logging.StringField("user_id", userID),
+    logging.StringField("request_id", requestID),
+)
+```
+
+### 5. Use Component and Operation Fields
+```go
+logger.Info("operation completed",
+    logging.StringField("component", "user-service"),
+    logging.StringField("operation", "create_user"),
+    logging.StringField("user_id", userID),
+)
+```
+
+## Configuration
+
+### Factory Configuration
+```go
+config := logging.FactoryConfig{
+    AppName:     "GoForms",
+    Version:     "1.0.0",
+    Environment: "production",
+    LogLevel:    "info",
+    OutputPaths: []string{"stdout"},
+}
+
+factory := logging.NewFactory(config, sanitizer)
+logger, err := factory.CreateLogger()
+```
+
+### Environment-Specific Settings
+```go
+// Development
+config.LogLevel = "debug"
+config.Environment = "development"
+
+// Production
+config.LogLevel = "info"
+config.Environment = "production"
+```
+
+## Testing
+
+### Test Logger Creation
+```go
+func TestLoggerCreation(t *testing.T) {
+    config := logging.FactoryConfig{
+        AppName: "test-app",
+        LogLevel: "debug",
+    }
+    
+    factory := logging.NewFactory(config, nil)
+    logger, err := factory.CreateLogger()
+    assert.NoError(t, err)
+    assert.NotNil(t, logger)
+}
+```
+
+### Test Sensitive Data Masking
+```go
+func TestSensitiveDataMasking(t *testing.T) {
+    field := logging.Sensitive("password", "secret123")
+    assert.Equal(t, "****", field.String)
+}
+```
+
+## Integration with Middleware
+
+### Request Logging
+```go
+func LoggingMiddleware(logger logging.Logger) echo.MiddlewareFunc {
+    return func(next echo.HandlerFunc) echo.HandlerFunc {
+        return func(c echo.Context) error {
+            start := time.Now()
+            
+            // Log request start
+            logger.Info("request started",
+                logging.StringField("method", c.Request().Method),
+                logging.StringField("path", c.Request().URL.Path),
+                logging.StringField("user_agent", c.Request().UserAgent()),
+            )
+            
+            err := next(c)
+            
+            // Log request completion
+            logger.Info("request completed",
+                logging.StringField("method", c.Request().Method),
+                logging.StringField("path", c.Request().URL.Path),
+                logging.IntField("status", c.Response().Status),
+                logging.StringField("duration", time.Since(start).String()),
+                logging.ErrorField("error", err),
+            )
+            
+            return err
+        }
+    }
+}
+```
+
+## Performance Considerations
+
+### Field Reuse
+```go
+// ✅ Good - reuse fields for better performance
+userIDField := logging.StringField("user_id", userID)
+componentField := logging.StringField("component", "user-service")
+
+logger.Info("operation 1", userIDField, componentField)
+logger.Info("operation 2", userIDField, componentField)
+```
+
+### Avoid String Concatenation
+```go
+// ✅ Good - use structured fields
+logger.Info("user action",
+    logging.StringField("user_id", userID),
+    logging.StringField("action", action),
+)
+
+// ❌ Bad - avoid string concatenation
+logger.Info(fmt.Sprintf("user %s performed action %s", userID, action))
+```
+
+## Error Handling
+
+### Log Errors with Context
+```go
+if err != nil {
+    logger.Error("operation failed",
+        logging.ErrorField("error", err),
+        logging.StringField("operation", "create_user"),
+        logging.StringField("user_id", userID),
+    )
+    return err
+}
+```
+
+### Don't Log and Return
+```go
+// ✅ Good - log and return the error
+if err != nil {
+    logger.Error("operation failed", logging.ErrorField("error", err))
+    return err
+}
+
+// ❌ Bad - don't log and then return nil
+if err != nil {
+    logger.Error("operation failed", logging.ErrorField("error", err))
+    return nil
+}
+```
