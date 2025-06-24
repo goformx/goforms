@@ -14,7 +14,7 @@ func TestSensitiveField(t *testing.T) {
 	tests := []struct {
 		name     string
 		key      string
-		value    interface{}
+		value    any
 		expected string
 	}{
 		{
@@ -296,7 +296,7 @@ func TestSensitiveObject(t *testing.T) {
 	tests := []struct {
 		name     string
 		key      string
-		value    interface{}
+		value    any
 		expected string
 	}{
 		{
@@ -395,22 +395,22 @@ func TestCustomField(t *testing.T) {
 	tests := []struct {
 		name      string
 		key       string
-		value     interface{}
-		sanitizer func(interface{}) string
+		value     any
+		sanitizer func(any) string
 		expected  string
 	}{
 		{
 			name:      "sensitive key should be masked",
 			key:       "secret_data",
 			value:     "sensitive value",
-			sanitizer: func(v interface{}) string { return "custom sanitized" },
+			sanitizer: func(v any) string { return "custom sanitized" },
 			expected:  "****",
 		},
 		{
 			name:      "custom sanitization",
 			key:       "description",
 			value:     "original value",
-			sanitizer: func(v interface{}) string { return "custom sanitized" },
+			sanitizer: func(v any) string { return "custom sanitized" },
 			expected:  "custom sanitized",
 		},
 	}
