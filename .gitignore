@@ -33,7 +33,7 @@ air.log
 
 # Task checksum
 .task/
-coverage/coverage.html
+coverage/
 
 node_modules/
 dist/
