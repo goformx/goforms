@@ -23,13 +23,18 @@
   - [x] Use `FormResponseBuilder` for standardized responses
   - [x] Remove duplicate route registrations
   - [x] Improve dependency injection with proper sanitizer injection
-- [ ] **Implement comprehensive form validation system**
-  - [ ] Create form schema validation rules
-  - [ ] Implement client-side validation generation
-  - [ ] Add server-side validation for form submissions
-  - [ ] Create validation error response standardization
-  - [ ] Add form field type validation
-  - [ ] Implement conditional validation rules
+- [x] **Implement comprehensive form validation system**
+  - [x] Use go-playground/validator/v10 for static struct validation
+  - [x] Use custom logic only for dynamic schemas (user-defined forms)
+  - [x] Remove/replace custom comprehensive validator for static cases
+  - [x] Document when to use validator/v10 vs custom logic
+  - [ ] Implement client-side validation generation for dynamic schemas
+  - [ ] Add server-side validation for dynamic form submissions
+  - [ ] Create validation error response standardization for dynamic forms
+  - [ ] Add form field type validation for dynamic schemas
+  - [ ] Implement conditional validation rules for dynamic schemas
+  - [ ] Test the new validation endpoint from the frontend (ensure the client fetches /api/v1/forms/:id/validation for dynamic forms)
+  - [ ] Implement or enhance client-side code to use the new validation schema for real-time validation
 - [ ] **Add comprehensive logging for debugging**
   - [ ] Add structured logging with context
   - [ ] Implement request/response logging middleware

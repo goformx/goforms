@@ -5,6 +5,7 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/application/response"
+	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/labstack/echo/v4"
 )
@@ -129,6 +130,29 @@ func (b *FormResponseBuilderImpl) BuildValidationErrorResponse(c echo.Context, f
 		Data: map[string]any{
 			"field":   field,
 			"message": message,
+		},
+	})
+}
+
+// BuildMultipleValidationErrorResponse builds a response for multiple validation errors
+func (b *FormResponseBuilderImpl) BuildMultipleValidationErrorResponse(
+	c echo.Context,
+	errors []validation.ValidationError,
+) error {
+	errorData := make([]map[string]any, len(errors))
+	for i, err := range errors {
+		errorData[i] = map[string]any{
+			"field":   err.Field,
+			"message": err.Message,
+			"rule":    err.Rule,
+		}
+	}
+
+	return c.JSON(http.StatusBadRequest, response.APIResponse{
+		Success: false,
+		Message: "Validation failed",
+		Data: map[string]any{
+			"errors": errorData,
 		},
 	})
 }

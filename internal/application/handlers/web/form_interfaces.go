@@ -1,6 +1,7 @@
 package web
 
 import (
+	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/labstack/echo/v4"
 )
@@ -45,6 +46,8 @@ type FormResponseBuilder interface {
 	BuildErrorResponse(c echo.Context, statusCode int, message string) error
 	BuildSchemaResponse(c echo.Context, schema model.JSON) error
 	BuildSubmissionResponse(c echo.Context, submission *model.FormSubmission) error
+	BuildValidationErrorResponse(c echo.Context, field, message string) error
+	BuildMultipleValidationErrorResponse(c echo.Context, errors []validation.ValidationError) error
 }
 
 // FormErrorHandler interface for handling form-specific errors

@@ -16,10 +16,11 @@ import (
 // FormAPIHandler handles API form operations
 type FormAPIHandler struct {
 	*FormBaseHandler
-	AccessManager    *access.AccessManager
-	RequestProcessor FormRequestProcessor
-	ResponseBuilder  FormResponseBuilder
-	ErrorHandler     FormErrorHandler
+	AccessManager          *access.AccessManager
+	RequestProcessor       FormRequestProcessor
+	ResponseBuilder        FormResponseBuilder
+	ErrorHandler           FormErrorHandler
+	ComprehensiveValidator *validation.ComprehensiveValidator
 }
 
 func NewFormAPIHandler(
@@ -33,13 +34,15 @@ func NewFormAPIHandler(
 	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator)
 	responseBuilder := NewFormResponseBuilder()
 	errorHandler := NewFormErrorHandler(responseBuilder)
+	comprehensiveValidator := validation.NewComprehensiveValidator()
 
 	return &FormAPIHandler{
-		FormBaseHandler:  NewFormBaseHandler(base, formService, formValidator),
-		AccessManager:    accessManager,
-		RequestProcessor: requestProcessor,
-		ResponseBuilder:  responseBuilder,
-		ErrorHandler:     errorHandler,
+		FormBaseHandler:        NewFormBaseHandler(base, formService, formValidator),
+		AccessManager:          accessManager,
+		RequestProcessor:       requestProcessor,
+		ResponseBuilder:        responseBuilder,
+		ErrorHandler:           errorHandler,
+		ComprehensiveValidator: comprehensiveValidator,
 	}
 }
 
@@ -69,6 +72,7 @@ func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
 	// Public routes (no authentication required)
 	// These are for embedded forms on external websites
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
+	formsAPI.GET("/:id/validation", h.handleFormValidationSchema)
 	formsAPI.POST("/:id/submit", h.handleFormSubmit)
 }
 
@@ -86,6 +90,23 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 	}
 
 	return h.ResponseBuilder.BuildSchemaResponse(c, form.Schema)
+}
+
+// GET /api/v1/forms/:id/validation
+func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
+	form, err := h.GetFormByID(c)
+	if err != nil {
+		return h.HandleError(c, err, "Failed to get form for validation schema")
+	}
+
+	// Generate client-side validation rules from form schema
+	clientValidation, err := h.ComprehensiveValidator.GenerateClientValidation(form.Schema)
+	if err != nil {
+		h.Logger.Error("failed to generate client validation schema", "error", err, "form_id", form.ID)
+		return h.ErrorHandler.HandleSchemaError(c, err)
+	}
+
+	return c.JSON(constants.StatusOK, clientValidation)
 }
 
 // PUT /api/v1/forms/:id/schema
@@ -127,6 +148,12 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	submissionData, err := h.RequestProcessor.ProcessSubmissionRequest(c)
 	if err != nil {
 		return h.ErrorHandler.HandleSubmissionError(c, err)
+	}
+
+	// Validate submission against form schema
+	validationResult := h.ComprehensiveValidator.ValidateForm(form.Schema, submissionData)
+	if !validationResult.IsValid {
+		return h.ResponseBuilder.BuildMultipleValidationErrorResponse(c, validationResult.Errors)
 	}
 
 	// Create submission

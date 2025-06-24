@@ -1,0 +1,328 @@
+package validation
+
+import (
+	"fmt"
+	"regexp"
+	"strconv"
+)
+
+// FieldValidator handles field-specific validation logic
+type FieldValidator struct {
+	emailRegex *regexp.Regexp
+	urlRegex   *regexp.Regexp
+	phoneRegex *regexp.Regexp
+	dateRegex  *regexp.Regexp
+}
+
+// NewFieldValidator creates a new field validator
+func NewFieldValidator() *FieldValidator {
+	return &FieldValidator{
+		emailRegex: regexp.MustCompile(`^[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}$`),
+		urlRegex:   regexp.MustCompile(`^https?://[^\s/$.?#].\S*$`),
+		phoneRegex: regexp.MustCompile(`^\+?[1-9]\d{0,15}$`),
+		dateRegex:  regexp.MustCompile(`^\d{4}-\d{2}-\d{2}$`),
+	}
+}
+
+// ValidateField validates a single field against its rules
+func (v *FieldValidator) ValidateField(fieldName string, value any, rules FieldValidation) []ValidationError {
+	var errors []ValidationError
+
+	// Required field validation
+	if requiredErrors := v.validateRequired(fieldName, value, rules); len(requiredErrors) > 0 {
+		errors = append(errors, requiredErrors...)
+	}
+
+	// Skip further validation if field is empty and not required
+	if value == nil || value == "" {
+		return errors
+	}
+
+	// Type validation
+	if typeErrors := v.ValidateFieldType(fieldName, value, rules.Type); typeErrors != nil {
+		errors = append(errors, *typeErrors)
+	}
+
+	// String-specific validations
+	if strErrors := v.validateStringField(fieldName, value, rules); len(strErrors) > 0 {
+		errors = append(errors, strErrors...)
+	}
+
+	// Numeric validations
+	if numErrors := v.validateNumericField(fieldName, value, rules); len(numErrors) > 0 {
+		errors = append(errors, numErrors...)
+	}
+
+	// Pattern validation
+	if patternErrors := v.validatePattern(fieldName, value, rules.Pattern); len(patternErrors) > 0 {
+		errors = append(errors, patternErrors...)
+	}
+
+	// Options validation
+	if optionsErrors := v.validateOptions(fieldName, value, rules.Options); len(optionsErrors) > 0 {
+		errors = append(errors, optionsErrors...)
+	}
+
+	// Custom rules validation
+	if customErrors := v.validateCustomRules(fieldName, value, rules.CustomRules); len(customErrors) > 0 {
+		errors = append(errors, customErrors...)
+	}
+
+	return errors
+}
+
+// validateRequired validates if a required field has a value
+func (v *FieldValidator) validateRequired(fieldName string, value any, rules FieldValidation) []ValidationError {
+	if rules.Required && (value == nil || value == "") {
+		return []ValidationError{{
+			Field:   fieldName,
+			Message: rules.getMessage("required", "This field is required"),
+		}}
+	}
+	return nil
+}
+
+// validateStringField validates string-specific rules
+func (v *FieldValidator) validateStringField(fieldName string, value any, rules FieldValidation) []ValidationError {
+	var errors []ValidationError
+
+	if strValue, ok := value.(string); ok {
+		if rules.MinLength > 0 && len(strValue) < rules.MinLength {
+			errors = append(errors, ValidationError{
+				Field:   fieldName,
+				Message: rules.getMessage("minLength", fmt.Sprintf("Minimum length is %d characters", rules.MinLength)),
+			})
+		}
+		if rules.MaxLength > 0 && len(strValue) > rules.MaxLength {
+			errors = append(errors, ValidationError{
+				Field:   fieldName,
+				Message: rules.getMessage("maxLength", fmt.Sprintf("Maximum length is %d characters", rules.MaxLength)),
+			})
+		}
+	}
+
+	return errors
+}
+
+// validateNumericField validates numeric-specific rules
+func (v *FieldValidator) validateNumericField(fieldName string, value any, rules FieldValidation) []ValidationError {
+	var errors []ValidationError
+
+	if numValue, ok := v.toFloat64(value); ok {
+		if rules.Min != 0 && numValue < rules.Min {
+			errors = append(errors, ValidationError{
+				Field:   fieldName,
+				Message: rules.getMessage("min", fmt.Sprintf("Minimum value is %g", rules.Min)),
+			})
+		}
+		if rules.Max != 0 && numValue > rules.Max {
+			errors = append(errors, ValidationError{
+				Field:   fieldName,
+				Message: rules.getMessage("max", fmt.Sprintf("Maximum value is %g", rules.Max)),
+			})
+		}
+	}
+
+	return errors
+}
+
+// validatePattern validates pattern matching
+func (v *FieldValidator) validatePattern(fieldName string, value any, pattern string) []ValidationError {
+	if pattern == "" {
+		return nil
+	}
+
+	if strValue, ok := value.(string); ok {
+		if matched, _ := regexp.MatchString(pattern, strValue); !matched {
+			return []ValidationError{{
+				Field:   fieldName,
+				Message: "Value does not match required pattern",
+			}}
+		}
+	}
+
+	return nil
+}
+
+// validateOptions validates that a value is in the allowed options
+func (v *FieldValidator) validateOptions(fieldName string, value any, options []string) []ValidationError {
+	if len(options) == 0 {
+		return nil
+	}
+
+	if strValue, ok := value.(string); ok {
+		for _, option := range options {
+			if strValue == option {
+				return nil
+			}
+		}
+		return []ValidationError{{
+			Field:   fieldName,
+			Message: "Invalid option selected",
+		}}
+	}
+
+	return nil
+}
+
+// validateCustomRules validates custom validation rules
+func (v *FieldValidator) validateCustomRules(fieldName string, value any, rules []ValidationRule) []ValidationError {
+	var errors []ValidationError
+
+	for _, rule := range rules {
+		if ruleError := v.validateCustomRule(fieldName, value, rule); ruleError != nil {
+			errors = append(errors, *ruleError)
+		}
+	}
+
+	return errors
+}
+
+// ValidateFieldType validates the type of a field
+func (v *FieldValidator) ValidateFieldType(fieldName string, value any, fieldType string) *ValidationError {
+	switch fieldType {
+	case "email":
+		return v.validateEmail(fieldName, value)
+	case "url":
+		return v.validateURL(fieldName, value)
+	case "phoneNumber":
+		return v.validatePhoneNumber(fieldName, value)
+	case "date":
+		return v.validateDate(fieldName, value)
+	case "number":
+		return v.validateNumber(fieldName, value)
+	case "integer":
+		return v.validateInteger(fieldName, value)
+	}
+	return nil
+}
+
+// validateEmail validates email format
+func (v *FieldValidator) validateEmail(fieldName string, value any) *ValidationError {
+	if strValue, ok := value.(string); ok {
+		if !v.emailRegex.MatchString(strValue) {
+			return &ValidationError{
+				Field:   fieldName,
+				Message: "Invalid email format",
+				Rule:    "email",
+			}
+		}
+	}
+	return nil
+}
+
+// validateURL validates URL format
+func (v *FieldValidator) validateURL(fieldName string, value any) *ValidationError {
+	if strValue, ok := value.(string); ok {
+		if !v.urlRegex.MatchString(strValue) {
+			return &ValidationError{
+				Field:   fieldName,
+				Message: "Invalid URL format",
+				Rule:    "url",
+			}
+		}
+	}
+	return nil
+}
+
+// validatePhoneNumber validates phone number format
+func (v *FieldValidator) validatePhoneNumber(fieldName string, value any) *ValidationError {
+	if strValue, ok := value.(string); ok {
+		if !v.phoneRegex.MatchString(strValue) {
+			return &ValidationError{
+				Field:   fieldName,
+				Message: "Invalid phone number format",
+				Rule:    "phoneNumber",
+			}
+		}
+	}
+	return nil
+}
+
+// validateDate validates date format
+func (v *FieldValidator) validateDate(fieldName string, value any) *ValidationError {
+	if strValue, ok := value.(string); ok {
+		if !v.dateRegex.MatchString(strValue) {
+			return &ValidationError{
+				Field:   fieldName,
+				Message: "Invalid date format (YYYY-MM-DD)",
+				Rule:    "date",
+			}
+		}
+	}
+	return nil
+}
+
+// validateNumber validates number format
+func (v *FieldValidator) validateNumber(fieldName string, value any) *ValidationError {
+	if _, ok := v.toFloat64(value); !ok {
+		return &ValidationError{
+			Field:   fieldName,
+			Message: "Value must be a number",
+			Rule:    "number",
+		}
+	}
+	return nil
+}
+
+// validateInteger validates integer format
+func (v *FieldValidator) validateInteger(fieldName string, value any) *ValidationError {
+	if floatValue, ok := v.toFloat64(value); ok {
+		if floatValue != float64(int(floatValue)) {
+			return &ValidationError{
+				Field:   fieldName,
+				Message: "Value must be an integer",
+				Rule:    "integer",
+			}
+		}
+	} else {
+		return &ValidationError{
+			Field:   fieldName,
+			Message: "Value must be an integer",
+			Rule:    "integer",
+		}
+	}
+	return nil
+}
+
+// validateCustomRule validates a custom validation rule
+func (v *FieldValidator) validateCustomRule(fieldName string, value any, rule ValidationRule) *ValidationError {
+	switch rule.Type {
+	case "regex":
+		if strValue, ok := value.(string); ok {
+			if pattern, patternOk := rule.Value.(string); patternOk {
+				if matched, _ := regexp.MatchString(pattern, strValue); !matched {
+					return &ValidationError{
+						Field:   fieldName,
+						Message: rule.Message,
+						Rule:    rule.Type,
+					}
+				}
+			}
+		}
+	case "custom":
+		// Custom validation logic can be extended here
+		return nil
+	}
+
+	return nil
+}
+
+// toFloat64 converts a value to float64 for numeric validation
+func (v *FieldValidator) toFloat64(value any) (float64, bool) {
+	switch val := value.(type) {
+	case float64:
+		return val, true
+	case float32:
+		return float64(val), true
+	case int:
+		return float64(val), true
+	case int64:
+		return float64(val), true
+	case string:
+		if f, err := strconv.ParseFloat(val, 64); err == nil {
+			return f, true
+		}
+	}
+	return 0, false
+}
