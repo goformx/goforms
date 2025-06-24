@@ -2,6 +2,7 @@ import { Formio } from "@formio/js";
 import goforms from "@goformx/formio";
 import { FormService } from "@/features/forms/services/form-service";
 import { setupBuilderEvents } from "@/features/forms/handlers/builder-events";
+import { setupViewSchemaButton } from "@/features/forms/components/form-builder/view-schema-button";
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
@@ -32,6 +33,9 @@ async function initializeFormBuilder(): Promise<void> {
 
     // Set up event handlers
     setupBuilderEvents(builder, formId, FormService.getInstance());
+
+    // Set up View Schema button
+    setupViewSchemaButton(builder);
   } catch (error) {
     if (error instanceof FormBuilderError) {
       dom.showError(error.userMessage);
