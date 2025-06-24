@@ -1,0 +1,130 @@
+package pages
+
+import (
+	"encoding/json"
+	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/view"
+)
+
+templ FormPreview(data view.PageData, form *model.Form) {
+	@layouts.Layout(data, formPreviewContent(data, form))
+}
+
+templ formPreviewContent(data view.PageData, form *model.Form) {
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-header">
+				<div class="dashboard-header-left">
+					<h1 class="dashboard-title">Form Preview</h1>
+					<p class="dashboard-subtitle">{ form.Title }</p>
+				</div>
+				<div class="dashboard-header-actions">
+					<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-secondary btn-icon" title="Edit Form">
+						<i class="bi bi-pencil"></i>
+						<span class="dashboard-action-label">Edit Form</span>
+					</a>
+					<a href={ templ.SafeURL("/dashboard") } class="btn btn-outline btn-icon" title="Back to Dashboard">
+						<i class="bi bi-arrow-left"></i>
+						<span class="dashboard-action-label">Dashboard</span>
+					</a>
+				</div>
+			</div>
+
+			<div class="dashboard-content">
+				<div class="form-preview-grid">
+					<div class="form-preview-main">
+						<div class="form-card">
+							<div class="form-card-header">
+								<h3>Form Preview</h3>
+								<div class="form-preview-notice">
+									<i class="bi bi-eye"></i>
+									<span>This is how users will see your form</span>
+								</div>
+							</div>
+							<div class="form-card-body">
+								if form.Description != "" {
+									<p class="form-description">{ form.Description }</p>
+								}
+								
+								if form.Schema != nil && len(form.Schema) > 0 {
+									<div class="form-renderer" id="form-renderer">
+										<!-- Form will be rendered here by JavaScript -->
+										<div class="form-loading">
+											<i class="bi bi-hourglass-split"></i>
+											<span>Loading form...</span>
+										</div>
+									</div>
+								} else {
+									<div class="form-empty-state">
+										<i class="bi bi-file-earmark-text"></i>
+										<h3>No Form Schema</h3>
+										<p>This form doesn't have any fields defined yet.</p>
+										<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-primary">Add Fields</a>
+									</div>
+								}
+							</div>
+						</div>
+					</div>
+
+					<div class="form-preview-sidebar">
+						<div class="form-card">
+							<div class="form-card-header">
+								<h3>Form Information</h3>
+							</div>
+							<div class="form-card-body">
+								<div class="form-info-item">
+									<span class="form-info-label">Status:</span>
+									<span class="form-info-value">
+										if form.Status == "active" {
+											<span class="status-badge status-active">Active</span>
+										} else if form.Status == "draft" {
+											<span class="status-badge status-draft">Draft</span>
+										} else {
+											<span class="status-badge status-inactive">Inactive</span>
+										}
+									</span>
+								</div>
+								<div class="form-info-item">
+									<span class="form-info-label">Created:</span>
+									<span class="form-info-value">{ form.CreatedAt.Format("Jan 2, 2006 at 3:04 PM") }</span>
+								</div>
+								<div class="form-info-item">
+									<span class="form-info-label">Last Updated:</span>
+									<span class="form-info-value">{ form.UpdatedAt.Format("Jan 2, 2006 at 3:04 PM") }</span>
+								</div>
+							</div>
+							<div class="form-card-footer">
+								<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
+							</div>
+						</div>
+					</div>
+				</div>
+			</div>
+		</div>
+	</div>
+
+	if form.Schema != nil && len(form.Schema) > 0 {
+		<script type="module">
+			// Initialize form renderer with schema
+			const schema = { formatJSONForJS(form.Schema) };
+			// This will be handled by the form renderer JavaScript
+			window.formSchema = schema;
+			window.formId = "{ form.ID }";
+		</script>
+	}
+}
+
+// formatJSONForJS formats JSON data for JavaScript
+func formatJSONForJS(data model.JSON) string {
+	if data == nil {
+		return "{}"
+	}
+	
+	formatted, err := json.Marshal(data)
+	if err != nil {
+		return "{}"
+	}
+	
+	return string(formatted)
+} 

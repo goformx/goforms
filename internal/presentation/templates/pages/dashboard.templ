@@ -59,7 +59,7 @@ templ DashboardContent(forms []*model.Form) {
 								</div>
 							</div>
 							<div class="form-card-footer">
-								<a href={ templ.SafeURL("/forms/" + form.ID) } class="btn btn-secondary">View Form</a>
+								<a href={ templ.SafeURL("/forms/" + form.ID + "/preview") } class="btn btn-secondary">Preview</a>
 								<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
 							</div>
 						</div>

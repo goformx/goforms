@@ -83,6 +83,10 @@ templ editFormContent(data view.PageData, form *model.Form) {
 				<p class="dashboard-subtitle">Configure your form settings and fields</p>
 			</div>
 			<div class="dashboard-header-right">
+				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/preview") } class="gf-button gf-button--outline">
+					<i class="bi bi-eye"></i>
+					<span>Preview</span>
+				</a>
 				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/submissions") } class="gf-button gf-button--outline">
 					<i class="bi bi-list-check"></i>
 					<span>View Submissions</span>
