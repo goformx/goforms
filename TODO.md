@@ -15,18 +15,21 @@
   - [x] Extract `AuthHelper` to handle authentication and authorization patterns
   - [x] Move business logic from handlers to dedicated service methods
   - [x] Reduce code duplication in authentication and form ownership checks
-  - [x] Improve separation of concerns in handler methods
-- [ ] **Refactor form_api.go to improve route organization and error handling**
-  - [ ] Consolidate route registration with clear separation of authenticated vs public routes
-  - [ ] Extract `RegisterAuthenticatedRoutes()` and `RegisterPublicRoutes()` methods
-  - [ ] Implement centralized error handling using `FormErrorHandler`
-  - [ ] Use `FormRequestProcessor` for input processing
-  - [ ] Use `FormResponseBuilder` for standardized responses
-  - [ ] Remove duplicate route registration logic
-- [ ] **Implement proper error handling patterns across handlers**
-  - [ ] Use Go 1.24's `errors.Join` for error composition
-  - [ ] Standardize error response format using `response.APIResponse`
-  - [ ] Create dedicated error handling service
+  - [x] Improve separation of concerns and maintainability
+- [x] **Refactor form_api.go to improve route organization and error handling**
+  - [x] Separate authenticated and public route registration
+  - [x] Implement centralized error handling using `FormErrorHandler`
+  - [x] Use `FormRequestProcessor` for input processing
+  - [x] Use `FormResponseBuilder` for standardized responses
+  - [x] Remove duplicate route registrations
+  - [x] Improve dependency injection with proper sanitizer injection
+- [ ] **Implement comprehensive form validation system**
+  - [ ] Create form schema validation rules
+  - [ ] Implement client-side validation generation
+  - [ ] Add server-side validation for form submissions
+  - [ ] Create validation error response standardization
+  - [ ] Add form field type validation
+  - [ ] Implement conditional validation rules
 - [ ] **Add comprehensive logging for debugging**
   - [ ] Add structured logging with context
   - [ ] Implement request/response logging middleware
@@ -210,23 +213,31 @@
 
 ## Next Priority Task
 
-**🎯 RECOMMENDED NEXT TASK: Refactor form_web.go to improve separation of concerns**
+**🎯 RECOMMENDED NEXT TASK: Refactor form_api.go to improve route organization and error handling**
 
 **Why this should be next:**
-1. **High Impact**: This will significantly improve code maintainability and reduce duplication
-2. **Foundation for Other Improvements**: Better separation of concerns will make subsequent refactoring easier
-3. **Immediate Benefits**: Will reduce the DRY violations and improve code organization
-4. **Low Risk**: The interfaces and patterns are already partially implemented
+1. **High Impact**: Will improve API consistency and maintainability
+2. **Logical Progression**: Builds on the successful form_web.go refactoring
+3. **Route Organization**: Will fix the mixed authenticated/public route issues
+4. **Error Handling**: Will standardize error responses across API endpoints
 
 **Specific steps:**
-1. Extract `FormRequestProcessor` to handle input validation and sanitization
-2. Extract `FormResponseBuilder` to standardize response formatting  
-3. Create typed request structs (`FormCreateRequest`, `FormUpdateRequest`)
-4. Move business logic from handlers to dedicated service methods
-5. Reduce code duplication in authentication and form ownership checks
+1. Consolidate route registration with clear separation of authenticated vs public routes
+2. Extract `RegisterAuthenticatedRoutes()` and `RegisterPublicRoutes()` methods
+3. Implement centralized error handling using `FormErrorHandler`
+4. Use `FormRequestProcessor` for input processing
+5. Use `FormResponseBuilder` for standardized responses
+6. Remove duplicate route registration logic
 
 **Estimated effort:** 2-3 hours
-**Dependencies:** None (can be done independently)
+**Dependencies:** None (can leverage existing FormErrorHandler and FormResponseBuilder)
+
+**Benefits:**
+- Cleaner route organization
+- Consistent error handling
+- Better separation of concerns
+- Improved maintainability
+- Reduced code duplication
 
 ## Notes
 

@@ -114,8 +114,9 @@ var Module = fx.Options(
 				formService form.Service,
 				accessManager *access.AccessManager,
 				formValidator *validation.FormValidator,
+				sanitizer sanitization.ServiceInterface,
 			) (Handler, error) {
-				return NewFormAPIHandler(base, formService, accessManager, formValidator), nil
+				return NewFormAPIHandler(base, formService, accessManager, formValidator, sanitizer), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),

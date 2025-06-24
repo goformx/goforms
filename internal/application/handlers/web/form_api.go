@@ -2,8 +2,6 @@ package web
 
 import (
 	"context"
-	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/goformx/goforms/internal/application/constants"
@@ -11,13 +9,17 @@ import (
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/labstack/echo/v4"
 )
 
 // FormAPIHandler handles API form operations
 type FormAPIHandler struct {
 	*FormBaseHandler
-	AccessManager *access.AccessManager
+	AccessManager    *access.AccessManager
+	RequestProcessor FormRequestProcessor
+	ResponseBuilder  FormResponseBuilder
+	ErrorHandler     FormErrorHandler
 }
 
 func NewFormAPIHandler(
@@ -25,27 +27,49 @@ func NewFormAPIHandler(
 	formService formdomain.Service,
 	accessManager *access.AccessManager,
 	formValidator *validation.FormValidator,
+	sanitizer sanitization.ServiceInterface,
 ) *FormAPIHandler {
+	// Create dependencies
+	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator)
+	responseBuilder := NewFormResponseBuilder()
+	errorHandler := NewFormErrorHandler(responseBuilder)
+
 	return &FormAPIHandler{
-		FormBaseHandler: NewFormBaseHandler(base, formService, formValidator),
-		AccessManager:   accessManager,
+		FormBaseHandler:  NewFormBaseHandler(base, formService, formValidator),
+		AccessManager:    accessManager,
+		RequestProcessor: requestProcessor,
+		ResponseBuilder:  responseBuilder,
+		ErrorHandler:     errorHandler,
 	}
 }
 
 func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
-	// API routes with access control
 	api := e.Group(constants.PathAPIv1)
 	formsAPI := api.Group(constants.PathForms)
+
+	// Register authenticated routes
+	h.RegisterAuthenticatedRoutes(formsAPI)
+
+	// Register public routes
+	h.RegisterPublicRoutes(formsAPI)
+}
+
+// RegisterAuthenticatedRoutes registers routes that require authentication
+func (h *FormAPIHandler) RegisterAuthenticatedRoutes(formsAPI *echo.Group) {
+	// Apply authentication middleware
 	formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
+
+	// Authenticated routes
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
 	formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
+}
 
-	// Public API routes (no authentication required)
+// RegisterPublicRoutes registers routes that don't require authentication
+func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
+	// Public routes (no authentication required)
 	// These are for embedded forms on external websites
-	publicAPI := e.Group(constants.PathAPIv1)
-	publicFormsAPI := publicAPI.Group(constants.PathForms)
-	publicFormsAPI.GET("/:id/schema", h.handleFormSchema)
-	publicFormsAPI.POST("/:id/submit", h.HandleFormSubmit)
+	formsAPI.GET("/:id/schema", h.handleFormSchema)
+	formsAPI.POST("/:id/submit", h.handleFormSubmit)
 }
 
 // Register satisfies the Handler interface
@@ -61,17 +85,14 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to get form schema")
 	}
 
-	// Set content type for JSON response
-	c.Response().Header().Set("Content-Type", "application/json")
-
-	return c.JSON(constants.StatusOK, form.Schema)
+	return h.ResponseBuilder.BuildSchemaResponse(c, form.Schema)
 }
 
 // PUT /api/v1/forms/:id/schema
 func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 	_, err := h.RequireAuthenticatedUser(c)
 	if err != nil {
-		return h.HandleError(c, err, "Authentication required")
+		return h.ErrorHandler.HandleOwnershipError(c, err)
 	}
 
 	form, err := h.GetFormWithOwnership(c)
@@ -79,32 +100,33 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 		return h.HandleError(c, err, "Unauthorized or form not found")
 	}
 
-	// Parse schema from request body
-	schema, decodeErr := decodeSchema(c)
-	if decodeErr != nil {
-		return h.HandleError(c, decodeErr, "Failed to decode schema")
+	// Process and validate schema update request
+	schema, err := h.RequestProcessor.ProcessSchemaUpdateRequest(c)
+	if err != nil {
+		return h.ErrorHandler.HandleSchemaError(c, err)
 	}
 
 	// Update form schema
 	form.Schema = schema
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
-		return h.HandleError(c, updateErr, "Failed to update form schema")
+		h.Logger.Error("failed to update form schema", "error", updateErr)
+		return h.ErrorHandler.HandleSchemaError(c, updateErr)
 	}
 
-	return c.JSON(constants.StatusOK, form.Schema)
+	return h.ResponseBuilder.BuildSchemaResponse(c, form.Schema)
 }
 
 // POST /api/v1/forms/:id/submit
-func (h *FormAPIHandler) HandleFormSubmit(c echo.Context) error {
+func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	form, err := h.GetFormByID(c)
 	if err != nil {
 		return h.HandleError(c, err, "Failed to get form for submission")
 	}
 
-	// Parse submission data
-	var submissionData model.JSON
-	if decodeErr := json.NewDecoder(c.Request().Body).Decode(&submissionData); decodeErr != nil {
-		return h.HandleError(c, decodeErr, "Invalid submission data")
+	// Process and validate submission request
+	submissionData, err := h.RequestProcessor.ProcessSubmissionRequest(c)
+	if err != nil {
+		return h.ErrorHandler.HandleSubmissionError(c, err)
 	}
 
 	// Create submission
@@ -118,27 +140,10 @@ func (h *FormAPIHandler) HandleFormSubmit(c echo.Context) error {
 	// Submit form
 	err = h.FormService.SubmitForm(c.Request().Context(), submission)
 	if err != nil {
-		return h.HandleError(c, err, "Failed to submit form")
+		return h.ErrorHandler.HandleSubmissionError(c, err)
 	}
 
-	return c.JSON(constants.StatusOK, map[string]any{
-		"success": true,
-		"message": "Form submitted successfully",
-		"data": map[string]any{
-			"submission_id": submission.ID,
-			"status":        submission.Status,
-		},
-	})
-}
-
-// decodeSchema decodes the form schema from the request body
-func decodeSchema(c echo.Context) (model.JSON, error) {
-	var schema model.JSON
-	decodeErr := json.NewDecoder(c.Request().Body).Decode(&schema)
-	if decodeErr != nil {
-		return nil, fmt.Errorf("failed to decode schema: %w", decodeErr)
-	}
-	return schema, nil
+	return h.ResponseBuilder.BuildSubmissionResponse(c, submission)
 }
 
 // Start initializes the form API handler.
