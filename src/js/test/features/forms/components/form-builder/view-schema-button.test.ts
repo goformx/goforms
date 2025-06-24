@@ -240,9 +240,9 @@ describe("setupViewSchemaButton", () => {
       setupViewSchemaButton(mockBuilder);
       expect(mockLoggerDebug).toHaveBeenCalledTimes(2);
 
-      // Both should work
+      // Both event listeners should work (multiple calls to showSchemaModal)
       mockViewSchemaBtn.click();
-      expect(mockShowSchemaModal).toHaveBeenCalledTimes(1);
+      expect(mockShowSchemaModal).toHaveBeenCalledTimes(2);
     });
   });
 
