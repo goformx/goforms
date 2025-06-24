@@ -11,6 +11,7 @@ type FormCreateRequest struct {
 	Title       string `json:"title"`
 	Description string `json:"description"`
 	CorsOrigins string `json:"cors_origins"`
+	CorsMethods string `json:"cors_methods"`
 }
 
 // FormUpdateRequest represents the data needed to update a form

@@ -1,10 +1,10 @@
 package pages
 
 import (
-"github.com/goformx/goforms/internal/domain/form/model"
-"github.com/goformx/goforms/internal/presentation/templates/layouts"
-"github.com/goformx/goforms/internal/presentation/view"
-"strings"
+	"github.com/goformx/goforms/internal/presentation/templates/shared"
+	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 // Reusable card section for forms using a slot (content func())
@@ -133,7 +133,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 
 							<div class="form-group">
 								<label for="cors_origins">Allowed Origins (comma-separated)</label>
-								<input type="text" id="cors_origins" name="cors_origins" class="gf-input" placeholder="e.g. *,https://example.com" value={ strings.Join([]string(form.CorsOrigins), ",") } />
+								<input type="text" id="cors_origins" name="cors_origins" class="gf-input" placeholder="e.g. *,https://example.com" value={ shared.GetCorsOriginsString(form.CorsOrigins) } />
 							</div>
 
 							<div class="form-actions">

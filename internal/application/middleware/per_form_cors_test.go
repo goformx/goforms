@@ -44,9 +44,9 @@ func TestPerFormCORS(t *testing.T) {
 	formWithCORS := &model.Form{
 		ID:          "test-form-123",
 		Title:       "Test Form",
-		CorsOrigins: []string{"https://example.com", "https://app.example.com"},
-		CorsMethods: []string{"GET", "POST", "PUT"},
-		CorsHeaders: []string{"Content-Type", "Authorization"},
+		CorsOrigins: model.JSON{"origins": []string{"https://example.com", "https://app.example.com"}},
+		CorsMethods: model.JSON{"methods": []string{"GET", "POST", "PUT"}},
+		CorsHeaders: model.JSON{"headers": []string{"Content-Type", "Authorization"}},
 	}
 
 	// Test form without CORS configuration

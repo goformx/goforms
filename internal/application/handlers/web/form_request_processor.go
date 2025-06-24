@@ -40,6 +40,7 @@ func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCr
 		Title:       p.sanitizer.String(c.FormValue("title")),
 		Description: p.sanitizer.String(c.FormValue("description")),
 		CorsOrigins: p.sanitizer.String(c.FormValue("cors_origins")),
+		CorsMethods: p.sanitizer.String(c.FormValue("cors_methods")),
 	}
 
 	if err := p.validateCreateRequest(req); err != nil {

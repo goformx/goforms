@@ -8,7 +8,6 @@ import (
 
 	"database/sql/driver"
 
-	"github.com/goformx/goforms/internal/domain/common/types"
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 )
@@ -65,9 +64,9 @@ type Form struct {
 	Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
 
 	// CORS settings for form embedding
-	CorsOrigins types.StringArray `json:"cors_origins" gorm:"type:json"`
-	CorsMethods types.StringArray `json:"cors_methods" gorm:"type:json"`
-	CorsHeaders types.StringArray `json:"cors_headers" gorm:"type:json"`
+	CorsOrigins JSON `json:"cors_origins" gorm:"type:json"`
+	CorsMethods JSON `json:"cors_methods" gorm:"type:json"`
+	CorsHeaders JSON `json:"cors_headers" gorm:"type:json"`
 }
 
 // GetID returns the form's ID
@@ -99,12 +98,38 @@ func (f *Form) BeforeCreate(tx *gorm.DB) error {
 		f.Status = "draft"
 	}
 
+	// Ensure CORS fields are properly initialized
+	if f.CorsOrigins == nil {
+		f.CorsOrigins = JSON{}
+	}
+	if f.CorsMethods == nil {
+		f.CorsMethods = JSON{}
+	}
+	if f.CorsHeaders == nil {
+		f.CorsHeaders = JSON{}
+	}
+
 	return nil
 }
 
 // BeforeUpdate is a GORM hook that runs before updating a form
 func (f *Form) BeforeUpdate(tx *gorm.DB) error {
 	f.UpdatedAt = time.Now()
+	return nil
+}
+
+// BeforeSave is a GORM hook that runs before saving a form
+func (f *Form) BeforeSave(tx *gorm.DB) error {
+	// Ensure CORS fields are properly initialized
+	if f.CorsOrigins == nil {
+		f.CorsOrigins = JSON{}
+	}
+	if f.CorsMethods == nil {
+		f.CorsMethods = JSON{}
+	}
+	if f.CorsHeaders == nil {
+		f.CorsHeaders = JSON{}
+	}
 	return nil
 }
 
@@ -171,9 +196,9 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
-		CorsOrigins: types.StringArray{},
-		CorsMethods: types.StringArray{"GET", "POST", "OPTIONS"},
-		CorsHeaders: types.StringArray{"Content-Type", "Accept", "Origin"},
+		CorsOrigins: JSON{},
+		CorsMethods: JSON{},
+		CorsHeaders: JSON{},
 	}
 }
 
@@ -306,21 +331,43 @@ func (f *Form) Activate() {
 
 // GetCorsConfig returns the CORS configuration for this form
 func (f *Form) GetCorsConfig() (origins, methods, headers []string) {
-	if len(f.CorsOrigins) > 0 {
-		origins = []string(f.CorsOrigins)
+	// Convert JSON to string slices
+	if f.CorsOrigins != nil {
+		if originsArr, ok := f.CorsOrigins["origins"].([]any); ok {
+			for _, origin := range originsArr {
+				if originStr, ok := origin.(string); ok {
+					origins = append(origins, originStr)
+				}
+			}
+		}
 	}
-	if len(f.CorsMethods) > 0 {
-		methods = []string(f.CorsMethods)
+
+	if f.CorsMethods != nil {
+		if methodsArr, ok := f.CorsMethods["methods"].([]any); ok {
+			for _, method := range methodsArr {
+				if methodStr, ok := method.(string); ok {
+					methods = append(methods, methodStr)
+				}
+			}
+		}
 	}
-	if len(f.CorsHeaders) > 0 {
-		headers = []string(f.CorsHeaders)
+
+	if f.CorsHeaders != nil {
+		if headersArr, ok := f.CorsHeaders["headers"].([]any); ok {
+			for _, header := range headersArr {
+				if headerStr, ok := header.(string); ok {
+					headers = append(headers, headerStr)
+				}
+			}
+		}
 	}
-	return
+
+	return origins, methods, headers
 }
 
 // SetCorsConfig sets the CORS configuration for this form
 func (f *Form) SetCorsConfig(origins, methods, headers []string) {
-	f.CorsOrigins = types.StringArray(origins)
-	f.CorsMethods = types.StringArray(methods)
-	f.CorsHeaders = types.StringArray(headers)
+	f.CorsOrigins = JSON{"origins": origins}
+	f.CorsMethods = JSON{"methods": methods}
+	f.CorsHeaders = JSON{"headers": headers}
 }

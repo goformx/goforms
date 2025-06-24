@@ -4,7 +4,6 @@ package web
 import (
 	"strings"
 
-	"github.com/goformx/goforms/internal/domain/common/types"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/labstack/echo/v4"
@@ -26,7 +25,7 @@ func NewFormRequestParser(sanitizer sanitization.ServiceInterface) *FormRequestP
 type CreateFormRequest struct {
 	Title       string
 	Description string
-	CorsOrigins types.StringArray
+	CorsOrigins model.JSON
 }
 
 // UpdateFormRequest represents a form update request
@@ -34,7 +33,7 @@ type UpdateFormRequest struct {
 	Title       string
 	Description string
 	Status      string
-	CorsOrigins types.StringArray
+	CorsOrigins model.JSON
 }
 
 // ParseCreateFormRequest parses and sanitizes a form creation request
@@ -45,7 +44,8 @@ func (p *FormRequestParser) ParseCreateFormRequest(c echo.Context) *CreateFormRe
 	}
 
 	if corsOrigins := p.sanitizer.String(c.FormValue("cors_origins")); corsOrigins != "" {
-		req.CorsOrigins = types.StringArray(p.parseCSV(corsOrigins))
+		origins := p.parseCSV(corsOrigins)
+		req.CorsOrigins = model.JSON{"origins": origins}
 	}
 
 	return req
@@ -60,7 +60,8 @@ func (p *FormRequestParser) ParseUpdateFormRequest(c echo.Context) *UpdateFormRe
 	}
 
 	if corsOrigins := p.sanitizer.String(c.FormValue("cors_origins")); corsOrigins != "" {
-		req.CorsOrigins = types.StringArray(p.parseCSV(corsOrigins))
+		origins := p.parseCSV(corsOrigins)
+		req.CorsOrigins = model.JSON{"origins": origins}
 	}
 
 	return req
@@ -77,7 +78,7 @@ func (p *FormRequestParser) CreateFormFromRequest(userID string, req *CreateForm
 	form := model.NewForm(userID, req.Title, req.Description, schema)
 
 	// Only set CORS origins if provided
-	if len(req.CorsOrigins) > 0 {
+	if req.CorsOrigins != nil {
 		form.CorsOrigins = req.CorsOrigins
 	}
 
@@ -91,7 +92,7 @@ func (p *FormRequestParser) ApplyUpdateToForm(form *model.Form, req *UpdateFormR
 	form.Status = req.Status
 
 	// Only set CORS origins if provided
-	if len(req.CorsOrigins) > 0 {
+	if req.CorsOrigins != nil {
 		form.CorsOrigins = req.CorsOrigins
 	}
 }

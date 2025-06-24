@@ -5,7 +5,6 @@ import (
 	"context"
 	"strings"
 
-	"github.com/goformx/goforms/internal/domain/common/types"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -35,7 +34,13 @@ func (s *FormService) CreateForm(ctx context.Context, userID string, req *FormCr
 	form := model.NewForm(userID, req.Title, req.Description, schema)
 
 	if req.CorsOrigins != "" {
-		form.CorsOrigins = types.StringArray(parseCSV(req.CorsOrigins))
+		origins := parseCSV(req.CorsOrigins)
+		form.CorsOrigins = model.JSON{"origins": origins}
+	}
+
+	if req.CorsMethods != "" {
+		methods := parseCSV(req.CorsMethods)
+		form.CorsMethods = model.JSON{"methods": methods}
 	}
 
 	return form, s.formService.CreateForm(ctx, form)
@@ -48,7 +53,7 @@ func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *For
 	form.Status = req.Status
 
 	if req.CorsOrigins != "" {
-		form.CorsOrigins = types.StringArray(parseCSV(req.CorsOrigins))
+		form.CorsOrigins = model.JSON{"origins": parseCSV(req.CorsOrigins)}
 	}
 
 	return s.formService.UpdateForm(ctx, form)
