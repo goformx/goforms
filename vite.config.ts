@@ -6,6 +6,16 @@ import postcssNested from "postcss-nested";
 import cssnano from "cssnano";
 import ejsPlugin from "./src/vite-plugin-ejs";
 
+// Shared path mapping configuration
+const pathAliases = {
+  "@": resolve(__dirname, "src/js"),
+  "@/core": resolve(__dirname, "src/js/core"),
+  "@/features": resolve(__dirname, "src/js/features"),
+  "@/shared": resolve(__dirname, "src/js/shared"),
+  "@/pages": resolve(__dirname, "src/js/pages"),
+  "@goformx/formio": resolve(__dirname, "node_modules/@goformx/formio"),
+};
+
 export default defineConfig({
   root: ".",
   publicDir: "public",
@@ -117,14 +127,7 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      "@": resolve(__dirname, "src/js"),
-      "@/core": resolve(__dirname, "src/js/core"),
-      "@/features": resolve(__dirname, "src/js/features"),
-      "@/shared": resolve(__dirname, "src/js/shared"),
-      "@/pages": resolve(__dirname, "src/js/pages"),
-      "@goformx/formio": resolve(__dirname, "node_modules/@goformx/formio"),
-    },
+    alias: pathAliases,
     extensions: [
       ".mjs",
       ".js",
@@ -153,3 +156,6 @@ export default defineConfig({
   plugins: [ejsPlugin()],
   assetsInclude: ["**/*.ejs", "**/*.ejs.js"],
 });
+
+// Export path aliases for use in other config files
+export { pathAliases };

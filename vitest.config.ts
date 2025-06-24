@@ -1,5 +1,5 @@
 import { defineConfig } from "vitest/config";
-import { resolve } from "path";
+import { pathAliases } from "./vite.config";
 
 export default defineConfig({
   test: {
@@ -20,12 +20,6 @@ export default defineConfig({
     },
   },
   resolve: {
-    alias: {
-      "@": resolve(__dirname, "src/js"),
-      "@/core": resolve(__dirname, "src/js/core"),
-      "@/features": resolve(__dirname, "src/js/features"),
-      "@/shared": resolve(__dirname, "src/js/shared"),
-      "@/pages": resolve(__dirname, "src/js/pages"),
-    },
+    alias: pathAliases,
   },
 });
