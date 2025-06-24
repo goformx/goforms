@@ -39,7 +39,12 @@ export default defineConfig([
   },
   // Configuration files - relaxed rules
   {
-    files: ["*.config.{js,ts}", "eslint.config.js", "vite.config.ts", "vitest.config.ts"],
+    files: [
+      "*.config.{js,ts}",
+      "eslint.config.js",
+      "vite.config.ts",
+      "vitest.config.ts",
+    ],
     languageOptions: {
       ecmaVersion: "latest",
       sourceType: "module",

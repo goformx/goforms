@@ -1,10 +1,15 @@
 import { Logger } from "@/core/logger";
 
+interface EventHandler {
+  original: (event: Event) => void;
+  wrapped: (event: Event) => void;
+}
+
 /**
  * Event manager for form builder interactions
  */
 export class BuilderEventManager {
-  private handlers = new Map<string, Array<(event: Event) => void>>();
+  private handlers = new Map<string, EventHandler[]>();
   private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
   private element: HTMLElement;
 
@@ -14,12 +19,13 @@ export class BuilderEventManager {
 
   /**
    * Add event listener with optional debouncing
+   * @returns true if the handler was successfully added
    */
   addEventListener(
     eventType: string,
     handler: (event: Event) => void,
     options: { debounce?: number } = {},
-  ): void {
+  ): boolean {
     if (!this.handlers.has(eventType)) {
       this.handlers.set(eventType, []);
     }
@@ -49,7 +55,8 @@ export class BuilderEventManager {
         this.debounceTimers.set(timerKey, timerId);
       };
 
-      handlers.push(debouncedHandler);
+      // Store both original handler and wrapped handler
+      handlers.push({ original: handler, wrapped: debouncedHandler });
       this.element.addEventListener(eventType, debouncedHandler);
     } else {
       // Regular handler
@@ -61,49 +68,74 @@ export class BuilderEventManager {
         }
       };
 
-      handlers.push(wrappedHandler);
+      // Store both original handler and wrapped handler
+      handlers.push({ original: handler, wrapped: wrappedHandler });
       this.element.addEventListener(eventType, wrappedHandler);
     }
+
+    return true;
   }
 
   /**
    * Remove event listener
+   * @returns true if the handler was successfully removed, false if not found
    */
   removeEventListener(
     eventType: string,
     handler: (event: Event) => void,
-  ): void {
+  ): boolean {
     const handlers = this.handlers.get(eventType);
-    if (!handlers) return;
+    if (!handlers) return false;
 
-    const index = handlers.indexOf(handler);
-    if (index > -1) {
-      const removedHandler = handlers.splice(index, 1)[0];
-      this.element.removeEventListener(eventType, removedHandler);
+    const index = handlers.findIndex((h) => h.original === handler);
+    if (index === -1) return false;
+
+    // Remove the wrapped handler from DOM
+    const removedHandler = handlers.splice(index, 1)[0];
+    this.element.removeEventListener(eventType, removedHandler.wrapped);
+
+    // Clean up empty handler arrays to prevent memory leaks
+    if (handlers.length === 0) {
+      this.handlers.delete(eventType);
     }
+
+    return true;
   }
 
   /**
    * Remove all event listeners
+   * @returns the number of event types that were cleaned up
    */
-  removeAllEventListeners(): void {
+  removeAllEventListeners(): number {
+    let cleanupCount = 0;
+
     for (const [eventType, handlers] of this.handlers) {
       for (const handler of handlers) {
-        this.element.removeEventListener(eventType, handler);
+        this.element.removeEventListener(eventType, handler.wrapped);
       }
+      cleanupCount++;
     }
+
     this.handlers.clear();
     this.clearDebounceTimers();
+
+    return cleanupCount;
   }
 
   /**
    * Clear all debounce timers
+   * @returns the number of timers that were cleared
    */
-  private clearDebounceTimers(): void {
+  private clearDebounceTimers(): number {
+    let timerCount = 0;
+
     for (const timerId of this.debounceTimers.values()) {
       clearTimeout(timerId);
+      timerCount++;
     }
+
     this.debounceTimers.clear();
+    return timerCount;
   }
 
   /**
@@ -121,10 +153,31 @@ export class BuilderEventManager {
   }
 
   /**
-   * Clean up resources
+   * Get all registered event types
    */
-  cleanup(): void {
-    this.removeAllEventListeners();
+  getRegisteredEventTypes(): string[] {
+    return Array.from(this.handlers.keys());
+  }
+
+  /**
+   * Check if a specific handler is registered for an event type
+   */
+  hasHandler(eventType: string, handler: (event: Event) => void): boolean {
+    const handlers = this.handlers.get(eventType);
+    if (!handlers) return false;
+
+    return handlers.some((h) => h.original === handler);
+  }
+
+  /**
+   * Clean up resources
+   * @returns object with cleanup statistics
+   */
+  cleanup(): { eventTypesCleaned: number; timersCleared: number } {
+    const eventTypesCleaned = this.removeAllEventListeners();
+    const timersCleared = this.clearDebounceTimers();
+
+    return { eventTypesCleaned, timersCleared };
   }
 }
 
