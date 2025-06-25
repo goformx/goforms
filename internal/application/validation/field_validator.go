@@ -25,8 +25,8 @@ func NewFieldValidator() *FieldValidator {
 }
 
 // ValidateField validates a single field against its rules
-func (v *FieldValidator) ValidateField(fieldName string, value any, rules *FieldValidation) []ValidationError {
-	var errors []ValidationError
+func (v *FieldValidator) ValidateField(fieldName string, value any, rules *FieldValidation) []Error {
+	var errors []Error
 
 	// Required field validation
 	if requiredErrors := v.validateRequired(fieldName, value, rules); len(requiredErrors) > 0 {
@@ -72,9 +72,9 @@ func (v *FieldValidator) ValidateField(fieldName string, value any, rules *Field
 }
 
 // validateRequired validates if a required field has a value
-func (v *FieldValidator) validateRequired(fieldName string, value any, rules *FieldValidation) []ValidationError {
+func (v *FieldValidator) validateRequired(fieldName string, value any, rules *FieldValidation) []Error {
 	if rules.Required && (value == nil || value == "") {
-		return []ValidationError{{
+		return []Error{{
 			Field:   fieldName,
 			Message: rules.getMessage("required", "This field is required"),
 		}}
@@ -83,18 +83,18 @@ func (v *FieldValidator) validateRequired(fieldName string, value any, rules *Fi
 }
 
 // validateStringField validates string-specific rules
-func (v *FieldValidator) validateStringField(fieldName string, value any, rules *FieldValidation) []ValidationError {
-	var errors []ValidationError
+func (v *FieldValidator) validateStringField(fieldName string, value any, rules *FieldValidation) []Error {
+	var errors []Error
 
 	if strValue, ok := value.(string); ok {
 		if rules.MinLength > 0 && len(strValue) < rules.MinLength {
-			errors = append(errors, ValidationError{
+			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("minLength", fmt.Sprintf("Minimum length is %d characters", rules.MinLength)),
 			})
 		}
 		if rules.MaxLength > 0 && len(strValue) > rules.MaxLength {
-			errors = append(errors, ValidationError{
+			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("maxLength", fmt.Sprintf("Maximum length is %d characters", rules.MaxLength)),
 			})
@@ -105,18 +105,18 @@ func (v *FieldValidator) validateStringField(fieldName string, value any, rules 
 }
 
 // validateNumericField validates numeric-specific rules
-func (v *FieldValidator) validateNumericField(fieldName string, value any, rules *FieldValidation) []ValidationError {
-	var errors []ValidationError
+func (v *FieldValidator) validateNumericField(fieldName string, value any, rules *FieldValidation) []Error {
+	var errors []Error
 
 	if numValue, ok := v.toFloat64(value); ok {
 		if rules.Min != 0 && numValue < rules.Min {
-			errors = append(errors, ValidationError{
+			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("min", fmt.Sprintf("Minimum value is %g", rules.Min)),
 			})
 		}
 		if rules.Max != 0 && numValue > rules.Max {
-			errors = append(errors, ValidationError{
+			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("max", fmt.Sprintf("Maximum value is %g", rules.Max)),
 			})
@@ -127,7 +127,7 @@ func (v *FieldValidator) validateNumericField(fieldName string, value any, rules
 }
 
 // validatePattern validates that a value matches a regex pattern
-func (v *FieldValidator) validatePattern(fieldName string, value any, pattern string) []ValidationError {
+func (v *FieldValidator) validatePattern(fieldName string, value any, pattern string) []Error {
 	if pattern == "" {
 		return nil
 	}
@@ -135,13 +135,13 @@ func (v *FieldValidator) validatePattern(fieldName string, value any, pattern st
 	if strValue, ok := value.(string); ok {
 		matched, err := regexp.MatchString(pattern, strValue)
 		if err != nil {
-			return []ValidationError{{
+			return []Error{{
 				Field:   fieldName,
 				Message: fmt.Sprintf("Invalid regex pattern: %v", err),
 			}}
 		}
 		if !matched {
-			return []ValidationError{{
+			return []Error{{
 				Field:   fieldName,
 				Message: "Value does not match required pattern",
 			}}
@@ -152,7 +152,7 @@ func (v *FieldValidator) validatePattern(fieldName string, value any, pattern st
 }
 
 // validateOptions validates that a value is in the allowed options
-func (v *FieldValidator) validateOptions(fieldName string, value any, options []string) []ValidationError {
+func (v *FieldValidator) validateOptions(fieldName string, value any, options []string) []Error {
 	if len(options) == 0 {
 		return nil
 	}
@@ -163,7 +163,7 @@ func (v *FieldValidator) validateOptions(fieldName string, value any, options []
 				return nil
 			}
 		}
-		return []ValidationError{{
+		return []Error{{
 			Field:   fieldName,
 			Message: "Invalid option selected",
 		}}
@@ -173,8 +173,8 @@ func (v *FieldValidator) validateOptions(fieldName string, value any, options []
 }
 
 // validateCustomRules validates custom validation rules
-func (v *FieldValidator) validateCustomRules(fieldName string, value any, rules []ValidationRule) []ValidationError {
-	var errors []ValidationError
+func (v *FieldValidator) validateCustomRules(fieldName string, value any, rules []Rule) []Error {
+	var errors []Error
 
 	for _, rule := range rules {
 		if ruleError := v.validateCustomRule(fieldName, value, rule); ruleError != nil {
@@ -186,7 +186,7 @@ func (v *FieldValidator) validateCustomRules(fieldName string, value any, rules 
 }
 
 // ValidateFieldType validates the type of a field
-func (v *FieldValidator) ValidateFieldType(fieldName string, value any, fieldType string) *ValidationError {
+func (v *FieldValidator) ValidateFieldType(fieldName string, value any, fieldType string) *Error {
 	switch fieldType {
 	case "email":
 		return v.validateEmail(fieldName, value)
@@ -205,10 +205,10 @@ func (v *FieldValidator) ValidateFieldType(fieldName string, value any, fieldTyp
 }
 
 // validateEmail validates email format
-func (v *FieldValidator) validateEmail(fieldName string, value any) *ValidationError {
+func (v *FieldValidator) validateEmail(fieldName string, value any) *Error {
 	if strValue, ok := value.(string); ok {
 		if !v.emailRegex.MatchString(strValue) {
-			return &ValidationError{
+			return &Error{
 				Field:   fieldName,
 				Message: "Invalid email format",
 				Rule:    "email",
@@ -219,10 +219,10 @@ func (v *FieldValidator) validateEmail(fieldName string, value any) *ValidationE
 }
 
 // validateURL validates URL format
-func (v *FieldValidator) validateURL(fieldName string, value any) *ValidationError {
+func (v *FieldValidator) validateURL(fieldName string, value any) *Error {
 	if strValue, ok := value.(string); ok {
 		if !v.urlRegex.MatchString(strValue) {
-			return &ValidationError{
+			return &Error{
 				Field:   fieldName,
 				Message: "Invalid URL format",
 				Rule:    "url",
@@ -233,10 +233,10 @@ func (v *FieldValidator) validateURL(fieldName string, value any) *ValidationErr
 }
 
 // validatePhoneNumber validates phone number format
-func (v *FieldValidator) validatePhoneNumber(fieldName string, value any) *ValidationError {
+func (v *FieldValidator) validatePhoneNumber(fieldName string, value any) *Error {
 	if strValue, ok := value.(string); ok {
 		if !v.phoneRegex.MatchString(strValue) {
-			return &ValidationError{
+			return &Error{
 				Field:   fieldName,
 				Message: "Invalid phone number format",
 				Rule:    "phoneNumber",
@@ -247,10 +247,10 @@ func (v *FieldValidator) validatePhoneNumber(fieldName string, value any) *Valid
 }
 
 // validateDate validates date format
-func (v *FieldValidator) validateDate(fieldName string, value any) *ValidationError {
+func (v *FieldValidator) validateDate(fieldName string, value any) *Error {
 	if strValue, ok := value.(string); ok {
 		if !v.dateRegex.MatchString(strValue) {
-			return &ValidationError{
+			return &Error{
 				Field:   fieldName,
 				Message: "Invalid date format (YYYY-MM-DD)",
 				Rule:    "date",
@@ -261,9 +261,9 @@ func (v *FieldValidator) validateDate(fieldName string, value any) *ValidationEr
 }
 
 // validateNumber validates number format
-func (v *FieldValidator) validateNumber(fieldName string, value any) *ValidationError {
+func (v *FieldValidator) validateNumber(fieldName string, value any) *Error {
 	if _, ok := v.toFloat64(value); !ok {
-		return &ValidationError{
+		return &Error{
 			Field:   fieldName,
 			Message: "Value must be a number",
 			Rule:    "number",
@@ -273,17 +273,17 @@ func (v *FieldValidator) validateNumber(fieldName string, value any) *Validation
 }
 
 // validateInteger validates integer format
-func (v *FieldValidator) validateInteger(fieldName string, value any) *ValidationError {
+func (v *FieldValidator) validateInteger(fieldName string, value any) *Error {
 	if floatValue, ok := v.toFloat64(value); ok {
 		if floatValue != float64(int(floatValue)) {
-			return &ValidationError{
+			return &Error{
 				Field:   fieldName,
 				Message: "Value must be an integer",
 				Rule:    "integer",
 			}
 		}
 	} else {
-		return &ValidationError{
+		return &Error{
 			Field:   fieldName,
 			Message: "Value must be an integer",
 			Rule:    "integer",
@@ -293,7 +293,7 @@ func (v *FieldValidator) validateInteger(fieldName string, value any) *Validatio
 }
 
 // validateCustomRule validates a custom validation rule
-func (v *FieldValidator) validateCustomRule(fieldName string, value any, rule ValidationRule) *ValidationError {
+func (v *FieldValidator) validateCustomRule(fieldName string, value any, rule Rule) *Error {
 	switch rule.Type {
 	case "regex":
 		return v.validateRegexRule(fieldName, value, rule)
@@ -306,7 +306,7 @@ func (v *FieldValidator) validateCustomRule(fieldName string, value any, rule Va
 }
 
 // validateRegexRule validates a regex rule
-func (v *FieldValidator) validateRegexRule(fieldName string, value any, rule ValidationRule) *ValidationError {
+func (v *FieldValidator) validateRegexRule(fieldName string, value any, rule Rule) *Error {
 	strValue, ok := value.(string)
 	if !ok {
 		return nil
@@ -319,7 +319,7 @@ func (v *FieldValidator) validateRegexRule(fieldName string, value any, rule Val
 
 	matched, err := regexp.MatchString(pattern, strValue)
 	if err != nil {
-		return &ValidationError{
+		return &Error{
 			Field:   fieldName,
 			Message: fmt.Sprintf("Invalid regex pattern: %v", err),
 			Rule:    rule.Type,
@@ -327,7 +327,7 @@ func (v *FieldValidator) validateRegexRule(fieldName string, value any, rule Val
 	}
 
 	if !matched {
-		return &ValidationError{
+		return &Error{
 			Field:   fieldName,
 			Message: rule.Message,
 			Rule:    rule.Type,

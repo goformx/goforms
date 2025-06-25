@@ -19,7 +19,7 @@ import (
 // NewManager creates a new session manager
 func NewManager(
 	logger logging.Logger,
-	cfg *SessionConfig,
+	cfg *Config,
 	lc fx.Lifecycle,
 	accessManager *access.Manager,
 ) *Manager {

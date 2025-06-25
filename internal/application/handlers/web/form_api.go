@@ -185,7 +185,7 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Validate submission against form schema
 	validationResult := h.ComprehensiveValidator.ValidateForm(form.Schema, submissionData)
 	if !validationResult.IsValid {
-		return h.ResponseBuilder.BuildMultipleValidationErrorResponse(c, validationResult.Errors)
+		return h.ResponseBuilder.BuildMultipleErrorResponse(c, validationResult.Errors)
 	}
 
 	// Create submission

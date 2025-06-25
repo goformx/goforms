@@ -136,7 +136,7 @@ func TestFormErrorHandler_HandleSubmissionError(t *testing.T) {
 	}
 }
 
-func TestFormErrorHandler_HandleValidationError(t *testing.T) {
+func TestFormErrorHandler_HandleError(t *testing.T) {
 	handler, e := setupTestFormErrorHandler()
 
 	tests := []struct {
@@ -177,7 +177,7 @@ func TestFormErrorHandler_HandleValidationError(t *testing.T) {
 			c := e.NewContext(req, rec)
 
 			// Handle error
-			err := handler.HandleValidationError(c, tt.err)
+			err := handler.HandleError(c, tt.err)
 			require.NoError(t, err)
 
 			// Assertions
@@ -378,8 +378,8 @@ func TestFormErrorHandler_ConsistentErrorHandling(t *testing.T) {
 			err:  model.ErrFormNotFound,
 		},
 		{
-			name: "HandleValidationError",
-			fn:   handler.HandleValidationError,
+			name: "HandleError",
+			fn:   handler.HandleError,
 			err:  model.ErrFormTitleRequired,
 		},
 		{

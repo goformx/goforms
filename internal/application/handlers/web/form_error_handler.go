@@ -53,8 +53,8 @@ func (h *FormErrorHandlerImpl) HandleSubmissionError(c echo.Context, err error) 
 	}
 }
 
-// HandleValidationError handles validation errors
-func (h *FormErrorHandlerImpl) HandleValidationError(c echo.Context, err error) error {
+// HandleError handles validation errors
+func (h *FormErrorHandlerImpl) HandleError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
 		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required")

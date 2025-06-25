@@ -46,14 +46,14 @@ type FormResponseBuilder interface {
 	BuildSchemaResponse(c echo.Context, schema model.JSON) error
 	BuildSubmissionResponse(c echo.Context, submission *model.FormSubmission) error
 	BuildValidationErrorResponse(c echo.Context, field, message string) error
-	BuildMultipleValidationErrorResponse(c echo.Context, errors []validation.ValidationError) error
+	BuildMultipleErrorResponse(c echo.Context, errors []validation.Error) error
 }
 
 // FormErrorHandler interface for handling form-specific errors
 type FormErrorHandler interface {
 	HandleSchemaError(c echo.Context, err error) error
 	HandleSubmissionError(c echo.Context, err error) error
-	HandleValidationError(c echo.Context, err error) error
+	HandleError(c echo.Context, err error) error
 	HandleOwnershipError(c echo.Context, err error) error
 	HandleFormNotFoundError(c echo.Context, formID string) error
 	HandleFormAccessError(c echo.Context, err error) error

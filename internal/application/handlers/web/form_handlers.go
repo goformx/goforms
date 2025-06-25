@@ -38,7 +38,7 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleValidationError(c, err)
+		return h.ErrorHandler.HandleError(c, err)
 	}
 
 	// Create form using business logic service
@@ -90,7 +90,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessUpdateRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleValidationError(c, err)
+		return h.ErrorHandler.HandleError(c, err)
 	}
 
 	// Update form using business logic service

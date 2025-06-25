@@ -26,7 +26,7 @@ var Module = fx.Options(
 
 		// Access manager using path manager
 		fx.Annotate(
-			func(logger logging.Logger, pathManager *constants.PathManager) *access.Manager {
+			func(_ logging.Logger, pathManager *constants.PathManager) *access.Manager {
 				config := &access.Config{
 					DefaultAccess: access.Authenticated,
 					PublicPaths:   pathManager.PublicPaths,
@@ -46,7 +46,7 @@ var Module = fx.Options(
 				accessManager *access.Manager,
 				pathManager *constants.PathManager,
 			) *session.Manager {
-				sessionConfig := &session.SessionConfig{
+				sessionConfig := &session.Config{
 					SessionConfig: &cfg.Session,
 					Config:        cfg,
 					PublicPaths:   pathManager.PublicPaths,

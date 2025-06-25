@@ -135,10 +135,10 @@ func (b *FormResponseBuilderImpl) BuildValidationErrorResponse(c echo.Context, f
 	})
 }
 
-// BuildMultipleValidationErrorResponse builds a response for multiple validation errors
-func (b *FormResponseBuilderImpl) BuildMultipleValidationErrorResponse(
+// BuildMultipleErrorResponse builds a response for multiple validation errors
+func (b *FormResponseBuilderImpl) BuildMultipleErrorResponse(
 	c echo.Context,
-	errors []validation.ValidationError,
+	errors []validation.Error,
 ) error {
 	errorData := make([]map[string]any, len(errors))
 	for i, err := range errors {

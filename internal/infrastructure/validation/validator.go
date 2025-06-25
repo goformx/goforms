@@ -256,8 +256,8 @@ func (v *validatorImpl) RegisterStructValidation(fn func(sl validator.StructLeve
 	return nil
 }
 
-// GetValidationErrors returns detailed validation errors
-func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
+// GetErrors returns detailed validation errors
+func (v *validatorImpl) GetErrors(err error) map[string]string {
 	var ve validator.ValidationErrors
 	if !errors.As(err, &ve) {
 		return nil

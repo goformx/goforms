@@ -10,7 +10,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// FileStorage implements SessionStorage using file system
+// FileStorage implements Storage using file system
 type FileStorage struct {
 	storeFile string
 	logger    logging.Logger
@@ -24,7 +24,7 @@ func NewFileStorage(storeFile string, logger logging.Logger) *FileStorage {
 	}
 }
 
-// Load implements SessionStorage.Load
+// Load implements Storage.Load
 func (fs *FileStorage) Load() (map[string]*Session, error) {
 	// Read file
 	data, readErr := os.ReadFile(fs.storeFile)
@@ -66,7 +66,7 @@ func (fs *FileStorage) Load() (map[string]*Session, error) {
 	return sessions, nil
 }
 
-// Save implements SessionStorage.Save
+// Save implements Storage.Save
 func (fs *FileStorage) Save(sessions map[string]*Session) error {
 	sessionsMap := make(map[string]map[string]any)
 	for id, session := range sessions {
@@ -91,7 +91,7 @@ func (fs *FileStorage) Save(sessions map[string]*Session) error {
 	return nil
 }
 
-// Delete implements SessionStorage.Delete
+// Delete implements Storage.Delete
 func (fs *FileStorage) Delete(sessionID string) error {
 	sessions, err := fs.Load()
 	if err != nil {

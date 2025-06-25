@@ -110,14 +110,6 @@ func (h *ErrorHandler) HandleDomainError(err *domainerrors.DomainError, c echo.C
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/error?code=%s&message=%s", err.Code, err.Message))
 }
 
-// HandleValidationError handles validation errors specifically
-func (h *ErrorHandler) HandleValidationError(err error, c echo.Context, field string) error {
-	validationErr := domainerrors.New(domainerrors.ErrCodeValidation, err.Error(), nil).
-		WithContext("field", field)
-
-	return h.HandleDomainError(validationErr, c)
-}
-
 // HandleAuthError handles authentication errors
 func (h *ErrorHandler) HandleAuthError(err error, c echo.Context) error {
 	authErr := domainerrors.New(domainerrors.ErrCodeUnauthorized, "Authentication required", err)
@@ -225,7 +217,6 @@ func (h *ErrorHandler) isAJAXRequest(c echo.Context) bool {
 type ErrorHandlerInterface interface {
 	HandleError(err error, c echo.Context, message string) error
 	HandleDomainError(err *domainerrors.DomainError, c echo.Context) error
-	HandleValidationError(err error, c echo.Context, field string) error
 	HandleAuthError(err error, c echo.Context) error
 	HandleNotFoundError(resource string, c echo.Context) error
 }
