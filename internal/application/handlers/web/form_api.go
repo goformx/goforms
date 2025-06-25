@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -96,10 +97,10 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
-		return h.ErrorHandler.HandleFormNotFoundError(c, "")
+		return fmt.Errorf("handle form schema: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
-	return h.ResponseBuilder.BuildSchemaResponse(c, form.Schema)
+	return fmt.Errorf("build schema response: %w", h.ResponseBuilder.BuildSchemaResponse(c, form.Schema))
 }
 
 // GET /api/v1/forms/:id/validation
@@ -112,7 +113,7 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
-		return h.ErrorHandler.HandleFormNotFoundError(c, "")
+		return fmt.Errorf("handle form validation schema: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
 	// Check if form schema is nil or empty
@@ -125,7 +126,7 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 	clientValidation, err := h.ComprehensiveValidator.GenerateClientValidation(form.Schema)
 	if err != nil {
 		h.Logger.Error("failed to generate client validation schema", "error", err, "form_id", form.ID)
-		return h.ErrorHandler.HandleSchemaError(c, err)
+		return fmt.Errorf("handle schema error: %w", h.ErrorHandler.HandleSchemaError(c, err))
 	}
 
 	return c.JSON(constants.StatusOK, clientValidation)
@@ -135,7 +136,7 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 	_, err := h.RequireAuthenticatedUser(c)
 	if err != nil {
-		return h.ErrorHandler.HandleOwnershipError(c, err)
+		return fmt.Errorf("handle ownership error: %w", h.ErrorHandler.HandleOwnershipError(c, err))
 	}
 
 	form, err := h.GetFormWithOwnership(c)
@@ -146,17 +147,17 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 	// Process and validate schema update request
 	schema, err := h.RequestProcessor.ProcessSchemaUpdateRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleSchemaError(c, err)
+		return fmt.Errorf("handle schema error: %w", h.ErrorHandler.HandleSchemaError(c, err))
 	}
 
 	// Update form schema
 	form.Schema = schema
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
 		h.Logger.Error("failed to update form schema", "error", updateErr)
-		return h.ErrorHandler.HandleSchemaError(c, updateErr)
+		return fmt.Errorf("handle schema update error: %w", h.ErrorHandler.HandleSchemaError(c, updateErr))
 	}
 
-	return h.ResponseBuilder.BuildSchemaResponse(c, form.Schema)
+	return fmt.Errorf("build schema response: %w", h.ResponseBuilder.BuildSchemaResponse(c, form.Schema))
 }
 
 // POST /api/v1/forms/:id/submit
@@ -169,25 +170,25 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
-		return h.ErrorHandler.HandleFormNotFoundError(c, "")
+		return fmt.Errorf("handle form submit: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
 	// Check if form schema is nil or empty
 	if form.Schema == nil {
 		h.Logger.Warn("form schema is nil", "form_id", form.ID)
-		return h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required"))
+		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
 	}
 
 	// Process and validate submission request
 	submissionData, err := h.RequestProcessor.ProcessSubmissionRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleSubmissionError(c, err)
+		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSubmissionError(c, err))
 	}
 
 	// Validate submission against form schema
 	validationResult := h.ComprehensiveValidator.ValidateForm(form.Schema, submissionData)
 	if !validationResult.IsValid {
-		return h.ResponseBuilder.BuildMultipleErrorResponse(c, validationResult.Errors)
+		return fmt.Errorf("build multiple error response: %w", h.ResponseBuilder.BuildMultipleErrorResponse(c, validationResult.Errors))
 	}
 
 	// Create submission
@@ -201,10 +202,10 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Submit form
 	err = h.FormService.SubmitForm(c.Request().Context(), submission)
 	if err != nil {
-		return h.ErrorHandler.HandleSubmissionError(c, err)
+		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSubmissionError(c, err))
 	}
 
-	return h.ResponseBuilder.BuildSubmissionResponse(c, submission)
+	return fmt.Errorf("build submission response: %w", h.ResponseBuilder.BuildSubmissionResponse(c, submission))
 }
 
 // Start initializes the form API handler.

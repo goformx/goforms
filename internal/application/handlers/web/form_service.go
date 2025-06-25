@@ -4,6 +4,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"strings"
 
 	formdomain "github.com/goformx/goforms/internal/domain/form"
@@ -41,7 +42,7 @@ func (s *FormService) CreateForm(ctx context.Context, userID string, req *FormCr
 
 	form := model.NewForm(userID, req.Title, "", schema)
 
-	return form, s.formService.CreateForm(ctx, form)
+	return form, fmt.Errorf("create form: %w", s.formService.CreateForm(ctx, form))
 }
 
 // UpdateForm updates an existing form with the given request data
@@ -54,12 +55,12 @@ func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *For
 		form.CorsOrigins = model.JSON{"origins": parseCSV(req.CorsOrigins)}
 	}
 
-	return s.formService.UpdateForm(ctx, form)
+	return fmt.Errorf("update form: %w", s.formService.UpdateForm(ctx, form))
 }
 
 // DeleteForm deletes a form by ID
 func (s *FormService) DeleteForm(ctx context.Context, formID string) error {
-	return s.formService.DeleteForm(ctx, formID)
+	return fmt.Errorf("delete form: %w", s.formService.DeleteForm(ctx, formID))
 }
 
 // GetFormSubmissions retrieves submissions for a form

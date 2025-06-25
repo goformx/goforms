@@ -140,7 +140,7 @@ var Module = fx.Options(
 					for _, h := range handlers {
 						if err := h.Start(ctx); err != nil {
 							logger.Error("failed to start handler", "error", err)
-							return err
+							return fmt.Errorf("start handler: %w", err)
 						}
 					}
 					return nil
@@ -149,7 +149,7 @@ var Module = fx.Options(
 					for _, h := range handlers {
 						if err := h.Stop(ctx); err != nil {
 							logger.Error("failed to stop handler", "error", err)
-							return err
+							return fmt.Errorf("stop handler: %w", err)
 						}
 					}
 					return nil

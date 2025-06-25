@@ -4,6 +4,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -70,5 +71,5 @@ func (r *FormResponseHelper) SendUpdateFormSuccess(c echo.Context, formID string
 
 // SendDeleteFormSuccess sends a successful form deletion response
 func (r *FormResponseHelper) SendDeleteFormSuccess(c echo.Context) error {
-	return c.NoContent(constants.StatusNoContent)
+	return fmt.Errorf("send delete form success: %w", c.NoContent(constants.StatusNoContent))
 }

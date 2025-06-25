@@ -151,7 +151,7 @@ func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message strin
 		})
 	}
 
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/error?message=%s", message))
+	return fmt.Errorf("redirect to error page: %w", c.Redirect(http.StatusSeeOther, fmt.Sprintf("/error?message=%s", message)))
 }
 
 // getStatusCode maps error codes to HTTP status codes

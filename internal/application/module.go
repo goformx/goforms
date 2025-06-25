@@ -4,6 +4,7 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.uber.org/fx"
 
@@ -176,7 +177,7 @@ func (a *Application) Start(_ context.Context) error {
 
 	// Start the server
 	if err := a.server.Start(); err != nil {
-		return err
+		return fmt.Errorf("start server: %w", err)
 	}
 
 	a.logger.Info("Application started successfully")

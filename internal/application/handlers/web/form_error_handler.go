@@ -27,11 +27,11 @@ func NewFormErrorHandler(responseBuilder FormResponseBuilder) FormErrorHandler {
 func (h *FormErrorHandlerImpl) HandleSchemaError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormSchemaRequired):
-		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required")
+		return fmt.Errorf("build error response: %w", h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required"))
 	case errors.Is(err, model.ErrFormInvalid):
-		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Invalid form schema format")
+		return fmt.Errorf("build error response: %w", h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Invalid form schema format"))
 	default:
-		return h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to process form schema")
+		return fmt.Errorf("build error response: %w", h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to process form schema"))
 	}
 }
 

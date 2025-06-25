@@ -4,6 +4,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -25,7 +26,7 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 
 	data := h.BuildPageData(c, "New Form")
 	data.User = user
-	return h.Renderer.Render(c, pages.NewForm(data))
+	return fmt.Errorf("render new form: %w", h.Renderer.Render(c, pages.NewForm(data)))
 }
 
 // handleCreate processes form creation requests
@@ -38,7 +39,7 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleError(c, err)
+		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
 	}
 
 	// Create form using business logic service
@@ -47,9 +48,9 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		return h.handleFormCreationError(c, err)
 	}
 
-	return h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
+	return fmt.Errorf("build success response: %w", h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
 		"form_id": form.ID,
-	})
+	}))
 }
 
 // handleEdit displays the form editing page
@@ -72,7 +73,7 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	data.Form = form
 	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/pages/form-builder.ts")
 
-	return pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer)
+	return fmt.Errorf("render edit form: %w", pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer))
 }
 
 // handleUpdate processes form update requests
@@ -90,7 +91,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessUpdateRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleError(c, err)
+		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
 	}
 
 	// Update form using business logic service
@@ -99,9 +100,9 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
-	return h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
+	return fmt.Errorf("build success response: %w", h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
 		"form_id": form.ID,
-	})
+	}))
 }
 
 // handleDelete processes form deletion requests
@@ -121,7 +122,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 
-	return c.NoContent(constants.StatusNoContent)
+	return fmt.Errorf("no content response: %w", c.NoContent(constants.StatusNoContent))
 }
 
 // handleSubmissions displays form submissions

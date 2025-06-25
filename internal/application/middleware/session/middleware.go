@@ -1,6 +1,7 @@
 package session
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
@@ -204,7 +205,7 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 
 	// If user is authenticated and trying to access a public path, redirect to dashboard
 	if hasValidSession && isPublicPath {
-		return c.Redirect(http.StatusSeeOther, constants.PathDashboard)
+		return fmt.Errorf("redirect to dashboard: %w", c.Redirect(http.StatusSeeOther, constants.PathDashboard))
 	}
 
 	// If not authenticated and trying to access a protected path, handle accordingly
@@ -221,7 +222,7 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 		}
 
 		// For web requests, redirect to login
-		return c.Redirect(http.StatusSeeOther, constants.PathLogin)
+		return fmt.Errorf("redirect to login: %w", c.Redirect(http.StatusSeeOther, constants.PathLogin))
 	}
 
 	// If we get here, it means the user is authenticated and accessing a protected path
