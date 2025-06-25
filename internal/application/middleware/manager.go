@@ -111,30 +111,35 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
 
-	// Add custom logging filter to suppress noise paths
-	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
-		return func(c echo.Context) error {
-			path := c.Request().URL.Path
-			if strings.HasPrefix(path, "/.well-known") ||
-				path == "/favicon.ico" ||
-				strings.HasPrefix(path, "/robots.txt") {
-				// Skip logging for .well-known, favicon, robots.txt and similar noise paths
-				return next(c)
-			}
-			return next(c)
-		}
-	})
-
-	// Register basic middleware
+	// Register basic middleware with custom skipper to suppress noise paths
 	if m.config.Config.App.IsDevelopment() {
 		// Use console format in development
 		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
 			Format: "${time_rfc3339} ${status} ${method} ${uri} ${latency_human}\n",
 			Output: os.Stdout,
+			Skipper: func(c echo.Context) bool {
+				path := c.Request().URL.Path
+				return strings.HasPrefix(path, "/.well-known") ||
+					path == "/favicon.ico" ||
+					strings.HasPrefix(path, "/robots.txt") ||
+					strings.Contains(path, "com.chrome.devtools") ||
+					strings.Contains(path, "devtools") ||
+					strings.Contains(path, "chrome-devtools")
+			},
 		}))
 	} else {
 		// Use JSON format in production
-		e.Use(echomw.Logger())
+		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
+			Skipper: func(c echo.Context) bool {
+				path := c.Request().URL.Path
+				return strings.HasPrefix(path, "/.well-known") ||
+					path == "/favicon.ico" ||
+					strings.HasPrefix(path, "/robots.txt") ||
+					strings.Contains(path, "com.chrome.devtools") ||
+					strings.Contains(path, "devtools") ||
+					strings.Contains(path, "chrome-devtools")
+			},
+		}))
 	}
 }
 
