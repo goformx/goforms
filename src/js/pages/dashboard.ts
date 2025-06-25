@@ -41,7 +41,9 @@ function initDashboard() {
     if (deleteButton) {
       const formId = deleteButton.getAttribute("data-form-id");
       if (formId) {
-        deleteForm(formId);
+        deleteForm(formId).catch((error) => {
+          Logger.error("Failed to delete form:", error);
+        });
       }
     }
   });

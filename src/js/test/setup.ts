@@ -147,8 +147,8 @@ global.Response = class Response {
 
   constructor(body?: any, init?: ResponseInit) {
     this.body = body;
-    this.ok = (init?.status || 200) >= 200 && (init?.status || 200) < 300;
-    this.status = init?.status || 200;
+    this.ok = (init?.status ?? 200) >= 200 && (init?.status ?? 200) < 300;
+    this.status = init?.status ?? 200;
     this.statusText = init?.statusText ?? "";
     this.headers = new Headers(init?.headers);
   }
@@ -177,7 +177,7 @@ global.Request = class Request {
 
   constructor(input: string | Request, init?: RequestInit) {
     this.url = typeof input === "string" ? input : input.url;
-    this.method = init?.method || "GET";
+    this.method = init?.method ?? "GET";
     this.headers = new Headers(init?.headers);
     this.body = init?.body;
   }

@@ -134,8 +134,10 @@ export class SchemaModal {
       header,
       body,
       schemaContainer,
-      toolbar: toolbar ?? undefined,
-      searchInput: toolbar?.querySelector("input") ?? undefined,
+      ...(toolbar && { toolbar }),
+      ...(toolbar?.querySelector("input") && {
+        searchInput: toolbar.querySelector("input") as HTMLInputElement,
+      }),
     };
 
     // Add to document
@@ -238,7 +240,7 @@ export class SchemaModal {
 
     const title = dom.createElement<HTMLHeadingElement>("h3");
     title.id = "schema-modal-title";
-    title.textContent = this.options.title || "Form Schema";
+    title.textContent = this.options.title ?? "Form Schema";
     title.style.cssText = `
       margin: 0 0 var(--spacing-2) 0;
       font-size: var(--font-size-xl);
@@ -276,21 +278,21 @@ export class SchemaModal {
 
     const meta = this.options.metadata!;
 
-    if (meta.componentCount !== undefined) {
+    if (meta["componentCount"] !== undefined) {
       const count = dom.createElement<HTMLSpanElement>("span");
-      count.textContent = `${meta.componentCount} components`;
+      count.textContent = `${meta["componentCount"]} components`;
       metadata.appendChild(count);
     }
 
-    if (meta.componentTypes?.length) {
+    if (meta["componentTypes"]?.length) {
       const types = dom.createElement<HTMLSpanElement>("span");
-      types.textContent = `Types: ${meta.componentTypes.join(", ")}`;
+      types.textContent = `Types: ${meta["componentTypes"].join(", ")}`;
       metadata.appendChild(types);
     }
 
-    if (meta.schemaSize !== undefined) {
+    if (meta["schemaSize"] !== undefined) {
       const size = dom.createElement<HTMLSpanElement>("span");
-      const sizeKB = Math.round((meta.schemaSize / 1024) * 100) / 100;
+      const sizeKB = Math.round((meta["schemaSize"] / 1024) * 100) / 100;
       size.textContent = `Size: ${sizeKB}KB`;
       metadata.appendChild(size);
     }
@@ -842,7 +844,7 @@ export function showSchemaModal(
 ): void {
   const modal = new SchemaModal(schemaString, {
     title: "Form Schema",
-    metadata,
+    ...(metadata && { metadata }),
     copyable: true,
     downloadable: true,
     searchable: true,

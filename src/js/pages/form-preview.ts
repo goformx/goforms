@@ -139,7 +139,13 @@ async function initializeFormPreview(): Promise<void> {
 
 // Initialize when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeFormPreview);
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeFormPreview().catch((error) => {
+      Logger.error("Failed to initialize form preview:", error);
+    });
+  });
 } else {
-  initializeFormPreview();
+  initializeFormPreview().catch((error) => {
+    Logger.error("Failed to initialize form preview:", error);
+  });
 }

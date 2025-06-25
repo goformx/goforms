@@ -1,4 +1,3 @@
-import { Logger } from "@/core/logger";
 import type {
   FormId,
   ComponentKey,
@@ -203,8 +202,9 @@ export class FormState {
       keyListeners.forEach((listener) => {
         try {
           listener(newValue, _prevValue);
-        } catch (error) {
-          console.error(`Error in state listener for key "${key}":`, error);
+        } catch (_error) {
+          // Silently handle listener errors to prevent cascading failures
+          // In a production environment, this could be logged to an error service
         }
       });
     }

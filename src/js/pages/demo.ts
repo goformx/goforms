@@ -188,7 +188,7 @@ class DemoForm {
     item.innerHTML = `
       <div class="message-header">
         <strong>${submission.name}</strong>
-        <span class="timestamp">${submission.timestamp || formatDate(new Date())}</span>
+        <span class="timestamp">${submission.timestamp ?? formatDate(new Date())}</span>
       </div>
       <div class="message-content">
         <span class="email">${submission.email}</span>
@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
     item.innerHTML = `
       <div class="message-header">
         <strong>${submission.name}</strong>
-        <span class="timestamp">${submission.timestamp}</span>
+        <span class="timestamp">${submission.timestamp ?? formatDate(new Date())}</span>
       </div>
       <div class="message-content">
         <span class="email">${submission.email}</span>

@@ -91,5 +91,7 @@ class CTAForm {
 // Initialize the CTA form when the DOM is ready
 document.addEventListener("DOMContentLoaded", () => {
   const ctaForm = new CTAForm();
-  ctaForm.initialize("cta-form-container");
+  ctaForm.initialize("cta-form-container").catch((error) => {
+    Logger.error("Failed to initialize CTA form:", error);
+  });
 });

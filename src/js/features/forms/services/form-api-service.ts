@@ -129,7 +129,7 @@ export class FormApiService {
       if (!response.ok) {
         const error = await response.json();
         throw FormBuilderError.networkError(
-          error.message || "Failed to update form details",
+          error.message ?? "Failed to update form details",
           `${this.baseUrl}/dashboard/forms/${formId}`,
           response.status,
         );
@@ -186,7 +186,7 @@ export class FormApiService {
           .json()
           .catch(() => ({ message: "Failed to submit form" }));
         throw FormBuilderError.networkError(
-          error.message || "Failed to submit form",
+          error.message ?? "Failed to submit form",
           `${this.baseUrl}/api/v1/forms/${formId}/submit`,
           response.status,
         );
