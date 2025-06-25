@@ -24,7 +24,7 @@ export class Logger {
 
   static debug(...args: any[]): void {
     if (this.isDevelopment) {
-      console.debug(...args);
+      console.log(...args);
     }
   }
 

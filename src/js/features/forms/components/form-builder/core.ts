@@ -15,7 +15,9 @@ export function validateFormBuilder(): {
   formId: string;
 } {
   const builder = dom.getElement<HTMLElement>("form-schema-builder");
+
   if (!builder) {
+    Logger.error("Form builder element not found");
     throw new FormBuilderError(
       "Form builder element not found",
       ErrorCode.FORM_NOT_FOUND,
@@ -24,7 +26,9 @@ export function validateFormBuilder(): {
   }
 
   const formId = builder.getAttribute("data-form-id");
+
   if (!formId) {
+    Logger.error("Form ID not found in data-form-id attribute");
     throw new FormBuilderError(
       "Form ID not found",
       ErrorCode.FORM_NOT_FOUND,
@@ -61,12 +65,14 @@ export async function getFormSchema(formId: string): Promise<FormSchema> {
     Logger.info("Schema fetched successfully:", schema);
     return schema;
   } catch (error) {
+    Logger.group("Schema Fetch Error");
     Logger.error("Error in getFormSchema:", error);
     Logger.error("Error type:", typeof error);
     Logger.error(
       "Error message:",
       error instanceof Error ? error.message : String(error),
     );
+    Logger.groupEnd();
 
     throw new FormBuilderError(
       "Failed to fetch schema",
@@ -84,18 +90,18 @@ export async function createFormBuilder(
   schema: FormSchema,
 ): Promise<any> {
   try {
-    Logger.debug("createFormBuilder: Starting initialization");
-    Logger.debug("createFormBuilder: Container element:", container);
-    Logger.debug(
-      "createFormBuilder: Container innerHTML:",
-      container.innerHTML,
-    );
-    Logger.debug("createFormBuilder: Container dimensions:", {
+    Logger.group("Form.io Builder Creation");
+    Logger.debug("Starting initialization");
+
+    Logger.group("Container Analysis");
+    Logger.debug("Container element:", container);
+    Logger.debug("Container dimensions:", {
       offsetWidth: container.offsetWidth,
       offsetHeight: container.offsetHeight,
       clientWidth: container.clientWidth,
       clientHeight: container.clientHeight,
     });
+    Logger.groupEnd();
 
     // Ensure schema has required properties
     const formSchema = {
@@ -104,10 +110,13 @@ export async function createFormBuilder(
       components: schema.components || [],
     };
 
-    Logger.debug("createFormBuilder: Form schema:", formSchema);
-    Logger.debug("createFormBuilder: Builder options:", builderOptions);
+    Logger.group("Schema & Configuration");
+    Logger.debug("Form schema:", formSchema);
+    Logger.debug("Builder options:", builderOptions);
+    Logger.groupEnd();
 
     // Create builder with standalone configuration
+    Logger.group("Form.io Builder Instantiation");
     const builder = await Formio.builder(container, formSchema, {
       ...builderOptions,
       // Standalone mode - no server communication
@@ -126,15 +135,12 @@ export async function createFormBuilder(
       project: null,
       settings: null,
     });
-
-    Logger.debug("createFormBuilder: Form.io builder created:", builder);
-    Logger.debug(
-      "createFormBuilder: Container after builder:",
-      container.innerHTML,
-    );
+    Logger.debug("Form.io builder created:", builder);
+    Logger.groupEnd();
 
     // Store builder instance in state management instead of global window
     formState.set("formBuilder", builder);
+    Logger.groupEnd();
     return builder;
   } catch (error) {
     Logger.error("Form builder initialization error:", error);
