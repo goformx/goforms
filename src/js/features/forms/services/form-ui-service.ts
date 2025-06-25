@@ -1,120 +1,89 @@
 import { Logger } from "@/core/logger";
 
-/**
- * Handles DOM manipulation and UI operations for forms
- */
 export class FormUIService {
-  private static instance: FormUIService;
+  private readonly form: HTMLFormElement;
+  private readonly errorContainer: HTMLElement | null;
+  private readonly successContainer: HTMLElement | null;
 
-  private constructor() {}
-
-  public static getInstance(): FormUIService {
-    if (!FormUIService.instance) {
-      FormUIService.instance = new FormUIService();
-    }
-    return FormUIService.instance;
+  constructor(form: HTMLFormElement) {
+    this.form = form;
+    this.errorContainer = form.querySelector(".form-error");
+    this.successContainer = form.querySelector(".form-success");
   }
 
-  /**
-   * Initialize form deletion handlers
-   */
-  initializeFormDeletionHandlers(
-    deleteFormCallback: (formId: string) => Promise<void>,
-  ): void {
-    document.addEventListener("DOMContentLoaded", () => {
-      document.querySelectorAll(".delete-form").forEach((button) => {
-        button.addEventListener("click", async (e) => {
-          e.preventDefault();
-          const formId = button.getAttribute("data-form-id");
-          if (!formId) return;
+  showError(message: string, fieldName?: string): void {
+    Logger.debug(`Showing error: ${message}`);
 
-          if (
-            !confirm(
-              "Are you sure you want to delete this form? This action cannot be undone.",
-            )
-          ) {
-            return;
-          }
+    if (this.errorContainer) {
+      this.errorContainer.textContent = message;
+      this.errorContainer.classList.remove("hidden");
+    } else {
+      Logger.warn(`Error container not found in form: ${this.form.id}`);
+    }
 
-          try {
-            await deleteFormCallback(formId);
-            this.removeFormCard(button);
-            this.checkEmptyState();
-          } catch (error) {
-            Logger.error("Failed to delete form:", error);
-            this.showError("Failed to delete form. Please try again.");
-          }
-        });
-      });
+    if (fieldName) {
+      this.highlightFieldError(fieldName);
+    }
+  }
+
+  showSuccess(message: string): void {
+    Logger.debug(`Showing success: ${message}`);
+
+    if (this.successContainer) {
+      this.successContainer.textContent = message;
+      this.successContainer.classList.remove("hidden");
+    } else {
+      Logger.warn(`Success container not found in form: ${this.form.id}`);
+    }
+
+    this.clearErrors();
+  }
+
+  clearMessages(): void {
+    this.clearErrors();
+    this.clearSuccess();
+  }
+
+  private clearErrors(): void {
+    if (this.errorContainer) {
+      this.errorContainer.classList.add("hidden");
+    }
+    this.resetFieldErrors();
+  }
+
+  private clearSuccess(): void {
+    if (this.successContainer) {
+      this.successContainer.classList.add("hidden");
+    }
+  }
+
+  private highlightFieldError(fieldName: string): void {
+    const field = this.form.querySelector(
+      `[name="${fieldName}"]`,
+    ) as HTMLElement;
+    if (field) {
+      field.classList.add("error");
+      field.setAttribute("aria-invalid", "true");
+    }
+  }
+
+  private resetFieldErrors(): void {
+    const fields = this.form.querySelectorAll<HTMLElement>(
+      "input[id], textarea[id], select[id]",
+    );
+    fields.forEach((field) => {
+      field.classList.remove("error");
+      field.setAttribute("aria-invalid", "false");
     });
   }
 
-  /**
-   * Remove form card from DOM
-   */
-  private removeFormCard(button: Element): void {
-    const formCard = button.closest(".form-panel");
-    if (formCard) {
-      formCard.remove();
-    }
-  }
-
-  /**
-   * Check if forms grid is empty and show empty state
-   */
-  private checkEmptyState(): void {
-    const formsGrid = document.querySelector(".forms-grid");
-    if (formsGrid && !formsGrid.querySelector(".form-panel")) {
-      formsGrid.innerHTML = `
-        <div class="empty-state">
-          <i class="bi bi-file-earmark-text"></i>
-          <p>You haven't created any forms yet.</p>
-          <a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
-        </div>
-      `;
-    }
-  }
-
-  /**
-   * Show error message to user
-   */
-  private showError(message: string): void {
-    // You can implement a more sophisticated error display system here
-    Logger.error(message);
-    // For now, just log to console. In a real app, you'd show a toast or modal
-  }
-
-  /**
-   * Show success message to user
-   */
-  showSuccess(message: string): void {
-    Logger.debug(message);
-    // Implement success message display
-  }
-
-  /**
-   * Update form card in the UI
-   */
-  updateFormCard(
-    formId: string,
-    updates: { title?: string; description?: string },
-  ): void {
-    const formCard = document
-      .querySelector(`[data-form-id="${formId}"]`)
-      ?.closest(".form-panel");
-    if (formCard) {
-      if (updates.title) {
-        const titleElement = formCard.querySelector(".form-title");
-        if (titleElement) {
-          titleElement.textContent = updates.title;
-        }
-      }
-      if (updates.description) {
-        const descElement = formCard.querySelector(".form-description");
-        if (descElement) {
-          descElement.textContent = updates.description;
-        }
-      }
+  setLoading(loading: boolean): void {
+    const submitButton = this.form.querySelector<HTMLButtonElement>(
+      'button[type="submit"]',
+    );
+    if (submitButton) {
+      submitButton.disabled = loading;
+      submitButton.textContent = loading ? "Submitting..." : "Submit";
     }
   }
 }
