@@ -2,10 +2,10 @@
  * DOM cache for optimizing repeated queries
  */
 class DOMCache {
-  private cache = new Map<string, Element>();
+  private readonly cache = new Map<string, Element>();
 
   get(selector: string, container?: Element): Element | null {
-    const cacheKey = `${selector}-${container?.id || "document"}`;
+    const cacheKey = `${selector}-${container?.id ?? "document"}`;
 
     if (this.cache.has(cacheKey)) {
       const element = this.cache.get(cacheKey)!;
@@ -16,7 +16,7 @@ class DOMCache {
       this.cache.delete(cacheKey);
     }
 
-    const element = (container || document).querySelector(selector);
+    const element = (container ?? document).querySelector(selector);
     if (element) {
       this.cache.set(cacheKey, element);
     }
@@ -50,13 +50,47 @@ class DOMCache {
 export const domCache = new DOMCache();
 
 /**
- * Enhanced DOM utilities with caching
+ * DOM element type guard
+ */
+export const isHTMLElement = (element: Element): element is HTMLElement => {
+  return element instanceof HTMLElement;
+};
+
+/**
+ * DOM element type guard for specific types
+ */
+export const isHTMLInputElement = (
+  element: Element,
+): element is HTMLInputElement => {
+  return element instanceof HTMLInputElement;
+};
+
+export const isHTMLFormElement = (
+  element: Element,
+): element is HTMLFormElement => {
+  return element instanceof HTMLFormElement;
+};
+
+export const isHTMLButtonElement = (
+  element: Element,
+): element is HTMLButtonElement => {
+  return element instanceof HTMLButtonElement;
+};
+
+/**
+ * Enhanced DOM utilities with caching and type safety
  */
 export const dom = {
+  /**
+   * Get element by ID with type safety
+   */
   getElement<T extends HTMLElement>(id: string): T | null {
     return domCache.get(`#${id}`) as T | null;
   },
 
+  /**
+   * Get element by selector with type safety
+   */
   getElementBySelector<T extends HTMLElement>(
     selector: string,
     container?: Element,
@@ -64,22 +98,53 @@ export const dom = {
     return domCache.get(selector, container) as T | null;
   },
 
+  /**
+   * Get multiple elements by selector
+   */
+  getElementsBySelector<T extends HTMLElement>(
+    selector: string,
+    container?: Element,
+  ): T[] {
+    const elements = (container ?? document).querySelectorAll(selector);
+    return Array.from(elements) as T[];
+  },
+
+  /**
+   * Create element with type safety
+   */
   createElement<T extends HTMLElement>(tag: string, className?: string): T {
     const element = document.createElement(tag) as T;
     if (className) element.className = className;
     return element;
   },
 
+  /**
+   * Create element with attributes
+   */
+  createElementWithAttributes<T extends HTMLElement>(
+    tag: string,
+    attributes: Record<string, string>,
+  ): T {
+    const element = this.createElement<T>(tag);
+    Object.entries(attributes).forEach(([key, value]) => {
+      element.setAttribute(key, value);
+    });
+    return element;
+  },
+
+  /**
+   * Show error message with type safety
+   */
   showError(message: string, container?: Element): void {
     const errorContainer = domCache.get(".gf-error-message", container);
 
-    if (errorContainer instanceof HTMLElement) {
+    if (errorContainer && isHTMLElement(errorContainer)) {
       errorContainer.textContent = message;
       errorContainer.style.display = "block";
       return;
     }
 
-    const errorDiv = dom.createElement<HTMLDivElement>(
+    const errorDiv = this.createElement<HTMLDivElement>(
       "div",
       "gf-error-message",
     );
@@ -87,23 +152,29 @@ export const dom = {
     document.body.insertBefore(errorDiv, document.body.firstChild);
   },
 
+  /**
+   * Hide error message
+   */
   hideError(container?: Element): void {
     const errorContainer = domCache.get(".gf-error-message", container);
-    if (errorContainer instanceof HTMLElement) {
+    if (errorContainer && isHTMLElement(errorContainer)) {
       errorContainer.style.display = "none";
     }
   },
 
+  /**
+   * Show success message with type safety
+   */
   showSuccess(message: string, container?: Element): void {
     const successContainer = domCache.get(".gf-success-message", container);
 
-    if (successContainer instanceof HTMLElement) {
+    if (successContainer && isHTMLElement(successContainer)) {
       successContainer.textContent = message;
       successContainer.style.display = "block";
       return;
     }
 
-    const successDiv = dom.createElement<HTMLDivElement>(
+    const successDiv = this.createElement<HTMLDivElement>(
       "div",
       "gf-success-message",
     );
@@ -111,11 +182,68 @@ export const dom = {
     document.body.insertBefore(successDiv, document.body.firstChild);
   },
 
+  /**
+   * Hide success message
+   */
   hideSuccess(container?: Element): void {
     const successContainer = domCache.get(".gf-success-message", container);
-    if (successContainer instanceof HTMLElement) {
+    if (successContainer && isHTMLElement(successContainer)) {
       successContainer.style.display = "none";
     }
+  },
+
+  /**
+   * Add event listener with type safety
+   */
+  addEventListener<T extends Event>(
+    element: Element,
+    event: string,
+    listener: (event: T) => void,
+    options?: AddEventListenerOptions,
+  ): () => void {
+    element.addEventListener(event, listener as EventListener, options);
+    return () => {
+      element.removeEventListener(event, listener as EventListener, options);
+    };
+  },
+
+  /**
+   * Remove event listener
+   */
+  removeEventListener<T extends Event>(
+    element: Element,
+    event: string,
+    listener: (event: T) => void,
+    options?: EventListenerOptions,
+  ): void {
+    element.removeEventListener(event, listener as EventListener, options);
+  },
+
+  /**
+   * Toggle element visibility
+   */
+  toggleElement(element: Element, show: boolean): void {
+    if (isHTMLElement(element)) {
+      element.style.display = show ? "block" : "none";
+    }
+  },
+
+  /**
+   * Set element attributes
+   */
+  setAttributes(element: Element, attributes: Record<string, string>): void {
+    Object.entries(attributes).forEach(([key, value]) => {
+      element.setAttribute(key, value);
+    });
+  },
+
+  /**
+   * Remove element attributes
+   */
+  removeAttributes(element: Element, attributes: readonly string[]): void {
+    attributes.forEach((attr) => {
+      element.removeAttribute(attr);
+    });
   },
 
   /**
@@ -138,4 +266,4 @@ export const dom = {
   get cacheSize(): number {
     return domCache.size;
   },
-};
+} as const;

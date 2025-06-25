@@ -1,166 +1,185 @@
 // ===== src/js/forms/types/form-types.ts =====
 
 /**
+ * Branded types for better type safety
+ */
+export type FormId = string & { readonly __brand: "FormId" };
+export type ComponentKey = string & { readonly __brand: "ComponentKey" };
+export type FieldName = string & { readonly __brand: "FieldName" };
+
+/**
  * Core form configuration interface
  */
 export interface FormConfig {
-  formId: string;
-  validationType: ValidationType;
-  validationDelay?: number;
-  options?: FormOptions;
+  readonly formId: FormId;
+  readonly validationType: ValidationType;
+  readonly validationDelay?: number;
+  readonly options?: FormOptions;
 }
 
 /**
- * Validation type enumeration
+ * Validation type enumeration - using const assertion for better type inference
  */
-export type ValidationType = "realtime" | "onSubmit" | "hybrid";
+export const VALIDATION_TYPES = ["realtime", "onSubmit", "hybrid"] as const;
+export type ValidationType = (typeof VALIDATION_TYPES)[number];
 
 /**
  * Form options for enhanced configuration
  */
 export interface FormOptions {
-  autoSave?: boolean;
-  debounceMs?: number;
-  showProgress?: boolean;
-  allowDraft?: boolean;
-  maxFileSize?: number;
+  readonly autoSave?: boolean;
+  readonly debounceMs?: number;
+  readonly showProgress?: boolean;
+  readonly allowDraft?: boolean;
+  readonly maxFileSize?: number;
 }
 
 /**
  * Comprehensive form schema interface
  */
 export interface FormSchema {
-  display: string;
-  components: FormComponent[];
-  metadata?: FormMetadata;
-  settings?: FormSettings;
+  readonly display: string;
+  readonly components: readonly FormComponent[];
+  readonly metadata?: FormMetadata;
+  readonly settings?: FormSettings;
 }
 
 /**
  * Form component interface with proper typing
  */
 export interface FormComponent {
-  type: ComponentType;
-  key: string;
-  label: string;
-  input: boolean;
-  validate?: ValidationRule[];
-  conditional?: ConditionalLogic;
-  properties?: Record<string, unknown>;
-  defaultValue?: unknown;
-  placeholder?: string;
-  required?: boolean;
-  disabled?: boolean;
-  hidden?: boolean;
+  readonly type: ComponentType;
+  readonly key: ComponentKey;
+  readonly label: string;
+  readonly input: boolean;
+  readonly validate?: readonly ValidationRule[];
+  readonly conditional?: ConditionalLogic;
+  readonly properties?: Readonly<Record<string, unknown>>;
+  readonly defaultValue?: unknown;
+  readonly placeholder?: string;
+  readonly required?: boolean;
+  readonly disabled?: boolean;
+  readonly hidden?: boolean;
 }
 
 /**
- * Component type enumeration
+ * Component type enumeration - using const assertion
  */
-export type ComponentType =
-  | "textfield"
-  | "textarea"
-  | "select"
-  | "checkbox"
-  | "radio"
-  | "button"
-  | "email"
-  | "password"
-  | "number"
-  | "date"
-  | "file"
-  | "url"
-  | "phone"
-  | "address"
-  | "signature";
+export const COMPONENT_TYPES = [
+  "textfield",
+  "textarea",
+  "select",
+  "checkbox",
+  "radio",
+  "button",
+  "email",
+  "password",
+  "number",
+  "date",
+  "file",
+  "url",
+  "phone",
+  "address",
+  "signature",
+] as const;
+
+export type ComponentType = (typeof COMPONENT_TYPES)[number];
 
 /**
  * Validation rule interface
  */
 export interface ValidationRule {
-  type:
-    | "required"
-    | "minLength"
-    | "maxLength"
-    | "pattern"
-    | "custom"
-    | "email"
-    | "url";
-  value?: string | number;
-  message: string;
-  enabled?: boolean;
+  readonly type: ValidationRuleType;
+  readonly value?: string | number;
+  readonly message: string;
+  readonly enabled?: boolean;
 }
+
+/**
+ * Validation rule types - using const assertion
+ */
+export const VALIDATION_RULE_TYPES = [
+  "required",
+  "minLength",
+  "maxLength",
+  "pattern",
+  "custom",
+  "email",
+  "url",
+] as const;
+
+export type ValidationRuleType = (typeof VALIDATION_RULE_TYPES)[number];
 
 /**
  * Conditional logic interface
  */
 export interface ConditionalLogic {
-  when: string;
-  eq: unknown;
-  show?: boolean;
-  required?: boolean;
-  disabled?: boolean;
+  readonly when: string;
+  readonly eq: unknown;
+  readonly show?: boolean;
+  readonly required?: boolean;
+  readonly disabled?: boolean;
 }
 
 /**
  * Form metadata interface
  */
 export interface FormMetadata {
-  title?: string;
-  description?: string;
-  version?: string;
-  created?: Date;
-  modified?: Date;
-  author?: string;
-  tags?: string[];
+  readonly title?: string;
+  readonly description?: string;
+  readonly version?: string;
+  readonly created?: Date;
+  readonly modified?: Date;
+  readonly author?: string;
+  readonly tags?: readonly string[];
 }
 
 /**
  * Form settings interface
  */
 export interface FormSettings {
-  submitButtonText?: string;
-  cancelButtonText?: string;
-  showCancelButton?: boolean;
-  allowMultipleSubmissions?: boolean;
-  requireAuthentication?: boolean;
-  redirectUrl?: string;
-  successMessage?: string;
-  errorMessage?: string;
+  readonly submitButtonText?: string;
+  readonly cancelButtonText?: string;
+  readonly showCancelButton?: boolean;
+  readonly allowMultipleSubmissions?: boolean;
+  readonly requireAuthentication?: boolean;
+  readonly redirectUrl?: string;
+  readonly successMessage?: string;
+  readonly errorMessage?: string;
 }
 
 /**
- * Server response interface
+ * Server response interface with generic type
  */
-export interface ServerResponse {
-  message?: string;
-  redirect?: string;
-  success?: boolean;
-  data?: unknown;
-  errors?: Record<string, string[]>;
+export interface ServerResponse<T = unknown> {
+  readonly message?: string;
+  readonly redirect?: string;
+  readonly success?: boolean;
+  readonly data?: T;
+  readonly errors?: Readonly<Record<string, readonly string[]>>;
 }
 
 /**
  * Request options interface
  */
 export interface RequestOptions {
-  body: FormData | string;
-  headers: Record<string, string>;
-  timeout?: number;
-  retries?: number;
+  readonly body: FormData | string;
+  readonly headers: Readonly<Record<string, string>>;
+  readonly timeout?: number;
+  readonly retries?: number;
 }
 
 /**
  * Form submission data interface
  */
 export interface FormSubmissionData {
-  formId: string;
-  data: Record<string, unknown>;
-  metadata?: {
-    submittedAt: Date;
-    userAgent?: string;
-    ipAddress?: string;
-    sessionId?: string;
+  readonly formId: FormId;
+  readonly data: Readonly<Record<string, unknown>>;
+  readonly metadata?: {
+    readonly submittedAt: Date;
+    readonly userAgent?: string;
+    readonly ipAddress?: string;
+    readonly sessionId?: string;
   };
 }
 
@@ -168,52 +187,87 @@ export interface FormSubmissionData {
  * Form validation result interface
  */
 export interface FormValidationResult {
-  isValid: boolean;
-  errors: ValidationError[];
-  warnings: ValidationWarning[];
+  readonly isValid: boolean;
+  readonly errors: readonly ValidationError[];
+  readonly warnings: readonly ValidationWarning[];
 }
 
 /**
  * Validation error interface
  */
 export interface ValidationError {
-  field: string;
-  message: string;
-  code: string;
-  value?: unknown;
+  readonly field: FieldName;
+  readonly message: string;
+  readonly code: string;
+  readonly value?: unknown;
 }
 
 /**
  * Validation warning interface
  */
 export interface ValidationWarning {
-  field: string;
-  message: string;
-  code: string;
-  value?: unknown;
+  readonly field: FieldName;
+  readonly message: string;
+  readonly code: string;
+  readonly value?: unknown;
 }
 
 /**
  * Form builder state interface
  */
 export interface FormBuilderState {
-  isDirty: boolean;
-  isSaving: boolean;
-  hasErrors: boolean;
-  lastSaved?: Date;
-  autoSaveEnabled: boolean;
+  readonly isDirty: boolean;
+  readonly isSaving: boolean;
+  readonly hasErrors: boolean;
+  readonly lastSaved?: Date;
+  readonly autoSaveEnabled: boolean;
 }
 
 /**
  * Form field interface
  */
 export interface FormField {
-  name: string;
-  type: ComponentType;
-  value: unknown;
-  isValid: boolean;
-  error?: string;
-  isRequired: boolean;
-  isDisabled: boolean;
-  isHidden: boolean;
+  readonly name: FieldName;
+  readonly type: ComponentType;
+  readonly value: unknown;
+  readonly isValid: boolean;
+  readonly error?: string;
+  readonly isRequired: boolean;
+  readonly isDisabled: boolean;
+  readonly isHidden: boolean;
 }
+
+/**
+ * Type guards for runtime type checking
+ */
+export const isValidationType = (value: unknown): value is ValidationType => {
+  return VALIDATION_TYPES.includes(value as ValidationType);
+};
+
+export const isComponentType = (value: unknown): value is ComponentType => {
+  return COMPONENT_TYPES.includes(value as ComponentType);
+};
+
+export const isValidationRuleType = (
+  value: unknown,
+): value is ValidationRuleType => {
+  return VALIDATION_RULE_TYPES.includes(value as ValidationRuleType);
+};
+
+/**
+ * Utility types for better type inference
+ */
+export type FormComponentMap = ReadonlyMap<ComponentKey, FormComponent>;
+export type FormFieldMap = ReadonlyMap<FieldName, FormField>;
+export type ValidationErrorMap = ReadonlyMap<
+  FieldName,
+  readonly ValidationError[]
+>;
+
+/**
+ * Type-safe form builder functions
+ */
+export const createFormId = (id: string): FormId => id as FormId;
+export const createComponentKey = (key: string): ComponentKey =>
+  key as ComponentKey;
+export const createFieldName = (name: string): FieldName => name as FieldName;
