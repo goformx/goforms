@@ -1,8 +1,11 @@
+# golangci-lint v2 configuration for Go 1.24+ (2025)
 version: "2"
+
 run:
   go: "1.24"
   modules-download-mode: readonly
   allow-parallel-runners: true
+
 linters:
   enable:
     - bodyclose
@@ -36,6 +39,7 @@ linters:
     - unparam
     - whitespace
     - wrapcheck
+
   settings:
     errcheck:
       check-type-assertions: true
@@ -131,6 +135,7 @@ linters:
         - errors.Unwrap(
         - .Wrap(
         - .Wrapf(
+
   exclusions:
     generated: lax
     presets:
@@ -142,6 +147,42 @@ linters:
       - third_party$
       - builtin$
       - examples$
+    rules:
+      # Exclude funlen for test files (tests can be longer)
+      - path: _test\.go
+        linters:
+          - funlen
+      
+      # Exclude wrapcheck for test files (tests often don't need error wrapping)
+      - path: _test\.go
+        linters:
+          - wrapcheck
+      
+      # Exclude gocritic hugeParam for generated code
+      - path: _templ\.go
+        linters:
+          - gocritic
+      
+      # Exclude nolintlint for generated code
+      - path: _templ\.go
+        linters:
+          - nolintlint
+      
+      # Exclude some rules for integration tests
+      - path: test/integration/
+        linters:
+          - funlen
+          - wrapcheck
+          - gocritic
+      
+      # Exclude some rules for mock files
+      - path: test/mocks/
+        linters:
+          - funlen
+          - wrapcheck
+          - gocritic
+          - nolintlint
+
 formatters:
   exclusions:
     generated: lax
