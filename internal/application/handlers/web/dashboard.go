@@ -65,12 +65,12 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 
 // Start initializes the dashboard handler.
 // This is called during application startup.
-func (h *DashboardHandler) Start(ctx context.Context) error {
+func (h *DashboardHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the dashboard handler.
 // This is called during application shutdown.
-func (h *DashboardHandler) Stop(ctx context.Context) error {
+func (h *DashboardHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }

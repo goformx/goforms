@@ -283,11 +283,11 @@ func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger)
 
 	// Register lifecycle hooks for graceful shutdown
 	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+		OnStart: func(_ context.Context) error {
 			logger.Info("Database connection established")
 			return nil
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			logger.Info("Closing database connection")
 			return db.Close()
 		},
@@ -344,7 +344,7 @@ var Module = fx.Options(
 				logger.Info("Infrastructure module initialized")
 				return nil
 			},
-			OnStop: func(ctx context.Context) error {
+			OnStop: func(_ context.Context) error {
 				logger.Info("Infrastructure module shutting down")
 				return nil
 			},

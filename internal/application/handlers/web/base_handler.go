@@ -93,16 +93,16 @@ func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
 	)
 }
 
-// Start provides default lifecycle initialization
-func (h *BaseHandler) Start(ctx context.Context) error {
-	// Default implementation - no initialization needed
-	return nil
+// Start initializes the base handler.
+// This is called during application startup.
+func (h *BaseHandler) Start(_ context.Context) error {
+	return nil // No initialization needed
 }
 
-// Stop provides default lifecycle cleanup
-func (h *BaseHandler) Stop(ctx context.Context) error {
-	// Default implementation - no cleanup needed
-	return nil
+// Stop cleans up any resources used by the base handler.
+// This is called during application shutdown.
+func (h *BaseHandler) Stop(_ context.Context) error {
+	return nil // No cleanup needed
 }
 
 // Register provides default route registration

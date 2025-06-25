@@ -81,7 +81,7 @@ func setupApplication(params *appParams) error {
 // It logs application information and manages server startup in a goroutine.
 func setupLifecycle(params *appParams) {
 	params.Lifecycle.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+		OnStart: func(_ context.Context) error {
 			versionInfo := version.GetInfo()
 			// Log application startup information
 			params.Logger.Info("starting application",
@@ -102,7 +102,7 @@ func setupLifecycle(params *appParams) {
 
 			return nil
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			versionInfo := version.GetInfo()
 			// Log application shutdown information
 			params.Logger.Info("shutting down application",

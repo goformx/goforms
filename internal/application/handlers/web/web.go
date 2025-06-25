@@ -87,8 +87,8 @@ func (h *PageHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
-// Stop cleans up any resources used by the web handler.
+// Stop cleans up any resources used by the page handler.
 // This is called during application shutdown.
-func (h *PageHandler) Stop(ctx context.Context) error {
+func (h *PageHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }

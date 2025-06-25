@@ -3,7 +3,6 @@ package web
 import (
 	"context"
 	"errors"
-	"fmt"
 
 	"github.com/labstack/echo/v4"
 
@@ -130,17 +129,11 @@ func NewHandlerDeps(params *HandlerParams) (*HandlerDeps, error) {
 }
 
 // Start initializes the handler dependencies.
-// This is called during application startup.
-func (d *HandlerDeps) Start(ctx context.Context) error {
-	if err := d.Validate(); err != nil {
-		return fmt.Errorf("failed to validate handler dependencies: %w", err)
-	}
-	return nil
+func (d *HandlerDeps) Start(_ context.Context) error {
+	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the handler dependencies.
-// This is called during application shutdown.
-func (d *HandlerDeps) Stop(ctx context.Context) error {
-	// Add any cleanup logic here if needed
-	return nil
+func (d *HandlerDeps) Stop(_ context.Context) error {
+	return nil // No cleanup needed
 }

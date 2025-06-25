@@ -85,13 +85,13 @@ func (h *FormWebHandler) Register(_ *echo.Echo) {
 	// This method is required to satisfy the Handler interface
 }
 
-// Start satisfies the Handler interface
-func (h *FormWebHandler) Start(ctx context.Context) error {
+// Start initializes the form web handler.
+func (h *FormWebHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
-// Stop satisfies the Handler interface
-func (h *FormWebHandler) Stop(ctx context.Context) error {
+// Stop cleans up any resources used by the form web handler.
+func (h *FormWebHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }
 
