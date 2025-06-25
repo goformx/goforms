@@ -44,7 +44,7 @@ func NewManager(
 
 	// Register lifecycle hooks
 	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+		OnStart: func(_ context.Context) error {
 			// Initialize session store
 			if err := sm.initialize(); err != nil {
 				return fmt.Errorf("failed to initialize session store: %w", err)
@@ -55,7 +55,7 @@ func NewManager(
 
 			return nil
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			// Stop cleanup routine
 			close(sm.stopChan)
 

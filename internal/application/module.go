@@ -160,7 +160,7 @@ type Application struct {
 }
 
 // Start starts the application
-func (a *Application) Start(ctx context.Context) error {
+func (a *Application) Start(_ context.Context) error {
 	a.logger.Info("Starting application...")
 
 	// Get the Echo instance
@@ -184,7 +184,7 @@ func (a *Application) Start(ctx context.Context) error {
 }
 
 // Stop stops the application
-func (a *Application) Stop(ctx context.Context) error {
+func (a *Application) Stop(_ context.Context) error {
 	a.logger.Info("Stopping application...")
 	a.logger.Info("Application stopped successfully")
 	return nil

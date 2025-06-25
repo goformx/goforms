@@ -27,6 +27,8 @@ type ComponentStatus struct {
 }
 
 // HealthStatus represents the health status of the system
+//
+//nolint:revive // We need to distinguish between Status (string) and HealthStatus (struct) in the same package
 type HealthStatus struct {
 	Status     Status                     `json:"status"`
 	Components map[string]ComponentStatus `json:"components"`

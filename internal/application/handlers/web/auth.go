@@ -241,12 +241,12 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 
 // Start initializes the auth handler.
 // This is called during application startup.
-func (h *AuthHandler) Start(ctx context.Context) error {
+func (h *AuthHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the auth handler.
 // This is called during application shutdown.
-func (h *AuthHandler) Stop(ctx context.Context) error {
+func (h *AuthHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }

@@ -340,7 +340,7 @@ var Module = fx.Options(
 	// Lifecycle management
 	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, _ *config.Config) {
 		lc.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
+			OnStart: func(_ context.Context) error {
 				logger.Info("Infrastructure module initialized")
 				return nil
 			},

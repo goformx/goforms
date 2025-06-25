@@ -81,9 +81,9 @@ func (h *PageHandler) handleDemo(c echo.Context) error {
 	return h.Renderer.Render(c, pages.Demo(data))
 }
 
-// Start initializes the web handler.
+// Start initializes the page handler.
 // This is called during application startup.
-func (h *PageHandler) Start(ctx context.Context) error {
+func (h *PageHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 

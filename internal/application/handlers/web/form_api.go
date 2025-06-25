@@ -209,12 +209,12 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 
 // Start initializes the form API handler.
 // This is called during application startup.
-func (h *FormAPIHandler) Start(ctx context.Context) error {
+func (h *FormAPIHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the form API handler.
 // This is called during application shutdown.
-func (h *FormAPIHandler) Stop(ctx context.Context) error {
+func (h *FormAPIHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }

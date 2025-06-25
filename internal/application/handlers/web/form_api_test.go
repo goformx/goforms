@@ -28,19 +28,19 @@ type mockFormService struct {
 	forms map[string]*model.Form
 }
 
-func (m *mockFormService) GetForm(ctx context.Context, formID string) (*model.Form, error) {
+func (m *mockFormService) GetForm(_ context.Context, formID string) (*model.Form, error) {
 	if form, exists := m.forms[formID]; exists {
 		return form, nil
 	}
 	return nil, domainerrors.New(domainerrors.ErrCodeNotFound, "Form not found", nil)
 }
 
-func (m *mockFormService) CreateForm(ctx context.Context, form *model.Form) error {
+func (m *mockFormService) CreateForm(_ context.Context, form *model.Form) error {
 	m.forms[form.ID] = form
 	return nil
 }
 
-func (m *mockFormService) UpdateForm(ctx context.Context, form *model.Form) error {
+func (m *mockFormService) UpdateForm(_ context.Context, form *model.Form) error {
 	if _, exists := m.forms[form.ID]; !exists {
 		return domainerrors.New(domainerrors.ErrCodeNotFound, "Form not found", nil)
 	}
@@ -48,7 +48,7 @@ func (m *mockFormService) UpdateForm(ctx context.Context, form *model.Form) erro
 	return nil
 }
 
-func (m *mockFormService) DeleteForm(ctx context.Context, formID string) error {
+func (m *mockFormService) DeleteForm(_ context.Context, formID string) error {
 	if _, exists := m.forms[formID]; !exists {
 		return domainerrors.New(domainerrors.ErrCodeNotFound, "Form not found", nil)
 	}
@@ -56,7 +56,7 @@ func (m *mockFormService) DeleteForm(ctx context.Context, formID string) error {
 	return nil
 }
 
-func (m *mockFormService) ListForms(ctx context.Context, userID string) ([]*model.Form, error) {
+func (m *mockFormService) ListForms(_ context.Context, userID string) ([]*model.Form, error) {
 	var userForms []*model.Form
 	for _, form := range m.forms {
 		if form.UserID == userID {
@@ -66,7 +66,7 @@ func (m *mockFormService) ListForms(ctx context.Context, userID string) ([]*mode
 	return userForms, nil
 }
 
-func (m *mockFormService) SubmitForm(ctx context.Context, submission *model.FormSubmission) error {
+func (m *mockFormService) SubmitForm(_ context.Context, submission *model.FormSubmission) error {
 	return nil
 }
 

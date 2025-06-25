@@ -404,14 +404,14 @@ func TestCustomField(t *testing.T) {
 			name:      "sensitive key should be masked",
 			key:       "secret_data",
 			value:     "sensitive value",
-			sanitizer: func(v any) string { return "custom sanitized" },
+			sanitizer: func(_ any) string { return "custom sanitized" },
 			expected:  "****",
 		},
 		{
 			name:      "custom sanitization",
 			key:       "description",
 			value:     "original value",
-			sanitizer: func(v any) string { return "custom sanitized" },
+			sanitizer: func(_ any) string { return "custom sanitized" },
 			expected:  "custom sanitized",
 		},
 	}
