@@ -27,39 +27,8 @@ func NewErrorHandler(logger logging.Logger, sanitizer sanitization.ServiceInterf
 	}
 }
 
-// sanitizeError sanitizes an error message for safe logging
-func (h *ErrorHandler) sanitizeError(err error) string {
-	if err == nil {
-		return ""
-	}
-
-	// Get the error message and sanitize it
-	errMsg := err.Error()
-	return h.sanitizer.SingleLine(errMsg)
-}
-
-// sanitizePath sanitizes a URL path for safe logging
-func (h *ErrorHandler) sanitizePath(path string) string {
-	if path == "" {
-		return ""
-	}
-
-	// Use the sanitization service to clean the path
-	return h.sanitizer.SingleLine(path)
-}
-
-// sanitizeRequestID sanitizes a request ID for safe logging
-func (h *ErrorHandler) sanitizeRequestID(requestID string) string {
-	if requestID == "" {
-		return ""
-	}
-
-	// Use the sanitization service to clean the request ID
-	return h.sanitizer.SingleLine(requestID)
-}
-
 // HandleError handles generic errors
-func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) error {
+func (h *ErrorHandler) HandleError(_ error, c echo.Context, message string) error {
 	statusCode := http.StatusInternalServerError
 
 	// Check if this is an AJAX request
@@ -94,23 +63,6 @@ func (h *ErrorHandler) HandleAuthError(err error, c echo.Context) error {
 func (h *ErrorHandler) HandleNotFoundError(resource string, c echo.Context) error {
 	notFoundErr := domainerrors.New(domainerrors.ErrCodeNotFound, fmt.Sprintf("%s not found", resource), nil)
 	return h.HandleDomainError(notFoundErr, c)
-}
-
-// handleDomainError is the internal method for handling domain errors
-func (h *ErrorHandler) handleDomainError(err *domainerrors.DomainError, c echo.Context) error {
-	return h.HandleDomainError(err, c)
-}
-
-// handleUnknownError handles unknown errors
-func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message string) error {
-	statusCode := http.StatusInternalServerError
-
-	if h.isAJAXRequest(c) {
-		return ErrorResponse(c, statusCode, message)
-	}
-
-	return fmt.Errorf("redirect to error page: %w",
-		c.Redirect(http.StatusSeeOther, fmt.Sprintf("/error?message=%s", message)))
 }
 
 // getStatusCode maps error codes to HTTP status codes

@@ -68,8 +68,16 @@ describe("HttpClient", () => {
         statusText: "OK",
         url: "http://api.example.com/test",
         headers: new Headers(),
-        text: () => Promise.resolve('{"data": "test"}'),
-        json: () => Promise.resolve({ data: "test" }),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "message": "Data retrieved successfully", "data": {"data": "test"}}',
+          ),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            message: "Data retrieved successfully",
+            data: { data: "test" },
+          }),
       });
 
       global.fetch = mockFetch;
@@ -93,8 +101,16 @@ describe("HttpClient", () => {
         statusText: "OK",
         url: "http://api.example.com/test",
         headers: new Headers(),
-        text: () => Promise.resolve('{"success": true}'),
-        json: () => Promise.resolve({ success: true }),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "message": "User created successfully", "data": {"id": 1, "name": "test"}}',
+          ),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            message: "User created successfully",
+            data: { id: 1, name: "test" },
+          }),
       });
 
       global.fetch = mockFetch;
@@ -111,7 +127,39 @@ describe("HttpClient", () => {
           body: JSON.stringify({ name: "test", email: "test@example.com" }),
         }),
       );
-      expect(result.data).toEqual({ success: true });
+      expect(result.data).toEqual({ id: 1, name: "test" });
+      expect(result.status).toBe(200);
+    });
+
+    it("should handle standardized API responses with data field", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
+        headers: new Headers(),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "data": {"id": 1, "name": "test"}}',
+          ),
+        json: () =>
+          Promise.resolve({ success: true, data: { id: 1, name: "test" } }),
+      });
+
+      global.fetch = mockFetch;
+
+      const result = await HttpClient.post("http://api.example.com/test", {
+        name: "test",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://api.example.com/test",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ name: "test" }),
+        }),
+      );
+      expect(result.data).toEqual({ id: 1, name: "test" });
       expect(result.status).toBe(200);
     });
 
@@ -122,8 +170,16 @@ describe("HttpClient", () => {
         statusText: "OK",
         url: "http://api.example.com/test",
         headers: new Headers(),
-        text: () => Promise.resolve('{"updated": true}'),
-        json: () => Promise.resolve({ updated: true }),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "message": "Resource updated successfully", "data": {"updated": true}}',
+          ),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            message: "Resource updated successfully",
+            data: { updated: true },
+          }),
       });
 
       global.fetch = mockFetch;

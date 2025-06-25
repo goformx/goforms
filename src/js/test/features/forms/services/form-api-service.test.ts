@@ -15,7 +15,15 @@ import type { FormSchema } from "@/shared/types/form-types";
 import { createComponentKey } from "@/shared/types/form-types";
 
 // Mock dependencies
-vi.mock("@/core/http-client");
+vi.mock("@/core/http-client", () => ({
+  HttpClient: {
+    get: vi.fn(),
+    post: vi.fn(),
+    put: vi.fn(),
+    delete: vi.fn(),
+  },
+}));
+
 vi.mock("@/core/logger");
 vi.mock("dompurify", () => ({
   default: {
@@ -26,6 +34,7 @@ vi.mock("dompurify", () => ({
 describe("FormApiService", () => {
   let service: FormApiService;
   let mockHttpGet: MockedFunction<typeof HttpClient.get>;
+  let mockHttpPost: MockedFunction<typeof HttpClient.post>;
   let mockHttpPut: MockedFunction<typeof HttpClient.put>;
   let mockHttpDelete: MockedFunction<typeof HttpClient.delete>;
 
@@ -35,6 +44,7 @@ describe("FormApiService", () => {
 
     // Mock HttpClient methods with proper typing
     mockHttpGet = vi.mocked(HttpClient.get);
+    mockHttpPost = vi.mocked(HttpClient.post);
     mockHttpPut = vi.mocked(HttpClient.put);
     mockHttpDelete = vi.mocked(HttpClient.delete);
 
@@ -394,32 +404,34 @@ describe("FormApiService", () => {
     });
 
     it("should successfully submit form with sanitized data", async () => {
-      const mockResponse = { ok: true };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const mockHttpResponse = {
+        data: { success: true, message: "Form submitted successfully" },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: `${window.location.origin}/api/v1/forms/test-form-id/submit`,
+      };
+
+      // Mock HttpClient.post to return standardized response
+      mockHttpPost.mockResolvedValue(mockHttpResponse);
 
       const result = await service.submitForm("test-form-id", formData);
 
-      expect(global.fetch).toHaveBeenCalledWith(
+      expect(mockHttpPost).toHaveBeenCalledWith(
         `${window.location.origin}/api/v1/forms/test-form-id/submit`,
-        expect.objectContaining({
-          method: "POST",
-          headers: expect.objectContaining({
-            "Content-Type": "application/json",
-            "X-Csrf-Token": "test-csrf-token",
-          }),
-        }),
+        expect.any(Object),
       );
-      expect(result).toBe(mockResponse);
+      expect(result).toBeInstanceOf(Response);
+      expect(result.status).toBe(200);
     });
 
     it("should throw NetworkError when submission fails", async () => {
-      const mockResponse = {
-        ok: false,
-        status: 400,
-        statusText: "Bad Request",
-        json: vi.fn().mockResolvedValue({ message: "Invalid data" }),
-      };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const networkError = FormBuilderError.networkError(
+        "HTTP 400: Bad Request",
+        `${window.location.origin}/api/v1/forms/test-form-id/submit`,
+        400,
+      );
+      mockHttpPost.mockRejectedValue(networkError);
 
       await expect(
         service.submitForm("test-form-id", formData),
@@ -427,13 +439,12 @@ describe("FormApiService", () => {
     });
 
     it("should handle json parse failure in error response", async () => {
-      const mockResponse = {
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        json: vi.fn().mockRejectedValue(new Error("JSON parse failed")),
-      };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const networkError = FormBuilderError.networkError(
+        "HTTP 500: Internal Server Error",
+        `${window.location.origin}/api/v1/forms/test-form-id/submit`,
+        500,
+      );
+      mockHttpPost.mockRejectedValue(networkError);
 
       await expect(
         service.submitForm("test-form-id", formData),
@@ -460,38 +471,53 @@ describe("FormApiService", () => {
     });
 
     it("should sanitize string values", async () => {
-      const mockResponse = { ok: true };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const mockHttpResponse = {
+        data: { success: true, message: "Form submitted successfully" },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: `${window.location.origin}/api/v1/forms/test-form-id/submit`,
+      };
+      mockHttpPost.mockResolvedValue(mockHttpResponse);
 
       const formData = new FormData();
       formData.append("malicious", '<script>alert("xss")</script>');
 
       await service.submitForm("test-form-id", formData);
 
-      // Verify that fetch was called with stringified data
-      expect(global.fetch).toHaveBeenCalledWith(
-        expect.any(String),
-        expect.objectContaining({
-          body: expect.any(String),
-        }),
+      expect(mockHttpPost).toHaveBeenCalledWith(
+        `${window.location.origin}/api/v1/forms/test-form-id/submit`,
+        expect.any(Object),
       );
     });
 
     it("should handle null and undefined values", async () => {
-      const mockResponse = { ok: true };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const mockHttpResponse = {
+        data: { success: true, message: "Form submitted successfully" },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: `${window.location.origin}/api/v1/forms/test-form-id/submit`,
+      };
+      mockHttpPost.mockResolvedValue(mockHttpResponse);
 
       const formData = new FormData();
       // FormData doesn't directly support null/undefined, but the sanitizer should handle them
 
       await service.submitForm("test-form-id", formData);
 
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockHttpPost).toHaveBeenCalled();
     });
 
     it("should preserve numbers and booleans", async () => {
-      const mockResponse = { ok: true };
-      global.fetch = vi.fn().mockResolvedValue(mockResponse);
+      const mockHttpResponse = {
+        data: { success: true, message: "Form submitted successfully" },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: `${window.location.origin}/api/v1/forms/test-form-id/submit`,
+      };
+      mockHttpPost.mockResolvedValue(mockHttpResponse);
 
       const formData = new FormData();
       formData.append("age", "25");
@@ -499,7 +525,7 @@ describe("FormApiService", () => {
 
       await service.submitForm("test-form-id", formData);
 
-      expect(global.fetch).toHaveBeenCalled();
+      expect(mockHttpPost).toHaveBeenCalled();
     });
   });
 

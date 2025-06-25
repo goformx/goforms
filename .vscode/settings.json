@@ -30,5 +30,9 @@
     },
     "files.associations": {
         "*.templ": "templ"
-    }
+    },
+    "prettier.documentSelectors": [
+        "*.ts",
+        "*.js"
+    ]
 }
