@@ -14,7 +14,7 @@ export class ResponseHandler {
 
     try {
       const contentType = response.headers.get("content-type");
-      let data: ServerResponse = {};
+      let data: Partial<ServerResponse> = {};
 
       // Only try to parse JSON if the response has JSON content
       if (contentType?.includes("application/json")) {
@@ -24,8 +24,8 @@ export class ResponseHandler {
         Logger.debug("Response has no JSON content, status:", response.status);
       }
 
-      if (response.redirected || data.redirect) {
-        const redirectUrl = response.redirected ? response.url : data.redirect!;
+      if (response.redirected) {
+        const redirectUrl = response.url;
         Logger.debug("Redirecting to:", redirectUrl);
         window.location.href = redirectUrl;
         return;
@@ -38,40 +38,61 @@ export class ResponseHandler {
         return;
       }
 
-      if (data.success) {
+      // Check for standardized response format
+      if (data.success === true) {
         this.handleSuccess(data, form);
-      } else {
+      } else if (data.success === false) {
         this.handleError(data, form);
+      } else {
+        // Handle legacy response format (no success field)
+        if (data.message || data.errors) {
+          this.handleError(data, form);
+        } else {
+          this.handleSuccess(data, form);
+        }
       }
     } catch (error) {
       Logger.error("Failed to parse response:", error);
-      this.handleError({ message: "Failed to process server response" }, form);
+      this.handleError(
+        { success: false, message: "Failed to process server response" },
+        form,
+      );
     } finally {
       Logger.groupEnd();
     }
   }
 
-  private static handleSuccess(data: any, form: HTMLFormElement): void {
+  private static handleSuccess(
+    data: Partial<ServerResponse>,
+    form: HTMLFormElement,
+  ): void {
     Logger.debug("Form submission successful:", data);
 
-    // Show success message
-    const message = data.message ?? "Form submitted successfully!";
+    // Get message from data field if available, fallback to message field
+    const message =
+      (data.data as any)?.message ??
+      data.message ??
+      "Form submitted successfully!";
     UIManager.displayFormSuccess(form, message);
 
-    // Handle redirect if specified
-    if (data.redirect) {
+    // Handle redirect from data field
+    const redirectUrl = (data.data as any)?.redirect;
+    if (redirectUrl) {
       setTimeout(() => {
-        window.location.href = data.redirect;
+        window.location.href = redirectUrl;
       }, 1500);
     }
 
     // Reset form if no redirect
-    if (!data.redirect) {
+    if (!redirectUrl) {
       form.reset();
     }
   }
 
-  private static handleError(data: any, form: HTMLFormElement): void {
+  private static handleError(
+    data: Partial<ServerResponse>,
+    form: HTMLFormElement,
+  ): void {
     Logger.error("Form submission failed:", data);
 
     // Show error message

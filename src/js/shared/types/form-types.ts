@@ -152,9 +152,8 @@ export interface FormSettings {
  * Server response interface with generic type
  */
 export interface ServerResponse<T = unknown> {
+  readonly success: boolean;
   readonly message?: string;
-  readonly redirect?: string;
-  readonly success?: boolean;
   readonly data?: T;
   readonly errors?: Readonly<Record<string, readonly string[]>>;
 }

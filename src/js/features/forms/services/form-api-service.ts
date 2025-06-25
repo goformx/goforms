@@ -28,19 +28,6 @@ export class FormApiService {
     Logger.debug("FormApiService base URL updated to:", this.baseUrl);
   }
 
-  /**
-   * Get CSRF token from meta tag
-   */
-  private getCSRFToken(): string {
-    const meta = document.querySelector<HTMLMetaElement>(
-      "meta[name='csrf-token']",
-    );
-    if (!meta?.content) {
-      throw new Error("CSRF token not found");
-    }
-    return meta.content;
-  }
-
   async getSchema(formId: string): Promise<FormSchema> {
     const url = `${this.baseUrl}/api/v1/forms/${formId}/schema`;
     Logger.debug("Fetching schema from:", url);
@@ -183,32 +170,22 @@ export class FormApiService {
       // Sanitize the form data before sending
       const sanitizedData = this.sanitizeFormData(data);
 
-      // For submitForm, we need to return a Response object for compatibility
-      // So we'll use fetch directly instead of HttpClient
-      const response = await fetch(
+      // Use HttpClient for consistency with standardized response format
+      const response = await HttpClient.post(
         `${this.baseUrl}/api/v1/forms/${formId}/submit`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            "X-Csrf-Token": this.getCSRFToken(),
-          },
-          body: JSON.stringify(sanitizedData),
-        },
+        sanitizedData as object,
       );
 
-      if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "Failed to submit form" }));
-        throw FormBuilderError.networkError(
-          error.message ?? "Failed to submit form",
-          `${this.baseUrl}/api/v1/forms/${formId}/submit`,
-          response.status,
-        );
-      }
+      // Convert HttpResponse back to Response for compatibility
+      // This is needed because the ResponseHandler expects a Response object
+      const responseData = response.data;
+      const responseText = JSON.stringify(responseData);
 
-      return response;
+      return new Response(responseText, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
     } catch (error) {
       if (error instanceof FormBuilderError) {
         throw error;
