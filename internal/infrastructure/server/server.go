@@ -133,7 +133,7 @@ func New(
 
 	// Register lifecycle hooks
 	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+		OnStart: func(_ context.Context) error {
 			return nil // Server will be started after middleware is registered
 		},
 		OnStop: func(ctx context.Context) error {

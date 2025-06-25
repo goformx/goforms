@@ -36,7 +36,8 @@ const (
 	DefaultLogLevel = "info"
 	// DevelopmentLogLevel is the default log level for development
 	DevelopmentLogLevel = "debug"
-	ProductionLogLevel  = "warn"
+	// ProductionLogLevel is the log level for production
+	ProductionLogLevel = "warn"
 )
 
 var (
@@ -337,7 +338,7 @@ var Module = fx.Options(
 	),
 
 	// Lifecycle management
-	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config) {
+	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, _ *config.Config) {
 		lc.Append(fx.Hook{
 			OnStart: func(ctx context.Context) error {
 				logger.Info("Infrastructure module initialized")

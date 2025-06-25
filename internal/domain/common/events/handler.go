@@ -17,6 +17,7 @@ const (
 	DefaultRetryCount = 3
 	// DefaultRetryDelay is the default delay between retry attempts for event handlers
 	DefaultRetryDelay = time.Second
+	// DefaultMaxBackoff is the maximum backoff duration for retries
 	DefaultMaxBackoff = 30 * time.Second
 	// DefaultRetryTimeout is the default timeout for retry operations
 	DefaultRetryTimeout = 30 * time.Second

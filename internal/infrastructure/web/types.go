@@ -69,8 +69,8 @@ type AssetManagerInterface interface {
 	ClearCache()
 }
 
-// WebModule encapsulates the asset manager and server to eliminate global state
-type WebModule struct {
+// Module encapsulates the asset manager and server to eliminate global state
+type Module struct {
 	AssetManager AssetManagerInterface
 	AssetServer  AssetServer
 }

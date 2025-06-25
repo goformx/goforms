@@ -121,8 +121,8 @@ func (m *AssetManager) ClearCache() {
 	m.pathCache = make(map[string]string)
 }
 
-// NewWebModule creates a new web module with proper dependency injection
-func NewWebModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*WebModule, error) {
+// NewModule creates a new web module with proper dependency injection
+func NewModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*Module, error) {
 	manager, err := NewAssetManager(cfg, logger, distFS)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create asset manager: %w", err)
@@ -136,7 +136,7 @@ func NewWebModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*
 		server = NewEmbeddedAssetServer(logger, distFS)
 	}
 
-	return &WebModule{
+	return &Module{
 		AssetManager: manager,
 		AssetServer:  server,
 	}, nil

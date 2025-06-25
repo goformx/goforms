@@ -29,7 +29,7 @@ func NewProductionAssetResolver(manifest Manifest, logger logging.Logger) *Produ
 }
 
 // ResolveAssetPath resolves asset paths for production using the manifest
-func (r *ProductionAssetResolver) ResolveAssetPath(ctx context.Context, path string) (string, error) {
+func (r *ProductionAssetResolver) ResolveAssetPath(_ context.Context, path string) (string, error) {
 	if path == "" {
 		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}
@@ -62,7 +62,7 @@ func NewDevelopmentAssetResolver(cfg *config.Config, logger logging.Logger) *Dev
 }
 
 // ResolveAssetPath resolves asset paths for development using the Vite dev server
-func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path string) (string, error) {
+func (r *DevelopmentAssetResolver) ResolveAssetPath(_ context.Context, path string) (string, error) {
 	if path == "" {
 		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}

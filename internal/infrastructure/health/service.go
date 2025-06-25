@@ -15,7 +15,8 @@ const (
 	StatusHealthy Status = "healthy"
 	// StatusUnhealthy represents an unhealthy component status
 	StatusUnhealthy Status = "unhealthy"
-	StatusDegraded  Status = "degraded"
+	// StatusDegraded represents a degraded component status
+	StatusDegraded Status = "degraded"
 )
 
 // ComponentStatus represents the status of a system component

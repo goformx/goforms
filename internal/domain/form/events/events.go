@@ -14,15 +14,23 @@ const (
 	// FormCreatedEventType represents a form created event
 	FormCreatedEventType EventType = "form.created"
 	// FormUpdatedEventType represents a form updated event
-	FormUpdatedEventType   EventType = "form.updated"
-	FormDeletedEventType   EventType = "form.deleted"
+	FormUpdatedEventType EventType = "form.updated"
+	// FormDeletedEventType represents a form deleted event
+	FormDeletedEventType EventType = "form.deleted"
+	// FormSubmittedEventType represents a form submitted event
 	FormSubmittedEventType EventType = "form.submitted"
+	// FormValidatedEventType represents a form validated event
 	FormValidatedEventType EventType = "form.validated"
+	// FormProcessedEventType represents a form processed event
 	FormProcessedEventType EventType = "form.processed"
-	FormErrorEventType     EventType = "form.error"
-	FormStateEventType     EventType = "form.state"
-	FieldEventType         EventType = "form.field"
-	AnalyticsEventType     EventType = "form.analytics"
+	// FormErrorEventType represents a form error event
+	FormErrorEventType EventType = "form.error"
+	// FormStateEventType represents a form state event
+	FormStateEventType EventType = "form.state"
+	// FieldEventType represents a field event
+	FieldEventType EventType = "form.field"
+	// AnalyticsEventType represents an analytics event
+	AnalyticsEventType EventType = "form.analytics"
 )
 
 // Event represents a form-related event
