@@ -12,6 +12,7 @@ import { HttpClient } from "@/core/http-client";
 import { FormBuilderError } from "@/core/errors/form-builder-error";
 import { Logger } from "@/core/logger";
 import type { FormSchema } from "@/shared/types/form-types";
+import { createComponentKey } from "@/shared/types/form-types";
 
 // Mock dependencies
 vi.mock("@/core/http-client");
@@ -97,7 +98,7 @@ describe("FormApiService", () => {
       components: [
         {
           type: "textfield",
-          key: "name",
+          key: createComponentKey("name"),
           label: "Name",
           input: true, // Add missing required property
         },
@@ -105,7 +106,13 @@ describe("FormApiService", () => {
     };
 
     it("should successfully fetch and return a valid schema", async () => {
-      mockHttpGet.mockResolvedValue(validSchema);
+      mockHttpGet.mockResolvedValue({
+        data: validSchema,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
+      });
 
       const result = await service.getSchema("test-form-id");
 
@@ -120,7 +127,13 @@ describe("FormApiService", () => {
     });
 
     it("should throw SchemaError when response is not an object", async () => {
-      mockHttpGet.mockResolvedValue("invalid response");
+      mockHttpGet.mockResolvedValue({
+        data: "invalid response",
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
+      });
 
       await expect(service.getSchema("test-form-id")).rejects.toThrow(
         FormBuilderError,
@@ -130,7 +143,13 @@ describe("FormApiService", () => {
     });
 
     it("should throw SchemaError when response is null", async () => {
-      mockHttpGet.mockResolvedValue(null);
+      mockHttpGet.mockResolvedValue({
+        data: null,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
+      });
 
       await expect(service.getSchema("test-form-id")).rejects.toThrow(
         FormBuilderError,
@@ -138,7 +157,13 @@ describe("FormApiService", () => {
     });
 
     it("should throw SchemaError when components property is missing", async () => {
-      mockHttpGet.mockResolvedValue({ display: "form" });
+      mockHttpGet.mockResolvedValue({
+        data: { display: "form" },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
+      });
 
       await expect(service.getSchema("test-form-id")).rejects.toThrow(
         FormBuilderError,
@@ -147,8 +172,14 @@ describe("FormApiService", () => {
 
     it("should throw SchemaError when components is not an array", async () => {
       mockHttpGet.mockResolvedValue({
-        display: "form",
-        components: "not an array",
+        data: {
+          display: "form",
+          components: "not an array",
+        },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
       });
 
       await expect(service.getSchema("test-form-id")).rejects.toThrow(
@@ -190,7 +221,7 @@ describe("FormApiService", () => {
       components: [
         {
           type: "textfield",
-          key: "name",
+          key: createComponentKey("name"),
           label: "Name",
           input: true, // Add missing required property
         },
@@ -198,10 +229,13 @@ describe("FormApiService", () => {
     };
 
     it("should successfully save schema and return response", async () => {
-      // Mock HttpClient.put to return a Response-like object
+      // Mock HttpClient.put to return HttpResponse object
       const mockResponse = {
-        ok: true,
-        json: vi.fn().mockResolvedValue(validSchema),
+        data: validSchema,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
       };
       mockHttpPut.mockResolvedValue(mockResponse);
 
@@ -216,9 +250,11 @@ describe("FormApiService", () => {
 
     it("should throw NetworkError when response is not ok", async () => {
       const mockResponse = {
-        ok: false,
+        data: null,
         status: 400,
         statusText: "Bad Request",
+        headers: new Headers(),
+        url: "",
       };
       mockHttpPut.mockResolvedValue(mockResponse);
 
@@ -229,8 +265,11 @@ describe("FormApiService", () => {
 
     it("should throw SchemaError for invalid response data", async () => {
       const mockResponse = {
-        ok: true,
-        json: vi.fn().mockResolvedValue("invalid"),
+        data: "invalid",
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
       };
       mockHttpPut.mockResolvedValue(mockResponse);
 
@@ -241,8 +280,11 @@ describe("FormApiService", () => {
 
     it("should throw SchemaError when response lacks components array", async () => {
       const mockResponse = {
-        ok: true,
-        json: vi.fn().mockResolvedValue({ display: "form" }),
+        data: { display: "form" },
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
       };
       mockHttpPut.mockResolvedValue(mockResponse);
 
@@ -256,7 +298,13 @@ describe("FormApiService", () => {
     const formDetails = { title: "New Title", description: "New Description" };
 
     it("should successfully update form details", async () => {
-      const mockResponse = { ok: true };
+      const mockResponse = {
+        data: null,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
+      };
       mockHttpPut.mockResolvedValue(mockResponse);
 
       await service.updateFormDetails("test-form-id", formDetails);
@@ -268,13 +316,12 @@ describe("FormApiService", () => {
     });
 
     it("should throw NetworkError when response is not ok", async () => {
-      const mockResponse = {
-        ok: false,
-        status: 400,
-        statusText: "Bad Request",
-        json: vi.fn().mockResolvedValue({ message: "Validation failed" }),
-      };
-      mockHttpPut.mockResolvedValue(mockResponse);
+      const networkError = FormBuilderError.networkError(
+        "HTTP 400: Bad Request",
+        `${window.location.origin}/dashboard/forms/test-form-id`,
+        400,
+      );
+      mockHttpPut.mockRejectedValue(networkError);
 
       await expect(
         service.updateFormDetails("test-form-id", formDetails),
@@ -282,13 +329,12 @@ describe("FormApiService", () => {
     });
 
     it("should use default error message when response json fails", async () => {
-      const mockResponse = {
-        ok: false,
-        status: 500,
-        statusText: "Internal Server Error",
-        json: vi.fn().mockRejectedValue(new Error("JSON parse failed")),
-      };
-      mockHttpPut.mockResolvedValue(mockResponse);
+      const networkError = FormBuilderError.networkError(
+        "HTTP 500: Internal Server Error",
+        `${window.location.origin}/dashboard/forms/test-form-id`,
+        500,
+      );
+      mockHttpPut.mockRejectedValue(networkError);
 
       await expect(
         service.updateFormDetails("test-form-id", formDetails),
@@ -298,7 +344,13 @@ describe("FormApiService", () => {
 
   describe("deleteForm", () => {
     it("should successfully delete form", async () => {
-      const mockResponse = { ok: true };
+      const mockResponse = {
+        data: null,
+        status: 200,
+        statusText: "OK",
+        headers: new Headers(),
+        url: "",
+      };
       mockHttpDelete.mockResolvedValue(mockResponse);
 
       await service.deleteForm("test-form-id");
@@ -309,12 +361,12 @@ describe("FormApiService", () => {
     });
 
     it("should throw NetworkError when deletion fails", async () => {
-      const mockResponse = {
-        ok: false,
-        status: 404,
-        statusText: "Not Found",
-      };
-      mockHttpDelete.mockResolvedValue(mockResponse);
+      const networkError = FormBuilderError.networkError(
+        "HTTP 404: Not Found",
+        `${window.location.origin}/forms/test-form-id`,
+        404,
+      );
+      mockHttpDelete.mockRejectedValue(networkError);
 
       await expect(service.deleteForm("test-form-id")).rejects.toThrow(
         FormBuilderError,
@@ -327,15 +379,37 @@ describe("FormApiService", () => {
     formData.append("name", "John Doe");
     formData.append("email", "john@example.com");
 
+    beforeEach(() => {
+      // Mock CSRF token in DOM
+      const meta = document.createElement("meta");
+      meta.name = "csrf-token";
+      meta.content = "test-csrf-token";
+      document.head.appendChild(meta);
+    });
+
+    afterEach(() => {
+      // Clean up CSRF token
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta) {
+        meta.remove();
+      }
+    });
+
     it("should successfully submit form with sanitized data", async () => {
       const mockResponse = { ok: true };
-      mockHttpPost.mockResolvedValue(mockResponse);
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const result = await service.submitForm("test-form-id", formData);
 
-      expect(mockHttpPost).toHaveBeenCalledWith(
+      expect(global.fetch).toHaveBeenCalledWith(
         `${window.location.origin}/api/v1/forms/test-form-id/submit`,
-        expect.any(String), // JSON stringified sanitized data
+        expect.objectContaining({
+          method: "POST",
+          headers: expect.objectContaining({
+            "Content-Type": "application/json",
+            "X-Csrf-Token": "test-csrf-token",
+          }),
+        }),
       );
       expect(result).toBe(mockResponse);
     });
@@ -347,7 +421,7 @@ describe("FormApiService", () => {
         statusText: "Bad Request",
         json: vi.fn().mockResolvedValue({ message: "Invalid data" }),
       };
-      mockHttpPost.mockResolvedValue(mockResponse);
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       await expect(
         service.submitForm("test-form-id", formData),
@@ -361,7 +435,7 @@ describe("FormApiService", () => {
         statusText: "Internal Server Error",
         json: vi.fn().mockRejectedValue(new Error("JSON parse failed")),
       };
-      mockHttpPost.mockResolvedValue(mockResponse);
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       await expect(
         service.submitForm("test-form-id", formData),
@@ -371,37 +445,55 @@ describe("FormApiService", () => {
 
   describe("sanitizeFormData", () => {
     // Test the private method indirectly through submitForm
+    beforeEach(() => {
+      // Mock CSRF token in DOM
+      const meta = document.createElement("meta");
+      meta.name = "csrf-token";
+      meta.content = "test-csrf-token";
+      document.head.appendChild(meta);
+    });
+
+    afterEach(() => {
+      // Clean up CSRF token
+      const meta = document.querySelector('meta[name="csrf-token"]');
+      if (meta) {
+        meta.remove();
+      }
+    });
+
     it("should sanitize string values", async () => {
       const mockResponse = { ok: true };
-      mockHttpPost.mockResolvedValue(mockResponse);
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const formData = new FormData();
       formData.append("malicious", '<script>alert("xss")</script>');
 
       await service.submitForm("test-form-id", formData);
 
-      // Verify that HttpClient.post was called with stringified data
-      expect(mockHttpPost).toHaveBeenCalledWith(
+      // Verify that fetch was called with stringified data
+      expect(global.fetch).toHaveBeenCalledWith(
         expect.any(String),
-        expect.any(String),
+        expect.objectContaining({
+          body: expect.any(String),
+        }),
       );
     });
 
     it("should handle null and undefined values", async () => {
       const mockResponse = { ok: true };
-      mockHttpPost.mockResolvedValue(mockResponse);
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const formData = new FormData();
       // FormData doesn't directly support null/undefined, but the sanitizer should handle them
 
       await service.submitForm("test-form-id", formData);
 
-      expect(mockHttpPost).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
     });
 
     it("should preserve numbers and booleans", async () => {
       const mockResponse = { ok: true };
-      mockHttpPost.mockResolvedValue(mockResponse);
+      global.fetch = vi.fn().mockResolvedValue(mockResponse);
 
       const formData = new FormData();
       formData.append("age", "25");
@@ -409,7 +501,7 @@ describe("FormApiService", () => {
 
       await service.submitForm("test-form-id", formData);
 
-      expect(mockHttpPost).toHaveBeenCalled();
+      expect(global.fetch).toHaveBeenCalled();
     });
   });
 

@@ -65,6 +65,8 @@ describe("HttpClient", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
         text: () => Promise.resolve('{"data": "test"}'),
         json: () => Promise.resolve({ data: "test" }),
@@ -80,13 +82,16 @@ describe("HttpClient", () => {
           method: "GET",
         }),
       );
-      expect(result).toEqual({ data: "test" });
+      expect(result.data).toEqual({ data: "test" });
+      expect(result.status).toBe(200);
     });
 
     it("should make POST requests correctly", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
         text: () => Promise.resolve('{"success": true}'),
         json: () => Promise.resolve({ success: true }),
@@ -106,13 +111,16 @@ describe("HttpClient", () => {
           body: JSON.stringify({ name: "test", email: "test@example.com" }),
         }),
       );
-      expect(result).toEqual({ success: true });
+      expect(result.data).toEqual({ success: true });
+      expect(result.status).toBe(200);
     });
 
     it("should make PUT requests correctly", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
         text: () => Promise.resolve('{"updated": true}'),
         json: () => Promise.resolve({ updated: true }),
@@ -132,13 +140,16 @@ describe("HttpClient", () => {
           body: JSON.stringify({ id: 1, name: "updated" }),
         }),
       );
-      expect(result).toEqual({ updated: true });
+      expect(result.data).toEqual({ updated: true });
+      expect(result.status).toBe(200);
     });
 
     it("should make DELETE requests correctly", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
         text: () => Promise.resolve(""),
         json: () => Promise.resolve(null),
@@ -154,7 +165,8 @@ describe("HttpClient", () => {
           method: "DELETE",
         }),
       );
-      expect(result).toBeNull();
+      expect(result.data).toBeNull();
+      expect(result.status).toBe(200);
     });
   });
 
@@ -189,6 +201,8 @@ describe("HttpClient", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
         text: () => Promise.resolve("invalid json"),
       });
@@ -196,7 +210,8 @@ describe("HttpClient", () => {
       global.fetch = mockFetch;
 
       const result = await HttpClient.get("http://api.example.com/test");
-      expect(result).toBe("invalid json");
+      expect(result.data).toBe("invalid json");
+      expect(result.status).toBe(200);
     });
   });
 
