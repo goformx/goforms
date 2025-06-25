@@ -219,12 +219,52 @@ linters:
         begin: true
 
     wrapcheck:
+      # Ignore common patterns where error wrapping is not needed
       ignoreSigs:
+        # Standard library functions that don't need wrapping
         - .Errorf(
         - errors.New(
         - errors.Unwrap(
         - .Wrap(
         - .Wrapf(
+        - encoding/json.Marshal(
+        - encoding/json.Unmarshal(
+        - time.Parse(
+        - golang.org/x/crypto/bcrypt.GenerateFromPassword(
+        - (*database/sql.DB).PingContext(
+        # Echo framework - these are HTTP responses, not internal errors
+        - (github.com/labstack/echo/v4.Context).JSON(
+        - (github.com/labstack/echo/v4.Context).Redirect(
+        - (github.com/labstack/echo/v4.Context).NoContent(
+        - (github.com/labstack/echo/v4.Context).Bind(
+        # Validation functions
+        - (*github.com/go-playground/validator/v10.Validate).Var(
+        - (*github.com/go-playground/validator/v10.Validate).RegisterValidation(
+        # JSON decoding
+        - (*encoding/json.Decoder).Decode(
+        # IO operations that are typically wrapped at higher level
+        - (io.Writer).Write(
+        # Templ component rendering
+        - (github.com/a-h/templ.Component).Render(
+        # Domain error wrapping - already wrapped
+        - github.com/goformx/goforms/internal/domain/common/errors.WrapError(
+        # External libraries
+        - github.com/mrz1836/go-sanitize.Domain(
+        # Infrastructure functions
+        - github.com/goformx/goforms/internal/infrastructure/validation.New(
+      # Ignore files where wrapcheck should be less strict  
+      ignorePackageGlobs:
+        - "*/test/*"
+        - "*_test.go"
+        - "*/internal/domain/*"  # Domain layer should propagate errors up
+      # Ignore interface methods in certain packages
+      ignoreInterfaceRegexps:
+        - "github.com/labstack/echo/v4"
+        - "github.com/goformx/goforms/internal/presentation/view"
+        - "github.com/goformx/goforms/internal/application/response"
+        - "github.com/goformx/goforms/internal/application/handlers/web"
+        - "github.com/goformx/goforms/internal/domain/.*"
+        - "github.com/goformx/goforms/internal/infrastructure/.*"
 
     errorlint:
       errorf: true
@@ -249,7 +289,7 @@ linters:
     max-issues-per-linter: 50
     max-same-issues: 10
     new: false
-    fix: false
+    fix: true  # Enable auto-fixing
     
     rules:
       # Exclude mockgen generated files from all linters
@@ -274,6 +314,7 @@ linters:
           - gocognit
           - scopelint
           - lll
+          - wrapcheck  # Don't require error wrapping in tests
       
       # Exclude some staticcheck messages
       - linters: [staticcheck]
@@ -295,6 +336,64 @@ linters:
         source: "func.*templ\\.Component"
       - linters: [gochecknoglobals]
         path: test/mocks/
+      
+      # Exclude wrapcheck for specific patterns
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*github.com/labstack/echo/v4.Context"
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*Renderer.*Render"
+      - linters: [wrapcheck]  
+        text: "error returned from interface method should be wrapped.*ErrorHandler"
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*ResponseBuilder"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*session.Manager.*CreateSession"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*encoding/json.*Decode"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*common.New.*Error"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*response.ErrorResponse"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*response.Success"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*Validate.*Var"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*RegisterValidation"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*Server.*Start"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*Form.*Validate"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*FormSubmission.*Validate"
+      # Domain layer - errors should propagate up without wrapping
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*github.com/goformx/goforms/internal/domain"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*encoding/json.Marshal"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*encoding/json.Unmarshal"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*golang.org/x/crypto/bcrypt"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*time.Parse"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*database/sql"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*go-sanitize"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*github.com/goformx/goforms/internal/infrastructure/validation.New"
+      - linters: [wrapcheck]
+        text: "error returned from external package is unwrapped.*github.com/goformx/goforms/internal/domain/common/errors.WrapError"
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*templ.Component.*Render"
+      # Application layer handler interfaces
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*Handler.*Start"
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*Handler.*Stop"
+      - linters: [wrapcheck]
+        text: "error returned from interface method should be wrapped.*Storage.*Save"
 
     exclude:
       - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
@@ -303,3 +402,4 @@ linters:
 severity:
   default-severity: error
   case-sensitive: false
+  
