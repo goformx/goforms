@@ -38,6 +38,7 @@ const DefaultShutdownTimeout = 30 * time.Second
 
 // appParams defines the dependency injection parameters for the application.
 // It uses fx.In to automatically inject dependencies provided by the fx container.
+// Note: This struct should be used by value, not as a pointer, when fx.In is embedded.
 type appParams struct {
 	fx.In
 	Lifecycle         fx.Lifecycle           // Manages application lifecycle hooks
@@ -72,6 +73,7 @@ func setupHandlers(
 
 // setupApplication initializes the application by setting up middleware
 // and registering all web handlers.
+// Note: params is passed by value, not as a pointer
 func setupApplication(params appParams) error {
 	params.MiddlewareManager.Setup(params.Echo)
 	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
@@ -79,6 +81,7 @@ func setupApplication(params appParams) error {
 
 // setupLifecycle configures the application lifecycle hooks for startup and shutdown.
 // It logs application information and manages server startup in a goroutine.
+// Note: params is passed by value, not as a pointer
 func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {

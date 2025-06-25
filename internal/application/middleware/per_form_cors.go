@@ -154,13 +154,15 @@ func applyGlobalCORS(
 	globalCORS *appconfig.SecurityConfig,
 	next echo.HandlerFunc,
 ) error {
-	// Add debug logging
+	// Add debug logging using the proper logger
+	// Note: We can't access the logger from config here, so we'll skip this debug log
+	// or use Echo's logger with proper formatting
 	if c.Logger() != nil {
-		c.Logger().Debug("PerFormCORS: applying global CORS",
-			"path", c.Request().URL.Path,
-			"method", c.Request().Method,
-			"origin", c.Request().Header.Get("Origin"),
-			"allowed_origins", globalCORS.CORS.AllowedOrigins)
+		c.Logger().Debugf("PerFormCORS: applying global CORS path=%s method=%s origin=%s allowed_origins=%v",
+			c.Request().URL.Path,
+			c.Request().Method,
+			c.Request().Header.Get("Origin"),
+			globalCORS.CORS.AllowedOrigins)
 	}
 
 	// Handle preflight requests
