@@ -9,7 +9,7 @@ services:
     restart: unless-stopped
     ports:
       - "8090:8090"
-      - "3000:3000" # Vite dev server
+      - "5173:5173" # Vite dev server
     environment:
       # Application Configuration
       - GOFORMS_APP_NAME=GoFormX
@@ -37,7 +37,7 @@ services:
       - GOFORMS_SECURE_COOKIES=false
 
       # CORS Configuration (Development)
-      - GOFORMS_CORS_ALLOWED_ORIGINS=http://localhost:3000,http://localhost:8090
+      - GOFORMS_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8090
       - GOFORMS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
       - GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With
       - GOFORMS_CORS_ALLOW_CREDENTIALS=true
@@ -45,7 +45,7 @@ services:
 
       # Development Settings
       - GOFORMS_VITE_DEV_HOST=localhost
-      - GOFORMS_VITE_DEV_PORT=3000
+      - GOFORMS_VITE_DEV_PORT=5173
 
       # Timeouts
       - GOFORMS_READ_TIMEOUT=30s

@@ -21,7 +21,7 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		App: config.AppConfig{
 			Scheme:      "http",
 			ViteDevHost: "localhost",
-			ViteDevPort: "3000",
+			ViteDevPort: "5173",
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
@@ -40,27 +40,27 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		{
 			name:     "src file",
 			path:     "src/js/pages/main.ts",
-			expected: "http://localhost:3000/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/pages/main.ts",
 		},
 		{
 			name:     "css file",
 			path:     "main.css",
-			expected: "http://localhost:3000/src/css/main.css",
+			expected: "http://localhost:5173/src/css/main.css",
 		},
 		{
 			name:     "js file",
 			path:     "main.js",
-			expected: "http://localhost:3000/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/pages/main.ts",
 		},
 		{
 			name:     "ts file",
 			path:     "main.ts",
-			expected: "http://localhost:3000/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/pages/main.ts",
 		},
 		{
 			name:     "other file",
 			path:     "image.png",
-			expected: "http://localhost:3000/image.png",
+			expected: "http://localhost:5173/image.png",
 		},
 	}
 
@@ -139,7 +139,7 @@ func TestAssetManager(t *testing.T) {
 			Env:         "development",
 			Scheme:      "http",
 			ViteDevHost: "localhost",
-			ViteDevPort: "3000",
+			ViteDevPort: "5173",
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
@@ -161,7 +161,7 @@ func TestAssetManager(t *testing.T) {
 	assert.NotNil(t, manager)
 
 	path := manager.AssetPath("main.js")
-	assert.Equal(t, "http://localhost:3000/src/js/pages/main.ts", path)
+	assert.Equal(t, "http://localhost:5173/src/js/pages/main.ts", path)
 
 	path2 := manager.AssetPath("main.js")
 	assert.Equal(t, path, path2)

@@ -8,8 +8,8 @@ import { vi } from "vitest";
 // Mock DOM APIs that might not be available in jsdom
 Object.defineProperty(window, "location", {
   value: {
-    href: "http://localhost:3000",
-    origin: "http://localhost:3000",
+    href: "http://localhost:5173",
+    origin: "http://localhost:5173",
     pathname: "/",
     search: "",
     hash: "",

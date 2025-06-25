@@ -42,7 +42,7 @@ function templWatcherPlugin() {
 export default defineConfig(({ mode }) => {
   const isDev = mode === "development";
   
-  console.log(`[Vite] Mode: ${mode}, serving assets from 0.0.0.0:3000`);
+  console.log(`[Vite] Mode: ${mode}, serving assets from 0.0.0.0:5173`);
 
   return {
     root: ".",
@@ -66,7 +66,7 @@ export default defineConfig(({ mode }) => {
     },
     
     server: {
-      port: 3000,
+      port: 5173,
       host: "0.0.0.0",
       strictPort: true,
       cors: {
@@ -76,7 +76,7 @@ export default defineConfig(({ mode }) => {
         allowedHeaders: ["Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"],
       },
       hmr: {
-        port: 3000,
+        port: 5173,
       },
       fs: {
         strict: false,

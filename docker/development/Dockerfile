@@ -33,7 +33,7 @@ RUN npm run build
 RUN mkdir -p logs
 
 # Expose ports
-EXPOSE 8090 3000
+EXPOSE 8090 5173
 
 # Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \

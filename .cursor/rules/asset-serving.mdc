@@ -55,14 +55,14 @@ func ProvideAssetManager(resolver web.AssetResolver, logger logging.Logger) *web
 ## Development Mode (DevelopmentAssetResolver)
 
 ### Features
-- Resolves paths to Vite dev server at `localhost:3000`
+- Resolves paths to Vite dev server at `localhost:5173`
 - Supports hot module replacement
 - Handles source maps and development assets
 - Routes: `/src/*`, `/@vite/*`, `/@fs/*`, `/@id/*`
 
 ### Configuration
 - **Host**: `GOFORMS_VITE_DEV_HOST` (default: localhost)
-- **Port**: `GOFORMS_VITE_DEV_PORT` (default: 3000)
+- **Port**: `GOFORMS_VITE_DEV_PORT` (default: 5173)
 - **Scheme**: `GOFORMS_APP_SCHEME` (default: http)
 
 ### Example Usage
@@ -72,8 +72,8 @@ func ProvideAssetManager(resolver web.AssetResolver, logger logging.Logger) *web
 <link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css" />
 
 // Resolves to:
-// http://localhost:3000/src/js/main.ts
-// http://localhost:3000/src/css/main.css
+// http://localhost:5173/src/js/main.ts
+// http://localhost:5173/src/css/main.css
 ```
 
 ## Production Mode (ProductionAssetResolver)

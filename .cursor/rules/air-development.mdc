@@ -171,12 +171,12 @@ GOFORMS_APP_LOGLEVEL=debug
 
 # Vite development server
 GOFORMS_VITE_DEV_HOST=localhost
-GOFORMS_VITE_DEV_PORT=3000
+GOFORMS_VITE_DEV_PORT=5173
 ```
 
 ### Port Configuration
 - **Backend**: 8090 (configurable via `GOFORMS_APP_PORT`)
-- **Frontend**: 3000 (configurable via `GOFORMS_VITE_DEV_PORT`)
+- **Frontend**: 5173 (configurable via `GOFORMS_VITE_DEV_PORT`)
 - **Air**: Uses backend port for the running application
 
 ## Troubleshooting
