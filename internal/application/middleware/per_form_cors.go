@@ -154,15 +154,18 @@ func applyGlobalCORS(
 	globalCORS *appconfig.SecurityConfig,
 	next echo.HandlerFunc,
 ) error {
-	// Add debug logging using the proper logger
-	// Note: We can't access the logger from config here, so we'll skip this debug log
-	// or use Echo's logger with proper formatting
-	if c.Logger() != nil {
-		c.Logger().Debugf("PerFormCORS: applying global CORS path=%s method=%s origin=%s allowed_origins=%v",
-			c.Request().URL.Path,
-			c.Request().Method,
-			c.Request().Header.Get("Origin"),
-			globalCORS.CORS.AllowedOrigins)
+	// Skip debug logging for noise paths
+	if !isNoisePath(c.Request().URL.Path) {
+		// Add debug logging using the proper logger
+		// Note: We can't access the logger from config here, so we'll skip this debug log
+		// or use Echo's logger with proper formatting
+		if c.Logger() != nil {
+			c.Logger().Debugf("PerFormCORS: applying global CORS path=%s method=%s origin=%s allowed_origins=%v",
+				c.Request().URL.Path,
+				c.Request().Method,
+				c.Request().Header.Get("Origin"),
+				globalCORS.CORS.AllowedOrigins)
+		}
 	}
 
 	// Handle preflight requests
@@ -186,6 +189,16 @@ func applyGlobalCORS(
 		globalCORS.CORS.AllowCredentials,
 		next,
 	)
+}
+
+// isNoisePath checks if the path should be suppressed from logging
+func isNoisePath(path string) bool {
+	return strings.HasPrefix(path, "/.well-known") ||
+		path == "/favicon.ico" ||
+		strings.HasPrefix(path, "/robots.txt") ||
+		strings.Contains(path, "com.chrome.devtools") ||
+		strings.Contains(path, "devtools") ||
+		strings.Contains(path, "chrome-devtools")
 }
 
 // handlePreflight handles OPTIONS preflight requests
