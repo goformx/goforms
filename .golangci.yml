@@ -182,6 +182,11 @@ linters:
           - wrapcheck
           - gocritic
           - nolintlint
+      
+      # Exclude hugeParam for FX dependency injection (structs are auto-injected)
+      - linters:
+          - gocritic
+        text: "hugeParam"
 
 formatters:
   exclusions:
