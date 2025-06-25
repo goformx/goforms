@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/version"
@@ -103,7 +102,6 @@ func New(
 	logger logging.Logger,
 	cfg *config.Config,
 	e *echo.Echo,
-	middlewareManager *middleware.Manager,
 	assetServer web.AssetServer,
 ) *Server {
 	srv := &Server{

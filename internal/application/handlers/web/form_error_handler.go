@@ -2,6 +2,7 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -78,7 +79,11 @@ func (h *FormErrorHandlerImpl) HandleOwnershipError(c echo.Context, err error) e
 
 // HandleFormNotFoundError handles form not found errors
 func (h *FormErrorHandlerImpl) HandleFormNotFoundError(c echo.Context, formID string) error {
-	return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Form not found")
+	message := "Form not found"
+	if formID != "" {
+		message = fmt.Sprintf("Form not found: %s", formID)
+	}
+	return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, message)
 }
 
 // HandleFormAccessError handles form access errors

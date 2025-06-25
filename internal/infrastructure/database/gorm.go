@@ -170,6 +170,10 @@ func (w *GormLogWriter) Write(p []byte) (n int, err error) {
 
 // Printf implements logger.Writer interface
 func (w *GormLogWriter) Printf(format string, args ...any) {
+	// Use format properly as required by GORM logger interface
+	message := fmt.Sprintf(format, args...)
+	w.logger.Debug("GORM", "sql", message)
+
 	if len(args) < durationArgPos+1 {
 		return
 	}
