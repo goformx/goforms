@@ -46,7 +46,7 @@ tasks:
     - task: install
     - task: generate
     - task: build
-    - task: migrate:pg:up
+    - task: migrate:up
     - task: run
 
   ci:
@@ -98,14 +98,7 @@ tasks:
   generate:mocks:
     desc: Generate all mock implementations
     cmds:
-    - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
-    - mockgen -typed -source=internal/domain/form/service.go -destination=test/mocks/form/mock_service.go -package=form -mock_names=Service=MockService
-    - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
-    - mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
-    - mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
-    - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
-    - mockgen -typed -source=internal/infrastructure/sanitization/interface.go -destination=test/mocks/sanitization/mock_service.go -package=sanitization -mock_names=ServiceInterface=MockService
-    - mockgen -typed -source=internal/infrastructure/web/types.go -destination=test/mocks/web/mock_web.go -package=web
+    - go generate ./...
 
   build:
     desc: Build the entire application
