@@ -226,9 +226,7 @@ const (
    if err != nil {
        logger.Error("failed to process request", 
            logging.ErrorField("error", err))
-       return c.JSON(http.StatusInternalServerError, map[string]string{
-           "error": "Failed to process request",
-       })
+       return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to process request")
    }
    ```
 

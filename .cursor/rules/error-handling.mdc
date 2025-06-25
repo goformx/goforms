@@ -94,13 +94,16 @@ func (h *FormHandler) handleFormCreate(c echo.Context) error {
         // Check for specific validation errors
         switch {
         case errors.Is(err, model.ErrFormTitleRequired):
-            return response.WebErrorResponse(c, h.Renderer, http.StatusBadRequest, "Form title is required")
+            return response.ErrorResponse(c, http.StatusBadRequest, "Form title is required")
         default:
-            return response.WebErrorResponse(c, h.Renderer, http.StatusInternalServerError, "Failed to create form")
+            return response.ErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
         }
     }
     
-    return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
+    return response.Success(c, map[string]string{
+        "form_id": form.ID,
+        "redirect": fmt.Sprintf("/forms/%s/edit", form.ID),
+    })
 }
 ```
 
@@ -140,38 +143,41 @@ func (f *Form) Validate() error {
 
 ## Error Response Format
 
-### API Error Response
-```go
-type ErrorResponse struct {
-    Code    string            `json:"code"`
-    Message string            `json:"message"`
-    Details map[string]string `json:"details,omitempty"`
-}
+### Standardized API Error Response
+All API errors now use the standardized response format:
 
-func (h *Handler) handleError(w http.ResponseWriter, err error) {
+```json
+{
+  "success": false,
+  "message": "Error message here",
+  "data": {
+    "errors": {
+      "field_name": ["Field-specific error message"]
+    }
+  }
+}
+```
+
+### Handler Error Response Implementation
+```go
+func (h *Handler) handleError(c echo.Context, err error) error {
     var domainErr *errors.DomainError
     if errors.As(err, &domainErr) {
-        response := ErrorResponse{
-            Code:    string(domainErr.Code),
-            Message: domainErr.Message,
-            Details: make(map[string]string),
+        // Create field-specific errors if available
+        if len(domainErr.Context) > 0 {
+            fieldErrors := make(map[string][]string)
+            for k, v := range domainErr.Context {
+                fieldErrors[k] = []string{fmt.Sprint(v)}
+            }
+            
+            return response.ErrorResponse(c, getStatusCode(domainErr.Code), domainErr.Message)
         }
         
-        for k, v := range domainErr.Context {
-            response.Details[k] = fmt.Sprint(v)
-        }
-        
-        w.WriteHeader(getStatusCode(domainErr.Code))
-        json.NewEncoder(w).Encode(response)
-        return
+        return response.ErrorResponse(c, getStatusCode(domainErr.Code), domainErr.Message)
     }
     
     // Handle unknown errors
-    w.WriteHeader(http.StatusInternalServerError)
-    json.NewEncoder(w).Encode(ErrorResponse{
-        Code:    string(errors.ErrCodeServerError),
-        Message: "Internal server error",
-    })
+    return response.ErrorResponse(c, http.StatusInternalServerError, "Internal server error")
 }
 ```
 
@@ -181,16 +187,13 @@ func (h *Handler) handleError(w http.ResponseWriter, err error) {
 ```go
 // Check for specific error types
 if errors.Is(err, user.ErrUserExists) {
-    return c.JSON(http.StatusBadRequest, map[string]string{
-        "message": "This email is already registered",
-        "field":   "email",
-    })
+    return response.ErrorResponse(c, http.StatusBadRequest, "This email is already registered")
 }
 
 // Check for domain errors
 var domainErr *errors.DomainError
 if errors.As(err, &domainErr) {
-    return c.JSON(getStatusCode(domainErr.Code), domainErr)
+    return response.ErrorResponse(c, getStatusCode(domainErr.Code), domainErr.Message)
 }
 ```
 

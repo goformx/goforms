@@ -6,124 +6,187 @@ alwaysApply: false
 # Response Handling Patterns
 
 ## Overview
-The application uses a simple response package (`internal/application/response`) for consistent HTTP responses. It provides standardized patterns for both API and web responses.
+The application uses a standardized response package (`internal/application/response`) for consistent HTTP responses across all endpoints. All API responses now follow a uniform structure with `success`, `message`, and `data` fields.
 
-## Core Components
+## Standard Response Format
 
-1. API Responses
-   - Standardized JSON structure
-   - Success/error handling
-   - Example:
-   ```go
-   type APIResponse struct {
-       Success bool   `json:"success"`
-       Message string `json:"message,omitempty"`
-       Data    any    `json:"data,omitempty"`
-   }
-   ```
+### API Response Structure
+All API responses use this standardized format:
 
-2. Web Responses
-   - HTML template rendering
-   - Error page handling
-   - Example:
-   ```go
-   func WebErrorResponse(c echo.Context, renderer view.Renderer, statusCode int, message string) error {
-       data := shared.BuildPageData(nil, c, "Error")
-       data.Message = &shared.Message{
-           Type: "error",
-           Text: message,
-       }
-       return renderer.Render(c, pages.Error(data))
-   }
-   ```
+```json
+{
+  "success": true|false,
+  "message": "Optional message",
+  "data": { ... } // Optional payload
+}
+```
+
+### Core Response Functions
+```go
+// Success response with data
+func Success(c echo.Context, data any) error {
+    return c.JSON(http.StatusOK, APIResponse{
+        Success: true,
+        Data:    data,
+    })
+}
+
+// Error response with status code and message
+func ErrorResponse(c echo.Context, statusCode int, message string) error {
+    return c.JSON(statusCode, APIResponse{
+        Success: false,
+        Message: message,
+    })
+}
+```
+
+## Implementation Status
+
+### ✅ Completed Standardization
+- **All Backend Handlers**: Updated to use `response.Success()` and `response.ErrorResponse()`
+- **All API Endpoints**: Return standardized format
+- **Frontend HTTP Client**: Updated to handle standardized responses
+- **ResponseHandler**: Updated to process standardized format
+- **All Tests**: Updated to expect standardized format
+
+### Standardized Endpoints
+- Authentication (signup, login)
+- Form operations (create, update, delete)
+- Health checks
+- Validation endpoints
+- Error handling middleware
 
 ## Common Patterns
 
-1. API Success Response
-   ```go
-   func Success(c echo.Context, data any) error {
-       return c.JSON(http.StatusOK, APIResponse{
-           Success: true,
-           Data:    data,
-       })
-   }
-   ```
+### 1. API Success Response
+```go
+func (h *Handler) GetForm(c echo.Context) error {
+    form, err := h.formService.GetForm(c.Param("id"))
+    if err != nil {
+        return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
+    }
+    return response.Success(c, form)
+}
+```
 
-2. API Error Response
-   ```go
-   func ErrorResponse(c echo.Context, statusCode int, message string) error {
-       return c.JSON(statusCode, APIResponse{
-           Success: false,
-           Message: message,
-       })
-   }
-   ```
+### 2. API Error Response
+```go
+func (h *Handler) CreateForm(c echo.Context) error {
+    if err := form.Validate(); err != nil {
+        return response.ErrorResponse(c, http.StatusBadRequest, "Invalid form data")
+    }
+    // ... rest of handler
+}
+```
 
-3. Web Error Response
-   ```go
-   func Error(c echo.Context, message string) error {
-       data := shared.BuildPageData(nil, c, "Error")
-       data.Message = &shared.Message{
-           Type: "error",
-           Text: message,
-       }
-       return pages.Error(data).Render(c.Request().Context(), c.Response().Writer)
-   }
-   ```
+### 3. Authentication Response
+```go
+func (h *AuthHandler) SignupPost(c echo.Context) error {
+    // ... validation and signup logic
+    if err != nil {
+        return response.ErrorResponse(c, http.StatusBadRequest, "Unable to create account")
+    }
+    
+    return response.Success(c, map[string]string{
+        "message":  "Account created successfully",
+        "redirect": "/dashboard",
+    })
+}
+```
+
+### 4. Health Check Response
+```go
+func (h *Handler) handleHealthCheck(c echo.Context) error {
+    status, err := h.service.CheckHealth(c.Request().Context())
+    if err != nil {
+        return response.ErrorResponse(c, http.StatusServiceUnavailable, "Health check failed")
+    }
+    return response.Success(c, status)
+}
+```
+
+## Frontend Integration
+
+### HTTP Client Handling
+The frontend HTTP Client automatically handles the standardized format:
+
+```typescript
+// Success response handling
+if (response.success === true) {
+    return response.data; // Payload is in data field
+}
+
+// Error response handling
+if (response.success === false) {
+    throw new Error(response.message);
+}
+```
+
+### ResponseHandler Integration
+```typescript
+// Frontend ResponseHandler processes standardized format
+if (data.success === true) {
+    this.handleSuccess(data, form);
+} else if (data.success === false) {
+    this.handleError(data, form);
+}
+```
 
 ## Best Practices
 
-1. Error Handling
-   - Use appropriate status codes
-   - Provide clear error messages
-   - Log errors with context
-   - Example:
-   ```go
-   if err != nil {
-       h.Logger.Error("failed to get form", "error", err)
-       return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
-   }
-   ```
+### 1. Consistent Error Handling
+- Always use `response.ErrorResponse()` for API errors
+- Use appropriate HTTP status codes
+- Provide clear, user-friendly error messages
+- Log errors with context
 
-2. Response Types
-   - Use `Success` for API success responses
-   - Use `ErrorResponse` for API error responses
-   - Use `WebErrorResponse` for web error pages
-   - Use `NotFound` for 404 errors
-   - Use `ServerError` for 500 errors
+### 2. Success Responses
+- Use `response.Success()` for all successful API responses
+- Place payload data in the `data` field
+- Include redirect URLs in `data.redirect` for authentication flows
 
-3. Logging
-   - Log errors with context
-   - Include relevant fields
-   - Use appropriate log levels
-   - Example:
-   ```go
-   h.Logger.Error("failed to get form",
-       "form_id", formID,
-       "error", err,
-   )
-   ```
+### 3. Logging
+- Log errors with context
+- Include relevant fields
+- Use appropriate log levels
 
-## Handler Examples
+### 4. Frontend Integration
+- All frontend services use the standardized format
+- Error handling is consistent across all features
+- Legacy response format fallback is maintained for backward compatibility
 
-1. API Handler
-   ```go
-   func (h *Handler) GetForm(c echo.Context) error {
-       form, err := h.formService.GetForm(c.Param("id"))
-       if err != nil {
-           return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
-       }
-       return response.Success(c, form)
-   }
-   ```
+## Migration Notes
 
-2. Web Handler
-   ```go
-   func (h *Handler) EditForm(c echo.Context) error {
-       form, err := h.formService.GetForm(c.Param("id"))
-       if err != nil {
-           return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
-       }
-       return h.Renderer.Render(c, pages.EditForm(data, form))
-   }
-   ```
+### Deprecated Patterns (Removed)
+- ❌ Custom response structs that don't follow the standard
+- ❌ Direct `c.JSON()` calls without standardized format
+- ❌ Inconsistent error response structures
+
+### Current Standard
+- ✅ All responses use `response.Success()` or `response.ErrorResponse()`
+- ✅ Consistent `{ success, message, data }` structure
+- ✅ Frontend handles standardized format correctly
+- ✅ All tests updated to expect standardized format
+
+## Testing
+
+### Backend Tests
+All backend tests now expect the standardized response format:
+
+```go
+func TestHandler_GetForm(t *testing.T) {
+    // ... test setup
+    assert.Equal(t, true, response.Success)
+    assert.NotNil(t, response.Data)
+}
+```
+
+### Frontend Tests
+All frontend tests updated to handle standardized responses:
+
+```typescript
+expect(response).toEqual({
+    success: true,
+    data: expectedData
+});
+```
