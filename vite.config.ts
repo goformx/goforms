@@ -56,19 +56,20 @@ function templWatcherPlugin() {
 }
 
 export default defineConfig(({ mode }) => {
-  // Load environment variables
+  // Load environment variables with safe defaults
   const env = loadEnv(mode, process.cwd(), "");
   
-  // Get Vite configuration from environment variables
+  // Get Vite configuration from environment variables with safe parsing
   const viteHost = env.GOFORMS_VITE_DEV_HOST || "localhost";
-  const vitePort = parseInt(env.GOFORMS_VITE_DEV_PORT || "3000", 10);
+  const vitePort = parseInt(env.GOFORMS_VITE_DEV_PORT || "3000", 10) || 3000;
   const appHost = env.GOFORMS_APP_HOST || "localhost";
-  const appPort = parseInt(env.GOFORMS_APP_PORT || "8090", 10);
+  const appPort = parseInt(env.GOFORMS_APP_PORT || "8090", 10) || 8090;
   const appScheme = env.GOFORMS_APP_SCHEME || "http";
   
   // Build the app URL for CORS and proxy configuration
   // Use GOFORMS_APP_URL if provided, otherwise construct from individual parts
-  const appUrl = env.GOFORMS_APP_URL || `${appScheme}://${appHost}:${appPort}`;
+  // For devcontainer environments, always use localhost for client connections
+  const appUrl = env.GOFORMS_APP_URL || `${appScheme}://localhost:${appPort}`;
   
   console.log(`[Vite] Configuration:`, {
     viteHost,
@@ -129,7 +130,7 @@ export default defineConfig(({ mode }) => {
         usePolling: true,
         interval: 1000,
         // Watch for templ-generated files
-        ignored: ["!**/*_templ.go"],
+        ignored: ["!**/*_templ.go", "coverage/**"],
       },
       origin: `http://${viteHost}:${vitePort}`, // Use environment-based Vite URL
     },
@@ -157,10 +158,12 @@ export default defineConfig(({ mode }) => {
           "main.css": resolve(__dirname, "src/css/main.css"),
           dashboard: resolve(__dirname, "src/js/pages/dashboard.ts"),
           "form-builder": resolve(__dirname, "src/js/pages/form-builder.ts"),
-          login: resolve(__dirname, "src/js/features/auth/login.ts"),
-          signup: resolve(__dirname, "src/js/features/auth/signup.ts"),
+          "new-form": resolve(__dirname, "src/js/pages/new-form.ts"),
+          "form-preview": resolve(__dirname, "src/js/pages/form-preview.ts"),
           "cta-form": resolve(__dirname, "src/js/pages/cta-form.ts"),
           demo: resolve(__dirname, "src/js/pages/demo.ts"),
+          login: resolve(__dirname, "src/js/pages/login.ts"),
+          signup: resolve(__dirname, "src/js/pages/signup.ts"),
         },
         output: {
           assetFileNames: (assetInfo) => {
