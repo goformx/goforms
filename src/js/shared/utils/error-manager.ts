@@ -88,7 +88,7 @@ export class ErrorManager {
   ): void {
     Object.entries(errors).forEach(([field, message]) => {
       const input = form.querySelector(`[name="${field}"]`) as HTMLInputElement;
-      if (input ?.input.id) {
+      if (input?.input.id) {
         this.showFieldError(input.id, message);
       }
     });
