@@ -25,7 +25,7 @@ func NewFieldValidator() *FieldValidator {
 }
 
 // ValidateField validates a single field against its rules
-func (v *FieldValidator) ValidateField(fieldName string, value any, rules FieldValidation) []ValidationError {
+func (v *FieldValidator) ValidateField(fieldName string, value any, rules *FieldValidation) []ValidationError {
 	var errors []ValidationError
 
 	// Required field validation
@@ -72,7 +72,7 @@ func (v *FieldValidator) ValidateField(fieldName string, value any, rules FieldV
 }
 
 // validateRequired validates if a required field has a value
-func (v *FieldValidator) validateRequired(fieldName string, value any, rules FieldValidation) []ValidationError {
+func (v *FieldValidator) validateRequired(fieldName string, value any, rules *FieldValidation) []ValidationError {
 	if rules.Required && (value == nil || value == "") {
 		return []ValidationError{{
 			Field:   fieldName,
@@ -83,7 +83,7 @@ func (v *FieldValidator) validateRequired(fieldName string, value any, rules Fie
 }
 
 // validateStringField validates string-specific rules
-func (v *FieldValidator) validateStringField(fieldName string, value any, rules FieldValidation) []ValidationError {
+func (v *FieldValidator) validateStringField(fieldName string, value any, rules *FieldValidation) []ValidationError {
 	var errors []ValidationError
 
 	if strValue, ok := value.(string); ok {
@@ -105,7 +105,7 @@ func (v *FieldValidator) validateStringField(fieldName string, value any, rules 
 }
 
 // validateNumericField validates numeric-specific rules
-func (v *FieldValidator) validateNumericField(fieldName string, value any, rules FieldValidation) []ValidationError {
+func (v *FieldValidator) validateNumericField(fieldName string, value any, rules *FieldValidation) []ValidationError {
 	var errors []ValidationError
 
 	if numValue, ok := v.toFloat64(value); ok {

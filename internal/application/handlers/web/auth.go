@@ -120,7 +120,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
-		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
+		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidRequest)
 	}
 
 	email = h.Sanitizer.Email(email)
@@ -134,7 +134,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
-		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
+		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidCredentials)
 	}
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
@@ -171,7 +171,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
-		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
+		return h.ResponseBuilder.HTMLFormError(c, "signup", &data, constants.ErrMsgInvalidRequest)
 	}
 
 	signup.Email = h.Sanitizer.Email(signup.Email)
@@ -190,7 +190,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		return h.ResponseBuilder.HTMLFormError(
 			c,
 			"signup",
-			data,
+			&data,
 			"Unable to create account. Please try again.",
 		)
 	}

@@ -15,7 +15,7 @@ func NewSchemaGenerator() *SchemaGenerator {
 }
 
 // getFieldSchema extracts validation schema from struct field tags
-func (sg *SchemaGenerator) getFieldSchema(field reflect.StructField) map[string]any {
+func (sg *SchemaGenerator) getFieldSchema(field *reflect.StructField) map[string]any {
 	fieldSchema := make(map[string]any)
 
 	// Get validation tags
@@ -70,7 +70,7 @@ func (sg *SchemaGenerator) GenerateValidationSchema(s any) map[string]any {
 			fieldName = field.Name
 		}
 
-		fieldSchema := sg.getFieldSchema(field)
+		fieldSchema := sg.getFieldSchema(&field)
 		schema[fieldName] = fieldSchema
 	}
 

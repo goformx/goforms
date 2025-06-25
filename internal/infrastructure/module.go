@@ -163,7 +163,7 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 		LogLevel: logLevel,
 	}
 
-	factory := logging.NewFactory(factoryConfig, p.Sanitizer)
+	factory := logging.NewFactory(&factoryConfig, p.Sanitizer)
 	return factory, nil
 }
 

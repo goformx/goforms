@@ -1,3 +1,5 @@
+// Package event provides in-memory event bus and publisher implementations.
+// It implements the domain event interfaces for local event handling.
 package event
 
 import (

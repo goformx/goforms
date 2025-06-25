@@ -48,7 +48,7 @@ type FieldValidatorInterface interface {
 }
 
 // getMessage returns a custom message or default message
-func (fv FieldValidation) getMessage(ruleType, defaultMessage string) string {
+func (fv *FieldValidation) getMessage(ruleType, defaultMessage string) string {
 	// TODO: Implement custom message lookup based on ruleType
 	// For now, return the default message
 	_ = ruleType // Suppress unused parameter warning

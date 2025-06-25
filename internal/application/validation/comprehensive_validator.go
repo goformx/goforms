@@ -74,7 +74,7 @@ func (v *ComprehensiveValidator) validateComponent(component map[string]any, sub
 	validation := v.schemaParser.ExtractValidationRules(component)
 
 	// Validate field using field validator
-	return v.fieldValidator.ValidateField(key, fieldValue, validation)
+	return v.fieldValidator.ValidateField(key, fieldValue, &validation)
 }
 
 // GenerateClientValidation generates client-side validation rules from schema
@@ -94,7 +94,7 @@ func (v *ComprehensiveValidator) GenerateClientValidation(schema model.JSON) (ma
 			}
 
 			validation := v.schemaParser.ExtractValidationRules(componentMap)
-			clientRules[key] = v.schemaParser.ConvertToClientRules(validation)
+			clientRules[key] = v.schemaParser.ConvertToClientRules(&validation)
 		}
 	}
 

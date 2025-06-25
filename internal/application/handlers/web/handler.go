@@ -111,7 +111,7 @@ type HandlerParams struct {
 // NewHandlerDeps creates a new HandlerDeps instance.
 // This factory function ensures that all dependencies are properly
 // initialized and validated before being used by a handler.
-func NewHandlerDeps(params HandlerParams) (*HandlerDeps, error) {
+func NewHandlerDeps(params *HandlerParams) (*HandlerDeps, error) {
 	deps := &HandlerDeps{
 		UserService:       params.UserService,
 		FormService:       params.FormService,

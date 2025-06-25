@@ -1,3 +1,6 @@
+// Package config provides configuration management for the GoForms application.
+// It uses environment variables to configure various aspects of the application
+// including database connections, security settings, logging, and more.
 package config
 
 import (

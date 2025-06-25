@@ -11,7 +11,7 @@ import (
 )
 
 // PagesList renders the pages list view
-func PagesList(data view.PageData) templ.Component {
+func PagesList(data *view.PageData) templ.Component {
 	content := templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
 		return templ.Raw(`
 			<div class="pages-list">
@@ -36,11 +36,11 @@ func PagesList(data view.PageData) templ.Component {
 		`).Render(ctx, w)
 	})
 
-	return layouts.Layout(data, content)
+	return layouts.Layout(*data, content)
 }
 
 // PageView renders the page view
-func PageView(data view.PageData) templ.Component {
+func PageView(data *view.PageData) templ.Component {
 	content := templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
 		return templ.Raw(`
 			<div class="page-view">
@@ -53,5 +53,5 @@ func PageView(data view.PageData) templ.Component {
 		`).Render(ctx, w)
 	})
 
-	return layouts.Layout(data, content)
+	return layouts.Layout(*data, content)
 }

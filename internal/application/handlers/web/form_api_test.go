@@ -128,7 +128,7 @@ func setupTestFormAPIHandler(t *testing.T) (*web.FormAPIHandler, *mockFormServic
 	sanitizer := sanitization.NewService()
 
 	// Create logger factory
-	loggerFactory := logging.NewFactory(logging.FactoryConfig{
+	loggerFactory := logging.NewFactory(&logging.FactoryConfig{
 		AppName:     "test",
 		Version:     "1.0.0",
 		Environment: "test",
