@@ -62,7 +62,10 @@ func (s *DevelopmentAssetServer) RegisterRoutes(e *echo.Echo) error {
 
 	// Serve Form.io fonts from the expected path to fix 404 errors
 	e.GET("/node_modules/@formio/js/dist/fonts/*", echo.WrapHandler(
-		http.StripPrefix("/node_modules/@formio/js/dist/fonts/", http.FileServer(http.Dir(filepath.Join(publicDir, "fonts")))),
+		http.StripPrefix(
+			"/node_modules/@formio/js/dist/fonts/",
+			http.FileServer(http.Dir(filepath.Join(publicDir, "fonts"))),
+		),
 	))
 
 	s.logger.Info("development asset server configured",
