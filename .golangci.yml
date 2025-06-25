@@ -337,6 +337,20 @@ linters:
       - linters: [gochecknoglobals]
         path: test/mocks/
       
+      # Enforce mock file location policy - flag mocks outside test/mocks/
+      - linters: [revive]
+        path: ".*_mock\\.go$"
+        text: "Mock files must be in test/mocks/ directory"
+      - linters: [revive] 
+        path: ".*\\.mock\\.go$"
+        text: "Mock files must be in test/mocks/ directory"
+      - linters: [revive]
+        path: ".*/mocks/.*\\.go$"
+        text: "Mock files must be in test/mocks/ directory"
+      - linters: [revive]
+        path: ".*/mock/.*\\.go$" 
+        text: "Mock files must be in test/mocks/ directory"
+
       # Exclude wrapcheck for specific patterns
       - linters: [wrapcheck]
         text: "error returned from interface method should be wrapped.*github.com/labstack/echo/v4.Context"
@@ -402,4 +416,3 @@ linters:
 severity:
   default-severity: error
   case-sensitive: false
-  
