@@ -24,20 +24,30 @@ output:
   uniq-by-line: true
   sort-results: true
 
+formatters:
+  enable:
+    - gofmt
+    - goimports
+  settings:
+    gofmt:
+      simplify: true
+      rewrite-rules:
+        - pattern: 'interface{}'
+          replacement: 'any'
+    goimports:
+      local-prefixes: github.com/goformx/goforms
+
 linters:
   default: standard
   enable:
     # Core analysis
     - errcheck
-    - gosimple
     - govet
     - ineffassign
     - staticcheck
     - unused
     
     # Style and formatting
-    - gofmt
-    - goimports
     - revive
     - gocritic
     
@@ -76,13 +86,11 @@ linters:
     - nilerr
     - nolintlint
     - predeclared
-    - tenv
     - forcetypeassert
     - tagliatelle
     
     # Additional quality checks
     - bodyclose
-    - exportloopref
     - goheader
     - goprintffuncname
     - rowserrcheck
@@ -104,12 +112,6 @@ linters:
 
     gocyclo:
       min-complexity: 15
-
-    gofmt:
-      simplify: true
-      rewrite-rules:
-        - pattern: 'interface{}'
-          replacement: 'any'
 
     goimports:
       local-prefixes: github.com/goformx/goforms
@@ -301,6 +303,3 @@ linters:
 severity:
   default-severity: error
   case-sensitive: false
-  rules:
-    - linters: [revive]
-      severity: warning
