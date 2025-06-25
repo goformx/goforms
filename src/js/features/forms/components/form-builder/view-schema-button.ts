@@ -25,9 +25,9 @@ interface SchemaViewerOptions {
  * Enhanced Schema Viewer handler with better architecture
  */
 export class SchemaViewerHandler {
-  private elements: SchemaViewerElements;
+  private readonly elements: SchemaViewerElements;
   private debounceTimer: NodeJS.Timeout | null = null;
-  private options: Required<SchemaViewerOptions>;
+  private readonly options: Required<SchemaViewerOptions>;
 
   constructor(
     private builder: any,
@@ -105,7 +105,7 @@ export class SchemaViewerHandler {
   /**
    * Handle view button click with debouncing
    */
-  private handleViewClick = (event: Event): void => {
+  private readonly handleViewClick = (event: Event): void => {
     event.preventDefault();
 
     // Debounce rapid clicks
@@ -121,7 +121,7 @@ export class SchemaViewerHandler {
   /**
    * Handle keyboard shortcut (Ctrl/Cmd + Shift + S)
    */
-  private handleKeyboardShortcut = (event: KeyboardEvent): void => {
+  private readonly handleKeyboardShortcut = (event: KeyboardEvent): void => {
     if (
       (event.ctrlKey || event.metaKey) &&
       event.shiftKey &&
@@ -371,7 +371,7 @@ export class SchemaViewerHandler {
   /**
    * Cleanup resources and event listeners
    */
-  private cleanup = (): void => {
+  private readonly cleanup = (): void => {
     if (this.debounceTimer) {
       clearTimeout(this.debounceTimer);
     }

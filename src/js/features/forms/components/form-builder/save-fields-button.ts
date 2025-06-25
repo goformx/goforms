@@ -36,12 +36,12 @@ interface SaveFieldsState {
  * Enhanced Save Fields button handler with better architecture
  */
 export class SaveFieldsHandler {
-  private elements: SaveFieldsElements;
-  private state: SaveFieldsState = {
+  private readonly elements: SaveFieldsElements;
+  private readonly state: SaveFieldsState = {
     isLoading: false,
     currentTimeout: null,
   };
-  private formService: FormService;
+  private readonly formService: FormService;
   private abortController: AbortController | null = null;
 
   constructor(
@@ -103,7 +103,7 @@ export class SaveFieldsHandler {
   /**
    * Handle save button click with arrow function to preserve context
    */
-  private handleSaveClick = async (event: Event): Promise<void> => {
+  private readonly handleSaveClick = async (event: Event): Promise<void> => {
     event.preventDefault();
 
     if (this.state.isLoading) {
@@ -332,7 +332,7 @@ export class SaveFieldsHandler {
   /**
    * Cleanup resources and event listeners
    */
-  private cleanup = (): void => {
+  private readonly cleanup = (): void => {
     this.abortController?.abort();
     this.clearFeedback();
     this.elements.saveButton.removeEventListener("click", this.handleSaveClick);

@@ -9,8 +9,8 @@ import type { FormSchema } from "@/shared/types/form-types";
  */
 export class FormService {
   private static instance: FormService;
-  private apiService: FormApiService;
-  private uiService: FormUIService;
+  private readonly apiService: FormApiService;
+  private readonly uiService: FormUIService;
 
   private constructor() {
     this.apiService = FormApiService.getInstance();

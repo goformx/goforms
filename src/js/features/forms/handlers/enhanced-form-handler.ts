@@ -11,9 +11,9 @@ import { UIManager } from "./ui-manager";
  * Class-based form handler for more complex use cases
  */
 export class EnhancedFormHandler {
-  private form: HTMLFormElement;
-  private formId: string;
-  private config: FormConfig;
+  private readonly form: HTMLFormElement;
+  private readonly formId: string;
+  private readonly config: FormConfig;
 
   constructor(config: FormConfig) {
     Logger.debug("EnhancedFormHandler: Initializing with config:", config);

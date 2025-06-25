@@ -541,7 +541,7 @@ export class SchemaModal {
   /**
    * Handle keyboard events
    */
-  private handleKeydown = (e: KeyboardEvent): void => {
+  private readonly handleKeydown = (e: KeyboardEvent): void => {
     switch (e.key) {
       case "Escape":
         this.close();

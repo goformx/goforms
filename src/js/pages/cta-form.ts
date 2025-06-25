@@ -6,7 +6,7 @@ const CTA_FORM_ID = "61af2a0f-5b54-476f-9bf6-c2ee6ce5b822";
 const BASE_URL = window.location.origin;
 
 class CTAForm {
-  private formService: FormService;
+  private readonly formService: FormService;
   private formInstance: any;
 
   constructor() {

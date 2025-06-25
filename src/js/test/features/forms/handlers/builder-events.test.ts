@@ -1,8 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach, vi } from "vitest";
-import {
-  BuilderEventManager,
-  createEventManager,
-} from "@/features/forms/handlers/builder-events";
+import type { BuilderEventManager } from "@/features/forms/handlers/builder-events";
+import { createEventManager } from "@/features/forms/handlers/builder-events";
 import { Logger } from "@/core/logger";
 
 describe("BuilderEventManager", () => {

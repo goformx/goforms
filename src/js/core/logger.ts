@@ -2,7 +2,7 @@
  * Logger utility for conditional logging based on environment
  */
 export class Logger {
-  private static isDevelopment = import.meta.env.DEV;
+  private static readonly isDevelopment = import.meta.env.DEV;
 
   static log(...args: any[]): void {
     if (this.isDevelopment) {

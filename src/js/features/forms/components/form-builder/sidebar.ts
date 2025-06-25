@@ -406,7 +406,7 @@ export class FormBuilderSidebar {
   /**
    * Handle touch start
    */
-  private handleTouchStart = (e: TouchEvent): void => {
+  private readonly handleTouchStart = (e: TouchEvent): void => {
     if (!this.isMobile()) return;
 
     const touch = e.touches[0];
@@ -423,7 +423,7 @@ export class FormBuilderSidebar {
   /**
    * Handle touch move
    */
-  private handleTouchMove = (e: TouchEvent): void => {
+  private readonly handleTouchMove = (e: TouchEvent): void => {
     if (!this.touchData.isTracking || !this.isMobile()) return;
 
     const touch = e.touches[0];
@@ -442,7 +442,7 @@ export class FormBuilderSidebar {
   /**
    * Handle touch end
    */
-  private handleTouchEnd = (): void => {
+  private readonly handleTouchEnd = (): void => {
     if (!this.touchData.isTracking || !this.isMobile()) return;
 
     const deltaX = this.touchData.currentX - this.touchData.startX;

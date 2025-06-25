@@ -1,5 +1,5 @@
 export class UserDropdownManager {
-  private dropdowns = new Map<Element, HTMLElement>();
+  private readonly dropdowns = new Map<Element, HTMLElement>();
   private activeDropdown: HTMLElement | null = null;
 
   constructor() {

@@ -53,7 +53,7 @@ Object.defineProperty(window, "sessionStorage", {
 
 // Mock FormData
 global.FormData = class FormData {
-  private data = new Map<string, any>();
+  private readonly data = new Map<string, any>();
 
   append(key: string, value: any): void {
     this.data.set(key, value);
@@ -90,7 +90,7 @@ global.FormData = class FormData {
 
 // Mock Headers
 global.Headers = class Headers {
-  private headers = new Map<string, string>();
+  private readonly headers = new Map<string, string>();
 
   constructor(init?: Record<string, string>) {
     if (init) {
@@ -143,7 +143,7 @@ global.Response = class Response {
   public status: number;
   public statusText: string;
   public headers: Headers;
-  private body: any;
+  private readonly body: any;
 
   constructor(body?: any, init?: ResponseInit) {
     this.body = body;

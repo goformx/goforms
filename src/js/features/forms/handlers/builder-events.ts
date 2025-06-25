@@ -9,9 +9,12 @@ interface EventHandler {
  * Event manager for form builder interactions
  */
 export class BuilderEventManager {
-  private handlers = new Map<string, EventHandler[]>();
-  private debounceTimers = new Map<string, ReturnType<typeof setTimeout>>();
-  private element: HTMLElement;
+  private readonly handlers = new Map<string, EventHandler[]>();
+  private readonly debounceTimers = new Map<
+    string,
+    ReturnType<typeof setTimeout>
+  >();
+  private readonly element: HTMLElement;
 
   constructor(element: HTMLElement) {
     this.element = element;
