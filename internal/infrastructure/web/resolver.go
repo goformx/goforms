@@ -66,8 +66,9 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(_ context.Context, path stri
 		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}
 
-	// Build the full URL to the Vite dev server
-	viteURL := fmt.Sprintf("%s://%s:%s", r.config.App.Scheme, r.config.App.ViteDevHost, r.config.App.ViteDevPort)
+	// Always use localhost for the browser, regardless of Vite's binding
+	// Vite can bind to 0.0.0.0 for container access, but browser URLs should use localhost
+	viteURL := fmt.Sprintf("%s://localhost:%s", r.config.App.Scheme, r.config.App.ViteDevPort)
 
 	var resolvedPath string
 	switch {
