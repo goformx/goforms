@@ -59,7 +59,10 @@ func (h *ErrorHandler) sanitizeRequestID(requestID string) string {
 // HandleError handles errors consistently across the application
 func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) error {
 	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
-	userID, _ := c.Get("user_id").(string)
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		userID = ""
+	}
 	if h.logger != nil {
 		h.logger.Error("request error",
 			"error", h.sanitizeError(err),
@@ -84,7 +87,10 @@ func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) er
 func (h *ErrorHandler) HandleDomainError(err *domainerrors.DomainError, c echo.Context) error {
 	statusCode := h.getStatusCode(err.Code)
 	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
-	userID, _ := c.Get("user_id").(string)
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		userID = ""
+	}
 
 	// Check if this is an AJAX request
 	if h.isAJAXRequest(c) {
@@ -130,7 +136,10 @@ func (h *ErrorHandler) handleDomainError(err *domainerrors.DomainError, c echo.C
 func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message string) error {
 	statusCode := http.StatusInternalServerError
 	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
-	userID, _ := c.Get("user_id").(string)
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		userID = ""
+	}
 	if h.isAJAXRequest(c) {
 		return c.JSON(statusCode, map[string]any{
 			"error":      "INTERNAL_ERROR",

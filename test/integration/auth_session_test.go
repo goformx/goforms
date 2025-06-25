@@ -159,6 +159,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be created when user logs in",
 			requirement: "Login must create valid session with user data",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session creation
 				t.Log("Session must be created with user ID, email, and role")
 				t.Log("Session must have appropriate expiration time")
@@ -170,6 +171,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be validated on protected routes",
 			requirement: "Middleware must validate session and extract user data",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session validation
 				t.Log("Session validation must check session exists and is not expired")
 				t.Log("Session validation must extract user data into context")
@@ -181,6 +183,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must expire after configured time",
 			requirement: "Expired sessions must be rejected",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session expiration
 				t.Log("Expired sessions must return 401 Unauthorized")
 				t.Log("Session expiration must be configurable")

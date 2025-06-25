@@ -90,6 +90,7 @@ func (m *mockFormService) LogFormAccess(form *model.Form) {
 }
 
 func setupTestFormAPIHandler(t *testing.T) (*web.FormAPIHandler, *mockFormService, *echo.Echo) {
+	t.Helper()
 	// Create mock form service
 	mockFormSvc := &mockFormService{
 		forms: make(map[string]*model.Form),
