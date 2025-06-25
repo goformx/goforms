@@ -48,7 +48,7 @@ type Dependencies struct {
 }
 
 // Validate checks if all required dependencies are present
-func (d *Dependencies) Validate() error {
+func (d Dependencies) Validate() error {
 	required := []struct {
 		name  string
 		value any
