@@ -187,7 +187,7 @@ func (s *Store) GetByRole(ctx context.Context, role string, offset, limit int) (
 		Limit(limit).
 		Find(&users)
 	if result.Error != nil {
-		return nil, common.NewDatabaseError("get_by_role", "user", role, result.Error)
+		return nil, fmt.Errorf("get users by role: %w", common.NewDatabaseError("get_by_role", "user", role, result.Error))
 	}
 	return users, nil
 }
@@ -202,7 +202,7 @@ func (s *Store) GetActiveUsers(ctx context.Context, offset, limit int) ([]*entit
 		Limit(limit).
 		Find(&users)
 	if result.Error != nil {
-		return nil, common.NewDatabaseError("get_active_users", "user", "", result.Error)
+		return nil, fmt.Errorf("get active users: %w", common.NewDatabaseError("get_active_users", "user", "", result.Error))
 	}
 	return users, nil
 }
@@ -217,7 +217,8 @@ func (s *Store) GetInactiveUsers(ctx context.Context, offset, limit int) ([]*ent
 		Limit(limit).
 		Find(&users)
 	if result.Error != nil {
-		return nil, common.NewDatabaseError("get_inactive_users", "user", "", result.Error)
+		return nil, fmt.Errorf("get inactive users: %w",
+			common.NewDatabaseError("get_inactive_users", "user", "", result.Error))
 	}
 	return users, nil
 }
@@ -233,7 +234,7 @@ func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]
 		Limit(limit).
 		Find(&users)
 	if result.Error != nil {
-		return nil, common.NewDatabaseError("search", "user", query, result.Error)
+		return nil, fmt.Errorf("search users: %w", common.NewDatabaseError("search", "user", query, result.Error))
 	}
 	return users, nil
 }

@@ -130,7 +130,7 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 		return fmt.Errorf("handle schema error: %w", h.ErrorHandler.HandleSchemaError(c, err))
 	}
 
-	return c.JSON(constants.StatusOK, clientValidation)
+	return fmt.Errorf("build validation response: %w", c.JSON(constants.StatusOK, clientValidation))
 }
 
 // PUT /api/v1/forms/:id/schema

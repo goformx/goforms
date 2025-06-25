@@ -151,5 +151,5 @@ func (h *FormWebHandler) handleNewFormValidation(c echo.Context) error {
 		},
 	}
 
-	return c.JSON(200, schema)
+	return fmt.Errorf("send new form validation schema: %w", c.JSON(200, schema))
 }

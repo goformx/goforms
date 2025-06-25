@@ -158,10 +158,13 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 func (h *FormWebHandler) handleFormCreationError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
-		return h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required")
+		return fmt.Errorf("build error response: %w",
+			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required"))
 	case errors.Is(err, model.ErrFormSchemaRequired):
-		return h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required")
+		return fmt.Errorf("build error response: %w",
+			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required"))
 	default:
-		return h.ResponseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
+		return fmt.Errorf("build error response: %w",
+			h.ResponseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to create form"))
 	}
 }

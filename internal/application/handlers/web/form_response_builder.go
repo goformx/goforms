@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 	"time"
 
@@ -21,19 +22,19 @@ func NewFormResponseBuilder() FormResponseBuilder {
 
 // BuildSuccessResponse builds a standardized success response
 func (b *FormResponseBuilderImpl) BuildSuccessResponse(c echo.Context, message string, data map[string]any) error {
-	return c.JSON(http.StatusOK, response.APIResponse{
+	return fmt.Errorf("build success response: %w", c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Message: message,
 		Data:    data,
-	})
+	}))
 }
 
 // BuildErrorResponse builds a standardized error response
 func (b *FormResponseBuilderImpl) BuildErrorResponse(c echo.Context, statusCode int, message string) error {
-	return c.JSON(statusCode, response.APIResponse{
+	return fmt.Errorf("build error response: %w", c.JSON(statusCode, response.APIResponse{
 		Success: false,
 		Message: message,
-	})
+	}))
 }
 
 // BuildSchemaResponse builds a schema response
@@ -41,12 +42,12 @@ func (b *FormResponseBuilderImpl) BuildSchemaResponse(c echo.Context, schema mod
 	// Set content type for JSON response
 	c.Response().Header().Set("Content-Type", "application/json")
 
-	return c.JSON(http.StatusOK, schema)
+	return fmt.Errorf("build schema response: %w", c.JSON(http.StatusOK, schema))
 }
 
 // BuildSubmissionResponse builds a submission response
 func (b *FormResponseBuilderImpl) BuildSubmissionResponse(c echo.Context, submission *model.FormSubmission) error {
-	return c.JSON(http.StatusOK, response.APIResponse{
+	return fmt.Errorf("build submission response: %w", c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Message: "Form submitted successfully",
 		Data: map[string]any{
@@ -54,12 +55,12 @@ func (b *FormResponseBuilderImpl) BuildSubmissionResponse(c echo.Context, submis
 			"status":        submission.Status,
 			"submitted_at":  submission.SubmittedAt.Format(time.RFC3339),
 		},
-	})
+	}))
 }
 
 // BuildFormResponse builds a form response
 func (b *FormResponseBuilderImpl) BuildFormResponse(c echo.Context, form *model.Form) error {
-	return c.JSON(http.StatusOK, response.APIResponse{
+	return fmt.Errorf("build form response: %w", c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Data: map[string]any{
 			"form": map[string]any{
@@ -72,7 +73,7 @@ func (b *FormResponseBuilderImpl) BuildFormResponse(c echo.Context, form *model.
 				"updated_at":  form.UpdatedAt.Format(time.RFC3339),
 			},
 		},
-	})
+	}))
 }
 
 // BuildFormListResponse builds a form list response
@@ -89,13 +90,13 @@ func (b *FormResponseBuilderImpl) BuildFormListResponse(c echo.Context, forms []
 		}
 	}
 
-	return c.JSON(http.StatusOK, response.APIResponse{
+	return fmt.Errorf("build form list response: %w", c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Data: map[string]any{
 			"forms": formData,
 			"count": len(forms),
 		},
-	})
+	}))
 }
 
 // BuildSubmissionListResponse builds a response for form submission lists
@@ -114,25 +115,25 @@ func (b *FormResponseBuilderImpl) BuildSubmissionListResponse(
 		}
 	}
 
-	return c.JSON(http.StatusOK, response.APIResponse{
+	return fmt.Errorf("build submission list response: %w", c.JSON(http.StatusOK, response.APIResponse{
 		Success: true,
 		Data: map[string]any{
 			"submissions": submissionData,
 			"count":       len(submissions),
 		},
-	})
+	}))
 }
 
 // BuildValidationErrorResponse builds a validation error response
 func (b *FormResponseBuilderImpl) BuildValidationErrorResponse(c echo.Context, field, message string) error {
-	return c.JSON(http.StatusBadRequest, response.APIResponse{
+	return fmt.Errorf("build validation error response: %w", c.JSON(http.StatusBadRequest, response.APIResponse{
 		Success: false,
 		Message: "Validation failed",
 		Data: map[string]any{
 			"field":   field,
 			"message": message,
 		},
-	})
+	}))
 }
 
 // BuildMultipleErrorResponse builds a response for multiple validation errors
@@ -149,27 +150,27 @@ func (b *FormResponseBuilderImpl) BuildMultipleErrorResponse(
 		}
 	}
 
-	return c.JSON(http.StatusBadRequest, response.APIResponse{
+	return fmt.Errorf("build multiple error response: %w", c.JSON(http.StatusBadRequest, response.APIResponse{
 		Success: false,
 		Message: "Validation failed",
 		Data: map[string]any{
 			"errors": errorData,
 		},
-	})
+	}))
 }
 
 // BuildNotFoundResponse builds a not found response
 func (b *FormResponseBuilderImpl) BuildNotFoundResponse(c echo.Context, resource string) error {
-	return c.JSON(http.StatusNotFound, response.APIResponse{
+	return fmt.Errorf("build not found response: %w", c.JSON(http.StatusNotFound, response.APIResponse{
 		Success: false,
 		Message: resource + " not found",
-	})
+	}))
 }
 
 // BuildForbiddenResponse builds a forbidden response
 func (b *FormResponseBuilderImpl) BuildForbiddenResponse(c echo.Context, message string) error {
-	return c.JSON(http.StatusForbidden, response.APIResponse{
+	return fmt.Errorf("build forbidden response: %w", c.JSON(http.StatusForbidden, response.APIResponse{
 		Success: false,
 		Message: message,
-	})
+	}))
 }

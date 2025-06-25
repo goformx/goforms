@@ -100,7 +100,8 @@ func (h *FormErrorHandlerImpl) HandleFormNotFoundError(c echo.Context, formID st
 	if formID != "" {
 		message = fmt.Sprintf("Form not found: %s", formID)
 	}
-	return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, message)
+	return fmt.Errorf("build not found response: %w",
+		h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, message))
 }
 
 // HandleFormAccessError handles form access errors
@@ -113,6 +114,7 @@ func (h *FormErrorHandlerImpl) HandleFormAccessError(c echo.Context, err error) 
 	case domainerrors.IsAuthenticationError(err):
 		return h.HandleOwnershipError(c, err)
 	default:
-		return h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to access form")
+		return fmt.Errorf("build access error response: %w",
+			h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to access form"))
 	}
 }

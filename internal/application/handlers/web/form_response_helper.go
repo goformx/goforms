@@ -37,36 +37,36 @@ type ErrorResponse struct {
 func (r *FormResponseHelper) HandleCreateFormError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
-		return c.JSON(http.StatusBadRequest, &ErrorResponse{
+		return fmt.Errorf("create form error: %w", c.JSON(http.StatusBadRequest, &ErrorResponse{
 			Message: "Form title is required",
-		})
+		}))
 	case errors.Is(err, model.ErrFormSchemaRequired):
-		return c.JSON(http.StatusBadRequest, &ErrorResponse{
+		return fmt.Errorf("create form error: %w", c.JSON(http.StatusBadRequest, &ErrorResponse{
 			Message: "Form schema is required",
-		})
+		}))
 	default:
-		return c.JSON(http.StatusInternalServerError, &ErrorResponse{
+		return fmt.Errorf("create form error: %w", c.JSON(http.StatusInternalServerError, &ErrorResponse{
 			Message: "Failed to create form",
-		})
+		}))
 	}
 }
 
 // SendCreateFormSuccess sends a successful form creation response
 func (r *FormResponseHelper) SendCreateFormSuccess(c echo.Context, formID string) error {
-	return c.JSON(http.StatusOK, &FormSuccessResponse{
+	return fmt.Errorf("send create form success: %w", c.JSON(http.StatusOK, &FormSuccessResponse{
 		Success: true,
 		Message: "Form created successfully",
 		FormID:  formID,
-	})
+	}))
 }
 
 // SendUpdateFormSuccess sends a successful form update response
 func (r *FormResponseHelper) SendUpdateFormSuccess(c echo.Context, formID string) error {
-	return c.JSON(http.StatusOK, &FormSuccessResponse{
+	return fmt.Errorf("send update form success: %w", c.JSON(http.StatusOK, &FormSuccessResponse{
 		Success: true,
 		Message: "Form updated successfully",
 		FormID:  formID,
-	})
+	}))
 }
 
 // SendDeleteFormSuccess sends a successful form deletion response

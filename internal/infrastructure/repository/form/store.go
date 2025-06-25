@@ -201,7 +201,8 @@ func (s *Store) UpdateSubmission(ctx context.Context, submission *model.FormSubm
 			"submission_id", submission.ID,
 			"error", result.Error,
 		)
-		return fmt.Errorf("update submission: %w", common.NewDatabaseError("update", "form_submission", submission.ID, result.Error))
+		return fmt.Errorf("update submission: %w",
+			common.NewDatabaseError("update", "form_submission", submission.ID, result.Error))
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("update submission: %w", common.NewNotFoundError("update", "form_submission", submission.ID))
@@ -217,7 +218,8 @@ func (s *Store) DeleteSubmission(ctx context.Context, submissionID string) error
 			"submission_id", submissionID,
 			"error", result.Error,
 		)
-		return fmt.Errorf("delete submission: %w", common.NewDatabaseError("delete", "form_submission", submissionID, result.Error))
+		return fmt.Errorf("delete submission: %w",
+			common.NewDatabaseError("delete", "form_submission", submissionID, result.Error))
 	}
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("delete submission: %w", common.NewNotFoundError("delete", "form_submission", submissionID))
