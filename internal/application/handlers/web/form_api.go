@@ -10,6 +10,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -130,7 +131,7 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 		return fmt.Errorf("handle schema error: %w", h.ErrorHandler.HandleSchemaError(c, err))
 	}
 
-	return c.JSON(constants.StatusOK, clientValidation)
+	return response.Success(c, clientValidation)
 }
 
 // PUT /api/v1/forms/:id/schema

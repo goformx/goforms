@@ -8,6 +8,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/context"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -41,9 +42,7 @@ func Middleware(manager *Manager, _ logging.Logger) echo.MiddlewareFunc {
 				}
 
 				if !context.IsAdmin(c) {
-					return c.JSON(http.StatusForbidden, map[string]string{
-						"error": "Admin access required",
-					})
+					return response.ErrorResponse(c, http.StatusForbidden, "Admin access required")
 				}
 				return next(c)
 

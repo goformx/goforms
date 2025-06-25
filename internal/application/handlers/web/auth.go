@@ -12,6 +12,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/request"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/web"
@@ -84,7 +85,7 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 
 // TestEndpoint is a simple test endpoint to verify JSON responses work
 func (h *AuthHandler) TestEndpoint(c echo.Context) error {
-	return c.JSON(constants.StatusOK, map[string]string{
+	return response.Success(c, map[string]string{
 		"message": "Test endpoint working",
 		"status":  "success",
 	})
@@ -147,7 +148,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return c.JSON(constants.StatusOK, map[string]string{
+		return response.Success(c, map[string]string{
 			"redirect": constants.PathDashboard,
 		})
 	}
@@ -211,7 +212,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return c.JSON(constants.StatusOK, map[string]string{
+		return response.Success(c, map[string]string{
 			"message":  constants.MsgSignupSuccess,
 			"redirect": constants.PathDashboard,
 		})
@@ -241,7 +242,7 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateLoginSchema()
 
-	return c.JSON(constants.StatusOK, schema)
+	return response.Success(c, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
@@ -249,7 +250,7 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateSignupSchema()
 
-	return c.JSON(constants.StatusOK, schema)
+	return response.Success(c, schema)
 }
 
 // Start initializes the auth handler.

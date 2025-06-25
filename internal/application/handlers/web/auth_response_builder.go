@@ -6,25 +6,24 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-// AuthResponseBuilder builds authentication responses.
+// AuthResponseBuilder handles authentication-related HTTP responses
 type AuthResponseBuilder struct {
 	Renderer view.Renderer
 }
 
-// NewAuthResponseBuilder creates a new AuthResponseBuilder.
+// NewAuthResponseBuilder creates a new AuthResponseBuilder
 func NewAuthResponseBuilder(renderer view.Renderer) *AuthResponseBuilder {
 	return &AuthResponseBuilder{Renderer: renderer}
 }
 
 // AJAXError returns a JSON error response for AJAX requests
 func (b *AuthResponseBuilder) AJAXError(c echo.Context, status int, message string) error {
-	return c.JSON(status, map[string]string{
-		"message": message,
-	})
+	return response.ErrorResponse(c, status, message)
 }
 
 // HTMLFormError renders the form page with an error message

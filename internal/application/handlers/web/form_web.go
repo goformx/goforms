@@ -10,6 +10,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
@@ -151,5 +152,5 @@ func (h *FormWebHandler) handleNewFormValidation(c echo.Context) error {
 		},
 	}
 
-	return c.JSON(200, schema)
+	return response.Success(c, schema)
 }

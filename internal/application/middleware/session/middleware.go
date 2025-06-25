@@ -11,6 +11,7 @@ import (
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
+	"github.com/goformx/goforms/internal/application/response"
 )
 
 // Middleware creates a new session middleware
@@ -216,9 +217,7 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 
 		if isAPIRequest || acceptsJSON {
 			// Return JSON error response for API requests
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"error": message,
-			})
+			return response.ErrorResponse(c, http.StatusUnauthorized, message)
 		}
 
 		// For web requests, redirect to login

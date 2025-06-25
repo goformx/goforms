@@ -6,6 +6,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/goformx/goforms/internal/application/response"
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
@@ -69,7 +70,7 @@ func handleError(c echo.Context, err error, logger logging.Logger, sanitizer san
 		)
 
 		statusCode := domainerrors.GetHTTPStatus(domainErr.Code)
-		if jsonErr := c.JSON(statusCode, domainErr); jsonErr != nil {
+		if jsonErr := response.ErrorResponse(c, statusCode, domainErr.Message); jsonErr != nil {
 			logger.Error("failed to send error response",
 				"error", jsonErr,
 				"error_type", "response_error",
@@ -85,9 +86,7 @@ func handleError(c echo.Context, err error, logger logging.Logger, sanitizer san
 		"error_type", "panic_unknown_error",
 	)
 
-	if jsonErr := c.JSON(http.StatusInternalServerError, map[string]string{
-		"error": "Internal Server Error",
-	}); jsonErr != nil {
+	if jsonErr := response.ErrorResponse(c, http.StatusInternalServerError, "Internal server error"); jsonErr != nil {
 		logger.Error("failed to send error response",
 			"error", jsonErr,
 			"error_type", "response_error",

@@ -3,7 +3,6 @@
 package response
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
@@ -59,62 +58,30 @@ func (h *ErrorHandler) sanitizeRequestID(requestID string) string {
 	return h.sanitizer.SingleLine(requestID)
 }
 
-// HandleError handles errors consistently across the application
+// HandleError handles generic errors
 func (h *ErrorHandler) HandleError(err error, c echo.Context, message string) error {
-	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
-	userID, ok := c.Get("user_id").(string)
-	if !ok {
-		userID = ""
-	}
-	if h.logger != nil {
-		h.logger.Error("request error",
-			"error", h.sanitizeError(err),
-			"path", h.sanitizePath(c.Request().URL.Path),
-			"method", c.Request().Method,
-			"request_id", requestID,
-			"user_id", userID,
-		)
+	statusCode := http.StatusInternalServerError
+
+	// Check if this is an AJAX request
+	if h.isAJAXRequest(c) {
+		return ErrorResponse(c, statusCode, message)
 	}
 
-	// Check if it's a domain error
-	var domainErr *domainerrors.DomainError
-	if errors.As(err, &domainErr) {
-		return h.handleDomainError(domainErr, c)
-	}
-
-	// Handle unknown errors
-	return h.handleUnknownError(err, c, message)
+	// For web requests, return a simple error response
+	return ErrorResponse(c, statusCode, message)
 }
 
 // HandleDomainError handles domain-specific errors
 func (h *ErrorHandler) HandleDomainError(err *domainerrors.DomainError, c echo.Context) error {
 	statusCode := h.getStatusCode(err.Code)
-	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
-	userID, ok := c.Get("user_id").(string)
-	if !ok {
-		userID = ""
-	}
 
 	// Check if this is an AJAX request
 	if h.isAJAXRequest(c) {
-		if jsonErr := c.JSON(statusCode, map[string]any{
-			"error":      string(err.Code),
-			"message":    err.Message,
-			"details":    err.Context,
-			"request_id": requestID,
-			"user_id":    userID,
-		}); jsonErr != nil {
-			return fmt.Errorf("return domain error JSON response: %w", jsonErr)
-		}
-		return nil
+		return ErrorResponse(c, statusCode, err.Message)
 	}
 
-	// For regular requests, redirect with error message
-	redirectURL := fmt.Sprintf("/error?code=%s&message=%s", err.Code, err.Message)
-	if redirectErr := c.Redirect(http.StatusSeeOther, redirectURL); redirectErr != nil {
-		return fmt.Errorf("redirect to error page: %w", redirectErr)
-	}
-	return nil
+	// For web requests, return a simple error response
+	return ErrorResponse(c, statusCode, err.Message)
 }
 
 // HandleAuthError handles authentication errors
@@ -137,18 +104,9 @@ func (h *ErrorHandler) handleDomainError(err *domainerrors.DomainError, c echo.C
 // handleUnknownError handles unknown errors
 func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message string) error {
 	statusCode := http.StatusInternalServerError
-	requestID := h.sanitizeRequestID(c.Request().Header.Get("X-Trace-Id"))
-	userID, ok := c.Get("user_id").(string)
-	if !ok {
-		userID = ""
-	}
+
 	if h.isAJAXRequest(c) {
-		return c.JSON(statusCode, map[string]any{
-			"error":      "INTERNAL_ERROR",
-			"message":    message,
-			"request_id": requestID,
-			"user_id":    userID,
-		})
+		return ErrorResponse(c, statusCode, message)
 	}
 
 	return fmt.Errorf("redirect to error page: %w",
