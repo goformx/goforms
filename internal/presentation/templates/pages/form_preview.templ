@@ -34,15 +34,15 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 			<div class="dashboard-content">
 				<div class="form-preview-grid">
 					<div class="form-preview-main">
-						<div class="form-card">
-							<div class="form-card-header">
+						<div class="form-panel">
+							<div class="form-panel-header">
 								<h3>Form Preview</h3>
 								<div class="form-preview-notice">
 									<i class="bi bi-eye"></i>
 									<span>This is how users will see your form</span>
 								</div>
 							</div>
-							<div class="form-card-body">
+							<div class="form-panel-body">
 								if form.Description != "" {
 									<p class="form-description">{ form.Description }</p>
 								}
@@ -68,11 +68,11 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 					</div>
 
 					<div class="form-preview-sidebar">
-						<div class="form-card">
-							<div class="form-card-header">
+						<div class="form-panel">
+							<div class="form-panel-header">
 								<h3>Form Information</h3>
 							</div>
-							<div class="form-card-body">
+							<div class="form-panel-body">
 								<div class="form-info-item">
 									<span class="form-info-label">Status:</span>
 									<span class="form-info-value">
@@ -94,7 +94,7 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 									<span class="form-info-value">{ form.UpdatedAt.Format("Jan 2, 2006 at 3:04 PM") }</span>
 								</div>
 							</div>
-							<div class="form-card-footer">
+							<div class="form-panel-footer">
 								<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
 							</div>
 						</div>

@@ -70,35 +70,44 @@ export class FormApiService {
 
   async saveSchema(formId: string, schema: FormSchema): Promise<FormSchema> {
     try {
-      const response = await HttpClient.put(
+      Logger.group("Schema Save Operation");
+      Logger.debug("Saving schema for form:", formId);
+      Logger.debug("Schema to save:", schema);
+
+      // HttpClient.put returns the parsed response data directly
+      // If the request fails, it will throw a FormBuilderError
+      const data = await HttpClient.put(
         `${this.baseUrl}/api/v1/forms/${formId}/schema`,
         JSON.stringify(schema),
       );
 
-      if (!response.ok) {
-        throw FormBuilderError.networkError(
-          `Failed to save schema: ${response.statusText}`,
-          `${this.baseUrl}/api/v1/forms/${formId}/schema`,
-          response.status,
-        );
-      }
+      Logger.debug("Response data received:", data);
 
-      const data = await response.json();
       if (!data || typeof data !== "object") {
+        Logger.error("Invalid response format:", data);
+        Logger.groupEnd();
         throw FormBuilderError.schemaError("Invalid response from server");
       }
 
       if (!data.components || !Array.isArray(data.components)) {
+        Logger.error("Invalid schema structure in response:", data);
+        Logger.groupEnd();
         throw FormBuilderError.schemaError(
           "Invalid schema structure in response",
         );
       }
 
+      Logger.debug("Schema saved successfully");
+      Logger.groupEnd();
       return data as FormSchema;
     } catch (error) {
+      Logger.groupEnd();
+
       if (error instanceof FormBuilderError) {
         throw error;
       }
+
+      Logger.error("Unexpected error in saveSchema:", error);
       throw FormBuilderError.saveFailed(
         "Failed to save schema",
         formId,

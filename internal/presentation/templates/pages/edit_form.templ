@@ -97,7 +97,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 		<div class="dashboard-content form-builder-content">
 			<div class="form-builder-grid">
 				<div class="form-builder-sidebar">
-					<div class="form-card">
+					<div class="form-panel">
 						<form id="edit-form" method="POST" action={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="form">
 							<input type="hidden" name="id" value={ form.ID } />
 							<div id="form_error" class="form-error"></div>
@@ -150,7 +150,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 				</div>
 
 				<div class="form-builder-main">
-					<div class="form-builder-card">
+					<div class="form-builder-panel">
 						<div class="form-builder-header">
 							<h2>Form Builder</h2>
 							<p>Design your form by adding and configuring fields</p>

@@ -53,7 +53,7 @@ export class FormUIService {
    * Remove form card from DOM
    */
   private removeFormCard(button: Element): void {
-    const formCard = button.closest(".form-card");
+    const formCard = button.closest(".form-panel");
     if (formCard) {
       formCard.remove();
     }
@@ -64,7 +64,7 @@ export class FormUIService {
    */
   private checkEmptyState(): void {
     const formsGrid = document.querySelector(".forms-grid");
-    if (formsGrid && !formsGrid.querySelector(".form-card")) {
+    if (formsGrid && !formsGrid.querySelector(".form-panel")) {
       formsGrid.innerHTML = `
         <div class="empty-state">
           <i class="bi bi-file-earmark-text"></i>
@@ -101,7 +101,7 @@ export class FormUIService {
   ): void {
     const formCard = document
       .querySelector(`[data-form-id="${formId}"]`)
-      ?.closest(".form-card");
+      ?.closest(".form-panel");
     if (formCard) {
       if (updates.title) {
         const titleElement = formCard.querySelector(".form-title");

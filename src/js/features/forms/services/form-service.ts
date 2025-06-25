@@ -95,14 +95,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         await formService.deleteForm(formId);
-        const formCard = button.closest(".form-card");
+        const formCard = button.closest(".form-panel");
         if (formCard) {
           formCard.remove();
         }
 
         // If no forms left, show empty state
         const formsGrid = document.querySelector(".forms-grid");
-        if (formsGrid && !formsGrid.querySelector(".form-card")) {
+        if (formsGrid && !formsGrid.querySelector(".form-panel")) {
           formsGrid.innerHTML = `
             <div class="empty-state">
               <i class="bi bi-file-earmark-text"></i>

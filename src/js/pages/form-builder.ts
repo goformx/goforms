@@ -4,6 +4,7 @@ import { FormService } from "@/features/forms/services/form-service";
 import { setupBuilderEvents } from "@/features/forms/handlers/builder-events";
 import { setupViewSchemaButton } from "@/features/forms/components/form-builder/view-schema-button";
 import { setupSaveFieldsButton } from "@/features/forms/components/form-builder/save-fields-button";
+import { initializeSidebar } from "@/features/forms/components/form-builder/sidebar";
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
@@ -56,6 +57,23 @@ async function initializeFormBuilder(): Promise<void> {
 
     // Set up Save Fields button
     setupSaveFieldsButton(formId);
+
+    // Initialize sidebar
+    const sidebar = initializeSidebar({
+      enableSwipeGestures: true,
+      enableKeyboardShortcuts: true,
+      persistState: true,
+      onToggle: (isOpen) => {
+        Logger.debug(`Sidebar ${isOpen ? "opened" : "closed"}`);
+      },
+      onResize: (viewport) => {
+        Logger.debug(`Viewport changed to: ${viewport}`);
+      },
+    });
+
+    if (sidebar) {
+      Logger.debug("Sidebar initialized successfully");
+    }
     Logger.groupEnd();
 
     Logger.debug("Form builder initialization completed successfully");
