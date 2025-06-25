@@ -54,10 +54,8 @@ func NewService(repo Repository, logger logging.Logger) Service {
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.User, error) {
 	// Check if email already exists
 	existingUser, err := s.repo.GetByEmail(ctx, signup.Email)
-	if err != nil {
-		if errors.Is(err, ErrUserNotFound) {
-			// User not found, proceed with signup
-		}
+	if err != nil && !errors.Is(err, ErrUserNotFound) {
+		return nil, fmt.Errorf("failed to check existing user: %w", err)
 	}
 	if existingUser != nil {
 		return nil, ErrUserExists

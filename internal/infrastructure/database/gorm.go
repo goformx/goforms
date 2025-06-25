@@ -418,6 +418,7 @@ func (db *GormDB) addMySQLMetrics(metrics map[string]any) {
 	}
 }
 
+// Ping checks the database connection by executing a simple query
 func (db *GormDB) Ping(ctx context.Context) error {
 	pingCtx, cancel := context.WithTimeout(ctx, DefaultPingTimeout)
 	defer cancel()

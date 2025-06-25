@@ -14,7 +14,8 @@ import (
 
 var (
 	// ErrInvalidEmail represents an invalid email format error
-	ErrInvalidEmail    = errors.New("invalid email format")
+	ErrInvalidEmail = errors.New("invalid email format")
+	// ErrInvalidPassword represents an invalid password error
 	ErrInvalidPassword = errors.New("password must be at least 8 characters")
 )
 

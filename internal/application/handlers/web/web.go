@@ -18,14 +18,14 @@ const (
 	StatusFound = http.StatusFound // 302
 )
 
-// WebHandler handles web page requests
-type WebHandler struct {
+// WebPageHandler handles web page requests
+type WebPageHandler struct {
 	*BaseHandler
 	AuthMiddleware *auth.Middleware
 }
 
-// NewWebHandler creates a new web handler using BaseHandler
-func NewWebHandler(base *BaseHandler, authMiddleware *auth.Middleware) (*WebHandler, error) {
+// NewWebPageHandler creates a new web handler using BaseHandler
+func NewWebPageHandler(base *BaseHandler, authMiddleware *auth.Middleware) (*WebPageHandler, error) {
 	if base == nil {
 		return nil, errors.New("base handler cannot be nil")
 	}
@@ -34,20 +34,20 @@ func NewWebHandler(base *BaseHandler, authMiddleware *auth.Middleware) (*WebHand
 		return nil, errors.New("auth middleware cannot be nil")
 	}
 
-	return &WebHandler{
+	return &WebPageHandler{
 		BaseHandler:    base,
 		AuthMiddleware: authMiddleware,
 	}, nil
 }
 
 // Register registers the web routes
-func (h *WebHandler) Register(e *echo.Echo) {
+func (h *WebPageHandler) Register(e *echo.Echo) {
 	e.GET("/", h.handleHome)
 	e.GET("/demo", h.handleDemo)
 }
 
 // handleHome handles the home page request
-func (h *WebHandler) handleHome(c echo.Context) error {
+func (h *WebPageHandler) handleHome(c echo.Context) error {
 	data := h.BuildPageData(c, "Home")
 	if h.Logger != nil {
 		h.Logger.Debug("handleHome: data.User", "user", data.User)
@@ -66,7 +66,7 @@ func (h *WebHandler) handleHome(c echo.Context) error {
 }
 
 // handleDemo handles the demo page request
-func (h *WebHandler) handleDemo(c echo.Context) error {
+func (h *WebPageHandler) handleDemo(c echo.Context) error {
 	data := h.BuildPageData(c, "Demo")
 	if h.Logger != nil {
 		h.Logger.Debug("handleDemo: data.User", "user", data.User)
@@ -83,12 +83,12 @@ func (h *WebHandler) handleDemo(c echo.Context) error {
 
 // Start initializes the web handler.
 // This is called during application startup.
-func (h *WebHandler) Start(ctx context.Context) error {
+func (h *WebPageHandler) Start(ctx context.Context) error {
 	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the web handler.
 // This is called during application shutdown.
-func (h *WebHandler) Stop(ctx context.Context) error {
+func (h *WebPageHandler) Stop(ctx context.Context) error {
 	return nil // No cleanup needed
 }

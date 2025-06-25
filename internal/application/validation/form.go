@@ -10,8 +10,9 @@ import (
 )
 
 const (
-	// Validation rules
+	// ValidateRequired is the validation rule for required fields
 	ValidateRequired = "required"
+	// ValidatePassword is the validation rule for password fields
 	ValidatePassword = "password"
 )
 

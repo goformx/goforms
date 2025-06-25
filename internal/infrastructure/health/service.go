@@ -11,6 +11,7 @@ import (
 type Status string
 
 const (
+	// StatusHealthy represents a healthy component status
 	StatusHealthy   Status = "healthy"
 	StatusUnhealthy Status = "unhealthy"
 	StatusDegraded  Status = "degraded"

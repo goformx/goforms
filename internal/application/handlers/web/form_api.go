@@ -81,7 +81,7 @@ func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
 }
 
 // Register registers the FormAPIHandler with the Echo instance.
-func (h *FormAPIHandler) Register(e *echo.Echo) {
+func (h *FormAPIHandler) Register(_ *echo.Echo) {
 	// Routes are registered by RegisterHandlers function
 	// This method is required to satisfy the Handler interface
 }

@@ -90,7 +90,7 @@ var Module = fx.Options(
 		// Web handler - public access
 		fx.Annotate(
 			func(base *BaseHandler, authMiddleware *auth.Middleware) (Handler, error) {
-				return NewWebHandler(base, authMiddleware)
+				return NewWebPageHandler(base, authMiddleware)
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
@@ -194,7 +194,7 @@ func (rr *RouteRegistrar) registerHandlerRoutes(e *echo.Echo, handler Handler) {
 	switch h := handler.(type) {
 	case *AuthHandler:
 		rr.registerAuthRoutes(e, h)
-	case *WebHandler:
+	case *WebPageHandler:
 		rr.registerWebRoutes(e, h)
 	case *FormWebHandler:
 		rr.registerFormWebRoutes(e, h)
@@ -222,7 +222,7 @@ func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
 }
 
 // registerWebRoutes registers public web routes
-func (rr *RouteRegistrar) registerWebRoutes(e *echo.Echo, h *WebHandler) {
+func (rr *RouteRegistrar) registerWebRoutes(e *echo.Echo, h *WebPageHandler) {
 	e.GET(constants.PathHome, h.handleHome)
 	e.GET(constants.PathDemo, h.handleDemo)
 }

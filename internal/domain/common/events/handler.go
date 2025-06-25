@@ -12,7 +12,8 @@ import (
 
 const (
 	// DefaultTimeout is the default timeout for event handlers
-	DefaultTimeout    = 30 * time.Second
+	DefaultTimeout = 30 * time.Second
+	// DefaultRetryCount is the default number of retry attempts for event handlers
 	DefaultRetryCount = 3
 	DefaultRetryDelay = time.Second
 	DefaultMaxBackoff = 30 * time.Second

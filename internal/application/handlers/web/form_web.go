@@ -80,7 +80,7 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Mana
 }
 
 // Register satisfies the Handler interface
-func (h *FormWebHandler) Register(e *echo.Echo) {
+func (h *FormWebHandler) Register(_ *echo.Echo) {
 	// Routes are registered by RegisterHandlers function
 	// This method is required to satisfy the Handler interface
 }

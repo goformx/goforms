@@ -88,7 +88,7 @@ func (f *Form) TableName() string {
 }
 
 // BeforeCreate is a GORM hook that runs before creating a form
-func (f *Form) BeforeCreate(tx *gorm.DB) error {
+func (f *Form) BeforeCreate(_ *gorm.DB) error {
 	if f.ID == "" {
 		f.ID = uuid.New().String()
 	}
@@ -116,13 +116,13 @@ func (f *Form) BeforeCreate(tx *gorm.DB) error {
 }
 
 // BeforeUpdate is a GORM hook that runs before updating a form
-func (f *Form) BeforeUpdate(tx *gorm.DB) error {
+func (f *Form) BeforeUpdate(_ *gorm.DB) error {
 	f.UpdatedAt = time.Now()
 	return nil
 }
 
 // BeforeSave is a GORM hook that runs before saving a form
-func (f *Form) BeforeSave(tx *gorm.DB) error {
+func (f *Form) BeforeSave(_ *gorm.DB) error {
 	// Ensure CORS fields are properly initialized
 	if f.CorsOrigins == nil {
 		f.CorsOrigins = JSON{}

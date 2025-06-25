@@ -23,7 +23,7 @@ func NewVersionChecker(logger logging.Logger) *VersionChecker {
 }
 
 // Check performs a version health check
-func (c *VersionChecker) Check(ctx context.Context) error {
+func (c *VersionChecker) Check(_ context.Context) error {
 	info := version.GetInfo()
 
 	// Check if version is set
