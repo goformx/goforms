@@ -32,8 +32,9 @@ const (
 	// MinSecretLength is the minimum length required for security secrets
 	MinSecretLength = 32
 
-	// Default log levels for different environments
-	DefaultLogLevel     = "info"
+	// DefaultLogLevel is the default log level for production
+	DefaultLogLevel = "info"
+	// DevelopmentLogLevel is the default log level for development
 	DevelopmentLogLevel = "debug"
 	ProductionLogLevel  = "warn"
 )

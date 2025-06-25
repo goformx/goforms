@@ -12,7 +12,8 @@ type EventType string
 
 const (
 	// FormCreatedEventType represents a form created event
-	FormCreatedEventType   EventType = "form.created"
+	FormCreatedEventType EventType = "form.created"
+	// FormUpdatedEventType represents a form updated event
 	FormUpdatedEventType   EventType = "form.updated"
 	FormDeletedEventType   EventType = "form.deleted"
 	FormSubmittedEventType EventType = "form.submitted"

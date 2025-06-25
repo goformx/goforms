@@ -321,6 +321,6 @@ func TestGetMessageIcon(t *testing.T) {
 	}
 }
 
-func TestPageData_Construction(t *testing.T) {
+func TestPageData_Construction(_ *testing.T) {
 	_ = &view.PageData{}
 }

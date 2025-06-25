@@ -85,7 +85,7 @@ func (r *UUIDSanitizationRule) Matches(key string) bool {
 }
 
 // Process sanitizes UUID field values
-func (r *UUIDSanitizationRule) Process(key string, value any, sanitizer sanitization.ServiceInterface) string {
+func (r *UUIDSanitizationRule) Process(key string, value any, _ sanitization.ServiceInterface) string {
 	if sensitive.IsKey(key) {
 		return sensitive.MaskValue()
 	}
@@ -121,7 +121,7 @@ func (r *ErrorSanitizationRule) Process(key string, value any, sanitizer sanitiz
 type DefaultSanitizationRule struct{}
 
 // Matches checks if this rule applies to the given key
-func (r *DefaultSanitizationRule) Matches(key string) bool {
+func (r *DefaultSanitizationRule) Matches(_ string) bool {
 	return true // Matches everything (should be last in the chain)
 }
 

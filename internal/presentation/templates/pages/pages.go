@@ -1,3 +1,4 @@
+// Package pages provides page-level template components.
 package pages
 
 import (
@@ -10,8 +11,8 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
-// PagesList renders the pages list view
-func PagesList(data *view.PageData) templ.Component {
+// List renders a list of pages.
+func List(data *view.PageData) templ.Component {
 	content := templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
 		return templ.Raw(`
 			<div class="pages-list">

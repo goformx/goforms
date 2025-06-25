@@ -12,7 +12,8 @@ type Status string
 
 const (
 	// StatusHealthy represents a healthy component status
-	StatusHealthy   Status = "healthy"
+	StatusHealthy Status = "healthy"
+	// StatusUnhealthy represents an unhealthy component status
 	StatusUnhealthy Status = "unhealthy"
 	StatusDegraded  Status = "degraded"
 )

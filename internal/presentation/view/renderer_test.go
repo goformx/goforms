@@ -137,6 +137,6 @@ func TestRenderer_InterfaceCompliance(t *testing.T) {
 	var _ = renderer
 }
 
-func TestRenderer_Construction(t *testing.T) {
+func TestRenderer_Construction(_ *testing.T) {
 	var _ view.Renderer
 }
