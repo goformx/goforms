@@ -14,7 +14,7 @@ export function createFormController(config: FormConfig): FormController {
  */
 export function createAdvancedFormController(
   config: FormConfig,
-  options?: {
+  _options?: {
     autoReset?: boolean;
     customValidation?: (form: HTMLFormElement) => Promise<boolean>;
     onSuccess?: (response: any) => void;

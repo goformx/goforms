@@ -1,6 +1,5 @@
 import { Logger } from "@/core/logger";
-import type { FormConfig } from "@/shared/types";
-import { validation } from "@/features/forms/validation/validation";
+import type { FormConfig } from "@/shared/types/form-types";
 import { ValidationHandler } from "../handlers/validation-handler";
 import { RequestHandler } from "../handlers/request-handler";
 import { ResponseHandler } from "../handlers/response-handler";
@@ -43,8 +42,10 @@ export class FormController {
       );
     }
 
-    // Setup schema-based validation
-    validation.setupRealTimeValidation(this.form.id, this.config.formId);
+    // Note: The shared validation module is designed for specific schemas (login, signup, contact)
+    // For dynamic form validation, we rely on ValidationHandler which handles arbitrary forms
+    // If you need schema-based validation, you would call:
+    // setupRealTimeValidation(this.form.id, specificSchema);
   }
 
   private shouldEnableRealTimeValidation(): boolean {
@@ -73,27 +74,20 @@ export class FormController {
   private async processSubmission(): Promise<void> {
     Logger.debug(`Processing submission for form: ${this.config.formId}`);
 
-    // Set loading state
-    this.uiService.setLoading(true);
+    // Validate form
+    const isValid = await ValidationHandler.validateFormSubmission(
+      this.form,
+      this.config.formId,
+    );
 
-    try {
-      // Validate form
-      const isValid = await ValidationHandler.validateFormSubmission(
-        this.form,
-        this.config.formId,
-      );
-
-      if (!isValid) {
-        this.uiService.showError("Please check the form for errors.");
-        return;
-      }
-
-      // Submit form data
-      const response = await RequestHandler.sendFormData(this.form);
-      await ResponseHandler.handleServerResponse(response, this.form);
-    } finally {
-      this.uiService.setLoading(false);
+    if (!isValid) {
+      this.uiService.showError("Please check the form for errors.");
+      return;
     }
+
+    // Submit form data
+    const response = await RequestHandler.sendFormData(this.form);
+    await ResponseHandler.handleServerResponse(response, this.form);
   }
 
   private handleSubmissionError(error: unknown): void {
