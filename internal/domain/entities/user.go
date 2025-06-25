@@ -13,6 +13,7 @@ import (
 )
 
 var (
+	// ErrInvalidEmail represents an invalid email format error
 	ErrInvalidEmail    = errors.New("invalid email format")
 	ErrInvalidPassword = errors.New("password must be at least 8 characters")
 )
@@ -42,7 +43,7 @@ func (u *User) TableName() string {
 }
 
 // BeforeCreate is a GORM hook that runs before creating a user
-func (u *User) BeforeCreate(tx *gorm.DB) error {
+func (u *User) BeforeCreate(_ *gorm.DB) error {
 	if u.ID == "" {
 		u.ID = uuid.New().String()
 	}
@@ -56,13 +57,13 @@ func (u *User) BeforeCreate(tx *gorm.DB) error {
 }
 
 // BeforeUpdate is a GORM hook that runs before updating a user
-func (u *User) BeforeUpdate(tx *gorm.DB) error {
+func (u *User) BeforeUpdate(_ *gorm.DB) error {
 	u.UpdatedAt = time.Now()
 	return nil
 }
 
 // AfterFind is a GORM hook that runs after finding a user
-func (u *User) AfterFind(tx *gorm.DB) error {
+func (u *User) AfterFind(_ *gorm.DB) error {
 	// Ensure UUID is properly formatted
 	if u.ID != "" {
 		// Try to parse as UUID to validate format

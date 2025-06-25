@@ -101,7 +101,7 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, 
 }
 
 // Logout handles user logout
-func (s *ServiceImpl) Logout(ctx context.Context) error {
+func (s *ServiceImpl) Logout(_ context.Context) error {
 	// Session-based logout is handled by session middleware
 	return nil
 }

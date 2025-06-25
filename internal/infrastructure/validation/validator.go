@@ -28,18 +28,18 @@ var (
 	phonePattern = regexp.MustCompile(phoneRegex)
 )
 
-// ValidationError represents a single validation error
-type ValidationError struct {
+// Error represents a single validation error
+type Error struct {
 	Field   string
 	Message string
 	Value   any // The invalid value that caused the error
 }
 
-// ValidationErrors represents a collection of validation errors
-type ValidationErrors []ValidationError
+// Errors represents a collection of validation errors
+type Errors []Error
 
 // Error implements the error interface
-func (e ValidationErrors) Error() string {
+func (e Errors) Error() string {
 	var sb strings.Builder
 
 	for i, err := range e {
@@ -211,9 +211,9 @@ func (v *validatorImpl) Struct(i any) error {
 	if err != nil {
 		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
-			validationErrors := make([]ValidationError, len(ve))
+			validationErrors := make([]Error, len(ve))
 			for i, e := range ve {
-				validationErrors[i] = ValidationError{
+				validationErrors[i] = Error{
 					Field:   getFieldName(e),
 					Message: getErrorMessage(e),
 					Value:   e.Value(),
@@ -222,7 +222,7 @@ func (v *validatorImpl) Struct(i any) error {
 			err = domainerrors.New(
 				domainerrors.ErrCodeValidation,
 				"validation failed",
-				ValidationErrors(validationErrors),
+				Errors(validationErrors),
 			)
 		}
 		// Cache the error

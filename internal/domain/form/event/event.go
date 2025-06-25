@@ -44,14 +44,17 @@ func NewFormCreatedEvent(form *model.Form) Event {
 	}
 }
 
+// Name returns the event name for form creation
 func (e *FormCreatedEvent) Name() string {
 	return "form.created"
 }
 
+// Timestamp returns when the form creation event occurred
 func (e *FormCreatedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
+// Payload returns the form creation event payload
 func (e *FormCreatedEvent) Payload() any {
 	return e.Form
 }
@@ -70,14 +73,17 @@ func NewFormUpdatedEvent(form *model.Form) Event {
 	}
 }
 
+// Name returns the event name for form update
 func (e *FormUpdatedEvent) Name() string {
 	return "form.updated"
 }
 
+// Timestamp returns when the form update event occurred
 func (e *FormUpdatedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
+// Payload returns the form update event payload
 func (e *FormUpdatedEvent) Payload() any {
 	return e.Form
 }
@@ -96,14 +102,17 @@ func NewFormDeletedEvent(formID string) Event {
 	}
 }
 
+// Name returns the event name for form deletion
 func (e *FormDeletedEvent) Name() string {
 	return "form.deleted"
 }
 
+// Timestamp returns when the form deletion event occurred
 func (e *FormDeletedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
+// Payload returns the form deletion event payload
 func (e *FormDeletedEvent) Payload() any {
 	return e.FormID
 }
@@ -122,14 +131,17 @@ func NewFormSubmissionCreatedEvent(submission *model.FormSubmission) Event {
 	}
 }
 
+// Name returns the event name for form submission creation
 func (e *FormSubmissionCreatedEvent) Name() string {
 	return "form.submission.created"
 }
 
+// Timestamp returns when the form submission creation event occurred
 func (e *FormSubmissionCreatedEvent) Timestamp() time.Time {
 	return e.timestamp
 }
 
+// Payload returns the form submission creation event payload
 func (e *FormSubmissionCreatedEvent) Payload() any {
 	return e.Submission
 }

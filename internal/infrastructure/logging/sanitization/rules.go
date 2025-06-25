@@ -9,8 +9,8 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
-// SanitizationRule defines how to process different field types
-type SanitizationRule interface {
+// Rule defines how to process different field types
+type Rule interface {
 	Matches(key string) bool
 	Process(key string, value any, sanitizer sanitization.ServiceInterface) string
 }
@@ -18,10 +18,12 @@ type SanitizationRule interface {
 // PathSanitizationRule handles path field validation and sanitization
 type PathSanitizationRule struct{}
 
+// Matches checks if this rule applies to the given key
 func (r *PathSanitizationRule) Matches(key string) bool {
 	return key == "path"
 }
 
+// Process sanitizes path field values
 func (r *PathSanitizationRule) Process(key string, value any, sanitizer sanitization.ServiceInterface) string {
 	if sensitive.IsKey(key) {
 		return sensitive.MaskValue()
@@ -39,10 +41,12 @@ func (r *PathSanitizationRule) Process(key string, value any, sanitizer sanitiza
 // UserAgentSanitizationRule handles user agent field validation and sanitization
 type UserAgentSanitizationRule struct{}
 
+// Matches checks if this rule applies to the given key
 func (r *UserAgentSanitizationRule) Matches(key string) bool {
 	return key == "user_agent"
 }
 
+// Process sanitizes user agent field values
 func (r *UserAgentSanitizationRule) Process(key string, value any, sanitizer sanitization.ServiceInterface) string {
 	if sensitive.IsKey(key) {
 		return sensitive.MaskValue()
@@ -75,10 +79,12 @@ func isUUIDField(key string) bool {
 // UUIDSanitizationRule handles UUID-like field validation and masking
 type UUIDSanitizationRule struct{}
 
+// Matches checks if this rule applies to the given key
 func (r *UUIDSanitizationRule) Matches(key string) bool {
 	return isUUIDField(key)
 }
 
+// Process sanitizes UUID field values
 func (r *UUIDSanitizationRule) Process(key string, value any, sanitizer sanitization.ServiceInterface) string {
 	if sensitive.IsKey(key) {
 		return sensitive.MaskValue()
@@ -95,10 +101,12 @@ func (r *UUIDSanitizationRule) Process(key string, value any, sanitizer sanitiza
 // ErrorSanitizationRule handles error field sanitization
 type ErrorSanitizationRule struct{}
 
+// Matches checks if this rule applies to the given key
 func (r *ErrorSanitizationRule) Matches(key string) bool {
 	return key == "error"
 }
 
+// Process sanitizes error field values
 func (r *ErrorSanitizationRule) Process(key string, value any, sanitizer sanitization.ServiceInterface) string {
 	if sensitive.IsKey(key) {
 		return sensitive.MaskValue()
@@ -112,10 +120,12 @@ func (r *ErrorSanitizationRule) Process(key string, value any, sanitizer sanitiz
 // DefaultSanitizationRule handles all other field types
 type DefaultSanitizationRule struct{}
 
+// Matches checks if this rule applies to the given key
 func (r *DefaultSanitizationRule) Matches(key string) bool {
 	return true // Matches everything (should be last in the chain)
 }
 
+// Process sanitizes default field values
 func (r *DefaultSanitizationRule) Process(key string, value any, sanitizer sanitization.ServiceInterface) string {
 	if sensitive.IsKey(key) {
 		return sensitive.MaskValue()

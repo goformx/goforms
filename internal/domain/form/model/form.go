@@ -14,6 +14,7 @@ import (
 )
 
 const (
+	// MinTitleLength is the minimum length for a form title
 	MinTitleLength = 3
 	// MaxTitleLength is the maximum length for a form title
 	MaxTitleLength = 100
@@ -24,6 +25,7 @@ const (
 )
 
 var (
+	// ErrInvalidJSON represents an invalid JSON error
 	ErrInvalidJSON = errors.New("invalid JSON")
 )
 

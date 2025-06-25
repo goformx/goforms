@@ -25,8 +25,11 @@ func NewUtils(sanitizer sanitization.ServiceInterface) *Utils {
 type ContentType string
 
 const (
-	ContentTypeJSON      ContentType = "application/json"
-	ContentTypeForm      ContentType = "application/x-www-form-urlencoded"
+	// ContentTypeJSON represents JSON content type
+	ContentTypeJSON ContentType = "application/json"
+	// ContentTypeForm represents form URL-encoded content type
+	ContentTypeForm ContentType = "application/x-www-form-urlencoded"
+	// ContentTypeMultipart represents multipart form data content type
 	ContentTypeMultipart ContentType = "multipart/form-data"
 )
 

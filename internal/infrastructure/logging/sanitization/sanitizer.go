@@ -8,13 +8,13 @@ import (
 
 // FieldSanitizer manages multiple sanitization rules
 type FieldSanitizer struct {
-	rules []SanitizationRule
+	rules []Rule
 }
 
 // NewFieldSanitizer creates a new field sanitizer with default rules
 func NewFieldSanitizer() *FieldSanitizer {
 	return &FieldSanitizer{
-		rules: []SanitizationRule{
+		rules: []Rule{
 			&PathSanitizationRule{},
 			&UserAgentSanitizationRule{},
 			&UUIDSanitizationRule{},
