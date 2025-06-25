@@ -59,12 +59,6 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 func (m *AssetManager) AssetPath(path string) string {
 	ctx := context.Background()
 
-	// Add debug logging
-	m.logger.Debug("resolving asset path",
-		"path", path,
-		"environment", m.config.App.Env,
-	)
-
 	resolvedPath, err := m.ResolveAssetPath(ctx, path)
 	if err != nil {
 		m.logger.Error("failed to resolve asset path",
@@ -74,11 +68,7 @@ func (m *AssetManager) AssetPath(path string) string {
 		return ""
 	}
 
-	m.logger.Debug("asset path resolved successfully",
-		"original", path,
-		"resolved", resolvedPath,
-	)
-
+	m.logger.Debug("asset resolved", "path", path, "resolved", resolvedPath)
 	return resolvedPath
 }
 
