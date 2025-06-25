@@ -175,7 +175,8 @@
 .form-alt-action a {
   color: var(--primary);
   text-decoration: none;
-  transition: color var(--form-transition-duration) var(--form-transition-timing);
+  transition: color var(--form-transition-duration)
+    var(--form-transition-timing);
 }
 
 .form-alt-action a:hover {

@@ -135,6 +135,13 @@ linters:
         - errors.Unwrap(
         - .Wrap(
         - .Wrapf(
+        - response.Success(
+        - response.ErrorResponse(
+        - .JSON(
+        - .BuildErrorResponse(
+        - .AJAXError(
+        - .HTMLFormError(
+        - .Redirect(
 
   exclusions:
     generated: lax

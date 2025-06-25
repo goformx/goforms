@@ -40,7 +40,8 @@
   color: var(--text);
   text-decoration: none;
   opacity: 1;
-  transition: opacity var(--nav-transition-duration) var(--nav-transition-timing);
+  transition: opacity var(--nav-transition-duration)
+    var(--nav-transition-timing);
 }
 
 .nav-logo:hover {
@@ -115,7 +116,8 @@
   cursor: pointer;
   color: var(--text);
   font-weight: var(--font-weight-medium);
-  transition: background-color var(--nav-transition-duration) var(--nav-transition-timing);
+  transition: background-color var(--nav-transition-duration)
+    var(--nav-transition-timing);
 }
 
 .user-menu-button:hover {
@@ -158,8 +160,8 @@
 }
 
 /* Keep focus-based approach as fallback for accessibility */
-.user-menu-button:focus+.user-menu-dropdown,
-.user-menu-button:focus-within+.user-menu-dropdown,
+.user-menu-button:focus + .user-menu-dropdown,
+.user-menu-button:focus-within + .user-menu-dropdown,
 .user-menu-dropdown:focus-within {
   opacity: 1;
   visibility: visible;
@@ -185,7 +187,8 @@
   padding: var(--spacing-3) var(--spacing-4);
   color: var(--text);
   text-decoration: none;
-  transition: background-color var(--nav-transition-duration) var(--nav-transition-timing);
+  transition: background-color var(--nav-transition-duration)
+    var(--nav-transition-timing);
 }
 
 .user-menu-item:hover {
@@ -200,7 +203,8 @@
   color: var(--text);
   cursor: pointer;
   padding: var(--spacing-3) var(--spacing-4);
-  transition: background-color var(--nav-transition-duration) var(--nav-transition-timing);
+  transition: background-color var(--nav-transition-duration)
+    var(--nav-transition-timing);
 }
 
 .user-menu-logout:hover {

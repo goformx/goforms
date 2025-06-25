@@ -24,32 +24,38 @@ function templWatcherPlugin() {
     configureServer(server: any) {
       // Watch for changes in *_templ.go files
       const internalDir = resolve(__dirname, "internal");
-      
-      watch(internalDir, { recursive: true }, (_eventType: string, filename: string | null) => {
-        if (filename && filename.endsWith("_templ.go")) {
-          console.log(`[Vite] Templ file changed: ${filename}`);
-          // Trigger a full page reload when templ files change
-          server.ws.send({
-            type: "full-reload",
-            path: "*",
-          });
-        }
-      });
+
+      watch(
+        internalDir,
+        { recursive: true },
+        (_eventType: string, filename: string | null) => {
+          if (filename && filename.endsWith("_templ.go")) {
+            console.log(`[Vite] Templ file changed: ${filename}`);
+            // Trigger a full page reload when templ files change
+            server.ws.send({
+              type: "full-reload",
+              path: "*",
+            });
+          }
+        },
+      );
     },
   };
 }
 
 export default defineConfig(({ mode }) => {
   const isDev = mode === "development";
-  
-  console.log(`[Vite] Mode: ${mode}, serving assets from ${isDev ? "0.0.0.0:5173" : "/assets"}`);
+
+  console.log(
+    `[Vite] Mode: ${mode}, serving assets from ${isDev ? "0.0.0.0:5173" : "/assets"}`,
+  );
 
   return {
     root: ".",
     publicDir: "public",
     appType: "custom",
     base: "/",
-    
+
     css: {
       devSourcemap: true,
       modules: {
@@ -64,7 +70,7 @@ export default defineConfig(({ mode }) => {
         ],
       },
     },
-    
+
     server: {
       port: 5173,
       host: "0.0.0.0",
@@ -73,7 +79,12 @@ export default defineConfig(({ mode }) => {
         origin: ["http://localhost:8090", "http://127.0.0.1:8090"],
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        allowedHeaders: ["Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"],
+        allowedHeaders: [
+          "Content-Type",
+          "Authorization",
+          "X-Csrf-Token",
+          "X-Requested-With",
+        ],
       },
       hmr: {
         port: 5173,
@@ -88,7 +99,7 @@ export default defineConfig(({ mode }) => {
         ignored: ["!**/*_templ.go", "coverage/**"],
       },
     },
-    
+
     build: {
       outDir: "dist",
       emptyOutDir: true,
@@ -127,7 +138,7 @@ export default defineConfig(({ mode }) => {
             }
             const info = assetInfo.name.split(".");
             const ext = info[info.length - 1];
-            
+
             if (["woff", "woff2", "ttf", "eot"].includes(ext)) {
               return "fonts/[name][extname]";
             }
@@ -141,12 +152,21 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    
+
     resolve: {
       alias: pathAliases,
-      extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".ejs", ".ejs.js"],
+      extensions: [
+        ".mjs",
+        ".js",
+        ".ts",
+        ".jsx",
+        ".tsx",
+        ".json",
+        ".ejs",
+        ".ejs.js",
+      ],
     },
-    
+
     optimizeDeps: {
       include: ["@formio/js", "@goformx/formio"],
       esbuildOptions: {
@@ -156,7 +176,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-        
+
     plugins: [ejsPlugin(), templWatcherPlugin()],
     assetsInclude: ["**/*.ejs", "**/*.ejs.js"],
   };

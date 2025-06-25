@@ -6,7 +6,8 @@
 @import url("base/reset.css") layer(base);
 
 /* Third-party libraries */
-@import url("../../node_modules/@formio/js/dist/formio.full.min.css") layer(components);
+@import url("../../node_modules/@formio/js/dist/formio.full.min.css")
+layer(components);
 @import "./formio-custom.css" layer(components);
 
 /* Layout styles */
