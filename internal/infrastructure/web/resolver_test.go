@@ -27,10 +27,7 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
 	mockLogger.EXPECT().Debug(
-		"resolving development asset path", "path", gomock.Any(), "host_port", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(),
+		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
 	).AnyTimes()
 
 	resolver := web.NewDevelopmentAssetResolver(cfg, mockLogger)
@@ -146,6 +143,16 @@ func TestAssetManager(t *testing.T) {
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	// Expect debug calls from DevelopmentAssetResolver
+	mockLogger.EXPECT().Debug(
+		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
+	).AnyTimes()
+
+	// Expect debug calls from AssetManager
+	mockLogger.EXPECT().Debug(
+		"asset resolved", "asset_path", gomock.Any(), "resolved", gomock.Any(),
+	).AnyTimes()
 
 	var distFS embed.FS
 
