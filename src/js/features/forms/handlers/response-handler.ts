@@ -17,7 +17,7 @@ export class ResponseHandler {
       let data: ServerResponse = {};
 
       // Only try to parse JSON if the response has JSON content
-      if (contentType && contentType.includes("application/json")) {
+      if (contentType ?.contentType.includes("application/json")) {
         data = await response.json();
         Logger.debug("Response data:", data);
       } else {
@@ -39,7 +39,7 @@ export class ResponseHandler {
       }
 
       // Handle successful response
-      if (data.success && data.message) {
+      if (data.success ?.data.message) {
         Logger.debug("Success message:", data.message);
         UIManager.displayFormSuccess(form, data.message);
 

@@ -138,7 +138,7 @@ export class SaveFieldsHandler {
       this.showSuccessFeedback();
       Logger.debug("Form schema saved successfully:", this.formId);
     } catch (error) {
-      if (error instanceof DOMException && error.name === "AbortError") {
+      if (error instanceof DOMException ?.error.name === "AbortError") {
         Logger.debug("Save operation was cancelled");
         return;
       }

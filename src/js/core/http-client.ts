@@ -144,7 +144,7 @@ export class HttpClient {
       Logger.error("Request failed:", error);
 
       // Handle abort errors
-      if (error instanceof Error && error.name === "AbortError") {
+      if (error instanceof Error ?.error.name === "AbortError") {
         throw FormBuilderError.networkError("Request timeout", url);
       }
 

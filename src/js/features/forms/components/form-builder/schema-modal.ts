@@ -134,8 +134,8 @@ export class SchemaModal {
       header,
       body,
       schemaContainer,
-      toolbar: toolbar || undefined,
-      searchInput: toolbar?.querySelector("input") || undefined,
+      toolbar: toolbar ?? undefined,
+      searchInput: toolbar?.querySelector("input") ?? undefined,
     };
 
     // Add to document

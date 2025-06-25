@@ -1,3 +1,4 @@
+import { Logger } from "@/core/logger";
 import type {
   FormId,
   ComponentKey,
@@ -43,9 +44,9 @@ export class FormState {
    * Set state with type safety
    */
   set<T>(key: string, value: T): void {
-    const prevValue = this.state.get(key);
+    const _prevValue = this.state.get(key);
     this.state.set(key, value);
-    this.notifyListeners(key, value, prevValue);
+    this.notifyListeners(key, value, _prevValue);
   }
 
   /**
@@ -84,9 +85,9 @@ export class FormState {
   delete(key: string): boolean {
     const hadKey = this.state.has(key);
     if (hadKey) {
-      const prevValue = this.state.get(key);
+      const _prevValue = this.state.get(key);
       this.state.delete(key);
-      this.notifyListeners(key, undefined, prevValue);
+      this.notifyListeners(key, undefined, _prevValue);
     }
     return hadKey;
   }
@@ -134,7 +135,7 @@ export class FormState {
     const updates = new Map<string, T>();
 
     keys.forEach((key) => {
-      const subscription = this.subscribe<T>(key, (newValue, prevValue) => {
+      const subscription = this.subscribe<T>(key, (newValue, _prevValue) => {
         updates.set(key, newValue);
         listener(Object.fromEntries(updates));
       });
@@ -195,13 +196,13 @@ export class FormState {
   private notifyListeners(
     key: string,
     newValue: unknown,
-    prevValue: unknown,
+    _prevValue: unknown,
   ): void {
     const keyListeners = this.listeners.get(key);
     if (keyListeners) {
       keyListeners.forEach((listener) => {
         try {
-          listener(newValue, prevValue);
+          listener(newValue, _prevValue);
         } catch (error) {
           console.error(`Error in state listener for key "${key}":`, error);
         }

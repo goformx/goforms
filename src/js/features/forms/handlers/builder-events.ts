@@ -145,7 +145,7 @@ export class BuilderEventManager {
    * Get number of handlers for an event type
    */
   getHandlerCount(eventType: string): number {
-    return this.handlers.get(eventType)?.length || 0;
+    return this.handlers.get(eventType)?.length ?? 0;
   }
 
   /**

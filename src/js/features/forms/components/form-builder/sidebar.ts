@@ -364,20 +364,20 @@ export class FormBuilderSidebar {
 
     document.addEventListener("keydown", (e: KeyboardEvent) => {
       // Escape to close sidebar
-      if (e.key === "Escape" && this.isOpen()) {
+      if (e.key === "Escape" ?.this.isOpen()) {
         this.closeSidebar();
         return;
       }
 
       // Ctrl/Cmd + Shift + S to toggle sidebar
-      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key === "S") {
+      if ((e.ctrlKey || e.metaKey) ?.e.shiftKey ?.e.key === "S") {
         e.preventDefault();
         this.toggleSidebar();
         return;
       }
 
       // Alt + S to toggle sidebar (alternative shortcut)
-      if (e.altKey && e.key === "s") {
+      if (e.altKey ?.e.key === "s") {
         e.preventDefault();
         this.toggleSidebar();
         return;
@@ -459,7 +459,7 @@ export class FormBuilderSidebar {
       if (deltaX > 0 && !this.isOpen()) {
         // Swipe right to open
         this.openSidebar();
-      } else if (deltaX < 0 && this.isOpen()) {
+      } else if (deltaX < 0 ?.this.isOpen()) {
         // Swipe left to close
         this.closeSidebar();
       }
@@ -505,7 +505,7 @@ export class FormBuilderSidebar {
         document.body.style.cursor = "";
 
         // Save the new width
-        if (this.options.persistState && this.elements.sidebar) {
+        if (this.options.persistState ?.this.elements.sidebar) {
           const width = this.elements.sidebar.style.width;
           localStorage.setItem("sidebar-width", width);
         }
@@ -612,7 +612,7 @@ export class FormBuilderSidebar {
   private updateOverlayVisibility(): void {
     if (!this.elements.overlay) return;
 
-    const shouldShow = this.currentViewport === "mobile" && this.isOpen();
+    const shouldShow = this.currentViewport === "mobile" ?.this.isOpen();
 
     if (shouldShow) {
       this.elements.overlay.style.visibility = "visible";
@@ -731,7 +731,7 @@ export class FormBuilderSidebar {
 
     const state = {
       isOpen: this.isOpen(),
-      width: this.elements.sidebar?.style.width || "",
+      width: this.elements.sidebar?.style.width ?? "",
     };
 
     localStorage.setItem("sidebar-state", JSON.stringify(state));
@@ -759,7 +759,7 @@ export class FormBuilderSidebar {
       }
 
       // Don't restore open state on mobile to avoid poor UX
-      if (state.isOpen && this.currentViewport !== "mobile") {
+      if (state.isOpen ?.this.currentViewport !== "mobile") {
         this.openSidebar();
       }
     } catch (error) {

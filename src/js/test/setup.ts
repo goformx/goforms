@@ -109,7 +109,7 @@ global.Headers = class Headers {
   }
 
   get(name: string): string | null {
-    return this.headers.get(name.toLowerCase()) || null;
+    return this.headers.get(name.toLowerCase()) ?? null;
   }
 
   has(name: string): boolean {
@@ -149,7 +149,7 @@ global.Response = class Response {
     this.body = body;
     this.ok = (init?.status || 200) >= 200 && (init?.status || 200) < 300;
     this.status = init?.status || 200;
-    this.statusText = init?.statusText || "";
+    this.statusText = init?.statusText ?? "";
     this.headers = new Headers(init?.headers);
   }
 

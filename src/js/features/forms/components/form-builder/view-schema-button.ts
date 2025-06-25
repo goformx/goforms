@@ -285,7 +285,7 @@ export class SchemaViewerHandler {
 
     // Store original text and show loading
     const originalText = this.elements.viewButton.textContent;
-    this.elements.viewButton.dataset.originalText = originalText || "";
+    this.elements.viewButton.dataset.originalText = originalText ?? "";
     this.elements.viewButton.textContent = "Loading...";
   }
 
