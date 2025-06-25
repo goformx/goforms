@@ -17,6 +17,15 @@ export default defineConfig({
         "**/test/**",
         "**/mocks/**",
       ],
+      enabled: true,
+      thresholds: {
+        global: {
+          branches: 0,
+          functions: 0,
+          lines: 0,
+          statements: 0,
+        },
+      },
     },
   },
   resolve: {
