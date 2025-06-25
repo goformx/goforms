@@ -143,12 +143,12 @@ func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message strin
 		userID = ""
 	}
 	if h.isAJAXRequest(c) {
-		return fmt.Errorf("send error response: %w", c.JSON(statusCode, map[string]any{
+		return c.JSON(statusCode, map[string]any{
 			"error":      "INTERNAL_ERROR",
 			"message":    message,
 			"request_id": requestID,
 			"user_id":    userID,
-		}))
+		})
 	}
 
 	return fmt.Errorf("redirect to error page: %w",

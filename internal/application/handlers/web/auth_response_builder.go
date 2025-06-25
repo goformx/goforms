@@ -22,9 +22,9 @@ func NewAuthResponseBuilder(renderer view.Renderer) *AuthResponseBuilder {
 
 // AJAXError returns a JSON error response for AJAX requests
 func (b *AuthResponseBuilder) AJAXError(c echo.Context, status int, message string) error {
-	return fmt.Errorf("send AJAX error response: %w", c.JSON(status, map[string]string{
+	return c.JSON(status, map[string]string{
 		"message": message,
-	}))
+	})
 }
 
 // HTMLFormError renders the form page with an error message

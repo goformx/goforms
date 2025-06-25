@@ -27,14 +27,11 @@ func NewFormErrorHandler(responseBuilder FormResponseBuilder) FormErrorHandler {
 func (h *FormErrorHandlerImpl) HandleSchemaError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormSchemaRequired):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required")
 	case errors.Is(err, model.ErrFormInvalid):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Invalid form schema format"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Invalid form schema format")
 	default:
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to process form schema"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to process form schema")
 	}
 }
 
@@ -42,21 +39,17 @@ func (h *FormErrorHandlerImpl) HandleSchemaError(c echo.Context, err error) erro
 func (h *FormErrorHandlerImpl) HandleSubmissionError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormNotFound):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Form not found"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Form not found")
 	case errors.Is(err, model.ErrFormInvalid):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Invalid submission data"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Invalid submission data")
 	case errors.Is(err, model.ErrSubmissionNotFound):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Submission not found"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Submission not found")
 	default:
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(
-				c,
-				http.StatusInternalServerError,
-				"Failed to process form submission",
-			))
+		return h.responseBuilder.BuildErrorResponse(
+			c,
+			http.StatusInternalServerError,
+			"Failed to process form submission",
+		)
 	}
 }
 
@@ -64,14 +57,11 @@ func (h *FormErrorHandlerImpl) HandleSubmissionError(c echo.Context, err error) 
 func (h *FormErrorHandlerImpl) HandleError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required")
 	case errors.Is(err, model.ErrFormInvalid):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form validation failed"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form validation failed")
 	default:
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Validation failed"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Validation failed")
 	}
 }
 
@@ -79,18 +69,15 @@ func (h *FormErrorHandlerImpl) HandleError(c echo.Context, err error) error {
 func (h *FormErrorHandlerImpl) HandleOwnershipError(c echo.Context, err error) error {
 	switch {
 	case domainerrors.IsForbiddenError(err):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(
-				c,
-				http.StatusForbidden,
-				"You don't have permission to access this resource",
-			))
+		return h.responseBuilder.BuildErrorResponse(
+			c,
+			http.StatusForbidden,
+			"You don't have permission to access this resource",
+		)
 	case domainerrors.IsAuthenticationError(err):
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusUnauthorized, "Authentication required"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusUnauthorized, "Authentication required")
 	default:
-		return fmt.Errorf("build error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusForbidden, "Access denied"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusForbidden, "Access denied")
 	}
 }
 
@@ -100,8 +87,7 @@ func (h *FormErrorHandlerImpl) HandleFormNotFoundError(c echo.Context, formID st
 	if formID != "" {
 		message = fmt.Sprintf("Form not found: %s", formID)
 	}
-	return fmt.Errorf("build not found response: %w",
-		h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, message))
+	return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, message)
 }
 
 // HandleFormAccessError handles form access errors
@@ -114,7 +100,6 @@ func (h *FormErrorHandlerImpl) HandleFormAccessError(c echo.Context, err error) 
 	case domainerrors.IsAuthenticationError(err):
 		return h.HandleOwnershipError(c, err)
 	default:
-		return fmt.Errorf("build access error response: %w",
-			h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to access form"))
+		return h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to access form")
 	}
 }

@@ -176,6 +176,6 @@ func TestService_SubmitForm(t *testing.T) {
 
 		err := svc.SubmitForm(ctx, submission)
 		require.Error(t, err)
-		require.Equal(t, "database error", err.Error())
+		require.Equal(t, "create form submission: database error", err.Error())
 	})
 }
