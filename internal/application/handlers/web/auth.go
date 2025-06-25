@@ -84,10 +84,10 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 
 // TestEndpoint is a simple test endpoint to verify JSON responses work
 func (h *AuthHandler) TestEndpoint(c echo.Context) error {
-	return c.JSON(constants.StatusOK, map[string]string{
+	return fmt.Errorf("send test response: %w", c.JSON(constants.StatusOK, map[string]string{
 		"message": "Test endpoint working",
 		"status":  "success",
-	})
+	}))
 }
 
 // Login handles GET /login - displays the login form
@@ -147,9 +147,9 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return c.JSON(constants.StatusOK, map[string]string{
+		return fmt.Errorf("send login success response: %w", c.JSON(constants.StatusOK, map[string]string{
 			"redirect": constants.PathDashboard,
-		})
+		}))
 	}
 	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
@@ -211,10 +211,10 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return c.JSON(constants.StatusOK, map[string]string{
+		return fmt.Errorf("send signup success response: %w", c.JSON(constants.StatusOK, map[string]string{
 			"message":  constants.MsgSignupSuccess,
 			"redirect": constants.PathDashboard,
-		})
+		}))
 	}
 	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
@@ -224,7 +224,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	// Get session cookie
 	cookie, err := c.Cookie(h.SessionManager.GetCookieName())
 	if err != nil {
-		return c.Redirect(constants.StatusSeeOther, constants.PathLogin)
+		return fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
 	}
 
 	// Delete session
@@ -233,7 +233,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	// Clear session cookie
 	h.SessionManager.ClearSessionCookie(c)
 
-	return c.Redirect(constants.StatusSeeOther, constants.PathLogin)
+	return fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
 }
 
 // LoginValidation handles the login form validation schema request
@@ -241,7 +241,7 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateLoginSchema()
 
-	return c.JSON(constants.StatusOK, schema)
+	return fmt.Errorf("send login validation schema: %w", c.JSON(constants.StatusOK, schema))
 }
 
 // SignupValidation returns the validation schema for the signup form
@@ -249,7 +249,7 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateSignupSchema()
 
-	return c.JSON(constants.StatusOK, schema)
+	return fmt.Errorf("send signup validation schema: %w", c.JSON(constants.StatusOK, schema))
 }
 
 // Start initializes the auth handler.

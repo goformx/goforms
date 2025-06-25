@@ -59,7 +59,7 @@ func NewBaseHandler(
 func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, error) {
 	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
-		return nil, c.Redirect(constants.StatusSeeOther, constants.PathLogin)
+		return nil, fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
 	}
 
 	userEntity, err := h.UserService.GetUserByID(c.Request().Context(), userID)

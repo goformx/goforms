@@ -119,7 +119,8 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 	// Check if form schema is nil or empty
 	if form.Schema == nil {
 		h.Logger.Warn("form schema is nil", "form_id", form.ID)
-		return c.JSON(constants.StatusOK, map[string]any{})
+		return fmt.Errorf("handle submission error: %w",
+			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
 	}
 
 	// Generate client-side validation rules from form schema
@@ -176,7 +177,8 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Check if form schema is nil or empty
 	if form.Schema == nil {
 		h.Logger.Warn("form schema is nil", "form_id", form.ID)
-		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
+		return fmt.Errorf("handle submission error: %w",
+			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
 	}
 
 	// Process and validate submission request
@@ -188,7 +190,8 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Validate submission against form schema
 	validationResult := h.ComprehensiveValidator.ValidateForm(form.Schema, submissionData)
 	if !validationResult.IsValid {
-		return fmt.Errorf("build multiple error response: %w", h.ResponseBuilder.BuildMultipleErrorResponse(c, validationResult.Errors))
+		return fmt.Errorf("build multiple error response: %w",
+			h.ResponseBuilder.BuildMultipleErrorResponse(c, validationResult.Errors))
 	}
 
 	// Create submission

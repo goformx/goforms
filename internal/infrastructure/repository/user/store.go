@@ -98,10 +98,10 @@ func (s *Store) Update(ctx context.Context, userModel *entities.User) error {
 func (s *Store) Delete(ctx context.Context, id string) error {
 	result := s.db.WithContext(ctx).Delete(&entities.User{}, "uuid = ?", id)
 	if result.Error != nil {
-		return common.NewDatabaseError("delete", "user", id, result.Error)
+		return fmt.Errorf("delete user: %w", common.NewDatabaseError("delete", "user", id, result.Error))
 	}
 	if result.RowsAffected == 0 {
-		return common.NewNotFoundError("delete", "user", id)
+		return fmt.Errorf("delete user: %w", common.NewNotFoundError("delete", "user", id))
 	}
 	return nil
 }
@@ -111,7 +111,7 @@ func (s *Store) List(ctx context.Context, offset, limit int) ([]*entities.User, 
 	var users []*entities.User
 	result := s.db.WithContext(ctx).Order("uuid").Offset(offset).Limit(limit).Find(&users)
 	if result.Error != nil {
-		return nil, common.NewDatabaseError("list", "user", "", result.Error)
+		return nil, fmt.Errorf("list users: %w", common.NewDatabaseError("list", "user", "", result.Error))
 	}
 	return users, nil
 }
@@ -157,7 +157,7 @@ func (s *Store) Count(ctx context.Context) (int, error) {
 	var count int64
 	result := s.db.WithContext(ctx).Model(&entities.User{}).Count(&count)
 	if result.Error != nil {
-		return 0, common.NewDatabaseError("count", "user", "", result.Error)
+		return 0, fmt.Errorf("count users: %w", common.NewDatabaseError("count", "user", "", result.Error))
 	}
 	return int(count), nil
 }
@@ -168,9 +168,11 @@ func (s *Store) GetByUsername(ctx context.Context, username string) (*entities.U
 	result := s.db.WithContext(ctx).Where("username = ?", username).First(&u)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, common.NewNotFoundError("get_by_username", "user", username)
+			return nil, fmt.Errorf("get user by username: %w",
+				common.NewNotFoundError("get_by_username", "user", username))
 		}
-		return nil, common.NewDatabaseError("get_by_username", "user", username, result.Error)
+		return nil, fmt.Errorf("get user by username: %w",
+			common.NewDatabaseError("get_by_username", "user", username, result.Error))
 	}
 	return &u, nil
 }

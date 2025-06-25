@@ -48,9 +48,10 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		return h.handleFormCreationError(c, err)
 	}
 
-	return fmt.Errorf("build success response: %w", h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
-		"form_id": form.ID,
-	}))
+	return fmt.Errorf("build success response: %w",
+		h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
+			"form_id": form.ID,
+		}))
 }
 
 // handleEdit displays the form editing page
@@ -73,7 +74,8 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	data.Form = form
 	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/pages/form-builder.ts")
 
-	return fmt.Errorf("render edit form: %w", pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer))
+	return fmt.Errorf("render edit form: %w",
+		pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer))
 }
 
 // handleUpdate processes form update requests
@@ -100,9 +102,10 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
-	return fmt.Errorf("build success response: %w", h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
-		"form_id": form.ID,
-	}))
+	return fmt.Errorf("build success response: %w",
+		h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
+			"form_id": form.ID,
+		}))
 }
 
 // handleDelete processes form deletion requests
@@ -148,7 +151,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	data.Form = form
 	data.Submissions = submissions
 
-	return h.Renderer.Render(c, pages.FormSubmissions(data))
+	return fmt.Errorf("render submissions: %w", h.Renderer.Render(c, pages.FormSubmissions(data)))
 }
 
 // handleFormCreationError handles form creation errors

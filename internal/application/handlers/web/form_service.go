@@ -65,7 +65,11 @@ func (s *FormService) DeleteForm(ctx context.Context, formID string) error {
 
 // GetFormSubmissions retrieves submissions for a form
 func (s *FormService) GetFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	return s.formService.ListFormSubmissions(ctx, formID)
+	submissions, err := s.formService.ListFormSubmissions(ctx, formID)
+	if err != nil {
+		return nil, fmt.Errorf("list form submissions: %w", err)
+	}
+	return submissions, nil
 }
 
 // LogFormAccess logs form access for debugging

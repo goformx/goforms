@@ -3,6 +3,7 @@
 package response
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -17,16 +18,16 @@ type APIResponse struct {
 
 // Success sends a successful response with the given data
 func Success(c echo.Context, data any) error {
-	return c.JSON(http.StatusOK, APIResponse{
+	return fmt.Errorf("send success response: %w", c.JSON(http.StatusOK, APIResponse{
 		Success: true,
 		Data:    data,
-	})
+	}))
 }
 
 // ErrorResponse sends an error response with a custom status code
 func ErrorResponse(c echo.Context, statusCode int, message string) error {
-	return c.JSON(statusCode, APIResponse{
+	return fmt.Errorf("send error response: %w", c.JSON(statusCode, APIResponse{
 		Success: false,
 		Message: message,
-	})
+	}))
 }

@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -55,7 +56,7 @@ func (h *PageHandler) handleHome(c echo.Context) error {
 
 	// Check if user is authenticated and redirect to dashboard
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
+		return fmt.Errorf("redirect to dashboard: %w", c.Redirect(constants.StatusSeeOther, constants.PathDashboard))
 	}
 
 	// User is not authenticated, render home page
@@ -74,11 +75,11 @@ func (h *PageHandler) handleDemo(c echo.Context) error {
 
 	// Check if user is authenticated and redirect to dashboard
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
+		return fmt.Errorf("redirect to dashboard: %w", c.Redirect(constants.StatusSeeOther, constants.PathDashboard))
 	}
 
 	// User is not authenticated, render demo page
-	return h.Renderer.Render(c, pages.Demo(data))
+	return fmt.Errorf("render demo page: %w", h.Renderer.Render(c, pages.Demo(data)))
 }
 
 // Start initializes the page handler.

@@ -143,15 +143,16 @@ func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message strin
 		userID = ""
 	}
 	if h.isAJAXRequest(c) {
-		return c.JSON(statusCode, map[string]any{
+		return fmt.Errorf("send error response: %w", c.JSON(statusCode, map[string]any{
 			"error":      "INTERNAL_ERROR",
 			"message":    message,
 			"request_id": requestID,
 			"user_id":    userID,
-		})
+		}))
 	}
 
-	return fmt.Errorf("redirect to error page: %w", c.Redirect(http.StatusSeeOther, fmt.Sprintf("/error?message=%s", message)))
+	return fmt.Errorf("redirect to error page: %w",
+		c.Redirect(http.StatusSeeOther, fmt.Sprintf("/error?message=%s", message)))
 }
 
 // getStatusCode maps error codes to HTTP status codes

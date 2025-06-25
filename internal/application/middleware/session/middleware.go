@@ -216,9 +216,9 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 
 		if isAPIRequest || acceptsJSON {
 			// Return JSON error response for API requests
-			return c.JSON(http.StatusUnauthorized, map[string]string{
+			return fmt.Errorf("send unauthorized response: %w", c.JSON(http.StatusUnauthorized, map[string]string{
 				"error": message,
-			})
+			}))
 		}
 
 		// For web requests, redirect to login

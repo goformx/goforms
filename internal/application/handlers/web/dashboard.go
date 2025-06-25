@@ -41,7 +41,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	if !ok {
 		// This should not happen if auth middleware is working correctly
 		h.Logger.Error("user not found in context despite authentication")
-		return c.Redirect(http.StatusSeeOther, constants.PathLogin)
+		return fmt.Errorf("redirect to login: %w", c.Redirect(http.StatusSeeOther, constants.PathLogin))
 	}
 
 	// Get forms for the user
