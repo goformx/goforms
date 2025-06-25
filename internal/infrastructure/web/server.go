@@ -60,6 +60,11 @@ func (s *DevelopmentAssetServer) RegisterRoutes(e *echo.Echo) error {
 		http.StripPrefix("/fonts/", http.FileServer(http.Dir(filepath.Join(publicDir, "fonts")))),
 	))
 
+	// Serve Form.io fonts from the expected path to fix 404 errors
+	e.GET("/node_modules/@formio/js/dist/fonts/*", echo.WrapHandler(
+		http.StripPrefix("/node_modules/@formio/js/dist/fonts/", http.FileServer(http.Dir(filepath.Join(publicDir, "fonts")))),
+	))
+
 	s.logger.Info("development asset server configured",
 		"public_dir", publicDir,
 	)
@@ -112,6 +117,11 @@ func (s *EmbeddedAssetServer) RegisterRoutes(e *echo.Echo) error {
 
 	// Serve fonts using the file server - strip the /assets/fonts prefix and serve from fonts directory
 	e.GET("/assets/fonts/*", echo.WrapHandler(http.StripPrefix("/assets/fonts/", fontHandler)))
+
+	// Serve Form.io fonts from the expected path to fix 404 errors
+	e.GET("/node_modules/@formio/js/dist/fonts/*", echo.WrapHandler(
+		http.StripPrefix("/node_modules/@formio/js/dist/fonts/", fontHandler),
+	))
 
 	// Serve individual files from embedded filesystem
 	e.GET("/robots.txt", func(c echo.Context) error {

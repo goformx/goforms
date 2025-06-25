@@ -44,7 +44,6 @@ export class EnhancedFormHandler {
     ) {
       ValidationHandler.setupRealTimeValidation(
         this.form,
-        this.config.validationType,
         this.config.validationDelay,
       );
     }
@@ -126,7 +125,7 @@ export class EnhancedFormHandler {
       Logger.debug("EnhancedFormHandler: Starting form validation");
       const isValid = await ValidationHandler.validateFormSubmission(
         this.form,
-        this.config.validationType,
+        this.formId,
       );
 
       if (!isValid) {

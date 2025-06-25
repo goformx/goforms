@@ -8,20 +8,13 @@ export class ValidationHandler {
   /**
    * Sets up real-time validation for form inputs with debouncing
    */
-  static setupRealTimeValidation(
-    form: HTMLFormElement,
-    validationType: string,
-    delay = 300,
-  ): void {
+  static setupRealTimeValidation(form: HTMLFormElement, delay = 300): void {
     const inputs = form.querySelectorAll<HTMLInputElement>("input[id]");
 
     inputs.forEach((input) => {
       input.addEventListener(
         "input",
-        debounce(
-          () => this.handleInputValidation(input, form, validationType),
-          delay,
-        ),
+        debounce(() => this.handleInputValidation(input, form), delay),
       );
     });
   }
@@ -32,13 +25,12 @@ export class ValidationHandler {
   private static async handleInputValidation(
     input: HTMLInputElement,
     form: HTMLFormElement,
-    validationType: string,
   ): Promise<void> {
     try {
       validation.clearError(input.id);
       UIManager.setAriaInvalid(input.id, false);
 
-      const result = await validation.validateForm(form, validationType);
+      const result = await validation.validateForm(form, form.id);
 
       if (!result.success && result.error?.errors) {
         result.error.errors.forEach((err) => {
@@ -59,13 +51,13 @@ export class ValidationHandler {
    */
   static async validateFormSubmission(
     form: HTMLFormElement,
-    validationType: string,
+    schemaName: string,
   ): Promise<boolean> {
     validation.clearAllErrors();
     UIManager.resetAriaInvalid(form);
 
     try {
-      const result = await validation.validateForm(form, validationType);
+      const result = await validation.validateForm(form, schemaName);
       if (!result.success) {
         throw result.error;
       }

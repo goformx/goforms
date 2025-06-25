@@ -3,12 +3,14 @@ import goforms from "@goformx/formio";
 import { FormService } from "@/features/forms/services/form-service";
 import { setupBuilderEvents } from "@/features/forms/handlers/builder-events";
 import { setupViewSchemaButton } from "@/features/forms/components/form-builder/view-schema-button";
+import { setupSaveFieldsButton } from "@/features/forms/components/form-builder/save-fields-button";
 
 // Import Form.io styles
 import "@formio/js/dist/formio.full.min.css";
 
 // Import our modules
 import { FormBuilderError } from "@/core/errors/form-builder-error";
+import { Logger } from "@/core/logger";
 import { dom } from "@/shared/utils/dom-utils";
 import {
   validateFormBuilder,
@@ -36,6 +38,9 @@ async function initializeFormBuilder(): Promise<void> {
 
     // Set up View Schema button
     setupViewSchemaButton(builder);
+
+    // Set up Save Fields button
+    setupSaveFieldsButton(formId);
   } catch (error) {
     if (error instanceof FormBuilderError) {
       dom.showError(error.userMessage);
@@ -46,5 +51,9 @@ async function initializeFormBuilder(): Promise<void> {
   }
 }
 
-// Initialize the form builder
-initializeFormBuilder();
+// Initialize when DOM is ready
+document.addEventListener("DOMContentLoaded", () => {
+  initializeFormBuilder().catch((error) => {
+    Logger.error("Failed to initialize form builder:", error);
+  });
+});

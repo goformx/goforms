@@ -84,10 +84,6 @@ export async function createFormBuilder(
   schema: FormSchema,
 ): Promise<any> {
   try {
-    // Configure Formio for standalone mode (no server required)
-    Formio.setProjectUrl(null);
-    Formio.setBaseUrl(null);
-
     // Ensure schema has required properties
     const formSchema = {
       ...schema,
@@ -95,9 +91,19 @@ export async function createFormBuilder(
       components: schema.components || [],
     };
 
-    // Create builder with options
+    // Create builder with standalone configuration
     const builder = await Formio.builder(container, formSchema, {
       ...builderOptions,
+      // Standalone mode - no server communication
+      noDefaultSubmitButton: false,
+      showSchema: true,
+      showJSONEditor: true,
+      showPreview: true,
+      // Disable all project-related features
+      projectUrl: null,
+      appUrl: null,
+      apiUrl: null,
+      // Disable project settings loading
       builder: {
         ...builderOptions.builder,
         basic: {
@@ -116,6 +122,12 @@ export async function createFormBuilder(
           },
         },
       },
+      // Disable all server communication
+      noAlerts: true,
+      readOnly: false,
+      // Prevent project settings requests
+      project: null,
+      settings: null,
     });
 
     // Store builder instance in state management instead of global window

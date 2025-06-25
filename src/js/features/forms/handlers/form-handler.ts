@@ -17,15 +17,11 @@ export function setupForm(config: FormConfig): void {
     return;
   }
 
-  validation.setupRealTimeValidation(form.id, config.validationType);
-  ValidationHandler.setupRealTimeValidation(
-    form,
-    config.validationType,
-    config.validationDelay,
-  );
+  validation.setupRealTimeValidation(form.id, config.formId);
+  ValidationHandler.setupRealTimeValidation(form, config.validationDelay);
 
   form.addEventListener("submit", (event) =>
-    handleFormSubmission(event, form, config.validationType),
+    handleFormSubmission(event, form, config.formId),
   );
 }
 
@@ -35,14 +31,14 @@ export function setupForm(config: FormConfig): void {
 async function handleFormSubmission(
   event: Event,
   form: HTMLFormElement,
-  validationType: string,
+  schemaName: string,
 ): Promise<void> {
   event.preventDefault();
 
   try {
     const isValid = await ValidationHandler.validateFormSubmission(
       form,
-      validationType,
+      schemaName,
     );
 
     if (!isValid) {
