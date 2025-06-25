@@ -1,3 +1,5 @@
+// Package errors provides domain-specific error types and utilities for
+// consistent error handling across the application.
 package errors
 
 import (

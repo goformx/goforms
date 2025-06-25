@@ -351,6 +351,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Session timeout must be handled gracefully",
 			impact:      "Critical for user experience",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session timeout
 				t.Log("Session timeout must redirect to login")
 				t.Log("User must be informed about session expiration")
@@ -362,6 +363,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Database errors must be handled gracefully",
 			impact:      "Critical for system reliability",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test database errors
 				t.Log("Database errors must not expose sensitive information")
 				t.Log("Database errors must be logged appropriately")
@@ -395,6 +397,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 			description: "Authentication must integrate with middleware",
 			requirement: "Auth middleware must work with Echo framework",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test middleware integration
 				t.Log("Auth middleware must be properly registered")
 				t.Log("Auth middleware must handle all protected routes")
@@ -406,6 +409,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 			description: "Authentication must integrate with database",
 			requirement: "User data must be stored and retrieved correctly",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test database integration
 				t.Log("User creation must store data in database")
 				t.Log("User lookup must retrieve data from database")
@@ -417,6 +421,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 			description: "Authentication events must be logged",
 			requirement: "Security events must be recorded",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test logging integration
 				t.Log("Login attempts must be logged")
 				t.Log("Failed login attempts must be logged")

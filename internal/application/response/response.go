@@ -1,3 +1,5 @@
+// Package response provides HTTP response handling utilities including
+// error handling, response building, and standardized response formats.
 package response
 
 import (

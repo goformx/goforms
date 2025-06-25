@@ -1,3 +1,5 @@
+// Package sanitization provides utilities for cleaning and validating user input
+// to prevent XSS attacks, injection attacks, and other security vulnerabilities.
 package sanitization
 
 import "strings"

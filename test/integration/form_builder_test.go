@@ -117,6 +117,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			description: "All form builder endpoints must be protected against CSRF",
 			requirement: "PUT/POST requests must include valid CSRF token",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test CSRF protection
 				t.Log("CSRF protection must be implemented for all form builder endpoints")
 				t.Log("CSRF protection requirement documented")
@@ -127,6 +128,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			description: "All form builder endpoints must require authentication",
 			requirement: "All endpoints must check user authentication",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test authentication requirements
 				t.Log("Authentication must be required for all form builder endpoints")
 				t.Log("Authentication requirement documented")
@@ -137,6 +139,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			description: "Users can only access their own forms",
 			requirement: "Form access must be restricted to form owner",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test authorization requirements
 				t.Log("Authorization must prevent access to other users' forms")
 				t.Log("Authorization requirement documented")
@@ -147,6 +150,7 @@ func TestFormBuilderSecurityCritical(t *testing.T) {
 			description: "All form builder inputs must be validated",
 			requirement: "Schema and form data must be validated",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test input validation
 				t.Log("Input validation must prevent malicious schema data")
 				t.Log("Input validation requirement documented")
@@ -179,6 +183,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			description: "Form builder must handle network timeouts gracefully",
 			impact:      "Critical for user experience during slow connections",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test timeout handling
 				t.Log("Network timeouts must be handled with user-friendly messages")
 				t.Log("Timeout handling requirement documented")
@@ -189,6 +194,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			description: "Form builder must handle invalid schema gracefully",
 			impact:      "Critical for preventing data corruption",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test invalid schema handling
 				t.Log("Invalid schema must be rejected with clear error messages")
 				t.Log("Schema validation requirement documented")
@@ -199,6 +205,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			description: "Form builder must handle permission errors appropriately",
 			impact:      "Critical for security and user experience",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test permission error handling
 				t.Log("Permission errors must be handled with appropriate messages")
 				t.Log("Permission handling requirement documented")
@@ -209,6 +216,7 @@ func TestFormBuilderErrorHandlingCritical(t *testing.T) {
 			description: "Form builder must handle server errors gracefully",
 			impact:      "Critical for system reliability",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test server error handling
 				t.Log("Server errors must be handled with retry options")
 				t.Log("Server error handling requirement documented")
