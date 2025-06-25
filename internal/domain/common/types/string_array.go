@@ -1,3 +1,5 @@
+// Package types provides custom domain types and utilities for handling
+// specialized data structures used throughout the application.
 package types
 
 import (

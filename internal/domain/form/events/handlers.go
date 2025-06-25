@@ -1,3 +1,5 @@
+// Package form provides form-related domain events and event handling
+// functionality for managing form lifecycle and state changes.
 package form
 
 import (
