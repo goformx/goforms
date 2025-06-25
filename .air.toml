@@ -4,7 +4,7 @@ tmp_dir = "tmp"
 
 [build]
   # Commands to run before building
-  pre_cmd = []
+  pre_cmd = ["task generate:templ"]
   # Build command - match Taskfile build command
   cmd = "go build -ldflags '-s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version=dev -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime=dev -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit=dev -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion=dev' -o ./tmp/main main.go"
   # Binary file yields from `cmd`

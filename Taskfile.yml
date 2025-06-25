@@ -140,9 +140,9 @@ tasks:
     - air -c .air.toml
 
   dev:frontend:
-    desc: Run frontend dev server
+    desc: Run frontend dev server with environment-based configuration
     cmds:
-    - npx vite --host 0.0.0.0 --port 3000
+    - npx vite --host {{.GOFORMS_VITE_DEV_HOST | default "0.0.0.0"}} --port {{.GOFORMS_VITE_DEV_PORT | default "3000"}}
 
   clean:
     desc: Remove generated artifacts and dependencies
