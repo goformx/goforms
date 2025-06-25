@@ -72,14 +72,14 @@ func setupHandlers(
 
 // setupApplication initializes the application by setting up middleware
 // and registering all web handlers.
-func setupApplication(params *appParams) error {
+func setupApplication(params appParams) error {
 	params.MiddlewareManager.Setup(params.Echo)
 	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
 }
 
 // setupLifecycle configures the application lifecycle hooks for startup and shutdown.
 // It logs application information and manages server startup in a goroutine.
-func setupLifecycle(params *appParams) {
+func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			versionInfo := version.GetInfo()

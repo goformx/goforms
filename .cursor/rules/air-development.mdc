@@ -1,0 +1,288 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# Air Development Workflow
+
+## Overview
+This project uses Air for hot reloading during Go development, providing automatic rebuilds and restarts when source files change. Air is configured to work seamlessly with the templ template system and the overall development workflow.
+
+## Air Configuration
+
+### Core Configuration (`.air.toml`)
+```toml
+root = "."
+testdata_dir = "testdata"
+tmp_dir = "tmp"
+
+[build]
+  # Pre-build commands
+  pre_cmd = ["task generate:templ"]
+  
+  # Build command with development flags
+  cmd = "go build -ldflags '-s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version=dev -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime=dev -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit=dev -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion=dev' -o ./tmp/main main.go"
+  
+  # Binary output
+  bin = "./tmp/main"
+  
+  # File extensions to watch
+  include_ext = ["go", "tpl", "tmpl", "html", "templ"]
+  
+  # Directories to exclude
+  exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules", "dist", "bin"]
+  
+  # Exclude generated files
+  exclude_regex = ["_test.go", "_templ.go", "mock_.*\\.go"]
+  
+  # Build settings
+  stop_on_error = true
+  delay = 1000
+  log = "build-errors.log"
+```
+
+### Key Features
+- **Templ Integration**: Automatically regenerates templ files before each build
+- **Development Flags**: Uses development version information
+- **Smart Exclusions**: Ignores generated files and test files
+- **Error Handling**: Stops on build errors with detailed logging
+
+## Development Workflow
+
+### Starting Development
+```bash
+# Full development environment (frontend + backend)
+task dev
+
+# Backend only with hot reload
+task dev:backend
+
+# Frontend only
+task dev:frontend
+```
+
+### Development Commands
+```bash
+# Generate code artifacts
+task generate
+
+# Build entire application
+task build
+
+# Run linters
+task lint
+
+# Run tests
+task test
+
+# Clean generated artifacts
+task clean
+```
+
+## File Watching Patterns
+
+### Watched Extensions
+- `.go` - Go source files
+- `.tpl` - Template files
+- `.tmpl` - Template files
+- `.html` - HTML files
+- `.templ` - Templ template files
+
+### Excluded Patterns
+- `_test.go` - Test files (don't trigger rebuilds)
+- `_templ.go` - Generated templ files
+- `mock_*.go` - Generated mock files
+- `tmp/` - Temporary build directory
+- `dist/` - Frontend build output
+- `node_modules/` - Frontend dependencies
+
+## Integration with Templ
+
+### Automatic Templ Generation
+Air automatically runs `task generate:templ` before each build, ensuring:
+- Templ templates are up-to-date
+- No manual regeneration needed
+- Consistent development experience
+
+### Templ File Watching
+- `.templ` files trigger rebuilds
+- Generated `_templ.go` files are excluded from watching
+- Changes to templates cause immediate application restart
+
+## Error Handling
+
+### Build Errors
+- Air stops the old binary when build errors occur
+- Errors are logged to `tmp/build-errors.log`
+- Clear error messages in the terminal
+
+### Development Flags
+```go
+// Development version information
+Version: "dev"
+BuildTime: "dev"
+GitCommit: "dev"
+GoVersion: "dev"
+```
+
+## Best Practices
+
+### 1. File Organization
+- Keep source files in `internal/`
+- Place templates in `internal/presentation/templates/`
+- Store mocks in `test/mocks/`
+- Use `tmp/` for build artifacts
+
+### 2. Development Workflow
+```bash
+# 1. Start development
+task dev
+
+# 2. Make changes to Go files or templates
+# 3. Air automatically rebuilds and restarts
+# 4. Check for errors in terminal or log file
+```
+
+### 3. Code Generation
+- Templ files are auto-generated on file changes
+- Mocks are generated with `task generate:mocks`
+- Always run `task generate` after pulling changes
+
+### 4. Error Debugging
+```bash
+# Check build errors
+cat tmp/build-errors.log
+
+# Restart Air if needed
+pkill air && task dev:backend
+
+# Clean and regenerate
+task clean && task generate
+```
+
+## Environment Configuration
+
+### Development Environment Variables
+```bash
+# Air configuration
+GOFORMS_APP_ENV=development
+GOFORMS_APP_DEBUG=true
+GOFORMS_APP_LOGLEVEL=debug
+
+# Vite development server
+GOFORMS_VITE_DEV_HOST=localhost
+GOFORMS_VITE_DEV_PORT=3000
+```
+
+### Port Configuration
+- **Backend**: 8090 (configurable via `GOFORMS_APP_PORT`)
+- **Frontend**: 3000 (configurable via `GOFORMS_VITE_DEV_PORT`)
+- **Air**: Uses backend port for the running application
+
+## Troubleshooting
+
+### Common Issues
+
+#### 1. Build Errors
+```bash
+# Check the build log
+cat tmp/build-errors.log
+
+# Regenerate code artifacts
+task generate
+
+# Clean and rebuild
+task clean && task build
+```
+
+#### 2. Air Not Restarting
+```bash
+# Check if Air is running
+ps aux | grep air
+
+# Restart Air
+pkill air && task dev:backend
+```
+
+#### 3. Templ Files Not Updating
+```bash
+# Manually regenerate templ files
+task generate:templ
+
+# Check templ file syntax
+templ generate --help
+```
+
+#### 4. Port Conflicts
+```bash
+# Check what's using the port
+lsof -i :8090
+
+# Kill conflicting processes
+pkill -f goforms
+```
+
+### Performance Optimization
+
+#### 1. Exclude Unnecessary Files
+```toml
+# Add to .air.toml if needed
+exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules", "dist", "bin", "coverage"]
+```
+
+#### 2. Adjust Watch Delay
+```toml
+# Increase delay if too many rebuilds
+delay = 2000
+```
+
+#### 3. Use Polling (if needed)
+```toml
+# Enable polling for certain file systems
+poll = true
+poll_interval = 1000
+```
+
+## Integration with Other Tools
+
+### VS Code Integration
+- Air works alongside VS Code Go extension
+- File watching doesn't conflict with VS Code
+- Use `task dev:backend` in integrated terminal
+
+### Docker Development
+```bash
+# For Docker development, use different Air config
+air -c .air.docker.toml
+```
+
+### CI/CD Integration
+- Air is development-only, not used in CI
+- Use `task build` for production builds
+- Use `task test` for testing
+
+## Monitoring and Logging
+
+### Air Logs
+- Build errors: `tmp/build-errors.log`
+- Application logs: Terminal output
+- Templ generation: Automatic and silent
+
+### Development Metrics
+- Rebuild frequency
+- Build time
+- Error rate
+- File change patterns
+
+## Security Considerations
+
+### Development vs Production
+- Air is development-only
+- Never use Air in production
+- Development flags provide no sensitive information
+- Use proper environment variables for secrets
+
+### File Watching Security
+- Only watches source code directories
+- Excludes sensitive directories
+- No file system access outside project

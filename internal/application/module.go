@@ -77,7 +77,7 @@ func (d *Dependencies) Validate() error {
 }
 
 // NewHandlerDeps creates handler dependencies
-func NewHandlerDeps(deps *Dependencies) (*web.HandlerDeps, error) {
+func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 	if err := deps.Validate(); err != nil {
 		return nil, err
 	}
@@ -123,7 +123,7 @@ func provideRecoveryMiddleware(logger logging.Logger, sanitizer sanitization.Ser
 }
 
 // New creates a new application instance
-func New(lc fx.Lifecycle, deps *Dependencies) *Application {
+func New(lc fx.Lifecycle, deps Dependencies) *Application {
 	app := &Application{
 		logger:           deps.Logger,
 		config:           deps.Config,
