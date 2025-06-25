@@ -203,8 +203,8 @@ tasks:
   test:
     desc: Run all tests (frontend + backend)
     cmds:
-      - task: test:frontend
-      - task: test:backend
+    - task: test:frontend
+    - task: test:backend
 
   test:frontend:
     desc: Run frontend tests
@@ -280,8 +280,8 @@ tasks:
       - package.json
       - package-lock.json
     cmds:
-    - npm audit --audit-level=moderate
-      ignore_error: true
+      - cmd: npm audit --audit-level=moderate
+        ignore_error: true
 
   pre-commit:
     desc: Pre-commit quality checks
