@@ -1,134 +1,85 @@
-# golangci-lint v2 configuration for Go 1.24+ (2025)
-version: 2
-
+version: "2"
 run:
-  timeout: 5m
   go: "1.24"
   modules-download-mode: readonly
   allow-parallel-runners: true
-  skip-dirs:
-    - vendor
-    - third_party
-    - .git
-    - test/mocks
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - ".*_templ\\.go$"
-    - "mock_.*\\.go$"
-
-output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
-  sort-results: true
-
-formatters:
-  enable:
-    - gofmt
-    - goimports
-  settings:
-    gofmt:
-      simplify: true
-      rewrite-rules:
-        - pattern: 'interface{}'
-          replacement: 'any'
-    goimports:
-      local-prefixes: github.com/goformx/goforms
-
 linters:
-  default: standard
   enable:
-    # Core analysis
-    - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    
-    # Style and formatting
-    - revive
-    - gocritic
-    
-    # Complexity and maintainability
-    - gocyclo
+    - bodyclose
+    - contextcheck
+    - errorlint
+    - forcetypeassert
     - funlen
     - gocognit
-    - nestif
-    
-    # Security
-    - gosec
-    
-    # Performance
-    - prealloc
-    
-    # Best practices
-    - unconvert
-    - unparam
-    - nakedret
     - goconst
-    - misspell
-    - lll
-    - whitespace
-    
-    # Error handling
-    - errorlint
-    - wrapcheck
-    
-    # Testing
-    - testpackage
-    - thelper
-    - testifylint
-    
-    # Go 1.18+ specific
-    - contextcheck
-    - nilerr
-    - nolintlint
-    - predeclared
-    - forcetypeassert
-    - tagliatelle
-    
-    # Additional quality checks
-    - bodyclose
+    - gocritic
+    - gocyclo
     - goheader
     - goprintffuncname
+    - gosec
+    - lll
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
     - rowserrcheck
     - sqlclosecheck
-
+    - tagliatelle
+    - testifylint
+    - testpackage
+    - thelper
+    - unconvert
+    - unparam
+    - whitespace
+    - wrapcheck
   settings:
     errcheck:
       check-type-assertions: true
       check-blank: true
-      exclude-functions:
-        - fmt.Print
-        - fmt.Println
-        - fmt.Printf
-
-    govet:
-      enable-all: true
-      disable:
-        - fieldalignment # Can be noisy for structs
-
-    gocyclo:
-      min-complexity: 15
-
-    goimports:
-      local-prefixes: github.com/goformx/goforms
-      skip-generated: true
-
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    goconst:
+      min-len: 3
+      min-occurrences: 3
     gocritic:
+      disabled-checks:
+        - ifElseChain
+        - singleCaseSwitch
       enabled-tags:
         - diagnostic
         - style
         - performance
         - experimental
-      disabled-checks:
-        - ifElseChain
-        - singleCaseSwitch
-
+    gocyclo:
+      min-complexity: 15
+    gosec:
+      severity: medium
+      confidence: medium
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    lll:
+      line-length: 120
+    misspell:
+      locale: US
+    nakedret:
+      max-func-lines: 30
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+    prealloc:
+      simple: true
+      range-loops: true
+      for-loops: false
     revive:
-      min-confidence: 0.8
       rules:
         - name: blank-imports
         - name: context-as-argument
@@ -153,280 +104,48 @@ linters:
         - name: unused-parameter
         - name: unreachable-code
         - name: redefines-builtin-id
-
     staticcheck:
-      checks: ["all"]
-
-    gosec:
-      severity: medium
-      confidence: medium
-      excludes:
-        - G108 # Profiling endpoint automatically exposed
-        - G204 # Subprocess launched with variable
-      config:
-        G306: "0644"
-
-    goconst:
-      min-len: 3
-      min-occurrences: 3
-      ignore-tests: true
-
-    misspell:
-      locale: US
-      ignore-words:
-        - cancelled
-
-    lll:
-      line-length: 120
-      tab-width: 4
-
+      checks:
+        - all
+    tagliatelle:
+      case:
+        rules:
+          avro: snake
+          bson: camel
+          json: snake
+          mapstructure: kebab
+          xml: camel
+          yaml: snake
+        use-field-name: true
+    unparam:
+      check-exported: false
     unused:
       field-writes-are-uses: true
       post-statements-are-reads: true
-      exported-is-used: true
-      exported-fields-are-used: true
       parameters-are-used: true
       local-variables-are-used: true
-
-    unparam:
-      check-exported: false
-
-    nakedret:
-      max-func-lines: 30
-
-    prealloc:
-      simple: true
-      range-loops: true
-      for-loops: false
-
-    nolintlint:
-      allow-unused: false
-      allow-no-explanation: []
-      require-explanation: true
-      require-specific: true
-
-    testpackage:
-      skip-regexp: (export|internal)_test\.go
-
-    thelper:
-      test:
-        first: true
-        name: true
-        begin: true
-      benchmark:
-        first: true
-        name: true
-        begin: true
-
     wrapcheck:
-      # Ignore common patterns where error wrapping is not needed
-      ignoreSigs:
-        # Standard library functions that don't need wrapping
+      ignore-sigs:
         - .Errorf(
         - errors.New(
         - errors.Unwrap(
         - .Wrap(
         - .Wrapf(
-        - encoding/json.Marshal(
-        - encoding/json.Unmarshal(
-        - time.Parse(
-        - golang.org/x/crypto/bcrypt.GenerateFromPassword(
-        - (*database/sql.DB).PingContext(
-        # Echo framework - these are HTTP responses, not internal errors
-        - (github.com/labstack/echo/v4.Context).JSON(
-        - (github.com/labstack/echo/v4.Context).Redirect(
-        - (github.com/labstack/echo/v4.Context).NoContent(
-        - (github.com/labstack/echo/v4.Context).Bind(
-        # Validation functions
-        - (*github.com/go-playground/validator/v10.Validate).Var(
-        - (*github.com/go-playground/validator/v10.Validate).RegisterValidation(
-        # JSON decoding
-        - (*encoding/json.Decoder).Decode(
-        # IO operations that are typically wrapped at higher level
-        - (io.Writer).Write(
-        # Templ component rendering
-        - (github.com/a-h/templ.Component).Render(
-        # Domain error wrapping - already wrapped
-        - github.com/goformx/goforms/internal/domain/common/errors.WrapError(
-        # External libraries
-        - github.com/mrz1836/go-sanitize.Domain(
-        # Infrastructure functions
-        - github.com/goformx/goforms/internal/infrastructure/validation.New(
-      # Ignore files where wrapcheck should be less strict  
-      ignorePackageGlobs:
-        - "*/test/*"
-        - "*_test.go"
-        - "*/internal/domain/*"  # Domain layer should propagate errors up
-      # Ignore interface methods in certain packages
-      ignoreInterfaceRegexps:
-        - "github.com/labstack/echo/v4"
-        - "github.com/goformx/goforms/internal/presentation/view"
-        - "github.com/goformx/goforms/internal/application/response"
-        - "github.com/goformx/goforms/internal/application/handlers/web"
-        - "github.com/goformx/goforms/internal/domain/.*"
-        - "github.com/goformx/goforms/internal/infrastructure/.*"
-
-    errorlint:
-      errorf: true
-      asserts: true
-      comparison: true
-
-    forcetypeassert:
-      use-type-assert: false
-
-    tagliatelle:
-      case:
-        use-field-name: true
-        rules:
-          json: snake
-          yaml: snake
-          xml: camel
-          bson: camel
-          avro: snake
-          mapstructure: kebab
-
   exclusions:
-    max-issues-per-linter: 50
-    max-same-issues: 10
-    new: false
-    fix: true  # Enable auto-fixing
-    
-    rules:
-      # Exclude mockgen generated files from all linters
-      - path: test/mocks/
-        linters: [all]
-      - path: mock_.*\.go$
-        linters: [all]
-      
-      # Exclude templ generated files from all linters
-      - path: _templ\.go$
-        linters: [all]
-      
-      # Exclude some linters from running on tests files
-      - path: _test\.go
-        linters:
-          - gocyclo
-          - errcheck
-          - dupl
-          - gosec
-          - funlen
-          - goconst
-          - gocognit
-          - scopelint
-          - lll
-          - wrapcheck  # Don't require error wrapping in tests
-      
-      # Exclude some staticcheck messages
-      - linters: [staticcheck]
-        text: "SA9003:"
-      
-      # Exclude lll issues for long lines with go:generate
-      - linters: [lll]
-        source: "^//go:generate "
-      
-      # Exclude gosec for test files
-      - path: _test\.go
-        text: "G404:"
-        linters: [gosec]
-      
-      # Allow embed globals, templ components, and mock interfaces
-      - linters: [gochecknoglobals]
-        source: "//go:embed"
-      - linters: [gochecknoglobals]
-        source: "func.*templ\\.Component"
-      - linters: [gochecknoglobals]
-        path: test/mocks/
-      
-      # Enforce mock file location policy - flag mocks outside test/mocks/
-      - linters: [revive]
-        path: ".*_mock\\.go$"
-        text: "Mock files must be in test/mocks/ directory"
-      - linters: [revive] 
-        path: ".*\\.mock\\.go$"
-        text: "Mock files must be in test/mocks/ directory"
-      - linters: [revive]
-        path: ".*/mocks/.*\\.go$"
-        text: "Mock files must be in test/mocks/ directory"
-      - linters: [revive]
-        path: ".*/mock/.*\\.go$" 
-        text: "Mock files must be in test/mocks/ directory"
-
-      # Exclude wrapcheck for specific patterns
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*github.com/labstack/echo/v4.Context"
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*Renderer.*Render"
-      - linters: [wrapcheck]  
-        text: "error returned from interface method should be wrapped.*ErrorHandler"
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*ResponseBuilder"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*session.Manager.*CreateSession"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*encoding/json.*Decode"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*common.New.*Error"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*response.ErrorResponse"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*response.Success"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*Validate.*Var"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*RegisterValidation"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*Server.*Start"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*Form.*Validate"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*FormSubmission.*Validate"
-      # Domain layer - errors should propagate up without wrapping
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*github.com/goformx/goforms/internal/domain"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*encoding/json.Marshal"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*encoding/json.Unmarshal"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*golang.org/x/crypto/bcrypt"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*time.Parse"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*database/sql"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*go-sanitize"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*github.com/goformx/goforms/internal/infrastructure/validation.New"
-      - linters: [wrapcheck]
-        text: "error returned from external package is unwrapped.*github.com/goformx/goforms/internal/domain/common/errors.WrapError"
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*templ.Component.*Render"
-      # Application layer handler interfaces
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*Handler.*Start"
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*Handler.*Stop"
-      - linters: [wrapcheck]
-        text: "error returned from interface method should be wrapped.*Storage.*Save"
-
-      # FX-specific exclusions for proper dependency injection patterns
-      # Exclude hugeParam warnings for fx.In structs and FX dependency injection patterns
-      - linters: [gocritic]
-        text: "hugeParam: .* is heavy \\(\\d+ bytes\\); consider passing it by pointer"
-        source: "fx\\.In"
-      - linters: [gocritic]
-        text: "hugeParam: params is heavy"
-      - linters: [gocritic]
-        text: "hugeParam: deps is heavy"
-      - linters: [gocritic]
-        text: "hugeParam: d is heavy"
-      - linters: [gocritic]
-        text: "paramTypeCombine: .*fx\\.In.*could be replaced"
-
-    exclude:
-      - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
-      - "should have a package comment, unless it's in another file for this package"
-
-severity:
-  default-severity: error
-  case-sensitive: false
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
