@@ -409,6 +409,20 @@ linters:
       - linters: [wrapcheck]
         text: "error returned from interface method should be wrapped.*Storage.*Save"
 
+      # FX-specific exclusions for proper dependency injection patterns
+      # Exclude hugeParam warnings for fx.In structs and FX dependency injection patterns
+      - linters: [gocritic]
+        text: "hugeParam: .* is heavy \\(\\d+ bytes\\); consider passing it by pointer"
+        source: "fx\\.In"
+      - linters: [gocritic]
+        text: "hugeParam: params is heavy"
+      - linters: [gocritic]
+        text: "hugeParam: deps is heavy"
+      - linters: [gocritic]
+        text: "hugeParam: d is heavy"
+      - linters: [gocritic]
+        text: "paramTypeCombine: .*fx\\.In.*could be replaced"
+
     exclude:
       - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
       - "should have a package comment, unless it's in another file for this package"
