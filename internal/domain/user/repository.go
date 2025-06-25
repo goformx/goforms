@@ -1,4 +1,6 @@
 // Package user provides user repository interfaces for domain persistence.
+//
+//go:generate mockgen -typed -source=repository.go -destination=../../../test/mocks/user/mock_repository.go -package=user
 package user
 
 import (

@@ -1,3 +1,5 @@
+//go:generate mockgen -typed -source=service.go -destination=../../../test/mocks/form/mock_service.go -package=form -mock_names=Service=MockService
+
 // Package form provides form-related domain services and business logic.
 // It includes form creation, validation, submission handling, and related operations.
 package form

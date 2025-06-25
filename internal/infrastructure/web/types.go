@@ -1,6 +1,8 @@
 // Package web provides utilities for handling web assets in the application.
 // It supports both development mode (using Vite dev server) and production mode
 // (using built assets from the Vite manifest).
+//
+//go:generate mockgen -typed -source=types.go -destination=../../../test/mocks/web/mock_web.go -package=web
 package web
 
 import (

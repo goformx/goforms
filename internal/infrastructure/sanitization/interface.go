@@ -1,5 +1,7 @@
 // Package sanitization provides utilities for cleaning and validating user input
 // to prevent XSS attacks, injection attacks, and other security vulnerabilities.
+//
+//go:generate mockgen -typed -source=interface.go -destination=../../../test/mocks/sanitization/mock_service.go -package=sanitization -mock_names=ServiceInterface=MockService
 package sanitization
 
 // ServiceInterface defines the interface for sanitization operations

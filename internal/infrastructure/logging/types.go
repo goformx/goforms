@@ -1,4 +1,6 @@
 // Package logging provides a unified logging interface
+//
+//go:generate mockgen -typed -source=types.go -destination=../../../test/mocks/logging/mock_logger.go -package=logging
 package logging
 
 const (

@@ -5,7 +5,7 @@ go 1.24
 toolchain go1.24.2
 
 require (
-	github.com/a-h/templ v0.3.898
+	github.com/a-h/templ v0.3.906
 	github.com/go-playground/validator/v10 v10.26.0
 	github.com/google/uuid v1.6.0
 	github.com/kelseyhightower/envconfig v1.4.0
