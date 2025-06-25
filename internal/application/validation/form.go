@@ -4,8 +4,9 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 const (
@@ -30,7 +31,7 @@ func NewFormValidator(logger logging.Logger) *FormValidator {
 func (fv *FormValidator) ValidateFormID(c echo.Context) (string, error) {
 	formID := c.Param("id")
 	if formID == "" {
-		return "", errors.New("Form ID is required")
+		return "", errors.New("form ID is required")
 	}
 	return formID, nil
 }

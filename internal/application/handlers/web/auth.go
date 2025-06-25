@@ -5,6 +5,8 @@ import (
 	"errors"
 	"time"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
@@ -14,7 +16,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // AuthHandler handles authentication-related requests

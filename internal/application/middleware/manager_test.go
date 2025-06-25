@@ -5,9 +5,10 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+
+	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 )
 
 func TestManager_SetsCSPHeader(t *testing.T) {

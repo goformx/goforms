@@ -4,12 +4,13 @@ import (
 	"embed"
 	"testing"
 
-	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/web"
-	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/web"
+	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 )
 
 func TestDevelopmentAssetResolver(t *testing.T) {

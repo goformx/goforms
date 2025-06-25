@@ -36,18 +36,19 @@ func (sg *SchemaGenerator) getFieldSchema(field reflect.StructField) map[string]
 
 	// Set type and message based on validation rules
 	if validate != "" {
-		if validate == "required,email" {
+		switch validate {
+		case "required,email":
 			fieldSchema["type"] = "email"
 			fieldSchema["message"] = "Please enter a valid email address"
-		} else if validate == "required" {
+		case "required":
 			fieldSchema["type"] = "string"
 			fieldSchema["message"] = "This field is required"
-		} else if validate == "required,min=8" {
+		case "required,min=8":
 			fieldSchema["type"] = "password"
 			fieldSchema["min"] = "8"
 			fieldSchema["message"] = "Password must be at least 8 characters long and include " +
 				"uppercase, lowercase, number, and special characters"
-		} else if validate == "required,eqfield=password" {
+		case "required,eqfield=password":
 			fieldSchema["type"] = "match"
 			fieldSchema["matchField"] = "password"
 			fieldSchema["message"] = "Passwords don't match"

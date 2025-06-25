@@ -5,12 +5,13 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/goformx/goforms/internal/application/handlers/web"
-	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
-	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/application/handlers/web"
+	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/form/model"
 )
 
 func setupTestFormErrorHandler() (web.FormErrorHandler, *echo.Echo) {

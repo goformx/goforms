@@ -10,9 +10,10 @@ import (
 	"net/http/httputil"
 	"net/url"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 // ViteAssetServer implements AssetServer for Vite development server

@@ -22,7 +22,8 @@ const (
 	AssetTypeImage AssetType = "image"
 	// AssetTypeFont represents font files
 	AssetTypeFont AssetType = "font"
-	MaxPathLength           = 100
+	// MaxPathLength represents the maximum allowed path length
+	MaxPathLength = 100
 )
 
 // Asset-related errors

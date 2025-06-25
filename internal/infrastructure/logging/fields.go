@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging/sensitive"
 	"github.com/mrz1836/go-sanitize"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/goformx/goforms/internal/infrastructure/logging/sensitive"
 )
 
 // Sensitive creates a field that automatically masks sensitive data

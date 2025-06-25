@@ -4,8 +4,9 @@ import (
 	stderrors "errors"
 	"testing"
 
-	"github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/goformx/goforms/internal/domain/common/errors"
 )
 
 func TestWrapErrorAndUnwrap(t *testing.T) {

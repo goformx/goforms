@@ -2,6 +2,8 @@
 package middleware
 
 import (
+	"go.uber.org/fx"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
@@ -11,7 +13,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"go.uber.org/fx"
 )
 
 // Module provides all middleware dependencies

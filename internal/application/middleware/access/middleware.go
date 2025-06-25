@@ -3,10 +3,11 @@ package access
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 // Middleware creates a new access control middleware

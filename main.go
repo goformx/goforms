@@ -14,6 +14,8 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
@@ -25,7 +27,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/presentation"
-	"github.com/labstack/echo/v4"
 )
 
 //go:embed all:dist

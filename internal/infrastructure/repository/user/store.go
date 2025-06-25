@@ -6,12 +6,13 @@ import (
 	"errors"
 	"strconv"
 
+	"gorm.io/gorm"
+
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/repository/common"
-	"gorm.io/gorm"
 )
 
 // Store implements user.Repository interface

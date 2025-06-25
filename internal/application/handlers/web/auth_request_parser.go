@@ -1,8 +1,9 @@
 package web
 
 import (
-	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/domain/user"
 )
 
 type AuthRequestParser struct{}

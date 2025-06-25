@@ -3,9 +3,10 @@ package health
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/infrastructure/health"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 // Handler handles health check requests

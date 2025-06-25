@@ -7,8 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/application/constants"
 )
 
 // TestAuthenticationCriticalFlow tests the critical authentication flow
@@ -195,6 +196,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be cleared on logout",
 			requirement: "Logout must invalidate session and clear cookies",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session cleanup
 				t.Log("Logout must clear session data")
 				t.Log("Logout must set expired session cookie")
@@ -206,6 +208,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be secure",
 			requirement: "Session cookies must have secure attributes",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session security
 				t.Log("Session cookies must be HttpOnly")
 				t.Log("Session cookies must be Secure in production")
@@ -240,6 +243,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Passwords must be securely hashed",
 			requirement: "Use bcrypt or similar secure hashing algorithm",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test password hashing
 				t.Log("Passwords must never be stored in plain text")
 				t.Log("Password hashing must use appropriate cost factor")
@@ -251,6 +255,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Login attempts must be rate limited",
 			requirement: "Prevent brute force attacks on login",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test rate limiting
 				t.Log("Login attempts must be limited per IP address")
 				t.Log("Rate limiting must have appropriate time windows")
@@ -262,6 +267,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Authentication forms must be protected against CSRF",
 			requirement: "All forms must include CSRF tokens",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test CSRF protection
 				t.Log("Login and signup forms must include CSRF tokens")
 				t.Log("CSRF tokens must be validated on form submission")
@@ -273,6 +279,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Authentication inputs must be validated",
 			requirement: "Prevent injection attacks and invalid data",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test input validation
 				t.Log("Email addresses must be validated")
 				t.Log("Passwords must meet complexity requirements")

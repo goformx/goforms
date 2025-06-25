@@ -3,9 +3,10 @@ package config_test
 import (
 	"testing"
 
-	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/infrastructure/config"
 )
 
 func TestSecurityConfig_DefaultsAndValidation(t *testing.T) {

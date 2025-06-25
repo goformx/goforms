@@ -1,3 +1,5 @@
+// Package events provides event handling infrastructure for the domain layer.
+// It includes interfaces and implementations for event publishing and handling.
 package events
 
 import (

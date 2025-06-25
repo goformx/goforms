@@ -4,10 +4,11 @@ package logging
 import (
 	"fmt"
 
-	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
-	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
 // Factory creates loggers based on configuration

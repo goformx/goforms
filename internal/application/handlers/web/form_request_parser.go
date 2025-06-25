@@ -4,9 +4,10 @@ package web
 import (
 	"strings"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/labstack/echo/v4"
 )
 
 // FormRequestParser handles parsing and sanitizing form requests

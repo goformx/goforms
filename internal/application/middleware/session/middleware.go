@@ -5,10 +5,11 @@ import (
 	"strings"
 	"time"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
-	"github.com/labstack/echo/v4"
 )
 
 // Middleware creates a new session middleware
@@ -114,7 +115,7 @@ func (sm *Manager) shouldSkipSession(path string) bool {
 	}
 
 	// Skip session processing for development tool endpoints
-	if sm.config.Config.App.Env == "development" && (strings.HasPrefix(path, "/.well-known/") ||
+	if sm.config.App.Env == "development" && (strings.HasPrefix(path, "/.well-known/") ||
 		strings.HasPrefix(path, "/debug/") ||
 		strings.HasPrefix(path, "/dev/")) {
 		return true

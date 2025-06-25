@@ -7,12 +7,13 @@ import (
 	"fmt"
 	"math"
 
+	"gorm.io/gorm"
+
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/repository/common"
-	"gorm.io/gorm"
 )
 
 // Store implements repository.Repository for form submissions

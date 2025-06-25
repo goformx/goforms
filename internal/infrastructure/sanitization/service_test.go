@@ -3,9 +3,10 @@ package sanitization_test
 import (
 	"testing"
 
-	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
 func TestNewService(t *testing.T) {

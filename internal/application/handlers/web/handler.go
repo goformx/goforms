@@ -5,6 +5,8 @@ import (
 	"errors"
 	"fmt"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/form"
@@ -12,7 +14,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // Handler defines the interface for web handlers.

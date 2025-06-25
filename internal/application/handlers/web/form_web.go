@@ -4,13 +4,14 @@ package web
 import (
 	"context"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/labstack/echo/v4"
 )
 
 // Default CORS settings for forms
@@ -141,8 +142,8 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 
 // handleNewFormValidation returns the validation schema for the new form
 func (h *FormWebHandler) handleNewFormValidation(c echo.Context) error {
-	schema := map[string]interface{}{
-		"title": map[string]interface{}{
+	schema := map[string]any{
+		"title": map[string]any{
 			"type":    "required",
 			"message": "Form title is required",
 		},

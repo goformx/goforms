@@ -134,7 +134,7 @@ func TestRenderer_InterfaceCompliance(t *testing.T) {
 	logger := mocklogging.NewMockLogger(ctrl)
 	renderer := view.NewRenderer(logger)
 
-	var _ view.Renderer = renderer
+	var _ = renderer
 }
 
 func TestRenderer_Construction(t *testing.T) {

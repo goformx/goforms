@@ -1,3 +1,5 @@
+// Package form provides form-related domain services and business logic.
+// It includes form creation, validation, submission handling, and related operations.
 package form
 
 import (
@@ -6,11 +8,12 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
+
 	"github.com/goformx/goforms/internal/domain/common/events"
 	formevents "github.com/goformx/goforms/internal/domain/form/events"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/google/uuid"
 )
 
 const (

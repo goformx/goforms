@@ -314,7 +314,7 @@ func (db *GormDB) collectAndLogMetrics() {
 
 // addDatabaseSpecificMetrics adds database-specific metrics to the metrics map
 func (db *GormDB) addDatabaseSpecificMetrics(metrics map[string]any) {
-	switch db.DB.Dialector.Name() {
+	switch db.Name() {
 	case "postgres":
 		db.addPostgresMetrics(metrics)
 	case "mysql":

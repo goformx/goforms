@@ -7,15 +7,16 @@ import (
 	"regexp"
 	"testing"
 
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	mockform "github.com/goformx/goforms/test/mocks/form"
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
-	"github.com/labstack/echo/v4"
-	"github.com/stretchr/testify/assert"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 func TestPerFormCORS(t *testing.T) {

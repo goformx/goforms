@@ -9,9 +9,10 @@ import (
 	"path/filepath"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"go.uber.org/fx"
 )
 
 // NewManager creates a new session manager
@@ -22,7 +23,7 @@ func NewManager(
 	accessManager *access.AccessManager,
 ) *Manager {
 	// Create tmp directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(cfg.StoreFile), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cfg.StoreFile), 0o750); err != nil {
 		logger.Error("failed to create session directory", "error", err)
 	}
 

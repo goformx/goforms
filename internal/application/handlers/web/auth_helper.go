@@ -2,9 +2,10 @@
 package web
 
 import (
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/labstack/echo/v4"
 )
 
 // AuthHelper handles common authentication and authorization patterns

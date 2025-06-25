@@ -3,8 +3,9 @@ package request
 import (
 	"encoding/json"
 
-	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
 // Utils provides common request processing utilities

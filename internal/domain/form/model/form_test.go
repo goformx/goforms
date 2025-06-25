@@ -3,8 +3,9 @@ package model_test
 import (
 	"testing"
 
-	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/domain/form/model"
 )
 
 func TestForm_Validate(t *testing.T) {

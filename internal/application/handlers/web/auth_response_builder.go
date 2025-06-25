@@ -3,9 +3,10 @@ package web
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 type AuthResponseBuilder struct {

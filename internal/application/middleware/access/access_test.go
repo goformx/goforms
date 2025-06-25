@@ -3,10 +3,11 @@ package access_test
 import (
 	"testing"
 
-	"github.com/goformx/goforms/internal/application/constants"
-	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/application/constants"
+	"github.com/goformx/goforms/internal/application/middleware/access"
 )
 
 func TestAccessManager_IsPublicPath(t *testing.T) {

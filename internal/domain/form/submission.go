@@ -1,3 +1,5 @@
+// Package form provides form submission handling and related domain logic.
+// It includes submission validation, processing, and data management.
 package form
 
 import (

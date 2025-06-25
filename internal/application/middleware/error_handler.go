@@ -1,10 +1,11 @@
 package middleware
 
 import (
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/labstack/echo/v4"
 )
 
 // ErrorHandlerMiddleware returns a middleware that uses the unified error handler

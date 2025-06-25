@@ -7,6 +7,8 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
@@ -21,7 +23,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // Dependencies holds all application dependencies
