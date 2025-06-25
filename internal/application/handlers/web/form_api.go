@@ -25,6 +25,7 @@ type FormAPIHandler struct {
 	ComprehensiveValidator *validation.ComprehensiveValidator
 }
 
+// NewFormAPIHandler creates a new FormAPIHandler.
 func NewFormAPIHandler(
 	base *BaseHandler,
 	formService formdomain.Service,
@@ -48,6 +49,7 @@ func NewFormAPIHandler(
 	}
 }
 
+// RegisterRoutes registers API routes for forms.
 func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 	api := e.Group(constants.PathAPIv1)
 	formsAPI := api.Group(constants.PathForms)
@@ -78,7 +80,7 @@ func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
 	formsAPI.POST("/:id/submit", h.handleFormSubmit)
 }
 
-// Register satisfies the Handler interface
+// Register registers the FormAPIHandler with the Echo instance.
 func (h *FormAPIHandler) Register(e *echo.Echo) {
 	// Routes are registered by RegisterHandlers function
 	// This method is required to satisfy the Handler interface

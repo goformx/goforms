@@ -9,10 +9,12 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
+// AuthResponseBuilder builds authentication responses.
 type AuthResponseBuilder struct {
 	Renderer view.Renderer
 }
 
+// NewAuthResponseBuilder creates a new AuthResponseBuilder.
 func NewAuthResponseBuilder(renderer view.Renderer) *AuthResponseBuilder {
 	return &AuthResponseBuilder{Renderer: renderer}
 }

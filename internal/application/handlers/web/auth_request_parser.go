@@ -6,8 +6,10 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 )
 
+// AuthRequestParser parses authentication requests.
 type AuthRequestParser struct{}
 
+// NewAuthRequestParser creates a new AuthRequestParser.
 func NewAuthRequestParser() *AuthRequestParser {
 	return &AuthRequestParser{}
 }

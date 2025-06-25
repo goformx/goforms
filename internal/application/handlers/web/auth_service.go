@@ -8,11 +8,13 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 )
 
+// AuthService provides authentication services.
 type AuthService struct {
 	UserService    user.Service
 	SessionManager *session.Manager
 }
 
+// NewAuthService creates a new AuthService.
 func NewAuthService(userService user.Service, sessionManager *session.Manager) *AuthService {
 	return &AuthService{
 		UserService:    userService,

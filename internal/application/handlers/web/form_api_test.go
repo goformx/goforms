@@ -86,7 +86,7 @@ func (m *mockFormService) TrackFormAnalytics(ctx context.Context, formID, eventT
 	return nil
 }
 
-func (m *mockFormService) LogFormAccess(form *model.Form) {
+func (m *mockFormService) LogFormAccess(_ *model.Form) {
 	// Mock implementation
 }
 

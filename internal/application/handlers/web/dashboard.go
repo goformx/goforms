@@ -11,11 +11,13 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
+// DashboardHandler handles dashboard routes.
 type DashboardHandler struct {
 	*BaseHandler
 	AccessManager *access.Manager
 }
 
+// NewDashboardHandler creates a new DashboardHandler.
 func NewDashboardHandler(base *BaseHandler, accessManager *access.Manager) *DashboardHandler {
 	return &DashboardHandler{
 		BaseHandler:   base,
@@ -23,6 +25,7 @@ func NewDashboardHandler(base *BaseHandler, accessManager *access.Manager) *Dash
 	}
 }
 
+// Register registers dashboard routes.
 func (h *DashboardHandler) Register(e *echo.Echo) {
 	// Create dashboard group with access control
 	dashboard := e.Group(constants.PathDashboard)

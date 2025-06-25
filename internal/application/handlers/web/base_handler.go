@@ -106,6 +106,6 @@ func (h *BaseHandler) Stop(ctx context.Context) error {
 }
 
 // Register provides default route registration
-func (h *BaseHandler) Register(e *echo.Echo) {
+func (h *BaseHandler) Register(_ *echo.Echo) {
 	// Default implementation - routes registered by RegisterHandlers
 }
