@@ -1,3 +1,5 @@
+// Package metrics provides application metrics collection and reporting
+// functionality for monitoring application performance and health.
 package metrics
 
 import (
