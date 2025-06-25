@@ -26,7 +26,10 @@ document.addEventListener("DOMContentLoaded", () => {
       },
     };
 
-    Logger.debug("login.ts: Creating EnhancedFormHandler with config:", formConfig);
+    Logger.debug(
+      "login.ts: Creating EnhancedFormHandler with config:",
+      formConfig,
+    );
     new EnhancedFormHandler(formConfig);
     Logger.debug("login.ts: EnhancedFormHandler created successfully");
   } catch (error) {

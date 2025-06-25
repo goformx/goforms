@@ -2,6 +2,15 @@ import { Logger } from "@/core/logger";
 import { FormBuilderError } from "@/core/errors/form-builder-error";
 
 /**
+ * Standardized API response structure
+ */
+export interface ApiResponse<T = unknown> {
+  success: boolean;
+  message?: string;
+  data?: T;
+}
+
+/**
  * HTTP request options with AbortController support
  */
 export interface HttpRequestOptions extends RequestInit {
@@ -71,7 +80,23 @@ export class HttpClient {
       data = null as T;
     } else {
       try {
-        data = JSON.parse(text) as T;
+        const parsed = JSON.parse(text) as ApiResponse<T>;
+
+        // Handle standardized API response format
+        if (parsed && typeof parsed === "object" && "success" in parsed) {
+          if (!parsed.success) {
+            throw FormBuilderError.networkError(
+              parsed.message ?? "API request failed",
+              response.url,
+              response.status,
+            );
+          }
+          // Return the data field from the standardized response
+          data = parsed.data as T;
+        } else {
+          // Handle legacy response format (direct data)
+          data = parsed as T;
+        }
       } catch (parseError) {
         // If JSON parsing fails, return the text
         Logger.warn("Failed to parse JSON response, returning text:", text);
