@@ -1,3 +1,5 @@
+// Package auth provides authentication middleware and utilities for
+// protecting routes and managing user authentication state.
 package auth
 
 import (

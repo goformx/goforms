@@ -1,3 +1,5 @@
+// Package validation provides comprehensive form validation utilities
+// for validating form schemas, submissions, and generating client-side rules.
 package validation
 
 import (
