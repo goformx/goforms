@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
   try {
     const config: FormConfig = {
-      formId: "login-form",
+      formId: "user-login",
       validationType: "onSubmit",
     };
 

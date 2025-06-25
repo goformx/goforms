@@ -216,8 +216,8 @@ func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
 	// API routes with validation
 	api := e.Group(constants.PathAPIV1)
 	validationGroup := api.Group(constants.PathValidation)
-	validationGroup.GET(constants.PathLogin, h.LoginValidation)
-	validationGroup.GET(constants.PathSignup, h.SignupValidation)
+	validationGroup.GET("/user-login", h.LoginValidation)
+	validationGroup.GET("/user-signup", h.SignupValidation)
 }
 
 // registerWebRoutes registers public web routes

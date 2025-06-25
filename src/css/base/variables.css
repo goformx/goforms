@@ -204,6 +204,17 @@
   --form-focus-bg: var(--background-alt);
   --form-textarea-min-height: 120px;
 
+  /* Form Panel */
+  --form-panel-bg: #ffffff;
+  --form-panel-padding: 2.5rem;
+  --form-panel-padding-mobile: 1.5rem;
+  --form-panel-radius: 16px;
+  --form-panel-border: 1px solid var(--border-color);
+  --form-panel-shadow: 0 8px 32px rgba(0, 0, 0, 0.08);
+  --form-panel-backdrop-blur: 12px;
+  --form-panel-width: 100%;
+  --form-panel-max-width: 600px;
+
   /* Cards */
   --card-padding: 2rem;
   --card-padding-mobile: 1.5rem;
@@ -355,5 +366,6 @@
     --scrollbar-thumb-hover: rgba(255, 255, 255, 0.2);
     --background-hover: rgba(30, 41, 59, 0.7);
     --border-color-hover: rgba(255, 255, 255, 0.2);
+    --form-panel-bg: #1e293b;
   }
 }

@@ -70,6 +70,11 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Acce
 	forms.DELETE("/:id", h.handleDelete)
 	forms.GET("/:id/submissions", h.handleSubmissions)
 	forms.GET("/:id/preview", h.handlePreview)
+
+	// API routes with validation
+	api := e.Group(constants.PathAPIV1)
+	validationGroup := api.Group(constants.PathValidation)
+	validationGroup.GET("/new-form", h.handleNewFormValidation)
 }
 
 // Register satisfies the Handler interface
@@ -132,4 +137,21 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 
 	// Render form preview template
 	return h.Renderer.Render(c, pages.FormPreview(data, form))
+}
+
+// handleNewFormValidation returns the validation schema for the new form
+func (h *FormWebHandler) handleNewFormValidation(c echo.Context) error {
+	schema := map[string]interface{}{
+		"title": map[string]interface{}{
+			"type":    "required",
+			"message": "Form title is required",
+		},
+		"description": map[string]interface{}{
+			"type":    "string",
+			"max":     1000,
+			"message": "Description must be 1000 characters or less",
+		},
+	}
+
+	return c.JSON(200, schema)
 }

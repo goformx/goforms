@@ -12,7 +12,7 @@ import type { FormConfig } from "@/shared/types/form-types";
 document.addEventListener("DOMContentLoaded", () => {
   try {
     const config: FormConfig = {
-      formId: "signup-form",
+      formId: "user-signup",
       validationType: "onSubmit",
     };
 

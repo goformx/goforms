@@ -13,7 +13,7 @@ import { HttpClient } from "@/core/http-client";
  */
 export class EnhancedFormHandler {
   private form: HTMLFormElement;
-  private validationType: string;
+  private formId: string;
 
   constructor(config: FormConfig) {
     Logger.debug("EnhancedFormHandler: Initializing with config:", config);
@@ -29,13 +29,13 @@ export class EnhancedFormHandler {
     Logger.debug("EnhancedFormHandler: Form action:", formElement.action);
 
     this.form = formElement;
-    this.validationType = config.validationType;
+    this.formId = config.formId;
 
-    this.initialize(config);
+    this.initialize();
   }
 
-  private initialize(config: FormConfig): void {
-    validation.setupRealTimeValidation(this.form.id, config.validationType);
+  private initialize(): void {
+    validation.setupRealTimeValidation(this.form.id, this.formId);
 
     this.form.addEventListener("submit", (event) =>
       this.handleFormSubmission(event),
@@ -111,7 +111,7 @@ export class EnhancedFormHandler {
       Logger.debug("EnhancedFormHandler: Starting form validation");
       const isValid = await ValidationHandler.validateFormSubmission(
         this.form,
-        this.validationType,
+        this.formId,
       );
 
       if (!isValid) {
