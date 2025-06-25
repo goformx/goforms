@@ -1,8 +1,11 @@
+import { Logger } from "@/core/logger";
+
 /**
  * Centralized error management for form validation and display
  */
 export class ErrorManager {
   static showFieldError(fieldId: string, message: string): void {
+    Logger.debug("Showing field error", { fieldId, message });
     this.clearFieldError(fieldId);
 
     const input = document.getElementById(fieldId) as HTMLInputElement;
@@ -11,14 +14,24 @@ export class ErrorManager {
     if (input) {
       input.classList.add("error");
       input.setAttribute("aria-invalid", "true");
+      Logger.debug("Added error class to input", { fieldId });
+    } else {
+      Logger.warn("Input element not found", { fieldId });
     }
 
     if (errorElement) {
       errorElement.textContent = message;
+      Logger.debug("Set error message", { fieldId, message });
+    } else {
+      Logger.warn("Error element not found", {
+        fieldId,
+        errorElementId: `${fieldId}_error`,
+      });
     }
   }
 
   static clearFieldError(fieldId: string): void {
+    Logger.debug("Clearing field error", { fieldId });
     const input = document.getElementById(fieldId) as HTMLInputElement;
     const errorElement = document.getElementById(`${fieldId}_error`);
 

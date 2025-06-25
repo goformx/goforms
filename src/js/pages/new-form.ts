@@ -17,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
   try {
     const config: FormConfig = {
       formId: "new-form",
-      validationType: "onSubmit",
+      validationType: "realtime",
     };
 
     Logger.debug(

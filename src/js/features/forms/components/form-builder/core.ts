@@ -39,11 +39,19 @@ export function validateFormBuilder(): {
  * Schema management
  */
 export async function getFormSchema(formId: string): Promise<FormSchema> {
-  // For new form creation, return a default schema
+  // For new form creation, return a default schema with submit button
   if (formId === "new") {
     return {
       display: "form",
-      components: [],
+      components: [
+        {
+          type: "button",
+          key: "submit",
+          label: "Submit",
+          input: true,
+          required: false,
+        },
+      ],
     };
   }
 
@@ -90,7 +98,6 @@ export async function createFormBuilder(
     // Create builder with options
     const builder = await Formio.builder(container, formSchema, {
       ...builderOptions,
-      noDefaultSubmitButton: true,
       builder: {
         ...builderOptions.builder,
         basic: {

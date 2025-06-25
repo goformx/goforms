@@ -44,28 +44,47 @@ export const validation = {
     formId: string,
     schemaName: string,
   ): Promise<void> {
+    Logger.debug("Setting up real-time validation", { formId, schemaName });
+
     const form = document.getElementById(formId) as HTMLFormElement;
-    if (!form) return;
+    if (!form) {
+      Logger.error("Form not found", { formId });
+      return;
+    }
 
     let schema = schemaCache[schemaName];
     if (!schema) {
+      Logger.debug("Fetching validation schema", { schemaName });
       schema = await getValidationSchema(schemaName);
       schemaCache[schemaName] = schema;
     }
-    if (!schema || !(schema instanceof z.ZodObject)) return;
+    if (!schema || !(schema instanceof z.ZodObject)) {
+      Logger.error("Invalid schema", { schemaName, schemaType: typeof schema });
+      return;
+    }
 
     const schemaFields = schema.shape as Record<string, z.ZodType>;
+    Logger.debug("Setting up validation for fields", {
+      fields: Object.keys(schemaFields),
+    });
+
     Object.keys(schemaFields).forEach((fieldId) => {
       const input = document.getElementById(fieldId);
-      if (!input) return;
+      if (!input) {
+        Logger.warn("Input field not found", { fieldId });
+        return;
+      }
 
+      Logger.debug("Adding input listener", { fieldId });
       input.addEventListener("input", () => {
+        Logger.debug("Input event triggered", { fieldId });
         validation.clearError(fieldId);
         const value = (input as HTMLInputElement).value;
         const fieldSchema = schemaFields[fieldId];
 
         // Skip validation for empty fields during real-time validation
         if (!value && fieldId !== "password") {
+          Logger.debug("Skipping validation for empty field", { fieldId });
           return;
         }
 
@@ -82,7 +101,13 @@ export const validation = {
         if (fieldSchema instanceof z.ZodType) {
           const result = fieldSchema.safeParse(value);
           if (!result.success) {
+            Logger.debug("Validation failed", {
+              fieldId,
+              error: result.error.errors[0].message,
+            });
             validation.showError(fieldId, result.error.errors[0].message);
+          } else {
+            Logger.debug("Validation passed", { fieldId });
           }
         }
       });
