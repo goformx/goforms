@@ -117,7 +117,9 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	if err != nil {
 		h.Logger.Error("failed to parse login request", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
+			return h.ResponseBuilder.AJAXError(
+				c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest,
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
@@ -129,7 +131,9 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	if err != nil {
 		h.Logger.Error("login failed", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials)
+			return h.ResponseBuilder.AJAXError(
+				c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials,
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
@@ -162,7 +166,11 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	if err != nil {
 		h.Logger.Error("failed to parse signup request", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
+			return h.ResponseBuilder.AJAXError(
+				c,
+				constants.StatusBadRequest,
+				constants.ErrMsgInvalidRequest,
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
@@ -174,10 +182,19 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	if err != nil {
 		h.Logger.Error("signup failed", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, "Unable to create account. Please try again.")
+			return h.ResponseBuilder.AJAXError(
+				c,
+				constants.StatusBadRequest,
+				"Unable to create account. Please try again.",
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
-		return h.ResponseBuilder.HTMLFormError(c, "signup", data, "Unable to create account. Please try again.")
+		return h.ResponseBuilder.HTMLFormError(
+			c,
+			"signup",
+			data,
+			"Unable to create account. Please try again.",
+		)
 	}
 
 	h.SessionManager.SetSessionCookie(c, sessionID)

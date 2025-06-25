@@ -45,7 +45,11 @@ func (h *FormErrorHandlerImpl) HandleSubmissionError(c echo.Context, err error) 
 	case errors.Is(err, model.ErrSubmissionNotFound):
 		return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Submission not found")
 	default:
-		return h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to process form submission")
+		return h.responseBuilder.BuildErrorResponse(
+			c,
+			http.StatusInternalServerError,
+			"Failed to process form submission",
+		)
 	}
 }
 

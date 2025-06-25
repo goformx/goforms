@@ -292,6 +292,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Authentication pages must have secure headers",
 			requirement: "Set appropriate security headers",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test secure headers
 				t.Log("Authentication pages must set Content-Security-Policy")
 				t.Log("Authentication pages must set X-Frame-Options")
@@ -326,6 +327,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Invalid login credentials must be handled gracefully",
 			impact:      "Critical for user experience and security",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test invalid credentials
 				t.Log("Invalid credentials must show appropriate error message")
 				t.Log("Error message must not reveal if user exists")
@@ -337,6 +339,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Account lockout must be handled appropriately",
 			impact:      "Critical for security and user experience",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test account lockout
 				t.Log("Account lockout must be temporary")
 				t.Log("Lockout must be communicated clearly to user")

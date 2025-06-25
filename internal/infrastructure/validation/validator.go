@@ -218,7 +218,11 @@ func (v *validatorImpl) Struct(i any) error {
 					Value:   e.Value(),
 				}
 			}
-			err = domainerrors.New(domainerrors.ErrCodeValidation, "validation failed", ValidationErrors(validationErrors))
+			err = domainerrors.New(
+				domainerrors.ErrCodeValidation,
+				"validation failed",
+				ValidationErrors(validationErrors),
+			)
 		}
 		// Cache the error
 		v.cache.Store(cacheKey, err)

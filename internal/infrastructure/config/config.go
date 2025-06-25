@@ -150,9 +150,10 @@ type RateLimitConfig struct {
 
 // SecurityHeadersConfig holds security headers configuration
 type SecurityHeadersConfig struct {
-	XFrameOptions           string `envconfig:"GOFORMS_SECURITY_X_FRAME_OPTIONS" default:"DENY"`
-	XContentTypeOptions     string `envconfig:"GOFORMS_SECURITY_X_CONTENT_TYPE_OPTIONS" default:"nosniff"`
-	XXSSProtection          string `envconfig:"GOFORMS_SECURITY_X_XSS_PROTECTION" default:"1; mode=block"`
+	XFrameOptions       string `envconfig:"GOFORMS_SECURITY_X_FRAME_OPTIONS" default:"DENY"`
+	XContentTypeOptions string `envconfig:"GOFORMS_SECURITY_X_CONTENT_TYPE_OPTIONS" default:"nosniff"`
+	XXSSProtection      string `envconfig:"GOFORMS_SECURITY_X_XSS_PROTECTION" default:"1; mode=block"`
+	//nolint:lll // This is a valid header
 	ReferrerPolicy          string `envconfig:"GOFORMS_SECURITY_REFERRER_POLICY" default:"strict-origin-when-cross-origin"`
 	StrictTransportSecurity string `envconfig:"GOFORMS_SECURITY_HSTS" default:"max-age=31536000; includeSubDomains"`
 }

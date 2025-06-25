@@ -41,7 +41,11 @@ func (h *HealthHandler) HandleHealthCheck(c echo.Context) error {
 	// Check database connectivity
 	if err := h.db.PingContext(c.Request().Context()); err != nil {
 		h.logger.Error("health check failed", "error", err, "component", "database")
-		return response.ErrorResponse(c, http.StatusServiceUnavailable, "Service is not healthy: database connection failed")
+		return response.ErrorResponse(
+			c,
+			http.StatusServiceUnavailable,
+			"Service is not healthy: database connection failed",
+		)
 	}
 
 	// Return health status
