@@ -1,3 +1,4 @@
+// Package services provides application-level services such as health checks.
 package services
 
 import (

@@ -1,3 +1,4 @@
+// Package view provides types and utilities for rendering page data and templates.
 package view
 
 import (

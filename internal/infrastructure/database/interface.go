@@ -1,3 +1,4 @@
+// Package database provides database connection and ORM utilities for the application.
 package database
 
 import (

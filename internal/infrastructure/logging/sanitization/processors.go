@@ -1,3 +1,4 @@
+// Package sanitization provides utilities for sanitizing log fields and sensitive data in logs.
 package sanitization
 
 import (

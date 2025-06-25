@@ -1,3 +1,4 @@
+// Package event defines domain events and event interfaces for form-related actions.
 package event
 
 import (

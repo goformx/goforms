@@ -1,3 +1,4 @@
+// Package user provides user repository interfaces for domain persistence.
 package user
 
 import (

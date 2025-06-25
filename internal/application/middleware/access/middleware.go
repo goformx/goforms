@@ -1,3 +1,4 @@
+// Package access provides access control middleware and utilities for the application.
 package access
 
 import (

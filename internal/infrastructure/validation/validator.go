@@ -1,3 +1,4 @@
+// Package validation provides infrastructure-level validation utilities and interfaces.
 package validation
 
 import (

@@ -1,3 +1,4 @@
+// Package model contains domain models and error definitions for forms.
 package model
 
 import (

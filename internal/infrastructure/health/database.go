@@ -1,3 +1,4 @@
+// Package health provides health check utilities for infrastructure components such as the database.
 package health
 
 import (

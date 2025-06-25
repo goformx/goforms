@@ -1,3 +1,4 @@
+// Package context provides middleware utilities for managing request context and user authentication state.
 package context
 
 import (

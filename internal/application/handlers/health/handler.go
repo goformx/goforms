@@ -1,3 +1,4 @@
+// Package health provides HTTP handlers for health checks and application status endpoints.
 package health
 
 import (

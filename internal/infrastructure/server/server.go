@@ -1,3 +1,4 @@
+// Package server provides HTTP server setup and lifecycle management for the application.
 package server
 
 import (
