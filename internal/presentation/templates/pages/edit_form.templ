@@ -138,6 +138,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 							<div class="form-group">
 								<label for="cors_origins">Allowed Origins (comma-separated)</label>
 								<input type="text" id="cors_origins" name="cors_origins" class="gf-input" placeholder="e.g. *,https://example.com" value={ shared.GetCorsOriginsString(form.CorsOrigins) } />
+								<small class="form-help">Required when publishing. Use * to allow all origins, or specify domains like https://example.com</small>
 							</div>
 
 							<div class="form-actions">
@@ -253,9 +254,22 @@ if data.IsDevelopment {
 <script>
 document.addEventListener('DOMContentLoaded', function() {
 	const form = document.getElementById('edit-form');
+	const statusSelect = document.getElementById('status');
+	const corsOriginsInput = document.getElementById('cors_origins');
+	
 	if (form) {
 		form.addEventListener('submit', async function(e) {
 			e.preventDefault();
+			
+			// Validate CORS origins if status is published
+			if (statusSelect.value === 'published') {
+				const corsOrigins = corsOriginsInput.value.trim();
+				if (!corsOrigins) {
+					alert('CORS origins are required when publishing a form.');
+					corsOriginsInput.focus();
+					return;
+				}
+			}
 			
 			const submitBtn = form.querySelector('button[type="submit"]');
 			const originalText = submitBtn.innerHTML;

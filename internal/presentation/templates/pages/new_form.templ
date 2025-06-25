@@ -29,21 +29,9 @@ templ newFormContent(data view.PageData) {
 						<div id="title_error" class="error-message"></div>
 					</div>
 
-					<div class="gf-form-group">
-						<label for="description" class="gf-label">Description</label>
-						<textarea id="description" name="description" class="gf-input" rows="3"
-							placeholder="Enter form description"></textarea>
-						<div id="description_error" class="error-message"></div>
-					</div>
-
-					<div class="gf-form-group">
-						<label for="cors_origins" class="gf-label">Allowed Origins (comma-separated)</label>
-						<input type="text" id="cors_origins" name="cors_origins" class="gf-input" placeholder="e.g. *,https://example.com"/>
-						<div id="cors_origins_error" class="error-message"></div>
-					</div>
-
 					<div class="form-actions">
-						<button type="submit" class="gf-button gf-button--primary">Create Form</button>
+						<button type="submit" class="btn btn-primary">Create Form</button>
+						<a href="/dashboard" class="btn btn-secondary">Cancel</a>
 					</div>
 				</form>
 			</div>
