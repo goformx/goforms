@@ -62,13 +62,13 @@ func (m *AssetManager) AssetPath(path string) string {
 	resolvedPath, err := m.ResolveAssetPath(ctx, path)
 	if err != nil {
 		m.logger.Error("failed to resolve asset path",
-			"path", path,
+			"asset_path", path,
 			"error", err,
 		)
 		return ""
 	}
 
-	m.logger.Debug("asset resolved", "path", path, "resolved", resolvedPath)
+	m.logger.Debug("asset resolved", "asset_path", path, "resolved", resolvedPath)
 	return resolvedPath
 }
 

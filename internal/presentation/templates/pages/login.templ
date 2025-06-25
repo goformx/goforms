@@ -20,7 +20,7 @@ templ loginContent(data view.PageData) {
 					<h2 class="form-title">Sign in to your account</h2>
 				</div>
 
-				<form id="login-form" class="form" method="POST" action="/login" data-validate="login">
+				<form id="user-login" class="form" method="POST" action="/login" data-validate="login">
 					<div class="form-error"></div>
 
 					<div class="gf-form-group">
@@ -92,28 +92,4 @@ templ loginContent(data view.PageData) {
 
 <script type="module" src={ data.AssetPath("src/js/features/forms/validation/validation.ts") }></script>
 <script type="module" src={ data.AssetPath("src/js/pages/login.ts") }></script>
-}
-
-templ LoginPage(data view.PageData) {
-@components.LoginForm(data)
-}
-
-templ LoginWithError(data view.PageData, errorMessage string) {
-@layouts.Layout(data, loginContentWithError(data, errorMessage))
-}
-
-templ loginContentWithError(data view.PageData, errorMessage string) {
-<div class="auth-page">
-	<div class="auth-content">
-		<div class="auth-container">
-			<div class="auth-form-container">
-				<div class="auth-header">
-					<h2 class="auth-title">Sign in to your account</h2>
-				</div>
-				<div class="form-error">{ errorMessage }</div>
-				@components.LoginForm(data)
-			</div>
-		</div>
-	</div>
-</div>
 }
