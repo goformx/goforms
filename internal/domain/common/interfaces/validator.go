@@ -1,3 +1,5 @@
+// Package interfaces provides common interfaces used throughout the domain layer
+// for validation, repositories, and other cross-cutting concerns.
 package interfaces
 
 import "github.com/go-playground/validator/v10"

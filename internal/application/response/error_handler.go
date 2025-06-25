@@ -155,43 +155,62 @@ func (h *ErrorHandler) handleUnknownError(_ error, c echo.Context, message strin
 
 // getStatusCode maps error codes to HTTP status codes
 func (h *ErrorHandler) getStatusCode(code domainerrors.ErrorCode) int {
-	switch code {
-	case domainerrors.ErrCodeValidation, domainerrors.ErrCodeRequired, domainerrors.ErrCodeInvalid,
-		domainerrors.ErrCodeInvalidFormat, domainerrors.ErrCodeInvalidInput:
-		return http.StatusBadRequest
-	case domainerrors.ErrCodeUnauthorized, domainerrors.ErrCodeAuthentication:
-		return http.StatusUnauthorized
-	case domainerrors.ErrCodeForbidden, domainerrors.ErrCodeInsufficientRole:
-		return http.StatusForbidden
-	case domainerrors.ErrCodeNotFound:
-		return http.StatusNotFound
-	case domainerrors.ErrCodeConflict, domainerrors.ErrCodeAlreadyExists:
-		return http.StatusConflict
-	case domainerrors.ErrCodeBadRequest:
-		return http.StatusBadRequest
-	case domainerrors.ErrCodeServerError:
-		return http.StatusInternalServerError
-	case domainerrors.ErrCodeStartup, domainerrors.ErrCodeShutdown:
-		return http.StatusServiceUnavailable
-	case domainerrors.ErrCodeConfig, domainerrors.ErrCodeDatabase:
-		return http.StatusInternalServerError
-	case domainerrors.ErrCodeTimeout:
-		return http.StatusGatewayTimeout
-	case domainerrors.ErrCodeFormValidation, domainerrors.ErrCodeFormInvalid, domainerrors.ErrCodeFormExpired:
-		return http.StatusBadRequest
-	case domainerrors.ErrCodeFormNotFound:
-		return http.StatusNotFound
-	case domainerrors.ErrCodeFormSubmission, domainerrors.ErrCodeFormAccessDenied:
-		return http.StatusBadRequest
-	case domainerrors.ErrCodeUserNotFound:
-		return http.StatusNotFound
-	case domainerrors.ErrCodeUserExists:
-		return http.StatusConflict
-	case domainerrors.ErrCodeUserDisabled, domainerrors.ErrCodeUserInvalid, domainerrors.ErrCodeUserUnauthorized:
-		return http.StatusBadRequest
-	default:
-		return http.StatusInternalServerError
+	// Map of error codes to HTTP status codes
+	statusCodeMap := map[domainerrors.ErrorCode]int{
+		// Validation errors
+		domainerrors.ErrCodeValidation:    http.StatusBadRequest,
+		domainerrors.ErrCodeRequired:      http.StatusBadRequest,
+		domainerrors.ErrCodeInvalid:       http.StatusBadRequest,
+		domainerrors.ErrCodeInvalidFormat: http.StatusBadRequest,
+		domainerrors.ErrCodeInvalidInput:  http.StatusBadRequest,
+		domainerrors.ErrCodeBadRequest:    http.StatusBadRequest,
+
+		// Authentication errors
+		domainerrors.ErrCodeUnauthorized:   http.StatusUnauthorized,
+		domainerrors.ErrCodeAuthentication: http.StatusUnauthorized,
+
+		// Authorization errors
+		domainerrors.ErrCodeForbidden:        http.StatusForbidden,
+		domainerrors.ErrCodeInsufficientRole: http.StatusForbidden,
+
+		// Resource errors
+		domainerrors.ErrCodeNotFound:     http.StatusNotFound,
+		domainerrors.ErrCodeFormNotFound: http.StatusNotFound,
+		domainerrors.ErrCodeUserNotFound: http.StatusNotFound,
+
+		// Conflict errors
+		domainerrors.ErrCodeConflict:      http.StatusConflict,
+		domainerrors.ErrCodeAlreadyExists: http.StatusConflict,
+		domainerrors.ErrCodeUserExists:    http.StatusConflict,
+
+		// Server errors
+		domainerrors.ErrCodeServerError: http.StatusInternalServerError,
+		domainerrors.ErrCodeConfig:      http.StatusInternalServerError,
+		domainerrors.ErrCodeDatabase:    http.StatusInternalServerError,
+
+		// Service errors
+		domainerrors.ErrCodeStartup:  http.StatusServiceUnavailable,
+		domainerrors.ErrCodeShutdown: http.StatusServiceUnavailable,
+		domainerrors.ErrCodeTimeout:  http.StatusGatewayTimeout,
+
+		// Form errors
+		domainerrors.ErrCodeFormValidation:   http.StatusBadRequest,
+		domainerrors.ErrCodeFormInvalid:      http.StatusBadRequest,
+		domainerrors.ErrCodeFormExpired:      http.StatusBadRequest,
+		domainerrors.ErrCodeFormSubmission:   http.StatusBadRequest,
+		domainerrors.ErrCodeFormAccessDenied: http.StatusBadRequest,
+
+		// User errors
+		domainerrors.ErrCodeUserDisabled:     http.StatusBadRequest,
+		domainerrors.ErrCodeUserInvalid:      http.StatusBadRequest,
+		domainerrors.ErrCodeUserUnauthorized: http.StatusBadRequest,
 	}
+
+	if statusCode, exists := statusCodeMap[code]; exists {
+		return statusCode
+	}
+
+	return http.StatusInternalServerError
 }
 
 // isAJAXRequest checks if the request is an AJAX request

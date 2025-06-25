@@ -274,7 +274,7 @@ func (s *Service) SanitizeJSON(data any) any {
 	}
 }
 
-// SanitizeWithOptions provides advanced sanitization with options
+// SanitizeOptions provides advanced sanitization with options
 type SanitizeOptions struct {
 	TrimWhitespace bool
 	RemoveHTML     bool

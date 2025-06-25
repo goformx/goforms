@@ -1,3 +1,6 @@
+// Package sensitive provides utilities for detecting and handling sensitive data
+// in log messages and other text content. It includes pattern matching for
+// common sensitive data types like emails, passwords, and tokens.
 package sensitive
 
 import "strings"

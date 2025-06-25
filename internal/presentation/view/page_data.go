@@ -53,7 +53,7 @@ type ViteManifest struct {
 	Src     string   `json:"src,omitempty"`
 	CSS     []string `json:"css,omitempty"`
 	Assets  []string `json:"assets,omitempty"`
-	IsEntry bool     `json:"isEntry"`
+	IsEntry bool     `json:"is_entry"`
 }
 
 // GetCurrentUser extracts user data from context

@@ -1,3 +1,7 @@
+// Package constants provides application-wide constants for HTTP status codes,
+// paths, timeouts, headers, content types, and other configuration values.
+// These constants are used throughout the application to ensure consistency
+// and maintainability.
 package constants
 
 import (

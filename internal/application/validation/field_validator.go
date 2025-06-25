@@ -296,28 +296,42 @@ func (v *FieldValidator) validateInteger(fieldName string, value any) *Validatio
 func (v *FieldValidator) validateCustomRule(fieldName string, value any, rule ValidationRule) *ValidationError {
 	switch rule.Type {
 	case "regex":
-		if strValue, ok := value.(string); ok {
-			if pattern, patternOk := rule.Value.(string); patternOk {
-				matched, err := regexp.MatchString(pattern, strValue)
-				if err != nil {
-					return &ValidationError{
-						Field:   fieldName,
-						Message: fmt.Sprintf("Invalid regex pattern: %v", err),
-						Rule:    rule.Type,
-					}
-				}
-				if !matched {
-					return &ValidationError{
-						Field:   fieldName,
-						Message: rule.Message,
-						Rule:    rule.Type,
-					}
-				}
-			}
-		}
+		return v.validateRegexRule(fieldName, value, rule)
 	case "custom":
 		// Custom validation logic can be extended here
 		return nil
+	}
+
+	return nil
+}
+
+// validateRegexRule validates a regex rule
+func (v *FieldValidator) validateRegexRule(fieldName string, value any, rule ValidationRule) *ValidationError {
+	strValue, ok := value.(string)
+	if !ok {
+		return nil
+	}
+
+	pattern, patternOk := rule.Value.(string)
+	if !patternOk {
+		return nil
+	}
+
+	matched, err := regexp.MatchString(pattern, strValue)
+	if err != nil {
+		return &ValidationError{
+			Field:   fieldName,
+			Message: fmt.Sprintf("Invalid regex pattern: %v", err),
+			Rule:    rule.Type,
+		}
+	}
+
+	if !matched {
+		return &ValidationError{
+			Field:   fieldName,
+			Message: rule.Message,
+			Rule:    rule.Type,
+		}
 	}
 
 	return nil

@@ -51,9 +51,9 @@ import (
 // Info contains version information
 type Info struct {
 	Version   string `json:"version"`
-	BuildTime string `json:"buildTime"`
-	GitCommit string `json:"gitCommit"`
-	GoVersion string `json:"goVersion"`
+	BuildTime string `json:"build_time"`
+	GitCommit string `json:"git_commit"`
+	GoVersion string `json:"go_version"`
 }
 
 const (

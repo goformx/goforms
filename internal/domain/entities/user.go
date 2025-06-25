@@ -1,3 +1,5 @@
+// Package entities provides domain entities that represent the core business
+// objects in the application, including users, forms, and other domain models.
 package entities
 
 import (

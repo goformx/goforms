@@ -183,7 +183,7 @@ func Wrap(err error, code ErrorCode, message string) *DomainError {
 	return New(code, message, err)
 }
 
-// Error type checking utilities
+// IsNotFound checks if the error represents a "not found" error
 func IsNotFound(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {

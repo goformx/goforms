@@ -105,24 +105,24 @@ func (fs *FormSubmission) IsProcessing() bool {
 }
 
 // UpdateStatus updates the submission status
-func (s *FormSubmission) UpdateStatus(status SubmissionStatus) {
-	s.Status = status
+func (fs *FormSubmission) UpdateStatus(status SubmissionStatus) {
+	fs.Status = status
 }
 
 // AddMetadata adds metadata to the submission
-func (s *FormSubmission) AddMetadata(key, value string) {
-	if s.Metadata == nil {
-		s.Metadata = make(JSON)
+func (fs *FormSubmission) AddMetadata(key, value string) {
+	if fs.Metadata == nil {
+		fs.Metadata = make(JSON)
 	}
-	s.Metadata[key] = value
+	fs.Metadata[key] = value
 }
 
 // GetMetadata returns the metadata value for a key
-func (s *FormSubmission) GetMetadata(key string) string {
-	if s.Metadata == nil {
+func (fs *FormSubmission) GetMetadata(key string) string {
+	if fs.Metadata == nil {
 		return ""
 	}
-	if val, ok := s.Metadata[key].(string); ok {
+	if val, ok := fs.Metadata[key].(string); ok {
 		return val
 	}
 	return ""

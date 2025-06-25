@@ -1,4 +1,5 @@
-// internal/application/handlers/web/form_web.go
+// Package web provides HTTP handlers for web-based functionality including
+// authentication, form management, and user interface components.
 package web
 
 import (

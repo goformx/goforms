@@ -100,18 +100,16 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	return h.Renderer.Render(c, pages.Login(data))
 }
 
-/**
- * LoginPost handles POST /login - processes the login form
- *
- * This handler:
- * 1. Validates user credentials
- * 2. Creates a new session on success
- * 3. Sets session cookie
- * 4. Returns appropriate response based on request type:
- *    - JSON response for API requests
- *    - HTML response with error for regular requests
- *    - Redirect to dashboard on success
- */
+// LoginPost handles POST /login - processes the login form
+//
+// This handler:
+// 1. Validates user credentials
+// 2. Creates a new session on success
+// 3. Sets session cookie
+// 4. Returns appropriate response based on request type:
+//   - JSON response for API requests
+//   - HTML response with error for regular requests
+//   - Redirect to dashboard on success
 func (h *AuthHandler) LoginPost(c echo.Context) error {
 	email, password, err := h.RequestParser.ParseLogin(c)
 	if err != nil {

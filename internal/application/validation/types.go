@@ -12,13 +12,13 @@ type ValidationRule struct {
 type FieldValidation struct {
 	Required    bool             `json:"required,omitempty"`
 	Type        string           `json:"type,omitempty"`
-	MinLength   int              `json:"minLength,omitempty"`
-	MaxLength   int              `json:"maxLength,omitempty"`
+	MinLength   int              `json:"min_length,omitempty"`
+	MaxLength   int              `json:"max_length,omitempty"`
 	Min         float64          `json:"min,omitempty"`
 	Max         float64          `json:"max,omitempty"`
 	Pattern     string           `json:"pattern,omitempty"`
 	Options     []string         `json:"options,omitempty"`
-	CustomRules []ValidationRule `json:"customRules,omitempty"`
+	CustomRules []ValidationRule `json:"custom_rules,omitempty"`
 	Conditional map[string]any   `json:"conditional,omitempty"`
 }
 
@@ -31,7 +31,7 @@ type ValidationError struct {
 
 // ValidationResult represents the result of form validation
 type ValidationResult struct {
-	IsValid bool              `json:"isValid"`
+	IsValid bool              `json:"is_valid"`
 	Errors  []ValidationError `json:"errors,omitempty"`
 }
 

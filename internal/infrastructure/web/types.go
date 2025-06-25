@@ -39,7 +39,7 @@ type ManifestEntry struct {
 	File    string   `json:"file"`
 	Name    string   `json:"name"`
 	Src     string   `json:"src"`
-	IsEntry bool     `json:"isEntry"`
+	IsEntry bool     `json:"is_entry"`
 	CSS     []string `json:"css"`
 }
 
