@@ -142,7 +142,7 @@ type JSON map[string]any
 // Scan implements the sql.Scanner interface for JSON
 func (j *JSON) Scan(value any) error {
 	if value == nil {
-		*j = JSON{}
+		*j = nil
 		return nil
 	}
 
@@ -154,7 +154,7 @@ func (j *JSON) Scan(value any) error {
 	result := make(map[string]any)
 	err := json.Unmarshal(bytes, &result)
 	if err != nil {
-		return err
+		return fmt.Errorf("unmarshal JSON scan value: %w", err)
 	}
 
 	*j = JSON(result)
@@ -166,7 +166,11 @@ func (j *JSON) Value() (driver.Value, error) {
 	if j == nil {
 		return nil, ErrInvalidJSON
 	}
-	return json.Marshal(*j)
+	data, err := json.Marshal(*j)
+	if err != nil {
+		return nil, fmt.Errorf("marshal JSON value: %w", err)
+	}
+	return data, nil
 }
 
 // MarshalJSON implements the json.Marshaler interface
@@ -174,7 +178,11 @@ func (j *JSON) MarshalJSON() ([]byte, error) {
 	if j == nil {
 		return nil, ErrInvalidJSON
 	}
-	return json.Marshal(*j)
+	data, err := json.Marshal(*j)
+	if err != nil {
+		return nil, fmt.Errorf("marshal JSON to bytes: %w", err)
+	}
+	return data, nil
 }
 
 // UnmarshalJSON implements the json.Unmarshaler interface
@@ -182,7 +190,10 @@ func (j *JSON) UnmarshalJSON(data []byte) error {
 	if j == nil {
 		return ErrInvalidJSON
 	}
-	return json.Unmarshal(data, (*map[string]any)(j))
+	if err := json.Unmarshal(data, (*map[string]any)(j)); err != nil {
+		return fmt.Errorf("unmarshal JSON from bytes: %w", err)
+	}
+	return nil
 }
 
 // NewForm creates a new form instance

@@ -125,7 +125,7 @@ func (u *User) SetPassword(password string) error {
 
 	hashedPassword, err := bcrypt.GenerateFromPassword([]byte(password), bcrypt.DefaultCost)
 	if err != nil {
-		return err
+		return fmt.Errorf("generate password hash: %w", err)
 	}
 
 	u.HashedPassword = string(hashedPassword)

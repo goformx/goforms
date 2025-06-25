@@ -53,7 +53,8 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 		s.logger.Warn("invalid form ID format received",
 			"id_length", len(id),
 			"error_type", "invalid_uuid_format")
-		return nil, common.NewInvalidInputError("get", "form", id, err)
+		invalidErr := common.NewInvalidInputError("get", "form", id, err)
+		return nil, fmt.Errorf("get form by ID: %w", invalidErr)
 	}
 
 	var formModel model.Form
@@ -68,7 +69,8 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 			"id_length", len(normalizedID),
 			"error", err,
 			"error_type", "database_error")
-		return nil, common.NewDatabaseError("get", "form", normalizedID, err)
+		dbErr := common.NewDatabaseError("get", "form", normalizedID, err)
+		return nil, fmt.Errorf("get form by ID: %w", dbErr)
 	}
 
 	s.logger.Debug("form retrieved successfully",
@@ -116,7 +118,8 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 		s.logger.Warn("invalid form ID format received for deletion",
 			"id_length", len(id),
 			"error_type", "invalid_uuid_format")
-		return common.NewInvalidInputError("delete", "form", id, err)
+		invalidErr := common.NewInvalidInputError("delete", "form", id, err)
+		return fmt.Errorf("delete form: %w", invalidErr)
 	}
 
 	result := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).Delete(&model.Form{})

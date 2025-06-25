@@ -237,17 +237,26 @@ func (v *validatorImpl) Struct(i any) error {
 
 // Var validates a single variable
 func (v *validatorImpl) Var(i any, tag string) error {
-	return v.validate.Var(i, tag)
+	if err := v.validate.Var(i, tag); err != nil {
+		return fmt.Errorf("validate variable: %w", err)
+	}
+	return nil
 }
 
 // RegisterValidation registers a custom validation function
 func (v *validatorImpl) RegisterValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
-	return v.validate.RegisterValidation(tag, fn)
+	if err := v.validate.RegisterValidation(tag, fn); err != nil {
+		return fmt.Errorf("register validation: %w", err)
+	}
+	return nil
 }
 
 // RegisterCrossFieldValidation registers a cross-field validation function
 func (v *validatorImpl) RegisterCrossFieldValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
-	return v.validate.RegisterValidation(tag, fn)
+	if err := v.validate.RegisterValidation(tag, fn); err != nil {
+		return fmt.Errorf("register cross-field validation: %w", err)
+	}
+	return nil
 }
 
 // RegisterStructValidation registers a struct validation function

@@ -1,6 +1,8 @@
 package web
 
 import (
+	"fmt"
+
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/domain/user"
@@ -23,7 +25,7 @@ func (p *AuthRequestParser) ParseLogin(c echo.Context) (email, password string, 
 			Password string `json:"password"`
 		}
 		if bindErr := c.Bind(&data); bindErr != nil {
-			return "", "", bindErr
+			return "", "", fmt.Errorf("failed to bind login: %w", bindErr)
 		}
 		email = data.Email
 		password = data.Password
@@ -40,7 +42,7 @@ func (p *AuthRequestParser) ParseSignup(c echo.Context) (user.Signup, error) {
 	var signup user.Signup
 	if contentType == "application/json" {
 		if err := c.Bind(&signup); err != nil {
-			return signup, err
+			return signup, fmt.Errorf("failed to bind signup: %w", err)
 		}
 	} else {
 		signup = user.Signup{

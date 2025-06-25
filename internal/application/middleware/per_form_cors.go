@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
@@ -202,7 +203,10 @@ func handlePreflight(
 
 	// Check if origin is allowed
 	if !IsOriginAllowed(origin, origins) {
-		return c.NoContent(http.StatusForbidden)
+		if noContentErr := c.NoContent(http.StatusForbidden); noContentErr != nil {
+			return fmt.Errorf("return forbidden for preflight: %w", noContentErr)
+		}
+		return nil
 	}
 
 	// Set CORS headers
@@ -215,7 +219,10 @@ func handlePreflight(
 		c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
 	}
 
-	return c.NoContent(http.StatusOK)
+	if noContentErr := c.NoContent(http.StatusOK); noContentErr != nil {
+		return fmt.Errorf("return ok for preflight: %w", noContentErr)
+	}
+	return nil
 }
 
 // handleActualRequest handles actual CORS requests
@@ -229,7 +236,10 @@ func handleActualRequest(
 
 	// Check if origin is allowed
 	if !IsOriginAllowed(origin, origins) {
-		return c.NoContent(http.StatusForbidden)
+		if noContentErr := c.NoContent(http.StatusForbidden); noContentErr != nil {
+			return fmt.Errorf("return forbidden for actual request: %w", noContentErr)
+		}
+		return nil
 	}
 
 	// Set CORS headers

@@ -2,6 +2,7 @@
 package health
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -34,8 +35,14 @@ func (h *Handler) handleHealthCheck(c echo.Context) error {
 	status, err := h.service.CheckHealth(c.Request().Context())
 	if err != nil {
 		h.logger.Error("health check failed", "error", err)
-		return c.JSON(http.StatusServiceUnavailable, status)
+		if jsonErr := c.JSON(http.StatusServiceUnavailable, status); jsonErr != nil {
+			return fmt.Errorf("return health check error response: %w", jsonErr)
+		}
+		return nil
 	}
 
-	return c.JSON(http.StatusOK, status)
+	if jsonErr := c.JSON(http.StatusOK, status); jsonErr != nil {
+		return fmt.Errorf("return health check success response: %w", jsonErr)
+	}
+	return nil
 }

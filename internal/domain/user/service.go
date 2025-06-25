@@ -106,32 +106,54 @@ func (s *ServiceImpl) Logout(_ context.Context) error {
 
 // GetUserByID retrieves a user by ID
 func (s *ServiceImpl) GetUserByID(ctx context.Context, id string) (*entities.User, error) {
-	return s.repo.GetByID(ctx, id)
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get user by ID: %w", err)
+	}
+	return user, nil
 }
 
 // GetUserByEmail retrieves a user by email
 func (s *ServiceImpl) GetUserByEmail(ctx context.Context, email string) (*entities.User, error) {
-	return s.repo.GetByEmail(ctx, email)
+	user, err := s.repo.GetByEmail(ctx, email)
+	if err != nil {
+		return nil, fmt.Errorf("get user by email: %w", err)
+	}
+	return user, nil
 }
 
 // UpdateUser updates a user
 func (s *ServiceImpl) UpdateUser(ctx context.Context, user *entities.User) error {
-	return s.repo.Update(ctx, user)
+	if err := s.repo.Update(ctx, user); err != nil {
+		return fmt.Errorf("update user: %w", err)
+	}
+	return nil
 }
 
 // DeleteUser deletes a user
 func (s *ServiceImpl) DeleteUser(ctx context.Context, id string) error {
-	return s.repo.Delete(ctx, id)
+	if err := s.repo.Delete(ctx, id); err != nil {
+		return fmt.Errorf("delete user: %w", err)
+	}
+	return nil
 }
 
 // ListUsers lists all users
 func (s *ServiceImpl) ListUsers(ctx context.Context, offset, limit int) ([]*entities.User, error) {
-	return s.repo.List(ctx, offset, limit)
+	users, err := s.repo.List(ctx, offset, limit)
+	if err != nil {
+		return nil, fmt.Errorf("list users: %w", err)
+	}
+	return users, nil
 }
 
 // GetByID retrieves a user by ID string
 func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*entities.User, error) {
-	return s.repo.GetByID(ctx, id)
+	user, err := s.repo.GetByID(ctx, id)
+	if err != nil {
+		return nil, fmt.Errorf("get user by ID: %w", err)
+	}
+	return user, nil
 }
 
 // Authenticate matches the domain.UserService interface
@@ -141,7 +163,8 @@ func (s *ServiceImpl) Authenticate(ctx context.Context, email, password string) 
 		if domainerrors.GetErrorCode(err) == domainerrors.ErrCodeNotFound {
 			return nil, ErrInvalidCredentials
 		}
-		return nil, domainerrors.WrapError(err, domainerrors.ErrCodeAuthentication, "failed to get user by email")
+		wrappedErr := domainerrors.WrapError(err, domainerrors.ErrCodeAuthentication, "failed to get user by email")
+		return nil, fmt.Errorf("authenticate user: %w", wrappedErr)
 	}
 
 	if !user.CheckPassword(password) {

@@ -4,6 +4,7 @@ package repository
 import (
 	"context"
 	"errors"
+	"fmt"
 	"strconv"
 
 	"gorm.io/gorm"
@@ -33,7 +34,8 @@ func NewStore(db *database.GormDB, logger logging.Logger) user.Repository {
 func (s *Store) Create(ctx context.Context, u *entities.User) error {
 	result := s.db.WithContext(ctx).Create(u)
 	if result.Error != nil {
-		return common.NewDatabaseError("create", "user", u.ID, result.Error)
+		dbErr := common.NewDatabaseError("create", "user", u.ID, result.Error)
+		return fmt.Errorf("create user: %w", dbErr)
 	}
 	return nil
 }
@@ -44,9 +46,11 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*entities.User, e
 	result := s.db.WithContext(ctx).Where("email = ?", email).First(&u)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, common.NewNotFoundError("get_by_email", "user", email)
+			notFoundErr := common.NewNotFoundError("get_by_email", "user", email)
+			return nil, fmt.Errorf("get user by email: %w", notFoundErr)
 		}
-		return nil, common.NewDatabaseError("get_by_email", "user", email, result.Error)
+		dbErr := common.NewDatabaseError("get_by_email", "user", email, result.Error)
+		return nil, fmt.Errorf("get user by email: %w", dbErr)
 	}
 	return &u, nil
 }
@@ -57,9 +61,11 @@ func (s *Store) GetByID(ctx context.Context, id string) (*entities.User, error) 
 	result := s.db.WithContext(ctx).First(&u, "uuid = ?", id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
-			return nil, common.NewNotFoundError("get_by_id", "user", id)
+			notFoundErr := common.NewNotFoundError("get_by_id", "user", id)
+			return nil, fmt.Errorf("get user by ID: %w", notFoundErr)
 		}
-		return nil, common.NewDatabaseError("get_by_id", "user", id, result.Error)
+		dbErr := common.NewDatabaseError("get_by_id", "user", id, result.Error)
+		return nil, fmt.Errorf("get user by ID: %w", dbErr)
 	}
 	return &u, nil
 }
@@ -68,7 +74,8 @@ func (s *Store) GetByID(ctx context.Context, id string) (*entities.User, error) 
 func (s *Store) GetByIDString(ctx context.Context, id string) (*entities.User, error) {
 	userID, err := strconv.ParseUint(id, 10, 32)
 	if err != nil {
-		return nil, common.NewInvalidInputError("get_by_id_string", "user", id, err)
+		invalidErr := common.NewInvalidInputError("get_by_id_string", "user", id, err)
+		return nil, fmt.Errorf("get user by ID string: %w", invalidErr)
 	}
 	return s.GetByID(ctx, strconv.FormatUint(userID, 10))
 }
@@ -77,10 +84,12 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*entities.User, e
 func (s *Store) Update(ctx context.Context, userModel *entities.User) error {
 	result := s.db.WithContext(ctx).Save(userModel)
 	if result.Error != nil {
-		return common.NewDatabaseError("update", "user", userModel.ID, result.Error)
+		dbErr := common.NewDatabaseError("update", "user", userModel.ID, result.Error)
+		return fmt.Errorf("update user: %w", dbErr)
 	}
 	if result.RowsAffected == 0 {
-		return common.NewNotFoundError("update", "user", userModel.ID)
+		notFoundErr := common.NewNotFoundError("update", "user", userModel.ID)
+		return fmt.Errorf("update user: %w", notFoundErr)
 	}
 	return nil
 }

@@ -3,6 +3,7 @@ package services
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -42,18 +43,24 @@ func (h *HealthHandler) HandleHealthCheck(c echo.Context) error {
 	// Check database connectivity
 	if err := h.db.PingContext(c.Request().Context()); err != nil {
 		h.logger.Error("health check failed", "error", err, "component", "database")
-		return response.ErrorResponse(
+		if responseErr := response.ErrorResponse(
 			c,
 			http.StatusServiceUnavailable,
 			"Service is not healthy: database connection failed",
-		)
+		); responseErr != nil {
+			return fmt.Errorf("return health check error response: %w", responseErr)
+		}
+		return nil
 	}
 
 	// Return health status
-	return response.Success(c, map[string]any{
+	if successErr := response.Success(c, map[string]any{
 		"status": "healthy",
 		"components": map[string]string{
 			"database": "up",
 		},
-	})
+	}); successErr != nil {
+		return fmt.Errorf("return health check success response: %w", successErr)
+	}
+	return nil
 }

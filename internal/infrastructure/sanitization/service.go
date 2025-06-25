@@ -3,6 +3,7 @@
 package sanitization
 
 import (
+	"fmt"
 	"html"
 	"reflect"
 	"strings"
@@ -50,7 +51,11 @@ func (s *Service) IPAddress(input string) string {
 
 // Domain sanitizes a domain name
 func (s *Service) Domain(input string) (string, error) {
-	return sanitize.Domain(input, false, false)
+	domain, err := sanitize.Domain(input, false, false)
+	if err != nil {
+		return "", fmt.Errorf("sanitize domain: %w", err)
+	}
+	return domain, nil
 }
 
 // URI sanitizes a URI

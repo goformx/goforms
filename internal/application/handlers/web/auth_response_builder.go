@@ -1,6 +1,7 @@
 package web
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -34,11 +35,20 @@ func (b *AuthResponseBuilder) HTMLFormError(c echo.Context, page string, data *v
 	}
 	switch page {
 	case "login":
-		return b.Renderer.Render(c, pages.Login(*data))
+		if err := b.Renderer.Render(c, pages.Login(*data)); err != nil {
+			return fmt.Errorf("render login page: %w", err)
+		}
+		return nil
 	case "signup":
-		return b.Renderer.Render(c, pages.Signup(*data))
+		if err := b.Renderer.Render(c, pages.Signup(*data)); err != nil {
+			return fmt.Errorf("render signup page: %w", err)
+		}
+		return nil
 	default:
-		return b.Renderer.Render(c, pages.Error(*data))
+		if err := b.Renderer.Render(c, pages.Error(*data)); err != nil {
+			return fmt.Errorf("render error page: %w", err)
+		}
+		return nil
 	}
 }
 

@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -95,9 +96,15 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
+		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
+			return fmt.Errorf("redirect to dashboard: %w", err)
+		}
+		return nil
 	}
-	return h.Renderer.Render(c, pages.Login(data))
+	if err := h.Renderer.Render(c, pages.Login(data)); err != nil {
+		return fmt.Errorf("render login page: %w", err)
+	}
+	return nil
 }
 
 // LoginPost handles POST /login - processes the login form
@@ -153,9 +160,15 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
+		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
+			return fmt.Errorf("redirect to dashboard: %w", err)
+		}
+		return nil
 	}
-	return h.Renderer.Render(c, pages.Signup(data))
+	if err := h.Renderer.Render(c, pages.Signup(data)); err != nil {
+		return fmt.Errorf("render signup page: %w", err)
+	}
+	return nil
 }
 
 // SignupPost handles the signup form submission

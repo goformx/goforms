@@ -76,12 +76,12 @@ func (s *formService) CreateForm(ctx context.Context, form *model.Form) error {
 // UpdateForm updates a form
 func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
 	if validateErr := form.Validate(); validateErr != nil {
-		return validateErr
+		return fmt.Errorf("validate form: %w", validateErr)
 	}
 
 	// Update the form
 	if updateErr := s.repository.UpdateForm(ctx, form); updateErr != nil {
-		return updateErr
+		return fmt.Errorf("update form in repository: %w", updateErr)
 	}
 
 	// Publish form updated event
@@ -108,7 +108,11 @@ func (s *formService) DeleteForm(ctx context.Context, formID string) error {
 
 // GetForm retrieves a form by ID
 func (s *formService) GetForm(ctx context.Context, formID string) (*model.Form, error) {
-	return s.repository.GetFormByID(ctx, formID)
+	form, err := s.repository.GetFormByID(ctx, formID)
+	if err != nil {
+		return nil, fmt.Errorf("get form by ID: %w", err)
+	}
+	return form, nil
 }
 
 // ListForms retrieves a list of forms
@@ -123,13 +127,13 @@ func (s *formService) ListForms(ctx context.Context, userID string) ([]*model.Fo
 // SubmitForm submits a form
 func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubmission) error {
 	if validateErr := submission.Validate(); validateErr != nil {
-		return validateErr
+		return fmt.Errorf("validate form submission: %w", validateErr)
 	}
 
 	// Validate the form exists
 	form, getErr := s.repository.GetFormByID(ctx, submission.FormID)
 	if getErr != nil {
-		return getErr
+		return fmt.Errorf("get form for submission: %w", getErr)
 	}
 	if form == nil {
 		return errors.New("form not found")
@@ -138,7 +142,7 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	// Create the submission
 	createErr := s.repository.CreateSubmission(ctx, submission)
 	if createErr != nil {
-		return createErr
+		return fmt.Errorf("create form submission: %w", createErr)
 	}
 
 	// Publish form submitted event
@@ -158,7 +162,7 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	}
 
 	if !isValid {
-		return validationErr
+		return fmt.Errorf("validate submission: %w", validationErr)
 	}
 
 	processingEvent := formevents.NewFormProcessedEvent(submission.FormID, submission.ID)
@@ -172,12 +176,20 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 
 // GetFormSubmission retrieves a form submission by ID
 func (s *formService) GetFormSubmission(ctx context.Context, submissionID string) (*model.FormSubmission, error) {
-	return s.repository.GetSubmissionByID(ctx, submissionID)
+	submission, err := s.repository.GetSubmissionByID(ctx, submissionID)
+	if err != nil {
+		return nil, fmt.Errorf("get form submission by ID: %w", err)
+	}
+	return submission, nil
 }
 
 // ListFormSubmissions retrieves a list of form submissions
 func (s *formService) ListFormSubmissions(ctx context.Context, formID string) ([]*model.FormSubmission, error) {
-	return s.repository.ListSubmissions(ctx, formID)
+	submissions, err := s.repository.ListSubmissions(ctx, formID)
+	if err != nil {
+		return nil, fmt.Errorf("list form submissions: %w", err)
+	}
+	return submissions, nil
 }
 
 // UpdateFormState updates the state of a form

@@ -6,8 +6,8 @@
   --font-icons: "bootstrap-icons";
   font-family: "bootstrap-icons";
   src:
-    url("/fonts/bootstrap-icons.woff2") format("woff2"),
-    url("/fonts/bootstrap-icons.woff") format("woff");
+    url("/assets/fonts/bootstrap-icons.woff2") format("woff2"),
+    url("/assets/fonts/bootstrap-icons.woff") format("woff");
   font-weight: normal;
   font-style: normal;
   font-display: block;
@@ -353,7 +353,7 @@
   cursor: pointer;
 }
 
-.dialog-content .form-group input[type="checkbox"] + label {
+.dialog-content .form-group input[type="checkbox"]+label {
   margin: 0;
   cursor: pointer;
 }

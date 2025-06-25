@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -56,7 +57,10 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	data.Forms = forms
 
 	// Render dashboard template
-	return h.Renderer.Render(c, pages.Dashboard(data, forms))
+	if renderErr := h.Renderer.Render(c, pages.Dashboard(data, forms)); renderErr != nil {
+		return fmt.Errorf("render dashboard: %w", renderErr)
+	}
+	return nil
 }
 
 // Start initializes the dashboard handler.

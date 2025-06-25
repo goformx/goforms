@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
@@ -73,7 +74,10 @@ func (am *Middleware) GetUserFromContext(c echo.Context) (*entities.User, bool) 
 func (am *Middleware) RedirectIfAuthenticated(c echo.Context, redirectPath string) error {
 	userEntity, err := am.RequireAuthenticatedUser(c)
 	if err == nil && userEntity != nil {
-		return c.Redirect(http.StatusFound, redirectPath)
+		if redirectErr := c.Redirect(http.StatusFound, redirectPath); redirectErr != nil {
+			return fmt.Errorf("redirect authenticated user: %w", redirectErr)
+		}
+		return nil
 	}
 	return nil
 }
@@ -83,13 +87,19 @@ func (am *Middleware) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 	userID, ok := context.GetUserID(c)
 	if !ok {
 		// No session found, redirect to login
-		return nil, c.Redirect(http.StatusSeeOther, constants.PathLogin)
+		if redirectErr := c.Redirect(http.StatusSeeOther, constants.PathLogin); redirectErr != nil {
+			return nil, fmt.Errorf("redirect to login: %w", redirectErr)
+		}
+		return nil, nil
 	}
 
 	userEntity, err := am.userService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userEntity == nil {
 		am.logger.Error("failed to get user", "error", err)
-		return nil, am.errorHandler.HandleError(err, c, "Failed to get user")
+		if handleErr := am.errorHandler.HandleError(err, c, "Failed to get user"); handleErr != nil {
+			return nil, fmt.Errorf("handle authentication error: %w", handleErr)
+		}
+		return nil, nil
 	}
 
 	return userEntity, nil

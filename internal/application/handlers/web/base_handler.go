@@ -2,6 +2,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/labstack/echo/v4"
 
@@ -78,19 +79,28 @@ func (h *BaseHandler) BuildPageData(c echo.Context, title string) view.PageData 
 // HandleError handles common error scenarios
 func (h *BaseHandler) HandleError(c echo.Context, err error, message string) error {
 	// Use the error handler for sanitized logging instead of logging raw error
-	return h.ErrorHandler.HandleError(err, c, message)
+	if handleErr := h.ErrorHandler.HandleError(err, c, message); handleErr != nil {
+		return fmt.Errorf("handle error: %w", handleErr)
+	}
+	return nil
 }
 
 // HandleNotFound handles not found errors
 func (h *BaseHandler) HandleNotFound(c echo.Context, message string) error {
-	return h.ErrorHandler.HandleNotFoundError(message, c)
+	if notFoundErr := h.ErrorHandler.HandleNotFoundError(message, c); notFoundErr != nil {
+		return fmt.Errorf("handle not found error: %w", notFoundErr)
+	}
+	return nil
 }
 
 // HandleForbidden handles forbidden access errors
 func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
-	return h.ErrorHandler.HandleDomainError(
+	if forbiddenErr := h.ErrorHandler.HandleDomainError(
 		domainerrors.New(domainerrors.ErrCodeForbidden, message, nil), c,
-	)
+	); forbiddenErr != nil {
+		return fmt.Errorf("handle forbidden error: %w", forbiddenErr)
+	}
+	return nil
 }
 
 // Start initializes the base handler.

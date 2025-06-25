@@ -97,17 +97,24 @@ func (h *ErrorHandler) HandleDomainError(err *domainerrors.DomainError, c echo.C
 
 	// Check if this is an AJAX request
 	if h.isAJAXRequest(c) {
-		return c.JSON(statusCode, map[string]any{
+		if jsonErr := c.JSON(statusCode, map[string]any{
 			"error":      string(err.Code),
 			"message":    err.Message,
 			"details":    err.Context,
 			"request_id": requestID,
 			"user_id":    userID,
-		})
+		}); jsonErr != nil {
+			return fmt.Errorf("return domain error JSON response: %w", jsonErr)
+		}
+		return nil
 	}
 
 	// For regular requests, redirect with error message
-	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/error?code=%s&message=%s", err.Code, err.Message))
+	redirectURL := fmt.Sprintf("/error?code=%s&message=%s", err.Code, err.Message)
+	if redirectErr := c.Redirect(http.StatusSeeOther, redirectURL); redirectErr != nil {
+		return fmt.Errorf("redirect to error page: %w", redirectErr)
+	}
+	return nil
 }
 
 // HandleAuthError handles authentication errors

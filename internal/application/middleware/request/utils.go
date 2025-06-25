@@ -3,6 +3,7 @@ package request
 
 import (
 	"encoding/json"
+	"fmt"
 
 	"github.com/labstack/echo/v4"
 
@@ -39,10 +40,16 @@ func (ru *Utils) ParseRequestData(c echo.Context, target any) error {
 
 	switch {
 	case contentType == string(ContentTypeJSON):
-		return json.NewDecoder(c.Request().Body).Decode(target)
+		if err := json.NewDecoder(c.Request().Body).Decode(target); err != nil {
+			return fmt.Errorf("decode JSON request body: %w", err)
+		}
+		return nil
 	default:
 		// Handle form data
-		return c.Bind(target)
+		if err := c.Bind(target); err != nil {
+			return fmt.Errorf("bind form data: %w", err)
+		}
+		return nil
 	}
 }
 

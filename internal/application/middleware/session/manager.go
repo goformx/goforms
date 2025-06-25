@@ -131,7 +131,10 @@ func (sm *Manager) cleanupExpiredSessions() {
 func (sm *Manager) saveSessions() error {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
-	return sm.storage.Save(sm.sessions)
+	if err := sm.storage.Save(sm.sessions); err != nil {
+		return fmt.Errorf("save sessions to storage: %w", err)
+	}
+	return nil
 }
 
 // CreateSession creates a new session for a user
