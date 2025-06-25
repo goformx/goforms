@@ -84,12 +84,28 @@ export async function createFormBuilder(
   schema: FormSchema,
 ): Promise<any> {
   try {
+    Logger.debug("createFormBuilder: Starting initialization");
+    Logger.debug("createFormBuilder: Container element:", container);
+    Logger.debug(
+      "createFormBuilder: Container innerHTML:",
+      container.innerHTML,
+    );
+    Logger.debug("createFormBuilder: Container dimensions:", {
+      offsetWidth: container.offsetWidth,
+      offsetHeight: container.offsetHeight,
+      clientWidth: container.clientWidth,
+      clientHeight: container.clientHeight,
+    });
+
     // Ensure schema has required properties
     const formSchema = {
       ...schema,
       display: "form",
       components: schema.components || [],
     };
+
+    Logger.debug("createFormBuilder: Form schema:", formSchema);
+    Logger.debug("createFormBuilder: Builder options:", builderOptions);
 
     // Create builder with standalone configuration
     const builder = await Formio.builder(container, formSchema, {
@@ -103,25 +119,6 @@ export async function createFormBuilder(
       projectUrl: null,
       appUrl: null,
       apiUrl: null,
-      // Disable project settings loading
-      builder: {
-        ...builderOptions.builder,
-        basic: {
-          components: {
-            textfield: true,
-            textarea: true,
-            email: true,
-            phoneNumber: true,
-            number: true,
-            password: true,
-            checkbox: true,
-            selectboxes: true,
-            select: true,
-            radio: true,
-            button: true,
-          },
-        },
-      },
       // Disable all server communication
       noAlerts: true,
       readOnly: false,
@@ -129,6 +126,12 @@ export async function createFormBuilder(
       project: null,
       settings: null,
     });
+
+    Logger.debug("createFormBuilder: Form.io builder created:", builder);
+    Logger.debug(
+      "createFormBuilder: Container after builder:",
+      container.innerHTML,
+    );
 
     // Store builder instance in state management instead of global window
     formState.set("formBuilder", builder);

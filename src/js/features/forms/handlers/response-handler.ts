@@ -1,4 +1,3 @@
-// ===== src/js/forms/handlers/response-handler.ts =====
 import { Logger } from "@/core/logger";
 import type { ServerResponse } from "@/shared/types/form-types";
 import { UIManager } from "./ui-manager";
@@ -39,7 +38,27 @@ export class ResponseHandler {
         return;
       }
 
-      if (data.message) {
+      // Handle successful response
+      if (data.success && data.message) {
+        Logger.debug("Success message:", data.message);
+        UIManager.displayFormSuccess(form, data.message);
+
+        // If this is a form creation, redirect to the edit page
+        if (
+          data.data &&
+          typeof data.data === "object" &&
+          "form_id" in data.data
+        ) {
+          const formId = (data.data as { form_id: string }).form_id;
+          Logger.debug("Form created, redirecting to edit page:", formId);
+
+          // Add a small delay to show the success message
+          setTimeout(() => {
+            window.location.href = `/forms/${formId}/edit`;
+          }, 1500);
+        }
+      } else if (data.message) {
+        // Handle legacy response format
         Logger.debug("Success message:", data.message);
         UIManager.displayFormSuccess(form, data.message);
       }

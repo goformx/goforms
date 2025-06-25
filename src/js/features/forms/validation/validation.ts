@@ -155,50 +155,6 @@ export const validation = {
     ErrorManager.clearErrors(form);
   },
 
-  // CSRF token handling - now delegated to HttpClient
-  getCSRFToken(): string {
-    const meta = document.querySelector("meta[name='csrf-token']");
-    if (meta) {
-      const token = meta.getAttribute("content");
-      if (token) {
-        return token;
-      }
-    }
-
-    throw new Error(
-      "CSRF token not found. Please refresh the page and try again.",
-    );
-  },
-
-  // Common fetch with authentication - now delegated to HttpClient
-  async fetchWithAuth(
-    url: string,
-    options: RequestInit = {},
-  ): Promise<Response> {
-    // This method is kept for backward compatibility
-    // New code should use HttpClient directly
-    const { HttpClient } = await import("../../../core/http-client");
-
-    // Use the appropriate HttpClient method based on the HTTP method
-    const method = options.method?.toUpperCase() || "GET";
-
-    switch (method) {
-      case "GET":
-        return HttpClient.get(url, options) as Promise<Response>;
-      case "POST": {
-        // Handle body properly - convert null/undefined to undefined
-        const postBody = options.body || undefined;
-        return HttpClient.post(url, postBody, options) as Promise<Response>;
-      }
-      case "PUT": {
-        // Handle body properly - convert null/undefined to undefined
-        const putBody = options.body || undefined;
-        return HttpClient.put(url, putBody, options) as Promise<Response>;
-      }
-      case "DELETE":
-        return HttpClient.delete(url, options) as Promise<Response>;
-      default:
-        throw new Error(`Unsupported HTTP method: ${method}`);
-    }
-  },
+  // Note: CSRF token handling and HTTP requests are now handled by HttpClient
+  // Use HttpClient.get(), HttpClient.post(), etc. directly instead of fetchWithAuth
 };

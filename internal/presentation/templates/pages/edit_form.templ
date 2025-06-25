@@ -241,7 +241,7 @@ if data.IsDevelopment {
 		const path = script.getAttribute('data-form-builder-path');
 		console.log('Loading form builder in development mode:', path);
 		try {
-			await import(path);
+		await import(path);
 			console.log('Form builder loaded successfully');
 		} catch (error) {
 			console.error('Failed to load form builder:', error);
@@ -254,7 +254,7 @@ if data.IsDevelopment {
 	console.log('Loading form builder in production mode:', path);
 	if (document.getElementById('form-schema-builder')) {
 		try {
-			await import(path);
+		await import(path);
 			console.log('Form builder loaded successfully');
 		} catch (error) {
 			console.error('Failed to load form builder:', error);
