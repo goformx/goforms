@@ -58,6 +58,13 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 // AssetPath returns the resolved asset path for the given input path
 func (m *AssetManager) AssetPath(path string) string {
 	ctx := context.Background()
+
+	// Add debug logging
+	m.logger.Debug("resolving asset path",
+		"path", path,
+		"environment", m.config.App.Env,
+	)
+
 	resolvedPath, err := m.ResolveAssetPath(ctx, path)
 	if err != nil {
 		m.logger.Error("failed to resolve asset path",
@@ -66,6 +73,12 @@ func (m *AssetManager) AssetPath(path string) string {
 		)
 		return ""
 	}
+
+	m.logger.Debug("asset path resolved successfully",
+		"original", path,
+		"resolved", resolvedPath,
+	)
+
 	return resolvedPath
 }
 
@@ -130,9 +143,10 @@ func NewModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*Mod
 
 	var server AssetServer
 	if cfg.App.IsDevelopment() {
-		server = NewViteAssetServer(cfg, logger)
+		// In development, use development asset server for static files
+		server = NewDevelopmentAssetServer(cfg, logger)
 	} else {
-		// In production, always use embedded filesystem
+		// In production, use embedded filesystem
 		server = NewEmbeddedAssetServer(logger, distFS)
 	}
 

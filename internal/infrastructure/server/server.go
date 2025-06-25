@@ -97,29 +97,33 @@ func (s *Server) Start() error {
 	}
 }
 
+// ServerDeps contains the dependencies for creating a server
+type ServerDeps struct {
+	fx.In
+	Lifecycle   fx.Lifecycle
+	Logger      logging.Logger
+	Config      *config.Config
+	Echo        *echo.Echo
+	AssetServer web.AssetServer
+}
+
 // New creates a new server instance with the provided dependencies
-func New(
-	lc fx.Lifecycle,
-	logger logging.Logger,
-	cfg *config.Config,
-	e *echo.Echo,
-	assetServer web.AssetServer,
-) *Server {
+func New(deps ServerDeps) *Server {
 	srv := &Server{
-		echo:   e,
-		logger: logger,
-		config: cfg,
+		echo:   deps.Echo,
+		logger: deps.Logger,
+		config: deps.Config,
 	}
 
 	// Log server configuration
-	logger.Info("initializing server",
-		"host", cfg.App.Host,
-		"port", cfg.App.Port,
-		"environment", cfg.App.Env,
+	deps.Logger.Info("initializing server",
+		"host", deps.Config.App.Host,
+		"port", deps.Config.App.Port,
+		"environment", deps.Config.App.Env,
 		"server_type", "echo")
 
 	// Add health check endpoint
-	e.GET("/health", func(c echo.Context) error {
+	deps.Echo.GET("/health", func(c echo.Context) error {
 		return c.JSON(http.StatusOK, map[string]string{
 			"status": "ok",
 			"time":   time.Now().Format(time.RFC3339),
@@ -127,12 +131,12 @@ func New(
 	})
 
 	// Register asset routes
-	if err := assetServer.RegisterRoutes(e); err != nil {
-		logger.Error("failed to register asset routes", "error", err)
+	if err := deps.AssetServer.RegisterRoutes(deps.Echo); err != nil {
+		deps.Logger.Error("failed to register asset routes", "error", err)
 	}
 
 	// Register lifecycle hooks
-	lc.Append(fx.Hook{
+	deps.Lifecycle.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			return nil // Server will be started after middleware is registered
 		},

@@ -41,7 +41,6 @@ type AppConfig struct {
 	Scheme         string        `envconfig:"GOFORMS_APP_SCHEME" default:"http"`
 	Port           int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
-	URL            string        `envconfig:"GOFORMS_APP_URL"` // Full URL (e.g., http://localhost:8090)
 	ReadTimeout    time.Duration `envconfig:"GOFORMS_APP_READ_TIMEOUT" default:"5s"`
 	WriteTimeout   time.Duration `envconfig:"GOFORMS_APP_WRITE_TIMEOUT" default:"10s"`
 	IdleTimeout    time.Duration `envconfig:"GOFORMS_APP_IDLE_TIMEOUT" default:"120s"`

@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"fmt"
+	"strings"
 
 	"go.uber.org/fx"
 
@@ -124,8 +125,8 @@ var Module = fx.Options(
 
 		// Dashboard handler - authenticated access
 		fx.Annotate(
-			func(base *BaseHandler, accessManager *access.Manager) (Handler, error) {
-				return NewDashboardHandler(base, accessManager), nil
+			func(base *BaseHandler, accessManager *access.Manager, authMiddleware *auth.Middleware) (Handler, error) {
+				return NewDashboardHandler(base, accessManager, authMiddleware), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
@@ -240,7 +241,8 @@ func (rr *RouteRegistrar) registerFormAPIRoutes(e *echo.Echo, h *FormAPIHandler)
 // registerDashboardRoutes registers dashboard routes
 func (rr *RouteRegistrar) registerDashboardRoutes(e *echo.Echo, h *DashboardHandler) {
 	dashboard := e.Group(constants.PathDashboard)
-	dashboard.Use(access.Middleware(rr.accessManager, rr.logger))
+	// Apply auth middleware to fetch and store user in context
+	dashboard.Use(h.AuthMiddleware.RequireAuth)
 	dashboard.GET("", h.handleDashboard)
 }
 
@@ -254,8 +256,33 @@ func RegisterHandlers(
 	registrar := NewRouteRegistrar(handlers, accessManager, logger)
 	registrar.RegisterAll(e)
 
-	// Log route count for debugging without listing every route
+	// Log route count for debugging with breakdown
 	if logger != nil {
-		logger.Info("Route registration completed", "total_routes", len(e.Routes()))
+		allRoutes := e.Routes()
+		httpRoutes := 0
+		assetRoutes := 0
+
+		// Categorize routes and log them for debugging
+		logger.Debug("Route breakdown:")
+		for _, route := range allRoutes {
+			path := route.Path
+			method := route.Method
+			if strings.HasPrefix(path, "/assets/") ||
+				strings.HasPrefix(path, "/fonts/") ||
+				path == "/favicon.ico" ||
+				path == "/robots.txt" {
+				assetRoutes++
+				logger.Debug("  Asset route", "method", method, "path", path)
+			} else {
+				httpRoutes++
+				logger.Debug("  HTTP route", "method", method, "path", path)
+			}
+		}
+
+		logger.Info("Route registration completed",
+			"total_routes", len(allRoutes),
+			"http_routes", httpRoutes,
+			"asset_routes", assetRoutes,
+			"handlers_registered", len(handlers))
 	}
 }

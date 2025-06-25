@@ -111,6 +111,20 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
 
+	// Add custom logging filter to suppress noise paths
+	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			if strings.HasPrefix(path, "/.well-known") ||
+				path == "/favicon.ico" ||
+				strings.HasPrefix(path, "/robots.txt") {
+				// Skip logging for .well-known, favicon, robots.txt and similar noise paths
+				return next(c)
+			}
+			return next(c)
+		}
+	})
+
 	// Register basic middleware
 	if m.config.Config.App.IsDevelopment() {
 		// Use console format in development

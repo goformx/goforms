@@ -208,7 +208,7 @@ func NewLogger(factory *logging.Factory) (logging.Logger, error) {
 }
 
 // ProvideAssetServer creates an appropriate asset server based on the environment.
-// In development, it uses Vite for hot module replacement and fast development.
+// In development, it serves static files from public directory while Vite handles JS/CSS.
 // In production, it serves from embedded filesystem for optimal performance.
 func ProvideAssetServer(p AssetServerParams) (infraweb.AssetServer, error) {
 	if p.Config == nil {
@@ -219,8 +219,8 @@ func ProvideAssetServer(p AssetServerParams) (infraweb.AssetServer, error) {
 	}
 
 	if p.Config.App.IsDevelopment() {
-		p.Logger.Info("Initializing Vite asset server for development")
-		return infraweb.NewViteAssetServer(p.Config, p.Logger), nil
+		p.Logger.Info("Initializing development asset server for static files")
+		return infraweb.NewDevelopmentAssetServer(p.Config, p.Logger), nil
 	}
 
 	p.Logger.Info("Initializing embedded asset server for production")

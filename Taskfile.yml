@@ -142,7 +142,7 @@ tasks:
   dev:frontend:
     desc: Run frontend dev server with environment-based configuration
     cmds:
-    - npx vite --host {{.GOFORMS_VITE_DEV_HOST | default "0.0.0.0"}} --port {{.GOFORMS_VITE_DEV_PORT | default "3000"}}
+    - npx vite
 
   clean:
     desc: Remove generated artifacts and dependencies

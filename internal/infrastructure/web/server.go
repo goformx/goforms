@@ -7,8 +7,8 @@ import (
 	"fmt"
 	"io/fs"
 	"net/http"
-	"net/http/httputil"
-	"net/url"
+	"os"
+	"path/filepath"
 
 	"github.com/labstack/echo/v4"
 
@@ -16,54 +16,51 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
-// ViteAssetServer implements AssetServer for Vite development server
-type ViteAssetServer struct {
+// DevelopmentAssetServer implements AssetServer for development mode
+// It serves static files from the public directory but doesn't proxy Vite routes
+type DevelopmentAssetServer struct {
 	config *config.Config
 	logger logging.Logger
 }
 
-// NewViteAssetServer creates a new Vite asset server
-func NewViteAssetServer(cfg *config.Config, logger logging.Logger) *ViteAssetServer {
-	return &ViteAssetServer{
+// NewDevelopmentAssetServer creates a new development asset server
+func NewDevelopmentAssetServer(cfg *config.Config, logger logging.Logger) *DevelopmentAssetServer {
+	return &DevelopmentAssetServer{
 		config: cfg,
 		logger: logger,
 	}
 }
 
-// RegisterRoutes registers the Vite dev server proxy routes
-func (s *ViteAssetServer) RegisterRoutes(e *echo.Echo) error {
+// RegisterRoutes registers routes for static files in development
+func (s *DevelopmentAssetServer) RegisterRoutes(e *echo.Echo) error {
 	if s.config == nil {
 		return errors.New("config is required")
 	}
 
-	viteURL := fmt.Sprintf("%s://%s:%s", s.config.App.Scheme, s.config.App.ViteDevHost, s.config.App.ViteDevPort)
-	parsedURL, err := url.Parse(viteURL)
-	if err != nil {
-		return fmt.Errorf("invalid Vite dev server URL: %w", err)
+	// Add static file headers middleware
+	e.Use(setupStaticFileHeaders)
+
+	// Serve static files from the public directory
+	publicDir := "public"
+	if _, err := os.Stat(publicDir); err != nil {
+		return fmt.Errorf("public directory not found: %w", err)
 	}
 
-	// Create a proxy for the Vite dev server
-	proxy := httputil.NewSingleHostReverseProxy(parsedURL)
-	proxy.ErrorHandler = func(w http.ResponseWriter, r *http.Request, err error) {
-		// Only log the path portion of the URL, limited to 100 characters
-		path := r.URL.Path
-		if len(path) > MaxPathLength {
-			path = path[:MaxPathLength] + "..."
-		}
-		s.logger.Error("proxy error",
-			"error", err,
-			"path", path,
-		)
-		http.Error(w, "Proxy Error", http.StatusBadGateway)
-	}
+	// Create file server for public directory
+	fileServer := http.FileServer(http.Dir(publicDir))
 
-	// Register routes for the Vite dev server
-	e.Any("/src/*", echo.WrapHandler(proxy))
-	e.Any("/@vite/*", echo.WrapHandler(proxy))
-	e.Any("/@fs/*", echo.WrapHandler(proxy))
-	e.Any("/@id/*", echo.WrapHandler(proxy))
-	e.Any("/favicon.ico", echo.WrapHandler(proxy))
+	// Serve favicon.ico
+	e.GET("/favicon.ico", echo.WrapHandler(fileServer))
 
+	// Serve robots.txt
+	e.GET("/robots.txt", echo.WrapHandler(fileServer))
+
+	// Serve fonts
+	e.GET("/fonts/*", echo.WrapHandler(http.StripPrefix("/fonts/", http.FileServer(http.Dir(filepath.Join(publicDir, "fonts"))))))
+
+	s.logger.Info("development asset server configured",
+		"public_dir", publicDir,
+	)
 	return nil
 }
 

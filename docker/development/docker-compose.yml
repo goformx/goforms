@@ -44,7 +44,7 @@ services:
       - GOFORMS_CORS_MAX_AGE=3600
 
       # Development Settings
-      - GOFORMS_VITE_DEV_HOST=0.0.0.0
+      - GOFORMS_VITE_DEV_HOST=localhost
       - GOFORMS_VITE_DEV_PORT=3000
 
       # Timeouts

@@ -1,4 +1,4 @@
-import { defineConfig, loadEnv } from "vite";
+import { defineConfig } from "vite";
 import { resolve } from "path";
 import autoprefixer from "autoprefixer";
 import postcssImport from "postcss-import";
@@ -23,66 +23,33 @@ function templWatcherPlugin() {
     name: "templ-watcher",
     configureServer(server: any) {
       // Watch for changes in *_templ.go files
-      const watchTemplFiles = () => {
-        const internalDir = resolve(__dirname, "internal");
-        
-        // Watch the internal directory recursively
-        const watchDir = (dir: string) => {
-          watch(dir, { recursive: true }, (_eventType: string, filename: string | null) => {
-            if (filename && filename.endsWith("_templ.go")) {
-              console.log(`[Vite] Templ file changed: ${filename}`);
-              // Trigger a full page reload when templ files change
-              server.ws.send({
-                type: "full-reload",
-                path: "*",
-              });
-            }
+      const internalDir = resolve(__dirname, "internal");
+      
+      watch(internalDir, { recursive: true }, (_eventType: string, filename: string | null) => {
+        if (filename && filename.endsWith("_templ.go")) {
+          console.log(`[Vite] Templ file changed: ${filename}`);
+          // Trigger a full page reload when templ files change
+          server.ws.send({
+            type: "full-reload",
+            path: "*",
           });
-        };
-
-        watchDir(internalDir);
-      };
-
-      // Start watching after server is ready
-      server.middlewares.use((req: any, _res: any, next: any) => {
-        if (req.url === "/") {
-          // Initialize watcher on first request
-          setTimeout(watchTemplFiles, 1000);
         }
-        next();
       });
     },
   };
 }
 
 export default defineConfig(({ mode }) => {
-  // Load environment variables with safe defaults
-  const env = loadEnv(mode, process.cwd(), "");
+  const isDev = mode === "development";
   
-  // Get Vite configuration from environment variables with safe parsing
-  const viteHost = env.GOFORMS_VITE_DEV_HOST || "localhost";
-  const vitePort = parseInt(env.GOFORMS_VITE_DEV_PORT || "3000", 10) || 3000;
-  const appHost = env.GOFORMS_APP_HOST || "localhost";
-  const appPort = parseInt(env.GOFORMS_APP_PORT || "8090", 10) || 8090;
-  const appScheme = env.GOFORMS_APP_SCHEME || "http";
-  
-  // Build the app URL for CORS and proxy configuration
-  // Use GOFORMS_APP_URL if provided, otherwise construct from individual parts
-  // For devcontainer environments, always use localhost for client connections
-  const appUrl = env.GOFORMS_APP_URL || `${appScheme}://localhost:${appPort}`;
-  
-  console.log(`[Vite] Configuration:`, {
-    viteHost,
-    vitePort,
-    appUrl,
-    mode,
-  });
+  console.log(`[Vite] Mode: ${mode}, serving assets from 0.0.0.0:3000`);
 
   return {
     root: ".",
     publicDir: "public",
     appType: "custom",
-    base: process.env.NODE_ENV === "production" ? "/assets/" : "/",
+    base: "/",
+    
     css: {
       devSourcemap: true,
       modules: {
@@ -93,34 +60,22 @@ export default defineConfig(({ mode }) => {
           autoprefixer(),
           postcssImport(),
           postcssNested(),
-          cssnano({
-            preset: "default",
-          }),
+          ...(isDev ? [] : [cssnano({ preset: "default" })]),
         ],
       },
     },
+    
     server: {
-      port: vitePort,
+      port: 3000,
+      host: "0.0.0.0", // Changed from "localhost" for Docker
       strictPort: true,
-      cors: {
-        origin: appUrl, // Use environment-based app URL
-        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
-        credentials: true,
-      },
-      proxy: {
-        "/api": {
-          target: appUrl, // Use environment-based app URL
-          changeOrigin: true,
-          secure: false,
-        },
-      },
+      cors: true,
       hmr: {
         protocol: "ws",
-        host: viteHost,
-        port: vitePort,
-        clientPort: vitePort,
+        host: "0.0.0.0", // Changed from "localhost" for Docker
+        port: 3000,
+        clientPort: 3000,
       },
-      host: true,
       middlewareMode: false,
       fs: {
         strict: false,
@@ -129,15 +84,14 @@ export default defineConfig(({ mode }) => {
       watch: {
         usePolling: true,
         interval: 1000,
-        // Watch for templ-generated files
         ignored: ["!**/*_templ.go", "coverage/**"],
       },
-      origin: `http://${viteHost}:${vitePort}`, // Use environment-based Vite URL
     },
+    
     build: {
       outDir: "dist",
       emptyOutDir: true,
-      manifest: true, // Generate manifest.json
+      manifest: true,
       sourcemap: true,
       target: "esnext",
       minify: "terser",
@@ -172,14 +126,8 @@ export default defineConfig(({ mode }) => {
             }
             const info = assetInfo.name.split(".");
             const ext = info[info.length - 1];
-            // Skip font files from being processed by Vite
-            if (
-              ext === "woff" ||
-              ext === "woff2" ||
-              ext === "ttf" ||
-              ext === "eot"
-            ) {
-              // Place all font files in the fonts directory
+            
+            if (["woff", "woff2", "ttf", "eot"].includes(ext)) {
               return "fonts/[name][extname]";
             }
             if (ext === "css") {
@@ -192,21 +140,13 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
+    
     resolve: {
       alias: pathAliases,
-      extensions: [
-        ".mjs",
-        ".js",
-        ".ts",
-        ".jsx",
-        ".tsx",
-        ".json",
-        ".ejs",
-        ".ejs.js",
-      ],
+      extensions: [".mjs", ".js", ".ts", ".jsx", ".tsx", ".json", ".ejs", ".ejs.js"],
     },
+    
     optimizeDeps: {
-      force: true,
       include: ["@formio/js", "@goformx/formio"],
       esbuildOptions: {
         target: "esnext",
@@ -215,10 +155,7 @@ export default defineConfig(({ mode }) => {
         },
       },
     },
-    preview: {
-      port: 8090,
-      strictPort: true,
-    },
+        
     plugins: [ejsPlugin(), templWatcherPlugin()],
     assetsInclude: ["**/*.ejs", "**/*.ejs.js"],
   };
