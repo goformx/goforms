@@ -157,10 +157,13 @@ export default defineConfig(({ mode }) => {
           "main.css": resolve(__dirname, "src/css/main.css"),
           dashboard: resolve(__dirname, "src/js/pages/dashboard.ts"),
           "form-builder": resolve(__dirname, "src/js/pages/form-builder.ts"),
-          login: resolve(__dirname, "src/js/features/auth/login.ts"),
-          signup: resolve(__dirname, "src/js/features/auth/signup.ts"),
+          "new-form": resolve(__dirname, "src/js/pages/new-form.ts"),
+          "form-preview": resolve(__dirname, "src/js/pages/form-preview.ts"),
           "cta-form": resolve(__dirname, "src/js/pages/cta-form.ts"),
           demo: resolve(__dirname, "src/js/pages/demo.ts"),
+          // Auth pages - these should be moved to pages/ for consistency
+          login: resolve(__dirname, "src/js/pages/login.ts"),
+          signup: resolve(__dirname, "src/js/pages/signup.ts"),
         },
         output: {
           assetFileNames: (assetInfo) => {
