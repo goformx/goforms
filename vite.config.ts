@@ -67,16 +67,17 @@ export default defineConfig(({ mode }) => {
     
     server: {
       port: 3000,
-      host: "0.0.0.0", // Changed from "localhost" for Docker
+      host: "0.0.0.0",
       strictPort: true,
-      cors: true,
-      hmr: {
-        protocol: "ws",
-        host: "0.0.0.0", // Changed from "localhost" for Docker
-        port: 3000,
-        clientPort: 3000,
+      cors: {
+        origin: ["http://localhost:8090", "http://127.0.0.1:8090"],
+        credentials: true,
+        methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
+        allowedHeaders: ["Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"],
       },
-      middlewareMode: false,
+      hmr: {
+        port: 3000,
+      },
       fs: {
         strict: false,
         allow: [".."],
