@@ -43,6 +43,48 @@ var TickerDuration = 1 * time.Minute
 
 // New creates a new GORM database connection
 func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
+	// Configure GORM logger
+	gormLogger := configureGormLogger(cfg, appLogger)
+
+	// Configure GORM
+	gormConfig := &gorm.Config{
+		Logger: gormLogger,
+		NowFunc: func() time.Time {
+			return time.Now().UTC()
+		},
+		PrepareStmt: true, // Enable prepared statements for better performance
+	}
+
+	// Create database connection
+	db, err := createDatabaseConnection(cfg, gormConfig)
+	if err != nil {
+		return nil, err
+	}
+
+	// Configure connection pool
+	if err := configureConnectionPool(db, cfg); err != nil {
+		return nil, err
+	}
+
+	// Verify connection
+	if err := verifyConnection(db, appLogger); err != nil {
+		return nil, err
+	}
+
+	appLogger.Info("database connection established",
+		"driver", cfg.Database.Connection,
+		"host", cfg.Database.Host,
+		"port", cfg.Database.Port,
+		"max_open_conns", cfg.Database.MaxOpenConns)
+
+	return &GormDB{
+		DB:     db,
+		logger: appLogger,
+	}, nil
+}
+
+// configureGormLogger configures the GORM logger with the specified settings
+func configureGormLogger(cfg *config.Config, appLogger logging.Logger) logger.Interface {
 	// Map our log levels to GORM log levels
 	var gormLogLevel logger.LogLevel
 	switch cfg.Database.Logging.LogLevel {
@@ -59,7 +101,7 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	}
 
 	// Configure GORM logger with enhanced settings
-	gormLogger := logger.New(
+	return logger.New(
 		&GormLogWriter{logger: appLogger},
 		logger.Config{
 			SlowThreshold:             cfg.Database.Logging.SlowThreshold,
@@ -69,79 +111,82 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 			Colorful:                  cfg.App.IsDevelopment(),
 		},
 	)
+}
 
-	// Configure GORM
-	gormConfig := &gorm.Config{
-		Logger: gormLogger,
-		NowFunc: func() time.Time {
-			return time.Now().UTC()
-		},
-		PrepareStmt: true, // Enable prepared statements for better performance
-	}
-
+// createDatabaseConnection creates a database connection based on the configuration
+func createDatabaseConnection(cfg *config.Config, gormConfig *gorm.Config) (*gorm.DB, error) {
 	var db *gorm.DB
 	var err error
 
 	// Create database connection based on the selected driver
 	switch cfg.Database.Connection {
 	case "postgres":
-		// Build DSN for PostgreSQL
-		dsn := fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
-			cfg.Database.Host,
-			cfg.Database.Port,
-			cfg.Database.Username,
-			cfg.Database.Password,
-			cfg.Database.Database,
-			cfg.Database.SSLMode,
-		)
+		dsn := buildPostgresDSN(cfg)
 		db, err = gorm.Open(postgres.Open(dsn), gormConfig)
-
 	case "mariadb":
-		// Build DSN for MariaDB
-		dsn := fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
-			cfg.Database.Username,
-			cfg.Database.Password,
-			cfg.Database.Host,
-			cfg.Database.Port,
-			cfg.Database.Database,
-		)
+		dsn := buildMariaDBDSN(cfg)
 		db, err = gorm.Open(mysql.Open(dsn), gormConfig)
-
 	default:
 		return nil, fmt.Errorf("unsupported database connection type: %s", cfg.Database.Connection)
 	}
 
 	if err != nil {
-		appLogger.Error("failed to connect to database", "error", err)
 		return nil, fmt.Errorf("failed to connect to database: %w", err)
 	}
 
-	// Configure connection pool
+	return db, nil
+}
+
+// buildPostgresDSN builds the PostgreSQL connection string
+func buildPostgresDSN(cfg *config.Config) string {
+	return fmt.Sprintf("host=%s port=%d user=%s password=%s dbname=%s sslmode=%s",
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Database,
+		cfg.Database.SSLMode,
+	)
+}
+
+// buildMariaDBDSN builds the MariaDB connection string
+func buildMariaDBDSN(cfg *config.Config) string {
+	return fmt.Sprintf("%s:%s@tcp(%s:%d)/%s?charset=utf8mb4&parseTime=True&loc=UTC",
+		cfg.Database.Username,
+		cfg.Database.Password,
+		cfg.Database.Host,
+		cfg.Database.Port,
+		cfg.Database.Database,
+	)
+}
+
+// configureConnectionPool configures the database connection pool
+func configureConnectionPool(db *gorm.DB, cfg *config.Config) error {
 	sqlDB, err := db.DB()
 	if err != nil {
-		return nil, fmt.Errorf("failed to get database instance: %w", err)
+		return fmt.Errorf("failed to get database instance: %w", err)
 	}
 
 	sqlDB.SetMaxOpenConns(cfg.Database.MaxOpenConns)
 	sqlDB.SetMaxIdleConns(cfg.Database.MaxIdleConns)
 	sqlDB.SetConnMaxLifetime(cfg.Database.ConnMaxLifetime)
 
-	// Verify connection
-	if pingErr := sqlDB.Ping(); pingErr != nil {
-		appLogger.Error("failed to ping database", "error", pingErr)
-		return nil, fmt.Errorf("failed to ping database: %w", pingErr)
+	return nil
+}
+
+// verifyConnection verifies the database connection by pinging it
+func verifyConnection(db *gorm.DB, appLogger logging.Logger) error {
+	sqlDB, err := db.DB()
+	if err != nil {
+		return fmt.Errorf("failed to get database instance: %w", err)
 	}
 
-	appLogger.Info("database connection established",
-		"driver", cfg.Database.Connection,
-		"host", cfg.Database.Host,
-		"port", cfg.Database.Port,
-		"max_open_conns", cfg.Database.MaxOpenConns)
+	if pingErr := sqlDB.Ping(); pingErr != nil {
+		appLogger.Error("failed to ping database", "error", pingErr)
+		return fmt.Errorf("failed to ping database: %w", pingErr)
+	}
 
-	return &GormDB{
-		DB:     db,
-		logger: appLogger,
-	}, nil
+	return nil
 }
 
 // Close closes the database connection
