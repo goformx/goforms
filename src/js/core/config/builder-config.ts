@@ -1,4 +1,4 @@
-import { Formio } from "@formio/js";
+import type { Formio } from "@formio/js";
 
 type FormBuilderOptions = Parameters<typeof Formio.builder>[2];
 
@@ -126,11 +126,11 @@ export function createUserFieldSchema(
 
   if (validation) {
     finalValidation = validation;
-    fieldOptions = optionsOrValidation || {};
+    fieldOptions = optionsOrValidation ?? {};
   } else if (isValidationConfig(optionsOrValidation)) {
     finalValidation = optionsOrValidation;
   } else {
-    fieldOptions = optionsOrValidation || {};
+    fieldOptions = optionsOrValidation ?? {};
   }
 
   const baseSchema: UserFieldSchema["schema"] = {

@@ -1,6 +1,7 @@
 // ===== src/js/forms/handlers/request-handler.ts =====
 import { Logger } from "@/core/logger";
 import { HttpClient } from "@/core/http-client";
+import { FormBuilderError } from "@/core/errors/form-builder-error";
 import { isAuthenticationEndpoint } from "@/shared/utils/endpoint-utils";
 
 export class RequestHandler {
@@ -20,7 +21,7 @@ export class RequestHandler {
       if (isAuthEndpoint) {
         // For auth endpoints, convert to JSON and use HttpClient
         const data = Object.fromEntries(formData.entries());
-        delete data.csrf_token; // Remove from payload since HttpClient handles it
+        delete data["csrf_token"]; // Remove from payload since HttpClient handles it
 
         Logger.debug("Cleaned Form Data:", data);
 
@@ -58,24 +59,61 @@ export class RequestHandler {
     } catch (error) {
       Logger.error("Request failed:", error);
 
-      // Create an error response
-      return new Response(
-        JSON.stringify({
-          success: false,
-          message: error instanceof Error ? error.message : "Request failed",
-        }),
-        {
-          status: 500,
-          headers: {
-            "Content-Type": "application/json",
-            "access-control-allow-credentials": "true",
-            "access-control-allow-headers":
-              "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
-            "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
-            "access-control-allow-origin": "http://localhost:8090",
-          },
-        },
-      );
+      // Convert to FormBuilderError for consistent error handling
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+
+      // Handle different types of errors
+      if (error instanceof TypeError) {
+        throw FormBuilderError.networkError(
+          "Network connection failed",
+          form.action,
+        );
+      }
+
+      // Handle HTTP errors from HttpClient
+      if (error && typeof error === "object" && "status" in error) {
+        const status = (error as any).status;
+        const message = (error as any).message ?? "Request failed";
+
+        switch (status) {
+          case 400:
+            throw FormBuilderError.validationError(
+              "Invalid form data",
+              undefined,
+              new FormData(form),
+            );
+          case 403:
+            throw FormBuilderError.csrfError("CSRF token validation failed");
+          case 404:
+            throw FormBuilderError.loadFailed(
+              "Form endpoint not found",
+              form.action,
+            );
+          case 429:
+            throw FormBuilderError.networkError(
+              "Rate limit exceeded",
+              form.action,
+              status,
+            );
+          case 500:
+            throw FormBuilderError.saveFailed(
+              "Server error occurred",
+              form.action,
+              error as unknown as Error,
+            );
+          default:
+            throw FormBuilderError.networkError(
+              `Server error: ${message}`,
+              form.action,
+              status,
+            );
+        }
+      }
+
+      // Generic error handling
+      throw FormBuilderError.networkError("Unknown network error", form.action);
     } finally {
       Logger.groupEnd();
     }
