@@ -97,8 +97,8 @@ func (s *Server) Start() error {
 	}
 }
 
-// ServerDeps contains the dependencies for creating a server
-type ServerDeps struct {
+// Deps contains the dependencies for creating a server
+type Deps struct {
 	fx.In
 	Lifecycle   fx.Lifecycle
 	Logger      logging.Logger
@@ -108,7 +108,7 @@ type ServerDeps struct {
 }
 
 // New creates a new server instance with the provided dependencies
-func New(deps ServerDeps) *Server {
+func New(deps Deps) *Server {
 	srv := &Server{
 		echo:   deps.Echo,
 		logger: deps.Logger,

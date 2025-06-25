@@ -191,16 +191,6 @@ func applyGlobalCORS(
 	)
 }
 
-// isNoisePath checks if the path should be suppressed from logging
-func isNoisePath(path string) bool {
-	return strings.HasPrefix(path, "/.well-known") ||
-		path == "/favicon.ico" ||
-		strings.HasPrefix(path, "/robots.txt") ||
-		strings.Contains(path, "com.chrome.devtools") ||
-		strings.Contains(path, "devtools") ||
-		strings.Contains(path, "chrome-devtools")
-}
-
 // handlePreflight handles OPTIONS preflight requests
 func handlePreflight(
 	c echo.Context,

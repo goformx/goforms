@@ -119,12 +119,7 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 			Output: os.Stdout,
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
-				return strings.HasPrefix(path, "/.well-known") ||
-					path == "/favicon.ico" ||
-					strings.HasPrefix(path, "/robots.txt") ||
-					strings.Contains(path, "com.chrome.devtools") ||
-					strings.Contains(path, "devtools") ||
-					strings.Contains(path, "chrome-devtools")
+				return isNoisePath(path)
 			},
 		}))
 	} else {
@@ -132,12 +127,7 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
-				return strings.HasPrefix(path, "/.well-known") ||
-					path == "/favicon.ico" ||
-					strings.HasPrefix(path, "/robots.txt") ||
-					strings.Contains(path, "com.chrome.devtools") ||
-					strings.Contains(path, "devtools") ||
-					strings.Contains(path, "chrome-devtools")
+				return isNoisePath(path)
 			},
 		}))
 	}
@@ -648,4 +638,15 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 				"Rate limit exceeded: please try again later")
 		},
 	})
+}
+
+// isNoisePath checks if the path should be suppressed from logging
+func isNoisePath(path string) bool {
+	const faviconPath = "/favicon.ico"
+	return strings.HasPrefix(path, "/.well-known") ||
+		path == faviconPath ||
+		strings.HasPrefix(path, "/robots.txt") ||
+		strings.Contains(path, "com.chrome.devtools") ||
+		strings.Contains(path, "devtools") ||
+		strings.Contains(path, "chrome-devtools")
 }

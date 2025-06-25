@@ -56,7 +56,9 @@ func (s *DevelopmentAssetServer) RegisterRoutes(e *echo.Echo) error {
 	e.GET("/robots.txt", echo.WrapHandler(fileServer))
 
 	// Serve fonts
-	e.GET("/fonts/*", echo.WrapHandler(http.StripPrefix("/fonts/", http.FileServer(http.Dir(filepath.Join(publicDir, "fonts"))))))
+	e.GET("/fonts/*", echo.WrapHandler(
+		http.StripPrefix("/fonts/", http.FileServer(http.Dir(filepath.Join(publicDir, "fonts")))),
+	))
 
 	s.logger.Info("development asset server configured",
 		"public_dir", publicDir,
