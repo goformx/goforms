@@ -8,10 +8,7 @@ import (
 
 // FormCreateRequest represents the data needed to create a form
 type FormCreateRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	CorsOrigins string `json:"cors_origins"`
-	CorsMethods string `json:"cors_methods"`
+	Title string `json:"title"`
 }
 
 // FormUpdateRequest represents the data needed to update a form

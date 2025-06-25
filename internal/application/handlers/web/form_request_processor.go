@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"strings"
 
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -37,10 +38,7 @@ func NewFormRequestProcessor(
 // ProcessCreateRequest processes form creation requests
 func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCreateRequest, error) {
 	req := &FormCreateRequest{
-		Title:       p.sanitizer.String(c.FormValue("title")),
-		Description: p.sanitizer.String(c.FormValue("description")),
-		CorsOrigins: p.sanitizer.String(c.FormValue("cors_origins")),
-		CorsMethods: p.sanitizer.String(c.FormValue("cors_methods")),
+		Title: p.sanitizer.String(c.FormValue("title")),
 	}
 
 	if err := p.validateCreateRequest(req); err != nil {
@@ -57,6 +55,11 @@ func (p *FormRequestProcessorImpl) ProcessUpdateRequest(c echo.Context) (*FormUp
 		Description: p.sanitizer.String(c.FormValue("description")),
 		Status:      p.sanitizer.String(c.FormValue("status")),
 		CorsOrigins: p.sanitizer.String(c.FormValue("cors_origins")),
+	}
+
+	// Validate CORS origins when publishing
+	if req.Status == "published" && strings.TrimSpace(req.CorsOrigins) == "" {
+		return nil, errors.New("CORS origins are required when publishing a form")
 	}
 
 	if err := p.validateUpdateRequest(req); err != nil {
@@ -104,10 +107,6 @@ func (p *FormRequestProcessorImpl) validateCreateRequest(req *FormCreateRequest)
 		return errors.New("title too long")
 	}
 
-	if len(req.Description) > MaxDescriptionLength {
-		return errors.New("description too long")
-	}
-
 	return nil
 }
 
@@ -137,6 +136,11 @@ func (p *FormRequestProcessorImpl) validateUpdateRequest(req *FormUpdateRequest)
 		}
 		if !isValid {
 			return errors.New("invalid form status")
+		}
+
+		// Require CORS origins when publishing
+		if req.Status == "published" && req.CorsOrigins == "" {
+			return errors.New("CORS origins are required when publishing a form")
 		}
 	}
 

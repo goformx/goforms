@@ -146,11 +146,6 @@ func (h *FormWebHandler) handleNewFormValidation(c echo.Context) error {
 			"type":    "required",
 			"message": "Form title is required",
 		},
-		"description": map[string]interface{}{
-			"type":    "string",
-			"max":     1000,
-			"message": "Description must be 1000 characters or less",
-		},
 	}
 
 	return c.JSON(200, schema)

@@ -27,21 +27,18 @@ func NewFormService(formService formdomain.Service, logger logging.Logger) *Form
 // CreateForm creates a new form with the given request data
 func (s *FormService) CreateForm(ctx context.Context, userID string, req *FormCreateRequest) (*model.Form, error) {
 	schema := model.JSON{
-		"type":       "object",
-		"components": []any{},
+		"type": "object",
+		"components": []any{
+			map[string]any{
+				"type":  "button",
+				"key":   "submit",
+				"label": "Submit",
+				"input": true,
+			},
+		},
 	}
 
-	form := model.NewForm(userID, req.Title, req.Description, schema)
-
-	if req.CorsOrigins != "" {
-		origins := parseCSV(req.CorsOrigins)
-		form.CorsOrigins = model.JSON{"origins": origins}
-	}
-
-	if req.CorsMethods != "" {
-		methods := parseCSV(req.CorsMethods)
-		form.CorsMethods = model.JSON{"methods": methods}
-	}
+	form := model.NewForm(userID, req.Title, "", schema)
 
 	return form, s.formService.CreateForm(ctx, form)
 }
