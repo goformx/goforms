@@ -21,7 +21,6 @@ describe("setupViewSchemaButton", () => {
   let mockViewSchemaBtn: HTMLButtonElement;
   let mockShowSchemaModal: MockedFunction<typeof showSchemaModal>;
   let mockLoggerDebug: MockedFunction<typeof Logger.debug>;
-  let mockLoggerWarn: MockedFunction<typeof Logger.warn>;
   let mockLoggerError: MockedFunction<typeof Logger.error>;
 
   beforeEach(() => {
@@ -30,7 +29,6 @@ describe("setupViewSchemaButton", () => {
 
     // Mock Logger methods
     mockLoggerDebug = vi.mocked(Logger.debug);
-    mockLoggerWarn = vi.mocked(Logger.warn);
     mockLoggerError = vi.mocked(Logger.error);
 
     // Mock showSchemaModal

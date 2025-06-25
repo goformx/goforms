@@ -27,7 +27,6 @@ describe("FormApiService", () => {
   let service: FormApiService;
   let mockHttpGet: MockedFunction<typeof HttpClient.get>;
   let mockHttpPut: MockedFunction<typeof HttpClient.put>;
-  let mockHttpPost: MockedFunction<typeof HttpClient.post>;
   let mockHttpDelete: MockedFunction<typeof HttpClient.delete>;
 
   beforeEach(() => {
@@ -37,7 +36,6 @@ describe("FormApiService", () => {
     // Mock HttpClient methods with proper typing
     mockHttpGet = vi.mocked(HttpClient.get);
     mockHttpPut = vi.mocked(HttpClient.put);
-    mockHttpPost = vi.mocked(HttpClient.post);
     mockHttpDelete = vi.mocked(HttpClient.delete);
 
     // Mock Logger methods

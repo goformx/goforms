@@ -1,7 +1,5 @@
-// ===== src/js/forms/handlers/form-handler.ts =====
 import { Logger } from "@/core/logger";
 import type { FormConfig } from "@/shared/types/form-types";
-import { validation } from "@/features/forms/validation/validation";
 import { ValidationHandler } from "@/features/forms/handlers/validation-handler";
 import { RequestHandler } from "@/features/forms/handlers/request-handler";
 import { ResponseHandler } from "@/features/forms/handlers/response-handler";
@@ -17,7 +15,6 @@ export function setupForm(config: FormConfig): void {
     return;
   }
 
-  validation.setupRealTimeValidation(form.id, config.formId);
   ValidationHandler.setupRealTimeValidation(form, config.validationDelay);
 
   form.addEventListener("submit", (event) =>

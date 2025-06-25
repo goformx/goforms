@@ -285,7 +285,7 @@ export class SchemaViewerHandler {
 
     // Store original text and show loading
     const originalText = this.elements.viewButton.textContent;
-    this.elements.viewButton.dataset.originalText = originalText ?? "";
+    this.elements.viewButton.dataset["originalText"] = originalText ?? "";
     this.elements.viewButton.textContent = "Loading...";
   }
 
@@ -297,10 +297,10 @@ export class SchemaViewerHandler {
     this.elements.viewButton.classList.remove("loading");
 
     // Restore original text
-    const originalText = this.elements.viewButton.dataset.originalText;
+    const originalText = this.elements.viewButton.dataset["originalText"];
     if (originalText) {
       this.elements.viewButton.textContent = originalText;
-      delete this.elements.viewButton.dataset.originalText;
+      delete this.elements.viewButton.dataset["originalText"];
     }
   }
 

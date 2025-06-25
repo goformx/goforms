@@ -1,7 +1,5 @@
-// ===== src/js/forms/handlers/enhanced-form-handler.ts =====
 import { Logger } from "@/core/logger";
 import type { FormConfig } from "@/shared/types/form-types";
-import { validation } from "@/features/forms/validation/validation";
 import { ValidationHandler } from "./validation-handler";
 import { ResponseHandler } from "./response-handler";
 import { RequestHandler } from "./request-handler";
@@ -46,9 +44,6 @@ export class EnhancedFormHandler {
         this.config.validationDelay,
       );
     }
-
-    // Set up schema-based validation if needed
-    validation.setupRealTimeValidation(this.form.id, this.formId);
 
     this.form.addEventListener("submit", (event) =>
       this.handleFormSubmission(event),

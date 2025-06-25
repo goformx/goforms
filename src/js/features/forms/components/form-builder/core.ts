@@ -6,6 +6,7 @@ import { builderOptions } from "@/core/config/builder-config";
 import { FormBuilderError, ErrorCode } from "@/core/errors/form-builder-error";
 import { dom } from "@/shared/utils/dom-utils";
 import { formState } from "@/features/forms/state/form-state";
+import { createComponentKey } from "@/shared/types/form-types";
 
 /**
  * Form builder validation
@@ -50,7 +51,7 @@ export async function getFormSchema(formId: string): Promise<FormSchema> {
       components: [
         {
           type: "button",
-          key: "submit",
+          key: createComponentKey("submit"),
           label: "Submit",
           input: true,
           required: false,

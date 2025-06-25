@@ -48,7 +48,7 @@ export class UserDropdownManager {
 
     // Single global keyboard listener
     document.addEventListener("keydown", (e) => {
-      if (e.key === "Escape"?.this.activeDropdown) {
+      if (e.key === "Escape" && this.activeDropdown) {
         this.closeActiveDropdown();
       }
     });
