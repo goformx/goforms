@@ -113,7 +113,7 @@ var Module = fx.Options(
 			func(
 				base *BaseHandler,
 				formService form.Service,
-				accessManager *access.AccessManager,
+				accessManager *access.Manager,
 				formValidator *validation.FormValidator,
 				sanitizer sanitization.ServiceInterface,
 			) (Handler, error) {
@@ -124,7 +124,7 @@ var Module = fx.Options(
 
 		// Dashboard handler - authenticated access
 		fx.Annotate(
-			func(base *BaseHandler, accessManager *access.AccessManager) (Handler, error) {
+			func(base *BaseHandler, accessManager *access.Manager) (Handler, error) {
 				return NewDashboardHandler(base, accessManager), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
@@ -162,14 +162,14 @@ var Module = fx.Options(
 // RouteRegistrar handles route registration for all handlers
 type RouteRegistrar struct {
 	handlers      []Handler
-	accessManager *access.AccessManager
+	accessManager *access.Manager
 	logger        logging.Logger
 }
 
 // NewRouteRegistrar creates a new route registrar
 func NewRouteRegistrar(
 	handlers []Handler,
-	accessManager *access.AccessManager,
+	accessManager *access.Manager,
 	logger logging.Logger,
 ) *RouteRegistrar {
 	return &RouteRegistrar{
@@ -248,7 +248,7 @@ func (rr *RouteRegistrar) registerDashboardRoutes(e *echo.Echo, h *DashboardHand
 func RegisterHandlers(
 	e *echo.Echo,
 	handlers []Handler,
-	accessManager *access.AccessManager,
+	accessManager *access.Manager,
 	logger logging.Logger,
 ) {
 	registrar := NewRouteRegistrar(handlers, accessManager, logger)

@@ -21,7 +21,7 @@ func NewManager(
 	logger logging.Logger,
 	cfg *SessionConfig,
 	lc fx.Lifecycle,
-	accessManager *access.AccessManager,
+	accessManager *access.Manager,
 ) *Manager {
 	// Create tmp directory if it doesn't exist
 	if err := os.MkdirAll(filepath.Dir(cfg.StoreFile), 0o750); err != nil {

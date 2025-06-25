@@ -60,5 +60,5 @@ type Manager struct {
 	cookieName    string
 	stopChan      chan struct{}
 	config        *SessionConfig
-	accessManager *access.AccessManager
+	accessManager *access.Manager
 }

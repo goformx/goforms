@@ -18,7 +18,7 @@ import (
 // FormAPIHandler handles API form operations
 type FormAPIHandler struct {
 	*FormBaseHandler
-	AccessManager          *access.AccessManager
+	AccessManager          *access.Manager
 	RequestProcessor       FormRequestProcessor
 	ResponseBuilder        FormResponseBuilder
 	ErrorHandler           FormErrorHandler
@@ -28,7 +28,7 @@ type FormAPIHandler struct {
 func NewFormAPIHandler(
 	base *BaseHandler,
 	formService formdomain.Service,
-	accessManager *access.AccessManager,
+	accessManager *access.Manager,
 	formValidator *validation.FormValidator,
 	sanitizer sanitization.ServiceInterface,
 ) *FormAPIHandler {

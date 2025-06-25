@@ -61,7 +61,7 @@ func NewFormWebHandler(
 }
 
 // RegisterRoutes registers all form-related routes
-func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.AccessManager) {
+func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Manager) {
 	forms := e.Group(constants.PathForms)
 	forms.Use(access.Middleware(accessManager, h.Logger))
 

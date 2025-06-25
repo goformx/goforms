@@ -161,7 +161,7 @@ func setupTestFormAPIHandler(t *testing.T) (*web.FormAPIHandler, *mockFormServic
 		RequestProcessor:       web.NewFormRequestProcessor(sanitizer, validation.NewFormValidator(logger)),
 		ResponseBuilder:        web.NewFormResponseBuilder(),
 		ErrorHandler:           web.NewFormErrorHandler(web.NewFormResponseBuilder()),
-		AccessManager:          access.NewAccessManager(access.DefaultConfig(), access.DefaultRules()),
+		AccessManager:          access.NewManager(access.DefaultConfig(), access.DefaultRules()),
 	}
 
 	return handler, mockFormSvc, e

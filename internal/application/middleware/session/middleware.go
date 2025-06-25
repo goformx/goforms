@@ -135,7 +135,7 @@ func (sm *Manager) shouldSkipSession(path string) bool {
 func (sm *Manager) isPublicPath(path string) bool {
 	// Use accessManager to check if the path is public
 	if sm.accessManager != nil {
-		if sm.accessManager.GetRequiredAccess(path, "GET") == access.PublicAccess {
+		if sm.accessManager.GetRequiredAccess(path, "GET") == access.Public {
 			return true
 		}
 	}

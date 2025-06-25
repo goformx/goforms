@@ -38,7 +38,7 @@ type ManagerConfig struct {
 	UserService    user.Service
 	FormService    formdomain.Service
 	SessionManager *session.Manager
-	AccessManager  *access.AccessManager
+	AccessManager  *access.Manager
 	Sanitizer      sanitization.ServiceInterface
 }
 

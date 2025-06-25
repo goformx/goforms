@@ -43,7 +43,7 @@ type Dependencies struct {
 	SessionManager    *session.Manager
 	Renderer          view.Renderer
 	MiddlewareManager *middleware.Manager
-	AccessManager     *access.AccessManager
+	AccessManager     *access.Manager
 	Sanitizer         sanitization.ServiceInterface
 }
 

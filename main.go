@@ -46,7 +46,7 @@ type appParams struct {
 	Logger            logging.Logger         // Application logger
 	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
 	MiddlewareManager *appmiddleware.Manager // Middleware management
-	AccessManager     *access.AccessManager  // Access control management
+	AccessManager     *access.Manager        // Access control management
 	Config            *config.Config         // Application configuration
 }
 
@@ -56,7 +56,7 @@ type appParams struct {
 func setupHandlers(
 	handlers []web.Handler,
 	e *echo.Echo,
-	accessManager *access.AccessManager,
+	accessManager *access.Manager,
 	logger logging.Logger,
 ) error {
 	for i, handler := range handlers {
