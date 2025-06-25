@@ -5,6 +5,7 @@ import (
 
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestNewService(t *testing.T) {
@@ -234,7 +235,8 @@ func TestService_SanitizeMap(t *testing.T) {
 
 	assert.Equal(t, "John Doe", data["name"])
 	assert.Equal(t, "test@example.com", data["email"])
-	nested := data["nested"].(map[string]any)
+	nested, ok := data["nested"].(map[string]any)
+	require.True(t, ok, "expected nested to be map[string]any")
 	assert.Equal(t, "Test Title", nested["title"])
 }
 
@@ -286,11 +288,13 @@ func TestService_SanitizeJSON(t *testing.T) {
 		},
 	}
 
-	result := service.SanitizeJSON(data).(map[string]any)
+	result, ok := service.SanitizeJSON(data).(map[string]any)
+	require.True(t, ok, "expected result to be map[string]any")
 
 	assert.Equal(t, "John Doe", result["name"])
 	assert.Equal(t, "test@example.com", result["email"])
-	tags := result["tags"].([]any)
+	tags, ok := result["tags"].([]any)
+	require.True(t, ok, "expected tags to be []any")
 	assert.Equal(t, "tag1", tags[0])
 	assert.Equal(t, "tag2", tags[1])
 	nested := result["nested"].(map[string]any)

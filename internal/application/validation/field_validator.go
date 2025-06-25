@@ -126,14 +126,21 @@ func (v *FieldValidator) validateNumericField(fieldName string, value any, rules
 	return errors
 }
 
-// validatePattern validates pattern matching
+// validatePattern validates that a value matches a regex pattern
 func (v *FieldValidator) validatePattern(fieldName string, value any, pattern string) []ValidationError {
 	if pattern == "" {
 		return nil
 	}
 
 	if strValue, ok := value.(string); ok {
-		if matched, _ := regexp.MatchString(pattern, strValue); !matched {
+		matched, err := regexp.MatchString(pattern, strValue)
+		if err != nil {
+			return []ValidationError{{
+				Field:   fieldName,
+				Message: fmt.Sprintf("Invalid regex pattern: %v", err),
+			}}
+		}
+		if !matched {
 			return []ValidationError{{
 				Field:   fieldName,
 				Message: "Value does not match required pattern",
@@ -291,7 +298,15 @@ func (v *FieldValidator) validateCustomRule(fieldName string, value any, rule Va
 	case "regex":
 		if strValue, ok := value.(string); ok {
 			if pattern, patternOk := rule.Value.(string); patternOk {
-				if matched, _ := regexp.MatchString(pattern, strValue); !matched {
+				matched, err := regexp.MatchString(pattern, strValue)
+				if err != nil {
+					return &ValidationError{
+						Field:   fieldName,
+						Message: fmt.Sprintf("Invalid regex pattern: %v", err),
+						Rule:    rule.Type,
+					}
+				}
+				if !matched {
 					return &ValidationError{
 						Field:   fieldName,
 						Message: rule.Message,

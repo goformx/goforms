@@ -174,11 +174,19 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 		return
 	}
 
-	query, _ := args[queryArgPos].(string)
-	duration, _ := args[durationArgPos].(time.Duration)
+	query, ok := args[queryArgPos].(string)
+	if !ok {
+		query = "unknown query"
+	}
+	duration, ok := args[durationArgPos].(time.Duration)
+	if !ok {
+		duration = 0
+	}
 	rowsAffected := int64(0)
 	if len(args) > rowsAffectedArgPos {
-		rowsAffected, _ = args[rowsAffectedArgPos].(int64)
+		if ra, ok := args[rowsAffectedArgPos].(int64); ok {
+			rowsAffected = ra
+		}
 	}
 
 	// Log all queries in debug mode
