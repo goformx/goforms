@@ -42,7 +42,7 @@ function templWatcherPlugin() {
 export default defineConfig(({ mode }) => {
   const isDev = mode === "development";
   
-  console.log(`[Vite] Mode: ${mode}, serving assets from 0.0.0.0:5173`);
+  console.log(`[Vite] Mode: ${mode}, serving assets from ${isDev ? "0.0.0.0:5173" : "/assets"}`);
 
   return {
     root: ".",

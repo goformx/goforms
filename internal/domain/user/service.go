@@ -2,7 +2,6 @@ package user
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"strings"
 
@@ -54,8 +53,15 @@ func NewService(repo Repository, logger logging.Logger) Service {
 func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.User, error) {
 	// Check if email already exists
 	existingUser, err := s.repo.GetByEmail(ctx, signup.Email)
-	if err != nil && !errors.Is(err, ErrUserNotFound) {
-		return nil, fmt.Errorf("failed to check existing user: %w", err)
+	if err != nil {
+		// Check if it's a "not found" error, which is expected for new users
+		if strings.Contains(err.Error(), "record not found") || strings.Contains(err.Error(), "not found") {
+			// User doesn't exist, which is what we want for signup
+			existingUser = nil
+		} else {
+			// It's a real error, return it
+			return nil, fmt.Errorf("failed to check existing user: %w", err)
+		}
 	}
 	if existingUser != nil {
 		return nil, ErrUserExists

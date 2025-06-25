@@ -26,22 +26,39 @@ Formio.use(goforms);
  */
 async function initializeFormBuilder(): Promise<void> {
   try {
+    console.log("Starting form builder initialization...");
+
     // Validate and get required elements
     const { builder: container, formId } = validateFormBuilder();
+    console.log("Form builder validation passed:", {
+      formId,
+      containerExists: !!container,
+    });
 
     // Get schema and create builder
+    console.log("Fetching form schema...");
     const schema = await getFormSchema(formId);
+    console.log("Schema fetched:", schema);
+
+    console.log("Creating Form.io builder...");
     const builder = await createFormBuilder(container, schema);
+    console.log("Form.io builder created successfully");
 
     // Set up event handlers
+    console.log("Setting up event handlers...");
     setupBuilderEvents(builder, formId, FormService.getInstance());
 
     // Set up View Schema button
+    console.log("Setting up View Schema button...");
     setupViewSchemaButton(builder);
 
     // Set up Save Fields button
+    console.log("Setting up Save Fields button...");
     setupSaveFieldsButton(formId);
+
+    console.log("Form builder initialization completed successfully");
   } catch (error) {
+    console.error("Form builder initialization failed:", error);
     if (error instanceof FormBuilderError) {
       dom.showError(error.userMessage);
     } else {

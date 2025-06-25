@@ -239,14 +239,28 @@ if data.IsDevelopment {
 	if (document.getElementById('form-schema-builder')) {
 		const script = document.getElementById('form-builder-script');
 		const path = script.getAttribute('data-form-builder-path');
-		await import(path);
+		console.log('Loading form builder in development mode:', path);
+		try {
+			await import(path);
+			console.log('Form builder loaded successfully');
+		} catch (error) {
+			console.error('Failed to load form builder:', error);
+		}
 	}
 </script>
 } else {
 <script type="module">
 	const path = JSON.parse(document.getElementById('form-builder-data').textContent);
+	console.log('Loading form builder in production mode:', path);
 	if (document.getElementById('form-schema-builder')) {
-		await import(path);
+		try {
+			await import(path);
+			console.log('Form builder loaded successfully');
+		} catch (error) {
+			console.error('Failed to load form builder:', error);
+		}
+	} else {
+		console.error('Form schema builder element not found');
 	}
 </script>
 }
