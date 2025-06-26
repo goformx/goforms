@@ -6,6 +6,7 @@ import { builderOptions } from "@/core/config/builder-config";
 import { FormBuilderError, ErrorCode } from "@/core/errors/form-builder-error";
 import { dom } from "@/shared/utils/dom-utils";
 import { formState } from "@/features/forms/state/form-state";
+import { createComponentKey } from "@/shared/types/form-types";
 
 /**
  * Form builder validation
@@ -15,7 +16,9 @@ export function validateFormBuilder(): {
   formId: string;
 } {
   const builder = dom.getElement<HTMLElement>("form-schema-builder");
+
   if (!builder) {
+    Logger.error("Form builder element not found");
     throw new FormBuilderError(
       "Form builder element not found",
       ErrorCode.FORM_NOT_FOUND,
@@ -24,7 +27,9 @@ export function validateFormBuilder(): {
   }
 
   const formId = builder.getAttribute("data-form-id");
+
   if (!formId) {
+    Logger.error("Form ID not found in data-form-id attribute");
     throw new FormBuilderError(
       "Form ID not found",
       ErrorCode.FORM_NOT_FOUND,
@@ -46,7 +51,7 @@ export async function getFormSchema(formId: string): Promise<FormSchema> {
       components: [
         {
           type: "button",
-          key: "submit",
+          key: createComponentKey("submit"),
           label: "Submit",
           input: true,
           required: false,
@@ -61,12 +66,14 @@ export async function getFormSchema(formId: string): Promise<FormSchema> {
     Logger.info("Schema fetched successfully:", schema);
     return schema;
   } catch (error) {
+    Logger.group("Schema Fetch Error");
     Logger.error("Error in getFormSchema:", error);
     Logger.error("Error type:", typeof error);
     Logger.error(
       "Error message:",
       error instanceof Error ? error.message : String(error),
     );
+    Logger.groupEnd();
 
     throw new FormBuilderError(
       "Failed to fetch schema",
@@ -84,9 +91,18 @@ export async function createFormBuilder(
   schema: FormSchema,
 ): Promise<any> {
   try {
-    // Configure Formio for standalone mode (no server required)
-    Formio.setProjectUrl(null);
-    Formio.setBaseUrl(null);
+    Logger.group("Form.io Builder Creation");
+    Logger.debug("Starting initialization");
+
+    Logger.group("Container Analysis");
+    Logger.debug("Container element:", container);
+    Logger.debug("Container dimensions:", {
+      offsetWidth: container.offsetWidth,
+      offsetHeight: container.offsetHeight,
+      clientWidth: container.clientWidth,
+      clientHeight: container.clientHeight,
+    });
+    Logger.groupEnd();
 
     // Ensure schema has required properties
     const formSchema = {
@@ -95,31 +111,37 @@ export async function createFormBuilder(
       components: schema.components || [],
     };
 
-    // Create builder with options
+    Logger.group("Schema & Configuration");
+    Logger.debug("Form schema:", formSchema);
+    Logger.debug("Builder options:", builderOptions);
+    Logger.groupEnd();
+
+    // Create builder with standalone configuration
+    Logger.group("Form.io Builder Instantiation");
     const builder = await Formio.builder(container, formSchema, {
       ...builderOptions,
-      builder: {
-        ...builderOptions.builder,
-        basic: {
-          components: {
-            textfield: true,
-            textarea: true,
-            email: true,
-            phoneNumber: true,
-            number: true,
-            password: true,
-            checkbox: true,
-            selectboxes: true,
-            select: true,
-            radio: true,
-            button: true,
-          },
-        },
-      },
+      // Standalone mode - no server communication
+      noDefaultSubmitButton: false,
+      showSchema: true,
+      showJSONEditor: true,
+      showPreview: true,
+      // Disable all project-related features
+      projectUrl: null,
+      appUrl: null,
+      apiUrl: null,
+      // Disable all server communication
+      noAlerts: true,
+      readOnly: false,
+      // Prevent project settings requests
+      project: null,
+      settings: null,
     });
+    Logger.debug("Form.io builder created:", builder);
+    Logger.groupEnd();
 
     // Store builder instance in state management instead of global window
     formState.set("formBuilder", builder);
+    Logger.groupEnd();
     return builder;
   } catch (error) {
     Logger.error("Form builder initialization error:", error);

@@ -2,49 +2,50 @@ package web
 
 import (
 	"context"
+	"fmt"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/auth"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
+// DashboardHandler handles dashboard routes.
 type DashboardHandler struct {
 	*BaseHandler
-	AccessManager *access.AccessManager
+	AccessManager  *access.Manager
+	AuthMiddleware *auth.Middleware
 }
 
-func NewDashboardHandler(base *BaseHandler, accessManager *access.AccessManager) *DashboardHandler {
+// NewDashboardHandler creates a new DashboardHandler.
+func NewDashboardHandler(
+	base *BaseHandler,
+	accessManager *access.Manager,
+	authMiddleware *auth.Middleware,
+) *DashboardHandler {
 	return &DashboardHandler{
-		BaseHandler:   base,
-		AccessManager: accessManager,
+		BaseHandler:    base,
+		AccessManager:  accessManager,
+		AuthMiddleware: authMiddleware,
 	}
-}
-
-func (h *DashboardHandler) Register(e *echo.Echo) {
-	// Create dashboard group with access control
-	dashboard := e.Group(constants.PathDashboard)
-	dashboard.Use(access.Middleware(h.AccessManager, h.Logger))
-	dashboard.GET("", h.handleDashboard)
 }
 
 // handleDashboard handles the dashboard page request
 func (h *DashboardHandler) handleDashboard(c echo.Context) error {
-	userID, ok := c.Get("user_id").(string)
+	// Get user from context using the auth middleware helper
+	user, ok := h.AuthMiddleware.GetUserFromContext(c)
 	if !ok {
-		return h.HandleForbidden(c, "User not authenticated")
-	}
-
-	// Get user data
-	user, err := h.UserService.GetUserByID(c.Request().Context(), userID)
-	if err != nil {
-		h.Logger.Error("failed to get user data", "error", err)
-		return h.HandleError(c, err, "Failed to get user data")
+		// This should not happen if auth middleware is working correctly
+		h.Logger.Error("user not found in context despite authentication")
+		return fmt.Errorf("redirect to login: %w", c.Redirect(http.StatusSeeOther, constants.PathLogin))
 	}
 
 	// Get forms for the user
-	forms, err := h.FormService.ListForms(c.Request().Context(), userID)
+	forms, err := h.FormService.ListForms(c.Request().Context(), user.ID)
 	if err != nil {
 		h.Logger.Error("failed to list forms", "error", err)
 		return h.HandleError(c, err, "Failed to list forms")
@@ -56,17 +57,20 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	data.Forms = forms
 
 	// Render dashboard template
-	return h.Renderer.Render(c, pages.Dashboard(data, forms))
+	if renderErr := h.Renderer.Render(c, pages.Dashboard(data, forms)); renderErr != nil {
+		return fmt.Errorf("render dashboard: %w", renderErr)
+	}
+	return nil
 }
 
 // Start initializes the dashboard handler.
 // This is called during application startup.
-func (h *DashboardHandler) Start(ctx context.Context) error {
+func (h *DashboardHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the dashboard handler.
 // This is called during application shutdown.
-func (h *DashboardHandler) Stop(ctx context.Context) error {
+func (h *DashboardHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }

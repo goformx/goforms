@@ -10,6 +10,7 @@ import {
 import { setupViewSchemaButton } from "@/features/forms/components/form-builder/view-schema-button";
 import { showSchemaModal } from "@/features/forms/components/form-builder/schema-modal";
 import { Logger } from "@/core/logger";
+import { FormBuilderError } from "@/core/errors/form-builder-error";
 
 // Mock dependencies
 vi.mock("@/features/forms/components/form-builder/schema-modal");
@@ -20,7 +21,6 @@ describe("setupViewSchemaButton", () => {
   let mockViewSchemaBtn: HTMLButtonElement;
   let mockShowSchemaModal: MockedFunction<typeof showSchemaModal>;
   let mockLoggerDebug: MockedFunction<typeof Logger.debug>;
-  let mockLoggerWarn: MockedFunction<typeof Logger.warn>;
   let mockLoggerError: MockedFunction<typeof Logger.error>;
 
   beforeEach(() => {
@@ -29,7 +29,6 @@ describe("setupViewSchemaButton", () => {
 
     // Mock Logger methods
     mockLoggerDebug = vi.mocked(Logger.debug);
-    mockLoggerWarn = vi.mocked(Logger.warn);
     mockLoggerError = vi.mocked(Logger.error);
 
     // Mock showSchemaModal
@@ -67,12 +66,16 @@ describe("setupViewSchemaButton", () => {
       }
       return null;
     });
+
+    // Mock setTimeout for debouncing
+    vi.useFakeTimers();
   });
 
   afterEach(() => {
     // Clean up any event listeners
     mockViewSchemaBtn.remove();
     vi.restoreAllMocks();
+    vi.useRealTimers();
   });
 
   describe("Button Setup", () => {
@@ -80,19 +83,17 @@ describe("setupViewSchemaButton", () => {
       setupViewSchemaButton(mockBuilder);
 
       expect(mockLoggerDebug).toHaveBeenCalledWith(
-        "View Schema button event handler set up",
+        "SchemaViewerHandler initialized",
       );
       expect(mockViewSchemaBtn.onclick).toBeDefined();
     });
 
-    it("should log warning when button is not found", () => {
+    it("should throw error when button is not found", () => {
       vi.spyOn(document, "getElementById").mockReturnValue(null);
 
-      setupViewSchemaButton(mockBuilder);
-
-      expect(mockLoggerWarn).toHaveBeenCalledWith(
-        "View Schema button not found",
-      );
+      expect(() => {
+        setupViewSchemaButton(mockBuilder);
+      }).toThrow(FormBuilderError);
       expect(mockLoggerDebug).not.toHaveBeenCalled();
     });
   });
@@ -104,10 +105,15 @@ describe("setupViewSchemaButton", () => {
       // Simulate button click
       mockViewSchemaBtn.click();
 
+      // Fast-forward timers to trigger debounced function
+      vi.runAllTimers();
+
       expect(mockShowSchemaModal).toHaveBeenCalledWith(
         JSON.stringify(mockBuilder.form, null, 2),
       );
-      expect(mockLoggerDebug).toHaveBeenCalledWith("Schema modal opened");
+      expect(mockLoggerDebug).toHaveBeenCalledWith(
+        "Schema modal opened successfully",
+      );
     });
 
     it("should handle empty schema gracefully", () => {
@@ -115,6 +121,7 @@ describe("setupViewSchemaButton", () => {
       setupViewSchemaButton(mockBuilder);
 
       mockViewSchemaBtn.click();
+      vi.runAllTimers();
 
       expect(mockShowSchemaModal).toHaveBeenCalledWith(
         JSON.stringify(mockBuilder.form, null, 2),
@@ -142,6 +149,7 @@ describe("setupViewSchemaButton", () => {
 
       setupViewSchemaButton(mockBuilder);
       mockViewSchemaBtn.click();
+      vi.runAllTimers();
 
       expect(mockShowSchemaModal).toHaveBeenCalledWith(
         JSON.stringify(mockBuilder.form, null, 2),
@@ -156,13 +164,9 @@ describe("setupViewSchemaButton", () => {
         },
       });
 
-      setupViewSchemaButton(mockBuilder);
-      mockViewSchemaBtn.click();
-
-      expect(mockLoggerError).toHaveBeenCalledWith(
-        "Error showing schema modal:",
-        expect.any(Error),
-      );
+      expect(() => {
+        setupViewSchemaButton(mockBuilder);
+      }).toThrow(Error);
       expect(mockShowSchemaModal).not.toHaveBeenCalled();
     });
 
@@ -174,9 +178,10 @@ describe("setupViewSchemaButton", () => {
 
       setupViewSchemaButton(mockBuilder);
       mockViewSchemaBtn.click();
+      vi.runAllTimers();
 
       expect(mockLoggerError).toHaveBeenCalledWith(
-        "Error showing schema modal:",
+        "Schema viewer error:",
         expect.any(Error),
       );
       expect(mockShowSchemaModal).not.toHaveBeenCalled();
@@ -187,6 +192,7 @@ describe("setupViewSchemaButton", () => {
     it("should format schema with proper indentation", () => {
       setupViewSchemaButton(mockBuilder);
       mockViewSchemaBtn.click();
+      vi.runAllTimers();
 
       const expectedSchema = JSON.stringify(mockBuilder.form, null, 2);
       expect(mockShowSchemaModal).toHaveBeenCalledWith(expectedSchema);
@@ -221,6 +227,7 @@ describe("setupViewSchemaButton", () => {
       mockBuilder.form = complexSchema;
       setupViewSchemaButton(mockBuilder);
       mockViewSchemaBtn.click();
+      vi.runAllTimers();
 
       expect(mockShowSchemaModal).toHaveBeenCalledWith(
         JSON.stringify(complexSchema, null, 2),
@@ -233,7 +240,7 @@ describe("setupViewSchemaButton", () => {
       // First setup
       setupViewSchemaButton(mockBuilder);
       expect(mockLoggerDebug).toHaveBeenCalledWith(
-        "View Schema button event handler set up",
+        "SchemaViewerHandler initialized",
       );
 
       // Second setup (should not cause issues)
@@ -242,6 +249,7 @@ describe("setupViewSchemaButton", () => {
 
       // Both event listeners should work (multiple calls to showSchemaModal)
       mockViewSchemaBtn.click();
+      vi.runAllTimers();
       expect(mockShowSchemaModal).toHaveBeenCalledTimes(2);
     });
   });

@@ -7,8 +7,9 @@ import (
 	"net/http/httptest"
 	"testing"
 
-	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/application/constants"
 )
 
 // TestAuthenticationCriticalFlow tests the critical authentication flow
@@ -159,6 +160,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be created when user logs in",
 			requirement: "Login must create valid session with user data",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session creation
 				t.Log("Session must be created with user ID, email, and role")
 				t.Log("Session must have appropriate expiration time")
@@ -170,6 +172,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be validated on protected routes",
 			requirement: "Middleware must validate session and extract user data",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session validation
 				t.Log("Session validation must check session exists and is not expired")
 				t.Log("Session validation must extract user data into context")
@@ -181,6 +184,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must expire after configured time",
 			requirement: "Expired sessions must be rejected",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session expiration
 				t.Log("Expired sessions must return 401 Unauthorized")
 				t.Log("Session expiration must be configurable")
@@ -192,6 +196,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be cleared on logout",
 			requirement: "Logout must invalidate session and clear cookies",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session cleanup
 				t.Log("Logout must clear session data")
 				t.Log("Logout must set expired session cookie")
@@ -203,6 +208,7 @@ func TestSessionManagementCritical(t *testing.T) {
 			description: "Session must be secure",
 			requirement: "Session cookies must have secure attributes",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session security
 				t.Log("Session cookies must be HttpOnly")
 				t.Log("Session cookies must be Secure in production")
@@ -237,6 +243,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Passwords must be securely hashed",
 			requirement: "Use bcrypt or similar secure hashing algorithm",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test password hashing
 				t.Log("Passwords must never be stored in plain text")
 				t.Log("Password hashing must use appropriate cost factor")
@@ -248,6 +255,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Login attempts must be rate limited",
 			requirement: "Prevent brute force attacks on login",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test rate limiting
 				t.Log("Login attempts must be limited per IP address")
 				t.Log("Rate limiting must have appropriate time windows")
@@ -259,6 +267,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Authentication forms must be protected against CSRF",
 			requirement: "All forms must include CSRF tokens",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test CSRF protection
 				t.Log("Login and signup forms must include CSRF tokens")
 				t.Log("CSRF tokens must be validated on form submission")
@@ -270,6 +279,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Authentication inputs must be validated",
 			requirement: "Prevent injection attacks and invalid data",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test input validation
 				t.Log("Email addresses must be validated")
 				t.Log("Passwords must meet complexity requirements")
@@ -282,6 +292,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 			description: "Authentication pages must have secure headers",
 			requirement: "Set appropriate security headers",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test secure headers
 				t.Log("Authentication pages must set Content-Security-Policy")
 				t.Log("Authentication pages must set X-Frame-Options")
@@ -316,6 +327,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Invalid login credentials must be handled gracefully",
 			impact:      "Critical for user experience and security",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test invalid credentials
 				t.Log("Invalid credentials must show appropriate error message")
 				t.Log("Error message must not reveal if user exists")
@@ -327,6 +339,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Account lockout must be handled appropriately",
 			impact:      "Critical for security and user experience",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test account lockout
 				t.Log("Account lockout must be temporary")
 				t.Log("Lockout must be communicated clearly to user")
@@ -338,6 +351,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Session timeout must be handled gracefully",
 			impact:      "Critical for user experience",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test session timeout
 				t.Log("Session timeout must redirect to login")
 				t.Log("User must be informed about session expiration")
@@ -349,6 +363,7 @@ func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 			description: "Database errors must be handled gracefully",
 			impact:      "Critical for system reliability",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test database errors
 				t.Log("Database errors must not expose sensitive information")
 				t.Log("Database errors must be logged appropriately")
@@ -382,6 +397,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 			description: "Authentication must integrate with middleware",
 			requirement: "Auth middleware must work with Echo framework",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test middleware integration
 				t.Log("Auth middleware must be properly registered")
 				t.Log("Auth middleware must handle all protected routes")
@@ -393,6 +409,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 			description: "Authentication must integrate with database",
 			requirement: "User data must be stored and retrieved correctly",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test database integration
 				t.Log("User creation must store data in database")
 				t.Log("User lookup must retrieve data from database")
@@ -404,6 +421,7 @@ func TestAuthenticationIntegrationCritical(t *testing.T) {
 			description: "Authentication events must be logged",
 			requirement: "Security events must be recorded",
 			testFunc: func(t *testing.T) {
+				t.Helper()
 				// TODO: Test logging integration
 				t.Log("Login attempts must be logged")
 				t.Log("Failed login attempts must be logged")

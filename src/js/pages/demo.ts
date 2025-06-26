@@ -85,7 +85,7 @@ const getElement = (id: string): HTMLElement | null => {
 
 // API Response Display Component
 class APIResponseDisplay {
-  private container: HTMLElement | null;
+  private readonly container: HTMLElement | null;
   private responses: APIResponse[];
   private readonly maxResponses: number;
 
@@ -126,9 +126,9 @@ class APIResponseDisplay {
 
 // Form Handler Component
 class DemoForm {
-  private form: HTMLFormElement | null;
-  private apiResponse: APIResponseDisplay;
-  private messagesList: HTMLElement | null;
+  private readonly form: HTMLFormElement | null;
+  private readonly apiResponse: APIResponseDisplay;
+  private readonly messagesList: HTMLElement | null;
 
   constructor(formId: string) {
     this.form = getElement(formId) as HTMLFormElement;
@@ -188,7 +188,7 @@ class DemoForm {
     item.innerHTML = `
       <div class="message-header">
         <strong>${submission.name}</strong>
-        <span class="timestamp">${submission.timestamp || formatDate(new Date())}</span>
+        <span class="timestamp">${submission.timestamp ?? formatDate(new Date())}</span>
       </div>
       <div class="message-content">
         <span class="email">${submission.email}</span>
@@ -244,7 +244,7 @@ document.addEventListener("DOMContentLoaded", () => {
     item.innerHTML = `
       <div class="message-header">
         <strong>${submission.name}</strong>
-        <span class="timestamp">${submission.timestamp}</span>
+        <span class="timestamp">${submission.timestamp ?? formatDate(new Date())}</span>
       </div>
       <div class="message-content">
         <span class="email">${submission.email}</span>

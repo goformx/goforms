@@ -3,9 +3,10 @@ package sanitization_test
 import (
 	"testing"
 
+	"github.com/stretchr/testify/assert"
+
 	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/stretchr/testify/assert"
 )
 
 func TestUUIDSanitizationRule(t *testing.T) {

@@ -85,6 +85,18 @@ export default defineConfig([
       "@typescript-eslint/no-namespace": "error", // Prefer ES modules over namespaces
       "@typescript-eslint/prefer-namespace-keyword": "off", // Disable in favor of ES modules
 
+      // Type imports and exports
+      "@typescript-eslint/consistent-type-imports": "error",
+      "@typescript-eslint/consistent-type-exports": "error",
+      "@typescript-eslint/no-import-type-side-effects": "error",
+
+      // Performance and modern patterns
+      "@typescript-eslint/prefer-readonly": "error",
+      "@typescript-eslint/prefer-nullish-coalescing": "error",
+      "@typescript-eslint/prefer-optional-chain": "error",
+      "@typescript-eslint/no-floating-promises": "error",
+      "@typescript-eslint/await-thenable": "error",
+
       // Variable handling
       "@typescript-eslint/no-unused-vars": [
         "warn",

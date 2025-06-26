@@ -38,7 +38,7 @@ type ManagerConfig struct {
 	UserService    user.Service
 	FormService    formdomain.Service
 	SessionManager *session.Manager
-	AccessManager  *access.AccessManager
+	AccessManager  *access.Manager
 	Sanitizer      sanitization.ServiceInterface
 }
 
@@ -111,16 +111,25 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
 
-	// Register basic middleware
+	// Register basic middleware with custom skipper to suppress noise paths
 	if m.config.Config.App.IsDevelopment() {
 		// Use console format in development
 		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
 			Format: "${time_rfc3339} ${status} ${method} ${uri} ${latency_human}\n",
 			Output: os.Stdout,
+			Skipper: func(c echo.Context) bool {
+				path := c.Request().URL.Path
+				return isNoisePath(path)
+			},
 		}))
 	} else {
 		// Use JSON format in production
-		e.Use(echomw.Logger())
+		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
+			Skipper: func(c echo.Context) bool {
+				path := c.Request().URL.Path
+				return isNoisePath(path)
+			},
+		}))
 	}
 }
 
@@ -399,14 +408,17 @@ type EchoLogger struct {
 	config *ManagerConfig
 }
 
+// Print logs a message at info level
 func (l *EchoLogger) Print(i ...any) {
 	l.logger.Info(fmt.Sprint(i...))
 }
 
+// Printf logs a formatted message at info level
 func (l *EchoLogger) Printf(format string, args ...any) {
 	l.logger.Info(fmt.Sprintf(format, args...))
 }
 
+// Printj logs a JSON message at info level
 func (l *EchoLogger) Printj(j log.JSON) {
 	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
@@ -415,14 +427,17 @@ func (l *EchoLogger) Printj(j log.JSON) {
 	l.logger.Info("", fields...)
 }
 
+// Debug logs a message at debug level
 func (l *EchoLogger) Debug(i ...any) {
 	l.logger.Debug(fmt.Sprint(i...))
 }
 
+// Debugf logs a formatted message at debug level
 func (l *EchoLogger) Debugf(format string, args ...any) {
 	l.logger.Debug(fmt.Sprintf(format, args...))
 }
 
+// Debugj logs a JSON message at debug level
 func (l *EchoLogger) Debugj(j log.JSON) {
 	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
@@ -431,14 +446,17 @@ func (l *EchoLogger) Debugj(j log.JSON) {
 	l.logger.Debug("", fields...)
 }
 
+// Info logs a message at info level
 func (l *EchoLogger) Info(i ...any) {
 	l.logger.Info(fmt.Sprint(i...))
 }
 
+// Infof logs a formatted message at info level
 func (l *EchoLogger) Infof(format string, args ...any) {
 	l.logger.Info(fmt.Sprintf(format, args...))
 }
 
+// Infoj logs a JSON message at info level
 func (l *EchoLogger) Infoj(j log.JSON) {
 	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
@@ -447,14 +465,17 @@ func (l *EchoLogger) Infoj(j log.JSON) {
 	l.logger.Info("", fields...)
 }
 
+// Warn logs a message at warn level
 func (l *EchoLogger) Warn(i ...any) {
 	l.logger.Warn(fmt.Sprint(i...))
 }
 
+// Warnf logs a formatted message at warn level
 func (l *EchoLogger) Warnf(format string, args ...any) {
 	l.logger.Warn(fmt.Sprintf(format, args...))
 }
 
+// Warnj logs a JSON message at warn level
 func (l *EchoLogger) Warnj(j log.JSON) {
 	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
@@ -463,14 +484,17 @@ func (l *EchoLogger) Warnj(j log.JSON) {
 	l.logger.Warn("", fields...)
 }
 
+// Error logs a message at error level
 func (l *EchoLogger) Error(i ...any) {
 	l.logger.Error(fmt.Sprint(i...))
 }
 
+// Errorf logs a formatted message at error level
 func (l *EchoLogger) Errorf(format string, args ...any) {
 	l.logger.Error(fmt.Sprintf(format, args...))
 }
 
+// Errorj logs a JSON message at error level
 func (l *EchoLogger) Errorj(j log.JSON) {
 	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
@@ -479,14 +503,17 @@ func (l *EchoLogger) Errorj(j log.JSON) {
 	l.logger.Error("", fields...)
 }
 
+// Fatal logs a message at fatal level
 func (l *EchoLogger) Fatal(i ...any) {
 	l.logger.Fatal(fmt.Sprint(i...))
 }
 
+// Fatalf logs a formatted message at fatal level
 func (l *EchoLogger) Fatalf(format string, args ...any) {
 	l.logger.Fatal(fmt.Sprintf(format, args...))
 }
 
+// Fatalj logs a JSON message at fatal level
 func (l *EchoLogger) Fatalj(j log.JSON) {
 	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
@@ -495,16 +522,19 @@ func (l *EchoLogger) Fatalj(j log.JSON) {
 	l.logger.Fatal("", fields...)
 }
 
+// Panic logs a message at error level and panics
 func (l *EchoLogger) Panic(i ...any) {
 	l.logger.Error(fmt.Sprint(i...))
 	panic(fmt.Sprint(i...))
 }
 
+// Panicf logs a formatted message at error level and panics
 func (l *EchoLogger) Panicf(format string, args ...any) {
 	l.logger.Error(fmt.Sprintf(format, args...))
 	panic(fmt.Sprintf(format, args...))
 }
 
+// Panicj logs a JSON message at error level and panics
 func (l *EchoLogger) Panicj(j log.JSON) {
 	fields := make([]any, 0, len(j)*constants.FieldPairSize)
 	for k, v := range j {
@@ -514,30 +544,37 @@ func (l *EchoLogger) Panicj(j log.JSON) {
 	panic(fmt.Sprintf("%v", j))
 }
 
+// Level returns the current log level
 func (l *EchoLogger) Level() log.Lvl {
 	return log.INFO
 }
 
-func (l *EchoLogger) SetLevel(level log.Lvl) {
+// SetLevel sets the log level (no-op as we use our own configuration)
+func (l *EchoLogger) SetLevel(_ log.Lvl) {
 	// No-op as we use our own log level configuration
 }
 
-func (l *EchoLogger) SetHeader(h string) {
+// SetHeader sets the log header (no-op as we use our own format)
+func (l *EchoLogger) SetHeader(_ string) {
 	// No-op as we use our own log format
 }
 
-func (l *EchoLogger) SetPrefix(p string) {
+// SetPrefix sets the log prefix (no-op as we use our own format)
+func (l *EchoLogger) SetPrefix(_ string) {
 	// No-op as we use our own log format
 }
 
+// Prefix returns the current log prefix
 func (l *EchoLogger) Prefix() string {
 	return ""
 }
 
-func (l *EchoLogger) SetOutput(w io.Writer) {
+// SetOutput sets the log output (no-op as we use our own configuration)
+func (l *EchoLogger) SetOutput(_ io.Writer) {
 	// No-op as we use our own output configuration
 }
 
+// Output returns the current log output writer
 func (l *EchoLogger) Output() io.Writer {
 	return os.Stdout
 }
@@ -592,13 +629,24 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 			}
 			return fmt.Sprintf("%s:%s", formID, origin), nil
 		},
-		ErrorHandler: func(c echo.Context, err error) error {
+		ErrorHandler: func(_ echo.Context, _ error) error {
 			return echo.NewHTTPError(http.StatusTooManyRequests,
 				"Rate limit exceeded: too many requests from the same form or origin")
 		},
-		DenyHandler: func(c echo.Context, identifier string, err error) error {
+		DenyHandler: func(_ echo.Context, _ string, _ error) error {
 			return echo.NewHTTPError(http.StatusTooManyRequests,
 				"Rate limit exceeded: please try again later")
 		},
 	})
+}
+
+// isNoisePath checks if the path should be suppressed from logging
+func isNoisePath(path string) bool {
+	const faviconPath = "/favicon.ico"
+	return strings.HasPrefix(path, "/.well-known") ||
+		path == faviconPath ||
+		strings.HasPrefix(path, "/robots.txt") ||
+		strings.Contains(path, "com.chrome.devtools") ||
+		strings.Contains(path, "devtools") ||
+		strings.Contains(path, "chrome-devtools")
 }

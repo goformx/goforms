@@ -75,7 +75,7 @@
   max-width: 100%;
 }
 
-.form-card {
+.form-panel {
   background: var(--card-bg);
   padding: var(--card-padding);
   border-radius: var(--card-radius);
@@ -87,7 +87,7 @@
   box-sizing: border-box;
 }
 
-.form-builder-card {
+.form-builder-panel {
   width: 100%;
   background: var(--card-bg);
   padding: var(--card-padding);
@@ -175,7 +175,8 @@
 .form-alt-action a {
   color: var(--primary);
   text-decoration: none;
-  transition: color var(--form-transition-duration) var(--form-transition-timing);
+  transition: color var(--form-transition-duration)
+    var(--form-transition-timing);
 }
 
 .form-alt-action a:hover {
@@ -196,7 +197,7 @@
     padding: var(--form-panel-padding-mobile);
   }
 
-  .form-card {
+  .form-panel {
     padding: var(--card-padding-mobile);
   }
 

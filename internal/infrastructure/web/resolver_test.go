@@ -4,12 +4,13 @@ import (
 	"embed"
 	"testing"
 
-	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/web"
-	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/web"
+	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 )
 
 func TestDevelopmentAssetResolver(t *testing.T) {
@@ -20,16 +21,13 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		App: config.AppConfig{
 			Scheme:      "http",
 			ViteDevHost: "localhost",
-			ViteDevPort: "3000",
+			ViteDevPort: "5173",
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
 	mockLogger.EXPECT().Debug(
-		"resolving development asset path", "path", gomock.Any(), "host_port", gomock.Any(),
-	).AnyTimes()
-	mockLogger.EXPECT().Debug(
-		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(),
+		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
 	).AnyTimes()
 
 	resolver := web.NewDevelopmentAssetResolver(cfg, mockLogger)
@@ -42,27 +40,27 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		{
 			name:     "src file",
 			path:     "src/js/pages/main.ts",
-			expected: "http://localhost:3000/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/pages/main.ts",
 		},
 		{
 			name:     "css file",
 			path:     "main.css",
-			expected: "http://localhost:3000/src/css/main.css",
+			expected: "http://localhost:5173/src/css/main.css",
 		},
 		{
 			name:     "js file",
 			path:     "main.js",
-			expected: "http://localhost:3000/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/pages/main.ts",
 		},
 		{
 			name:     "ts file",
 			path:     "main.ts",
-			expected: "http://localhost:3000/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/pages/main.ts",
 		},
 		{
 			name:     "other file",
 			path:     "image.png",
-			expected: "http://localhost:3000/image.png",
+			expected: "http://localhost:5173/image.png",
 		},
 	}
 
@@ -141,10 +139,20 @@ func TestAssetManager(t *testing.T) {
 			Env:         "development",
 			Scheme:      "http",
 			ViteDevHost: "localhost",
-			ViteDevPort: "3000",
+			ViteDevPort: "5173",
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	// Expect debug calls from DevelopmentAssetResolver
+	mockLogger.EXPECT().Debug(
+		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
+	).AnyTimes()
+
+	// Expect debug calls from AssetManager
+	mockLogger.EXPECT().Debug(
+		"asset resolved", "asset_path", gomock.Any(), "resolved", gomock.Any(),
+	).AnyTimes()
 
 	var distFS embed.FS
 
@@ -153,7 +161,7 @@ func TestAssetManager(t *testing.T) {
 	assert.NotNil(t, manager)
 
 	path := manager.AssetPath("main.js")
-	assert.Equal(t, "http://localhost:3000/src/js/pages/main.ts", path)
+	assert.Equal(t, "http://localhost:5173/src/js/pages/main.ts", path)
 
 	path2 := manager.AssetPath("main.js")
 	assert.Equal(t, path, path2)

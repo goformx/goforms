@@ -4,10 +4,11 @@ package logging
 import (
 	"fmt"
 
-	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
-	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
+	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
 // Factory creates loggers based on configuration
@@ -26,13 +27,13 @@ type Factory struct {
 }
 
 // NewFactory creates a new logger factory with the given configuration
-func NewFactory(cfg FactoryConfig, sanitizer sanitization.ServiceInterface) *Factory {
+func NewFactory(cfg *FactoryConfig, sanitizer sanitization.ServiceInterface) *Factory {
 	if cfg.Fields == nil {
 		cfg.Fields = make(map[string]any)
 	}
 
 	// Set default paths using config helper
-	setDefaultPaths(&cfg)
+	setDefaultPaths(cfg)
 
 	return &Factory{
 		initialFields:  cfg.Fields,

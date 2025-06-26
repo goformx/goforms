@@ -1,3 +1,5 @@
+// Package repository provides common repository interfaces and utilities
+// for data access patterns used throughout the domain layer.
 package repository
 
 import (

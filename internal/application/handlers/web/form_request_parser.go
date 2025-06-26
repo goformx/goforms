@@ -1,12 +1,14 @@
-// internal/application/handlers/web/form_request_parser.go
+// Package web provides HTTP handlers for web-based functionality including
+// authentication, form management, and user interface components.
 package web
 
 import (
 	"strings"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/labstack/echo/v4"
 )
 
 // FormRequestParser handles parsing and sanitizing form requests

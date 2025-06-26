@@ -1,4 +1,4 @@
-/* Form Styles */
+/* Core Form Element Styles */
 .form-group {
   margin-bottom: var(--form-group-gap);
 }
@@ -47,21 +47,10 @@
   resize: vertical;
 }
 
+/* Form Status Messages */
 .form-error {
   color: var(--error-color);
   font-size: var(--font-size-sm);
-  margin-top: var(--form-group-gap);
-}
-
-.form-actions {
-  display: flex;
-  gap: var(--form-group-gap);
-  margin-top: var(--form-gap);
-}
-
-.form-hint {
-  color: var(--text-muted);
-  font-size: var(--font-size-xs);
   margin-top: var(--form-group-gap);
 }
 
@@ -80,5 +69,18 @@
 .form-info {
   color: var(--info-color);
   font-size: var(--font-size-sm);
+  margin-top: var(--form-group-gap);
+}
+
+/* Form Actions */
+.form-actions {
+  display: flex;
+  gap: var(--form-group-gap);
+  margin-top: var(--form-gap);
+}
+
+.form-hint {
+  color: var(--text-muted);
+  font-size: var(--font-size-xs);
   margin-top: var(--form-group-gap);
 }

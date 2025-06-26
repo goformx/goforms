@@ -58,14 +58,17 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 // AssetPath returns the resolved asset path for the given input path
 func (m *AssetManager) AssetPath(path string) string {
 	ctx := context.Background()
+
 	resolvedPath, err := m.ResolveAssetPath(ctx, path)
 	if err != nil {
 		m.logger.Error("failed to resolve asset path",
-			"path", path,
+			"asset_path", path,
 			"error", err,
 		)
 		return ""
 	}
+
+	m.logger.Debug("asset resolved", "asset_path", path, "resolved", resolvedPath)
 	return resolvedPath
 }
 
@@ -121,8 +124,8 @@ func (m *AssetManager) ClearCache() {
 	m.pathCache = make(map[string]string)
 }
 
-// NewWebModule creates a new web module with proper dependency injection
-func NewWebModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*WebModule, error) {
+// NewModule creates a new web module with proper dependency injection
+func NewModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*Module, error) {
 	manager, err := NewAssetManager(cfg, logger, distFS)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create asset manager: %w", err)
@@ -130,13 +133,14 @@ func NewWebModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*
 
 	var server AssetServer
 	if cfg.App.IsDevelopment() {
-		server = NewViteAssetServer(cfg, logger)
+		// In development, use development asset server for static files
+		server = NewDevelopmentAssetServer(cfg, logger)
 	} else {
-		// In production, always use embedded filesystem
+		// In production, use embedded filesystem
 		server = NewEmbeddedAssetServer(logger, distFS)
 	}
 
-	return &WebModule{
+	return &Module{
 		AssetManager: manager,
 		AssetServer:  server,
 	}, nil

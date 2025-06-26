@@ -1,3 +1,5 @@
+// Package events provides event handling infrastructure for the domain layer.
+// It includes interfaces and implementations for event publishing and handling.
 package events
 
 import (
@@ -10,9 +12,12 @@ import (
 
 const (
 	// DefaultTimeout is the default timeout for event handlers
-	DefaultTimeout    = 30 * time.Second
+	DefaultTimeout = 30 * time.Second
+	// DefaultRetryCount is the default number of retry attempts for event handlers
 	DefaultRetryCount = 3
+	// DefaultRetryDelay is the default delay between retry attempts for event handlers
 	DefaultRetryDelay = time.Second
+	// DefaultMaxBackoff is the maximum backoff duration for retries
 	DefaultMaxBackoff = 30 * time.Second
 	// DefaultRetryTimeout is the default timeout for retry operations
 	DefaultRetryTimeout = 30 * time.Second

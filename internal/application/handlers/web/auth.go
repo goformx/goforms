@@ -3,18 +3,21 @@ package web
 import (
 	"context"
 	"errors"
+	"fmt"
 	"time"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/request"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // AuthHandler handles authentication-related requests
@@ -82,7 +85,7 @@ func (h *AuthHandler) Register(e *echo.Echo) {
 
 // TestEndpoint is a simple test endpoint to verify JSON responses work
 func (h *AuthHandler) TestEndpoint(c echo.Context) error {
-	return c.JSON(constants.StatusOK, map[string]string{
+	return response.Success(c, map[string]string{
 		"message": "Test endpoint working",
 		"status":  "success",
 	})
@@ -94,32 +97,38 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
+		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
+			return fmt.Errorf("redirect to dashboard: %w", err)
+		}
+		return nil
 	}
-	return h.Renderer.Render(c, pages.Login(data))
+	if err := h.Renderer.Render(c, pages.Login(data)); err != nil {
+		return fmt.Errorf("render login page: %w", err)
+	}
+	return nil
 }
 
-/**
- * LoginPost handles POST /login - processes the login form
- *
- * This handler:
- * 1. Validates user credentials
- * 2. Creates a new session on success
- * 3. Sets session cookie
- * 4. Returns appropriate response based on request type:
- *    - JSON response for API requests
- *    - HTML response with error for regular requests
- *    - Redirect to dashboard on success
- */
+// LoginPost handles POST /login - processes the login form
+//
+// This handler:
+// 1. Validates user credentials
+// 2. Creates a new session on success
+// 3. Sets session cookie
+// 4. Returns appropriate response based on request type:
+//   - JSON response for API requests
+//   - HTML response with error for regular requests
+//   - Redirect to dashboard on success
 func (h *AuthHandler) LoginPost(c echo.Context) error {
 	email, password, err := h.RequestParser.ParseLogin(c)
 	if err != nil {
 		h.Logger.Error("failed to parse login request", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
+			return h.ResponseBuilder.AJAXError(
+				c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest,
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
-		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
+		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidRequest)
 	}
 
 	email = h.Sanitizer.Email(email)
@@ -128,16 +137,18 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	if err != nil {
 		h.Logger.Error("login failed", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials)
+			return h.ResponseBuilder.AJAXError(
+				c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials,
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
-		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
+		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidCredentials)
 	}
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return c.JSON(constants.StatusOK, map[string]string{
+		return response.Success(c, map[string]string{
 			"redirect": constants.PathDashboard,
 		})
 	}
@@ -150,9 +161,15 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
 	if mwcontext.IsAuthenticated(c) {
-		return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
+		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
+			return fmt.Errorf("redirect to dashboard: %w", err)
+		}
+		return nil
 	}
-	return h.Renderer.Render(c, pages.Signup(data))
+	if err := h.Renderer.Render(c, pages.Signup(data)); err != nil {
+		return fmt.Errorf("render signup page: %w", err)
+	}
+	return nil
 }
 
 // SignupPost handles the signup form submission
@@ -161,10 +178,14 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	if err != nil {
 		h.Logger.Error("failed to parse signup request", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest)
+			return h.ResponseBuilder.AJAXError(
+				c,
+				constants.StatusBadRequest,
+				constants.ErrMsgInvalidRequest,
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
-		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
+		return h.ResponseBuilder.HTMLFormError(c, "signup", &data, constants.ErrMsgInvalidRequest)
 	}
 
 	signup.Email = h.Sanitizer.Email(signup.Email)
@@ -173,16 +194,25 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	if err != nil {
 		h.Logger.Error("signup failed", "error", err)
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, "Unable to create account. Please try again.")
+			return h.ResponseBuilder.AJAXError(
+				c,
+				constants.StatusBadRequest,
+				"Unable to create account. Please try again.",
+			)
 		}
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
-		return h.ResponseBuilder.HTMLFormError(c, "signup", data, "Unable to create account. Please try again.")
+		return h.ResponseBuilder.HTMLFormError(
+			c,
+			"signup",
+			&data,
+			"Unable to create account. Please try again.",
+		)
 	}
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
 
 	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return c.JSON(constants.StatusOK, map[string]string{
+		return response.Success(c, map[string]string{
 			"message":  constants.MsgSignupSuccess,
 			"redirect": constants.PathDashboard,
 		})
@@ -195,7 +225,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	// Get session cookie
 	cookie, err := c.Cookie(h.SessionManager.GetCookieName())
 	if err != nil {
-		return c.Redirect(constants.StatusSeeOther, constants.PathLogin)
+		return fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
 	}
 
 	// Delete session
@@ -204,7 +234,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	// Clear session cookie
 	h.SessionManager.ClearSessionCookie(c)
 
-	return c.Redirect(constants.StatusSeeOther, constants.PathLogin)
+	return fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
 }
 
 // LoginValidation handles the login form validation schema request
@@ -212,7 +242,7 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateLoginSchema()
 
-	return c.JSON(constants.StatusOK, schema)
+	return response.Success(c, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
@@ -220,17 +250,17 @@ func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateSignupSchema()
 
-	return c.JSON(constants.StatusOK, schema)
+	return response.Success(c, schema)
 }
 
 // Start initializes the auth handler.
 // This is called during application startup.
-func (h *AuthHandler) Start(ctx context.Context) error {
+func (h *AuthHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the auth handler.
 // This is called during application shutdown.
-func (h *AuthHandler) Stop(ctx context.Context) error {
+func (h *AuthHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }

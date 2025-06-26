@@ -1,14 +1,17 @@
-// internal/application/handlers/web/form_handlers.go
+// Package web provides HTTP handlers for web-based functionality including
+// authentication, form management, and user interface components.
 package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/labstack/echo/v4"
 )
 
 // HTTP handler methods for form operations
@@ -23,7 +26,7 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 
 	data := h.BuildPageData(c, "New Form")
 	data.User = user
-	return h.Renderer.Render(c, pages.NewForm(data))
+	return fmt.Errorf("render new form: %w", h.Renderer.Render(c, pages.NewForm(data)))
 }
 
 // handleCreate processes form creation requests
@@ -36,7 +39,7 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleValidationError(c, err)
+		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
 	}
 
 	// Create form using business logic service
@@ -45,9 +48,10 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		return h.handleFormCreationError(c, err)
 	}
 
-	return h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
-		"form_id": form.ID,
-	})
+	return fmt.Errorf("build success response: %w",
+		h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
+			"form_id": form.ID,
+		}))
 }
 
 // handleEdit displays the form editing page
@@ -70,7 +74,8 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	data.Form = form
 	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/pages/form-builder.ts")
 
-	return pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer)
+	return fmt.Errorf("render edit form: %w",
+		pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer))
 }
 
 // handleUpdate processes form update requests
@@ -88,7 +93,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessUpdateRequest(c)
 	if err != nil {
-		return h.ErrorHandler.HandleValidationError(c, err)
+		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
 	}
 
 	// Update form using business logic service
@@ -97,9 +102,10 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
-	return h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
-		"form_id": form.ID,
-	})
+	return fmt.Errorf("build success response: %w",
+		h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
+			"form_id": form.ID,
+		}))
 }
 
 // handleDelete processes form deletion requests
@@ -119,7 +125,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 
-	return c.NoContent(constants.StatusNoContent)
+	return fmt.Errorf("no content response: %w", c.NoContent(constants.StatusNoContent))
 }
 
 // handleSubmissions displays form submissions
@@ -145,17 +151,20 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	data.Form = form
 	data.Submissions = submissions
 
-	return h.Renderer.Render(c, pages.FormSubmissions(data))
+	return fmt.Errorf("render submissions: %w", h.Renderer.Render(c, pages.FormSubmissions(data)))
 }
 
 // handleFormCreationError handles form creation errors
 func (h *FormWebHandler) handleFormCreationError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
-		return h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required")
+		return fmt.Errorf("build error response: %w",
+			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required"))
 	case errors.Is(err, model.ErrFormSchemaRequired):
-		return h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required")
+		return fmt.Errorf("build error response: %w",
+			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required"))
 	default:
-		return h.ResponseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to create form")
+		return fmt.Errorf("build error response: %w",
+			h.ResponseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to create form"))
 	}
 }

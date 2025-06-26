@@ -15,12 +15,12 @@ templ signupContent(data view.PageData) {
 	<div class="form-page">
 		<div class="form-content">
 			<div class="form-container">
-				<div class="form-card">
+				<div class="form-panel">
 					<div class="form-header">
 						<h2 class="form-title">Create your account</h2>
 					</div>
 
-					<form id="signup-form" class="form" method="POST" action="/signup" data-validate="signup">
+					<form id="user-signup" class="form" method="POST" action="/signup" data-validate="signup">
 						<div class="form-error"></div>
 
 						<div class="gf-form-group">
@@ -117,5 +117,5 @@ templ signupContent(data view.PageData) {
 		</div>
 	</div>
 
-	<script type="module" src={ data.AssetPath("src/js/auth/signup.ts") }></script>
+	<script type="module" src={ data.AssetPath("src/js/pages/signup.ts") }></script>
 } 

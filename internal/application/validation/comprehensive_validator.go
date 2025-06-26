@@ -1,3 +1,5 @@
+// Package validation provides comprehensive form validation utilities
+// for validating form schemas, submissions, and generating client-side rules.
 package validation
 
 import (
@@ -21,17 +23,17 @@ func NewComprehensiveValidator() *ComprehensiveValidator {
 }
 
 // ValidateForm validates a form submission against its schema
-func (v *ComprehensiveValidator) ValidateForm(schema, submission model.JSON) ValidationResult {
-	result := ValidationResult{
+func (v *ComprehensiveValidator) ValidateForm(schema, submission model.JSON) Result {
+	result := Result{
 		IsValid: true,
-		Errors:  []ValidationError{},
+		Errors:  []Error{},
 	}
 
 	// Extract components from schema
 	components, ok := v.schemaParser.ExtractComponents(schema)
 	if !ok {
 		result.IsValid = false
-		result.Errors = append(result.Errors, ValidationError{
+		result.Errors = append(result.Errors, Error{
 			Field:   "schema",
 			Message: "Invalid form schema: missing components",
 		})
@@ -55,11 +57,11 @@ func (v *ComprehensiveValidator) ValidateForm(schema, submission model.JSON) Val
 }
 
 // validateComponent validates a single form component
-func (v *ComprehensiveValidator) validateComponent(component map[string]any, submission model.JSON) []ValidationError {
+func (v *ComprehensiveValidator) validateComponent(component map[string]any, submission model.JSON) []Error {
 	// Extract component key
 	key, ok := v.schemaParser.ExtractComponentKey(component)
 	if !ok {
-		return []ValidationError{}
+		return []Error{}
 	}
 
 	// Get field value from submission
@@ -72,7 +74,7 @@ func (v *ComprehensiveValidator) validateComponent(component map[string]any, sub
 	validation := v.schemaParser.ExtractValidationRules(component)
 
 	// Validate field using field validator
-	return v.fieldValidator.ValidateField(key, fieldValue, validation)
+	return v.fieldValidator.ValidateField(key, fieldValue, &validation)
 }
 
 // GenerateClientValidation generates client-side validation rules from schema
@@ -92,7 +94,7 @@ func (v *ComprehensiveValidator) GenerateClientValidation(schema model.JSON) (ma
 			}
 
 			validation := v.schemaParser.ExtractValidationRules(componentMap)
-			clientRules[key] = v.schemaParser.ConvertToClientRules(validation)
+			clientRules[key] = v.schemaParser.ConvertToClientRules(&validation)
 		}
 	}
 

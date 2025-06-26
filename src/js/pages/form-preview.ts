@@ -24,9 +24,11 @@ interface FormPreviewData {
  */
 async function initializeFormPreview(): Promise<void> {
   try {
+    Logger.group("Form Preview Initialization");
     Logger.debug("Initializing form preview...");
 
     // Get the form renderer container
+    Logger.group("Container & Data Setup");
     const container = document.getElementById("form-renderer");
     if (!container) {
       throw new Error("Form renderer container not found");
@@ -54,11 +56,13 @@ async function initializeFormPreview(): Promise<void> {
     };
 
     Logger.debug("Form preview data:", data);
+    Logger.groupEnd();
 
     // Clear loading state
     container.innerHTML = "";
 
     // Create form instance
+    Logger.group("Form.io Form Creation");
     const form = await Formio.createForm(container, data.formSchema, {
       readOnly: false,
       noAlerts: true,
@@ -68,10 +72,13 @@ async function initializeFormPreview(): Promise<void> {
         className: "btn btn-primary",
       },
     });
+    Logger.groupEnd();
 
     // Handle form submission
+    Logger.group("Event Handler Setup");
     form.on("submit", async (submission: any) => {
       try {
+        Logger.group("Form Submission");
         Logger.debug("Form submission:", submission);
 
         // Submit to the API
@@ -85,8 +92,11 @@ async function initializeFormPreview(): Promise<void> {
 
         // Reset form
         form.reset();
+        Logger.groupEnd();
       } catch (error) {
+        Logger.group("Submission Error");
         Logger.error("Form submission error:", error);
+        Logger.groupEnd();
         dom.showError("Failed to submit form. Please try again.");
       }
     });
@@ -96,10 +106,14 @@ async function initializeFormPreview(): Promise<void> {
       Logger.error("Form error:", error);
       dom.showError("An error occurred while loading the form.");
     });
+    Logger.groupEnd();
 
     Logger.debug("Form preview initialized successfully");
+    Logger.groupEnd();
   } catch (error) {
+    Logger.group("Form Preview Error");
     Logger.error("Form preview initialization error:", error);
+    Logger.groupEnd();
 
     if (error instanceof FormBuilderError) {
       dom.showError(error.userMessage);
@@ -125,7 +139,13 @@ async function initializeFormPreview(): Promise<void> {
 
 // Initialize when DOM is ready
 if (document.readyState === "loading") {
-  document.addEventListener("DOMContentLoaded", initializeFormPreview);
+  document.addEventListener("DOMContentLoaded", () => {
+    initializeFormPreview().catch((error) => {
+      Logger.error("Failed to initialize form preview:", error);
+    });
+  });
 } else {
-  initializeFormPreview();
+  initializeFormPreview().catch((error) => {
+    Logger.error("Failed to initialize form preview:", error);
+  });
 }

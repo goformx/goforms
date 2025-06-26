@@ -1,8 +1,22 @@
-// ===== src/js/forms/index.ts =====
 // Main entry point for form handling
-export { setupForm } from "./handlers/form-handler";
+
+// Export services
+export * from "./services";
+
+// Export new controller and factories
+export { FormController } from "./controllers/form-controller";
+export {
+  createFormController,
+  setupForm,
+  createAdvancedFormController,
+} from "./factories/form-factory";
+
+// Export handlers (legacy - will be deprecated)
+export { setupForm as setupFormLegacy } from "./handlers/form-handler";
 export { EnhancedFormHandler } from "./handlers/enhanced-form-handler";
-export type { FormConfig, ServerResponse } from "@/shared/types/form-types";
+
+// Export types
+export type { FormConfig, ServerResponse } from "@/shared/types";
 
 // Re-export utilities if needed externally
 export { debounce } from "@/shared/utils/debounce";

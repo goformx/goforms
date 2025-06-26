@@ -4,8 +4,11 @@ package application
 import (
 	"context"
 	"errors"
+	"fmt"
 
 	"go.uber.org/fx"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
@@ -21,7 +24,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // Dependencies holds all application dependencies
@@ -42,12 +44,12 @@ type Dependencies struct {
 	SessionManager    *session.Manager
 	Renderer          view.Renderer
 	MiddlewareManager *middleware.Manager
-	AccessManager     *access.AccessManager
+	AccessManager     *access.Manager
 	Sanitizer         sanitization.ServiceInterface
 }
 
 // Validate checks if all required dependencies are present
-func (d *Dependencies) Validate() error {
+func (d Dependencies) Validate() error {
 	required := []struct {
 		name  string
 		value any
@@ -159,7 +161,7 @@ type Application struct {
 }
 
 // Start starts the application
-func (a *Application) Start(ctx context.Context) error {
+func (a *Application) Start(_ context.Context) error {
 	a.logger.Info("Starting application...")
 
 	// Get the Echo instance
@@ -175,7 +177,7 @@ func (a *Application) Start(ctx context.Context) error {
 
 	// Start the server
 	if err := a.server.Start(); err != nil {
-		return err
+		return fmt.Errorf("start server: %w", err)
 	}
 
 	a.logger.Info("Application started successfully")
@@ -183,7 +185,7 @@ func (a *Application) Start(ctx context.Context) error {
 }
 
 // Stop stops the application
-func (a *Application) Stop(ctx context.Context) error {
+func (a *Application) Stop(_ context.Context) error {
 	a.logger.Info("Stopping application...")
 	a.logger.Info("Application stopped successfully")
 	return nil

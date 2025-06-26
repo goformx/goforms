@@ -32,10 +32,12 @@ const (
 	// MinSecretLength is the minimum length required for security secrets
 	MinSecretLength = 32
 
-	// Default log levels for different environments
-	DefaultLogLevel     = "info"
+	// DefaultLogLevel is the default log level for production
+	DefaultLogLevel = "info"
+	// DevelopmentLogLevel is the default log level for development
 	DevelopmentLogLevel = "debug"
-	ProductionLogLevel  = "warn"
+	// ProductionLogLevel is the log level for production
+	ProductionLogLevel = "warn"
 )
 
 var (
@@ -163,7 +165,7 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 		LogLevel: logLevel,
 	}
 
-	factory := logging.NewFactory(factoryConfig, p.Sanitizer)
+	factory := logging.NewFactory(&factoryConfig, p.Sanitizer)
 	return factory, nil
 }
 
@@ -206,7 +208,7 @@ func NewLogger(factory *logging.Factory) (logging.Logger, error) {
 }
 
 // ProvideAssetServer creates an appropriate asset server based on the environment.
-// In development, it uses Vite for hot module replacement and fast development.
+// In development, it serves static files from public directory while Vite handles JS/CSS.
 // In production, it serves from embedded filesystem for optimal performance.
 func ProvideAssetServer(p AssetServerParams) (infraweb.AssetServer, error) {
 	if p.Config == nil {
@@ -217,8 +219,8 @@ func ProvideAssetServer(p AssetServerParams) (infraweb.AssetServer, error) {
 	}
 
 	if p.Config.App.IsDevelopment() {
-		p.Logger.Info("Initializing Vite asset server for development")
-		return infraweb.NewViteAssetServer(p.Config, p.Logger), nil
+		p.Logger.Info("Initializing development asset server for static files")
+		return infraweb.NewDevelopmentAssetServer(p.Config, p.Logger), nil
 	}
 
 	p.Logger.Info("Initializing embedded asset server for production")
@@ -281,11 +283,11 @@ func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger)
 
 	// Register lifecycle hooks for graceful shutdown
 	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+		OnStart: func(_ context.Context) error {
 			logger.Info("Database connection established")
 			return nil
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			logger.Info("Closing database connection")
 			return db.Close()
 		},
@@ -336,13 +338,13 @@ var Module = fx.Options(
 	),
 
 	// Lifecycle management
-	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, cfg *config.Config) {
+	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, _ *config.Config) {
 		lc.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
+			OnStart: func(_ context.Context) error {
 				logger.Info("Infrastructure module initialized")
 				return nil
 			},
-			OnStop: func(ctx context.Context) error {
+			OnStop: func(_ context.Context) error {
 				logger.Info("Infrastructure module shutting down")
 				return nil
 			},

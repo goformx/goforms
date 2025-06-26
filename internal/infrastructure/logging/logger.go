@@ -1,9 +1,10 @@
 package logging
 
 import (
+	"go.uber.org/zap"
+
 	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"go.uber.org/zap"
 )
 
 // logger implements the Logger interface using zap

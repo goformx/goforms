@@ -91,7 +91,7 @@ Handlers in GoFormX follow a consistent pattern using the `Handler` interface an
    ```go
    if err != nil {
        h.Logger.Error("failed to get form", "error", err)
-       return response.WebErrorResponse(c, h.Renderer, http.StatusNotFound, "Form not found")
+       return response.ErrorResponse(c, http.StatusNotFound, "Form not found")
    }
    ```
 

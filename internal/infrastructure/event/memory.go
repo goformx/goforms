@@ -1,3 +1,5 @@
+// Package event provides in-memory event bus and publisher implementations.
+// It implements the domain event interfaces for local event handling.
 package event
 
 import (
@@ -56,7 +58,7 @@ func (b *MemoryEventBus) PublishBatch(ctx context.Context, eventList []events.Ev
 
 // Subscribe subscribes to an event
 func (b *MemoryEventBus) Subscribe(
-	ctx context.Context,
+	_ context.Context,
 	eventName string,
 	handler func(context.Context, events.Event) error,
 ) error {
@@ -72,7 +74,7 @@ func (b *MemoryEventBus) Subscribe(
 }
 
 // Unsubscribe unsubscribes from an event
-func (b *MemoryEventBus) Unsubscribe(ctx context.Context, eventName string) error {
+func (b *MemoryEventBus) Unsubscribe(_ context.Context, eventName string) error {
 	b.handlersMu.Lock()
 	defer b.handlersMu.Unlock()
 
@@ -81,16 +83,16 @@ func (b *MemoryEventBus) Unsubscribe(ctx context.Context, eventName string) erro
 }
 
 // Start starts the event bus
-func (b *MemoryEventBus) Start(ctx context.Context) error {
+func (b *MemoryEventBus) Start(_ context.Context) error {
 	return nil
 }
 
 // Stop stops the event bus
-func (b *MemoryEventBus) Stop(ctx context.Context) error {
+func (b *MemoryEventBus) Stop(_ context.Context) error {
 	return nil
 }
 
 // Health returns the health status of the event bus
-func (b *MemoryEventBus) Health(ctx context.Context) error {
+func (b *MemoryEventBus) Health(_ context.Context) error {
 	return nil
 }

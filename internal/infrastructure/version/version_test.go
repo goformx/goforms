@@ -4,8 +4,9 @@ import (
 	"testing"
 	"time"
 
-	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/infrastructure/version"
 )
 
 func TestVersionInfo(t *testing.T) {

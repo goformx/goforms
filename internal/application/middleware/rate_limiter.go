@@ -40,11 +40,11 @@ func RateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 			}
 			return fmt.Sprintf("%s:%s", formID, origin), nil
 		},
-		ErrorHandler: func(c echo.Context, err error) error {
+		ErrorHandler: func(_ echo.Context, _ error) error {
 			return echo.NewHTTPError(http.StatusTooManyRequests,
 				"Rate limit exceeded: too many requests from the same form or origin")
 		},
-		DenyHandler: func(c echo.Context, identifier string, err error) error {
+		DenyHandler: func(_ echo.Context, _ string, _ error) error {
 			return echo.NewHTTPError(http.StatusTooManyRequests,
 				"Rate limit exceeded: please try again later")
 		},

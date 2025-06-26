@@ -1,4 +1,4 @@
-import { Formio } from "@formio/js";
+import type { Formio } from "@formio/js";
 
 declare global {
   interface Window {

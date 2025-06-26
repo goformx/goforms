@@ -1,210 +1,222 @@
-# GoForms TypeScript TODO
+# API Response Standardization TODO
 
-## 🔴 CRITICAL FIXES (Implement Immediately)
+## Overview
 
-### ✅ Security Fix: Remove CSRF Token Logging
-- **Status**: COMPLETED
-- **File**: `src/js/core/http-client.ts:25`
-- **Issue**: CSRF tokens were being logged, exposing sensitive security tokens
-- **Fix**: Replaced with secure status message
+This document outlines the work needed to standardize all API responses across the GoForms application to follow the established best practice pattern.
 
-### ✅ Enhanced Input Sanitization
-- **Status**: COMPLETED
-- **File**: `src/js/features/forms/services/form-api-service.ts`
-- **Issue**: Only string values were sanitized, leaving objects and arrays vulnerable
-- **Fix**: Implemented comprehensive sanitization for all data types including arrays, objects, and nested structures
+## Standard Response Format
 
-### ✅ Fix Type Safety Issues
-- **Status**: COMPLETED
-- **File**: `src/js/shared/types/form-types.ts`
-- **Issue**: Heavy use of `any` types defeated TypeScript's type safety benefits
-- **Fix**: Replaced with comprehensive, properly typed interfaces including:
-  - `FormSchema` with proper component typing
-  - `FormComponent` with detailed properties
-  - `ValidationRule` with specific validation types
-  - `FormMetadata` and `FormSettings` for configuration
-  - `FormValidationResult` for structured validation responses
+All API responses should use this structure:
 
-### ✅ Enhanced Error Handling
-- **Status**: COMPLETED
-- **File**: `src/js/core/errors/form-builder-error.ts`
-- **Issue**: Generic error messages lost context and debugging information
-- **Fix**: Implemented comprehensive error system with:
-  - Proper error codes (`ErrorCode` enum)
-  - Context preservation
-  - Static factory methods for common error types
-  - JSON serialization for logging
-  - Type-safe error checking methods
+```json
+{
+  "success": true|false,
+  "message": "Optional message",
+  "data": { ... } // Optional payload
+}
+```
 
-## 🟡 HIGH PRIORITY FIXES (Next Sprint)
+## Backend Changes Required
 
-### ✅ Memory Leak Prevention
-- **Status**: COMPLETED
-- **File**: `src/js/features/forms/handlers/builder-events.ts`
-- **Issue**: Event handlers not properly cleaned up, potentially causing memory leaks
-- **Fix**: Implemented `BuilderEventManager` class with:
-  - ✅ Proper event listener cleanup using `AbortController`
-  - ✅ Timer cleanup for debounced functions
-  - ✅ Comprehensive cleanup method
-  - ✅ Automatic cleanup on page unload
-  - ✅ Statistics tracking for debugging
-  - ✅ Test file with usage examples (`builder-events.test.ts`)
+### 1. Authentication Handlers
 
-### DOM Query Optimization
-- **Status**: COMPLETED
-- **File**: `src/js/shared/utils/dom-utils.ts`
-- **Issue**: Multiple DOM queries without caching
-- **Fix**: Implemented `DOMCache` class with:
-  - ✅ Element caching with DOM presence verification
-  - ✅ Automatic cache invalidation
-  - ✅ Performance optimization for repeated queries
+**File: `internal/application/handlers/web/auth.go`**
 
-### Strongly Typed Events
-- **Status**: PENDING
-- **File**: `src/js/features/forms/services/form-event-service.ts`
-- **Issue**: Event system uses untyped data, making it difficult to track event flow
-- **Fix**: Implement strongly-typed event system with:
-  - `FormEvents` interface defining all event types
-  - Generic event handlers with proper typing
-  - Type-safe event emission and handling
+- [x] **Line 86**: `return c.JSON(constants.StatusOK, map[string]string{...})` → Use `response.Success()`
+- [x] **Line 149**: `return c.JSON(constants.StatusOK, map[string]string{...})` → Use `response.Success()`
+- [x] **Line 213**: `return c.JSON(constants.StatusOK, map[string]string{...})` → Use `response.Success()`
+- [x] **Line 243**: `return c.JSON(constants.StatusOK, schema)` → Use `response.Success()` with schema in data
+- [x] **Line 251**: `return c.JSON(constants.StatusOK, schema)` → Use `response.Success()` with schema in data
 
-## 🟠 MEDIUM PRIORITY (Future Improvements)
+### 2. Form Response Helper
 
-### Dependency Injection Over Singletons
-- **Status**: PENDING
-- **Files**: Multiple service files
-- **Issue**: Over-reliance on singletons makes testing difficult and creates tight coupling
-- **Fix**: Consider dependency injection or factory patterns for better testability
+**File: `internal/application/handlers/web/form_response_helper.go`**
 
-### Enhanced State Management
-- **Status**: PENDING
-- **File**: `src/js/features/forms/state/form-state.ts`
-- **Issue**: Basic key-value storage lacks type safety and reactivity
-- **Fix**: Implement typed state management with:
-  - Generic state class with proper typing
-  - Subscription system for state changes
-  - Automatic cleanup of subscriptions
+- [x] **Line 39**: `return c.JSON(http.StatusBadRequest, &ErrorResponse{...})` → Use `response.ErrorResponse()`
+- [x] **Line 43**: `return c.JSON(http.StatusBadRequest, &ErrorResponse{...})` → Use `response.ErrorResponse()`
+- [x] **Line 47**: `return c.JSON(http.StatusInternalServerError, &ErrorResponse{...})` → Use `response.ErrorResponse()`
+- [x] **Line 55**: `return c.JSON(http.StatusOK, &FormSuccessResponse{...})` → Use `response.Success()`
+- [x] **Line 64**: `return c.JSON(http.StatusOK, &FormSuccessResponse{...})` → Use `response.Success()`
 
-### Performance Optimizations
-- **Status**: PENDING
-- **Files**: Multiple files
-- **Issues**: 
-  - Inefficient debouncing implementation
-  - Schema validation without proper memoization
-  - Bundle splitting opportunities
-- **Fixes**:
-  - Implement proper debouncing with cleanup
-  - Add validation result caching
-  - Optimize bundle splitting for better tree-shaking
+### 3. Form Web Handler
 
-## 📋 Implementation Checklist
+**File: `internal/application/handlers/web/form_web.go`**
 
-### Week 1: Security & Type Safety ✅
-- [x] Remove CSRF token logging
-- [x] Implement comprehensive input sanitization
-- [x] Replace `any` types with proper interfaces
-- [x] Enhance error handling system
+- [x] **Line 153**: `return c.JSON(200, schema)` → Use `response.Success()` with schema in data
 
-### Week 2: Memory Management
-- [x] Implement `BuilderEventManager` for event cleanup
-- [x] Add `DOMCache` for query optimization
-- [x] Fix memory leaks in event handlers
-- [x] Add proper cleanup in component lifecycle
+### 4. Form API Handler
 
-### Week 3: Event System & State
-- [ ] Implement strongly-typed event system
-- [ ] Enhance state management with subscriptions
-- [ ] Add proper event cleanup mechanisms
-- [ ] Implement reactive state updates
+**File: `internal/application/handlers/web/form_api.go`**
 
-### Week 4: Performance & Testing
-- [ ] Optimize debouncing implementation
-- [ ] Add validation result caching
-- [ ] Implement bundle splitting
-- [ ] Add comprehensive unit tests
+- [x] **Line 132**: `return c.JSON(constants.StatusOK, clientValidation)` → Use `response.Success()` with validation in data
 
-## 🧪 Testing Strategy
+### 5. Auth Response Builder
 
-### Unit Tests
-- [ ] Test all new type guards and validation functions
-- [ ] Test enhanced error handling with different error types
-- [ ] Test memory cleanup mechanisms
-- [ ] Test DOM caching functionality
+**File: `internal/application/handlers/web/auth_response_builder.go`**
 
-### Integration Tests
-- [ ] Test form submission with enhanced sanitization
-- [ ] Test error propagation through the system
-- [ ] Test event system with typed events
-- [ ] Test state management with subscriptions
+- [x] **Line 24**: `return c.JSON(status, map[string]string{...})` → Use `response.ErrorResponse()`
 
-### Security Tests
-- [ ] Test input sanitization with various payloads
-- [ ] Test CSRF token handling
-- [ ] Test XSS prevention measures
-- [ ] Test error message sanitization
+### 6. Middleware
 
-### Performance Tests
-- [ ] Test DOM caching improvements
-- [ ] Test memory usage with event cleanup
-- [ ] Test bundle size optimization
-- [ ] Test validation performance with caching
+**File: `internal/application/middleware/access/middleware.go`**
 
-## 📚 Documentation Updates
+- [x] **Line 43**: `return c.JSON(http.StatusForbidden, map[string]string{...})` → Use `response.ErrorResponse()`
 
-### API Documentation
-- [ ] Document new error types and codes
-- [ ] Document enhanced type interfaces
-- [ ] Document event system usage
-- [ ] Document state management patterns
+**File: `internal/application/middleware/session/middleware.go`**
 
-### Developer Guide
-- [ ] Update error handling best practices
-- [ ] Document type safety improvements
-- [ ] Add performance optimization guidelines
-- [ ] Update security considerations
+- [x] **Line 218**: `return c.JSON(http.StatusUnauthorized, map[string]string{...})` → Use `response.ErrorResponse()`
 
-## 🔍 Code Quality Metrics
+**File: `internal/application/middleware/recovery.go`**
 
-### TypeScript Compliance
-- [ ] Achieve 100% type coverage (no `any` types)
-- [ ] Implement comprehensive type guards
-- [ ] Add proper JSDoc documentation
-- [ ] Ensure strict mode compliance
+- [x] **Line 71**: `if jsonErr := c.JSON(statusCode, domainErr);` → Use `response.ErrorResponse()`
+- [x] **Line 87**: `if jsonErr := c.JSON(http.StatusInternalServerError, map[string]string{...});` → Use `response.ErrorResponse()`
 
-### Performance Targets
-- [ ] Reduce DOM queries by 50% through caching
-- [ ] Eliminate memory leaks in event handlers
-- [ ] Improve bundle size by 20% through tree-shaking
-- [ ] Reduce validation latency by 30% through caching
+### 7. Error Handler
 
-### Security Standards
-- [ ] All user input properly sanitized
-- [ ] No sensitive data in logs
-- [ ] Proper CSRF protection
-- [ ] XSS prevention measures in place
+**File: `internal/application/response/error_handler.go`**
 
-## 🚀 Future Enhancements
+- [x] **Line 99**: `if jsonErr := c.JSON(statusCode, map[string]any{...});` → Use `response.ErrorResponse()`
+- [x] **Line 145**: `return c.JSON(statusCode, map[string]any{...});` → Use `response.ErrorResponse()`
 
-### Advanced Features
-- [ ] Real-time collaboration support
-- [ ] Offline form capabilities
-- [ ] Advanced validation rules engine
-- [ ] Form analytics and insights
+### 8. Health Handler
 
-### Developer Experience
-- [ ] Enhanced debugging tools
-- [ ] Better error reporting
-- [ ] Performance monitoring
-- [ ] Automated testing pipeline
+**File: `internal/application/handlers/health/handler.go`**
 
-### User Experience
-- [ ] Improved form builder interface
-- [ ] Better error messages
-- [ ] Progressive enhancement
-- [ ] Accessibility improvements
+- [x] **Line 37**: `if jsonErr := c.JSON(http.StatusServiceUnavailable, status);` → Use `response.ErrorResponse()`
+- [x] **Line 43**: `if jsonErr := c.JSON(http.StatusOK, status);` → Use `response.Success()`
 
----
+### 9. Server
 
-**Last Updated**: December 2024
-**Priority**: Critical fixes completed, high priority items in progress
-**Status**: 4/10 critical items completed, 6/10 high priority items pending 
+**File: `internal/infrastructure/server/server.go`**
+
+- [x] **Line 126**: `return c.JSON(http.StatusOK, map[string]string{...})` → Use `response.Success()`
+
+## Frontend Changes Required
+
+### 1. HTTP Client (COMPLETED)
+
+**File: `src/js/core/http-client.ts`**
+
+- [x] **Line 7**: Added `ApiResponse<T>` interface to match backend standard
+- [x] **Line 84**: Updated `handleResponse` to handle standardized API response format
+- [x] **Line 88**: Added success/error detection logic to check `response.success`
+- [x] **Line 93**: Updated success handling to use `response.data` for payload
+- [x] **Line 96**: Updated error handling to use `response.message` for errors
+
+### 2. Response Handler (COMPLETED)
+
+**File: `src/js/features/forms/handlers/response-handler.ts`**
+
+- [x] **Line 16**: Updated to use `Partial<ServerResponse>` for better type safety
+- [x] **Line 40**: Updated success detection logic to check `response.success === true`
+- [x] **Line 42**: Updated error detection logic to check `response.success === false`
+- [x] **Line 50**: Updated success handling to use `response.data` for payload
+- [x] **Line 65**: Updated error handling to use `response.message` for errors
+- [x] **Line 66**: Updated to get message from `data.message` first, then fallback to `message`
+
+### 3. ServerResponse Type (COMPLETED)
+
+**File: `src/js/shared/types/form-types.ts`**
+
+- [x] **Line 153**: Updated `ServerResponse` interface to match backend standard:
+  ```typescript
+  export interface ServerResponse<T = unknown> {
+    readonly success: boolean;
+    readonly message?: string;
+    readonly data?: T;
+    readonly errors?: Readonly<Record<string, readonly string[]>>;
+  }
+  ```
+
+### 4. Form Service (COMPLETED)
+
+**File: `src/js/features/forms/services/form-service.ts`**
+
+- [x] Already using FormApiService which benefits from HttpClient updates
+- [x] No direct API calls that need updating
+
+### 5. Form API Service (COMPLETED)
+
+**File: `src/js/features/forms/services/form-api-service.ts`**
+
+- [x] Updated `submitForm` method to use HttpClient instead of direct fetch
+- [x] All other methods already using HttpClient
+- [x] Now benefits from standardized response format handling
+
+## Implementation Progress
+
+### ✅ Phase 1: Core Response Package (COMPLETED)
+
+1. ✅ Updated all backend handlers to use `response.Success()` and `response.ErrorResponse()`
+2. ✅ Removed custom response structs that don't follow the standard
+3. ✅ Updated middleware to use standardized responses
+4. ✅ Updated error handler to use standardized responses
+
+### ✅ Phase 2: Frontend Response Handling (COMPLETED)
+
+1. ✅ Updated HTTP Client to handle new response format
+2. ✅ Updated `ServerResponse` type definition
+3. ✅ Updated `ResponseHandler` to expect new format
+4. ✅ Updated all form services to handle new response format
+
+### 🔄 Phase 3: Testing and Validation (COMPLETED)
+
+1. ✅ Update all tests to expect new response format
+2. ✅ Test all API endpoints to ensure they return correct format
+3. ✅ Test frontend error handling with new format
+4. ✅ Test signup/login flow to verify it works correctly
+
+**Note**: All API endpoints are returning the correct standardized response format. The original signup issue has been resolved - the frontend now correctly handles the `{ success: true/false, message, data }` format.
+
+### ⏳ Phase 4: Documentation and Cleanup (PENDING)
+
+1. [ ] Update API documentation to reflect new response format
+2. [ ] Remove any remaining custom response types
+3. [ ] Add response format validation
+
+## Files That Already Follow Standard
+
+These files already use the correct response format and don't need changes:
+
+- ✅ `internal/application/response/response.go` - Defines the standard
+- ✅ `internal/application/handlers/web/form_response_builder.go` - Uses standard format
+- ✅ `internal/application/services/health.go` - Uses `response.Success()` and `response.ErrorResponse()`
+
+## Testing Checklist
+
+- [x] Test signup endpoint returns `{ success: true, data: { message, redirect } }`
+- [x] Test login endpoint returns `{ success: true, data: { message, redirect } }`
+- [x] Test form creation returns `{ success: true, data: { form_id, ... } }`
+- [x] Test form validation errors return `{ success: false, message: "...", data: { errors: [...] } }`
+- [x] Test authentication errors return `{ success: false, message: "..." }`
+- [x] Test frontend correctly handles both success and error responses
+- [x] Test redirects work correctly with new format
+- [x] Test health endpoint returns `{ success: true, data: { status: "ok", time: "..." } }`
+- [x] Test validation endpoints return `{ success: true, data: { ... } }`
+
+**Note**: All API endpoints are returning the correct standardized response format. The original signup issue has been resolved - the frontend now correctly handles the `{ success: true/false, message, data }` format.
+
+## Next Steps
+
+1. **Complete remaining backend handlers** (Health Handler, Server)
+2. **Update frontend type definitions** (ServerResponse interface)
+3. **Update frontend response handlers** (ResponseHandler, Form services)
+4. **Test the complete flow** to ensure signup/login work correctly
+5. **Update tests** to expect new response format
+
+## Notes
+
+- ✅ **Backend standardization is complete** - all handlers now use `response.Success()` and `response.ErrorResponse()`
+- ✅ Frontend standardization is complete - HTTP Client, ResponseHandler, and all services updated
+- ✅ HTTP Client has been updated to handle the standardized response format
+- ✅ ServerResponse type definition updated to match backend standard
+- ✅ ResponseHandler updated to handle both success and error cases correctly
+- ✅ Form services updated to use HttpClient consistently
+- ✅ **Frontend tests updated to use standardized response format** - All HttpClient and FormApiService tests now pass
+- ✅ **All backend handlers updated** - Health handler and server endpoints now use standardized format
+- ✅ **Phase 3 Testing Complete** - All API endpoints tested and returning correct standardized format
+- ✅ **Original signup issue resolved** - Frontend now correctly handles standardized response format
+- The signup issue should now be resolved with the standardized response format
+- All responses now include the `success` field to make frontend handling consistent
+- Error responses use `response.ErrorResponse()` with appropriate status codes
+- Success responses use `response.Success()` with payload in the `data` field

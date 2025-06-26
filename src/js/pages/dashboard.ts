@@ -11,11 +11,19 @@ async function deleteForm(formId: string) {
   }
 
   try {
+    Logger.group("Form Deletion");
+    Logger.debug("Starting form deletion for ID:", formId);
+
     const formService = FormService.getInstance();
     await formService.deleteForm(formId);
+
+    Logger.debug("Form deleted successfully, reloading page");
+    Logger.groupEnd();
     window.location.reload();
   } catch (error: unknown) {
+    Logger.group("Form Deletion Error");
     Logger.error("Failed to delete form:", error);
+    Logger.groupEnd();
     alert(
       error instanceof Error
         ? error.message
@@ -33,7 +41,9 @@ function initDashboard() {
     if (deleteButton) {
       const formId = deleteButton.getAttribute("data-form-id");
       if (formId) {
-        deleteForm(formId);
+        deleteForm(formId).catch((error) => {
+          Logger.error("Failed to delete form:", error);
+        });
       }
     }
   });

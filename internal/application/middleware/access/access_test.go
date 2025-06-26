@@ -3,15 +3,16 @@ package access_test
 import (
 	"testing"
 
-	"github.com/goformx/goforms/internal/application/constants"
-	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/application/constants"
+	"github.com/goformx/goforms/internal/application/middleware/access"
 )
 
-func TestAccessManager_IsPublicPath(t *testing.T) {
+func TestManager_IsPublicPath(t *testing.T) {
 	config := access.DefaultConfig()
-	manager := access.NewAccessManager(config, nil)
+	manager := access.NewManager(config, nil)
 
 	tests := []struct {
 		name     string
@@ -48,9 +49,9 @@ func TestAccessManager_IsPublicPath(t *testing.T) {
 	}
 }
 
-func TestAccessManager_IsAdminPath(t *testing.T) {
+func TestManager_IsAdminPath(t *testing.T) {
 	config := access.DefaultConfig()
-	manager := access.NewAccessManager(config, nil)
+	manager := access.NewManager(config, nil)
 
 	tests := []struct {
 		name     string
@@ -82,51 +83,51 @@ func TestAccessManager_IsAdminPath(t *testing.T) {
 	}
 }
 
-func TestAccessManager_GetRequiredAccess(t *testing.T) {
+func TestManager_GetRequiredAccess(t *testing.T) {
 	config := access.DefaultConfig()
-	manager := access.NewAccessManager(config, access.DefaultRules())
+	manager := access.NewManager(config, access.DefaultRules())
 
 	tests := []struct {
 		name     string
 		path     string
 		method   string
-		expected access.AccessLevel
+		expected access.Level
 	}{
 		{
 			name:     "public path",
 			path:     constants.PathLogin,
 			method:   "GET",
-			expected: access.PublicAccess,
+			expected: access.Public,
 		},
 		{
 			name:     "authenticated path",
 			path:     constants.PathDashboard,
 			method:   "GET",
-			expected: access.AuthenticatedAccess,
+			expected: access.Authenticated,
 		},
 		{
 			name:     "admin path",
 			path:     constants.PathAdmin,
 			method:   "GET",
-			expected: access.AdminAccess,
+			expected: access.Admin,
 		},
 		{
 			name:     "unknown path defaults to authenticated",
 			path:     "/unknown",
 			method:   "GET",
-			expected: access.AuthenticatedAccess,
+			expected: access.Authenticated,
 		},
 		{
 			name:     "public API validation endpoint",
 			path:     "/api/v1/validation/login",
 			method:   "GET",
-			expected: access.AuthenticatedAccess,
+			expected: access.Authenticated,
 		},
 		{
 			name:     "authenticated API endpoint",
 			path:     "/api/v1/forms",
 			method:   "GET",
-			expected: access.AuthenticatedAccess,
+			expected: access.Authenticated,
 		},
 	}
 
@@ -138,14 +139,14 @@ func TestAccessManager_GetRequiredAccess(t *testing.T) {
 	}
 }
 
-func TestAccessManager_AddRule(t *testing.T) {
+func TestManager_AddRule(t *testing.T) {
 	config := access.DefaultConfig()
-	manager := access.NewAccessManager(config, nil)
+	manager := access.NewManager(config, nil)
 
 	// Add a custom rule
-	rule := access.AccessRule{
+	rule := access.Rule{
 		Path:        "/custom",
-		AccessLevel: access.AdminAccess,
+		AccessLevel: access.Admin,
 		Methods:     []string{"GET", "POST"},
 	}
 	manager.AddRule(rule)
@@ -155,25 +156,25 @@ func TestAccessManager_AddRule(t *testing.T) {
 		name     string
 		path     string
 		method   string
-		expected access.AccessLevel
+		expected access.Level
 	}{
 		{
 			name:     "custom path with allowed method",
 			path:     "/custom",
 			method:   "GET",
-			expected: access.AdminAccess,
+			expected: access.Admin,
 		},
 		{
 			name:     "custom path with another allowed method",
 			path:     "/custom",
 			method:   "POST",
-			expected: access.AdminAccess,
+			expected: access.Admin,
 		},
 		{
 			name:     "custom path with disallowed method",
 			path:     "/custom",
 			method:   "PUT",
-			expected: access.AuthenticatedAccess, // Default access
+			expected: access.Authenticated, // Default access
 		},
 	}
 
@@ -194,7 +195,7 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid config",
 			config: &access.Config{
-				DefaultAccess: access.AuthenticatedAccess,
+				DefaultAccess: access.Authenticated,
 				PublicPaths:   []string{constants.PathLogin},
 				AdminPaths:    []string{constants.PathAdmin},
 			},
@@ -212,7 +213,7 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid public access level",
 			config: &access.Config{
-				DefaultAccess: access.PublicAccess,
+				DefaultAccess: access.Public,
 				PublicPaths:   []string{constants.PathLogin},
 				AdminPaths:    []string{constants.PathAdmin},
 			},
@@ -221,7 +222,7 @@ func TestConfig_Validate(t *testing.T) {
 		{
 			name: "valid admin access level",
 			config: &access.Config{
-				DefaultAccess: access.AdminAccess,
+				DefaultAccess: access.Admin,
 				PublicPaths:   []string{constants.PathLogin},
 				AdminPaths:    []string{constants.PathAdmin},
 			},
@@ -245,26 +246,25 @@ func TestDefaultRules(t *testing.T) {
 	rules := access.DefaultRules()
 
 	// Test that essential rules are present
-	essentialPaths := map[string]access.AccessLevel{
-		constants.PathHome:      access.PublicAccess,
-		constants.PathLogin:     access.PublicAccess,
-		constants.PathSignup:    access.PublicAccess,
-		constants.PathDashboard: access.AuthenticatedAccess,
-		constants.PathAdmin:     access.AdminAccess,
-		constants.PathForms:     access.AuthenticatedAccess,
-		constants.PathProfile:   access.AuthenticatedAccess,
-		constants.PathSettings:  access.AuthenticatedAccess,
-		constants.PathDemo:      access.PublicAccess,
-		constants.PathHealth:    access.PublicAccess,
-		constants.PathMetrics:   access.PublicAccess,
-		constants.PathAssets:    access.PublicAccess,
-		constants.PathFonts:     access.PublicAccess,
-		constants.PathCSS:       access.PublicAccess,
-		constants.PathJS:        access.PublicAccess,
-		constants.PathImages:    access.PublicAccess,
-		constants.PathStatic:    access.PublicAccess,
-		constants.PathFavicon:   access.PublicAccess,
-		constants.PathRobotsTxt: access.PublicAccess,
+	essentialPaths := map[string]access.Level{
+		constants.PathHome:      access.Public,
+		constants.PathLogin:     access.Public,
+		constants.PathSignup:    access.Public,
+		constants.PathDashboard: access.Authenticated,
+		constants.PathAdmin:     access.Admin,
+		constants.PathForms:     access.Authenticated,
+		constants.PathProfile:   access.Authenticated,
+		constants.PathSettings:  access.Authenticated,
+		constants.PathDemo:      access.Public,
+		constants.PathHealth:    access.Public,
+		constants.PathMetrics:   access.Public,
+		constants.PathAssets:    access.Public,
+		constants.PathFonts:     access.Public,
+		constants.PathCSS:       access.Public,
+		constants.PathJS:        access.Public,
+		constants.PathImages:    access.Public,
+		constants.PathStatic:    access.Public,
+		constants.PathFavicon:   access.Public,
 	}
 
 	for path, expectedLevel := range essentialPaths {

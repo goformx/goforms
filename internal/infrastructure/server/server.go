@@ -1,3 +1,4 @@
+// Package server provides HTTP server setup and lifecycle management for the application.
 package server
 
 import (
@@ -12,7 +13,7 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/version"
@@ -97,44 +98,47 @@ func (s *Server) Start() error {
 	}
 }
 
+// Deps contains the dependencies for creating a server
+type Deps struct {
+	fx.In
+	Lifecycle   fx.Lifecycle
+	Logger      logging.Logger
+	Config      *config.Config
+	Echo        *echo.Echo
+	AssetServer web.AssetServer
+}
+
 // New creates a new server instance with the provided dependencies
-func New(
-	lc fx.Lifecycle,
-	logger logging.Logger,
-	cfg *config.Config,
-	e *echo.Echo,
-	middlewareManager *middleware.Manager,
-	assetServer web.AssetServer,
-) *Server {
+func New(deps Deps) *Server {
 	srv := &Server{
-		echo:   e,
-		logger: logger,
-		config: cfg,
+		echo:   deps.Echo,
+		logger: deps.Logger,
+		config: deps.Config,
 	}
 
 	// Log server configuration
-	logger.Info("initializing server",
-		"host", cfg.App.Host,
-		"port", cfg.App.Port,
-		"environment", cfg.App.Env,
+	deps.Logger.Info("initializing server",
+		"host", deps.Config.App.Host,
+		"port", deps.Config.App.Port,
+		"environment", deps.Config.App.Env,
 		"server_type", "echo")
 
 	// Add health check endpoint
-	e.GET("/health", func(c echo.Context) error {
-		return c.JSON(http.StatusOK, map[string]string{
+	deps.Echo.GET("/health", func(c echo.Context) error {
+		return response.Success(c, map[string]string{
 			"status": "ok",
 			"time":   time.Now().Format(time.RFC3339),
 		})
 	})
 
 	// Register asset routes
-	if err := assetServer.RegisterRoutes(e); err != nil {
-		logger.Error("failed to register asset routes", "error", err)
+	if err := deps.AssetServer.RegisterRoutes(deps.Echo); err != nil {
+		deps.Logger.Error("failed to register asset routes", "error", err)
 	}
 
 	// Register lifecycle hooks
-	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+	deps.Lifecycle.Append(fx.Hook{
+		OnStart: func(_ context.Context) error {
 			return nil // Server will be started after middleware is registered
 		},
 		OnStop: func(ctx context.Context) error {

@@ -1,3 +1,4 @@
+// Package session provides session management middleware and utilities for the application.
 package session
 
 import (
@@ -9,20 +10,21 @@ import (
 	"path/filepath"
 	"time"
 
+	"go.uber.org/fx"
+
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"go.uber.org/fx"
 )
 
 // NewManager creates a new session manager
 func NewManager(
 	logger logging.Logger,
-	cfg *SessionConfig,
+	cfg *Config,
 	lc fx.Lifecycle,
-	accessManager *access.AccessManager,
+	accessManager *access.Manager,
 ) *Manager {
 	// Create tmp directory if it doesn't exist
-	if err := os.MkdirAll(filepath.Dir(cfg.StoreFile), 0o755); err != nil {
+	if err := os.MkdirAll(filepath.Dir(cfg.StoreFile), 0o750); err != nil {
 		logger.Error("failed to create session directory", "error", err)
 	}
 
@@ -42,7 +44,7 @@ func NewManager(
 
 	// Register lifecycle hooks
 	lc.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+		OnStart: func(_ context.Context) error {
 			// Initialize session store
 			if err := sm.initialize(); err != nil {
 				return fmt.Errorf("failed to initialize session store: %w", err)
@@ -53,7 +55,7 @@ func NewManager(
 
 			return nil
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			// Stop cleanup routine
 			close(sm.stopChan)
 
@@ -129,7 +131,10 @@ func (sm *Manager) cleanupExpiredSessions() {
 func (sm *Manager) saveSessions() error {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
-	return sm.storage.Save(sm.sessions)
+	if err := sm.storage.Save(sm.sessions); err != nil {
+		return fmt.Errorf("save sessions to storage: %w", err)
+	}
+	return nil
 }
 
 // CreateSession creates a new session for a user

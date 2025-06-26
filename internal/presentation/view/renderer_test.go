@@ -37,7 +37,7 @@ func TestRenderer_Render_Success(t *testing.T) {
 	renderer := view.NewRenderer(logger)
 
 	// Create a simple test component
-	component := templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
+	component := templ.ComponentFunc(func(_ context.Context, w io.Writer) error {
 		_, err := w.Write([]byte("<div>Test Content</div>"))
 		return err
 	})
@@ -62,7 +62,7 @@ func TestRenderer_Render_Error(t *testing.T) {
 
 	renderer := view.NewRenderer(logger)
 
-	component := templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
+	component := templ.ComponentFunc(func(_ context.Context, _ io.Writer) error {
 		return errors.New("render error")
 	})
 
@@ -113,7 +113,7 @@ func TestRenderer_Render_NilContext(t *testing.T) {
 
 	renderer := view.NewRenderer(logger)
 
-	component := templ.ComponentFunc(func(ctx context.Context, w io.Writer) error {
+	component := templ.ComponentFunc(func(_ context.Context, w io.Writer) error {
 		_, err := w.Write([]byte("<div>Test Content</div>"))
 		return err
 	})
@@ -134,9 +134,9 @@ func TestRenderer_InterfaceCompliance(t *testing.T) {
 	logger := mocklogging.NewMockLogger(ctrl)
 	renderer := view.NewRenderer(logger)
 
-	var _ view.Renderer = renderer
+	var _ = renderer
 }
 
-func TestRenderer_Construction(t *testing.T) {
+func TestRenderer_Construction(_ *testing.T) {
 	var _ view.Renderer
 }

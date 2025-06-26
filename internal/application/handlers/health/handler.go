@@ -1,11 +1,14 @@
+// Package health provides HTTP handlers for health checks and application status endpoints.
 package health
 
 import (
 	"net/http"
 
+	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/health"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 // Handler handles health check requests
@@ -32,8 +35,8 @@ func (h *Handler) handleHealthCheck(c echo.Context) error {
 	status, err := h.service.CheckHealth(c.Request().Context())
 	if err != nil {
 		h.logger.Error("health check failed", "error", err)
-		return c.JSON(http.StatusServiceUnavailable, status)
+		return response.ErrorResponse(c, http.StatusServiceUnavailable, "Health check failed")
 	}
 
-	return c.JSON(http.StatusOK, status)
+	return response.Success(c, status)
 }

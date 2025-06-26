@@ -2,6 +2,9 @@ package web
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
@@ -15,7 +18,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // BaseHandler provides common functionality for all handlers
@@ -57,7 +59,7 @@ func NewBaseHandler(
 func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, error) {
 	userID, ok := mwcontext.GetUserID(c)
 	if !ok {
-		return nil, c.Redirect(constants.StatusSeeOther, constants.PathLogin)
+		return nil, fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
 	}
 
 	userEntity, err := h.UserService.GetUserByID(c.Request().Context(), userID)
@@ -77,34 +79,43 @@ func (h *BaseHandler) BuildPageData(c echo.Context, title string) view.PageData 
 // HandleError handles common error scenarios
 func (h *BaseHandler) HandleError(c echo.Context, err error, message string) error {
 	// Use the error handler for sanitized logging instead of logging raw error
-	return h.ErrorHandler.HandleError(err, c, message)
+	if handleErr := h.ErrorHandler.HandleError(err, c, message); handleErr != nil {
+		return fmt.Errorf("handle error: %w", handleErr)
+	}
+	return nil
 }
 
 // HandleNotFound handles not found errors
 func (h *BaseHandler) HandleNotFound(c echo.Context, message string) error {
-	return h.ErrorHandler.HandleNotFoundError(message, c)
+	if notFoundErr := h.ErrorHandler.HandleNotFoundError(message, c); notFoundErr != nil {
+		return fmt.Errorf("handle not found error: %w", notFoundErr)
+	}
+	return nil
 }
 
 // HandleForbidden handles forbidden access errors
 func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
-	return h.ErrorHandler.HandleDomainError(
+	if forbiddenErr := h.ErrorHandler.HandleDomainError(
 		domainerrors.New(domainerrors.ErrCodeForbidden, message, nil), c,
-	)
-}
-
-// Start provides default lifecycle initialization
-func (h *BaseHandler) Start(ctx context.Context) error {
-	// Default implementation - no initialization needed
+	); forbiddenErr != nil {
+		return fmt.Errorf("handle forbidden error: %w", forbiddenErr)
+	}
 	return nil
 }
 
-// Stop provides default lifecycle cleanup
-func (h *BaseHandler) Stop(ctx context.Context) error {
-	// Default implementation - no cleanup needed
-	return nil
+// Start initializes the base handler.
+// This is called during application startup.
+func (h *BaseHandler) Start(_ context.Context) error {
+	return nil // No initialization needed
+}
+
+// Stop cleans up any resources used by the base handler.
+// This is called during application shutdown.
+func (h *BaseHandler) Stop(_ context.Context) error {
+	return nil // No cleanup needed
 }
 
 // Register provides default route registration
-func (h *BaseHandler) Register(e *echo.Echo) {
+func (h *BaseHandler) Register(_ *echo.Echo) {
 	// Default implementation - routes registered by RegisterHandlers
 }

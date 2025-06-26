@@ -17,12 +17,12 @@ templ formsContent(data view.PageData) {
 		<div class="dashboard-body">
 			<div class="forms-grid">
 				for _, form := range data.Forms {
-					<div class="form-card">
-						<div class="form-card-header">
+					<div class="form-panel">
+						<div class="form-panel-header">
 							<h2>{ form.Title }</h2>
 							<p class="form-description">{ form.Description }</p>
 						</div>
-						<div class="form-card-body">
+						<div class="form-panel-body">
 							<div class="form-meta">
 								<div class="form-meta-item">
 									<span class="form-meta-label">Created</span>
@@ -34,7 +34,7 @@ templ formsContent(data view.PageData) {
 								</div>
 							</div>
 						</div>
-						<div class="form-card-footer">
+						<div class="form-panel-footer">
 							<a href={ templ.SafeURL("/forms/" + form.ID + "/preview") } class="gf-button gf-button--primary">Preview</a>
 						</div>
 					</div>

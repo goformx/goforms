@@ -46,7 +46,7 @@ tasks:
     - task: install
     - task: generate
     - task: build
-    - task: migrate:pg:up
+    - task: migrate:up
     - task: run
 
   ci:
@@ -82,6 +82,11 @@ tasks:
 
   install:frontend:
     desc: Install frontend dependencies
+    sources:
+      - package.json
+      - package-lock.json
+    generates:
+      - node_modules/.package-lock.json
     cmds:
     - npm install
     - npm run postinstall
@@ -92,40 +97,59 @@ tasks:
 
   generate:templ:
     desc: Generate templ files
+    sources:
+      - "internal/**/*.templ"
+    generates:
+      - "internal/**/*_templ.go"
     cmds:
     - templ generate ./internal/...
 
   generate:mocks:
     desc: Generate all mock implementations
+    sources:
+      - "internal/**/*.go"
+      - "!internal/**/*_test.go"
+      - "!internal/**/*_templ.go"
+      - "!test/mocks/**/*.go"
+    generates:
+      - "test/mocks/**/*.go"
     cmds:
-    - mockgen -typed -source=internal/infrastructure/logging/types.go -destination=test/mocks/logging/mock_logger.go -package=logging
-    - mockgen -typed -source=internal/domain/form/service.go -destination=test/mocks/form/mock_service.go -package=form -mock_names=Service=MockService
-    - mockgen -typed -source=internal/domain/form/repository.go -destination=test/mocks/form/mock_repository.go -package=form
-    - mockgen -typed -source=internal/domain/form/event/event.go -destination=test/mocks/form/mock_publisher.go -package=form
-    - mockgen -typed -source=internal/domain/common/events/event.go -destination=test/mocks/events/mock_eventbus.go -package=events
-    - mockgen -typed -source=internal/domain/user/service.go -destination=test/mocks/user/mock_service.go -package=user
-    - mockgen -typed -source=internal/infrastructure/sanitization/interface.go -destination=test/mocks/sanitization/mock_service.go -package=sanitization -mock_names=ServiceInterface=MockService
-    - mockgen -typed -source=internal/infrastructure/web/types.go -destination=test/mocks/web/mock_web.go -package=web
+    - go generate ./...
 
   build:
     desc: Build the entire application
+    deps: [ generate ]
     cmds:
-    - task: generate
     - task: build:frontend
     - task: build:backend
 
   build:frontend:
     desc: Build the frontend application
+    sources:
+      - "src/**/*"
+      - package.json
+      - vite.config.js
+      - tsconfig.json
+    generates:
+      - "dist/**/*"
     cmds:
     - npm run build
 
   build:backend:
     desc: Build the backend application
+    sources:
+      - "**/*.go"
+      - "!**/*_test.go"
+      - go.mod
+      - go.sum
+    generates:
+      - bin/goforms
     cmds:
     - go build -ldflags "{{.LDFLAGS}}" -o bin/goforms main.go
 
   run:
     desc: Run the compiled application
+    deps: [ build:backend ]
     cmds:
     - ./bin/goforms
 
@@ -142,12 +166,14 @@ tasks:
   dev:frontend:
     desc: Run frontend dev server with environment-based configuration
     cmds:
-    - npx vite --host {{.GOFORMS_VITE_DEV_HOST | default "0.0.0.0"}} --port {{.GOFORMS_VITE_DEV_PORT | default "3000"}}
+    - npx vite
 
   clean:
     desc: Remove generated artifacts and dependencies
     cmds:
-    - rm -rf bin/ dist/ node_modules/ coverage/
+    - for: ['bin/', 'dist/', 'node_modules/', 'coverage/', '.task/']
+      cmd: rm -rf {{.ITEM}}
+      ignore_error: true
     - find internal/ -name '*_templ.go' -delete
     - find test/mocks -name 'mock_*.go' -delete
 
@@ -157,6 +183,9 @@ tasks:
 
   lint:backend:
     desc: Run all backend linters
+    sources:
+      - "**/*.go"
+      - .golangci.yml
     cmds:
     - go fmt ./...
     - go vet ./...
@@ -164,22 +193,45 @@ tasks:
 
   lint:frontend:
     desc: Run frontend linters
+    sources:
+      - "src/**/*"
+      - .eslintrc.js
+      - .prettierrc
     cmds:
     - npm run lint
 
   test:
     desc: Run all tests (frontend + backend)
-    deps: [ test:frontend, test:backend ]
+    cmds:
+    - task: test:frontend
+    - task: test:backend
 
   test:frontend:
     desc: Run frontend tests
+    sources:
+      - "src/**/*"
+      - "**/*.test.*"
+      - "**/*.spec.*"
     cmds:
     - npm run test
+
+  test:frontend:cover:
+    desc: Run frontend tests with coverage
+    sources:
+      - "src/**/*"
+      - "**/*.test.*"
+      - "**/*.spec.*"
+    generates:
+      - coverage/frontend/
+    cmds:
     - npm run test:coverage
 
   test:backend:
     desc: Run backend unit tests
     deps: [ generate ]
+    sources:
+      - "internal/**/*.go"
+      - "**/*_test.go"
     cmds:
     - go test -v ./internal/...
 
@@ -187,28 +239,49 @@ tasks:
     desc: Run tests and generate coverage report
     deps: [ test:frontend:cover, test:backend:cover ]
 
-  test:frontend:cover:
-    desc: Run frontend tests with coverage
-    cmds:
-    - npm run test:coverage
-
   test:backend:cover:
     desc: Run backend tests and generate coverage report
     deps: [ generate ]
+    sources:
+      - "internal/**/*.go"
+      - "**/*_test.go"
+    generates:
+      - coverage.out
+      - coverage.html
     cmds:
     - go test -v -race -coverprofile=coverage.out -covermode=atomic ./internal/...
     - go tool cover -html=coverage.out -o coverage.html
 
   test:integration:
     desc: Run integration tests
+    sources:
+      - "test/integration/**/*.go"
+      - "internal/**/*.go"
     cmds:
     - go test -v -tags=integration ./test/integration/...
 
+  security:
+    desc: Run all security checks
+    deps: [ security:go, security:frontend ]
+
   security:go:
     desc: Run Go security checks
+    sources:
+      - go.mod
+      - go.sum
+      - "**/*.go"
     cmds:
     - go list -json -deps ./... | nancy sleuth
     - staticcheck ./...
+
+  security:frontend:
+    desc: Run frontend security audit
+    sources:
+      - package.json
+      - package-lock.json
+    cmds:
+      - cmd: npm audit --audit-level=moderate
+        ignore_error: true
 
   pre-commit:
     desc: Pre-commit quality checks
@@ -216,3 +289,90 @@ tasks:
     - task: format
     - task: lint
     - task: test
+
+  docker:build:
+    desc: Build Docker image
+    sources:
+      - Dockerfile
+      - "**/*.go"
+      - go.mod
+      - go.sum
+    cmds:
+    - docker build -t goforms:{{.VERSION}} .
+
+  docker:run:
+    desc: Run application in Docker container
+    deps: [ docker:build ]
+    cmds:
+    - docker run -p 8080:8080 goforms:{{.VERSION}}
+
+  deps:update:
+    desc: Update all dependencies
+    cmds:
+    - go get -u ./...
+    - go mod tidy
+    - npm update
+    status:
+    - test -f go.mod
+    - test -f package.json
+
+  docs:serve:
+    desc: Serve documentation locally
+    cmds:
+    - |
+      if command -v hugo >/dev/null 2>&1; then
+        hugo server --buildDrafts
+      else
+        echo "Hugo not installed. Install with: go install github.com/gohugoio/hugo@latest"
+        exit 1
+      fi
+    preconditions:
+    - sh: test -f config.yaml || test -f config.toml || test -f config.json
+      msg: "No Hugo config file found. Are you in a Hugo project directory?"
+
+  benchmark:
+    desc: Run Go benchmarks
+    sources:
+      - "**/*_test.go"
+      - "internal/**/*.go"
+    cmds:
+    - go test -bench=. -benchmem ./internal/...
+
+  tools:install:
+    desc: Install additional development tools
+    cmds:
+    - go install github.com/swaggo/swag/cmd/swag@latest
+    - go install github.com/cosmtrek/air@latest
+    - go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+    platforms: [linux, darwin]
+
+  health:
+    desc: Check application health and dependencies
+    cmds:
+    - task: health:go
+    - task: health:node
+    - task: health:database
+
+  health:go:
+    desc: Check Go environment
+    cmds:
+    - go version
+    - go env GOPATH
+    - go env GOROOT
+
+  health:node:
+    desc: Check Node.js environment
+    cmds:
+    - node --version
+    - npm --version
+
+  health:database:
+    desc: Check database connectivity
+    cmds:
+    - |
+      if [ -n "$DB_HOST" ]; then
+        echo "Testing database connection to $DB_HOST:$DB_PORT"
+        # Add your database connection test here
+      else
+        echo "Database configuration not found"
+      fi

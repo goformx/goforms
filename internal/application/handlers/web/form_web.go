@@ -1,16 +1,20 @@
-// internal/application/handlers/web/form_web.go
+// Package web provides HTTP handlers for web-based functionality including
+// authentication, form management, and user interface components.
 package web
 
 import (
 	"context"
+	"fmt"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/labstack/echo/v4"
 )
 
 // Default CORS settings for forms
@@ -59,7 +63,7 @@ func NewFormWebHandler(
 }
 
 // RegisterRoutes registers all form-related routes
-func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.AccessManager) {
+func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Manager) {
 	forms := e.Group(constants.PathForms)
 	forms.Use(access.Middleware(accessManager, h.Logger))
 
@@ -78,18 +82,18 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Acce
 }
 
 // Register satisfies the Handler interface
-func (h *FormWebHandler) Register(e *echo.Echo) {
+func (h *FormWebHandler) Register(_ *echo.Echo) {
 	// Routes are registered by RegisterHandlers function
 	// This method is required to satisfy the Handler interface
 }
 
-// Start satisfies the Handler interface
-func (h *FormWebHandler) Start(ctx context.Context) error {
+// Start initializes the form web handler.
+func (h *FormWebHandler) Start(_ context.Context) error {
 	return nil // No initialization needed
 }
 
-// Stop satisfies the Handler interface
-func (h *FormWebHandler) Stop(ctx context.Context) error {
+// Stop cleans up any resources used by the form web handler.
+func (h *FormWebHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
 }
 
@@ -136,17 +140,17 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 	data.FormPreviewAssetPath = h.AssetManager.AssetPath("src/js/pages/form-preview.ts")
 
 	// Render form preview template
-	return h.Renderer.Render(c, pages.FormPreview(data, form))
+	return fmt.Errorf("render form preview: %w", h.Renderer.Render(c, pages.FormPreview(data, form)))
 }
 
 // handleNewFormValidation returns the validation schema for the new form
 func (h *FormWebHandler) handleNewFormValidation(c echo.Context) error {
-	schema := map[string]interface{}{
-		"title": map[string]interface{}{
+	schema := map[string]any{
+		"title": map[string]any{
 			"type":    "required",
 			"message": "Form title is required",
 		},
 	}
 
-	return c.JSON(200, schema)
+	return response.Success(c, schema)
 }

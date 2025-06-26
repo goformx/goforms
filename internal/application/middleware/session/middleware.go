@@ -1,14 +1,17 @@
 package session
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 	"time"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/context"
-	"github.com/labstack/echo/v4"
+	"github.com/goformx/goforms/internal/application/response"
 )
 
 // Middleware creates a new session middleware
@@ -114,7 +117,7 @@ func (sm *Manager) shouldSkipSession(path string) bool {
 	}
 
 	// Skip session processing for development tool endpoints
-	if sm.config.Config.App.Env == "development" && (strings.HasPrefix(path, "/.well-known/") ||
+	if sm.config.App.Env == "development" && (strings.HasPrefix(path, "/.well-known/") ||
 		strings.HasPrefix(path, "/debug/") ||
 		strings.HasPrefix(path, "/dev/")) {
 		return true
@@ -134,7 +137,7 @@ func (sm *Manager) shouldSkipSession(path string) bool {
 func (sm *Manager) isPublicPath(path string) bool {
 	// Use accessManager to check if the path is public
 	if sm.accessManager != nil {
-		if sm.accessManager.GetRequiredAccess(path, "GET") == access.PublicAccess {
+		if sm.accessManager.GetRequiredAccess(path, "GET") == access.Public {
 			return true
 		}
 	}
@@ -203,7 +206,7 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 
 	// If user is authenticated and trying to access a public path, redirect to dashboard
 	if hasValidSession && isPublicPath {
-		return c.Redirect(http.StatusSeeOther, constants.PathDashboard)
+		return fmt.Errorf("redirect to dashboard: %w", c.Redirect(http.StatusSeeOther, constants.PathDashboard))
 	}
 
 	// If not authenticated and trying to access a protected path, handle accordingly
@@ -214,13 +217,11 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 
 		if isAPIRequest || acceptsJSON {
 			// Return JSON error response for API requests
-			return c.JSON(http.StatusUnauthorized, map[string]string{
-				"error": message,
-			})
+			return response.ErrorResponse(c, http.StatusUnauthorized, message)
 		}
 
 		// For web requests, redirect to login
-		return c.Redirect(http.StatusSeeOther, constants.PathLogin)
+		return fmt.Errorf("redirect to login: %w", c.Redirect(http.StatusSeeOther, constants.PathLogin))
 	}
 
 	// If we get here, it means the user is authenticated and accessing a protected path

@@ -92,14 +92,39 @@ const response = await HttpClient.delete(url);
 const response = await fetch(url, { /* ... */ });
 ```
 
+### Standardized Response Format
+The HTTP Client automatically handles the standardized API response format:
+
+```typescript
+// All API responses follow this structure:
+interface ApiResponse<T> {
+  success: boolean;
+  message?: string;
+  data?: T;
+  errors?: Record<string, string[]>;
+}
+
+// Success response handling
+const response = await HttpClient.get('/api/forms/123');
+// response.data contains the actual payload
+// response.success === true
+
+// Error response handling
+try {
+  const response = await HttpClient.get('/api/forms/123');
+  // HttpClient automatically throws on error responses
+} catch (error) {
+  // error.message contains the error message from the API
+  throw new FormBuilderError("API Error", error.message);
+}
+```
+
 ### Error Handling
 ```typescript
 try {
   const response = await HttpClient.get(url);
-  if (!response.ok) {
-    throw new FormBuilderError("Failed to fetch data", "Please try again.");
-  }
-  return await response.json();
+  // HttpClient handles standardized responses automatically
+  return response; // Already processed and validated
 } catch (error) {
   throw new FormBuilderError("Network error", "Check your connection.");
 }

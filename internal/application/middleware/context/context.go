@@ -1,30 +1,39 @@
+// Package context provides middleware utilities for managing request context and user authentication state.
 package context
 
 import (
 	"context"
 	"time"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/google/uuid"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Key represents a key in the context
 type Key string
 
 const (
-	// Request context keys
+	// RequestIDHeader is the HTTP header name for request ID
 	RequestIDHeader = "X-Trace-Id"
-	RequestTimeout  = 30 * time.Second
+	// RequestTimeout is the default timeout for request context
+	RequestTimeout = 30 * time.Second
 
-	// Context keys
-	RequestIDKey     Key = "request_id"
+	// RequestIDKey is the context key for request ID
+	RequestIDKey Key = "request_id"
+	// CorrelationIDKey is the context key for correlation ID
 	CorrelationIDKey Key = "correlation_id"
-	LoggerKey        Key = "logger"
-	UserIDKey        Key = "user_id"
-	EmailKey         Key = "email"
-	RoleKey          Key = "role"
-	SessionKey       Key = "session"
+	// LoggerKey is the context key for logger
+	LoggerKey Key = "logger"
+	// UserIDKey is the context key for user ID
+	UserIDKey Key = "user_id"
+	// EmailKey is the context key for user email
+	EmailKey Key = "email"
+	// RoleKey is the context key for user role
+	RoleKey Key = "role"
+	// SessionKey is the context key for session
+	SessionKey Key = "session"
 )
 
 // Middleware provides context handling for HTTP requests

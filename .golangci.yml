@@ -1,134 +1,89 @@
 # golangci-lint v2 configuration for Go 1.24+ (2025)
-version: 2
+version: "2"
 
 run:
-  timeout: 5m
   go: "1.24"
   modules-download-mode: readonly
   allow-parallel-runners: true
-  skip-dirs:
-    - vendor
-    - third_party
-    - .git
-    - test/mocks
-  skip-files:
-    - ".*\\.pb\\.go$"
-    - ".*_generated\\.go$"
-    - ".*_templ\\.go$"
-    - "mock_.*\\.go$"
-
-output:
-  format: colored-line-number
-  print-issued-lines: true
-  print-linter-name: true
-  uniq-by-line: true
-  sort-results: true
-
-formatters:
-  enable:
-    - gofmt
-    - goimports
-  settings:
-    gofmt:
-      simplify: true
-      rewrite-rules:
-        - pattern: 'interface{}'
-          replacement: 'any'
-    goimports:
-      local-prefixes: github.com/goformx/goforms
 
 linters:
-  default: standard
   enable:
-    # Core analysis
-    - errcheck
-    - govet
-    - ineffassign
-    - staticcheck
-    - unused
-    
-    # Style and formatting
-    - revive
-    - gocritic
-    
-    # Complexity and maintainability
-    - gocyclo
+    - bodyclose
+    - contextcheck
+    - errorlint
+    - forcetypeassert
     - funlen
     - gocognit
-    - nestif
-    
-    # Security
-    - gosec
-    
-    # Performance
-    - prealloc
-    
-    # Best practices
-    - unconvert
-    - unparam
-    - nakedret
     - goconst
-    - misspell
-    - lll
-    - whitespace
-    
-    # Error handling
-    - errorlint
-    - wrapcheck
-    
-    # Testing
-    - testpackage
-    - thelper
-    - testifylint
-    
-    # Go 1.18+ specific
-    - contextcheck
-    - nilerr
-    - nolintlint
-    - predeclared
-    - forcetypeassert
-    - tagliatelle
-    
-    # Additional quality checks
-    - bodyclose
+    - gocritic
+    - gocyclo
     - goheader
     - goprintffuncname
+    - gosec
+    - lll
+    - misspell
+    - nakedret
+    - nestif
+    - nilerr
+    - nolintlint
+    - prealloc
+    - predeclared
+    - revive
     - rowserrcheck
     - sqlclosecheck
+    - tagliatelle
+    - testifylint
+    - testpackage
+    - thelper
+    - unconvert
+    - unparam
+    - whitespace
+    - wrapcheck
 
   settings:
     errcheck:
       check-type-assertions: true
       check-blank: true
-      exclude-functions:
-        - fmt.Print
-        - fmt.Println
-        - fmt.Printf
-
-    govet:
-      enable-all: true
-      disable:
-        - fieldalignment # Can be noisy for structs
-
-    gocyclo:
-      min-complexity: 15
-
-    goimports:
-      local-prefixes: github.com/goformx/goforms
-      skip-generated: true
-
+    errorlint:
+      errorf: true
+      asserts: true
+      comparison: true
+    goconst:
+      min-len: 3
+      min-occurrences: 3
     gocritic:
+      disabled-checks:
+        - ifElseChain
+        - singleCaseSwitch
       enabled-tags:
         - diagnostic
         - style
         - performance
         - experimental
-      disabled-checks:
-        - ifElseChain
-        - singleCaseSwitch
-
+    gocyclo:
+      min-complexity: 15
+    gosec:
+      severity: medium
+      confidence: medium
+    govet:
+      disable:
+        - fieldalignment
+      enable-all: true
+    lll:
+      line-length: 120
+    misspell:
+      locale: US
+    nakedret:
+      max-func-lines: 30
+    nolintlint:
+      require-explanation: true
+      require-specific: true
+      allow-unused: false
+    prealloc:
+      simple: true
+      range-loops: true
+      for-loops: false
     revive:
-      min-confidence: 0.8
       rules:
         - name: blank-imports
         - name: context-as-argument
@@ -153,153 +108,97 @@ linters:
         - name: unused-parameter
         - name: unreachable-code
         - name: redefines-builtin-id
-
     staticcheck:
-      checks: ["all"]
-
-    gosec:
-      severity: medium
-      confidence: medium
-      excludes:
-        - G108 # Profiling endpoint automatically exposed
-        - G204 # Subprocess launched with variable
-      config:
-        G306: "0644"
-
-    goconst:
-      min-len: 3
-      min-occurrences: 3
-      ignore-tests: true
-
-    misspell:
-      locale: US
-      ignore-words:
-        - cancelled
-
-    lll:
-      line-length: 120
-      tab-width: 4
-
+      checks:
+        - all
+    tagliatelle:
+      case:
+        rules:
+          avro: snake
+          bson: camel
+          json: snake
+          mapstructure: kebab
+          xml: camel
+          yaml: snake
+        use-field-name: true
+    unparam:
+      check-exported: false
     unused:
       field-writes-are-uses: true
       post-statements-are-reads: true
-      exported-is-used: true
-      exported-fields-are-used: true
       parameters-are-used: true
       local-variables-are-used: true
-
-    unparam:
-      check-exported: false
-
-    nakedret:
-      max-func-lines: 30
-
-    prealloc:
-      simple: true
-      range-loops: true
-      for-loops: false
-
-    nolintlint:
-      allow-unused: false
-      allow-no-explanation: []
-      require-explanation: true
-      require-specific: true
-
-    testpackage:
-      skip-regexp: (export|internal)_test\.go
-
-    thelper:
-      test:
-        first: true
-        name: true
-        begin: true
-      benchmark:
-        first: true
-        name: true
-        begin: true
-
     wrapcheck:
-      ignoreSigs:
+      ignore-sigs:
         - .Errorf(
         - errors.New(
         - errors.Unwrap(
         - .Wrap(
         - .Wrapf(
-
-    errorlint:
-      errorf: true
-      asserts: true
-      comparison: true
-
-    forcetypeassert:
-      use-type-assert: false
-
-    tagliatelle:
-      case:
-        use-field-name: true
-        rules:
-          json: snake
-          yaml: snake
-          xml: camel
-          bson: camel
-          avro: snake
-          mapstructure: kebab
+        - response.Success(
+        - response.ErrorResponse(
+        - .JSON(
+        - .BuildErrorResponse(
+        - .AJAXError(
+        - .HTMLFormError(
+        - .Redirect(
 
   exclusions:
-    max-issues-per-linter: 50
-    max-same-issues: 10
-    new: false
-    fix: false
-    
+    generated: lax
+    presets:
+      - comments
+      - common-false-positives
+      - legacy
+      - std-error-handling
+    paths:
+      - third_party$
+      - builtin$
+      - examples$
     rules:
-      # Exclude mockgen generated files from all linters
-      - path: test/mocks/
-        linters: [all]
-      - path: mock_.*\.go$
-        linters: [all]
-      
-      # Exclude templ generated files from all linters
-      - path: _templ\.go$
-        linters: [all]
-      
-      # Exclude some linters from running on tests files
+      # Exclude funlen for test files (tests can be longer)
       - path: _test\.go
         linters:
-          - gocyclo
-          - errcheck
-          - dupl
-          - gosec
           - funlen
-          - goconst
-          - gocognit
-          - scopelint
-          - lll
       
-      # Exclude some staticcheck messages
-      - linters: [staticcheck]
-        text: "SA9003:"
-      
-      # Exclude lll issues for long lines with go:generate
-      - linters: [lll]
-        source: "^//go:generate "
-      
-      # Exclude gosec for test files
+      # Exclude wrapcheck for test files (tests often don't need error wrapping)
       - path: _test\.go
-        text: "G404:"
-        linters: [gosec]
+        linters:
+          - wrapcheck
       
-      # Allow embed globals, templ components, and mock interfaces
-      - linters: [gochecknoglobals]
-        source: "//go:embed"
-      - linters: [gochecknoglobals]
-        source: "func.*templ\\.Component"
-      - linters: [gochecknoglobals]
-        path: test/mocks/
+      # Exclude gocritic hugeParam for generated code
+      - path: _templ\.go
+        linters:
+          - gocritic
+      
+      # Exclude nolintlint for generated code
+      - path: _templ\.go
+        linters:
+          - nolintlint
+      
+      # Exclude some rules for integration tests
+      - path: test/integration/
+        linters:
+          - funlen
+          - wrapcheck
+          - gocritic
+      
+      # Exclude some rules for mock files
+      - path: test/mocks/
+        linters:
+          - funlen
+          - wrapcheck
+          - gocritic
+          - nolintlint
+      
+      # Exclude hugeParam for FX dependency injection (structs are auto-injected)
+      - linters:
+          - gocritic
+        text: "hugeParam"
 
-    exclude:
-      - "Error return value of .((os\\.)?std(out|err)\\..*|.*Close|.*Flush|os\\.Remove(All)?|.*printf?|os\\.(Un)?Setenv). is not checked"
-      - "should have a package comment, unless it's in another file for this package"
-
-severity:
-  default-severity: error
-  case-sensitive: false
+formatters:
+  exclusions:
+    generated: lax
+    paths:
+      - third_party$
+      - builtin$
+      - examples$

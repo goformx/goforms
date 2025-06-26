@@ -7,13 +7,14 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/google/uuid"
+	"gorm.io/gorm"
+
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/repository/common"
-	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 // Store implements form.Repository interface
@@ -33,11 +34,11 @@ func NewStore(db *database.GormDB, logger logging.Logger) form.Repository {
 // CreateForm creates a new form
 func (s *Store) CreateForm(ctx context.Context, formModel *model.Form) error {
 	if err := s.db.WithContext(ctx).Create(formModel).Error; err != nil {
-		s.logger.Error("failed to create form in database",
+		s.logger.Error("failed to create form",
 			"form_id", formModel.ID,
 			"error", err,
 		)
-		return common.NewDatabaseError("create", "form", formModel.ID, err)
+		return fmt.Errorf("create form: %w", common.NewDatabaseError("create", "form", formModel.ID, err))
 	}
 	return nil
 }
@@ -52,7 +53,8 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 		s.logger.Warn("invalid form ID format received",
 			"id_length", len(id),
 			"error_type", "invalid_uuid_format")
-		return nil, common.NewInvalidInputError("get", "form", id, err)
+		invalidErr := common.NewInvalidInputError("get", "form", id, err)
+		return nil, fmt.Errorf("get form by ID: %w", invalidErr)
 	}
 
 	var formModel model.Form
@@ -61,13 +63,14 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 			s.logger.Debug("form not found in database",
 				"id_length", len(normalizedID),
 				"error_type", "not_found")
-			return nil, common.NewNotFoundError("get", "form", normalizedID)
+			return nil, fmt.Errorf("get form by ID: %w", common.NewNotFoundError("get", "form", normalizedID))
 		}
 		s.logger.Error("database error while getting form",
 			"id_length", len(normalizedID),
 			"error", err,
 			"error_type", "database_error")
-		return nil, common.NewDatabaseError("get", "form", normalizedID, err)
+		dbErr := common.NewDatabaseError("get", "form", normalizedID, err)
+		return nil, fmt.Errorf("get form by ID: %w", dbErr)
 	}
 
 	s.logger.Debug("form retrieved successfully",
@@ -88,7 +91,7 @@ func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, er
 			"user_id", userID,
 			"error", err,
 		)
-		return nil, common.NewDatabaseError("list", "form", "", err)
+		return nil, fmt.Errorf("list forms: %w", common.NewDatabaseError("list", "form", "", err))
 	}
 	return forms, nil
 }
@@ -97,10 +100,10 @@ func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, er
 func (s *Store) UpdateForm(ctx context.Context, formModel *model.Form) error {
 	result := s.db.WithContext(ctx).Model(&model.Form{}).Where("uuid = ?", formModel.ID).Updates(formModel)
 	if result.Error != nil {
-		return common.NewDatabaseError("update", "form", formModel.ID, result.Error)
+		return fmt.Errorf("update form: %w", common.NewDatabaseError("update", "form", formModel.ID, result.Error))
 	}
 	if result.RowsAffected == 0 {
-		return common.NewNotFoundError("update", "form", formModel.ID)
+		return fmt.Errorf("update form: %w", common.NewNotFoundError("update", "form", formModel.ID))
 	}
 	return nil
 }
@@ -115,7 +118,8 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 		s.logger.Warn("invalid form ID format received for deletion",
 			"id_length", len(id),
 			"error_type", "invalid_uuid_format")
-		return common.NewInvalidInputError("delete", "form", id, err)
+		invalidErr := common.NewInvalidInputError("delete", "form", id, err)
+		return fmt.Errorf("delete form: %w", invalidErr)
 	}
 
 	result := s.db.WithContext(ctx).Where("uuid = ?", normalizedID).Delete(&model.Form{})
@@ -124,14 +128,14 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 			"id_length", len(normalizedID),
 			"error", result.Error,
 			"error_type", "database_error")
-		return common.NewDatabaseError("delete", "form", normalizedID, result.Error)
+		return fmt.Errorf("delete form: %w", common.NewDatabaseError("delete", "form", normalizedID, result.Error))
 	}
 
 	if result.RowsAffected == 0 {
 		s.logger.Debug("form not found for deletion",
 			"id_length", len(normalizedID),
 			"error_type", "not_found")
-		return common.NewNotFoundError("delete", "form", normalizedID)
+		return fmt.Errorf("delete form: %w", common.NewNotFoundError("delete", "form", normalizedID))
 	}
 
 	s.logger.Debug("form deleted successfully",
@@ -157,7 +161,7 @@ func (s *Store) CreateSubmission(ctx context.Context, submission *model.FormSubm
 			"form_id", submission.FormID,
 			"error", err,
 		)
-		return common.NewDatabaseError("create", "form_submission", submission.ID, err)
+		return fmt.Errorf("create submission: %w", common.NewDatabaseError("create", "form_submission", submission.ID, err))
 	}
 	return nil
 }
@@ -167,9 +171,11 @@ func (s *Store) GetSubmissionByID(ctx context.Context, submissionID string) (*mo
 	var submission model.FormSubmission
 	if err := s.db.WithContext(ctx).Where("uuid = ?", submissionID).First(&submission).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return nil, common.NewNotFoundError("get", "form_submission", submissionID)
+			return nil, fmt.Errorf("get submission by ID: %w",
+				common.NewNotFoundError("get", "form_submission", submissionID))
 		}
-		return nil, common.NewDatabaseError("get", "form_submission", submissionID, err)
+		return nil, fmt.Errorf("get submission by ID: %w",
+			common.NewDatabaseError("get", "form_submission", submissionID, err))
 	}
 	return &submission, nil
 }
@@ -182,7 +188,7 @@ func (s *Store) ListSubmissions(ctx context.Context, formID string) ([]*model.Fo
 			"form_id", formID,
 			"error", err,
 		)
-		return nil, common.NewDatabaseError("list", "form_submission", formID, err)
+		return nil, fmt.Errorf("list form submissions: %w", common.NewDatabaseError("list", "form_submission", formID, err))
 	}
 	return submissions, nil
 }
@@ -195,10 +201,11 @@ func (s *Store) UpdateSubmission(ctx context.Context, submission *model.FormSubm
 			"submission_id", submission.ID,
 			"error", result.Error,
 		)
-		return common.NewDatabaseError("update", "form_submission", submission.ID, result.Error)
+		return fmt.Errorf("update submission: %w",
+			common.NewDatabaseError("update", "form_submission", submission.ID, result.Error))
 	}
 	if result.RowsAffected == 0 {
-		return common.NewNotFoundError("update", "form_submission", submission.ID)
+		return fmt.Errorf("update submission: %w", common.NewNotFoundError("update", "form_submission", submission.ID))
 	}
 	return nil
 }
@@ -211,10 +218,11 @@ func (s *Store) DeleteSubmission(ctx context.Context, submissionID string) error
 			"submission_id", submissionID,
 			"error", result.Error,
 		)
-		return common.NewDatabaseError("delete", "form_submission", submissionID, result.Error)
+		return fmt.Errorf("delete submission: %w",
+			common.NewDatabaseError("delete", "form_submission", submissionID, result.Error))
 	}
 	if result.RowsAffected == 0 {
-		return common.NewNotFoundError("delete", "form_submission", submissionID)
+		return fmt.Errorf("delete submission: %w", common.NewNotFoundError("delete", "form_submission", submissionID))
 	}
 	return nil
 }

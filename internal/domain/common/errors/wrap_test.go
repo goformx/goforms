@@ -4,8 +4,9 @@ import (
 	stderrors "errors"
 	"testing"
 
-	"github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/stretchr/testify/assert"
+
+	"github.com/goformx/goforms/internal/domain/common/errors"
 )
 
 func TestWrapErrorAndUnwrap(t *testing.T) {
@@ -25,7 +26,7 @@ func TestWrapNotFoundError(t *testing.T) {
 	assert.Contains(t, errors.GetErrorMessage(domainErr), "resource missing")
 }
 
-func TestWrapValidationError(t *testing.T) {
+func TestWrapError(t *testing.T) {
 	baseErr := stderrors.New("invalid input")
 	domainErr := errors.WrapValidationError(baseErr, "input is invalid")
 	assert.True(t, errors.IsDomainError(domainErr))

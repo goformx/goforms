@@ -29,25 +29,15 @@
   gap: var(--spacing-8);
 }
 
-.form-card {
+.form-panel {
   background: var(--card-bg);
   border-radius: var(--card-radius);
   box-shadow: var(--shadow-md);
-  transition:
-    box-shadow 0.2s,
-    transform 0.2s;
   border: none;
   overflow: hidden;
 }
 
-.form-card:hover {
-  box-shadow:
-    var(--shadow-md),
-    0 8px 24px 0 var(--primary-shadow-hover, rgba(37, 99, 235, 0.1));
-  transform: translateY(-2px) scale(1.01);
-}
-
-.form-card-header {
+.form-panel-header {
   padding: var(--spacing-6) var(--spacing-6) var(--spacing-4) var(--spacing-6);
   border-bottom: 1px solid var(--border-color);
   background: var(--background-alt);
@@ -56,19 +46,19 @@
   align-items: center;
 }
 
-.form-card-header h3 {
+.form-panel-header h3 {
   font-size: var(--font-size-xl);
   font-weight: var(--font-weight-semibold);
   color: var(--primary);
   margin: 0;
 }
 
-.form-actions {
+.form-panel-actions {
   display: flex;
   gap: var(--spacing-2);
 }
 
-.form-card-body {
+.form-panel-body {
   padding: var(--spacing-6);
 }
 
@@ -85,7 +75,7 @@
   color: var(--text-muted);
 }
 
-.form-card-footer {
+.form-panel-footer {
   padding: var(--spacing-4) var(--spacing-6);
   border-top: 1px solid var(--border-color);
   background: var(--background-alt);

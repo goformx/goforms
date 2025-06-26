@@ -89,7 +89,7 @@ describe("DOM Utilities", () => {
       // Check both container and document.body since implementation falls back
       const errorInContainer = container.querySelector(".gf-error-message");
       const errorInBody = document.body.querySelector(".gf-error-message");
-      const errorElement = errorInContainer || errorInBody;
+      const errorElement = errorInContainer ?? errorInBody;
 
       expect(errorElement).toBeTruthy();
       expect(errorElement?.textContent).toBe("Test error message");
@@ -102,7 +102,7 @@ describe("DOM Utilities", () => {
       // Check both container and document.body since implementation falls back
       const errorInContainer = container.querySelector(".gf-error-message");
       const errorInBody = document.body.querySelector(".gf-error-message");
-      const errorElement = errorInContainer || errorInBody;
+      const errorElement = errorInContainer ?? errorInBody;
       expect(errorElement).toBeTruthy();
 
       dom.hideError(container);
@@ -128,7 +128,7 @@ describe("DOM Utilities", () => {
       // Check both container and document.body since implementation falls back
       const successInContainer = container.querySelector(".gf-success-message");
       const successInBody = document.body.querySelector(".gf-success-message");
-      const successElement = successInContainer || successInBody;
+      const successElement = successInContainer ?? successInBody;
 
       expect(successElement).toBeTruthy();
       expect(successElement?.textContent).toBe("Test success message");
@@ -143,7 +143,7 @@ describe("DOM Utilities", () => {
       // Check both container and document.body since implementation falls back
       const successInContainer = container.querySelector(".gf-success-message");
       const successInBody = document.body.querySelector(".gf-success-message");
-      const successElement = successInContainer || successInBody;
+      const successElement = successInContainer ?? successInBody;
       expect(successElement).toBeTruthy();
 
       dom.hideSuccess(container);

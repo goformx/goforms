@@ -3,10 +3,11 @@ package validation_test
 import (
 	"testing"
 
-	"github.com/goformx/goforms/internal/application/validation"
-	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
+
+	"github.com/goformx/goforms/internal/application/validation"
+	"github.com/goformx/goforms/internal/domain/form/model"
 )
 
 func setupTestComprehensiveValidator() *validation.ComprehensiveValidator {

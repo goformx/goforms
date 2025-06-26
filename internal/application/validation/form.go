@@ -4,13 +4,15 @@ import (
 	"errors"
 	"fmt"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
+
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 const (
-	// Validation rules
+	// ValidateRequired is the validation rule for required fields
 	ValidateRequired = "required"
+	// ValidatePassword is the validation rule for password fields
 	ValidatePassword = "password"
 )
 
@@ -30,7 +32,7 @@ func NewFormValidator(logger logging.Logger) *FormValidator {
 func (fv *FormValidator) ValidateFormID(c echo.Context) (string, error) {
 	formID := c.Param("id")
 	if formID == "" {
-		return "", errors.New("Form ID is required")
+		return "", errors.New("form ID is required")
 	}
 	return formID, nil
 }

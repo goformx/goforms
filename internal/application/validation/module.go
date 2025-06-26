@@ -1,8 +1,9 @@
 package validation
 
 import (
-	infra_validation "github.com/goformx/goforms/internal/infrastructure/validation"
 	"go.uber.org/fx"
+
+	infra_validation "github.com/goformx/goforms/internal/infrastructure/validation"
 )
 
 // Module provides validation dependencies

@@ -4,11 +4,12 @@ import (
 	"errors"
 	"testing"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/zap/zapcore"
 	"go.uber.org/zap/zaptest"
+
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 func TestSensitiveField(t *testing.T) {
@@ -403,14 +404,14 @@ func TestCustomField(t *testing.T) {
 			name:      "sensitive key should be masked",
 			key:       "secret_data",
 			value:     "sensitive value",
-			sanitizer: func(v any) string { return "custom sanitized" },
+			sanitizer: func(_ any) string { return "custom sanitized" },
 			expected:  "****",
 		},
 		{
 			name:      "custom sanitization",
 			key:       "description",
 			value:     "original value",
-			sanitizer: func(v any) string { return "custom sanitized" },
+			sanitizer: func(_ any) string { return "custom sanitized" },
 			expected:  "custom sanitized",
 		},
 	}

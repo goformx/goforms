@@ -33,8 +33,8 @@ templ DashboardContent(forms []*model.Form) {
 			} else {
 				<div class="forms-grid">
 					for _, form := range forms {
-						<div class="form-card">
-							<div class="form-card-header">
+						<div class="form-panel">
+							<div class="form-panel-header">
 								<h3>{ form.Title }</h3>
 								<div class="form-actions">
 									<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-icon" title="Edit Form">
@@ -45,7 +45,7 @@ templ DashboardContent(forms []*model.Form) {
 									</button>
 								</div>
 							</div>
-							<div class="form-card-body">
+							<div class="form-panel-body">
 								<p class="form-description">{ form.Description }</p>
 								<div class="form-stats">
 									<div class="stat">
@@ -58,7 +58,7 @@ templ DashboardContent(forms []*model.Form) {
 									</div>
 								</div>
 							</div>
-							<div class="form-card-footer">
+							<div class="form-panel-footer">
 								<a href={ templ.SafeURL("/forms/" + form.ID + "/preview") } class="btn btn-secondary">Preview</a>
 								<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
 							</div>

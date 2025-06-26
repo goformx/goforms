@@ -34,12 +34,6 @@
   gap: var(--spacing-4);
 }
 
-.form-builder-main {
-  display: flex;
-  gap: var(--spacing-4);
-  padding: var(--spacing-4);
-}
-
 .form-builder-sidebar {
   width: var(--sidebar-width);
   flex-shrink: 0;
@@ -191,20 +185,12 @@
 }
 
 @media (max-width: var(--breakpoint-md)) {
-  .form-builder-main {
-    padding: var(--spacing-3);
-  }
-
   .form-builder-field-content {
     padding: var(--spacing-3);
   }
 }
 
 @media (max-width: var(--breakpoint-sm)) {
-  .form-builder-main {
-    padding: var(--spacing-3);
-  }
-
   .form-builder-field-input {
     padding: var(--spacing-3) var(--spacing-4);
     font-size: var(--font-size-base);
@@ -394,22 +380,6 @@
   box-sizing: border-box;
 }
 
-.form-builder-sidebar {
-  background: var(--card-bg);
-  border: var(--card-border);
-  border-radius: var(--card-radius);
-  padding: 1rem;
-  box-shadow: var(--shadow-md);
-}
-
-.form-builder-main {
-  background: var(--card-bg);
-  border: var(--card-border);
-  border-radius: var(--card-radius);
-  padding: 1rem;
-  box-shadow: var(--shadow-md);
-}
-
 /* Form Builder Components */
 .formio-form-builder {
   margin-top: 0.75rem;
@@ -475,11 +445,6 @@
 
 @media (max-width: 768px) {
   .form-builder-grid {
-    padding: 0.75rem;
-  }
-
-  .form-builder-sidebar,
-  .form-builder-main {
     padding: 0.75rem;
   }
 

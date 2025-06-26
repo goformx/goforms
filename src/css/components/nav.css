@@ -152,6 +152,14 @@
   z-index: var(--nav-z-index);
 }
 
+/* Class-based dropdown state */
+.user-menu-dropdown.open {
+  opacity: 1;
+  visibility: visible;
+  transform: translateY(0);
+}
+
+/* Keep focus-based approach as fallback for accessibility */
 .user-menu-button:focus + .user-menu-dropdown,
 .user-menu-button:focus-within + .user-menu-dropdown,
 .user-menu-dropdown:focus-within {

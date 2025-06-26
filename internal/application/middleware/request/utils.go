@@ -1,10 +1,13 @@
+// Package request provides utilities for HTTP request parsing and validation middleware.
 package request
 
 import (
 	"encoding/json"
+	"fmt"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/labstack/echo/v4"
 )
 
 // Utils provides common request processing utilities
@@ -23,8 +26,11 @@ func NewUtils(sanitizer sanitization.ServiceInterface) *Utils {
 type ContentType string
 
 const (
-	ContentTypeJSON      ContentType = "application/json"
-	ContentTypeForm      ContentType = "application/x-www-form-urlencoded"
+	// ContentTypeJSON represents JSON content type
+	ContentTypeJSON ContentType = "application/json"
+	// ContentTypeForm represents form URL-encoded content type
+	ContentTypeForm ContentType = "application/x-www-form-urlencoded"
+	// ContentTypeMultipart represents multipart form data content type
 	ContentTypeMultipart ContentType = "multipart/form-data"
 )
 
@@ -34,10 +40,16 @@ func (ru *Utils) ParseRequestData(c echo.Context, target any) error {
 
 	switch {
 	case contentType == string(ContentTypeJSON):
-		return json.NewDecoder(c.Request().Body).Decode(target)
+		if err := json.NewDecoder(c.Request().Body).Decode(target); err != nil {
+			return fmt.Errorf("decode JSON request body: %w", err)
+		}
+		return nil
 	default:
 		// Handle form data
-		return c.Bind(target)
+		if err := c.Bind(target); err != nil {
+			return fmt.Errorf("bind form data: %w", err)
+		}
+		return nil
 	}
 }
 
@@ -69,7 +81,7 @@ func (ru *Utils) GetContentType(c echo.Context) ContentType {
 	}
 }
 
-// Common form data structure for login/signup
+// AuthFormData represents common form data structure for login/signup
 type AuthFormData struct {
 	Email    string `json:"email" form:"email"`
 	Password string `json:"password" form:"password"`

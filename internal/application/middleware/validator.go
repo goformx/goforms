@@ -16,9 +16,9 @@ type EchoValidator struct {
 
 // NewValidator creates a new Echo validator
 func NewValidator() (*EchoValidator, error) {
-	v, err := validation.New()
-	if err != nil {
-		return nil, err
+	v, errNew := validation.New()
+	if errNew != nil {
+		return nil, fmt.Errorf("create validation instance: %w", errNew)
 	}
 	return &EchoValidator{
 		validator: v,

@@ -64,7 +64,7 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 ### CSRF Configuration for Development
 
-When running the frontend (localhost:3000) and backend (localhost:8090) on different ports, you need to configure CSRF properly for cross-origin requests:
+When running the frontend (localhost:5173) and backend (localhost:8090) on different ports, you need to configure CSRF properly for cross-origin requests:
 
 1. **Set CSRF Cookie SameSite to Lax**: This allows cookies to be sent in cross-origin requests
 2. **Disable Secure Flag**: In development, cookies don't need to be HTTPS-only
@@ -79,7 +79,7 @@ GOFORMS_SECURITY_SECURE_COOKIE=false
 
 # CORS Configuration
 GOFORMS_SECURITY_CORS_ENABLED=true
-GOFORMS_SECURITY_CORS_ORIGINS=http://localhost:3000
+GOFORMS_SECURITY_CORS_ORIGINS=http://localhost:5173
 GOFORMS_SECURITY_CORS_CREDENTIALS=true
 ```
 

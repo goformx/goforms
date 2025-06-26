@@ -11,9 +11,12 @@ import (
 type Status string
 
 const (
-	StatusHealthy   Status = "healthy"
+	// StatusHealthy represents a healthy component status
+	StatusHealthy Status = "healthy"
+	// StatusUnhealthy represents an unhealthy component status
 	StatusUnhealthy Status = "unhealthy"
-	StatusDegraded  Status = "degraded"
+	// StatusDegraded represents a degraded component status
+	StatusDegraded Status = "degraded"
 )
 
 // ComponentStatus represents the status of a system component
@@ -24,6 +27,8 @@ type ComponentStatus struct {
 }
 
 // HealthStatus represents the health status of the system
+//
+//nolint:revive // We need to distinguish between Status (string) and HealthStatus (struct) in the same package
 type HealthStatus struct {
 	Status     Status                     `json:"status"`
 	Components map[string]ComponentStatus `json:"components"`

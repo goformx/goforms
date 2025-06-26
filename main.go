@@ -14,6 +14,8 @@ import (
 
 	"go.uber.org/fx"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
@@ -25,7 +27,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/presentation"
-	"github.com/labstack/echo/v4"
 )
 
 //go:embed all:dist
@@ -37,6 +38,7 @@ const DefaultShutdownTimeout = 30 * time.Second
 
 // appParams defines the dependency injection parameters for the application.
 // It uses fx.In to automatically inject dependencies provided by the fx container.
+// Note: This struct should be used by value, not as a pointer, when fx.In is embedded.
 type appParams struct {
 	fx.In
 	Lifecycle         fx.Lifecycle           // Manages application lifecycle hooks
@@ -45,7 +47,7 @@ type appParams struct {
 	Logger            logging.Logger         // Application logger
 	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
 	MiddlewareManager *appmiddleware.Manager // Middleware management
-	AccessManager     *access.AccessManager  // Access control management
+	AccessManager     *access.Manager        // Access control management
 	Config            *config.Config         // Application configuration
 }
 
@@ -55,7 +57,7 @@ type appParams struct {
 func setupHandlers(
 	handlers []web.Handler,
 	e *echo.Echo,
-	accessManager *access.AccessManager,
+	accessManager *access.Manager,
 	logger logging.Logger,
 ) error {
 	for i, handler := range handlers {
@@ -71,6 +73,7 @@ func setupHandlers(
 
 // setupApplication initializes the application by setting up middleware
 // and registering all web handlers.
+// Note: params is passed by value, not as a pointer
 func setupApplication(params appParams) error {
 	params.MiddlewareManager.Setup(params.Echo)
 	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
@@ -78,9 +81,10 @@ func setupApplication(params appParams) error {
 
 // setupLifecycle configures the application lifecycle hooks for startup and shutdown.
 // It logs application information and manages server startup in a goroutine.
+// Note: params is passed by value, not as a pointer
 func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
-		OnStart: func(ctx context.Context) error {
+		OnStart: func(_ context.Context) error {
 			versionInfo := version.GetInfo()
 			// Log application startup information
 			params.Logger.Info("starting application",
@@ -101,7 +105,7 @@ func setupLifecycle(params appParams) {
 
 			return nil
 		},
-		OnStop: func(ctx context.Context) error {
+		OnStop: func(_ context.Context) error {
 			versionInfo := version.GetInfo()
 			// Log application shutdown information
 			params.Logger.Info("shutting down application",

@@ -97,7 +97,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 		<div class="dashboard-content form-builder-content">
 			<div class="form-builder-grid">
 				<div class="form-builder-sidebar">
-					<div class="form-card">
+					<div class="form-panel">
 						<form id="edit-form" method="POST" action={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="form">
 							<input type="hidden" name="id" value={ form.ID } />
 							<div id="form_error" class="form-error"></div>
@@ -150,7 +150,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 				</div>
 
 				<div class="form-builder-main">
-					<div class="form-builder-card">
+					<div class="form-builder-panel">
 						<div class="form-builder-header">
 							<h2>Form Builder</h2>
 							<p>Design your form by adding and configuring fields</p>
@@ -239,14 +239,28 @@ if data.IsDevelopment {
 	if (document.getElementById('form-schema-builder')) {
 		const script = document.getElementById('form-builder-script');
 		const path = script.getAttribute('data-form-builder-path');
+		console.log('Loading form builder in development mode:', path);
+		try {
 		await import(path);
+			console.log('Form builder loaded successfully');
+		} catch (error) {
+			console.error('Failed to load form builder:', error);
+		}
 	}
 </script>
 } else {
 <script type="module">
 	const path = JSON.parse(document.getElementById('form-builder-data').textContent);
+	console.log('Loading form builder in production mode:', path);
 	if (document.getElementById('form-schema-builder')) {
+		try {
 		await import(path);
+			console.log('Form builder loaded successfully');
+		} catch (error) {
+			console.error('Failed to load form builder:', error);
+		}
+	} else {
+		console.error('Form schema builder element not found');
 	}
 </script>
 }
@@ -301,7 +315,7 @@ document.addEventListener('DOMContentLoaded', function() {
 					// Remove success message after 3 seconds
 					setTimeout(() => {
 						successDiv.remove();
-					}, 3000);
+					}, 5173);
 				} else {
 					// Show error message
 					const errorDiv = document.createElement('div');

@@ -1,10 +1,12 @@
-// internal/application/handlers/web/auth_helper.go
+// Package web provides HTTP handlers for web-based functionality including
+// authentication, form management, and user interface components.
 package web
 
 import (
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/labstack/echo/v4"
 )
 
 // AuthHelper handles common authentication and authorization patterns

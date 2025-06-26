@@ -7,7 +7,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"io/fs"
-	"net"
 	"strings"
 
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -29,7 +28,7 @@ func NewProductionAssetResolver(manifest Manifest, logger logging.Logger) *Produ
 }
 
 // ResolveAssetPath resolves asset paths for production using the manifest
-func (r *ProductionAssetResolver) ResolveAssetPath(ctx context.Context, path string) (string, error) {
+func (r *ProductionAssetResolver) ResolveAssetPath(_ context.Context, path string) (string, error) {
 	if path == "" {
 		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}
@@ -62,31 +61,53 @@ func NewDevelopmentAssetResolver(cfg *config.Config, logger logging.Logger) *Dev
 }
 
 // ResolveAssetPath resolves asset paths for development using the Vite dev server
-func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path string) (string, error) {
+func (r *DevelopmentAssetResolver) ResolveAssetPath(_ context.Context, path string) (string, error) {
 	if path == "" {
 		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}
 
-	hostPort := net.JoinHostPort(r.config.App.ViteDevHost, r.config.App.ViteDevPort)
+	// Always use localhost for the browser, regardless of Vite's binding
+	// Vite can bind to 0.0.0.0 for container access, but browser URLs should use localhost
+	viteURL := fmt.Sprintf("%s://localhost:%s", r.config.App.Scheme, r.config.App.ViteDevPort)
 
 	var resolvedPath string
 	switch {
+	case strings.HasPrefix(path, "@vite/") || strings.HasPrefix(path, "@fs/") || strings.HasPrefix(path, "@id/"):
+		// Vite-specific paths
+		resolvedPath = fmt.Sprintf("%s/%s", viteURL, path)
 	case strings.HasPrefix(path, "src/"):
 		// If path already starts with src/, use it as-is
-		resolvedPath = fmt.Sprintf("%s://%s/%s", r.config.App.Scheme, hostPort, path)
+		resolvedPath = fmt.Sprintf("%s/%s", viteURL, path)
 	case strings.HasSuffix(path, ".css"):
-		resolvedPath = fmt.Sprintf("%s://%s/src/css/%s", r.config.App.Scheme, hostPort, path)
-	case strings.HasSuffix(path, ".ts"), strings.HasSuffix(path, ".js"):
-		baseName := strings.TrimSuffix(strings.TrimSuffix(path, ".js"), ".ts")
-		// Special handling for main.ts/js - it's now in pages/
-		if baseName == "main" {
-			resolvedPath = fmt.Sprintf("%s://%s/src/js/pages/%s.ts", r.config.App.Scheme, hostPort, baseName)
+		// For CSS files, check if path already starts with src/
+		if strings.HasPrefix(path, "src/") {
+			resolvedPath = fmt.Sprintf("%s/%s", viteURL, path)
 		} else {
-			resolvedPath = fmt.Sprintf("%s://%s/src/js/%s.ts", r.config.App.Scheme, hostPort, baseName)
+			resolvedPath = fmt.Sprintf("%s/src/css/%s", viteURL, path)
+		}
+	case strings.HasSuffix(path, ".ts"), strings.HasSuffix(path, ".js"):
+		// For TypeScript/JavaScript files, check if path already starts with src/
+		if strings.HasPrefix(path, "src/") {
+			resolvedPath = fmt.Sprintf("%s/%s", viteURL, path)
+		} else {
+			baseName := strings.TrimSuffix(strings.TrimSuffix(path, ".js"), ".ts")
+			// Special handling for main.ts/js - it's now in pages/
+			if baseName == "main" {
+				resolvedPath = fmt.Sprintf("%s/src/js/pages/%s.ts", viteURL, baseName)
+			} else {
+				resolvedPath = fmt.Sprintf("%s/src/js/%s.ts", viteURL, baseName)
+			}
 		}
 	default:
-		resolvedPath = fmt.Sprintf("%s://%s/%s", r.config.App.Scheme, hostPort, path)
+		resolvedPath = fmt.Sprintf("%s/%s", viteURL, path)
 	}
+
+	// Add debug logging
+	r.logger.Debug("development asset resolved",
+		"input", path,
+		"output", resolvedPath,
+		"vite_url", viteURL,
+	)
 
 	return resolvedPath, nil
 }

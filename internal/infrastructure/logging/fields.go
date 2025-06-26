@@ -4,10 +4,11 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging/sensitive"
 	"github.com/mrz1836/go-sanitize"
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
+
+	"github.com/goformx/goforms/internal/infrastructure/logging/sensitive"
 )
 
 // Sensitive creates a field that automatically masks sensitive data
@@ -144,9 +145,21 @@ func CustomField(key string, value any, sanitizer func(any) string) zap.Field {
 	return zap.String(key, sanitizedValue)
 }
 
-// MaskedField creates a field with custom masking
+// MaskedField creates a field with custom masking applied to the value
 func MaskedField(key, value, mask string) zap.Field {
-	return zap.String(key, mask)
+	if value == "" {
+		return zap.String(key, mask)
+	}
+
+	// Apply masking logic: show first and last characters with mask in middle
+	if len(value) <= 4 {
+		// For short values, just return the mask
+		return zap.String(key, mask)
+	}
+
+	// For longer values, show first 2 and last 2 characters with mask in middle
+	maskedValue := value[:2] + mask + value[len(value)-2:]
+	return zap.String(key, maskedValue)
 }
 
 // TruncatedField creates a field with truncated value

@@ -1,3 +1,5 @@
+// Package metrics provides application metrics collection and reporting
+// functionality for monitoring application performance and health.
 package metrics
 
 import (
@@ -25,7 +27,11 @@ type VersionMetrics struct {
 // NewVersionMetrics creates new version metrics
 func NewVersionMetrics() *VersionMetrics {
 	info := version.GetInfo()
-	buildTime, _ := time.Parse(time.RFC3339, info.BuildTime)
+	buildTime, err := time.Parse(time.RFC3339, info.BuildTime)
+	if err != nil {
+		// Log error or use zero time
+		buildTime = time.Time{}
+	}
 
 	return &VersionMetrics{
 		Version:   info.Version,

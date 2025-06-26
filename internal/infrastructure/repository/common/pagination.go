@@ -1,3 +1,5 @@
+// Package common provides shared utilities and types for repository implementations
+// including error handling, pagination, and common data structures.
 package common
 
 // PaginationParams represents the parameters for pagination

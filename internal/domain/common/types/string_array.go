@@ -1,3 +1,5 @@
+// Package types provides custom domain types and utilities for handling
+// specialized data structures used throughout the application.
 package types
 
 import (
@@ -14,7 +16,11 @@ func (a *StringArray) Value() (driver.Value, error) {
 	if a == nil {
 		return "[]", nil
 	}
-	return json.Marshal(*a)
+	data, err := json.Marshal(*a)
+	if err != nil {
+		return nil, fmt.Errorf("marshal string array: %w", err)
+	}
+	return data, nil
 }
 
 // Scan implements the sql.Scanner interface.
@@ -26,9 +32,15 @@ func (a *StringArray) Scan(src any) error {
 
 	switch v := src.(type) {
 	case []byte:
-		return json.Unmarshal(v, a)
+		if err := json.Unmarshal(v, a); err != nil {
+			return fmt.Errorf("unmarshal string array from bytes: %w", err)
+		}
+		return nil
 	case string:
-		return json.Unmarshal([]byte(v), a)
+		if err := json.Unmarshal([]byte(v), a); err != nil {
+			return fmt.Errorf("unmarshal string array from string: %w", err)
+		}
+		return nil
 	default:
 		return fmt.Errorf("cannot scan %T into StringArray", src)
 	}
@@ -36,14 +48,18 @@ func (a *StringArray) Scan(src any) error {
 
 // MarshalJSON implements json.Marshaler.
 func (a *StringArray) MarshalJSON() ([]byte, error) {
-	return json.Marshal([]string(*a))
+	data, err := json.Marshal([]string(*a))
+	if err != nil {
+		return nil, fmt.Errorf("marshal string array to JSON: %w", err)
+	}
+	return data, nil
 }
 
 // UnmarshalJSON implements json.Unmarshaler.
 func (a *StringArray) UnmarshalJSON(data []byte) error {
 	var arr []string
 	if err := json.Unmarshal(data, &arr); err != nil {
-		return err
+		return fmt.Errorf("unmarshal JSON to string array: %w", err)
 	}
 	*a = arr
 	return nil

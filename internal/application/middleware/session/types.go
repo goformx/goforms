@@ -4,10 +4,11 @@ import (
 	"sync"
 	"time"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 const (
@@ -31,15 +32,15 @@ type Session struct {
 	ExpiresAt time.Time `json:"expires_at"`
 }
 
-// SessionStorage defines the interface for session storage operations
-type SessionStorage interface {
+// Storage defines the interface for session storage operations
+type Storage interface {
 	Load() (map[string]*Session, error)
 	Save(sessions map[string]*Session) error
 	Delete(sessionID string) error
 }
 
-// SessionConfig extends the base config with additional session-specific settings
-type SessionConfig struct {
+// Config extends the base config with additional session-specific settings
+type Config struct {
 	*config.SessionConfig
 	*config.Config
 	PublicPaths  []string `json:"public_paths"`
@@ -51,13 +52,13 @@ type SessionConfig struct {
 // Manager manages user sessions
 type Manager struct {
 	logger        logging.Logger
-	storage       SessionStorage
+	storage       Storage
 	sessions      map[string]*Session
 	mutex         sync.RWMutex
 	expiryTime    time.Duration
 	secureCookie  bool
 	cookieName    string
 	stopChan      chan struct{}
-	config        *SessionConfig
-	accessManager *access.AccessManager
+	config        *Config
+	accessManager *access.Manager
 }

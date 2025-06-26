@@ -156,20 +156,20 @@ describe("FormBuilderError", () => {
 
       const json = error.toJSON();
 
-      expect(json.name).toBe("FormBuilderError");
-      expect(json.code).toBe(ErrorCode.VALIDATION_FAILED);
-      expect(json.userMessage).toBe("Test error");
-      expect(json.context).toEqual({ field: "field" });
-      expect(json.stack).toBeDefined();
+      expect(json["name"]).toBe("FormBuilderError");
+      expect(json["code"]).toBe(ErrorCode.VALIDATION_FAILED);
+      expect(json["userMessage"]).toBe("Test error");
+      expect(json["context"]).toEqual({ field: "field" });
+      expect(json["stack"]).toBeDefined();
     });
 
     it("should include stack trace in serialization", () => {
       const error = FormBuilderError.validationError("Test error");
       const json = error.toJSON();
 
-      expect(json.stack).toBeDefined();
-      expect(typeof json.stack).toBe("string");
-      expect(json.stack).toContain("FormBuilderError");
+      expect(json["stack"]).toBeDefined();
+      expect(typeof json["stack"]).toBe("string");
+      expect(json["stack"]).toContain("FormBuilderError");
     });
 
     it("should include original error in serialization", () => {
@@ -181,7 +181,7 @@ describe("FormBuilderError", () => {
       );
       const json = error.toJSON();
 
-      expect(json.originalError).toBe("Original error");
+      expect(json["originalError"]).toBe("Original error");
     });
   });
 

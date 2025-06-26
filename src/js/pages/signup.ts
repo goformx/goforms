@@ -7,16 +7,21 @@
 import { Logger } from "@/core/logger";
 import { EnhancedFormHandler } from "@/features/forms/handlers/enhanced-form-handler";
 import type { FormConfig } from "@/shared/types/form-types";
+import { createFormId } from "@/shared/types/form-types";
 
 // Initialize the signup form handler
 document.addEventListener("DOMContentLoaded", () => {
   try {
-    const config: FormConfig = {
-      formId: "user-signup",
-      validationType: "onSubmit",
+    const formConfig: FormConfig = {
+      formId: createFormId("user-signup"),
+      validationType: "realtime",
+      options: {
+        autoSave: false,
+        showProgress: true,
+      },
     };
 
-    new EnhancedFormHandler(config);
+    new EnhancedFormHandler(formConfig);
   } catch (error) {
     Logger.error("Error creating EnhancedFormHandler:", error);
   }

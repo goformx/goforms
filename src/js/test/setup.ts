@@ -8,8 +8,8 @@ import { vi } from "vitest";
 // Mock DOM APIs that might not be available in jsdom
 Object.defineProperty(window, "location", {
   value: {
-    href: "http://localhost:3000",
-    origin: "http://localhost:3000",
+    href: "http://localhost:5173",
+    origin: "http://localhost:5173",
     pathname: "/",
     search: "",
     hash: "",
@@ -53,7 +53,7 @@ Object.defineProperty(window, "sessionStorage", {
 
 // Mock FormData
 global.FormData = class FormData {
-  private data = new Map<string, any>();
+  private readonly data = new Map<string, any>();
 
   append(key: string, value: any): void {
     this.data.set(key, value);
@@ -90,7 +90,7 @@ global.FormData = class FormData {
 
 // Mock Headers
 global.Headers = class Headers {
-  private headers = new Map<string, string>();
+  private readonly headers = new Map<string, string>();
 
   constructor(init?: Record<string, string>) {
     if (init) {
@@ -109,7 +109,7 @@ global.Headers = class Headers {
   }
 
   get(name: string): string | null {
-    return this.headers.get(name.toLowerCase()) || null;
+    return this.headers.get(name.toLowerCase()) ?? null;
   }
 
   has(name: string): boolean {
@@ -143,13 +143,13 @@ global.Response = class Response {
   public status: number;
   public statusText: string;
   public headers: Headers;
-  private body: any;
+  private readonly body: any;
 
   constructor(body?: any, init?: ResponseInit) {
     this.body = body;
-    this.ok = (init?.status || 200) >= 200 && (init?.status || 200) < 300;
-    this.status = init?.status || 200;
-    this.statusText = init?.statusText || "";
+    this.ok = (init?.status ?? 200) >= 200 && (init?.status ?? 200) < 300;
+    this.status = init?.status ?? 200;
+    this.statusText = init?.statusText ?? "";
     this.headers = new Headers(init?.headers);
   }
 
@@ -177,7 +177,7 @@ global.Request = class Request {
 
   constructor(input: string | Request, init?: RequestInit) {
     this.url = typeof input === "string" ? input : input.url;
-    this.method = init?.method || "GET";
+    this.method = init?.method ?? "GET";
     this.headers = new Headers(init?.headers);
     this.body = init?.body;
   }

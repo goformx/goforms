@@ -1,16 +1,18 @@
 package middleware
 
 import (
+	"fmt"
 	"net/http"
 	"regexp"
 	"strconv"
 	"strings"
 
+	"github.com/labstack/echo/v4"
+
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	formmodel "github.com/goformx/goforms/internal/domain/form/model"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/labstack/echo/v4"
 )
 
 const (
@@ -153,13 +155,18 @@ func applyGlobalCORS(
 	globalCORS *appconfig.SecurityConfig,
 	next echo.HandlerFunc,
 ) error {
-	// Add debug logging
-	if c.Logger() != nil {
-		c.Logger().Debug("PerFormCORS: applying global CORS",
-			"path", c.Request().URL.Path,
-			"method", c.Request().Method,
-			"origin", c.Request().Header.Get("Origin"),
-			"allowed_origins", globalCORS.CORS.AllowedOrigins)
+	// Skip debug logging for noise paths
+	if !isNoisePath(c.Request().URL.Path) {
+		// Add debug logging using the proper logger
+		// Note: We can't access the logger from config here, so we'll skip this debug log
+		// or use Echo's logger with proper formatting
+		if c.Logger() != nil {
+			c.Logger().Debugf("PerFormCORS: applying global CORS path=%s method=%s origin=%s allowed_origins=%v",
+				c.Request().URL.Path,
+				c.Request().Method,
+				c.Request().Header.Get("Origin"),
+				globalCORS.CORS.AllowedOrigins)
+		}
 	}
 
 	// Handle preflight requests
@@ -196,7 +203,10 @@ func handlePreflight(
 
 	// Check if origin is allowed
 	if !IsOriginAllowed(origin, origins) {
-		return c.NoContent(http.StatusForbidden)
+		if noContentErr := c.NoContent(http.StatusForbidden); noContentErr != nil {
+			return fmt.Errorf("return forbidden for preflight: %w", noContentErr)
+		}
+		return nil
 	}
 
 	// Set CORS headers
@@ -209,7 +219,10 @@ func handlePreflight(
 		c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
 	}
 
-	return c.NoContent(http.StatusOK)
+	if noContentErr := c.NoContent(http.StatusOK); noContentErr != nil {
+		return fmt.Errorf("return ok for preflight: %w", noContentErr)
+	}
+	return nil
 }
 
 // handleActualRequest handles actual CORS requests
@@ -223,7 +236,10 @@ func handleActualRequest(
 
 	// Check if origin is allowed
 	if !IsOriginAllowed(origin, origins) {
-		return c.NoContent(http.StatusForbidden)
+		if noContentErr := c.NoContent(http.StatusForbidden); noContentErr != nil {
+			return fmt.Errorf("return forbidden for actual request: %w", noContentErr)
+		}
+		return nil
 	}
 
 	// Set CORS headers

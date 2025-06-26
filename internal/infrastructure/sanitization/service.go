@@ -1,6 +1,9 @@
+// Package sanitization provides utilities for cleaning and validating user input
+// to prevent XSS attacks, injection attacks, and other security vulnerabilities.
 package sanitization
 
 import (
+	"fmt"
 	"html"
 	"reflect"
 	"strings"
@@ -48,7 +51,11 @@ func (s *Service) IPAddress(input string) string {
 
 // Domain sanitizes a domain name
 func (s *Service) Domain(input string) (string, error) {
-	return sanitize.Domain(input, false, false)
+	domain, err := sanitize.Domain(input, false, false)
+	if err != nil {
+		return "", fmt.Errorf("sanitize domain: %w", err)
+	}
+	return domain, nil
 }
 
 // URI sanitizes a URI
@@ -274,7 +281,7 @@ func (s *Service) SanitizeJSON(data any) any {
 	}
 }
 
-// SanitizeWithOptions provides advanced sanitization with options
+// SanitizeOptions provides advanced sanitization with options
 type SanitizeOptions struct {
 	TrimWhitespace bool
 	RemoveHTML     bool

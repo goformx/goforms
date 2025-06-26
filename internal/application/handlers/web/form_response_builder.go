@@ -4,10 +4,11 @@ import (
 	"net/http"
 	"time"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/labstack/echo/v4"
 )
 
 // FormResponseBuilderImpl implements FormResponseBuilder
@@ -134,10 +135,10 @@ func (b *FormResponseBuilderImpl) BuildValidationErrorResponse(c echo.Context, f
 	})
 }
 
-// BuildMultipleValidationErrorResponse builds a response for multiple validation errors
-func (b *FormResponseBuilderImpl) BuildMultipleValidationErrorResponse(
+// BuildMultipleErrorResponse builds a response for multiple validation errors
+func (b *FormResponseBuilderImpl) BuildMultipleErrorResponse(
 	c echo.Context,
-	errors []validation.ValidationError,
+	errors []validation.Error,
 ) error {
 	errorData := make([]map[string]any, len(errors))
 	for i, err := range errors {

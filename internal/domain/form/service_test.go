@@ -6,14 +6,15 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
 	"github.com/goformx/goforms/internal/domain/common/events"
 	domainform "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	mockevents "github.com/goformx/goforms/test/mocks/events"
 	mockform "github.com/goformx/goforms/test/mocks/form"
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
-	"github.com/stretchr/testify/require"
-	"go.uber.org/mock/gomock"
 )
 
 func TestService_CreateForm_minimal(t *testing.T) {
@@ -175,6 +176,6 @@ func TestService_SubmitForm(t *testing.T) {
 
 		err := svc.SubmitForm(ctx, submission)
 		require.Error(t, err)
-		require.Equal(t, "database error", err.Error())
+		require.Equal(t, "create form submission: database error", err.Error())
 	})
 }

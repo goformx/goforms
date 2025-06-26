@@ -51,7 +51,7 @@ type AppConfig struct {
     
     // Development Settings
     ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
-    ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"3000"`
+    ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"5173"`
 }
 ```
 
@@ -134,7 +134,7 @@ GOFORMS_APP_HOST=0.0.0.0
 
 # Development
 GOFORMS_VITE_DEV_HOST=localhost
-GOFORMS_VITE_DEV_PORT=3000
+GOFORMS_VITE_DEV_PORT=5173
 
 # Security
 GOFORMS_SECURITY_SECURE_COOKIE=false

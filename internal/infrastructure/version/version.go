@@ -51,9 +51,9 @@ import (
 // Info contains version information
 type Info struct {
 	Version   string `json:"version"`
-	BuildTime string `json:"buildTime"`
-	GitCommit string `json:"gitCommit"`
-	GoVersion string `json:"goVersion"`
+	BuildTime string `json:"build_time"`
+	GitCommit string `json:"git_commit"`
+	GoVersion string `json:"go_version"`
 }
 
 const (
@@ -106,7 +106,11 @@ func (i Info) IsPreRelease() bool {
 
 // GetBuildTime returns the build time as a time.Time
 func (i Info) GetBuildTime() (time.Time, error) {
-	return time.Parse(time.RFC3339, i.BuildTime)
+	buildTime, err := time.Parse(time.RFC3339, i.BuildTime)
+	if err != nil {
+		return time.Time{}, fmt.Errorf("parse build time: %w", err)
+	}
+	return buildTime, nil
 }
 
 // Validate checks if the version information is valid

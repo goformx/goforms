@@ -1,3 +1,5 @@
+//go:generate mockgen -typed -source=repository.go -destination=../../../test/mocks/form/mock_repository.go -package=form
+
 package form
 
 import (

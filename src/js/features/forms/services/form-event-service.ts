@@ -4,8 +4,8 @@ type EventHandler = (data: any) => void;
 
 export class FormEventService {
   private static instance: FormEventService;
-  private eventHandlers: Map<string, Set<EventHandler>>;
-  private sessionId: string;
+  private readonly eventHandlers: Map<string, Set<EventHandler>>;
+  private readonly sessionId: string;
 
   private constructor() {
     this.eventHandlers = new Map();

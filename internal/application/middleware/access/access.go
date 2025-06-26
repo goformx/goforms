@@ -1,3 +1,4 @@
+// Package access provides access control middleware and utilities for the application.
 package access
 
 import (
@@ -8,29 +9,29 @@ import (
 	"github.com/goformx/goforms/internal/domain/common/errors"
 )
 
-// AccessLevel represents the level of access required for a route
-type AccessLevel int
+// Level represents the level of access required for a route
+type Level int
 
 const (
-	// PublicAccess means no authentication required
-	PublicAccess AccessLevel = iota
-	// AuthenticatedAccess means user must be authenticated
-	AuthenticatedAccess
-	// AdminAccess means user must be an admin
-	AdminAccess
+	// Public means no authentication required
+	Public Level = iota
+	// Authenticated means user must be authenticated
+	Authenticated
+	// Admin means user must be an admin
+	Admin
 )
 
-// AccessRule defines a rule for route access
-type AccessRule struct {
+// Rule defines a rule for route access
+type Rule struct {
 	Path        string
-	AccessLevel AccessLevel
+	AccessLevel Level
 	Methods     []string // If empty, applies to all methods
 }
 
 // Config holds the configuration for the access middleware
 type Config struct {
 	// DefaultAccess is the default access level for routes
-	DefaultAccess AccessLevel
+	DefaultAccess Level
 	// PublicPaths are paths that are always accessible
 	PublicPaths []string
 	// AdminPaths are paths that require admin access
@@ -40,7 +41,7 @@ type Config struct {
 // DefaultConfig returns the default configuration
 func DefaultConfig() *Config {
 	return &Config{
-		DefaultAccess: AuthenticatedAccess,
+		DefaultAccess: Authenticated,
 		PublicPaths: []string{
 			constants.PathLogin,
 			constants.PathSignup,
@@ -62,27 +63,27 @@ func DefaultConfig() *Config {
 	}
 }
 
-// AccessManager manages access control rules
-type AccessManager struct {
+// Manager manages access control rules
+type Manager struct {
 	config *Config
-	rules  []AccessRule
+	rules  []Rule
 }
 
-// NewAccessManager creates a new access manager
-func NewAccessManager(config *Config, rules []AccessRule) *AccessManager {
-	return &AccessManager{
+// NewManager creates a new access manager
+func NewManager(config *Config, rules []Rule) *Manager {
+	return &Manager{
 		config: config,
 		rules:  rules,
 	}
 }
 
 // AddRule adds a new access rule
-func (am *AccessManager) AddRule(rule AccessRule) {
+func (am *Manager) AddRule(rule Rule) {
 	am.rules = append(am.rules, rule)
 }
 
 // IsPublicPath checks if a path is public
-func (am *AccessManager) IsPublicPath(path string) bool {
+func (am *Manager) IsPublicPath(path string) bool {
 	// Check exact matches first
 	for _, p := range am.config.PublicPaths {
 		if path == p {
@@ -101,7 +102,7 @@ func (am *AccessManager) IsPublicPath(path string) bool {
 }
 
 // IsAdminPath checks if a path requires admin access
-func (am *AccessManager) IsAdminPath(path string) bool {
+func (am *Manager) IsAdminPath(path string) bool {
 	// Check exact matches first
 	for _, p := range am.config.AdminPaths {
 		if path == p {
@@ -149,15 +150,15 @@ func matchPathPattern(pattern, path string) bool {
 }
 
 // GetRequiredAccess returns the required access level for a path and method
-func (am *AccessManager) GetRequiredAccess(path, method string) AccessLevel {
+func (am *Manager) GetRequiredAccess(path, method string) Level {
 	// Check if path is public
 	if am.IsPublicPath(path) {
-		return PublicAccess
+		return Public
 	}
 
 	// Check if path requires admin access
 	if am.IsAdminPath(path) {
-		return AdminAccess
+		return Admin
 	}
 
 	// Check specific rules with pattern matching
@@ -182,44 +183,44 @@ func (am *AccessManager) GetRequiredAccess(path, method string) AccessLevel {
 
 // Validate checks if the configuration is valid
 func (c *Config) Validate() error {
-	if c.DefaultAccess < PublicAccess || c.DefaultAccess > AdminAccess {
+	if c.DefaultAccess < Public || c.DefaultAccess > Admin {
 		return errors.New(errors.ErrCodeValidation, "invalid default access level", nil)
 	}
 	return nil
 }
 
 // DefaultRules returns the default access rules for the application
-func DefaultRules() []AccessRule {
-	return []AccessRule{
+func DefaultRules() []Rule {
+	return []Rule{
 		// Public paths
-		{Path: constants.PathHome, AccessLevel: PublicAccess},
-		{Path: constants.PathLogin, AccessLevel: PublicAccess},
-		{Path: constants.PathSignup, AccessLevel: PublicAccess},
-		{Path: constants.PathForgotPassword, AccessLevel: PublicAccess},
-		{Path: constants.PathResetPassword, AccessLevel: PublicAccess},
-		{Path: constants.PathVerifyEmail, AccessLevel: PublicAccess},
-		{Path: constants.PathDemo, AccessLevel: PublicAccess},
-		{Path: constants.PathHealth, AccessLevel: PublicAccess},
-		{Path: constants.PathMetrics, AccessLevel: PublicAccess},
+		{Path: constants.PathHome, AccessLevel: Public},
+		{Path: constants.PathLogin, AccessLevel: Public},
+		{Path: constants.PathSignup, AccessLevel: Public},
+		{Path: constants.PathForgotPassword, AccessLevel: Public},
+		{Path: constants.PathResetPassword, AccessLevel: Public},
+		{Path: constants.PathVerifyEmail, AccessLevel: Public},
+		{Path: constants.PathDemo, AccessLevel: Public},
+		{Path: constants.PathHealth, AccessLevel: Public},
+		{Path: constants.PathMetrics, AccessLevel: Public},
 
 		// Static asset paths
-		{Path: constants.PathAssets, AccessLevel: PublicAccess},
-		{Path: constants.PathFonts, AccessLevel: PublicAccess},
-		{Path: constants.PathCSS, AccessLevel: PublicAccess},
-		{Path: constants.PathJS, AccessLevel: PublicAccess},
-		{Path: constants.PathImages, AccessLevel: PublicAccess},
-		{Path: constants.PathStatic, AccessLevel: PublicAccess},
-		{Path: constants.PathFavicon, AccessLevel: PublicAccess},
-		{Path: constants.PathRobotsTxt, AccessLevel: PublicAccess},
+		{Path: constants.PathAssets, AccessLevel: Public},
+		{Path: constants.PathFonts, AccessLevel: Public},
+		{Path: constants.PathCSS, AccessLevel: Public},
+		{Path: constants.PathJS, AccessLevel: Public},
+		{Path: constants.PathImages, AccessLevel: Public},
+		{Path: constants.PathStatic, AccessLevel: Public},
+		{Path: constants.PathFavicon, AccessLevel: Public},
+		{Path: constants.PathRobotsTxt, AccessLevel: Public},
 
 		// Authenticated paths
-		{Path: constants.PathDashboard, AccessLevel: AuthenticatedAccess},
-		{Path: constants.PathForms, AccessLevel: AuthenticatedAccess},
-		{Path: constants.PathProfile, AccessLevel: AuthenticatedAccess},
-		{Path: constants.PathSettings, AccessLevel: AuthenticatedAccess},
+		{Path: constants.PathDashboard, AccessLevel: Authenticated},
+		{Path: constants.PathForms, AccessLevel: Authenticated},
+		{Path: constants.PathProfile, AccessLevel: Authenticated},
+		{Path: constants.PathSettings, AccessLevel: Authenticated},
 
 		// Admin paths
-		{Path: constants.PathAdmin, AccessLevel: AdminAccess},
+		{Path: constants.PathAdmin, AccessLevel: Admin},
 	}
 }
 

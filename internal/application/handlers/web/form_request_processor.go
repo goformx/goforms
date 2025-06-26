@@ -6,10 +6,11 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/labstack/echo/v4"
+
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/labstack/echo/v4"
 )
 
 // Validation constants

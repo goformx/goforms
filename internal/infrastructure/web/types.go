@@ -1,6 +1,8 @@
 // Package web provides utilities for handling web assets in the application.
 // It supports both development mode (using Vite dev server) and production mode
 // (using built assets from the Vite manifest).
+//
+//go:generate mockgen -typed -source=types.go -destination=../../../test/mocks/web/mock_web.go -package=web
 package web
 
 import (
@@ -22,7 +24,8 @@ const (
 	AssetTypeImage AssetType = "image"
 	// AssetTypeFont represents font files
 	AssetTypeFont AssetType = "font"
-	MaxPathLength           = 100
+	// MaxPathLength represents the maximum allowed path length
+	MaxPathLength = 100
 )
 
 // Asset-related errors
@@ -38,7 +41,7 @@ type ManifestEntry struct {
 	File    string   `json:"file"`
 	Name    string   `json:"name"`
 	Src     string   `json:"src"`
-	IsEntry bool     `json:"isEntry"`
+	IsEntry bool     `json:"is_entry"`
 	CSS     []string `json:"css"`
 }
 
@@ -68,8 +71,8 @@ type AssetManagerInterface interface {
 	ClearCache()
 }
 
-// WebModule encapsulates the asset manager and server to eliminate global state
-type WebModule struct {
+// Module encapsulates the asset manager and server to eliminate global state
+type Module struct {
 	AssetManager AssetManagerInterface
 	AssetServer  AssetServer
 }

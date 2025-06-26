@@ -1,6 +1,5 @@
 import { Logger } from "@/core/logger";
 import { FormApiService } from "./form-api-service";
-import { FormUIService } from "./form-ui-service";
 import type { FormSchema } from "@/shared/types/form-types";
 
 /**
@@ -9,17 +8,10 @@ import type { FormSchema } from "@/shared/types/form-types";
  */
 export class FormService {
   private static instance: FormService;
-  private apiService: FormApiService;
-  private uiService: FormUIService;
+  private readonly apiService: FormApiService;
 
   private constructor() {
     this.apiService = FormApiService.getInstance();
-    this.uiService = FormUIService.getInstance();
-
-    // Initialize UI handlers
-    this.uiService.initializeFormDeletionHandlers(
-      this.apiService.deleteForm.bind(this.apiService),
-    );
   }
 
   public static getInstance(): FormService {
@@ -47,8 +39,8 @@ export class FormService {
     details: { title: string; description: string },
   ): Promise<void> {
     await this.apiService.updateFormDetails(formId, details);
-    this.uiService.updateFormCard(formId, details);
-    this.uiService.showSuccess("Form updated successfully");
+    this.updateFormCard(formId, details);
+    this.showSuccess("Form updated successfully");
   }
 
   public async deleteForm(formId: string): Promise<void> {
@@ -59,16 +51,42 @@ export class FormService {
     return this.apiService.submitForm(formId, data);
   }
 
-  // Expose UI service methods for external use
+  // UI service methods
   showSuccess(message: string): void {
-    this.uiService.showSuccess(message);
+    // Find success container and show message
+    const successContainer = document.querySelector(".success-message");
+    if (successContainer) {
+      successContainer.textContent = message;
+      successContainer.classList.remove("hidden");
+
+      // Auto-hide after 3 seconds
+      setTimeout(() => {
+        successContainer.classList.add("hidden");
+      }, 3000);
+    }
   }
 
   updateFormCard(
     formId: string,
     updates: { title?: string; description?: string },
   ): void {
-    this.uiService.updateFormCard(formId, updates);
+    // Find the form card and update its content
+    const formCard = document.querySelector(`[data-form-id="${formId}"]`);
+    if (formCard) {
+      if (updates.title) {
+        const titleElement = formCard.querySelector(".form-title");
+        if (titleElement) {
+          titleElement.textContent = updates.title;
+        }
+      }
+
+      if (updates.description) {
+        const descElement = formCard.querySelector(".form-description");
+        if (descElement) {
+          descElement.textContent = updates.description;
+        }
+      }
+    }
   }
 }
 
@@ -95,14 +113,14 @@ document.addEventListener("DOMContentLoaded", () => {
 
       try {
         await formService.deleteForm(formId);
-        const formCard = button.closest(".form-card");
+        const formCard = button.closest(".form-panel");
         if (formCard) {
           formCard.remove();
         }
 
         // If no forms left, show empty state
         const formsGrid = document.querySelector(".forms-grid");
-        if (formsGrid && !formsGrid.querySelector(".form-card")) {
+        if (formsGrid && !formsGrid.querySelector(".form-panel")) {
           formsGrid.innerHTML = `
             <div class="empty-state">
               <i class="bi bi-file-earmark-text"></i>

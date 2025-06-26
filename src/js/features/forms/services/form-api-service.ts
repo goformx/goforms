@@ -33,24 +33,27 @@ export class FormApiService {
     Logger.debug("Fetching schema from:", url);
 
     try {
-      // HttpClient.get returns parsed JSON data directly, not a Response object
-      const data = await HttpClient.get(url);
+      // HttpClient.get returns HttpResponse with parsed data
+      const response = await HttpClient.get<FormSchema>(url);
 
       // Validate the schema structure
-      if (!data || typeof data !== "object") {
+      if (!response.data || typeof response.data !== "object") {
         throw FormBuilderError.schemaError(
           "Invalid schema format received from server",
         );
       }
 
       // Ensure it has the expected FormSchema structure
-      if (!("components" in data) || !Array.isArray(data.components)) {
+      if (
+        !("components" in response.data) ||
+        !Array.isArray(response.data.components)
+      ) {
         throw FormBuilderError.schemaError(
           "Schema missing required 'components' array",
         );
       }
 
-      return data as FormSchema;
+      return response.data;
     } catch (error) {
       Logger.error("Error in getSchema:", error);
 
@@ -70,35 +73,46 @@ export class FormApiService {
 
   async saveSchema(formId: string, schema: FormSchema): Promise<FormSchema> {
     try {
-      const response = await HttpClient.put(
+      Logger.group("Schema Save Operation");
+      Logger.debug("Saving schema for form:", formId);
+      Logger.debug("Schema to save:", schema);
+
+      // HttpClient.put returns HttpResponse with parsed data
+      const response = await HttpClient.put<FormSchema>(
         `${this.baseUrl}/api/v1/forms/${formId}/schema`,
         JSON.stringify(schema),
       );
 
-      if (!response.ok) {
-        throw FormBuilderError.networkError(
-          `Failed to save schema: ${response.statusText}`,
-          `${this.baseUrl}/api/v1/forms/${formId}/schema`,
-          response.status,
-        );
-      }
+      Logger.debug("Response data received:", response.data);
 
-      const data = await response.json();
-      if (!data || typeof data !== "object") {
+      if (!response.data || typeof response.data !== "object") {
+        Logger.error("Invalid response format:", response.data);
+        Logger.groupEnd();
         throw FormBuilderError.schemaError("Invalid response from server");
       }
 
-      if (!data.components || !Array.isArray(data.components)) {
+      if (
+        !response.data.components ||
+        !Array.isArray(response.data.components)
+      ) {
+        Logger.error("Invalid schema structure in response:", response.data);
+        Logger.groupEnd();
         throw FormBuilderError.schemaError(
           "Invalid schema structure in response",
         );
       }
 
-      return data as FormSchema;
+      Logger.debug("Schema saved successfully");
+      Logger.groupEnd();
+      return response.data;
     } catch (error) {
+      Logger.groupEnd();
+
       if (error instanceof FormBuilderError) {
         throw error;
       }
+
+      Logger.error("Unexpected error in saveSchema:", error);
       throw FormBuilderError.saveFailed(
         "Failed to save schema",
         formId,
@@ -112,19 +126,14 @@ export class FormApiService {
     details: { title: string; description: string },
   ): Promise<void> {
     try {
-      const response = await HttpClient.put(
+      // HttpClient.put returns HttpResponse, not Response
+      await HttpClient.put(
         `${this.baseUrl}/dashboard/forms/${formId}`,
         JSON.stringify(details),
       );
 
-      if (!response.ok) {
-        const error = await response.json();
-        throw FormBuilderError.networkError(
-          error.message || "Failed to update form details",
-          `${this.baseUrl}/dashboard/forms/${formId}`,
-          response.status,
-        );
-      }
+      // If we get here, the request was successful
+      Logger.debug("Form details updated successfully");
     } catch (error) {
       if (error instanceof FormBuilderError) {
         throw error;
@@ -139,17 +148,11 @@ export class FormApiService {
 
   public async deleteForm(formId: string): Promise<void> {
     try {
-      const response = await HttpClient.delete(
-        `${this.baseUrl}/forms/${formId}`,
-      );
+      // HttpClient.delete returns HttpResponse, not Response
+      await HttpClient.delete(`${this.baseUrl}/forms/${formId}`);
 
-      if (!response.ok) {
-        throw FormBuilderError.networkError(
-          "Failed to delete form",
-          `${this.baseUrl}/forms/${formId}`,
-          response.status,
-        );
-      }
+      // If we get here, the request was successful
+      Logger.debug("Form deleted successfully");
     } catch (error) {
       if (error instanceof FormBuilderError) {
         throw error;
@@ -167,23 +170,22 @@ export class FormApiService {
       // Sanitize the form data before sending
       const sanitizedData = this.sanitizeFormData(data);
 
+      // Use HttpClient for consistency with standardized response format
       const response = await HttpClient.post(
         `${this.baseUrl}/api/v1/forms/${formId}/submit`,
-        JSON.stringify(sanitizedData),
+        sanitizedData as object,
       );
 
-      if (!response.ok) {
-        const error = await response
-          .json()
-          .catch(() => ({ message: "Failed to submit form" }));
-        throw FormBuilderError.networkError(
-          error.message || "Failed to submit form",
-          `${this.baseUrl}/api/v1/forms/${formId}/submit`,
-          response.status,
-        );
-      }
+      // Convert HttpResponse back to Response for compatibility
+      // This is needed because the ResponseHandler expects a Response object
+      const responseData = response.data;
+      const responseText = JSON.stringify(responseData);
 
-      return response;
+      return new Response(responseText, {
+        status: response.status,
+        statusText: response.statusText,
+        headers: response.headers,
+      });
     } catch (error) {
       if (error instanceof FormBuilderError) {
         throw error;

@@ -120,7 +120,7 @@ func (p *SchemaParser) ExtractComponentKey(component map[string]any) (string, bo
 }
 
 // ConvertToClientRules converts server-side validation rules to client-side format
-func (p *SchemaParser) ConvertToClientRules(validation FieldValidation) map[string]any {
+func (p *SchemaParser) ConvertToClientRules(validation *FieldValidation) map[string]any {
 	clientRules := make(map[string]any)
 
 	if validation.Required {

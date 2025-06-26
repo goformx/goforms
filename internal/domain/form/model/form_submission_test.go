@@ -4,9 +4,10 @@ import (
 	"testing"
 	"time"
 
+	"github.com/stretchr/testify/require"
+
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/stretchr/testify/require"
 )
 
 func TestFormSubmission_Validate(t *testing.T) {

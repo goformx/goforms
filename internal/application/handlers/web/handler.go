@@ -3,7 +3,8 @@ package web
 import (
 	"context"
 	"errors"
-	"fmt"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/session"
@@ -12,7 +13,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // Handler defines the interface for web handlers.
@@ -110,7 +110,7 @@ type HandlerParams struct {
 // NewHandlerDeps creates a new HandlerDeps instance.
 // This factory function ensures that all dependencies are properly
 // initialized and validated before being used by a handler.
-func NewHandlerDeps(params HandlerParams) (*HandlerDeps, error) {
+func NewHandlerDeps(params *HandlerParams) (*HandlerDeps, error) {
 	deps := &HandlerDeps{
 		UserService:       params.UserService,
 		FormService:       params.FormService,
@@ -129,17 +129,11 @@ func NewHandlerDeps(params HandlerParams) (*HandlerDeps, error) {
 }
 
 // Start initializes the handler dependencies.
-// This is called during application startup.
-func (d *HandlerDeps) Start(ctx context.Context) error {
-	if err := d.Validate(); err != nil {
-		return fmt.Errorf("failed to validate handler dependencies: %w", err)
-	}
-	return nil
+func (d *HandlerDeps) Start(_ context.Context) error {
+	return nil // No initialization needed
 }
 
 // Stop cleans up any resources used by the handler dependencies.
-// This is called during application shutdown.
-func (d *HandlerDeps) Stop(ctx context.Context) error {
-	// Add any cleanup logic here if needed
-	return nil
+func (d *HandlerDeps) Stop(_ context.Context) error {
+	return nil // No cleanup needed
 }

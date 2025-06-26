@@ -2,6 +2,8 @@
 package middleware
 
 import (
+	"go.uber.org/fx"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
@@ -11,7 +13,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"go.uber.org/fx"
 )
 
 // Module provides all middleware dependencies
@@ -25,14 +26,14 @@ var Module = fx.Options(
 
 		// Access manager using path manager
 		fx.Annotate(
-			func(logger logging.Logger, pathManager *constants.PathManager) *access.AccessManager {
+			func(_ logging.Logger, pathManager *constants.PathManager) *access.Manager {
 				config := &access.Config{
-					DefaultAccess: access.AuthenticatedAccess,
+					DefaultAccess: access.Authenticated,
 					PublicPaths:   pathManager.PublicPaths,
 					AdminPaths:    pathManager.AdminPaths,
 				}
 				rules := generateAccessRules(pathManager)
-				return access.NewAccessManager(config, rules)
+				return access.NewManager(config, rules)
 			},
 		),
 
@@ -42,10 +43,10 @@ var Module = fx.Options(
 				logger logging.Logger,
 				cfg *config.Config,
 				lc fx.Lifecycle,
-				accessManager *access.AccessManager,
+				accessManager *access.Manager,
 				pathManager *constants.PathManager,
 			) *session.Manager {
-				sessionConfig := &session.SessionConfig{
+				sessionConfig := &session.Config{
 					SessionConfig: &cfg.Session,
 					Config:        cfg,
 					PublicPaths:   pathManager.PublicPaths,
@@ -63,7 +64,7 @@ var Module = fx.Options(
 				userService user.Service,
 				formService formdomain.Service,
 				sessionManager *session.Manager,
-				accessManager *access.AccessManager,
+				accessManager *access.Manager,
 				sanitizer sanitization.ServiceInterface,
 			) *Manager {
 				return NewManager(&ManagerConfig{
@@ -81,57 +82,57 @@ var Module = fx.Options(
 )
 
 // generateAccessRules creates access rules using the path manager
-func generateAccessRules(pathManager *constants.PathManager) []access.AccessRule {
-	rules := []access.AccessRule{}
+func generateAccessRules(pathManager *constants.PathManager) []access.Rule {
+	rules := []access.Rule{}
 
 	// Public routes
 	for _, path := range pathManager.PublicPaths {
-		rules = append(rules, access.AccessRule{
+		rules = append(rules, access.Rule{
 			Path:        path,
-			AccessLevel: access.PublicAccess,
+			AccessLevel: access.Public,
 		})
 	}
 
 	// API validation endpoints
 	for _, path := range pathManager.APIValidationPaths {
-		rules = append(rules, access.AccessRule{
+		rules = append(rules, access.Rule{
 			Path:        path,
-			AccessLevel: access.PublicAccess,
+			AccessLevel: access.Public,
 		})
 	}
 
 	// Static assets
 	for _, path := range pathManager.StaticPaths {
-		rules = append(rules, access.AccessRule{
+		rules = append(rules, access.Rule{
 			Path:        path,
-			AccessLevel: access.PublicAccess,
+			AccessLevel: access.Public,
 		})
 	}
 
 	// Admin routes
 	for _, path := range pathManager.AdminPaths {
-		rules = append(rules, access.AccessRule{
+		rules = append(rules, access.Rule{
 			Path:        path,
-			AccessLevel: access.AdminAccess,
+			AccessLevel: access.Admin,
 		})
 	}
 
 	// Add specific API rules
-	rules = append(rules, []access.AccessRule{
+	rules = append(rules, []access.Rule{
 		// Public form endpoints (for embedded forms) - GET only
-		{Path: constants.PathAPIForms + "/:id/schema", AccessLevel: access.PublicAccess, Methods: []string{"GET"}},
+		{Path: constants.PathAPIForms + "/:id/schema", AccessLevel: access.Public, Methods: []string{"GET"}},
 
 		// Authenticated routes
-		{Path: constants.PathDashboard, AccessLevel: access.AuthenticatedAccess},
-		{Path: constants.PathForms, AccessLevel: access.AuthenticatedAccess},
-		{Path: constants.PathForms + "/:id", AccessLevel: access.AuthenticatedAccess},
-		{Path: constants.PathAPIForms, AccessLevel: access.AuthenticatedAccess},
-		{Path: constants.PathAPIForms + "/:id", AccessLevel: access.AuthenticatedAccess},
+		{Path: constants.PathDashboard, AccessLevel: access.Authenticated},
+		{Path: constants.PathForms, AccessLevel: access.Authenticated},
+		{Path: constants.PathForms + "/:id", AccessLevel: access.Authenticated},
+		{Path: constants.PathAPIForms, AccessLevel: access.Authenticated},
+		{Path: constants.PathAPIForms + "/:id", AccessLevel: access.Authenticated},
 
 		// Admin API routes
-		{Path: constants.PathAPIAdmin, AccessLevel: access.AdminAccess},
-		{Path: constants.PathAPIAdminUsers, AccessLevel: access.AdminAccess},
-		{Path: constants.PathAPIAdminForms, AccessLevel: access.AdminAccess},
+		{Path: constants.PathAPIAdmin, AccessLevel: access.Admin},
+		{Path: constants.PathAPIAdminUsers, AccessLevel: access.Admin},
+		{Path: constants.PathAPIAdminForms, AccessLevel: access.Admin},
 	}...)
 
 	return rules

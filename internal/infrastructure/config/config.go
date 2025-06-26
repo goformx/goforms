@@ -1,3 +1,6 @@
+// Package config provides configuration management for the GoForms application.
+// It uses environment variables to configure various aspects of the application
+// including database connections, security settings, logging, and more.
 package config
 
 import (
@@ -38,7 +41,6 @@ type AppConfig struct {
 	Scheme         string        `envconfig:"GOFORMS_APP_SCHEME" default:"http"`
 	Port           int           `envconfig:"GOFORMS_APP_PORT" default:"8090"`
 	Host           string        `envconfig:"GOFORMS_APP_HOST" default:"0.0.0.0"`
-	URL            string        `envconfig:"GOFORMS_APP_URL"` // Full URL (e.g., http://localhost:8090)
 	ReadTimeout    time.Duration `envconfig:"GOFORMS_APP_READ_TIMEOUT" default:"5s"`
 	WriteTimeout   time.Duration `envconfig:"GOFORMS_APP_WRITE_TIMEOUT" default:"10s"`
 	IdleTimeout    time.Duration `envconfig:"GOFORMS_APP_IDLE_TIMEOUT" default:"120s"`
@@ -46,7 +48,7 @@ type AppConfig struct {
 
 	// Development Settings
 	ViteDevHost string `envconfig:"GOFORMS_VITE_DEV_HOST" default:"localhost"`
-	ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"3000"`
+	ViteDevPort string `envconfig:"GOFORMS_VITE_DEV_PORT" default:"5173"`
 }
 
 // IsDevelopment returns true if the application is running in development mode
@@ -129,7 +131,7 @@ type SecurityConfig struct {
 // CORSConfig holds CORS-related configuration
 type CORSConfig struct {
 	Enabled        bool     `envconfig:"GOFORMS_SECURITY_CORS_ENABLED" default:"true"`
-	AllowedOrigins []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:3000"`
+	AllowedOrigins []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:5173"`
 	AllowedMethods []string `envconfig:"GOFORMS_SECURITY_CORS_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
 	//nolint:lll // This is a valid header
 	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization,X-Csrf-Token,X-Requested-With"`
@@ -167,12 +169,12 @@ type CSPConfig struct {
 func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 	if appConfig.IsDevelopment() {
 		return "default-src 'self'; " +
-			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:3000 https://cdn.form.io blob:; " +
+			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173 https://cdn.form.io blob:; " +
 			"worker-src 'self' blob:; " +
-			"style-src 'self' 'unsafe-inline' http://localhost:3000 https://cdn.form.io; " +
+			"style-src 'self' 'unsafe-inline' http://localhost:5173 https://cdn.form.io; " +
 			"img-src 'self' data:; " +
-			"font-src 'self' http://localhost:3000; " +
-			"connect-src 'self' http://localhost:3000 ws://localhost:3000; " +
+			"font-src 'self' http://localhost:5173; " +
+			"connect-src 'self' http://localhost:5173 ws://localhost:5173; " +
 			"frame-ancestors 'none'; " +
 			"base-uri 'self'; " +
 			"form-action 'self'"

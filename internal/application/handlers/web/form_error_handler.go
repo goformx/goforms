@@ -2,11 +2,13 @@ package web
 
 import (
 	"errors"
+	"fmt"
 	"net/http"
+
+	"github.com/labstack/echo/v4"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/labstack/echo/v4"
 )
 
 // FormErrorHandlerImpl handles form-specific error scenarios
@@ -43,12 +45,16 @@ func (h *FormErrorHandlerImpl) HandleSubmissionError(c echo.Context, err error) 
 	case errors.Is(err, model.ErrSubmissionNotFound):
 		return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Submission not found")
 	default:
-		return h.responseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to process form submission")
+		return h.responseBuilder.BuildErrorResponse(
+			c,
+			http.StatusInternalServerError,
+			"Failed to process form submission",
+		)
 	}
 }
 
-// HandleValidationError handles validation errors
-func (h *FormErrorHandlerImpl) HandleValidationError(c echo.Context, err error) error {
+// HandleError handles validation errors
+func (h *FormErrorHandlerImpl) HandleError(c echo.Context, err error) error {
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
 		return h.responseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required")
@@ -77,7 +83,11 @@ func (h *FormErrorHandlerImpl) HandleOwnershipError(c echo.Context, err error) e
 
 // HandleFormNotFoundError handles form not found errors
 func (h *FormErrorHandlerImpl) HandleFormNotFoundError(c echo.Context, formID string) error {
-	return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, "Form not found")
+	message := "Form not found"
+	if formID != "" {
+		message = fmt.Sprintf("Form not found: %s", formID)
+	}
+	return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, message)
 }
 
 // HandleFormAccessError handles form access errors

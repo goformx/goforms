@@ -1,3 +1,5 @@
+// Package shared provides common utilities and helper functions
+// for use across template components and presentation layer.
 package shared
 
 import (

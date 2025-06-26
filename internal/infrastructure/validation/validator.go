@@ -1,3 +1,4 @@
+// Package validation provides infrastructure-level validation utilities and interfaces.
 package validation
 
 import (
@@ -11,6 +12,7 @@ import (
 	"time"
 
 	validator "github.com/go-playground/validator/v10"
+
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/common/interfaces"
 )
@@ -26,18 +28,18 @@ var (
 	phonePattern = regexp.MustCompile(phoneRegex)
 )
 
-// ValidationError represents a single validation error
-type ValidationError struct {
+// Error represents a single validation error
+type Error struct {
 	Field   string
 	Message string
 	Value   any // The invalid value that caused the error
 }
 
-// ValidationErrors represents a collection of validation errors
-type ValidationErrors []ValidationError
+// Errors represents a collection of validation errors
+type Errors []Error
 
 // Error implements the error interface
-func (e ValidationErrors) Error() string {
+func (e Errors) Error() string {
 	var sb strings.Builder
 
 	for i, err := range e {
@@ -209,15 +211,19 @@ func (v *validatorImpl) Struct(i any) error {
 	if err != nil {
 		var ve validator.ValidationErrors
 		if errors.As(err, &ve) {
-			validationErrors := make([]ValidationError, len(ve))
+			validationErrors := make([]Error, len(ve))
 			for i, e := range ve {
-				validationErrors[i] = ValidationError{
+				validationErrors[i] = Error{
 					Field:   getFieldName(e),
 					Message: getErrorMessage(e),
 					Value:   e.Value(),
 				}
 			}
-			err = domainerrors.New(domainerrors.ErrCodeValidation, "validation failed", ValidationErrors(validationErrors))
+			err = domainerrors.New(
+				domainerrors.ErrCodeValidation,
+				"validation failed",
+				Errors(validationErrors),
+			)
 		}
 		// Cache the error
 		v.cache.Store(cacheKey, err)
@@ -231,17 +237,26 @@ func (v *validatorImpl) Struct(i any) error {
 
 // Var validates a single variable
 func (v *validatorImpl) Var(i any, tag string) error {
-	return v.validate.Var(i, tag)
+	if err := v.validate.Var(i, tag); err != nil {
+		return fmt.Errorf("validate variable: %w", err)
+	}
+	return nil
 }
 
 // RegisterValidation registers a custom validation function
 func (v *validatorImpl) RegisterValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
-	return v.validate.RegisterValidation(tag, fn)
+	if err := v.validate.RegisterValidation(tag, fn); err != nil {
+		return fmt.Errorf("register validation: %w", err)
+	}
+	return nil
 }
 
 // RegisterCrossFieldValidation registers a cross-field validation function
 func (v *validatorImpl) RegisterCrossFieldValidation(tag string, fn func(fl validator.FieldLevel) bool) error {
-	return v.validate.RegisterValidation(tag, fn)
+	if err := v.validate.RegisterValidation(tag, fn); err != nil {
+		return fmt.Errorf("register cross-field validation: %w", err)
+	}
+	return nil
 }
 
 // RegisterStructValidation registers a struct validation function
@@ -250,8 +265,8 @@ func (v *validatorImpl) RegisterStructValidation(fn func(sl validator.StructLeve
 	return nil
 }
 
-// GetValidationErrors returns detailed validation errors
-func (v *validatorImpl) GetValidationErrors(err error) map[string]string {
+// GetErrors returns detailed validation errors
+func (v *validatorImpl) GetErrors(err error) map[string]string {
 	var ve validator.ValidationErrors
 	if !errors.As(err, &ve) {
 		return nil

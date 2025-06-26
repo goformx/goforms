@@ -1,3 +1,5 @@
+// Package errors provides domain-specific error types and utilities for
+// consistent error handling across the application.
 package errors
 
 import (
@@ -10,46 +12,70 @@ import (
 type ErrorCode string
 
 const (
-	// Validation errors
-	ErrCodeValidation    ErrorCode = "VALIDATION_ERROR"
-	ErrCodeRequired      ErrorCode = "REQUIRED_FIELD"
-	ErrCodeInvalid       ErrorCode = "INVALID_VALUE"
+	// ErrCodeValidation represents a validation error
+	ErrCodeValidation ErrorCode = "VALIDATION_ERROR"
+	// ErrCodeRequired represents a required field error
+	ErrCodeRequired ErrorCode = "REQUIRED_FIELD"
+	// ErrCodeInvalid represents an invalid value error
+	ErrCodeInvalid ErrorCode = "INVALID_VALUE"
+	// ErrCodeInvalidFormat represents an invalid format error
 	ErrCodeInvalidFormat ErrorCode = "INVALID_FORMAT"
-	ErrCodeInvalidInput  ErrorCode = "INVALID_INPUT"
+	// ErrCodeInvalidInput represents an invalid input error
+	ErrCodeInvalidInput ErrorCode = "INVALID_INPUT"
 
-	// Authentication errors
-	ErrCodeUnauthorized     ErrorCode = "UNAUTHORIZED"
-	ErrCodeForbidden        ErrorCode = "FORBIDDEN"
-	ErrCodeAuthentication   ErrorCode = "AUTHENTICATION_ERROR"
+	// ErrCodeUnauthorized represents an unauthorized access error
+	ErrCodeUnauthorized ErrorCode = "UNAUTHORIZED"
+	// ErrCodeForbidden represents a forbidden access error
+	ErrCodeForbidden ErrorCode = "FORBIDDEN"
+	// ErrCodeAuthentication represents an authentication error
+	ErrCodeAuthentication ErrorCode = "AUTHENTICATION_ERROR"
+	// ErrCodeInsufficientRole represents an insufficient role error
 	ErrCodeInsufficientRole ErrorCode = "INSUFFICIENT_ROLE"
 
-	// Resource errors
-	ErrCodeNotFound      ErrorCode = "NOT_FOUND"
-	ErrCodeConflict      ErrorCode = "CONFLICT"
-	ErrCodeBadRequest    ErrorCode = "BAD_REQUEST"
-	ErrCodeServerError   ErrorCode = "SERVER_ERROR"
+	// ErrCodeNotFound represents a resource not found error
+	ErrCodeNotFound ErrorCode = "NOT_FOUND"
+	// ErrCodeConflict represents a resource conflict error
+	ErrCodeConflict ErrorCode = "CONFLICT"
+	// ErrCodeBadRequest represents a bad request error
+	ErrCodeBadRequest ErrorCode = "BAD_REQUEST"
+	// ErrCodeServerError represents a server error
+	ErrCodeServerError ErrorCode = "SERVER_ERROR"
+	// ErrCodeAlreadyExists represents a resource already exists error
 	ErrCodeAlreadyExists ErrorCode = "ALREADY_EXISTS"
 
-	// Application lifecycle errors
-	ErrCodeStartup  ErrorCode = "STARTUP_ERROR"
+	// ErrCodeStartup represents a startup error
+	ErrCodeStartup ErrorCode = "STARTUP_ERROR"
+	// ErrCodeShutdown represents a shutdown error
 	ErrCodeShutdown ErrorCode = "SHUTDOWN_ERROR"
-	ErrCodeConfig   ErrorCode = "CONFIG_ERROR"
+	// ErrCodeConfig represents a configuration error
+	ErrCodeConfig ErrorCode = "CONFIG_ERROR"
+	// ErrCodeDatabase represents a database error
 	ErrCodeDatabase ErrorCode = "DATABASE_ERROR"
-	ErrCodeTimeout  ErrorCode = "TIMEOUT"
+	// ErrCodeTimeout represents a timeout error
+	ErrCodeTimeout ErrorCode = "TIMEOUT"
 
-	// Form-specific errors
-	ErrCodeFormValidation   ErrorCode = "FORM_VALIDATION_ERROR"
-	ErrCodeFormNotFound     ErrorCode = "FORM_NOT_FOUND"
-	ErrCodeFormSubmission   ErrorCode = "FORM_SUBMISSION_ERROR"
+	// ErrCodeFormValidation represents a form validation error
+	ErrCodeFormValidation ErrorCode = "FORM_VALIDATION_ERROR"
+	// ErrCodeFormNotFound represents a form not found error
+	ErrCodeFormNotFound ErrorCode = "FORM_NOT_FOUND"
+	// ErrCodeFormSubmission represents a form submission error
+	ErrCodeFormSubmission ErrorCode = "FORM_SUBMISSION_ERROR"
+	// ErrCodeFormAccessDenied represents a form access denied error
 	ErrCodeFormAccessDenied ErrorCode = "FORM_ACCESS_DENIED"
-	ErrCodeFormInvalid      ErrorCode = "FORM_INVALID"
-	ErrCodeFormExpired      ErrorCode = "FORM_EXPIRED"
+	// ErrCodeFormInvalid represents an invalid form error
+	ErrCodeFormInvalid ErrorCode = "FORM_INVALID"
+	// ErrCodeFormExpired represents a form expired error
+	ErrCodeFormExpired ErrorCode = "FORM_EXPIRED"
 
-	// User-specific errors
-	ErrCodeUserNotFound     ErrorCode = "USER_NOT_FOUND"
-	ErrCodeUserExists       ErrorCode = "USER_EXISTS"
-	ErrCodeUserDisabled     ErrorCode = "USER_DISABLED"
-	ErrCodeUserInvalid      ErrorCode = "USER_INVALID"
+	// ErrCodeUserNotFound represents a user not found error
+	ErrCodeUserNotFound ErrorCode = "USER_NOT_FOUND"
+	// ErrCodeUserExists represents a user already exists error
+	ErrCodeUserExists ErrorCode = "USER_EXISTS"
+	// ErrCodeUserDisabled represents a user disabled error
+	ErrCodeUserDisabled ErrorCode = "USER_DISABLED"
+	// ErrCodeUserInvalid represents an invalid user error
+	ErrCodeUserInvalid ErrorCode = "USER_INVALID"
+	// ErrCodeUserUnauthorized represents a user unauthorized error
 	ErrCodeUserUnauthorized ErrorCode = "USER_UNAUTHORIZED"
 )
 
@@ -183,7 +209,7 @@ func Wrap(err error, code ErrorCode, message string) *DomainError {
 	return New(code, message, err)
 }
 
-// Error type checking utilities
+// IsNotFound checks if the error represents a "not found" error
 func IsNotFound(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
@@ -203,6 +229,7 @@ func IsNotFound(err error) bool {
 	return false
 }
 
+// IsValidation checks if the error represents a validation error
 func IsValidation(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
@@ -222,6 +249,7 @@ func IsValidation(err error) bool {
 	return false
 }
 
+// IsFormError checks if the error represents a form-related error
 func IsFormError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
@@ -241,6 +269,7 @@ func IsFormError(err error) bool {
 	return false
 }
 
+// IsUserError checks if the error represents a user-related error
 func IsUserError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
@@ -261,6 +290,7 @@ func IsUserError(err error) bool {
 	return false
 }
 
+// IsAuthenticationError checks if the error represents an authentication error
 func IsAuthenticationError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
@@ -281,6 +311,7 @@ func IsAuthenticationError(err error) bool {
 	return false
 }
 
+// IsSystemError checks if the error represents a system error
 func IsSystemError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
@@ -301,6 +332,7 @@ func IsSystemError(err error) bool {
 	return false
 }
 
+// IsConflictError checks if the error represents a conflict error
 func IsConflictError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
@@ -321,6 +353,7 @@ func IsConflictError(err error) bool {
 	return false
 }
 
+// IsForbiddenError checks if the error represents a forbidden error
 func IsForbiddenError(err error) bool {
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {

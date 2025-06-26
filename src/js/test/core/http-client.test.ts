@@ -65,9 +65,19 @@ describe("HttpClient", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
-        text: () => Promise.resolve('{"data": "test"}'),
-        json: () => Promise.resolve({ data: "test" }),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "message": "Data retrieved successfully", "data": {"data": "test"}}',
+          ),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            message: "Data retrieved successfully",
+            data: { data: "test" },
+          }),
       });
 
       global.fetch = mockFetch;
@@ -80,16 +90,27 @@ describe("HttpClient", () => {
           method: "GET",
         }),
       );
-      expect(result).toEqual({ data: "test" });
+      expect(result.data).toEqual({ data: "test" });
+      expect(result.status).toBe(200);
     });
 
     it("should make POST requests correctly", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
-        text: () => Promise.resolve('{"success": true}'),
-        json: () => Promise.resolve({ success: true }),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "message": "User created successfully", "data": {"id": 1, "name": "test"}}',
+          ),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            message: "User created successfully",
+            data: { id: 1, name: "test" },
+          }),
       });
 
       global.fetch = mockFetch;
@@ -106,16 +127,59 @@ describe("HttpClient", () => {
           body: JSON.stringify({ name: "test", email: "test@example.com" }),
         }),
       );
-      expect(result).toEqual({ success: true });
+      expect(result.data).toEqual({ id: 1, name: "test" });
+      expect(result.status).toBe(200);
+    });
+
+    it("should handle standardized API responses with data field", async () => {
+      const mockFetch = vi.fn().mockResolvedValue({
+        ok: true,
+        status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
+        headers: new Headers(),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "data": {"id": 1, "name": "test"}}',
+          ),
+        json: () =>
+          Promise.resolve({ success: true, data: { id: 1, name: "test" } }),
+      });
+
+      global.fetch = mockFetch;
+
+      const result = await HttpClient.post("http://api.example.com/test", {
+        name: "test",
+      });
+
+      expect(mockFetch).toHaveBeenCalledWith(
+        "http://api.example.com/test",
+        expect.objectContaining({
+          method: "POST",
+          body: JSON.stringify({ name: "test" }),
+        }),
+      );
+      expect(result.data).toEqual({ id: 1, name: "test" });
+      expect(result.status).toBe(200);
     });
 
     it("should make PUT requests correctly", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
-        text: () => Promise.resolve('{"updated": true}'),
-        json: () => Promise.resolve({ updated: true }),
+        text: () =>
+          Promise.resolve(
+            '{"success": true, "message": "Resource updated successfully", "data": {"updated": true}}',
+          ),
+        json: () =>
+          Promise.resolve({
+            success: true,
+            message: "Resource updated successfully",
+            data: { updated: true },
+          }),
       });
 
       global.fetch = mockFetch;
@@ -132,13 +196,16 @@ describe("HttpClient", () => {
           body: JSON.stringify({ id: 1, name: "updated" }),
         }),
       );
-      expect(result).toEqual({ updated: true });
+      expect(result.data).toEqual({ updated: true });
+      expect(result.status).toBe(200);
     });
 
     it("should make DELETE requests correctly", async () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
         text: () => Promise.resolve(""),
         json: () => Promise.resolve(null),
@@ -154,7 +221,8 @@ describe("HttpClient", () => {
           method: "DELETE",
         }),
       );
-      expect(result).toBeNull();
+      expect(result.data).toBeNull();
+      expect(result.status).toBe(200);
     });
   });
 
@@ -189,6 +257,8 @@ describe("HttpClient", () => {
       const mockFetch = vi.fn().mockResolvedValue({
         ok: true,
         status: 200,
+        statusText: "OK",
+        url: "http://api.example.com/test",
         headers: new Headers(),
         text: () => Promise.resolve("invalid json"),
       });
@@ -196,7 +266,8 @@ describe("HttpClient", () => {
       global.fetch = mockFetch;
 
       const result = await HttpClient.get("http://api.example.com/test");
-      expect(result).toBe("invalid json");
+      expect(result.data).toBe("invalid json");
+      expect(result.status).toBe(200);
     });
   });
 
