@@ -49,6 +49,9 @@ var (
 
 	// ErrInvalidLogLevel is returned when an invalid log level is specified
 	ErrInvalidLogLevel = errors.New("invalid log level specified")
+
+	// ErrMissingSanitizer is returned when a required sanitizer dependency is nil
+	ErrMissingSanitizer = errors.New("sanitizer is required for logger factory")
 )
 
 // CoreParams groups core infrastructure dependencies required for basic application functionality.
@@ -141,17 +144,25 @@ func NewEventPublisher(p EventPublisherParams) (formevent.Publisher, error) {
 	return publisher, nil
 }
 
-// NewLoggerFactory creates a new logger factory with comprehensive configuration.
-// It determines the appropriate log level based on the application environment and configuration.
+// NewLoggerFactory creates a new logger factory with proper configuration and error handling.
 func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 	if p.Config == nil {
 		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingConfig)
 	}
 	if p.Sanitizer == nil {
-		return nil, errors.New("sanitizer is required for logger factory")
+		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingSanitizer)
 	}
 
+	// Determine log level based on configuration
 	logLevel := determineLogLevel(p.Config)
+
+	// Set output paths based on environment
+	var outputPaths []string
+	if p.Config.App.IsDevelopment() {
+		outputPaths = []string{"stdout"}
+	} else {
+		outputPaths = []string{"stdout", "/var/log/app.log"}
+	}
 
 	factoryConfig := logging.FactoryConfig{
 		AppName:     p.Config.App.Name,
@@ -162,10 +173,16 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 			"version": version.Version,
 			"env":     p.Config.App.Env,
 		},
-		LogLevel: logLevel,
+		LogLevel:         logLevel,
+		OutputPaths:      outputPaths,
+		ErrorOutputPaths: []string{"stderr"},
 	}
 
-	factory := logging.NewFactory(&factoryConfig, p.Sanitizer)
+	factory, err := logging.NewFactory(&factoryConfig, p.Sanitizer)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create logger factory: %w", err)
+	}
+
 	return factory, nil
 }
 

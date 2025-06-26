@@ -68,7 +68,7 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	if f.testCore != nil {
 		core = f.testCore
 	} else if f.environment == "production" {
-		core = createProductionCore(level, f.outputPaths, f.errorPaths)
+		core = createProductionCore(level)
 	} else {
 		core = createZapCore(level, f.testCore)
 	}

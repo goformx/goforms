@@ -148,33 +148,9 @@ func createJSONEncoder() zapcore.Encoder {
 	})
 }
 
-// createProductionCore creates a production-optimized zap core
-func createProductionCore(level zapcore.Level, outputPaths, errorPaths []string) zapcore.Core {
+// createProductionCore creates a production-optimized zap core with stdout output
+func createProductionCore(level zapcore.Level) zapcore.Core {
 	encoder := createJSONEncoder()
-
-	// Create write syncer for output paths
-	var writeSyncer zapcore.WriteSyncer
-	if len(outputPaths) == 1 && outputPaths[0] == "stdout" {
-		writeSyncer = zapcore.AddSync(os.Stdout)
-	} else {
-		// For multiple paths or file paths, use a multi-writer
-		writers := make([]zapcore.WriteSyncer, len(outputPaths))
-		for i, path := range outputPaths {
-			switch path {
-			case "stdout":
-				writers[i] = zapcore.AddSync(os.Stdout)
-			case "stderr":
-				writers[i] = zapcore.AddSync(os.Stderr)
-			default:
-				// For file paths, we'd need to implement file handling
-				// For now, default to stdout
-				writers[i] = zapcore.AddSync(os.Stdout)
-			}
-		}
-		writeSyncer = zapcore.NewMultiWriteSyncer(writers...)
-	}
-
-	// Note: errorPaths are handled by the caller when creating the zap logger
-	// with separate error output configuration
+	writeSyncer := zapcore.AddSync(os.Stdout)
 	return zapcore.NewCore(encoder, writeSyncer, level)
 }
