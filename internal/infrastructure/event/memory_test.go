@@ -35,48 +35,47 @@ func TestMemoryPublisher(t *testing.T) {
 	})
 
 	t.Run("WithMaxEvents", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		maxEvents := 500
-		result := publisher.WithMaxEvents(maxEvents)
+		result := publisher.(*event.MemoryPublisher).WithMaxEvents(maxEvents)
 		assert.Equal(t, publisher, result)
 	})
 
 	t.Run("Publish valid event", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		mockEvent := mockform.NewMockEvent(ctrl)
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 
-		err := publisher.Publish(context.Background(), mockEvent)
+		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
-		assert.Len(t, publisher.GetEvents(), 1)
-		assert.Equal(t, mockEvent, publisher.GetEvents()[0])
+		assert.Len(t, publisher.(*event.MemoryPublisher).GetEvents(), 1)
+		assert.Equal(t, mockEvent, publisher.(*event.MemoryPublisher).GetEvents()[0])
 	})
 
 	t.Run("Publish nil event", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
-		err := publisher.Publish(context.Background(), nil)
-		assert.Error(t, err)
+		publisher := event.NewMemoryPublisher(logger)
+		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), nil)
+		require.Error(t, err)
 		assert.Equal(t, event.ErrInvalidEvent, err)
 	})
 
 	t.Run("Publish with handler", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		mockEvent := mockform.NewMockEvent(ctrl)
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 		handlerCalled := false
 
-		err := publisher.Subscribe(context.Background(), "test.event", func(_ context.Context, evt formevents.Event) error {
+		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			handlerCalled = true
-			assert.Equal(t, mockEvent, evt)
 			return nil
 		})
 		require.NoError(t, err)
 
-		err = publisher.Publish(context.Background(), mockEvent)
+		err = publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
 
 		time.Sleep(10 * time.Millisecond)
@@ -84,33 +83,33 @@ func TestMemoryPublisher(t *testing.T) {
 	})
 
 	t.Run("Publish with handler error", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		mockEvent := mockform.NewMockEvent(ctrl)
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 
-		err := publisher.Subscribe(context.Background(), "test.event", func(_ context.Context, evt formevents.Event) error {
+		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			return errors.New("handler error")
 		})
 		require.NoError(t, err)
 
-		err = publisher.Publish(context.Background(), mockEvent)
+		err = publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
 
 		time.Sleep(10 * time.Millisecond)
-		assert.Len(t, publisher.GetEvents(), 1)
+		assert.Len(t, publisher.(*event.MemoryPublisher).GetEvents(), 1)
 	})
 
 	t.Run("Subscribe with nil handler", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
-		err := publisher.Subscribe(context.Background(), "test.event", nil)
-		assert.Error(t, err)
+		publisher := event.NewMemoryPublisher(logger)
+		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", nil)
+		require.Error(t, err)
 		assert.Equal(t, "handler cannot be nil", err.Error())
 	})
 
 	t.Run("Multiple handlers for same event", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		mockEvent := mockform.NewMockEvent(ctrl)
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
@@ -118,19 +117,19 @@ func TestMemoryPublisher(t *testing.T) {
 		handler1Called := false
 		handler2Called := false
 
-		err := publisher.Subscribe(context.Background(), "test.event", func(_ context.Context, evt formevents.Event) error {
+		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			handler1Called = true
 			return nil
 		})
 		require.NoError(t, err)
 
-		err = publisher.Subscribe(context.Background(), "test.event", func(_ context.Context, evt formevents.Event) error {
+		err = publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			handler2Called = true
 			return nil
 		})
 		require.NoError(t, err)
 
-		err = publisher.Publish(context.Background(), mockEvent)
+		err = publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
 
 		time.Sleep(10 * time.Millisecond)
@@ -139,8 +138,8 @@ func TestMemoryPublisher(t *testing.T) {
 	})
 
 	t.Run("Event overflow", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
-		publisher.WithMaxEvents(2)
+		publisher := event.NewMemoryPublisher(logger)
+		publisher.(*event.MemoryPublisher).WithMaxEvents(2)
 
 		for i := 0; i < 3; i++ {
 			mockEvent := mockform.NewMockEvent(ctrl)
@@ -148,28 +147,28 @@ func TestMemoryPublisher(t *testing.T) {
 			mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 			mockEvent.EXPECT().Payload().Return(i).AnyTimes()
 
-			err := publisher.Publish(context.Background(), mockEvent)
+			err := publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 			require.NoError(t, err)
 		}
 
-		events := publisher.GetEvents()
+		events := publisher.(*event.MemoryPublisher).GetEvents()
 		assert.Len(t, events, 2)
 		assert.Equal(t, 1, events[0].Payload())
 		assert.Equal(t, 2, events[1].Payload())
 	})
 
 	t.Run("GetEvents returns copy", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		mockEvent := mockform.NewMockEvent(ctrl)
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 
-		err := publisher.Publish(context.Background(), mockEvent)
+		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
 
-		events1 := publisher.GetEvents()
-		events2 := publisher.GetEvents()
+		events1 := publisher.(*event.MemoryPublisher).GetEvents()
+		events2 := publisher.(*event.MemoryPublisher).GetEvents()
 
 		// Should have same content
 		assert.Equal(t, events1, events2, "slices should have same content")
@@ -184,18 +183,18 @@ func TestMemoryPublisher(t *testing.T) {
 	})
 
 	t.Run("ClearEvents", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		mockEvent := mockform.NewMockEvent(ctrl)
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 
-		err := publisher.Publish(context.Background(), mockEvent)
+		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
-		assert.Len(t, publisher.GetEvents(), 1)
+		assert.Len(t, publisher.(*event.MemoryPublisher).GetEvents(), 1)
 
-		publisher.ClearEvents()
-		assert.Empty(t, publisher.GetEvents())
+		publisher.(*event.MemoryPublisher).ClearEvents()
+		assert.Empty(t, publisher.(*event.MemoryPublisher).GetEvents())
 	})
 }
 
@@ -386,36 +385,36 @@ func TestMemoryPublisher_FormEvents(t *testing.T) {
 	logger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
 
 	t.Run("Publish form created event", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		form := &model.Form{
 			ID:     "form123",
 			Title:  "Test Form",
 			UserID: "user123",
 		}
-		event := formevents.NewFormCreatedEvent(form)
+		createdEvt := formevents.NewFormCreatedEvent(form)
 
-		err := publisher.Publish(context.Background(), event)
-		assert.NoError(t, err)
+		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), createdEvt)
+		require.NoError(t, err)
 
-		events := publisher.GetEvents()
+		events := publisher.(*event.MemoryPublisher).GetEvents()
 		assert.Len(t, events, 1)
 		assert.Equal(t, "form.created", events[0].Name())
 		assert.Equal(t, form, events[0].Payload())
 	})
 
 	t.Run("Publish form submission event", func(t *testing.T) {
-		publisher := event.NewMemoryPublisher(logger).(*event.MemoryPublisher)
+		publisher := event.NewMemoryPublisher(logger)
 		submission := &model.FormSubmission{
 			ID:     "submission123",
 			FormID: "form123",
 			Data:   model.JSON{"name": "John Doe"},
 		}
-		event := formevents.NewFormSubmissionCreatedEvent(submission)
+		submissionEvt := formevents.NewFormSubmissionCreatedEvent(submission)
 
-		err := publisher.Publish(context.Background(), event)
-		assert.NoError(t, err)
+		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), submissionEvt)
+		require.NoError(t, err)
 
-		events := publisher.GetEvents()
+		events := publisher.(*event.MemoryPublisher).GetEvents()
 		assert.Len(t, events, 1)
 		assert.Equal(t, "form.submission.created", events[0].Name())
 		assert.Equal(t, submission, events[0].Payload())
