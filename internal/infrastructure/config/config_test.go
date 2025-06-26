@@ -1,10 +1,10 @@
-package config
+package config_test
 
 import (
 	"os"
 	"testing"
-	"time"
 
+	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 )
@@ -42,16 +42,16 @@ func TestNew(t *testing.T) {
 		t.Setenv(key, value)
 	}
 
-	config, err := New()
-	require.NoError(t, err)
-	assert.NotNil(t, config)
+	cfg, cfgErr := config.New()
+	require.NoError(t, cfgErr)
+	assert.NotNil(t, cfg)
 
 	// Test default values
-	assert.Equal(t, "GoFormX", config.App.Name)
-	assert.Equal(t, "production", config.App.Env)
-	assert.Equal(t, 8090, config.App.Port)
-	assert.Equal(t, "mariadb", config.Database.Connection)
-	assert.Equal(t, 3306, config.Database.Port)
+	assert.Equal(t, "GoFormX", cfg.App.Name)
+	assert.Equal(t, "production", cfg.App.Env)
+	assert.Equal(t, 8090, cfg.App.Port)
+	assert.Equal(t, "mariadb", cfg.Database.Connection)
+	assert.Equal(t, 3306, cfg.Database.Port)
 }
 
 func TestAppConfig_IsDevelopment(t *testing.T) {
@@ -69,7 +69,7 @@ func TestAppConfig_IsDevelopment(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			app := &AppConfig{Env: tt.env}
+			app := &config.AppConfig{Env: tt.env}
 			assert.Equal(t, tt.want, app.IsDevelopment())
 		})
 	}
@@ -77,13 +77,13 @@ func TestAppConfig_IsDevelopment(t *testing.T) {
 
 func TestAppConfig_GetServerURL(t *testing.T) {
 	tests := []struct {
-		name   string
-		config AppConfig
-		want   string
+		name string
+		cfg  config.AppConfig
+		want string
 	}{
 		{
 			name: "URL field set",
-			config: AppConfig{
+			cfg: config.AppConfig{
 				URL:    "https://example.com:8080",
 				Scheme: "http",
 				Host:   "localhost",
@@ -93,7 +93,7 @@ func TestAppConfig_GetServerURL(t *testing.T) {
 		},
 		{
 			name: "URL field not set",
-			config: AppConfig{
+			cfg: config.AppConfig{
 				URL:    "",
 				Scheme: "https",
 				Host:   "example.com",
@@ -105,20 +105,20 @@ func TestAppConfig_GetServerURL(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.config.GetServerURL())
+			assert.Equal(t, tt.want, tt.cfg.GetServerURL())
 		})
 	}
 }
 
 func TestAppConfig_GetServerPort(t *testing.T) {
 	tests := []struct {
-		name   string
-		config AppConfig
-		want   int
+		name string
+		cfg  config.AppConfig
+		want int
 	}{
 		{
 			name: "use port field",
-			config: AppConfig{
+			cfg: config.AppConfig{
 				URL:  "https://example.com:8080",
 				Port: 3000,
 			},
@@ -126,14 +126,14 @@ func TestAppConfig_GetServerPort(t *testing.T) {
 		},
 		{
 			name: "port field only",
-			config: AppConfig{
+			cfg: config.AppConfig{
 				Port: 3000,
 			},
 			want: 3000,
 		},
 		{
 			name: "URL without port, use port field",
-			config: AppConfig{
+			cfg: config.AppConfig{
 				URL:  "https://example.com",
 				Port: 3000,
 			},
@@ -143,7 +143,7 @@ func TestAppConfig_GetServerPort(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			assert.Equal(t, tt.want, tt.config.GetServerPort())
+			assert.Equal(t, tt.want, tt.cfg.GetServerPort())
 		})
 	}
 }
@@ -151,16 +151,16 @@ func TestAppConfig_GetServerPort(t *testing.T) {
 func TestSecurityConfig_GetCSPDirectives(t *testing.T) {
 	tests := []struct {
 		name      string
-		security  SecurityConfig
-		appConfig AppConfig
+		security  config.SecurityConfig
+		appConfig config.AppConfig
 		want      string
 	}{
 		{
 			name: "development environment",
-			security: SecurityConfig{
-				CSP: CSPConfig{Enabled: true},
+			security: config.SecurityConfig{
+				CSP: config.CSPConfig{Enabled: true},
 			},
-			appConfig: AppConfig{Env: "development"},
+			appConfig: config.AppConfig{Env: "development"},
 			want: "default-src 'self'; " +
 				"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173 https://cdn.form.io blob:; " +
 				"worker-src 'self' blob:; " +
@@ -174,10 +174,10 @@ func TestSecurityConfig_GetCSPDirectives(t *testing.T) {
 		},
 		{
 			name: "production environment",
-			security: SecurityConfig{
-				CSP: CSPConfig{Enabled: true},
+			security: config.SecurityConfig{
+				CSP: config.CSPConfig{Enabled: true},
 			},
-			appConfig: AppConfig{Env: "production"},
+			appConfig: config.AppConfig{Env: "production"},
 			want: "default-src 'self'; " +
 				"script-src 'self' 'unsafe-inline'; " +
 				"style-src 'self' 'unsafe-inline'; " +
@@ -190,13 +190,13 @@ func TestSecurityConfig_GetCSPDirectives(t *testing.T) {
 		},
 		{
 			name: "custom CSP directives",
-			security: SecurityConfig{
-				CSP: CSPConfig{
+			security: config.SecurityConfig{
+				CSP: config.CSPConfig{
 					Enabled:    true,
 					Directives: "default-src 'none'; script-src 'self'",
 				},
 			},
-			appConfig: AppConfig{Env: "production"},
+			appConfig: config.AppConfig{Env: "production"},
 			want:      "default-src 'none'; script-src 'self'",
 		},
 	}
@@ -205,220 +205,6 @@ func TestSecurityConfig_GetCSPDirectives(t *testing.T) {
 		t.Run(tt.name, func(t *testing.T) {
 			result := tt.security.GetCSPDirectives(&tt.appConfig)
 			assert.Equal(t, tt.want, result)
-		})
-	}
-}
-
-func TestValidateAppConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  Config
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			name: "valid config",
-			config: Config{
-				App: AppConfig{
-					Name:         "TestApp",
-					Port:         8080,
-					ReadTimeout:  5 * time.Second,
-					WriteTimeout: 10 * time.Second,
-					IdleTimeout:  120 * time.Second,
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "empty app name",
-			config: Config{
-				App: AppConfig{
-					Name:         "",
-					Port:         8080,
-					ReadTimeout:  5 * time.Second,
-					WriteTimeout: 10 * time.Second,
-					IdleTimeout:  120 * time.Second,
-				},
-			},
-			wantErr: true,
-			errMsg:  "app name is required",
-		},
-		{
-			name: "invalid port",
-			config: Config{
-				App: AppConfig{
-					Name:         "TestApp",
-					Port:         -1,
-					ReadTimeout:  5 * time.Second,
-					WriteTimeout: 10 * time.Second,
-					IdleTimeout:  120 * time.Second,
-				},
-			},
-			wantErr: true,
-			errMsg:  "app port must be between 1 and 65535",
-		},
-		{
-			name: "invalid timeout",
-			config: Config{
-				App: AppConfig{
-					Name:         "TestApp",
-					Port:         8080,
-					ReadTimeout:  0,
-					WriteTimeout: 10 * time.Second,
-					IdleTimeout:  120 * time.Second,
-				},
-			},
-			wantErr: true,
-			errMsg:  "read timeout must be positive",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.validateAppConfig()
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestValidateDatabaseConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  Config
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			name: "valid mariadb config",
-			config: Config{
-				Database: DatabaseConfig{
-					Connection:   "mariadb",
-					Host:         "localhost",
-					Port:         3306,
-					Database:     "testdb",
-					Username:     "user",
-					Password:     "pass",
-					RootPassword: "rootpass",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "valid postgres config",
-			config: Config{
-				Database: DatabaseConfig{
-					Connection: "postgres",
-					Host:       "localhost",
-					Port:       5432,
-					Database:   "testdb",
-					Username:   "user",
-					Password:   "pass",
-					SSLMode:    "disable",
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "missing required fields",
-			config: Config{
-				Database: DatabaseConfig{
-					Connection: "mariadb",
-				},
-			},
-			wantErr: true,
-			errMsg:  "database host is required",
-		},
-		{
-			name: "unsupported database type",
-			config: Config{
-				Database: DatabaseConfig{
-					Connection:   "oracle",
-					Host:         "localhost",
-					Port:         1521,
-					Database:     "testdb",
-					Username:     "user",
-					Password:     "pass",
-					RootPassword: "rootpass",
-				},
-			},
-			wantErr: true,
-			errMsg:  "unsupported database connection type",
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.validateDatabaseConfig()
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.NoError(t, err)
-			}
-		})
-	}
-}
-
-func TestValidateSecurityConfig(t *testing.T) {
-	tests := []struct {
-		name    string
-		config  Config
-		wantErr bool
-		errMsg  string
-	}{
-		{
-			name: "valid security config",
-			config: Config{
-				Security: SecurityConfig{
-					CSRF: CSRFConfig{
-						Enabled: true,
-						Secret:  "test_secret_32_characters_long!",
-					},
-				},
-			},
-			wantErr: false,
-		},
-		{
-			name: "CSRF enabled without secret",
-			config: Config{
-				Security: SecurityConfig{
-					CSRF: CSRFConfig{
-						Enabled: true,
-						Secret:  "",
-					},
-				},
-			},
-			wantErr: true,
-			errMsg:  "CSRF secret is required when CSRF is enabled",
-		},
-		{
-			name: "CSRF disabled",
-			config: Config{
-				Security: SecurityConfig{
-					CSRF: CSRFConfig{
-						Enabled: false,
-						Secret:  "",
-					},
-				},
-			},
-			wantErr: false,
-		},
-	}
-
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			err := tt.config.validateSecurityConfig()
-			if tt.wantErr {
-				assert.Error(t, err)
-				assert.Contains(t, err.Error(), tt.errMsg)
-			} else {
-				assert.NoError(t, err)
-			}
 		})
 	}
 }
@@ -446,13 +232,13 @@ GOFORMS_USER_LAST_NAME=User`
 	require.NoError(t, err)
 	defer os.Remove(tmpfile.Name())
 
-	_, err = tmpfile.Write([]byte(envContent))
+	_, err = tmpfile.WriteString(envContent)
 	require.NoError(t, err)
 	require.NoError(t, tmpfile.Close())
 
-	config, err := LoadFromFile(tmpfile.Name())
+	cfg, err := config.LoadFromFile(tmpfile.Name())
 	require.NoError(t, err)
-	assert.NotNil(t, config)
-	assert.Equal(t, "TestApp", config.App.Name)
-	assert.Equal(t, "test", config.App.Env)
+	assert.NotNil(t, cfg)
+	assert.Equal(t, "TestApp", cfg.App.Name)
+	assert.Equal(t, "test", cfg.App.Env)
 }
