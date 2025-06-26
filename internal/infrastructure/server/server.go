@@ -41,7 +41,8 @@ func (s *Server) URL() string {
 
 // Start starts the server and returns when it's ready to accept connections
 func (s *Server) Start() error {
-	addr := s.URL()
+	// Extract host and port from the URL for the HTTP server
+	addr := fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port)
 
 	s.server = &http.Server{
 		Addr:              addr,
@@ -113,7 +114,7 @@ func New(deps Deps) *Server {
 
 	// Log server configuration
 	deps.Logger.Info("initializing server",
-		"url", deps.Config.App.GetServerURL(),
+		"url", srv.URL(),
 		"environment", deps.Config.App.Env,
 		"server_type", "echo")
 

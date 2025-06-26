@@ -2,8 +2,6 @@ package config
 
 import (
 	"fmt"
-	"net/url"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -41,15 +39,8 @@ func (c *AppConfig) GetServerURL() string {
 	return c.URL
 }
 
-// GetServerPort returns the server port, extracting from URL if available
+// GetServerPort returns the server port
 func (c *AppConfig) GetServerPort() int {
-	if c.URL != "" {
-		if parsedURL, err := url.Parse(c.URL); err == nil && parsedURL.Port() != "" {
-			if port, err := strconv.Atoi(parsedURL.Port()); err == nil {
-				return port
-			}
-		}
-	}
 	return c.Port
 }
 
