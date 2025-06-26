@@ -238,7 +238,7 @@ type SessionConfig struct {
 	Secure     bool          `envconfig:"GOFORMS_SESSION_SECURE" default:"true"`
 	HTTPOnly   bool          `envconfig:"GOFORMS_SESSION_HTTP_ONLY" default:"true"`
 	CookieName string        `envconfig:"GOFORMS_SESSION_COOKIE_NAME" default:"session"`
-	StoreFile  string        `envconfig:"GOFORMS_SESSION_STORE_FILE" default:"tmp/sessions.json"`
+	StoreFile  string        `envconfig:"GOFORMS_SESSION_STORE_FILE" default:"storage/sessions/sessions.json"`
 }
 
 // AuthConfig holds authentication-related configuration
