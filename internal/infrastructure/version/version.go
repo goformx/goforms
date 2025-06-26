@@ -35,7 +35,6 @@
 //     }
 //
 // The package integrates with:
-// - Health checks (internal/infrastructure/health)
 // - Metrics (internal/infrastructure/metrics)
 // - Logging (internal/infrastructure/logging)
 // - Server (internal/infrastructure/server)
