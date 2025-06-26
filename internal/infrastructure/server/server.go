@@ -7,7 +7,6 @@ import (
 	"fmt"
 	"net"
 	"net/http"
-	"strconv"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -35,19 +34,15 @@ type Server struct {
 	server *http.Server
 }
 
-// Address returns the server's address in host:port format
-func (s *Server) Address() string {
-	return net.JoinHostPort(s.config.App.Host, strconv.Itoa(s.config.App.Port))
-}
-
 // URL returns the server's full HTTP URL
 func (s *Server) URL() string {
-	return fmt.Sprintf("%s://%s", s.config.App.Scheme, s.Address())
+	return s.config.App.GetServerURL()
 }
 
 // Start starts the server and returns when it's ready to accept connections
 func (s *Server) Start() error {
-	addr := s.Address()
+	addr := s.URL()
+
 	s.server = &http.Server{
 		Addr:              addr,
 		Handler:           s.echo,
@@ -118,8 +113,7 @@ func New(deps Deps) *Server {
 
 	// Log server configuration
 	deps.Logger.Info("initializing server",
-		"host", deps.Config.App.Host,
-		"port", deps.Config.App.Port,
+		"url", deps.Config.App.GetServerURL(),
 		"environment", deps.Config.App.Env,
 		"server_type", "echo")
 
