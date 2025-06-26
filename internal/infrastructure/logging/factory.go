@@ -7,7 +7,6 @@ import (
 	"go.uber.org/zap"
 	"go.uber.org/zap/zapcore"
 
-	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
@@ -20,14 +19,19 @@ type Factory struct {
 	outputPaths    []string
 	errorPaths     []string
 	sanitizer      sanitization.ServiceInterface
-	fieldSanitizer *loggingsanitization.FieldSanitizer
+	fieldSanitizer *Sanitizer
 	// Add testCore for test injection
 	testCore zapcore.Core
 	LogLevel string
 }
 
 // NewFactory creates a new logger factory with the given configuration
-func NewFactory(cfg *FactoryConfig, sanitizer sanitization.ServiceInterface) *Factory {
+func NewFactory(cfg *FactoryConfig, sanitizer sanitization.ServiceInterface) (*Factory, error) {
+	// Validate configuration
+	if err := cfg.Validate(); err != nil {
+		return nil, fmt.Errorf("invalid factory configuration: %w", err)
+	}
+
 	if cfg.Fields == nil {
 		cfg.Fields = make(map[string]any)
 	}
@@ -43,9 +47,9 @@ func NewFactory(cfg *FactoryConfig, sanitizer sanitization.ServiceInterface) *Fa
 		outputPaths:    cfg.OutputPaths,
 		errorPaths:     cfg.ErrorOutputPaths,
 		sanitizer:      sanitizer,
-		fieldSanitizer: loggingsanitization.NewFieldSanitizer(),
+		fieldSanitizer: NewSanitizer(),
 		LogLevel:       cfg.LogLevel,
-	}
+	}, nil
 }
 
 // WithTestCore allows tests to inject a zapcore.Core for capturing logs
@@ -60,7 +64,14 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	level := parseLogLevel(f.LogLevel, f.environment)
 
 	// Create zap core using config helper
-	core := createZapCore(level, f.testCore)
+	var core zapcore.Core
+	if f.testCore != nil {
+		core = f.testCore
+	} else if f.environment == "production" {
+		core = createProductionCore(level, f.outputPaths, f.errorPaths)
+	} else {
+		core = createZapCore(level, f.testCore)
+	}
 
 	// Create logger with options
 	zapLogger := zap.New(core,

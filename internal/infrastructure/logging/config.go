@@ -2,6 +2,7 @@
 package logging
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -17,6 +18,50 @@ func setDefaultPaths(cfg *FactoryConfig) {
 	if len(cfg.ErrorOutputPaths) == 0 {
 		cfg.ErrorOutputPaths = []string{"stderr"}
 	}
+}
+
+// Validate validates the factory configuration
+func (cfg *FactoryConfig) Validate() error {
+	if cfg.AppName == "" {
+		return errors.New("app name is required")
+	}
+
+	if cfg.LogLevel != "" {
+		if !isValidLogLevel(cfg.LogLevel) {
+			return fmt.Errorf("invalid log level: %s", cfg.LogLevel)
+		}
+	}
+
+	if cfg.Environment == "" {
+		cfg.Environment = "production"
+	}
+
+	// Validate output paths
+	for _, path := range cfg.OutputPaths {
+		if path != "stdout" && path != "stderr" && !strings.HasSuffix(path, ".log") {
+			return fmt.Errorf("invalid output path: %s", path)
+		}
+	}
+
+	for _, path := range cfg.ErrorOutputPaths {
+		if path != "stdout" && path != "stderr" && !strings.HasSuffix(path, ".log") {
+			return fmt.Errorf("invalid error output path: %s", path)
+		}
+	}
+
+	return nil
+}
+
+// isValidLogLevel checks if the log level is valid
+func isValidLogLevel(level string) bool {
+	validLevels := []string{"debug", "info", "warn", "error", "fatal"}
+	levelLower := strings.ToLower(level)
+	for _, valid := range validLevels {
+		if levelLower == valid {
+			return true
+		}
+	}
+	return false
 }
 
 // parseLogLevel converts string level to zap level
@@ -84,4 +129,52 @@ func createZapCore(level zapcore.Level, testCore zapcore.Core) zapcore.Core {
 		zapcore.AddSync(os.Stdout),
 		level,
 	)
+}
+
+// createJSONEncoder creates a JSON encoder for production environments
+func createJSONEncoder() zapcore.Encoder {
+	return zapcore.NewJSONEncoder(zapcore.EncoderConfig{
+		TimeKey:        "timestamp",
+		LevelKey:       "level",
+		NameKey:        "logger",
+		CallerKey:      "caller",
+		MessageKey:     "message",
+		StacktraceKey:  "stacktrace",
+		LineEnding:     zapcore.DefaultLineEnding,
+		EncodeLevel:    zapcore.LowercaseLevelEncoder,
+		EncodeTime:     zapcore.ISO8601TimeEncoder,
+		EncodeDuration: zapcore.SecondsDurationEncoder,
+		EncodeCaller:   zapcore.ShortCallerEncoder,
+	})
+}
+
+// createProductionCore creates a production-optimized zap core
+func createProductionCore(level zapcore.Level, outputPaths, errorPaths []string) zapcore.Core {
+	encoder := createJSONEncoder()
+
+	// Create write syncer for output paths
+	var writeSyncer zapcore.WriteSyncer
+	if len(outputPaths) == 1 && outputPaths[0] == "stdout" {
+		writeSyncer = zapcore.AddSync(os.Stdout)
+	} else {
+		// For multiple paths or file paths, use a multi-writer
+		writers := make([]zapcore.WriteSyncer, len(outputPaths))
+		for i, path := range outputPaths {
+			switch path {
+			case "stdout":
+				writers[i] = zapcore.AddSync(os.Stdout)
+			case "stderr":
+				writers[i] = zapcore.AddSync(os.Stderr)
+			default:
+				// For file paths, we'd need to implement file handling
+				// For now, default to stdout
+				writers[i] = zapcore.AddSync(os.Stdout)
+			}
+		}
+		writeSyncer = zapcore.NewMultiWriteSyncer(writers...)
+	}
+
+	// Note: errorPaths are handled by the caller when creating the zap logger
+	// with separate error output configuration
+	return zapcore.NewCore(encoder, writeSyncer, level)
 }
