@@ -376,3 +376,17 @@ tasks:
       else
         echo "Database configuration not found"
       fi
+
+  setup:storage:
+    desc: Create storage directories
+    cmds:
+    - mkdir -p storage/sessions
+    - mkdir -p storage/logs
+    - mkdir -p storage/uploads
+    - mkdir -p storage/cache
+    - mkdir -p storage/backups
+    - chmod 750 storage/sessions
+    - chmod 750 storage/logs
+    - chmod 750 storage/uploads
+    - chmod 750 storage/cache
+    - chmod 750 storage/backups
