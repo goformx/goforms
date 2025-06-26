@@ -36,32 +36,9 @@ func (c *AppConfig) IsDevelopment() bool {
 	return strings.EqualFold(c.Env, "development")
 }
 
-// GetServerURL returns the server URL, preferring the URL field if set, otherwise constructing from scheme, host, and port
+// GetServerURL returns the server URL
 func (c *AppConfig) GetServerURL() string {
-	if c.URL != "" {
-		return c.URL
-	}
-	return fmt.Sprintf("%s://%s:%d", c.Scheme, c.Host, c.Port)
-}
-
-// GetServerScheme returns the server scheme, extracting from URL if available
-func (c *AppConfig) GetServerScheme() string {
-	if c.URL != "" {
-		if parsedURL, err := url.Parse(c.URL); err == nil && parsedURL.Scheme != "" {
-			return parsedURL.Scheme
-		}
-	}
-	return c.Scheme
-}
-
-// GetServerHost returns the server host, extracting from URL if available
-func (c *AppConfig) GetServerHost() string {
-	if c.URL != "" {
-		if parsedURL, err := url.Parse(c.URL); err == nil && parsedURL.Hostname() != "" {
-			return parsedURL.Hostname()
-		}
-	}
-	return c.Host
+	return c.URL
 }
 
 // GetServerPort returns the server port, extracting from URL if available
