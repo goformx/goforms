@@ -47,18 +47,15 @@ linters:
     - dupl            # Detects code duplication (prevents duplicate providers)
     - exhaustive      # Ensures exhaustive type switches
     - exhaustruct     # Ensures struct initialization (good for Fx options)
-    - gofmt           # Ensures consistent formatting
-    - gofumpt         # Stricter formatting than gofmt
-    - goimports       # Ensures imports are properly organized
     - gomodguard      # Controls allowed modules
     - ireturn         # Ensures concrete types in returns when possible
     - maintidx        # Maintainability index
+    - mnd             # Magic number detector
     - nilnil          # Checks for simultaneous return of nil error and nil value
     - nlreturn        # Enforces newlines in certain places
     - noctx           # Finds sending http request without context.Context
     - paralleltest    # Detects missing use of t.Parallel()
     - reassign        # Checks for reassigning variables
-    - stylecheck      # Style checks (replacement for golint)
     - varnamelen      # Checks variable name length
     - wastedassign    # Finds assignments to existing variables
     - wsl             # Enforces whitespace rules
@@ -101,7 +98,6 @@ linters:
       disabled-checks:
         - ifElseChain
         - singleCaseSwitch
-        - hugeParam      # Disabled for Fx dependency injection
       enabled-tags:
         - diagnostic
         - style
@@ -169,6 +165,27 @@ linters:
       
     misspell:
       locale: US
+      
+    mnd:
+      checks:
+        - argument
+        - case
+        - condition
+        - operation
+        - return
+        - assign
+      ignored-numbers:
+        - '0'
+        - '1'
+        - '2'
+        - '3'
+        - '10'
+        - '100'
+        - '1000'
+      ignored-functions:
+        - 'make'
+        - 'time.Duration'
+        - 'fx.Options'
       
     nakedret:
       max-func-lines: 30
@@ -371,7 +388,6 @@ linters:
           - nolintlint
           - exhaustruct
           - varnamelen
-          - gofumpt
           - wsl
       
       # Exclude some rules for integration tests
