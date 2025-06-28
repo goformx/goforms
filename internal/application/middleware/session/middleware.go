@@ -117,7 +117,7 @@ func (sm *Manager) shouldSkipSession(path string) bool {
 	}
 
 	// Skip session processing for development tool endpoints
-	if sm.config.App.Env == "development" && (strings.HasPrefix(path, "/.well-known/") ||
+	if sm.config.App.Environment == "development" && (strings.HasPrefix(path, "/.well-known/") ||
 		strings.HasPrefix(path, "/debug/") ||
 		strings.HasPrefix(path, "/dev/")) {
 		return true

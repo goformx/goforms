@@ -1,4 +1,4 @@
-# golangci-lint v2 configuration for Go 1.24+ (2025)
+# golangci-lint v2 configuration for Go 1.24+ (2025) with Uber Fx enforcement
 version: "2"
 
 run:
@@ -8,6 +8,7 @@ run:
 
 linters:
   enable:
+    # Existing linters
     - bodyclose
     - contextcheck
     - errorlint
@@ -39,18 +40,60 @@ linters:
     - unparam
     - whitespace
     - wrapcheck
+    
+    # Additional linters that help with Fx patterns
+    - cyclop          # Enforces cyclomatic complexity (helps with Fx constructors)
+    - decorder        # Enforces declaration order (good for Fx modules)
+    - dupl            # Detects code duplication (prevents duplicate providers)
+    - exhaustive      # Ensures exhaustive type switches
+    - exhaustruct     # Ensures struct initialization (good for Fx options)
+    - gomodguard      # Controls allowed modules
+    - ireturn         # Ensures concrete types in returns when possible
+    - maintidx        # Maintainability index
+    - mnd             # Magic number detector
+    - nilnil          # Checks for simultaneous return of nil error and nil value
+    - nlreturn        # Enforces newlines in certain places
+    - noctx           # Finds sending http request without context.Context
+    - paralleltest    # Detects missing use of t.Parallel()
+    - reassign        # Checks for reassigning variables
+    - varnamelen      # Checks variable name length
+    - wastedassign    # Finds assignments to existing variables
+    - wsl             # Enforces whitespace rules
 
   settings:
     errcheck:
       check-type-assertions: true
       check-blank: true
+      
     errorlint:
       errorf: true
       asserts: true
       comparison: true
+      
+    exhaustive:
+      check:
+        - switch
+        - map
+      explicit-exhaustive-switch: true
+      explicit-exhaustive-map: true
+      
+    exhaustruct:
+      # Exclude certain structs from exhaustive initialization
+      exclude:
+        # Common Fx types that don't need exhaustive initialization
+        - 'fx\.Option'
+        - 'fx\.Annotate'
+        - 'fx\.Provide'
+        - 'fx\.Invoke'
+        # Test structs
+        - '.*Test.*'
+        # Generated structs
+        - '.*templ.*'
+      
     goconst:
       min-len: 3
       min-occurrences: 3
+      
     gocritic:
       disabled-checks:
         - ifElseChain
@@ -60,31 +103,125 @@ linters:
         - style
         - performance
         - experimental
+      settings:
+        captLocal:
+          paramsOnly: true
+        elseif:
+          skipBalanced: true
+        hugeParam:
+          sizeThreshold: 80
+        nestingReduce:
+          bodyWidth: 5
+        rangeValCopy:
+          sizeThreshold: 512
+        truncateCmp:
+          skipArchDependent: true
+        underef:
+          skipRecvDeref: true
+          
     gocyclo:
       min-complexity: 15
+      
+    gomodguard:
+      blocked:
+        modules:
+          # Prevent direct use of global state packages when using Fx
+          - github.com/kelseyhightower/envconfig:
+              recommendations:
+                - Use fx.Provide with configuration constructors instead
+          # Add other modules you want to restrict
+        
     gosec:
       severity: medium
       confidence: medium
+      
     govet:
       disable:
-        - fieldalignment
+        - fieldalignment  # Can be too strict for Fx dependency structs
       enable-all: true
+      settings:
+        shadow:
+          strict: true
+          
+    ireturn:
+      allow:
+        - anon
+        - error
+        - empty
+        - stdlib
+        # Allow interface returns for common Fx patterns
+        - 'fx\.Option'
+        - '.*Interface'
+        - '.*Service'
+        - '.*Repository'
+        - '.*Handler'
+        
     lll:
       line-length: 120
+      tab-width: 1
+      
+    maintidx:
+      under: 20
+      
     misspell:
       locale: US
+      
+    mnd:
+      checks:
+        - argument
+        - case
+        - condition
+        - operation
+        - return
+        - assign
+      ignored-numbers:
+        - '0'
+        - '1'
+        - '2'
+        - '3'
+        - '10'
+        - '100'
+        - '1000'
+      ignored-functions:
+        - 'make'
+        - 'time.Duration'
+        - 'fx.Options'
+      
     nakedret:
       max-func-lines: 30
+      
+    nestif:
+      min-complexity: 4
+      
+    nilnil:
+      checked-types:
+        - ptr
+        - func
+        - iface
+        - map
+        - chan
+        
     nolintlint:
       require-explanation: true
       require-specific: true
       allow-unused: false
+      
+    paralleltest:
+      ignore-missing: true
+      
     prealloc:
       simple: true
       range-loops: true
       for-loops: false
+      
+    reassign:
+      patterns:
+        - '.*'
+        
     revive:
+      severity: warning
       rules:
+        # Standard rules
         - name: blank-imports
         - name: context-as-argument
         - name: context-keys-type
@@ -108,9 +245,46 @@ linters:
         - name: unused-parameter
         - name: unreachable-code
         - name: redefines-builtin-id
+        
+        # Additional rules good for Fx patterns
+        - name: atomic
+        - name: bare-return
+        - name: constant-logical-expr
+        - name: deep-exit
+        - name: defer
+        - name: duplicated-imports
+        - name: early-return
+        - name: empty-lines
+        - name: flag-parameter
+        - name: function-result-limit
+          arguments: [3]  # Limit function returns (good for constructors)
+        - name: function-length
+          arguments: [50, 0]  # Max 50 lines per function
+        - name: get-return
+        - name: identical-branches
+        - name: if-return
+        - name: imports-blocklist
+        - name: line-length-limit
+          arguments: [120]
+        - name: max-public-structs
+          arguments: [10]  # Limit public structs per package
+        - name: modifies-parameter
+        - name: modifies-value-receiver
+        - name: optimize-operands-order
+        - name: string-format
+        - name: struct-tag
+        - name: unchecked-type-assertion
+        - name: unhandled-error
+        - name: unnecessary-stmt
+        - name: unused-receiver
+        - name: use-any
+        - name: useless-break
+        - name: waitgroup-by-value
+        
     staticcheck:
       checks:
         - all
+        
     tagliatelle:
       case:
         rules:
@@ -121,13 +295,35 @@ linters:
           xml: camel
           yaml: snake
         use-field-name: true
+        
     unparam:
       check-exported: false
+      
     unused:
       field-writes-are-uses: true
       post-statements-are-reads: true
       parameters-are-used: true
       local-variables-are-used: true
+      
+    varnamelen:
+      min-name-length: 2
+      ignore-type-assert-ok: true
+      ignore-map-index-ok: true
+      ignore-chan-recv-ok: true
+      ignore-names:
+        - err
+        - id
+        - tx
+        - db
+        - ok
+        - wg
+        - mu
+        # Common Fx variable names
+        - fx
+        - lc  # lifecycle
+        - in  # input struct
+        - out # output struct
+        
     wrapcheck:
       ignore-sigs:
         - .Errorf(
@@ -142,6 +338,19 @@ linters:
         - .AJAXError(
         - .HTMLFormError(
         - .Redirect(
+        # Fx specific ignores
+        - fx.New(
+        - fx.Provide(
+        - fx.Invoke(
+        - fx.Options(
+        
+    wsl:
+      strict-append: true
+      allow-assign-and-call: true
+      allow-assign-and-anything: false
+      allow-multiline-assign: true
+      force-case-trailing-whitespace: 0
+      allow-separated-leading-comment: false
 
   exclusions:
     generated: lax
@@ -154,26 +363,32 @@ linters:
       - third_party$
       - builtin$
       - examples$
+      - test/integration/
+      - test/mocks/
     rules:
       # Exclude funlen for test files (tests can be longer)
       - path: _test\.go
         linters:
           - funlen
+          - gocyclo
+          - cyclop
+          - maintidx
+          - gocognit
       
       # Exclude wrapcheck for test files (tests often don't need error wrapping)
       - path: _test\.go
         linters:
           - wrapcheck
+          - errorlint
       
-      # Exclude gocritic hugeParam for generated code
+      # Exclude certain rules for generated code
       - path: _templ\.go
         linters:
           - gocritic
-      
-      # Exclude nolintlint for generated code
-      - path: _templ\.go
-        linters:
           - nolintlint
+          - exhaustruct
+          - varnamelen
+          - wsl
       
       # Exclude some rules for integration tests
       - path: test/integration/
@@ -181,6 +396,9 @@ linters:
           - funlen
           - wrapcheck
           - gocritic
+          - gocyclo
+          - cyclop
+          - maintidx
       
       # Exclude some rules for mock files
       - path: test/mocks/
@@ -189,11 +407,52 @@ linters:
           - wrapcheck
           - gocritic
           - nolintlint
+          - varnamelen
+          - exhaustruct
       
-      # Exclude hugeParam for FX dependency injection (structs are auto-injected)
+      # Allow longer parameter lists for Fx constructors
       - linters:
           - gocritic
         text: "hugeParam"
+        
+      # Allow certain patterns in Fx modules
+      - path: ".*module.*\\.go"
+        linters:
+          - funlen  # Module files can be longer
+          - gocyclo
+        
+      # Allow some patterns in main.go (Fx app setup)
+      - path: "main\\.go"
+        linters:
+          - funlen
+          - gocyclo
+          - cyclop
+          - exhaustruct  # fx.Options don't need exhaustive initialization
+        
+      # Allow interface returns in service layers (common Fx pattern)
+      - text: "returns interface"
+        linters:
+          - ireturn
+        path: "(service|repository|handler).*\\.go"
+        
+      # Allow unused parameters in Fx lifecycle hooks
+      - text: "unused-parameter"
+        linters:
+          - revive
+        source: "func.*\\(.*fx\\.Lifecycle.*\\)"
+        
+      # Common Fx patterns that trigger false positives
+      - text: "cyclomatic complexity"
+        linters:
+          - gocyclo
+          - cyclop
+        source: "func New.*\\(.*\\) .*fx\\.Option"
+        
+      # Allow empty catch blocks in Fx shutdown hooks
+      - text: "empty-block"
+        linters:
+          - revive
+        source: "OnStop.*func\\(.*context\\.Context.*\\) error.*\\{.*\\}"
 
 formatters:
   exclusions:

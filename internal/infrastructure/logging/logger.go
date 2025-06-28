@@ -3,7 +3,6 @@ package logging
 import (
 	"go.uber.org/zap"
 
-	loggingsanitization "github.com/goformx/goforms/internal/infrastructure/logging/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
@@ -11,14 +10,14 @@ import (
 type logger struct {
 	zapLogger      *zap.Logger
 	sanitizer      sanitization.ServiceInterface
-	fieldSanitizer *loggingsanitization.FieldSanitizer
+	fieldSanitizer *Sanitizer
 }
 
 // newLogger creates a new logger instance
 func newLogger(
 	zapLogger *zap.Logger,
 	sanitizer sanitization.ServiceInterface,
-	fieldSanitizer *loggingsanitization.FieldSanitizer,
+	fieldSanitizer *Sanitizer,
 ) Logger {
 	return &logger{
 		zapLogger:      zapLogger,
@@ -30,6 +29,15 @@ func newLogger(
 // With returns a new logger with the given fields
 func (l *logger) With(fields ...any) Logger {
 	zapFields := convertToZapFields(fields, l.fieldSanitizer)
+	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer, l.fieldSanitizer)
+}
+
+// WithFieldsStructured adds multiple fields to the logger using the new Field-based API
+func (l *logger) WithFieldsStructured(fields ...Field) Logger {
+	zapFields := make([]zap.Field, len(fields))
+	for i, field := range fields {
+		zapFields[i] = field.ToZapField()
+	}
 	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer, l.fieldSanitizer)
 }
 
@@ -58,7 +66,7 @@ func (l *logger) WithError(err error) Logger {
 	return l.With("error", sanitizeError(err, l.sanitizer))
 }
 
-// WithFields adds multiple fields to the logger
+// WithFields adds multiple fields to the logger (legacy method)
 func (l *logger) WithFields(fields map[string]any) Logger {
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
@@ -69,7 +77,7 @@ func (l *logger) WithFields(fields map[string]any) Logger {
 
 // SanitizeField returns a masked version of a sensitive field value
 func (l *logger) SanitizeField(key string, value any) string {
-	return l.fieldSanitizer.Sanitize(key, value, l.sanitizer)
+	return l.fieldSanitizer.SanitizeField(key, value)
 }
 
 // Debug logs a debug message
@@ -77,9 +85,27 @@ func (l *logger) Debug(msg string, fields ...any) {
 	l.zapLogger.Debug(msg, convertToZapFields(fields, l.fieldSanitizer)...)
 }
 
+// DebugWithFields logs a debug message with Field-based API
+func (l *logger) DebugWithFields(msg string, fields ...Field) {
+	zapFields := make([]zap.Field, len(fields))
+	for i, field := range fields {
+		zapFields[i] = field.ToZapField()
+	}
+	l.zapLogger.Debug(msg, zapFields...)
+}
+
 // Info logs an info message
 func (l *logger) Info(msg string, fields ...any) {
 	l.zapLogger.Info(msg, convertToZapFields(fields, l.fieldSanitizer)...)
+}
+
+// InfoWithFields logs an info message with Field-based API
+func (l *logger) InfoWithFields(msg string, fields ...Field) {
+	zapFields := make([]zap.Field, len(fields))
+	for i, field := range fields {
+		zapFields[i] = field.ToZapField()
+	}
+	l.zapLogger.Info(msg, zapFields...)
 }
 
 // Warn logs a warning message
@@ -87,12 +113,39 @@ func (l *logger) Warn(msg string, fields ...any) {
 	l.zapLogger.Warn(msg, convertToZapFields(fields, l.fieldSanitizer)...)
 }
 
+// WarnWithFields logs a warning message with Field-based API
+func (l *logger) WarnWithFields(msg string, fields ...Field) {
+	zapFields := make([]zap.Field, len(fields))
+	for i, field := range fields {
+		zapFields[i] = field.ToZapField()
+	}
+	l.zapLogger.Warn(msg, zapFields...)
+}
+
 // Error logs an error message
 func (l *logger) Error(msg string, fields ...any) {
 	l.zapLogger.Error(msg, convertToZapFields(fields, l.fieldSanitizer)...)
 }
 
+// ErrorWithFields logs an error message with Field-based API
+func (l *logger) ErrorWithFields(msg string, fields ...Field) {
+	zapFields := make([]zap.Field, len(fields))
+	for i, field := range fields {
+		zapFields[i] = field.ToZapField()
+	}
+	l.zapLogger.Error(msg, zapFields...)
+}
+
 // Fatal logs a fatal message
 func (l *logger) Fatal(msg string, fields ...any) {
 	l.zapLogger.Fatal(msg, convertToZapFields(fields, l.fieldSanitizer)...)
+}
+
+// FatalWithFields logs a fatal message with Field-based API
+func (l *logger) FatalWithFields(msg string, fields ...Field) {
+	zapFields := make([]zap.Field, len(fields))
+	for i, field := range fields {
+		zapFields[i] = field.ToZapField()
+	}
+	l.zapLogger.Fatal(msg, zapFields...)
 }

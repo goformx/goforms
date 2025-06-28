@@ -18,12 +18,12 @@ import (
 
 // Store implements user.Repository interface
 type Store struct {
-	db     *database.GormDB
+	db     database.DB
 	logger logging.Logger
 }
 
 // NewStore creates a new user store
-func NewStore(db *database.GormDB, logger logging.Logger) user.Repository {
+func NewStore(db database.DB, logger logging.Logger) user.Repository {
 	return &Store{
 		db:     db,
 		logger: logger,
@@ -32,7 +32,7 @@ func NewStore(db *database.GormDB, logger logging.Logger) user.Repository {
 
 // Create stores a new user
 func (s *Store) Create(ctx context.Context, u *entities.User) error {
-	result := s.db.WithContext(ctx).Create(u)
+	result := s.db.GetDB().WithContext(ctx).Create(u)
 	if result.Error != nil {
 		dbErr := common.NewDatabaseError("create", "user", u.ID, result.Error)
 		return fmt.Errorf("create user: %w", dbErr)
@@ -43,7 +43,7 @@ func (s *Store) Create(ctx context.Context, u *entities.User) error {
 // GetByEmail retrieves a user by email
 func (s *Store) GetByEmail(ctx context.Context, email string) (*entities.User, error) {
 	var u entities.User
-	result := s.db.WithContext(ctx).Where("email = ?", email).First(&u)
+	result := s.db.GetDB().WithContext(ctx).Where("email = ?", email).First(&u)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			notFoundErr := common.NewNotFoundError("get_by_email", "user", email)
@@ -58,7 +58,7 @@ func (s *Store) GetByEmail(ctx context.Context, email string) (*entities.User, e
 // GetByID retrieves a user by ID
 func (s *Store) GetByID(ctx context.Context, id string) (*entities.User, error) {
 	var u entities.User
-	result := s.db.WithContext(ctx).First(&u, "uuid = ?", id)
+	result := s.db.GetDB().WithContext(ctx).First(&u, "uuid = ?", id)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			notFoundErr := common.NewNotFoundError("get_by_id", "user", id)
@@ -82,7 +82,7 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*entities.User, e
 
 // Update updates a user
 func (s *Store) Update(ctx context.Context, userModel *entities.User) error {
-	result := s.db.WithContext(ctx).Save(userModel)
+	result := s.db.GetDB().WithContext(ctx).Save(userModel)
 	if result.Error != nil {
 		dbErr := common.NewDatabaseError("update", "user", userModel.ID, result.Error)
 		return fmt.Errorf("update user: %w", dbErr)
@@ -96,7 +96,7 @@ func (s *Store) Update(ctx context.Context, userModel *entities.User) error {
 
 // Delete removes a user by ID
 func (s *Store) Delete(ctx context.Context, id string) error {
-	result := s.db.WithContext(ctx).Delete(&entities.User{}, "uuid = ?", id)
+	result := s.db.GetDB().WithContext(ctx).Delete(&entities.User{}, "uuid = ?", id)
 	if result.Error != nil {
 		return fmt.Errorf("delete user: %w", common.NewDatabaseError("delete", "user", id, result.Error))
 	}
@@ -109,7 +109,7 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 // List returns all users
 func (s *Store) List(ctx context.Context, offset, limit int) ([]*entities.User, error) {
 	var users []*entities.User
-	result := s.db.WithContext(ctx).Order("uuid").Offset(offset).Limit(limit).Find(&users)
+	result := s.db.GetDB().WithContext(ctx).Order("uuid").Offset(offset).Limit(limit).Find(&users)
 	if result.Error != nil {
 		return nil, fmt.Errorf("list users: %w", common.NewDatabaseError("list", "user", "", result.Error))
 	}
@@ -122,7 +122,7 @@ func (s *Store) ListPaginated(ctx context.Context, params common.PaginationParam
 	var total int64
 
 	// Get total count
-	if err := s.db.WithContext(ctx).Model(&entities.User{}).Count(&total).Error; err != nil {
+	if err := s.db.GetDB().WithContext(ctx).Model(&entities.User{}).Count(&total).Error; err != nil {
 		return common.PaginationResult{
 			Items:      nil,
 			TotalItems: 0,
@@ -133,7 +133,7 @@ func (s *Store) ListPaginated(ctx context.Context, params common.PaginationParam
 	}
 
 	// Get paginated results
-	result := s.db.WithContext(ctx).
+	result := s.db.GetDB().WithContext(ctx).
 		Order("uuid").
 		Offset(params.GetOffset()).
 		Limit(params.GetLimit()).
@@ -155,7 +155,7 @@ func (s *Store) ListPaginated(ctx context.Context, params common.PaginationParam
 // Count returns the total number of users
 func (s *Store) Count(ctx context.Context) (int, error) {
 	var count int64
-	result := s.db.WithContext(ctx).Model(&entities.User{}).Count(&count)
+	result := s.db.GetDB().WithContext(ctx).Model(&entities.User{}).Count(&count)
 	if result.Error != nil {
 		return 0, fmt.Errorf("count users: %w", common.NewDatabaseError("count", "user", "", result.Error))
 	}
@@ -165,7 +165,7 @@ func (s *Store) Count(ctx context.Context) (int, error) {
 // GetByUsername retrieves a user by username
 func (s *Store) GetByUsername(ctx context.Context, username string) (*entities.User, error) {
 	var u entities.User
-	result := s.db.WithContext(ctx).Where("username = ?", username).First(&u)
+	result := s.db.GetDB().WithContext(ctx).Where("username = ?", username).First(&u)
 	if result.Error != nil {
 		if errors.Is(result.Error, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("get user by username: %w",
@@ -180,7 +180,7 @@ func (s *Store) GetByUsername(ctx context.Context, username string) (*entities.U
 // GetByRole retrieves users by role
 func (s *Store) GetByRole(ctx context.Context, role string, offset, limit int) ([]*entities.User, error) {
 	var users []*entities.User
-	result := s.db.WithContext(ctx).
+	result := s.db.GetDB().WithContext(ctx).
 		Where("role = ?", role).
 		Order("uuid").
 		Offset(offset).
@@ -195,7 +195,7 @@ func (s *Store) GetByRole(ctx context.Context, role string, offset, limit int) (
 // GetActiveUsers retrieves all active users
 func (s *Store) GetActiveUsers(ctx context.Context, offset, limit int) ([]*entities.User, error) {
 	var users []*entities.User
-	result := s.db.WithContext(ctx).
+	result := s.db.GetDB().WithContext(ctx).
 		Where("active = ?", true).
 		Order("uuid").
 		Offset(offset).
@@ -210,7 +210,7 @@ func (s *Store) GetActiveUsers(ctx context.Context, offset, limit int) ([]*entit
 // GetInactiveUsers retrieves all inactive users
 func (s *Store) GetInactiveUsers(ctx context.Context, offset, limit int) ([]*entities.User, error) {
 	var users []*entities.User
-	result := s.db.WithContext(ctx).
+	result := s.db.GetDB().WithContext(ctx).
 		Where("active = ?", false).
 		Order("uuid").
 		Offset(offset).
@@ -223,12 +223,11 @@ func (s *Store) GetInactiveUsers(ctx context.Context, offset, limit int) ([]*ent
 	return users, nil
 }
 
-// Search searches for users based on a query
+// Search searches users by name or email
 func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]*entities.User, error) {
 	var users []*entities.User
-	result := s.db.WithContext(ctx).
-		Where("username LIKE ? OR email LIKE ? OR first_name LIKE ? OR last_name LIKE ?",
-			"%"+query+"%", "%"+query+"%", "%"+query+"%", "%"+query+"%").
+	result := s.db.GetDB().WithContext(ctx).
+		Where("name LIKE ? OR email LIKE ?", "%"+query+"%", "%"+query+"%").
 		Order("uuid").
 		Offset(offset).
 		Limit(limit).

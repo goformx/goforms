@@ -46,6 +46,13 @@ type Logger interface {
 	WithUserID(userID string) Logger
 	WithError(err error) Logger
 	WithFields(fields map[string]any) Logger
+	// New Field-based API methods
+	WithFieldsStructured(fields ...Field) Logger
+	DebugWithFields(msg string, fields ...Field)
+	InfoWithFields(msg string, fields ...Field)
+	WarnWithFields(msg string, fields ...Field)
+	ErrorWithFields(msg string, fields ...Field)
+	FatalWithFields(msg string, fields ...Field)
 	SanitizeField(key string, value any) string
 }
 

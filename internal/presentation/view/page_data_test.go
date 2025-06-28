@@ -172,7 +172,7 @@ func TestBuildPageData(t *testing.T) {
 	// Create test dependencies
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Env: "development",
+			Environment: "development",
 		},
 	}
 

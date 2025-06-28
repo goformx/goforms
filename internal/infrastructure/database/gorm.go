@@ -72,7 +72,7 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	}
 
 	appLogger.Info("database connection established",
-		"driver", cfg.Database.Connection,
+		"driver", cfg.Database.Driver,
 		"host", cfg.Database.Host,
 		"port", cfg.Database.Port,
 		"max_open_conns", cfg.Database.MaxOpenConns)
@@ -119,7 +119,7 @@ func createDatabaseConnection(cfg *config.Config, gormConfig *gorm.Config) (*gor
 	var err error
 
 	// Create database connection based on the selected driver
-	switch cfg.Database.Connection {
+	switch cfg.Database.Driver {
 	case "postgres":
 		dsn := buildPostgresDSN(cfg)
 		db, err = gorm.Open(postgres.Open(dsn), gormConfig)
@@ -127,7 +127,7 @@ func createDatabaseConnection(cfg *config.Config, gormConfig *gorm.Config) (*gor
 		dsn := buildMariaDBDSN(cfg)
 		db, err = gorm.Open(mysql.Open(dsn), gormConfig)
 	default:
-		return nil, fmt.Errorf("unsupported database connection type: %s", cfg.Database.Connection)
+		return nil, fmt.Errorf("unsupported database connection type: %s", cfg.Database.Driver)
 	}
 
 	if err != nil {
@@ -144,7 +144,7 @@ func buildPostgresDSN(cfg *config.Config) string {
 		cfg.Database.Port,
 		cfg.Database.Username,
 		cfg.Database.Password,
-		cfg.Database.Database,
+		cfg.Database.Name,
 		cfg.Database.SSLMode,
 	)
 }
@@ -156,7 +156,7 @@ func buildMariaDBDSN(cfg *config.Config) string {
 		cfg.Database.Password,
 		cfg.Database.Host,
 		cfg.Database.Port,
-		cfg.Database.Database,
+		cfg.Database.Name,
 	)
 }
 

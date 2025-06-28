@@ -90,7 +90,7 @@ func setupLifecycle(params appParams) {
 			params.Logger.Info("starting application",
 				"app", params.Config.App.Name,
 				"version", versionInfo.Version,
-				"environment", params.Config.App.Env,
+				"environment", params.Config.App.Environment,
 				"build_time", versionInfo.BuildTime,
 				"git_commit", versionInfo.GitCommit,
 			)
@@ -126,7 +126,7 @@ func main() {
 	// Initialize the fx application container with all required modules and providers
 	app := fx.New(
 		// Provide configuration
-		fx.Provide(config.New),
+		fx.Provide(config.LoadFromEnv),
 		// Provide embedded filesystem
 		fx.Provide(func() embed.FS {
 			return distFS

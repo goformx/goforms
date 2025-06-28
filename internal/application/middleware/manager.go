@@ -77,7 +77,7 @@ func (m *Manager) Setup(e *echo.Echo) {
 	versionInfo := version.GetInfo()
 	m.logger.Info("setting up middleware",
 		"version", versionInfo.Version,
-		"environment", m.config.Config.App.Env)
+		"environment", m.config.Config.App.Environment)
 
 	// Set Echo's logger to use our custom logger
 	e.Logger = &EchoLogger{logger: m.logger, config: m.config}
@@ -162,7 +162,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(setupAdditionalSecurityHeadersMiddleware())
 
 	if m.config.Config.Security.CSRF.Enabled {
-		csrfMiddleware := setupCSRF(&m.config.Config.Security.CSRF, m.config.Config.App.Env == "development")
+		csrfMiddleware := setupCSRF(&m.config.Config.Security.CSRF, m.config.Config.App.Environment == "development")
 		e.Use(csrfMiddleware)
 	}
 
