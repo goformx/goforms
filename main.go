@@ -125,8 +125,6 @@ func setupLifecycle(params appParams) {
 func main() {
 	// Initialize the fx application container with all required modules and providers
 	app := fx.New(
-		// Provide configuration
-		fx.Provide(config.LoadFromEnv),
 		// Provide embedded filesystem
 		fx.Provide(func() embed.FS {
 			return distFS

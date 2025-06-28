@@ -70,7 +70,6 @@ func LoadFromEnv() (*Config, error) {
 
 	// Load Security config
 	config.Security = SecurityConfig{
-		JWTSecret: getEnvOrDefault("GOFORMS_SECURITY_JWT_SECRET", "your-secret-key"),
 		CSRF: CSRFConfig{
 			Enabled:    getEnvBool("GOFORMS_SECURITY_CSRF_ENABLED", true),
 			Secret:     getEnvOrDefault("GOFORMS_SECURITY_CSRF_SECRET", "csrf-secret"),

@@ -8,9 +8,6 @@ import (
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
-	// JWT configuration
-	JWTSecret string `json:"jwt_secret"`
-
 	// CSRF protection
 	CSRF CSRFConfig `json:"csrf"`
 
@@ -151,10 +148,6 @@ func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 // Validate validates the security configuration
 func (c *SecurityConfig) Validate() error {
 	var errs []string
-
-	if c.JWTSecret == "" {
-		errs = append(errs, "JWT secret is required")
-	}
 
 	if c.CSRF.Enabled && c.CSRF.Secret == "" {
 		errs = append(errs, "CSRF secret is required when CSRF is enabled")

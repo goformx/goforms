@@ -99,7 +99,6 @@ func (vc *ViperConfig) Load() (*Config, error) {
 
 	// Load Security config
 	config.Security = SecurityConfig{
-		JWTSecret: vc.viper.GetString("security.jwt_secret"),
 		CSRF: CSRFConfig{
 			Enabled:    vc.viper.GetBool("security.csrf.enabled"),
 			Secret:     vc.viper.GetString("security.csrf.secret"),
@@ -348,7 +347,6 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("database.conn_max_idle_time", 5*time.Minute)
 
 	// Security defaults
-	v.SetDefault("security.jwt_secret", "your-secret-key")
 	v.SetDefault("security.csrf.enabled", true)
 	v.SetDefault("security.csrf.secret", "csrf-secret")
 	v.SetDefault("security.csrf.token_name", "_token")

@@ -1,0 +1,195 @@
+# GoForms Configuration File
+# This file demonstrates Viper's YAML configuration support
+# Environment variables will override these values
+
+app:
+  name: "GoForms"
+  version: "1.0.0"
+  environment: "development"
+  debug: true
+  log_level: "debug"
+  url: "http://localhost:8090"
+  scheme: "http"
+  port: 8090
+  host: "0.0.0.0"
+  read_timeout: "5s"
+  write_timeout: "10s"
+  idle_timeout: "120s"
+  request_timeout: "30s"
+  vite_dev_host: "0.0.0.0"
+  vite_dev_port: "5173"
+
+database:
+  driver: "postgres"
+  host: "postgres"
+  port: 5432
+  name: "goforms"
+  username: "goforms"
+  password: "goforms"
+  ssl_mode: "disable"
+  max_open_conns: 25
+  max_idle_conns: 5
+  conn_max_lifetime: "5m"
+  conn_max_idle_time: "5m"
+
+security:
+  csrf:
+    enabled: true
+    secret: "hf/LRSeENwlRqRGtBljgU54+PsuKpyEp59nbjtCu+mY="
+    token_name: "_token"
+    header_name: "X-CSRF-Token"
+  cors:
+    enabled: true
+    allowed_origins:
+      - "http://localhost:5173"
+      - "http://localhost:8090"
+    allowed_methods:
+      - "GET"
+      - "POST"
+      - "PUT"
+      - "DELETE"
+      - "OPTIONS"
+    allowed_headers:
+      - "Content-Type"
+      - "Authorization"
+      - "X-CSRF-Token"
+      - "X-Requested-With"
+    exposed_headers: []
+    allow_credentials: true
+    max_age: 3600
+  rate_limit:
+    enabled: true
+    rps: 100
+    burst: 5
+  csp:
+    enabled: true
+    default_src: "'self'"
+    script_src: "'self' 'unsafe-inline'"
+    style_src: "'self' 'unsafe-inline'"
+    img_src: "'self' data: https:"
+    connect_src: "'self'"
+    font_src: "'self'"
+    object_src: "'none'"
+    media_src: "'self'"
+    frame_src: "'none'"
+    report_uri: ""
+  tls:
+    enabled: false
+    cert_file: ""
+    key_file: ""
+  encryption:
+    key: ""
+
+email:
+  host: ""
+  port: 587
+  username: ""
+  password: ""
+  from: ""
+  use_tls: true
+  use_ssl: false
+  template: "default"
+
+storage:
+  type: "local"
+  local:
+    path: "./uploads"
+  s3:
+    bucket: ""
+    region: "us-east-1"
+    access_key: ""
+    secret_key: ""
+    endpoint: ""
+  max_size: 10485760  # 10MB
+  allowed_extensions:
+    - ".jpg"
+    - ".jpeg"
+    - ".png"
+    - ".gif"
+    - ".pdf"
+    - ".doc"
+    - ".docx"
+
+cache:
+  type: "memory"
+  redis:
+    host: "localhost"
+    port: 6379
+    password: ""
+    db: 0
+  memory:
+    max_size: 1000
+  ttl: "1h"
+
+logging:
+  level: "debug"
+  format: "json"
+  output: "stdout"
+  file: "logs/app.log"
+  max_size: 100
+  max_backups: 3
+  max_age: 28
+  compress: true
+
+session:
+  type: "cookie"
+  secret: "tvQLugTOfW2FK/9u4jTxNMwuZS73iswlYLHlPbpEqow="
+  max_age: "24h"
+  domain: ""
+  path: "/"
+  secure: false
+  http_only: true
+  same_site: "lax"
+  store: "memory"
+  store_file: "storage/sessions/sessions.json"
+  cookie_name: "goforms_session"
+
+auth:
+  require_email_verification: false
+  password_min_length: 8
+  password_require_special: true
+  session_timeout: "30m"
+  max_login_attempts: 5
+  lockout_duration: "15m"
+
+form:
+  max_file_size: 10485760  # 10MB
+  allowed_file_types:
+    - "image/jpeg"
+    - "image/png"
+    - "image/gif"
+    - "application/pdf"
+  max_fields: 100
+  max_memory: 33554432  # 32MB
+  validation:
+    strict_mode: false
+    max_errors: 10
+
+api:
+  version: "v1"
+  prefix: "/api"
+  timeout: "30s"
+  max_retries: 3
+  rate_limit:
+    enabled: true
+    rps: 1000
+    burst: 2000
+
+web:
+  template_dir: "templates"
+  static_dir: "static"
+  assets_dir: "assets"
+  read_timeout: "15s"
+  write_timeout: "15s"
+  idle_timeout: "60s"
+  gzip: true
+
+user:
+  admin:
+    email: "admin@example.com"
+    password: "admin123"
+    name: "Administrator"
+  default:
+    role: "user"
+    permissions:
+      - "read" 
