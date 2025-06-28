@@ -50,15 +50,19 @@ func (c *DatabaseConfig) Validate() error {
 	if c.Host == "" {
 		errs = append(errs, "database host is required")
 	}
+
 	if c.Port <= 0 || c.Port > 65535 {
 		errs = append(errs, "database port must be between 1 and 65535")
 	}
+
 	if c.Username == "" {
 		errs = append(errs, "database username is required")
 	}
+
 	if c.Password == "" {
 		errs = append(errs, "database password is required")
 	}
+
 	if c.Name == "" {
 		errs = append(errs, "database name is required")
 	}

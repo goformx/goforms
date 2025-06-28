@@ -3,6 +3,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"os"
 	"strings"
@@ -47,7 +48,8 @@ func NewViperConfig() *ViperConfig {
 func (vc *ViperConfig) Load() (*Config, error) {
 	// Try to read config file
 	if err := vc.viper.ReadInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
 			return nil, fmt.Errorf("failed to read config file: %w", err)
 		}
 		// Config file not found, continue with environment variables only
@@ -55,7 +57,8 @@ func (vc *ViperConfig) Load() (*Config, error) {
 
 	// Load .env file if it exists
 	if err := vc.viper.MergeInConfig(); err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
+		var configFileNotFoundError viper.ConfigFileNotFoundError
+		if errors.As(err, &configFileNotFoundError) {
 			return nil, fmt.Errorf("failed to merge config: %w", err)
 		}
 	}
@@ -292,6 +295,7 @@ func (vc *ViperConfig) LoadForEnvironment(env string) (*Config, error) {
 	if _, err := os.Stat(envFile); err == nil {
 		vc.viper.SetConfigFile(envFile)
 		vc.viper.SetConfigType("env")
+
 		if err := vc.viper.MergeInConfig(); err != nil {
 			return nil, fmt.Errorf("failed to merge env config: %w", err)
 		}
@@ -467,6 +471,7 @@ func setDefaults(v *viper.Viper) {
 func NewViperConfigProvider() fx.Option {
 	return fx.Provide(func() (*Config, error) {
 		vc := NewViperConfig()
+
 		return vc.Load()
 	})
 }

@@ -53,9 +53,11 @@ func (c *Config) validateConfig() error {
 		if c.Email.Username == "" {
 			errs = append(errs, "Email username is required when email host is set")
 		}
+
 		if c.Email.Password == "" {
 			errs = append(errs, "Email password is required when email host is set")
 		}
+
 		if c.Email.From == "" {
 			errs = append(errs, "Email from address is required when email host is set")
 		}
