@@ -9,6 +9,8 @@ import (
 var Module = fx.Options(
 	// Use Viper configuration provider instead of LoadFromEnv
 	NewViperConfigProvider(),
+	// Provide configuration utilities
+	fx.Provide(NewConfigUtils),
 	fx.Provide(NewAppConfig),
 	fx.Provide(NewDatabaseConfig),
 	fx.Provide(NewSecurityConfig),

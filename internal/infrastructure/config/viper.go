@@ -140,6 +140,8 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		Encryption: EncryptionConfig{
 			Key: vc.viper.GetString("security.encryption.key"),
 		},
+		SecureCookie: vc.viper.GetBool("security.secure_cookie"),
+		Debug:        vc.viper.GetBool("security.debug"),
 	}
 
 	// Load Email config
@@ -373,6 +375,8 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("security.csp.frame_src", "'none'")
 	v.SetDefault("security.tls.enabled", false)
 	v.SetDefault("security.encryption.key", "")
+	v.SetDefault("security.secure_cookie", false)
+	v.SetDefault("security.debug", false)
 
 	// Email defaults
 	v.SetDefault("email.port", 587)
