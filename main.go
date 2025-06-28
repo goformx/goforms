@@ -130,6 +130,7 @@ func main() {
 			return distFS
 		}),
 		// Include all application modules
+		config.Module, // Config must come first as other modules depend on it
 		infrastructure.Module,
 		domain.Module,
 		application.Module,
