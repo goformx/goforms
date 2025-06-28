@@ -99,6 +99,8 @@ func TestAuthenticationCriticalFlow(t *testing.T) {
 			endpoint:       constants.PathSignup,
 			method:         "POST",
 			expectedStatus: http.StatusSeeOther,
+			description:    "Signup form must reject invalid data",
+			critical:       true,
 		},
 	}
 
