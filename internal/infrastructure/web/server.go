@@ -71,6 +71,7 @@ func (s *DevelopmentAssetServer) RegisterRoutes(e *echo.Echo) error {
 	s.logger.Info("development asset server configured",
 		"public_dir", publicDir,
 	)
+
 	return nil
 }
 
@@ -132,7 +133,9 @@ func (s *EmbeddedAssetServer) RegisterRoutes(e *echo.Echo) error {
 		if readErr != nil {
 			return c.NoContent(http.StatusNotFound)
 		}
+
 		c.Response().Header().Set("Content-Type", "text/plain")
+
 		return c.Blob(http.StatusOK, "text/plain", data)
 	})
 	e.GET("/favicon.ico", func(c echo.Context) error {
@@ -140,13 +143,16 @@ func (s *EmbeddedAssetServer) RegisterRoutes(e *echo.Echo) error {
 		if readErr != nil {
 			return c.NoContent(http.StatusNotFound)
 		}
+
 		c.Response().Header().Set("Content-Type", "image/x-icon")
+
 		return c.Blob(http.StatusOK, "image/x-icon", data)
 	})
 
 	s.logger.Info("embedded asset server configured",
 		"base_dir", "dist",
 	)
+
 	return nil
 }
 
@@ -156,6 +162,7 @@ func setupStaticFileHeaders(next echo.HandlerFunc) echo.HandlerFunc {
 		// Set security headers for static files
 		c.Response().Header().Set("X-Content-Type-Options", "nosniff")
 		c.Response().Header().Set("Cache-Control", "public, max-age=31536000")
+
 		return next(c)
 	}
 }

@@ -29,6 +29,7 @@ func (sg *SchemaGenerator) getFieldSchema(field *reflect.StructField) map[string
 	if minLen != "" {
 		fieldSchema["minLength"] = minLen
 	}
+
 	maxLen := field.Tag.Get("maxlen")
 	if maxLen != "" {
 		fieldSchema["maxLength"] = maxLen
@@ -66,6 +67,7 @@ func (sg *SchemaGenerator) GenerateValidationSchema(s any) map[string]any {
 	for i := range t.NumField() {
 		field := t.Field(i)
 		fieldName := field.Tag.Get("json")
+
 		if fieldName == "" {
 			fieldName = field.Name
 		}

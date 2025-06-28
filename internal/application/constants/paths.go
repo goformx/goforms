@@ -80,6 +80,7 @@ func (pm *PathManager) containsPath(patterns []string, path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -88,8 +89,10 @@ func (pm *PathManager) GetRequiredAccess(path string) string {
 	if pm.IsPublicPath(path) {
 		return "public"
 	}
+
 	if pm.IsAdminPath(path) {
 		return "admin"
 	}
+
 	return "authenticated" // default
 }

@@ -98,6 +98,7 @@ func (e *DomainError) Error() string {
 	if e.Err != nil {
 		return fmt.Sprintf("%s: %s (%v)", e.Code, e.Message, e.Err)
 	}
+
 	return fmt.Sprintf("%s: %s", e.Code, e.Message)
 }
 
@@ -158,6 +159,7 @@ func New(code ErrorCode, message string, err error) *DomainError {
 // WithContext adds context to the error
 func (e *DomainError) WithContext(key string, value any) *DomainError {
 	e.Context[key] = value
+
 	return e
 }
 
@@ -226,6 +228,7 @@ func IsNotFound(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -246,6 +249,7 @@ func IsValidation(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -266,6 +270,7 @@ func IsFormError(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -287,6 +292,7 @@ func IsUserError(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -308,6 +314,7 @@ func IsAuthenticationError(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -329,6 +336,7 @@ func IsSystemError(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -350,6 +358,7 @@ func IsConflictError(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }
 
@@ -371,5 +380,6 @@ func IsForbiddenError(err error) bool {
 			return false
 		}
 	}
+
 	return false
 }

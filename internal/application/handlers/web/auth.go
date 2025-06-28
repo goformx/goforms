@@ -59,6 +59,7 @@ func NewAuthHandler(
 		authService == nil || sanitizer == nil || assetManager == nil {
 		return nil, errors.New("missing required dependencies for AuthHandler")
 	}
+
 	return &AuthHandler{
 		BaseHandler:     base,
 		AuthMiddleware:  authMiddleware,
@@ -77,7 +78,6 @@ func NewAuthHandler(
 func (h *AuthHandler) Register(e *echo.Echo) {
 	// Routes are registered by RegisterHandlers function
 	// This method is required to satisfy the Handler interface
-
 	// Add a simple test endpoint to verify JSON responses work
 	api := e.Group(constants.PathAPIv1)
 	api.GET("/test", h.TestEndpoint)
@@ -96,15 +96,19 @@ func (h *AuthHandler) Login(c echo.Context) error {
 	// Force CSRF token generation
 	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
+
 	if mwcontext.IsAuthenticated(c) {
 		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
 			return fmt.Errorf("redirect to dashboard: %w", err)
 		}
+
 		return nil
 	}
+
 	if err := h.Renderer.Render(c, pages.Login(data)); err != nil {
 		return fmt.Errorf("render login page: %w", err)
 	}
+
 	return nil
 }
 
@@ -122,12 +126,15 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	email, password, err := h.RequestParser.ParseLogin(c)
 	if err != nil {
 		h.Logger.Error("failed to parse login request", "error", err)
+
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(
 				c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest,
 			)
 		}
+
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
+
 		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -136,12 +143,15 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 	_, sessionID, err := h.AuthService.Login(c.Request().Context(), email, password, c.Request().UserAgent())
 	if err != nil {
 		h.Logger.Error("login failed", "error", err)
+
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(
 				c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials,
 			)
 		}
+
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
+
 		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidCredentials)
 	}
 
@@ -152,6 +162,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			"redirect": constants.PathDashboard,
 		})
 	}
+
 	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
 
@@ -160,15 +171,19 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 	// Force CSRF token generation
 	_ = c.Get("csrf")
 	data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+
 	if mwcontext.IsAuthenticated(c) {
 		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
 			return fmt.Errorf("redirect to dashboard: %w", err)
 		}
+
 		return nil
 	}
+
 	if err := h.Renderer.Render(c, pages.Signup(data)); err != nil {
 		return fmt.Errorf("render signup page: %w", err)
 	}
+
 	return nil
 }
 
@@ -177,6 +192,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	signup, err := h.RequestParser.ParseSignup(c)
 	if err != nil {
 		h.Logger.Error("failed to parse signup request", "error", err)
+
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(
 				c,
@@ -184,7 +200,9 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 				constants.ErrMsgInvalidRequest,
 			)
 		}
+
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+
 		return h.ResponseBuilder.HTMLFormError(c, "signup", &data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -193,6 +211,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 	_, sessionID, err := h.AuthService.Signup(c.Request().Context(), signup, c.Request().UserAgent())
 	if err != nil {
 		h.Logger.Error("signup failed", "error", err)
+
 		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
 			return h.ResponseBuilder.AJAXError(
 				c,
@@ -200,7 +219,9 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 				"Unable to create account. Please try again.",
 			)
 		}
+
 		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+
 		return h.ResponseBuilder.HTMLFormError(
 			c,
 			"signup",
@@ -217,6 +238,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			"redirect": constants.PathDashboard,
 		})
 	}
+
 	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
 

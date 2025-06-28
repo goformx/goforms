@@ -122,8 +122,10 @@ func TestProductionAssetResolver(t *testing.T) {
 			result, err := resolver.ResolveAssetPath(t.Context(), tt.path)
 			if tt.expectError {
 				require.Error(t, err)
+
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})

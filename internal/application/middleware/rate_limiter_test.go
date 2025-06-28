@@ -31,6 +31,7 @@ func TestRateLimiter_BlocksAfterBurst(t *testing.T) {
 	// First request should succeed
 	req1 := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	req1.Header.Set("X-Real-IP", "192.168.1.1")
+
 	rec1 := httptest.NewRecorder()
 	e.ServeHTTP(rec1, req1)
 	assert.Equal(t, http.StatusOK, rec1.Code)
@@ -38,6 +39,7 @@ func TestRateLimiter_BlocksAfterBurst(t *testing.T) {
 	// Second request should be rate limited
 	req2 := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	req2.Header.Set("X-Real-IP", "192.168.1.1")
+
 	rec2 := httptest.NewRecorder()
 	e.ServeHTTP(rec2, req2)
 	assert.Equal(t, http.StatusTooManyRequests, rec2.Code)

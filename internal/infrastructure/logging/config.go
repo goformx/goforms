@@ -15,6 +15,7 @@ func setDefaultPaths(cfg *FactoryConfig) {
 	if len(cfg.OutputPaths) == 0 {
 		cfg.OutputPaths = []string{"stdout"}
 	}
+
 	if len(cfg.ErrorOutputPaths) == 0 {
 		cfg.ErrorOutputPaths = []string{"stderr"}
 	}
@@ -56,11 +57,13 @@ func (cfg *FactoryConfig) Validate() error {
 func isValidLogLevel(level string) bool {
 	validLevels := []string{"debug", "info", "warn", "error", "fatal"}
 	levelLower := strings.ToLower(level)
+
 	for _, valid := range validLevels {
 		if levelLower == valid {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -124,6 +127,7 @@ func createZapCore(level zapcore.Level, testCore zapcore.Core) zapcore.Core {
 	}
 
 	encoder := zapcore.NewConsoleEncoder(createEncoderConfig())
+
 	return zapcore.NewCore(
 		encoder,
 		zapcore.AddSync(os.Stdout),
@@ -152,5 +156,6 @@ func createJSONEncoder() zapcore.Encoder {
 func createProductionCore(level zapcore.Level) zapcore.Core {
 	encoder := createJSONEncoder()
 	writeSyncer := zapcore.AddSync(os.Stdout)
+
 	return zapcore.NewCore(encoder, writeSyncer, level)
 }

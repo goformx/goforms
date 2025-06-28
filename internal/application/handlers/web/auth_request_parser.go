@@ -24,22 +24,27 @@ func (p *AuthRequestParser) ParseLogin(c echo.Context) (email, password string, 
 			Email    string `json:"email"`
 			Password string `json:"password"`
 		}
+
 		if bindErr := c.Bind(&data); bindErr != nil {
 			return "", "", fmt.Errorf("failed to bind login: %w", bindErr)
 		}
+
 		email = data.Email
 		password = data.Password
 	} else {
 		email = c.FormValue("email")
 		password = c.FormValue("password")
 	}
+
 	return email, password, nil
 }
 
 // ParseSignup parses signup data from the request (JSON or form)
 func (p *AuthRequestParser) ParseSignup(c echo.Context) (user.Signup, error) {
 	contentType := c.Request().Header.Get("Content-Type")
+
 	var signup user.Signup
+
 	if contentType == "application/json" {
 		if err := c.Bind(&signup); err != nil {
 			return signup, fmt.Errorf("failed to bind signup: %w", err)
@@ -51,5 +56,6 @@ func (p *AuthRequestParser) ParseSignup(c echo.Context) (user.Signup, error) {
 			ConfirmPassword: c.FormValue("confirm_password"),
 		}
 	}
+
 	return signup, nil
 }

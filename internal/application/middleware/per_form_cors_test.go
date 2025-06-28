@@ -210,10 +210,12 @@ func TestPerFormCORS(t *testing.T) {
 
 			// Create Echo context
 			e := echo.New()
+
 			req := httptest.NewRequest(tt.method, tt.path, http.NoBody)
 			if tt.origin != "" {
 				req.Header.Set("Origin", tt.origin)
 			}
+
 			rec := httptest.NewRecorder()
 			c := e.NewContext(req, rec)
 

@@ -34,6 +34,7 @@ func (fv *FormValidator) ValidateFormID(c echo.Context) (string, error) {
 	if formID == "" {
 		return "", errors.New("form ID is required")
 	}
+
 	return formID, nil
 }
 
@@ -45,6 +46,7 @@ func (fv *FormValidator) ValidateFormData(data, schema map[string]any) error {
 			return err
 		}
 	}
+
 	return nil
 }
 

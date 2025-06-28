@@ -12,6 +12,7 @@ import (
 
 func setupTestComprehensiveValidator() *validation.ComprehensiveValidator {
 	validator := validation.NewComprehensiveValidator()
+
 	return validator
 }
 

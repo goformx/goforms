@@ -87,6 +87,7 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 func configureGormLogger(cfg *config.Config, appLogger logging.Logger) logger.Interface {
 	// Map our log levels to GORM log levels
 	var gormLogLevel logger.LogLevel
+
 	switch cfg.Database.Logging.LogLevel {
 	case "silent":
 		gormLogLevel = logger.Silent
@@ -116,6 +117,7 @@ func configureGormLogger(cfg *config.Config, appLogger logging.Logger) logger.In
 // createDatabaseConnection creates a database connection based on the configuration
 func createDatabaseConnection(cfg *config.Config, gormConfig *gorm.Config) (*gorm.DB, error) {
 	var db *gorm.DB
+
 	var err error
 
 	// Create database connection based on the selected driver
@@ -183,6 +185,7 @@ func verifyConnection(db *gorm.DB, appLogger logging.Logger) error {
 
 	if pingErr := sqlDB.Ping(); pingErr != nil {
 		appLogger.Error("failed to ping database", "error", pingErr)
+
 		return fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
@@ -198,6 +201,7 @@ func (db *GormDB) Close() error {
 
 	if closeErr := sqlDB.Close(); closeErr != nil {
 		db.logger.Error("failed to close database connection", "error", closeErr)
+
 		return fmt.Errorf("failed to close database connection: %w", closeErr)
 	}
 
@@ -228,11 +232,14 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 	if !ok {
 		query = "unknown query"
 	}
+
 	duration, ok := args[durationArgPos].(time.Duration)
 	if !ok {
 		duration = 0
 	}
+
 	rowsAffected := int64(0)
+
 	if len(args) > rowsAffectedArgPos {
 		if ra, ok := args[rowsAffectedArgPos].(int64); ok {
 			rowsAffected = ra
@@ -261,10 +268,12 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		w.logger.Debug("record not found",
 			"message", msg,
 			"error", err)
+
 		return
 	}
 
 	errorType := "database_error"
+
 	switch {
 	case errors.Is(err, gorm.ErrInvalidDB):
 		errorType = "invalid_db"
@@ -301,6 +310,7 @@ func (w *GormLogWriter) Error(msg string, err error) {
 // MonitorConnectionPool monitors the database connection pool and logs metrics
 func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 	db.logger.Debug("starting MonitorConnectionPool")
+
 	ticker := time.NewTicker(TickerDuration)
 	defer ticker.Stop()
 
@@ -308,6 +318,7 @@ func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			db.logger.Debug("MonitorConnectionPool context done")
+
 			return
 		case <-ticker.C:
 			db.logger.Debug("MonitorConnectionPool tick")
@@ -319,9 +330,11 @@ func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 // collectAndLogMetrics collects and logs database connection pool metrics
 func (db *GormDB) collectAndLogMetrics() {
 	db.logger.Debug("collectAndLogMetrics called")
+
 	sqlDB, err := db.DB.DB()
 	if err != nil {
 		db.logger.Error("failed to get database instance", map[string]any{"error": err})
+
 		return
 	}
 

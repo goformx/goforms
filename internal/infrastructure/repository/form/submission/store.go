@@ -35,6 +35,7 @@ func (s *Store) Create(ctx context.Context, submission *model.FormSubmission) er
 	if err := s.db.GetDB().WithContext(ctx).Create(submission).Error; err != nil {
 		return fmt.Errorf("failed to create form submission: %w", err)
 	}
+
 	return nil
 }
 
@@ -45,8 +46,10 @@ func (s *Store) GetByID(ctx context.Context, id string) (*model.FormSubmission, 
 		if errors.Is(err, gorm.ErrRecordNotFound) {
 			return nil, fmt.Errorf("form submission not found: %s", id)
 		}
+
 		return nil, fmt.Errorf("failed to get form submission: %w", err)
 	}
+
 	return &submission, nil
 }
 
@@ -56,6 +59,7 @@ func (s *Store) GetByFormID(ctx context.Context, formID string) ([]*model.FormSu
 	if err := s.db.GetDB().WithContext(ctx).Where("form_id = ?", formID).Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get form submissions: %w", err)
 	}
+
 	return submissions, nil
 }
 
@@ -64,6 +68,7 @@ func (s *Store) Update(ctx context.Context, submission *model.FormSubmission) er
 	if err := s.db.GetDB().WithContext(ctx).Save(submission).Error; err != nil {
 		return fmt.Errorf("failed to update form submission: %w", err)
 	}
+
 	return nil
 }
 
@@ -72,6 +77,7 @@ func (s *Store) Delete(ctx context.Context, id string) error {
 	if err := s.db.GetDB().WithContext(ctx).Where("id = ?", id).Delete(&model.FormSubmission{}).Error; err != nil {
 		return fmt.Errorf("failed to delete form submission: %w", err)
 	}
+
 	return nil
 }
 
@@ -81,6 +87,7 @@ func (s *Store) List(ctx context.Context, offset, limit int) ([]*model.FormSubmi
 	if err := s.db.GetDB().WithContext(ctx).Offset(offset).Limit(limit).Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to list form submissions: %w", err)
 	}
+
 	return submissions, nil
 }
 
@@ -123,6 +130,7 @@ func (s *Store) GetByFormIDPaginated(
 	params common.PaginationParams,
 ) (*common.PaginationResult, error) {
 	var submissions []*model.FormSubmission
+
 	var total int64
 
 	// Count total submissions for this form
@@ -153,6 +161,7 @@ func (s *Store) CountByFormID(ctx context.Context, formID string) (int64, error)
 		Where("form_id = ?", formID).Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to count form submissions: %w", err)
 	}
+
 	return count, nil
 }
 
@@ -192,12 +201,14 @@ func (s *Store) GetByStatus(ctx context.Context, status model.SubmissionStatus) 
 	if err := s.db.GetDB().WithContext(ctx).Where("status = ?", status).Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get form submissions by status: %w", err)
 	}
+
 	return submissions, nil
 }
 
 // GetActiveSubmissions retrieves active submissions (not deleted)
 func (s *Store) GetActiveSubmissions(ctx context.Context, active bool) ([]*model.FormSubmission, error) {
 	var submissions []*model.FormSubmission
+
 	query := s.db.GetDB().WithContext(ctx)
 
 	if active {
@@ -209,12 +220,14 @@ func (s *Store) GetActiveSubmissions(ctx context.Context, active bool) ([]*model
 	if err := query.Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get active form submissions: %w", err)
 	}
+
 	return submissions, nil
 }
 
 // Search searches submissions by query
 func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]*model.FormSubmission, error) {
 	var submissions []*model.FormSubmission
+
 	searchQuery := "%" + query + "%"
 
 	if err := s.db.GetDB().WithContext(ctx).
@@ -224,6 +237,7 @@ func (s *Store) Search(ctx context.Context, query string, offset, limit int) ([]
 		Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to search form submissions: %w", err)
 	}
+
 	return submissions, nil
 }
 
@@ -237,6 +251,7 @@ func (s *Store) UpdateStatus(
 		Where("id = ?", id).Update("status", status).Error; err != nil {
 		return fmt.Errorf("failed to update submission status: %w", err)
 	}
+
 	return nil
 }
 
@@ -246,6 +261,7 @@ func (s *Store) Count(ctx context.Context) (int, error) {
 	if err := s.db.GetDB().WithContext(ctx).Model(&model.FormSubmission{}).Count(&count).Error; err != nil {
 		return 0, fmt.Errorf("failed to count form submissions: %w", err)
 	}
+
 	return int(count), nil
 }
 
@@ -276,6 +292,7 @@ func (s *Store) GetSubmissionsByStatus(
 	params common.PaginationParams,
 ) (*common.PaginationResult, error) {
 	var submissions []*model.FormSubmission
+
 	var total int64
 
 	// Count total submissions with this status

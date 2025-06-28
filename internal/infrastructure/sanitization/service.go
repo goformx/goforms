@@ -55,6 +55,7 @@ func (s *Service) Domain(input string) (string, error) {
 	if err != nil {
 		return "", fmt.Errorf("sanitize domain: %w", err)
 	}
+
 	return domain, nil
 }
 
@@ -96,6 +97,7 @@ func (s *Service) XML(input string) string {
 // TrimAndSanitize trims whitespace and sanitizes a string
 func (s *Service) TrimAndSanitize(input string) string {
 	trimmed := strings.TrimSpace(input)
+
 	return s.HTML(trimmed)
 }
 
@@ -204,6 +206,7 @@ func (s *Service) sanitizeMapField(field reflect.Value) {
 		for iter.Next() {
 			key := iter.Key()
 			value := iter.Value()
+
 			if value.Kind() == reflect.String {
 				field.SetMapIndex(key, reflect.ValueOf(s.String(value.String())))
 			}
@@ -235,6 +238,7 @@ func (s *Service) SanitizeStruct(obj any) {
 // SanitizeFormData sanitizes form data based on field types
 func (s *Service) SanitizeFormData(data, fieldTypes map[string]string) map[string]string {
 	result := make(map[string]string)
+
 	for key, value := range data {
 		fieldType, exists := fieldTypes[key]
 		if !exists {
@@ -256,6 +260,7 @@ func (s *Service) SanitizeFormData(data, fieldTypes map[string]string) map[strin
 			result[key] = s.TrimAndSanitize(value)
 		}
 	}
+
 	return result
 }
 
@@ -269,12 +274,14 @@ func (s *Service) SanitizeJSON(data any) any {
 		for key, value := range v {
 			sanitized[key] = s.SanitizeJSON(value)
 		}
+
 		return sanitized
 	case []any:
 		sanitized := make([]any, len(v))
 		for i, value := range v {
 			sanitized[i] = s.SanitizeJSON(value)
 		}
+
 		return sanitized
 	default:
 		return data

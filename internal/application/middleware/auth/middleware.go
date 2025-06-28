@@ -46,6 +46,7 @@ func (am *Middleware) RequireAuth(next echo.HandlerFunc) echo.HandlerFunc {
 
 		// Store user in context for downstream handlers
 		c.Set("user", userEntity)
+
 		return next(c)
 	}
 }
@@ -60,6 +61,7 @@ func (am *Middleware) OptionalAuth(next echo.HandlerFunc) echo.HandlerFunc {
 				c.Set("user", userEntity)
 			}
 		}
+
 		return next(c)
 	}
 }
@@ -67,6 +69,7 @@ func (am *Middleware) OptionalAuth(next echo.HandlerFunc) echo.HandlerFunc {
 // GetUserFromContext safely retrieves user from context
 func (am *Middleware) GetUserFromContext(c echo.Context) (*entities.User, bool) {
 	userEntity, ok := c.Get("user").(*entities.User)
+
 	return userEntity, ok
 }
 
@@ -77,8 +80,10 @@ func (am *Middleware) RedirectIfAuthenticated(c echo.Context, redirectPath strin
 		if redirectErr := c.Redirect(http.StatusFound, redirectPath); redirectErr != nil {
 			return fmt.Errorf("redirect authenticated user: %w", redirectErr)
 		}
+
 		return nil
 	}
+
 	return nil
 }
 
@@ -90,15 +95,18 @@ func (am *Middleware) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 		if redirectErr := c.Redirect(http.StatusSeeOther, constants.PathLogin); redirectErr != nil {
 			return nil, fmt.Errorf("redirect to login: %w", redirectErr)
 		}
+
 		return nil, nil
 	}
 
 	userEntity, err := am.userService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userEntity == nil {
 		am.logger.Error("failed to get user", "error", err)
+
 		if handleErr := am.errorHandler.HandleError(err, c, "Failed to get user"); handleErr != nil {
 			return nil, fmt.Errorf("handle authentication error: %w", handleErr)
 		}
+
 		return nil, nil
 	}
 

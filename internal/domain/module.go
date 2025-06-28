@@ -37,9 +37,11 @@ func NewUserService(p UserServiceParams) (user.Service, error) {
 	if p.Repo == nil {
 		return nil, errors.New("user repository is required")
 	}
+
 	if p.Logger == nil {
 		return nil, errors.New("logger is required")
 	}
+
 	return user.NewService(p.Repo, p.Logger), nil
 }
 
@@ -57,12 +59,15 @@ func NewFormService(p FormServiceParams) (form.Service, error) {
 	if p.Repository == nil {
 		return nil, errors.New("form repository is required")
 	}
+
 	if p.EventBus == nil {
 		return nil, errors.New("event bus is required")
 	}
+
 	if p.Logger == nil {
 		return nil, errors.New("logger is required")
 	}
+
 	return form.NewService(p.Repository, p.EventBus, p.Logger), nil
 }
 
@@ -86,6 +91,7 @@ func NewStores(p StoreParams) (Stores, error) {
 	if p.DB == nil {
 		return Stores{}, errors.New("database connection is required")
 	}
+
 	if p.Logger == nil {
 		return Stores{}, errors.New("logger is required")
 	}
@@ -102,6 +108,7 @@ func NewStores(p StoreParams) (Stores, error) {
 			"repository_type", "user/form/submission",
 			"error_type", "nil_repository",
 		)
+
 		return Stores{}, errors.New("failed to create repository: one or more repositories are nil")
 	}
 

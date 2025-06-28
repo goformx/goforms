@@ -16,10 +16,12 @@ func (a *StringArray) Value() (driver.Value, error) {
 	if a == nil {
 		return "[]", nil
 	}
+
 	data, err := json.Marshal(*a)
 	if err != nil {
 		return nil, fmt.Errorf("marshal string array: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -27,6 +29,7 @@ func (a *StringArray) Value() (driver.Value, error) {
 func (a *StringArray) Scan(src any) error {
 	if src == nil {
 		*a = []string{}
+
 		return nil
 	}
 
@@ -35,11 +38,13 @@ func (a *StringArray) Scan(src any) error {
 		if err := json.Unmarshal(v, a); err != nil {
 			return fmt.Errorf("unmarshal string array from bytes: %w", err)
 		}
+
 		return nil
 	case string:
 		if err := json.Unmarshal([]byte(v), a); err != nil {
 			return fmt.Errorf("unmarshal string array from string: %w", err)
 		}
+
 		return nil
 	default:
 		return fmt.Errorf("cannot scan %T into StringArray", src)
@@ -52,6 +57,7 @@ func (a *StringArray) MarshalJSON() ([]byte, error) {
 	if err != nil {
 		return nil, fmt.Errorf("marshal string array to JSON: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -61,6 +67,8 @@ func (a *StringArray) UnmarshalJSON(data []byte) error {
 	if err := json.Unmarshal(data, &arr); err != nil {
 		return fmt.Errorf("unmarshal JSON to string array: %w", err)
 	}
+
 	*a = arr
+
 	return nil
 }

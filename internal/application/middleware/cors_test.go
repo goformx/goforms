@@ -30,6 +30,7 @@ func TestCORS_AllowOrigin(t *testing.T) {
 
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 	req.Header.Set("Origin", "https://example.com")
+
 	rec := httptest.NewRecorder()
 
 	e.ServeHTTP(rec, req)

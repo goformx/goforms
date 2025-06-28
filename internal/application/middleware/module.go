@@ -33,6 +33,7 @@ var Module = fx.Options(
 					AdminPaths:    pathManager.AdminPaths,
 				}
 				rules := generateAccessRules(pathManager)
+
 				return access.NewManager(config, rules)
 			},
 		),
@@ -52,6 +53,7 @@ var Module = fx.Options(
 					PublicPaths:   pathManager.PublicPaths,
 					StaticPaths:   pathManager.StaticPaths,
 				}
+
 				return session.NewManager(logger, sessionConfig, lc, accessManager)
 			},
 		),

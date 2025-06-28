@@ -19,9 +19,11 @@ func TestManager_SetsCSPHeader(t *testing.T) {
 			Directives: "default-src 'self'; script-src 'self';",
 		},
 	}
+
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Response().Header().Set("Content-Security-Policy", cfg.CSP.Directives)
+
 			return next(c)
 		}
 	})

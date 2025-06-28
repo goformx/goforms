@@ -44,6 +44,7 @@ func (p *MemoryPublisher) WithMaxEvents(maxEvents int) *MemoryPublisher {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 	p.maxEvents = maxEvents
+
 	return p
 }
 
@@ -99,6 +100,7 @@ func (p *MemoryPublisher) Subscribe(
 	}
 
 	p.handlers[eventName] = append(p.handlers[eventName], handler)
+
 	return nil
 }
 
@@ -109,6 +111,7 @@ func (p *MemoryPublisher) GetEvents() []event.Event {
 
 	events := make([]event.Event, len(p.events))
 	copy(events, p.events)
+
 	return events
 }
 

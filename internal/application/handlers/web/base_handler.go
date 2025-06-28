@@ -65,6 +65,7 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 	userEntity, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userEntity == nil {
 		h.Logger.Error("failed to get user", "error", err)
+
 		return nil, h.HandleError(c, err, "Failed to get user")
 	}
 
@@ -82,6 +83,7 @@ func (h *BaseHandler) HandleError(c echo.Context, err error, message string) err
 	if handleErr := h.ErrorHandler.HandleError(err, c, message); handleErr != nil {
 		return fmt.Errorf("handle error: %w", handleErr)
 	}
+
 	return nil
 }
 
@@ -90,6 +92,7 @@ func (h *BaseHandler) HandleNotFound(c echo.Context, message string) error {
 	if notFoundErr := h.ErrorHandler.HandleNotFoundError(message, c); notFoundErr != nil {
 		return fmt.Errorf("handle not found error: %w", notFoundErr)
 	}
+
 	return nil
 }
 
@@ -100,6 +103,7 @@ func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
 	); forbiddenErr != nil {
 		return fmt.Errorf("handle forbidden error: %w", forbiddenErr)
 	}
+
 	return nil
 }
 

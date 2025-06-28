@@ -298,6 +298,7 @@ func TestService_SanitizeJSON(t *testing.T) {
 	require.True(t, ok, "expected tags to be []any")
 	assert.Equal(t, "tag1", tags[0])
 	assert.Equal(t, "tag2", tags[1])
+
 	nested, ok := result["nested"].(map[string]any)
 	require.True(t, ok, "expected nested to be map[string]any")
 	assert.Equal(t, "Test Title", nested["title"])

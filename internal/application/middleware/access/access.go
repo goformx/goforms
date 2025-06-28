@@ -186,6 +186,7 @@ func (c *Config) Validate() error {
 	if c.DefaultAccess < Public || c.DefaultAccess > Admin {
 		return errors.New(errors.ErrCodeValidation, "invalid default access level", nil)
 	}
+
 	return nil
 }
 

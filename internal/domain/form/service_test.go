@@ -46,11 +46,13 @@ func TestService_CreateForm_minimal(t *testing.T) {
 	repo.EXPECT().CreateForm(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, f *model.Form) error {
 		require.Equal(t, userID, f.UserID)
 		require.True(t, f.Active)
+
 		return nil
 	})
 	eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).Return(nil)
 
 	svc := domainform.NewService(repo, eventBus, logger)
+
 	ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 	defer cancel()
 
@@ -108,28 +110,33 @@ func TestService_SubmitForm(t *testing.T) {
 			require.Equal(t, form.ID, s.FormID)
 			require.Equal(t, model.SubmissionStatusPending, s.Status)
 			require.NotEmpty(t, s.Data)
+
 			return nil
 		})
 
 		// Expect form submitted event
 		eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, event events.Event) error {
 			require.Equal(t, "form.submitted", event.Name())
+
 			return nil
 		})
 
 		// Expect form validated event
 		eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, event events.Event) error {
 			require.Equal(t, "form.validated", event.Name())
+
 			return nil
 		})
 
 		// Expect form processed event
 		eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, event events.Event) error {
 			require.Equal(t, "form.processed", event.Name())
+
 			return nil
 		})
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
 
@@ -142,6 +149,7 @@ func TestService_SubmitForm(t *testing.T) {
 		repo.EXPECT().GetFormByID(gomock.Any(), form.ID).Return(nil, nil)
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
 
@@ -157,6 +165,7 @@ func TestService_SubmitForm(t *testing.T) {
 		}
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
 
@@ -171,6 +180,7 @@ func TestService_SubmitForm(t *testing.T) {
 		repo.EXPECT().CreateSubmission(gomock.Any(), gomock.Any()).Return(errors.New("database error"))
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
 

@@ -68,6 +68,7 @@ func setupHandlers(
 
 	// Use the RegisterHandlers function to properly register routes with access control
 	web.RegisterHandlers(e, handlers, accessManager, logger)
+
 	return nil
 }
 
@@ -76,6 +77,7 @@ func setupHandlers(
 // Note: params is passed by value, not as a pointer
 func setupApplication(params appParams) error {
 	params.MiddlewareManager.Setup(params.Echo)
+
 	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
 }
 
@@ -114,6 +116,7 @@ func setupLifecycle(params appParams) {
 				"build_time", versionInfo.BuildTime,
 				"git_commit", versionInfo.GitCommit,
 			)
+
 			return nil
 		},
 	})

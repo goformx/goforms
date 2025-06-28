@@ -69,6 +69,7 @@ func (s *FormService) GetFormSubmissions(ctx context.Context, formID string) ([]
 	if err != nil {
 		return nil, fmt.Errorf("list form submissions: %w", err)
 	}
+
 	return submissions, nil
 }
 
@@ -86,13 +87,17 @@ func parseCSV(input string) []string {
 	if input == "" {
 		return []string{} // Return empty slice instead of nil
 	}
+
 	parts := strings.Split(input, ",")
+
 	var result []string
+
 	for _, part := range parts {
 		trimmed := strings.TrimSpace(part)
 		if trimmed != "" {
 			result = append(result, trimmed)
 		}
 	}
+
 	return result
 }

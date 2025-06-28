@@ -63,6 +63,7 @@ func (h *PageHandler) handleHome(c echo.Context) error {
 	if renderErr := h.Renderer.Render(c, pages.Home(data)); renderErr != nil {
 		return h.HandleError(c, renderErr, "Failed to render home page")
 	}
+
 	return nil
 }
 

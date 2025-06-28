@@ -62,6 +62,7 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 		if sm.isPublicPath(path) {
 			return next(c)
 		}
+
 		return sm.handleAuthError(c, "no session found")
 	}
 
@@ -72,6 +73,7 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 		if sm.isPublicPath(path) {
 			return next(c)
 		}
+
 		return sm.handleAuthError(c, "invalid session")
 	}
 
@@ -82,6 +84,7 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 		if sm.isPublicPath(path) {
 			return next(c)
 		}
+
 		return sm.handleAuthError(c, "session expired")
 	}
 
@@ -198,6 +201,7 @@ func (sm *Manager) handleAuthError(c echo.Context, message string) error {
 	// Check if user has a valid session
 	cookie, err := c.Cookie(sm.cookieName)
 	hasValidSession := false
+
 	if err == nil {
 		if session, exists := sm.GetSession(cookie.Value); exists && time.Now().Before(session.ExpiresAt) {
 			hasValidSession = true

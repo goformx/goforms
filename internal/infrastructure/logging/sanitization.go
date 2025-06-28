@@ -64,6 +64,7 @@ func (s *Sanitizer) sanitizeString(key, value string) string {
 
 	// Cache the result
 	s.cache[cacheKey] = sanitized
+
 	return sanitized
 }
 
@@ -119,6 +120,7 @@ func (s *Sanitizer) sanitizeUUID(value string) string {
 		// Standard UUID format: mask middle part
 		return value[:8] + "..." + value[len(value)-4:]
 	}
+
 	return value
 }
 
@@ -127,6 +129,7 @@ func (s *Sanitizer) sanitizeErrorString(value string) string {
 	if value == "" {
 		return ""
 	}
+
 	return sanitize.SingleLine(value)
 }
 
@@ -135,6 +138,7 @@ func (s *Sanitizer) sanitizeError(err error) string {
 	if err == nil {
 		return ""
 	}
+
 	return s.sanitizeErrorString(err.Error())
 }
 

@@ -48,18 +48,22 @@ func (u *User) BeforeCreate(_ *gorm.DB) error {
 	if u.ID == "" {
 		u.ID = uuid.New().String()
 	}
+
 	if u.Role == "" {
 		u.Role = "user"
 	}
+
 	if !u.Active {
 		u.Active = true
 	}
+
 	return nil
 }
 
 // BeforeUpdate is a GORM hook that runs before updating a user
 func (u *User) BeforeUpdate(_ *gorm.DB) error {
 	u.UpdatedAt = time.Now()
+
 	return nil
 }
 
@@ -72,6 +76,7 @@ func (u *User) AfterFind(_ *gorm.DB) error {
 			return fmt.Errorf("invalid UUID format: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -80,6 +85,7 @@ func NewUser(email, password, firstName, lastName string) (*User, error) {
 	if email == "" {
 		return nil, ErrInvalidEmail
 	}
+
 	if len(password) < MinPasswordLength {
 		return nil, ErrInvalidPassword
 	}
@@ -129,12 +135,14 @@ func (u *User) SetPassword(password string) error {
 	}
 
 	u.HashedPassword = string(hashedPassword)
+
 	return nil
 }
 
 // CheckPassword verifies if the provided password matches the user's hashed password
 func (u *User) CheckPassword(password string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(u.HashedPassword), []byte(password))
+
 	return err == nil
 }
 
@@ -183,5 +191,6 @@ func (u *User) ValidatePassword(password string) error {
 	if len(password) < MinPasswordLength {
 		return ErrInvalidPassword
 	}
+
 	return nil
 }

@@ -114,6 +114,7 @@ func (f Field) ToZapField() zap.Field {
 		if err, ok := f.Value.(error); ok {
 			return zap.Error(err)
 		}
+
 		return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
 	case UUIDFieldType:
 		return zap.String(f.Key, maskUUID(f.Value.(string)))
@@ -136,6 +137,7 @@ func maskUUID(value string) string {
 		// Standard UUID format: mask middle part
 		return value[:8] + "..." + value[len(value)-4:]
 	}
+
 	return value
 }
 
@@ -215,6 +217,7 @@ func isSensitiveKey(key string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -226,6 +229,7 @@ func SensitiveField(key string, value any) zap.Field {
 	if isSensitiveKey(key) {
 		return zap.String(key, "****")
 	}
+
 	return zap.Any(key, value)
 }
 
@@ -234,6 +238,7 @@ func Sanitized(key, value string) zap.Field {
 	if isSensitiveKey(key) {
 		return zap.String(key, "****")
 	}
+
 	return zap.String(key, sanitize.SingleLine(value))
 }
 
@@ -242,6 +247,7 @@ func SafeString(key, value string) zap.Field {
 	if isSensitiveKey(key) {
 		return zap.String(key, "****")
 	}
+
 	return zap.String(key, value)
 }
 
@@ -266,6 +272,7 @@ func CustomField(key string, value any, sanitizer func(any) string) zap.Field {
 	}
 
 	sanitizedValue := sanitizer(value)
+
 	return zap.String(key, sanitizedValue)
 }
 
@@ -283,6 +290,7 @@ func MaskedField(key, value, mask string) zap.Field {
 
 	// For longer values, show first 2 and last 2 characters with mask in middle
 	maskedValue := value[:2] + mask + value[len(value)-2:]
+
 	return zap.String(key, maskedValue)
 }
 
@@ -307,6 +315,7 @@ func ObjectField(key string, obj any) zap.Field {
 
 	// Convert object to string and sanitize
 	objStr := fmt.Sprintf("%v", obj)
+
 	return zap.String(key, sanitize.SingleLine(objStr))
 }
 
@@ -326,12 +335,14 @@ func NewSensitiveObject(key string, value any) SensitiveObject {
 func (s SensitiveObject) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	if isSensitiveKey(s.key) {
 		enc.AddString(s.key, "****")
+
 		return nil
 	}
 
 	// For non-sensitive objects, add as string
 	objStr := fmt.Sprintf("%v", s.value)
 	enc.AddString(s.key, sanitize.SingleLine(objStr))
+
 	return nil
 }
 

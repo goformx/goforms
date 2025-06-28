@@ -67,10 +67,12 @@ func TestMemoryPublisher(t *testing.T) {
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
+
 		handlerCalled := false
 
 		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			handlerCalled = true
+
 			return nil
 		})
 		require.NoError(t, err)
@@ -114,17 +116,20 @@ func TestMemoryPublisher(t *testing.T) {
 		mockEvent.EXPECT().Name().Return("test.event").AnyTimes()
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
+
 		handler1Called := false
 		handler2Called := false
 
 		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			handler1Called = true
+
 			return nil
 		})
 		require.NoError(t, err)
 
 		err = publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			handler2Called = true
+
 			return nil
 		})
 		require.NoError(t, err)
@@ -177,7 +182,9 @@ func TestMemoryPublisher(t *testing.T) {
 		if len(events1) > 0 {
 			// This should not affect events2 if they are truly separate copies
 			originalLen := len(events2)
+
 			_ = append(events1, nil) // Modify events1 but don't assign back
+
 			assert.Len(t, events2, originalLen, "modifying events1 should not affect events2")
 		}
 	})
@@ -230,11 +237,14 @@ func TestMemoryEventBus(t *testing.T) {
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 		mockEvent.EXPECT().Metadata().Return(map[string]any{}).AnyTimes()
+
 		handlerCalled := false
 
 		err := eventBus.Subscribe(context.Background(), "test.event", func(_ context.Context, evt commonevents.Event) error {
 			handlerCalled = true
+
 			assert.Equal(t, mockEvent, evt)
+
 			return nil
 		})
 		require.NoError(t, err)
@@ -268,17 +278,20 @@ func TestMemoryEventBus(t *testing.T) {
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 		mockEvent.EXPECT().Metadata().Return(map[string]any{}).AnyTimes()
+
 		handler1Called := false
 		handler2Called := false
 
 		err := eventBus.Subscribe(context.Background(), "test.event", func(_ context.Context, evt commonevents.Event) error {
 			handler1Called = true
+
 			return nil
 		})
 		require.NoError(t, err)
 
 		err = eventBus.Subscribe(context.Background(), "test.event", func(_ context.Context, evt commonevents.Event) error {
 			handler2Called = true
+
 			return nil
 		})
 		require.NoError(t, err)
@@ -296,10 +309,12 @@ func TestMemoryEventBus(t *testing.T) {
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 		mockEvent.EXPECT().Metadata().Return(map[string]any{}).AnyTimes()
+
 		handlerCalled := false
 
 		err := eventBus.Subscribe(context.Background(), "test.event", func(_ context.Context, evt commonevents.Event) error {
 			handlerCalled = true
+
 			return nil
 		})
 		require.NoError(t, err)
@@ -347,10 +362,12 @@ func TestMemoryEventBus(t *testing.T) {
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 		mockEvent.EXPECT().Metadata().Return(map[string]any{}).AnyTimes()
+
 		handlerCalled := make(chan bool, 10)
 
 		err := eventBus.Subscribe(context.Background(), "test.event", func(_ context.Context, evt commonevents.Event) error {
 			handlerCalled <- true
+
 			return nil
 		})
 		require.NoError(t, err)
@@ -372,6 +389,7 @@ func TestMemoryEventBus(t *testing.T) {
 		for range handlerCalled {
 			count++
 		}
+
 		assert.Equal(t, 5, count)
 	})
 }

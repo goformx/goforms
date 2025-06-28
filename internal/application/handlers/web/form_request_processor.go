@@ -129,12 +129,15 @@ func (p *FormRequestProcessorImpl) validateUpdateRequest(req *FormUpdateRequest)
 	if req.Status != "" {
 		validStatuses := []string{"draft", "published", "archived"}
 		isValid := false
+
 		for _, status := range validStatuses {
 			if req.Status == status {
 				isValid = true
+
 				break
 			}
 		}
+
 		if !isValid {
 			return errors.New("invalid form status")
 		}

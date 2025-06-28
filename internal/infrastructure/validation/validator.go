@@ -59,6 +59,7 @@ func getFieldName(e validator.FieldError) string {
 	if field == "" {
 		return e.StructField()
 	}
+
 	return field
 }
 
@@ -111,6 +112,7 @@ func New() (interfaces.Validator, error) {
 		if name == "-" {
 			return ""
 		}
+
 		return name
 	})
 
@@ -118,15 +120,19 @@ func New() (interfaces.Validator, error) {
 	if err := v.RegisterValidation("url", validateURL); err != nil {
 		return nil, fmt.Errorf("failed to register url validation: %w", err)
 	}
+
 	if err := v.RegisterValidation("phone", validatePhone); err != nil {
 		return nil, fmt.Errorf("failed to register phone validation: %w", err)
 	}
+
 	if err := v.RegisterValidation("password", validatePassword); err != nil {
 		return nil, fmt.Errorf("failed to register password validation: %w", err)
 	}
+
 	if err := v.RegisterValidation("date", validateDate); err != nil {
 		return nil, fmt.Errorf("failed to register date validation: %w", err)
 	}
+
 	if err := v.RegisterValidation("datetime", validateDateTime); err != nil {
 		return nil, fmt.Errorf("failed to register datetime validation: %w", err)
 	}
@@ -140,7 +146,9 @@ func validateURL(fl validator.FieldLevel) bool {
 	if urlStr == "" {
 		return true // Empty URLs are handled by required tag
 	}
+
 	_, err := url.ParseRequestURI(urlStr)
+
 	return err == nil
 }
 
@@ -150,6 +158,7 @@ func validatePhone(fl validator.FieldLevel) bool {
 	if phone == "" {
 		return true // Empty phone numbers are handled by required tag
 	}
+
 	return phonePattern.MatchString(phone)
 }
 
@@ -180,7 +189,9 @@ func validateDate(fl validator.FieldLevel) bool {
 	if dateStr == "" {
 		return true // Empty dates are handled by required tag
 	}
+
 	_, err := time.Parse("2006-01-02", dateStr)
+
 	return err == nil
 }
 
@@ -190,7 +201,9 @@ func validateDateTime(fl validator.FieldLevel) bool {
 	if datetimeStr == "" {
 		return true // Empty datetimes are handled by required tag
 	}
+
 	_, err := time.Parse("2006-01-02 15:04:05", datetimeStr)
+
 	return err == nil
 }
 
@@ -204,6 +217,7 @@ func (v *validatorImpl) Struct(i any) error {
 		if cachedErr, isErr := cached.(error); isErr && cachedErr != nil {
 			return cachedErr
 		}
+
 		return nil
 	}
 
@@ -219,6 +233,7 @@ func (v *validatorImpl) Struct(i any) error {
 					Value:   e.Value(),
 				}
 			}
+
 			err = domainerrors.New(
 				domainerrors.ErrCodeValidation,
 				"validation failed",
@@ -227,11 +242,13 @@ func (v *validatorImpl) Struct(i any) error {
 		}
 		// Cache the error
 		v.cache.Store(cacheKey, err)
+
 		return err
 	}
 
 	// Cache successful validation
 	v.cache.Store(cacheKey, nil)
+
 	return nil
 }
 
@@ -240,6 +257,7 @@ func (v *validatorImpl) Var(i any, tag string) error {
 	if err := v.validate.Var(i, tag); err != nil {
 		return fmt.Errorf("validate variable: %w", err)
 	}
+
 	return nil
 }
 
@@ -248,6 +266,7 @@ func (v *validatorImpl) RegisterValidation(tag string, fn func(fl validator.Fiel
 	if err := v.validate.RegisterValidation(tag, fn); err != nil {
 		return fmt.Errorf("register validation: %w", err)
 	}
+
 	return nil
 }
 
@@ -256,12 +275,14 @@ func (v *validatorImpl) RegisterCrossFieldValidation(tag string, fn func(fl vali
 	if err := v.validate.RegisterValidation(tag, fn); err != nil {
 		return fmt.Errorf("register cross-field validation: %w", err)
 	}
+
 	return nil
 }
 
 // RegisterStructValidation registers a struct validation function
 func (v *validatorImpl) RegisterStructValidation(fn func(sl validator.StructLevel), types any) error {
 	v.validate.RegisterStructValidation(fn, types)
+
 	return nil
 }
 
@@ -276,6 +297,7 @@ func (v *validatorImpl) GetErrors(err error) map[string]string {
 	for _, e := range ve {
 		validationErrors[getFieldName(e)] = getErrorMessage(e)
 	}
+
 	return validationErrors
 }
 

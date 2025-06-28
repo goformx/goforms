@@ -71,6 +71,7 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(_ context.Context, path stri
 	viteURL := fmt.Sprintf("%s://localhost:%s", r.config.App.Scheme, r.config.App.ViteDevPort)
 
 	var resolvedPath string
+
 	switch {
 	case strings.HasPrefix(path, "@vite/") || strings.HasPrefix(path, "@fs/") || strings.HasPrefix(path, "@id/"):
 		// Vite-specific paths
@@ -129,5 +130,6 @@ func loadManifestFromFS(distFS embed.FS, logger logging.Logger) (Manifest, error
 	logger.Info("manifest loaded successfully",
 		"entries", len(manifest),
 	)
+
 	return manifest, nil
 }

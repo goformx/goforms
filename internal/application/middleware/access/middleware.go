@@ -33,6 +33,7 @@ func Middleware(manager *Manager, _ logging.Logger) echo.MiddlewareFunc {
 				if !context.IsAuthenticated(c) {
 					return c.Redirect(http.StatusSeeOther, constants.PathLogin)
 				}
+
 				return next(c)
 
 			case Admin:
@@ -44,6 +45,7 @@ func Middleware(manager *Manager, _ logging.Logger) echo.MiddlewareFunc {
 				if !context.IsAdmin(c) {
 					return response.ErrorResponse(c, http.StatusForbidden, "Admin access required")
 				}
+
 				return next(c)
 
 			default:
@@ -51,6 +53,7 @@ func Middleware(manager *Manager, _ logging.Logger) echo.MiddlewareFunc {
 				if !context.IsAuthenticated(c) {
 					return c.Redirect(http.StatusSeeOther, constants.PathLogin)
 				}
+
 				return next(c)
 			}
 		}

@@ -41,6 +41,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	if !ok {
 		// This should not happen if auth middleware is working correctly
 		h.Logger.Error("user not found in context despite authentication")
+
 		return fmt.Errorf("redirect to login: %w", c.Redirect(http.StatusSeeOther, constants.PathLogin))
 	}
 
@@ -48,6 +49,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	forms, err := h.FormService.ListForms(c.Request().Context(), user.ID)
 	if err != nil {
 		h.Logger.Error("failed to list forms", "error", err)
+
 		return h.HandleError(c, err, "Failed to list forms")
 	}
 
@@ -60,6 +62,7 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	if renderErr := h.Renderer.Render(c, pages.Dashboard(data, forms)); renderErr != nil {
 		return fmt.Errorf("render dashboard: %w", renderErr)
 	}
+
 	return nil
 }
 

@@ -35,6 +35,7 @@ func NewPerFormCORSConfig(
 ) *PerFormCORSConfig {
 	// Regex to match form routes: /forms/:id or /api/v1/forms/:id
 	formRouteRegex := regexp.MustCompile(`^/(?:forms|api/v1/forms)/([^/]+)(?:/.*)?$`)
+
 	return &PerFormCORSConfig{
 		FormService:    formService,
 		Logger:         logger,
@@ -89,6 +90,7 @@ func ExtractFormID(path string, formRouteRegex *regexp.Regexp) string {
 	if len(matches) < formIDMatchIndex {
 		return ""
 	}
+
 	return matches[1]
 }
 
@@ -206,6 +208,7 @@ func handlePreflight(
 		if noContentErr := c.NoContent(http.StatusForbidden); noContentErr != nil {
 			return fmt.Errorf("return forbidden for preflight: %w", noContentErr)
 		}
+
 		return nil
 	}
 
@@ -222,6 +225,7 @@ func handlePreflight(
 	if noContentErr := c.NoContent(http.StatusOK); noContentErr != nil {
 		return fmt.Errorf("return ok for preflight: %w", noContentErr)
 	}
+
 	return nil
 }
 
@@ -239,6 +243,7 @@ func handleActualRequest(
 		if noContentErr := c.NoContent(http.StatusForbidden); noContentErr != nil {
 			return fmt.Errorf("return forbidden for actual request: %w", noContentErr)
 		}
+
 		return nil
 	}
 
@@ -264,6 +269,7 @@ func IsOriginAllowed(origin string, allowedOrigins []string) bool {
 		if allowed == "*" {
 			return true // Wildcard allows all origins
 		}
+
 		if allowed == origin {
 			return true // Exact match
 		}

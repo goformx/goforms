@@ -26,6 +26,7 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 
 	data := h.BuildPageData(c, "New Form")
 	data.User = user
+
 	return fmt.Errorf("render new form: %w", h.Renderer.Render(c, pages.NewForm(data)))
 }
 
@@ -99,6 +100,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Update form using business logic service
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form, req); updateErr != nil {
 		h.Logger.Error("failed to update form", "error", updateErr)
+
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
@@ -122,6 +124,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 
 	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), form.ID); deleteErr != nil {
 		h.Logger.Error("failed to delete form", "error", deleteErr)
+
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 
@@ -143,6 +146,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	submissions, err := h.FormService.GetFormSubmissions(c.Request().Context(), form.ID)
 	if err != nil {
 		h.Logger.Error("failed to get form submissions", "error", err)
+
 		return h.HandleError(c, err, "Failed to get form submissions")
 	}
 

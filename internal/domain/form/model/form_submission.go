@@ -70,6 +70,7 @@ func (fs *FormSubmission) Sanitize(sanitizer sanitization.ServiceInterface) {
 			}
 		}
 	}
+
 	if fs.Metadata != nil {
 		for key, value := range fs.Metadata {
 			if strValue, ok := value.(string); ok {
@@ -115,6 +116,7 @@ func (fs *FormSubmission) AddMetadata(key, value string) {
 	if fs.Metadata == nil {
 		fs.Metadata = make(JSON)
 	}
+
 	fs.Metadata[key] = value
 }
 
@@ -123,8 +125,10 @@ func (fs *FormSubmission) GetMetadata(key string) string {
 	if fs.Metadata == nil {
 		return ""
 	}
+
 	if val, ok := fs.Metadata[key].(string); ok {
 		return val
 	}
+
 	return ""
 }

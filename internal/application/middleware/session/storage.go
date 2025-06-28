@@ -32,6 +32,7 @@ func (fs *FileStorage) Load() (map[string]*Session, error) {
 		if os.IsNotExist(readErr) {
 			return make(map[string]*Session), nil
 		}
+
 		return nil, fmt.Errorf("failed to read sessions file: %w", readErr)
 	}
 
@@ -44,10 +45,12 @@ func (fs *FileStorage) Load() (map[string]*Session, error) {
 	// Convert to sessions
 	sessions := make(map[string]*Session)
 	now := time.Now()
+
 	for id, data := range tempSessions {
 		session, parseErr := fs.parseSessionData(data)
 		if parseErr != nil {
 			fs.logger.Warn("failed to parse session data", "session_id", id, "error", parseErr)
+
 			continue
 		}
 
@@ -99,6 +102,7 @@ func (fs *FileStorage) Delete(sessionID string) error {
 	}
 
 	delete(sessions, sessionID)
+
 	return fs.Save(sessions)
 }
 

@@ -56,12 +56,14 @@ func (h *ErrorHandler) HandleDomainError(err *domainerrors.DomainError, c echo.C
 // HandleAuthError handles authentication errors
 func (h *ErrorHandler) HandleAuthError(err error, c echo.Context) error {
 	authErr := domainerrors.New(domainerrors.ErrCodeUnauthorized, "Authentication required", err)
+
 	return h.HandleDomainError(authErr, c)
 }
 
 // HandleNotFoundError handles not found errors
 func (h *ErrorHandler) HandleNotFoundError(resource string, c echo.Context) error {
 	notFoundErr := domainerrors.New(domainerrors.ErrCodeNotFound, fmt.Sprintf("%s not found", resource), nil)
+
 	return h.HandleDomainError(notFoundErr, c)
 }
 

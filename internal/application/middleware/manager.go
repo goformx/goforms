@@ -119,6 +119,7 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 			Output: os.Stdout,
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
+
 				return isNoisePath(path)
 			},
 		}))
@@ -127,6 +128,7 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
+
 				return isNoisePath(path)
 			},
 		}))
@@ -154,6 +156,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Set("security_config", m.config.Config.Security)
+
 			return next(c)
 		}
 	})
@@ -216,6 +219,7 @@ func getSameSite(cookieSameSite string, isDevelopment bool) http.SameSite {
 		if isDevelopment {
 			return http.SameSiteLaxMode
 		}
+
 		return http.SameSiteStrictMode
 	}
 }
@@ -225,6 +229,7 @@ func getTokenLength(tokenLength int) int {
 	if tokenLength <= 0 || tokenLength > 255 {
 		return constants.DefaultTokenLength
 	}
+
 	return tokenLength
 }
 
@@ -237,6 +242,7 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 			if isAuthPage(c.Request().URL.Path) || isFormPage(c.Request().URL.Path) {
 				return false
 			}
+
 			return true
 		}
 
@@ -272,6 +278,7 @@ func isSafeMethod(method string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -288,6 +295,7 @@ func isHealthRoute(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -299,6 +307,7 @@ func isStaticRoute(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -315,6 +324,7 @@ func isFormSubmissionRoute(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -326,6 +336,7 @@ func isAuthPage(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -337,6 +348,7 @@ func isFormPage(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -376,6 +388,7 @@ func createCSRFErrorHandler(
 				"content_type", c.Request().Header.Get("Content-Type"),
 				"user_agent", c.Request().UserAgent())
 		}
+
 		return c.NoContent(http.StatusForbidden)
 	}
 }
@@ -424,6 +437,7 @@ func (l *EchoLogger) Printj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Info("", fields...)
 }
 
@@ -443,6 +457,7 @@ func (l *EchoLogger) Debugj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Debug("", fields...)
 }
 
@@ -462,6 +477,7 @@ func (l *EchoLogger) Infoj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Info("", fields...)
 }
 
@@ -481,6 +497,7 @@ func (l *EchoLogger) Warnj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Warn("", fields...)
 }
 
@@ -500,6 +517,7 @@ func (l *EchoLogger) Errorj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Error("", fields...)
 }
 
@@ -519,6 +537,7 @@ func (l *EchoLogger) Fatalj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Fatal("", fields...)
 }
 
@@ -540,6 +559,7 @@ func (l *EchoLogger) Panicj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Error("", fields...)
 	panic(fmt.Sprintf("%v", j))
 }
@@ -627,6 +647,7 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 			if origin == "" {
 				origin = constants.DefaultUnknown
 			}
+
 			return fmt.Sprintf("%s:%s", formID, origin), nil
 		},
 		ErrorHandler: func(_ echo.Context, _ error) error {
@@ -643,6 +664,7 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 // isNoisePath checks if the path should be suppressed from logging
 func isNoisePath(path string) bool {
 	const faviconPath = "/favicon.ico"
+
 	return strings.HasPrefix(path, "/.well-known") ||
 		path == faviconPath ||
 		strings.HasPrefix(path, "/robots.txt") ||

@@ -20,6 +20,7 @@ func NewValidator() (*EchoValidator, error) {
 	if errNew != nil {
 		return nil, fmt.Errorf("create validation instance: %w", errNew)
 	}
+
 	return &EchoValidator{
 		validator: v,
 	}, nil

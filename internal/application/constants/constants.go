@@ -303,5 +303,6 @@ func IsStaticFile(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }

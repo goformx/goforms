@@ -46,9 +46,11 @@ func (f *Field) Validate() error {
 	if f.Label == "" {
 		return errors.New("label is required")
 	}
+
 	if f.Type == "" {
 		return errors.New("type is required")
 	}
+
 	return nil
 }
 
@@ -105,9 +107,11 @@ func (f *Form) BeforeCreate(_ *gorm.DB) error {
 	if f.CorsOrigins == nil {
 		f.CorsOrigins = JSON{}
 	}
+
 	if f.CorsMethods == nil {
 		f.CorsMethods = JSON{}
 	}
+
 	if f.CorsHeaders == nil {
 		f.CorsHeaders = JSON{}
 	}
@@ -118,6 +122,7 @@ func (f *Form) BeforeCreate(_ *gorm.DB) error {
 // BeforeUpdate is a GORM hook that runs before updating a form
 func (f *Form) BeforeUpdate(_ *gorm.DB) error {
 	f.UpdatedAt = time.Now()
+
 	return nil
 }
 
@@ -127,12 +132,15 @@ func (f *Form) BeforeSave(_ *gorm.DB) error {
 	if f.CorsOrigins == nil {
 		f.CorsOrigins = JSON{}
 	}
+
 	if f.CorsMethods == nil {
 		f.CorsMethods = JSON{}
 	}
+
 	if f.CorsHeaders == nil {
 		f.CorsHeaders = JSON{}
 	}
+
 	return nil
 }
 
@@ -143,6 +151,7 @@ type JSON map[string]any
 func (j *JSON) Scan(value any) error {
 	if value == nil {
 		*j = nil
+
 		return nil
 	}
 
@@ -152,12 +161,14 @@ func (j *JSON) Scan(value any) error {
 	}
 
 	result := make(map[string]any)
+
 	err := json.Unmarshal(bytes, &result)
 	if err != nil {
 		return fmt.Errorf("unmarshal JSON scan value: %w", err)
 	}
 
 	*j = JSON(result)
+
 	return nil
 }
 
@@ -166,10 +177,12 @@ func (j *JSON) Value() (driver.Value, error) {
 	if j == nil {
 		return nil, ErrInvalidJSON
 	}
+
 	data, err := json.Marshal(*j)
 	if err != nil {
 		return nil, fmt.Errorf("marshal JSON value: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -178,10 +191,12 @@ func (j *JSON) MarshalJSON() ([]byte, error) {
 	if j == nil {
 		return nil, ErrInvalidJSON
 	}
+
 	data, err := json.Marshal(*j)
 	if err != nil {
 		return nil, fmt.Errorf("marshal JSON to bytes: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -190,9 +205,11 @@ func (j *JSON) UnmarshalJSON(data []byte) error {
 	if j == nil {
 		return ErrInvalidJSON
 	}
+
 	if err := json.Unmarshal(data, (*map[string]any)(j)); err != nil {
 		return fmt.Errorf("unmarshal JSON from bytes: %w", err)
 	}
+
 	return nil
 }
 
@@ -299,23 +316,29 @@ func (f *Form) Validate() error {
 	if f.Title == "" {
 		return errors.New("title is required")
 	}
+
 	if len(f.Title) < MinTitleLength {
 		return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
 	}
+
 	if len(f.Title) > MaxTitleLength {
 		return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
 	}
+
 	if len(f.Description) > MaxDescriptionLength {
 		return fmt.Errorf("description must not exceed %d characters", MaxDescriptionLength)
 	}
+
 	if len(f.Fields) > MaxFields {
 		return fmt.Errorf("form cannot have more than %d fields", MaxFields)
 	}
+
 	for i := range f.Fields {
 		if err := f.Fields[i].Validate(); err != nil {
 			return fmt.Errorf("invalid field: %w", err)
 		}
 	}
+
 	return f.validateSchema()
 }
 
@@ -366,6 +389,7 @@ func (f *Form) GetCorsConfig() (origins, methods, headers []string) {
 	origins = extractStringSlice(f.CorsOrigins, "origins")
 	methods = extractStringSlice(f.CorsMethods, "methods")
 	headers = extractStringSlice(f.CorsHeaders, "headers")
+
 	return origins, methods, headers
 }
 

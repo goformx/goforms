@@ -63,6 +63,7 @@ func (h *EventHandler) Handle(ctx context.Context, event events.Event) error {
 			"event_name", event.Name(),
 			"timestamp", event.Timestamp(),
 		)
+
 		return nil
 	}
 }
@@ -74,6 +75,7 @@ func (h *EventHandler) handleFormCreated(ctx context.Context, event events.Event
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -84,6 +86,7 @@ func (h *EventHandler) handleFormUpdated(ctx context.Context, event events.Event
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -94,6 +97,7 @@ func (h *EventHandler) handleFormDeleted(ctx context.Context, event events.Event
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -104,6 +108,7 @@ func (h *EventHandler) handleFormSubmitted(ctx context.Context, event events.Eve
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -114,6 +119,7 @@ func (h *EventHandler) handleFormValidated(ctx context.Context, event events.Eve
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -124,6 +130,7 @@ func (h *EventHandler) handleFormProcessed(ctx context.Context, event events.Eve
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -134,6 +141,7 @@ func (h *EventHandler) handleFormError(ctx context.Context, event events.Event) 
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -144,6 +152,7 @@ func (h *EventHandler) handleFormState(ctx context.Context, event events.Event) 
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -154,6 +163,7 @@ func (h *EventHandler) handleFieldEvent(ctx context.Context, event events.Event)
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }
 
@@ -164,5 +174,6 @@ func (h *EventHandler) handleAnalyticsEvent(ctx context.Context, event events.Ev
 		"timestamp", event.Timestamp(),
 		"request_id", ctx.Value("request_id"),
 	)
+
 	return nil
 }

@@ -66,6 +66,7 @@ func (d *HandlerDeps) validateField(name string, value any) error {
 	if value == nil {
 		return errors.New(name + " is required")
 	}
+
 	return nil
 }
 
@@ -91,6 +92,7 @@ func (d *HandlerDeps) Validate() error {
 			return err
 		}
 	}
+
 	return nil
 }
 

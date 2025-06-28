@@ -37,6 +37,7 @@ func (v *ComprehensiveValidator) ValidateForm(schema, submission model.JSON) Res
 			Field:   "schema",
 			Message: "Invalid form schema: missing components",
 		})
+
 		return result
 	}
 

@@ -62,12 +62,15 @@ func GetCurrentUser(c echo.Context) *entities.User {
 	if c == nil {
 		return nil
 	}
+
 	userID, ok := context.GetUserID(c)
 	if !ok {
 		return nil
 	}
+
 	email, _ := context.GetEmail(c)
 	role, _ := context.GetRole(c)
+
 	return &entities.User{
 		ID:    userID,
 		Email: email,
@@ -80,9 +83,11 @@ func GetCSRFToken(c echo.Context) string {
 	if c == nil {
 		return ""
 	}
+
 	if token, ok := c.Get("csrf").(string); ok {
 		return token
 	}
+
 	return ""
 }
 

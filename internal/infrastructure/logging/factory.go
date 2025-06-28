@@ -55,6 +55,7 @@ func NewFactory(cfg *FactoryConfig, sanitizer sanitization.ServiceInterface) (*F
 // WithTestCore allows tests to inject a zapcore.Core for capturing logs
 func (f *Factory) WithTestCore(core zapcore.Core) *Factory {
 	f.testCore = core
+
 	return f
 }
 

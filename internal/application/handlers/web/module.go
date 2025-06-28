@@ -140,18 +140,22 @@ var Module = fx.Options(
 					for _, h := range handlers {
 						if err := h.Start(ctx); err != nil {
 							logger.Error("failed to start handler", "error", err)
+
 							return fmt.Errorf("start handler: %w", err)
 						}
 					}
+
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
 					for _, h := range handlers {
 						if err := h.Stop(ctx); err != nil {
 							logger.Error("failed to stop handler", "error", err)
+
 							return fmt.Errorf("stop handler: %w", err)
 						}
 					}
+
 					return nil
 				},
 			})
@@ -264,17 +268,21 @@ func RegisterHandlers(
 
 		// Categorize routes and log them for debugging
 		logger.Debug("Route breakdown:")
+
 		for _, route := range allRoutes {
 			path := route.Path
 			method := route.Method
+
 			if strings.HasPrefix(path, "/assets/") ||
 				strings.HasPrefix(path, "/fonts/") ||
 				path == "/favicon.ico" ||
 				path == "/robots.txt" {
 				assetRoutes++
+
 				logger.Debug("  Asset route", "method", method, "path", path)
 			} else {
 				httpRoutes++
+
 				logger.Debug("  HTTP route", "method", method, "path", path)
 			}
 		}

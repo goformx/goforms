@@ -39,6 +39,7 @@ func TestRenderer_Render_Success(t *testing.T) {
 	// Create a simple test component
 	component := templ.ComponentFunc(func(_ context.Context, w io.Writer) error {
 		_, err := w.Write([]byte("<div>Test Content</div>"))
+
 		return err
 	})
 
@@ -115,6 +116,7 @@ func TestRenderer_Render_NilContext(t *testing.T) {
 
 	component := templ.ComponentFunc(func(_ context.Context, w io.Writer) error {
 		_, err := w.Write([]byte("<div>Test Content</div>"))
+
 		return err
 	})
 

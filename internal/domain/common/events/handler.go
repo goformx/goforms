@@ -42,9 +42,11 @@ func NewBaseHandler(config HandlerConfig) *BaseHandler {
 	if config.RetryCount <= 0 {
 		config.RetryCount = 3
 	}
+
 	if config.Timeout == 0 {
 		config.Timeout = DefaultTimeout
 	}
+
 	return &BaseHandler{
 		config: config,
 	}
@@ -64,6 +66,7 @@ func (h *BaseHandler) HandleWithRetry(
 	defer cancel()
 
 	var lastErr error
+
 	for i := range h.config.RetryCount {
 		select {
 		case <-ctx.Done():
@@ -71,12 +74,16 @@ func (h *BaseHandler) HandleWithRetry(
 		default:
 			if err := handler(ctx, event); err != nil {
 				lastErr = err
+
 				time.Sleep(h.config.RetryDelay)
+
 				continue
 			}
+
 			return nil
 		}
 	}
+
 	return fmt.Errorf("max retries exceeded: %w", lastErr)
 }
 
@@ -132,11 +139,13 @@ func (r *EventHandlerRegistry) HandleEvent(ctx context.Context, event Event) err
 	}
 
 	var lastErr error
+
 	for _, handler := range handlers {
 		if err := handler.Handle(ctx, event); err != nil {
 			lastErr = err
 		}
 	}
+
 	return lastErr
 }
 

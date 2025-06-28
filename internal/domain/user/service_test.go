@@ -43,6 +43,7 @@ func TestService_SignUp(t *testing.T) {
 			assert.NotEmpty(t, u.ID)
 			assert.False(t, u.CreatedAt.IsZero())
 			assert.False(t, u.UpdatedAt.IsZero())
+
 			return nil
 		})
 

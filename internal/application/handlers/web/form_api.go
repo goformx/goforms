@@ -98,6 +98,7 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
+
 		return fmt.Errorf("handle form schema: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
@@ -114,12 +115,14 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
+
 		return fmt.Errorf("handle form validation schema: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
 	// Check if form schema is nil or empty
 	if form.Schema == nil {
 		h.Logger.Warn("form schema is nil", "form_id", form.ID)
+
 		return fmt.Errorf("handle submission error: %w",
 			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
 	}
@@ -128,6 +131,7 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 	clientValidation, err := h.ComprehensiveValidator.GenerateClientValidation(form.Schema)
 	if err != nil {
 		h.Logger.Error("failed to generate client validation schema", "error", err, "form_id", form.ID)
+
 		return fmt.Errorf("handle schema error: %w", h.ErrorHandler.HandleSchemaError(c, err))
 	}
 
@@ -156,6 +160,7 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 	form.Schema = schema
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
 		h.Logger.Error("failed to update form schema", "error", updateErr)
+
 		return fmt.Errorf("handle schema update error: %w", h.ErrorHandler.HandleSchemaError(c, updateErr))
 	}
 
@@ -172,12 +177,14 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
+
 		return fmt.Errorf("handle form submit: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
 	// Check if form schema is nil or empty
 	if form.Schema == nil {
 		h.Logger.Warn("form schema is nil", "form_id", form.ID)
+
 		return fmt.Errorf("handle submission error: %w",
 			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
 	}

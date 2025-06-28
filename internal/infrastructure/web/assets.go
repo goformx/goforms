@@ -30,6 +30,7 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 	if cfg == nil {
 		return nil, errors.New("config is required")
 	}
+
 	if logger == nil {
 		return nil, errors.New("logger is required")
 	}
@@ -49,6 +50,7 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 		if err != nil {
 			return nil, fmt.Errorf("failed to load manifest: %w", err)
 		}
+
 		manager.resolver = NewProductionAssetResolver(manifest, logger)
 	}
 
@@ -65,10 +67,12 @@ func (m *AssetManager) AssetPath(path string) string {
 			"asset_path", path,
 			"error", err,
 		)
+
 		return ""
 	}
 
 	m.logger.Debug("asset resolved", "asset_path", path, "resolved", resolvedPath)
+
 	return resolvedPath
 }
 
@@ -82,6 +86,7 @@ func (m *AssetManager) ResolveAssetPath(ctx context.Context, path string) (strin
 	m.mu.RLock()
 	if cachedPath, found := m.pathCache[path]; found {
 		m.mu.RUnlock()
+
 		return cachedPath, nil
 	}
 	m.mu.RUnlock()

@@ -116,6 +116,7 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 			"user_id", h.Logger.SanitizeField("user_id", userID),
 			"form_id_length", len(formID),
 			"error_type", "form_not_found")
+
 		return h.HandleNotFound(c, "Form not found")
 	}
 
@@ -126,6 +127,7 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 			"form_id_length", len(formID),
 			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
 			"error_type", "authorization_error")
+
 		return h.HandleForbidden(c, "You don't have permission to preview this form")
 	}
 

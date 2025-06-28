@@ -38,6 +38,7 @@ func RateLimiter(securityConfig *appconfig.SecurityConfig) echo.MiddlewareFunc {
 			if origin == "" {
 				origin = constants.DefaultUnknown
 			}
+
 			return fmt.Sprintf("%s:%s", formID, origin), nil
 		},
 		ErrorHandler: func(_ echo.Context, _ error) error {

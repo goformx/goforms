@@ -22,9 +22,11 @@ func NewPaginationParams(page, pageSize int) PaginationParams {
 	if page < 1 {
 		page = 1
 	}
+
 	if pageSize < 1 {
 		pageSize = 10
 	}
+
 	return PaginationParams{
 		Page:     page,
 		PageSize: pageSize,
@@ -44,6 +46,7 @@ func (p PaginationParams) GetLimit() int {
 // NewPaginationResult creates a new PaginationResult
 func NewPaginationResult(items any, totalItems, page, pageSize int) PaginationResult {
 	totalPages := (totalItems + pageSize - 1) / pageSize
+
 	return PaginationResult{
 		Items:      items,
 		TotalItems: totalItems,
