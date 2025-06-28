@@ -20,14 +20,31 @@ const (
 
 // EventHandler handles form-related events
 type EventHandler struct {
-	logger logging.Logger
+	logger   logging.Logger
+	handlers map[string]func(context.Context, events.Event) error
 }
 
 // NewEventHandler creates a new form event handler
 func NewEventHandler(logger logging.Logger) *EventHandler {
-	return &EventHandler{
+	h := &EventHandler{
 		logger: logger,
 	}
+
+	// Initialize the event handler map
+	h.handlers = map[string]func(context.Context, events.Event) error{
+		string(FormCreatedEventType):   h.handleFormCreated,
+		string(FormUpdatedEventType):   h.handleFormUpdated,
+		string(FormDeletedEventType):   h.handleFormDeleted,
+		string(FormSubmittedEventType): h.handleFormSubmitted,
+		string(FormValidatedEventType): h.handleFormValidated,
+		string(FormProcessedEventType): h.handleFormProcessed,
+		string(FormErrorEventType):     h.handleFormError,
+		string(FormStateEventType):     h.handleFormState,
+		string(FieldEventType):         h.handleFieldEvent,
+		string(AnalyticsEventType):     h.handleAnalyticsEvent,
+	}
+
+	return h
 }
 
 // Handle handles form events
@@ -37,35 +54,16 @@ func (h *EventHandler) Handle(ctx context.Context, event events.Event) error {
 		"timestamp", event.Timestamp(),
 	)
 
-	switch event.Name() {
-	case string(FormCreatedEventType):
-		return h.handleFormCreated(ctx, event)
-	case string(FormUpdatedEventType):
-		return h.handleFormUpdated(ctx, event)
-	case string(FormDeletedEventType):
-		return h.handleFormDeleted(ctx, event)
-	case string(FormSubmittedEventType):
-		return h.handleFormSubmitted(ctx, event)
-	case string(FormValidatedEventType):
-		return h.handleFormValidated(ctx, event)
-	case string(FormProcessedEventType):
-		return h.handleFormProcessed(ctx, event)
-	case string(FormErrorEventType):
-		return h.handleFormError(ctx, event)
-	case string(FormStateEventType):
-		return h.handleFormState(ctx, event)
-	case string(FieldEventType):
-		return h.handleFieldEvent(ctx, event)
-	case string(AnalyticsEventType):
-		return h.handleAnalyticsEvent(ctx, event)
-	default:
+	handler, exists := h.handlers[event.Name()]
+	if !exists {
 		h.logger.Warn("unknown event type",
 			"event_name", event.Name(),
 			"timestamp", event.Timestamp(),
 		)
-
 		return nil
 	}
+
+	return handler(ctx, event)
 }
 
 // handleFormCreated handles form created events

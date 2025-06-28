@@ -67,33 +67,50 @@ func getFieldName(e validator.FieldError) string {
 func getErrorMessage(e validator.FieldError) string {
 	field := getFieldName(e)
 
-	switch e.Tag() {
-	case "required":
-		return fmt.Sprintf("%s is required", field)
-	case "email":
-		return fmt.Sprintf("%s must be a valid email address", field)
-	case "min":
-		return fmt.Sprintf("%s must be at least %s characters", field, e.Param())
-	case "max":
-		return fmt.Sprintf("%s must be at most %s characters", field, e.Param())
-	case "len":
-		return fmt.Sprintf("%s must be exactly %s characters", field, e.Param())
-	case "oneof":
-		return fmt.Sprintf("%s must be one of [%s]", field, e.Param())
-	case "url":
-		return fmt.Sprintf("%s must be a valid URL", field)
-	case "phone":
-		return fmt.Sprintf("%s must be a valid phone number", field)
-	case "password":
-		return fmt.Sprintf("%s must contain at least 8 characters, including uppercase, lowercase, "+
-			"number and special character", field)
-	case "date":
-		return fmt.Sprintf("%s must be a valid date in format YYYY-MM-DD", field)
-	case "datetime":
-		return fmt.Sprintf("%s must be a valid datetime in format YYYY-MM-DD HH:mm:ss", field)
-	default:
+	message, exists := errorMessages[e.Tag()]
+	if !exists {
 		return fmt.Sprintf("%s failed validation: %s", field, e.Tag())
 	}
+
+	return message(field, e.Param())
+}
+
+// errorMessages maps validation tags to their message generators
+var errorMessages = map[string]func(field, param string) string{
+	"required": func(field, _ string) string {
+		return fmt.Sprintf("%s is required", field)
+	},
+	"email": func(field, _ string) string {
+		return fmt.Sprintf("%s must be a valid email address", field)
+	},
+	"min": func(field, param string) string {
+		return fmt.Sprintf("%s must be at least %s characters", field, param)
+	},
+	"max": func(field, param string) string {
+		return fmt.Sprintf("%s must be at most %s characters", field, param)
+	},
+	"len": func(field, param string) string {
+		return fmt.Sprintf("%s must be exactly %s characters", field, param)
+	},
+	"oneof": func(field, param string) string {
+		return fmt.Sprintf("%s must be one of [%s]", field, param)
+	},
+	"url": func(field, _ string) string {
+		return fmt.Sprintf("%s must be a valid URL", field)
+	},
+	"phone": func(field, _ string) string {
+		return fmt.Sprintf("%s must be a valid phone number", field)
+	},
+	"password": func(field, _ string) string {
+		return fmt.Sprintf("%s must contain at least 8 characters, including uppercase, lowercase, "+
+			"number and special character", field)
+	},
+	"date": func(field, _ string) string {
+		return fmt.Sprintf("%s must be a valid date in format YYYY-MM-DD", field)
+	},
+	"datetime": func(field, _ string) string {
+		return fmt.Sprintf("%s must be a valid datetime in format YYYY-MM-DD HH:mm:ss", field)
+	},
 }
 
 // validatorImpl implements the interfaces.Validator interface

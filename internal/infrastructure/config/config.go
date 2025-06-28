@@ -28,6 +28,27 @@ type Config struct {
 func (c *Config) validateConfig() error {
 	var errs []string
 
+	// Validate core config sections
+	if err := c.validateCoreConfig(); err != nil {
+		errs = append(errs, err.Error())
+	}
+
+	// Validate conditional config sections
+	if err := c.validateConditionalConfig(); err != nil {
+		errs = append(errs, err.Error())
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("validation errors: %s", strings.Join(errs, "; "))
+	}
+
+	return nil
+}
+
+// validateCoreConfig validates the core configuration sections
+func (c *Config) validateCoreConfig() error {
+	var errs []string
+
 	// Validate App config
 	if err := c.App.Validate(); err != nil {
 		errs = append(errs, err.Error())
@@ -43,28 +64,64 @@ func (c *Config) validateConfig() error {
 		errs = append(errs, err.Error())
 	}
 
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+
+	return nil
+}
+
+// validateConditionalConfig validates configuration sections that depend on other settings
+func (c *Config) validateConditionalConfig() error {
+	var errs []string
+
 	// Validate Session config only if session type is not "none"
-	if c.Session.Type != "none" && c.Session.Secret == "" {
-		errs = append(errs, "session secret is required when session type is not 'none'")
+	if err := c.validateSessionConfig(); err != nil {
+		errs = append(errs, err.Error())
 	}
 
 	// Validate Email config only if email host is set
-	if c.Email.Host != "" {
-		if c.Email.Username == "" {
-			errs = append(errs, "Email username is required when email host is set")
-		}
-
-		if c.Email.Password == "" {
-			errs = append(errs, "Email password is required when email host is set")
-		}
-
-		if c.Email.From == "" {
-			errs = append(errs, "Email from address is required when email host is set")
-		}
+	if err := c.validateEmailConfig(); err != nil {
+		errs = append(errs, err.Error())
 	}
 
 	if len(errs) > 0 {
-		return fmt.Errorf("validation errors: %s", strings.Join(errs, "; "))
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+
+	return nil
+}
+
+// validateSessionConfig validates session configuration
+func (c *Config) validateSessionConfig() error {
+	if c.Session.Type != "none" && c.Session.Secret == "" {
+		return fmt.Errorf("session secret is required when session type is not 'none'")
+	}
+	return nil
+}
+
+// validateEmailConfig validates email configuration
+func (c *Config) validateEmailConfig() error {
+	if c.Email.Host == "" {
+		return nil // Email is optional
+	}
+
+	var errs []string
+
+	if c.Email.Username == "" {
+		errs = append(errs, "Email username is required when email host is set")
+	}
+
+	if c.Email.Password == "" {
+		errs = append(errs, "Email password is required when email host is set")
+	}
+
+	if c.Email.From == "" {
+		errs = append(errs, "Email from address is required when email host is set")
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
 	}
 
 	return nil

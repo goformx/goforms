@@ -270,45 +270,77 @@ func validateProperty(name string, prop any) error {
 
 // validateSchema validates the form schema
 func (f *Form) validateSchema() error {
-	// Check for required schema fields
+	// Validate required schema fields
+	if err := f.validateRequiredSchemaFields(); err != nil {
+		return err
+	}
+
+	// Validate schema type
+	if err := f.validateSchemaType(); err != nil {
+		return err
+	}
+
+	// Validate schema content
+	if err := f.validateSchemaContent(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateRequiredSchemaFields validates that all required schema fields are present
+func (f *Form) validateRequiredSchemaFields() error {
 	requiredFields := []string{"type"}
 	for _, field := range requiredFields {
 		if _, exists := f.Schema[field]; !exists {
 			return fmt.Errorf("missing required schema field: %s", field)
 		}
 	}
+	return nil
+}
 
-	// Validate schema type
+// validateSchemaType validates that the schema type is correct
+func (f *Form) validateSchemaType() error {
 	schemaType, typeOk := f.Schema["type"].(string)
 	if !typeOk || schemaType != "object" {
 		return errors.New("invalid schema type: must be 'object'")
 	}
+	return nil
+}
 
-	// Check for either properties or components
-	hasProperties := false
-	hasComponents := false
-
-	if properties, propsOk := f.Schema["properties"].(map[string]any); propsOk {
-		hasProperties = true
-		// Validate each property
-		for name, prop := range properties {
-			if err := validateProperty(name, prop); err != nil {
-				return err
-			}
-		}
-	}
-
-	if components, compsOk := f.Schema["components"].([]any); compsOk {
-		hasComponents = true
-		// Components array is valid even if empty
-		_ = components
-	}
+// validateSchemaContent validates the content of the schema (properties or components)
+func (f *Form) validateSchemaContent() error {
+	hasProperties := f.validateProperties()
+	hasComponents := f.validateComponents()
 
 	if !hasProperties && !hasComponents {
 		return errors.New("schema must contain either properties or components")
 	}
 
 	return nil
+}
+
+// validateProperties validates the properties section of the schema
+func (f *Form) validateProperties() bool {
+	properties, propsOk := f.Schema["properties"].(map[string]any)
+	if !propsOk {
+		return false
+	}
+
+	// Validate each property
+	for name, prop := range properties {
+		if err := validateProperty(name, prop); err != nil {
+			return false
+		}
+	}
+
+	return true
+}
+
+// validateComponents validates the components section of the schema
+func (f *Form) validateComponents() bool {
+	_, compsOk := f.Schema["components"].([]any)
+	return compsOk
 }
 
 // Validate validates the form

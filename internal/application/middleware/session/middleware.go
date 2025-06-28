@@ -99,40 +99,64 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 
 // shouldSkipSession checks if a path should skip session processing entirely
 func (sm *Manager) shouldSkipSession(path string) bool {
-	// Skip session processing for static files and assets
+	// Early returns for different path types
 	if sm.isStaticFile(path) {
 		return true
 	}
 
-	// Skip session processing for API endpoints that don't need authentication
-	if strings.HasPrefix(path, "/api/v1/public/") {
+	if sm.isPublicAPIEndpoint(path) {
 		return true
 	}
 
-	// Skip session processing for validation endpoints
-	if strings.HasPrefix(path, "/api/v1/validation/") {
+	if sm.isHealthOrMonitoringEndpoint(path) {
 		return true
 	}
 
-	// Skip session processing for health check or monitoring endpoints
-	if strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/metrics") {
+	if sm.isDevelopmentEndpoint(path) {
 		return true
 	}
 
-	// Skip session processing for development tool endpoints
-	if sm.config.App.Environment == "development" && (strings.HasPrefix(path, "/.well-known/") ||
-		strings.HasPrefix(path, "/debug/") ||
-		strings.HasPrefix(path, "/dev/")) {
+	if sm.isExemptPath(path) {
 		return true
 	}
 
-	// Skip session processing for exempt paths
+	return false
+}
+
+// isPublicAPIEndpoint checks if the path is a public API endpoint
+func (sm *Manager) isPublicAPIEndpoint(path string) bool {
+	return strings.HasPrefix(path, "/api/v1/public/") ||
+		strings.HasPrefix(path, "/api/v1/validation/")
+}
+
+// isHealthOrMonitoringEndpoint checks if the path is a health or monitoring endpoint
+func (sm *Manager) isHealthOrMonitoringEndpoint(path string) bool {
+	return strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/metrics")
+}
+
+// isDevelopmentEndpoint checks if the path is a development tool endpoint
+func (sm *Manager) isDevelopmentEndpoint(path string) bool {
+	if sm.config.App.Environment != "development" {
+		return false
+	}
+
+	devPaths := []string{"/.well-known/", "/debug/", "/dev/"}
+	for _, devPath := range devPaths {
+		if strings.HasPrefix(path, devPath) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// isExemptPath checks if the path is in the exempt paths list
+func (sm *Manager) isExemptPath(path string) bool {
 	for _, exemptPath := range sm.config.ExemptPaths {
 		if strings.HasPrefix(path, exemptPath) {
 			return true
 		}
 	}
-
 	return false
 }
 

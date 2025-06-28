@@ -23,34 +23,67 @@ func setDefaultPaths(cfg *FactoryConfig) {
 
 // Validate validates the factory configuration
 func (cfg *FactoryConfig) Validate() error {
-	if cfg.AppName == "" {
-		return errors.New("app name is required")
+	// Validate required fields
+	if err := cfg.validateRequiredFields(); err != nil {
+		return err
 	}
 
-	if cfg.LogLevel != "" {
-		if !isValidLogLevel(cfg.LogLevel) {
-			return fmt.Errorf("invalid log level: %s", cfg.LogLevel)
-		}
+	// Validate log level
+	if err := cfg.validateLogLevel(); err != nil {
+		return err
+	}
+
+	// Validate output paths
+	if err := cfg.validateOutputPaths(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateRequiredFields validates required configuration fields
+func (cfg *FactoryConfig) validateRequiredFields() error {
+	if cfg.AppName == "" {
+		return errors.New("app name is required")
 	}
 
 	if cfg.Environment == "" {
 		cfg.Environment = "production"
 	}
 
-	// Validate output paths
+	return nil
+}
+
+// validateLogLevel validates the log level configuration
+func (cfg *FactoryConfig) validateLogLevel() error {
+	if cfg.LogLevel != "" && !isValidLogLevel(cfg.LogLevel) {
+		return fmt.Errorf("invalid log level: %s", cfg.LogLevel)
+	}
+	return nil
+}
+
+// validateOutputPaths validates output path configurations
+func (cfg *FactoryConfig) validateOutputPaths() error {
+	// Validate regular output paths
 	for _, path := range cfg.OutputPaths {
-		if path != "stdout" && path != "stderr" && !strings.HasSuffix(path, ".log") {
+		if !isValidOutputPath(path) {
 			return fmt.Errorf("invalid output path: %s", path)
 		}
 	}
 
+	// Validate error output paths
 	for _, path := range cfg.ErrorOutputPaths {
-		if path != "stdout" && path != "stderr" && !strings.HasSuffix(path, ".log") {
+		if !isValidOutputPath(path) {
 			return fmt.Errorf("invalid error output path: %s", path)
 		}
 	}
 
 	return nil
+}
+
+// isValidOutputPath checks if an output path is valid
+func isValidOutputPath(path string) bool {
+	return path == "stdout" || path == "stderr" || strings.HasSuffix(path, ".log")
 }
 
 // isValidLogLevel checks if the log level is valid

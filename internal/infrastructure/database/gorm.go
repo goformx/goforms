@@ -268,43 +268,41 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		w.logger.Debug("record not found",
 			"message", msg,
 			"error", err)
-
 		return
 	}
 
-	errorType := "database_error"
-
-	switch {
-	case errors.Is(err, gorm.ErrInvalidDB):
-		errorType = "invalid_db"
-	case errors.Is(err, gorm.ErrInvalidTransaction):
-		errorType = "invalid_transaction"
-	case errors.Is(err, gorm.ErrNotImplemented):
-		errorType = "not_implemented"
-	case errors.Is(err, gorm.ErrMissingWhereClause):
-		errorType = "missing_where_clause"
-	case errors.Is(err, gorm.ErrUnsupportedDriver):
-		errorType = "unsupported_driver"
-	case errors.Is(err, gorm.ErrRegistered):
-		errorType = "already_registered"
-	case errors.Is(err, gorm.ErrInvalidField):
-		errorType = "invalid_field"
-	case errors.Is(err, gorm.ErrEmptySlice):
-		errorType = "empty_slice"
-	case errors.Is(err, gorm.ErrDryRunModeUnsupported):
-		errorType = "dry_run_unsupported"
-	case errors.Is(err, gorm.ErrInvalidData):
-		errorType = "invalid_data"
-	case errors.Is(err, gorm.ErrUnsupportedRelation):
-		errorType = "unsupported_relation"
-	case errors.Is(err, gorm.ErrPrimaryKeyRequired):
-		errorType = "primary_key_required"
-	}
+	errorType := w.getErrorType(err)
 
 	w.logger.Error("database error",
 		"message", msg,
 		"type", errorType,
 		"error", err)
+}
+
+// getErrorType determines the error type based on the GORM error
+func (w *GormLogWriter) getErrorType(err error) string {
+	for gormErr, errorType := range gormErrorTypes {
+		if errors.Is(err, gormErr) {
+			return errorType
+		}
+	}
+	return "database_error"
+}
+
+// gormErrorTypes maps GORM errors to their corresponding error types
+var gormErrorTypes = map[error]string{
+	gorm.ErrInvalidDB:             "invalid_db",
+	gorm.ErrInvalidTransaction:    "invalid_transaction",
+	gorm.ErrNotImplemented:        "not_implemented",
+	gorm.ErrMissingWhereClause:    "missing_where_clause",
+	gorm.ErrUnsupportedDriver:     "unsupported_driver",
+	gorm.ErrRegistered:            "already_registered",
+	gorm.ErrInvalidField:          "invalid_field",
+	gorm.ErrEmptySlice:            "empty_slice",
+	gorm.ErrDryRunModeUnsupported: "dry_run_unsupported",
+	gorm.ErrInvalidData:           "invalid_data",
+	gorm.ErrUnsupportedRelation:   "unsupported_relation",
+	gorm.ErrPrimaryKeyRequired:    "primary_key_required",
 }
 
 // MonitorConnectionPool monitors the database connection pool and logs metrics

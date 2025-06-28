@@ -94,28 +94,22 @@ func (f Field) ToZapField() zap.Field {
 		return zap.String(f.Key, "****")
 	}
 
+	return f.convertByType()
+}
+
+// convertByType converts the field based on its type
+func (f Field) convertByType() zap.Field {
 	switch f.Type {
 	case StringFieldType:
 		return zap.String(f.Key, f.Value.(string))
 	case IntFieldType:
-		switch v := f.Value.(type) {
-		case int:
-			return zap.Int(f.Key, v)
-		case int64:
-			return zap.Int64(f.Key, v)
-		default:
-			return zap.Any(f.Key, f.Value)
-		}
+		return f.convertIntField()
 	case FloatFieldType:
 		return zap.Float64(f.Key, f.Value.(float64))
 	case BoolFieldType:
 		return zap.Bool(f.Key, f.Value.(bool))
 	case ErrorFieldType:
-		if err, ok := f.Value.(error); ok {
-			return zap.Error(err)
-		}
-
-		return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
+		return f.convertErrorField()
 	case UUIDFieldType:
 		return zap.String(f.Key, maskUUID(f.Value.(string)))
 	case PathFieldType:
@@ -129,6 +123,26 @@ func (f Field) ToZapField() zap.Field {
 	default:
 		return zap.Any(f.Key, f.Value)
 	}
+}
+
+// convertIntField converts an integer field with type checking
+func (f Field) convertIntField() zap.Field {
+	switch v := f.Value.(type) {
+	case int:
+		return zap.Int(f.Key, v)
+	case int64:
+		return zap.Int64(f.Key, v)
+	default:
+		return zap.Any(f.Key, f.Value)
+	}
+}
+
+// convertErrorField converts an error field with proper error handling
+func (f Field) convertErrorField() zap.Field {
+	if err, ok := f.Value.(error); ok {
+		return zap.Error(err)
+	}
+	return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
 }
 
 // maskUUID masks a UUID value for security
