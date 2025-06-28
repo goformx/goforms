@@ -99,30 +99,46 @@ func (f Field) ToZapField() zap.Field {
 
 // convertByType converts the field based on its type
 func (f Field) convertByType() zap.Field {
-	switch f.Type {
-	case StringFieldType:
-		return zap.String(f.Key, f.Value.(string))
-	case IntFieldType:
-		return f.convertIntField()
-	case FloatFieldType:
-		return zap.Float64(f.Key, f.Value.(float64))
-	case BoolFieldType:
-		return zap.Bool(f.Key, f.Value.(bool))
-	case ErrorFieldType:
-		return f.convertErrorField()
-	case UUIDFieldType:
-		return zap.String(f.Key, maskUUID(f.Value.(string)))
-	case PathFieldType:
-		return zap.String(f.Key, sanitizePath(f.Value.(string)))
-	case UserAgentFieldType:
-		return zap.String(f.Key, sanitizeUserAgent(f.Value.(string)))
-	case ObjectFieldType:
-		return zap.Any(f.Key, f.Value)
-	case SensitiveFieldType:
-		return zap.String(f.Key, "****")
-	default:
+	converter, exists := fieldTypeConverters[f.Type]
+	if !exists {
 		return zap.Any(f.Key, f.Value)
 	}
+
+	return converter(f)
+}
+
+// fieldTypeConverters maps field types to their conversion functions
+var fieldTypeConverters = map[FieldType]func(Field) zap.Field{
+	StringFieldType: func(f Field) zap.Field {
+		return zap.String(f.Key, f.Value.(string))
+	},
+	IntFieldType: func(f Field) zap.Field {
+		return f.convertIntField()
+	},
+	FloatFieldType: func(f Field) zap.Field {
+		return zap.Float64(f.Key, f.Value.(float64))
+	},
+	BoolFieldType: func(f Field) zap.Field {
+		return zap.Bool(f.Key, f.Value.(bool))
+	},
+	ErrorFieldType: func(f Field) zap.Field {
+		return f.convertErrorField()
+	},
+	UUIDFieldType: func(f Field) zap.Field {
+		return zap.String(f.Key, maskUUID(f.Value.(string)))
+	},
+	PathFieldType: func(f Field) zap.Field {
+		return zap.String(f.Key, sanitizePath(f.Value.(string)))
+	},
+	UserAgentFieldType: func(f Field) zap.Field {
+		return zap.String(f.Key, sanitizeUserAgent(f.Value.(string)))
+	},
+	ObjectFieldType: func(f Field) zap.Field {
+		return zap.Any(f.Key, f.Value)
+	},
+	SensitiveFieldType: func(f Field) zap.Field {
+		return zap.String(f.Key, "****")
+	},
 }
 
 // convertIntField converts an integer field with type checking
