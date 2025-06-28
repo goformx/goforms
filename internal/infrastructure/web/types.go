@@ -242,9 +242,7 @@ func NormalizePath(path string) string {
 	cleaned := filepath.ToSlash(filepath.Clean(path))
 
 	// Remove leading slash for consistency
-	if strings.HasPrefix(cleaned, "/") {
-		cleaned = cleaned[1:]
-	}
+	cleaned = strings.TrimPrefix(cleaned, "/")
 
 	return cleaned
 }
