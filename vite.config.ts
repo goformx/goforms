@@ -305,6 +305,10 @@ export default defineConfig(({ mode, command }) => {
             // Vendor libraries
             vendor: ["@formio/js"],
             goformx: ["@goformx/formio"],
+            // Validation and utilities
+            utils: ["zod", "dompurify"],
+            // Form.io runtime dependencies
+            formio: ["ace-builds", "@fortawesome/fontawesome-free"],
             // Core application code - only include if files exist
             core: ["./src/js/core/http-client", "./src/js/core/logger"],
           },
@@ -344,10 +348,11 @@ export default defineConfig(({ mode, command }) => {
       include: [
         "@formio/js",
         "@goformx/formio",
-        // Add common heavy dependencies
-        "lodash-es",
-        "date-fns",
-        "axios",
+        "zod",
+        "dompurify",
+        // Form.io runtime dependencies
+        "ace-builds",
+        "@fortawesome/fontawesome-free",
       ],
       exclude: [
         // Exclude development-only packages
