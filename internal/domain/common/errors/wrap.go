@@ -12,6 +12,7 @@ func WrapError(err error, code ErrorCode, message string) error {
 		Code:    code,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -21,6 +22,7 @@ func WrapErrorf(err error, code ErrorCode, format string, args ...any) *DomainEr
 		Code:    code,
 		Message: fmt.Sprintf(format, args...),
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -35,6 +37,7 @@ func WrapNotFoundError(err error, message string) error {
 		Code:    ErrCodeNotFound,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -49,6 +52,7 @@ func WrapValidationError(err error, message string) error {
 		Code:    ErrCodeInvalid,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -63,6 +67,7 @@ func WrapAuthenticationError(err error, message string) error {
 		Code:    ErrCodeAuthentication,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -77,6 +82,7 @@ func WrapAuthorizationError(err error, message string) error {
 		Code:    ErrCodeInsufficientRole,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 

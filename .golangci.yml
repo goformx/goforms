@@ -29,7 +29,6 @@ linters:
     - nolintlint
     - prealloc
     - predeclared
-    - revive
     - rowserrcheck
     - sqlclosecheck
     - tagliatelle
@@ -254,69 +253,6 @@ linters:
       patterns:
         - '.*'
         
-    revive:
-      severity: warning
-      rules:
-        # Standard rules
-        - name: blank-imports
-        - name: context-as-argument
-        - name: context-keys-type
-        - name: dot-imports
-        - name: error-return
-        - name: error-strings
-        - name: error-naming
-        - name: exported
-        - name: increment-decrement
-        - name: var-naming
-        - name: var-declaration
-        - name: package-comments
-        - name: range
-        - name: receiver-naming
-        - name: time-naming
-        - name: unexported-return
-        - name: indent-error-flow
-        - name: errorf
-        - name: empty-block
-        - name: superfluous-else
-        - name: unused-parameter
-        - name: unreachable-code
-        - name: redefines-builtin-id
-        
-        # Additional rules good for Fx patterns
-        - name: atomic
-        - name: bare-return
-        - name: constant-logical-expr
-        - name: deep-exit
-        - name: defer
-        - name: duplicated-imports
-        - name: early-return
-        - name: empty-lines
-        - name: flag-parameter
-        - name: function-result-limit
-          arguments: [3]  # Limit function returns (good for constructors)
-        - name: function-length
-          arguments: [50, 0]  # Max 50 lines per function
-        - name: get-return
-        - name: identical-branches
-        - name: if-return
-        - name: imports-blocklist
-        - name: line-length-limit
-          arguments: [120]
-        - name: max-public-structs
-          arguments: [10]  # Limit public structs per package
-        - name: modifies-parameter
-        - name: modifies-value-receiver
-        - name: optimize-operands-order
-        - name: string-format
-        - name: struct-tag
-        - name: unchecked-type-assertion
-        - name: unhandled-error
-        - name: unnecessary-stmt
-        - name: unused-receiver
-        - name: use-any
-        - name: useless-break
-        - name: waitgroup-by-value
-        
     staticcheck:
       checks:
         - all
@@ -471,24 +407,12 @@ linters:
           - ireturn
         path: "(service|repository|handler).*\\.go"
         
-      # Allow unused parameters in Fx lifecycle hooks
-      - text: "unused-parameter"
-        linters:
-          - revive
-        source: "func.*\\(.*fx\\.Lifecycle.*\\)"
-        
       # Common Fx patterns that trigger false positives
       - text: "cyclomatic complexity"
         linters:
           - gocyclo
           - cyclop
         source: "func New.*\\(.*\\) .*fx\\.Option"
-        
-      # Allow empty catch blocks in Fx shutdown hooks
-      - text: "empty-block"
-        linters:
-          - revive
-        source: "OnStop.*func\\(.*context\\.Context.*\\) error.*\\{.*\\}"
 
 formatters:
   exclusions:

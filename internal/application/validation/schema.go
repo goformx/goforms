@@ -81,10 +81,17 @@ func (sg *SchemaGenerator) GenerateValidationSchema(s any) map[string]any {
 
 // GenerateLoginSchema generates the validation schema for login forms
 func (sg *SchemaGenerator) GenerateLoginSchema() map[string]any {
-	return sg.GenerateValidationSchema(user.Login{})
+	return sg.GenerateValidationSchema(user.Login{
+		Email:    "",
+		Password: "",
+	})
 }
 
 // GenerateSignupSchema generates the validation schema for signup forms
 func (sg *SchemaGenerator) GenerateSignupSchema() map[string]any {
-	return sg.GenerateValidationSchema(user.Signup{})
+	return sg.GenerateValidationSchema(user.Signup{
+		Email:           "",
+		Password:        "",
+		ConfirmPassword: "",
+	})
 }

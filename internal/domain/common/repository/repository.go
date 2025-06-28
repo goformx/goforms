@@ -68,6 +68,7 @@ func NewPagination(page, pageSize int) Pagination {
 	return Pagination{
 		Page:     page,
 		PageSize: pageSize,
+		Total:    0,
 	}
 }
 

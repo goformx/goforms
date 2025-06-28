@@ -194,34 +194,34 @@ func (c *Config) Validate() error {
 func DefaultRules() []Rule {
 	return []Rule{
 		// Public paths
-		{Path: constants.PathHome, AccessLevel: Public},
-		{Path: constants.PathLogin, AccessLevel: Public},
-		{Path: constants.PathSignup, AccessLevel: Public},
-		{Path: constants.PathForgotPassword, AccessLevel: Public},
-		{Path: constants.PathResetPassword, AccessLevel: Public},
-		{Path: constants.PathVerifyEmail, AccessLevel: Public},
-		{Path: constants.PathDemo, AccessLevel: Public},
-		{Path: constants.PathHealth, AccessLevel: Public},
-		{Path: constants.PathMetrics, AccessLevel: Public},
+		{Path: constants.PathHome, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathLogin, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathSignup, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathForgotPassword, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathResetPassword, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathVerifyEmail, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathDemo, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathHealth, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathMetrics, AccessLevel: Public, Methods: []string{}},
 
 		// Static asset paths
-		{Path: constants.PathAssets, AccessLevel: Public},
-		{Path: constants.PathFonts, AccessLevel: Public},
-		{Path: constants.PathCSS, AccessLevel: Public},
-		{Path: constants.PathJS, AccessLevel: Public},
-		{Path: constants.PathImages, AccessLevel: Public},
-		{Path: constants.PathStatic, AccessLevel: Public},
-		{Path: constants.PathFavicon, AccessLevel: Public},
-		{Path: constants.PathRobotsTxt, AccessLevel: Public},
+		{Path: constants.PathAssets, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathFonts, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathCSS, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathJS, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathImages, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathStatic, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathFavicon, AccessLevel: Public, Methods: []string{}},
+		{Path: constants.PathRobotsTxt, AccessLevel: Public, Methods: []string{}},
 
 		// Authenticated paths
-		{Path: constants.PathDashboard, AccessLevel: Authenticated},
-		{Path: constants.PathForms, AccessLevel: Authenticated},
-		{Path: constants.PathProfile, AccessLevel: Authenticated},
-		{Path: constants.PathSettings, AccessLevel: Authenticated},
+		{Path: constants.PathDashboard, AccessLevel: Authenticated, Methods: []string{}},
+		{Path: constants.PathForms, AccessLevel: Authenticated, Methods: []string{}},
+		{Path: constants.PathProfile, AccessLevel: Authenticated, Methods: []string{}},
+		{Path: constants.PathSettings, AccessLevel: Authenticated, Methods: []string{}},
 
 		// Admin paths
-		{Path: constants.PathAdmin, AccessLevel: Admin},
+		{Path: constants.PathAdmin, AccessLevel: Admin, Methods: []string{}},
 	}
 }
 

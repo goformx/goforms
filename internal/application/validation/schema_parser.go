@@ -10,7 +10,18 @@ func NewSchemaParser() *SchemaParser {
 
 // ExtractValidationRules extracts validation rules from a component
 func (p *SchemaParser) ExtractValidationRules(component map[string]any) FieldValidation {
-	validation := FieldValidation{}
+	validation := FieldValidation{
+		Required:    false,
+		Type:        "",
+		MinLength:   0,
+		MaxLength:   0,
+		Min:         0,
+		Max:         0,
+		Pattern:     "",
+		Options:     []string{},
+		CustomRules: []Rule{},
+		Conditional: map[string]any{},
+	}
 
 	// Extract basic validation properties
 	p.extractBasicValidation(component, &validation)

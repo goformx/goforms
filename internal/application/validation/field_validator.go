@@ -77,6 +77,7 @@ func (v *FieldValidator) validateRequired(fieldName string, value any, rules *Fi
 		return []Error{{
 			Field:   fieldName,
 			Message: rules.getMessage("required", "This field is required"),
+			Rule:    "required",
 		}}
 	}
 
@@ -92,6 +93,7 @@ func (v *FieldValidator) validateStringField(fieldName string, value any, rules 
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("minLength", fmt.Sprintf("Minimum length is %d characters", rules.MinLength)),
+				Rule:    "minLength",
 			})
 		}
 
@@ -99,6 +101,7 @@ func (v *FieldValidator) validateStringField(fieldName string, value any, rules 
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("maxLength", fmt.Sprintf("Maximum length is %d characters", rules.MaxLength)),
+				Rule:    "maxLength",
 			})
 		}
 	}
@@ -115,6 +118,7 @@ func (v *FieldValidator) validateNumericField(fieldName string, value any, rules
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("min", fmt.Sprintf("Minimum value is %g", rules.Min)),
+				Rule:    "min",
 			})
 		}
 
@@ -122,6 +126,7 @@ func (v *FieldValidator) validateNumericField(fieldName string, value any, rules
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("max", fmt.Sprintf("Maximum value is %g", rules.Max)),
+				Rule:    "max",
 			})
 		}
 	}
@@ -141,6 +146,7 @@ func (v *FieldValidator) validatePattern(fieldName string, value any, pattern st
 			return []Error{{
 				Field:   fieldName,
 				Message: fmt.Sprintf("Invalid regex pattern: %v", err),
+				Rule:    "pattern",
 			}}
 		}
 
@@ -148,6 +154,7 @@ func (v *FieldValidator) validatePattern(fieldName string, value any, pattern st
 			return []Error{{
 				Field:   fieldName,
 				Message: "Value does not match required pattern",
+				Rule:    "pattern",
 			}}
 		}
 	}
@@ -171,6 +178,7 @@ func (v *FieldValidator) validateOptions(fieldName string, value any, options []
 		return []Error{{
 			Field:   fieldName,
 			Message: "Invalid option selected",
+			Rule:    "options",
 		}}
 	}
 

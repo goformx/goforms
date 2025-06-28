@@ -227,6 +227,8 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
+		DeletedAt:   gorm.DeletedAt{},
+		Fields:      []Field{},
 		CorsOrigins: JSON{},
 		CorsMethods: JSON{},
 		CorsHeaders: JSON{},

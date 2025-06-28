@@ -113,6 +113,7 @@ func NewStores(p StoreParams) (Stores, error) {
 	}
 
 	return Stores{
+		Out:                      fx.Out{},
 		UserRepository:           userRepo,
 		FormRepository:           formRepo,
 		FormSubmissionRepository: formSubmissionRepo,

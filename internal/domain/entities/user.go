@@ -103,6 +103,9 @@ func NewUser(email, password, firstName, lastName string) (*User, error) {
 		LastName:       lastName,
 		Role:           "user",
 		Active:         true,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		DeletedAt:      gorm.DeletedAt{},
 	}, nil
 }
 
