@@ -167,11 +167,11 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 	factoryConfig := logging.FactoryConfig{
 		AppName:     p.Config.App.Name,
 		Version:     version.Version,
-		Environment: p.Config.App.Env,
+		Environment: p.Config.App.Environment,
 		Fields: map[string]any{
 			"app":     p.Config.App.Name,
 			"version": version.Version,
-			"env":     p.Config.App.Env,
+			"env":     p.Config.App.Environment,
 		},
 		LogLevel:         logLevel,
 		OutputPaths:      outputPaths,
@@ -200,7 +200,7 @@ func determineLogLevel(cfg *config.Config) string {
 	}
 
 	// Environment-based defaults
-	switch cfg.App.Env {
+	switch cfg.App.Environment {
 	case "development", "dev":
 		return DevelopmentLogLevel
 	case "production", "prod":

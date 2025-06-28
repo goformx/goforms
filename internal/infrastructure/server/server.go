@@ -84,7 +84,7 @@ func (s *Server) Start() error {
 		s.logger.Info("server started",
 			"host", s.config.App.Host,
 			"port", s.config.App.Port,
-			"environment", s.config.App.Env,
+			"environment", s.config.App.Environment,
 			"version", versionInfo.Version,
 			"build_time", versionInfo.BuildTime,
 			"git_commit", versionInfo.GitCommit)
@@ -115,7 +115,7 @@ func New(deps Deps) *Server {
 	// Log server configuration
 	deps.Logger.Info("initializing server",
 		"url", srv.URL(),
-		"environment", deps.Config.App.Env,
+		"environment", deps.Config.App.Environment,
 		"server_type", "echo")
 
 	// Add health check endpoint

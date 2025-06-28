@@ -6,49 +6,95 @@ import (
 
 // EmailConfig holds email-related configuration
 type EmailConfig struct {
-	Host     string `envconfig:"GOFORMS_EMAIL_HOST"`
-	Port     int    `envconfig:"GOFORMS_EMAIL_PORT" default:"587"`
-	Username string `envconfig:"GOFORMS_EMAIL_USERNAME"`
-	Password string `envconfig:"GOFORMS_EMAIL_PASSWORD"`
-	From     string `envconfig:"GOFORMS_EMAIL_FROM"`
+	Host       string `json:"host"`
+	Port       int    `json:"port"`
+	Username   string `json:"username"`
+	Password   string `json:"password"`
+	From       string `json:"from"`
+	UseTLS     bool   `json:"use_tls"`
+	UseSSL     bool   `json:"use_ssl"`
+	Template   string `json:"template"`
+	Timeout    int    `json:"timeout"`
+	MaxRetries int    `json:"max_retries"`
 }
 
 // StorageConfig holds storage-related configuration
 type StorageConfig struct {
-	Type     string `envconfig:"GOFORMS_STORAGE_TYPE" default:"local"`
-	LocalDir string `envconfig:"GOFORMS_STORAGE_LOCAL_DIR" default:"./storage"`
+	Type        string             `json:"type"`
+	Local       LocalStorageConfig `json:"local"`
+	S3          S3StorageConfig    `json:"s3"`
+	MaxSize     int64              `json:"max_size"`
+	AllowedExts []string           `json:"allowed_extensions"`
+}
+
+// LocalStorageConfig holds local storage configuration
+type LocalStorageConfig struct {
+	Path string `json:"path"`
+}
+
+// S3StorageConfig holds S3 storage configuration
+type S3StorageConfig struct {
+	Bucket    string `json:"bucket"`
+	Region    string `json:"region"`
+	AccessKey string `json:"access_key"`
+	SecretKey string `json:"secret_key"`
+	Endpoint  string `json:"endpoint"`
 }
 
 // CacheConfig holds cache-related configuration
 type CacheConfig struct {
-	Type    string        `envconfig:"GOFORMS_CACHE_TYPE" default:"memory"`
-	TTL     time.Duration `envconfig:"GOFORMS_CACHE_TTL" default:"1h"`
-	MaxSize int           `envconfig:"GOFORMS_CACHE_MAX_SIZE" default:"1000"`
+	Type   string        `json:"type"`
+	Redis  RedisConfig   `json:"redis"`
+	Memory MemoryConfig  `json:"memory"`
+	TTL    time.Duration `json:"ttl"`
+}
+
+// RedisConfig holds Redis cache configuration
+type RedisConfig struct {
+	Host     string `json:"host"`
+	Port     int    `json:"port"`
+	Password string `json:"password"`
+	DB       int    `json:"db"`
+}
+
+// MemoryConfig holds memory cache configuration
+type MemoryConfig struct {
+	MaxSize int `json:"max_size"`
 }
 
 // LoggingConfig holds logging-related configuration
 type LoggingConfig struct {
-	Level      string `envconfig:"GOFORMS_LOG_LEVEL" default:"info"`
-	Format     string `envconfig:"GOFORMS_LOG_FORMAT" default:"json"`
-	Output     string `envconfig:"GOFORMS_LOG_OUTPUT" default:"stdout"`
-	MaxSize    int    `envconfig:"GOFORMS_LOG_MAX_SIZE" default:"100"`
-	MaxBackups int    `envconfig:"GOFORMS_LOG_MAX_BACKUPS" default:"3"`
-	MaxAge     int    `envconfig:"GOFORMS_LOG_MAX_AGE" default:"28"`
-	Compress   bool   `envconfig:"GOFORMS_LOG_COMPRESS" default:"true"`
+	Level      string `json:"level"`
+	Format     string `json:"format"`
+	Output     string `json:"output"`
+	File       string `json:"file"`
+	MaxSize    int    `json:"max_size"`
+	MaxBackups int    `json:"max_backups"`
+	MaxAge     int    `json:"max_age"`
+	Compress   bool   `json:"compress"`
 }
 
 // SessionConfig holds session-related configuration
 type SessionConfig struct {
-	Type       string        `envconfig:"GOFORMS_SESSION_TYPE" default:"none"`
-	Secret     string        `envconfig:"GOFORMS_SESSION_SECRET"`
-	TTL        time.Duration `envconfig:"GOFORMS_SESSION_TTL" default:"24h"`
-	Secure     bool          `envconfig:"GOFORMS_SESSION_SECURE" default:"true"`
-	HTTPOnly   bool          `envconfig:"GOFORMS_SESSION_HTTP_ONLY" default:"true"`
-	CookieName string        `envconfig:"GOFORMS_SESSION_COOKIE_NAME" default:"session"`
-	StoreFile  string        `envconfig:"GOFORMS_SESSION_STORE_FILE" default:"storage/sessions/sessions.json"`
+	Type       string        `json:"type"`
+	Secret     string        `json:"secret"`
+	MaxAge     time.Duration `json:"max_age"`
+	Domain     string        `json:"domain"`
+	Path       string        `json:"path"`
+	Secure     bool          `json:"secure"`
+	HTTPOnly   bool          `json:"http_only"`
+	SameSite   string        `json:"same_site"`
+	Store      string        `json:"store"`
+	StoreFile  string        `json:"store_file"`
+	CookieName string        `json:"cookie_name"`
 }
 
 // AuthConfig holds authentication-related configuration
 type AuthConfig struct {
-	PasswordCost int `envconfig:"GOFORMS_PASSWORD_COST" default:"12"`
+	RequireEmailVerification bool          `json:"require_email_verification"`
+	PasswordMinLength        int           `json:"password_min_length"`
+	PasswordRequireSpecial   bool          `json:"password_require_special"`
+	SessionTimeout           time.Duration `json:"session_timeout"`
+	MaxLoginAttempts         int           `json:"max_login_attempts"`
+	LockoutDuration          time.Duration `json:"lockout_duration"`
 }

@@ -8,78 +8,112 @@ import (
 
 // SecurityConfig contains security-related settings
 type SecurityConfig struct {
+	// JWT configuration
+	JWTSecret string `json:"jwt_secret"`
+
 	// CSRF protection
-	CSRF CSRFConfig `envconfig:"CSRF"`
+	CSRF CSRFConfig `json:"csrf"`
 
 	// CORS configuration
-	CORS CORSConfig `envconfig:"CORS"`
+	CORS CORSConfig `json:"cors"`
 
 	// Rate limiting configuration
-	RateLimit RateLimitConfig `envconfig:"RATE_LIMIT"`
+	RateLimit RateLimitConfig `json:"rate_limit"`
 
 	// Security headers configuration
-	Headers SecurityHeadersConfig `envconfig:"HEADERS"`
+	Headers SecurityHeadersConfig `json:"headers"`
 
 	// Content Security Policy configuration
-	CSP CSPConfig `envconfig:"CSP"`
+	CSP CSPConfig `json:"csp"`
+
+	// TLS configuration
+	TLS TLSConfig `json:"tls"`
+
+	// Encryption configuration
+	Encryption EncryptionConfig `json:"encryption"`
 
 	// Cookie security
-	SecureCookie bool `envconfig:"GOFORMS_SECURITY_SECURE_COOKIE" default:"true"`
+	SecureCookie bool `json:"secure_cookie"`
 
 	// Debug mode
-	Debug bool `envconfig:"GOFORMS_SECURITY_DEBUG" default:"false"`
+	Debug bool `json:"debug"`
 }
 
 // CSRFConfig holds CSRF-related configuration
 type CSRFConfig struct {
-	Enabled        bool   `envconfig:"GOFORMS_SECURITY_CSRF_ENABLED" default:"true"`
-	Secret         string `envconfig:"GOFORMS_SECURITY_CSRF_SECRET" validate:"required"`
-	TokenLength    int    `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LENGTH" default:"32"`
-	TokenLookup    string `envconfig:"GOFORMS_SECURITY_CSRF_TOKEN_LOOKUP" default:"header:X-Csrf-Token"`
-	ContextKey     string `envconfig:"GOFORMS_SECURITY_CSRF_CONTEXT_KEY" default:"csrf"`
-	CookieName     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_NAME" default:"_csrf"`
-	CookiePath     string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_PATH" default:"/"`
-	CookieDomain   string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_DOMAIN" default:""`
-	CookieHTTPOnly bool   `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_HTTP_ONLY" default:"true"`
-	CookieSameSite string `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE" default:"Lax"`
-	CookieMaxAge   int    `envconfig:"GOFORMS_SECURITY_CSRF_COOKIE_MAX_AGE" default:"86400"`
+	Enabled        bool   `json:"enabled"`
+	Secret         string `json:"secret"`
+	TokenName      string `json:"token_name"`
+	HeaderName     string `json:"header_name"`
+	TokenLength    int    `json:"token_length"`
+	TokenLookup    string `json:"token_lookup"`
+	ContextKey     string `json:"context_key"`
+	CookieName     string `json:"cookie_name"`
+	CookiePath     string `json:"cookie_path"`
+	CookieDomain   string `json:"cookie_domain"`
+	CookieHTTPOnly bool   `json:"cookie_http_only"`
+	CookieSameSite string `json:"cookie_same_site"`
+	CookieMaxAge   int    `json:"cookie_max_age"`
 }
 
 // CORSConfig holds CORS-related configuration
 type CORSConfig struct {
-	Enabled        bool     `envconfig:"GOFORMS_SECURITY_CORS_ENABLED" default:"true"`
-	AllowedOrigins []string `envconfig:"GOFORMS_SECURITY_CORS_ORIGINS" default:"http://localhost:5173"`
-	AllowedMethods []string `envconfig:"GOFORMS_SECURITY_CORS_METHODS" default:"GET,POST,PUT,DELETE,OPTIONS"`
-	//nolint:lll // This is a valid header
-	AllowedHeaders   []string `envconfig:"GOFORMS_SECURITY_CORS_HEADERS" default:"Content-Type,Authorization,X-Csrf-Token,X-Requested-With"`
-	AllowCredentials bool     `envconfig:"GOFORMS_SECURITY_CORS_CREDENTIALS" default:"true"`
-	MaxAge           int      `envconfig:"GOFORMS_SECURITY_CORS_MAX_AGE" default:"3600"`
+	Enabled          bool     `json:"enabled"`
+	AllowedOrigins   []string `json:"allowed_origins"`
+	AllowedMethods   []string `json:"allowed_methods"`
+	AllowedHeaders   []string `json:"allowed_headers"`
+	ExposedHeaders   []string `json:"exposed_headers"`
+	AllowCredentials bool     `json:"allow_credentials"`
+	MaxAge           int      `json:"max_age"`
 }
 
 // RateLimitConfig holds rate limiting configuration
 type RateLimitConfig struct {
-	Enabled     bool          `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_ENABLED" default:"true"`
-	Requests    int           `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_REQUESTS" default:"100"`
-	Window      time.Duration `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_WINDOW" default:"1m"`
-	Burst       int           `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_BURST" default:"20"`
-	PerIP       bool          `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_PER_IP" default:"true"`
-	SkipPaths   []string      `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_SKIP_PATHS"`
-	SkipMethods []string      `envconfig:"GOFORMS_SECURITY_RATE_LIMIT_SKIP_METHODS" default:"GET,HEAD,OPTIONS"`
+	Enabled     bool          `json:"enabled"`
+	RPS         int           `json:"rps"`
+	Burst       int           `json:"burst"`
+	Requests    int           `json:"requests"`
+	Window      time.Duration `json:"window"`
+	PerIP       bool          `json:"per_ip"`
+	SkipPaths   []string      `json:"skip_paths"`
+	SkipMethods []string      `json:"skip_methods"`
 }
 
 // SecurityHeadersConfig holds security headers configuration
 type SecurityHeadersConfig struct {
-	XFrameOptions           string `envconfig:"GOFORMS_SECURITY_X_FRAME_OPTIONS" default:"DENY"`
-	XContentTypeOptions     string `envconfig:"GOFORMS_SECURITY_X_CONTENT_TYPE_OPTIONS" default:"nosniff"`
-	XXSSProtection          string `envconfig:"GOFORMS_SECURITY_X_XSS_PROTECTION" default:"1; mode=block"`
-	ReferrerPolicy          string `envconfig:"GOFORMS_SECURITY_REFERRER_POLICY" default:"strict-origin-when-cross-origin"`
-	StrictTransportSecurity string `envconfig:"GOFORMS_SECURITY_HSTS" default:"max-age=31536000; includeSubDomains"`
+	XFrameOptions           string `json:"x_frame_options"`
+	XContentTypeOptions     string `json:"x_content_type_options"`
+	XXSSProtection          string `json:"x_xss_protection"`
+	ReferrerPolicy          string `json:"referrer_policy"`
+	StrictTransportSecurity string `json:"strict_transport_security"`
 }
 
 // CSPConfig holds Content Security Policy configuration
 type CSPConfig struct {
-	Enabled    bool   `envconfig:"GOFORMS_SECURITY_CSP_ENABLED" default:"true"`
-	Directives string `envconfig:"GOFORMS_SECURITY_CSP_DIRECTIVES"`
+	Enabled    bool   `json:"enabled"`
+	Directives string `json:"directives"`
+	DefaultSrc string `json:"default_src"`
+	ScriptSrc  string `json:"script_src"`
+	StyleSrc   string `json:"style_src"`
+	ImgSrc     string `json:"img_src"`
+	ConnectSrc string `json:"connect_src"`
+	FontSrc    string `json:"font_src"`
+	ObjectSrc  string `json:"object_src"`
+	MediaSrc   string `json:"media_src"`
+	FrameSrc   string `json:"frame_src"`
+	ReportURI  string `json:"report_uri"`
+}
+
+// TLSConfig holds TLS configuration
+type TLSConfig struct {
+	Enabled  bool   `json:"enabled"`
+	CertFile string `json:"cert_file"`
+	KeyFile  string `json:"key_file"`
+}
+
+// EncryptionConfig holds encryption configuration
+type EncryptionConfig struct {
+	Key string `json:"key"`
 }
 
 // GetCSPDirectives returns the Content Security Policy directives based on environment
@@ -114,11 +148,15 @@ func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 		"form-action 'self'"
 }
 
-// validateSecurityConfig validates security configuration
-func (c *Config) validateSecurityConfig() error {
+// Validate validates the security configuration
+func (c *SecurityConfig) Validate() error {
 	var errs []string
 
-	if c.Security.CSRF.Enabled && c.Security.CSRF.Secret == "" {
+	if c.JWTSecret == "" {
+		errs = append(errs, "JWT secret is required")
+	}
+
+	if c.CSRF.Enabled && c.CSRF.Secret == "" {
 		errs = append(errs, "CSRF secret is required when CSRF is enabled")
 	}
 

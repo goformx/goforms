@@ -34,7 +34,7 @@ func NewManager(
 		logger:        logger,
 		storage:       storage,
 		sessions:      make(map[string]*Session),
-		expiryTime:    cfg.TTL,
+		expiryTime:    cfg.MaxAge,
 		secureCookie:  cfg.Secure,
 		cookieName:    cfg.CookieName,
 		stopChan:      make(chan struct{}),

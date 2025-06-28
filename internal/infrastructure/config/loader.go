@@ -7,7 +7,6 @@ import (
 	"strings"
 
 	"github.com/joho/godotenv"
-	"github.com/kelseyhightower/envconfig"
 )
 
 // Loader provides configuration loading capabilities
@@ -43,19 +42,13 @@ func (l *Loader) Load() (*Config, error) {
 		return nil, fmt.Errorf("failed to load environment files: %w", err)
 	}
 
-	var config Config
-
-	// Load environment variables into config struct
-	if err := envconfig.Process(l.envPrefix, &config); err != nil {
-		return nil, fmt.Errorf("failed to process environment variables: %w", err)
+	// Use the new LoadFromEnv function
+	config, err := LoadFromEnv()
+	if err != nil {
+		return nil, fmt.Errorf("failed to load configuration from environment: %w", err)
 	}
 
-	// Validate the configuration
-	if err := config.validateConfig(); err != nil {
-		return nil, fmt.Errorf("configuration validation failed: %w", err)
-	}
-
-	return &config, nil
+	return config, nil
 }
 
 // loadEnvFiles loads environment variables from .env files
@@ -103,14 +96,14 @@ func LoadForEnvironment(env string) (*Config, error) {
 	}
 
 	// Override the environment setting
-	config.App.Env = env
+	config.App.Environment = env
 
 	return config, nil
 }
 
 // MustLoad loads configuration and panics on error
 func MustLoad() *Config {
-	config, err := New()
+	config, err := LoadFromEnv()
 	if err != nil {
 		panic(fmt.Sprintf("Failed to load configuration: %v", err))
 	}
@@ -122,15 +115,15 @@ func (c *Config) GetConfigSummary() map[string]interface{} {
 	return map[string]interface{}{
 		"app": map[string]interface{}{
 			"name":        c.App.Name,
-			"environment": c.App.Env,
+			"environment": c.App.Environment,
 			"debug":       c.App.Debug,
 			"url":         c.App.GetServerURL(),
 		},
 		"database": map[string]interface{}{
-			"connection": c.Database.Connection,
-			"host":       c.Database.Host,
-			"port":       c.Database.Port,
-			"database":   c.Database.Database,
+			"driver": c.Database.Driver,
+			"host":   c.Database.Host,
+			"port":   c.Database.Port,
+			"name":   c.Database.Name,
 		},
 		"security": map[string]interface{}{
 			"csrf_enabled":       c.Security.CSRF.Enabled,
@@ -154,25 +147,25 @@ func (c *Config) IsValid() bool {
 
 // GetEnvironment returns the current environment
 func (c *Config) GetEnvironment() string {
-	return strings.ToLower(c.App.Env)
+	return strings.ToLower(c.App.Environment)
 }
 
 // IsProduction returns true if running in production
 func (c *Config) IsProduction() bool {
-	return c.GetEnvironment() == EnvProduction
+	return c.GetEnvironment() == "production"
 }
 
 // IsDevelopment returns true if running in development
 func (c *Config) IsDevelopment() bool {
-	return c.GetEnvironment() == EnvDevelopment
+	return c.GetEnvironment() == "development"
 }
 
 // IsStaging returns true if running in staging
 func (c *Config) IsStaging() bool {
-	return c.GetEnvironment() == EnvStaging
+	return c.GetEnvironment() == "staging"
 }
 
 // IsTest returns true if running in test
 func (c *Config) IsTest() bool {
-	return c.GetEnvironment() == EnvTest
+	return c.GetEnvironment() == "test"
 }

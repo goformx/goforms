@@ -136,7 +136,7 @@ func TestAssetManager(t *testing.T) {
 
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Env:         "development",
+			Environment: "development",
 			Scheme:      "http",
 			ViteDevHost: "localhost",
 			ViteDevPort: "5173",
@@ -181,7 +181,7 @@ func TestAssetManager_ProductionMode(t *testing.T) {
 
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Env: "production",
+			Environment: "production",
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
@@ -206,7 +206,7 @@ func TestAssetManager_ErrorHandling(t *testing.T) {
 
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Env: "development",
+			Environment: "development",
 		},
 	}
 	manager, err = web.NewAssetManager(cfg, nil, embed.FS{})
