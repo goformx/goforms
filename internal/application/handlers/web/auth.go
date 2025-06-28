@@ -15,9 +15,7 @@ import (
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 // AuthHandler handles authentication-related requests
@@ -30,7 +28,7 @@ type AuthHandler struct {
 	ResponseBuilder *AuthResponseBuilder
 	AuthService     *AuthService
 	Sanitizer       sanitization.ServiceInterface
-	AssetManager    *web.AssetManager
+	// Removed AssetManager - it's already available through BaseHandler
 }
 
 const (
@@ -52,11 +50,10 @@ func NewAuthHandler(
 	responseBuilder *AuthResponseBuilder,
 	authService *AuthService,
 	sanitizer sanitization.ServiceInterface,
-	assetManager *web.AssetManager,
 ) (*AuthHandler, error) {
 	if base == nil || authMiddleware == nil || requestUtils == nil ||
 		schemaGenerator == nil || requestParser == nil || responseBuilder == nil ||
-		authService == nil || sanitizer == nil || assetManager == nil {
+		authService == nil || sanitizer == nil {
 		return nil, errors.New("missing required dependencies for AuthHandler")
 	}
 
@@ -69,7 +66,6 @@ func NewAuthHandler(
 		ResponseBuilder: responseBuilder,
 		AuthService:     authService,
 		Sanitizer:       sanitizer,
-		AssetManager:    assetManager,
 	}, nil
 }
 
@@ -95,7 +91,9 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 func (h *AuthHandler) Login(c echo.Context) error {
 	// Force CSRF token generation
 	_ = c.Get("csrf")
-	data := view.NewPageData(h.Config, h.AssetManager, c, "Login")
+
+	// Use inherited NewPageData method from BaseHandler
+	data := h.NewPageData(c, "Login")
 
 	if mwcontext.IsAuthenticated(c) {
 		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
@@ -133,8 +131,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			)
 		}
 
-		data := view.NewPageData(h.Config, h.AssetManager, c, "Login")
-
+		data := h.NewPageData(c, "Login")
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -150,8 +147,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			)
 		}
 
-		data := view.NewPageData(h.Config, h.AssetManager, c, "Login")
-
+		data := h.NewPageData(c, "Login")
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
 	}
 
@@ -170,7 +166,8 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 func (h *AuthHandler) Signup(c echo.Context) error {
 	// Force CSRF token generation
 	_ = c.Get("csrf")
-	data := view.NewPageData(h.Config, h.AssetManager, c, "Sign Up")
+
+	data := h.NewPageData(c, "Sign Up")
 
 	if mwcontext.IsAuthenticated(c) {
 		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
@@ -201,8 +198,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			)
 		}
 
-		data := view.NewPageData(h.Config, h.AssetManager, c, "Sign Up")
-
+		data := h.NewPageData(c, "Sign Up")
 		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -220,8 +216,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			)
 		}
 
-		data := view.NewPageData(h.Config, h.AssetManager, c, "Sign Up")
-
+		data := h.NewPageData(c, "Sign Up")
 		return h.ResponseBuilder.HTMLFormError(
 			c,
 			"signup",

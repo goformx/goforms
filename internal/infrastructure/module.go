@@ -255,7 +255,8 @@ func ProvideAssetServer(p AssetServerParams) (infraweb.AssetServer, error) {
 }
 
 // NewAssetManager creates a new asset manager with proper dependency validation.
-func NewAssetManager(p AssetManagerParams) (*infraweb.AssetManager, error) {
+// Returns the interface type for better dependency injection.
+func NewAssetManager(p AssetManagerParams) (infraweb.AssetManagerInterface, error) {
 	if p.Logger == nil {
 		return nil, fmt.Errorf("asset manager creation failed: %w", ErrMissingLogger)
 	}
@@ -270,6 +271,24 @@ func NewAssetManager(p AssetManagerParams) (*infraweb.AssetManager, error) {
 	}
 
 	return manager, nil
+}
+
+// NewWebModule creates a web module with all its components properly initialized.
+func NewWebModule(p AssetManagerParams) (*infraweb.Module, error) {
+	if p.Logger == nil {
+		return nil, fmt.Errorf("web module creation failed: %w", ErrMissingLogger)
+	}
+
+	if p.Config == nil {
+		return nil, fmt.Errorf("web module creation failed: %w", ErrMissingConfig)
+	}
+
+	module, err := infraweb.NewModule(p.Config, p.Logger, p.DistFS)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create web module: %w", err)
+	}
+
+	return module, nil
 }
 
 // AnnotateHandler is a helper function that simplifies the creation of handler providers.
@@ -360,12 +379,16 @@ var Module = fx.Options(
 		NewEventPublisher,
 		event.NewMemoryEventBus,
 
-		// Asset handling
+		// Asset handling - provide both the interface and the module
 		fx.Annotate(
 			ProvideAssetServer,
 			fx.As(new(infraweb.AssetServer)),
 		),
-		NewAssetManager,
+		fx.Annotate(
+			NewAssetManager,
+			fx.As(new(infraweb.AssetManagerInterface)),
+		),
+		NewWebModule,
 	),
 
 	// Lifecycle management

@@ -29,7 +29,7 @@ type BaseHandler struct {
 	Renderer       view.Renderer
 	SessionManager *session.Manager
 	ErrorHandler   response.ErrorHandlerInterface
-	AssetManager   *web.AssetManager
+	AssetManager   web.AssetManagerInterface // Use interface instead of concrete type
 }
 
 // NewBaseHandler creates a new base handler with common dependencies
@@ -41,7 +41,7 @@ func NewBaseHandler(
 	renderer view.Renderer,
 	sessionManager *session.Manager,
 	errorHandler response.ErrorHandlerInterface,
-	assetManager *web.AssetManager,
+	assetManager web.AssetManagerInterface, // Use interface
 ) *BaseHandler {
 	return &BaseHandler{
 		Logger:         logger,
@@ -105,6 +105,16 @@ func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
 	}
 
 	return nil
+}
+
+// GetAssetBaseURL returns the base URL for assets (convenience method)
+func (h *BaseHandler) GetAssetBaseURL() string {
+	return h.AssetManager.GetBaseURL()
+}
+
+// ValidateAssetPath validates an asset path (convenience method)
+func (h *BaseHandler) ValidateAssetPath(path string) error {
+	return h.AssetManager.ValidatePath(path)
 }
 
 // Start initializes the base handler.

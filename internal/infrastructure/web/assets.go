@@ -8,7 +8,6 @@ import (
 	"embed"
 	"errors"
 	"fmt"
-	"path/filepath"
 	"strings"
 	"sync"
 
@@ -58,6 +57,7 @@ func NewAssetManager(cfg *config.Config, logger logging.Logger, distFS embed.FS)
 }
 
 // AssetPath returns the resolved asset path for the given input path
+// This is a convenience method that uses a background context
 func (m *AssetManager) AssetPath(path string) string {
 	ctx := context.Background()
 
@@ -68,7 +68,8 @@ func (m *AssetManager) AssetPath(path string) string {
 			"error", err,
 		)
 
-		return ""
+		// Return original path as fallback instead of empty string
+		return path
 	}
 
 	m.logger.Debug("asset resolved", "asset_path", path, "resolved", resolvedPath)
@@ -78,15 +79,14 @@ func (m *AssetManager) AssetPath(path string) string {
 
 // ResolveAssetPath resolves asset paths with context and proper error handling
 func (m *AssetManager) ResolveAssetPath(ctx context.Context, path string) (string, error) {
-	if path == "" {
-		return "", fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
+	if err := m.ValidatePath(path); err != nil {
+		return "", fmt.Errorf("path validation failed: %w", err)
 	}
 
 	// Check cache first
 	m.mu.RLock()
 	if cachedPath, found := m.pathCache[path]; found {
 		m.mu.RUnlock()
-
 		return cachedPath, nil
 	}
 	m.mu.RUnlock()
@@ -107,35 +107,91 @@ func (m *AssetManager) ResolveAssetPath(ctx context.Context, path string) (strin
 
 // GetAssetType returns the type of asset based on its path
 func (m *AssetManager) GetAssetType(path string) AssetType {
-	ext := strings.ToLower(filepath.Ext(path))
-	switch ext {
-	case ".js", ".mjs":
-		return AssetTypeJS
-	case ".css", ".scss", ".sass":
-		return AssetTypeCSS
-	case ".jpg", ".jpeg", ".png", ".gif", ".webp", ".svg":
-		return AssetTypeImage
-	case ".woff", ".woff2", ".ttf", ".eot", ".otf":
-		return AssetTypeFont
-	default:
-		return ""
-	}
+	return GetAssetTypeFromPath(path)
 }
 
 // ClearCache clears the asset path cache
 func (m *AssetManager) ClearCache() {
 	m.mu.Lock()
 	defer m.mu.Unlock()
+
+	oldSize := len(m.pathCache)
 	m.pathCache = make(map[string]string)
+
+	m.logger.Debug("asset cache cleared", "previous_size", oldSize)
+}
+
+// ValidatePath validates an asset path
+func (m *AssetManager) ValidatePath(path string) error {
+	return ValidateAssetPath(path)
+}
+
+// GetBaseURL returns the base URL for assets (useful for CSP headers)
+func (m *AssetManager) GetBaseURL() string {
+	if m.config.App.IsDevelopment() {
+		// For development, return the Vite dev server URL
+		host := m.config.App.ViteDevHost
+		if host == "" || host == "0.0.0.0" {
+			host = "localhost"
+		}
+		return strings.TrimSuffix(
+			m.config.App.Scheme+"://"+host+":"+m.config.App.ViteDevPort,
+			"/",
+		)
+	}
+
+	// For production, return the configured server URL or default
+	if m.config.App.URL != "" {
+		return strings.TrimSuffix(m.config.App.URL, "/")
+	}
+
+	// Default fallback - construct from scheme and host
+	if m.config.App.Scheme != "" && m.config.App.Host != "" {
+		baseURL := m.config.App.Scheme + "://" + m.config.App.Host
+		if m.config.App.Port != 80 && m.config.App.Port != 443 {
+			baseURL += fmt.Sprintf(":%d", m.config.App.Port)
+		}
+		return baseURL
+	}
+
+	// Final fallback
+	return ""
+}
+
+// GetCacheSize returns the current number of cached entries
+func (m *AssetManager) GetCacheSize() int {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	return len(m.pathCache)
+}
+
+// GetConfig returns the configuration (useful for testing)
+func (m *AssetManager) GetConfig() *config.Config {
+	return m.config
+}
+
+// GetResolver returns the underlying resolver (useful for testing)
+func (m *AssetManager) GetResolver() AssetResolver {
+	return m.resolver
+}
+
+// IsPathCached checks if a path is already cached
+func (m *AssetManager) IsPathCached(path string) bool {
+	m.mu.RLock()
+	defer m.mu.RUnlock()
+	_, exists := m.pathCache[path]
+	return exists
 }
 
 // NewModule creates a new web module with proper dependency injection
 func NewModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*Module, error) {
+	// Create asset manager
 	manager, err := NewAssetManager(cfg, logger, distFS)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create asset manager: %w", err)
 	}
 
+	// Create asset server
 	var server AssetServer
 	if cfg.App.IsDevelopment() {
 		// In development, use development asset server for static files
@@ -145,8 +201,51 @@ func NewModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*Mod
 		server = NewEmbeddedAssetServer(logger, distFS)
 	}
 
+	// Create asset resolver for the module
+	var resolver AssetResolver
+	if cfg.App.IsDevelopment() {
+		resolver = NewDevelopmentAssetResolver(cfg, logger)
+	} else {
+		// Load manifest for production resolver
+		manifest, err := loadManifestFromFS(distFS, logger)
+		if err != nil {
+			return nil, fmt.Errorf("failed to load manifest for resolver: %w", err)
+		}
+		resolver = NewProductionAssetResolver(manifest, logger)
+	}
+
 	return &Module{
-		AssetManager: manager,
-		AssetServer:  server,
+		AssetManager:  manager,
+		AssetServer:   server,
+		AssetResolver: resolver,
 	}, nil
+}
+
+// AssetManagerFactory creates asset managers with different configurations
+type AssetManagerFactory struct {
+	config *config.Config
+	logger logging.Logger
+}
+
+// NewAssetManagerFactory creates a new asset manager factory
+func NewAssetManagerFactory(config *config.Config, logger logging.Logger) *AssetManagerFactory {
+	return &AssetManagerFactory{
+		config: config,
+		logger: logger,
+	}
+}
+
+// CreateManager creates an asset manager for the current environment
+func (f *AssetManagerFactory) CreateManager(distFS embed.FS) (*AssetManager, error) {
+	return NewAssetManager(f.config, f.logger, distFS)
+}
+
+// CreateManagerWithResolver creates an asset manager with a specific resolver
+func (f *AssetManagerFactory) CreateManagerWithResolver(resolver AssetResolver) *AssetManager {
+	return &AssetManager{
+		resolver:  resolver,
+		pathCache: make(map[string]string),
+		config:    f.config,
+		logger:    f.logger,
+	}
 }
