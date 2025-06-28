@@ -53,13 +53,15 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to list forms")
 	}
 
-	// Build page data
-	data := view.BuildPageData(h.Config, h.AssetManager, c, "Dashboard")
-	data.User = user
-	data.Forms = forms
+	// Build page data using the fluent interface
+	data := view.NewPageData(h.Config, h.AssetManager, c, "Dashboard").
+		WithForms(forms)
+
+	// Set the user (NewPageData should already populate this from context, but being explicit)
+	data.SetUser(user)
 
 	// Render dashboard template
-	if renderErr := h.Renderer.Render(c, pages.Dashboard(data, forms)); renderErr != nil {
+	if renderErr := h.Renderer.Render(c, pages.Dashboard(*data, forms)); renderErr != nil {
 		return fmt.Errorf("render dashboard: %w", renderErr)
 	}
 

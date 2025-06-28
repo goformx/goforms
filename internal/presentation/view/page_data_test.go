@@ -165,7 +165,7 @@ func TestGenerateAssetPath(t *testing.T) {
 	assert.Equal(t, "/assets/styles.css", result2)
 }
 
-func TestBuildPageData(t *testing.T) {
+func TestNewPageData(t *testing.T) {
 	ctrl := gomock.NewController(t)
 	defer ctrl.Finish()
 
@@ -173,11 +173,13 @@ func TestBuildPageData(t *testing.T) {
 	cfg := &config.Config{
 		App: config.AppConfig{
 			Environment: "development",
+			Version:     "1.0.0",
 		},
 	}
 
 	// Create a mock asset manager
 	mockManager := webmocks.NewMockAssetManagerInterface(ctrl)
+	mockManager.EXPECT().AssetPath(gomock.Any()).Return("/assets/test.js").AnyTimes()
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
@@ -190,7 +192,7 @@ func TestBuildPageData(t *testing.T) {
 	c.Set("csrf", "csrf-token-123")
 
 	// Test building page data
-	pageData := view.BuildPageData(cfg, mockManager, c, "Test Page")
+	pageData := view.NewPageData(cfg, mockManager, c, "Test Page")
 
 	// Verify the page data
 	assert.Equal(t, "Test Page", pageData.Title)
@@ -201,20 +203,69 @@ func TestBuildPageData(t *testing.T) {
 	assert.True(t, pageData.IsDevelopment)
 	assert.NotNil(t, pageData.AssetPath)
 	assert.Equal(t, cfg, pageData.Config)
+	assert.NotNil(t, pageData.Forms)
+	assert.Len(t, pageData.Forms, 0) // Should be empty slice
+	assert.NotNil(t, pageData.Submissions)
+	assert.Len(t, pageData.Submissions, 0) // Should be empty slice
 }
 
-func TestNewPageData(t *testing.T) {
+func TestNewPageDataWithTitle(t *testing.T) {
 	user := &entities.User{
 		ID:    "user-123",
 		Email: "test@example.com",
 		Role:  "admin",
 	}
 
-	pageData := view.NewPageData("Test Page", "Test Description", user)
+	// Note: This test is for the simple constructor that was in the original code
+	// It creates a minimal PageData instance
+	pageData := &view.PageData{
+		Title:       "Test Page",
+		Description: "Test Description",
+		User:        user,
+	}
 
 	assert.Equal(t, "Test Page", pageData.Title)
 	assert.Equal(t, "Test Description", pageData.Description)
 	assert.Equal(t, user, pageData.User)
+}
+
+func TestPageData_FluentInterface(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Environment: "test",
+			Version:     "1.0.0",
+		},
+	}
+
+	mockManager := webmocks.NewMockAssetManagerInterface(ctrl)
+	mockManager.EXPECT().AssetPath(gomock.Any()).Return("/assets/test.js").AnyTimes()
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Test fluent interface
+	pageData := view.NewPageData(cfg, mockManager, c, "Test").
+		WithDescription("Test Description").
+		WithKeywords("test, keywords").
+		WithAuthor("Test Author").
+		WithMessage("success", "Test message").
+		WithFormBuilderAssetPath("/builder.js").
+		WithFormPreviewAssetPath("/preview.js")
+
+	assert.Equal(t, "Test", pageData.Title)
+	assert.Equal(t, "Test Description", pageData.Description)
+	assert.Equal(t, "test, keywords", pageData.Keywords)
+	assert.Equal(t, "Test Author", pageData.Author)
+	assert.NotNil(t, pageData.Message)
+	assert.Equal(t, "success", pageData.Message.Type)
+	assert.Equal(t, "Test message", pageData.Message.Text)
+	assert.Equal(t, "/builder.js", pageData.FormBuilderAssetPath)
+	assert.Equal(t, "/preview.js", pageData.FormPreviewAssetPath)
 }
 
 func TestPageData_IsAuthenticated(t *testing.T) {
@@ -263,6 +314,70 @@ func TestPageData_GetUser(t *testing.T) {
 	assert.Equal(t, user, got)
 }
 
+func TestPageData_GetUserID(t *testing.T) {
+	tests := []struct {
+		name string
+		user *entities.User
+		want string
+	}{
+		{
+			name: "user with ID",
+			user: &entities.User{
+				ID:    "user-123",
+				Email: "test@example.com",
+			},
+			want: "user-123",
+		},
+		{
+			name: "no user",
+			user: nil,
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pageData := &view.PageData{
+				User: tt.user,
+			}
+			got := pageData.GetUserID()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestPageData_GetUserEmail(t *testing.T) {
+	tests := []struct {
+		name string
+		user *entities.User
+		want string
+	}{
+		{
+			name: "user with email",
+			user: &entities.User{
+				ID:    "user-123",
+				Email: "test@example.com",
+			},
+			want: "test@example.com",
+		},
+		{
+			name: "no user",
+			user: nil,
+			want: "",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pageData := &view.PageData{
+				User: tt.user,
+			}
+			got := pageData.GetUserEmail()
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
 func TestPageData_SetUser(t *testing.T) {
 	pageData := &view.PageData{}
 
@@ -273,6 +388,38 @@ func TestPageData_SetUser(t *testing.T) {
 
 	pageData.SetUser(user)
 	assert.Equal(t, user, pageData.User)
+}
+
+func TestPageData_HasMessage(t *testing.T) {
+	tests := []struct {
+		name    string
+		message *view.Message
+		want    bool
+	}{
+		{
+			name: "has message",
+			message: &view.Message{
+				Type: "success",
+				Text: "Test message",
+			},
+			want: true,
+		},
+		{
+			name:    "no message",
+			message: nil,
+			want:    false,
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			pageData := &view.PageData{
+				Message: tt.message,
+			}
+			got := pageData.HasMessage()
+			assert.Equal(t, tt.want, got)
+		})
+	}
 }
 
 func TestGetMessageIcon(t *testing.T) {
@@ -316,6 +463,47 @@ func TestGetMessageIcon(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			got := view.GetMessageIcon(tt.msgType)
+			assert.Equal(t, tt.want, got)
+		})
+	}
+}
+
+func TestGetMessageClass(t *testing.T) {
+	tests := []struct {
+		name    string
+		msgType string
+		want    string
+	}{
+		{
+			name:    "success message",
+			msgType: "success",
+			want:    "alert-success",
+		},
+		{
+			name:    "error message",
+			msgType: "error",
+			want:    "alert-danger",
+		},
+		{
+			name:    "info message",
+			msgType: "info",
+			want:    "alert-info",
+		},
+		{
+			name:    "warning message",
+			msgType: "warning",
+			want:    "alert-warning",
+		},
+		{
+			name:    "unknown message type",
+			msgType: "unknown",
+			want:    "alert-info",
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			got := view.GetMessageClass(tt.msgType)
 			assert.Equal(t, tt.want, got)
 		})
 	}

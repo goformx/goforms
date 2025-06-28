@@ -95,7 +95,7 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 func (h *AuthHandler) Login(c echo.Context) error {
 	// Force CSRF token generation
 	_ = c.Get("csrf")
-	data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
+	data := view.NewPageData(h.Config, h.AssetManager, c, "Login")
 
 	if mwcontext.IsAuthenticated(c) {
 		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
@@ -105,7 +105,7 @@ func (h *AuthHandler) Login(c echo.Context) error {
 		return nil
 	}
 
-	if err := h.Renderer.Render(c, pages.Login(data)); err != nil {
+	if err := h.Renderer.Render(c, pages.Login(*data)); err != nil {
 		return fmt.Errorf("render login page: %w", err)
 	}
 
@@ -133,9 +133,9 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			)
 		}
 
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
+		data := view.NewPageData(h.Config, h.AssetManager, c, "Login")
 
-		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidRequest)
+		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
 	}
 
 	email = h.Sanitizer.Email(email)
@@ -150,9 +150,9 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 			)
 		}
 
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
+		data := view.NewPageData(h.Config, h.AssetManager, c, "Login")
 
-		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidCredentials)
+		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
 	}
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
@@ -170,7 +170,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 func (h *AuthHandler) Signup(c echo.Context) error {
 	// Force CSRF token generation
 	_ = c.Get("csrf")
-	data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+	data := view.NewPageData(h.Config, h.AssetManager, c, "Sign Up")
 
 	if mwcontext.IsAuthenticated(c) {
 		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
@@ -180,7 +180,7 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 		return nil
 	}
 
-	if err := h.Renderer.Render(c, pages.Signup(data)); err != nil {
+	if err := h.Renderer.Render(c, pages.Signup(*data)); err != nil {
 		return fmt.Errorf("render signup page: %w", err)
 	}
 
@@ -201,9 +201,9 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			)
 		}
 
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+		data := view.NewPageData(h.Config, h.AssetManager, c, "Sign Up")
 
-		return h.ResponseBuilder.HTMLFormError(c, "signup", &data, constants.ErrMsgInvalidRequest)
+		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
 	}
 
 	signup.Email = h.Sanitizer.Email(signup.Email)
@@ -220,12 +220,12 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			)
 		}
 
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
+		data := view.NewPageData(h.Config, h.AssetManager, c, "Sign Up")
 
 		return h.ResponseBuilder.HTMLFormError(
 			c,
 			"signup",
-			&data,
+			data,
 			"Unable to create account. Please try again.",
 		)
 	}

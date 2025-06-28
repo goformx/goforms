@@ -72,9 +72,9 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 	return userEntity, nil
 }
 
-// BuildPageData creates page data with common fields
-func (h *BaseHandler) BuildPageData(c echo.Context, title string) view.PageData {
-	return view.BuildPageData(h.Config, h.AssetManager, c, title)
+// NewPageData creates page data with common fields
+func (h *BaseHandler) NewPageData(c echo.Context, title string) *view.PageData {
+	return view.NewPageData(h.Config, h.AssetManager, c, title)
 }
 
 // HandleError handles common error scenarios

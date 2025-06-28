@@ -24,10 +24,10 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 		return err
 	}
 
-	data := h.BuildPageData(c, "New Form")
-	data.User = user
+	data := h.NewPageData(c, "New Form")
+	data.SetUser(user)
 
-	return fmt.Errorf("render new form: %w", h.Renderer.Render(c, pages.NewForm(data)))
+	return fmt.Errorf("render new form: %w", h.Renderer.Render(c, pages.NewForm(*data)))
 }
 
 // handleCreate processes form creation requests
@@ -70,13 +70,14 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	// Log form access for debugging
 	h.FormService.LogFormAccess(form)
 
-	data := h.BuildPageData(c, "Edit Form")
-	data.User = user
-	data.Form = form
-	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/pages/form-builder.ts")
+	data := h.NewPageData(c, "Edit Form").
+		WithForm(form).
+		WithFormBuilderAssetPath(h.AssetManager.AssetPath("src/js/pages/form-builder.ts"))
+
+	data.SetUser(user)
 
 	return fmt.Errorf("render edit form: %w",
-		pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer))
+		pages.EditForm(*data, form).Render(c.Request().Context(), c.Response().Writer))
 }
 
 // handleUpdate processes form update requests
@@ -150,12 +151,13 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to get form submissions")
 	}
 
-	data := h.BuildPageData(c, "Form Submissions")
-	data.User = user
-	data.Form = form
-	data.Submissions = submissions
+	data := h.NewPageData(c, "Form Submissions").
+		WithForm(form).
+		WithSubmissions(submissions)
 
-	return fmt.Errorf("render submissions: %w", h.Renderer.Render(c, pages.FormSubmissions(data)))
+	data.SetUser(user)
+
+	return fmt.Errorf("render submissions: %w", h.Renderer.Render(c, pages.FormSubmissions(*data)))
 }
 
 // handleFormCreationError handles form creation errors

@@ -136,13 +136,13 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 		"form_id_length", len(formID),
 		"form_title", h.Logger.SanitizeField("form_title", form.Title))
 
-	// Build page data
-	data := h.BuildPageData(c, "Form Preview")
-	data.Form = form
-	data.FormPreviewAssetPath = h.AssetManager.AssetPath("src/js/pages/form-preview.ts")
+	// Build page data using the new API
+	data := h.NewPageData(c, "Form Preview").
+		WithForm(form).
+		WithFormPreviewAssetPath(h.AssetManager.AssetPath("src/js/pages/form-preview.ts"))
 
 	// Render form preview template
-	return fmt.Errorf("render form preview: %w", h.Renderer.Render(c, pages.FormPreview(data, form)))
+	return fmt.Errorf("render form preview: %w", h.Renderer.Render(c, pages.FormPreview(*data, form)))
 }
 
 // handleNewFormValidation returns the validation schema for the new form
