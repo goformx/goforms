@@ -1,0 +1,145 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Frontend Development Guidelines
+
+## Technology Stack
+
+### Core Technologies
+- **TypeScript**: Primary language with strict type checking
+- **Vite**: Build tool and dev server configured in [vite.config.ts](mdc:vite.config.ts)
+- **Form.io**: Form builder and renderer integration
+- **PostCSS**: CSS processing with configuration in [postcss.config.cjs](mdc:postcss.config.cjs)
+
+### Development Tools
+- **ESLint**: Code linting configured in [eslint.config.js](mdc:eslint.config.js)
+- **Prettier**: Code formatting
+- **Vitest**: Testing framework configured in [vitest.config.ts](mdc:vitest.config.ts)
+
+## Project Structure
+
+### Source Organization
+- **Entry Point**: [src/](mdc:src/) - Main source directory
+- **JavaScript**: [src/js/](mdc:src/js/) - TypeScript/JavaScript files
+- **CSS**: [src/css/](mdc:src/css/) - Stylesheets
+- **Types**: [src/types/](mdc:src/types/) - TypeScript type definitions
+- **Public**: [public/](mdc:public/) - Static assets
+
+### Build Output
+- **Distribution**: [dist/](mdc:dist/) - Built files for production
+- **Assets**: Automatically copied and optimized during build
+
+## Development Workflow
+
+### Commands
+- `npm run dev` - Start development server (localhost:5173)
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix linting issues
+- `npm run typecheck` - TypeScript type checking
+- `npm run format` - Format code with Prettier
+- `npm run test` - Run tests with Vitest
+
+### Hot Reload
+- Vite provides fast hot module replacement
+- Changes to TypeScript and CSS files are reflected immediately
+- Form.io components are hot-reloadable
+
+## TypeScript Guidelines
+
+### Type Safety
+- Use strict TypeScript configuration from [tsconfig.json](mdc:tsconfig.json)
+- Define interfaces for all data structures
+- Use type guards for runtime type checking
+- Avoid `any` type - use `unknown` or proper types
+
+### Code Organization
+- Use ES6 modules for imports/exports
+- Group related functionality in modules
+- Use barrel exports for clean imports
+- Keep files focused and single-purpose
+
+## Form.io Integration
+
+### Custom Components
+- Extend Form.io components for custom functionality
+- Use the `@goformx/formio` package for project-specific components
+- Follow Form.io component lifecycle methods
+- Implement proper validation and error handling
+
+### Form Configuration
+- Use JSON schema for form definitions
+- Implement custom validators when needed
+- Handle form submission and data processing
+- Support form versioning and templates
+
+## Styling
+
+### CSS Architecture
+- Use PostCSS for processing
+- Follow BEM methodology for class naming
+- Use CSS custom properties for theming
+- Implement responsive design patterns
+
+### Asset Management
+- Fonts are copied from Form.io to [public/fonts/](mdc:public/fonts/)
+- Images and other assets in [public/](mdc:public/)
+- Use relative paths for asset references
+
+## Testing
+
+### Test Structure
+- Unit tests alongside source files
+- Use Vitest for fast, modern testing
+- Mock external dependencies
+- Test component behavior and user interactions
+
+### Test Coverage
+- Aim for high test coverage
+- Test both success and error scenarios
+- Use snapshot testing for UI components
+- Test form validation and submission logic
+
+## Performance
+
+### Build Optimization
+- Vite provides automatic code splitting
+- Tree shaking removes unused code
+- Assets are optimized and compressed
+- Use dynamic imports for lazy loading
+
+### Runtime Performance
+- Minimize bundle size
+- Use efficient algorithms and data structures
+- Implement proper error boundaries
+- Monitor and optimize form rendering performance
+
+## Security
+
+### Input Validation
+- Validate all user inputs
+- Sanitize data before processing
+- Use Content Security Policy headers
+- Implement proper CSRF protection
+
+### Data Handling
+- Don't store sensitive data in localStorage
+- Use secure communication with backend
+- Implement proper session management
+- Follow OWASP security guidelines
+
+## Deployment
+
+### Build Process
+- Production builds are optimized and minified
+- Assets are hashed for cache busting
+- Environment variables are injected at build time
+- Source maps are generated for debugging
+
+### Environment Configuration
+- Use environment variables for configuration
+- Different settings for development and production
+- Secure handling of API keys and secrets
+- Proper error handling for missing configuration
