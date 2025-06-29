@@ -58,9 +58,11 @@ security:
     allow_credentials: true
     max_age: 3600
   rate_limit:
-    enabled: true
+    enabled: false  # Disabled in development for better developer experience
     rps: 100
-    burst: 5
+    burst: 200
+    window: "1m"
+    per_ip: false
   csp:
     enabled: true
     default_src: "'self'"

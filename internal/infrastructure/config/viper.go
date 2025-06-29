@@ -174,9 +174,21 @@ func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 			MaxAge:           vc.viper.GetInt("security.cors.max_age"),
 		},
 		RateLimit: RateLimitConfig{
-			Enabled: vc.viper.GetBool("security.rate_limit.enabled"),
-			RPS:     vc.viper.GetInt("security.rate_limit.rps"),
-			Burst:   vc.viper.GetInt("security.rate_limit.burst"),
+			Enabled:  vc.viper.GetBool("security.rate_limit.enabled"),
+			RPS:      vc.viper.GetInt("security.rate_limit.rps"),
+			Requests: vc.viper.GetInt("security.rate_limit.rps"),
+			Burst:    vc.viper.GetInt("security.rate_limit.burst"),
+			Window:   vc.viper.GetDuration("security.rate_limit.window"),
+			PerIP:    vc.viper.GetBool("security.rate_limit.per_ip"),
+			SkipPaths: []string{
+				"/health",
+				"/metrics",
+				"/favicon.ico",
+				"/robots.txt",
+				"/static/",
+				"/assets/",
+			},
+			SkipMethods: []string{"OPTIONS"},
 		},
 		CSP: CSPConfig{
 			Enabled:    vc.viper.GetBool("security.csp.enabled"),
@@ -475,9 +487,11 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.exposed_headers", []string{})
 	v.SetDefault("security.cors.allow_credentials", true)
 	v.SetDefault("security.cors.max_age", 86400)
-	v.SetDefault("security.rate_limit.enabled", true)
+	v.SetDefault("security.rate_limit.enabled", false)
 	v.SetDefault("security.rate_limit.rps", 100)
 	v.SetDefault("security.rate_limit.burst", 200)
+	v.SetDefault("security.rate_limit.window", "1m")
+	v.SetDefault("security.rate_limit.per_ip", false)
 	v.SetDefault("security.csp.enabled", true)
 	v.SetDefault("security.csp.default_src", "'self'")
 	v.SetDefault("security.csp.script_src", "'self' 'unsafe-inline'")

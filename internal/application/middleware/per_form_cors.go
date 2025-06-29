@@ -55,6 +55,16 @@ func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 				return applyGlobalCORS(c, config.GlobalCORS, next)
 			}
 
+			// If FormService is nil, fallback to global CORS
+			if config.FormService == nil {
+				config.Logger.Debug(
+					"form service not available for CORS",
+					"form_id", config.Logger.SanitizeField("form_id", formID),
+					"falling_back_to_global_cors", true,
+				)
+				return applyGlobalCORS(c, config.GlobalCORS, next)
+			}
+
 			// Load form CORS configuration
 			form, err := config.FormService.GetForm(c.Request().Context(), formID)
 			if err != nil {

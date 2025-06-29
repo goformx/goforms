@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -46,14 +47,6 @@ type ManagerConfig struct {
 func NewManager(cfg *ManagerConfig) *Manager {
 	if cfg == nil {
 		panic("config is required")
-	}
-
-	if cfg.UserService == nil {
-		panic("user service is required")
-	}
-
-	if cfg.SessionManager == nil {
-		panic("session manager is required")
 	}
 
 	if cfg.Sanitizer == nil {
@@ -139,6 +132,7 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	// Use PerFormCORS middleware for form-specific CORS handling
 	// This middleware will handle CORS for form routes and fallback to global CORS for other routes
+	// If FormService is nil, it will fallback to global CORS for all routes
 	perFormCORSConfig := NewPerFormCORSConfig(m.config.FormService, m.logger, &m.config.Config.Security)
 	e.Use(PerFormCORS(perFormCORSConfig))
 
@@ -177,8 +171,10 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 
 // setupAuthMiddleware sets up authentication-related middleware
 func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
-	// Register session middleware
-	e.Use(m.config.SessionManager.Middleware())
+	// Register session middleware if available
+	if m.config.SessionManager != nil {
+		e.Use(m.config.SessionManager.Middleware())
+	}
 
 	// Register access control middleware
 	e.Use(access.Middleware(m.config.AccessManager, m.logger))
@@ -603,6 +599,28 @@ func (l *EchoLogger) Output() io.Writer {
 func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 	rateLimitConfig := m.config.Config.Security.RateLimit
 
+	// Disable rate limiting in development mode for better developer experience
+	if m.config.Config.App.IsDevelopment() && !rateLimitConfig.Enabled {
+		m.logger.Info("Rate limiting disabled in development mode")
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			return next
+		}
+	}
+
+	// Set default window if not configured
+	if rateLimitConfig.Window == 0 {
+		rateLimitConfig.Window = time.Minute
+	}
+
+	m.logger.Info("Setting up rate limiter",
+		"enabled", rateLimitConfig.Enabled,
+		"requests_per_second", rateLimitConfig.Requests,
+		"burst", rateLimitConfig.Burst,
+		"window", rateLimitConfig.Window,
+		"skip_paths", rateLimitConfig.SkipPaths,
+		"skip_methods", rateLimitConfig.SkipMethods,
+	)
+
 	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
 		Skipper: func(c echo.Context) bool {
 			path := c.Request().URL.Path
@@ -611,6 +629,7 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 			// Skip paths from config
 			for _, skipPath := range rateLimitConfig.SkipPaths {
 				if strings.HasPrefix(path, skipPath) {
+					m.logger.Debug("Rate limiter skipping path", "path", path, "skip_path", skipPath)
 					return true
 				}
 			}
@@ -618,6 +637,7 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 			// Skip methods from config
 			for _, skipMethod := range rateLimitConfig.SkipMethods {
 				if method == skipMethod {
+					m.logger.Debug("Rate limiter skipping method", "method", method, "skip_method", skipMethod)
 					return true
 				}
 			}
@@ -650,11 +670,24 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 
 			return fmt.Sprintf("%s:%s", formID, origin), nil
 		},
-		ErrorHandler: func(_ echo.Context, _ error) error {
+		ErrorHandler: func(c echo.Context, err error) error {
+			m.logger.Warn("Rate limit exceeded",
+				"path", c.Request().URL.Path,
+				"method", c.Request().Method,
+				"ip", c.RealIP(),
+				"error", err,
+			)
 			return echo.NewHTTPError(http.StatusTooManyRequests,
 				"Rate limit exceeded: too many requests from the same form or origin")
 		},
-		DenyHandler: func(_ echo.Context, _ string, _ error) error {
+		DenyHandler: func(c echo.Context, identifier string, err error) error {
+			m.logger.Warn("Rate limit denied",
+				"path", c.Request().URL.Path,
+				"method", c.Request().Method,
+				"ip", c.RealIP(),
+				"identifier", identifier,
+				"error", err,
+			)
 			return echo.NewHTTPError(http.StatusTooManyRequests,
 				"Rate limit exceeded: please try again later")
 		},
