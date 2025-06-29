@@ -17,7 +17,10 @@
         "ghcr.io/devcontainers/features/github-cli:1": {},
         "ghcr.io/devcontainers/features/docker-outside-of-docker:1": {},
         "ghcr.io/stuartleeks/dev-container-features/shell-history:0": {},
-        "ghcr.io/devcontainers-extra/features/typescript:2": {}
+        "ghcr.io/devcontainers-extra/features/typescript:2": {},
+        "ghcr.io/devcontainers/features/node:1": {
+            "version": "lts"
+        }
     },
     "customizations": {
         "vscode": {
@@ -31,16 +34,75 @@
                 "cweijan.vscode-mysql-client2",
                 "hbenl.vscode-test-explorer",
                 "ms-vscode.test-adapter-converter",
-                "vitest.explorer"
+                "vitest.explorer",
+                "task.vscode-task",
+                "redhat.vscode-yaml",
+                "kennylong.kubernetes-yaml-formatter",
+                "esbenp.prettier-vscode",
+                "ms-vscode.vscode-json",
+                "bradlc.vscode-tailwindcss",
+                "ckolkman.vscode-postgres"
             ],
-            "[go]": {
-                "editor.defaultFormatter": "golang.go"
-            },
-            "[docker]": {
-                "editor.defaultFormatter": "docker.docker"
-            },
-            "[templ]": {
-                "editor.defaultFormatter": "a-h.templ"
+            "settings": {
+                "go.useLanguageServer": true,
+                "go.formatTool": "gofmt",
+                "go.formatFlags": [
+                    "-s"
+                ],
+                "go.lintTool": "golangci-lint",
+                "go.lintFlags": [
+                    "--path-mode=abs",
+                    "--fast-only"
+                ],
+                "go.lintOnSave": "package",
+                "go.testFlags": [
+                    "-v",
+                    "-race"
+                ],
+                "go.buildOnSave": "package",
+                "go.vetOnSave": "package",
+                "templ.executablePath": "/home/vscode/go/bin/templ",
+                "files.associations": {
+                    "*.templ": "templ"
+                },
+                "vscode-postgres.connections": [
+                    {
+                        "host": "postgres",
+                        "port": 5432,
+                        "database": "goforms",
+                        "username": "goforms",
+                        "password": "goforms"
+                    }
+                ],
+                "editor.formatOnSave": true,
+                "editor.rulers": [
+                    80,
+                    120
+                ],
+                "files.trimTrailingWhitespace": true,
+                "files.insertFinalNewline": true,
+                "[go]": {
+                    "editor.defaultFormatter": "golang.go",
+                    "editor.formatOnSave": true,
+                    "editor.codeActionsOnSave": {
+                        "source.organizeImports": true,
+                        "source.fixAll": true
+                    }
+                },
+                "[docker]": {
+                    "editor.defaultFormatter": "docker.docker"
+                },
+                "[templ]": {
+                    "editor.defaultFormatter": "a-h.templ",
+                    "editor.formatOnSave": false
+                },
+                "[typescript]": {
+                    "editor.defaultFormatter": "esbenp.prettier-vscode",
+                    "editor.formatOnSave": true
+                },
+                "[yaml]": {
+                    "editor.defaultFormatter": "kennylong.kubernetes-yaml-formatter"
+                }
             }
         }
     },
@@ -49,8 +111,22 @@
         8090,
         8098
     ],
+    "portsAttributes": {
+        "5173": {
+            "label": "Vite Dev Server",
+            "onAutoForward": "notify"
+        },
+        "8090": {
+            "label": "Go App Server",
+            "onAutoForward": "notify"
+        },
+        "8098": {
+            "label": "Adminer DB Admin",
+            "onAutoForward": "openBrowser"
+        }
+    },
     "mounts": [
         "type=bind,source=/home/${localEnv:USER}/.ssh,target=/home/vscode/.ssh"
     ],
-    "postCreateCommand": "go mod download"
+    "postCreateCommand": "task install && task generate"
 }
