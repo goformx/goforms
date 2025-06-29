@@ -110,7 +110,10 @@ func (f Field) convertByType() zap.Field {
 // fieldTypeConverters maps field types to their conversion functions
 var fieldTypeConverters = map[FieldType]func(Field) zap.Field{
 	StringFieldType: func(f Field) zap.Field {
-		return zap.String(f.Key, f.Value.(string))
+		if str, ok := f.Value.(string); ok {
+			return zap.String(f.Key, str)
+		}
+		return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
 	},
 	IntFieldType: func(f Field) zap.Field {
 		return f.convertIntField()

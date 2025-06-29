@@ -234,12 +234,12 @@ func loadManifestFromFS(distFS embed.FS, logger logging.Logger) (Manifest, error
 
 	data, readErr := fs.ReadFile(distFS, manifestPath)
 	if readErr != nil {
-		return nil, fmt.Errorf("%w: failed to read %s: %v", ErrManifestNotFound, manifestPath, readErr)
+		return nil, fmt.Errorf("%w: failed to read %s: %w", ErrManifestNotFound, manifestPath, readErr)
 	}
 
 	var manifest Manifest
 	if unmarshalErr := json.Unmarshal(data, &manifest); unmarshalErr != nil {
-		return nil, fmt.Errorf("%w: failed to parse %s: %v", ErrInvalidManifest, manifestPath, unmarshalErr)
+		return nil, fmt.Errorf("%w: failed to parse %s: %w", ErrInvalidManifest, manifestPath, unmarshalErr)
 	}
 
 	if len(manifest) == 0 {

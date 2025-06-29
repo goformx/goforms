@@ -4,10 +4,12 @@ import (
 	"net/http"
 	"net/http/httptest"
 	"testing"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
+	"gorm.io/gorm"
 
 	contextmw "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/entities"
@@ -37,9 +39,16 @@ func TestGetCurrentUser(t *testing.T) {
 				return c
 			},
 			want: &entities.User{
-				ID:    "user-123",
-				Email: "test@example.com",
-				Role:  "admin",
+				ID:             "user-123",
+				Email:          "test@example.com",
+				Role:           "admin",
+				HashedPassword: "",
+				FirstName:      "",
+				LastName:       "",
+				Active:         false,
+				CreatedAt:      time.Time{},
+				UpdatedAt:      time.Time{},
+				DeletedAt:      gorm.DeletedAt{},
 			},
 		},
 		{
@@ -55,9 +64,16 @@ func TestGetCurrentUser(t *testing.T) {
 				return c
 			},
 			want: &entities.User{
-				ID:    "user-123",
-				Email: "",
-				Role:  "",
+				ID:             "user-123",
+				Email:          "",
+				Role:           "",
+				HashedPassword: "",
+				FirstName:      "",
+				LastName:       "",
+				Active:         false,
+				CreatedAt:      time.Time{},
+				UpdatedAt:      time.Time{},
+				DeletedAt:      gorm.DeletedAt{},
 			},
 		},
 		{
@@ -172,9 +188,34 @@ func TestNewPageData(t *testing.T) {
 	// Create test dependencies
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Environment: "development",
-			Version:     "1.0.0",
+			Name:           "Test App",
+			Environment:    "development",
+			Version:        "1.0.0",
+			Debug:          false,
+			LogLevel:       "info",
+			URL:            "",
+			Scheme:         "http",
+			Port:           8080,
+			Host:           "localhost",
+			ReadTimeout:    15 * time.Second,
+			WriteTimeout:   15 * time.Second,
+			IdleTimeout:    60 * time.Second,
+			RequestTimeout: 30 * time.Second,
+			ViteDevHost:    "localhost",
+			ViteDevPort:    "5173",
 		},
+		Database: config.DatabaseConfig{},
+		Security: config.SecurityConfig{},
+		Email:    config.EmailConfig{},
+		Storage:  config.StorageConfig{},
+		Cache:    config.CacheConfig{},
+		Logging:  config.LoggingConfig{},
+		Session:  config.SessionConfig{},
+		Auth:     config.AuthConfig{},
+		Form:     config.FormConfig{},
+		API:      config.APIConfig{},
+		Web:      config.WebConfig{},
+		User:     config.UserConfig{},
 	}
 
 	// Create a mock asset manager
@@ -211,9 +252,16 @@ func TestNewPageData(t *testing.T) {
 
 func TestNewPageDataWithTitle(t *testing.T) {
 	user := &entities.User{
-		ID:    "user-123",
-		Email: "test@example.com",
-		Role:  "admin",
+		ID:             "user-123",
+		Email:          "test@example.com",
+		HashedPassword: "",
+		FirstName:      "",
+		LastName:       "",
+		Role:           "",
+		Active:         false,
+		CreatedAt:      time.Time{},
+		UpdatedAt:      time.Time{},
+		DeletedAt:      gorm.DeletedAt{},
 	}
 
 	// Note: This test is for the simple constructor that was in the original code
@@ -235,9 +283,34 @@ func TestPageData_FluentInterface(t *testing.T) {
 
 	cfg := &config.Config{
 		App: config.AppConfig{
-			Environment: "test",
-			Version:     "1.0.0",
+			Name:           "Test App",
+			Environment:    "test",
+			Version:        "1.0.0",
+			Debug:          false,
+			LogLevel:       "info",
+			URL:            "",
+			Scheme:         "http",
+			Port:           8080,
+			Host:           "localhost",
+			ReadTimeout:    15 * time.Second,
+			WriteTimeout:   15 * time.Second,
+			IdleTimeout:    60 * time.Second,
+			RequestTimeout: 30 * time.Second,
+			ViteDevHost:    "localhost",
+			ViteDevPort:    "5173",
 		},
+		Database: config.DatabaseConfig{},
+		Security: config.SecurityConfig{},
+		Email:    config.EmailConfig{},
+		Storage:  config.StorageConfig{},
+		Cache:    config.CacheConfig{},
+		Logging:  config.LoggingConfig{},
+		Session:  config.SessionConfig{},
+		Auth:     config.AuthConfig{},
+		Form:     config.FormConfig{},
+		API:      config.APIConfig{},
+		Web:      config.WebConfig{},
+		User:     config.UserConfig{},
 	}
 
 	mockManager := webmocks.NewMockAssetManagerInterface(ctrl)
@@ -277,8 +350,16 @@ func TestPageData_IsAuthenticated(t *testing.T) {
 		{
 			name: "authenticated user",
 			user: &entities.User{
-				ID:    "user-123",
-				Email: "test@example.com",
+				ID:             "user-123",
+				Email:          "test@example.com",
+				HashedPassword: "",
+				FirstName:      "",
+				LastName:       "",
+				Role:           "",
+				Active:         false,
+				CreatedAt:      time.Time{},
+				UpdatedAt:      time.Time{},
+				DeletedAt:      gorm.DeletedAt{},
 			},
 			want: true,
 		},
@@ -292,7 +373,27 @@ func TestPageData_IsAuthenticated(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			pageData := &view.PageData{
-				User: tt.user,
+				Title:                "",
+				Description:          "",
+				Keywords:             "",
+				Author:               "",
+				Version:              "",
+				BuildTime:            "",
+				GitCommit:            "",
+				Environment:          "",
+				AssetPath:            nil,
+				User:                 tt.user,
+				Forms:                nil,
+				Form:                 nil,
+				Submissions:          nil,
+				CSRFToken:            "",
+				IsDevelopment:        false,
+				Content:              nil,
+				FormBuilderAssetPath: "",
+				FormPreviewAssetPath: "",
+				Message:              nil,
+				Config:               nil,
+				Session:              nil,
 			}
 			got := pageData.IsAuthenticated()
 			assert.Equal(t, tt.want, got)
@@ -302,8 +403,16 @@ func TestPageData_IsAuthenticated(t *testing.T) {
 
 func TestPageData_GetUser(t *testing.T) {
 	user := &entities.User{
-		ID:    "user-123",
-		Email: "test@example.com",
+		ID:             "user-123",
+		Email:          "test@example.com",
+		HashedPassword: "",
+		FirstName:      "",
+		LastName:       "",
+		Role:           "",
+		Active:         false,
+		CreatedAt:      time.Time{},
+		UpdatedAt:      time.Time{},
+		DeletedAt:      gorm.DeletedAt{},
 	}
 
 	pageData := &view.PageData{
@@ -323,8 +432,16 @@ func TestPageData_GetUserID(t *testing.T) {
 		{
 			name: "user with ID",
 			user: &entities.User{
-				ID:    "user-123",
-				Email: "test@example.com",
+				ID:             "user-123",
+				Email:          "test@example.com",
+				HashedPassword: "",
+				FirstName:      "",
+				LastName:       "",
+				Role:           "",
+				Active:         false,
+				CreatedAt:      time.Time{},
+				UpdatedAt:      time.Time{},
+				DeletedAt:      gorm.DeletedAt{},
 			},
 			want: "user-123",
 		},
@@ -355,8 +472,16 @@ func TestPageData_GetUserEmail(t *testing.T) {
 		{
 			name: "user with email",
 			user: &entities.User{
-				ID:    "user-123",
-				Email: "test@example.com",
+				ID:             "user-123",
+				Email:          "test@example.com",
+				HashedPassword: "",
+				FirstName:      "",
+				LastName:       "",
+				Role:           "",
+				Active:         false,
+				CreatedAt:      time.Time{},
+				UpdatedAt:      time.Time{},
+				DeletedAt:      gorm.DeletedAt{},
 			},
 			want: "test@example.com",
 		},
@@ -382,8 +507,16 @@ func TestPageData_SetUser(t *testing.T) {
 	pageData := &view.PageData{}
 
 	user := &entities.User{
-		ID:    "user-123",
-		Email: "test@example.com",
+		ID:             "user-123",
+		Email:          "test@example.com",
+		HashedPassword: "",
+		FirstName:      "",
+		LastName:       "",
+		Role:           "",
+		Active:         false,
+		CreatedAt:      time.Time{},
+		UpdatedAt:      time.Time{},
+		DeletedAt:      gorm.DeletedAt{},
 	}
 
 	pageData.SetUser(user)

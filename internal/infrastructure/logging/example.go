@@ -217,12 +217,24 @@ func ExampleConfiguration() {
 	sanitizer := sanitization.NewService()
 
 	// Create factories
-	devFactory, _ := NewFactory(devConfig, sanitizer)
-	prodFactory, _ := NewFactory(prodConfig, sanitizer)
+	devFactory, err := NewFactory(devConfig, sanitizer)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create dev factory: %v", err))
+	}
+	prodFactory, err := NewFactory(prodConfig, sanitizer)
+	if err != nil {
+		panic(fmt.Sprintf("failed to create prod factory: %v", err))
+	}
 
 	// Create loggers
-	devLogger, _ := devFactory.CreateLogger()
-	prodLogger, _ := prodFactory.CreateLogger()
+	devLogger, err := devFactory.CreateLogger()
+	if err != nil {
+		panic(fmt.Sprintf("failed to create dev logger: %v", err))
+	}
+	prodLogger, err := prodFactory.CreateLogger()
+	if err != nil {
+		panic(fmt.Sprintf("failed to create prod logger: %v", err))
+	}
 
 	// Development logger (console output, debug level)
 	devLogger.DebugWithFields("Debug information",
