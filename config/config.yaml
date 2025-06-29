@@ -1,37 +1,3 @@
-# GoForms Configuration File
-# This file demonstrates Viper's YAML configuration support
-# Environment variables will override these values
-
-app:
-  name: "GoForms"
-  version: "1.0.0"
-  environment: "development"
-  debug: true
-  log_level: "debug"
-  url: "http://localhost:8090"
-  scheme: "http"
-  port: 8090
-  host: "0.0.0.0"
-  read_timeout: "5s"
-  write_timeout: "10s"
-  idle_timeout: "120s"
-  request_timeout: "30s"
-  vite_dev_host: "0.0.0.0"
-  vite_dev_port: "5173"
-
-database:
-  driver: "postgres"
-  host: "postgres"
-  port: 5432
-  name: "goforms"
-  username: "goforms"
-  password: "goforms"
-  ssl_mode: "disable"
-  max_open_conns: 25
-  max_idle_conns: 5
-  conn_max_lifetime: "5m"
-  conn_max_idle_time: "5m"
-
 security:
   csrf:
     enabled: true
@@ -39,168 +5,132 @@ security:
     token_name: "_token"
     header_name: "X-Csrf-Token"
     token_length: 32
-    token_lookup: "header:X-Csrf-Token"
+    # Support multiple token lookup methods for flexibility
+    token_lookup: "header:X-Csrf-Token,form:_token"
     context_key: "csrf"
     cookie_name: "_csrf"
     cookie_path: "/"
     cookie_domain: ""
     cookie_http_only: true
+    # Use Lax for better compatibility while maintaining security
     cookie_same_site: "Lax"
-    cookie_max_age: 86400
+    cookie_max_age: 86400  # 24 hours
+    # Enable secure flag in production
+    cookie_secure: false  # Set to true in production with HTTPS
+    # Error handling
+    error_handler: "default"
+    # Skip CSRF for certain paths (be very careful with this)
+    skip_paths:
+      - "/health"
+      - "/metrics"
+      - "/api/webhook"  # Only if you have webhook endpoints that can't include CSRF
+
   cors:
-    enabled: false
+    enabled: true
+    # NEVER use "*" with credentials - specify exact origins
     allowed_origins:
-      - "http://localhost:5173"
-      - "http://localhost:8090"
+      - "http://localhost:5173"  # Vite dev server
+      - "http://localhost:8090"  # Backend server
+      # Add your production domains here when deploying:
+      # - "https://yourdomain.com"
+      # - "https://www.yourdomain.com"
     allowed_methods:
       - "GET"
       - "POST"
       - "PUT"
       - "DELETE"
       - "OPTIONS"
+      - "PATCH"
     allowed_headers:
       - "Content-Type"
       - "Authorization"
       - "X-Csrf-Token"
       - "X-Requested-With"
-    exposed_headers: []
+      - "Accept"
+      - "Origin"
+    exposed_headers:
+      - "X-Csrf-Token"  # Allow frontend to read CSRF token
     allow_credentials: true
-    max_age: 3600
+    max_age: 86400  # 24 hours for preflight cache
+    # Allow specific patterns for development
+    allow_origin_patterns: []  # Use sparingly and only in development
+
   rate_limit:
-    enabled: false  # Disabled in development for better developer experience
+    enabled: true  # Enable in production
     rps: 100
     burst: 200
     window: "1m"
-    per_ip: false
+    per_ip: true  # Rate limit per IP
+    # Skip rate limiting for certain paths
+    skip_paths:
+      - "/health"
+      - "/metrics"
+      - "/static/"
+      - "/assets/"
+    skip_methods:
+      - "OPTIONS"
+    # Different limits for different endpoints
+    endpoint_limits:
+      "/api/auth/login":
+        rps: 5
+        burst: 10
+        window: "15m"
+      "/api/auth/register":
+        rps: 3
+        burst: 5
+        window: "1h"
+
   csp:
     enabled: true
+    # More restrictive CSP for better security
     default_src: "'self'"
-    script_src: "'self' 'unsafe-inline'"
+    script_src: "'self' 'unsafe-inline' 'unsafe-eval'"  # Remove unsafe-* in production
     style_src: "'self' 'unsafe-inline'"
     img_src: "'self' data: https:"
-    connect_src: "'self'"
+    connect_src: "'self' ws: wss:"  # Add WebSocket support if needed
     font_src: "'self'"
     object_src: "'none'"
     media_src: "'self'"
     frame_src: "'none'"
-    report_uri: ""
+    form_action: "'self'"
+    base_uri: "'self'"
+    manifest_src: "'self'"
+    worker_src: "'self'"
+    report_uri: "/csp-report"  # Add CSP violation reporting
+
   tls:
-    enabled: false
+    enabled: false  # Set to true in production
     cert_file: ""
     key_file: ""
+    min_version: "1.2"  # Minimum TLS version
+    cipher_suites: []  # Let Go choose secure defaults
+
   encryption:
-    key: ""
+    key: ""  # Should be set via environment variable in production
 
-email:
-  host: ""
-  port: 587
-  username: ""
-  password: ""
-  from: ""
-  use_tls: true
-  use_ssl: false
-  template: "default"
-
-storage:
-  type: "local"
-  local:
-    path: "./uploads"
-  s3:
-    bucket: ""
-    region: "us-east-1"
-    access_key: ""
-    secret_key: ""
-    endpoint: ""
-  max_size: 10485760  # 10MB
-  allowed_extensions:
-    - ".jpg"
-    - ".jpeg"
-    - ".png"
-    - ".gif"
-    - ".pdf"
-    - ".doc"
-    - ".docx"
-
-cache:
-  type: "memory"
-  redis:
-    host: "localhost"
-    port: 6379
-    password: ""
-    db: 0
-  memory:
-    max_size: 1000
-  ttl: "1h"
-
-logging:
-  level: "debug"
-  format: "json"
-  output: "stdout"
-  file: "logs/app.log"
-  max_size: 100
-  max_backups: 3
-  max_age: 28
-  compress: true
-
-session:
-  type: "cookie"
-  secret: "tvQLugTOfW2FK/9u4jTxNMwuZS73iswlYLHlPbpEqow="
-  max_age: "24h"
-  domain: ""
-  path: "/"
-  secure: false
-  http_only: true
-  same_site: "lax"
-  store: "memory"
-  store_file: "storage/sessions/sessions.json"
-  cookie_name: "goforms_session"
-
-auth:
-  require_email_verification: false
-  password_min_length: 8
-  password_require_special: true
-  session_timeout: "30m"
-  max_login_attempts: 5
-  lockout_duration: "15m"
-
-form:
-  max_file_size: 10485760  # 10MB
-  allowed_file_types:
-    - "image/jpeg"
-    - "image/png"
-    - "image/gif"
-    - "application/pdf"
-  max_fields: 100
-  max_memory: 33554432  # 32MB
-  validation:
-    strict_mode: false
-    max_errors: 10
-
-api:
-  version: "v1"
-  prefix: "/api"
-  timeout: "30s"
-  max_retries: 3
-  rate_limit:
+  # Additional security headers
+  security_headers:
     enabled: true
-    rps: 1000
-    burst: 2000
+    x_frame_options: "DENY"
+    x_content_type_options: "nosniff"
+    x_xss_protection: "1; mode=block"
+    referrer_policy: "strict-origin-when-cross-origin"
+    permissions_policy: "camera=(), microphone=(), geolocation=()"
+    strict_transport_security: "max-age=31536000; includeSubDomains"  # Only with HTTPS
 
-web:
-  template_dir: "templates"
-  static_dir: "static"
-  assets_dir: "assets"
-  read_timeout: "15s"
-  write_timeout: "15s"
-  idle_timeout: "60s"
-  gzip: true
+  # Cookie security settings
+  cookie_security:
+    secure: false  # Set to true in production with HTTPS
+    http_only: true
+    same_site: "Lax"  # Default for all cookies
+    path: "/"
+    domain: ""
+    max_age: 86400
 
-user:
-  admin:
-    email: "admin@example.com"
-    password: "admin123"
-    name: "Administrator"
-  default:
-    role: "user"
-    permissions:
-      - "read"
+  # Trust proxy settings (important for rate limiting and IP detection)
+  trust_proxy:
+    enabled: true
+    trusted_proxies:
+      - "127.0.0.1"
+      - "::1"
+      # Add your reverse proxy IPs here

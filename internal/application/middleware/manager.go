@@ -230,9 +230,9 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 
 	// Register security middleware
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         m.config.Config.Security.Headers.XXSSProtection,
-		ContentTypeNosniff:    m.config.Config.Security.Headers.XContentTypeOptions,
-		XFrameOptions:         m.config.Config.Security.Headers.XFrameOptions,
+		XSSProtection:         m.config.Config.Security.SecurityHeaders.XXSSProtection,
+		ContentTypeNosniff:    m.config.Config.Security.SecurityHeaders.XContentTypeOptions,
+		XFrameOptions:         m.config.Config.Security.SecurityHeaders.XFrameOptions,
 		HSTSMaxAge:            constants.HSTSOneYear,
 		HSTSExcludeSubdomains: false,
 		ContentSecurityPolicy: m.config.Config.Security.GetCSPDirectives(&m.config.Config.App),
@@ -561,8 +561,8 @@ func setupAdditionalSecurityHeadersMiddleware() echo.MiddlewareFunc {
 				c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 			} else {
 				// Use configured values
-				c.Response().Header().Set("Referrer-Policy", securityConfig.Headers.ReferrerPolicy)
-				c.Response().Header().Set("Strict-Transport-Security", securityConfig.Headers.StrictTransportSecurity)
+				c.Response().Header().Set("Referrer-Policy", securityConfig.SecurityHeaders.ReferrerPolicy)
+				c.Response().Header().Set("Strict-Transport-Security", securityConfig.SecurityHeaders.StrictTransportSecurity)
 				c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 			}
 
