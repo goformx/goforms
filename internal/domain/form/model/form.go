@@ -298,6 +298,7 @@ func (f *Form) validateRequiredSchemaFields() error {
 			return fmt.Errorf("missing required schema field: %s", field)
 		}
 	}
+
 	return nil
 }
 
@@ -307,6 +308,7 @@ func (f *Form) validateSchemaType() error {
 	if !typeOk || schemaType != "object" {
 		return errors.New("invalid schema type: must be 'object'")
 	}
+
 	return nil
 }
 

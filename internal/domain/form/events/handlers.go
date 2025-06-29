@@ -60,6 +60,7 @@ func (h *EventHandler) Handle(ctx context.Context, event events.Event) error {
 			"event_name", event.Name(),
 			"timestamp", event.Timestamp(),
 		)
+
 		return nil
 	}
 

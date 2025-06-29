@@ -65,9 +65,11 @@ func TestFormBuilderCriticalEndpoints(t *testing.T) {
 					"title": "Updated Form Title",
 				}
 				payloadBytes, err := json.Marshal(payload)
+
 				if err != nil {
 					t.Fatalf("Failed to marshal payload: %v", err)
 				}
+
 				req = httptest.NewRequest(tt.method, tt.endpoint, bytes.NewBuffer(payloadBytes))
 				req.Header.Set("Content-Type", "application/json")
 			} else {

@@ -105,6 +105,7 @@ func (s *DevelopmentAssetServer) RegisterRoutes(e *echo.Echo) error {
 func (s *DevelopmentAssetServer) Start(ctx context.Context) error {
 	s.logger.Info("starting development asset server")
 	s.isRunning = true
+
 	return nil
 }
 
@@ -112,6 +113,7 @@ func (s *DevelopmentAssetServer) Start(ctx context.Context) error {
 func (s *DevelopmentAssetServer) Stop(ctx context.Context) error {
 	s.logger.Info("stopping development asset server")
 	s.isRunning = false
+
 	return nil
 }
 
@@ -252,6 +254,7 @@ func (s *EmbeddedAssetServer) RegisterRoutes(e *echo.Echo) error {
 func (s *EmbeddedAssetServer) Start(ctx context.Context) error {
 	s.logger.Info("starting embedded asset server")
 	s.isRunning = true
+
 	return nil
 }
 
@@ -259,6 +262,7 @@ func (s *EmbeddedAssetServer) Start(ctx context.Context) error {
 func (s *EmbeddedAssetServer) Stop(ctx context.Context) error {
 	s.logger.Info("stopping embedded asset server")
 	s.isRunning = false
+
 	return nil
 }
 
@@ -449,5 +453,6 @@ func (f *AssetServerFactory) CreateServer(distFS embed.FS) AssetServer {
 	}
 
 	f.logger.Info("creating embedded asset server")
+
 	return NewEmbeddedAssetServer(f.logger, distFS)
 }

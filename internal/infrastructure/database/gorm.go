@@ -268,6 +268,7 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		w.logger.Debug("record not found",
 			"message", msg,
 			"error", err)
+
 		return
 	}
 
@@ -286,6 +287,7 @@ func (w *GormLogWriter) getErrorType(err error) string {
 			return errorType
 		}
 	}
+
 	return "database_error"
 }
 

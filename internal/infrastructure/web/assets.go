@@ -134,6 +134,7 @@ func (m *AssetManager) GetBaseURL() string {
 		if host == "" || host == "0.0.0.0" {
 			host = "localhost"
 		}
+
 		return strings.TrimSuffix(
 			m.config.App.Scheme+"://"+host+":"+m.config.App.ViteDevPort,
 			"/",
@@ -151,6 +152,7 @@ func (m *AssetManager) GetBaseURL() string {
 		if m.config.App.Port != 80 && m.config.App.Port != 443 {
 			baseURL += fmt.Sprintf(":%d", m.config.App.Port)
 		}
+
 		return baseURL
 	}
 
@@ -162,6 +164,7 @@ func (m *AssetManager) GetBaseURL() string {
 func (m *AssetManager) GetCacheSize() int {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
 	return len(m.pathCache)
 }
 
@@ -180,6 +183,7 @@ func (m *AssetManager) IsPathCached(path string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
 	_, exists := m.pathCache[path]
+
 	return exists
 }
 

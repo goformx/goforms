@@ -86,6 +86,7 @@ func (m Manifest) GetEntryPaths() []string {
 			entries = append(entries, path)
 		}
 	}
+
 	return entries
 }
 

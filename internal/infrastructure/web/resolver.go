@@ -49,6 +49,7 @@ func (r *ProductionAssetResolver) ResolveAssetPath(ctx context.Context, path str
 		r.logger.Warn("asset not found in manifest",
 			"path", path,
 			"available_assets", len(r.manifest))
+
 		return "", fmt.Errorf("%w: %s not found in manifest", ErrAssetNotFound, path)
 	}
 
@@ -214,6 +215,7 @@ func validateAssetPath(path string) error {
 	if path == "" {
 		return fmt.Errorf("%w: path cannot be empty", ErrInvalidPath)
 	}
+
 	return nil
 }
 
@@ -222,6 +224,7 @@ func normalizeAssetPath(path string) string {
 	if !strings.HasPrefix(path, "/") {
 		return "/" + path
 	}
+
 	return path
 }
 

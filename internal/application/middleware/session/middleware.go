@@ -157,6 +157,7 @@ func (sm *Manager) isExemptPath(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 

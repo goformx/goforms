@@ -112,6 +112,7 @@ func (c *DatabaseConfig) validatePostgresFields() error {
 	if c.SSLMode == "" {
 		return fmt.Errorf("PostgreSQL SSL mode is required")
 	}
+
 	return nil
 }
 
@@ -120,5 +121,6 @@ func (c *DatabaseConfig) validateMariaDBFields() error {
 	if c.RootPassword == "" {
 		return fmt.Errorf("MariaDB root password is required")
 	}
+
 	return nil
 }

@@ -170,6 +170,7 @@ func (p *PageData) WithMessage(msgType, text string) *PageData {
 		Type: msgType,
 		Text: text,
 	}
+
 	return p
 }
 
@@ -218,6 +219,7 @@ func (p *PageData) GetUserID() string {
 	if p.User != nil {
 		return p.User.ID
 	}
+
 	return ""
 }
 
@@ -226,6 +228,7 @@ func (p *PageData) GetUserEmail() string {
 	if p.User != nil {
 		return p.User.Email
 	}
+
 	return ""
 }
 
