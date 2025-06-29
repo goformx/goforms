@@ -163,6 +163,7 @@ func (s *Service) SanitizeSlice(data []any) {
 }
 
 // sanitizeStructField handles sanitization of individual struct fields
+// Skip other types (bool, int, float, etc.)
 func (s *Service) sanitizeStructField(field reflect.Value) {
 	switch field.Kind() {
 	case reflect.String:
@@ -184,7 +185,6 @@ func (s *Service) sanitizeStructField(field reflect.Value) {
 		reflect.Uint32, reflect.Uint64, reflect.Uintptr, reflect.Float32, reflect.Float64,
 		reflect.Complex64, reflect.Complex128, reflect.Array, reflect.Chan, reflect.Func,
 		reflect.Interface, reflect.UnsafePointer:
-		// Skip other types (bool, int, float, etc.)
 	}
 }
 

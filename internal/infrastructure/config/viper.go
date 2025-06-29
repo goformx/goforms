@@ -72,9 +72,9 @@ func (vc *ViperConfig) loadConfigFiles() error {
 		if errors.As(err, &configFileNotFoundError) {
 			return fmt.Errorf("failed to read config file: %w", err)
 		}
-		// Config file not found, continue with environment variables only
 	}
 
+	// Config file not found, continue with environment variables only
 	// Load .env file if it exists
 	if err := vc.viper.MergeInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError

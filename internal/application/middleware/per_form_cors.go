@@ -260,6 +260,7 @@ func handleActualRequest(
 }
 
 // IsOriginAllowed checks if the origin is allowed based on the CORS configuration
+// TODO: Add support for pattern matching (e.g., *.example.com)
 func IsOriginAllowed(origin string, allowedOrigins []string) bool {
 	if origin == "" {
 		return true // No origin header, allow
@@ -273,7 +274,6 @@ func IsOriginAllowed(origin string, allowedOrigins []string) bool {
 		if allowed == origin {
 			return true // Exact match
 		}
-		// TODO: Add support for pattern matching (e.g., *.example.com)
 	}
 
 	return false
