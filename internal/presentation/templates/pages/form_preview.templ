@@ -46,7 +46,7 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 								if form.Description != "" {
 									<p class="form-description">{ form.Description }</p>
 								}
-								
+
 								if form.Schema != nil && len(form.Schema) > 0 {
 									<div class="form-renderer" id="form-renderer" data-form-schema={ formatJSONForJS(form.Schema) } data-form-id={ form.ID }>
 										<!-- Form will be rendered here by JavaScript -->
@@ -76,12 +76,13 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 								<div class="form-info-item">
 									<span class="form-info-label">Status:</span>
 									<span class="form-info-value">
-										if form.Status == "active" {
-											<span class="status-badge status-active">Active</span>
-										} else if form.Status == "draft" {
-											<span class="status-badge status-draft">Draft</span>
-										} else {
-											<span class="status-badge status-inactive">Inactive</span>
+										switch form.Status {
+											case "active":
+												<span class="status-badge status-active">Active</span>
+											case "draft":
+												<span class="status-badge status-draft">Draft</span>
+											default:
+												<span class="status-badge status-inactive">Inactive</span>
 										}
 									</span>
 								</div>
@@ -106,7 +107,7 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 
 	if form.Schema != nil && len(form.Schema) > 0 {
 		@templ.JSONScript("form-preview-data", data.FormPreviewAssetPath)
-		
+
 		if data.IsDevelopment {
 			<script type="module" id="form-preview-script" data-form-preview-path={ data.AssetPath("src/js/pages/form-preview.ts") }>
 				if (document.getElementById('form-renderer')) {
@@ -131,11 +132,11 @@ func formatJSONForJS(data model.JSON) string {
 	if data == nil {
 		return "{}"
 	}
-	
+
 	formatted, err := json.Marshal(data)
 	if err != nil {
 		return "{}"
 	}
-	
+
 	return string(formatted)
-} 
+}

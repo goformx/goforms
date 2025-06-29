@@ -117,20 +117,23 @@ templ editFormContent(data view.PageData, form *model.Form) {
 							<div class="form-group">
 								<label for="status">Status</label>
 								<select id="status" name="status" class="gf-input">
-									if form.Status == "draft" {
-										<option value="draft" selected>Draft</option>
-									} else {
-										<option value="draft">Draft</option>
+									switch form.Status {
+										case "draft":
+											<option value="draft" selected>Draft</option>
+										default:
+											<option value="draft">Draft</option>
 									}
-									if form.Status == "published" {
-										<option value="published" selected>Published</option>
-									} else {
-										<option value="published">Published</option>
+									switch form.Status {
+										case "published":
+											<option value="published" selected>Published</option>
+										default:
+											<option value="published">Published</option>
 									}
-									if form.Status == "archived" {
-										<option value="archived" selected>Archived</option>
-									} else {
-										<option value="archived">Archived</option>
+									switch form.Status {
+										case "archived":
+											<option value="archived" selected>Archived</option>
+										default:
+											<option value="archived">Archived</option>
 									}
 								</select>
 							</div>
@@ -270,11 +273,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	const form = document.getElementById('edit-form');
 	const statusSelect = document.getElementById('status');
 	const corsOriginsInput = document.getElementById('cors_origins');
-	
+
 	if (form) {
 		form.addEventListener('submit', async function(e) {
 			e.preventDefault();
-			
+
 			// Validate CORS origins if status is published
 			if (statusSelect.value === 'published') {
 				const corsOrigins = corsOriginsInput.value.trim();
@@ -284,12 +287,12 @@ document.addEventListener('DOMContentLoaded', function() {
 					return;
 				}
 			}
-			
+
 			const submitBtn = form.querySelector('button[type="submit"]');
 			const originalText = submitBtn.innerHTML;
 			submitBtn.innerHTML = 'Saving...';
 			submitBtn.disabled = true;
-			
+
 			try {
 				const formData = new FormData(form);
 				const response = await fetch(form.action, {
@@ -299,19 +302,19 @@ document.addEventListener('DOMContentLoaded', function() {
 						'X-Requested-With': 'XMLHttpRequest'
 					}
 				});
-				
+
 				const result = await response.json();
-				
+
 				if (result.success) {
 					// Show success message
 					const successDiv = document.createElement('div');
 					successDiv.className = 'alert alert-success';
 					successDiv.textContent = result.message;
 					successDiv.style.cssText = 'background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom: 15px;';
-					
+
 					// Insert before the form
 					form.parentNode.insertBefore(successDiv, form);
-					
+
 					// Remove success message after 3 seconds
 					setTimeout(() => {
 						successDiv.remove();
@@ -322,10 +325,10 @@ document.addEventListener('DOMContentLoaded', function() {
 					errorDiv.className = 'alert alert-error';
 					errorDiv.textContent = result.message || 'An error occurred';
 					errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px;';
-					
+
 					// Insert before the form
 					form.parentNode.insertBefore(errorDiv, form);
-					
+
 					// Remove error message after 5 seconds
 					setTimeout(() => {
 						errorDiv.remove();
@@ -337,10 +340,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				errorDiv.className = 'alert alert-error';
 				errorDiv.textContent = 'An error occurred while saving the form';
 				errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px;';
-				
+
 				// Insert before the form
 				form.parentNode.insertBefore(errorDiv, form);
-				
+
 				// Remove error message after 5 seconds
 				setTimeout(() => {
 					errorDiv.remove();
