@@ -43,20 +43,7 @@ services:
     networks:
       - app-net
 
-  adminer:
-    image: adminer:latest
-    restart: unless-stopped
-    networks:
-      - app-net
-    depends_on:
-      postgres:
-        condition: service_healthy
-    ports:
-      - "8098:8080"
-
 volumes:
   postgres-data:
 networks:
   app-net:
-
-

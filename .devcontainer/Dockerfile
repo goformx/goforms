@@ -20,7 +20,7 @@ RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
     && go install golang.org/x/tools/gopls@latest \
     && go install github.com/go-delve/delve/cmd/dlv@latest \
     && go install golang.org/x/tools/cmd/goimports@latest \
-    && go install github.com/securecodewarrior/gosec/v2/cmd/gosec@latest \
+    && go install github.com/securego/gosec/v2/cmd/gosec@latest \
     && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Install Task runner
