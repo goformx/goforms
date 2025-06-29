@@ -27,7 +27,11 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
 	mockLogger.EXPECT().Debug(
-		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
+		"development asset resolved",
+		"input", gomock.Any(),
+		"output", gomock.Any(),
+		"base_url", gomock.Any(),
+		"cached", gomock.Any(),
 	).AnyTimes()
 
 	resolver := web.NewDevelopmentAssetResolver(cfg, mockLogger)
@@ -86,6 +90,19 @@ func TestProductionAssetResolver(t *testing.T) {
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Debug(
+		"production asset resolved",
+		"input", gomock.Any(),
+		"output", gomock.Any(),
+		"manifest_entry", gomock.Any(),
+	).AnyTimes()
+
+	mockLogger.EXPECT().Warn(
+		"asset not found in manifest",
+		"path", gomock.Any(),
+		"available_assets", gomock.Any(),
+	).AnyTimes()
 
 	resolver := web.NewProductionAssetResolver(manifest, mockLogger)
 
@@ -148,12 +165,22 @@ func TestAssetManager(t *testing.T) {
 
 	// Expect debug calls from DevelopmentAssetResolver
 	mockLogger.EXPECT().Debug(
-		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
+		"development asset resolved",
+		"input", gomock.Any(),
+		"output", gomock.Any(),
+		"base_url", gomock.Any(),
+		"cached", gomock.Any(),
 	).AnyTimes()
 
 	// Expect debug calls from AssetManager
 	mockLogger.EXPECT().Debug(
 		"asset resolved", "asset_path", gomock.Any(), "resolved", gomock.Any(),
+	).AnyTimes()
+
+	// Expect debug calls for cache clearing
+	mockLogger.EXPECT().Debug(
+		"asset cache cleared",
+		"previous_size", gomock.Any(),
 	).AnyTimes()
 
 	var distFS embed.FS

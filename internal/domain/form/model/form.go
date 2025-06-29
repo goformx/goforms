@@ -314,8 +314,12 @@ func (f *Form) validateSchemaType() error {
 
 // validateSchemaContent validates the content of the schema (properties or components)
 func (f *Form) validateSchemaContent() error {
-	hasProperties := f.validateProperties()
+	hasProperties, propErr := f.validateProperties()
 	hasComponents := f.validateComponents()
+
+	if propErr != nil {
+		return propErr
+	}
 
 	if !hasProperties && !hasComponents {
 		return errors.New("schema must contain either properties or components")
@@ -325,20 +329,20 @@ func (f *Form) validateSchemaContent() error {
 }
 
 // validateProperties validates the properties section of the schema
-func (f *Form) validateProperties() bool {
+func (f *Form) validateProperties() (bool, error) {
 	properties, propsOk := f.Schema["properties"].(map[string]any)
 	if !propsOk {
-		return false
+		return false, nil
 	}
 
 	// Validate each property
 	for name, prop := range properties {
 		if err := validateProperty(name, prop); err != nil {
-			return false
+			return false, err
 		}
 	}
 
-	return true
+	return true, nil
 }
 
 // validateComponents validates the components section of the schema

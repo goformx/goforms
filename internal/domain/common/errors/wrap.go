@@ -171,6 +171,10 @@ func GetErrorContext(err error) map[string]any {
 
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
+		if len(domainErr.Context) == 0 {
+			return nil
+		}
+
 		return domainErr.Context
 	}
 
