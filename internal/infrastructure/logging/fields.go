@@ -30,6 +30,10 @@ const (
 	PathFieldType
 	UserAgentFieldType
 	SensitiveFieldType
+	// InvalidPathMessage is the message returned for invalid paths
+	InvalidPathMessage = "[invalid path]"
+	// UUIDDashCount is the number of dashes in a standard UUID
+	UUIDDashCount = 4
 )
 
 // String creates a string field
@@ -122,12 +126,14 @@ var fieldTypeConverters = map[FieldType]func(Field) zap.Field{
 		if val, ok := f.Value.(float64); ok {
 			return zap.Float64(f.Key, val)
 		}
+
 		return zap.Any(f.Key, f.Value)
 	},
 	BoolFieldType: func(f Field) zap.Field {
 		if val, ok := f.Value.(bool); ok {
 			return zap.Bool(f.Key, val)
 		}
+
 		return zap.Any(f.Key, f.Value)
 	},
 	ErrorFieldType: func(f Field) zap.Field {
@@ -182,7 +188,10 @@ func (f Field) convertErrorField() zap.Field {
 
 // maskUUID masks a UUID value for security
 func maskUUID(value string) string {
-	if len(value) == 36 && strings.Count(value, "-") == 4 {
+	const uuidLength = 36
+	const uuidDashCount = 4
+
+	if len(value) == uuidLength && strings.Count(value, "-") == uuidDashCount {
 		// Standard UUID format: mask middle part
 		return value[:8] + "..." + value[len(value)-4:]
 	}
@@ -193,20 +202,20 @@ func maskUUID(value string) string {
 // sanitizePath sanitizes a path value
 func sanitizePath(value string) string {
 	if value == "" || !strings.HasPrefix(value, "/") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Check for dangerous characters
 	dangerousChars := []string{"\\", "<", ">", "\"", "'", "\x00", "\n", "\r"}
 	for _, char := range dangerousChars {
 		if strings.Contains(value, char) {
-			return "[invalid path]"
+			return InvalidPathMessage
 		}
 	}
 
 	// Check for path traversal attempts
 	if strings.Contains(value, "..") || strings.Contains(value, "//") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Truncate if too long
@@ -307,7 +316,10 @@ func RequestID(key, value string) zap.Field {
 	}
 
 	// Validate UUID format for request ID
-	if len(value) == 36 && strings.Count(value, "-") == 4 {
+	const uuidLength = 36
+	const uuidDashCount = 4
+
+	if len(value) == uuidLength && strings.Count(value, "-") == uuidDashCount {
 		return zap.String(key, value)
 	}
 

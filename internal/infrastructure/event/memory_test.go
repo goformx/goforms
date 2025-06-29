@@ -381,8 +381,8 @@ func TestMemoryEventBus(t *testing.T) {
 		// Publish events concurrently
 		for i := 0; i < 5; i++ {
 			go func() {
-				err := eventBus.Publish(context.Background(), mockEvent)
-				assert.NoError(t, err)
+				publishErr := eventBus.Publish(context.Background(), mockEvent)
+				assert.NoError(t, publishErr)
 			}()
 		}
 
