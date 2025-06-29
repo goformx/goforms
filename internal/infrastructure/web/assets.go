@@ -211,6 +211,7 @@ func NewModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*Mod
 		if err != nil {
 			return nil, fmt.Errorf("failed to load manifest for resolver: %w", err)
 		}
+
 		resolver = NewProductionAssetResolver(manifest, logger)
 	}
 

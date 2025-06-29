@@ -59,6 +59,7 @@ func (cfg *FactoryConfig) validateLogLevel() error {
 	if cfg.LogLevel != "" && !isValidLogLevel(cfg.LogLevel) {
 		return fmt.Errorf("invalid log level: %s", cfg.LogLevel)
 	}
+
 	return nil
 }
 

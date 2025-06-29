@@ -97,6 +97,7 @@ func (c *Config) validateSessionConfig() error {
 	if c.Session.Type != "none" && c.Session.Secret == "" {
 		return fmt.Errorf("session secret is required when session type is not 'none'")
 	}
+
 	return nil
 }
 

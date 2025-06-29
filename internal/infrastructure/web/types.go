@@ -80,6 +80,7 @@ func (m Manifest) GetEntry(path string) (ManifestEntry, bool) {
 // GetEntryPaths returns all entry point paths from the manifest
 func (m Manifest) GetEntryPaths() []string {
 	var entries []string
+
 	for path, entry := range m {
 		if entry.IsEntry {
 			entries = append(entries, path)

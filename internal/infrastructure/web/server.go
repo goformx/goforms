@@ -188,6 +188,7 @@ func (s *DevelopmentAssetServer) createSpecialFileHandler(filename string) echo.
 	return func(c echo.Context) error {
 		fullPath := filepath.Join(s.serverConfig.PublicDir, filename)
 		data, err := os.ReadFile(fullPath)
+
 		if err != nil {
 			return c.NoContent(http.StatusNotFound)
 		}
@@ -268,6 +269,7 @@ func (s *EmbeddedAssetServer) createSubFileSystems() error {
 	if err != nil {
 		return fmt.Errorf("failed to create dist sub-filesystem: %w", err)
 	}
+
 	s.subFileSystems["dist"] = distSubFS
 
 	// Create assets sub-filesystem if it exists

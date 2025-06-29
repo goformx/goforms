@@ -158,6 +158,7 @@ func (f Field) convertErrorField() zap.Field {
 	if err, ok := f.Value.(error); ok {
 		return zap.Error(err)
 	}
+
 	return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
 }
 

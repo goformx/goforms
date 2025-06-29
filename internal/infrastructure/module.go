@@ -260,6 +260,7 @@ func NewAssetManager(p AssetManagerParams) (infraweb.AssetManagerInterface, erro
 	if p.Logger == nil {
 		return nil, fmt.Errorf("asset manager creation failed: %w", ErrMissingLogger)
 	}
+
 	if p.Config == nil {
 		return nil, fmt.Errorf("asset manager creation failed: %w", ErrMissingConfig)
 	}
