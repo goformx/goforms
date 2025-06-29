@@ -121,7 +121,7 @@ func NewStores(p StoreParams) (Stores, error) {
 }
 
 // Module provides all domain layer dependencies
-var Module = fx.Options(
+var Module = fx.Module("domain",
 	fx.Provide(
 		// User service
 		fx.Annotate(

@@ -26,7 +26,7 @@ import (
 )
 
 // Module provides web handler dependencies
-var Module = fx.Options(
+var Module = fx.Module("web-handlers",
 	// Core dependencies
 	fx.Provide(
 		// Base handler for common functionality

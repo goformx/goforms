@@ -16,7 +16,7 @@ import (
 )
 
 // Module provides all middleware dependencies
-var Module = fx.Options(
+var Module = fx.Module("middleware",
 	fx.Provide(
 		// Path manager for centralized path management
 		constants.NewPathManager,

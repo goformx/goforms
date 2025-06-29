@@ -335,7 +335,7 @@ func ProvideSanitizationService() sanitization.ServiceInterface {
 
 // Module provides comprehensive infrastructure dependencies with proper error handling,
 // lifecycle management, and clear separation of concerns.
-var Module = fx.Options(
+var Module = fx.Module("infrastructure",
 	// Core infrastructure providers
 	fx.Provide(
 		// Echo web framework

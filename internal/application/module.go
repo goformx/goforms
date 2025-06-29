@@ -96,7 +96,7 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 }
 
 // Module represents the application module
-var Module = fx.Options(
+var Module = fx.Module("application",
 	fx.Provide(
 		New,
 		provideRequestUtils,

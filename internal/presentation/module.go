@@ -49,7 +49,7 @@ func NewRenderer(deps Dependencies) (view.Renderer, error) {
 }
 
 // Module provides all presentation layer dependencies
-var Module = fx.Options(
+var Module = fx.Module("presentation",
 	// View renderer
 	fx.Provide(
 		fx.Annotate(

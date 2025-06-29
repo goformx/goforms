@@ -6,7 +6,7 @@ import (
 )
 
 // Module provides the configuration module for Fx
-var Module = fx.Options(
+var Module = fx.Module("config",
 	// Use Viper configuration provider instead of LoadFromEnv
 	NewViperConfigProvider(),
 	fx.Provide(NewAppConfig),
