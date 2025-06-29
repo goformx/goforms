@@ -28,7 +28,7 @@ func setupTestFormErrorHandler() (web.FormErrorHandler, *echo.Echo) {
 }
 
 // runErrorHandlerTest is a helper function to reduce duplication in error handler tests
-func runErrorHandlerTest(t *testing.T, handler web.FormErrorHandler, e *echo.Echo, tests []struct {
+func runErrorHandlerTest(t *testing.T, e *echo.Echo, tests []struct {
 	name           string
 	err            error
 	expectedStatus int
@@ -86,7 +86,7 @@ func TestFormErrorHandler_HandleSchemaError(t *testing.T) {
 		},
 	}
 
-	runErrorHandlerTest(t, handler, e, tests, handler.HandleSchemaError)
+	runErrorHandlerTest(t, e, tests, handler.HandleSchemaError)
 }
 
 func TestFormErrorHandler_HandleSubmissionError(t *testing.T) {
@@ -180,7 +180,7 @@ func TestFormErrorHandler_HandleError(t *testing.T) {
 		},
 	}
 
-	runErrorHandlerTest(t, handler, e, tests, handler.HandleError)
+	runErrorHandlerTest(t, e, tests, handler.HandleError)
 }
 
 func TestFormErrorHandler_HandleOwnershipError(t *testing.T) {

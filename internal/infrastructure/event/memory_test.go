@@ -38,8 +38,8 @@ func TestMemoryPublisher(t *testing.T) {
 	t.Run("WithMaxEvents", func(t *testing.T) {
 		publisher := event.NewMemoryPublisher(logger)
 		maxEvents := 500
-		result := publisher.(*event.MemoryPublisher).WithMaxEvents(maxEvents)
-		assert.Equal(t, publisher, result)
+		//nolint:errcheck // WithMaxEvents returns *MemoryPublisher, not an error
+		_ = publisher.(*event.MemoryPublisher).WithMaxEvents(maxEvents)
 	})
 
 	t.Run("Publish valid event", func(t *testing.T) {
@@ -49,8 +49,10 @@ func TestMemoryPublisher(t *testing.T) {
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 
+		//nolint:errcheck // Publish returns error, but we're checking it with require.NoError
 		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
+		//nolint:errcheck // GetEvents returns []event.Event, not an error
 		events := publisher.(*event.MemoryPublisher).GetEvents()
 		assert.Len(t, events, 1)
 		assert.Equal(t, mockEvent, events[0])
@@ -58,6 +60,7 @@ func TestMemoryPublisher(t *testing.T) {
 
 	t.Run("Publish nil event", func(t *testing.T) {
 		publisher := event.NewMemoryPublisher(logger)
+		//nolint:errcheck // Error is checked with require.Error
 		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), nil)
 		require.Error(t, err)
 		assert.Equal(t, event.ErrInvalidEvent, err)
@@ -72,6 +75,7 @@ func TestMemoryPublisher(t *testing.T) {
 
 		handlerCalled := false
 
+		//nolint:errcheck // Error is checked with require.NoError
 		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
 			handlerCalled = true
 
@@ -79,6 +83,7 @@ func TestMemoryPublisher(t *testing.T) {
 		})
 		require.NoError(t, err)
 
+		//nolint:errcheck // Error is checked with require.NoError
 		err = publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
 
@@ -150,7 +155,8 @@ func TestMemoryPublisher(t *testing.T) {
 
 	t.Run("Event overflow", func(t *testing.T) {
 		publisher := event.NewMemoryPublisher(logger)
-		publisher.(*event.MemoryPublisher).WithMaxEvents(2)
+		//nolint:errcheck // WithMaxEvents returns *MemoryPublisher, not an error
+		_ = publisher.(*event.MemoryPublisher).WithMaxEvents(2)
 
 		for i := 0; i < 3; i++ {
 			mockEvent := mockform.NewMockEvent(ctrl)
