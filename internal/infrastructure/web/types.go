@@ -74,6 +74,7 @@ func (m Manifest) IsEmpty() bool {
 // GetEntry safely retrieves a manifest entry
 func (m Manifest) GetEntry(path string) (ManifestEntry, bool) {
 	entry, exists := m[path]
+
 	return entry, exists
 }
 

@@ -193,6 +193,7 @@ func (f Field) convertErrorField() zap.Field {
 // maskUUID masks a UUID value for security
 func maskUUID(value string) string {
 	const uuidLength = 36
+
 	const uuidDashCount = 4
 
 	if len(value) == uuidLength && strings.Count(value, "-") == uuidDashCount {
@@ -321,6 +322,7 @@ func RequestID(key, value string) zap.Field {
 
 	// Validate UUID format for request ID
 	const uuidLength = 36
+
 	const uuidDashCount = 4
 
 	if len(value) == uuidLength && strings.Count(value, "-") == uuidDashCount {

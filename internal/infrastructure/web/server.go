@@ -71,6 +71,7 @@ func NewDevelopmentAssetServer(cfg *config.Config, logger logging.Logger) *Devel
 // WithConfig allows customizing the server configuration
 func (s *DevelopmentAssetServer) WithConfig(cfg AssetServerConfig) *DevelopmentAssetServer {
 	s.serverConfig = cfg
+
 	return s
 }
 
@@ -225,6 +226,7 @@ func NewEmbeddedAssetServer(logger logging.Logger, distFS embed.FS) *EmbeddedAss
 // WithConfig allows customizing the server configuration
 func (s *EmbeddedAssetServer) WithConfig(cfg AssetServerConfig) *EmbeddedAssetServer {
 	s.serverConfig = cfg
+
 	return s
 }
 
@@ -449,6 +451,7 @@ func NewAssetServerFactory(cfg *config.Config, logger logging.Logger) *AssetServ
 func (f *AssetServerFactory) CreateServer(distFS embed.FS) AssetServer {
 	if f.config.App.IsDevelopment() {
 		f.logger.Info("creating development asset server")
+
 		return NewDevelopmentAssetServer(f.config, f.logger)
 	}
 

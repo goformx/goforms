@@ -137,30 +137,35 @@ func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.C
 // WithTitle sets the page title
 func (p *PageData) WithTitle(title string) *PageData {
 	p.Title = title
+
 	return p
 }
 
 // WithDescription sets the page description
 func (p *PageData) WithDescription(description string) *PageData {
 	p.Description = description
+
 	return p
 }
 
 // WithKeywords sets the page keywords
 func (p *PageData) WithKeywords(keywords string) *PageData {
 	p.Keywords = keywords
+
 	return p
 }
 
 // WithAuthor sets the page author
 func (p *PageData) WithAuthor(author string) *PageData {
 	p.Author = author
+
 	return p
 }
 
 // WithContent sets the page content component
 func (p *PageData) WithContent(content templ.Component) *PageData {
 	p.Content = content
+
 	return p
 }
 
@@ -177,30 +182,35 @@ func (p *PageData) WithMessage(msgType, text string) *PageData {
 // WithForm sets a single form
 func (p *PageData) WithForm(form *model.Form) *PageData {
 	p.Form = form
+
 	return p
 }
 
 // WithForms sets multiple forms
 func (p *PageData) WithForms(forms []*model.Form) *PageData {
 	p.Forms = forms
+
 	return p
 }
 
 // WithSubmissions sets form submissions
 func (p *PageData) WithSubmissions(submissions []*model.FormSubmission) *PageData {
 	p.Submissions = submissions
+
 	return p
 }
 
 // WithFormBuilderAssetPath sets the form builder asset path
 func (p *PageData) WithFormBuilderAssetPath(path string) *PageData {
 	p.FormBuilderAssetPath = path
+
 	return p
 }
 
 // WithFormPreviewAssetPath sets the form preview asset path
 func (p *PageData) WithFormPreviewAssetPath(path string) *PageData {
 	p.FormPreviewAssetPath = path
+
 	return p
 }
 

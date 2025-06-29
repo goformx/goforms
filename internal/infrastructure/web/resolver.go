@@ -97,6 +97,7 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path st
 	r.cacheMu.RLock()
 	if cached, exists := r.pathCache[path]; exists {
 		r.cacheMu.RUnlock()
+
 		return cached, nil
 	}
 	r.cacheMu.RUnlock()
@@ -183,6 +184,7 @@ func (r *DevelopmentAssetResolver) buildPathRules() []AssetPathRule {
 				if baseName == "main" {
 					return fmt.Sprintf("%s/src/js/pages/%s.ts", baseURL, baseName)
 				}
+
 				return fmt.Sprintf("%s/src/js/%s.ts", baseURL, baseName)
 			},
 		},
@@ -271,6 +273,7 @@ func NewAssetResolverFactory(cfg *config.Config, logger logging.Logger) *AssetRe
 func (f *AssetResolverFactory) CreateResolver(distFS embed.FS) (AssetResolver, error) {
 	if f.config.App.IsDevelopment() {
 		f.logger.Info("creating development asset resolver")
+
 		return NewDevelopmentAssetResolver(f.config, f.logger), nil
 	}
 

@@ -132,6 +132,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		}
 
 		data := h.NewPageData(c, "Login")
+
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -148,6 +149,7 @@ func (h *AuthHandler) LoginPost(c echo.Context) error {
 		}
 
 		data := h.NewPageData(c, "Login")
+
 		return h.ResponseBuilder.HTMLFormError(c, "login", data, constants.ErrMsgInvalidCredentials)
 	}
 
@@ -199,6 +201,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		}
 
 		data := h.NewPageData(c, "Sign Up")
+
 		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
 	}
 
@@ -217,6 +220,7 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 		}
 
 		data := h.NewPageData(c, "Sign Up")
+
 		return h.ResponseBuilder.HTMLFormError(
 			c,
 			"signup",

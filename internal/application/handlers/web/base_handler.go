@@ -117,6 +117,7 @@ func (h *BaseHandler) ValidateAssetPath(path string) error {
 	if err := h.AssetManager.ValidatePath(path); err != nil {
 		return fmt.Errorf("validate asset path: %w", err)
 	}
+
 	return nil
 }
 
