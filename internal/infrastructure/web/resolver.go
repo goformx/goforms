@@ -260,9 +260,9 @@ type AssetResolverFactory struct {
 }
 
 // NewAssetResolverFactory creates a new factory
-func NewAssetResolverFactory(config *config.Config, logger logging.Logger) *AssetResolverFactory {
+func NewAssetResolverFactory(cfg *config.Config, logger logging.Logger) *AssetResolverFactory {
 	return &AssetResolverFactory{
-		config: config,
+		config: cfg,
 		logger: logger,
 	}
 }

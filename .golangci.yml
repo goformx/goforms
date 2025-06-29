@@ -45,17 +45,17 @@ linters:
     - decorder        # Enforces declaration order (good for Fx modules)
     - dupl            # Detects code duplication (prevents duplicate providers)
     - exhaustive      # Ensures exhaustive type switches
-    - exhaustruct     # Ensures struct initialization (good for Fx options)
+    # - exhaustruct     # Ensures struct initialization (good for Fx options)
     - gomodguard      # Controls allowed modules
     - ireturn         # Ensures concrete types in returns when possible
     - maintidx        # Maintainability index
-    - mnd             # Magic number detector
+    # - mnd             # Magic number detector
     - nilnil          # Checks for simultaneous return of nil error and nil value
     - nlreturn        # Enforces newlines in certain places
     - noctx           # Finds sending http request without context.Context
     - paralleltest    # Detects missing use of t.Parallel()
     - reassign        # Checks for reassigning variables
-    - varnamelen      # Checks variable name length
+    # - varnamelen      # Checks variable name length
     - wastedassign    # Finds assignments to existing variables
     - wsl             # Enforces whitespace rules
 

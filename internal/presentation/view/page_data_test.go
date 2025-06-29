@@ -245,9 +245,9 @@ func TestNewPageData(t *testing.T) {
 	assert.NotNil(t, pageData.AssetPath)
 	assert.Equal(t, cfg, pageData.Config)
 	assert.NotNil(t, pageData.Forms)
-	assert.Len(t, pageData.Forms, 0) // Should be empty slice
+	assert.Empty(t, pageData.Forms) // Should be empty slice
 	assert.NotNil(t, pageData.Submissions)
-	assert.Len(t, pageData.Submissions, 0) // Should be empty slice
+	assert.Empty(t, pageData.Submissions) // Should be empty slice
 }
 
 func TestNewPageDataWithTitle(t *testing.T) {

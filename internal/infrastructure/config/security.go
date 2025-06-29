@@ -80,7 +80,7 @@ type RateLimitConfig struct {
 type SecurityHeadersConfig struct {
 	XFrameOptions           string `json:"x_frame_options"`
 	XContentTypeOptions     string `json:"x_content_type_options"`
-	XXSSProtection          string `json:"x_xss_protection"`
+	XXSSProtection          string `json:"xxss_protection"`
 	ReferrerPolicy          string `json:"referrer_policy"`
 	StrictTransportSecurity string `json:"strict_transport_security"`
 }
@@ -114,7 +114,7 @@ type EncryptionConfig struct {
 }
 
 // GetCSPDirectives returns the Content Security Policy directives based on environment
-func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
+func (c *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 	if appConfig.IsDevelopment() {
 		return "default-src 'self'; " +
 			"script-src 'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173 https://cdn.form.io blob:; " +
@@ -129,8 +129,8 @@ func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 	}
 
 	// If custom CSP directives are provided via environment, use them
-	if s.CSP.Directives != "" {
-		return s.CSP.Directives
+	if c.CSP.Directives != "" {
+		return c.CSP.Directives
 	}
 
 	// Generate CSP directives based on environment

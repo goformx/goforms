@@ -62,13 +62,13 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	}
 
 	// Configure connection pool
-	if err := configureConnectionPool(db, cfg); err != nil {
-		return nil, err
+	if poolErr := configureConnectionPool(db, cfg); poolErr != nil {
+		return nil, poolErr
 	}
 
 	// Verify connection
-	if err := verifyConnection(db, appLogger); err != nil {
-		return nil, err
+	if verifyErr := verifyConnection(db, appLogger); verifyErr != nil {
+		return nil, verifyErr
 	}
 
 	appLogger.Info("database connection established",
@@ -241,7 +241,7 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 	rowsAffected := int64(0)
 
 	if len(args) > rowsAffectedArgPos {
-		if ra, ok := args[rowsAffectedArgPos].(int64); ok {
+		if ra, raOk := args[rowsAffectedArgPos].(int64); raOk {
 			rowsAffected = ra
 		}
 	}

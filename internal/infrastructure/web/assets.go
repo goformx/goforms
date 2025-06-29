@@ -211,9 +211,9 @@ func NewModule(cfg *config.Config, logger logging.Logger, distFS embed.FS) (*Mod
 		resolver = NewDevelopmentAssetResolver(cfg, logger)
 	} else {
 		// Load manifest for production resolver
-		manifest, err := loadManifestFromFS(distFS, logger)
-		if err != nil {
-			return nil, fmt.Errorf("failed to load manifest for resolver: %w", err)
+		manifest, manifestErr := loadManifestFromFS(distFS, logger)
+		if manifestErr != nil {
+			return nil, fmt.Errorf("failed to load manifest for resolver: %w", manifestErr)
 		}
 
 		resolver = NewProductionAssetResolver(manifest, logger)
@@ -233,9 +233,9 @@ type AssetManagerFactory struct {
 }
 
 // NewAssetManagerFactory creates a new asset manager factory
-func NewAssetManagerFactory(config *config.Config, logger logging.Logger) *AssetManagerFactory {
+func NewAssetManagerFactory(cfg *config.Config, logger logging.Logger) *AssetManagerFactory {
 	return &AssetManagerFactory{
-		config: config,
+		config: cfg,
 		logger: logger,
 	}
 }

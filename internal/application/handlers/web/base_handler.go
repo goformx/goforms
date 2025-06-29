@@ -114,7 +114,10 @@ func (h *BaseHandler) GetAssetBaseURL() string {
 
 // ValidateAssetPath validates an asset path (convenience method)
 func (h *BaseHandler) ValidateAssetPath(path string) error {
-	return h.AssetManager.ValidatePath(path)
+	if err := h.AssetManager.ValidatePath(path); err != nil {
+		return fmt.Errorf("validate asset path: %w", err)
+	}
+	return nil
 }
 
 // Start initializes the base handler.

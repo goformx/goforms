@@ -94,20 +94,20 @@ func (s *Sanitizer) isErrorKey(key string) bool {
 // sanitizePath sanitizes a path value
 func (s *Sanitizer) sanitizePath(value string) string {
 	if value == "" || !strings.HasPrefix(value, "/") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Check for dangerous characters
 	dangerousChars := []string{"\\", "<", ">", "\"", "'", "\x00", "\n", "\r"}
 	for _, char := range dangerousChars {
 		if strings.Contains(value, char) {
-			return "[invalid path]"
+			return InvalidPathMessage
 		}
 	}
 
 	// Check for path traversal attempts
 	if strings.Contains(value, "..") || strings.Contains(value, "//") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Truncate if too long

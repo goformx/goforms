@@ -46,11 +46,31 @@ func NewViperConfig() *ViperConfig {
 
 // Load loads configuration using Viper
 func (vc *ViperConfig) Load() (*Config, error) {
+	if err := vc.loadConfigFiles(); err != nil {
+		return nil, err
+	}
+
+	config := &Config{}
+
+	if err := vc.loadAllConfigSections(config); err != nil {
+		return nil, err
+	}
+
+	// Validate configuration
+	if err := config.validateConfig(); err != nil {
+		return nil, fmt.Errorf("config validation failed: %w", err)
+	}
+
+	return config, nil
+}
+
+// loadConfigFiles loads configuration files
+func (vc *ViperConfig) loadConfigFiles() error {
 	// Try to read config file
 	if err := vc.viper.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
-			return nil, fmt.Errorf("failed to read config file: %w", err)
+			return fmt.Errorf("failed to read config file: %w", err)
 		}
 		// Config file not found, continue with environment variables only
 	}
@@ -59,14 +79,42 @@ func (vc *ViperConfig) Load() (*Config, error) {
 	if err := vc.viper.MergeInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
-			return nil, fmt.Errorf("failed to merge config: %w", err)
+			return fmt.Errorf("failed to merge config: %w", err)
 		}
 	}
 
-	// Create config struct
-	config := &Config{}
+	return nil
+}
 
-	// Load App config
+// loadAllConfigSections loads all configuration sections
+func (vc *ViperConfig) loadAllConfigSections(config *Config) error {
+	loaders := []func(*Config) error{
+		vc.loadAppConfig,
+		vc.loadDatabaseConfig,
+		vc.loadSecurityConfig,
+		vc.loadEmailConfig,
+		vc.loadStorageConfig,
+		vc.loadCacheConfig,
+		vc.loadLoggingConfig,
+		vc.loadSessionConfig,
+		vc.loadAuthConfig,
+		vc.loadFormConfig,
+		vc.loadAPIConfig,
+		vc.loadWebConfig,
+		vc.loadUserConfig,
+	}
+
+	for _, loader := range loaders {
+		if err := loader(config); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
+// loadAppConfig loads application configuration
+func (vc *ViperConfig) loadAppConfig(config *Config) error {
 	config.App = AppConfig{
 		Name:           vc.viper.GetString("app.name"),
 		Version:        vc.viper.GetString("app.version"),
@@ -84,8 +132,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		ViteDevHost:    vc.viper.GetString("app.vite_dev_host"),
 		ViteDevPort:    vc.viper.GetString("app.vite_dev_port"),
 	}
+	return nil
+}
 
-	// Load Database config
+// loadDatabaseConfig loads database configuration
+func (vc *ViperConfig) loadDatabaseConfig(config *Config) error {
 	config.Database = DatabaseConfig{
 		Driver:          vc.viper.GetString("database.driver"),
 		Host:            vc.viper.GetString("database.host"),
@@ -99,8 +150,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		ConnMaxLifetime: vc.viper.GetDuration("database.conn_max_lifetime"),
 		ConnMaxIdleTime: vc.viper.GetDuration("database.conn_max_idle_time"),
 	}
+	return nil
+}
 
-	// Load Security config
+// loadSecurityConfig loads security configuration
+func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 	config.Security = SecurityConfig{
 		CSRF: CSRFConfig{
 			Enabled:    vc.viper.GetBool("security.csrf.enabled"),
@@ -146,8 +200,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		SecureCookie: vc.viper.GetBool("security.secure_cookie"),
 		Debug:        vc.viper.GetBool("security.debug"),
 	}
+	return nil
+}
 
-	// Load Email config
+// loadEmailConfig loads email configuration
+func (vc *ViperConfig) loadEmailConfig(config *Config) error {
 	config.Email = EmailConfig{
 		Host:     vc.viper.GetString("email.host"),
 		Port:     vc.viper.GetInt("email.port"),
@@ -158,8 +215,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		UseSSL:   vc.viper.GetBool("email.use_ssl"),
 		Template: vc.viper.GetString("email.template"),
 	}
+	return nil
+}
 
-	// Load Storage config
+// loadStorageConfig loads storage configuration
+func (vc *ViperConfig) loadStorageConfig(config *Config) error {
 	config.Storage = StorageConfig{
 		Type: vc.viper.GetString("storage.type"),
 		Local: LocalStorageConfig{
@@ -175,8 +235,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		MaxSize:     vc.viper.GetInt64("storage.max_size"),
 		AllowedExts: vc.viper.GetStringSlice("storage.allowed_extensions"),
 	}
+	return nil
+}
 
-	// Load Cache config
+// loadCacheConfig loads cache configuration
+func (vc *ViperConfig) loadCacheConfig(config *Config) error {
 	config.Cache = CacheConfig{
 		Type: vc.viper.GetString("cache.type"),
 		Redis: RedisConfig{
@@ -190,8 +253,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		},
 		TTL: vc.viper.GetDuration("cache.ttl"),
 	}
+	return nil
+}
 
-	// Load Logging config
+// loadLoggingConfig loads logging configuration
+func (vc *ViperConfig) loadLoggingConfig(config *Config) error {
 	config.Logging = LoggingConfig{
 		Level:      vc.viper.GetString("logging.level"),
 		Format:     vc.viper.GetString("logging.format"),
@@ -202,8 +268,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		MaxAge:     vc.viper.GetInt("logging.max_age"),
 		Compress:   vc.viper.GetBool("logging.compress"),
 	}
+	return nil
+}
 
-	// Load Session config
+// loadSessionConfig loads session configuration
+func (vc *ViperConfig) loadSessionConfig(config *Config) error {
 	config.Session = SessionConfig{
 		Type:       vc.viper.GetString("session.type"),
 		Secret:     vc.viper.GetString("session.secret"),
@@ -217,8 +286,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		StoreFile:  vc.viper.GetString("session.store_file"),
 		CookieName: vc.viper.GetString("session.cookie_name"),
 	}
+	return nil
+}
 
-	// Load Auth config
+// loadAuthConfig loads authentication configuration
+func (vc *ViperConfig) loadAuthConfig(config *Config) error {
 	config.Auth = AuthConfig{
 		RequireEmailVerification: vc.viper.GetBool("auth.require_email_verification"),
 		PasswordMinLength:        vc.viper.GetInt("auth.password_min_length"),
@@ -227,8 +299,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		MaxLoginAttempts:         vc.viper.GetInt("auth.max_login_attempts"),
 		LockoutDuration:          vc.viper.GetDuration("auth.lockout_duration"),
 	}
+	return nil
+}
 
-	// Load Form config
+// loadFormConfig loads form configuration
+func (vc *ViperConfig) loadFormConfig(config *Config) error {
 	config.Form = FormConfig{
 		MaxFileSize:      vc.viper.GetInt64("form.max_file_size"),
 		AllowedFileTypes: vc.viper.GetStringSlice("form.allowed_file_types"),
@@ -239,8 +314,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 			MaxErrors:  vc.viper.GetInt("form.validation.max_errors"),
 		},
 	}
+	return nil
+}
 
-	// Load API config
+// loadAPIConfig loads API configuration
+func (vc *ViperConfig) loadAPIConfig(config *Config) error {
 	config.API = APIConfig{
 		Version:    vc.viper.GetString("api.version"),
 		Prefix:     vc.viper.GetString("api.prefix"),
@@ -252,8 +330,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 			Burst:   vc.viper.GetInt("api.rate_limit.burst"),
 		},
 	}
+	return nil
+}
 
-	// Load Web config
+// loadWebConfig loads web configuration
+func (vc *ViperConfig) loadWebConfig(config *Config) error {
 	config.Web = WebConfig{
 		TemplateDir:  vc.viper.GetString("web.template_dir"),
 		StaticDir:    vc.viper.GetString("web.static_dir"),
@@ -263,8 +344,11 @@ func (vc *ViperConfig) Load() (*Config, error) {
 		IdleTimeout:  vc.viper.GetDuration("web.idle_timeout"),
 		Gzip:         vc.viper.GetBool("web.gzip"),
 	}
+	return nil
+}
 
-	// Load User config
+// loadUserConfig loads user configuration
+func (vc *ViperConfig) loadUserConfig(config *Config) error {
 	config.User = UserConfig{
 		Admin: AdminUserConfig{
 			Email:    vc.viper.GetString("user.admin.email"),
@@ -276,13 +360,7 @@ func (vc *ViperConfig) Load() (*Config, error) {
 			Permissions: vc.viper.GetStringSlice("user.default.permissions"),
 		},
 	}
-
-	// Validate configuration
-	if err := config.validateConfig(); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
-	}
-
-	return config, nil
+	return nil
 }
 
 // LoadForEnvironment loads configuration for a specific environment
@@ -296,8 +374,8 @@ func (vc *ViperConfig) LoadForEnvironment(env string) (*Config, error) {
 		vc.viper.SetConfigFile(envFile)
 		vc.viper.SetConfigType("env")
 
-		if err := vc.viper.MergeInConfig(); err != nil {
-			return nil, fmt.Errorf("failed to merge env config: %w", err)
+		if mergeErr := vc.viper.MergeInConfig(); mergeErr != nil {
+			return nil, fmt.Errorf("failed to merge env config: %w", mergeErr)
 		}
 	}
 
@@ -322,7 +400,23 @@ func (vc *ViperConfig) WatchConfig(callback func()) {
 
 // setDefaults sets default configuration values
 func setDefaults(v *viper.Viper) {
-	// App defaults
+	setAppDefaults(v)
+	setDatabaseDefaults(v)
+	setSecurityDefaults(v)
+	setEmailDefaults(v)
+	setStorageDefaults(v)
+	setCacheDefaults(v)
+	setLoggingDefaults(v)
+	setSessionDefaults(v)
+	setAuthDefaults(v)
+	setFormDefaults(v)
+	setAPIDefaults(v)
+	setWebDefaults(v)
+	setUserDefaults(v)
+}
+
+// setAppDefaults sets application default values
+func setAppDefaults(v *viper.Viper) {
 	v.SetDefault("app.name", "GoForms")
 	v.SetDefault("app.version", "1.0.0")
 	v.SetDefault("app.environment", "development")
@@ -338,8 +432,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("app.request_timeout", 30*time.Second)
 	v.SetDefault("app.vite_dev_host", "localhost")
 	v.SetDefault("app.vite_dev_port", "5173")
+}
 
-	// Database defaults
+// setDatabaseDefaults sets database default values
+func setDatabaseDefaults(v *viper.Viper) {
 	v.SetDefault("database.driver", "postgres")
 	v.SetDefault("database.host", "localhost")
 	v.SetDefault("database.port", 5432)
@@ -351,8 +447,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("database.max_idle_conns", 25)
 	v.SetDefault("database.conn_max_lifetime", 5*time.Minute)
 	v.SetDefault("database.conn_max_idle_time", 5*time.Minute)
+}
 
-	// Security defaults
+// setSecurityDefaults sets security default values
+func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.csrf.enabled", true)
 	v.SetDefault("security.csrf.secret", "csrf-secret")
 	v.SetDefault("security.csrf.token_name", "_token")
@@ -381,29 +479,37 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("security.encryption.key", "")
 	v.SetDefault("security.secure_cookie", false)
 	v.SetDefault("security.debug", false)
+}
 
-	// Email defaults
+// setEmailDefaults sets email default values
+func setEmailDefaults(v *viper.Viper) {
 	v.SetDefault("email.port", 587)
 	v.SetDefault("email.use_tls", true)
 	v.SetDefault("email.use_ssl", false)
 	v.SetDefault("email.template", "default")
+}
 
-	// Storage defaults
+// setStorageDefaults sets storage default values
+func setStorageDefaults(v *viper.Viper) {
 	v.SetDefault("storage.type", "local")
 	v.SetDefault("storage.local.path", "./uploads")
 	v.SetDefault("storage.s3.region", "us-east-1")
 	v.SetDefault("storage.max_size", 10*1024*1024) // 10MB
 	v.SetDefault("storage.allowed_extensions", []string{".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx"})
+}
 
-	// Cache defaults
+// setCacheDefaults sets cache default values
+func setCacheDefaults(v *viper.Viper) {
 	v.SetDefault("cache.type", "memory")
 	v.SetDefault("cache.redis.host", "localhost")
 	v.SetDefault("cache.redis.port", 6379)
 	v.SetDefault("cache.redis.db", 0)
 	v.SetDefault("cache.memory.max_size", 1000)
 	v.SetDefault("cache.ttl", 1*time.Hour)
+}
 
-	// Logging defaults
+// setLoggingDefaults sets logging default values
+func setLoggingDefaults(v *viper.Viper) {
 	v.SetDefault("logging.level", "info")
 	v.SetDefault("logging.format", "json")
 	v.SetDefault("logging.output", "stdout")
@@ -412,8 +518,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("logging.max_backups", 3)
 	v.SetDefault("logging.max_age", 28)
 	v.SetDefault("logging.compress", true)
+}
 
-	// Session defaults
+// setSessionDefaults sets session default values
+func setSessionDefaults(v *viper.Viper) {
 	v.SetDefault("session.type", "cookie")
 	v.SetDefault("session.secret", "session-secret")
 	v.SetDefault("session.max_age", 24*time.Hour)
@@ -424,24 +532,30 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("session.store", "memory")
 	v.SetDefault("session.store_file", "storage/sessions/sessions.json")
 	v.SetDefault("session.cookie_name", "session")
+}
 
-	// Auth defaults
+// setAuthDefaults sets authentication default values
+func setAuthDefaults(v *viper.Viper) {
 	v.SetDefault("auth.require_email_verification", false)
 	v.SetDefault("auth.password_min_length", 8)
 	v.SetDefault("auth.password_require_special", true)
 	v.SetDefault("auth.session_timeout", 30*time.Minute)
 	v.SetDefault("auth.max_login_attempts", 5)
 	v.SetDefault("auth.lockout_duration", 15*time.Minute)
+}
 
-	// Form defaults
+// setFormDefaults sets form default values
+func setFormDefaults(v *viper.Viper) {
 	v.SetDefault("form.max_file_size", 10*1024*1024) // 10MB
 	v.SetDefault("form.allowed_file_types", []string{"image/jpeg", "image/png", "image/gif", "application/pdf"})
 	v.SetDefault("form.max_fields", 100)
 	v.SetDefault("form.max_memory", 32*1024*1024) // 32MB
 	v.SetDefault("form.validation.strict_mode", false)
 	v.SetDefault("form.validation.max_errors", 10)
+}
 
-	// API defaults
+// setAPIDefaults sets API default values
+func setAPIDefaults(v *viper.Viper) {
 	v.SetDefault("api.version", "v1")
 	v.SetDefault("api.prefix", "/api")
 	v.SetDefault("api.timeout", 30*time.Second)
@@ -449,8 +563,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("api.rate_limit.enabled", true)
 	v.SetDefault("api.rate_limit.rps", 1000)
 	v.SetDefault("api.rate_limit.burst", 2000)
+}
 
-	// Web defaults
+// setWebDefaults sets web default values
+func setWebDefaults(v *viper.Viper) {
 	v.SetDefault("web.template_dir", "templates")
 	v.SetDefault("web.static_dir", "static")
 	v.SetDefault("web.assets_dir", "assets")
@@ -458,8 +574,10 @@ func setDefaults(v *viper.Viper) {
 	v.SetDefault("web.write_timeout", 15*time.Second)
 	v.SetDefault("web.idle_timeout", 60*time.Second)
 	v.SetDefault("web.gzip", true)
+}
 
-	// User defaults
+// setUserDefaults sets user default values
+func setUserDefaults(v *viper.Viper) {
 	v.SetDefault("user.admin.email", "admin@example.com")
 	v.SetDefault("user.admin.password", "admin123")
 	v.SetDefault("user.admin.name", "Administrator")

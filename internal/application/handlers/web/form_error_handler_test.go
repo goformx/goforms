@@ -35,6 +35,7 @@ func runErrorHandlerTest(t *testing.T, e *echo.Echo, tests []struct {
 	expectedBody   string
 	description    string
 }, handlerFunc func(echo.Context, error) error) {
+	t.Helper()
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			// Create request

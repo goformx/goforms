@@ -24,7 +24,7 @@ type StorageConfig struct {
 	Local       LocalStorageConfig `json:"local"`
 	S3          S3StorageConfig    `json:"s3"`
 	MaxSize     int64              `json:"max_size"`
-	AllowedExts []string           `json:"allowed_extensions"`
+	AllowedExts []string           `json:"allowed_exts"`
 }
 
 // LocalStorageConfig holds local storage configuration

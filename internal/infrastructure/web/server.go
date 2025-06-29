@@ -69,8 +69,8 @@ func NewDevelopmentAssetServer(cfg *config.Config, logger logging.Logger) *Devel
 }
 
 // WithConfig allows customizing the server configuration
-func (s *DevelopmentAssetServer) WithConfig(config AssetServerConfig) *DevelopmentAssetServer {
-	s.serverConfig = config
+func (s *DevelopmentAssetServer) WithConfig(cfg AssetServerConfig) *DevelopmentAssetServer {
+	s.serverConfig = cfg
 	return s
 }
 
@@ -277,12 +277,12 @@ func (s *EmbeddedAssetServer) createSubFileSystems() error {
 	s.subFileSystems["dist"] = distSubFS
 
 	// Create assets sub-filesystem if it exists
-	if assetsSubFS, err := fs.Sub(distSubFS, "assets"); err == nil {
+	if assetsSubFS, assetsErr := fs.Sub(distSubFS, "assets"); assetsErr == nil {
 		s.subFileSystems["assets"] = assetsSubFS
 	}
 
 	// Create fonts sub-filesystem if it exists
-	if fontsSubFS, err := fs.Sub(distSubFS, "fonts"); err == nil {
+	if fontsSubFS, fontsErr := fs.Sub(distSubFS, "fonts"); fontsErr == nil {
 		s.subFileSystems["fonts"] = fontsSubFS
 	}
 
