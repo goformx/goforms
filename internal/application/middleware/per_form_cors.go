@@ -62,6 +62,7 @@ func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 					"form_id", config.Logger.SanitizeField("form_id", formID),
 					"falling_back_to_global_cors", true,
 				)
+
 				return applyGlobalCORS(c, config.GlobalCORS, next)
 			}
 

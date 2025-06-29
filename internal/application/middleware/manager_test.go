@@ -17,14 +17,19 @@ import (
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 )
 
-func TestManager_RateLimiter_BlocksAfterBurst(t *testing.T) {
-	ctrl := gomock.NewController(t)
-	defer ctrl.Finish()
+// Test helpers
+func createTestLogger(ctrl *gomock.Controller) *mocklogging.MockLogger {
+	logger := mocklogging.NewMockLogger(ctrl)
+	logger.EXPECT().WithComponent(gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 
-	e := echo.New()
+	return logger
+}
 
-	// Create a test config
-	cfg := &appconfig.Config{
+func createTestConfig() *appconfig.Config {
+	return &appconfig.Config{
 		App: appconfig.AppConfig{
 			Environment: "test",
 		},
@@ -37,72 +42,24 @@ func TestManager_RateLimiter_BlocksAfterBurst(t *testing.T) {
 			},
 		},
 	}
+}
 
-	// Create a test logger
-	logger := mocklogging.NewMockLogger(ctrl)
-	logger.EXPECT().WithComponent(gomock.Any()).Return(logger).AnyTimes()
-	logger.EXPECT().Info(gomock.Any()).AnyTimes()
-	logger.EXPECT().Info(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	logger.EXPECT().Info(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Info(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Info(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Debug(gomock.Any()).AnyTimes()
-	logger.EXPECT().Debug(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	logger.EXPECT().Debug(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Debug(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Debug(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Warn(gomock.Any()).AnyTimes()
-	logger.EXPECT().Warn(gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
-	logger.EXPECT().Warn(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Warn(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(),
-	).AnyTimes()
-	logger.EXPECT().Warn(
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-		gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any(),
-	).AnyTimes()
-
-	// Create a test sanitizer
-	sanitizer := sanitization.NewService()
-
-	// Create a test access manager
-	accessManager := access.NewManager(&access.Config{
+func createTestAccessManager() *access.Manager {
+	return access.NewManager(&access.Config{
 		DefaultAccess: access.Public,
 		PublicPaths:   []string{"/"},
 	}, []access.Rule{})
+}
 
-	// Create the middleware manager with minimal dependencies
+func createTestManager(t *testing.T, ctrl *gomock.Controller) (*middleware.Manager, *echo.Echo) {
+	t.Helper()
+
+	e := echo.New()
+	cfg := createTestConfig()
+	logger := createTestLogger(ctrl)
+	sanitizer := sanitization.NewService()
+	accessManager := createTestAccessManager()
+
 	manager := middleware.NewManager(&middleware.ManagerConfig{
 		Logger:         logger,
 		Config:         cfg,
@@ -113,8 +70,16 @@ func TestManager_RateLimiter_BlocksAfterBurst(t *testing.T) {
 		Sanitizer:      sanitizer,
 	})
 
-	// Setup the middleware
 	manager.Setup(e)
+
+	return manager, e
+}
+
+func TestManager_RateLimiter_BlocksAfterBurst(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	_, e := createTestManager(t, ctrl)
 
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "ok")
@@ -135,4 +100,87 @@ func TestManager_RateLimiter_BlocksAfterBurst(t *testing.T) {
 	rec2 := httptest.NewRecorder()
 	e.ServeHTTP(rec2, req2)
 	assert.Equal(t, http.StatusTooManyRequests, rec2.Code)
+}
+
+func TestManager_RateLimiter_Scenarios(t *testing.T) {
+	tests := []struct {
+		name           string
+		requests       int
+		burst          int
+		window         time.Duration
+		requestCount   int
+		expectedStatus []int
+	}{
+		{
+			name:           "single request allowed",
+			requests:       1,
+			burst:          1,
+			window:         time.Second,
+			requestCount:   1,
+			expectedStatus: []int{http.StatusOK},
+		},
+		{
+			name:           "burst exceeded",
+			requests:       1,
+			burst:          1,
+			window:         time.Second,
+			requestCount:   2,
+			expectedStatus: []int{http.StatusOK, http.StatusTooManyRequests},
+		},
+		{
+			name:           "higher burst allows more requests",
+			requests:       1,
+			burst:          3,
+			window:         time.Second,
+			requestCount:   3,
+			expectedStatus: []int{http.StatusOK, http.StatusOK, http.StatusOK},
+		},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			ctrl := gomock.NewController(t)
+			defer ctrl.Finish()
+
+			// Create config with test parameters
+			cfg := createTestConfig()
+			cfg.Security.RateLimit.Requests = tt.requests
+			cfg.Security.RateLimit.Burst = tt.burst
+			cfg.Security.RateLimit.Window = tt.window
+
+			e := echo.New()
+			logger := createTestLogger(ctrl)
+			sanitizer := sanitization.NewService()
+			accessManager := createTestAccessManager()
+
+			manager := middleware.NewManager(&middleware.ManagerConfig{
+				Logger:         logger,
+				Config:         cfg,
+				UserService:    nil,
+				FormService:    nil,
+				SessionManager: nil,
+				AccessManager:  accessManager,
+				Sanitizer:      sanitizer,
+			})
+
+			manager.Setup(e)
+
+			e.GET("/", func(c echo.Context) error {
+				return c.String(http.StatusOK, "ok")
+			})
+
+			// Make requests and check status codes
+			for i := 0; i < tt.requestCount; i++ {
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+				req.Header.Set("X-Real-IP", "192.168.1.1")
+
+				rec := httptest.NewRecorder()
+				e.ServeHTTP(rec, req)
+
+				expectedStatus := tt.expectedStatus[i]
+				assert.Equal(t, expectedStatus, rec.Code,
+					"Request %d: expected status %d, got %d", i+1, expectedStatus, rec.Code)
+			}
+		})
+	}
 }

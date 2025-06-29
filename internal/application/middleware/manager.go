@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
@@ -15,7 +16,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/middleware/context"
+	contextmw "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -25,14 +26,82 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/version"
 )
 
-// Manager handles middleware configuration and setup
+const (
+	// Default rate limiting values
+	DefaultRateLimit = 60
+	DefaultBurst     = 10
+	DefaultWindow    = time.Minute
+
+	// HTTP Status messages
+	RateLimitExceededMsg = "Rate limit exceeded: too many requests from the same form or origin"
+	RateLimitDeniedMsg   = "Rate limit exceeded: please try again later"
+)
+
+// PathChecker handles path-based logic for middleware
+type PathChecker struct {
+	authPaths   []string
+	formPaths   []string
+	staticPaths []string
+	apiPaths    []string
+	healthPaths []string
+}
+
+// NewPathChecker creates a new path checker with default paths
+func NewPathChecker() *PathChecker {
+	return &PathChecker{
+		authPaths:   []string{"/login", "/signup", "/forgot-password", "/reset-password"},
+		formPaths:   []string{"/forms/new", "/forms/", "/submit"},
+		staticPaths: []string{"/assets/", "/static/", "/public/", "/favicon.ico"},
+		apiPaths:    []string{"/api/"},
+		healthPaths: []string{"/health", "/health/", "/healthz", "/healthz/"},
+	}
+}
+
+// IsAuthPath checks if the path is an authentication page
+func (pc *PathChecker) IsAuthPath(path string) bool {
+	return pc.containsPath(path, pc.authPaths)
+}
+
+// IsFormPath checks if the path is a form page
+func (pc *PathChecker) IsFormPath(path string) bool {
+	return pc.containsPath(path, pc.formPaths)
+}
+
+// IsStaticPath checks if the path is a static asset
+func (pc *PathChecker) IsStaticPath(path string) bool {
+	return pc.containsPath(path, pc.staticPaths)
+}
+
+// IsAPIPath checks if the path is an API route
+func (pc *PathChecker) IsAPIPath(path string) bool {
+	return pc.containsPath(path, pc.apiPaths)
+}
+
+// IsHealthPath checks if the path is a health check route
+func (pc *PathChecker) IsHealthPath(path string) bool {
+	return pc.containsPath(path, pc.healthPaths)
+}
+
+// containsPath checks if the path contains any of the given paths
+func (pc *PathChecker) containsPath(path string, paths []string) bool {
+	for _, p := range paths {
+		if strings.Contains(path, p) || path == p {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Manager manages all middleware for the application
 type Manager struct {
 	logger            logging.Logger
 	config            *ManagerConfig
-	contextMiddleware *context.Middleware
+	contextMiddleware *contextmw.Middleware
+	pathChecker       *PathChecker
 }
 
-// ManagerConfig represents the configuration for the middleware manager
+// ManagerConfig contains all dependencies for the middleware manager
 type ManagerConfig struct {
 	Logger         logging.Logger
 	Config         *appconfig.Config // Single source of truth
@@ -43,20 +112,37 @@ type ManagerConfig struct {
 	Sanitizer      sanitization.ServiceInterface
 }
 
-// NewManager creates a new middleware manager
+// Validate ensures all required configuration is present
+func (cfg *ManagerConfig) Validate() error {
+	if cfg.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	if cfg.Config == nil {
+		return errors.New("config is required")
+	}
+
+	if cfg.Sanitizer == nil {
+		return errors.New("sanitizer is required")
+	}
+
+	return nil
+}
+
 func NewManager(cfg *ManagerConfig) *Manager {
 	if cfg == nil {
 		panic("config is required")
 	}
 
-	if cfg.Sanitizer == nil {
-		panic("sanitizer is required")
+	if err := cfg.Validate(); err != nil {
+		panic(fmt.Sprintf("invalid config: %v", err))
 	}
 
 	return &Manager{
 		logger:            cfg.Logger,
 		config:            cfg,
-		contextMiddleware: context.NewMiddleware(cfg.Logger, cfg.Config.App.RequestTimeout),
+		contextMiddleware: contextmw.NewMiddleware(cfg.Logger, cfg.Config.App.RequestTimeout),
+		pathChecker:       NewPathChecker(),
 	}
 }
 
@@ -100,6 +186,12 @@ func (m *Manager) Setup(e *echo.Echo) {
 func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Add recovery middleware first to catch panics
 	e.Use(Recovery(m.logger, m.config.Sanitizer))
+
+	// Add timeout middleware
+	e.Use(echomw.TimeoutWithConfig(echomw.TimeoutConfig{
+		Timeout:      m.config.Config.App.RequestTimeout,
+		ErrorMessage: "Request timeout",
+	}))
 
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
@@ -163,10 +255,16 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		e.Use(csrfMiddleware)
 	}
 
-	// Setup rate limiting using infrastructure config
+	// Setup rate limiting using infrastructure config with graceful degradation
 	if m.config.Config.Security.RateLimit.Enabled {
-		e.Use(m.setupRateLimiting())
+		m.trySetupRateLimit(e)
 	}
+}
+
+// trySetupRateLimit attempts to setup rate limiting
+func (m *Manager) trySetupRateLimit(e *echo.Echo) {
+	rateLimitMiddleware := m.setupRateLimiting()
+	e.Use(rateLimitMiddleware)
 }
 
 // setupAuthMiddleware sets up authentication-related middleware
@@ -599,18 +697,26 @@ func (l *EchoLogger) Output() io.Writer {
 func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 	rateLimitConfig := m.config.Config.Security.RateLimit
 
-	// Disable rate limiting in development mode for better developer experience
-	if m.config.Config.App.IsDevelopment() && !rateLimitConfig.Enabled {
-		m.logger.Info("Rate limiting disabled in development mode")
+	// Validate configuration
+	if err := m.validateRateLimitConfig(rateLimitConfig); err != nil {
+		m.logger.Error("Invalid rate limit configuration", "error", err)
+		// Return no-op middleware on configuration error
 		return func(next echo.HandlerFunc) echo.HandlerFunc {
 			return next
 		}
 	}
 
-	// Set default window if not configured
-	if rateLimitConfig.Window == 0 {
-		rateLimitConfig.Window = time.Minute
+	// Disable rate limiting in development mode for better developer experience
+	if m.config.Config.App.IsDevelopment() && !rateLimitConfig.Enabled {
+		m.logger.Info("Rate limiting disabled in development mode")
+
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			return next
+		}
 	}
+
+	// Create rate limiter configuration
+	config := m.createRateLimiterConfig(rateLimitConfig)
 
 	m.logger.Info("Setting up rate limiter",
 		"enabled", rateLimitConfig.Enabled,
@@ -621,77 +727,150 @@ func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 		"skip_methods", rateLimitConfig.SkipMethods,
 	)
 
-	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
-		Skipper: func(c echo.Context) bool {
-			path := c.Request().URL.Path
-			method := c.Request().Method
+	return echomw.RateLimiterWithConfig(config)
+}
 
-			// Skip paths from config
-			for _, skipPath := range rateLimitConfig.SkipPaths {
-				if strings.HasPrefix(path, skipPath) {
-					m.logger.Debug("Rate limiter skipping path", "path", path, "skip_path", skipPath)
-					return true
-				}
-			}
+// validateRateLimitConfig validates the rate limit configuration
+func (m *Manager) validateRateLimitConfig(config appconfig.RateLimitConfig) error {
+	if config.Requests <= 0 {
+		return errors.New("requests per second must be positive")
+	}
 
-			// Skip methods from config
-			for _, skipMethod := range rateLimitConfig.SkipMethods {
-				if method == skipMethod {
-					m.logger.Debug("Rate limiter skipping method", "method", method, "skip_method", skipMethod)
-					return true
-				}
-			}
+	if config.Burst <= 0 {
+		return errors.New("burst must be positive")
+	}
 
-			return false
+	if config.Window <= 0 {
+		return errors.New("window duration must be positive")
+	}
+
+	return nil
+}
+
+// createRateLimiterConfig creates the Echo rate limiter configuration
+func (m *Manager) createRateLimiterConfig(rateLimitConfig appconfig.RateLimitConfig) echomw.RateLimiterConfig {
+	return echomw.RateLimiterConfig{
+		Skipper:             m.createRateLimitSkipper(rateLimitConfig),
+		Store:               m.createRateLimitStore(rateLimitConfig),
+		IdentifierExtractor: m.createIdentifierExtractor(),
+		ErrorHandler:        m.createRateLimitErrorHandler(),
+		DenyHandler:         m.createRateLimitDenyHandler(),
+	}
+}
+
+// createRateLimitSkipper creates a skipper function for rate limiting
+func (m *Manager) createRateLimitSkipper(config appconfig.RateLimitConfig) echomw.Skipper {
+	return func(c echo.Context) bool {
+		return m.shouldSkipRateLimit(c, config)
+	}
+}
+
+// shouldSkipRateLimit determines if rate limiting should be skipped for this request
+func (m *Manager) shouldSkipRateLimit(c echo.Context, config appconfig.RateLimitConfig) bool {
+	path := c.Request().URL.Path
+	method := c.Request().Method
+
+	// Skip paths from config
+	for _, skipPath := range config.SkipPaths {
+		if strings.HasPrefix(path, skipPath) {
+			m.logger.Debug("Rate limiter skipping path", "path", path, "skip_path", skipPath)
+
+			return true
+		}
+	}
+
+	// Skip methods from config
+	for _, skipMethod := range config.SkipMethods {
+		if method == skipMethod {
+			m.logger.Debug("Rate limiter skipping method", "method", method, "skip_method", skipMethod)
+
+			return true
+		}
+	}
+
+	return false
+}
+
+// createRateLimitStore creates the rate limiter store
+func (m *Manager) createRateLimitStore(config appconfig.RateLimitConfig) echomw.RateLimiterStore {
+	return echomw.NewRateLimiterMemoryStoreWithConfig(
+		echomw.RateLimiterMemoryStoreConfig{
+			Rate:      rate.Limit(config.Requests),
+			Burst:     config.Burst,
+			ExpiresIn: config.Window,
 		},
-		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
-			echomw.RateLimiterMemoryStoreConfig{
-				Rate:      rate.Limit(rateLimitConfig.Requests),
-				Burst:     rateLimitConfig.Burst,
-				ExpiresIn: rateLimitConfig.Window,
-			},
-		),
-		IdentifierExtractor: func(c echo.Context) (string, error) {
-			// For login and signup pages, use IP address as identifier
-			path := c.Request().URL.Path
-			if path == constants.PathLogin || path == constants.PathSignup || path == constants.PathResetPassword {
-				return c.RealIP(), nil
-			}
+	)
+}
 
-			// For form submissions, use form ID and origin
-			formID := c.Param("formID")
-			origin := c.Request().Header.Get("Origin")
-			if formID == "" {
-				formID = constants.DefaultUnknown
-			}
-			if origin == "" {
-				origin = constants.DefaultUnknown
-			}
+// createIdentifierExtractor creates the identifier extraction function
+func (m *Manager) createIdentifierExtractor() echomw.Extractor {
+	return func(c echo.Context) (string, error) {
+		path := c.Request().URL.Path
 
-			return fmt.Sprintf("%s:%s", formID, origin), nil
-		},
-		ErrorHandler: func(c echo.Context, err error) error {
-			m.logger.Warn("Rate limit exceeded",
-				"path", c.Request().URL.Path,
-				"method", c.Request().Method,
-				"ip", c.RealIP(),
-				"error", err,
-			)
-			return echo.NewHTTPError(http.StatusTooManyRequests,
-				"Rate limit exceeded: too many requests from the same form or origin")
-		},
-		DenyHandler: func(c echo.Context, identifier string, err error) error {
-			m.logger.Warn("Rate limit denied",
-				"path", c.Request().URL.Path,
-				"method", c.Request().Method,
-				"ip", c.RealIP(),
-				"identifier", identifier,
-				"error", err,
-			)
-			return echo.NewHTTPError(http.StatusTooManyRequests,
-				"Rate limit exceeded: please try again later")
-		},
-	})
+		// Use different strategies based on path type
+		switch {
+		case m.pathChecker.IsAuthPath(path):
+			return m.getIPBasedIdentifier(c), nil
+		case m.pathChecker.IsFormPath(path):
+			return m.getFormBasedIdentifier(c), nil
+		default:
+			return m.getDefaultIdentifier(c), nil
+		}
+	}
+}
+
+// getIPBasedIdentifier creates an identifier based on IP address
+func (m *Manager) getIPBasedIdentifier(c echo.Context) string {
+	return fmt.Sprintf("ip:%s", c.RealIP())
+}
+
+// getFormBasedIdentifier creates an identifier based on form ID and origin
+func (m *Manager) getFormBasedIdentifier(c echo.Context) string {
+	formID := c.Param("formID")
+	if formID == "" {
+		formID = "unknown"
+	}
+
+	origin := c.Request().Header.Get("Origin")
+	if origin == "" {
+		origin = "unknown"
+	}
+
+	return fmt.Sprintf("form:%s:%s", formID, origin)
+}
+
+// getDefaultIdentifier creates a default identifier
+func (m *Manager) getDefaultIdentifier(c echo.Context) string {
+	return fmt.Sprintf("default:%s", c.RealIP())
+}
+
+// createRateLimitErrorHandler creates the error handler for rate limiting
+func (m *Manager) createRateLimitErrorHandler() func(c echo.Context, err error) error {
+	return func(c echo.Context, err error) error {
+		m.logger.Warn("Rate limit exceeded",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"ip", c.RealIP(),
+			"error", err,
+		)
+
+		return echo.NewHTTPError(http.StatusTooManyRequests, RateLimitExceededMsg)
+	}
+}
+
+// createRateLimitDenyHandler creates the deny handler for rate limiting
+func (m *Manager) createRateLimitDenyHandler() func(c echo.Context, identifier string, err error) error {
+	return func(c echo.Context, identifier string, err error) error {
+		m.logger.Warn("Rate limit denied",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"ip", c.RealIP(),
+			"identifier", identifier,
+			"error", err,
+		)
+
+		return echo.NewHTTPError(http.StatusTooManyRequests, RateLimitDeniedMsg)
+	}
 }
 
 // isNoisePath checks if the path should be suppressed from logging
