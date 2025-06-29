@@ -144,18 +144,21 @@ var fieldTypeConverters = map[FieldType]func(Field) zap.Field{
 		if val, ok := f.Value.(string); ok {
 			return zap.String(f.Key, maskUUID(val))
 		}
+
 		return zap.Any(f.Key, f.Value)
 	},
 	PathFieldType: func(f Field) zap.Field {
 		if val, ok := f.Value.(string); ok {
 			return zap.String(f.Key, sanitizePath(val))
 		}
+
 		return zap.Any(f.Key, f.Value)
 	},
 	UserAgentFieldType: func(f Field) zap.Field {
 		if val, ok := f.Value.(string); ok {
 			return zap.String(f.Key, sanitizeUserAgent(val))
 		}
+
 		return zap.Any(f.Key, f.Value)
 	},
 	ObjectFieldType: func(f Field) zap.Field {
