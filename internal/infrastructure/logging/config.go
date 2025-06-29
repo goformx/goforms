@@ -111,7 +111,7 @@ func parseLogLevel(level, environment string) zapcore.Level {
 			return zapcore.InfoLevel
 		case "warn":
 			return zapcore.WarnLevel
-		case "error":
+		case string(LogLevelError):
 			return zapcore.ErrorLevel
 		case "fatal":
 			return zapcore.FatalLevel

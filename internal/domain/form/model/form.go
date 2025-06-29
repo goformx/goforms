@@ -344,6 +344,7 @@ func (f *Form) validateProperties() bool {
 // validateComponents validates the components section of the schema
 func (f *Form) validateComponents() bool {
 	_, compsOk := f.Schema["components"].([]any)
+
 	return compsOk
 }
 

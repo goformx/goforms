@@ -223,8 +223,8 @@ func NewEmbeddedAssetServer(logger logging.Logger, distFS embed.FS) *EmbeddedAss
 }
 
 // WithConfig allows customizing the server configuration
-func (s *EmbeddedAssetServer) WithConfig(config AssetServerConfig) *EmbeddedAssetServer {
-	s.serverConfig = config
+func (s *EmbeddedAssetServer) WithConfig(cfg AssetServerConfig) *EmbeddedAssetServer {
+	s.serverConfig = cfg
 	return s
 }
 
@@ -438,9 +438,9 @@ type AssetServerFactory struct {
 }
 
 // NewAssetServerFactory creates a new asset server factory
-func NewAssetServerFactory(config *config.Config, logger logging.Logger) *AssetServerFactory {
+func NewAssetServerFactory(cfg *config.Config, logger logging.Logger) *AssetServerFactory {
 	return &AssetServerFactory{
-		config: config,
+		config: cfg,
 		logger: logger,
 	}
 }

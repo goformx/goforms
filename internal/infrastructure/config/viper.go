@@ -132,6 +132,7 @@ func (vc *ViperConfig) loadAppConfig(config *Config) error {
 		ViteDevHost:    vc.viper.GetString("app.vite_dev_host"),
 		ViteDevPort:    vc.viper.GetString("app.vite_dev_port"),
 	}
+
 	return nil
 }
 
@@ -150,6 +151,7 @@ func (vc *ViperConfig) loadDatabaseConfig(config *Config) error {
 		ConnMaxLifetime: vc.viper.GetDuration("database.conn_max_lifetime"),
 		ConnMaxIdleTime: vc.viper.GetDuration("database.conn_max_idle_time"),
 	}
+
 	return nil
 }
 
@@ -200,6 +202,7 @@ func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 		SecureCookie: vc.viper.GetBool("security.secure_cookie"),
 		Debug:        vc.viper.GetBool("security.debug"),
 	}
+
 	return nil
 }
 
@@ -215,6 +218,7 @@ func (vc *ViperConfig) loadEmailConfig(config *Config) error {
 		UseSSL:   vc.viper.GetBool("email.use_ssl"),
 		Template: vc.viper.GetString("email.template"),
 	}
+
 	return nil
 }
 
@@ -235,6 +239,7 @@ func (vc *ViperConfig) loadStorageConfig(config *Config) error {
 		MaxSize:     vc.viper.GetInt64("storage.max_size"),
 		AllowedExts: vc.viper.GetStringSlice("storage.allowed_extensions"),
 	}
+
 	return nil
 }
 
@@ -253,6 +258,7 @@ func (vc *ViperConfig) loadCacheConfig(config *Config) error {
 		},
 		TTL: vc.viper.GetDuration("cache.ttl"),
 	}
+
 	return nil
 }
 
@@ -268,6 +274,7 @@ func (vc *ViperConfig) loadLoggingConfig(config *Config) error {
 		MaxAge:     vc.viper.GetInt("logging.max_age"),
 		Compress:   vc.viper.GetBool("logging.compress"),
 	}
+
 	return nil
 }
 
@@ -286,6 +293,7 @@ func (vc *ViperConfig) loadSessionConfig(config *Config) error {
 		StoreFile:  vc.viper.GetString("session.store_file"),
 		CookieName: vc.viper.GetString("session.cookie_name"),
 	}
+
 	return nil
 }
 
@@ -299,6 +307,7 @@ func (vc *ViperConfig) loadAuthConfig(config *Config) error {
 		MaxLoginAttempts:         vc.viper.GetInt("auth.max_login_attempts"),
 		LockoutDuration:          vc.viper.GetDuration("auth.lockout_duration"),
 	}
+
 	return nil
 }
 
@@ -314,6 +323,7 @@ func (vc *ViperConfig) loadFormConfig(config *Config) error {
 			MaxErrors:  vc.viper.GetInt("form.validation.max_errors"),
 		},
 	}
+
 	return nil
 }
 
@@ -330,6 +340,7 @@ func (vc *ViperConfig) loadAPIConfig(config *Config) error {
 			Burst:   vc.viper.GetInt("api.rate_limit.burst"),
 		},
 	}
+
 	return nil
 }
 
@@ -344,6 +355,7 @@ func (vc *ViperConfig) loadWebConfig(config *Config) error {
 		IdleTimeout:  vc.viper.GetDuration("web.idle_timeout"),
 		Gzip:         vc.viper.GetBool("web.gzip"),
 	}
+
 	return nil
 }
 
@@ -360,6 +372,7 @@ func (vc *ViperConfig) loadUserConfig(config *Config) error {
 			Permissions: vc.viper.GetStringSlice("user.default.permissions"),
 		},
 	}
+
 	return nil
 }
 
