@@ -1,8 +1,9 @@
 ---
-description:
-globs:
+description: Frontend development guidelines for TypeScript, Vite, and Form.io
+globs: ["src/**/*", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.css", "package.json", "tsconfig.json", "vite.config.ts"]
 alwaysApply: false
 ---
+
 # Frontend Development Guidelines
 
 ## Technology Stack
@@ -21,14 +22,14 @@ alwaysApply: false
 ## Project Structure
 
 ### Source Organization
-- **Entry Point**: [src/](mdc:src/) - Main source directory
-- **JavaScript**: [src/js/](mdc:src/js/) - TypeScript/JavaScript files
-- **CSS**: [src/css/](mdc:src/css/) - Stylesheets
-- **Types**: [src/types/](mdc:src/types/) - TypeScript type definitions
-- **Public**: [public/](mdc:public/) - Static assets
+- **Entry Point**: [src/](mdc:src) - Main source directory
+- **JavaScript**: [src/js/](mdc:src/js) - TypeScript/JavaScript files
+- **CSS**: [src/css/](mdc:src/css) - Stylesheets
+- **Types**: [src/types/](mdc:src/types) - TypeScript type definitions
+- **Public**: [public/](mdc:public) - Static assets
 
 ### Build Output
-- **Distribution**: [dist/](mdc:dist/) - Built files for production
+- **Distribution**: [dist/](mdc:dist) - Built files for production
 - **Assets**: Automatically copied and optimized during build
 
 ## Development Workflow
@@ -84,8 +85,8 @@ alwaysApply: false
 - Implement responsive design patterns
 
 ### Asset Management
-- Fonts are copied from Form.io to [public/fonts/](mdc:public/fonts/)
-- Images and other assets in [public/](mdc:public/)
+- Fonts are copied from Form.io to [public/fonts/](mdc:public/fonts)
+- Images and other assets in [public/](mdc:public)
 - Use relative paths for asset references
 
 ## Testing
@@ -142,4 +143,6 @@ alwaysApply: false
 - Use environment variables for configuration
 - Different settings for development and production
 - Secure handling of API keys and secrets
-- Proper error handling for missing configuration
+- Proper error handling for miss
+
+

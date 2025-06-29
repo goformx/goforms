@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: API design patterns, RESTful principles, and frontend-backend integration guidelines
+globs: 
 alwaysApply: false
 ---
 # API Design Guidelines

@@ -1,6 +1,6 @@
 ---
-description:
-globs:
+description: Development workflow, build automation, and task management guidelines
+globs: 
 alwaysApply: false
 ---
 # Development Workflow
@@ -8,7 +8,7 @@ alwaysApply: false
 ## Task Automation
 
 ### Main Taskfile
-The project uses [Task](https://taskfile.dev/) for automation with configuration in [Taskfile.yml](mdc:Taskfile.yml).
+The project uses [Task](mdc:https:/taskfile.dev) for automation with configuration in [Taskfile.yml](mdc:Taskfile.yml).
 
 ### Key Commands
 - `task dev` - Start full development environment (frontend + backend)
@@ -28,11 +28,11 @@ The project uses [Task](https://taskfile.dev/) for automation with configuration
 
 ### Dev Container
 - Uses VS Code Dev Containers for consistent development
-- Configuration in [.devcontainer/](mdc:.devcontainer/)
+- Configuration in [.devcontainer/](mdc:.devcontainer)
 - Automatic setup of Go, Node.js, and database tools
 
 ### Hot Reload
-- **Backend**: Uses [Air](https://github.com/air-verse/air) configured in [.air.toml](mdc:.air.toml)
+- **Backend**: Uses [Air](mdc:https:/github.com/air-verse/air) configured in [.air.toml](mdc:.air.toml)
 - **Frontend**: Vite dev server with HMR
 - **Database**: Automatic migration application
 
@@ -62,7 +62,7 @@ task lint       # Check code quality
 ## Database Management
 
 ### Migrations
-- **Location**: [migrations/](mdc:migrations/) directory
+- **Location**: [migrations/](mdc:migrations) directory
 - **Up**: `task migrate:up` - Apply pending migrations
 - **Down**: `task migrate:down` - Rollback migrations
 - **Status**: `task migrate:status` - Check migration status
@@ -106,7 +106,7 @@ task lint       # Check code quality
 - Test workflows before pushing
 
 ### GitHub Actions
-- Configuration in [.github/workflows/](mdc:.github/workflows/)
+- Configuration in [.github/workflows/](mdc:.github/workflows)
 - Automated testing and deployment
 - Code quality checks
 
@@ -138,5 +138,5 @@ task lint       # Check code quality
 
 ### Docker Support
 - Multi-stage builds for efficiency
-- Configuration in [docker/](mdc:docker/)
+- Configuration in [docker/](mdc:docker)
 - Production-ready containers

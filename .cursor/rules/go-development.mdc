@@ -1,8 +1,9 @@
 ---
-description:
-globs:
+description: Go development guidelines and best practices
+globs: **/*.go,go.mod,go.sum
 alwaysApply: false
 ---
+
 # Go Development Guidelines
 
 ## Architecture Patterns
@@ -42,8 +43,8 @@ Uses Uber FX for dependency injection. See [main.go](mdc:main.go) for the main a
 
 ### Test Structure
 - Tests are in `*_test.go` files alongside the code they test
-- Use [testify](https://github.com/stretchr/testify) for assertions
-- Mock implementations are generated in [test/mocks/](mdc:test/mocks/)
+- Use [testify](mdc:https:/github.com/stretchr/testify) for assertions
+- Mock implementations are generated in [test/mocks/](mdc:test/mocks)
 - Use table-driven tests for multiple test cases
 
 ### Mock Generation
@@ -55,7 +56,7 @@ Run `task generate:mocks` to generate mocks for interfaces:
 ## Database
 
 ### Migrations
-- Database migrations are in [migrations/](mdc:migrations/)
+- Database migrations are in [migrations/](mdc:migrations)
 - Use `task migrate:up` to apply migrations
 - Use `task migrate:down` to rollback migrations
 - Always test migrations in development before production
@@ -106,4 +107,6 @@ Run `task generate:mocks` to generate mocks for interfaces:
 - Document exported functions and types
 - Use clear, concise comments
 - Include examples for complex functions
-- Keep documentation up to date
+- Keep documen
+
+
