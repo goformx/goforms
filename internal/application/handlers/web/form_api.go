@@ -169,38 +169,56 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 
 // POST /api/v1/forms/:id/submit
 func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
+	formID := c.Param("id")
+	h.Logger.Debug("Form submission request received",
+		"form_id", formID,
+		"method", c.Request().Method,
+		"path", c.Request().URL.Path,
+		"content_type", c.Request().Header.Get("Content-Type"),
+		"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "",
+		"user_agent", c.Request().UserAgent())
+
 	form, err := h.GetFormByID(c)
 	if err != nil {
+		h.Logger.Error("Failed to get form for submission", "form_id", formID, "error", err)
 		return h.HandleError(c, err, "Failed to get form for submission")
 	}
 
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
-		h.Logger.Error("form is nil after GetFormByID", "form_id", c.Param("id"))
-
+		h.Logger.Error("form is nil after GetFormByID", "form_id", formID)
 		return fmt.Errorf("handle form submit: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
+
+	h.Logger.Debug("Form retrieved successfully", "form_id", form.ID, "title", form.Title)
 
 	// Check if form schema is nil or empty
 	if form.Schema == nil {
 		h.Logger.Warn("form schema is nil", "form_id", form.ID)
-
 		return fmt.Errorf("handle submission error: %w",
 			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
 	}
 
+	h.Logger.Debug("Form schema validation passed", "form_id", form.ID)
+
 	// Process and validate submission request
 	submissionData, err := h.RequestProcessor.ProcessSubmissionRequest(c)
 	if err != nil {
+		h.Logger.Error("Failed to process submission request", "form_id", form.ID, "error", err)
 		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSubmissionError(c, err))
 	}
+
+	h.Logger.Debug("Submission data processed successfully", "form_id", form.ID, "data_keys", len(submissionData))
 
 	// Validate submission against form schema
 	validationResult := h.ComprehensiveValidator.ValidateForm(form.Schema, submissionData)
 	if !validationResult.IsValid {
+		h.Logger.Warn("Form validation failed", "form_id", form.ID, "error_count", len(validationResult.Errors))
 		return fmt.Errorf("build multiple error response: %w",
 			h.ResponseBuilder.BuildMultipleErrorResponse(c, validationResult.Errors))
 	}
+
+	h.Logger.Debug("Form validation passed", "form_id", form.ID)
 
 	// Create submission
 	submission := &model.FormSubmission{
@@ -213,8 +231,11 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Submit form
 	err = h.FormService.SubmitForm(c.Request().Context(), submission)
 	if err != nil {
+		h.Logger.Error("Failed to submit form", "form_id", form.ID, "submission_id", submission.ID, "error", err)
 		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSubmissionError(c, err))
 	}
+
+	h.Logger.Info("Form submitted successfully", "form_id", form.ID, "submission_id", submission.ID)
 
 	return fmt.Errorf("build submission response: %w", h.ResponseBuilder.BuildSubmissionResponse(c, submission))
 }

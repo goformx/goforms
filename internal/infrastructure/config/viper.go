@@ -159,10 +159,19 @@ func (vc *ViperConfig) loadDatabaseConfig(config *Config) error {
 func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 	config.Security = SecurityConfig{
 		CSRF: CSRFConfig{
-			Enabled:    vc.viper.GetBool("security.csrf.enabled"),
-			Secret:     vc.viper.GetString("security.csrf.secret"),
-			TokenName:  vc.viper.GetString("security.csrf.token_name"),
-			HeaderName: vc.viper.GetString("security.csrf.header_name"),
+			Enabled:        vc.viper.GetBool("security.csrf.enabled"),
+			Secret:         vc.viper.GetString("security.csrf.secret"),
+			TokenName:      vc.viper.GetString("security.csrf.token_name"),
+			HeaderName:     vc.viper.GetString("security.csrf.header_name"),
+			TokenLength:    vc.viper.GetInt("security.csrf.token_length"),
+			TokenLookup:    vc.viper.GetString("security.csrf.token_lookup"),
+			ContextKey:     vc.viper.GetString("security.csrf.context_key"),
+			CookieName:     vc.viper.GetString("security.csrf.cookie_name"),
+			CookiePath:     vc.viper.GetString("security.csrf.cookie_path"),
+			CookieDomain:   vc.viper.GetString("security.csrf.cookie_domain"),
+			CookieHTTPOnly: vc.viper.GetBool("security.csrf.cookie_http_only"),
+			CookieSameSite: vc.viper.GetString("security.csrf.cookie_same_site"),
+			CookieMaxAge:   vc.viper.GetInt("security.csrf.cookie_max_age"),
 		},
 		CORS: CORSConfig{
 			Enabled:          vc.viper.GetBool("security.cors.enabled"),
@@ -479,11 +488,20 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.csrf.enabled", true)
 	v.SetDefault("security.csrf.secret", "csrf-secret")
 	v.SetDefault("security.csrf.token_name", "_token")
-	v.SetDefault("security.csrf.header_name", "X-CSRF-Token")
+	v.SetDefault("security.csrf.header_name", "X-Csrf-Token")
+	v.SetDefault("security.csrf.token_length", 32)
+	v.SetDefault("security.csrf.token_lookup", "header:X-Csrf-Token")
+	v.SetDefault("security.csrf.context_key", "csrf")
+	v.SetDefault("security.csrf.cookie_name", "_csrf")
+	v.SetDefault("security.csrf.cookie_path", "/")
+	v.SetDefault("security.csrf.cookie_domain", "")
+	v.SetDefault("security.csrf.cookie_http_only", true)
+	v.SetDefault("security.csrf.cookie_same_site", "Lax")
+	v.SetDefault("security.csrf.cookie_max_age", 86400)
 	v.SetDefault("security.cors.enabled", true)
 	v.SetDefault("security.cors.allowed_origins", []string{"*"})
 	v.SetDefault("security.cors.allowed_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	v.SetDefault("security.cors.allowed_headers", []string{"*"})
+	v.SetDefault("security.cors.allowed_headers", []string{"Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"})
 	v.SetDefault("security.cors.exposed_headers", []string{})
 	v.SetDefault("security.cors.allow_credentials", true)
 	v.SetDefault("security.cors.max_age", 86400)

@@ -37,9 +37,18 @@ security:
     enabled: true
     secret: "hf/LRSeENwlRqRGtBljgU54+PsuKpyEp59nbjtCu+mY="
     token_name: "_token"
-    header_name: "X-CSRF-Token"
+    header_name: "X-Csrf-Token"
+    token_length: 32
+    token_lookup: "header:X-Csrf-Token"
+    context_key: "csrf"
+    cookie_name: "_csrf"
+    cookie_path: "/"
+    cookie_domain: ""
+    cookie_http_only: true
+    cookie_same_site: "Lax"
+    cookie_max_age: 86400
   cors:
-    enabled: true
+    enabled: false
     allowed_origins:
       - "http://localhost:5173"
       - "http://localhost:8090"
@@ -52,7 +61,7 @@ security:
     allowed_headers:
       - "Content-Type"
       - "Authorization"
-      - "X-CSRF-Token"
+      - "X-Csrf-Token"
       - "X-Requested-With"
     exposed_headers: []
     allow_credentials: true
@@ -194,4 +203,4 @@ user:
   default:
     role: "user"
     permissions:
-      - "read" 
+      - "read"

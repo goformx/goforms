@@ -188,6 +188,14 @@ func (h *AuthHandler) Signup(c echo.Context) error {
 
 // SignupPost handles the signup form submission
 func (h *AuthHandler) SignupPost(c echo.Context) error {
+	h.Logger.Debug("SignupPost handler called",
+		"method", c.Request().Method,
+		"path", c.Request().URL.Path,
+		"content_type", c.Request().Header.Get("Content-Type"),
+		"csrf_token_present", c.Request().Header.Get("X-Csrf-Token") != "",
+		"user_agent", c.Request().UserAgent(),
+		"content_length", c.Request().ContentLength)
+
 	signup, err := h.RequestParser.ParseSignup(c)
 	if err != nil {
 		h.Logger.Error("failed to parse signup request", "error", err)
@@ -204,6 +212,8 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 
 		return h.ResponseBuilder.HTMLFormError(c, "signup", data, constants.ErrMsgInvalidRequest)
 	}
+
+	h.Logger.Debug("Signup data parsed successfully", "email", signup.Email)
 
 	signup.Email = h.Sanitizer.Email(signup.Email)
 
@@ -228,6 +238,8 @@ func (h *AuthHandler) SignupPost(c echo.Context) error {
 			"Unable to create account. Please try again.",
 		)
 	}
+
+	h.Logger.Debug("Signup successful, setting session cookie")
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
 

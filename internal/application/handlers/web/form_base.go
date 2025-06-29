@@ -3,6 +3,8 @@ package web
 import (
 	"github.com/labstack/echo/v4"
 
+	"fmt"
+
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
@@ -29,28 +31,24 @@ func NewFormBaseHandler(
 	}
 }
 
-// GetFormByID retrieves a form by ID with error handling
+// GetFormByID retrieves a form by ID without ownership verification
 func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
-	formID, err := h.FormValidator.ValidateFormID(c)
-	if err != nil {
-		if handleErr := h.HandleError(c, err, "Invalid form ID"); handleErr != nil {
-			h.Logger.Error("failed to handle error", "error", handleErr)
-		}
+	formID := c.Param("id")
 
-		return nil, echo.NewHTTPError(constants.StatusBadRequest, "Invalid form ID")
-	}
+	c.Logger().Debug("Getting form by ID", "form_id", formID)
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		h.Logger.Error("failed to get form", "form_id", formID, "error", err)
-
-		if handleErr := h.HandleNotFound(c, "Form not found"); handleErr != nil {
-			h.Logger.Error("failed to handle not found", "error", handleErr)
-		}
-
-		return nil, echo.NewHTTPError(constants.StatusNotFound, "Form not found")
+		c.Logger().Error("Failed to get form by ID", "form_id", formID, "error", err)
+		return nil, fmt.Errorf("get form by ID: %w", err)
 	}
 
+	if form == nil {
+		c.Logger().Warn("Form not found", "form_id", formID)
+		return nil, fmt.Errorf("get form by ID: %w", h.HandleNotFound(c, "Form not found"))
+	}
+
+	c.Logger().Debug("Form retrieved successfully", "form_id", form.ID, "title", form.Title, "user_id", form.UserID)
 	return form, nil
 }
 

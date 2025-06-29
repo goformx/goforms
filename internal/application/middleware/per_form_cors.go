@@ -48,10 +48,28 @@ func NewPerFormCORSConfig(
 func PerFormCORS(config *PerFormCORSConfig) echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+			method := c.Request().Method
+			origin := c.Request().Header.Get("Origin")
+
+			// Add debug logging for all requests
+			if c.Logger() != nil {
+				c.Logger().Debug("PerFormCORS: processing request",
+					"path", path,
+					"method", method,
+					"origin", origin,
+					"user_agent", c.Request().UserAgent())
+			}
+
 			// Check if this is a form route
 			formID := ExtractFormID(c.Request().URL.Path, config.FormRouteRegex)
 			if formID == "" {
 				// Not a form route, apply global CORS
+				if c.Logger() != nil {
+					c.Logger().Debug("PerFormCORS: not a form route, applying global CORS",
+						"path", path,
+						"form_id", formID)
+				}
 				return applyGlobalCORS(c, config.GlobalCORS, next)
 			}
 
@@ -168,6 +186,18 @@ func applyGlobalCORS(
 	globalCORS *appconfig.SecurityConfig,
 	next echo.HandlerFunc,
 ) error {
+	origin := c.Request().Header.Get("Origin")
+
+	// Add debug logging for global CORS
+	if c.Logger() != nil {
+		c.Logger().Debug("PerFormCORS: applying global CORS",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"origin", origin,
+			"allowed_origins", globalCORS.CORS.AllowedOrigins,
+			"origin_allowed", IsOriginAllowed(origin, globalCORS.CORS.AllowedOrigins))
+	}
+
 	// Skip debug logging for noise paths
 	if !isNoisePath(c.Request().URL.Path) {
 		// Add debug logging using the proper logger
@@ -249,8 +279,25 @@ func handleActualRequest(
 ) error {
 	origin := c.Request().Header.Get("Origin")
 
+	// Add debug logging for actual request handling
+	if c.Logger() != nil {
+		c.Logger().Debug("PerFormCORS: handling actual request",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"origin", origin,
+			"origins", origins,
+			"origin_allowed", IsOriginAllowed(origin, origins))
+	}
+
 	// Check if origin is allowed
 	if !IsOriginAllowed(origin, origins) {
+		if c.Logger() != nil {
+			c.Logger().Error("PerFormCORS: origin not allowed, returning 403",
+				"path", c.Request().URL.Path,
+				"method", c.Request().Method,
+				"origin", origin,
+				"allowed_origins", origins)
+		}
 		if noContentErr := c.NoContent(http.StatusForbidden); noContentErr != nil {
 			return fmt.Errorf("return forbidden for actual request: %w", noContentErr)
 		}
@@ -265,6 +312,13 @@ func handleActualRequest(
 
 	if allowCredentials {
 		c.Response().Header().Set("Access-Control-Allow-Credentials", "true")
+	}
+
+	if c.Logger() != nil {
+		c.Logger().Debug("PerFormCORS: CORS headers set, calling next handler",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"origin", origin)
 	}
 
 	return next(c)
