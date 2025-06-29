@@ -10,6 +10,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
+	"gorm.io/gorm"
 
 	commonevents "github.com/goformx/goforms/internal/domain/common/events"
 	formevents "github.com/goformx/goforms/internal/domain/form/event"
@@ -50,8 +51,9 @@ func TestMemoryPublisher(t *testing.T) {
 
 		err := publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
 		require.NoError(t, err)
-		assert.Len(t, publisher.(*event.MemoryPublisher).GetEvents(), 1)
-		assert.Equal(t, mockEvent, publisher.(*event.MemoryPublisher).GetEvents()[0])
+		events := publisher.(*event.MemoryPublisher).GetEvents()
+		assert.Len(t, events, 1)
+		assert.Equal(t, mockEvent, events[0])
 	})
 
 	t.Run("Publish nil event", func(t *testing.T) {
@@ -91,9 +93,13 @@ func TestMemoryPublisher(t *testing.T) {
 		mockEvent.EXPECT().Timestamp().Return(time.Now()).AnyTimes()
 		mockEvent.EXPECT().Payload().Return("test payload").AnyTimes()
 
-		err := publisher.(*event.MemoryPublisher).Subscribe(context.Background(), "test.event", func(_ context.Context, _ formevents.Event) error {
-			return errors.New("handler error")
-		})
+		err := publisher.(*event.MemoryPublisher).Subscribe(
+			context.Background(),
+			"test.event",
+			func(_ context.Context, _ formevents.Event) error {
+				return errors.New("handler error")
+			},
+		)
 		require.NoError(t, err)
 
 		err = publisher.(*event.MemoryPublisher).Publish(context.Background(), mockEvent)
@@ -405,9 +411,20 @@ func TestMemoryPublisher_FormEvents(t *testing.T) {
 	t.Run("Publish form created event", func(t *testing.T) {
 		publisher := event.NewMemoryPublisher(logger)
 		form := &model.Form{
-			ID:     "form123",
-			Title:  "Test Form",
-			UserID: "user123",
+			ID:          "form123",
+			Title:       "Test Form",
+			UserID:      "user123",
+			Description: "",
+			Schema:      model.JSON{},
+			Active:      false,
+			CreatedAt:   time.Time{},
+			UpdatedAt:   time.Time{},
+			DeletedAt:   gorm.DeletedAt{},
+			Fields:      nil,
+			Status:      "",
+			CorsOrigins: model.JSON{},
+			CorsMethods: model.JSON{},
+			CorsHeaders: model.JSON{},
 		}
 		createdEvt := formevents.NewFormCreatedEvent(form)
 
@@ -423,9 +440,14 @@ func TestMemoryPublisher_FormEvents(t *testing.T) {
 	t.Run("Publish form submission event", func(t *testing.T) {
 		publisher := event.NewMemoryPublisher(logger)
 		submission := &model.FormSubmission{
-			ID:     "submission123",
-			FormID: "form123",
-			Data:   model.JSON{"name": "John Doe"},
+			ID:          "submission123",
+			FormID:      "form123",
+			Data:        model.JSON{"name": "John Doe"},
+			SubmittedAt: time.Time{},
+			Status:      "",
+			Metadata:    model.JSON{},
+			CreatedAt:   time.Time{},
+			UpdatedAt:   time.Time{},
 		}
 		submissionEvt := formevents.NewFormSubmissionCreatedEvent(submission)
 

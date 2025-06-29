@@ -119,22 +119,37 @@ var fieldTypeConverters = map[FieldType]func(Field) zap.Field{
 		return f.convertIntField()
 	},
 	FloatFieldType: func(f Field) zap.Field {
-		return zap.Float64(f.Key, f.Value.(float64))
+		if val, ok := f.Value.(float64); ok {
+			return zap.Float64(f.Key, val)
+		}
+		return zap.Any(f.Key, f.Value)
 	},
 	BoolFieldType: func(f Field) zap.Field {
-		return zap.Bool(f.Key, f.Value.(bool))
+		if val, ok := f.Value.(bool); ok {
+			return zap.Bool(f.Key, val)
+		}
+		return zap.Any(f.Key, f.Value)
 	},
 	ErrorFieldType: func(f Field) zap.Field {
 		return f.convertErrorField()
 	},
 	UUIDFieldType: func(f Field) zap.Field {
-		return zap.String(f.Key, maskUUID(f.Value.(string)))
+		if val, ok := f.Value.(string); ok {
+			return zap.String(f.Key, maskUUID(val))
+		}
+		return zap.Any(f.Key, f.Value)
 	},
 	PathFieldType: func(f Field) zap.Field {
-		return zap.String(f.Key, sanitizePath(f.Value.(string)))
+		if val, ok := f.Value.(string); ok {
+			return zap.String(f.Key, sanitizePath(val))
+		}
+		return zap.Any(f.Key, f.Value)
 	},
 	UserAgentFieldType: func(f Field) zap.Field {
-		return zap.String(f.Key, sanitizeUserAgent(f.Value.(string)))
+		if val, ok := f.Value.(string); ok {
+			return zap.String(f.Key, sanitizeUserAgent(val))
+		}
+		return zap.Any(f.Key, f.Value)
 	},
 	ObjectFieldType: func(f Field) zap.Field {
 		return zap.Any(f.Key, f.Value)

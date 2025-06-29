@@ -27,6 +27,32 @@ func setupTestFormErrorHandler() (web.FormErrorHandler, *echo.Echo) {
 	return errorHandler, e
 }
 
+// runErrorHandlerTest is a helper function to reduce duplication in error handler tests
+func runErrorHandlerTest(t *testing.T, handler web.FormErrorHandler, e *echo.Echo, tests []struct {
+	name           string
+	err            error
+	expectedStatus int
+	expectedBody   string
+	description    string
+}, handlerFunc func(echo.Context, error) error) {
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			// Create request
+			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+			rec := httptest.NewRecorder()
+			c := e.NewContext(req, rec)
+
+			// Handle error
+			err := handlerFunc(c, tt.err)
+			require.NoError(t, err)
+
+			// Assertions
+			assert.Equal(t, tt.expectedStatus, rec.Code)
+			assert.Contains(t, rec.Body.String(), tt.expectedBody)
+		})
+	}
+}
+
 func TestFormErrorHandler_HandleSchemaError(t *testing.T) {
 	handler, e := setupTestFormErrorHandler()
 
@@ -60,22 +86,7 @@ func TestFormErrorHandler_HandleSchemaError(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create request
-			req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-
-			// Handle error
-			err := handler.HandleSchemaError(c, tt.err)
-			require.NoError(t, err)
-
-			// Assertions
-			assert.Equal(t, tt.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tt.expectedBody)
-		})
-	}
+	runErrorHandlerTest(t, handler, e, tests, handler.HandleSchemaError)
 }
 
 func TestFormErrorHandler_HandleSubmissionError(t *testing.T) {
@@ -169,22 +180,7 @@ func TestFormErrorHandler_HandleError(t *testing.T) {
 		},
 	}
 
-	for _, tt := range tests {
-		t.Run(tt.name, func(t *testing.T) {
-			// Create request
-			req := httptest.NewRequest(http.MethodPost, "/", http.NoBody)
-			rec := httptest.NewRecorder()
-			c := e.NewContext(req, rec)
-
-			// Handle error
-			err := handler.HandleError(c, tt.err)
-			require.NoError(t, err)
-
-			// Assertions
-			assert.Equal(t, tt.expectedStatus, rec.Code)
-			assert.Contains(t, rec.Body.String(), tt.expectedBody)
-		})
-	}
+	runErrorHandlerTest(t, handler, e, tests, handler.HandleError)
 }
 
 func TestFormErrorHandler_HandleOwnershipError(t *testing.T) {
