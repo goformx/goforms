@@ -7,11 +7,10 @@ import (
 	"strings"
 	"testing"
 
+	"github.com/goformx/goforms/internal/application/middleware/core"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-
-	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 )
 
 // TestEchoAdapter_ToEchoMiddleware tests the Echo adapter conversion
@@ -69,7 +68,7 @@ func TestEchoRequest(t *testing.T) {
 	// Test basic properties
 	assert.Equal(t, http.MethodPost, echoReq.Method())
 	assert.Equal(t, "/test", echoReq.Path())
-	assert.Equal(t, "value", echoReq.Query().Get("param"))
+	assert.Equal(t, "value", echoReq.Query()["param"][0])
 	assert.Equal(t, "text/plain", echoReq.ContentType())
 	assert.Equal(t, "test-agent", echoReq.UserAgent())
 	assert.NotNil(t, echoReq.Body())
@@ -86,7 +85,7 @@ func TestEchoResponseWrapper(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Create our response
-	resp := appmiddleware.NewResponse(http.StatusOK)
+	resp := core.NewResponse(http.StatusOK)
 	resp.SetContentType("application/json")
 	resp.SetBodyBytes([]byte(`{"message":"test"}`))
 
@@ -156,7 +155,7 @@ type testMiddleware struct {
 	name string
 }
 
-func (m *testMiddleware) Process(ctx context.Context, req appmiddleware.Request, next appmiddleware.Handler) appmiddleware.Response {
+func (m *testMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
 	// Add a test header to the response
 	resp := next(ctx, req)
 	resp.AddHeader("X-Test-Header", "test-header-value")
