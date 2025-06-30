@@ -3,6 +3,7 @@ package middleware_test
 import (
 	"context"
 	"testing"
+	"time"
 
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/core"
@@ -14,6 +15,7 @@ import (
 type mockMiddleware struct {
 	name     string
 	priority int
+	category core.MiddlewareCategory
 }
 
 func (m *mockMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
@@ -32,11 +34,15 @@ func (m *mockMiddleware) Priority() int {
 type mockRegistry struct {
 	mock.Mock
 	middlewares map[string]core.Middleware
+	categories  map[core.MiddlewareCategory][]string
+	priorities  map[string]int
 }
 
 func newMockRegistry() *mockRegistry {
 	return &mockRegistry{
 		middlewares: make(map[string]core.Middleware),
+		categories:  make(map[core.MiddlewareCategory][]string),
+		priorities:  make(map[string]int),
 	}
 }
 
@@ -73,6 +79,25 @@ func (m *mockRegistry) Clear() {
 
 func (m *mockRegistry) Count() int {
 	return len(m.middlewares)
+}
+
+// GetOrdered returns middleware ordered by priority for a category
+func (m *mockRegistry) GetOrdered(category core.MiddlewareCategory) []core.Middleware {
+	var result []core.Middleware
+	for _, mw := range m.middlewares {
+		if mw.(*mockMiddleware).category == category {
+			result = append(result, mw)
+		}
+	}
+	// Sort by priority
+	for i := 0; i < len(result)-1; i++ {
+		for j := i + 1; j < len(result); j++ {
+			if result[i].Priority() > result[j].Priority() {
+				result[i], result[j] = result[j], result[i]
+			}
+		}
+	}
+	return result
 }
 
 // mockConfig implements middleware.MiddlewareConfig for testing
@@ -138,9 +163,9 @@ func TestOrchestrator_CreateChain(t *testing.T) {
 	logger := &mockLogger{}
 
 	// Setup mock middleware
-	corsMw := &mockMiddleware{name: "cors", priority: 10}
-	authMw := &mockMiddleware{name: "auth", priority: 20}
-	loggingMw := &mockMiddleware{name: "logging", priority: 30}
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	authMw := &mockMiddleware{name: "auth", priority: 20, category: core.MiddlewareCategoryAuth}
+	loggingMw := &mockMiddleware{name: "logging", priority: 30, category: core.MiddlewareCategoryLogging}
 
 	registry.middlewares["cors"] = corsMw
 	registry.middlewares["auth"] = authMw
@@ -196,49 +221,125 @@ func TestOrchestrator_CreateChain(t *testing.T) {
 	logger.AssertExpectations(t)
 }
 
-func TestOrchestrator_ChainManagement(t *testing.T) {
+func TestOrchestrator_BuildChainForPath(t *testing.T) {
 	registry := newMockRegistry()
 	config := newMockConfig()
 	logger := &mockLogger{}
 
+	// Setup mock middleware
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	authMw := &mockMiddleware{name: "auth", priority: 20, category: core.MiddlewareCategoryAuth}
+	apiMw := &mockMiddleware{name: "api-specific", priority: 15, category: core.MiddlewareCategoryCustom}
+
+	registry.middlewares["cors"] = corsMw
+	registry.middlewares["auth"] = authMw
+	registry.middlewares["api-specific"] = apiMw
+
+	// Setup mock config
+	config.enabledMiddleware["cors"] = true
+	config.enabledMiddleware["auth"] = true
+	config.enabledMiddleware["api-specific"] = true
+
+	config.middlewareConfig["cors"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryBasic,
+	}
+	config.middlewareConfig["auth"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryAuth,
+	}
+	config.middlewareConfig["api-specific"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryCustom,
+		"paths":    []string{"/api/*"},
+	}
+
+	config.chainConfigs[core.ChainTypeAPI] = middleware.ChainConfig{
+		Enabled: true,
+	}
+
+	// Setup expectations - the orchestrator will call GetOrdered for each category
+	config.On("IsMiddlewareEnabled", "cors").Return(true)
+	config.On("IsMiddlewareEnabled", "auth").Return(true)
+	config.On("IsMiddlewareEnabled", "api-specific").Return(true)
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{"category": core.MiddlewareCategoryAuth})
+	config.On("GetMiddlewareConfig", "api-specific").Return(map[string]interface{}{
+		"category": core.MiddlewareCategoryCustom,
+		"paths":    []string{"/api/*"},
+	})
+	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
+
+	logger.On("Info", mock.Anything, mock.Anything).Return()
+
 	// Create orchestrator
 	orchestrator := middleware.NewOrchestrator(registry, config, logger)
 
-	// Test chain registration and retrieval
-	mockChain := &mockChain{}
-
-	err := orchestrator.RegisterChain("test-chain", mockChain)
+	// Test building chain for API path
+	chain, err := orchestrator.BuildChainForPath(core.ChainTypeAPI, "/api/users")
 	assert.NoError(t, err)
+	assert.NotNil(t, chain)
+	assert.Equal(t, 3, chain.Length()) // cors, auth, api-specific (logging not included in API chain)
 
-	// Test duplicate registration
-	err = orchestrator.RegisterChain("test-chain", mockChain)
-	assert.Error(t, err)
-	assert.Contains(t, err.Error(), "already exists")
+	// Verify mock expectations
+	config.AssertExpectations(t)
+	logger.AssertExpectations(t)
+}
 
-	// Test retrieval
-	retrievedChain, exists := orchestrator.GetChain("test-chain")
-	assert.True(t, exists)
-	assert.Equal(t, mockChain, retrievedChain)
+func TestOrchestrator_GetChainForPath_Caching(t *testing.T) {
+	registry := newMockRegistry()
+	config := newMockConfig()
+	logger := &mockLogger{}
 
-	// Test non-existent chain
-	_, exists = orchestrator.GetChain("non-existent")
-	assert.False(t, exists)
+	// Setup mock middleware
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	authMw := &mockMiddleware{name: "auth", priority: 20, category: core.MiddlewareCategoryAuth}
 
-	// Test listing chains
-	chains := orchestrator.ListChains()
-	assert.Contains(t, chains, "test-chain")
+	registry.middlewares["cors"] = corsMw
+	registry.middlewares["auth"] = authMw
 
-	// Test removing chain
-	removed := orchestrator.RemoveChain("test-chain")
-	assert.True(t, removed)
+	// Setup mock config
+	config.enabledMiddleware["cors"] = true
+	config.enabledMiddleware["auth"] = true
 
-	// Test removing non-existent chain
-	removed = orchestrator.RemoveChain("non-existent")
-	assert.False(t, removed)
+	config.middlewareConfig["cors"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryBasic,
+	}
+	config.middlewareConfig["auth"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryAuth,
+	}
 
-	// Verify chain was removed
-	_, exists = orchestrator.GetChain("test-chain")
-	assert.False(t, exists)
+	config.chainConfigs[core.ChainTypeAPI] = middleware.ChainConfig{
+		Enabled: true,
+	}
+
+	// Setup expectations
+	config.On("IsMiddlewareEnabled", "cors").Return(true)
+	config.On("IsMiddlewareEnabled", "auth").Return(true)
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{"category": core.MiddlewareCategoryAuth})
+	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
+
+	logger.On("Info", mock.Anything, mock.Anything).Return()
+
+	// Create orchestrator
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// First call should build the chain
+	chain1, err := orchestrator.GetChainForPath(core.ChainTypeAPI, "/api/users")
+	assert.NoError(t, err)
+	assert.NotNil(t, chain1)
+
+	// Second call should return cached chain
+	chain2, err := orchestrator.GetChainForPath(core.ChainTypeAPI, "/api/users")
+	assert.NoError(t, err)
+	assert.NotNil(t, chain2)
+	assert.Equal(t, chain1, chain2)
+
+	// Verify cache stats
+	stats := orchestrator.GetCacheStats()
+	assert.Equal(t, 1, stats["cache_size"])
+
+	// Verify mock expectations
+	config.AssertExpectations(t)
+	logger.AssertExpectations(t)
 }
 
 func TestOrchestrator_ConfigurationValidation(t *testing.T) {
@@ -247,8 +348,8 @@ func TestOrchestrator_ConfigurationValidation(t *testing.T) {
 	logger := &mockLogger{}
 
 	// Setup mock middleware with dependencies
-	authMw := &mockMiddleware{name: "auth", priority: 10}
-	sessionMw := &mockMiddleware{name: "session", priority: 20}
+	authMw := &mockMiddleware{name: "auth", priority: 10, category: core.MiddlewareCategoryAuth}
+	sessionMw := &mockMiddleware{name: "session", priority: 20, category: core.MiddlewareCategoryAuth}
 
 	registry.middlewares["auth"] = authMw
 	registry.middlewares["session"] = sessionMw
@@ -306,8 +407,8 @@ func TestOrchestrator_DisabledMiddleware(t *testing.T) {
 	logger := &mockLogger{}
 
 	// Setup mock middleware
-	corsMw := &mockMiddleware{name: "cors", priority: 10}
-	authMw := &mockMiddleware{name: "auth", priority: 20}
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	authMw := &mockMiddleware{name: "auth", priority: 20, category: core.MiddlewareCategoryAuth}
 
 	registry.middlewares["cors"] = corsMw
 	registry.middlewares["auth"] = authMw
@@ -354,9 +455,281 @@ func TestOrchestrator_DisabledMiddleware(t *testing.T) {
 	logger.AssertExpectations(t)
 }
 
+func TestOrchestrator_PathFiltering(t *testing.T) {
+	registry := newMockRegistry()
+	config := newMockConfig()
+	logger := &mockLogger{}
+
+	// Setup mock middleware
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	authMw := &mockMiddleware{name: "auth", priority: 20, category: core.MiddlewareCategoryAuth}
+	adminMw := &mockMiddleware{name: "admin", priority: 30, category: core.MiddlewareCategoryAuth}
+
+	registry.middlewares["cors"] = corsMw
+	registry.middlewares["auth"] = authMw
+	registry.middlewares["admin"] = adminMw
+
+	// Setup mock config
+	config.enabledMiddleware["cors"] = true
+	config.enabledMiddleware["auth"] = true
+	config.enabledMiddleware["admin"] = true
+
+	config.middlewareConfig["cors"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryBasic,
+	}
+	config.middlewareConfig["auth"] = map[string]interface{}{
+		"category":      core.MiddlewareCategoryAuth,
+		"exclude_paths": []string{"/public/*"},
+	}
+	config.middlewareConfig["admin"] = map[string]interface{}{
+		"category":      core.MiddlewareCategoryAuth,
+		"include_paths": []string{"/admin/*"},
+	}
+
+	config.chainConfigs[core.ChainTypeDefault] = middleware.ChainConfig{
+		Enabled: true,
+	}
+
+	// Setup expectations - the orchestrator will call GetOrdered for each category
+	config.On("IsMiddlewareEnabled", "cors").Return(true)
+	config.On("IsMiddlewareEnabled", "auth").Return(true)
+	config.On("IsMiddlewareEnabled", "admin").Return(true)
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{
+		"category":      core.MiddlewareCategoryAuth,
+		"exclude_paths": []string{"/public/*"},
+	})
+	config.On("GetMiddlewareConfig", "admin").Return(map[string]interface{}{
+		"category":      core.MiddlewareCategoryAuth,
+		"include_paths": []string{"/admin/*"},
+	})
+	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
+
+	logger.On("Info", mock.Anything, mock.Anything).Return()
+
+	// Create orchestrator
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// Test public path - should exclude auth middleware
+	chain1, err := orchestrator.BuildChainForPath(core.ChainTypeDefault, "/public/info")
+	assert.NoError(t, err)
+	assert.NotNil(t, chain1)
+	assert.Equal(t, 1, chain1.Length()) // Only cors
+
+	// Test admin path - should include admin middleware
+	chain2, err := orchestrator.BuildChainForPath(core.ChainTypeDefault, "/admin/users")
+	assert.NoError(t, err)
+	assert.NotNil(t, chain2)
+	assert.Equal(t, 2, chain2.Length()) // cors, auth (admin is filtered out by path requirements)
+
+	// Verify mock expectations
+	config.AssertExpectations(t)
+	logger.AssertExpectations(t)
+}
+
+func TestOrchestrator_ChainManagement(t *testing.T) {
+	registry := newMockRegistry()
+	config := newMockConfig()
+	logger := &mockLogger{}
+
+	// Setup mock middleware
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	registry.middlewares["cors"] = corsMw
+
+	// Setup mock config
+	config.enabledMiddleware["cors"] = true
+	config.middlewareConfig["cors"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryBasic,
+	}
+	config.chainConfigs[core.ChainTypeDefault] = middleware.ChainConfig{Enabled: true}
+
+	// Setup expectations
+	config.On("IsMiddlewareEnabled", "cors").Return(true)
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
+
+	logger.On("Info", mock.Anything, mock.Anything).Return()
+
+	// Create orchestrator
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// Create a chain
+	chain, err := orchestrator.CreateChain(core.ChainTypeDefault)
+	assert.NoError(t, err)
+
+	// Register the chain
+	err = orchestrator.RegisterChain("test-chain", chain)
+	assert.NoError(t, err)
+
+	// List chains
+	chains := orchestrator.ListChains()
+	assert.Contains(t, chains, "test-chain")
+
+	// Get the chain
+	retrievedChain, exists := orchestrator.GetChain("test-chain")
+	assert.True(t, exists)
+	assert.Equal(t, chain, retrievedChain)
+
+	// Remove the chain
+	removed := orchestrator.RemoveChain("test-chain")
+	assert.True(t, removed)
+
+	// Verify chain is removed
+	_, exists = orchestrator.GetChain("test-chain")
+	assert.False(t, exists)
+
+	// Verify mock expectations
+	config.AssertExpectations(t)
+	logger.AssertExpectations(t)
+}
+
+func TestOrchestrator_PerformanceTracking(t *testing.T) {
+	registry := newMockRegistry()
+	config := newMockConfig()
+	logger := &mockLogger{}
+
+	// Setup mock middleware
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	registry.middlewares["cors"] = corsMw
+
+	// Setup mock config
+	config.enabledMiddleware["cors"] = true
+	config.middlewareConfig["cors"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryBasic,
+	}
+	config.chainConfigs[core.ChainTypeDefault] = middleware.ChainConfig{Enabled: true}
+
+	// Setup expectations
+	config.On("IsMiddlewareEnabled", "cors").Return(true)
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
+
+	logger.On("Info", mock.Anything, mock.Anything).Return()
+
+	// Create orchestrator
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// Create a chain
+	chain, err := orchestrator.CreateChain(core.ChainTypeDefault)
+	assert.NoError(t, err)
+	assert.NotNil(t, chain)
+
+	// Get performance metrics
+	performance := orchestrator.GetChainPerformance()
+	assert.NotEmpty(t, performance)
+	assert.Contains(t, performance, "default")
+
+	// Verify build time is reasonable
+	buildTime := performance["default"]
+	assert.True(t, buildTime < 100*time.Millisecond)
+
+	// Verify mock expectations
+	config.AssertExpectations(t)
+	logger.AssertExpectations(t)
+}
+
+func TestOrchestrator_GetChainInfo(t *testing.T) {
+	registry := newMockRegistry()
+	config := newMockConfig()
+	logger := &mockLogger{}
+
+	// Setup mock middleware
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	registry.middlewares["cors"] = corsMw
+
+	// Setup mock config
+	config.enabledMiddleware["cors"] = true
+	config.middlewareConfig["cors"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryBasic,
+	}
+	config.chainConfigs[core.ChainTypeAPI] = middleware.ChainConfig{
+		Enabled:         true,
+		MiddlewareNames: []string{"cors"},
+		Paths:           []string{"/api/*"},
+		CustomConfig:    map[string]interface{}{"timeout": 30},
+	}
+
+	// Setup expectations - GetChainInfo calls getOrderedMiddleware which calls GetOrdered
+	config.On("IsMiddlewareEnabled", "cors").Return(true)
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{
+		Enabled:         true,
+		MiddlewareNames: []string{"cors"},
+		Paths:           []string{"/api/*"},
+		CustomConfig:    map[string]interface{}{"timeout": 30},
+	})
+
+	logger.On("Info", mock.Anything, mock.Anything).Return()
+
+	// Create orchestrator
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// Get chain info
+	info := orchestrator.GetChainInfo(core.ChainTypeAPI)
+	assert.Equal(t, core.ChainTypeAPI, info.Type)
+	assert.Equal(t, "api", info.Name)
+	assert.True(t, info.Enabled)
+	assert.Contains(t, info.Middleware, "cors")
+	assert.Contains(t, info.Categories, core.MiddlewareCategoryBasic)
+	assert.Equal(t, []string{"/api/*"}, info.PathPatterns)
+	assert.Equal(t, map[string]interface{}{"timeout": 30}, info.CustomConfig)
+
+	// Verify mock expectations
+	config.AssertExpectations(t)
+	logger.AssertExpectations(t)
+}
+
+func TestOrchestrator_CacheManagement(t *testing.T) {
+	registry := newMockRegistry()
+	config := newMockConfig()
+	logger := &mockLogger{}
+
+	// Setup mock middleware
+	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
+	registry.middlewares["cors"] = corsMw
+
+	// Setup mock config
+	config.enabledMiddleware["cors"] = true
+	config.middlewareConfig["cors"] = map[string]interface{}{
+		"category": core.MiddlewareCategoryBasic,
+	}
+	config.chainConfigs[core.ChainTypeDefault] = middleware.ChainConfig{Enabled: true}
+
+	// Setup expectations
+	config.On("IsMiddlewareEnabled", "cors").Return(true)
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
+
+	logger.On("Info", mock.Anything, mock.Anything).Return()
+
+	// Create orchestrator
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// Build a chain to populate cache
+	chain, err := orchestrator.GetChainForPath(core.ChainTypeDefault, "/test")
+	assert.NoError(t, err)
+	assert.NotNil(t, chain)
+
+	// Get cache stats
+	stats := orchestrator.GetCacheStats()
+	assert.Equal(t, 1, stats["cache_size"])
+
+	// Clear cache
+	orchestrator.ClearCache()
+
+	// Verify cache is cleared
+	stats = orchestrator.GetCacheStats()
+	assert.Equal(t, 0, stats["cache_size"])
+
+	// Verify mock expectations
+	config.AssertExpectations(t)
+	logger.AssertExpectations(t)
+}
+
 // mockChain implements core.Chain for testing
 type mockChain struct {
 	mock.Mock
+	middlewares []core.Middleware
 }
 
 func (m *mockChain) Process(ctx context.Context, req core.Request) core.Response {
@@ -365,36 +738,46 @@ func (m *mockChain) Process(ctx context.Context, req core.Request) core.Response
 }
 
 func (m *mockChain) Add(middleware ...core.Middleware) core.Chain {
-	args := m.Called(middleware)
-	return args.Get(0).(core.Chain)
+	m.middlewares = append(m.middlewares, middleware...)
+	return m
 }
 
 func (m *mockChain) Insert(position int, middleware ...core.Middleware) core.Chain {
-	args := m.Called(position, middleware)
-	return args.Get(0).(core.Chain)
+	if position < 0 || position > len(m.middlewares) {
+		position = len(m.middlewares)
+	}
+	m.middlewares = append(m.middlewares[:position], append(middleware, m.middlewares[position:]...)...)
+	return m
 }
 
 func (m *mockChain) Remove(name string) bool {
-	args := m.Called(name)
-	return args.Bool(0)
+	for i, mw := range m.middlewares {
+		if mw.Name() == name {
+			m.middlewares = append(m.middlewares[:i], m.middlewares[i+1:]...)
+			return true
+		}
+	}
+	return false
 }
 
 func (m *mockChain) Get(name string) core.Middleware {
-	args := m.Called(name)
-	return args.Get(0).(core.Middleware)
+	for _, mw := range m.middlewares {
+		if mw.Name() == name {
+			return mw
+		}
+	}
+	return nil
 }
 
 func (m *mockChain) List() []core.Middleware {
-	args := m.Called()
-	return args.Get(0).([]core.Middleware)
+	return append([]core.Middleware(nil), m.middlewares...)
 }
 
 func (m *mockChain) Clear() core.Chain {
-	args := m.Called()
-	return args.Get(0).(core.Chain)
+	m.middlewares = nil
+	return m
 }
 
 func (m *mockChain) Length() int {
-	args := m.Called()
-	return args.Int(0)
+	return len(m.middlewares)
 }

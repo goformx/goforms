@@ -330,6 +330,15 @@ type Orchestrator interface {
 	// ChainType determines which middleware are included and their order.
 	CreateChain(chainType ChainType) (Chain, error)
 
+	// BuildChain is an alias for CreateChain for backward compatibility.
+	BuildChain(chainType ChainType) (Chain, error)
+
+	// BuildChainForPath creates a middleware chain for a specific path and chain type.
+	BuildChainForPath(chainType ChainType, requestPath string) (Chain, error)
+
+	// GetChainForPath returns a cached chain for a path or builds a new one.
+	GetChainForPath(chainType ChainType, requestPath string) (Chain, error)
+
 	// GetChain retrieves a pre-configured chain by name.
 	// Returns nil if chain is not found.
 	GetChain(name string) (Chain, bool)
@@ -344,6 +353,21 @@ type Orchestrator interface {
 	// RemoveChain removes a chain by name.
 	// Returns true if chain was found and removed.
 	RemoveChain(name string) bool
+
+	// ClearCache clears the chain cache.
+	ClearCache()
+
+	// GetCacheStats returns cache statistics.
+	GetCacheStats() map[string]interface{}
+
+	// GetChainPerformance returns performance metrics for chain building.
+	GetChainPerformance() map[string]time.Duration
+
+	// GetChainInfo returns information about a chain type.
+	GetChainInfo(chainType ChainType) ChainInfo
+
+	// ValidateConfiguration validates the current middleware configuration.
+	ValidateConfiguration() error
 }
 
 // Response constructors for common use cases

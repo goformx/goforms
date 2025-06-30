@@ -5,22 +5,14 @@ import (
 	"fmt"
 	"path"
 	"regexp"
+	"sort"
 	"strings"
 	"sync"
+	"time"
 
 	"github.com/goformx/goforms/internal/application/middleware/chain"
 	"github.com/goformx/goforms/internal/application/middleware/core"
 )
-
-// ChainInfo provides information about a middleware chain.
-type ChainInfo struct {
-	Type        core.ChainType
-	Name        string
-	Description string
-	Categories  []core.MiddlewareCategory
-	Middleware  []string
-	Enabled     bool
-}
 
 // orchestrator implements the core.Orchestrator interface.
 type orchestrator struct {
@@ -31,21 +23,32 @@ type orchestrator struct {
 	cacheMu  sync.RWMutex
 	chains   map[string]core.Chain
 	chainsMu sync.RWMutex
+	// Performance tracking
+	buildTimes map[string]time.Duration
+	buildMu    sync.RWMutex
 }
 
 // NewOrchestrator creates a new middleware orchestrator.
 func NewOrchestrator(registry core.Registry, config MiddlewareConfig, logger core.Logger) core.Orchestrator {
 	return &orchestrator{
-		registry: registry,
-		config:   config,
-		logger:   logger,
-		cache:    make(map[string]core.Chain),
-		chains:   make(map[string]core.Chain),
+		registry:   registry,
+		config:     config,
+		logger:     logger,
+		cache:      make(map[string]core.Chain),
+		chains:     make(map[string]core.Chain),
+		buildTimes: make(map[string]time.Duration),
 	}
 }
 
 // CreateChain creates a new middleware chain with the specified type.
 func (o *orchestrator) CreateChain(chainType core.ChainType) (core.Chain, error) {
+	start := time.Now()
+	defer func() {
+		o.buildMu.Lock()
+		o.buildTimes[chainType.String()] = time.Since(start)
+		o.buildMu.Unlock()
+	}()
+
 	// Get middleware list from registry based on chain type
 	middlewares, err := o.getOrderedMiddleware(chainType)
 	if err != nil {
@@ -66,9 +69,15 @@ func (o *orchestrator) CreateChain(chainType core.ChainType) (core.Chain, error)
 	o.logger.Info("built middleware chain",
 		"chain_type", chainType,
 		"middleware_count", len(activeMiddlewares),
-		"middleware_names", o.getMiddlewareNames(activeMiddlewares))
+		"middleware_names", o.getMiddlewareNames(activeMiddlewares),
+		"build_time", time.Since(start))
 
 	return chain, nil
+}
+
+// BuildChain is an alias for CreateChain for backward compatibility.
+func (o *orchestrator) BuildChain(chainType core.ChainType) (core.Chain, error) {
+	return o.CreateChain(chainType)
 }
 
 // GetChain retrieves a pre-configured chain by name.
@@ -87,6 +96,7 @@ func (o *orchestrator) RegisterChain(name string, chain core.Chain) error {
 		return fmt.Errorf("chain with name %q already exists", name)
 	}
 	o.chains[name] = chain
+	o.logger.Info("registered named chain", "name", name, "middleware_count", chain.Length())
 	return nil
 }
 
@@ -98,6 +108,7 @@ func (o *orchestrator) ListChains() []string {
 	for name := range o.chains {
 		names = append(names, name)
 	}
+	sort.Strings(names)
 	return names
 }
 
@@ -107,6 +118,7 @@ func (o *orchestrator) RemoveChain(name string) bool {
 	defer o.chainsMu.Unlock()
 	if _, exists := o.chains[name]; exists {
 		delete(o.chains, name)
+		o.logger.Info("removed named chain", "name", name)
 		return true
 	}
 	return false
@@ -114,6 +126,8 @@ func (o *orchestrator) RemoveChain(name string) bool {
 
 // BuildChainForPath creates a middleware chain for a specific path and chain type.
 func (o *orchestrator) BuildChainForPath(chainType core.ChainType, requestPath string) (core.Chain, error) {
+	start := time.Now()
+
 	// Get base chain
 	baseChain, err := o.CreateChain(chainType)
 	if err != nil {
@@ -129,7 +143,8 @@ func (o *orchestrator) BuildChainForPath(chainType core.ChainType, requestPath s
 	o.logger.Info("built path-specific middleware chain",
 		"chain_type", chainType,
 		"path", requestPath,
-		"middleware_count", finalChain.Length())
+		"middleware_count", finalChain.Length(),
+		"build_time", time.Since(start))
 
 	return finalChain, nil
 }
@@ -142,6 +157,7 @@ func (o *orchestrator) GetChainForPath(chainType core.ChainType, requestPath str
 	o.cacheMu.RLock()
 	if cached, exists := o.cache[cacheKey]; exists {
 		o.cacheMu.RUnlock()
+		o.logger.Info("returned cached chain", "cache_key", cacheKey)
 		return cached, nil
 	}
 	o.cacheMu.RUnlock()
@@ -157,6 +173,7 @@ func (o *orchestrator) GetChainForPath(chainType core.ChainType, requestPath str
 	o.cache[cacheKey] = chain
 	o.cacheMu.Unlock()
 
+	o.logger.Info("cached new chain", "cache_key", cacheKey)
 	return chain, nil
 }
 
@@ -164,8 +181,24 @@ func (o *orchestrator) GetChainForPath(chainType core.ChainType, requestPath str
 func (o *orchestrator) ClearCache() {
 	o.cacheMu.Lock()
 	defer o.cacheMu.Unlock()
+	cacheSize := len(o.cache)
 	o.cache = make(map[string]core.Chain)
-	o.logger.Info("cleared middleware chain cache")
+	o.logger.Info("cleared middleware chain cache", "cleared_entries", cacheSize)
+}
+
+// GetCacheStats returns cache statistics.
+func (o *orchestrator) GetCacheStats() map[string]interface{} {
+	o.cacheMu.RLock()
+	defer o.cacheMu.RUnlock()
+
+	o.buildMu.RLock()
+	defer o.buildMu.RUnlock()
+
+	return map[string]interface{}{
+		"cache_size":        len(o.cache),
+		"build_times":       o.buildTimes,
+		"registered_chains": len(o.chains),
+	}
 }
 
 // ValidateConfiguration validates the current middleware configuration.
@@ -190,11 +223,12 @@ func (o *orchestrator) ValidateConfiguration() error {
 		}
 	}
 
+	o.logger.Info("configuration validation completed successfully")
 	return nil
 }
 
 // GetChainInfo returns information about a chain type.
-func (o *orchestrator) GetChainInfo(chainType core.ChainType) ChainInfo {
+func (o *orchestrator) GetChainInfo(chainType core.ChainType) core.ChainInfo {
 	chainConfig := o.config.GetChainConfig(chainType)
 
 	// Get middleware for this chain type
@@ -204,14 +238,28 @@ func (o *orchestrator) GetChainInfo(chainType core.ChainType) ChainInfo {
 	// Determine categories based on chain type
 	categories := o.getCategoriesForChainType(chainType)
 
-	return ChainInfo{
-		Type:        chainType,
-		Name:        chainType.String(),
-		Description: o.getChainDescription(chainType),
-		Categories:  categories,
-		Middleware:  middlewareNames,
-		Enabled:     chainConfig.Enabled,
+	return core.ChainInfo{
+		Type:         chainType,
+		Name:         chainType.String(),
+		Description:  o.getChainDescription(chainType),
+		Categories:   categories,
+		Middleware:   middlewareNames,
+		Enabled:      chainConfig.Enabled,
+		PathPatterns: chainConfig.Paths,
+		CustomConfig: chainConfig.CustomConfig,
 	}
+}
+
+// GetChainPerformance returns performance metrics for chain building.
+func (o *orchestrator) GetChainPerformance() map[string]time.Duration {
+	o.buildMu.RLock()
+	defer o.buildMu.RUnlock()
+
+	result := make(map[string]time.Duration)
+	for chainType, duration := range o.buildTimes {
+		result[chainType] = duration
+	}
+	return result
 }
 
 // getOrderedMiddleware returns middleware ordered by priority for the given chain type.
@@ -235,8 +283,14 @@ func (o *orchestrator) getOrderedMiddleware(chainType core.ChainType) ([]core.Mi
 
 // getOrderedByCategory returns middleware ordered by priority for a specific category.
 func (o *orchestrator) getOrderedByCategory(category core.MiddlewareCategory) []core.Middleware {
-	// This is a simplified implementation - in a real scenario, the registry would have this method
-	// For now, we'll get all middleware and filter by category
+	// Use registry's GetOrdered method if available
+	if registry, ok := o.registry.(interface {
+		GetOrdered(core.MiddlewareCategory) []core.Middleware
+	}); ok {
+		return registry.GetOrdered(category)
+	}
+
+	// Fallback implementation
 	allNames := o.registry.List()
 	var categoryMiddleware []core.Middleware
 
@@ -369,63 +423,61 @@ func (o *orchestrator) validateRegistryDependencies() error {
 
 // applyPathSpecificMiddleware adds path-specific middleware to the chain.
 func (o *orchestrator) applyPathSpecificMiddleware(baseChain core.Chain, requestPath string) core.Chain {
-	// Clone the base chain
-	middlewares := baseChain.List()
-	pathChain := chain.NewChainImpl(middlewares)
+	// Check if there are any path-specific middleware configurations
+	allNames := o.registry.List()
 
-	// Add path-specific middleware based on path patterns
-	if strings.HasPrefix(requestPath, "/api/") {
-		// Add API-specific middleware
-		if apiMw, ok := o.registry.Get("api-logging"); ok {
-			pathChain.Insert(0, apiMw)
-		}
-	} else if strings.HasPrefix(requestPath, "/admin/") {
-		// Add admin-specific middleware
-		if adminMw, ok := o.registry.Get("admin-auth"); ok {
-			pathChain.Insert(0, adminMw)
-		}
-	} else if strings.HasPrefix(requestPath, "/static/") {
-		// Add static-specific middleware
-		if staticMw, ok := o.registry.Get("static-cache"); ok {
-			pathChain.Insert(0, staticMw)
+	for _, name := range allNames {
+		if mw, ok := o.registry.Get(name); ok {
+			config := o.config.GetMiddlewareConfig(name)
+
+			// Check if middleware has path-specific configuration
+			if paths, ok := config["paths"]; ok {
+				if pathList, ok := paths.([]string); ok {
+					if o.matchesAnyPath(requestPath, pathList) {
+						// Add path-specific middleware to the chain
+						baseChain.Add(mw)
+						o.logger.Info("added path-specific middleware", "name", name, "path", requestPath)
+					}
+				}
+			}
 		}
 	}
 
-	return pathChain
+	return baseChain
 }
 
 // filterByPath filters middleware based on path patterns.
 func (o *orchestrator) filterByPath(chainObj core.Chain, requestPath string) core.Chain {
 	middlewares := chainObj.List()
-	var filtered []core.Middleware
+	var filteredMiddlewares []core.Middleware
 
 	for _, mw := range middlewares {
 		config := o.config.GetMiddlewareConfig(mw.Name())
 
-		// Check path inclusion patterns
-		if includePaths, ok := config["include_paths"]; ok {
-			if paths, ok := includePaths.([]string); ok {
-				if !o.matchesAnyPath(requestPath, paths) {
-					o.logger.Info("middleware excluded by include_paths", "name", mw.Name(), "path", requestPath)
-					continue
-				}
-			}
-		}
-
-		// Check path exclusion patterns
+		// Check if middleware has path restrictions
 		if excludePaths, ok := config["exclude_paths"]; ok {
-			if paths, ok := excludePaths.([]string); ok {
-				if o.matchesAnyPath(requestPath, paths) {
-					o.logger.Info("middleware excluded by exclude_paths", "name", mw.Name(), "path", requestPath)
+			if pathList, ok := excludePaths.([]string); ok {
+				if o.matchesAnyPath(requestPath, pathList) {
+					o.logger.Info("excluded middleware by path", "name", mw.Name(), "path", requestPath)
 					continue
 				}
 			}
 		}
 
-		filtered = append(filtered, mw)
+		// Check if middleware has path requirements
+		if includePaths, ok := config["include_paths"]; ok {
+			if pathList, ok := includePaths.([]string); ok {
+				if !o.matchesAnyPath(requestPath, pathList) {
+					o.logger.Info("excluded middleware by path requirement", "name", mw.Name(), "path", requestPath)
+					continue
+				}
+			}
+		}
+
+		filteredMiddlewares = append(filteredMiddlewares, mw)
 	}
 
-	return chain.NewChainImpl(filtered)
+	return chain.NewChainImpl(filteredMiddlewares)
 }
 
 // matchesAnyPath checks if the request path matches any of the given patterns.
@@ -473,8 +525,9 @@ func (o *orchestrator) matchesPath(requestPath string, pattern string) bool {
 
 // sortByPriority sorts middleware by priority (lower number = higher priority).
 func (o *orchestrator) sortByPriority(middlewares []core.Middleware) {
-	// This is already handled by the registry, but we ensure consistency
-	// The registry.GetOrdered method already sorts by priority
+	sort.SliceStable(middlewares, func(i, j int) bool {
+		return middlewares[i].Priority() < middlewares[j].Priority()
+	})
 }
 
 // getMiddlewareNames extracts middleware names from a slice of middleware.

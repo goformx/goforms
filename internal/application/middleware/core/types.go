@@ -105,3 +105,15 @@ const (
 	MiddlewareCategoryLogging  MiddlewareCategory = "logging"
 	MiddlewareCategoryCustom   MiddlewareCategory = "custom"
 )
+
+// ChainInfo provides information about a middleware chain.
+type ChainInfo struct {
+	Type         ChainType
+	Name         string
+	Description  string
+	Categories   []MiddlewareCategory
+	Middleware   []string
+	Enabled      bool
+	PathPatterns []string
+	CustomConfig map[string]interface{}
+}
