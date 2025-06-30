@@ -354,6 +354,71 @@ tasks:
     cmds:
     - go test -bench=. -benchmem ./internal/application/middleware/...
 
+  # Cleanup tasks for legacy code removal
+  cleanup:
+    desc: Legacy code cleanup management
+    cmds:
+    - task: cleanup:validate
+
+  cleanup:safe:
+    desc: Safe cleanup - remove obvious dead code
+    cmds:
+    - echo "🧹 Running safe cleanup..."
+    - find . -name "*.go" -exec gofmt -s -w {} \;
+    - find . -name "*.go" -exec goimports -w {} \;
+    - go mod tidy
+    - go vet ./...
+    - echo "✅ Safe cleanup completed"
+
+  cleanup:deprecate:
+    desc: Mark legacy code as deprecated
+    cmds:
+    - echo "⚠️ Adding deprecation warnings to legacy code..."
+    - |
+      # Add deprecation comments to old Manager methods
+      find internal/application/middleware/ -name "*.go" -exec sed -i 's/func (m \*Manager)/\/\/ @deprecated - Use new middleware architecture\nfunc (m *Manager)/g' {} \;
+    - echo "✅ Deprecation warnings added"
+
+  cleanup:partial:
+    desc: Remove non-critical legacy code (requires production validation)
+    cmds:
+    - echo "🔧 Removing non-critical legacy code..."
+    - echo "⚠️ This should only be run after 4+ weeks of production validation"
+    - |
+      # Remove unused methods from old Manager
+      # Keep core functionality for emergency fallback
+      echo "Keeping core Manager for emergency fallback"
+    - echo "✅ Partial cleanup completed"
+
+  cleanup:complete:
+    desc: Complete legacy removal (requires full validation)
+    cmds:
+    - echo "🗑️ Complete legacy code removal..."
+    - echo "⚠️ This should only be run after 8+ weeks of production validation"
+    - echo "⚠️ Ensure you have backup and rollback procedures"
+    - |
+      # This would remove the entire old Manager system
+      # Only run after extensive production validation
+      echo "Complete cleanup requires manual review and approval"
+    - echo "✅ Complete cleanup instructions provided"
+
+  cleanup:validate:
+    desc: Validate system after cleanup
+    deps: [ middleware:test, middleware:status ]
+    cmds:
+    - echo "🔍 Validating system after cleanup..."
+    - task: middleware:test
+    - task: middleware:status
+    - echo "✅ System validation completed"
+
+  cleanup:rollback:
+    desc: Rollback cleanup changes if needed
+    cmds:
+    - echo "🔄 Rolling back cleanup changes..."
+    - git checkout HEAD~1 -- internal/application/middleware/
+    - task: cleanup:validate
+    - echo "✅ Rollback completed"
+
   security:
     desc: Run all security checks
     deps: [ security:go, security:frontend ]

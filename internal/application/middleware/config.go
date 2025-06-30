@@ -276,8 +276,55 @@ func (c *middlewareConfig) getMiddlewareExcludePaths(name string) []string {
 
 // getCustomMiddlewareConfig returns custom configuration for a middleware
 func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]interface{} {
-	// For now, return empty map - can be extended later with actual config access
-	return nil
+	// Return custom configuration based on middleware name
+	customConfigs := map[string]map[string]interface{}{
+		"csrf": {
+			"token_header": "X-CSRF-Token",
+			"cookie_name":  "csrf_token",
+			"expire_time":  3600, // 1 hour
+		},
+		"rate-limit": {
+			"requests_per_minute": 60,
+			"burst_size":          10,
+			"window_size":         60, // seconds
+		},
+		"timeout": {
+			"timeout_seconds": 30,
+			"grace_period":    5,
+		},
+		"logging": {
+			"log_level":     "info",
+			"include_body":  false,
+			"mask_headers":  []string{"authorization", "cookie"},
+			"log_requests":  true,
+			"log_responses": true,
+		},
+		"session": {
+			"session_timeout": 3600, // 1 hour
+			"refresh_timeout": 300,  // 5 minutes
+			"secure_cookies":  true,
+			"http_only":       true,
+		},
+		"authentication": {
+			"jwt_secret":     "your-secret-key",
+			"token_expiry":   3600,  // 1 hour
+			"refresh_expiry": 86400, // 24 hours
+		},
+		"authorization": {
+			"default_role": "user",
+			"admin_role":   "admin",
+			"cache_ttl":    300, // 5 minutes
+		},
+	}
+
+	if config, exists := customConfigs[name]; exists {
+		return config
+	}
+
+	// Return default configuration for unknown middleware
+	return map[string]interface{}{
+		"enabled": true,
+	}
 }
 
 // getChainMiddleware returns middleware names for a specific chain type
@@ -286,7 +333,7 @@ func (c *middlewareConfig) getChainMiddleware(chainType core.ChainType) []string
 	case core.ChainTypeDefault:
 		return []string{"recovery", "cors", "request-id", "timeout"}
 	case core.ChainTypeAPI:
-		return []string{"security-headers", "csrf", "rate-limit"}
+		return []string{"security-headers", "session", "csrf", "rate-limit", "authentication", "authorization"}
 	case core.ChainTypeWeb:
 		return []string{"session", "authentication", "authorization"}
 	case core.ChainTypeAuth:
@@ -326,6 +373,94 @@ func (c *middlewareConfig) getChainPaths(chainType core.ChainType) []string {
 
 // getChainCustomConfig returns custom configuration for a specific chain type
 func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[string]interface{} {
-	// For now, return empty map - can be extended later with actual config access
-	return nil
+	// Return custom configuration based on chain type
+	customConfigs := map[core.ChainType]map[string]interface{}{
+		core.ChainTypeDefault: {
+			"timeout":          30,
+			"max_body_size":    "10MB",
+			"compress":         true,
+			"cors_origins":     []string{"*"},
+			"security_headers": true,
+		},
+		core.ChainTypeAPI: {
+			"timeout":          60,
+			"max_body_size":    "50MB",
+			"compress":         true,
+			"cors_origins":     []string{"https://api.example.com"},
+			"rate_limit":       true,
+			"authentication":   true,
+			"authorization":    true,
+			"request_logging":  true,
+			"response_logging": false,
+		},
+		core.ChainTypeWeb: {
+			"timeout":          30,
+			"max_body_size":    "25MB",
+			"compress":         true,
+			"cors_origins":     []string{"https://app.example.com"},
+			"session":          true,
+			"authentication":   true,
+			"authorization":    true,
+			"request_logging":  true,
+			"response_logging": false,
+		},
+		core.ChainTypeAuth: {
+			"timeout":          15,
+			"max_body_size":    "5MB",
+			"compress":         false,
+			"cors_origins":     []string{"https://auth.example.com"},
+			"session":          true,
+			"authentication":   true,
+			"csrf_protection":  true,
+			"request_logging":  true,
+			"response_logging": false,
+		},
+		core.ChainTypeAdmin: {
+			"timeout":          60,
+			"max_body_size":    "100MB",
+			"compress":         true,
+			"cors_origins":     []string{"https://admin.example.com"},
+			"session":          true,
+			"authentication":   true,
+			"authorization":    true,
+			"rate_limit":       true,
+			"request_logging":  true,
+			"response_logging": true,
+			"audit_logging":    true,
+		},
+		core.ChainTypePublic: {
+			"timeout":          10,
+			"max_body_size":    "1MB",
+			"compress":         true,
+			"cors_origins":     []string{"*"},
+			"session":          false,
+			"authentication":   false,
+			"authorization":    false,
+			"request_logging":  false,
+			"response_logging": false,
+		},
+		core.ChainTypeStatic: {
+			"timeout":          5,
+			"max_body_size":    "100MB",
+			"compress":         true,
+			"cors_origins":     []string{"*"},
+			"session":          false,
+			"authentication":   false,
+			"authorization":    false,
+			"request_logging":  false,
+			"response_logging": false,
+			"cache_headers":    true,
+			"cache_duration":   86400, // 24 hours
+		},
+	}
+
+	if config, exists := customConfigs[chainType]; exists {
+		return config
+	}
+
+	// Return default configuration for unknown chain types
+	return map[string]interface{}{
+		"enabled": true,
+		"timeout": 30,
+	}
 }
