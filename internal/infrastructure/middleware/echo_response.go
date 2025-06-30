@@ -10,19 +10,19 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
 // EchoResponseWrapper wraps our Response interface to work with Echo's response system.
 // This adapter provides a bridge between our framework-agnostic response and Echo's
 // response handling mechanisms.
 type EchoResponseWrapper struct {
-	response appmiddleware.Response
+	response core.Response
 	context  echo.Context
 }
 
 // NewEchoResponseWrapper creates a new Echo response wrapper.
-func NewEchoResponseWrapper(resp appmiddleware.Response, c echo.Context) *EchoResponseWrapper {
+func NewEchoResponseWrapper(resp core.Response, c echo.Context) *EchoResponseWrapper {
 	return &EchoResponseWrapper{
 		response: resp,
 		context:  c,
@@ -86,14 +86,14 @@ func (w *EchoResponseWrapper) writeBody() error {
 // EchoResponseBuilder provides a builder pattern for creating responses
 // that can be easily applied to Echo contexts.
 type EchoResponseBuilder struct {
-	response appmiddleware.Response
+	response core.Response
 	context  echo.Context
 }
 
 // NewEchoResponseBuilder creates a new Echo response builder.
 func NewEchoResponseBuilder(c echo.Context) *EchoResponseBuilder {
 	return &EchoResponseBuilder{
-		response: appmiddleware.NewResponse(http.StatusOK),
+		response: core.NewResponse(http.StatusOK),
 		context:  c,
 	}
 }
@@ -193,7 +193,7 @@ func (b *EchoResponseBuilder) BodyString(data string) *EchoResponseBuilder {
 }
 
 // Build returns the built response.
-func (b *EchoResponseBuilder) Build() appmiddleware.Response {
+func (b *EchoResponseBuilder) Build() core.Response {
 	return b.response
 }
 
@@ -215,8 +215,8 @@ func NewEchoResponseConverter() *EchoResponseConverter {
 // FromEchoResponse converts an Echo response to our Response interface.
 // Note: This is a simplified conversion as Echo doesn't provide direct
 // access to all response data in this context.
-func (c *EchoResponseConverter) FromEchoResponse(echoResp *echo.Response) appmiddleware.Response {
-	resp := appmiddleware.NewResponse(echoResp.Status)
+func (c *EchoResponseConverter) FromEchoResponse(echoResp *echo.Response) core.Response {
+	resp := core.NewResponse(echoResp.Status)
 
 	// Copy headers
 	for key, values := range echoResp.Header() {

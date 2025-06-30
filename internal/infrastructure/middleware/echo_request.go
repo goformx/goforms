@@ -13,7 +13,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
 // EchoRequest wraps Echo's echo.Context to implement our Request interface.
@@ -25,7 +25,7 @@ type EchoRequest struct {
 }
 
 // NewEchoRequest creates a new Echo request wrapper.
-func NewEchoRequest(c echo.Context) appmiddleware.Request {
+func NewEchoRequest(c echo.Context) core.Request {
 	return &EchoRequest{
 		context: c,
 		form:    make(url.Values),
@@ -38,8 +38,8 @@ func (r *EchoRequest) Method() string {
 }
 
 // URL returns the request URL
-func (r *EchoRequest) URL() *url.URL {
-	return r.context.Request().URL
+func (r *EchoRequest) URL() *http.Request {
+	return r.context.Request()
 }
 
 // Path returns the request path
@@ -48,7 +48,7 @@ func (r *EchoRequest) Path() string {
 }
 
 // Query returns the query parameters
-func (r *EchoRequest) Query() url.Values {
+func (r *EchoRequest) Query() map[string][]string {
 	return r.context.QueryParams()
 }
 
@@ -103,7 +103,7 @@ func (r *EchoRequest) Context() context.Context {
 }
 
 // WithContext returns a new request with the given context
-func (r *EchoRequest) WithContext(ctx context.Context) appmiddleware.Request {
+func (r *EchoRequest) WithContext(ctx context.Context) core.Request {
 	newReq := *r
 	newReq.context = r.context // Echo context doesn't support context replacement
 	return &newReq
