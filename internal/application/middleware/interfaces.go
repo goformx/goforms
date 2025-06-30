@@ -7,6 +7,8 @@ package middleware
 import (
 	"context"
 	"time"
+
+	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
 // Middleware defines the core interface for all middleware components.
@@ -30,39 +32,6 @@ type Middleware interface {
 // Handler represents the next handler in the middleware chain.
 // This is a function type that processes a request and returns a response.
 type Handler func(ctx context.Context, req Request) Response
-
-// Chain represents a sequence of middleware that can be executed in order.
-// The chain manages the execution flow and ensures proper middleware ordering.
-type Chain interface {
-	// Process executes the middleware chain for a given request.
-	// Returns the final response after all middleware have been processed.
-	Process(ctx context.Context, req Request) Response
-
-	// Add appends middleware to the end of the chain.
-	// Returns the chain for method chaining.
-	Add(middleware ...Middleware) Chain
-
-	// Insert adds middleware at a specific position in the chain.
-	// Position 0 inserts at the beginning, position -1 inserts at the end.
-	Insert(position int, middleware ...Middleware) Chain
-
-	// Remove removes middleware by name from the chain.
-	// Returns true if middleware was found and removed.
-	Remove(name string) bool
-
-	// Get returns middleware by name from the chain.
-	// Returns nil if middleware is not found.
-	Get(name string) Middleware
-
-	// List returns all middleware in the chain in execution order.
-	List() []Middleware
-
-	// Clear removes all middleware from the chain.
-	Clear() Chain
-
-	// Length returns the number of middleware in the chain.
-	Length() int
-}
 
 // Registry manages middleware registration and discovery.
 // Provides a centralized way to register, retrieve, and manage middleware components.
@@ -95,15 +64,15 @@ type Registry interface {
 type Orchestrator interface {
 	// CreateChain creates a new middleware chain with the specified type.
 	// ChainType determines which middleware are included and their order.
-	CreateChain(chainType ChainType) (Chain, error)
+	CreateChain(chainType core.ChainType) (core.Chain, error)
 
 	// GetChain retrieves a pre-configured chain by name.
 	// Returns nil if chain is not found.
-	GetChain(name string) (Chain, bool)
+	GetChain(name string) (core.Chain, bool)
 
 	// RegisterChain registers a named chain for later retrieval.
 	// Returns an error if chain with the same name already exists.
-	RegisterChain(name string, chain Chain) error
+	RegisterChain(name string, chain core.Chain) error
 
 	// ListChains returns all registered chain names.
 	ListChains() []string
