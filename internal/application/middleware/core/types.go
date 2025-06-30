@@ -94,3 +94,14 @@ func NewError(code, message, middleware string, cause error) *Error {
 		Timestamp:  time.Now(),
 	}
 }
+
+// MiddlewareCategory represents a category for middleware (e.g., Basic, Security, Auth, Logging, Custom)
+type MiddlewareCategory string
+
+const (
+	MiddlewareCategoryBasic    MiddlewareCategory = "basic"
+	MiddlewareCategorySecurity MiddlewareCategory = "security"
+	MiddlewareCategoryAuth     MiddlewareCategory = "auth"
+	MiddlewareCategoryLogging  MiddlewareCategory = "logging"
+	MiddlewareCategoryCustom   MiddlewareCategory = "custom"
+)
