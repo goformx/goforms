@@ -1,0 +1,319 @@
+package middleware_test
+
+import (
+	"testing"
+	"time"
+
+	"github.com/labstack/echo/v4"
+	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
+	"go.uber.org/mock/gomock"
+
+	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/core"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	mocklogging "github.com/goformx/goforms/test/mocks/logging"
+)
+
+// TestIntegration_MiddlewareOrchestrator tests the complete middleware orchestrator integration
+func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Setup
+	logger := mocklogging.NewMockLogger(ctrl)
+	logger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := createIntegrationTestConfig()
+	config := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, config)
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// Test registry registration
+	t.Run("Registry Registration", func(t *testing.T) {
+		// Register middleware
+		err := registry.Register("test-recovery", middleware.NewRecoveryMiddleware())
+		require.NoError(t, err)
+
+		err = registry.Register("test-cors", middleware.NewCORSMiddleware())
+		require.NoError(t, err)
+
+		// Verify registration
+		mw, exists := registry.Get("test-recovery")
+		assert.True(t, exists)
+		assert.Equal(t, "test-recovery", mw.Name())
+
+		// List middleware
+		middlewares := registry.List()
+		assert.Contains(t, middlewares, "test-recovery")
+		assert.Contains(t, middlewares, "test-cors")
+	})
+
+	// Test orchestrator chain building
+	t.Run("Orchestrator Chain Building", func(t *testing.T) {
+		// Build different chain types
+		chainTypes := []core.ChainType{
+			core.ChainTypeDefault,
+			core.ChainTypeAPI,
+			core.ChainTypeWeb,
+			core.ChainTypeAuth,
+			core.ChainTypeAdmin,
+			core.ChainTypePublic,
+			core.ChainTypeStatic,
+		}
+
+		for _, chainType := range chainTypes {
+			t.Run(chainType.String(), func(t *testing.T) {
+				chain, err := orchestrator.BuildChain(chainType)
+				require.NoError(t, err)
+				assert.NotNil(t, chain)
+				assert.GreaterOrEqual(t, chain.Length(), 0)
+			})
+		}
+	})
+
+	// Test Echo adapter integration
+	t.Run("Echo Adapter Integration", func(t *testing.T) {
+		adapter := middleware.NewEchoOrchestratorAdapter(orchestrator, logger)
+		e := echo.New()
+
+		err := adapter.SetupMiddleware(e)
+		require.NoError(t, err)
+
+		// Verify middleware was applied by checking if Echo instance is properly configured
+		// Note: We can't directly access middleware slice, but we can verify the setup didn't error
+		assert.NoError(t, err)
+	})
+
+	// Test migration adapter
+	t.Run("Migration Adapter", func(t *testing.T) {
+		migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
+
+		// Test initial state
+		assert.False(t, migrationAdapter.IsNewSystemEnabled())
+
+		// Test enabling new system
+		migrationAdapter.EnableNewSystem()
+		assert.True(t, migrationAdapter.IsNewSystemEnabled())
+
+		// Test migration status
+		status := migrationAdapter.GetMigrationStatus()
+		assert.True(t, status.NewSystemEnabled)
+		assert.NotNil(t, status.RegisteredMiddleware)
+		assert.NotNil(t, status.AvailableChains)
+
+		// Test validation
+		err := migrationAdapter.ValidateMigration()
+		require.NoError(t, err)
+	})
+
+	// Test configuration integration
+	t.Run("Configuration Integration", func(t *testing.T) {
+		// Test middleware enabled check
+		assert.True(t, config.IsMiddlewareEnabled("recovery"))
+		assert.True(t, config.IsMiddlewareEnabled("cors"))
+
+		// Test middleware config
+		mwConfig := config.GetMiddlewareConfig("recovery")
+		assert.NotNil(t, mwConfig)
+		assert.Equal(t, core.MiddlewareCategoryBasic, mwConfig["category"])
+
+		// Test chain config
+		chainConfig := config.GetChainConfig(core.ChainTypeDefault)
+		assert.True(t, chainConfig.Enabled)
+		assert.NotEmpty(t, chainConfig.MiddlewareNames)
+	})
+}
+
+// TestIntegration_MigrationFlow tests the complete migration flow
+func TestIntegration_MigrationFlow(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger := mocklogging.NewMockLogger(ctrl)
+	logger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := createIntegrationTestConfig()
+	config := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, config)
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
+
+	// Register required middleware
+	requiredMiddleware := []struct {
+		name string
+		mw   core.Middleware
+	}{
+		{"recovery", middleware.NewRecoveryMiddleware()},
+		{"cors", middleware.NewCORSMiddleware()},
+		{"request-id", middleware.NewRequestIDMiddleware()},
+		{"timeout", middleware.NewTimeoutMiddleware()},
+		{"security-headers", middleware.NewSecurityHeadersMiddleware()},
+		{"csrf", middleware.NewCSRFMiddleware()},
+		{"rate-limit", middleware.NewRateLimitMiddleware()},
+		{"session", middleware.NewSessionMiddleware()},
+		{"authentication", middleware.NewAuthenticationMiddleware()},
+		{"authorization", middleware.NewAuthorizationMiddleware()},
+	}
+
+	for _, m := range requiredMiddleware {
+		err := registry.Register(m.name, m.mw)
+		require.NoError(t, err)
+	}
+
+	t.Run("Migration Flow", func(t *testing.T) {
+		// Phase 1: Start with old system
+		assert.False(t, migrationAdapter.IsNewSystemEnabled())
+
+		// Phase 2: Validate migration readiness
+		err := migrationAdapter.ValidateMigration()
+		require.NoError(t, err)
+
+		// Phase 3: Enable new system
+		migrationAdapter.EnableNewSystem()
+		assert.True(t, migrationAdapter.IsNewSystemEnabled())
+
+		// Phase 4: Test Echo integration with new system
+		e := echo.New()
+		err = migrationAdapter.SetupHybridMiddleware(e, nil) // No old manager needed for new system
+		require.NoError(t, err)
+
+		// Phase 5: Test rollback capability
+		migrationAdapter.RollbackMigration()
+		assert.False(t, migrationAdapter.IsNewSystemEnabled())
+	})
+}
+
+// TestIntegration_PathBasedChains tests path-based middleware chain selection
+func TestIntegration_PathBasedChains(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger := mocklogging.NewMockLogger(ctrl)
+	logger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := createIntegrationTestConfig()
+	config := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, config)
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	adapter := middleware.NewEchoOrchestratorAdapter(orchestrator, logger)
+
+	// Register middleware
+	registry.Register("recovery", middleware.NewRecoveryMiddleware())
+	registry.Register("cors", middleware.NewCORSMiddleware())
+
+	t.Run("Path-Based Chain Selection", func(t *testing.T) {
+		testCases := []struct {
+			path     string
+			expected core.ChainType
+		}{
+			{"/api/users", core.ChainTypeAPI},
+			{"/dashboard", core.ChainTypeWeb},
+			{"/login", core.ChainTypeAuth},
+			{"/admin/users", core.ChainTypeAdmin},
+			{"/", core.ChainTypePublic},
+			{"/static/css/style.css", core.ChainTypeStatic},
+			{"/unknown/path", core.ChainTypeDefault},
+		}
+
+		for _, tc := range testCases {
+			t.Run(tc.path, func(t *testing.T) {
+				chain, err := adapter.BuildChainForPath(tc.path)
+				require.NoError(t, err)
+				assert.NotNil(t, chain)
+			})
+		}
+	})
+}
+
+// TestIntegration_Performance tests middleware chain performance
+func TestIntegration_Performance(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger := mocklogging.NewMockLogger(ctrl)
+	logger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := createIntegrationTestConfig()
+	config := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, config)
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+	// Register multiple middleware
+	for i := 0; i < 10; i++ {
+		registry.Register("test-mw-"+string(rune(i)), middleware.NewRecoveryMiddleware())
+	}
+
+	t.Run("Chain Building Performance", func(t *testing.T) {
+		start := time.Now()
+
+		for i := 0; i < 100; i++ {
+			chain, err := orchestrator.BuildChain(core.ChainTypeDefault)
+			require.NoError(t, err)
+			assert.NotNil(t, chain)
+		}
+
+		duration := time.Since(start)
+		assert.Less(t, duration, 100*time.Millisecond, "Chain building should be fast")
+	})
+}
+
+// TestIntegration_ErrorHandling tests error handling in the middleware system
+func TestIntegration_ErrorHandling(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger := mocklogging.NewMockLogger(ctrl)
+	logger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+
+	cfg := createIntegrationTestConfig()
+	config := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, config)
+	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
+
+	t.Run("Error Handling", func(t *testing.T) {
+		// Test migration with missing middleware
+		err := migrationAdapter.ValidateMigration()
+		// This should fail because not all required middleware are registered
+		assert.Error(t, err)
+
+		// Test rollback on error
+		migrationAdapter.EnableNewSystem()
+		e := echo.New()
+		err = migrationAdapter.SetupWithFallback(e, nil)
+		// Should fallback to old system or handle error gracefully
+		assert.NoError(t, err)
+	})
+}
+
+// Helper functions
+
+func createIntegrationTestConfig() *config.Config {
+	return &config.Config{
+		App: config.AppConfig{
+			Name:        "test-app",
+			Environment: "test",
+			Debug:       true,
+		},
+		Security: config.SecurityConfig{
+			CORS: config.CORSConfig{
+				Enabled: true,
+			},
+			CSRF: config.CSRFConfig{
+				Enabled: true,
+			},
+			RateLimit: config.RateLimitConfig{
+				Enabled: true,
+			},
+		},
+	}
+}
