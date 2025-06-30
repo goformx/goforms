@@ -220,6 +220,27 @@ func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 		Encryption: EncryptionConfig{
 			Key: vc.viper.GetString("security.encryption.key"),
 		},
+		SecurityHeaders: SecurityHeadersConfig{
+			Enabled:                 vc.viper.GetBool("security.security_headers.enabled"),
+			XFrameOptions:           vc.viper.GetString("security.security_headers.x_frame_options"),
+			XContentTypeOptions:     vc.viper.GetString("security.security_headers.x_content_type_options"),
+			XXSSProtection:          vc.viper.GetString("security.security_headers.x_xss_protection"),
+			ReferrerPolicy:          vc.viper.GetString("security.security_headers.referrer_policy"),
+			PermissionsPolicy:       vc.viper.GetString("security.security_headers.permissions_policy"),
+			StrictTransportSecurity: vc.viper.GetString("security.security_headers.strict_transport_security"),
+		},
+		CookieSecurity: CookieSecurityConfig{
+			Secure:   vc.viper.GetBool("security.cookie_security.secure"),
+			HTTPOnly: vc.viper.GetBool("security.cookie_security.http_only"),
+			SameSite: vc.viper.GetString("security.cookie_security.same_site"),
+			Path:     vc.viper.GetString("security.cookie_security.path"),
+			Domain:   vc.viper.GetString("security.cookie_security.domain"),
+			MaxAge:   vc.viper.GetInt("security.cookie_security.max_age"),
+		},
+		TrustProxy: TrustProxyConfig{
+			Enabled:        vc.viper.GetBool("security.trust_proxy.enabled"),
+			TrustedProxies: vc.viper.GetStringSlice("security.trust_proxy.trusted_proxies"),
+		},
 		SecureCookie: vc.viper.GetBool("security.secure_cookie"),
 		Debug:        vc.viper.GetBool("security.debug"),
 	}
@@ -524,6 +545,27 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.encryption.key", "")
 	v.SetDefault("security.secure_cookie", false)
 	v.SetDefault("security.debug", false)
+
+	// Security Headers defaults
+	v.SetDefault("security.security_headers.enabled", true)
+	v.SetDefault("security.security_headers.x_frame_options", "DENY")
+	v.SetDefault("security.security_headers.x_content_type_options", "nosniff")
+	v.SetDefault("security.security_headers.x_xss_protection", "1; mode=block")
+	v.SetDefault("security.security_headers.referrer_policy", "strict-origin-when-cross-origin")
+	v.SetDefault("security.security_headers.permissions_policy", "camera=(), microphone=(), geolocation=()")
+	v.SetDefault("security.security_headers.strict_transport_security", "")
+
+	// Cookie Security defaults
+	v.SetDefault("security.cookie_security.secure", false)
+	v.SetDefault("security.cookie_security.http_only", true)
+	v.SetDefault("security.cookie_security.same_site", "Lax")
+	v.SetDefault("security.cookie_security.path", "/")
+	v.SetDefault("security.cookie_security.domain", "")
+	v.SetDefault("security.cookie_security.max_age", 86400)
+
+	// Trust Proxy defaults
+	v.SetDefault("security.trust_proxy.enabled", true)
+	v.SetDefault("security.trust_proxy.trusted_proxies", []string{"127.0.0.1", "::1"})
 }
 
 // setEmailDefaults sets email default values

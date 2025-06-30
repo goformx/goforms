@@ -222,11 +222,16 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 
 // setupSecurityMiddleware sets up security-related middleware
 func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
-	// Use PerFormCORS middleware for form-specific CORS handling
-	// This middleware will handle CORS for form routes and fallback to global CORS for other routes
-	// If FormService is nil, it will fallback to global CORS for all routes
-	perFormCORSConfig := NewPerFormCORSConfig(m.config.FormService, m.logger, &m.config.Config.Security)
-	e.Use(PerFormCORS(perFormCORSConfig))
+	// Use Echo's built-in CORS middleware - simple and reliable
+	if m.config.Config.Security.CORS.Enabled {
+		e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+			AllowOrigins:     m.config.Config.Security.CORS.AllowedOrigins,
+			AllowMethods:     m.config.Config.Security.CORS.AllowedMethods,
+			AllowHeaders:     m.config.Config.Security.CORS.AllowedHeaders,
+			AllowCredentials: m.config.Config.Security.CORS.AllowCredentials,
+			MaxAge:           m.config.Config.Security.CORS.MaxAge,
+		}))
+	}
 
 	// Register security middleware
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
@@ -242,7 +247,6 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Set("security_config", m.config.Config.Security)
-
 			return next(c)
 		}
 	})
@@ -564,6 +568,13 @@ func setupAdditionalSecurityHeadersMiddleware() echo.MiddlewareFunc {
 				c.Response().Header().Set("Referrer-Policy", securityConfig.SecurityHeaders.ReferrerPolicy)
 				c.Response().Header().Set("Strict-Transport-Security", securityConfig.SecurityHeaders.StrictTransportSecurity)
 				c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+			}
+
+			// Add exposed headers for CORS (since Echo's CORS doesn't support ExposeHeaders)
+			origin := c.Request().Header.Get("Origin")
+			if origin != "" {
+				// Expose CSRF token header for cross-origin requests
+				c.Response().Header().Set("Access-Control-Expose-Headers", "X-Csrf-Token")
 			}
 
 			return next(c)
