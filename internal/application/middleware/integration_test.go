@@ -34,22 +34,22 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 
 	// Test registry registration
 	t.Run("Registry Registration", func(t *testing.T) {
-		// Register middleware
-		err := registry.Register("test-recovery", middleware.NewRecoveryMiddleware())
+		// Register middleware with correct names
+		err := registry.Register("recovery", middleware.NewRecoveryMiddleware())
 		require.NoError(t, err)
 
-		err = registry.Register("test-cors", middleware.NewCORSMiddleware())
+		err = registry.Register("cors", middleware.NewCORSMiddleware())
 		require.NoError(t, err)
 
 		// Verify registration
-		mw, exists := registry.Get("test-recovery")
+		mw, exists := registry.Get("recovery")
 		assert.True(t, exists)
-		assert.Equal(t, "test-recovery", mw.Name())
+		assert.Equal(t, "recovery", mw.Name())
 
 		// List middleware
 		middlewares := registry.List()
-		assert.Contains(t, middlewares, "test-recovery")
-		assert.Contains(t, middlewares, "test-cors")
+		assert.Contains(t, middlewares, "recovery")
+		assert.Contains(t, middlewares, "cors")
 	})
 
 	// Test orchestrator chain building

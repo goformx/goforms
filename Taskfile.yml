@@ -173,7 +173,6 @@ tasks:
     cmds:
     - for: ['bin/', 'dist/', 'node_modules/', 'coverage/', '.task/']
       cmd: rm -rf {{.ITEM}}
-      ignore_error: true
     - find internal/ -name '*_templ.go' -delete
     - find test/mocks -name 'mock_*.go' -delete
 
@@ -259,6 +258,101 @@ tasks:
       - "internal/**/*.go"
     cmds:
     - go test -v -tags=integration ./test/integration/...
+
+  # Middleware-specific tasks
+  middleware:
+    desc: Middleware system management
+    cmds:
+    - task: middleware:test
+    - task: middleware:status
+
+  middleware:test:
+    desc: Run middleware-specific tests
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v ./internal/application/middleware/...
+
+  middleware:test:unit:
+    desc: Run middleware unit tests only
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v -run "^Test.*Unit" ./internal/application/middleware/...
+
+  middleware:test:integration:
+    desc: Run middleware integration tests
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v -run "^TestIntegration" ./internal/application/middleware/...
+
+  middleware:test:performance:
+    desc: Run middleware performance tests
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v -run "^Test.*Performance" ./internal/application/middleware/...
+
+  middleware:deploy:
+    desc: Deploy middleware system with new architecture
+    cmds:
+    - ./scripts/deploy-middleware.sh staging false
+
+  middleware:deploy:new:
+    desc: Deploy middleware system with new architecture enabled
+    cmds:
+    - ./scripts/deploy-middleware.sh staging true
+
+  middleware:deploy:production:
+    desc: Deploy middleware system to production
+    cmds:
+    - ./scripts/deploy-middleware.sh production true
+
+  middleware:status:
+    desc: Check middleware system status
+    cmds:
+    - |
+      if [ -f scripts/monitor-middleware.sh ]; then
+        ./scripts/monitor-middleware.sh
+      else
+        echo "Middleware monitoring script not found. Run middleware:deploy first."
+      fi
+
+  middleware:rollback:
+    desc: Rollback to legacy middleware system
+    cmds:
+    - |
+      if [ -f scripts/rollback-middleware.sh ]; then
+        ./scripts/rollback-middleware.sh
+      else
+        echo "Rollback script not found. Run middleware:deploy first."
+      fi
+
+  middleware:validate:
+    desc: Validate middleware configuration
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+    cmds:
+    - go run -tags=validation ./internal/application/middleware/validate.go
+
+  middleware:benchmark:
+    desc: Run middleware performance benchmarks
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -bench=. -benchmem ./internal/application/middleware/...
 
   security:
     desc: Run all security checks
