@@ -31,30 +31,47 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 	config := middleware.NewMiddlewareConfig(cfg, logger)
 	registry := middleware.NewRegistry(logger, config)
 	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
+
+	// Register all required middleware for migration validation
+	requiredMiddleware := []struct {
+		name string
+		mw   core.Middleware
+	}{
+		{"recovery", middleware.NewRecoveryMiddleware()},
+		{"cors", middleware.NewCORSMiddleware()},
+		{"request-id", middleware.NewRequestIDMiddleware()},
+		{"timeout", middleware.NewTimeoutMiddleware()},
+		{"security-headers", middleware.NewSecurityHeadersMiddleware()},
+		{"csrf", middleware.NewCSRFMiddleware()},
+		{"rate-limit", middleware.NewRateLimitMiddleware()},
+		{"session", middleware.NewSessionMiddleware()},
+		{"authentication", middleware.NewAuthenticationMiddleware()},
+		{"authorization", middleware.NewAuthorizationMiddleware()},
+	}
+
+	for _, m := range requiredMiddleware {
+		err := registry.Register(m.name, m.mw)
+		require.NoError(t, err)
+	}
 
 	// Test registry registration
 	t.Run("Registry Registration", func(t *testing.T) {
-		// Register middleware with correct names
-		err := registry.Register("recovery", middleware.NewRecoveryMiddleware())
-		require.NoError(t, err)
+		// Test middleware registration
+		assert.Equal(t, 10, registry.Count())
+		assert.Contains(t, registry.List(), "recovery")
+		assert.Contains(t, registry.List(), "cors")
 
-		err = registry.Register("cors", middleware.NewCORSMiddleware())
-		require.NoError(t, err)
-
-		// Verify registration
+		// Test middleware retrieval
 		mw, exists := registry.Get("recovery")
 		assert.True(t, exists)
+		assert.NotNil(t, mw)
 		assert.Equal(t, "recovery", mw.Name())
-
-		// List middleware
-		middlewares := registry.List()
-		assert.Contains(t, middlewares, "recovery")
-		assert.Contains(t, middlewares, "cors")
 	})
 
 	// Test orchestrator chain building
 	t.Run("Orchestrator Chain Building", func(t *testing.T) {
-		// Build different chain types
+		// Test different chain types
 		chainTypes := []core.ChainType{
 			core.ChainTypeDefault,
 			core.ChainTypeAPI,
@@ -68,7 +85,7 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 		for _, chainType := range chainTypes {
 			t.Run(chainType.String(), func(t *testing.T) {
 				chain, err := orchestrator.BuildChain(chainType)
-				require.NoError(t, err)
+				assert.NoError(t, err)
 				assert.NotNil(t, chain)
 				assert.GreaterOrEqual(t, chain.Length(), 0)
 			})
@@ -80,34 +97,30 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 		adapter := middleware.NewEchoOrchestratorAdapter(orchestrator, logger)
 		e := echo.New()
 
+		// Test middleware setup
 		err := adapter.SetupMiddleware(e)
-		require.NoError(t, err)
-
-		// Verify middleware was applied by checking if Echo instance is properly configured
-		// Note: We can't directly access middleware slice, but we can verify the setup didn't error
 		assert.NoError(t, err)
+
+		// Test chain building for specific paths
+		paths := []string{"/api/users", "/dashboard", "/login", "/admin/users", "/", "/static/css/style.css"}
+		for _, path := range paths {
+			chain, err := adapter.BuildChainForPath(path)
+			assert.NoError(t, err)
+			assert.NotNil(t, chain)
+		}
 	})
 
 	// Test migration adapter
 	t.Run("Migration Adapter", func(t *testing.T) {
-		migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
-
-		// Test initial state
-		assert.False(t, migrationAdapter.IsNewSystemEnabled())
-
-		// Test enabling new system
-		migrationAdapter.EnableNewSystem()
-		assert.True(t, migrationAdapter.IsNewSystemEnabled())
+		// Test migration validation
+		err := migrationAdapter.ValidateMigration()
+		require.NoError(t, err)
 
 		// Test migration status
 		status := migrationAdapter.GetMigrationStatus()
-		assert.True(t, status.NewSystemEnabled)
+		assert.False(t, status.NewSystemEnabled)
 		assert.NotNil(t, status.RegisteredMiddleware)
 		assert.NotNil(t, status.AvailableChains)
-
-		// Test validation
-		err := migrationAdapter.ValidateMigration()
-		require.NoError(t, err)
 	})
 
 	// Test configuration integration

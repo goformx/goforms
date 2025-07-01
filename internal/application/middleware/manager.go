@@ -339,6 +339,7 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 
 		// Add debug logging in development mode
 		if isDevelopment {
+			// Use structured logging with proper key-value formatting
 			c.Logger().Debug("CSRF skipper check",
 				"path", path,
 				"method", method,
@@ -610,7 +611,16 @@ func (l *EchoLogger) Printj(j log.JSON) {
 
 // Debug logs a message at debug level
 func (l *EchoLogger) Debug(i ...any) {
-	l.logger.Debug(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Debug(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Debug(fmt.Sprint(i...))
+	}
 }
 
 // Debugf logs a formatted message at debug level
@@ -630,7 +640,16 @@ func (l *EchoLogger) Debugj(j log.JSON) {
 
 // Info logs a message at info level
 func (l *EchoLogger) Info(i ...any) {
-	l.logger.Info(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Info(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Info(fmt.Sprint(i...))
+	}
 }
 
 // Infof logs a formatted message at info level
@@ -650,7 +669,16 @@ func (l *EchoLogger) Infoj(j log.JSON) {
 
 // Warn logs a message at warn level
 func (l *EchoLogger) Warn(i ...any) {
-	l.logger.Warn(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Warn(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Warn(fmt.Sprint(i...))
+	}
 }
 
 // Warnf logs a formatted message at warn level
@@ -670,7 +698,16 @@ func (l *EchoLogger) Warnj(j log.JSON) {
 
 // Error logs a message at error level
 func (l *EchoLogger) Error(i ...any) {
-	l.logger.Error(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Error(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Error(fmt.Sprint(i...))
+	}
 }
 
 // Errorf logs a formatted message at error level

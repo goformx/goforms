@@ -153,7 +153,7 @@ export class HttpClient {
           headers.set("X-Csrf-Token", csrfToken);
           Logger.log("CSRF Token included in request");
         } else {
-          Logger.log("CSRF Token not found - CSRF protection may be disabled");
+          throw new Error("CSRF token not found");
         }
       } else if (this.isPublicEndpoint(url)) {
         Logger.log("Skipping CSRF token for public endpoint");

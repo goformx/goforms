@@ -229,11 +229,11 @@ func TestOrchestrator_BuildChainForPath(t *testing.T) {
 	// Setup mock middleware
 	corsMw := &mockMiddleware{name: "cors", priority: 10, category: core.MiddlewareCategoryBasic}
 	authMw := &mockMiddleware{name: "auth", priority: 20, category: core.MiddlewareCategoryAuth}
-	apiMw := &mockMiddleware{name: "api-specific", priority: 15, category: core.MiddlewareCategoryCustom}
+	apiSpecificMw := &mockMiddleware{name: "api-specific", priority: 30, category: core.MiddlewareCategoryCustom}
 
 	registry.middlewares["cors"] = corsMw
 	registry.middlewares["auth"] = authMw
-	registry.middlewares["api-specific"] = apiMw
+	registry.middlewares["api-specific"] = apiSpecificMw
 
 	// Setup mock config
 	config.enabledMiddleware["cors"] = true
@@ -255,15 +255,12 @@ func TestOrchestrator_BuildChainForPath(t *testing.T) {
 		Enabled: true,
 	}
 
-	// Setup expectations - the orchestrator will call GetOrdered for each category
-	config.On("IsMiddlewareEnabled", "cors").Return(true)
-	config.On("IsMiddlewareEnabled", "auth").Return(true)
-	config.On("IsMiddlewareEnabled", "api-specific").Return(true)
-	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
-	config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{"category": core.MiddlewareCategoryAuth})
-	config.On("GetMiddlewareConfig", "api-specific").Return(map[string]interface{}{
-		"category": core.MiddlewareCategoryCustom,
-		"paths":    []string{"/api/*"},
+	// Setup expectations - use Any() to be more flexible
+	config.On("IsMiddlewareEnabled", mock.Anything).Return(func(name string) bool {
+		return config.enabledMiddleware[name]
+	})
+	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]interface{} {
+		return config.middlewareConfig[name]
 	})
 	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
 
@@ -643,21 +640,13 @@ func TestOrchestrator_GetChainInfo(t *testing.T) {
 		CustomConfig:    map[string]interface{}{"timeout": 30},
 	}
 
-	// Setup expectations - use Any() to be more flexible
-	config.On("IsMiddlewareEnabled", mock.Anything).Return(func(name string) bool {
-		return config.enabledMiddleware[name]
-	})
-	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]interface{} {
-		return config.middlewareConfig[name]
-	})
+	// Setup expectations - GetChainInfo only calls GetChainConfig
 	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{
 		Enabled:         true,
 		MiddlewareNames: []string{"cors"},
 		Paths:           []string{"/api/*"},
 		CustomConfig:    map[string]interface{}{"timeout": 30},
 	})
-
-	logger.On("Info", mock.Anything, mock.Anything).Return()
 
 	// Create orchestrator
 	orchestrator := middleware.NewOrchestrator(registry, config, logger)
@@ -674,7 +663,6 @@ func TestOrchestrator_GetChainInfo(t *testing.T) {
 
 	// Verify mock expectations
 	config.AssertExpectations(t)
-	logger.AssertExpectations(t)
 }
 
 func TestOrchestrator_CacheManagement(t *testing.T) {
