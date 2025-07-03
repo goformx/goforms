@@ -36,7 +36,8 @@ src/css/
 │   └── dark.css
 ├── utils/            # Utility classes
 │   └── animations.css
-├── form-builder.css  # Form builder specific styles
+├── pages/
+│   └── form-builder.css  # Form builder specific styles
 ├── formio-custom.css # Form.io customizations
 └── main.css          # Main entry point
 ```
@@ -55,11 +56,13 @@ The project uses CSS `@layer` directives to control specificity:
 ## Naming Conventions
 
 ### CSS Classes
+
 - Use kebab-case for class names: `.form-group`, `.nav-item`
 - Use BEM methodology for complex components: `.form__input--error`
 - Use semantic names that describe purpose, not appearance
 
 ### CSS Custom Properties
+
 - Use kebab-case with descriptive prefixes:
   - `--form-*` for form-related properties
   - `--color-*` for color values
@@ -69,11 +72,13 @@ The project uses CSS `@layer` directives to control specificity:
 ## Component Guidelines
 
 ### Form Components
+
 - `form.css` - Core form elements (inputs, labels, etc.)
 - `forms.css` - Form-specific components and layouts
 - `dashboard/forms.css` - Dashboard-specific form components
 
 ### Separation of Concerns
+
 - Keep core form elements in `components/form.css`
 - Put form layouts and complex components in `components/forms.css`
 - Place page-specific form styles in respective page directories
@@ -90,6 +95,7 @@ The project uses CSS `@layer` directives to control specificity:
 ## Build Process
 
 The CSS is processed with:
+
 - **PostCSS Import** - For importing CSS files
 - **PostCSS Nested** - For nested CSS syntax
 - **Autoprefixer** - For vendor prefixes
@@ -101,4 +107,4 @@ The CSS is processed with:
 2. **Choose the right file** - Existing component or new file?
 3. **Follow naming conventions** - Use consistent patterns
 4. **Update main.css** - Add import if creating new file
-5. **Test in context** - Ensure styles work as expected 
+5. **Test in context** - Ensure styles work as expected

@@ -108,3 +108,10 @@
     margin-bottom: var(--spacing-4);
   }
 }
+
+@media (max-width: 600px) {
+  .footer-container {
+    padding-left: var(--container-padding-x-mobile);
+    padding-right: var(--container-padding-x-mobile);
+  }
+}

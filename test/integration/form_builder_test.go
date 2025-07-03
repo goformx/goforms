@@ -260,7 +260,7 @@ func TestFormBuilderAssetLoadingCritical(t *testing.T) {
 		},
 		{
 			name:        "form builder CSS",
-			path:        "src/css/form-builder.css",
+			path:        "src/css/pages/form-builder.css",
 			description: "Form builder styling",
 			critical:    false,
 		},

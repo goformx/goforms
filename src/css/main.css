@@ -29,7 +29,9 @@ layer(components);
 /* Feature-specific components */
 @import url("components/forms.css") layer(components);
 @import url("components/demo_form.css") layer(components);
-@import url("form-builder.css") layer(components);
+
+/* Page-specific styles */
+@import url("pages/form-builder.css") layer(pages);
 
 /* Page styles */
 @import url("pages/error.css") layer(pages);
