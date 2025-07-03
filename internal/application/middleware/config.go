@@ -454,8 +454,8 @@ func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[st
 		},
 	}
 
-	if config, exists := customConfigs[chainType]; exists {
-		return config
+	if chainConfig, exists := customConfigs[chainType]; exists {
+		return chainConfig
 	}
 
 	// Return default configuration for unknown chain types

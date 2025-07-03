@@ -46,34 +46,72 @@ func (r *registry) Register(name string, mw core.Middleware) error {
 	}
 
 	r.middlewares[name] = mw
-	// Category, priority, dependencies, conflicts can be set via config or tags
-	// For now, default to Basic category and priority 50
-	cat := core.MiddlewareCategoryBasic
-	if catVal, ok := r.config.GetMiddlewareConfig(name)["category"]; ok {
-		if c, ok := catVal.(core.MiddlewareCategory); ok {
-			cat = c
-		}
-	}
+	r.setupMiddlewareMetadata(name)
 
+	return nil
+}
+
+// setupMiddlewareMetadata extracts and sets up middleware metadata from config
+func (r *registry) setupMiddlewareMetadata(name string) {
+	config := r.config.GetMiddlewareConfig(name)
+
+	// Set category
+	cat := r.extractCategory(config)
 	r.categories[cat] = append(r.categories[cat], name)
-	prio := 50
 
-	if prioVal, ok := r.config.GetMiddlewareConfig(name)["priority"]; ok {
-		if p, ok := prioVal.(int); ok {
-			prio = p
-		}
-	}
-
+	// Set priority
+	prio := r.extractPriority(config)
 	r.priorities[name] = prio
-	if deps, ok := r.config.GetMiddlewareConfig(name)["dependencies"]; ok {
-		if depList, ok := deps.([]string); ok {
-			r.dependencies[name] = depList
+
+	// Set dependencies
+	if deps := r.extractDependencies(config); deps != nil {
+		r.dependencies[name] = deps
+	}
+
+	// Set conflicts
+	if confs := r.extractConflicts(config); confs != nil {
+		r.conflicts[name] = confs
+	}
+}
+
+// extractCategory extracts the category from middleware config
+func (r *registry) extractCategory(config map[string]any) core.MiddlewareCategory {
+	if catVal, exists := config["category"]; exists {
+		if c, ok := catVal.(core.MiddlewareCategory); ok {
+			return c
 		}
 	}
 
-	if confs, ok := r.config.GetMiddlewareConfig(name)["conflicts"]; ok {
+	return core.MiddlewareCategoryBasic
+}
+
+// extractPriority extracts the priority from middleware config
+func (r *registry) extractPriority(config map[string]any) int {
+	if prioVal, exists := config["priority"]; exists {
+		if p, ok := prioVal.(int); ok {
+			return p
+		}
+	}
+
+	return 50
+}
+
+// extractDependencies extracts dependencies from middleware config
+func (r *registry) extractDependencies(config map[string]any) []string {
+	if deps, exists := config["dependencies"]; exists {
+		if depList, ok := deps.([]string); ok {
+			return depList
+		}
+	}
+
+	return nil
+}
+
+// extractConflicts extracts conflicts from middleware config
+func (r *registry) extractConflicts(config map[string]any) []string {
+	if confs, exists := config["conflicts"]; exists {
 		if confList, ok := confs.([]string); ok {
-			r.conflicts[name] = confList
+			return confList
 		}
 	}
 

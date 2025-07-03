@@ -127,7 +127,7 @@ func (ct ChainType) String() string {
 	case ChainTypeStatic:
 		return "static"
 	default:
-		return "unknown"
+		return UnknownChainType
 	}
 }
 
@@ -194,4 +194,7 @@ const (
 
 	// ErrorCodeInternal indicates an internal middleware error.
 	ErrorCodeInternal = "INTERNAL_ERROR"
+
+	// UnknownChainType represents an unknown chain type.
+	UnknownChainType = "unknown"
 )

@@ -64,9 +64,7 @@ var Module = fx.Module("middleware",
 		// NEW ARCHITECTURE: Core middleware components
 		// Middleware configuration provider
 		fx.Annotate(
-			func(cfg *config.Config, logger logging.Logger) MiddlewareConfig {
-				return NewMiddlewareConfig(cfg, logger)
-			},
+			NewMiddlewareConfig,
 			fx.As(new(MiddlewareConfig)),
 		),
 
@@ -88,20 +86,12 @@ var Module = fx.Module("middleware",
 
 		// Echo integration adapter
 		fx.Annotate(
-			func(orchestrator core.Orchestrator, logger logging.Logger) *EchoOrchestratorAdapter {
-				return NewEchoOrchestratorAdapter(orchestrator, logger)
-			},
+			NewEchoOrchestratorAdapter,
 		),
 
 		// Migration adapter for gradual transition
 		fx.Annotate(
-			func(
-				orchestrator core.Orchestrator,
-				registry core.Registry,
-				logger logging.Logger,
-			) *MigrationAdapter {
-				return NewMigrationAdapter(orchestrator, registry, logger)
-			},
+			NewMigrationAdapter,
 		),
 
 		// LEGACY: Manager with simplified config - direct infrastructure config usage

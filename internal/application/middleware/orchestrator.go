@@ -623,8 +623,8 @@ func (o *orchestrator) validateDependencies(
 	config map[string]any,
 	middlewareSet map[string]bool,
 ) error {
-	if deps, ok := config["dependencies"]; ok {
-		if depList, ok := deps.([]string); ok {
+	if deps, exists := config["dependencies"]; exists {
+		if depList, isStringSlice := deps.([]string); isStringSlice {
 			for _, dep := range depList {
 				if !middlewareSet[dep] {
 					return fmt.Errorf("middleware %q requires missing dependency %q", name, dep)
@@ -642,8 +642,8 @@ func (o *orchestrator) validateConflicts(
 	config map[string]any,
 	middlewareSet map[string]bool,
 ) error {
-	if confs, ok := config["conflicts"]; ok {
-		if confList, ok := confs.([]string); ok {
+	if confs, exists := config["conflicts"]; exists {
+		if confList, isStringSlice := confs.([]string); isStringSlice {
 			for _, conf := range confList {
 				if middlewareSet[conf] {
 					return fmt.Errorf("middleware %q conflicts with %q", name, conf)
@@ -657,8 +657,8 @@ func (o *orchestrator) validateConflicts(
 
 // validateRegistryDependency checks if a middleware's dependencies exist in the registry.
 func (o *orchestrator) validateRegistryDependency(name string, config map[string]any) error {
-	if deps, ok := config["dependencies"]; ok {
-		if depList, ok := deps.([]string); ok {
+	if deps, exists := config["dependencies"]; exists {
+		if depList, isStringSlice := deps.([]string); isStringSlice {
 			for _, dep := range depList {
 				if _, exists := o.registry.Get(dep); !exists {
 					return fmt.Errorf("middleware %q requires missing dependency %q", name, dep)
@@ -675,8 +675,8 @@ func (o *orchestrator) shouldAddPathSpecificMiddleware(
 	config map[string]any,
 	requestPath string,
 ) bool {
-	if paths, ok := config["paths"]; ok {
-		if pathList, ok := paths.([]string); ok {
+	if paths, exists := config["paths"]; exists {
+		if pathList, isStringSlice := paths.([]string); isStringSlice {
 			return o.matchesAnyPath(requestPath, pathList)
 		}
 	}
@@ -686,8 +686,8 @@ func (o *orchestrator) shouldAddPathSpecificMiddleware(
 
 // shouldExcludeByPath checks if middleware should be excluded based on exclude_paths.
 func (o *orchestrator) shouldExcludeByPath(_ string, config map[string]any, requestPath string) bool {
-	if excludePaths, ok := config["exclude_paths"]; ok {
-		if pathList, ok := excludePaths.([]string); ok {
+	if excludePaths, exists := config["exclude_paths"]; exists {
+		if pathList, isStringSlice := excludePaths.([]string); isStringSlice {
 			return o.matchesAnyPath(requestPath, pathList)
 		}
 	}
@@ -700,8 +700,8 @@ func (o *orchestrator) shouldExcludeByPathRequirement(
 	config map[string]any,
 	requestPath string,
 ) bool {
-	if includePaths, ok := config["include_paths"]; ok {
-		if pathList, ok := includePaths.([]string); ok {
+	if includePaths, exists := config["include_paths"]; exists {
+		if pathList, isStringSlice := includePaths.([]string); isStringSlice {
 			return !o.matchesAnyPath(requestPath, pathList)
 		}
 	}
