@@ -218,8 +218,10 @@ func TestIntegration_PathBasedChains(t *testing.T) {
 	adapter := middleware.NewEchoOrchestratorAdapter(orchestrator, logger)
 
 	// Register middleware
-	registry.Register("recovery", middleware.NewRecoveryMiddleware())
-	registry.Register("cors", middleware.NewCORSMiddleware())
+	err := registry.Register("recovery", middleware.NewRecoveryMiddleware())
+	require.NoError(t, err)
+	err = registry.Register("cors", middleware.NewCORSMiddleware())
+	require.NoError(t, err)
 
 	t.Run("Path-Based Chain Selection", func(t *testing.T) {
 		testCases := []struct {
@@ -261,7 +263,8 @@ func TestIntegration_Performance(t *testing.T) {
 
 	// Register multiple middleware
 	for i := 0; i < 10; i++ {
-		registry.Register("test-mw-"+string(rune(i)), middleware.NewRecoveryMiddleware())
+		err := registry.Register("test-mw-"+string(rune(i)), middleware.NewRecoveryMiddleware())
+		require.NoError(t, err)
 	}
 
 	t.Run("Chain Building Performance", func(t *testing.T) {

@@ -382,12 +382,12 @@ func (r *httpResponse) BodyBytes() []byte {
 	if r.body != nil {
 		if reader, ok := r.body.(*bytes.Reader); ok {
 			// Reset reader to beginning and read all bytes
-			reader.Seek(0, 0)
+			if _, err := reader.Seek(0, 0); err == nil {
+				if data, err := io.ReadAll(reader); err == nil {
+					r.bodyBytes = data
 
-			if data, err := io.ReadAll(reader); err == nil {
-				r.bodyBytes = data
-
-				return data
+					return data
+				}
 			}
 		}
 		// Read from io.Reader

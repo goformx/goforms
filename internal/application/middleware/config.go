@@ -81,65 +81,65 @@ func (c *middlewareConfig) IsMiddlewareEnabled(name string) bool {
 
 // GetMiddlewareConfig returns configuration for a specific middleware
 func (c *middlewareConfig) GetMiddlewareConfig(name string) map[string]interface{} {
-	config := make(map[string]interface{})
+	mwConfig := make(map[string]interface{})
 
 	// Get category
 	if category := c.getMiddlewareCategory(name); category != "" {
-		config["category"] = category
+		mwConfig["category"] = category
 	}
 
 	// Get priority
 	if priority := c.getMiddlewarePriority(name); priority > 0 {
-		config["priority"] = priority
+		mwConfig["priority"] = priority
 	}
 
 	// Get dependencies
 	if deps := c.getMiddlewareDependencies(name); len(deps) > 0 {
-		config["dependencies"] = deps
+		mwConfig["dependencies"] = deps
 	}
 
 	// Get conflicts
 	if conflicts := c.getMiddlewareConflicts(name); len(conflicts) > 0 {
-		config["conflicts"] = conflicts
+		mwConfig["conflicts"] = conflicts
 	}
 
 	// Get path patterns
 	if paths := c.getMiddlewarePaths(name); len(paths) > 0 {
-		config["paths"] = paths
-		config["include_paths"] = paths
+		mwConfig["paths"] = paths
+		mwConfig["include_paths"] = paths
 	}
 
 	// Get exclude paths
 	if excludePaths := c.getMiddlewareExcludePaths(name); len(excludePaths) > 0 {
-		config["exclude_paths"] = excludePaths
+		mwConfig["exclude_paths"] = excludePaths
 	}
 
 	// Get custom configuration
 	if customConfig := c.getCustomMiddlewareConfig(name); len(customConfig) > 0 {
 		for k, v := range customConfig {
-			config[k] = v
+			mwConfig[k] = v
 		}
 	}
 
-	return config
+	return mwConfig
 }
 
 // GetChainConfig returns configuration for a specific chain type
 func (c *middlewareConfig) GetChainConfig(chainType core.ChainType) ChainConfig {
-	config := ChainConfig{
+	chainConfig := ChainConfig{
 		Enabled: true, // Default to enabled
 	}
 
 	// Get middleware names for this chain based on chain type
-	config.MiddlewareNames = c.getChainMiddleware(chainType)
+	chainConfig.MiddlewareNames = c.getChainMiddleware(chainType)
 
 	// Get path patterns for this chain
-	config.Paths = c.getChainPaths(chainType)
+	chainConfig.Paths = c.getChainPaths(chainType)
 
 	// Get custom configuration
-	config.CustomConfig = c.getChainCustomConfig(chainType)
+	chainConfig.CustomConfig = c.getChainCustomConfig(chainType)
 
-	return config
+	return chainConfig
 }
 
 // getDefaultEnabledMiddleware returns the list of middleware enabled by default
@@ -317,8 +317,8 @@ func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]int
 		},
 	}
 
-	if config, exists := customConfigs[name]; exists {
-		return config
+	if customConfig, exists := customConfigs[name]; exists {
+		return customConfig
 	}
 
 	// Return default configuration for unknown middleware

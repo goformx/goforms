@@ -250,7 +250,10 @@ func (o *orchestrator) GetChainInfo(chainType core.ChainType) core.ChainInfo {
 	chainConfig := o.config.GetChainConfig(chainType)
 
 	// Get middleware for this chain type
-	middlewares, _ := o.getOrderedMiddleware(chainType)
+	middlewares, err := o.getOrderedMiddleware(chainType)
+	if err != nil {
+		o.logger.Warn("failed to get ordered middleware", "chain_type", chainType, "error", err)
+	}
 	middlewareNames := o.getMiddlewareNames(middlewares)
 
 	// Determine categories based on chain type
@@ -529,7 +532,7 @@ func (o *orchestrator) matchesPath(requestPath string, pattern string) bool {
 		regexPattern := strings.ReplaceAll(pattern, "*", ".*")
 
 		regexPattern = "^" + regexPattern + "$"
-		if matched, _ := regexp.MatchString(regexPattern, requestPath); matched {
+		if matched, err := regexp.MatchString(regexPattern, requestPath); err == nil && matched {
 			return true
 		}
 	}
@@ -548,7 +551,7 @@ func (o *orchestrator) matchesPath(requestPath string, pattern string) bool {
 	}
 
 	// Handle path.Match patterns
-	if matched, _ := path.Match(pattern, requestPath); matched {
+	if matched, err := path.Match(pattern, requestPath); err == nil && matched {
 		return true
 	}
 

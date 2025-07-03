@@ -143,7 +143,8 @@ func TestEchoResponseWriter(t *testing.T) {
 	writer := NewEchoResponseWriter(c)
 
 	// Write some content
-	writer.WriteString("Hello, World!")
+	_, err := writer.WriteString("Hello, World!")
+	require.NoError(t, err)
 
 	// Verify content
 	assert.Equal(t, "Hello, World!", writer.String())
