@@ -67,7 +67,6 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Mana
 	forms := e.Group(constants.PathForms)
 	forms.Use(access.Middleware(accessManager, h.Logger))
 
-	forms.GET("", h.handleList)
 	forms.GET("/new", h.handleNew)
 	forms.POST("", h.handleCreate)
 	forms.GET("/:id/edit", h.handleEdit)
@@ -149,27 +148,6 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 	}
 
 	return nil
-}
-
-// handleList handles the form listing request
-func (h *FormWebHandler) handleList(c echo.Context) error {
-	userID, ok := c.Get("user_id").(string)
-	if !ok {
-		return h.HandleForbidden(c, "User not authenticated")
-	}
-
-	// Get forms for the user
-	forms, err := h.FormBaseHandler.FormService.ListForms(c.Request().Context(), userID)
-	if err != nil {
-		h.Logger.Error("failed to list forms", "error", err)
-		return h.HandleError(c, err, "Failed to list forms")
-	}
-
-	h.Logger.Debug("forms listed successfully",
-		"user_id", h.Logger.SanitizeField("user_id", userID),
-		"form_count", len(forms))
-
-	return response.Success(c, forms)
 }
 
 // handleNewFormValidation returns the validation schema for the new form

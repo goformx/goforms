@@ -35,48 +35,13 @@ templ DashboardContent(data view.PageData, forms []*model.Form) {
 	<div class="dashboard-page">
 		<div class="dashboard-container">
 			<div class="dashboard-content">
-			if len(forms) == 0 {
-				<div class="forms-section">
-					<p>You haven't created any forms yet.</p>
-					<a href="/forms/new" class="btn btn-primary">Create Your First Form</a>
-				</div>
-			} else {
-				<div class="forms-grid">
-					for _, form := range forms {
-						<div class="form-panel">
-							<div class="form-panel-header">
-								<h3>{ form.Title }</h3>
-								<div class="form-actions">
-									<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-icon" title="Edit Form">
-										<i class="bi bi-pencil"></i>
-									</a>
-									<button class="btn btn-icon delete-form" data-form-id={ form.ID } title="Delete Form">
-										<i class="bi bi-trash"></i>
-									</button>
-								</div>
-							</div>
-							<div class="form-panel-body">
-								<p class="form-description">{ form.Description }</p>
-								<div class="form-stats">
-									<div class="stat">
-										<i class="bi bi-calendar"></i>
-										<span>Created { form.CreatedAt.Format("Jan 2, 2006") }</span>
-									</div>
-									<div class="stat">
-										<i class="bi bi-pencil-square"></i>
-										<span>Last edited { form.UpdatedAt.Format("Jan 2, 2006") }</span>
-									</div>
-								</div>
-							</div>
-							<div class="form-panel-footer">
-								<a href={ templ.SafeURL("/forms/" + form.ID + "/preview") } class="btn btn-secondary">Preview</a>
-								<a href={ templ.SafeURL("/forms/" + form.ID + "/submissions") } class="btn btn-primary">View Submissions</a>
-							</div>
-						</div>
-					}
-				</div>
-			}
-		</div>
+				@components.FormsTable(components.FormsTableProps{
+					Forms: forms,
+					EmptyStateMessage: "You haven't created any forms yet.",
+					EmptyStateActionText: "Create Your First Form",
+					EmptyStateActionHref: "/forms/new",
+				})
+			</div>
 		</div>
 	</div>
 

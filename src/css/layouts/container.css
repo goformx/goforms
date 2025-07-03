@@ -56,6 +56,7 @@
 /* Legacy support for main padding */
 main {
   padding-top: var(--nav-height, 70px);
+  background: var(--background);
 }
 
 /* Contact Page Layout */

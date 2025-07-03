@@ -1,6 +1,5 @@
 .dashboard-page {
-  min-height: calc(100vh - var(--nav-height));
-  padding: 0 0 var(--spacing-8) 0;
+  padding: var(--spacing-8) 0;
   background: var(--background);
   color: var(--text);
   font-family: var(--font-sans);
@@ -22,7 +21,6 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: var(--spacing-4);
   background: var(--card-bg);
   box-shadow: var(--shadow-sm);
   padding: var(--spacing-1) var(--spacing-4);
