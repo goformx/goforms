@@ -9,7 +9,6 @@ import (
 func validateStorageConfig(cfg StorageConfig, result *ValidationResult) {
 	validateStorageType(cfg, result)
 	validateStorageLocal(cfg, result)
-	validateStorageS3(cfg, result)
 	validateStorageLimits(cfg, result)
 }
 
@@ -20,7 +19,7 @@ func validateStorageType(cfg StorageConfig, result *ValidationResult) {
 		return
 	}
 
-	supportedTypes := []string{"local", "s3"}
+	supportedTypes := []string{"local"}
 	for _, storageType := range supportedTypes {
 		if strings.EqualFold(cfg.Type, storageType) {
 			return
@@ -45,32 +44,6 @@ func validateStorageLocal(cfg StorageConfig, result *ValidationResult) {
 	if !isWritableDirectory(cfg.Local.Path) {
 		result.AddError("storage.local.path",
 			"local storage path must be a writable directory", cfg.Local.Path)
-	}
-}
-
-func validateStorageS3(cfg StorageConfig, result *ValidationResult) {
-	if !strings.EqualFold(cfg.Type, "s3") {
-		return
-	}
-
-	if cfg.S3.Bucket == "" {
-		result.AddError("storage.s3.bucket",
-			"S3 bucket is required for S3 storage", cfg.S3.Bucket)
-	}
-
-	if cfg.S3.Region == "" {
-		result.AddError("storage.s3.region",
-			"S3 region is required for S3 storage", cfg.S3.Region)
-	}
-
-	if cfg.S3.AccessKey == "" {
-		result.AddError("storage.s3.access_key",
-			"S3 access key is required for S3 storage", "***")
-	}
-
-	if cfg.S3.SecretKey == "" {
-		result.AddError("storage.s3.secret_key",
-			"S3 secret key is required for S3 storage", "***")
 	}
 }
 
