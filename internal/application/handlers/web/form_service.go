@@ -60,7 +60,10 @@ func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *For
 
 // DeleteForm deletes a form by ID
 func (s *FormService) DeleteForm(ctx context.Context, formID string) error {
-	return fmt.Errorf("delete form: %w", s.formService.DeleteForm(ctx, formID))
+	if err := s.formService.DeleteForm(ctx, formID); err != nil {
+		return fmt.Errorf("delete form: %w", err)
+	}
+	return nil
 }
 
 // GetFormSubmissions retrieves submissions for a form

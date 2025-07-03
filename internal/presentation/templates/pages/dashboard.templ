@@ -7,10 +7,10 @@ import (
 )
 
 templ Dashboard(data view.PageData, forms []*model.Form) {
-	@layouts.Layout(data, DashboardContent(forms))
+	@layouts.Layout(data, DashboardContent(data, forms))
 }
 
-templ DashboardContent(forms []*model.Form) {
+templ DashboardContent(data view.PageData, forms []*model.Form) {
 	<div class="dashboard">
 		<div class="dashboard-header">
 			<div class="dashboard-header-left">
@@ -68,4 +68,6 @@ templ DashboardContent(forms []*model.Form) {
 			}
 		</div>
 	</div>
-} 
+
+<script type="module" src={ data.AssetPath("src/js/pages/dashboard.ts") }></script>
+}

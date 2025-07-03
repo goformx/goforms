@@ -510,7 +510,7 @@ func isAuthEndpoint(path string) bool {
 
 // isFormPage checks if the path is a form page that needs CSRF token generation
 func isFormPage(path string) bool {
-	formPages := []string{"/forms/new", "/forms/", "/submit"}
+	formPages := []string{"/forms/new", "/forms/", "/submit", "/dashboard"}
 	for _, page := range formPages {
 		if strings.Contains(path, page) {
 			return true
