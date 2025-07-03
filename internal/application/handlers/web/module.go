@@ -37,7 +37,10 @@ var Module = fx.Module("web-handlers",
 
 		// Auth components for SRP compliance
 		NewAuthRequestParser,
-		NewAuthResponseBuilder,
+		fx.Annotate(
+			NewAuthResponseBuilder,
+			fx.ParamTags(``),
+		),
 		NewAuthService,
 
 		// Legacy HandlerDeps for backward compatibility
