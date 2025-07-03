@@ -160,14 +160,23 @@ func (j *JSON) Scan(value any) error {
 		return fmt.Errorf("failed to unmarshal JSON value: %v", value)
 	}
 
-	result := make(map[string]any)
-
+	// First try to unmarshal as an object
+	var result map[string]any
 	err := json.Unmarshal(bytes, &result)
+	if err == nil {
+		*j = JSON(result)
+		return nil
+	}
+
+	// If that fails, try to unmarshal as an array and convert to object
+	var arrayResult []any
+	err = json.Unmarshal(bytes, &arrayResult)
 	if err != nil {
 		return fmt.Errorf("unmarshal JSON scan value: %w", err)
 	}
 
-	*j = JSON(result)
+	// Convert array to object with "data" key
+	*j = JSON{"data": arrayResult}
 
 	return nil
 }
@@ -414,12 +423,24 @@ func extractStringSlice(data JSON, key string) []string {
 		return result
 	}
 
+	// First try to get the value directly by key
 	if arr, ok := data[key].([]any); ok {
 		for _, item := range arr {
 			if str, strOk := item.(string); strOk {
 				result = append(result, str)
 			}
 		}
+		return result
+	}
+
+	// If not found by key, check if the data itself is an array (stored under "data" key)
+	if arr, ok := data["data"].([]any); ok {
+		for _, item := range arr {
+			if str, strOk := item.(string); strOk {
+				result = append(result, str)
+			}
+		}
+		return result
 	}
 
 	return result

@@ -7,7 +7,7 @@ import (
 )
 
 templ Demo(data view.PageData) {
-	@layouts.Layout(data, DemoContent(data))
+	@layouts.DemoLayout(data, DemoContent(data))
 }
 
 templ DemoCard(content templ.Component) {
@@ -62,5 +62,5 @@ templ DemoContent(data view.PageData) {
 			</div>
 		</div>
 	</section>
-	<script type="module" src={ data.AssetPath("src/js/demo.ts") }></script>
-} 
+	<script type="module" src={ data.AssetPath("src/js/pages/demo.ts") }></script>
+}

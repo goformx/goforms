@@ -46,6 +46,9 @@ func (r *renderer) Render(c echo.Context, t templ.Component) error {
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to render page")
 	}
 
+	// Set Content-Type header for HTML responses
+	c.Response().Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	if err := t.Render(c.Request().Context(), c.Response().Writer); err != nil {
 		r.logger.Error("failed to render template", "error", err, "template", fmt.Sprintf("%T", t))
 
