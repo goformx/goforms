@@ -63,7 +63,8 @@ func (a *EchoAdapter) convertEchoError(err error, c echo.Context) core.Response 
 	// Determine appropriate status code based on error type
 	statusCode := http.StatusInternalServerError
 
-	if httpError, ok := err.(*echo.HTTPError); ok {
+	httpError := &echo.HTTPError{}
+	if errors.As(err, &httpError) {
 		statusCode = httpError.Code
 	} else if strings.Contains(err.Error(), "not found") {
 		statusCode = http.StatusNotFound
@@ -198,6 +199,7 @@ func (a *EchoChainAdapter) ToEchoMiddleware() echo.MiddlewareFunc {
 
 			// Apply our response to Echo context
 			adapter := &EchoAdapter{}
+
 			return adapter.applyResponse(c, resp)
 		}
 	}
@@ -223,6 +225,7 @@ func (a *EchoRegistryAdapter) GetEchoMiddleware(name string) (echo.MiddlewareFun
 	}
 
 	adapter := NewEchoAdapter(middleware)
+
 	return adapter.ToEchoMiddleware(), true
 }
 
@@ -314,5 +317,6 @@ func (a *EchoOrchestratorAdapter) GetEchoChain(name string) (echo.MiddlewareFunc
 	}
 
 	adapter := NewEchoChainAdapter(chain)
+
 	return adapter.ToEchoMiddleware(), true
 }

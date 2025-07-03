@@ -85,11 +85,13 @@ func (m *AssetManager) ResolveAssetPath(ctx context.Context, path string) (strin
 
 	// Check cache first
 	m.mu.RLock()
+
 	if cachedPath, found := m.pathCache[path]; found {
 		m.mu.RUnlock()
 
 		return cachedPath, nil
 	}
+
 	m.mu.RUnlock()
 
 	// Resolve the path using the appropriate resolver
@@ -183,6 +185,7 @@ func (m *AssetManager) GetResolver() AssetResolver {
 func (m *AssetManager) IsPathCached(path string) bool {
 	m.mu.RLock()
 	defer m.mu.RUnlock()
+
 	_, exists := m.pathCache[path]
 
 	return exists

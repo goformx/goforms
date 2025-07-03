@@ -101,12 +101,14 @@ func NewEchoResponseBuilder(c echo.Context) *EchoResponseBuilder {
 // Status sets the response status code.
 func (b *EchoResponseBuilder) Status(code int) *EchoResponseBuilder {
 	b.response.SetStatusCode(code)
+
 	return b
 }
 
 // Header adds a header to the response.
 func (b *EchoResponseBuilder) Header(key, value string) *EchoResponseBuilder {
 	b.response.AddHeader(key, value)
+
 	return b
 }
 
@@ -115,12 +117,14 @@ func (b *EchoResponseBuilder) Headers(headers map[string]string) *EchoResponseBu
 	for key, value := range headers {
 		b.response.AddHeader(key, value)
 	}
+
 	return b
 }
 
 // ContentType sets the Content-Type header.
 func (b *EchoResponseBuilder) ContentType(contentType string) *EchoResponseBuilder {
 	b.response.SetContentType(contentType)
+
 	return b
 }
 
@@ -131,6 +135,7 @@ func (b *EchoResponseBuilder) JSON(data interface{}) *EchoResponseBuilder {
 	if jsonBytes, err := json.Marshal(data); err == nil {
 		b.response.SetBodyBytes(jsonBytes)
 	}
+
 	return b
 }
 
@@ -138,6 +143,7 @@ func (b *EchoResponseBuilder) JSON(data interface{}) *EchoResponseBuilder {
 func (b *EchoResponseBuilder) Text(text string) *EchoResponseBuilder {
 	b.response.SetContentType("text/plain")
 	b.response.SetBodyBytes([]byte(text))
+
 	return b
 }
 
@@ -145,6 +151,7 @@ func (b *EchoResponseBuilder) Text(text string) *EchoResponseBuilder {
 func (b *EchoResponseBuilder) HTML(html string) *EchoResponseBuilder {
 	b.response.SetContentType("text/html")
 	b.response.SetBodyBytes([]byte(html))
+
 	return b
 }
 
@@ -152,6 +159,7 @@ func (b *EchoResponseBuilder) HTML(html string) *EchoResponseBuilder {
 func (b *EchoResponseBuilder) Redirect(statusCode int, url string) *EchoResponseBuilder {
 	b.response.SetStatusCode(statusCode)
 	b.response.SetLocation(url)
+
 	return b
 }
 
@@ -159,36 +167,42 @@ func (b *EchoResponseBuilder) Redirect(statusCode int, url string) *EchoResponse
 func (b *EchoResponseBuilder) Error(statusCode int, err error) *EchoResponseBuilder {
 	b.response.SetStatusCode(statusCode)
 	b.response.SetError(err)
+
 	return b
 }
 
 // Cookie adds a cookie to the response.
 func (b *EchoResponseBuilder) Cookie(cookie *http.Cookie) *EchoResponseBuilder {
 	b.response.SetCookie(cookie)
+
 	return b
 }
 
 // RequestID sets the request ID for the response.
 func (b *EchoResponseBuilder) RequestID(requestID string) *EchoResponseBuilder {
 	b.response.SetRequestID(requestID)
+
 	return b
 }
 
 // Body sets the response body.
 func (b *EchoResponseBuilder) Body(body io.Reader) *EchoResponseBuilder {
 	b.response.SetBody(body)
+
 	return b
 }
 
 // BodyBytes sets the response body as bytes.
 func (b *EchoResponseBuilder) BodyBytes(data []byte) *EchoResponseBuilder {
 	b.response.SetBodyBytes(data)
+
 	return b
 }
 
 // BodyString sets the response body as a string.
 func (b *EchoResponseBuilder) BodyString(data string) *EchoResponseBuilder {
 	b.response.SetBodyBytes([]byte(data))
+
 	return b
 }
 
@@ -200,6 +214,7 @@ func (b *EchoResponseBuilder) Build() core.Response {
 // Send applies the response to Echo and returns any error.
 func (b *EchoResponseBuilder) Send() error {
 	wrapper := NewEchoResponseWrapper(b.response, b.context)
+
 	return wrapper.ApplyToEcho()
 }
 
@@ -266,18 +281,21 @@ func (w *EchoResponseWriter) WriteString(s string) (int, error) {
 // WriteJSON writes JSON data to the response.
 func (w *EchoResponseWriter) WriteJSON(data interface{}) error {
 	w.context.Response().Header().Set("Content-Type", "application/json")
+
 	return w.context.JSON(w.context.Response().Status, data)
 }
 
 // WriteText writes plain text to the response.
 func (w *EchoResponseWriter) WriteText(text string) error {
 	w.context.Response().Header().Set("Content-Type", "text/plain")
+
 	return w.context.String(w.context.Response().Status, text)
 }
 
 // WriteHTML writes HTML to the response.
 func (w *EchoResponseWriter) WriteHTML(html string) error {
 	w.context.Response().Header().Set("Content-Type", "text/html")
+
 	return w.context.HTML(w.context.Response().Status, html)
 }
 
@@ -286,8 +304,10 @@ func (w *EchoResponseWriter) Flush() error {
 	if w.buffer.Len() > 0 {
 		_, err := w.context.Response().Writer.Write(w.buffer.Bytes())
 		w.buffer.Reset()
+
 		return err
 	}
+
 	return nil
 }
 

@@ -162,14 +162,17 @@ func (j *JSON) Scan(value any) error {
 
 	// First try to unmarshal as an object
 	var result map[string]any
+
 	err := json.Unmarshal(bytes, &result)
 	if err == nil {
 		*j = JSON(result)
+
 		return nil
 	}
 
 	// If that fails, try to unmarshal as an array and convert to object
 	var arrayResult []any
+
 	err = json.Unmarshal(bytes, &arrayResult)
 	if err != nil {
 		return fmt.Errorf("unmarshal JSON scan value: %w", err)
@@ -430,6 +433,7 @@ func extractStringSlice(data JSON, key string) []string {
 				result = append(result, str)
 			}
 		}
+
 		return result
 	}
 
@@ -440,6 +444,7 @@ func extractStringSlice(data JSON, key string) []string {
 				result = append(result, str)
 			}
 		}
+
 		return result
 	}
 

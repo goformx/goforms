@@ -95,11 +95,13 @@ func (r *DevelopmentAssetResolver) ResolveAssetPath(ctx context.Context, path st
 
 	// Check cache first
 	r.cacheMu.RLock()
+
 	if cached, exists := r.pathCache[path]; exists {
 		r.cacheMu.RUnlock()
 
 		return cached, nil
 	}
+
 	r.cacheMu.RUnlock()
 
 	// Apply transformation rules
@@ -278,8 +280,8 @@ func (f *AssetResolverFactory) CreateResolver(distFS embed.FS) (AssetResolver, e
 	}
 
 	f.logger.Info("creating production asset resolver")
-	manifest, err := loadManifestFromFS(distFS, f.logger)
 
+	manifest, err := loadManifestFromFS(distFS, f.logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create production resolver: %w", err)
 	}

@@ -28,7 +28,9 @@ func (c *chain) execute(ctx context.Context, req core.Request, idx int) core.Res
 		// End of chain: return a default response
 		return nil
 	}
+
 	mw := c.middlewares[idx]
+
 	return mw.Process(ctx, req, func(nextCtx context.Context, nextReq core.Request) core.Response {
 		return c.execute(nextCtx, nextReq, idx+1)
 	})
@@ -37,6 +39,7 @@ func (c *chain) execute(ctx context.Context, req core.Request, idx int) core.Res
 // Add appends middleware to the end of the chain.
 func (c *chain) Add(mws ...core.Middleware) core.Chain {
 	c.middlewares = append(c.middlewares, mws...)
+
 	return c
 }
 
@@ -45,7 +48,9 @@ func (c *chain) Insert(position int, mws ...core.Middleware) core.Chain {
 	if position < 0 || position > len(c.middlewares) {
 		position = len(c.middlewares)
 	}
+
 	c.middlewares = append(c.middlewares[:position], append(mws, c.middlewares[position:]...)...)
+
 	return c
 }
 
@@ -54,9 +59,11 @@ func (c *chain) Remove(name string) bool {
 	for i, mw := range c.middlewares {
 		if mw.Name() == name {
 			c.middlewares = append(c.middlewares[:i], c.middlewares[i+1:]...)
+
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -67,6 +74,7 @@ func (c *chain) Get(name string) core.Middleware {
 			return mw
 		}
 	}
+
 	return nil
 }
 
@@ -78,6 +86,7 @@ func (c *chain) List() []core.Middleware {
 // Clear removes all middleware from the chain.
 func (c *chain) Clear() core.Chain {
 	c.middlewares = nil
+
 	return c
 }
 

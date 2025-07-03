@@ -76,6 +76,7 @@ func TestRenderer_Render_Error(t *testing.T) {
 	require.Error(t, err)
 
 	var httpErr *echo.HTTPError
+
 	ok := errors.As(err, &httpErr)
 	assert.True(t, ok)
 	assert.Equal(t, http.StatusInternalServerError, httpErr.Code)
@@ -100,6 +101,7 @@ func TestRenderer_Render_NilComponent(t *testing.T) {
 	require.Error(t, err)
 
 	var httpErr *echo.HTTPError
+
 	ok := errors.As(err, &httpErr)
 	assert.True(t, ok)
 	assert.Equal(t, http.StatusInternalServerError, httpErr.Code)
@@ -124,6 +126,7 @@ func TestRenderer_Render_NilContext(t *testing.T) {
 	require.Error(t, err)
 
 	var httpErr *echo.HTTPError
+
 	ok := errors.As(err, &httpErr)
 	assert.True(t, ok)
 	assert.Equal(t, http.StatusInternalServerError, httpErr.Code)

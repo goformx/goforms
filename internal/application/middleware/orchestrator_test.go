@@ -49,11 +49,13 @@ func newMockRegistry() *mockRegistry {
 func (m *mockRegistry) Register(name string, middleware core.Middleware) error {
 	args := m.Called(name, middleware)
 	m.middlewares[name] = middleware
+
 	return args.Error(0)
 }
 
 func (m *mockRegistry) Get(name string) (core.Middleware, bool) {
 	mw, exists := m.middlewares[name]
+
 	return mw, exists
 }
 
@@ -62,14 +64,17 @@ func (m *mockRegistry) List() []string {
 	for name := range m.middlewares {
 		names = append(names, name)
 	}
+
 	return names
 }
 
 func (m *mockRegistry) Remove(name string) bool {
 	if _, exists := m.middlewares[name]; exists {
 		delete(m.middlewares, name)
+
 		return true
 	}
+
 	return false
 }
 
@@ -84,6 +89,7 @@ func (m *mockRegistry) Count() int {
 // GetOrdered returns middleware ordered by priority for a category
 func (m *mockRegistry) GetOrdered(category core.MiddlewareCategory) []core.Middleware {
 	var result []core.Middleware
+
 	for _, mw := range m.middlewares {
 		if mw.(*mockMiddleware).category == category {
 			result = append(result, mw)
@@ -97,6 +103,7 @@ func (m *mockRegistry) GetOrdered(category core.MiddlewareCategory) []core.Middl
 			}
 		}
 	}
+
 	return result
 }
 
@@ -121,6 +128,7 @@ func (m *mockConfig) IsMiddlewareEnabled(name string) bool {
 	if enabled, exists := m.enabledMiddleware[name]; exists {
 		return enabled
 	}
+
 	return args.Bool(0)
 }
 
@@ -129,6 +137,7 @@ func (m *mockConfig) GetMiddlewareConfig(name string) map[string]interface{} {
 	if config, exists := m.middlewareConfig[name]; exists {
 		return config
 	}
+
 	return args.Get(0).(map[string]interface{})
 }
 
@@ -137,6 +146,7 @@ func (m *mockConfig) GetChainConfig(chainType core.ChainType) middleware.ChainCo
 	if config, exists := m.chainConfigs[chainType]; exists {
 		return config
 	}
+
 	return args.Get(0).(middleware.ChainConfig)
 }
 
@@ -612,7 +622,7 @@ func TestOrchestrator_PerformanceTracking(t *testing.T) {
 
 	// Verify build time is reasonable
 	buildTime := performance["default"]
-	assert.True(t, buildTime < 100*time.Millisecond)
+	assert.Less(t, buildTime, 100*time.Millisecond)
 
 	// Verify mock expectations
 	config.AssertExpectations(t)
@@ -720,11 +730,13 @@ type mockChain struct {
 
 func (m *mockChain) Process(ctx context.Context, req core.Request) core.Response {
 	args := m.Called(ctx, req)
+
 	return args.Get(0).(core.Response)
 }
 
 func (m *mockChain) Add(middleware ...core.Middleware) core.Chain {
 	m.middlewares = append(m.middlewares, middleware...)
+
 	return m
 }
 
@@ -732,7 +744,9 @@ func (m *mockChain) Insert(position int, middleware ...core.Middleware) core.Cha
 	if position < 0 || position > len(m.middlewares) {
 		position = len(m.middlewares)
 	}
+
 	m.middlewares = append(m.middlewares[:position], append(middleware, m.middlewares[position:]...)...)
+
 	return m
 }
 
@@ -740,9 +754,11 @@ func (m *mockChain) Remove(name string) bool {
 	for i, mw := range m.middlewares {
 		if mw.Name() == name {
 			m.middlewares = append(m.middlewares[:i], m.middlewares[i+1:]...)
+
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -752,6 +768,7 @@ func (m *mockChain) Get(name string) core.Middleware {
 			return mw
 		}
 	}
+
 	return nil
 }
 
@@ -761,6 +778,7 @@ func (m *mockChain) List() []core.Middleware {
 
 func (m *mockChain) Clear() core.Chain {
 	m.middlewares = nil
+
 	return m
 }
 

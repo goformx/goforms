@@ -25,6 +25,7 @@ func TestResponseImplementation(t *testing.T) {
 
 		// Test WriteTo
 		var buf bytes.Buffer
+
 		bytesWritten, err := resp.WriteTo(&buf)
 		if err != nil {
 			t.Errorf("WriteTo failed: %v", err)
@@ -123,6 +124,7 @@ func TestResponseImplementation(t *testing.T) {
 
 		// Modify original should not affect clone
 		original.SetHeader("X-Original", "modified")
+
 		if cloned.Headers().Get("X-Original") == "modified" {
 			t.Error("Modifying original should not affect clone")
 		}
@@ -138,6 +140,7 @@ func BenchmarkNewJSONResponse(b *testing.B) {
 	}
 
 	b.ResetTimer()
+
 	for i := 0; i < b.N; i++ {
 		resp := NewJSONResponse(data)
 		if resp == nil {
@@ -158,10 +161,12 @@ func BenchmarkResponseWriteTo(b *testing.B) {
 	resp.SetRequestID("req-123")
 
 	var buf bytes.Buffer
+
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
 		buf.Reset()
+
 		_, err := resp.WriteTo(&buf)
 		if err != nil {
 			b.Fatal(err)

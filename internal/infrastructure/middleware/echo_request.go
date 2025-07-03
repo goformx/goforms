@@ -106,6 +106,7 @@ func (r *EchoRequest) Context() context.Context {
 func (r *EchoRequest) WithContext(ctx context.Context) core.Request {
 	newReq := *r
 	newReq.context = r.context // Echo context doesn't support context replacement
+
 	return &newReq
 }
 
@@ -130,6 +131,7 @@ func (r *EchoRequest) Params() map[string]string {
 	for _, name := range r.context.ParamNames() {
 		params[name] = r.context.Param(name)
 	}
+
 	return params
 }
 
@@ -163,8 +165,10 @@ func (r *EchoRequest) Form() (url.Values, error) {
 		if err := r.context.Request().ParseForm(); err != nil {
 			return nil, err
 		}
+
 		r.form = r.context.Request().Form
 	}
+
 	return r.form, nil
 }
 
@@ -178,6 +182,7 @@ func (r *EchoRequest) MultipartForm() (*multipart.Form, error) {
 	if err := r.context.Request().ParseMultipartForm(32 << 20); err != nil {
 		return nil, err
 	}
+
 	return r.context.Request().MultipartForm, nil
 }
 
@@ -194,30 +199,35 @@ func (r *EchoRequest) IsWebSocket() bool {
 // IsJSON returns true if the request expects JSON response
 func (r *EchoRequest) IsJSON() bool {
 	accept := r.context.Request().Header.Get("Accept")
+
 	return strings.Contains(accept, "application/json") || accept == "*/*"
 }
 
 // IsXML returns true if the request expects XML response
 func (r *EchoRequest) IsXML() bool {
 	accept := r.context.Request().Header.Get("Accept")
+
 	return strings.Contains(accept, "application/xml") || strings.Contains(accept, "text/xml")
 }
 
 // Accepts returns true if the request accepts the given content type
 func (r *EchoRequest) Accepts(contentType string) bool {
 	accept := r.context.Request().Header.Get("Accept")
+
 	return accept == contentType || accept == "*/*"
 }
 
 // AcceptsEncoding returns true if the request accepts the given encoding
 func (r *EchoRequest) AcceptsEncoding(encoding string) bool {
 	acceptEncoding := r.context.Request().Header.Get("Accept-Encoding")
+
 	return acceptEncoding == encoding || acceptEncoding == "*"
 }
 
 // AcceptsLanguage returns true if the request accepts the given language
 func (r *EchoRequest) AcceptsLanguage(language string) bool {
 	acceptLanguage := r.context.Request().Header.Get("Accept-Language")
+
 	return acceptLanguage == language || acceptLanguage == "*"
 }
 
@@ -238,6 +248,7 @@ func (r *EchoRequest) RequestID() string {
 			return id
 		}
 	}
+
 	return ""
 }
 
@@ -248,5 +259,6 @@ func (r *EchoRequest) Timestamp() time.Time {
 			return ts
 		}
 	}
+
 	return time.Now()
 }

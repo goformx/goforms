@@ -277,6 +277,7 @@ func contains(slice []string, item string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -298,6 +299,7 @@ func (s *SecurityConfig) GetCSRFSkipper() func(c echo.Context) bool {
 				return true
 			}
 		}
+
 		return false
 	}
 }
@@ -351,36 +353,47 @@ func (s *CSPConfig) GetCSPHeaderValue() string {
 	if s.DefaultSrc != "" {
 		policies = append(policies, fmt.Sprintf("default-src %s", s.DefaultSrc))
 	}
+
 	if s.ScriptSrc != "" {
 		policies = append(policies, fmt.Sprintf("script-src %s", s.ScriptSrc))
 	}
+
 	if s.StyleSrc != "" {
 		policies = append(policies, fmt.Sprintf("style-src %s", s.StyleSrc))
 	}
+
 	if s.ImgSrc != "" {
 		policies = append(policies, fmt.Sprintf("img-src %s", s.ImgSrc))
 	}
+
 	if s.ConnectSrc != "" {
 		policies = append(policies, fmt.Sprintf("connect-src %s", s.ConnectSrc))
 	}
+
 	if s.FontSrc != "" {
 		policies = append(policies, fmt.Sprintf("font-src %s", s.FontSrc))
 	}
+
 	if s.ObjectSrc != "" {
 		policies = append(policies, fmt.Sprintf("object-src %s", s.ObjectSrc))
 	}
+
 	if s.MediaSrc != "" {
 		policies = append(policies, fmt.Sprintf("media-src %s", s.MediaSrc))
 	}
+
 	if s.FrameSrc != "" {
 		policies = append(policies, fmt.Sprintf("frame-src %s", s.FrameSrc))
 	}
+
 	if s.FormAction != "" {
 		policies = append(policies, fmt.Sprintf("form-action %s", s.FormAction))
 	}
+
 	if s.BaseURI != "" {
 		policies = append(policies, fmt.Sprintf("base-uri %s", s.BaseURI))
 	}
+
 	if s.ReportURI != "" {
 		policies = append(policies, fmt.Sprintf("report-uri %s", s.ReportURI))
 	}
@@ -393,6 +406,7 @@ func (s *CSPConfig) GetCSPHeaderName() string {
 	if s.ReportOnly {
 		return "Content-Security-Policy-Report-Only"
 	}
+
 	return "Content-Security-Policy"
 }
 
@@ -407,42 +421,55 @@ func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 	if s.CSP.DefaultSrc != "" {
 		directives = append(directives, fmt.Sprintf("default-src %s", s.CSP.DefaultSrc))
 	}
+
 	if s.CSP.ScriptSrc != "" {
 		directives = append(directives, fmt.Sprintf("script-src %s", s.CSP.ScriptSrc))
 	}
+
 	if s.CSP.StyleSrc != "" {
 		directives = append(directives, fmt.Sprintf("style-src %s", s.CSP.StyleSrc))
 	}
+
 	if s.CSP.ImgSrc != "" {
 		directives = append(directives, fmt.Sprintf("img-src %s", s.CSP.ImgSrc))
 	}
+
 	if s.CSP.ConnectSrc != "" {
 		directives = append(directives, fmt.Sprintf("connect-src %s", s.CSP.ConnectSrc))
 	}
+
 	if s.CSP.FontSrc != "" {
 		directives = append(directives, fmt.Sprintf("font-src %s", s.CSP.FontSrc))
 	}
+
 	if s.CSP.ObjectSrc != "" {
 		directives = append(directives, fmt.Sprintf("object-src %s", s.CSP.ObjectSrc))
 	}
+
 	if s.CSP.MediaSrc != "" {
 		directives = append(directives, fmt.Sprintf("media-src %s", s.CSP.MediaSrc))
 	}
+
 	if s.CSP.FrameSrc != "" {
 		directives = append(directives, fmt.Sprintf("frame-src %s", s.CSP.FrameSrc))
 	}
+
 	if s.CSP.FormAction != "" {
 		directives = append(directives, fmt.Sprintf("form-action %s", s.CSP.FormAction))
 	}
+
 	if s.CSP.BaseURI != "" {
 		directives = append(directives, fmt.Sprintf("base-uri %s", s.CSP.BaseURI))
 	}
+
 	if s.CSP.ManifestSrc != "" {
 		directives = append(directives, fmt.Sprintf("manifest-src %s", s.CSP.ManifestSrc))
 	}
+
 	if s.CSP.WorkerSrc != "" {
 		directives = append(directives, fmt.Sprintf("worker-src %s", s.CSP.WorkerSrc))
 	}
+
 	if s.CSP.ReportURI != "" {
 		directives = append(directives, fmt.Sprintf("report-uri %s", s.CSP.ReportURI))
 	}

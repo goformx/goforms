@@ -301,6 +301,7 @@ func TestIntegration_ErrorHandling(t *testing.T) {
 
 		// Test rollback on error
 		migrationAdapter.EnableNewSystem()
+
 		e := echo.New()
 		err = migrationAdapter.SetupWithFallback(e, nil)
 		// Should fallback to old system or handle error gracefully

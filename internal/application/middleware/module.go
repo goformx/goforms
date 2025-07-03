@@ -149,10 +149,12 @@ var Module = fx.Module("middleware",
 				}
 
 				logger.Info("middleware system initialized successfully")
+
 				return nil
 			},
 			OnStop: func(ctx context.Context) error {
 				logger.Info("middleware system shutting down")
+
 				return nil
 			},
 		})
@@ -178,6 +180,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 		if err := registry.Register(m.name, m.mw); err != nil {
 			return err
 		}
+
 		logger.Info("registered middleware", "name", m.name)
 	}
 
@@ -195,6 +198,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 		if err := registry.Register(m.name, m.mw); err != nil {
 			return err
 		}
+
 		logger.Info("registered security middleware", "name", m.name)
 	}
 
@@ -212,6 +216,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 		if err := registry.Register(m.name, m.mw); err != nil {
 			return err
 		}
+
 		logger.Info("registered auth middleware", "name", m.name)
 	}
 

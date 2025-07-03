@@ -190,8 +190,8 @@ func (s *DevelopmentAssetServer) createFileHandler(handler http.Handler) echo.Ha
 func (s *DevelopmentAssetServer) createSpecialFileHandler(filename string) echo.HandlerFunc {
 	return func(c echo.Context) error {
 		fullPath := filepath.Join(s.serverConfig.PublicDir, filename)
-		data, err := os.ReadFile(fullPath)
 
+		data, err := os.ReadFile(fullPath)
 		if err != nil {
 			return c.NoContent(http.StatusNotFound)
 		}

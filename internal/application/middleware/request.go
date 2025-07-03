@@ -325,6 +325,7 @@ func (r *request) Context() context.Context {
 func (r *request) WithContext(ctx context.Context) Request {
 	newReq := *r
 	newReq.context = ctx
+
 	return &newReq
 }
 
@@ -333,6 +334,7 @@ func (r *request) Get(key string) interface{} {
 	if r.values == nil {
 		return nil
 	}
+
 	return r.values[key]
 }
 
@@ -341,6 +343,7 @@ func (r *request) Set(key string, value interface{}) {
 	if r.values == nil {
 		r.values = make(map[string]interface{})
 	}
+
 	r.values[key] = value
 }
 
@@ -361,6 +364,7 @@ func (r *request) Cookie(name string) (*http.Cookie, error) {
 			return cookie, nil
 		}
 	}
+
 	return nil, http.ErrNoCookie
 }
 
@@ -409,18 +413,21 @@ func (r *request) IsXML() bool {
 // Accepts returns true if the request accepts the given content type
 func (r *request) Accepts(contentType string) bool {
 	accept := r.headers.Get("Accept")
+
 	return accept == contentType || accept == "*/*"
 }
 
 // AcceptsEncoding returns true if the request accepts the given encoding
 func (r *request) AcceptsEncoding(encoding string) bool {
 	acceptEncoding := r.headers.Get("Accept-Encoding")
+
 	return acceptEncoding == encoding || acceptEncoding == "*"
 }
 
 // AcceptsLanguage returns true if the request accepts the given language
 func (r *request) AcceptsLanguage(language string) bool {
 	acceptLanguage := r.headers.Get("Accept-Language")
+
 	return acceptLanguage == language || acceptLanguage == "*"
 }
 
@@ -452,12 +459,14 @@ type requestBuilder struct {
 // Method sets the HTTP method
 func (rb *requestBuilder) Method(method string) RequestBuilder {
 	rb.request.method = method
+
 	return rb
 }
 
 // URL sets the request URL
 func (rb *requestBuilder) URL(url *url.URL) RequestBuilder {
 	rb.request.url = url
+
 	return rb
 }
 
@@ -466,37 +475,44 @@ func (rb *requestBuilder) Path(path string) RequestBuilder {
 	if rb.request.url == nil {
 		rb.request.url = &url.URL{}
 	}
+
 	rb.request.url.Path = path
+
 	return rb
 }
 
 // Query sets query parameters
 func (rb *requestBuilder) Query(query url.Values) RequestBuilder {
 	rb.request.query = query
+
 	return rb
 }
 
 // AddQuery adds a query parameter
 func (rb *requestBuilder) AddQuery(key, value string) RequestBuilder {
 	rb.request.query.Add(key, value)
+
 	return rb
 }
 
 // Header sets a header
 func (rb *requestBuilder) Header(key, value string) RequestBuilder {
 	rb.request.headers.Set(key, value)
+
 	return rb
 }
 
 // Headers sets multiple headers
 func (rb *requestBuilder) Headers(headers http.Header) RequestBuilder {
 	rb.request.headers = headers
+
 	return rb
 }
 
 // Body sets the request body
 func (rb *requestBuilder) Body(body io.Reader) RequestBuilder {
 	rb.request.body = body
+
 	return rb
 }
 
@@ -504,12 +520,14 @@ func (rb *requestBuilder) Body(body io.Reader) RequestBuilder {
 func (rb *requestBuilder) ContentType(contentType string) RequestBuilder {
 	rb.request.contentType = contentType
 	rb.request.headers.Set("Content-Type", contentType)
+
 	return rb
 }
 
 // RemoteAddr sets the client address
 func (rb *requestBuilder) RemoteAddr(addr string) RequestBuilder {
 	rb.request.remoteAddr = addr
+
 	return rb
 }
 
@@ -517,6 +535,7 @@ func (rb *requestBuilder) RemoteAddr(addr string) RequestBuilder {
 func (rb *requestBuilder) UserAgent(userAgent string) RequestBuilder {
 	rb.request.userAgent = userAgent
 	rb.request.headers.Set("User-Agent", userAgent)
+
 	return rb
 }
 
@@ -524,6 +543,7 @@ func (rb *requestBuilder) UserAgent(userAgent string) RequestBuilder {
 func (rb *requestBuilder) Referer(referer string) RequestBuilder {
 	rb.request.referer = referer
 	rb.request.headers.Set("Referer", referer)
+
 	return rb
 }
 
@@ -531,84 +551,98 @@ func (rb *requestBuilder) Referer(referer string) RequestBuilder {
 func (rb *requestBuilder) Host(host string) RequestBuilder {
 	rb.request.host = host
 	rb.request.headers.Set("Host", host)
+
 	return rb
 }
 
 // Secure sets whether the request is secure
 func (rb *requestBuilder) Secure(secure bool) RequestBuilder {
 	rb.request.secure = secure
+
 	return rb
 }
 
 // Context sets the request context
 func (rb *requestBuilder) Context(ctx context.Context) RequestBuilder {
 	rb.request.context = ctx
+
 	return rb
 }
 
 // Param sets a path parameter
 func (rb *requestBuilder) Param(key, value string) RequestBuilder {
 	rb.request.params[key] = value
+
 	return rb
 }
 
 // Params sets all path parameters
 func (rb *requestBuilder) Params(params map[string]string) RequestBuilder {
 	rb.request.params = params
+
 	return rb
 }
 
 // Cookie adds a cookie
 func (rb *requestBuilder) Cookie(cookie *http.Cookie) RequestBuilder {
 	rb.request.cookies = append(rb.request.cookies, cookie)
+
 	return rb
 }
 
 // FormValue sets a form value
 func (rb *requestBuilder) FormValue(key, value string) RequestBuilder {
 	rb.request.formValues.Set(key, value)
+
 	return rb
 }
 
 // AJAX marks the request as AJAX
 func (rb *requestBuilder) AJAX() RequestBuilder {
 	rb.request.headers.Set("X-Requested-With", "XMLHttpRequest")
+
 	return rb
 }
 
 // WebSocket marks the request as WebSocket
 func (rb *requestBuilder) WebSocket() RequestBuilder {
 	rb.request.headers.Set("Upgrade", "websocket")
+
 	return rb
 }
 
 // JSON marks the request as expecting JSON
 func (rb *requestBuilder) JSON() RequestBuilder {
 	rb.request.headers.Set("Accept", "application/json")
+
 	return rb
 }
 
 // XML marks the request as expecting XML
 func (rb *requestBuilder) XML() RequestBuilder {
 	rb.request.headers.Set("Accept", "application/xml")
+
 	return rb
 }
 
 // RealIP sets the real IP address
 func (rb *requestBuilder) RealIP(ip string) RequestBuilder {
 	rb.request.realIP = ip
+
 	return rb
 }
 
 // RequestID sets the request ID
 func (rb *requestBuilder) RequestID(id string) RequestBuilder {
 	rb.request.requestID = id
+
 	return rb
 }
 
 // Timestamp sets the request timestamp
 func (rb *requestBuilder) Timestamp(timestamp time.Time) RequestBuilder {
 	rb.request.timestamp = timestamp
+
 	return rb
 }
 

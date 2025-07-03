@@ -36,7 +36,7 @@ func TestEchoAdapter_ToEchoMiddleware(t *testing.T) {
 	e.Use(echoMiddleware)
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 
 	// Serve request
@@ -80,7 +80,7 @@ func TestEchoResponseWrapper(t *testing.T) {
 	e := echo.New()
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -107,7 +107,7 @@ func TestEchoResponseBuilder(t *testing.T) {
 	e := echo.New()
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -125,7 +125,7 @@ func TestEchoResponseBuilder(t *testing.T) {
 	// Verify response
 	assert.Equal(t, http.StatusCreated, resp.StatusCode())
 	assert.Equal(t, "application/json", resp.ContentType())
-	assert.Equal(t, `{"message":"created"}`, string(resp.BodyBytes()))
+	assert.JSONEq(t, `{"message":"created"}`, string(resp.BodyBytes()))
 	assert.Equal(t, "value", resp.Headers().Get("X-Custom"))
 }
 
@@ -135,7 +135,7 @@ func TestEchoResponseWriter(t *testing.T) {
 	e := echo.New()
 
 	// Create test request
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 
@@ -159,6 +159,7 @@ func (m *testMiddleware) Process(ctx context.Context, req core.Request, next cor
 	// Add a test header to the response
 	resp := next(ctx, req)
 	resp.AddHeader("X-Test-Header", "test-header-value")
+
 	return resp
 }
 

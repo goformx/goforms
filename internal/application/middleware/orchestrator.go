@@ -43,6 +43,7 @@ func NewOrchestrator(registry core.Registry, config MiddlewareConfig, logger cor
 // CreateChain creates a new middleware chain with the specified type.
 func (o *orchestrator) CreateChain(chainType core.ChainType) (core.Chain, error) {
 	start := time.Now()
+
 	defer func() {
 		o.buildMu.Lock()
 		o.buildTimes[chainType.String()] = time.Since(start)
@@ -84,7 +85,9 @@ func (o *orchestrator) BuildChain(chainType core.ChainType) (core.Chain, error) 
 func (o *orchestrator) GetChain(name string) (core.Chain, bool) {
 	o.chainsMu.RLock()
 	defer o.chainsMu.RUnlock()
+
 	chain, ok := o.chains[name]
+
 	return chain, ok
 }
 
@@ -92,11 +95,14 @@ func (o *orchestrator) GetChain(name string) (core.Chain, bool) {
 func (o *orchestrator) RegisterChain(name string, chain core.Chain) error {
 	o.chainsMu.Lock()
 	defer o.chainsMu.Unlock()
+
 	if _, exists := o.chains[name]; exists {
 		return fmt.Errorf("chain with name %q already exists", name)
 	}
+
 	o.chains[name] = chain
 	o.logger.Info("registered named chain", "name", name, "middleware_count", chain.Length())
+
 	return nil
 }
 
@@ -104,11 +110,14 @@ func (o *orchestrator) RegisterChain(name string, chain core.Chain) error {
 func (o *orchestrator) ListChains() []string {
 	o.chainsMu.RLock()
 	defer o.chainsMu.RUnlock()
+
 	names := make([]string, 0, len(o.chains))
 	for name := range o.chains {
 		names = append(names, name)
 	}
+
 	sort.Strings(names)
+
 	return names
 }
 
@@ -116,11 +125,14 @@ func (o *orchestrator) ListChains() []string {
 func (o *orchestrator) RemoveChain(name string) bool {
 	o.chainsMu.Lock()
 	defer o.chainsMu.Unlock()
+
 	if _, exists := o.chains[name]; exists {
 		delete(o.chains, name)
 		o.logger.Info("removed named chain", "name", name)
+
 		return true
 	}
+
 	return false
 }
 
@@ -155,11 +167,14 @@ func (o *orchestrator) GetChainForPath(chainType core.ChainType, requestPath str
 
 	// Check cache first
 	o.cacheMu.RLock()
+
 	if cached, exists := o.cache[cacheKey]; exists {
 		o.cacheMu.RUnlock()
 		o.logger.Info("returned cached chain", "cache_key", cacheKey)
+
 		return cached, nil
 	}
+
 	o.cacheMu.RUnlock()
 
 	// Build new chain
@@ -174,6 +189,7 @@ func (o *orchestrator) GetChainForPath(chainType core.ChainType, requestPath str
 	o.cacheMu.Unlock()
 
 	o.logger.Info("cached new chain", "cache_key", cacheKey)
+
 	return chain, nil
 }
 
@@ -181,6 +197,7 @@ func (o *orchestrator) GetChainForPath(chainType core.ChainType, requestPath str
 func (o *orchestrator) ClearCache() {
 	o.cacheMu.Lock()
 	defer o.cacheMu.Unlock()
+
 	cacheSize := len(o.cache)
 	o.cache = make(map[string]core.Chain)
 	o.logger.Info("cleared middleware chain cache", "cleared_entries", cacheSize)
@@ -224,6 +241,7 @@ func (o *orchestrator) ValidateConfiguration() error {
 	}
 
 	o.logger.Info("configuration validation completed successfully")
+
 	return nil
 }
 
@@ -259,6 +277,7 @@ func (o *orchestrator) GetChainPerformance() map[string]time.Duration {
 	for chainType, duration := range o.buildTimes {
 		result[chainType] = duration
 	}
+
 	return result
 }
 
@@ -292,6 +311,7 @@ func (o *orchestrator) getOrderedByCategory(category core.MiddlewareCategory) []
 
 	// Fallback implementation
 	allNames := o.registry.List()
+
 	var categoryMiddleware []core.Middleware
 
 	for _, name := range allNames {
@@ -318,6 +338,7 @@ func (o *orchestrator) getOrderedByCategory(category core.MiddlewareCategory) []
 // filterByConfig filters middleware based on configuration settings.
 func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType core.ChainType) []core.Middleware {
 	var filtered []core.Middleware
+
 	chainConfig := o.config.GetChainConfig(chainType)
 
 	for _, mw := range middlewares {
@@ -326,26 +347,32 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 		// Check if middleware is enabled globally
 		if !o.config.IsMiddlewareEnabled(name) {
 			o.logger.Info("middleware disabled by config", "name", name)
+
 			continue
 		}
 
 		// Check if middleware is enabled for this chain
 		if !chainConfig.Enabled {
 			o.logger.Info("chain disabled by config", "chain_type", chainType)
+
 			continue
 		}
 
 		// Check if middleware is in the chain's middleware list
 		if len(chainConfig.MiddlewareNames) > 0 {
 			found := false
+
 			for _, allowedName := range chainConfig.MiddlewareNames {
 				if allowedName == name {
 					found = true
+
 					break
 				}
 			}
+
 			if !found {
 				o.logger.Info("middleware not in chain config", "name", name, "chain_type", chainType)
+
 				continue
 			}
 		}
@@ -449,6 +476,7 @@ func (o *orchestrator) applyPathSpecificMiddleware(baseChain core.Chain, request
 // filterByPath filters middleware based on path patterns.
 func (o *orchestrator) filterByPath(chainObj core.Chain, requestPath string) core.Chain {
 	middlewares := chainObj.List()
+
 	var filteredMiddlewares []core.Middleware
 
 	for _, mw := range middlewares {
@@ -459,6 +487,7 @@ func (o *orchestrator) filterByPath(chainObj core.Chain, requestPath string) cor
 			if pathList, ok := excludePaths.([]string); ok {
 				if o.matchesAnyPath(requestPath, pathList) {
 					o.logger.Info("excluded middleware by path", "name", mw.Name(), "path", requestPath)
+
 					continue
 				}
 			}
@@ -469,6 +498,7 @@ func (o *orchestrator) filterByPath(chainObj core.Chain, requestPath string) cor
 			if pathList, ok := includePaths.([]string); ok {
 				if !o.matchesAnyPath(requestPath, pathList) {
 					o.logger.Info("excluded middleware by path requirement", "name", mw.Name(), "path", requestPath)
+
 					continue
 				}
 			}
@@ -487,6 +517,7 @@ func (o *orchestrator) matchesAnyPath(requestPath string, patterns []string) boo
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -496,6 +527,7 @@ func (o *orchestrator) matchesPath(requestPath string, pattern string) bool {
 	if strings.Contains(pattern, "*") {
 		// Convert glob to regex
 		regexPattern := strings.ReplaceAll(pattern, "*", ".*")
+
 		regexPattern = "^" + regexPattern + "$"
 		if matched, _ := regexp.MatchString(regexPattern, requestPath); matched {
 			return true
@@ -536,6 +568,7 @@ func (o *orchestrator) getMiddlewareNames(middlewares []core.Middleware) []strin
 	for i, mw := range middlewares {
 		names[i] = mw.Name()
 	}
+
 	return names
 }
 

@@ -51,8 +51,10 @@ func (b *ChainBuilder) Build(chainType core.ChainType) (core.Chain, error) {
 			if b.logger != nil {
 				b.logger.Warn("middleware %q not found in registry", name)
 			}
+
 			continue
 		}
+
 		middlewares = append(middlewares, mw)
 	}
 

@@ -43,6 +43,7 @@ func NewMemoryPublisher(logger logging.Logger) event.Publisher {
 func (p *MemoryPublisher) WithMaxEvents(maxEvents int) *MemoryPublisher {
 	p.mu.Lock()
 	defer p.mu.Unlock()
+
 	p.maxEvents = maxEvents
 
 	return p

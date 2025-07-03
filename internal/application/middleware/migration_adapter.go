@@ -43,6 +43,7 @@ func (ma *MigrationAdapter) setupNewSystem(e *echo.Echo) error {
 
 	// Create Echo adapter and setup middleware
 	adapter := NewEchoOrchestratorAdapter(ma.orchestrator, ma.logger)
+
 	return adapter.SetupMiddleware(e)
 }
 
@@ -55,6 +56,7 @@ func (ma *MigrationAdapter) setupOldSystem(e *echo.Echo, oldManager *Manager) er
 	}
 
 	oldManager.Setup(e)
+
 	return nil
 }
 
@@ -85,6 +87,7 @@ func (ma *MigrationAdapter) MigrateMiddleware(middlewareName string) error {
 	}
 
 	ma.logger.Info("middleware migration completed", "middleware", middlewareName)
+
 	return nil
 }
 
@@ -113,8 +116,10 @@ func (ma *MigrationAdapter) SetupWithFallback(e *echo.Echo, oldManager *Manager)
 		if err := ma.setupNewSystem(e); err != nil {
 			ma.logger.Warn("new system setup failed, falling back to legacy system", "error", err)
 			ma.useNewSystem = false
+
 			return ma.setupOldSystem(e, oldManager)
 		}
+
 		return nil
 	}
 
@@ -139,6 +144,7 @@ func (ma *MigrationAdapter) ValidateMigration() error {
 	}
 
 	var missing []string
+
 	for _, mw := range requiredMiddleware {
 		if _, exists := ma.registry.Get(mw); !exists {
 			missing = append(missing, mw)
@@ -167,6 +173,7 @@ func (ma *MigrationAdapter) ValidateMigration() error {
 	}
 
 	ma.logger.Info("migration validation completed successfully")
+
 	return nil
 }
 

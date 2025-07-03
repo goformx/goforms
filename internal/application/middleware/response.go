@@ -217,6 +217,7 @@ func NewErrorResponse(statusCode int, err error) Response {
 	// Set default error content type
 	if err != nil {
 		resp.SetContentType("application/json")
+
 		errorBody := map[string]interface{}{
 			"error":   err.Error(),
 			"code":    statusCode,
@@ -326,7 +327,9 @@ func (r *httpResponse) SetStatusCode(code int) Response {
 	if code < 100 || code > 599 {
 		code = http.StatusInternalServerError
 	}
+
 	r.statusCode = code
+
 	return r
 }
 
@@ -338,12 +341,14 @@ func (r *httpResponse) Headers() http.Header {
 // SetHeader sets a response header
 func (r *httpResponse) SetHeader(key, value string) Response {
 	r.headers.Set(key, value)
+
 	return r
 }
 
 // AddHeader adds a response header (doesn't overwrite existing)
 func (r *httpResponse) AddHeader(key, value string) Response {
 	r.headers.Add(key, value)
+
 	return r
 }
 
@@ -352,9 +357,11 @@ func (r *httpResponse) Body() io.Reader {
 	if r.body != nil {
 		return r.body
 	}
+
 	if r.bodyBytes != nil {
 		return bytes.NewReader(r.bodyBytes)
 	}
+
 	return nil
 }
 
@@ -362,6 +369,7 @@ func (r *httpResponse) Body() io.Reader {
 func (r *httpResponse) SetBody(body io.Reader) Response {
 	r.body = body
 	r.bodyBytes = nil
+
 	return r
 }
 
@@ -370,21 +378,26 @@ func (r *httpResponse) BodyBytes() []byte {
 	if r.bodyBytes != nil {
 		return r.bodyBytes
 	}
+
 	if r.body != nil {
 		if reader, ok := r.body.(*bytes.Reader); ok {
 			// Reset reader to beginning and read all bytes
 			reader.Seek(0, 0)
+
 			if data, err := io.ReadAll(reader); err == nil {
 				r.bodyBytes = data
+
 				return data
 			}
 		}
 		// Read from io.Reader
 		if data, err := io.ReadAll(r.body); err == nil {
 			r.bodyBytes = data
+
 			return data
 		}
 	}
+
 	return nil
 }
 
@@ -393,6 +406,7 @@ func (r *httpResponse) SetBodyBytes(body []byte) Response {
 	r.bodyBytes = body
 	r.body = nil
 	r.contentLength = int64(len(body))
+
 	return r
 }
 
@@ -405,6 +419,7 @@ func (r *httpResponse) ContentType() string {
 func (r *httpResponse) SetContentType(contentType string) Response {
 	r.contentType = contentType
 	r.headers.Set("Content-Type", contentType)
+
 	return r
 }
 
@@ -413,14 +428,17 @@ func (r *httpResponse) ContentLength() int64 {
 	if r.contentLength > 0 {
 		return r.contentLength
 	}
+
 	if r.bodyBytes != nil {
 		return int64(len(r.bodyBytes))
 	}
+
 	if r.body != nil {
 		if reader, ok := r.body.(*bytes.Reader); ok {
 			return reader.Size()
 		}
 	}
+
 	return -1
 }
 
@@ -430,6 +448,7 @@ func (r *httpResponse) SetContentLength(length int64) Response {
 	if length >= 0 {
 		r.headers.Set("Content-Length", strconv.FormatInt(length, 10))
 	}
+
 	return r
 }
 
@@ -442,12 +461,14 @@ func (r *httpResponse) Location() string {
 func (r *httpResponse) SetLocation(location string) Response {
 	r.location = location
 	r.headers.Set("Location", location)
+
 	return r
 }
 
 // SetCookie adds a cookie to the response
 func (r *httpResponse) SetCookie(cookie *http.Cookie) Response {
 	r.cookies = append(r.cookies, cookie)
+
 	return r
 }
 
@@ -464,6 +485,7 @@ func (r *httpResponse) Error() error {
 // SetError sets the error for this response
 func (r *httpResponse) SetError(err error) Response {
 	r.err = err
+
 	return r
 }
 
@@ -511,6 +533,7 @@ func (r *httpResponse) Context() context.Context {
 func (r *httpResponse) WithContext(ctx context.Context) Response {
 	newResp := *r
 	newResp.context = ctx
+
 	return &newResp
 }
 
@@ -519,6 +542,7 @@ func (r *httpResponse) Get(key string) interface{} {
 	if r.values == nil {
 		return nil
 	}
+
 	return r.values[key]
 }
 
@@ -527,6 +551,7 @@ func (r *httpResponse) Set(key string, value interface{}) {
 	if r.values == nil {
 		r.values = make(map[string]interface{})
 	}
+
 	r.values[key] = value
 }
 
@@ -538,6 +563,7 @@ func (r *httpResponse) Timestamp() time.Time {
 // SetTimestamp sets the response timestamp
 func (r *httpResponse) SetTimestamp(timestamp time.Time) Response {
 	r.timestamp = timestamp
+
 	return r
 }
 
@@ -549,6 +575,7 @@ func (r *httpResponse) RequestID() string {
 // SetRequestID sets the request ID for this response
 func (r *httpResponse) SetRequestID(id string) Response {
 	r.requestID = id
+
 	return r
 }
 
@@ -568,6 +595,7 @@ func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 	if r.headers.Get("Date") == "" {
 		r.headers.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	}
+
 	if r.headers.Get("Server") == "" {
 		r.headers.Set("Server", "GoForms/1.0")
 	}
@@ -627,22 +655,27 @@ func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 // Clone creates a copy of this response
 func (r *httpResponse) Clone() Response {
 	newResp := *r
+
 	newResp.headers = make(http.Header)
 	for k, v := range r.headers {
 		newResp.headers[k] = v
 	}
+
 	newResp.cookies = make([]*http.Cookie, len(r.cookies))
 	copy(newResp.cookies, r.cookies)
+
 	if r.bodyBytes != nil {
 		newResp.bodyBytes = make([]byte, len(r.bodyBytes))
 		copy(newResp.bodyBytes, r.bodyBytes)
 	}
+
 	if r.values != nil {
 		newResp.values = make(map[string]interface{})
 		for k, v := range r.values {
 			newResp.values[k] = v
 		}
 	}
+
 	return &newResp
 }
 
@@ -654,18 +687,21 @@ type responseBuilder struct {
 // StatusCode sets the HTTP status code
 func (rb *responseBuilder) StatusCode(code int) ResponseBuilder {
 	rb.response.statusCode = code
+
 	return rb
 }
 
 // Header sets a response header
 func (rb *responseBuilder) Header(key, value string) ResponseBuilder {
 	rb.response.headers.Set(key, value)
+
 	return rb
 }
 
 // Headers sets multiple response headers
 func (rb *responseBuilder) Headers(headers http.Header) ResponseBuilder {
 	rb.response.headers = headers
+
 	return rb
 }
 
@@ -673,6 +709,7 @@ func (rb *responseBuilder) Headers(headers http.Header) ResponseBuilder {
 func (rb *responseBuilder) Body(body io.Reader) ResponseBuilder {
 	rb.response.body = body
 	rb.response.bodyBytes = nil
+
 	return rb
 }
 
@@ -681,6 +718,7 @@ func (rb *responseBuilder) BodyBytes(body []byte) ResponseBuilder {
 	rb.response.bodyBytes = body
 	rb.response.body = nil
 	rb.response.contentLength = int64(len(body))
+
 	return rb
 }
 
@@ -688,6 +726,7 @@ func (rb *responseBuilder) BodyBytes(body []byte) ResponseBuilder {
 func (rb *responseBuilder) ContentType(contentType string) ResponseBuilder {
 	rb.response.contentType = contentType
 	rb.response.headers.Set("Content-Type", contentType)
+
 	return rb
 }
 
@@ -697,6 +736,7 @@ func (rb *responseBuilder) ContentLength(length int64) ResponseBuilder {
 	if length >= 0 {
 		rb.response.headers.Set("Content-Length", strconv.FormatInt(length, 10))
 	}
+
 	return rb
 }
 
@@ -704,36 +744,42 @@ func (rb *responseBuilder) ContentLength(length int64) ResponseBuilder {
 func (rb *responseBuilder) Location(location string) ResponseBuilder {
 	rb.response.location = location
 	rb.response.headers.Set("Location", location)
+
 	return rb
 }
 
 // Cookie adds a cookie to the response
 func (rb *responseBuilder) Cookie(cookie *http.Cookie) ResponseBuilder {
 	rb.response.cookies = append(rb.response.cookies, cookie)
+
 	return rb
 }
 
 // Error sets the error for this response
 func (rb *responseBuilder) Error(err error) ResponseBuilder {
 	rb.response.err = err
+
 	return rb
 }
 
 // Context sets the response context
 func (rb *responseBuilder) Context(ctx context.Context) ResponseBuilder {
 	rb.response.context = ctx
+
 	return rb
 }
 
 // Timestamp sets the response timestamp
 func (rb *responseBuilder) Timestamp(timestamp time.Time) ResponseBuilder {
 	rb.response.timestamp = timestamp
+
 	return rb
 }
 
 // RequestID sets the request ID for this response
 func (rb *responseBuilder) RequestID(id string) ResponseBuilder {
 	rb.response.requestID = id
+
 	return rb
 }
 
@@ -741,6 +787,7 @@ func (rb *responseBuilder) RequestID(id string) ResponseBuilder {
 func (rb *responseBuilder) JSON() ResponseBuilder {
 	rb.response.contentType = "application/json"
 	rb.response.headers.Set("Content-Type", "application/json")
+
 	return rb
 }
 
@@ -748,6 +795,7 @@ func (rb *responseBuilder) JSON() ResponseBuilder {
 func (rb *responseBuilder) XML() ResponseBuilder {
 	rb.response.contentType = "application/xml"
 	rb.response.headers.Set("Content-Type", "application/xml")
+
 	return rb
 }
 
@@ -755,6 +803,7 @@ func (rb *responseBuilder) XML() ResponseBuilder {
 func (rb *responseBuilder) HTML() ResponseBuilder {
 	rb.response.contentType = "text/html"
 	rb.response.headers.Set("Content-Type", "text/html")
+
 	return rb
 }
 
@@ -762,6 +811,7 @@ func (rb *responseBuilder) HTML() ResponseBuilder {
 func (rb *responseBuilder) Text() ResponseBuilder {
 	rb.response.contentType = "text/plain"
 	rb.response.headers.Set("Content-Type", "text/plain")
+
 	return rb
 }
 

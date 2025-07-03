@@ -62,6 +62,7 @@ func (ea *EchoOrchestratorAdapter) SetupMiddleware(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("middleware chains setup completed")
+
 	return nil
 }
 
@@ -78,6 +79,7 @@ func (ea *EchoOrchestratorAdapter) setupDefaultChain(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("default middleware chain applied", "middleware_count", len(echoMiddleware))
+
 	return nil
 }
 
@@ -94,6 +96,7 @@ func (ea *EchoOrchestratorAdapter) setupAPIChain(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("API middleware chain applied", "middleware_count", len(echoMiddleware))
+
 	return nil
 }
 
@@ -110,6 +113,7 @@ func (ea *EchoOrchestratorAdapter) setupWebChain(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("web middleware chain applied", "middleware_count", len(echoMiddleware))
+
 	return nil
 }
 
@@ -126,6 +130,7 @@ func (ea *EchoOrchestratorAdapter) setupAuthChain(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("auth middleware chain applied", "middleware_count", len(echoMiddleware))
+
 	return nil
 }
 
@@ -142,6 +147,7 @@ func (ea *EchoOrchestratorAdapter) setupAdminChain(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("admin middleware chain applied", "middleware_count", len(echoMiddleware))
+
 	return nil
 }
 
@@ -158,6 +164,7 @@ func (ea *EchoOrchestratorAdapter) setupPublicChain(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("public middleware chain applied", "middleware_count", len(echoMiddleware))
+
 	return nil
 }
 
@@ -174,6 +181,7 @@ func (ea *EchoOrchestratorAdapter) setupStaticChain(e *echo.Echo) error {
 	}
 
 	ea.logger.Info("static middleware chain applied", "middleware_count", len(echoMiddleware))
+
 	return nil
 }
 
@@ -186,6 +194,7 @@ func (ea *EchoOrchestratorAdapter) convertChainToEcho(chain core.Chain) []echo.M
 	echoMiddleware = append(echoMiddleware, func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			ea.logger.Debug("middleware chain processing", "chain_length", chain.Length())
+
 			return next(c)
 		}
 	})

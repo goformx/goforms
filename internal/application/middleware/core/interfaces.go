@@ -395,5 +395,6 @@ func NewResponse(statusCode int) Response {
 func NewErrorResponse(statusCode int, err error) Response {
 	resp := NewResponse(statusCode)
 	resp.SetError(err)
+
 	return resp
 }

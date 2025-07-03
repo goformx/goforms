@@ -247,6 +247,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Set("security_config", m.config.Config.Security)
+
 			return next(c)
 		}
 	})
@@ -360,12 +361,14 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 				if isDevelopment {
 					c.Logger().Debug("CSRF not skipped - token generation needed", "path", path)
 				}
+
 				return false
 			}
 
 			if isDevelopment {
 				c.Logger().Debug("CSRF skipped - safe method", "path", path, "method", method)
 			}
+
 			return true
 		}
 
@@ -374,6 +377,7 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 			if isDevelopment {
 				c.Logger().Debug("CSRF skipped - auth endpoint", "path", path)
 			}
+
 			return true
 		}
 
@@ -382,6 +386,7 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 			if isDevelopment {
 				c.Logger().Debug("CSRF skipped - API route in development", "path", path)
 			}
+
 			return true
 		}
 
@@ -390,6 +395,7 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 			if isDevelopment {
 				c.Logger().Debug("CSRF skipped - health route", "path", path)
 			}
+
 			return true
 		}
 
@@ -398,6 +404,7 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 			if isDevelopment {
 				c.Logger().Debug("CSRF skipped - static route", "path", path)
 			}
+
 			return true
 		}
 
@@ -406,12 +413,14 @@ func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 			if isDevelopment {
 				c.Logger().Debug("CSRF skipped - form submission route", "path", path)
 			}
+
 			return true
 		}
 
 		if isDevelopment {
 			c.Logger().Debug("CSRF not skipped - requires protection", "path", path, "method", method)
 		}
+
 		return false
 	}
 }

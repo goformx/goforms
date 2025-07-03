@@ -155,6 +155,7 @@ func (e *Error) Error() string {
 	if e.Cause != nil {
 		return e.Message + ": " + e.Cause.Error()
 	}
+
 	return e.Message
 }
 

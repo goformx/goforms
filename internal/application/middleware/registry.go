@@ -34,13 +34,17 @@ func NewRegistry(logger core.Logger, config MiddlewareConfig) core.Registry {
 func (r *registry) Register(name string, mw core.Middleware) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	if _, exists := r.middlewares[name]; exists {
 		return fmt.Errorf("middleware %q already registered", name)
 	}
+
 	if !r.config.IsMiddlewareEnabled(name) {
 		r.logger.Info("middleware %q is disabled by config", name)
+
 		return nil
 	}
+
 	r.middlewares[name] = mw
 	// Category, priority, dependencies, conflicts can be set via config or tags
 	// For now, default to Basic category and priority 50
@@ -50,69 +54,85 @@ func (r *registry) Register(name string, mw core.Middleware) error {
 			cat = c
 		}
 	}
+
 	r.categories[cat] = append(r.categories[cat], name)
 	prio := 50
+
 	if prioVal, ok := r.config.GetMiddlewareConfig(name)["priority"]; ok {
 		if p, ok := prioVal.(int); ok {
 			prio = p
 		}
 	}
+
 	r.priorities[name] = prio
 	if deps, ok := r.config.GetMiddlewareConfig(name)["dependencies"]; ok {
 		if depList, ok := deps.([]string); ok {
 			r.dependencies[name] = depList
 		}
 	}
+
 	if confs, ok := r.config.GetMiddlewareConfig(name)["conflicts"]; ok {
 		if confList, ok := confs.([]string); ok {
 			r.conflicts[name] = confList
 		}
 	}
+
 	return nil
 }
 
 func (r *registry) Get(name string) (core.Middleware, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	mw, ok := r.middlewares[name]
+
 	return mw, ok
 }
 
 func (r *registry) List() []string {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	names := make([]string, 0, len(r.middlewares))
 	for name := range r.middlewares {
 		names = append(names, name)
 	}
+
 	sort.Strings(names)
+
 	return names
 }
 
 func (r *registry) Remove(name string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	if _, exists := r.middlewares[name]; exists {
 		delete(r.middlewares, name)
 		delete(r.priorities, name)
 		delete(r.dependencies, name)
 		delete(r.conflicts, name)
+
 		for cat, names := range r.categories {
 			for i, n := range names {
 				if n == name {
 					r.categories[cat] = append(names[:i], names[i+1:]...)
+
 					break
 				}
 			}
 		}
+
 		return true
 	}
+
 	return false
 }
 
 func (r *registry) Clear() {
 	r.mu.Lock()
 	defer r.mu.Unlock()
+
 	r.middlewares = make(map[string]core.Middleware)
 	r.categories = make(map[core.MiddlewareCategory][]string)
 	r.priorities = make(map[string]int)
@@ -123,6 +143,7 @@ func (r *registry) Clear() {
 func (r *registry) Count() int {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	return len(r.middlewares)
 }
 
@@ -130,6 +151,7 @@ func (r *registry) Count() int {
 func (r *registry) GetOrdered(category core.MiddlewareCategory) []core.Middleware {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	names := r.categories[category]
 	// Filter by config
 	filtered := make([]string, 0, len(names))
@@ -142,12 +164,14 @@ func (r *registry) GetOrdered(category core.MiddlewareCategory) []core.Middlewar
 	sort.SliceStable(filtered, func(i, j int) bool {
 		return r.priorities[filtered[i]] < r.priorities[filtered[j]]
 	})
+
 	result := make([]core.Middleware, 0, len(filtered))
 	for _, name := range filtered {
 		if mw, ok := r.middlewares[name]; ok {
 			result = append(result, mw)
 		}
 	}
+
 	return result
 }
 
@@ -155,6 +179,7 @@ func (r *registry) GetOrdered(category core.MiddlewareCategory) []core.Middlewar
 func (r *registry) ValidateDependencies() error {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
+
 	for name, deps := range r.dependencies {
 		for _, dep := range deps {
 			if _, ok := r.middlewares[dep]; !ok {
@@ -162,6 +187,7 @@ func (r *registry) ValidateDependencies() error {
 			}
 		}
 	}
+
 	for name, confs := range r.conflicts {
 		for _, conf := range confs {
 			if _, ok := r.middlewares[conf]; ok {
@@ -169,5 +195,6 @@ func (r *registry) ValidateDependencies() error {
 			}
 		}
 	}
+
 	return nil
 }

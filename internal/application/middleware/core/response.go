@@ -37,6 +37,7 @@ func (r *httpResponse) StatusCode() int {
 // SetStatusCode sets the HTTP status code
 func (r *httpResponse) SetStatusCode(code int) Response {
 	r.statusCode = code
+
 	return r
 }
 
@@ -48,12 +49,14 @@ func (r *httpResponse) Headers() http.Header {
 // SetHeader sets a response header
 func (r *httpResponse) SetHeader(key, value string) Response {
 	r.headers.Set(key, value)
+
 	return r
 }
 
 // AddHeader adds a response header (doesn't overwrite existing)
 func (r *httpResponse) AddHeader(key, value string) Response {
 	r.headers.Add(key, value)
+
 	return r
 }
 
@@ -62,15 +65,18 @@ func (r *httpResponse) Body() io.Reader {
 	if r.body != nil {
 		return r.body
 	}
+
 	if r.bodyBytes != nil {
 		return bytes.NewReader(r.bodyBytes)
 	}
+
 	return nil
 }
 
 // SetBody sets the response body
 func (r *httpResponse) SetBody(body io.Reader) Response {
 	r.body = body
+
 	r.bodyBytes = nil
 	if body != nil {
 		// Try to read the body into bytes for easier handling
@@ -79,6 +85,7 @@ func (r *httpResponse) SetBody(body io.Reader) Response {
 			r.contentLength = int64(len(bytes))
 		}
 	}
+
 	return r
 }
 
@@ -87,14 +94,17 @@ func (r *httpResponse) BodyBytes() []byte {
 	if r.bodyBytes != nil {
 		return r.bodyBytes
 	}
+
 	if r.body != nil {
 		// Try to read the body into bytes
 		if bytes, err := io.ReadAll(r.body); err == nil {
 			r.bodyBytes = bytes
 			r.contentLength = int64(len(bytes))
+
 			return bytes
 		}
 	}
+
 	return nil
 }
 
@@ -103,6 +113,7 @@ func (r *httpResponse) SetBodyBytes(body []byte) Response {
 	r.bodyBytes = body
 	r.body = nil
 	r.contentLength = int64(len(body))
+
 	return r
 }
 
@@ -115,6 +126,7 @@ func (r *httpResponse) ContentType() string {
 func (r *httpResponse) SetContentType(contentType string) Response {
 	r.contentType = contentType
 	r.headers.Set("Content-Type", contentType)
+
 	return r
 }
 
@@ -123,9 +135,11 @@ func (r *httpResponse) ContentLength() int64 {
 	if r.contentLength > 0 {
 		return r.contentLength
 	}
+
 	if r.bodyBytes != nil {
 		return int64(len(r.bodyBytes))
 	}
+
 	return 0
 }
 
@@ -133,6 +147,7 @@ func (r *httpResponse) ContentLength() int64 {
 func (r *httpResponse) SetContentLength(length int64) Response {
 	r.contentLength = length
 	r.headers.Set("Content-Length", strconv.FormatInt(length, 10))
+
 	return r
 }
 
@@ -145,12 +160,14 @@ func (r *httpResponse) Location() string {
 func (r *httpResponse) SetLocation(location string) Response {
 	r.location = location
 	r.headers.Set("Location", location)
+
 	return r
 }
 
 // SetCookie adds a cookie to the response
 func (r *httpResponse) SetCookie(cookie *http.Cookie) Response {
 	r.cookies = append(r.cookies, cookie)
+
 	return r
 }
 
@@ -167,6 +184,7 @@ func (r *httpResponse) Error() error {
 // SetError sets the error for this response
 func (r *httpResponse) SetError(err error) Response {
 	r.err = err
+
 	return r
 }
 
@@ -214,6 +232,7 @@ func (r *httpResponse) Context() context.Context {
 func (r *httpResponse) WithContext(ctx context.Context) Response {
 	newResp := *r
 	newResp.context = ctx
+
 	return &newResp
 }
 
@@ -222,6 +241,7 @@ func (r *httpResponse) Get(key string) interface{} {
 	if r.values != nil {
 		return r.values[key]
 	}
+
 	return nil
 }
 
@@ -230,6 +250,7 @@ func (r *httpResponse) Set(key string, value interface{}) {
 	if r.values == nil {
 		r.values = make(map[string]interface{})
 	}
+
 	r.values[key] = value
 }
 
@@ -241,6 +262,7 @@ func (r *httpResponse) Timestamp() time.Time {
 // SetTimestamp sets the response timestamp
 func (r *httpResponse) SetTimestamp(timestamp time.Time) Response {
 	r.timestamp = timestamp
+
 	return r
 }
 
@@ -252,6 +274,7 @@ func (r *httpResponse) RequestID() string {
 // SetRequestID sets the request ID for this response
 func (r *httpResponse) SetRequestID(id string) Response {
 	r.requestID = id
+
 	return r
 }
 
@@ -317,19 +340,23 @@ func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 // Clone creates a copy of this response
 func (r *httpResponse) Clone() Response {
 	newResp := *r
+
 	newResp.headers = make(http.Header)
 	for key, values := range r.headers {
 		for _, value := range values {
 			newResp.headers.Add(key, value)
 		}
 	}
+
 	newResp.cookies = make([]*http.Cookie, len(r.cookies))
 	copy(newResp.cookies, r.cookies)
 	newResp.bodyBytes = make([]byte, len(r.bodyBytes))
 	copy(newResp.bodyBytes, r.bodyBytes)
+
 	newResp.values = make(map[string]interface{})
 	for key, value := range r.values {
 		newResp.values[key] = value
 	}
+
 	return &newResp
 }
