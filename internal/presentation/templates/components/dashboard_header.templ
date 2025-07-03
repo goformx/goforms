@@ -1,0 +1,38 @@
+package components
+
+type DashboardHeaderProps struct {
+	Title       string
+	Subtitle    string
+	Actions     []DashboardHeaderAction
+}
+
+type DashboardHeaderAction struct {
+	Href        string
+	Label       string
+	Icon        string
+	Class       string
+	Title       string
+}
+
+templ DashboardHeader(props DashboardHeaderProps) {
+	<header class="dashboard-header">
+		<div class="dashboard-header-left">
+			<h1 class="dashboard-title">{ props.Title }</h1>
+			if props.Subtitle != "" {
+				<p class="dashboard-subtitle">{ props.Subtitle }</p>
+			}
+		</div>
+		if len(props.Actions) > 0 {
+			<div class="dashboard-header-actions">
+				for _, action := range props.Actions {
+					<a href={ action.Href } class={ action.Class } title={ action.Title }>
+						if action.Icon != "" {
+							<i class={ action.Icon }></i>
+						}
+						<span class="dashboard-action-label">{ action.Label }</span>
+					</a>
+				}
+			</div>
+		}
+	</header>
+}

@@ -4,6 +4,7 @@ import (
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/templates/components"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -71,30 +72,41 @@ templ FormFieldsContent(data view.PageData) {
 }
 
 templ EditForm(data view.PageData, form *model.Form) {
-@layouts.Layout(data, editFormContent(data, form))
+	@layouts.Layout(data, EditFormWrapper(data, form))
+}
+
+templ EditFormWrapper(data view.PageData, form *model.Form) {
+	@EditFormHeader(data, form)
+	@editFormContent(data, form)
+}
+
+templ EditFormHeader(data view.PageData, form *model.Form) {
+	@components.DashboardHeader(components.DashboardHeaderProps{
+		Title:    "Edit Form",
+		Subtitle: "Configure your form settings and fields",
+		Actions: []components.DashboardHeaderAction{
+			{
+				Href:  "/forms/" + data.Form.ID + "/preview",
+				Label: "Preview",
+				Icon:  "bi bi-eye",
+				Class: "gf-button gf-button--outline",
+				Title: "Preview Form",
+			},
+			{
+				Href:  "/forms/" + data.Form.ID + "/submissions",
+				Label: "View Submissions",
+				Icon:  "bi bi-list-check",
+				Class: "gf-button gf-button--outline",
+				Title: "View Form Submissions",
+			},
+		},
+	})
 }
 
 templ editFormContent(data view.PageData, form *model.Form) {
-<div class="dashboard-page">
-	<div class="dashboard-container">
-		<div class="dashboard-header">
-			<div class="dashboard-header-left">
-				<h1 class="dashboard-title">Edit Form</h1>
-				<p class="dashboard-subtitle">Configure your form settings and fields</p>
-			</div>
-			<div class="dashboard-header-right">
-				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/preview") } class="gf-button gf-button--outline">
-					<i class="bi bi-eye"></i>
-					<span>Preview</span>
-				</a>
-				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/submissions") } class="gf-button gf-button--outline">
-					<i class="bi bi-list-check"></i>
-					<span>View Submissions</span>
-				</a>
-			</div>
-		</div>
-
-		<div class="dashboard-content form-builder-content">
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-content form-builder-content">
 			<div class="form-builder-grid">
 				<div class="form-builder-sidebar">
 					<div class="form-panel">

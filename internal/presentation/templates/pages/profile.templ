@@ -2,40 +2,51 @@ package pages
 
 import (
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/templates/components"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 templ Profile(data view.PageData) {
-	@layouts.Layout(data, profileContent(data))
+	@layouts.Layout(data, ProfileWrapper(data))
+}
+
+templ ProfileWrapper(data view.PageData) {
+	@ProfileHeader(data)
+	@profileContent(data)
+}
+
+templ ProfileHeader(data view.PageData) {
+	@components.DashboardHeader(components.DashboardHeaderProps{
+		Title: "Profile",
+	})
 }
 
 templ profileContent(data view.PageData) {
-	<div class="dashboard-content">
-		<div class="dashboard-header">
-			<h1>Profile</h1>
-		</div>
-		<div class="dashboard-body">
-			<div class="profile-card">
-				<div class="profile-header">
-					<div class="profile-avatar">
-						<span class="avatar-text">{ data.User.FirstName[0:1] }</span>
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-content">
+				<div class="profile-card">
+					<div class="profile-header">
+						<div class="profile-avatar">
+							<span class="avatar-text">{ data.User.FirstName[0:1] }</span>
+						</div>
+						<div class="profile-info">
+							<h2>{ data.User.FirstName } { data.User.LastName }</h2>
+							<p class="profile-email">{ data.User.Email }</p>
+						</div>
 					</div>
-					<div class="profile-info">
-						<h2>{ data.User.FirstName } { data.User.LastName }</h2>
-						<p class="profile-email">{ data.User.Email }</p>
-					</div>
-				</div>
-				<div class="profile-details">
-					<div class="detail-group">
-						<label>Role</label>
-						<p>{ data.User.Role }</p>
-					</div>
-					<div class="detail-group">
-						<label>Member Since</label>
-						<p>{ data.User.CreatedAt.Format("January 2, 2006") }</p>
+					<div class="profile-details">
+						<div class="detail-group">
+							<label>Role</label>
+							<p>{ data.User.Role }</p>
+						</div>
+						<div class="detail-group">
+							<label>Member Since</label>
+							<p>{ data.User.CreatedAt.Format("January 2, 2006") }</p>
+						</div>
 					</div>
 				</div>
 			</div>
 		</div>
 	</div>
-} 
+}
