@@ -522,13 +522,13 @@ func TestOrchestrator_PathFiltering(t *testing.T) {
 
 	// Test public path - should exclude auth middleware
 	chain1, err := orchestrator.BuildChainForPath(core.ChainTypeDefault, "/public/info")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain1)
 	assert.Equal(t, 1, chain1.Length()) // Only cors
 
 	// Test admin path - should include admin middleware
 	chain2, err := orchestrator.BuildChainForPath(core.ChainTypeDefault, "/admin/users")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain2)
 	assert.Equal(t, 1, chain2.Length()) // Only cors (auth and admin are filtered by path requirements)
 

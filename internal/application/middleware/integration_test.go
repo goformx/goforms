@@ -99,7 +99,7 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 
 		// Test middleware setup
 		err := adapter.SetupMiddleware(e)
-		assert.NoError(t, err)
+		require.NoError(t, err)
 
 		// Test chain building for specific paths
 		paths := []string{"/api/users", "/dashboard", "/login", "/admin/users", "/", "/static/css/style.css"}
