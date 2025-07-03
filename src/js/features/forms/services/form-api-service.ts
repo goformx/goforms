@@ -128,7 +128,7 @@ export class FormApiService {
     try {
       // HttpClient.put returns HttpResponse, not Response
       await HttpClient.put(
-        `${this.baseUrl}/dashboard/forms/${formId}`,
+        `${this.baseUrl}/forms/${formId}`,
         JSON.stringify(details),
       );
 
@@ -265,7 +265,7 @@ export class FormApiService {
    */
   public async listForms(): Promise<any[]> {
     try {
-      const response = await HttpClient.get(`${this.baseUrl}/dashboard/forms`);
+      const response = await HttpClient.get(`${this.baseUrl}/forms`);
       return (response.data as any[]) ?? [];
     } catch (error) {
       if (error instanceof FormBuilderError) {
@@ -273,7 +273,7 @@ export class FormApiService {
       }
       throw FormBuilderError.loadFailed(
         "Failed to list forms",
-        "dashboard",
+        "forms",
         error instanceof Error ? error : undefined,
       );
     }
