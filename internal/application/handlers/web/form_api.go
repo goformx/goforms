@@ -69,6 +69,7 @@ func (h *FormAPIHandler) RegisterAuthenticatedRoutes(formsAPI *echo.Group) {
 	formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
 
 	// Authenticated routes
+	formsAPI.GET("/:id", h.handleGetForm)
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
 	formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
 }
@@ -86,6 +87,22 @@ func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
 func (h *FormAPIHandler) Register(_ *echo.Echo) {
 	// Routes are registered by RegisterHandlers function
 	// This method is required to satisfy the Handler interface
+}
+
+// GET /api/v1/forms/:id
+func (h *FormAPIHandler) handleGetForm(c echo.Context) error {
+	form, err := h.GetFormWithOwnership(c)
+	if err != nil {
+		return h.HandleError(c, err, "Failed to get form")
+	}
+
+	// Check if form is nil (should not happen with proper error handling, but safety check)
+	if form == nil {
+		h.Logger.Error("form is nil after GetFormWithOwnership", "form_id", c.Param("id"))
+		return fmt.Errorf("handle get form: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
+	}
+
+	return fmt.Errorf("build form response: %w", h.ResponseBuilder.BuildFormResponse(c, form))
 }
 
 // GET /api/v1/forms/:id/schema

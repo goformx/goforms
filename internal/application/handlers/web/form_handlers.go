@@ -76,8 +76,7 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 
 	data.SetUser(user)
 
-	return fmt.Errorf("render edit form: %w",
-		pages.EditForm(*data, form).Render(c.Request().Context(), c.Response().Writer))
+	return fmt.Errorf("render edit form: %w", h.Renderer.Render(c, pages.EditForm(*data, form)))
 }
 
 // handleUpdate processes form update requests
