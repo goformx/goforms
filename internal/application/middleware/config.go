@@ -386,85 +386,100 @@ func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[st
 	}
 }
 
+// Chain custom configs as package-level variables
+var chainCustomConfigDefault = map[string]any{
+	"timeout":          30,
+	"max_body_size":    "10MB",
+	"compress":         true,
+	"cors_origins":     []string{"*"},
+	"security_headers": true,
+}
+
+var chainCustomConfigAPI = map[string]any{
+	"timeout":          60,
+	"max_body_size":    "50MB",
+	"compress":         true,
+	"cors_origins":     []string{"https://api.example.com"},
+	"rate_limit":       true,
+	"authentication":   true,
+	"authorization":    true,
+	"request_logging":  true,
+	"response_logging": false,
+}
+
+var chainCustomConfigWeb = map[string]any{
+	"timeout":          30,
+	"max_body_size":    "25MB",
+	"compress":         true,
+	"cors_origins":     []string{"https://app.example.com"},
+	"session":          true,
+	"authentication":   true,
+	"authorization":    true,
+	"request_logging":  true,
+	"response_logging": false,
+}
+
+var chainCustomConfigAuth = map[string]any{
+	"timeout":          15,
+	"max_body_size":    "5MB",
+	"compress":         false,
+	"cors_origins":     []string{"https://auth.example.com"},
+	"session":          true,
+	"authentication":   true,
+	"csrf_protection":  true,
+	"request_logging":  true,
+	"response_logging": false,
+}
+
+var chainCustomConfigAdmin = map[string]any{
+	"timeout":          60,
+	"max_body_size":    "100MB",
+	"compress":         true,
+	"cors_origins":     []string{"https://admin.example.com"},
+	"session":          true,
+	"authentication":   true,
+	"authorization":    true,
+	"rate_limit":       true,
+	"request_logging":  true,
+	"response_logging": true,
+	"audit_logging":    true,
+}
+
+var chainCustomConfigPublic = map[string]any{
+	"timeout":          10,
+	"max_body_size":    "1MB",
+	"compress":         true,
+	"cors_origins":     []string{"*"},
+	"session":          false,
+	"authentication":   false,
+	"authorization":    false,
+	"request_logging":  false,
+	"response_logging": false,
+}
+
+var chainCustomConfigStatic = map[string]any{
+	"timeout":          5,
+	"max_body_size":    "100MB",
+	"compress":         true,
+	"cors_origins":     []string{"*"},
+	"session":          false,
+	"authentication":   false,
+	"authorization":    false,
+	"request_logging":  false,
+	"response_logging": false,
+	"cache_headers":    true,
+	"cache_duration":   86400, // 24 hours
+}
+
 // getChainCustomConfigs returns the complete chain configuration map
 func (c *middlewareConfig) getChainCustomConfigs() map[core.ChainType]map[string]any {
 	return map[core.ChainType]map[string]any{
-		core.ChainTypeDefault: {
-			"timeout":          30,
-			"max_body_size":    "10MB",
-			"compress":         true,
-			"cors_origins":     []string{"*"},
-			"security_headers": true,
-		},
-		core.ChainTypeAPI: {
-			"timeout":          60,
-			"max_body_size":    "50MB",
-			"compress":         true,
-			"cors_origins":     []string{"https://api.example.com"},
-			"rate_limit":       true,
-			"authentication":   true,
-			"authorization":    true,
-			"request_logging":  true,
-			"response_logging": false,
-		},
-		core.ChainTypeWeb: {
-			"timeout":          30,
-			"max_body_size":    "25MB",
-			"compress":         true,
-			"cors_origins":     []string{"https://app.example.com"},
-			"session":          true,
-			"authentication":   true,
-			"authorization":    true,
-			"request_logging":  true,
-			"response_logging": false,
-		},
-		core.ChainTypeAuth: {
-			"timeout":          15,
-			"max_body_size":    "5MB",
-			"compress":         false,
-			"cors_origins":     []string{"https://auth.example.com"},
-			"session":          true,
-			"authentication":   true,
-			"csrf_protection":  true,
-			"request_logging":  true,
-			"response_logging": false,
-		},
-		core.ChainTypeAdmin: {
-			"timeout":          60,
-			"max_body_size":    "100MB",
-			"compress":         true,
-			"cors_origins":     []string{"https://admin.example.com"},
-			"session":          true,
-			"authentication":   true,
-			"authorization":    true,
-			"rate_limit":       true,
-			"request_logging":  true,
-			"response_logging": true,
-			"audit_logging":    true,
-		},
-		core.ChainTypePublic: {
-			"timeout":          10,
-			"max_body_size":    "1MB",
-			"compress":         true,
-			"cors_origins":     []string{"*"},
-			"session":          false,
-			"authentication":   false,
-			"authorization":    false,
-			"request_logging":  false,
-			"response_logging": false,
-		},
-		core.ChainTypeStatic: {
-			"timeout":          5,
-			"max_body_size":    "100MB",
-			"compress":         true,
-			"cors_origins":     []string{"*"},
-			"session":          false,
-			"authentication":   false,
-			"authorization":    false,
-			"request_logging":  false,
-			"response_logging": false,
-			"cache_headers":    true,
-			"cache_duration":   86400, // 24 hours
-		},
+		core.ChainTypeDefault: chainCustomConfigDefault,
+		core.ChainTypeAPI:     chainCustomConfigAPI,
+		core.ChainTypeWeb:     chainCustomConfigWeb,
+		core.ChainTypeAuth:    chainCustomConfigAuth,
+		core.ChainTypeAdmin:   chainCustomConfigAdmin,
+		core.ChainTypePublic:  chainCustomConfigPublic,
+		core.ChainTypeStatic:  chainCustomConfigStatic,
 	}
 }
