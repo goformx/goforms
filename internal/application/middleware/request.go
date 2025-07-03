@@ -129,7 +129,7 @@ type RequestBuilder interface {
 	Method(method string) RequestBuilder
 
 	// URL sets the request URL
-	URL(url *url.URL) RequestBuilder
+	URL(u *url.URL) RequestBuilder
 
 	// Path sets the request path
 	Path(path string) RequestBuilder
@@ -465,8 +465,8 @@ func (rb *requestBuilder) Method(method string) RequestBuilder {
 }
 
 // URL sets the request URL
-func (rb *requestBuilder) URL(url *url.URL) RequestBuilder {
-	rb.request.url = url
+func (rb *requestBuilder) URL(u *url.URL) RequestBuilder {
+	rb.request.url = u
 
 	return rb
 }

@@ -654,7 +654,7 @@ func (o *orchestrator) validateRegistryDependency(name string, config map[string
 	if deps, exists := config["dependencies"]; exists {
 		if depList, isStringSlice := deps.([]string); isStringSlice {
 			for _, dep := range depList {
-				if _, exists := o.registry.Get(dep); !exists {
+				if _, depExists := o.registry.Get(dep); !depExists {
 					return fmt.Errorf("middleware %q requires missing dependency %q", name, dep)
 				}
 			}
