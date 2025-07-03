@@ -80,9 +80,9 @@ func (r *httpResponse) SetBody(body io.Reader) Response {
 	r.bodyBytes = nil
 	if body != nil {
 		// Try to read the body into bytes for easier handling
-		if bytes, err := io.ReadAll(body); err == nil {
-			r.bodyBytes = bytes
-			r.contentLength = int64(len(bytes))
+		if bodyData, err := io.ReadAll(body); err == nil {
+			r.bodyBytes = bodyData
+			r.contentLength = int64(len(bodyData))
 		}
 	}
 
@@ -97,11 +97,11 @@ func (r *httpResponse) BodyBytes() []byte {
 
 	if r.body != nil {
 		// Try to read the body into bytes
-		if bytes, err := io.ReadAll(r.body); err == nil {
-			r.bodyBytes = bytes
-			r.contentLength = int64(len(bytes))
+		if bodyData, err := io.ReadAll(r.body); err == nil {
+			r.bodyBytes = bodyData
+			r.contentLength = int64(len(bodyData))
 
-			return bytes
+			return bodyData
 		}
 	}
 
@@ -278,60 +278,111 @@ func (r *httpResponse) SetRequestID(id string) Response {
 	return r
 }
 
+// writeString writes a string to the writer and returns the number of bytes written
+func (r *httpResponse) writeString(w io.Writer, s string) (int64, error) {
+	n, err := w.Write([]byte(s))
+	if err != nil {
+		return 0, fmt.Errorf("failed to write string: %w", err)
+	}
+
+	return int64(n), nil
+}
+
+// writeHeaders writes all headers to the writer
+func (r *httpResponse) writeHeaders(w io.Writer) (int64, error) {
+	var written int64
+
+	for key, values := range r.headers {
+		for _, value := range values {
+			headerLine := fmt.Sprintf("%s: %s\r\n", key, value)
+			if n, err := r.writeString(w, headerLine); err != nil {
+				return written, err
+			} else {
+				written += n
+			}
+		}
+	}
+
+	return written, nil
+}
+
+// writeCookies writes all cookies to the writer
+func (r *httpResponse) writeCookies(w io.Writer) (int64, error) {
+	var written int64
+
+	for _, cookie := range r.cookies {
+		cookieLine := fmt.Sprintf("Set-Cookie: %s\r\n", cookie.String())
+		if n, err := r.writeString(w, cookieLine); err != nil {
+			return written, err
+		} else {
+			written += n
+		}
+	}
+
+	return written, nil
+}
+
+// writeBody writes the response body to the writer
+func (r *httpResponse) writeBody(w io.Writer) (int64, error) {
+	if r.bodyBytes != nil {
+		n, err := w.Write(r.bodyBytes)
+		if err != nil {
+			return 0, fmt.Errorf("failed to write body bytes: %w", err)
+		}
+
+		return int64(n), nil
+	}
+
+	if r.body != nil {
+		n, err := io.Copy(w, r.body)
+		if err != nil {
+			return 0, fmt.Errorf("failed to copy body: %w", err)
+		}
+
+		return n, nil
+	}
+
+	return 0, nil
+}
+
 // WriteTo writes the response to the given io.Writer
 func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 	var written int64
 
 	// Write status line
 	statusLine := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.statusCode, http.StatusText(r.statusCode))
-	if n, err := w.Write([]byte(statusLine)); err != nil {
+	if n, err := r.writeString(w, statusLine); err != nil {
 		return written, err
 	} else {
-		written += int64(n)
+		written += n
 	}
 
 	// Write headers
-	for key, values := range r.headers {
-		for _, value := range values {
-			headerLine := fmt.Sprintf("%s: %s\r\n", key, value)
-			if n, err := w.Write([]byte(headerLine)); err != nil {
-				return written, err
-			} else {
-				written += int64(n)
-			}
-		}
+	if n, err := r.writeHeaders(w); err != nil {
+		return written, err
+	} else {
+		written += n
 	}
 
 	// Write cookies
-	for _, cookie := range r.cookies {
-		cookieLine := fmt.Sprintf("Set-Cookie: %s\r\n", cookie.String())
-		if n, err := w.Write([]byte(cookieLine)); err != nil {
-			return written, err
-		} else {
-			written += int64(n)
-		}
+	if n, err := r.writeCookies(w); err != nil {
+		return written, err
+	} else {
+		written += n
 	}
 
 	// Write blank line
-	if n, err := w.Write([]byte("\r\n")); err != nil {
+	if n, err := r.writeString(w, "\r\n"); err != nil {
 		return written, err
 	} else {
-		written += int64(n)
+		written += n
 	}
 
 	// Write body
-	if r.bodyBytes != nil {
-		if n, err := w.Write(r.bodyBytes); err != nil {
-			return written, err
-		} else {
-			written += int64(n)
-		}
-	} else if r.body != nil {
-		if n, err := io.Copy(w, r.body); err != nil {
-			return written, err
-		} else {
-			written += n
-		}
+	if n, err := r.writeBody(w); err != nil {
+		return written, err
+	} else {
+		written += n
 	}
 
 	return written, nil
