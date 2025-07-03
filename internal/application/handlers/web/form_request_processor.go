@@ -95,6 +95,7 @@ func (p *FormRequestProcessorImpl) ProcessSubmissionRequest(c echo.Context) (mod
 	var submissionData model.JSON
 	if err := json.NewDecoder(c.Request().Body).Decode(&submissionData); err != nil {
 		c.Logger().Error("Failed to decode submission data", "error", err)
+
 		return nil, fmt.Errorf("failed to decode submission data: %w", err)
 	}
 
@@ -102,10 +103,12 @@ func (p *FormRequestProcessorImpl) ProcessSubmissionRequest(c echo.Context) (mod
 
 	if submissionData == nil {
 		c.Logger().Warn("Submission data is nil")
+
 		return nil, errors.New("submission data is required")
 	}
 
 	c.Logger().Debug("Submission request processed successfully")
+
 	return submissionData, nil
 }
 

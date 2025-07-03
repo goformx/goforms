@@ -129,12 +129,14 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 // LoginValidation handles the login form validation schema request
 func (h *AuthHandler) LoginValidation(c echo.Context) error {
 	schema := h.SchemaGenerator.GenerateLoginSchema()
+
 	return response.Success(c, schema)
 }
 
 // SignupValidation returns the validation schema for the signup form
 func (h *AuthHandler) SignupValidation(c echo.Context) error {
 	schema := h.SchemaGenerator.GenerateSignupSchema()
+
 	return response.Success(c, schema)
 }
 
@@ -184,6 +186,7 @@ func (h *AuthHandler) processLogin(c echo.Context) error {
 	email, password, err := h.RequestParser.ParseLogin(c)
 	if err != nil {
 		h.Logger.Error("failed to parse login request", "error", err)
+
 		return fmt.Errorf("parse login: %w", err)
 	}
 
@@ -192,10 +195,12 @@ func (h *AuthHandler) processLogin(c echo.Context) error {
 	_, sessionID, err := h.AuthService.Login(c.Request().Context(), email, password, c.Request().UserAgent())
 	if err != nil {
 		h.Logger.Error("login failed", "error", err)
+
 		return fmt.Errorf("login: %w", err)
 	}
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
+
 	return nil
 }
 
@@ -204,6 +209,7 @@ func (h *AuthHandler) processSignup(c echo.Context) error {
 	signup, err := h.RequestParser.ParseSignup(c)
 	if err != nil {
 		h.Logger.Error("failed to parse signup request", "error", err)
+
 		return fmt.Errorf("parse signup: %w", err)
 	}
 
@@ -212,10 +218,12 @@ func (h *AuthHandler) processSignup(c echo.Context) error {
 	_, sessionID, err := h.AuthService.Signup(c.Request().Context(), signup, c.Request().UserAgent())
 	if err != nil {
 		h.Logger.Error("signup failed", "error", err)
+
 		return fmt.Errorf("signup: %w", err)
 	}
 
 	h.SessionManager.SetSessionCookie(c, sessionID)
+
 	return nil
 }
 
@@ -226,6 +234,7 @@ func (h *AuthHandler) handleAuthError(c echo.Context, err error, pageTitle strin
 	}
 
 	data := h.NewPageData(c, pageTitle)
+
 	return h.ResponseBuilder.HTMLFormError(c, pageTitle, data, err.Error())
 }
 
@@ -249,6 +258,7 @@ func (h *AuthHandler) clearUserSession(c echo.Context) error {
 
 	h.SessionManager.DeleteSession(cookie.Value)
 	h.SessionManager.ClearSessionCookie(c)
+
 	return nil
 }
 

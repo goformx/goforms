@@ -99,6 +99,7 @@ func (h *FormAPIHandler) handleGetForm(c echo.Context) error {
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormWithOwnership", "form_id", c.Param("id"))
+
 		return fmt.Errorf("handle get form: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
@@ -198,12 +199,14 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	form, err := h.GetFormByID(c)
 	if err != nil {
 		h.Logger.Error("Failed to get form for submission", "form_id", formID, "error", err)
+
 		return h.HandleError(c, err, "Failed to get form for submission")
 	}
 
 	// Check if form is nil (should not happen with proper error handling, but safety check)
 	if form == nil {
 		h.Logger.Error("form is nil after GetFormByID", "form_id", formID)
+
 		return fmt.Errorf("handle form submit: %w", h.ErrorHandler.HandleFormNotFoundError(c, ""))
 	}
 
@@ -212,6 +215,7 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	// Check if form schema is nil or empty
 	if form.Schema == nil {
 		h.Logger.Warn("form schema is nil", "form_id", form.ID)
+
 		return fmt.Errorf("handle submission error: %w",
 			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
 	}
@@ -222,6 +226,7 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	submissionData, err := h.RequestProcessor.ProcessSubmissionRequest(c)
 	if err != nil {
 		h.Logger.Error("Failed to process submission request", "form_id", form.ID, "error", err)
+
 		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSubmissionError(c, err))
 	}
 
@@ -231,6 +236,7 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	validationResult := h.ComprehensiveValidator.ValidateForm(form.Schema, submissionData)
 	if !validationResult.IsValid {
 		h.Logger.Warn("Form validation failed", "form_id", form.ID, "error_count", len(validationResult.Errors))
+
 		return fmt.Errorf("build multiple error response: %w",
 			h.ResponseBuilder.BuildMultipleErrorResponse(c, validationResult.Errors))
 	}
@@ -249,6 +255,7 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 	err = h.FormService.SubmitForm(c.Request().Context(), submission)
 	if err != nil {
 		h.Logger.Error("Failed to submit form", "form_id", form.ID, "submission_id", submission.ID, "error", err)
+
 		return fmt.Errorf("handle submission error: %w", h.ErrorHandler.HandleSubmissionError(c, err))
 	}
 

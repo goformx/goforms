@@ -40,15 +40,18 @@ func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		c.Logger().Error("Failed to get form by ID", "form_id", formID, "error", err)
+
 		return nil, fmt.Errorf("get form by ID: %w", err)
 	}
 
 	if form == nil {
 		c.Logger().Warn("Form not found", "form_id", formID)
+
 		return nil, fmt.Errorf("get form by ID: %w", h.HandleNotFound(c, "Form not found"))
 	}
 
 	c.Logger().Debug("Form retrieved successfully", "form_id", form.ID, "title", form.Title, "user_id", form.UserID)
+
 	return form, nil
 }
 
