@@ -26,7 +26,7 @@ type httpResponse struct {
 	context       context.Context
 	timestamp     time.Time
 	requestID     string
-	values        map[string]interface{}
+	values        map[string]any
 }
 
 // StatusCode returns the HTTP status code
@@ -237,7 +237,7 @@ func (r *httpResponse) WithContext(ctx context.Context) Response {
 }
 
 // Get retrieves a value from the response context
-func (r *httpResponse) Get(key string) interface{} {
+func (r *httpResponse) Get(key string) any {
 	if r.values != nil {
 		return r.values[key]
 	}
@@ -246,9 +246,9 @@ func (r *httpResponse) Get(key string) interface{} {
 }
 
 // Set stores a value in the response context
-func (r *httpResponse) Set(key string, value interface{}) {
+func (r *httpResponse) Set(key string, value any) {
 	if r.values == nil {
-		r.values = make(map[string]interface{})
+		r.values = make(map[string]any)
 	}
 
 	r.values[key] = value
@@ -353,7 +353,7 @@ func (r *httpResponse) Clone() Response {
 	newResp.bodyBytes = make([]byte, len(r.bodyBytes))
 	copy(newResp.bodyBytes, r.bodyBytes)
 
-	newResp.values = make(map[string]interface{})
+	newResp.values = make(map[string]any)
 	for key, value := range r.values {
 		newResp.values[key] = value
 	}

@@ -103,10 +103,10 @@ type Response interface {
 	WithContext(ctx context.Context) Response
 
 	// Get retrieves a value from the response context
-	Get(key string) interface{}
+	Get(key string) any
 
 	// Set stores a value in the response context
-	Set(key string, value interface{})
+	Set(key string, value any)
 
 	// Timestamp returns when the response was created
 	Timestamp() time.Time
@@ -202,7 +202,7 @@ func NewResponse(statusCode int) Response {
 		context:       context.Background(),
 		timestamp:     time.Now(),
 		requestID:     "",
-		values:        make(map[string]interface{}),
+		values:        make(map[string]any),
 	}
 }
 
@@ -218,7 +218,7 @@ func NewErrorResponse(statusCode int, err error) Response {
 	if err != nil {
 		resp.SetContentType("application/json")
 
-		errorBody := map[string]interface{}{
+		errorBody := map[string]any{
 			"error":   err.Error(),
 			"code":    statusCode,
 			"message": http.StatusText(statusCode),
@@ -232,7 +232,7 @@ func NewErrorResponse(statusCode int, err error) Response {
 }
 
 // NewJSONResponse creates a new JSON response
-func NewJSONResponse(data interface{}) Response {
+func NewJSONResponse(data any) Response {
 	resp := NewResponse(http.StatusOK)
 	resp.SetContentType("application/json")
 
@@ -295,7 +295,7 @@ func NewResponseBuilder() ResponseBuilder {
 			context:       context.Background(),
 			timestamp:     time.Now(),
 			requestID:     "",
-			values:        make(map[string]interface{}),
+			values:        make(map[string]any),
 		},
 	}
 }
@@ -314,7 +314,7 @@ type httpResponse struct {
 	context       context.Context
 	timestamp     time.Time
 	requestID     string
-	values        map[string]interface{}
+	values        map[string]any
 }
 
 // StatusCode returns the HTTP status code
@@ -538,7 +538,7 @@ func (r *httpResponse) WithContext(ctx context.Context) Response {
 }
 
 // Get retrieves a value from the response context
-func (r *httpResponse) Get(key string) interface{} {
+func (r *httpResponse) Get(key string) any {
 	if r.values == nil {
 		return nil
 	}
@@ -547,9 +547,9 @@ func (r *httpResponse) Get(key string) interface{} {
 }
 
 // Set stores a value in the response context
-func (r *httpResponse) Set(key string, value interface{}) {
+func (r *httpResponse) Set(key string, value any) {
 	if r.values == nil {
-		r.values = make(map[string]interface{})
+		r.values = make(map[string]any)
 	}
 
 	r.values[key] = value
@@ -670,7 +670,7 @@ func (r *httpResponse) Clone() Response {
 	}
 
 	if r.values != nil {
-		newResp.values = make(map[string]interface{})
+		newResp.values = make(map[string]any)
 		for k, v := range r.values {
 			newResp.values[k] = v
 		}

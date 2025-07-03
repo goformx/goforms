@@ -3,12 +3,15 @@ description:
 globs:
 alwaysApply: false
 ---
+
 # Middleware Development Guidelines
 
 ## Creating New Middleware
 
 ### Interface Implementation
+
 All middleware must implement the `core.Middleware` interface:
+
 ```go
 type Middleware interface {
     Process(ctx context.Context, req Request, next Handler) Response
@@ -18,14 +21,15 @@ type Middleware interface {
 ```
 
 ### Basic Middleware Template
+
 ```go
 type myMiddleware struct {
     name     string
     priority int
-    config   map[string]interface{}
+    config   map[string]any
 }
 
-func NewMyMiddleware(config map[string]interface{}) core.Middleware {
+func NewMyMiddleware(config map[string]any) core.Middleware {
     return &myMiddleware{
         name:     "my-middleware",
         priority: 50,
@@ -56,30 +60,35 @@ func (m *myMiddleware) Priority() int {
 ## Middleware Categories
 
 ### Basic Category (Priority 10-30)
+
 - CORS middleware
 - Request ID generation
 - Basic logging
 - Recovery/panic handling
 
 ### Security Category (Priority 20-40)
+
 - CSRF protection
 - Rate limiting
 - Security headers
 - Input validation
 
 ### Auth Category (Priority 30-50)
+
 - Authentication
 - Session management
 - JWT validation
 - Permission checking
 
 ### Logging Category (Priority 40-60)
+
 - Request/response logging
 - Performance metrics
 - Audit trails
 - Error tracking
 
 ### Custom Category (Priority 50+)
+
 - Application-specific logic
 - Business rules
 - Custom headers
@@ -88,15 +97,16 @@ func (m *myMiddleware) Priority() int {
 ## Configuration Patterns
 
 ### Middleware Configuration
+
 ```go
-config := map[string]interface{}{
+config := map[string]any{
     "category": core.MiddlewareCategorySecurity,
     "priority": 25,
     "dependencies": []string{"cors", "request-id"},
     "conflicts": []string{"legacy-auth"},
     "include_paths": []string{"/api/*"},
     "exclude_paths": []string{"/api/health"},
-    "settings": map[string]interface{}{
+    "settings": map[string]any{
         "rate_limit": 100,
         "window": "1m",
     },
@@ -104,12 +114,13 @@ config := map[string]interface{}{
 ```
 
 ### Chain Configuration
+
 ```go
 chainConfig := middleware.ChainConfig{
     Enabled: true,
     MiddlewareNames: []string{"cors", "auth", "logging"},
     Paths: []string{"/api/*"},
-    CustomConfig: map[string]interface{}{
+    CustomConfig: map[string]any{
         "timeout": "30s",
     },
 }
@@ -118,10 +129,11 @@ chainConfig := middleware.ChainConfig{
 ## Testing Middleware
 
 ### Unit Test Template
+
 ```go
 func TestMyMiddleware(t *testing.T) {
     // Setup
-    config := map[string]interface{}{"setting": "value"}
+    config := map[string]any{"setting": "value"}
     mw := NewMyMiddleware(config)
 
     // Create mock request and response
@@ -144,6 +156,7 @@ func TestMyMiddleware(t *testing.T) {
 ```
 
 ### Integration Test Template
+
 ```go
 func TestMyMiddleware_Integration(t *testing.T) {
     // Setup registry and config
@@ -170,6 +183,7 @@ func TestMyMiddleware_Integration(t *testing.T) {
 ## Error Handling
 
 ### Middleware Error Patterns
+
 ```go
 func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
     // Validate configuration
@@ -195,6 +209,7 @@ func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.
 ```
 
 ### Error Response Creation
+
 ```go
 // Create error response
 response := core.NewErrorResponse(http.StatusBadRequest, errors.New("invalid input"))
@@ -207,6 +222,7 @@ response.SetHeader("X-Error-Details", "Field 'email' is required")
 ## Performance Considerations
 
 ### Efficient Processing
+
 ```go
 func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
     // Use context for cancellation
@@ -232,14 +248,15 @@ func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.
 ```
 
 ### Caching Strategies
+
 ```go
 type cachedMiddleware struct {
-    cache    map[string]interface{}
+    cache    map[string]any
     cacheMu  sync.RWMutex
     ttl      time.Duration
 }
 
-func (m *cachedMiddleware) getCached(key string) (interface{}, bool) {
+func (m *cachedMiddleware) getCached(key string) (any, bool) {
     m.cacheMu.RLock()
     defer m.cacheMu.RUnlock()
 
@@ -256,6 +273,7 @@ func (m *cachedMiddleware) getCached(key string) (interface{}, bool) {
 ## Logging and Monitoring
 
 ### Structured Logging
+
 ```go
 func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
     start := time.Now()
@@ -283,6 +301,7 @@ func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.
 ```
 
 ### Metrics Collection
+
 ```go
 type metricsMiddleware struct {
     metrics MetricsCollector
@@ -305,6 +324,7 @@ func (m *metricsMiddleware) Process(ctx context.Context, req core.Request, next 
 ## Security Best Practices
 
 ### Input Validation
+
 ```go
 func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
     // Validate request headers
@@ -325,6 +345,7 @@ func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.
 ```
 
 ### Authentication Patterns
+
 ```go
 func (m *authMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
     // Extract token
@@ -349,6 +370,7 @@ func (m *authMiddleware) Process(ctx context.Context, req core.Request, next cor
 ## Integration with Echo
 
 ### Echo Adapter Usage
+
 ```go
 // Create Echo middleware from core middleware
 echoMw := echo_adapter.NewEchoMiddleware(coreMw)
@@ -359,6 +381,7 @@ e.Use(echoMw)
 ```
 
 ### Request/Response Conversion
+
 ```go
 // Convert Echo context to core request
 coreReq := echo_adapter.NewRequest(echoCtx)
@@ -373,6 +396,7 @@ echo_adapter.WriteResponse(echoCtx, coreResp)
 ## Debugging and Troubleshooting
 
 ### Debug Mode
+
 ```go
 func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
     if m.debug {
@@ -398,6 +422,7 @@ func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.
 ```
 
 ### Health Checks
+
 ```go
 func (m *myMiddleware) HealthCheck() error {
     // Check dependencies

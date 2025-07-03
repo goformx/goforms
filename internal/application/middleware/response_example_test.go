@@ -133,7 +133,7 @@ func TestResponseImplementation(t *testing.T) {
 
 // Benchmark response creation
 func BenchmarkNewJSONResponse(b *testing.B) {
-	data := map[string]interface{}{
+	data := map[string]any{
 		"message":   "Hello, World!",
 		"timestamp": time.Now().Unix(),
 		"items":     []string{"item1", "item2", "item3"},
@@ -151,7 +151,7 @@ func BenchmarkNewJSONResponse(b *testing.B) {
 
 // Benchmark response writing
 func BenchmarkResponseWriteTo(b *testing.B) {
-	data := map[string]interface{}{
+	data := map[string]any{
 		"message":   "Hello, World!",
 		"timestamp": time.Now().Unix(),
 	}

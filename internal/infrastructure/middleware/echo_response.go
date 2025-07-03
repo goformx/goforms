@@ -129,7 +129,7 @@ func (b *EchoResponseBuilder) ContentType(contentType string) *EchoResponseBuild
 }
 
 // JSON sets the response to return JSON data.
-func (b *EchoResponseBuilder) JSON(data interface{}) *EchoResponseBuilder {
+func (b *EchoResponseBuilder) JSON(data any) *EchoResponseBuilder {
 	b.response.SetContentType("application/json")
 	// Convert data to JSON bytes
 	if jsonBytes, err := json.Marshal(data); err == nil {
@@ -279,7 +279,7 @@ func (w *EchoResponseWriter) WriteString(s string) (int, error) {
 }
 
 // WriteJSON writes JSON data to the response.
-func (w *EchoResponseWriter) WriteJSON(data interface{}) error {
+func (w *EchoResponseWriter) WriteJSON(data any) error {
 	w.context.Response().Header().Set("Content-Type", "application/json")
 
 	return w.context.JSON(w.context.Response().Status, data)

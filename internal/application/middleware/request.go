@@ -61,10 +61,10 @@ type Request interface {
 	WithContext(ctx context.Context) Request
 
 	// Get retrieves a value from the request context
-	Get(key string) interface{}
+	Get(key string) any
 
 	// Set stores a value in the request context
-	Set(key string, value interface{})
+	Set(key string, value any)
 
 	// Param returns a path parameter by name
 	Param(name string) string
@@ -243,7 +243,7 @@ type request struct {
 	realIP      string
 	requestID   string
 	timestamp   time.Time
-	values      map[string]interface{}
+	values      map[string]any
 }
 
 // Method returns the HTTP method
@@ -330,7 +330,7 @@ func (r *request) WithContext(ctx context.Context) Request {
 }
 
 // Get retrieves a value from the request context
-func (r *request) Get(key string) interface{} {
+func (r *request) Get(key string) any {
 	if r.values == nil {
 		return nil
 	}
@@ -339,9 +339,9 @@ func (r *request) Get(key string) interface{} {
 }
 
 // Set stores a value in the request context
-func (r *request) Set(key string, value interface{}) {
+func (r *request) Set(key string, value any) {
 	if r.values == nil {
-		r.values = make(map[string]interface{})
+		r.values = make(map[string]any)
 	}
 
 	r.values[key] = value

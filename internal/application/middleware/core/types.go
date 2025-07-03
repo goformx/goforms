@@ -116,5 +116,5 @@ type ChainInfo struct {
 	Middleware   []string
 	Enabled      bool
 	PathPatterns []string
-	CustomConfig map[string]interface{}
+	CustomConfig map[string]any
 }

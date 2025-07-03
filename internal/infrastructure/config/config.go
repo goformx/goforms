@@ -129,27 +129,27 @@ func (c *Config) validateEmailConfig() error {
 }
 
 // GetConfigSummary returns a summary of the current configuration
-func (c *Config) GetConfigSummary() map[string]interface{} {
-	return map[string]interface{}{
-		"app": map[string]interface{}{
+func (c *Config) GetConfigSummary() map[string]any {
+	return map[string]any{
+		"app": map[string]any{
 			"name":        c.App.Name,
 			"environment": c.App.Environment,
 			"debug":       c.App.Debug,
 			"url":         c.App.GetServerURL(),
 		},
-		"database": map[string]interface{}{
+		"database": map[string]any{
 			"driver": c.Database.Driver,
 			"host":   c.Database.Host,
 			"port":   c.Database.Port,
 			"name":   c.Database.Name,
 		},
-		"security": map[string]interface{}{
+		"security": map[string]any{
 			"csrf_enabled":       c.Security.CSRF.Enabled,
 			"cors_enabled":       c.Security.CORS.Enabled,
 			"rate_limit_enabled": c.Security.RateLimit.Enabled,
 			"csp_enabled":        c.Security.CSP.Enabled,
 		},
-		"services": map[string]interface{}{
+		"services": map[string]any{
 			"email_configured": c.Email.Host != "",
 			"cache_type":       c.Cache.Type,
 			"storage_type":     c.Storage.Type,

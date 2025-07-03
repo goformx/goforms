@@ -111,14 +111,14 @@ func (m *mockRegistry) GetOrdered(category core.MiddlewareCategory) []core.Middl
 type mockConfig struct {
 	mock.Mock
 	enabledMiddleware map[string]bool
-	middlewareConfig  map[string]map[string]interface{}
+	middlewareConfig  map[string]map[string]any
 	chainConfigs      map[core.ChainType]middleware.ChainConfig
 }
 
 func newMockConfig() *mockConfig {
 	return &mockConfig{
 		enabledMiddleware: make(map[string]bool),
-		middlewareConfig:  make(map[string]map[string]interface{}),
+		middlewareConfig:  make(map[string]map[string]any),
 		chainConfigs:      make(map[core.ChainType]middleware.ChainConfig),
 	}
 }
@@ -132,16 +132,16 @@ func (m *mockConfig) IsMiddlewareEnabled(name string) bool {
 	return args.Bool(0)
 }
 
-func (m *mockConfig) GetMiddlewareConfig(name string) map[string]interface{} {
+func (m *mockConfig) GetMiddlewareConfig(name string) map[string]any {
 	args := m.Called(name)
 	if config, exists := m.middlewareConfig[name]; exists {
 		return config
 	}
 
-	if result, ok := args.Get(0).(map[string]interface{}); ok {
+	if result, ok := args.Get(0).(map[string]any); ok {
 		return result
 	}
-	return make(map[string]interface{})
+	return make(map[string]any)
 }
 
 func (m *mockConfig) GetChainConfig(chainType core.ChainType) middleware.ChainConfig {
@@ -161,15 +161,15 @@ type mockLogger struct {
 	mock.Mock
 }
 
-func (m *mockLogger) Info(msg string, args ...interface{}) {
+func (m *mockLogger) Info(msg string, args ...any) {
 	m.Called(msg, args)
 }
 
-func (m *mockLogger) Warn(msg string, args ...interface{}) {
+func (m *mockLogger) Warn(msg string, args ...any) {
 	m.Called(msg, args)
 }
 
-func (m *mockLogger) Error(msg string, args ...interface{}) {
+func (m *mockLogger) Error(msg string, args ...any) {
 	m.Called(msg, args)
 }
 
@@ -192,13 +192,13 @@ func TestOrchestrator_CreateChain(t *testing.T) {
 	config.enabledMiddleware["auth"] = true
 	config.enabledMiddleware["logging"] = true
 
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
-	config.middlewareConfig["auth"] = map[string]interface{}{
+	config.middlewareConfig["auth"] = map[string]any{
 		"category": core.MiddlewareCategoryAuth,
 	}
-	config.middlewareConfig["logging"] = map[string]interface{}{
+	config.middlewareConfig["logging"] = map[string]any{
 		"category": core.MiddlewareCategoryLogging,
 	}
 
@@ -210,9 +210,9 @@ func TestOrchestrator_CreateChain(t *testing.T) {
 	config.On("IsMiddlewareEnabled", "cors").Return(true)
 	config.On("IsMiddlewareEnabled", "auth").Return(true)
 	config.On("IsMiddlewareEnabled", "logging").Return(true)
-	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
-	config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{"category": core.MiddlewareCategoryAuth})
-	config.On("GetMiddlewareConfig", "logging").Return(map[string]interface{}{"category": core.MiddlewareCategoryLogging})
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]any{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "auth").Return(map[string]any{"category": core.MiddlewareCategoryAuth})
+	config.On("GetMiddlewareConfig", "logging").Return(map[string]any{"category": core.MiddlewareCategoryLogging})
 	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
 
 	logger.On("Info", mock.Anything, mock.Anything).Return()
@@ -256,13 +256,13 @@ func TestOrchestrator_BuildChainForPath(t *testing.T) {
 	config.enabledMiddleware["auth"] = true
 	config.enabledMiddleware["api-specific"] = true
 
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
-	config.middlewareConfig["auth"] = map[string]interface{}{
+	config.middlewareConfig["auth"] = map[string]any{
 		"category": core.MiddlewareCategoryAuth,
 	}
-	config.middlewareConfig["api-specific"] = map[string]interface{}{
+	config.middlewareConfig["api-specific"] = map[string]any{
 		"category": core.MiddlewareCategoryCustom,
 		"paths":    []string{"/api/*"},
 	}
@@ -275,7 +275,7 @@ func TestOrchestrator_BuildChainForPath(t *testing.T) {
 	config.On("IsMiddlewareEnabled", mock.Anything).Return(func(name string) bool {
 		return config.enabledMiddleware[name]
 	})
-	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]interface{} {
+	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]any {
 		return config.middlewareConfig[name]
 	})
 	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
@@ -312,10 +312,10 @@ func TestOrchestrator_GetChainForPath_Caching(t *testing.T) {
 	config.enabledMiddleware["cors"] = true
 	config.enabledMiddleware["auth"] = true
 
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
-	config.middlewareConfig["auth"] = map[string]interface{}{
+	config.middlewareConfig["auth"] = map[string]any{
 		"category": core.MiddlewareCategoryAuth,
 	}
 
@@ -326,8 +326,8 @@ func TestOrchestrator_GetChainForPath_Caching(t *testing.T) {
 	// Setup expectations
 	config.On("IsMiddlewareEnabled", "cors").Return(true)
 	config.On("IsMiddlewareEnabled", "auth").Return(true)
-	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
-	config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{"category": core.MiddlewareCategoryAuth})
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]any{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "auth").Return(map[string]any{"category": core.MiddlewareCategoryAuth})
 	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
 
 	logger.On("Info", mock.Anything, mock.Anything).Return()
@@ -371,10 +371,10 @@ func TestOrchestrator_ConfigurationValidation(t *testing.T) {
 	config.enabledMiddleware["auth"] = true
 	config.enabledMiddleware["session"] = true
 
-	config.middlewareConfig["auth"] = map[string]interface{}{
+	config.middlewareConfig["auth"] = map[string]any{
 		"category": core.MiddlewareCategoryAuth,
 	}
-	config.middlewareConfig["session"] = map[string]interface{}{
+	config.middlewareConfig["session"] = map[string]any{
 		"category":     core.MiddlewareCategoryAuth,
 		"dependencies": []string{"auth"},
 	}
@@ -386,8 +386,8 @@ func TestOrchestrator_ConfigurationValidation(t *testing.T) {
 	// Setup expectations
 	config.On("IsMiddlewareEnabled", "auth").Return(true)
 	config.On("IsMiddlewareEnabled", "session").Return(true)
-	config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{"category": core.MiddlewareCategoryAuth})
-	config.On("GetMiddlewareConfig", "session").Return(map[string]interface{}{
+	config.On("GetMiddlewareConfig", "auth").Return(map[string]any{"category": core.MiddlewareCategoryAuth})
+	config.On("GetMiddlewareConfig", "session").Return(map[string]any{
 		"category":     core.MiddlewareCategoryAuth,
 		"dependencies": []string{"auth"},
 	})
@@ -430,10 +430,10 @@ func TestOrchestrator_DisabledMiddleware(t *testing.T) {
 	config.enabledMiddleware["cors"] = true
 	config.enabledMiddleware["auth"] = false
 
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
-	config.middlewareConfig["auth"] = map[string]interface{}{
+	config.middlewareConfig["auth"] = map[string]any{
 		"category": core.MiddlewareCategoryAuth,
 	}
 
@@ -443,7 +443,7 @@ func TestOrchestrator_DisabledMiddleware(t *testing.T) {
 	config.On("IsMiddlewareEnabled", mock.Anything).Return(func(name string) bool {
 		return config.enabledMiddleware[name]
 	})
-	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]interface{} {
+	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]any {
 		return config.middlewareConfig[name]
 	})
 	config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
@@ -487,14 +487,14 @@ func TestOrchestrator_PathFiltering(t *testing.T) {
 	config.enabledMiddleware["auth"] = true
 	config.enabledMiddleware["admin"] = true
 
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
-	config.middlewareConfig["auth"] = map[string]interface{}{
+	config.middlewareConfig["auth"] = map[string]any{
 		"category":      core.MiddlewareCategoryAuth,
 		"exclude_paths": []string{"/public/*"},
 	}
-	config.middlewareConfig["admin"] = map[string]interface{}{
+	config.middlewareConfig["admin"] = map[string]any{
 		"category":      core.MiddlewareCategoryAuth,
 		"include_paths": []string{"/admin/*"},
 	}
@@ -507,7 +507,7 @@ func TestOrchestrator_PathFiltering(t *testing.T) {
 	config.On("IsMiddlewareEnabled", mock.Anything).Return(func(name string) bool {
 		return config.enabledMiddleware[name]
 	})
-	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]interface{} {
+	config.On("GetMiddlewareConfig", mock.Anything).Return(func(name string) map[string]any {
 		return config.middlewareConfig[name]
 	})
 	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
@@ -545,14 +545,14 @@ func TestOrchestrator_ChainManagement(t *testing.T) {
 
 	// Setup mock config
 	config.enabledMiddleware["cors"] = true
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
 	config.chainConfigs[core.ChainTypeDefault] = middleware.ChainConfig{Enabled: true}
 
 	// Setup expectations
 	config.On("IsMiddlewareEnabled", "cors").Return(true)
-	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]any{"category": core.MiddlewareCategoryBasic})
 	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
 
 	logger.On("Info", mock.Anything, mock.Anything).Return()
@@ -601,14 +601,14 @@ func TestOrchestrator_PerformanceTracking(t *testing.T) {
 
 	// Setup mock config
 	config.enabledMiddleware["cors"] = true
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
 	config.chainConfigs[core.ChainTypeDefault] = middleware.ChainConfig{Enabled: true}
 
 	// Setup expectations
 	config.On("IsMiddlewareEnabled", "cors").Return(true)
-	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]any{"category": core.MiddlewareCategoryBasic})
 	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
 
 	logger.On("Info", mock.Anything, mock.Anything).Return()
@@ -646,14 +646,14 @@ func TestOrchestrator_GetChainInfo(t *testing.T) {
 
 	// Setup mock config
 	config.enabledMiddleware["cors"] = true
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
 	config.chainConfigs[core.ChainTypeAPI] = middleware.ChainConfig{
 		Enabled:         true,
 		MiddlewareNames: []string{"cors"},
 		Paths:           []string{"/api/*"},
-		CustomConfig:    map[string]interface{}{"timeout": 30},
+		CustomConfig:    map[string]any{"timeout": 30},
 	}
 
 	// Setup expectations - GetChainInfo only calls GetChainConfig
@@ -661,7 +661,7 @@ func TestOrchestrator_GetChainInfo(t *testing.T) {
 		Enabled:         true,
 		MiddlewareNames: []string{"cors"},
 		Paths:           []string{"/api/*"},
-		CustomConfig:    map[string]interface{}{"timeout": 30},
+		CustomConfig:    map[string]any{"timeout": 30},
 	})
 
 	// Create orchestrator
@@ -675,7 +675,7 @@ func TestOrchestrator_GetChainInfo(t *testing.T) {
 	assert.Contains(t, info.Middleware, "cors")
 	assert.Contains(t, info.Categories, core.MiddlewareCategoryBasic)
 	assert.Equal(t, []string{"/api/*"}, info.PathPatterns)
-	assert.Equal(t, map[string]interface{}{"timeout": 30}, info.CustomConfig)
+	assert.Equal(t, map[string]any{"timeout": 30}, info.CustomConfig)
 
 	// Verify mock expectations
 	config.AssertExpectations(t)
@@ -692,14 +692,14 @@ func TestOrchestrator_CacheManagement(t *testing.T) {
 
 	// Setup mock config
 	config.enabledMiddleware["cors"] = true
-	config.middlewareConfig["cors"] = map[string]interface{}{
+	config.middlewareConfig["cors"] = map[string]any{
 		"category": core.MiddlewareCategoryBasic,
 	}
 	config.chainConfigs[core.ChainTypeDefault] = middleware.ChainConfig{Enabled: true}
 
 	// Setup expectations
 	config.On("IsMiddlewareEnabled", "cors").Return(true)
-	config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
+	config.On("GetMiddlewareConfig", "cors").Return(map[string]any{"category": core.MiddlewareCategoryBasic})
 	config.On("GetChainConfig", core.ChainTypeDefault).Return(middleware.ChainConfig{Enabled: true})
 
 	logger.On("Info", mock.Anything, mock.Anything).Return()

@@ -3,6 +3,7 @@ description:
 globs:
 alwaysApply: false
 ---
+
 # Testing Patterns for Middleware & Clean Architecture
 
 ## Overview
@@ -12,6 +13,7 @@ The GoForms project uses comprehensive testing patterns that align with clean ar
 ## Test Structure
 
 ### Test Organization
+
 ```
 internal/application/middleware/
 ├── core/
@@ -27,6 +29,7 @@ internal/application/middleware/
 ```
 
 ### Test File Naming
+
 - Unit tests: `*_test.go` alongside source files
 - Integration tests: `*_integration_test.go`
 - Benchmark tests: `*_benchmark_test.go`
@@ -35,12 +38,15 @@ internal/application/middleware/
 ## Mock Infrastructure
 
 ### Using Existing Mocks
+
 The project has a comprehensive mock infrastructure in [test/mocks/](mdc:test/mocks/):
+
 - [logging/mock_logger.go](mdc:test/mocks/logging/mock_logger.go) - Logger mocks
 - [form/mock_service.go](mdc:test/mocks/form/mock_service.go) - Service mocks
 - [user/mock_repository.go](mdc:test/mocks/user/mock_repository.go) - Repository mocks
 
 ### Creating New Mocks
+
 ```go
 // For core interfaces that don't have existing mocks
 type mockMiddleware struct {
@@ -64,6 +70,7 @@ func (m *mockMiddleware) Priority() int {
 ## Unit Testing Patterns
 
 ### Interface Testing
+
 ```go
 func TestMiddlewareInterface(t *testing.T) {
     // Test interface compliance
@@ -77,6 +84,7 @@ func TestMiddlewareInterface(t *testing.T) {
 ```
 
 ### Request/Response Testing
+
 ```go
 func TestRequestResponse(t *testing.T) {
     // Create test request
@@ -102,6 +110,7 @@ func TestRequestResponse(t *testing.T) {
 ```
 
 ### Chain Testing
+
 ```go
 func TestChainExecution(t *testing.T) {
     // Create middleware chain
@@ -127,6 +136,7 @@ func TestChainExecution(t *testing.T) {
 ## Integration Testing
 
 ### Registry Integration
+
 ```go
 func TestRegistryIntegration(t *testing.T) {
     // Setup
@@ -156,6 +166,7 @@ func TestRegistryIntegration(t *testing.T) {
 ```
 
 ### Orchestrator Integration
+
 ```go
 func TestOrchestratorIntegration(t *testing.T) {
     // Setup mocks
@@ -173,10 +184,10 @@ func TestOrchestratorIntegration(t *testing.T) {
     // Setup configuration
     config.enabledMiddleware["cors"] = true
     config.enabledMiddleware["auth"] = true
-    config.middlewareConfig["cors"] = map[string]interface{}{
+    config.middlewareConfig["cors"] = map[string]any{
         "category": core.MiddlewareCategoryBasic,
     }
-    config.middlewareConfig["auth"] = map[string]interface{}{
+    config.middlewareConfig["auth"] = map[string]any{
         "category": core.MiddlewareCategoryAuth,
     }
     config.chainConfigs[core.ChainTypeAPI] = middleware.ChainConfig{Enabled: true}
@@ -184,8 +195,8 @@ func TestOrchestratorIntegration(t *testing.T) {
     // Setup expectations
     config.On("IsMiddlewareEnabled", "cors").Return(true)
     config.On("IsMiddlewareEnabled", "auth").Return(true)
-    config.On("GetMiddlewareConfig", "cors").Return(map[string]interface{}{"category": core.MiddlewareCategoryBasic})
-    config.On("GetMiddlewareConfig", "auth").Return(map[string]interface{}{"category": core.MiddlewareCategoryAuth})
+    config.On("GetMiddlewareConfig", "cors").Return(map[string]any{"category": core.MiddlewareCategoryBasic})
+    config.On("GetMiddlewareConfig", "auth").Return(map[string]any{"category": core.MiddlewareCategoryAuth})
     config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
     logger.On("Info", mock.Anything, mock.Anything).Return()
 
@@ -207,6 +218,7 @@ func TestOrchestratorIntegration(t *testing.T) {
 ## Echo Adapter Testing
 
 ### Request Conversion Testing
+
 ```go
 func TestEchoRequestConversion(t *testing.T) {
     // Setup Echo context
@@ -227,6 +239,7 @@ func TestEchoRequestConversion(t *testing.T) {
 ```
 
 ### Response Conversion Testing
+
 ```go
 func TestEchoResponseConversion(t *testing.T) {
     // Setup Echo context
@@ -253,6 +266,7 @@ func TestEchoResponseConversion(t *testing.T) {
 ## Configuration Testing
 
 ### Configuration Validation
+
 ```go
 func TestConfigurationValidation(t *testing.T) {
     // Setup orchestrator
@@ -263,7 +277,7 @@ func TestConfigurationValidation(t *testing.T) {
     assert.NoError(t, err)
 
     // Test invalid configuration (missing dependencies)
-    config.middlewareConfig["dependent"] = map[string]interface{}{
+    config.middlewareConfig["dependent"] = map[string]any{
         "dependencies": []string{"missing"},
     }
 
@@ -274,6 +288,7 @@ func TestConfigurationValidation(t *testing.T) {
 ```
 
 ### Chain Configuration Testing
+
 ```go
 func TestChainConfiguration(t *testing.T) {
     // Test chain info
@@ -289,6 +304,7 @@ func TestChainConfiguration(t *testing.T) {
 ## Performance Testing
 
 ### Benchmark Tests
+
 ```go
 func BenchmarkChainExecution(b *testing.B) {
     // Setup chain
@@ -311,6 +327,7 @@ func BenchmarkChainExecution(b *testing.B) {
 ```
 
 ### Memory Testing
+
 ```go
 func TestMemoryUsage(t *testing.T) {
     // Test memory allocation
@@ -338,6 +355,7 @@ func TestMemoryUsage(t *testing.T) {
 ## Error Testing
 
 ### Error Scenarios
+
 ```go
 func TestErrorScenarios(t *testing.T) {
     // Test missing middleware
@@ -346,7 +364,7 @@ func TestErrorScenarios(t *testing.T) {
     assert.Contains(t, err.Error(), "missing middleware")
 
     // Test dependency conflicts
-    config.middlewareConfig["conflicting"] = map[string]interface{}{
+    config.middlewareConfig["conflicting"] = map[string]any{
         "conflicts": []string{"existing"},
     }
 
@@ -364,6 +382,7 @@ func TestErrorScenarios(t *testing.T) {
 ```
 
 ### Panic Recovery Testing
+
 ```go
 func TestPanicRecovery(t *testing.T) {
     // Create middleware that panics
@@ -385,6 +404,7 @@ func TestPanicRecovery(t *testing.T) {
 ## Test Utilities
 
 ### Test Helpers
+
 ```go
 // Create test request
 func createTestRequest(method, path string) core.Request {
@@ -412,6 +432,7 @@ func createMockMiddleware(name string, priority int) core.Middleware {
 ```
 
 ### Test Setup/Teardown
+
 ```go
 func TestMain(m *testing.M) {
     // Setup
@@ -442,6 +463,7 @@ func teardownTestEnvironment() {
 ## Continuous Integration
 
 ### Test Commands
+
 ```bash
 # Run all tests
 go test ./...
@@ -460,11 +482,13 @@ go test -run TestOrchestrator ./internal/application/middleware/...
 ```
 
 ### Coverage Requirements
+
 - Unit tests: >90% coverage
 - Integration tests: >80% coverage
 - Critical paths: 100% coverage
 
 ### Test Quality Gates
+
 - All tests must pass
 - No race conditions
 - Coverage thresholds met

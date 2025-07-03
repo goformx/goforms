@@ -3,6 +3,7 @@ description:
 globs:
 alwaysApply: false
 ---
+
 # Clean Architecture Principles in GoForms
 
 ## Overview
@@ -14,6 +15,7 @@ The GoForms project follows Clean Architecture principles, particularly evident 
 ### 1. Dependency Inversion Principle
 
 #### Before (Violation)
+
 ```go
 // Tightly coupled to Echo framework
 type Manager struct {
@@ -29,6 +31,7 @@ func (m *Manager) SetupMiddleware() {
 ```
 
 #### After (Compliance)
+
 ```go
 // Framework-agnostic interfaces
 type Middleware interface {
@@ -53,6 +56,7 @@ type EchoAdapter struct {
 ### 2. Single Responsibility Principle
 
 #### Before (Violation)
+
 ```go
 // 960-line Manager doing everything
 type Manager struct {
@@ -66,6 +70,7 @@ func (m *Manager) SetupMiddleware() {
 ```
 
 #### After (Compliance)
+
 ```go
 // Each component has a single responsibility
 type Registry interface {
@@ -89,6 +94,7 @@ type Chain interface {
 ### 3. Interface Segregation Principle
 
 #### Before (Violation)
+
 ```go
 // Large interface forcing unnecessary implementations
 type MiddlewareManager interface {
@@ -102,6 +108,7 @@ type MiddlewareManager interface {
 ```
 
 #### After (Compliance)
+
 ```go
 // Focused, cohesive interfaces
 type Middleware interface {
@@ -125,6 +132,7 @@ type Orchestrator interface {
 ### 4. Open/Closed Principle
 
 #### Before (Violation)
+
 ```go
 // Hard to extend without modifying existing code
 func (m *Manager) SetupMiddleware() {
@@ -140,11 +148,12 @@ func (m *Manager) SetupMiddleware() {
 ```
 
 #### After (Compliance)
+
 ```go
 // Open for extension, closed for modification
 type MiddlewareConfig interface {
     IsMiddlewareEnabled(name string) bool
-    GetMiddlewareConfig(name string) map[string]interface{}
+    GetMiddlewareConfig(name string) map[string]any
     GetChainConfig(chainType ChainType) ChainConfig
 }
 
@@ -156,6 +165,7 @@ type MiddlewareConfig interface {
 ## Layer Separation
 
 ### Domain Layer (`internal/application/middleware/core/`)
+
 ```go
 // Pure business logic, no external dependencies
 type Middleware interface {
@@ -174,6 +184,7 @@ type Request interface {
 ```
 
 ### Application Layer (`internal/application/middleware/`)
+
 ```go
 // Use cases and orchestration
 type Orchestrator struct {
@@ -189,6 +200,7 @@ func (o *Orchestrator) CreateChain(chainType ChainType) (Chain, error) {
 ```
 
 ### Infrastructure Layer (`internal/application/middleware/echo_adapter.go`)
+
 ```go
 // Framework-specific implementations
 type EchoAdapter struct {
@@ -210,6 +222,7 @@ func (a *EchoAdapter) Process(echoCtx echo.Context, next echo.HandlerFunc) error
 ## Dependency Direction
 
 ### Correct Dependency Flow
+
 ```
 ┌─────────────────┐
 │   Echo (Web)    │ ← Framework
@@ -233,6 +246,7 @@ func (a *EchoAdapter) Process(echoCtx echo.Context, next echo.HandlerFunc) error
 ```
 
 ### Dependency Injection
+
 ```go
 // Dependencies flow inward
 func NewOrchestrator(
@@ -251,11 +265,12 @@ func NewOrchestrator(
 ## Configuration Management
 
 ### Environment Independence
+
 ```go
 // Configuration is external to business logic
 type MiddlewareConfig interface {
     IsMiddlewareEnabled(name string) bool
-    GetMiddlewareConfig(name string) map[string]interface{}
+    GetMiddlewareConfig(name string) map[string]any
     GetChainConfig(chainType ChainType) ChainConfig
 }
 
@@ -274,6 +289,7 @@ type EnvironmentConfig struct {
 ```
 
 ### Configuration-Driven Behavior
+
 ```go
 // Behavior controlled by configuration, not code
 func (o *orchestrator) CreateChain(chainType ChainType) (Chain, error) {
@@ -290,6 +306,7 @@ func (o *orchestrator) CreateChain(chainType ChainType) (Chain, error) {
 ## Testing Strategy
 
 ### Testability Through Interfaces
+
 ```go
 // Easy to mock dependencies
 func TestOrchestrator(t *testing.T) {
@@ -304,6 +321,7 @@ func TestOrchestrator(t *testing.T) {
 ```
 
 ### Framework-Independent Testing
+
 ```go
 // Test core logic without Echo
 func TestMiddlewareChain(t *testing.T) {
@@ -319,26 +337,31 @@ func TestMiddlewareChain(t *testing.T) {
 ## Benefits Achieved
 
 ### 1. Maintainability
+
 - **Before**: 960-line monolithic Manager
 - **After**: Multiple focused, small components
 - **Result**: Easier to understand, modify, and debug
 
 ### 2. Testability
+
 - **Before**: Hard to test due to framework coupling
 - **After**: Easy to test with mocked dependencies
 - **Result**: Comprehensive test coverage
 
 ### 3. Flexibility
+
 - **Before**: Hard-coded middleware chains
 - **After**: Configuration-driven behavior
 - **Result**: Easy to adapt to different environments
 
 ### 4. Framework Independence
+
 - **Before**: Tightly coupled to Echo
 - **After**: Framework-agnostic with adapters
 - **Result**: Can switch frameworks without changing business logic
 
 ### 5. Extensibility
+
 - **Before**: Adding new middleware required code changes
 - **After**: New middleware can be added via configuration
 - **Result**: Open for extension, closed for modification
@@ -346,27 +369,32 @@ func TestMiddlewareChain(t *testing.T) {
 ## Migration Lessons
 
 ### 1. Identify Violations
+
 - Large classes with multiple responsibilities
 - Direct framework dependencies
 - Hard-coded configuration
 - Difficult testing
 
 ### 2. Extract Interfaces
+
 - Define framework-agnostic abstractions
 - Separate concerns into focused interfaces
 - Use dependency injection
 
 ### 3. Create Adapters
+
 - Bridge framework-specific code to core interfaces
 - Keep business logic framework-independent
 - Maintain clean separation
 
 ### 4. Implement Configuration
+
 - Move hard-coded values to configuration
 - Support different environments
 - Enable runtime flexibility
 
 ### 5. Improve Testing
+
 - Mock dependencies for unit tests
 - Test business logic independently
 - Achieve high test coverage
@@ -374,6 +402,7 @@ func TestMiddlewareChain(t *testing.T) {
 ## Best Practices
 
 ### 1. Interface Design
+
 ```go
 // Keep interfaces small and focused
 type Middleware interface {
@@ -386,6 +415,7 @@ type Middleware interface {
 ```
 
 ### 2. Dependency Injection
+
 ```go
 // Inject dependencies, don't create them
 func NewService(deps Dependencies) Service {
@@ -396,16 +426,18 @@ func NewService(deps Dependencies) Service {
 ```
 
 ### 3. Configuration Management
+
 ```go
 // Externalize configuration
 type Config interface {
-    Get(key string) interface{}
+    Get(key string) any
 }
 
 // Avoid hard-coded values in business logic
 ```
 
 ### 4. Error Handling
+
 ```go
 // Return errors, don't panic
 func (m *middleware) Process(ctx context.Context, req Request, next Handler) Response {
@@ -417,6 +449,7 @@ func (m *middleware) Process(ctx context.Context, req Request, next Handler) Res
 ```
 
 ### 5. Testing
+
 ```go
 // Test interfaces, not implementations
 func TestMiddlewareInterface(t *testing.T) {
@@ -433,21 +466,25 @@ func TestOrchestrator(t *testing.T) {
 ## Future Considerations
 
 ### 1. Plugin Architecture
+
 - Dynamic middleware loading
 - Runtime configuration changes
 - Hot reloading capabilities
 
 ### 2. Metrics and Observability
+
 - Middleware execution metrics
 - Performance profiling
 - Distributed tracing
 
 ### 3. Circuit Breakers
+
 - Fault tolerance patterns
 - Graceful degradation
 - Health checks
 
 ### 4. Caching Strategies
+
 - Response caching
 - Configuration caching
 - Chain caching optimization

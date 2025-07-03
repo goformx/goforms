@@ -10,7 +10,7 @@ type ChainConfig struct {
 	Enabled         bool
 	MiddlewareNames []string
 	Paths           []string // Path patterns for this chain
-	CustomConfig    map[string]interface{}
+	CustomConfig    map[string]any
 }
 
 // MiddlewareConfig defines the interface for middleware configuration
@@ -19,7 +19,7 @@ type MiddlewareConfig interface {
 	IsMiddlewareEnabled(name string) bool
 
 	// GetMiddlewareConfig returns configuration for a specific middleware
-	GetMiddlewareConfig(name string) map[string]interface{}
+	GetMiddlewareConfig(name string) map[string]any
 
 	// GetChainConfig returns configuration for a specific chain type
 	GetChainConfig(chainType core.ChainType) ChainConfig
@@ -80,8 +80,8 @@ func (c *middlewareConfig) IsMiddlewareEnabled(name string) bool {
 }
 
 // GetMiddlewareConfig returns configuration for a specific middleware
-func (c *middlewareConfig) GetMiddlewareConfig(name string) map[string]interface{} {
-	mwConfig := make(map[string]interface{})
+func (c *middlewareConfig) GetMiddlewareConfig(name string) map[string]any {
+	mwConfig := make(map[string]any)
 
 	// Get category
 	if category := c.getMiddlewareCategory(name); category != "" {
@@ -275,9 +275,9 @@ func (c *middlewareConfig) getMiddlewareExcludePaths(name string) []string {
 }
 
 // getCustomMiddlewareConfig returns custom configuration for a middleware
-func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]interface{} {
+func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]any {
 	// Return custom configuration based on middleware name
-	customConfigs := map[string]map[string]interface{}{
+	customConfigs := map[string]map[string]any{
 		"csrf": {
 			"token_header": "X-CSRF-Token",
 			"cookie_name":  "csrf_token",
@@ -322,7 +322,7 @@ func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]int
 	}
 
 	// Return default configuration for unknown middleware
-	return map[string]interface{}{
+	return map[string]any{
 		"enabled": true,
 	}
 }
@@ -372,9 +372,9 @@ func (c *middlewareConfig) getChainPaths(chainType core.ChainType) []string {
 }
 
 // getChainCustomConfig returns custom configuration for a specific chain type
-func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[string]interface{} {
+func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[string]any {
 	// Return custom configuration based on chain type
-	customConfigs := map[core.ChainType]map[string]interface{}{
+	customConfigs := map[core.ChainType]map[string]any{
 		core.ChainTypeDefault: {
 			"timeout":          30,
 			"max_body_size":    "10MB",
@@ -459,7 +459,7 @@ func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[st
 	}
 
 	// Return default configuration for unknown chain types
-	return map[string]interface{}{
+	return map[string]any{
 		"enabled": true,
 		"timeout": 30,
 	}

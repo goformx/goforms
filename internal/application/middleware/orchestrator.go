@@ -204,14 +204,14 @@ func (o *orchestrator) ClearCache() {
 }
 
 // GetCacheStats returns cache statistics.
-func (o *orchestrator) GetCacheStats() map[string]interface{} {
+func (o *orchestrator) GetCacheStats() map[string]any {
 	o.cacheMu.RLock()
 	defer o.cacheMu.RUnlock()
 
 	o.buildMu.RLock()
 	defer o.buildMu.RUnlock()
 
-	return map[string]interface{}{
+	return map[string]any{
 		"cache_size":        len(o.cache),
 		"build_times":       o.buildTimes,
 		"registered_chains": len(o.chains),
@@ -320,14 +320,7 @@ func (o *orchestrator) getOrderedByCategory(category core.MiddlewareCategory) []
 
 	for _, name := range allNames {
 		if mw, ok := o.registry.Get(name); ok {
-			// Check if middleware belongs to this category
-			config := o.config.GetMiddlewareConfig(name)
-			if catVal, ok := config["category"]; ok {
-				if c, ok := catVal.(core.MiddlewareCategory); ok && c == category {
-					categoryMiddleware = append(categoryMiddleware, mw)
-				}
-			} else if category == core.MiddlewareCategoryBasic {
-				// Default to basic category if not specified
+			if o.belongsToCategory(mw, name, category) {
 				categoryMiddleware = append(categoryMiddleware, mw)
 			}
 		}
@@ -341,7 +334,7 @@ func (o *orchestrator) getOrderedByCategory(category core.MiddlewareCategory) []
 
 // filterByConfig filters middleware based on configuration settings.
 func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType core.ChainType) []core.Middleware {
-	var filtered []core.Middleware
+	filtered := make([]core.Middleware, 0, len(middlewares))
 
 	chainConfig := o.config.GetChainConfig(chainType)
 
@@ -395,31 +388,17 @@ func (o *orchestrator) validateChain(middlewares []core.Middleware) error {
 		middlewareSet[mw.Name()] = true
 	}
 
-	// Check dependencies
+	// Check dependencies and conflicts
 	for _, mw := range middlewares {
 		name := mw.Name()
 		config := o.config.GetMiddlewareConfig(name)
 
-		// Check dependencies
-		if deps, ok := config["dependencies"]; ok {
-			if depList, ok := deps.([]string); ok {
-				for _, dep := range depList {
-					if !middlewareSet[dep] {
-						return fmt.Errorf("middleware %q requires missing dependency %q", name, dep)
-					}
-				}
-			}
+		if err := o.validateDependencies(name, config, middlewareSet); err != nil {
+			return err
 		}
 
-		// Check conflicts
-		if confs, ok := config["conflicts"]; ok {
-			if confList, ok := confs.([]string); ok {
-				for _, conf := range confList {
-					if middlewareSet[conf] {
-						return fmt.Errorf("middleware %q conflicts with %q", name, conf)
-					}
-				}
-			}
+		if err := o.validateConflicts(name, config, middlewareSet); err != nil {
+			return err
 		}
 	}
 
@@ -435,16 +414,8 @@ func (o *orchestrator) validateRegistryDependencies() error {
 	for _, name := range allNames {
 		if mw, ok := o.registry.Get(name); ok {
 			config := o.config.GetMiddlewareConfig(mw.Name())
-
-			// Check dependencies
-			if deps, ok := config["dependencies"]; ok {
-				if depList, ok := deps.([]string); ok {
-					for _, dep := range depList {
-						if _, exists := o.registry.Get(dep); !exists {
-							return fmt.Errorf("middleware %q requires missing dependency %q", name, dep)
-						}
-					}
-				}
+			if err := o.validateRegistryDependency(name, config); err != nil {
+				return err
 			}
 		}
 	}
@@ -460,16 +431,9 @@ func (o *orchestrator) applyPathSpecificMiddleware(baseChain core.Chain, request
 	for _, name := range allNames {
 		if mw, ok := o.registry.Get(name); ok {
 			config := o.config.GetMiddlewareConfig(name)
-
-			// Check if middleware has path-specific configuration
-			if paths, ok := config["paths"]; ok {
-				if pathList, ok := paths.([]string); ok {
-					if o.matchesAnyPath(requestPath, pathList) {
-						// Add path-specific middleware to the chain
-						baseChain.Add(mw)
-						o.logger.Info("added path-specific middleware", "name", name, "path", requestPath)
-					}
-				}
+			if o.shouldAddPathSpecificMiddleware(name, config, requestPath) {
+				baseChain.Add(mw)
+				o.logger.Info("added path-specific middleware", "name", name, "path", requestPath)
 			}
 		}
 	}
@@ -481,31 +445,21 @@ func (o *orchestrator) applyPathSpecificMiddleware(baseChain core.Chain, request
 func (o *orchestrator) filterByPath(chainObj core.Chain, requestPath string) core.Chain {
 	middlewares := chainObj.List()
 
-	var filteredMiddlewares []core.Middleware
+	filteredMiddlewares := make([]core.Middleware, 0, len(middlewares))
 
 	for _, mw := range middlewares {
 		config := o.config.GetMiddlewareConfig(mw.Name())
 
-		// Check if middleware has path restrictions
-		if excludePaths, ok := config["exclude_paths"]; ok {
-			if pathList, ok := excludePaths.([]string); ok {
-				if o.matchesAnyPath(requestPath, pathList) {
-					o.logger.Info("excluded middleware by path", "name", mw.Name(), "path", requestPath)
+		if o.shouldExcludeByPath(mw.Name(), config, requestPath) {
+			o.logger.Info("excluded middleware by path", "name", mw.Name(), "path", requestPath)
 
-					continue
-				}
-			}
+			continue
 		}
 
-		// Check if middleware has path requirements
-		if includePaths, ok := config["include_paths"]; ok {
-			if pathList, ok := includePaths.([]string); ok {
-				if !o.matchesAnyPath(requestPath, pathList) {
-					o.logger.Info("excluded middleware by path requirement", "name", mw.Name(), "path", requestPath)
+		if o.shouldExcludeByPathRequirement(mw.Name(), config, requestPath) {
+			o.logger.Info("excluded middleware by path requirement", "name", mw.Name(), "path", requestPath)
 
-					continue
-				}
-			}
+			continue
 		}
 
 		filteredMiddlewares = append(filteredMiddlewares, mw)
@@ -646,4 +600,109 @@ func (o *orchestrator) getChainDescription(chainType core.ChainType) string {
 	default:
 		return "Unknown middleware chain type"
 	}
+}
+
+// belongsToCategory checks if middleware belongs to the specified category.
+func (o *orchestrator) belongsToCategory(_ core.Middleware, name string, category core.MiddlewareCategory) bool {
+	config := o.config.GetMiddlewareConfig(name)
+	if catVal, ok := config["category"]; ok {
+		if c, ok := catVal.(core.MiddlewareCategory); ok && c == category {
+			return true
+		}
+	} else if category == core.MiddlewareCategoryBasic {
+		// Default to basic category if not specified
+		return true
+	}
+
+	return false
+}
+
+// validateDependencies checks if middleware dependencies are satisfied.
+func (o *orchestrator) validateDependencies(
+	name string,
+	config map[string]any,
+	middlewareSet map[string]bool,
+) error {
+	if deps, ok := config["dependencies"]; ok {
+		if depList, ok := deps.([]string); ok {
+			for _, dep := range depList {
+				if !middlewareSet[dep] {
+					return fmt.Errorf("middleware %q requires missing dependency %q", name, dep)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateConflicts checks if middleware conflicts are resolved.
+func (o *orchestrator) validateConflicts(
+	name string,
+	config map[string]any,
+	middlewareSet map[string]bool,
+) error {
+	if confs, ok := config["conflicts"]; ok {
+		if confList, ok := confs.([]string); ok {
+			for _, conf := range confList {
+				if middlewareSet[conf] {
+					return fmt.Errorf("middleware %q conflicts with %q", name, conf)
+				}
+			}
+		}
+	}
+
+	return nil
+}
+
+// validateRegistryDependency checks if a middleware's dependencies exist in the registry.
+func (o *orchestrator) validateRegistryDependency(name string, config map[string]any) error {
+	if deps, ok := config["dependencies"]; ok {
+		if depList, ok := deps.([]string); ok {
+			for _, dep := range depList {
+				if _, exists := o.registry.Get(dep); !exists {
+					return fmt.Errorf("middleware %q requires missing dependency %q", name, dep)
+				}
+			}
+		}
+	}
+	return nil
+}
+
+// shouldAddPathSpecificMiddleware determines if middleware should be added for the given path.
+func (o *orchestrator) shouldAddPathSpecificMiddleware(
+	name string,
+	config map[string]any,
+	requestPath string,
+) bool {
+	if paths, ok := config["paths"]; ok {
+		if pathList, ok := paths.([]string); ok {
+			return o.matchesAnyPath(requestPath, pathList)
+		}
+	}
+	return false
+}
+
+// shouldExcludeByPath checks if middleware should be excluded based on exclude_paths.
+func (o *orchestrator) shouldExcludeByPath(_ string, config map[string]any, requestPath string) bool {
+	if excludePaths, ok := config["exclude_paths"]; ok {
+		if pathList, ok := excludePaths.([]string); ok {
+			return o.matchesAnyPath(requestPath, pathList)
+		}
+	}
+	return false
+}
+
+// shouldExcludeByPathRequirement checks if middleware should be excluded based on include_paths.
+func (o *orchestrator) shouldExcludeByPathRequirement(
+	name string,
+	config map[string]any,
+	requestPath string,
+) bool {
+	if includePaths, ok := config["include_paths"]; ok {
+		if pathList, ok := includePaths.([]string); ok {
+			return !o.matchesAnyPath(requestPath, pathList)
+		}
+	}
+	return false
 }

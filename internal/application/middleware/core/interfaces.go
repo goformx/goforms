@@ -84,10 +84,10 @@ type Request interface {
 	WithContext(ctx context.Context) Request
 
 	// Get retrieves a value from the request context
-	Get(key string) interface{}
+	Get(key string) any
 
 	// Set stores a value in the request context
-	Set(key string, value interface{})
+	Set(key string, value any)
 
 	// Param returns a path parameter by name
 	Param(name string) string
@@ -233,10 +233,10 @@ type Response interface {
 	WithContext(ctx context.Context) Response
 
 	// Get retrieves a value from the response context
-	Get(key string) interface{}
+	Get(key string) any
 
 	// Set stores a value in the response context
-	Set(key string, value interface{})
+	Set(key string, value any)
 
 	// Timestamp returns when the response was created
 	Timestamp() time.Time
@@ -317,9 +317,9 @@ type Registry interface {
 
 // Logger is a minimal logging interface for orchestration events.
 type Logger interface {
-	Info(msg string, args ...interface{})
-	Warn(msg string, args ...interface{})
-	Error(msg string, args ...interface{})
+	Info(msg string, args ...any)
+	Warn(msg string, args ...any)
+	Error(msg string, args ...any)
 }
 
 // Orchestrator manages the composition and execution of middleware chains.
@@ -358,7 +358,7 @@ type Orchestrator interface {
 	ClearCache()
 
 	// GetCacheStats returns cache statistics.
-	GetCacheStats() map[string]interface{}
+	GetCacheStats() map[string]any
 
 	// GetChainPerformance returns performance metrics for chain building.
 	GetChainPerformance() map[string]time.Duration
@@ -387,7 +387,7 @@ func NewResponse(statusCode int) Response {
 		context:       context.Background(),
 		timestamp:     time.Now(),
 		requestID:     "",
-		values:        make(map[string]interface{}),
+		values:        make(map[string]any),
 	}
 }
 

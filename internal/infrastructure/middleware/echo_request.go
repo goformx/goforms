@@ -111,12 +111,12 @@ func (r *EchoRequest) WithContext(ctx context.Context) core.Request {
 }
 
 // Get retrieves a value from the request context
-func (r *EchoRequest) Get(key string) interface{} {
+func (r *EchoRequest) Get(key string) any {
 	return r.context.Get(key)
 }
 
 // Set stores a value in the request context
-func (r *EchoRequest) Set(key string, value interface{}) {
+func (r *EchoRequest) Set(key string, value any) {
 	r.context.Set(key, value)
 }
 
