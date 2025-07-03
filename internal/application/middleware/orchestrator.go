@@ -60,12 +60,12 @@ func (o *orchestrator) CreateChain(chainType core.ChainType) (core.Chain, error)
 	activeMiddlewares := o.filterByConfig(middlewares, chainType)
 
 	// Validate dependencies and conflicts
-	if err := o.validateChain(activeMiddlewares); err != nil {
-		return nil, fmt.Errorf("chain validation failed for %s: %w", chainType, err)
+	if validateErr := o.validateChain(activeMiddlewares); validateErr != nil {
+		return nil, fmt.Errorf("chain validation failed for %s: %w", chainType, validateErr)
 	}
 
 	// Build chain using chain builder
-	chain := chain.NewChainImpl(activeMiddlewares)
+	chainImpl := chain.NewChainImpl(activeMiddlewares)
 
 	o.logger.Info("built middleware chain",
 		"chain_type", chainType,
@@ -73,7 +73,7 @@ func (o *orchestrator) CreateChain(chainType core.ChainType) (core.Chain, error)
 		"middleware_names", o.getMiddlewareNames(activeMiddlewares),
 		"build_time", time.Since(start))
 
-	return chain, nil
+	return chainImpl, nil
 }
 
 // BuildChain is an alias for CreateChain for backward compatibility.
@@ -86,13 +86,13 @@ func (o *orchestrator) GetChain(name string) (core.Chain, bool) {
 	o.chainsMu.RLock()
 	defer o.chainsMu.RUnlock()
 
-	chain, ok := o.chains[name]
+	chainObj, ok := o.chains[name]
 
-	return chain, ok
+	return chainObj, ok
 }
 
 // RegisterChain registers a named chain for later retrieval.
-func (o *orchestrator) RegisterChain(name string, chain core.Chain) error {
+func (o *orchestrator) RegisterChain(name string, chainObj core.Chain) error {
 	o.chainsMu.Lock()
 	defer o.chainsMu.Unlock()
 
@@ -100,8 +100,8 @@ func (o *orchestrator) RegisterChain(name string, chain core.Chain) error {
 		return fmt.Errorf("chain with name %q already exists", name)
 	}
 
-	o.chains[name] = chain
-	o.logger.Info("registered named chain", "name", name, "middleware_count", chain.Length())
+	o.chains[name] = chainObj
+	o.logger.Info("registered named chain", "name", name, "middleware_count", chainObj.Length())
 
 	return nil
 }
@@ -606,7 +606,7 @@ func (o *orchestrator) getChainDescription(chainType core.ChainType) string {
 func (o *orchestrator) belongsToCategory(_ core.Middleware, name string, category core.MiddlewareCategory) bool {
 	config := o.config.GetMiddlewareConfig(name)
 	if catVal, ok := config["category"]; ok {
-		if c, ok := catVal.(core.MiddlewareCategory); ok && c == category {
+		if c, catOk := catVal.(core.MiddlewareCategory); catOk && c == category {
 			return true
 		}
 	} else if category == core.MiddlewareCategoryBasic {
