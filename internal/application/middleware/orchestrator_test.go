@@ -141,6 +141,7 @@ func (m *mockConfig) GetMiddlewareConfig(name string) map[string]any {
 	if result, ok := args.Get(0).(map[string]any); ok {
 		return result
 	}
+
 	return make(map[string]any)
 }
 
@@ -153,6 +154,7 @@ func (m *mockConfig) GetChainConfig(chainType core.ChainType) middleware.ChainCo
 	if result, ok := args.Get(0).(middleware.ChainConfig); ok {
 		return result
 	}
+
 	return middleware.ChainConfig{}
 }
 

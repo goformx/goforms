@@ -666,6 +666,7 @@ func (o *orchestrator) validateRegistryDependency(name string, config map[string
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -680,6 +681,7 @@ func (o *orchestrator) shouldAddPathSpecificMiddleware(
 			return o.matchesAnyPath(requestPath, pathList)
 		}
 	}
+
 	return false
 }
 
@@ -690,6 +692,7 @@ func (o *orchestrator) shouldExcludeByPath(_ string, config map[string]any, requ
 			return o.matchesAnyPath(requestPath, pathList)
 		}
 	}
+
 	return false
 }
 
@@ -704,5 +707,6 @@ func (o *orchestrator) shouldExcludeByPathRequirement(
 			return !o.matchesAnyPath(requestPath, pathList)
 		}
 	}
+
 	return false
 }
