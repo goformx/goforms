@@ -57,7 +57,7 @@ func (vc *ViperConfig) Load() (*Config, error) {
 	}
 
 	// Validate configuration
-	if err := config.ValidateConfig(); err != nil {
+	if err := config.validateConfig(); err != nil {
 		return nil, fmt.Errorf("config validation failed: %w", err)
 	}
 

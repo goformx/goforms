@@ -186,8 +186,9 @@ func TestConfig_Validate(t *testing.T) {
 				assert.False(t, isValid)
 			} else {
 				if !isValid {
-					err := testValidateConfig(tt.config)
-					t.Logf("Validation error: %v", err)
+					if !tt.config.IsValid() {
+						t.Logf("Config validation failed")
+					}
 				}
 				assert.True(t, isValid)
 			}
@@ -397,9 +398,4 @@ func TestConfig_GetConfigSummary(t *testing.T) {
 	assert.Equal(t, "memory", services["cache_type"])
 	assert.Equal(t, "local", services["storage_type"])
 	assert.Equal(t, "cookie", services["session_type"])
-}
-
-// testValidateConfig is a test-only helper to call the private validateConfig method.
-func testValidateConfig(cfg *config.Config) error {
-	return cfg.ValidateConfig()
 }
