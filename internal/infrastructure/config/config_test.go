@@ -9,6 +9,43 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 )
 
+// createValidConfig creates a valid test configuration
+func createValidConfig() *config.Config {
+	return &config.Config{
+		App: config.AppConfig{
+			Name:           "Test App",
+			Environment:    "development",
+			Port:           8080,
+			ReadTimeout:    5,
+			WriteTimeout:   5,
+			IdleTimeout:    5,
+			RequestTimeout: 5,
+		},
+		Database: config.DatabaseConfig{
+			Driver:   "postgres",
+			Host:     "localhost",
+			Port:     5432,
+			Name:     "testdb",
+			Username: "testuser",
+			Password: "testpass",
+			SSLMode:  "disable",
+		},
+		Security: config.SecurityConfig{
+			CSRF:            config.CSRFConfig{Enabled: false},
+			CORS:            config.CORSConfig{Enabled: false},
+			TLS:             config.TLSConfig{Enabled: false},
+			CSP:             config.CSPConfig{Enabled: false},
+			RateLimit:       config.RateLimitConfig{Enabled: false, RPS: 1, Burst: 1, Window: 1},
+			SecurityHeaders: config.SecurityHeadersConfig{Enabled: false},
+			CookieSecurity:  config.CookieSecurityConfig{Secure: true, HTTPOnly: true, SameSite: "Lax"},
+		},
+		Session: config.SessionConfig{
+			Type:   "cookie",
+			Secret: "this-is-a-very-long-session-secret-1234567890",
+		},
+	}
+}
+
 func TestConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name        string
@@ -16,46 +53,8 @@ func TestConfig_Validate(t *testing.T) {
 		expectError bool
 	}{
 		{
-			name: "valid config",
-			config: &config.Config{
-				App: config.AppConfig{
-					Name:           "Test App",
-					Environment:    "development",
-					Port:           8080,
-					ReadTimeout:    5,
-					WriteTimeout:   5,
-					IdleTimeout:    5,
-					RequestTimeout: 5,
-				},
-				Database: config.DatabaseConfig{
-					Driver:   "postgres",
-					Host:     "localhost",
-					Port:     5432,
-					Name:     "testdb",
-					Username: "testuser",
-					Password: "testpass",
-					SSLMode:  "disable",
-				},
-				Security: config.SecurityConfig{
-					CSRF: config.CSRFConfig{
-						Enabled: false,
-					},
-					CORS: config.CORSConfig{
-						Enabled: false,
-					},
-					TLS: config.TLSConfig{
-						Enabled: false,
-					},
-					CSP:             config.CSPConfig{Enabled: false},
-					RateLimit:       config.RateLimitConfig{Enabled: false, RPS: 1, Burst: 1, Window: 1},
-					SecurityHeaders: config.SecurityHeadersConfig{Enabled: false},
-					CookieSecurity:  config.CookieSecurityConfig{Secure: true, HTTPOnly: true, SameSite: "Lax"},
-				},
-				Session: config.SessionConfig{
-					Type:   "cookie",
-					Secret: "this-is-a-very-long-session-secret-1234567890",
-				},
-			},
+			name:        "valid config",
+			config:      createValidConfig(),
 			expectError: false,
 		},
 		{
@@ -182,54 +181,20 @@ func TestConfig_Validate(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			isValid := tt.config.IsValid()
+
 			if tt.expectError {
 				assert.False(t, isValid)
-			} else {
-				if !isValid {
-					if !tt.config.IsValid() {
-						t.Logf("Config validation failed")
-					}
-				}
-				assert.True(t, isValid)
+
+				return
 			}
+
+			assert.True(t, isValid)
 		})
 	}
 }
 
 func TestConfig_IsValid(t *testing.T) {
-	validConfig := &config.Config{
-		App: config.AppConfig{
-			Name:           "Test App",
-			Environment:    "development",
-			Port:           8080,
-			ReadTimeout:    5,
-			WriteTimeout:   5,
-			IdleTimeout:    5,
-			RequestTimeout: 5,
-		},
-		Database: config.DatabaseConfig{
-			Driver:   "postgres",
-			Host:     "localhost",
-			Port:     5432,
-			Name:     "testdb",
-			Username: "testuser",
-			Password: "testpass",
-			SSLMode:  "disable",
-		},
-		Security: config.SecurityConfig{
-			CSRF:            config.CSRFConfig{Enabled: false},
-			CORS:            config.CORSConfig{Enabled: false},
-			TLS:             config.TLSConfig{Enabled: false},
-			CSP:             config.CSPConfig{Enabled: false},
-			RateLimit:       config.RateLimitConfig{Enabled: false, RPS: 1, Burst: 1, Window: 1},
-			SecurityHeaders: config.SecurityHeadersConfig{Enabled: false},
-			CookieSecurity:  config.CookieSecurityConfig{Secure: true, HTTPOnly: true, SameSite: "Lax"},
-		},
-		Session: config.SessionConfig{
-			Type:   "cookie",
-			Secret: "this-is-a-very-long-session-secret-1234567890",
-		},
-	}
+	validConfig := createValidConfig()
 
 	assert.True(t, validConfig.IsValid())
 
