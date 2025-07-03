@@ -103,7 +103,7 @@ func isWritableDirectory(path string) bool {
 		return false
 	}
 
-	return info.IsDir() && (info.Mode()&0200) != 0
+	return info.IsDir() && (info.Mode()&0o200) != 0
 }
 
 // isReadableDirectory checks if a directory is readable
@@ -113,7 +113,7 @@ func isReadableDirectory(path string) bool {
 		return false
 	}
 
-	return info.IsDir() && (info.Mode()&0400) != 0
+	return info.IsDir() && (info.Mode()&0o400) != 0
 }
 
 // isValidEmail checks if an email address is valid
