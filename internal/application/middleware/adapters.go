@@ -115,6 +115,7 @@ func (m *recoveryMiddleware) Process(ctx context.Context, req core.Request, next
 		if r := recover(); r != nil {
 			// Log the panic and return error response
 			// In a real implementation, this would use the logger from context
+			_ = r // Suppress unused variable warning
 		}
 	}()
 

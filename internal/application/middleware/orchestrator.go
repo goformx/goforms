@@ -51,10 +51,7 @@ func (o *orchestrator) CreateChain(chainType core.ChainType) (core.Chain, error)
 	}()
 
 	// Get middleware list from registry based on chain type
-	middlewares, err := o.getOrderedMiddleware(chainType)
-	if err != nil {
-		return nil, fmt.Errorf("failed to get ordered middleware for chain type %s: %w", chainType, err)
-	}
+	middlewares := o.getOrderedMiddleware(chainType)
 
 	// Filter based on configuration
 	activeMiddlewares := o.filterByConfig(middlewares, chainType)
@@ -250,10 +247,7 @@ func (o *orchestrator) GetChainInfo(chainType core.ChainType) core.ChainInfo {
 	chainConfig := o.config.GetChainConfig(chainType)
 
 	// Get middleware for this chain type
-	middlewares, err := o.getOrderedMiddleware(chainType)
-	if err != nil {
-		o.logger.Warn("failed to get ordered middleware", "chain_type", chainType, "error", err)
-	}
+	middlewares := o.getOrderedMiddleware(chainType)
 
 	middlewareNames := o.getMiddlewareNames(middlewares)
 
@@ -286,7 +280,7 @@ func (o *orchestrator) GetChainPerformance() map[string]time.Duration {
 }
 
 // getOrderedMiddleware returns middleware ordered by priority for the given chain type.
-func (o *orchestrator) getOrderedMiddleware(chainType core.ChainType) ([]core.Middleware, error) {
+func (o *orchestrator) getOrderedMiddleware(chainType core.ChainType) []core.Middleware {
 	var middlewares []core.Middleware
 
 	// Get categories for this chain type
@@ -301,7 +295,7 @@ func (o *orchestrator) getOrderedMiddleware(chainType core.ChainType) ([]core.Mi
 	// Sort by priority (registry already does this, but ensure consistency)
 	o.sortByPriority(middlewares)
 
-	return middlewares, nil
+	return middlewares
 }
 
 // getOrderedByCategory returns middleware ordered by priority for a specific category.
