@@ -8,7 +8,13 @@ import (
 
 // validateLoggingConfig validates logging configuration
 func validateLoggingConfig(cfg LoggingConfig, result *ValidationResult) {
-	// Validate log level
+	validateLoggingLevel(cfg, result)
+	validateLoggingFormat(cfg, result)
+	validateLoggingFileOutput(cfg, result)
+	validateLoggingRotation(cfg, result)
+}
+
+func validateLoggingLevel(cfg LoggingConfig, result *ValidationResult) {
 	validLevels := []string{"debug", "info", "warn", "error", "fatal"}
 	levelValid := false
 
@@ -23,8 +29,9 @@ func validateLoggingConfig(cfg LoggingConfig, result *ValidationResult) {
 	if !levelValid {
 		result.AddError("logging.level", "invalid log level", cfg.Level)
 	}
+}
 
-	// Validate log format
+func validateLoggingFormat(cfg LoggingConfig, result *ValidationResult) {
 	validFormats := []string{"json", "console"}
 	formatValid := false
 
@@ -39,23 +46,28 @@ func validateLoggingConfig(cfg LoggingConfig, result *ValidationResult) {
 	if !formatValid {
 		result.AddError("logging.format", "invalid log format", cfg.Format)
 	}
+}
 
-	// Validate file logging configuration
-	if cfg.Output == "file" {
-		if cfg.File == "" {
-			result.AddError("logging.file",
-				"log file path is required when output is file", cfg.File)
-		} else {
-			// Ensure log directory is writable
-			logDir := filepath.Dir(cfg.File)
-			if !isWritableDirectory(logDir) {
-				result.AddError("logging.file",
-					"log directory must be writable", logDir)
-			}
-		}
+func validateLoggingFileOutput(cfg LoggingConfig, result *ValidationResult) {
+	if cfg.Output != "file" {
+		return
 	}
 
-	// Validate rotation settings
+	if cfg.File == "" {
+		result.AddError("logging.file",
+			"log file path is required when output is file", cfg.File)
+
+		return
+	}
+	// Ensure log directory is writable
+	logDir := filepath.Dir(cfg.File)
+	if !isWritableDirectory(logDir) {
+		result.AddError("logging.file",
+			"log directory must be writable", logDir)
+	}
+}
+
+func validateLoggingRotation(cfg LoggingConfig, result *ValidationResult) {
 	if cfg.MaxSize <= 0 {
 		result.AddError("logging.max_size",
 			"log max size must be positive", cfg.MaxSize)
