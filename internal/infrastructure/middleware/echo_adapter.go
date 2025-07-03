@@ -161,6 +161,7 @@ func (a *EchoAdapter) handleRedirect(c echo.Context, resp core.Response) error {
 	if resp.IsRedirect() && resp.Location() != "" {
 		return c.Redirect(resp.StatusCode(), resp.Location())
 	}
+
 	return nil
 }
 
@@ -173,6 +174,7 @@ func (a *EchoAdapter) handleError(resp core.Response) error {
 		// Create HTTP error if no specific error is set
 		return echo.NewHTTPError(resp.StatusCode(), http.StatusText(resp.StatusCode()))
 	}
+
 	return nil
 }
 
@@ -190,6 +192,7 @@ func (a *EchoAdapter) writeBody(c echo.Context, resp core.Response) error {
 			return fmt.Errorf("failed to write response body: %w", err)
 		}
 	}
+
 	return nil
 }
 

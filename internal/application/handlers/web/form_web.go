@@ -145,6 +145,7 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 	if renderErr := h.Renderer.Render(c, pages.FormPreview(*data, form)); renderErr != nil {
 		return fmt.Errorf("failed to render form preview page: %w", renderErr)
 	}
+
 	return nil
 }
 
