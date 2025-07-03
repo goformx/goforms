@@ -97,6 +97,10 @@ func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
 
 // DeleteForm deletes a form
 func (s *formService) DeleteForm(ctx context.Context, formID string) error {
+	if formID == "" {
+		return fmt.Errorf("failed to delete form: formID is required")
+	}
+
 	if err := s.repository.DeleteForm(ctx, formID); err != nil {
 		return fmt.Errorf("failed to delete form: %w", err)
 	}
