@@ -24,8 +24,8 @@ type Config struct {
 	User     UserConfig     `json:"user"`
 }
 
-// validateConfig validates the configuration
-func (c *Config) validateConfig() error {
+// ValidateConfig validates the configuration
+func (c *Config) ValidateConfig() error {
 	var errs []string
 
 	// Validate core config sections
@@ -160,7 +160,7 @@ func (c *Config) GetConfigSummary() map[string]any {
 
 // IsValid checks if the configuration is valid
 func (c *Config) IsValid() bool {
-	return c.validateConfig() == nil
+	return c.ValidateConfig() == nil
 }
 
 // GetEnvironment returns the current environment
