@@ -190,6 +190,14 @@ linters:
         - '.*FormRetriever'
         - '.*FormOwnershipValidator'
         - '.*DB'
+        # Allow interface returns for middleware system patterns
+        - '.*Middleware'
+        - '.*Chain'
+        - '.*Registry'
+        - '.*Orchestrator'
+        - '.*Request'
+        - '.*Response'
+        - '.*Config'
 
     lll:
       line-length: 120
@@ -403,6 +411,12 @@ linters:
         linters:
           - ireturn
         path: "(service|repository|handler).*\\.go"
+
+      # Allow interface returns in middleware system (designed around interfaces)
+      - text: "returns interface"
+        linters:
+          - ireturn
+        path: ".*middleware.*\\.go"
 
       # Common Fx patterns that trigger false positives
       - text: "cyclomatic complexity"
