@@ -28,9 +28,9 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 	logger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
 
 	cfg := createIntegrationTestConfig()
-	config := middleware.NewMiddlewareConfig(cfg, logger)
-	registry := middleware.NewRegistry(logger, config)
-	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	mwConfig := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, mwConfig)
+	orchestrator := middleware.NewOrchestrator(registry, mwConfig, logger)
 	migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
 
 	// Register all required middleware for migration validation
@@ -51,8 +51,8 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 	}
 
 	for _, m := range requiredMiddleware {
-		err := registry.Register(m.name, m.mw)
-		require.NoError(t, err)
+		regErr := registry.Register(m.name, m.mw)
+		require.NoError(t, regErr)
 	}
 
 	// Test registry registration
@@ -84,10 +84,10 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 
 		for _, chainType := range chainTypes {
 			t.Run(chainType.String(), func(t *testing.T) {
-				chain, err := orchestrator.BuildChain(chainType)
-				assert.NoError(t, err)
-				assert.NotNil(t, chain)
-				assert.GreaterOrEqual(t, chain.Length(), 0)
+				mwChain, chainErr := orchestrator.BuildChain(chainType)
+				assert.NoError(t, chainErr)
+				assert.NotNil(t, mwChain)
+				assert.GreaterOrEqual(t, mwChain.Length(), 0)
 			})
 		}
 	})
@@ -126,16 +126,16 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 	// Test configuration integration
 	t.Run("Configuration Integration", func(t *testing.T) {
 		// Test middleware enabled check
-		assert.True(t, config.IsMiddlewareEnabled("recovery"))
-		assert.True(t, config.IsMiddlewareEnabled("cors"))
+		assert.True(t, mwConfig.IsMiddlewareEnabled("recovery"))
+		assert.True(t, mwConfig.IsMiddlewareEnabled("cors"))
 
 		// Test middleware config
-		mwConfig := config.GetMiddlewareConfig("recovery")
-		assert.NotNil(t, mwConfig)
-		assert.Equal(t, core.MiddlewareCategoryBasic, mwConfig["category"])
+		mwRecoveryConfig := mwConfig.GetMiddlewareConfig("recovery")
+		assert.NotNil(t, mwRecoveryConfig)
+		assert.Equal(t, core.MiddlewareCategoryBasic, mwRecoveryConfig["category"])
 
 		// Test chain config
-		chainConfig := config.GetChainConfig(core.ChainTypeDefault)
+		chainConfig := mwConfig.GetChainConfig(core.ChainTypeDefault)
 		assert.True(t, chainConfig.Enabled)
 		assert.NotEmpty(t, chainConfig.MiddlewareNames)
 	})
@@ -152,9 +152,9 @@ func TestIntegration_MigrationFlow(t *testing.T) {
 	logger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 
 	cfg := createIntegrationTestConfig()
-	config := middleware.NewMiddlewareConfig(cfg, logger)
-	registry := middleware.NewRegistry(logger, config)
-	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	mwConfig := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, mwConfig)
+	orchestrator := middleware.NewOrchestrator(registry, mwConfig, logger)
 	migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
 
 	// Register required middleware
@@ -175,8 +175,8 @@ func TestIntegration_MigrationFlow(t *testing.T) {
 	}
 
 	for _, m := range requiredMiddleware {
-		err := registry.Register(m.name, m.mw)
-		require.NoError(t, err)
+		regErr := registry.Register(m.name, m.mw)
+		require.NoError(t, regErr)
 	}
 
 	t.Run("Migration Flow", func(t *testing.T) {
@@ -212,9 +212,9 @@ func TestIntegration_PathBasedChains(t *testing.T) {
 	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	cfg := createIntegrationTestConfig()
-	config := middleware.NewMiddlewareConfig(cfg, logger)
-	registry := middleware.NewRegistry(logger, config)
-	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	mwConfig := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, mwConfig)
+	orchestrator := middleware.NewOrchestrator(registry, mwConfig, logger)
 	adapter := middleware.NewEchoOrchestratorAdapter(orchestrator, logger)
 
 	// Register middleware
@@ -257,9 +257,9 @@ func TestIntegration_Performance(t *testing.T) {
 	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 
 	cfg := createIntegrationTestConfig()
-	config := middleware.NewMiddlewareConfig(cfg, logger)
-	registry := middleware.NewRegistry(logger, config)
-	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	mwConfig := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, mwConfig)
+	orchestrator := middleware.NewOrchestrator(registry, mwConfig, logger)
 
 	// Register multiple middleware
 	for i := 0; i < 10; i++ {
@@ -291,9 +291,9 @@ func TestIntegration_ErrorHandling(t *testing.T) {
 	logger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
 
 	cfg := createIntegrationTestConfig()
-	config := middleware.NewMiddlewareConfig(cfg, logger)
-	registry := middleware.NewRegistry(logger, config)
-	orchestrator := middleware.NewOrchestrator(registry, config, logger)
+	mwConfig := middleware.NewMiddlewareConfig(cfg, logger)
+	registry := middleware.NewRegistry(logger, mwConfig)
+	orchestrator := middleware.NewOrchestrator(registry, mwConfig, logger)
 	migrationAdapter := middleware.NewMigrationAdapter(orchestrator, registry, logger)
 
 	t.Run("Error Handling", func(t *testing.T) {
