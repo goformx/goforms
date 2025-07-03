@@ -91,7 +91,7 @@ func (m *mockRegistry) GetOrdered(category core.MiddlewareCategory) []core.Middl
 	var result []core.Middleware
 
 	for _, mw := range m.middlewares {
-		if mw.(*mockMiddleware).category == category {
+		if mockMw, ok := mw.(*mockMiddleware); ok && mockMw.category == category {
 			result = append(result, mw)
 		}
 	}
@@ -138,7 +138,10 @@ func (m *mockConfig) GetMiddlewareConfig(name string) map[string]interface{} {
 		return config
 	}
 
-	return args.Get(0).(map[string]interface{})
+	if result, ok := args.Get(0).(map[string]interface{}); ok {
+		return result
+	}
+	return make(map[string]interface{})
 }
 
 func (m *mockConfig) GetChainConfig(chainType core.ChainType) middleware.ChainConfig {
@@ -147,7 +150,10 @@ func (m *mockConfig) GetChainConfig(chainType core.ChainType) middleware.ChainCo
 		return config
 	}
 
-	return args.Get(0).(middleware.ChainConfig)
+	if result, ok := args.Get(0).(middleware.ChainConfig); ok {
+		return result
+	}
+	return middleware.ChainConfig{}
 }
 
 // mockLogger implements core.Logger for testing

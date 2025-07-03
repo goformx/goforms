@@ -254,6 +254,7 @@ func (o *orchestrator) GetChainInfo(chainType core.ChainType) core.ChainInfo {
 	if err != nil {
 		o.logger.Warn("failed to get ordered middleware", "chain_type", chainType, "error", err)
 	}
+
 	middlewareNames := o.getMiddlewareNames(middlewares)
 
 	// Determine categories based on chain type
