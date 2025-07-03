@@ -253,7 +253,7 @@ export default defineConfig(({ mode, command }) => {
       // Optimized rollup options with manual chunking
       rollupOptions: {
         input: {
-          main: resolve(__dirname, "src/js/pages/main.ts"),
+          main: resolve(__dirname, "src/js/main.ts"),
           "main.css": resolve(__dirname, "src/css/main.css"),
           dashboard: resolve(__dirname, "src/js/pages/dashboard.ts"),
           "form-builder": resolve(__dirname, "src/js/pages/form-builder.ts"),
@@ -307,8 +307,6 @@ export default defineConfig(({ mode, command }) => {
             goformx: ["@goformx/formio"],
             // Validation and utilities
             utils: ["zod", "dompurify"],
-            // Form.io runtime dependencies
-            formio: ["ace-builds", "@fortawesome/fontawesome-free"],
             // Core application code - only include if files exist
             core: ["./src/js/core/http-client", "./src/js/core/logger"],
           },
@@ -351,7 +349,6 @@ export default defineConfig(({ mode, command }) => {
         "zod",
         "dompurify",
         // Form.io runtime dependencies
-        "ace-builds",
         "@fortawesome/fontawesome-free",
       ],
       exclude: [

@@ -43,8 +43,8 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 	}{
 		{
 			name:     "src file",
-			path:     "src/js/pages/main.ts",
-			expected: "http://localhost:5173/src/js/pages/main.ts",
+			path:     "src/js/main.ts",
+			expected: "http://localhost:5173/src/js/main.ts",
 		},
 		{
 			name:     "css file",
@@ -54,12 +54,12 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		{
 			name:     "js file",
 			path:     "main.js",
-			expected: "http://localhost:5173/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/main.ts",
 		},
 		{
 			name:     "ts file",
 			path:     "main.ts",
-			expected: "http://localhost:5173/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/main.ts",
 		},
 		{
 			name:     "other file",
