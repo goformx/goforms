@@ -59,23 +59,32 @@ func (a *EchoAdapter) ToEchoMiddleware() echo.MiddlewareFunc {
 	}
 }
 
+// determineStatusCode determines the appropriate HTTP status code based on the error
+func (a *EchoAdapter) determineStatusCode(err error) int {
+	httpError := &echo.HTTPError{}
+	if errors.As(err, &httpError) {
+		return httpError.Code
+	}
+
+	errMsg := strings.ToLower(err.Error())
+	switch {
+	case strings.Contains(errMsg, "not found"):
+		return http.StatusNotFound
+	case strings.Contains(errMsg, "unauthorized"):
+		return http.StatusUnauthorized
+	case strings.Contains(errMsg, "forbidden"):
+		return http.StatusForbidden
+	case strings.Contains(errMsg, "bad request"):
+		return http.StatusBadRequest
+	default:
+		return http.StatusInternalServerError
+	}
+}
+
 // convertEchoError converts an Echo error to our Response interface.
 func (a *EchoAdapter) convertEchoError(err error, c echo.Context) core.Response {
 	// Determine appropriate status code based on error type
-	statusCode := http.StatusInternalServerError
-
-	httpError := &echo.HTTPError{}
-	if errors.As(err, &httpError) {
-		statusCode = httpError.Code
-	} else if strings.Contains(err.Error(), "not found") {
-		statusCode = http.StatusNotFound
-	} else if strings.Contains(err.Error(), "unauthorized") {
-		statusCode = http.StatusUnauthorized
-	} else if strings.Contains(err.Error(), "forbidden") {
-		statusCode = http.StatusForbidden
-	} else if strings.Contains(err.Error(), "bad request") {
-		statusCode = http.StatusBadRequest
-	}
+	statusCode := a.determineStatusCode(err)
 
 	// Create error response
 	errorResp := core.NewErrorResponse(statusCode, err)
@@ -154,7 +163,7 @@ func (a *EchoAdapter) applyResponse(c echo.Context, resp core.Response) error {
 	// Handle errors
 	if resp.IsError() {
 		if resp.Error() != nil {
-			return resp.Error()
+			return fmt.Errorf("response error: %w", resp.Error())
 		}
 		// Create HTTP error if no specific error is set
 		return echo.NewHTTPError(resp.StatusCode(), http.StatusText(resp.StatusCode()))
@@ -237,7 +246,11 @@ func (a *EchoRegistryAdapter) RegisterEchoMiddleware(name string, echoMiddleware
 		echoMiddleware: echoMiddleware,
 	}
 
-	return a.registry.Register(name, wrapper)
+	if err := a.registry.Register(name, wrapper); err != nil {
+		return fmt.Errorf("failed to register echo middleware: %w", err)
+	}
+
+	return nil
 }
 
 // EchoMiddlewareWrapper wraps Echo middleware to implement our Middleware interface.
@@ -307,7 +320,11 @@ func (a *EchoOrchestratorAdapter) RegisterEchoChain(name string, chainType core.
 		return fmt.Errorf("failed to create chain for registration: %w", err)
 	}
 
-	return a.orchestrator.RegisterChain(name, chain)
+	if err := a.orchestrator.RegisterChain(name, chain); err != nil {
+		return fmt.Errorf("failed to register echo chain: %w", err)
+	}
+
+	return nil
 }
 
 // GetEchoChain retrieves a named chain and converts it to Echo middleware.

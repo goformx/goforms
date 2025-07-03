@@ -522,7 +522,8 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.enabled", true)
 	v.SetDefault("security.cors.allowed_origins", []string{"*"})
 	v.SetDefault("security.cors.allowed_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	v.SetDefault("security.cors.allowed_headers", []string{"Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"})
+	allowedHeaders := []string{"Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"}
+	v.SetDefault("security.cors.allowed_headers", allowedHeaders)
 	v.SetDefault("security.cors.exposed_headers", []string{})
 	v.SetDefault("security.cors.allow_credentials", true)
 	v.SetDefault("security.cors.max_age", 86400)

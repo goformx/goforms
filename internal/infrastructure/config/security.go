@@ -117,7 +117,7 @@ type SecurityHeadersConfig struct {
 	Enabled                 bool   `json:"enabled"`
 	XFrameOptions           string `json:"x_frame_options"`
 	XContentTypeOptions     string `json:"x_content_type_options"`
-	XXSSProtection          string `json:"x_xss_protection"`
+	XXSSProtection          string `json:"xxss_protection"`
 	ReferrerPolicy          string `json:"referrer_policy"`
 	PermissionsPolicy       string `json:"permissions_policy"`
 	StrictTransportSecurity string `json:"strict_transport_security"`
@@ -149,7 +149,7 @@ type EncryptionConfig struct {
 	SaltLength     int    `json:"salt_length"`
 	Iterations     int    `json:"iterations"`
 	EnableAES      bool   `json:"enable_aes"`
-	EnableChaCha20 bool   `json:"enable_chacha20"`
+	EnableChaCha20 bool   `json:"enable_cha_cha20"`
 }
 
 // Validate validates the security configuration
@@ -342,61 +342,43 @@ func (s *SecurityConfig) ShouldUseSecureCookies() bool {
 	return s.TLS.Enabled || s.CookieSecurity.Secure
 }
 
+// buildCSPPolicies builds CSP policies from the configuration
+func (s *CSPConfig) buildCSPPolicies() []string {
+	var policies []string
+
+	cspDirectives := map[string]string{
+		"default-src":  s.DefaultSrc,
+		"script-src":   s.ScriptSrc,
+		"style-src":    s.StyleSrc,
+		"img-src":      s.ImgSrc,
+		"connect-src":  s.ConnectSrc,
+		"font-src":     s.FontSrc,
+		"object-src":   s.ObjectSrc,
+		"media-src":    s.MediaSrc,
+		"frame-src":    s.FrameSrc,
+		"form-action":  s.FormAction,
+		"base-uri":     s.BaseURI,
+		"manifest-src": s.ManifestSrc,
+		"worker-src":   s.WorkerSrc,
+		"report-uri":   s.ReportURI,
+	}
+
+	for directive, value := range cspDirectives {
+		if value != "" {
+			policies = append(policies, fmt.Sprintf("%s %s", directive, value))
+		}
+	}
+
+	return policies
+}
+
 // GetCSPHeaderValue returns the complete CSP header value
 func (s *CSPConfig) GetCSPHeaderValue() string {
 	if !s.Enabled {
 		return ""
 	}
 
-	var policies []string
-
-	if s.DefaultSrc != "" {
-		policies = append(policies, fmt.Sprintf("default-src %s", s.DefaultSrc))
-	}
-
-	if s.ScriptSrc != "" {
-		policies = append(policies, fmt.Sprintf("script-src %s", s.ScriptSrc))
-	}
-
-	if s.StyleSrc != "" {
-		policies = append(policies, fmt.Sprintf("style-src %s", s.StyleSrc))
-	}
-
-	if s.ImgSrc != "" {
-		policies = append(policies, fmt.Sprintf("img-src %s", s.ImgSrc))
-	}
-
-	if s.ConnectSrc != "" {
-		policies = append(policies, fmt.Sprintf("connect-src %s", s.ConnectSrc))
-	}
-
-	if s.FontSrc != "" {
-		policies = append(policies, fmt.Sprintf("font-src %s", s.FontSrc))
-	}
-
-	if s.ObjectSrc != "" {
-		policies = append(policies, fmt.Sprintf("object-src %s", s.ObjectSrc))
-	}
-
-	if s.MediaSrc != "" {
-		policies = append(policies, fmt.Sprintf("media-src %s", s.MediaSrc))
-	}
-
-	if s.FrameSrc != "" {
-		policies = append(policies, fmt.Sprintf("frame-src %s", s.FrameSrc))
-	}
-
-	if s.FormAction != "" {
-		policies = append(policies, fmt.Sprintf("form-action %s", s.FormAction))
-	}
-
-	if s.BaseURI != "" {
-		policies = append(policies, fmt.Sprintf("base-uri %s", s.BaseURI))
-	}
-
-	if s.ReportURI != "" {
-		policies = append(policies, fmt.Sprintf("report-uri %s", s.ReportURI))
-	}
+	policies := s.buildCSPPolicies()
 
 	return strings.Join(policies, "; ")
 }
@@ -410,69 +392,43 @@ func (s *CSPConfig) GetCSPHeaderName() string {
 	return "Content-Security-Policy"
 }
 
+// buildCSPDirectives builds CSP directives from the configuration
+func (s *SecurityConfig) buildCSPDirectives() []string {
+	var directives []string
+
+	cspDirectives := map[string]string{
+		"default-src":  s.CSP.DefaultSrc,
+		"script-src":   s.CSP.ScriptSrc,
+		"style-src":    s.CSP.StyleSrc,
+		"img-src":      s.CSP.ImgSrc,
+		"connect-src":  s.CSP.ConnectSrc,
+		"font-src":     s.CSP.FontSrc,
+		"object-src":   s.CSP.ObjectSrc,
+		"media-src":    s.CSP.MediaSrc,
+		"frame-src":    s.CSP.FrameSrc,
+		"form-action":  s.CSP.FormAction,
+		"base-uri":     s.CSP.BaseURI,
+		"manifest-src": s.CSP.ManifestSrc,
+		"worker-src":   s.CSP.WorkerSrc,
+		"report-uri":   s.CSP.ReportURI,
+	}
+
+	for directive, value := range cspDirectives {
+		if value != "" {
+			directives = append(directives, fmt.Sprintf("%s %s", directive, value))
+		}
+	}
+
+	return directives
+}
+
 // GetCSPDirectives returns the Content Security Policy directives as a string
 func (s *SecurityConfig) GetCSPDirectives(appConfig *AppConfig) string {
 	if !s.CSP.Enabled {
 		return ""
 	}
 
-	var directives []string
-
-	if s.CSP.DefaultSrc != "" {
-		directives = append(directives, fmt.Sprintf("default-src %s", s.CSP.DefaultSrc))
-	}
-
-	if s.CSP.ScriptSrc != "" {
-		directives = append(directives, fmt.Sprintf("script-src %s", s.CSP.ScriptSrc))
-	}
-
-	if s.CSP.StyleSrc != "" {
-		directives = append(directives, fmt.Sprintf("style-src %s", s.CSP.StyleSrc))
-	}
-
-	if s.CSP.ImgSrc != "" {
-		directives = append(directives, fmt.Sprintf("img-src %s", s.CSP.ImgSrc))
-	}
-
-	if s.CSP.ConnectSrc != "" {
-		directives = append(directives, fmt.Sprintf("connect-src %s", s.CSP.ConnectSrc))
-	}
-
-	if s.CSP.FontSrc != "" {
-		directives = append(directives, fmt.Sprintf("font-src %s", s.CSP.FontSrc))
-	}
-
-	if s.CSP.ObjectSrc != "" {
-		directives = append(directives, fmt.Sprintf("object-src %s", s.CSP.ObjectSrc))
-	}
-
-	if s.CSP.MediaSrc != "" {
-		directives = append(directives, fmt.Sprintf("media-src %s", s.CSP.MediaSrc))
-	}
-
-	if s.CSP.FrameSrc != "" {
-		directives = append(directives, fmt.Sprintf("frame-src %s", s.CSP.FrameSrc))
-	}
-
-	if s.CSP.FormAction != "" {
-		directives = append(directives, fmt.Sprintf("form-action %s", s.CSP.FormAction))
-	}
-
-	if s.CSP.BaseURI != "" {
-		directives = append(directives, fmt.Sprintf("base-uri %s", s.CSP.BaseURI))
-	}
-
-	if s.CSP.ManifestSrc != "" {
-		directives = append(directives, fmt.Sprintf("manifest-src %s", s.CSP.ManifestSrc))
-	}
-
-	if s.CSP.WorkerSrc != "" {
-		directives = append(directives, fmt.Sprintf("worker-src %s", s.CSP.WorkerSrc))
-	}
-
-	if s.CSP.ReportURI != "" {
-		directives = append(directives, fmt.Sprintf("report-uri %s", s.CSP.ReportURI))
-	}
+	directives := s.buildCSPDirectives()
 
 	return strings.Join(directives, "; ")
 }

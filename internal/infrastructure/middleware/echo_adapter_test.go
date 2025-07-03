@@ -1,4 +1,4 @@
-package middleware
+package middleware_test
 
 import (
 	"context"
@@ -8,6 +8,7 @@ import (
 	"testing"
 
 	"github.com/goformx/goforms/internal/application/middleware/core"
+	"github.com/goformx/goforms/internal/infrastructure/middleware"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
@@ -21,7 +22,7 @@ func TestEchoAdapter_ToEchoMiddleware(t *testing.T) {
 	}
 
 	// Create Echo adapter
-	adapter := NewEchoAdapter(testMiddleware)
+	adapter := middleware.NewEchoAdapter(testMiddleware)
 	echoMiddleware := adapter.ToEchoMiddleware()
 
 	// Create Echo instance
@@ -63,7 +64,7 @@ func TestEchoRequest(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Create our request wrapper
-	echoReq := NewEchoRequest(c)
+	echoReq := middleware.NewEchoRequest(c)
 
 	// Test basic properties
 	assert.Equal(t, http.MethodPost, echoReq.Method())
@@ -90,7 +91,7 @@ func TestEchoResponseWrapper(t *testing.T) {
 	resp.SetBodyBytes([]byte(`{"message":"test"}`))
 
 	// Create response wrapper
-	wrapper := NewEchoResponseWrapper(resp, c)
+	wrapper := middleware.NewEchoResponseWrapper(resp, c)
 
 	// Apply response
 	err := wrapper.ApplyToEcho()
@@ -112,7 +113,7 @@ func TestEchoResponseBuilder(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Create response builder
-	builder := NewEchoResponseBuilder(c)
+	builder := middleware.NewEchoResponseBuilder(c)
 
 	// Build response
 	resp := builder.
@@ -140,7 +141,7 @@ func TestEchoResponseWriter(t *testing.T) {
 	c := e.NewContext(req, rec)
 
 	// Create response writer
-	writer := NewEchoResponseWriter(c)
+	writer := middleware.NewEchoResponseWriter(c)
 
 	// Write some content
 	_, err := writer.WriteString("Hello, World!")

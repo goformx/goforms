@@ -4,6 +4,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -20,7 +21,6 @@ import (
 // This adapter provides access to Echo's request data through our framework-agnostic interface.
 type EchoRequest struct {
 	context echo.Context
-	body    []byte
 	form    url.Values
 }
 
@@ -137,7 +137,12 @@ func (r *EchoRequest) Params() map[string]string {
 
 // Cookie returns a cookie by name
 func (r *EchoRequest) Cookie(name string) (*http.Cookie, error) {
-	return r.context.Cookie(name)
+	cookie, err := r.context.Cookie(name)
+	if err != nil {
+		return nil, fmt.Errorf("failed to get cookie %s: %w", name, err)
+	}
+
+	return cookie, nil
 }
 
 // Cookies returns all cookies
@@ -163,7 +168,7 @@ func (r *EchoRequest) Form() (url.Values, error) {
 	// Parse form if not already parsed
 	if r.form == nil {
 		if err := r.context.Request().ParseForm(); err != nil {
-			return nil, err
+			return nil, fmt.Errorf("failed to parse form: %w", err)
 		}
 
 		r.form = r.context.Request().Form
@@ -180,7 +185,7 @@ func (r *EchoRequest) MultipartForm() (*multipart.Form, error) {
 
 	// Parse multipart form if not already parsed
 	if err := r.context.Request().ParseMultipartForm(32 << 20); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse multipart form: %w", err)
 	}
 
 	return r.context.Request().MultipartForm, nil

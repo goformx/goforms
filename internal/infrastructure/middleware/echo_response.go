@@ -5,6 +5,7 @@ package middleware
 import (
 	"bytes"
 	"encoding/json"
+	"fmt"
 	"io"
 	"net/http"
 
@@ -55,7 +56,7 @@ func (w *EchoResponseWrapper) ApplyToEcho() error {
 	// Handle errors
 	if w.response.IsError() {
 		if w.response.Error() != nil {
-			return w.response.Error()
+			return fmt.Errorf("response error: %w", w.response.Error())
 		}
 		// Create HTTP error if no specific error is set
 		return echo.NewHTTPError(w.response.StatusCode(), http.StatusText(w.response.StatusCode()))
@@ -71,12 +72,12 @@ func (w *EchoResponseWrapper) writeBody() error {
 	if w.response.Body() != nil {
 		// Copy body to Echo's response writer
 		if _, err := io.Copy(w.context.Response().Writer, w.response.Body()); err != nil {
-			return err
+			return fmt.Errorf("failed to copy response body: %w", err)
 		}
 	} else if w.response.BodyBytes() != nil {
 		// Write bytes directly
 		if _, err := w.context.Response().Writer.Write(w.response.BodyBytes()); err != nil {
-			return err
+			return fmt.Errorf("failed to write response body: %w", err)
 		}
 	}
 
@@ -270,12 +271,22 @@ func NewEchoResponseWriter(c echo.Context) *EchoResponseWriter {
 
 // Write implements io.Writer interface.
 func (w *EchoResponseWriter) Write(p []byte) (n int, err error) {
-	return w.buffer.Write(p)
+	n, err = w.buffer.Write(p)
+	if err != nil {
+		return n, fmt.Errorf("failed to write to buffer: %w", err)
+	}
+
+	return n, nil
 }
 
 // WriteString writes a string to the response.
 func (w *EchoResponseWriter) WriteString(s string) (int, error) {
-	return w.buffer.WriteString(s)
+	n, err := w.buffer.WriteString(s)
+	if err != nil {
+		return n, fmt.Errorf("failed to write string to buffer: %w", err)
+	}
+
+	return n, nil
 }
 
 // WriteJSON writes JSON data to the response.
@@ -289,14 +300,22 @@ func (w *EchoResponseWriter) WriteJSON(data any) error {
 func (w *EchoResponseWriter) WriteText(text string) error {
 	w.context.Response().Header().Set("Content-Type", "text/plain")
 
-	return w.context.String(w.context.Response().Status, text)
+	if err := w.context.String(w.context.Response().Status, text); err != nil {
+		return fmt.Errorf("failed to write text response: %w", err)
+	}
+
+	return nil
 }
 
 // WriteHTML writes HTML to the response.
 func (w *EchoResponseWriter) WriteHTML(html string) error {
 	w.context.Response().Header().Set("Content-Type", "text/html")
 
-	return w.context.HTML(w.context.Response().Status, html)
+	if err := w.context.HTML(w.context.Response().Status, html); err != nil {
+		return fmt.Errorf("failed to write HTML response: %w", err)
+	}
+
+	return nil
 }
 
 // Flush writes the buffered content to Echo's response writer.
@@ -305,7 +324,9 @@ func (w *EchoResponseWriter) Flush() error {
 		_, err := w.context.Response().Writer.Write(w.buffer.Bytes())
 		w.buffer.Reset()
 
-		return err
+		if err != nil {
+			return fmt.Errorf("failed to flush buffer: %w", err)
+		}
 	}
 
 	return nil
