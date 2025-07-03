@@ -138,29 +138,34 @@ func (a *EchoAdapter) convertEchoResponse(c echo.Context) core.Response {
 	return resp
 }
 
-// applyResponse applies our Response interface to Echo's context.
-func (a *EchoAdapter) applyResponse(c echo.Context, resp core.Response) error {
-	// Set status code
-	c.Response().Status = resp.StatusCode()
-
+// applyHeaders applies response headers to Echo context
+func (a *EchoAdapter) applyHeaders(c echo.Context, resp core.Response) {
 	// Apply headers
 	for key, values := range resp.Headers() {
 		for _, value := range values {
 			c.Response().Header().Add(key, value)
 		}
 	}
+}
 
+// applyCookies applies response cookies to Echo context
+func (a *EchoAdapter) applyCookies(c echo.Context, resp core.Response) {
 	// Apply cookies
 	for _, cookie := range resp.Cookies() {
 		c.SetCookie(cookie)
 	}
+}
 
-	// Handle redirects
+// handleRedirect handles redirect responses
+func (a *EchoAdapter) handleRedirect(c echo.Context, resp core.Response) error {
 	if resp.IsRedirect() && resp.Location() != "" {
 		return c.Redirect(resp.StatusCode(), resp.Location())
 	}
+	return nil
+}
 
-	// Handle errors
+// handleError handles error responses
+func (a *EchoAdapter) handleError(resp core.Response) error {
 	if resp.IsError() {
 		if resp.Error() != nil {
 			return fmt.Errorf("response error: %w", resp.Error())
@@ -168,7 +173,11 @@ func (a *EchoAdapter) applyResponse(c echo.Context, resp core.Response) error {
 		// Create HTTP error if no specific error is set
 		return echo.NewHTTPError(resp.StatusCode(), http.StatusText(resp.StatusCode()))
 	}
+	return nil
+}
 
+// writeBody writes the response body to Echo's response writer
+func (a *EchoAdapter) writeBody(c echo.Context, resp core.Response) error {
 	// Write response body if available
 	if resp.Body() != nil {
 		// Copy body to Echo's response writer
@@ -181,8 +190,30 @@ func (a *EchoAdapter) applyResponse(c echo.Context, resp core.Response) error {
 			return fmt.Errorf("failed to write response body: %w", err)
 		}
 	}
-
 	return nil
+}
+
+// applyResponse applies our Response interface to Echo's context.
+func (a *EchoAdapter) applyResponse(c echo.Context, resp core.Response) error {
+	// Set status code
+	c.Response().Status = resp.StatusCode()
+
+	// Apply headers and cookies
+	a.applyHeaders(c, resp)
+	a.applyCookies(c, resp)
+
+	// Handle redirects
+	if err := a.handleRedirect(c, resp); err != nil {
+		return err
+	}
+
+	// Handle errors
+	if err := a.handleError(resp); err != nil {
+		return err
+	}
+
+	// Write response body
+	return a.writeBody(c, resp)
 }
 
 // EchoChainAdapter adapts our middleware chain to Echo's middleware chain.
@@ -320,8 +351,8 @@ func (a *EchoOrchestratorAdapter) RegisterEchoChain(name string, chainType core.
 		return fmt.Errorf("failed to create chain for registration: %w", err)
 	}
 
-	if err := a.orchestrator.RegisterChain(name, chain); err != nil {
-		return fmt.Errorf("failed to register echo chain: %w", err)
+	if registerErr := a.orchestrator.RegisterChain(name, chain); registerErr != nil {
+		return fmt.Errorf("failed to register echo chain: %w", registerErr)
 	}
 
 	return nil

@@ -4,6 +4,7 @@ package web
 
 import (
 	"context"
+	"fmt"
 
 	"github.com/labstack/echo/v4"
 
@@ -141,7 +142,10 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 		WithFormPreviewAssetPath(h.AssetManager.AssetPath("src/js/pages/form-preview.ts"))
 
 	// Render form preview template
-	return h.Renderer.Render(c, pages.FormPreview(*data, form))
+	if renderErr := h.Renderer.Render(c, pages.FormPreview(*data, form)); renderErr != nil {
+		return fmt.Errorf("failed to render form preview page: %w", renderErr)
+	}
+	return nil
 }
 
 // handleNewFormValidation returns the validation schema for the new form

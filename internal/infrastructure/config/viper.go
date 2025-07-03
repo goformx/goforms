@@ -155,63 +155,96 @@ func (vc *ViperConfig) loadDatabaseConfig(config *Config) error {
 	return nil
 }
 
+// loadCSRFConfig loads CSRF configuration from viper
+func (vc *ViperConfig) loadCSRFConfig() CSRFConfig {
+	return CSRFConfig{
+		Enabled:        vc.viper.GetBool("security.csrf.enabled"),
+		Secret:         vc.viper.GetString("security.csrf.secret"),
+		TokenName:      vc.viper.GetString("security.csrf.token_name"),
+		HeaderName:     vc.viper.GetString("security.csrf.header_name"),
+		TokenLength:    vc.viper.GetInt("security.csrf.token_length"),
+		TokenLookup:    vc.viper.GetString("security.csrf.token_lookup"),
+		ContextKey:     vc.viper.GetString("security.csrf.context_key"),
+		CookieName:     vc.viper.GetString("security.csrf.cookie_name"),
+		CookiePath:     vc.viper.GetString("security.csrf.cookie_path"),
+		CookieDomain:   vc.viper.GetString("security.csrf.cookie_domain"),
+		CookieHTTPOnly: vc.viper.GetBool("security.csrf.cookie_http_only"),
+		CookieSameSite: vc.viper.GetString("security.csrf.cookie_same_site"),
+		CookieMaxAge:   vc.viper.GetInt("security.csrf.cookie_max_age"),
+	}
+}
+
+// loadCORSConfig loads CORS configuration from viper
+func (vc *ViperConfig) loadCORSConfig() CORSConfig {
+	return CORSConfig{
+		Enabled:          vc.viper.GetBool("security.cors.enabled"),
+		AllowedOrigins:   vc.viper.GetStringSlice("security.cors.allowed_origins"),
+		AllowedMethods:   vc.viper.GetStringSlice("security.cors.allowed_methods"),
+		AllowedHeaders:   vc.viper.GetStringSlice("security.cors.allowed_headers"),
+		ExposedHeaders:   vc.viper.GetStringSlice("security.cors.exposed_headers"),
+		AllowCredentials: vc.viper.GetBool("security.cors.allow_credentials"),
+		MaxAge:           vc.viper.GetInt("security.cors.max_age"),
+	}
+}
+
+// loadRateLimitConfig loads rate limit configuration from viper
+func (vc *ViperConfig) loadRateLimitConfig() RateLimitConfig {
+	return RateLimitConfig{
+		Enabled:  vc.viper.GetBool("security.rate_limit.enabled"),
+		RPS:      vc.viper.GetInt("security.rate_limit.rps"),
+		Requests: vc.viper.GetInt("security.rate_limit.rps"),
+		Burst:    vc.viper.GetInt("security.rate_limit.burst"),
+		Window:   vc.viper.GetDuration("security.rate_limit.window"),
+		PerIP:    vc.viper.GetBool("security.rate_limit.per_ip"),
+		SkipPaths: []string{
+			"/health",
+			"/metrics",
+			"/favicon.ico",
+			"/robots.txt",
+			"/static/",
+			"/assets/",
+		},
+		SkipMethods: []string{"OPTIONS"},
+	}
+}
+
+// loadCSPConfig loads CSP configuration from viper
+func (vc *ViperConfig) loadCSPConfig() CSPConfig {
+	return CSPConfig{
+		Enabled:    vc.viper.GetBool("security.csp.enabled"),
+		DefaultSrc: vc.viper.GetString("security.csp.default_src"),
+		ScriptSrc:  vc.viper.GetString("security.csp.script_src"),
+		StyleSrc:   vc.viper.GetString("security.csp.style_src"),
+		ImgSrc:     vc.viper.GetString("security.csp.img_src"),
+		ConnectSrc: vc.viper.GetString("security.csp.connect_src"),
+		FontSrc:    vc.viper.GetString("security.csp.font_src"),
+		ObjectSrc:  vc.viper.GetString("security.csp.object_src"),
+		MediaSrc:   vc.viper.GetString("security.csp.media_src"),
+		FrameSrc:   vc.viper.GetString("security.csp.frame_src"),
+		ReportURI:  vc.viper.GetString("security.csp.report_uri"),
+	}
+}
+
+// loadSecurityHeadersConfig loads security headers configuration from viper
+func (vc *ViperConfig) loadSecurityHeadersConfig() SecurityHeadersConfig {
+	return SecurityHeadersConfig{
+		Enabled:                 vc.viper.GetBool("security.security_headers.enabled"),
+		XFrameOptions:           vc.viper.GetString("security.security_headers.x_frame_options"),
+		XContentTypeOptions:     vc.viper.GetString("security.security_headers.x_content_type_options"),
+		XXSSProtection:          vc.viper.GetString("security.security_headers.x_xss_protection"),
+		ReferrerPolicy:          vc.viper.GetString("security.security_headers.referrer_policy"),
+		PermissionsPolicy:       vc.viper.GetString("security.security_headers.permissions_policy"),
+		StrictTransportSecurity: vc.viper.GetString("security.security_headers.strict_transport_security"),
+	}
+}
+
 // loadSecurityConfig loads security configuration
 func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 	config.Security = SecurityConfig{
-		CSRF: CSRFConfig{
-			Enabled:        vc.viper.GetBool("security.csrf.enabled"),
-			Secret:         vc.viper.GetString("security.csrf.secret"),
-			TokenName:      vc.viper.GetString("security.csrf.token_name"),
-			HeaderName:     vc.viper.GetString("security.csrf.header_name"),
-			TokenLength:    vc.viper.GetInt("security.csrf.token_length"),
-			TokenLookup:    vc.viper.GetString("security.csrf.token_lookup"),
-			ContextKey:     vc.viper.GetString("security.csrf.context_key"),
-			CookieName:     vc.viper.GetString("security.csrf.cookie_name"),
-			CookiePath:     vc.viper.GetString("security.csrf.cookie_path"),
-			CookieDomain:   vc.viper.GetString("security.csrf.cookie_domain"),
-			CookieHTTPOnly: vc.viper.GetBool("security.csrf.cookie_http_only"),
-			CookieSameSite: vc.viper.GetString("security.csrf.cookie_same_site"),
-			CookieMaxAge:   vc.viper.GetInt("security.csrf.cookie_max_age"),
-		},
-		CORS: CORSConfig{
-			Enabled:          vc.viper.GetBool("security.cors.enabled"),
-			AllowedOrigins:   vc.viper.GetStringSlice("security.cors.allowed_origins"),
-			AllowedMethods:   vc.viper.GetStringSlice("security.cors.allowed_methods"),
-			AllowedHeaders:   vc.viper.GetStringSlice("security.cors.allowed_headers"),
-			ExposedHeaders:   vc.viper.GetStringSlice("security.cors.exposed_headers"),
-			AllowCredentials: vc.viper.GetBool("security.cors.allow_credentials"),
-			MaxAge:           vc.viper.GetInt("security.cors.max_age"),
-		},
-		RateLimit: RateLimitConfig{
-			Enabled:  vc.viper.GetBool("security.rate_limit.enabled"),
-			RPS:      vc.viper.GetInt("security.rate_limit.rps"),
-			Requests: vc.viper.GetInt("security.rate_limit.rps"),
-			Burst:    vc.viper.GetInt("security.rate_limit.burst"),
-			Window:   vc.viper.GetDuration("security.rate_limit.window"),
-			PerIP:    vc.viper.GetBool("security.rate_limit.per_ip"),
-			SkipPaths: []string{
-				"/health",
-				"/metrics",
-				"/favicon.ico",
-				"/robots.txt",
-				"/static/",
-				"/assets/",
-			},
-			SkipMethods: []string{"OPTIONS"},
-		},
-		CSP: CSPConfig{
-			Enabled:    vc.viper.GetBool("security.csp.enabled"),
-			DefaultSrc: vc.viper.GetString("security.csp.default_src"),
-			ScriptSrc:  vc.viper.GetString("security.csp.script_src"),
-			StyleSrc:   vc.viper.GetString("security.csp.style_src"),
-			ImgSrc:     vc.viper.GetString("security.csp.img_src"),
-			ConnectSrc: vc.viper.GetString("security.csp.connect_src"),
-			FontSrc:    vc.viper.GetString("security.csp.font_src"),
-			ObjectSrc:  vc.viper.GetString("security.csp.object_src"),
-			MediaSrc:   vc.viper.GetString("security.csp.media_src"),
-			FrameSrc:   vc.viper.GetString("security.csp.frame_src"),
-			ReportURI:  vc.viper.GetString("security.csp.report_uri"),
-		},
+		CSRF:      vc.loadCSRFConfig(),
+		CORS:      vc.loadCORSConfig(),
+		RateLimit: vc.loadRateLimitConfig(),
+		CSP:       vc.loadCSPConfig(),
 		TLS: TLSConfig{
 			Enabled:  vc.viper.GetBool("security.tls.enabled"),
 			CertFile: vc.viper.GetString("security.tls.cert_file"),
@@ -220,15 +253,7 @@ func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 		Encryption: EncryptionConfig{
 			Key: vc.viper.GetString("security.encryption.key"),
 		},
-		SecurityHeaders: SecurityHeadersConfig{
-			Enabled:                 vc.viper.GetBool("security.security_headers.enabled"),
-			XFrameOptions:           vc.viper.GetString("security.security_headers.x_frame_options"),
-			XContentTypeOptions:     vc.viper.GetString("security.security_headers.x_content_type_options"),
-			XXSSProtection:          vc.viper.GetString("security.security_headers.x_xss_protection"),
-			ReferrerPolicy:          vc.viper.GetString("security.security_headers.referrer_policy"),
-			PermissionsPolicy:       vc.viper.GetString("security.security_headers.permissions_policy"),
-			StrictTransportSecurity: vc.viper.GetString("security.security_headers.strict_transport_security"),
-		},
+		SecurityHeaders: vc.loadSecurityHeadersConfig(),
 		CookieSecurity: CookieSecurityConfig{
 			Secure:   vc.viper.GetBool("security.cookie_security.secure"),
 			HTTPOnly: vc.viper.GetBool("security.cookie_security.http_only"),
@@ -504,8 +529,8 @@ func setDatabaseDefaults(v *viper.Viper) {
 	v.SetDefault("database.conn_max_idle_time", 5*time.Minute)
 }
 
-// setSecurityDefaults sets security default values
-func setSecurityDefaults(v *viper.Viper) {
+// setCSRFDefaults sets CSRF default values
+func setCSRFDefaults(v *viper.Viper) {
 	v.SetDefault("security.csrf.enabled", true)
 	v.SetDefault("security.csrf.secret", "csrf-secret")
 	v.SetDefault("security.csrf.token_name", "_token")
@@ -519,6 +544,10 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.csrf.cookie_http_only", true)
 	v.SetDefault("security.csrf.cookie_same_site", "Lax")
 	v.SetDefault("security.csrf.cookie_max_age", 86400)
+}
+
+// setCORSDefaults sets CORS default values
+func setCORSDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.enabled", true)
 	v.SetDefault("security.cors.allowed_origins", []string{"*"})
 	v.SetDefault("security.cors.allowed_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
@@ -527,11 +556,10 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.exposed_headers", []string{})
 	v.SetDefault("security.cors.allow_credentials", true)
 	v.SetDefault("security.cors.max_age", 86400)
-	v.SetDefault("security.rate_limit.enabled", false)
-	v.SetDefault("security.rate_limit.rps", 100)
-	v.SetDefault("security.rate_limit.burst", 200)
-	v.SetDefault("security.rate_limit.window", "1m")
-	v.SetDefault("security.rate_limit.per_ip", false)
+}
+
+// setCSPDefaults sets CSP default values
+func setCSPDefaults(v *viper.Viper) {
 	v.SetDefault("security.csp.enabled", true)
 	v.SetDefault("security.csp.default_src", "'self'")
 	v.SetDefault("security.csp.script_src", "'self' 'unsafe-inline'")
@@ -542,12 +570,10 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.csp.object_src", "'none'")
 	v.SetDefault("security.csp.media_src", "'self'")
 	v.SetDefault("security.csp.frame_src", "'none'")
-	v.SetDefault("security.tls.enabled", false)
-	v.SetDefault("security.encryption.key", "")
-	v.SetDefault("security.secure_cookie", false)
-	v.SetDefault("security.debug", false)
+}
 
-	// Security Headers defaults
+// setSecurityHeadersDefaults sets security headers default values
+func setSecurityHeadersDefaults(v *viper.Viper) {
 	v.SetDefault("security.security_headers.enabled", true)
 	v.SetDefault("security.security_headers.x_frame_options", "DENY")
 	v.SetDefault("security.security_headers.x_content_type_options", "nosniff")
@@ -555,16 +581,29 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.security_headers.referrer_policy", "strict-origin-when-cross-origin")
 	v.SetDefault("security.security_headers.permissions_policy", "camera=(), microphone=(), geolocation=()")
 	v.SetDefault("security.security_headers.strict_transport_security", "")
+}
 
-	// Cookie Security defaults
+// setSecurityDefaults sets security default values
+func setSecurityDefaults(v *viper.Viper) {
+	setCSRFDefaults(v)
+	setCORSDefaults(v)
+	v.SetDefault("security.rate_limit.enabled", false)
+	v.SetDefault("security.rate_limit.rps", 100)
+	v.SetDefault("security.rate_limit.burst", 200)
+	v.SetDefault("security.rate_limit.window", "1m")
+	v.SetDefault("security.rate_limit.per_ip", false)
+	setCSPDefaults(v)
+	v.SetDefault("security.tls.enabled", false)
+	v.SetDefault("security.encryption.key", "")
+	v.SetDefault("security.secure_cookie", false)
+	v.SetDefault("security.debug", false)
+	setSecurityHeadersDefaults(v)
 	v.SetDefault("security.cookie_security.secure", false)
 	v.SetDefault("security.cookie_security.http_only", true)
 	v.SetDefault("security.cookie_security.same_site", "Lax")
 	v.SetDefault("security.cookie_security.path", "/")
 	v.SetDefault("security.cookie_security.domain", "")
 	v.SetDefault("security.cookie_security.max_age", 86400)
-
-	// Trust Proxy defaults
 	v.SetDefault("security.trust_proxy.enabled", true)
 	v.SetDefault("security.trust_proxy.trusted_proxies", []string{"127.0.0.1", "::1"})
 }

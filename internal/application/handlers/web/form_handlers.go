@@ -27,8 +27,8 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 	data := h.NewPageData(c, "New Form")
 	data.SetUser(user)
 
-	if err := h.Renderer.Render(c, pages.NewForm(*data)); err != nil {
-		return fmt.Errorf("failed to render new form page: %w", err)
+	if renderErr := h.Renderer.Render(c, pages.NewForm(*data)); renderErr != nil {
+		return fmt.Errorf("failed to render new form page: %w", renderErr)
 	}
 
 	return nil
@@ -80,8 +80,8 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 
 	data.SetUser(user)
 
-	if err := h.Renderer.Render(c, pages.EditForm(*data, form)); err != nil {
-		return fmt.Errorf("failed to render edit form page: %w", err)
+	if renderErr := h.Renderer.Render(c, pages.EditForm(*data, form)); renderErr != nil {
+		return fmt.Errorf("failed to render edit form page: %w", renderErr)
 	}
 
 	return nil
@@ -164,8 +164,8 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 
 	data.SetUser(user)
 
-	if err := h.Renderer.Render(c, pages.FormSubmissions(*data)); err != nil {
-		return fmt.Errorf("failed to render form submissions page: %w", err)
+	if renderErr := h.Renderer.Render(c, pages.FormSubmissions(*data)); renderErr != nil {
+		return fmt.Errorf("failed to render form submissions page: %w", renderErr)
 	}
 
 	return nil
