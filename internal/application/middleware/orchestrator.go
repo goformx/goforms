@@ -175,19 +175,19 @@ func (o *orchestrator) GetChainForPath(chainType core.ChainType, requestPath str
 	o.cacheMu.RUnlock()
 
 	// Build new chain
-	chain, err := o.BuildChainForPath(chainType, requestPath)
+	builtChain, err := o.BuildChainForPath(chainType, requestPath)
 	if err != nil {
 		return nil, err
 	}
 
 	// Cache the result
 	o.cacheMu.Lock()
-	o.cache[cacheKey] = chain
+	o.cache[cacheKey] = builtChain
 	o.cacheMu.Unlock()
 
 	o.logger.Info("cached new chain", "cache_key", cacheKey)
 
-	return chain, nil
+	return builtChain, nil
 }
 
 // ClearCache clears the chain cache.
@@ -474,7 +474,7 @@ func (o *orchestrator) matchesAnyPath(requestPath string, patterns []string) boo
 }
 
 // matchesPath checks if the request path matches the given pattern.
-func (o *orchestrator) matchesPath(requestPath string, pattern string) bool {
+func (o *orchestrator) matchesPath(requestPath, pattern string) bool {
 	// Handle glob patterns
 	if strings.Contains(pattern, "*") {
 		// Convert glob to regex

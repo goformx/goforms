@@ -373,8 +373,22 @@ func (c *middlewareConfig) getChainPaths(chainType core.ChainType) []string {
 
 // getChainCustomConfig returns custom configuration for a specific chain type
 func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[string]any {
-	// Return custom configuration based on chain type
-	customConfigs := map[core.ChainType]map[string]any{
+	customConfigs := c.getChainCustomConfigs()
+
+	if chainConfig, exists := customConfigs[chainType]; exists {
+		return chainConfig
+	}
+
+	// Return default configuration for unknown chain types
+	return map[string]any{
+		"enabled": true,
+		"timeout": 30,
+	}
+}
+
+// getChainCustomConfigs returns the complete chain configuration map
+func (c *middlewareConfig) getChainCustomConfigs() map[core.ChainType]map[string]any {
+	return map[core.ChainType]map[string]any{
 		core.ChainTypeDefault: {
 			"timeout":          30,
 			"max_body_size":    "10MB",
@@ -452,15 +466,5 @@ func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[st
 			"cache_headers":    true,
 			"cache_duration":   86400, // 24 hours
 		},
-	}
-
-	if chainConfig, exists := customConfigs[chainType]; exists {
-		return chainConfig
-	}
-
-	// Return default configuration for unknown chain types
-	return map[string]any{
-		"enabled": true,
-		"timeout": 30,
 	}
 }

@@ -380,22 +380,40 @@ func (r *httpResponse) BodyBytes() []byte {
 	}
 
 	if r.body != nil {
-		if reader, ok := r.body.(*bytes.Reader); ok {
-			// Reset reader to beginning and read all bytes
-			if _, err := reader.Seek(0, 0); err == nil {
-				if data, err := io.ReadAll(reader); err == nil {
-					r.bodyBytes = data
+		return r.readBodyBytes()
+	}
 
-					return data
-				}
-			}
-		}
-		// Read from io.Reader
-		if data, err := io.ReadAll(r.body); err == nil {
-			r.bodyBytes = data
+	return nil
+}
 
-			return data
-		}
+// readBodyBytes reads bytes from the body reader
+func (r *httpResponse) readBodyBytes() []byte {
+	if reader, ok := r.body.(*bytes.Reader); ok {
+		return r.readFromBytesReader(reader)
+	}
+
+	return r.readFromGenericReader()
+}
+
+// readFromBytesReader reads from a bytes.Reader
+func (r *httpResponse) readFromBytesReader(reader *bytes.Reader) []byte {
+	if _, err := reader.Seek(0, 0); err != nil {
+		return nil
+	}
+
+	if data, err := io.ReadAll(reader); err == nil {
+		r.bodyBytes = data
+		return data
+	}
+
+	return nil
+}
+
+// readFromGenericReader reads from a generic io.Reader
+func (r *httpResponse) readFromGenericReader() []byte {
+	if data, err := io.ReadAll(r.body); err == nil {
+		r.bodyBytes = data
+		return data
 	}
 
 	return nil
@@ -579,19 +597,63 @@ func (r *httpResponse) SetRequestID(id string) Response {
 	return r
 }
 
-// WriteTo writes the response to the given io.Writer following HTTP/1.1 specification
+// WriteTo writes the response to the given io.Writer
 func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 	var totalBytes int64
 
 	// Write status line
-	statusLine := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.statusCode, http.StatusText(r.statusCode))
-	if n, err := w.Write([]byte(statusLine)); err != nil {
-		return totalBytes, fmt.Errorf("failed to write status line: %w", err)
+	if n, err := r.writeStatusLine(w); err != nil {
+		return totalBytes, err
+	} else {
+		totalBytes += n
+	}
+
+	// Set default headers
+	r.setDefaultHeaders()
+
+	// Write headers
+	if n, err := r.writeHeaders(w); err != nil {
+		return totalBytes, err
+	} else {
+		totalBytes += n
+	}
+
+	// Write cookies
+	if n, err := r.writeCookies(w); err != nil {
+		return totalBytes, err
+	} else {
+		totalBytes += n
+	}
+
+	// Write blank line separator
+	if n, err := w.Write([]byte("\r\n")); err != nil {
+		return totalBytes, fmt.Errorf("failed to write header separator: %w", err)
 	} else {
 		totalBytes += int64(n)
 	}
 
-	// Set default headers if not present
+	// Write body
+	if n, err := r.writeBody(w); err != nil {
+		return totalBytes, err
+	} else {
+		totalBytes += n
+	}
+
+	return totalBytes, nil
+}
+
+// writeStatusLine writes the HTTP status line
+func (r *httpResponse) writeStatusLine(w io.Writer) (int64, error) {
+	statusLine := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.statusCode, http.StatusText(r.statusCode))
+	if bytesWritten, err := w.Write([]byte(statusLine)); err != nil {
+		return 0, fmt.Errorf("failed to write status line: %w", err)
+	}
+
+	return int64(bytesWritten), nil
+}
+
+// setDefaultHeaders sets default headers if not present
+func (r *httpResponse) setDefaultHeaders() {
 	if r.headers.Get("Date") == "" {
 		r.headers.Set("Date", time.Now().UTC().Format(http.TimeFormat))
 	}
@@ -604,52 +666,56 @@ func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 	if r.bodyBytes != nil && r.headers.Get("Content-Length") == "" {
 		r.headers.Set("Content-Length", strconv.FormatInt(int64(len(r.bodyBytes)), 10))
 	}
+}
 
-	// Write headers
+// writeHeaders writes all response headers
+func (r *httpResponse) writeHeaders(w io.Writer) (int64, error) {
+	var totalBytes int64
 	for key, values := range r.headers {
 		for _, value := range values {
 			headerLine := fmt.Sprintf("%s: %s\r\n", key, value)
-			if n, err := w.Write([]byte(headerLine)); err != nil {
+			if bytesWritten, err := w.Write([]byte(headerLine)); err != nil {
 				return totalBytes, fmt.Errorf("failed to write header %s: %w", key, err)
 			} else {
-				totalBytes += int64(n)
+				totalBytes += int64(bytesWritten)
 			}
 		}
 	}
 
-	// Write cookies as Set-Cookie headers
+	return totalBytes, nil
+}
+
+// writeCookies writes all cookies as Set-Cookie headers
+func (r *httpResponse) writeCookies(w io.Writer) (int64, error) {
+	var totalBytes int64
 	for _, cookie := range r.cookies {
 		cookieHeader := fmt.Sprintf("Set-Cookie: %s\r\n", cookie.String())
-		if n, err := w.Write([]byte(cookieHeader)); err != nil {
+		if bytesWritten, err := w.Write([]byte(cookieHeader)); err != nil {
 			return totalBytes, fmt.Errorf("failed to write cookie: %w", err)
 		} else {
-			totalBytes += int64(n)
-		}
-	}
-
-	// Write blank line separator
-	if n, err := w.Write([]byte("\r\n")); err != nil {
-		return totalBytes, fmt.Errorf("failed to write header separator: %w", err)
-	} else {
-		totalBytes += int64(n)
-	}
-
-	// Write body
-	if r.bodyBytes != nil {
-		if n, err := w.Write(r.bodyBytes); err != nil {
-			return totalBytes, fmt.Errorf("failed to write body: %w", err)
-		} else {
-			totalBytes += int64(n)
-		}
-	} else if r.body != nil {
-		if n, err := io.Copy(w, r.body); err != nil {
-			return totalBytes, fmt.Errorf("failed to write body: %w", err)
-		} else {
-			totalBytes += n
+			totalBytes += int64(bytesWritten)
 		}
 	}
 
 	return totalBytes, nil
+}
+
+// writeBody writes the response body
+func (r *httpResponse) writeBody(w io.Writer) (int64, error) {
+	if r.bodyBytes != nil {
+		if bytesWritten, err := w.Write(r.bodyBytes); err != nil {
+			return 0, fmt.Errorf("failed to write body: %w", err)
+		} else {
+			return int64(bytesWritten), nil
+		}
+	} else if r.body != nil {
+		if bytesWritten, err := io.Copy(w, r.body); err != nil {
+			return 0, fmt.Errorf("failed to write body: %w", err)
+		} else {
+			return bytesWritten, nil
+		}
+	}
+	return 0, nil
 }
 
 // Clone creates a copy of this response

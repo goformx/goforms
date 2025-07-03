@@ -70,7 +70,7 @@ func (ea *EchoOrchestratorAdapter) SetupMiddleware(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) setupDefaultChain(e *echo.Echo) error {
 	chain, err := ea.orchestrator.BuildChain(core.ChainTypeDefault)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build default chain: %w", err)
 	}
 
 	echoMiddleware := ea.convertChainToEcho(chain)
@@ -87,7 +87,7 @@ func (ea *EchoOrchestratorAdapter) setupDefaultChain(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) setupAPIChain(e *echo.Echo) error {
 	chain, err := ea.orchestrator.BuildChain(core.ChainTypeAPI)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build API chain: %w", err)
 	}
 
 	echoMiddleware := ea.convertChainToEcho(chain)
@@ -104,7 +104,7 @@ func (ea *EchoOrchestratorAdapter) setupAPIChain(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) setupWebChain(e *echo.Echo) error {
 	chain, err := ea.orchestrator.BuildChain(core.ChainTypeWeb)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build web chain: %w", err)
 	}
 
 	echoMiddleware := ea.convertChainToEcho(chain)
