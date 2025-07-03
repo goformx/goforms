@@ -645,7 +645,8 @@ func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 // writeStatusLine writes the HTTP status line
 func (r *httpResponse) writeStatusLine(w io.Writer) (int64, error) {
 	statusLine := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.statusCode, http.StatusText(r.statusCode))
-	if bytesWritten, err := w.Write([]byte(statusLine)); err != nil {
+	bytesWritten, err := w.Write([]byte(statusLine))
+	if err != nil {
 		return 0, fmt.Errorf("failed to write status line: %w", err)
 	}
 
@@ -703,18 +704,23 @@ func (r *httpResponse) writeCookies(w io.Writer) (int64, error) {
 // writeBody writes the response body
 func (r *httpResponse) writeBody(w io.Writer) (int64, error) {
 	if r.bodyBytes != nil {
-		if bytesWritten, err := w.Write(r.bodyBytes); err != nil {
+		bytesWritten, err := w.Write(r.bodyBytes)
+		if err != nil {
 			return 0, fmt.Errorf("failed to write body: %w", err)
-		} else {
-			return int64(bytesWritten), nil
 		}
-	} else if r.body != nil {
-		if bytesWritten, err := io.Copy(w, r.body); err != nil {
-			return 0, fmt.Errorf("failed to write body: %w", err)
-		} else {
-			return bytesWritten, nil
-		}
+
+		return int64(bytesWritten), nil
 	}
+
+	if r.body != nil {
+		bytesWritten, err := io.Copy(w, r.body)
+		if err != nil {
+			return 0, fmt.Errorf("failed to write body: %w", err)
+		}
+
+		return bytesWritten, nil
+	}
+
 	return 0, nil
 }
 
