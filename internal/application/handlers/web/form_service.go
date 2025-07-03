@@ -42,7 +42,11 @@ func (s *FormService) CreateForm(ctx context.Context, userID string, req *FormCr
 
 	form := model.NewForm(userID, req.Title, "", schema)
 
-	return form, fmt.Errorf("create form: %w", s.formService.CreateForm(ctx, form))
+	if err := s.formService.CreateForm(ctx, form); err != nil {
+		return nil, fmt.Errorf("create form: %w", err)
+	}
+
+	return form, nil
 }
 
 // UpdateForm updates an existing form with the given request data
@@ -55,7 +59,11 @@ func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *For
 		form.CorsOrigins = model.JSON{"origins": parseCSV(req.CorsOrigins)}
 	}
 
-	return fmt.Errorf("update form: %w", s.formService.UpdateForm(ctx, form))
+	if err := s.formService.UpdateForm(ctx, form); err != nil {
+		return fmt.Errorf("update form: %w", err)
+	}
+
+	return nil
 }
 
 // DeleteForm deletes a form by ID

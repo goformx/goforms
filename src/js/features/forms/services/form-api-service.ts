@@ -210,9 +210,16 @@ export class FormApiService {
     description?: string;
   }): Promise<{ formId: string }> {
     try {
+      // Create FormData for form submission
+      const formData = new FormData();
+      formData.append("title", data.title);
+      if (data.description) {
+        formData.append("description", data.description);
+      }
+
       const response = await HttpClient.post<{ form_id: string }>(
         `${this.baseUrl}/forms`,
-        JSON.stringify(data),
+        formData as object,
       );
 
       return { formId: response.data.form_id };

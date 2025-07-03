@@ -281,9 +281,19 @@ export class FormService {
    * Remove a form card from the UI
    */
   private removeFormCard(formId: string): void {
-    const formCard = document.querySelector(`[data-form-id="${formId}"]`);
-    if (formCard) {
-      formCard.remove();
+    // Find the delete button with the form ID
+    const deleteButton = document.querySelector(`[data-form-id="${formId}"]`);
+    if (deleteButton) {
+      // Find the parent form panel and remove it
+      const formCard = deleteButton.closest(".form-panel");
+      if (formCard) {
+        formCard.remove();
+        Logger.debug("Form card removed from UI:", formId);
+      } else {
+        Logger.warn("Form panel not found for form:", formId);
+      }
+    } else {
+      Logger.warn("Delete button not found for form:", formId);
     }
   }
 
