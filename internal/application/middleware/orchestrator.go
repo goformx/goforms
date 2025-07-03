@@ -688,7 +688,6 @@ func (o *orchestrator) shouldAddPathSpecificMiddleware(
 func (o *orchestrator) shouldExcludeByPath(_ string, config map[string]any, requestPath string) bool {
 	if excludePaths, ok := config["exclude_paths"]; ok {
 		if pathList, ok := excludePaths.([]string); ok {
-
 			return o.matchesAnyPath(requestPath, pathList)
 		}
 	}
