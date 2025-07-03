@@ -35,6 +35,7 @@ func (d *Dependencies) Validate() error {
 			return errors.New(r.name + " is required")
 		}
 	}
+
 	return nil
 }
 
@@ -43,11 +44,12 @@ func NewRenderer(deps Dependencies) (view.Renderer, error) {
 	if err := deps.Validate(); err != nil {
 		return nil, err
 	}
+
 	return view.NewRenderer(deps.Logger), nil
 }
 
 // Module provides all presentation layer dependencies
-var Module = fx.Options(
+var Module = fx.Module("presentation",
 	// View renderer
 	fx.Provide(
 		fx.Annotate(

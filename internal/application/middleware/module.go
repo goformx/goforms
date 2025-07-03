@@ -2,11 +2,15 @@
 package middleware
 
 import (
+	"context"
+	"fmt"
+
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
+	"github.com/goformx/goforms/internal/application/middleware/core"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -16,7 +20,7 @@ import (
 )
 
 // Module provides all middleware dependencies
-var Module = fx.Options(
+var Module = fx.Module("middleware",
 	fx.Provide(
 		// Path manager for centralized path management
 		constants.NewPathManager,
@@ -33,6 +37,7 @@ var Module = fx.Options(
 					AdminPaths:    pathManager.AdminPaths,
 				}
 				rules := generateAccessRules(pathManager)
+
 				return access.NewManager(config, rules)
 			},
 		),
@@ -52,11 +57,46 @@ var Module = fx.Options(
 					PublicPaths:   pathManager.PublicPaths,
 					StaticPaths:   pathManager.StaticPaths,
 				}
+
 				return session.NewManager(logger, sessionConfig, lc, accessManager)
 			},
 		),
 
-		// Manager with simplified config - direct infrastructure config usage
+		// NEW ARCHITECTURE: Core middleware components
+		// Middleware configuration provider
+		fx.Annotate(
+			NewMiddlewareConfig,
+			fx.As(new(MiddlewareConfig)),
+		),
+
+		// Registry provider
+		fx.Annotate(
+			func(logger logging.Logger, config MiddlewareConfig) core.Registry {
+				return NewRegistry(logger, config)
+			},
+			fx.As(new(core.Registry)),
+		),
+
+		// Orchestrator provider
+		fx.Annotate(
+			func(registry core.Registry, config MiddlewareConfig, logger logging.Logger) core.Orchestrator {
+				return NewOrchestrator(registry, config, logger)
+			},
+			fx.As(new(core.Orchestrator)),
+		),
+
+		// Echo integration adapter
+		fx.Annotate(
+			NewEchoOrchestratorAdapter,
+		),
+
+		// Migration adapter for gradual transition
+		fx.Annotate(
+			NewMigrationAdapter,
+		),
+
+		// LEGACY: Manager with simplified config - direct infrastructure config usage
+		// This will be removed after migration is complete
 		fx.Annotate(
 			func(
 				logger logging.Logger,
@@ -79,7 +119,100 @@ var Module = fx.Options(
 			},
 		),
 	),
+
+	// Lifecycle hooks for middleware initialization
+	fx.Invoke(func(
+		lc fx.Lifecycle,
+		registry core.Registry,
+		orchestrator core.Orchestrator,
+		logger logging.Logger,
+	) {
+		lc.Append(fx.Hook{
+			OnStart: func(ctx context.Context) error {
+				// Register all middleware with the registry
+				if err := registerAllMiddleware(registry, logger); err != nil {
+					return err
+				}
+
+				// Validate orchestrator configuration
+				if err := orchestrator.ValidateConfiguration(); err != nil {
+					return fmt.Errorf("failed to validate orchestrator configuration: %w", err)
+				}
+
+				logger.Info("middleware system initialized successfully")
+
+				return nil
+			},
+			OnStop: func(ctx context.Context) error {
+				logger.Info("middleware system shutting down")
+
+				return nil
+			},
+		})
+	}),
 )
+
+// registerAllMiddleware registers all middleware with the registry
+func registerAllMiddleware(registry core.Registry, logger logging.Logger) error {
+	// Register basic middleware
+	basicMiddleware := []struct {
+		name string
+		mw   core.Middleware
+	}{
+		{"recovery", NewRecoveryMiddleware()},
+		{"cors", NewCORSMiddleware()},
+		{"security-headers", NewSecurityHeadersMiddleware()},
+		{"request-id", NewRequestIDMiddleware()},
+		{"timeout", NewTimeoutMiddleware()},
+		{"logging", NewLoggingMiddleware()},
+	}
+
+	for _, m := range basicMiddleware {
+		if err := registry.Register(m.name, m.mw); err != nil {
+			return fmt.Errorf("failed to register basic middleware %s: %w", m.name, err)
+		}
+
+		logger.Info("registered middleware", "name", m.name)
+	}
+
+	// Register security middleware
+	securityMiddleware := []struct {
+		name string
+		mw   core.Middleware
+	}{
+		{"csrf", NewCSRFMiddleware()},
+		{"rate-limit", NewRateLimitMiddleware()},
+		{"input-validation", NewInputValidationMiddleware()},
+	}
+
+	for _, m := range securityMiddleware {
+		if err := registry.Register(m.name, m.mw); err != nil {
+			return fmt.Errorf("failed to register security middleware %s: %w", m.name, err)
+		}
+
+		logger.Info("registered security middleware", "name", m.name)
+	}
+
+	// Register auth middleware
+	authMiddleware := []struct {
+		name string
+		mw   core.Middleware
+	}{
+		{"session", NewSessionMiddleware()},
+		{"authentication", NewAuthenticationMiddleware()},
+		{"authorization", NewAuthorizationMiddleware()},
+	}
+
+	for _, m := range authMiddleware {
+		if err := registry.Register(m.name, m.mw); err != nil {
+			return fmt.Errorf("failed to register auth middleware %s: %w", m.name, err)
+		}
+
+		logger.Info("registered auth middleware", "name", m.name)
+	}
+
+	return nil
+}
 
 // generateAccessRules creates access rules using the path manager
 func generateAccessRules(pathManager *constants.PathManager) []access.Rule {
@@ -118,22 +251,20 @@ func generateAccessRules(pathManager *constants.PathManager) []access.Rule {
 	}
 
 	// Add specific API rules
-	rules = append(rules, []access.Rule{
-		// Public form endpoints (for embedded forms) - GET only
-		{Path: constants.PathAPIForms + "/:id/schema", AccessLevel: access.Public, Methods: []string{"GET"}},
+	apiPaths := []string{
+		constants.PathAPIv1,
+		constants.PathAPIForms,
+		constants.PathAPIAdmin,
+		constants.PathAPIAdminUsers,
+		constants.PathAPIAdminForms,
+	}
 
-		// Authenticated routes
-		{Path: constants.PathDashboard, AccessLevel: access.Authenticated},
-		{Path: constants.PathForms, AccessLevel: access.Authenticated},
-		{Path: constants.PathForms + "/:id", AccessLevel: access.Authenticated},
-		{Path: constants.PathAPIForms, AccessLevel: access.Authenticated},
-		{Path: constants.PathAPIForms + "/:id", AccessLevel: access.Authenticated},
-
-		// Admin API routes
-		{Path: constants.PathAPIAdmin, AccessLevel: access.Admin},
-		{Path: constants.PathAPIAdminUsers, AccessLevel: access.Admin},
-		{Path: constants.PathAPIAdminForms, AccessLevel: access.Admin},
-	}...)
+	for _, path := range apiPaths {
+		rules = append(rules, access.Rule{
+			Path:        path,
+			AccessLevel: access.Authenticated,
+		})
+	}
 
 	return rules
 }

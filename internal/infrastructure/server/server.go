@@ -63,6 +63,7 @@ func (s *Server) Start() error {
 		listener, err := net.Listen("tcp", addr)
 		if err != nil {
 			errored <- fmt.Errorf("failed to create listener: %w", err)
+
 			return
 		}
 
@@ -88,6 +89,7 @@ func (s *Server) Start() error {
 			"version", versionInfo.Version,
 			"build_time", versionInfo.BuildTime,
 			"git_commit", versionInfo.GitCommit)
+
 		return nil
 	case <-time.After(StartupTimeout):
 		return errors.New("server startup timed out after 5 seconds")
@@ -148,10 +150,12 @@ func New(deps Deps) *Server {
 
 			if err := srv.server.Shutdown(shutdownCtx); err != nil {
 				srv.logger.Error("server shutdown error", "error", err, "timeout", ShutdownTimeout)
+
 				return fmt.Errorf("server shutdown error: %w", err)
 			}
 
 			srv.logger.Info("server stopped gracefully")
+
 			return nil
 		},
 	})

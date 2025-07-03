@@ -71,6 +71,7 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Mana
 	forms.POST("", h.handleCreate)
 	forms.GET("/:id/edit", h.handleEdit)
 	forms.POST("/:id/edit", h.handleUpdate)
+	forms.PUT("/:id", h.handleUpdate)
 	forms.DELETE("/:id", h.handleDelete)
 	forms.GET("/:id/submissions", h.handleSubmissions)
 	forms.GET("/:id/preview", h.handlePreview)
@@ -116,6 +117,7 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 			"user_id", h.Logger.SanitizeField("user_id", userID),
 			"form_id_length", len(formID),
 			"error_type", "form_not_found")
+
 		return h.HandleNotFound(c, "Form not found")
 	}
 
@@ -126,6 +128,7 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 			"form_id_length", len(formID),
 			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
 			"error_type", "authorization_error")
+
 		return h.HandleForbidden(c, "You don't have permission to preview this form")
 	}
 
@@ -134,13 +137,17 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 		"form_id_length", len(formID),
 		"form_title", h.Logger.SanitizeField("form_title", form.Title))
 
-	// Build page data
-	data := h.BuildPageData(c, "Form Preview")
-	data.Form = form
-	data.FormPreviewAssetPath = h.AssetManager.AssetPath("src/js/pages/form-preview.ts")
+	// Build page data using the new API
+	data := h.NewPageData(c, "Form Preview").
+		WithForm(form).
+		WithFormPreviewAssetPath(h.AssetManager.AssetPath("src/js/pages/form-preview.ts"))
 
 	// Render form preview template
-	return fmt.Errorf("render form preview: %w", h.Renderer.Render(c, pages.FormPreview(data, form)))
+	if renderErr := h.Renderer.Render(c, pages.FormPreview(*data, form)); renderErr != nil {
+		return fmt.Errorf("failed to render form preview page: %w", renderErr)
+	}
+
+	return nil
 }
 
 // handleNewFormValidation returns the validation schema for the new form

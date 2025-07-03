@@ -1,0 +1,218 @@
+---
+description: API design patterns, RESTful principles, and frontend-backend integration guidelines
+globs: 
+alwaysApply: false
+---
+# API Design Guidelines
+
+## RESTful API Principles
+
+### HTTP Methods
+- **GET**: Retrieve resources (safe, idempotent)
+- **POST**: Create new resources
+- **PUT**: Replace entire resources (idempotent)
+- **PATCH**: Update partial resources
+- **DELETE**: Remove resources (idempotent)
+
+### URL Structure
+- Use nouns, not verbs: `/forms` not `/getForms`
+- Use plural nouns for collections: `/forms` not `/form`
+- Use hierarchical structure: `/forms/{id}/submissions`
+- Use query parameters for filtering: `/forms?status=active`
+
+## Response Format
+
+### Success Responses
+```json
+{
+  "data": {
+    "id": "123",
+    "name": "Contact Form",
+    "created_at": "2024-01-01T00:00:00Z"
+  },
+  "meta": {
+    "total": 1,
+    "page": 1,
+    "per_page": 10
+  }
+}
+```
+
+### Error Responses
+```json
+{
+  "error": {
+    "code": "VALIDATION_ERROR",
+    "message": "Invalid form data",
+    "details": {
+      "field": "email",
+      "issue": "Invalid email format"
+    }
+  }
+}
+```
+
+## HTTP Status Codes
+
+### Success Codes
+- **200 OK**: Request successful
+- **201 Created**: Resource created successfully
+- **204 No Content**: Request successful, no response body
+
+### Client Error Codes
+- **400 Bad Request**: Invalid request data
+- **401 Unauthorized**: Authentication required
+- **403 Forbidden**: Insufficient permissions
+- **404 Not Found**: Resource not found
+- **409 Conflict**: Resource conflict
+- **422 Unprocessable Entity**: Validation errors
+
+### Server Error Codes
+- **500 Internal Server Error**: Unexpected server error
+- **502 Bad Gateway**: Upstream service error
+- **503 Service Unavailable**: Service temporarily unavailable
+
+## Authentication & Security
+
+### CSRF Protection
+- CSRF tokens required for state-changing operations
+- Tokens included in `X-Csrf-Token` header
+- Automatic token generation and validation
+- Configuration for development vs production
+
+### CORS Configuration
+- Configured for cross-origin requests in development
+- Proper origin validation for production
+- Credentials support for authenticated requests
+- Preflight request handling
+
+## Form Management API
+
+### Form Operations
+- **GET /forms**: List all forms with pagination
+- **POST /forms**: Create new form
+- **GET /forms/{id}**: Get specific form
+- **PUT /forms/{id}**: Update form
+- **DELETE /forms/{id}**: Delete form
+
+### Form Submission
+- **POST /forms/{id}/submissions**: Submit form data
+- **GET /forms/{id}/submissions**: List form submissions
+- **GET /submissions/{id}**: Get specific submission
+
+### Form Templates
+- **GET /templates**: List available templates
+- **POST /templates**: Create new template
+- **GET /templates/{id}**: Get template details
+
+## Data Validation
+
+### Input Validation
+- Validate all incoming data
+- Use structured validation errors
+- Provide clear error messages
+- Support field-level validation
+
+### Schema Validation
+- Use JSON schema for form definitions
+- Validate form structure on creation
+- Ensure backward compatibility
+- Version schema changes
+
+## Error Handling
+
+### Error Types
+- **ValidationError**: Invalid input data
+- **NotFoundError**: Resource not found
+- **PermissionError**: Insufficient permissions
+- **ConflictError**: Resource conflicts
+- **InternalError**: Unexpected server errors
+
+### Error Response Structure
+```json
+{
+  "error": {
+    "code": "ERROR_CODE",
+    "message": "Human-readable message",
+    "details": {
+      "field": "Additional context"
+    },
+    "request_id": "uuid-for-tracking"
+  }
+}
+```
+
+## Rate Limiting
+
+### Implementation
+- Rate limiting middleware
+- Configurable limits per endpoint
+- IP-based and user-based limiting
+- Proper rate limit headers
+
+### Headers
+- `X-RateLimit-Limit`: Request limit per window
+- `X-RateLimit-Remaining`: Remaining requests
+- `X-RateLimit-Reset`: Reset time
+
+## Logging & Monitoring
+
+### Request Logging
+- Log all API requests
+- Include request ID for tracing
+- Log response status and timing
+- Exclude sensitive data
+
+### Error Tracking
+- Track error rates and types
+- Monitor response times
+- Alert on unusual patterns
+- Maintain error logs
+
+## Frontend Integration
+
+### API Client
+- Centralized API client configuration
+- Automatic CSRF token handling
+- Error handling and retry logic
+- Request/response interceptors
+
+### Data Fetching
+- Use consistent patterns for API calls
+- Handle loading and error states
+- Implement proper caching
+- Support optimistic updates
+
+### Form Integration
+- Form.io integration with backend API
+- Real-time validation
+- File upload handling
+- Progress tracking
+
+## Testing
+
+### API Testing
+- Unit tests for handlers
+- Integration tests for endpoints
+- Mock external dependencies
+- Test error scenarios
+
+### Contract Testing
+- Validate request/response schemas
+- Test API versioning
+- Ensure backward compatibility
+- Document API contracts
+
+## Documentation
+
+### API Documentation
+- OpenAPI/Swagger specification
+- Example requests and responses
+- Authentication requirements
+- Rate limiting information
+
+### Code Documentation
+- Document all exported functions
+- Include usage examples
+- Explain complex business logic
+- Keep documentation updated

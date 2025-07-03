@@ -49,7 +49,7 @@ func (h *PageHandler) Register(e *echo.Echo) {
 
 // handleHome handles the home page request
 func (h *PageHandler) handleHome(c echo.Context) error {
-	data := h.BuildPageData(c, "Home")
+	data := h.NewPageData(c, "Home")
 	if h.Logger != nil {
 		h.Logger.Debug("handleHome: data.User", "user", data.User)
 	}
@@ -60,15 +60,16 @@ func (h *PageHandler) handleHome(c echo.Context) error {
 	}
 
 	// User is not authenticated, render home page
-	if renderErr := h.Renderer.Render(c, pages.Home(data)); renderErr != nil {
+	if renderErr := h.Renderer.Render(c, pages.Home(*data)); renderErr != nil {
 		return h.HandleError(c, renderErr, "Failed to render home page")
 	}
+
 	return nil
 }
 
 // handleDemo handles the demo page request
 func (h *PageHandler) handleDemo(c echo.Context) error {
-	data := h.BuildPageData(c, "Demo")
+	data := h.NewPageData(c, "Demo")
 	if h.Logger != nil {
 		h.Logger.Debug("handleDemo: data.User", "user", data.User)
 	}
@@ -79,7 +80,7 @@ func (h *PageHandler) handleDemo(c echo.Context) error {
 	}
 
 	// User is not authenticated, render demo page
-	return fmt.Errorf("render demo page: %w", h.Renderer.Render(c, pages.Demo(data)))
+	return fmt.Errorf("render demo page: %w", h.Renderer.Render(c, pages.Demo(*data)))
 }
 
 // Start initializes the page handler.

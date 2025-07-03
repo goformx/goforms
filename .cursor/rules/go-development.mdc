@@ -1,0 +1,112 @@
+---
+description: Go development guidelines and best practices
+globs: **/*.go,go.mod,go.sum
+alwaysApply: false
+---
+
+# Go Development Guidelines
+
+## Architecture Patterns
+
+### Clean Architecture
+This project follows Clean Architecture principles with clear separation of concerns:
+
+- **Domain Layer** (`internal/domain/`): Pure business logic, entities, and interfaces
+- **Application Layer** (`internal/application/`): Use cases and application services
+- **Infrastructure Layer** (`internal/infrastructure/`): External concerns (DB, HTTP, config)
+- **Presentation Layer** (`internal/presentation/`): Web handlers and API endpoints
+
+### Dependency Injection
+Uses Uber FX for dependency injection. See [main.go](mdc:main.go) for the main application setup.
+
+## Code Organization
+
+### File Structure
+- Use snake_case for file names
+- Group related functionality in packages
+- Keep packages focused and cohesive
+- Use `internal/` for private application code
+
+### Naming Conventions
+- Use camelCase for variables and functions
+- Use PascalCase for exported types and functions
+- Use UPPER_CASE for constants
+- Use descriptive names that explain intent
+
+### Error Handling
+- Always check errors and handle them appropriately
+- Use `fmt.Errorf` with `%w` verb for error wrapping
+- Return errors from functions, don't panic in production code
+- Use custom error types for domain-specific errors
+
+## Testing
+
+### Test Structure
+- Tests are in `*_test.go` files alongside the code they test
+- Use [testify](mdc:https:/github.com/stretchr/testify) for assertions
+- Mock implementations are generated in [test/mocks/](mdc:test/mocks)
+- Use table-driven tests for multiple test cases
+
+### Mock Generation
+Run `task generate:mocks` to generate mocks for interfaces:
+```go
+//go:generate mockgen -source=repository.go -destination=test/mocks/mock_repository.go
+```
+
+## Database
+
+### Migrations
+- Database migrations are in [migrations/](mdc:migrations)
+- Use `task migrate:up` to apply migrations
+- Use `task migrate:down` to rollback migrations
+- Always test migrations in development before production
+
+### Repository Pattern
+- Use repository interfaces in domain layer
+- Implement repositories in infrastructure layer
+- Use transactions for multi-step operations
+
+## Logging
+
+### Structured Logging
+- Use Zap logger for structured logging
+- Include relevant context in log fields
+- Use appropriate log levels (debug, info, warn, error)
+- Don't log sensitive information
+
+## Configuration
+
+### Environment Variables
+- Use environment variables for configuration
+- Validate configuration on startup
+- Use sensible defaults where appropriate
+- Document all configuration options
+
+## API Design
+
+### RESTful Endpoints
+- Use HTTP status codes correctly
+- Return consistent JSON responses
+- Validate input data
+- Handle errors gracefully
+
+### Middleware
+- Use Echo middleware for cross-cutting concerns
+- Implement authentication, logging, CORS, etc.
+- Keep middleware focused and composable
+
+## Code Quality
+
+### Linting
+- Run `task lint:backend` to check code quality
+- Follow Go best practices and idioms
+- Use `go fmt` for consistent formatting
+- Use `go vet` for static analysis
+
+### Documentation
+- Document exported functions and types
+- Use clear, concise comments
+- Include examples for complex functions
+- Keep documen
+
+

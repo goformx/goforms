@@ -99,6 +99,8 @@ func TestAuthenticationCriticalFlow(t *testing.T) {
 			endpoint:       constants.PathSignup,
 			method:         "POST",
 			expectedStatus: http.StatusSeeOther,
+			description:    "Signup form must reject invalid data",
+			critical:       true,
 		},
 	}
 
@@ -112,6 +114,7 @@ func TestAuthenticationCriticalFlow(t *testing.T) {
 				if err != nil {
 					t.Fatalf("Failed to marshal payload: %v", err)
 				}
+
 				req = httptest.NewRequest(tt.method, tt.endpoint, bytes.NewBuffer(payloadBytes))
 				req.Header.Set("Content-Type", "application/json")
 			} else {
@@ -312,6 +315,7 @@ func TestAuthenticationSecurityCritical(t *testing.T) {
 }
 
 // TestAuthenticationErrorHandlingCritical tests critical error handling in authentication
+
 func TestAuthenticationErrorHandlingCritical(t *testing.T) {
 	// This test verifies that authentication handles errors gracefully
 	// These are essential for user experience and security

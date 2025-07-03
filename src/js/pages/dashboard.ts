@@ -1,37 +1,6 @@
 import { Logger } from "@/core/logger";
 import { FormService } from "@/features/forms/services/form-service";
 
-async function deleteForm(formId: string) {
-  if (
-    !confirm(
-      "Are you sure you want to delete this form? This action cannot be undone.",
-    )
-  ) {
-    return;
-  }
-
-  try {
-    Logger.group("Form Deletion");
-    Logger.debug("Starting form deletion for ID:", formId);
-
-    const formService = FormService.getInstance();
-    await formService.deleteForm(formId);
-
-    Logger.debug("Form deleted successfully, reloading page");
-    Logger.groupEnd();
-    window.location.reload();
-  } catch (error: unknown) {
-    Logger.group("Form Deletion Error");
-    Logger.error("Failed to delete form:", error);
-    Logger.groupEnd();
-    alert(
-      error instanceof Error
-        ? error.message
-        : "Failed to delete form. Please try again.",
-    );
-  }
-}
-
 // Initialize dashboard functionality
 function initDashboard() {
   // Handle delete button clicks using event delegation
@@ -41,7 +10,9 @@ function initDashboard() {
     if (deleteButton) {
       const formId = deleteButton.getAttribute("data-form-id");
       if (formId) {
-        deleteForm(formId).catch((error) => {
+        // Delegate to the form service for the actual deletion logic
+        const formService = FormService.getInstance();
+        formService.deleteFormWithConfirmation(formId).catch((error) => {
           Logger.error("Failed to delete form:", error);
         });
       }

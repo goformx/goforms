@@ -1,0 +1,193 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+# Middleware Architecture & Orchestration
+
+## Overview
+
+The GoForms project uses a clean, framework-agnostic middleware architecture that replaces the monolithic 960-line Manager with a modular, testable system.
+
+## Core Architecture
+
+### Core Interfaces (`internal/application/middleware/core/`)
+- **Middleware**: Framework-agnostic middleware interface with `Process()`, `Name()`, and `Priority()` methods
+- **Request/Response**: HTTP abstractions independent of Echo framework
+- **Chain**: Middleware chain execution and management
+- **Registry**: Middleware registration and discovery
+- **Orchestrator**: Chain composition and configuration management
+
+### Key Files
+- [interfaces.go](mdc:internal/application/middleware/core/interfaces.go) - Core interfaces and types
+- [types.go](mdc:internal/application/middleware/core/types.go) - Chain types and error handling
+- [request.go](mdc:internal/application/middleware/core/request.go) - HTTP request abstraction
+- [response.go](mdc:internal/application/middleware/core/response.go) - HTTP response abstraction
+
+## Middleware Categories
+
+The system supports categorized middleware for different use cases:
+- **Basic**: CORS, RequestID, Recovery
+- **Security**: CSRF, Rate Limiting, Security Headers
+- **Auth**: Authentication, Session Management
+- **Logging**: Request/Response logging
+- **Custom**: Application-specific middleware
+
+## Chain Types
+
+Different middleware chains for various request patterns:
+- `ChainTypeDefault` - General requests
+- `ChainTypeAPI` - API endpoints with auth
+- `ChainTypeWeb` - Web pages with session management
+- `ChainTypeAuth` - Authentication endpoints
+- `ChainTypeAdmin` - Admin-only endpoints
+- `ChainTypePublic` - Public endpoints
+- `ChainTypeStatic` - Static asset requests
+
+## Configuration System
+
+### MiddlewareConfig Interface
+- `IsMiddlewareEnabled(name)` - Check if middleware is enabled
+- `GetMiddlewareConfig(name)` - Get middleware-specific settings
+- `GetChainConfig(chainType)` - Get chain-level configuration
+
+### Configuration Features
+- Environment-based activation (dev vs prod)
+- Path-based inclusion/exclusion patterns
+- Dependency validation
+- Conflict detection
+- Priority-based ordering
+
+## Registry System
+
+### Features
+- Thread-safe middleware registration
+- Category-based organization
+- Priority-aware ordering
+- Dependency validation
+- Configuration-driven activation
+
+### Key Methods
+- `Register(name, middleware)` - Add middleware with validation
+- `GetOrdered(category)` - Get middleware by category and priority
+- `ValidateDependencies()` - Check for missing dependencies
+
+## Orchestrator System
+
+### Core Functionality
+- **Chain Building**: Intelligent middleware chain composition
+- **Path-Based Logic**: Different chains for different route groups
+- **Caching**: Performance optimization with chain caching
+- **Validation**: Configuration and dependency validation
+
+### Key Methods
+- `CreateChain(chainType)` - Build chain for specific type
+- `BuildChainForPath(chainType, path)` - Path-specific chain building
+- `GetChain(name)` - Retrieve pre-configured chains
+- `ValidateConfiguration()` - Validate entire configuration
+
+## Echo Framework Integration
+
+### Adapters
+- [echo_adapter.go](mdc:internal/application/middleware/echo_adapter.go) - Main Echo integration
+- [echo_request.go](mdc:internal/application/middleware/echo_request.go) - Echo request wrapper
+- [echo_response.go](mdc:internal/application/middleware/echo_response.go) - Echo response wrapper
+
+### Features
+- Seamless Echo integration
+- Request/response conversion
+- Context preservation
+- Error handling
+
+## Chain Execution
+
+### Chain Package (`internal/application/middleware/chain/`)
+- [chain.go](mdc:internal/application/middleware/chain/chain.go) - Chain execution logic
+- [builder.go](mdc:internal/application/middleware/chain/builder.go) - Chain building utilities
+
+### Execution Flow
+1. Middleware processes request
+2. Calls next handler in chain
+3. Returns response
+4. Response flows back through chain
+
+## Testing Strategy
+
+### Test Structure
+- [orchestrator_test.go](mdc:internal/application/middleware/orchestrator_test.go) - Orchestrator tests
+- Mock implementations for all interfaces
+- Comprehensive test coverage
+- Integration with existing mock infrastructure
+
+### Test Patterns
+- Mock registry and configuration
+- Test chain building and execution
+- Validate middleware ordering
+- Test configuration validation
+
+## Migration from Manager
+
+### Replaced Components
+- **960-line Manager** → Modular orchestrator system
+- **Framework coupling** → Clean abstractions
+- **Hard-coded chains** → Configuration-driven chains
+- **Limited testing** → Comprehensive test coverage
+
+### Benefits
+- **Maintainability**: Smaller, focused components
+- **Testability**: Easy to mock and test
+- **Flexibility**: Configuration-driven behavior
+- **Performance**: Caching and optimization
+- **Clean Architecture**: Framework independence
+
+## Usage Patterns
+
+### Basic Usage
+```go
+// Create orchestrator
+orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+// Build chain for API requests
+chain, err := orchestrator.CreateChain(core.ChainTypeAPI)
+
+// Process request
+response := chain.Process(ctx, request)
+```
+
+### Configuration-Driven
+```go
+// Enable/disable middleware via config
+config.IsMiddlewareEnabled("cors") // true/false
+
+// Get middleware-specific settings
+settings := config.GetMiddlewareConfig("rate-limit")
+
+// Get chain configuration
+chainConfig := config.GetChainConfig(core.ChainTypeAPI)
+```
+
+### Path-Based Middleware
+```go
+// Build chain for specific path
+chain, err := orchestrator.BuildChainForPath(core.ChainTypeAPI, "/api/users")
+
+// Path-specific middleware is automatically included
+// e.g., API logging for /api/* paths
+```
+
+## Best Practices
+
+1. **Use Categories**: Organize middleware by category (Basic, Security, Auth, etc.)
+2. **Set Priorities**: Use priority system for execution order
+3. **Validate Dependencies**: Ensure required middleware is available
+4. **Test Configuration**: Validate configuration on startup
+5. **Use Caching**: Leverage chain caching for performance
+6. **Follow Clean Architecture**: Keep framework dependencies isolated
+
+## Future Enhancements
+
+- **Dynamic Configuration**: Runtime configuration changes
+- **Metrics Collection**: Middleware execution metrics
+- **Circuit Breakers**: Fault tolerance patterns
+- **Plugin System**: Dynamic middleware loading
+- **Performance Profiling**: Chain execution profiling

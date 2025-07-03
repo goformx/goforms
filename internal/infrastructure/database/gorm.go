@@ -62,13 +62,13 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 	}
 
 	// Configure connection pool
-	if err := configureConnectionPool(db, cfg); err != nil {
-		return nil, err
+	if poolErr := configureConnectionPool(db, cfg); poolErr != nil {
+		return nil, poolErr
 	}
 
 	// Verify connection
-	if err := verifyConnection(db, appLogger); err != nil {
-		return nil, err
+	if verifyErr := verifyConnection(db, appLogger); verifyErr != nil {
+		return nil, verifyErr
 	}
 
 	appLogger.Info("database connection established",
@@ -87,6 +87,7 @@ func New(cfg *config.Config, appLogger logging.Logger) (*GormDB, error) {
 func configureGormLogger(cfg *config.Config, appLogger logging.Logger) logger.Interface {
 	// Map our log levels to GORM log levels
 	var gormLogLevel logger.LogLevel
+
 	switch cfg.Database.Logging.LogLevel {
 	case "silent":
 		gormLogLevel = logger.Silent
@@ -116,6 +117,7 @@ func configureGormLogger(cfg *config.Config, appLogger logging.Logger) logger.In
 // createDatabaseConnection creates a database connection based on the configuration
 func createDatabaseConnection(cfg *config.Config, gormConfig *gorm.Config) (*gorm.DB, error) {
 	var db *gorm.DB
+
 	var err error
 
 	// Create database connection based on the selected driver
@@ -183,6 +185,7 @@ func verifyConnection(db *gorm.DB, appLogger logging.Logger) error {
 
 	if pingErr := sqlDB.Ping(); pingErr != nil {
 		appLogger.Error("failed to ping database", "error", pingErr)
+
 		return fmt.Errorf("failed to ping database: %w", pingErr)
 	}
 
@@ -198,6 +201,7 @@ func (db *GormDB) Close() error {
 
 	if closeErr := sqlDB.Close(); closeErr != nil {
 		db.logger.Error("failed to close database connection", "error", closeErr)
+
 		return fmt.Errorf("failed to close database connection: %w", closeErr)
 	}
 
@@ -228,13 +232,16 @@ func (w *GormLogWriter) Printf(format string, args ...any) {
 	if !ok {
 		query = "unknown query"
 	}
+
 	duration, ok := args[durationArgPos].(time.Duration)
 	if !ok {
 		duration = 0
 	}
+
 	rowsAffected := int64(0)
+
 	if len(args) > rowsAffectedArgPos {
-		if ra, ok := args[rowsAffectedArgPos].(int64); ok {
+		if ra, raOk := args[rowsAffectedArgPos].(int64); raOk {
 			rowsAffected = ra
 		}
 	}
@@ -261,36 +268,11 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		w.logger.Debug("record not found",
 			"message", msg,
 			"error", err)
+
 		return
 	}
 
-	errorType := "database_error"
-	switch {
-	case errors.Is(err, gorm.ErrInvalidDB):
-		errorType = "invalid_db"
-	case errors.Is(err, gorm.ErrInvalidTransaction):
-		errorType = "invalid_transaction"
-	case errors.Is(err, gorm.ErrNotImplemented):
-		errorType = "not_implemented"
-	case errors.Is(err, gorm.ErrMissingWhereClause):
-		errorType = "missing_where_clause"
-	case errors.Is(err, gorm.ErrUnsupportedDriver):
-		errorType = "unsupported_driver"
-	case errors.Is(err, gorm.ErrRegistered):
-		errorType = "already_registered"
-	case errors.Is(err, gorm.ErrInvalidField):
-		errorType = "invalid_field"
-	case errors.Is(err, gorm.ErrEmptySlice):
-		errorType = "empty_slice"
-	case errors.Is(err, gorm.ErrDryRunModeUnsupported):
-		errorType = "dry_run_unsupported"
-	case errors.Is(err, gorm.ErrInvalidData):
-		errorType = "invalid_data"
-	case errors.Is(err, gorm.ErrUnsupportedRelation):
-		errorType = "unsupported_relation"
-	case errors.Is(err, gorm.ErrPrimaryKeyRequired):
-		errorType = "primary_key_required"
-	}
+	errorType := w.getErrorType(err)
 
 	w.logger.Error("database error",
 		"message", msg,
@@ -298,9 +280,37 @@ func (w *GormLogWriter) Error(msg string, err error) {
 		"error", err)
 }
 
+// getErrorType determines the error type based on the GORM error
+func (w *GormLogWriter) getErrorType(err error) string {
+	for gormErr, errorType := range gormErrorTypes {
+		if errors.Is(err, gormErr) {
+			return errorType
+		}
+	}
+
+	return "database_error"
+}
+
+// gormErrorTypes maps GORM errors to their corresponding error types
+var gormErrorTypes = map[error]string{
+	gorm.ErrInvalidDB:             "invalid_db",
+	gorm.ErrInvalidTransaction:    "invalid_transaction",
+	gorm.ErrNotImplemented:        "not_implemented",
+	gorm.ErrMissingWhereClause:    "missing_where_clause",
+	gorm.ErrUnsupportedDriver:     "unsupported_driver",
+	gorm.ErrRegistered:            "already_registered",
+	gorm.ErrInvalidField:          "invalid_field",
+	gorm.ErrEmptySlice:            "empty_slice",
+	gorm.ErrDryRunModeUnsupported: "dry_run_unsupported",
+	gorm.ErrInvalidData:           "invalid_data",
+	gorm.ErrUnsupportedRelation:   "unsupported_relation",
+	gorm.ErrPrimaryKeyRequired:    "primary_key_required",
+}
+
 // MonitorConnectionPool monitors the database connection pool and logs metrics
 func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 	db.logger.Debug("starting MonitorConnectionPool")
+
 	ticker := time.NewTicker(TickerDuration)
 	defer ticker.Stop()
 
@@ -308,6 +318,7 @@ func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			db.logger.Debug("MonitorConnectionPool context done")
+
 			return
 		case <-ticker.C:
 			db.logger.Debug("MonitorConnectionPool tick")
@@ -319,9 +330,11 @@ func (db *GormDB) MonitorConnectionPool(ctx context.Context) {
 // collectAndLogMetrics collects and logs database connection pool metrics
 func (db *GormDB) collectAndLogMetrics() {
 	db.logger.Debug("collectAndLogMetrics called")
+
 	sqlDB, err := db.DB.DB()
 	if err != nil {
 		db.logger.Error("failed to get database instance", map[string]any{"error": err})
+
 		return
 	}
 

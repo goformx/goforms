@@ -109,6 +109,7 @@ func (i Info) GetBuildTime() (time.Time, error) {
 	if err != nil {
 		return time.Time{}, fmt.Errorf("parse build time: %w", err)
 	}
+
 	return buildTime, nil
 }
 

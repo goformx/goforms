@@ -1,23 +1,36 @@
 ARG VARIANT=1.24-bookworm
 FROM mcr.microsoft.com/devcontainers/go:${VARIANT}
 
-# [Optional] Uncomment this section to install additional OS packages.
-# RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
-#     && apt-get -y install --no-install-recommends <your-package-list-here>
+# Install system dependencies for PostgreSQL and development
+RUN apt-get update && export DEBIAN_FRONTEND=noninteractive \
+    && apt-get -y install --no-install-recommends \
+    postgresql-client \
+    curl \
+    git \
+    && apt-get autoremove -y && apt-get clean -y
 
-# [Optional] Uncomment the next lines to use go get to install anything else you need
+# Switch to vscode user for Go tool installation
 USER vscode
 
 RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
     && go install github.com/a-h/templ/cmd/templ@latest \
     && go install go.uber.org/mock/mockgen@latest \
     && go install github.com/air-verse/air@latest \
-    && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+    && go install github.com/bombsimon/wsl/v4/cmd/wsl@latest \
+    && go install golang.org/x/tools/gopls@latest \
+    && go install github.com/go-delve/delve/cmd/dlv@latest \
+    && go install golang.org/x/tools/cmd/goimports@latest \
+    && go install github.com/securego/gosec/v2/cmd/gosec@latest \
+    && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
-# Install dependencies and build the template package
-# RUN cd /workspaces/goforms-template && npm install && npm run build && npm link || true
+# Install Task runner
+RUN sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+
+# Add Go tools to PATH for the vscode user
+RUN echo 'export PATH=$PATH:$(go env GOPATH)/bin:~/.local/bin' >> ~/.bashrc \
+    && echo 'export PATH=$PATH:$(go env GOPATH)/bin:~/.local/bin' >> ~/.zshrc
 
 USER root
 
-# [Optional] Uncomment this line to install global node packages.
-# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g <your-package-here>" 2>&1ce
+# Optional: Install Node.js dependencies globally if needed
+# RUN su vscode -c "source /usr/local/share/nvm/nvm.sh && npm install -g @types/node typescript" 2>&1

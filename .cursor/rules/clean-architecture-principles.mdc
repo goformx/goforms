@@ -1,0 +1,490 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Clean Architecture Principles in GoForms
+
+## Overview
+
+The GoForms project follows Clean Architecture principles, particularly evident in the middleware orchestration system refactoring that replaced a monolithic 960-line Manager with a modular, framework-agnostic architecture.
+
+## Core Principles Applied
+
+### 1. Dependency Inversion Principle
+
+#### Before (Violation)
+
+```go
+// Tightly coupled to Echo framework
+type Manager struct {
+    e *echo.Echo
+    // Direct Echo dependencies
+}
+
+func (m *Manager) SetupMiddleware() {
+    m.e.Use(middleware.CORS())
+    m.e.Use(middleware.Logger())
+    // Framework-specific code
+}
+```
+
+#### After (Compliance)
+
+```go
+// Framework-agnostic interfaces
+type Middleware interface {
+    Process(ctx context.Context, req Request, next Handler) Response
+    Name() string
+    Priority() int
+}
+
+type Request interface {
+    Method() string
+    Path() string
+    Headers() http.Header
+    // Framework-independent
+}
+
+// Adapters handle framework integration
+type EchoAdapter struct {
+    core Middleware
+}
+```
+
+### 2. Single Responsibility Principle
+
+#### Before (Violation)
+
+```go
+// 960-line Manager doing everything
+type Manager struct {
+    // Handles registration, configuration, chain building,
+    // framework integration, logging, validation, etc.
+}
+
+func (m *Manager) SetupMiddleware() {
+    // 200+ lines of mixed responsibilities
+}
+```
+
+#### After (Compliance)
+
+```go
+// Each component has a single responsibility
+type Registry interface {
+    Register(name string, middleware Middleware) error
+    Get(name string) (Middleware, bool)
+    // Only handles registration and retrieval
+}
+
+type Orchestrator interface {
+    CreateChain(chainType ChainType) (Chain, error)
+    BuildChainForPath(chainType ChainType, path string) (Chain, error)
+    // Only handles chain composition
+}
+
+type Chain interface {
+    Process(ctx context.Context, req Request) Response
+    // Only handles chain execution
+}
+```
+
+### 3. Interface Segregation Principle
+
+#### Before (Violation)
+
+```go
+// Large interface forcing unnecessary implementations
+type MiddlewareManager interface {
+    SetupMiddleware()
+    ConfigureMiddleware()
+    ValidateMiddleware()
+    ExecuteMiddleware()
+    LogMiddleware()
+    // Too many responsibilities
+}
+```
+
+#### After (Compliance)
+
+```go
+// Focused, cohesive interfaces
+type Middleware interface {
+    Process(ctx context.Context, req Request, next Handler) Response
+    Name() string
+    Priority() int
+}
+
+type Registry interface {
+    Register(name string, middleware Middleware) error
+    Get(name string) (Middleware, bool)
+    List() []string
+}
+
+type Orchestrator interface {
+    CreateChain(chainType ChainType) (Chain, error)
+    ValidateConfiguration() error
+}
+```
+
+### 4. Open/Closed Principle
+
+#### Before (Violation)
+
+```go
+// Hard to extend without modifying existing code
+func (m *Manager) SetupMiddleware() {
+    switch m.environment {
+    case "dev":
+        m.e.Use(middleware.CORS())
+    case "prod":
+        m.e.Use(middleware.CORS())
+        m.e.Use(middleware.RateLimit())
+    // Need to modify this function for new environments
+    }
+}
+```
+
+#### After (Compliance)
+
+```go
+// Open for extension, closed for modification
+type MiddlewareConfig interface {
+    IsMiddlewareEnabled(name string) bool
+    GetMiddlewareConfig(name string) map[string]any
+    GetChainConfig(chainType ChainType) ChainConfig
+}
+
+// New middleware can be added via configuration
+// New environments can be supported via config files
+// No code changes required
+```
+
+## Layer Separation
+
+### Domain Layer (`internal/application/middleware/core/`)
+
+```go
+// Pure business logic, no external dependencies
+type Middleware interface {
+    Process(ctx context.Context, req Request, next Handler) Response
+    Name() string
+    Priority() int
+}
+
+type Request interface {
+    Method() string
+    Path() string
+    Headers() http.Header
+    Body() io.Reader
+    // Framework-independent abstractions
+}
+```
+
+### Application Layer (`internal/application/middleware/`)
+
+```go
+// Use cases and orchestration
+type Orchestrator struct {
+    registry Registry
+    config   MiddlewareConfig
+    logger   Logger
+}
+
+func (o *Orchestrator) CreateChain(chainType ChainType) (Chain, error) {
+    // Business logic for chain composition
+    // No framework dependencies
+}
+```
+
+### Infrastructure Layer (`internal/application/middleware/echo_adapter.go`)
+
+```go
+// Framework-specific implementations
+type EchoAdapter struct {
+    core Middleware
+}
+
+func (a *EchoAdapter) Process(echoCtx echo.Context, next echo.HandlerFunc) error {
+    // Convert Echo context to core Request
+    coreReq := NewRequest(echoCtx)
+
+    // Process with core middleware
+    coreResp := a.core.Process(echoCtx.Request().Context(), coreReq, next)
+
+    // Convert core Response back to Echo
+    return WriteResponse(echoCtx, coreResp)
+}
+```
+
+## Dependency Direction
+
+### Correct Dependency Flow
+
+```
+┌─────────────────┐
+│   Echo (Web)    │ ← Framework
+└─────────┬───────┘
+          │
+┌─────────▼───────┐
+│  Echo Adapter   │ ← Infrastructure
+└─────────┬───────┘
+          │
+┌─────────▼───────┐
+│   Orchestrator  │ ← Application
+└─────────┬───────┘
+          │
+┌─────────▼───────┐
+│   Registry      │ ← Application
+└─────────┬───────┘
+          │
+┌─────────▼───────┐
+│  Core Interfaces│ ← Domain
+└─────────────────┘
+```
+
+### Dependency Injection
+
+```go
+// Dependencies flow inward
+func NewOrchestrator(
+    registry Registry,      // ← Injected
+    config MiddlewareConfig, // ← Injected
+    logger Logger,          // ← Injected
+) Orchestrator {
+    return &orchestrator{
+        registry: registry,
+        config:   config,
+        logger:   logger,
+    }
+}
+```
+
+## Configuration Management
+
+### Environment Independence
+
+```go
+// Configuration is external to business logic
+type MiddlewareConfig interface {
+    IsMiddlewareEnabled(name string) bool
+    GetMiddlewareConfig(name string) map[string]any
+    GetChainConfig(chainType ChainType) ChainConfig
+}
+
+// Different configs for different environments
+type FileConfig struct {
+    filepath string
+}
+
+type DatabaseConfig struct {
+    db Database
+}
+
+type EnvironmentConfig struct {
+    env map[string]string
+}
+```
+
+### Configuration-Driven Behavior
+
+```go
+// Behavior controlled by configuration, not code
+func (o *orchestrator) CreateChain(chainType ChainType) (Chain, error) {
+    config := o.config.GetChainConfig(chainType)
+    if !config.Enabled {
+        return chain.NewEmptyChain(), nil
+    }
+
+    // Build chain based on configuration
+    // No hard-coded logic
+}
+```
+
+## Testing Strategy
+
+### Testability Through Interfaces
+
+```go
+// Easy to mock dependencies
+func TestOrchestrator(t *testing.T) {
+    mockRegistry := &MockRegistry{}
+    mockConfig := &MockConfig{}
+    mockLogger := &MockLogger{}
+
+    orchestrator := NewOrchestrator(mockRegistry, mockConfig, mockLogger)
+
+    // Test business logic without framework dependencies
+}
+```
+
+### Framework-Independent Testing
+
+```go
+// Test core logic without Echo
+func TestMiddlewareChain(t *testing.T) {
+    chain := chain.NewChainImpl([]core.Middleware{mw1, mw2})
+    req := core.NewRequest("GET", "/test")
+
+    response := chain.Process(context.Background(), req)
+
+    // Test business logic, not framework integration
+}
+```
+
+## Benefits Achieved
+
+### 1. Maintainability
+
+- **Before**: 960-line monolithic Manager
+- **After**: Multiple focused, small components
+- **Result**: Easier to understand, modify, and debug
+
+### 2. Testability
+
+- **Before**: Hard to test due to framework coupling
+- **After**: Easy to test with mocked dependencies
+- **Result**: Comprehensive test coverage
+
+### 3. Flexibility
+
+- **Before**: Hard-coded middleware chains
+- **After**: Configuration-driven behavior
+- **Result**: Easy to adapt to different environments
+
+### 4. Framework Independence
+
+- **Before**: Tightly coupled to Echo
+- **After**: Framework-agnostic with adapters
+- **Result**: Can switch frameworks without changing business logic
+
+### 5. Extensibility
+
+- **Before**: Adding new middleware required code changes
+- **After**: New middleware can be added via configuration
+- **Result**: Open for extension, closed for modification
+
+## Migration Lessons
+
+### 1. Identify Violations
+
+- Large classes with multiple responsibilities
+- Direct framework dependencies
+- Hard-coded configuration
+- Difficult testing
+
+### 2. Extract Interfaces
+
+- Define framework-agnostic abstractions
+- Separate concerns into focused interfaces
+- Use dependency injection
+
+### 3. Create Adapters
+
+- Bridge framework-specific code to core interfaces
+- Keep business logic framework-independent
+- Maintain clean separation
+
+### 4. Implement Configuration
+
+- Move hard-coded values to configuration
+- Support different environments
+- Enable runtime flexibility
+
+### 5. Improve Testing
+
+- Mock dependencies for unit tests
+- Test business logic independently
+- Achieve high test coverage
+
+## Best Practices
+
+### 1. Interface Design
+
+```go
+// Keep interfaces small and focused
+type Middleware interface {
+    Process(ctx context.Context, req Request, next Handler) Response
+    Name() string
+    Priority() int
+}
+
+// Avoid large interfaces with many methods
+```
+
+### 2. Dependency Injection
+
+```go
+// Inject dependencies, don't create them
+func NewService(deps Dependencies) Service {
+    return &service{deps: deps}
+}
+
+// Avoid: func NewService() Service { return &service{db: NewDB()} }
+```
+
+### 3. Configuration Management
+
+```go
+// Externalize configuration
+type Config interface {
+    Get(key string) any
+}
+
+// Avoid hard-coded values in business logic
+```
+
+### 4. Error Handling
+
+```go
+// Return errors, don't panic
+func (m *middleware) Process(ctx context.Context, req Request, next Handler) Response {
+    if err := m.validate(req); err != nil {
+        return core.NewErrorResponse(http.StatusBadRequest, err)
+    }
+    return next(ctx, req)
+}
+```
+
+### 5. Testing
+
+```go
+// Test interfaces, not implementations
+func TestMiddlewareInterface(t *testing.T) {
+    var _ core.Middleware = (*MyMiddleware)(nil)
+}
+
+// Mock dependencies for unit tests
+func TestOrchestrator(t *testing.T) {
+    mockRegistry := &MockRegistry{}
+    // Test with mocks
+}
+```
+
+## Future Considerations
+
+### 1. Plugin Architecture
+
+- Dynamic middleware loading
+- Runtime configuration changes
+- Hot reloading capabilities
+
+### 2. Metrics and Observability
+
+- Middleware execution metrics
+- Performance profiling
+- Distributed tracing
+
+### 3. Circuit Breakers
+
+- Fault tolerance patterns
+- Graceful degradation
+- Health checks
+
+### 4. Caching Strategies
+
+- Response caching
+- Configuration caching
+- Chain caching optimization

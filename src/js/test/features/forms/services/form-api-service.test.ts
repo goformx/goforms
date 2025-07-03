@@ -318,7 +318,7 @@ describe("FormApiService", () => {
       await service.updateFormDetails("test-form-id", formDetails);
 
       expect(mockHttpPut).toHaveBeenCalledWith(
-        `${window.location.origin}/dashboard/forms/test-form-id`,
+        `${window.location.origin}/forms/test-form-id`,
         JSON.stringify(formDetails),
       );
     });
@@ -326,7 +326,7 @@ describe("FormApiService", () => {
     it("should throw NetworkError when response is not ok", async () => {
       const networkError = FormBuilderError.networkError(
         "HTTP 400: Bad Request",
-        `${window.location.origin}/dashboard/forms/test-form-id`,
+        `${window.location.origin}/forms/test-form-id`,
         400,
       );
       mockHttpPut.mockRejectedValue(networkError);
@@ -339,7 +339,7 @@ describe("FormApiService", () => {
     it("should use default error message when response json fails", async () => {
       const networkError = FormBuilderError.networkError(
         "HTTP 500: Internal Server Error",
-        `${window.location.origin}/dashboard/forms/test-form-id`,
+        `${window.location.origin}/forms/test-form-id`,
         500,
       );
       mockHttpPut.mockRejectedValue(networkError);

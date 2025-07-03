@@ -39,6 +39,7 @@ func TestRenderer_Render_Success(t *testing.T) {
 	// Create a simple test component
 	component := templ.ComponentFunc(func(_ context.Context, w io.Writer) error {
 		_, err := w.Write([]byte("<div>Test Content</div>"))
+
 		return err
 	})
 
@@ -75,6 +76,7 @@ func TestRenderer_Render_Error(t *testing.T) {
 	require.Error(t, err)
 
 	var httpErr *echo.HTTPError
+
 	ok := errors.As(err, &httpErr)
 	assert.True(t, ok)
 	assert.Equal(t, http.StatusInternalServerError, httpErr.Code)
@@ -99,6 +101,7 @@ func TestRenderer_Render_NilComponent(t *testing.T) {
 	require.Error(t, err)
 
 	var httpErr *echo.HTTPError
+
 	ok := errors.As(err, &httpErr)
 	assert.True(t, ok)
 	assert.Equal(t, http.StatusInternalServerError, httpErr.Code)
@@ -115,6 +118,7 @@ func TestRenderer_Render_NilContext(t *testing.T) {
 
 	component := templ.ComponentFunc(func(_ context.Context, w io.Writer) error {
 		_, err := w.Write([]byte("<div>Test Content</div>"))
+
 		return err
 	})
 
@@ -122,6 +126,7 @@ func TestRenderer_Render_NilContext(t *testing.T) {
 	require.Error(t, err)
 
 	var httpErr *echo.HTTPError
+
 	ok := errors.As(err, &httpErr)
 	assert.True(t, ok)
 	assert.Equal(t, http.StatusInternalServerError, httpErr.Code)

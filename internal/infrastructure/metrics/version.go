@@ -27,6 +27,7 @@ type VersionMetrics struct {
 // NewVersionMetrics creates new version metrics
 func NewVersionMetrics() *VersionMetrics {
 	info := version.GetInfo()
+
 	buildTime, err := time.Parse(time.RFC3339, info.BuildTime)
 	if err != nil {
 		// Log error or use zero time

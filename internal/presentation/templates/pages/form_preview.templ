@@ -4,33 +4,45 @@ import (
 	"encoding/json"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/templates/components"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 templ FormPreview(data view.PageData, form *model.Form) {
-	@layouts.Layout(data, formPreviewContent(data, form))
+	@layouts.Layout(data, FormPreviewWrapper(data, form))
+}
+
+templ FormPreviewWrapper(data view.PageData, form *model.Form) {
+	@FormPreviewHeader(data, form)
+	@formPreviewContent(data, form)
+}
+
+templ FormPreviewHeader(data view.PageData, form *model.Form) {
+	@components.DashboardHeader(components.DashboardHeaderProps{
+		Title:    "Form Preview",
+		Subtitle: form.Title,
+		Actions: []components.DashboardHeaderAction{
+			{
+				Href:  "/forms/" + form.ID + "/edit",
+				Label: "Edit Form",
+				Icon:  "bi bi-pencil",
+				Class: "btn btn-secondary btn-icon",
+				Title: "Edit Form",
+			},
+			{
+				Href:  "/dashboard",
+				Label: "Dashboard",
+				Icon:  "bi bi-arrow-left",
+				Class: "btn btn-outline btn-icon",
+				Title: "Back to Dashboard",
+			},
+		},
+	})
 }
 
 templ formPreviewContent(data view.PageData, form *model.Form) {
 	<div class="dashboard-page">
 		<div class="dashboard-container">
-			<div class="dashboard-header">
-				<div class="dashboard-header-left">
-					<h1 class="dashboard-title">Form Preview</h1>
-					<p class="dashboard-subtitle">{ form.Title }</p>
-				</div>
-				<div class="dashboard-header-actions">
-					<a href={ templ.SafeURL("/forms/" + form.ID + "/edit") } class="btn btn-secondary btn-icon" title="Edit Form">
-						<i class="bi bi-pencil"></i>
-						<span class="dashboard-action-label">Edit Form</span>
-					</a>
-					<a href={ templ.SafeURL("/dashboard") } class="btn btn-outline btn-icon" title="Back to Dashboard">
-						<i class="bi bi-arrow-left"></i>
-						<span class="dashboard-action-label">Dashboard</span>
-					</a>
-				</div>
-			</div>
-
 			<div class="dashboard-content">
 				<div class="form-preview-grid">
 					<div class="form-preview-main">
@@ -46,7 +58,7 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 								if form.Description != "" {
 									<p class="form-description">{ form.Description }</p>
 								}
-								
+
 								if form.Schema != nil && len(form.Schema) > 0 {
 									<div class="form-renderer" id="form-renderer" data-form-schema={ formatJSONForJS(form.Schema) } data-form-id={ form.ID }>
 										<!-- Form will be rendered here by JavaScript -->
@@ -76,12 +88,13 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 								<div class="form-info-item">
 									<span class="form-info-label">Status:</span>
 									<span class="form-info-value">
-										if form.Status == "active" {
-											<span class="status-badge status-active">Active</span>
-										} else if form.Status == "draft" {
-											<span class="status-badge status-draft">Draft</span>
-										} else {
-											<span class="status-badge status-inactive">Inactive</span>
+										switch form.Status {
+											case "active":
+												<span class="status-badge status-active">Active</span>
+											case "draft":
+												<span class="status-badge status-draft">Draft</span>
+											default:
+												<span class="status-badge status-inactive">Inactive</span>
 										}
 									</span>
 								</div>
@@ -106,7 +119,7 @@ templ formPreviewContent(data view.PageData, form *model.Form) {
 
 	if form.Schema != nil && len(form.Schema) > 0 {
 		@templ.JSONScript("form-preview-data", data.FormPreviewAssetPath)
-		
+
 		if data.IsDevelopment {
 			<script type="module" id="form-preview-script" data-form-preview-path={ data.AssetPath("src/js/pages/form-preview.ts") }>
 				if (document.getElementById('form-renderer')) {
@@ -131,11 +144,11 @@ func formatJSONForJS(data model.JSON) string {
 	if data == nil {
 		return "{}"
 	}
-	
+
 	formatted, err := json.Marshal(data)
 	if err != nil {
 		return "{}"
 	}
-	
+
 	return string(formatted)
-} 
+}

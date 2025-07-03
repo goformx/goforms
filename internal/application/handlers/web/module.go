@@ -23,11 +23,10 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 
 	"github.com/goformx/goforms/internal/application/constants"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 // Module provides web handler dependencies
-var Module = fx.Options(
+var Module = fx.Module("web-handlers",
 	// Core dependencies
 	fx.Provide(
 		// Base handler for common functionality
@@ -38,7 +37,10 @@ var Module = fx.Options(
 
 		// Auth components for SRP compliance
 		NewAuthRequestParser,
-		NewAuthResponseBuilder,
+		fx.Annotate(
+			NewAuthResponseBuilder,
+			fx.ParamTags(``),
+		),
 		NewAuthService,
 
 		// Legacy HandlerDeps for backward compatibility
@@ -78,11 +80,10 @@ var Module = fx.Options(
 				responseBuilder *AuthResponseBuilder,
 				authService *AuthService,
 				sanitizer sanitization.ServiceInterface,
-				assetManager *web.AssetManager,
 			) (Handler, error) {
 				return NewAuthHandler(
 					base, authMiddleware, requestUtils, schemaGenerator,
-					requestParser, responseBuilder, authService, sanitizer, assetManager,
+					requestParser, responseBuilder, authService, sanitizer,
 				)
 			},
 			fx.ResultTags(`group:"handlers"`),
@@ -140,18 +141,22 @@ var Module = fx.Options(
 					for _, h := range handlers {
 						if err := h.Start(ctx); err != nil {
 							logger.Error("failed to start handler", "error", err)
+
 							return fmt.Errorf("start handler: %w", err)
 						}
 					}
+
 					return nil
 				},
 				OnStop: func(ctx context.Context) error {
 					for _, h := range handlers {
 						if err := h.Stop(ctx); err != nil {
 							logger.Error("failed to stop handler", "error", err)
+
 							return fmt.Errorf("stop handler: %w", err)
 						}
 					}
+
 					return nil
 				},
 			})
@@ -264,17 +269,21 @@ func RegisterHandlers(
 
 		// Categorize routes and log them for debugging
 		logger.Debug("Route breakdown:")
+
 		for _, route := range allRoutes {
 			path := route.Path
 			method := route.Method
+
 			if strings.HasPrefix(path, "/assets/") ||
 				strings.HasPrefix(path, "/fonts/") ||
 				path == "/favicon.ico" ||
 				path == "/robots.txt" {
 				assetRoutes++
+
 				logger.Debug("  Asset route", "method", method, "path", path)
 			} else {
 				httpRoutes++
+
 				logger.Debug("  HTTP route", "method", method, "path", path)
 			}
 		}

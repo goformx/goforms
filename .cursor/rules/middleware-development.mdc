@@ -1,0 +1,440 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Middleware Development Guidelines
+
+## Creating New Middleware
+
+### Interface Implementation
+
+All middleware must implement the `core.Middleware` interface:
+
+```go
+type Middleware interface {
+    Process(ctx context.Context, req Request, next Handler) Response
+    Name() string
+    Priority() int
+}
+```
+
+### Basic Middleware Template
+
+```go
+type myMiddleware struct {
+    name     string
+    priority int
+    config   map[string]any
+}
+
+func NewMyMiddleware(config map[string]any) core.Middleware {
+    return &myMiddleware{
+        name:     "my-middleware",
+        priority: 50,
+        config:   config,
+    }
+}
+
+func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    // Pre-processing logic here
+
+    // Call next middleware in chain
+    response := next(ctx, req)
+
+    // Post-processing logic here
+
+    return response
+}
+
+func (m *myMiddleware) Name() string {
+    return m.name
+}
+
+func (m *myMiddleware) Priority() int {
+    return m.priority
+}
+```
+
+## Middleware Categories
+
+### Basic Category (Priority 10-30)
+
+- CORS middleware
+- Request ID generation
+- Basic logging
+- Recovery/panic handling
+
+### Security Category (Priority 20-40)
+
+- CSRF protection
+- Rate limiting
+- Security headers
+- Input validation
+
+### Auth Category (Priority 30-50)
+
+- Authentication
+- Session management
+- JWT validation
+- Permission checking
+
+### Logging Category (Priority 40-60)
+
+- Request/response logging
+- Performance metrics
+- Audit trails
+- Error tracking
+
+### Custom Category (Priority 50+)
+
+- Application-specific logic
+- Business rules
+- Custom headers
+- Response transformation
+
+## Configuration Patterns
+
+### Middleware Configuration
+
+```go
+config := map[string]any{
+    "category": core.MiddlewareCategorySecurity,
+    "priority": 25,
+    "dependencies": []string{"cors", "request-id"},
+    "conflicts": []string{"legacy-auth"},
+    "include_paths": []string{"/api/*"},
+    "exclude_paths": []string{"/api/health"},
+    "settings": map[string]any{
+        "rate_limit": 100,
+        "window": "1m",
+    },
+}
+```
+
+### Chain Configuration
+
+```go
+chainConfig := middleware.ChainConfig{
+    Enabled: true,
+    MiddlewareNames: []string{"cors", "auth", "logging"},
+    Paths: []string{"/api/*"},
+    CustomConfig: map[string]any{
+        "timeout": "30s",
+    },
+}
+```
+
+## Testing Middleware
+
+### Unit Test Template
+
+```go
+func TestMyMiddleware(t *testing.T) {
+    // Setup
+    config := map[string]any{"setting": "value"}
+    mw := NewMyMiddleware(config)
+
+    // Create mock request and response
+    req := createMockRequest()
+    var capturedResponse core.Response
+
+    // Create next handler
+    next := func(ctx context.Context, req core.Request) core.Response {
+        return createMockResponse()
+    }
+
+    // Execute middleware
+    response := mw.Process(context.Background(), req, next)
+
+    // Assertions
+    assert.NotNil(t, response)
+    assert.Equal(t, "my-middleware", mw.Name())
+    assert.Equal(t, 50, mw.Priority())
+}
+```
+
+### Integration Test Template
+
+```go
+func TestMyMiddleware_Integration(t *testing.T) {
+    // Setup registry and config
+    registry := middleware.NewRegistry(logger, config)
+    orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+    // Register middleware
+    err := registry.Register("my-middleware", NewMyMiddleware(config))
+    assert.NoError(t, err)
+
+    // Create chain
+    chain, err := orchestrator.CreateChain(core.ChainTypeAPI)
+    assert.NoError(t, err)
+
+    // Test chain execution
+    req := createMockRequest()
+    response := chain.Process(context.Background(), req)
+
+    // Assertions
+    assert.NotNil(t, response)
+}
+```
+
+## Error Handling
+
+### Middleware Error Patterns
+
+```go
+func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    // Validate configuration
+    if err := m.validateConfig(); err != nil {
+        return core.NewErrorResponse(http.StatusInternalServerError, err)
+    }
+
+    // Check dependencies
+    if err := m.checkDependencies(req); err != nil {
+        return core.NewErrorResponse(http.StatusServiceUnavailable, err)
+    }
+
+    // Process request
+    response := next(ctx, req)
+
+    // Handle response errors
+    if response.IsError() {
+        m.logger.Error("middleware error", "error", response.Error())
+    }
+
+    return response
+}
+```
+
+### Error Response Creation
+
+```go
+// Create error response
+response := core.NewErrorResponse(http.StatusBadRequest, errors.New("invalid input"))
+
+// Add error details
+response.SetHeader("X-Error-Code", "INVALID_INPUT")
+response.SetHeader("X-Error-Details", "Field 'email' is required")
+```
+
+## Performance Considerations
+
+### Efficient Processing
+
+```go
+func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    // Use context for cancellation
+    select {
+    case <-ctx.Done():
+        return core.NewErrorResponse(http.StatusRequestTimeout, ctx.Err())
+    default:
+    }
+
+    // Avoid expensive operations in hot path
+    if m.shouldSkip(req) {
+        return next(ctx, req)
+    }
+
+    // Use buffering for large responses
+    response := next(ctx, req)
+    if response.ContentLength() > 1024*1024 {
+        return m.bufferResponse(response)
+    }
+
+    return response
+}
+```
+
+### Caching Strategies
+
+```go
+type cachedMiddleware struct {
+    cache    map[string]any
+    cacheMu  sync.RWMutex
+    ttl      time.Duration
+}
+
+func (m *cachedMiddleware) getCached(key string) (any, bool) {
+    m.cacheMu.RLock()
+    defer m.cacheMu.RUnlock()
+
+    if item, exists := m.cache[key]; exists {
+        if !m.isExpired(item) {
+            return item, true
+        }
+        delete(m.cache, key)
+    }
+    return nil, false
+}
+```
+
+## Logging and Monitoring
+
+### Structured Logging
+
+```go
+func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    start := time.Now()
+
+    // Log request details
+    m.logger.Info("processing request",
+        "middleware", m.Name(),
+        "method", req.Method(),
+        "path", req.Path(),
+        "user_agent", req.UserAgent(),
+    )
+
+    response := next(ctx, req)
+
+    // Log response details
+    m.logger.Info("request processed",
+        "middleware", m.Name(),
+        "status", response.StatusCode(),
+        "duration", time.Since(start),
+        "content_length", response.ContentLength(),
+    )
+
+    return response
+}
+```
+
+### Metrics Collection
+
+```go
+type metricsMiddleware struct {
+    metrics MetricsCollector
+}
+
+func (m *metricsMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    start := time.Now()
+
+    response := next(ctx, req)
+
+    // Record metrics
+    m.metrics.RecordLatency(m.Name(), time.Since(start))
+    m.metrics.RecordStatus(m.Name(), response.StatusCode())
+    m.metrics.IncrementRequestCount(m.Name())
+
+    return response
+}
+```
+
+## Security Best Practices
+
+### Input Validation
+
+```go
+func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    // Validate request headers
+    if !m.validateHeaders(req.Headers()) {
+        return core.NewErrorResponse(http.StatusBadRequest, errors.New("invalid headers"))
+    }
+
+    // Sanitize input
+    sanitizedReq := m.sanitizeRequest(req)
+
+    // Rate limiting
+    if !m.allowRequest(req) {
+        return core.NewErrorResponse(http.StatusTooManyRequests, errors.New("rate limit exceeded"))
+    }
+
+    return next(ctx, sanitizedReq)
+}
+```
+
+### Authentication Patterns
+
+```go
+func (m *authMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    // Extract token
+    token := m.extractToken(req)
+    if token == "" {
+        return core.NewErrorResponse(http.StatusUnauthorized, errors.New("missing token"))
+    }
+
+    // Validate token
+    claims, err := m.validateToken(token)
+    if err != nil {
+        return core.NewErrorResponse(http.StatusUnauthorized, err)
+    }
+
+    // Add claims to context
+    ctx = context.WithValue(ctx, "user_claims", claims)
+
+    return next(ctx, req)
+}
+```
+
+## Integration with Echo
+
+### Echo Adapter Usage
+
+```go
+// Create Echo middleware from core middleware
+echoMw := echo_adapter.NewEchoMiddleware(coreMw)
+
+// Use in Echo router
+e := echo.New()
+e.Use(echoMw)
+```
+
+### Request/Response Conversion
+
+```go
+// Convert Echo context to core request
+coreReq := echo_adapter.NewRequest(echoCtx)
+
+// Process with core middleware
+coreResp := middleware.Process(ctx, coreReq, next)
+
+// Convert back to Echo response
+echo_adapter.WriteResponse(echoCtx, coreResp)
+```
+
+## Debugging and Troubleshooting
+
+### Debug Mode
+
+```go
+func (m *myMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    if m.debug {
+        m.logger.Debug("middleware debug info",
+            "request_id", req.RequestID(),
+            "headers", req.Headers(),
+            "body_size", req.ContentLength(),
+        )
+    }
+
+    response := next(ctx, req)
+
+    if m.debug {
+        m.logger.Debug("response debug info",
+            "status", response.StatusCode(),
+            "headers", response.Headers(),
+            "body_size", response.ContentLength(),
+        )
+    }
+
+    return response
+}
+```
+
+### Health Checks
+
+```go
+func (m *myMiddleware) HealthCheck() error {
+    // Check dependencies
+    if err := m.checkDependencies(); err != nil {
+        return fmt.Errorf("dependency check failed: %w", err)
+    }
+
+    // Check configuration
+    if err := m.validateConfig(); err != nil {
+        return fmt.Errorf("configuration validation failed: %w", err)
+    }
+
+    return nil
+}
+```

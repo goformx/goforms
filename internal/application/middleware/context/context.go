@@ -84,6 +84,7 @@ func GetLogger(ctx context.Context) logging.Logger {
 	if logger, ok := ctx.Value(LoggerKey).(logging.Logger); ok {
 		return logger
 	}
+
 	return nil
 }
 
@@ -92,6 +93,7 @@ func GetRequestID(ctx context.Context) string {
 	if id, ok := ctx.Value(RequestIDKey).(string); ok {
 		return id
 	}
+
 	return ""
 }
 
@@ -100,6 +102,7 @@ func GetCorrelationID(ctx context.Context) string {
 	if id, ok := ctx.Value(CorrelationIDKey).(string); ok {
 		return id
 	}
+
 	return ""
 }
 
@@ -110,7 +113,9 @@ func GetUserID(c echo.Context) (string, bool) {
 	if c == nil {
 		return "", false
 	}
+
 	userID, ok := c.Get(string(UserIDKey)).(string)
+
 	return userID, ok && userID != ""
 }
 
@@ -119,7 +124,9 @@ func GetEmail(c echo.Context) (string, bool) {
 	if c == nil {
 		return "", false
 	}
+
 	email, ok := c.Get(string(EmailKey)).(string)
+
 	return email, ok && email != ""
 }
 
@@ -128,19 +135,23 @@ func GetRole(c echo.Context) (string, bool) {
 	if c == nil {
 		return "", false
 	}
+
 	role, ok := c.Get(string(RoleKey)).(string)
+
 	return role, ok && role != ""
 }
 
 // IsAuthenticated checks if the user is authenticated
 func IsAuthenticated(c echo.Context) bool {
 	userID, ok := GetUserID(c)
+
 	return ok && userID != ""
 }
 
 // IsAdmin checks if the user is an admin
 func IsAdmin(c echo.Context) bool {
 	role, ok := GetRole(c)
+
 	return ok && role == "admin"
 }
 

@@ -12,6 +12,7 @@ func WrapError(err error, code ErrorCode, message string) error {
 		Code:    code,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -21,6 +22,7 @@ func WrapErrorf(err error, code ErrorCode, format string, args ...any) *DomainEr
 		Code:    code,
 		Message: fmt.Sprintf(format, args...),
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -30,10 +32,12 @@ func WrapNotFoundError(err error, message string) error {
 	if errors.As(err, &domainErr) {
 		return domainErr
 	}
+
 	return &DomainError{
 		Code:    ErrCodeNotFound,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -43,10 +47,12 @@ func WrapValidationError(err error, message string) error {
 	if errors.As(err, &domainErr) {
 		return domainErr
 	}
+
 	return &DomainError{
 		Code:    ErrCodeInvalid,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -56,10 +62,12 @@ func WrapAuthenticationError(err error, message string) error {
 	if errors.As(err, &domainErr) {
 		return domainErr
 	}
+
 	return &DomainError{
 		Code:    ErrCodeAuthentication,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -69,10 +77,12 @@ func WrapAuthorizationError(err error, message string) error {
 	if errors.As(err, &domainErr) {
 		return domainErr
 	}
+
 	return &DomainError{
 		Code:    ErrCodeInsufficientRole,
 		Message: message,
 		Err:     err,
+		Context: make(map[string]any),
 	}
 }
 
@@ -82,12 +92,14 @@ func UnwrapError(err error) error {
 	if errors.As(err, &domainErr) {
 		return domainErr.Err
 	}
+
 	return err
 }
 
 // IsDomainError checks if the error is a domain error
 func IsDomainError(err error) bool {
 	var domainErr *DomainError
+
 	return errors.As(err, &domainErr)
 }
 
@@ -97,6 +109,7 @@ func GetDomainError(err error) *DomainError {
 	if errors.As(err, &domainErr) {
 		return domainErr
 	}
+
 	return nil
 }
 
@@ -106,6 +119,7 @@ func GetErrorCode(err error) ErrorCode {
 	if errors.As(err, &domainErr) {
 		return domainErr.Code
 	}
+
 	return ErrCodeServerError
 }
 
@@ -115,6 +129,7 @@ func GetErrorMessage(err error) string {
 	if errors.As(err, &domainErr) {
 		return domainErr.Message
 	}
+
 	return err.Error()
 }
 
@@ -124,6 +139,7 @@ func GetErrorDetails(err error) map[string]any {
 	if errors.As(err, &domainErr) {
 		return domainErr.Context
 	}
+
 	return nil
 }
 
@@ -155,6 +171,10 @@ func GetErrorContext(err error) map[string]any {
 
 	var domainErr *DomainError
 	if errors.As(err, &domainErr) {
+		if len(domainErr.Context) == 0 {
+			return nil
+		}
+
 		return domainErr.Context
 	}
 
@@ -178,6 +198,7 @@ func GetFullErrorMessage(err error) string {
 			current = domainErr.Err
 		} else {
 			messages = append(messages, current.Error())
+
 			break
 		}
 	}

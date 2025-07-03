@@ -29,6 +29,7 @@ func newLogger(
 // With returns a new logger with the given fields
 func (l *logger) With(fields ...any) Logger {
 	zapFields := convertToZapFields(fields, l.fieldSanitizer)
+
 	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer, l.fieldSanitizer)
 }
 
@@ -38,6 +39,7 @@ func (l *logger) WithFieldsStructured(fields ...Field) Logger {
 	for i, field := range fields {
 		zapFields[i] = field.ToZapField()
 	}
+
 	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer, l.fieldSanitizer)
 }
 
@@ -72,6 +74,7 @@ func (l *logger) WithFields(fields map[string]any) Logger {
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.String(k, l.SanitizeField(k, v)))
 	}
+
 	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer, l.fieldSanitizer)
 }
 
@@ -91,6 +94,7 @@ func (l *logger) DebugWithFields(msg string, fields ...Field) {
 	for i, field := range fields {
 		zapFields[i] = field.ToZapField()
 	}
+
 	l.zapLogger.Debug(msg, zapFields...)
 }
 
@@ -105,6 +109,7 @@ func (l *logger) InfoWithFields(msg string, fields ...Field) {
 	for i, field := range fields {
 		zapFields[i] = field.ToZapField()
 	}
+
 	l.zapLogger.Info(msg, zapFields...)
 }
 
@@ -119,6 +124,7 @@ func (l *logger) WarnWithFields(msg string, fields ...Field) {
 	for i, field := range fields {
 		zapFields[i] = field.ToZapField()
 	}
+
 	l.zapLogger.Warn(msg, zapFields...)
 }
 
@@ -133,6 +139,7 @@ func (l *logger) ErrorWithFields(msg string, fields ...Field) {
 	for i, field := range fields {
 		zapFields[i] = field.ToZapField()
 	}
+
 	l.zapLogger.Error(msg, zapFields...)
 }
 
@@ -147,5 +154,6 @@ func (l *logger) FatalWithFields(msg string, fields ...Field) {
 	for i, field := range fields {
 		zapFields[i] = field.ToZapField()
 	}
+
 	l.zapLogger.Fatal(msg, zapFields...)
 }

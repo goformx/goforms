@@ -20,7 +20,7 @@ templ Layout(data view.PageData, content templ.Component) {
 	if data.IsDevelopment {
 		<script type="module" src={ data.AssetPath("@vite/client") }></script>
 	}
-	<script type="module" src={ data.AssetPath("src/js/pages/main.ts") }></script>
+	<script type="module" src={ data.AssetPath("src/js/main.ts") }></script>
 	<link rel="stylesheet" href={ data.AssetPath("src/css/main.css") } type="text/css" />
 </head>
 

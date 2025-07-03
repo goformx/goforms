@@ -86,14 +86,28 @@ func (p *FormRequestProcessorImpl) ProcessSchemaUpdateRequest(c echo.Context) (m
 
 // ProcessSubmissionRequest processes form submission requests
 func (p *FormRequestProcessorImpl) ProcessSubmissionRequest(c echo.Context) (model.JSON, error) {
+	// Log request details for debugging
+	c.Logger().Debug("Processing submission request",
+		"content_type", c.Request().Header.Get("Content-Type"),
+		"content_length", c.Request().ContentLength,
+		"method", c.Request().Method)
+
 	var submissionData model.JSON
 	if err := json.NewDecoder(c.Request().Body).Decode(&submissionData); err != nil {
+		c.Logger().Error("Failed to decode submission data", "error", err)
+
 		return nil, fmt.Errorf("failed to decode submission data: %w", err)
 	}
 
+	c.Logger().Debug("Submission data decoded successfully", "data_keys", len(submissionData))
+
 	if submissionData == nil {
+		c.Logger().Warn("Submission data is nil")
+
 		return nil, errors.New("submission data is required")
 	}
+
+	c.Logger().Debug("Submission request processed successfully")
 
 	return submissionData, nil
 }
@@ -129,12 +143,15 @@ func (p *FormRequestProcessorImpl) validateUpdateRequest(req *FormUpdateRequest)
 	if req.Status != "" {
 		validStatuses := []string{"draft", "published", "archived"}
 		isValid := false
+
 		for _, status := range validStatuses {
 			if req.Status == status {
 				isValid = true
+
 				break
 			}
 		}
+
 		if !isValid {
 			return errors.New("invalid form status")
 		}

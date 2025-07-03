@@ -32,21 +32,25 @@ func (b *AuthResponseBuilder) HTMLFormError(c echo.Context, page string, data *v
 		Type: "error",
 		Text: message,
 	}
+
 	switch page {
 	case "login":
 		if err := b.Renderer.Render(c, pages.Login(*data)); err != nil {
 			return fmt.Errorf("render login page: %w", err)
 		}
+
 		return nil
 	case "signup":
 		if err := b.Renderer.Render(c, pages.Signup(*data)); err != nil {
 			return fmt.Errorf("render signup page: %w", err)
 		}
+
 		return nil
 	default:
 		if err := b.Renderer.Render(c, pages.Error(*data)); err != nil {
 			return fmt.Errorf("render error page: %w", err)
 		}
+
 		return nil
 	}
 }

@@ -1,11 +1,13 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 	"io"
 	"net/http"
 	"os"
 	"strings"
+	"time"
 
 	"github.com/labstack/echo/v4"
 	echomw "github.com/labstack/echo/v4/middleware"
@@ -14,7 +16,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/middleware/context"
+	contextmw "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -24,14 +26,82 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/version"
 )
 
-// Manager handles middleware configuration and setup
+const (
+	// Default rate limiting values
+	DefaultRateLimit = 60
+	DefaultBurst     = 10
+	DefaultWindow    = time.Minute
+
+	// HTTP Status messages
+	RateLimitExceededMsg = "Rate limit exceeded: too many requests from the same form or origin"
+	RateLimitDeniedMsg   = "Rate limit exceeded: please try again later"
+)
+
+// PathChecker handles path-based logic for middleware
+type PathChecker struct {
+	authPaths   []string
+	formPaths   []string
+	staticPaths []string
+	apiPaths    []string
+	healthPaths []string
+}
+
+// NewPathChecker creates a new path checker with default paths
+func NewPathChecker() *PathChecker {
+	return &PathChecker{
+		authPaths:   []string{"/login", "/signup", "/forgot-password", "/reset-password"},
+		formPaths:   []string{"/forms/new", "/forms/", "/submit"},
+		staticPaths: []string{"/assets/", "/static/", "/public/", "/favicon.ico"},
+		apiPaths:    []string{"/api/"},
+		healthPaths: []string{"/health", "/health/", "/healthz", "/healthz/"},
+	}
+}
+
+// IsAuthPath checks if the path is an authentication page
+func (pc *PathChecker) IsAuthPath(path string) bool {
+	return pc.containsPath(path, pc.authPaths)
+}
+
+// IsFormPath checks if the path is a form page
+func (pc *PathChecker) IsFormPath(path string) bool {
+	return pc.containsPath(path, pc.formPaths)
+}
+
+// IsStaticPath checks if the path is a static asset
+func (pc *PathChecker) IsStaticPath(path string) bool {
+	return pc.containsPath(path, pc.staticPaths)
+}
+
+// IsAPIPath checks if the path is an API route
+func (pc *PathChecker) IsAPIPath(path string) bool {
+	return pc.containsPath(path, pc.apiPaths)
+}
+
+// IsHealthPath checks if the path is a health check route
+func (pc *PathChecker) IsHealthPath(path string) bool {
+	return pc.containsPath(path, pc.healthPaths)
+}
+
+// containsPath checks if the path contains any of the given paths
+func (pc *PathChecker) containsPath(path string, paths []string) bool {
+	for _, p := range paths {
+		if strings.Contains(path, p) || path == p {
+			return true
+		}
+	}
+
+	return false
+}
+
+// Manager manages all middleware for the application
 type Manager struct {
 	logger            logging.Logger
 	config            *ManagerConfig
-	contextMiddleware *context.Middleware
+	contextMiddleware *contextmw.Middleware
+	pathChecker       *PathChecker
 }
 
-// ManagerConfig represents the configuration for the middleware manager
+// ManagerConfig contains all dependencies for the middleware manager
 type ManagerConfig struct {
 	Logger         logging.Logger
 	Config         *appconfig.Config // Single source of truth
@@ -42,28 +112,37 @@ type ManagerConfig struct {
 	Sanitizer      sanitization.ServiceInterface
 }
 
-// NewManager creates a new middleware manager
+// Validate ensures all required configuration is present
+func (cfg *ManagerConfig) Validate() error {
+	if cfg.Logger == nil {
+		return errors.New("logger is required")
+	}
+
+	if cfg.Config == nil {
+		return errors.New("config is required")
+	}
+
+	if cfg.Sanitizer == nil {
+		return errors.New("sanitizer is required")
+	}
+
+	return nil
+}
+
 func NewManager(cfg *ManagerConfig) *Manager {
 	if cfg == nil {
 		panic("config is required")
 	}
 
-	if cfg.UserService == nil {
-		panic("user service is required")
-	}
-
-	if cfg.SessionManager == nil {
-		panic("session manager is required")
-	}
-
-	if cfg.Sanitizer == nil {
-		panic("sanitizer is required")
+	if err := cfg.Validate(); err != nil {
+		panic(fmt.Sprintf("invalid config: %v", err))
 	}
 
 	return &Manager{
 		logger:            cfg.Logger,
 		config:            cfg,
-		contextMiddleware: context.NewMiddleware(cfg.Logger, cfg.Config.App.RequestTimeout),
+		contextMiddleware: contextmw.NewMiddleware(cfg.Logger, cfg.Config.App.RequestTimeout),
+		pathChecker:       NewPathChecker(),
 	}
 }
 
@@ -108,6 +187,12 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Add recovery middleware first to catch panics
 	e.Use(Recovery(m.logger, m.config.Sanitizer))
 
+	// Add timeout middleware
+	e.Use(echomw.TimeoutWithConfig(echomw.TimeoutConfig{
+		Timeout:      m.config.Config.App.RequestTimeout,
+		ErrorMessage: "Request timeout",
+	}))
+
 	// Add context middleware to handle request context
 	e.Use(m.contextMiddleware.WithContext())
 
@@ -119,6 +204,7 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 			Output: os.Stdout,
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
+
 				return isNoisePath(path)
 			},
 		}))
@@ -127,6 +213,7 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
 			Skipper: func(c echo.Context) bool {
 				path := c.Request().URL.Path
+
 				return isNoisePath(path)
 			},
 		}))
@@ -135,16 +222,22 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 
 // setupSecurityMiddleware sets up security-related middleware
 func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
-	// Use PerFormCORS middleware for form-specific CORS handling
-	// This middleware will handle CORS for form routes and fallback to global CORS for other routes
-	perFormCORSConfig := NewPerFormCORSConfig(m.config.FormService, m.logger, &m.config.Config.Security)
-	e.Use(PerFormCORS(perFormCORSConfig))
+	// Use Echo's built-in CORS middleware - simple and reliable
+	if m.config.Config.Security.CORS.Enabled {
+		e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+			AllowOrigins:     m.config.Config.Security.CORS.AllowedOrigins,
+			AllowMethods:     m.config.Config.Security.CORS.AllowedMethods,
+			AllowHeaders:     m.config.Config.Security.CORS.AllowedHeaders,
+			AllowCredentials: m.config.Config.Security.CORS.AllowCredentials,
+			MaxAge:           m.config.Config.Security.CORS.MaxAge,
+		}))
+	}
 
 	// Register security middleware
 	e.Use(echomw.SecureWithConfig(echomw.SecureConfig{
-		XSSProtection:         m.config.Config.Security.Headers.XXSSProtection,
-		ContentTypeNosniff:    m.config.Config.Security.Headers.XContentTypeOptions,
-		XFrameOptions:         m.config.Config.Security.Headers.XFrameOptions,
+		XSSProtection:         m.config.Config.Security.SecurityHeaders.XXSSProtection,
+		ContentTypeNosniff:    m.config.Config.Security.SecurityHeaders.XContentTypeOptions,
+		XFrameOptions:         m.config.Config.Security.SecurityHeaders.XFrameOptions,
 		HSTSMaxAge:            constants.HSTSOneYear,
 		HSTSExcludeSubdomains: false,
 		ContentSecurityPolicy: m.config.Config.Security.GetCSPDirectives(&m.config.Config.App),
@@ -154,6 +247,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			c.Set("security_config", m.config.Config.Security)
+
 			return next(c)
 		}
 	})
@@ -166,16 +260,24 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		e.Use(csrfMiddleware)
 	}
 
-	// Setup rate limiting using infrastructure config
+	// Setup rate limiting using infrastructure config with graceful degradation
 	if m.config.Config.Security.RateLimit.Enabled {
-		e.Use(m.setupRateLimiting())
+		m.trySetupRateLimit(e)
 	}
+}
+
+// trySetupRateLimit attempts to setup rate limiting
+func (m *Manager) trySetupRateLimit(e *echo.Echo) {
+	rateLimitMiddleware := m.setupRateLimiting()
+	e.Use(rateLimitMiddleware)
 }
 
 // setupAuthMiddleware sets up authentication-related middleware
 func (m *Manager) setupAuthMiddleware(e *echo.Echo) {
-	// Register session middleware
-	e.Use(m.config.SessionManager.Middleware())
+	// Register session middleware if available
+	if m.config.SessionManager != nil {
+		e.Use(m.config.SessionManager.Middleware())
+	}
 
 	// Register access control middleware
 	e.Use(access.Middleware(m.config.AccessManager, m.logger))
@@ -216,6 +318,7 @@ func getSameSite(cookieSameSite string, isDevelopment bool) http.SameSite {
 		if isDevelopment {
 			return http.SameSiteLaxMode
 		}
+
 		return http.SameSiteStrictMode
 	}
 }
@@ -225,43 +328,101 @@ func getTokenLength(tokenLength int) int {
 	if tokenLength <= 0 || tokenLength > 255 {
 		return constants.DefaultTokenLength
 	}
+
 	return tokenLength
 }
 
-// createCSRFSkipper creates a function that determines if CSRF protection should be skipped
+// createCSRFSkipper creates a CSRF skipper function with reduced complexity
 func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 	return func(c echo.Context) bool {
-		// For GET requests, only skip CSRF if it's not a page that needs token generation
-		if isSafeMethod(c.Request().Method) {
-			// Allow CSRF token generation for auth pages and form pages
-			if isAuthPage(c.Request().URL.Path) || isFormPage(c.Request().URL.Path) {
-				return false
-			}
+		path := c.Request().URL.Path
+		method := c.Request().Method
+
+		// Log debug information in development mode
+		if isDevelopment {
+			logCSRFSkipperDebug(c, path, method)
+		}
+
+		// Handle safe methods (GET, HEAD, OPTIONS)
+		if isSafeMethod(method) {
+			return handleSafeMethodCSRF(c, path, isDevelopment)
+		}
+
+		// Check various route types for CSRF skipping
+		if shouldSkipCSRFForRoute(path, isDevelopment) {
 			return true
 		}
 
-		// Skip CSRF for API routes in development
-		if isDevelopment && isAPIRoute(c.Request().URL.Path) {
-			return true
-		}
-
-		// Skip CSRF for health check routes
-		if isHealthRoute(c.Request().URL.Path) {
-			return true
-		}
-
-		// Skip CSRF for static asset routes
-		if isStaticRoute(c.Request().URL.Path) {
-			return true
-		}
-
-		// Skip CSRF for form submission endpoints (handled by form-specific CORS)
-		if isFormSubmissionRoute(c.Request().URL.Path) {
-			return true
+		// Log that CSRF protection is required
+		if isDevelopment {
+			c.Logger().Debug("CSRF not skipped - requires protection", "path", path, "method", method)
 		}
 
 		return false
 	}
+}
+
+// logCSRFSkipperDebug logs debug information for CSRF skipper
+func logCSRFSkipperDebug(c echo.Context, path, method string) {
+	c.Logger().Debug("CSRF skipper check",
+		"path", path,
+		"method", method,
+		"is_safe_method", isSafeMethod(method),
+		"is_auth_page", isAuthPage(path),
+		"is_form_page", isFormPage(path),
+		"is_api_route", isAPIRoute(path),
+		"is_health_route", isHealthRoute(path),
+		"is_static_route", isStaticRoute(path),
+		"is_form_submission_route", isFormSubmissionRoute(path),
+		"is_auth_endpoint", isAuthEndpoint(path))
+}
+
+// handleSafeMethodCSRF handles CSRF logic for safe HTTP methods
+func handleSafeMethodCSRF(c echo.Context, path string, isDevelopment bool) bool {
+	// Allow CSRF token generation for auth pages and form pages
+	if isAuthPage(path) || isFormPage(path) {
+		if isDevelopment {
+			c.Logger().Debug("CSRF not skipped - token generation needed", "path", path)
+		}
+
+		return false
+	}
+
+	if isDevelopment {
+		c.Logger().Debug("CSRF skipped - safe method", "path", path, "method", c.Request().Method)
+	}
+
+	return true
+}
+
+// shouldSkipCSRFForRoute checks if CSRF should be skipped for the given route
+func shouldSkipCSRFForRoute(path string, isDevelopment bool) bool {
+	// Skip CSRF for authentication endpoints
+	if isAuthEndpoint(path) {
+		return true
+	}
+
+	// Skip CSRF for API routes in development
+	if isDevelopment && isAPIRoute(path) {
+		return true
+	}
+
+	// Skip CSRF for health check routes
+	if isHealthRoute(path) {
+		return true
+	}
+
+	// Skip CSRF for static asset routes
+	if isStaticRoute(path) {
+		return true
+	}
+
+	// Skip CSRF for form submission endpoints
+	if isFormSubmissionRoute(path) {
+		return true
+	}
+
+	return false
 }
 
 // isSafeMethod checks if the HTTP method is safe (doesn't modify state)
@@ -272,6 +433,7 @@ func isSafeMethod(method string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -288,6 +450,7 @@ func isHealthRoute(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -299,6 +462,7 @@ func isStaticRoute(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -306,8 +470,9 @@ func isStaticRoute(path string) bool {
 func isFormSubmissionRoute(path string) bool {
 	// Check for form submission patterns
 	submissionPatterns := []string{
-		"/forms/", // Form endpoints
-		"/submit", // Direct submission endpoints
+		"/api/v1/forms/", // API form endpoints
+		"/forms/",        // Form endpoints
+		"/submit",        // Direct submission endpoints
 	}
 
 	for _, pattern := range submissionPatterns {
@@ -315,6 +480,7 @@ func isFormSubmissionRoute(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -326,17 +492,31 @@ func isAuthPage(path string) bool {
 			return true
 		}
 	}
+
+	return false
+}
+
+// isAuthEndpoint checks if the path is an authentication endpoint that should skip CSRF protection
+func isAuthEndpoint(path string) bool {
+	authEndpoints := []string{"/login", "/signup", "/logout", "/forgot-password", "/reset-password"}
+	for _, endpoint := range authEndpoints {
+		if path == endpoint {
+			return true
+		}
+	}
+
 	return false
 }
 
 // isFormPage checks if the path is a form page that needs CSRF token generation
 func isFormPage(path string) bool {
-	formPages := []string{"/forms/new", "/forms/", "/submit"}
+	formPages := []string{"/forms/new", "/forms/", "/submit", "/dashboard"}
 	for _, page := range formPages {
 		if strings.Contains(path, page) {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -374,8 +554,11 @@ func createCSRFErrorHandler(
 				"context_token_value", contextToken,
 				"cookies", cookies,
 				"content_type", c.Request().Header.Get("Content-Type"),
-				"user_agent", c.Request().UserAgent())
+				"user_agent", c.Request().UserAgent(),
+				"is_development", isDevelopment,
+				"csrf_enabled", true)
 		}
+
 		return c.NoContent(http.StatusForbidden)
 	}
 }
@@ -392,9 +575,16 @@ func setupAdditionalSecurityHeadersMiddleware() echo.MiddlewareFunc {
 				c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
 			} else {
 				// Use configured values
-				c.Response().Header().Set("Referrer-Policy", securityConfig.Headers.ReferrerPolicy)
-				c.Response().Header().Set("Strict-Transport-Security", securityConfig.Headers.StrictTransportSecurity)
+				c.Response().Header().Set("Referrer-Policy", securityConfig.SecurityHeaders.ReferrerPolicy)
+				c.Response().Header().Set("Strict-Transport-Security", securityConfig.SecurityHeaders.StrictTransportSecurity)
 				c.Response().Header().Set("Permissions-Policy", "geolocation=(), microphone=(), camera=()")
+			}
+
+			// Add exposed headers for CORS (since Echo's CORS doesn't support ExposeHeaders)
+			origin := c.Request().Header.Get("Origin")
+			if origin != "" {
+				// Expose CSRF token header for cross-origin requests
+				c.Response().Header().Set("Access-Control-Expose-Headers", "X-Csrf-Token")
 			}
 
 			return next(c)
@@ -424,12 +614,22 @@ func (l *EchoLogger) Printj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Info("", fields...)
 }
 
 // Debug logs a message at debug level
 func (l *EchoLogger) Debug(i ...any) {
-	l.logger.Debug(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Debug(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Debug(fmt.Sprint(i...))
+	}
 }
 
 // Debugf logs a formatted message at debug level
@@ -443,12 +643,22 @@ func (l *EchoLogger) Debugj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Debug("", fields...)
 }
 
 // Info logs a message at info level
 func (l *EchoLogger) Info(i ...any) {
-	l.logger.Info(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Info(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Info(fmt.Sprint(i...))
+	}
 }
 
 // Infof logs a formatted message at info level
@@ -462,12 +672,22 @@ func (l *EchoLogger) Infoj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Info("", fields...)
 }
 
 // Warn logs a message at warn level
 func (l *EchoLogger) Warn(i ...any) {
-	l.logger.Warn(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Warn(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Warn(fmt.Sprint(i...))
+	}
 }
 
 // Warnf logs a formatted message at warn level
@@ -481,12 +701,22 @@ func (l *EchoLogger) Warnj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Warn("", fields...)
 }
 
 // Error logs a message at error level
 func (l *EchoLogger) Error(i ...any) {
-	l.logger.Error(fmt.Sprint(i...))
+	// Handle structured logging with key-value pairs
+	if len(i) > 1 {
+		// First argument is the message, rest are key-value pairs
+		message := fmt.Sprint(i[0])
+		fields := i[1:]
+		l.logger.Error(message, fields...)
+	} else {
+		// Single argument - just the message
+		l.logger.Error(fmt.Sprint(i...))
+	}
 }
 
 // Errorf logs a formatted message at error level
@@ -500,6 +730,7 @@ func (l *EchoLogger) Errorj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Error("", fields...)
 }
 
@@ -519,6 +750,7 @@ func (l *EchoLogger) Fatalj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Fatal("", fields...)
 }
 
@@ -540,6 +772,7 @@ func (l *EchoLogger) Panicj(j log.JSON) {
 	for k, v := range j {
 		fields = append(fields, k, fmt.Sprint(v))
 	}
+
 	l.logger.Error("", fields...)
 	panic(fmt.Sprintf("%v", j))
 }
@@ -583,66 +816,186 @@ func (l *EchoLogger) Output() io.Writer {
 func (m *Manager) setupRateLimiting() echo.MiddlewareFunc {
 	rateLimitConfig := m.config.Config.Security.RateLimit
 
-	return echomw.RateLimiterWithConfig(echomw.RateLimiterConfig{
-		Skipper: func(c echo.Context) bool {
-			path := c.Request().URL.Path
-			method := c.Request().Method
+	// Validate configuration
+	if err := m.validateRateLimitConfig(rateLimitConfig); err != nil {
+		m.logger.Error("Invalid rate limit configuration", "error", err)
+		// Return no-op middleware on configuration error
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			return next
+		}
+	}
 
-			// Skip paths from config
-			for _, skipPath := range rateLimitConfig.SkipPaths {
-				if strings.HasPrefix(path, skipPath) {
-					return true
-				}
-			}
+	// Disable rate limiting in development mode for better developer experience
+	if m.config.Config.App.IsDevelopment() && !rateLimitConfig.Enabled {
+		m.logger.Info("Rate limiting disabled in development mode")
 
-			// Skip methods from config
-			for _, skipMethod := range rateLimitConfig.SkipMethods {
-				if method == skipMethod {
-					return true
-				}
-			}
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			return next
+		}
+	}
 
-			return false
-		},
-		Store: echomw.NewRateLimiterMemoryStoreWithConfig(
-			echomw.RateLimiterMemoryStoreConfig{
-				Rate:      rate.Limit(rateLimitConfig.Requests),
-				Burst:     rateLimitConfig.Burst,
-				ExpiresIn: rateLimitConfig.Window,
-			},
-		),
-		IdentifierExtractor: func(c echo.Context) (string, error) {
-			// For login and signup pages, use IP address as identifier
-			path := c.Request().URL.Path
-			if path == constants.PathLogin || path == constants.PathSignup || path == constants.PathResetPassword {
-				return c.RealIP(), nil
-			}
+	// Create rate limiter configuration
+	config := m.createRateLimiterConfig(rateLimitConfig)
 
-			// For form submissions, use form ID and origin
-			formID := c.Param("formID")
-			origin := c.Request().Header.Get("Origin")
-			if formID == "" {
-				formID = constants.DefaultUnknown
-			}
-			if origin == "" {
-				origin = constants.DefaultUnknown
-			}
-			return fmt.Sprintf("%s:%s", formID, origin), nil
+	m.logger.Info("Setting up rate limiter",
+		"enabled", rateLimitConfig.Enabled,
+		"requests_per_second", rateLimitConfig.Requests,
+		"burst", rateLimitConfig.Burst,
+		"window", rateLimitConfig.Window,
+		"skip_paths", rateLimitConfig.SkipPaths,
+		"skip_methods", rateLimitConfig.SkipMethods,
+	)
+
+	return echomw.RateLimiterWithConfig(config)
+}
+
+// validateRateLimitConfig validates the rate limit configuration
+func (m *Manager) validateRateLimitConfig(config appconfig.RateLimitConfig) error {
+	if config.Requests <= 0 {
+		return errors.New("requests per second must be positive")
+	}
+
+	if config.Burst <= 0 {
+		return errors.New("burst must be positive")
+	}
+
+	if config.Window <= 0 {
+		return errors.New("window duration must be positive")
+	}
+
+	return nil
+}
+
+// createRateLimiterConfig creates the Echo rate limiter configuration
+func (m *Manager) createRateLimiterConfig(rateLimitConfig appconfig.RateLimitConfig) echomw.RateLimiterConfig {
+	return echomw.RateLimiterConfig{
+		Skipper:             m.createRateLimitSkipper(rateLimitConfig),
+		Store:               m.createRateLimitStore(rateLimitConfig),
+		IdentifierExtractor: m.createIdentifierExtractor(),
+		ErrorHandler:        m.createRateLimitErrorHandler(),
+		DenyHandler:         m.createRateLimitDenyHandler(),
+	}
+}
+
+// createRateLimitSkipper creates a skipper function for rate limiting
+func (m *Manager) createRateLimitSkipper(config appconfig.RateLimitConfig) echomw.Skipper {
+	return func(c echo.Context) bool {
+		return m.shouldSkipRateLimit(c, config)
+	}
+}
+
+// shouldSkipRateLimit determines if rate limiting should be skipped for this request
+func (m *Manager) shouldSkipRateLimit(c echo.Context, config appconfig.RateLimitConfig) bool {
+	path := c.Request().URL.Path
+	method := c.Request().Method
+
+	// Skip paths from config
+	for _, skipPath := range config.SkipPaths {
+		if strings.HasPrefix(path, skipPath) {
+			m.logger.Debug("Rate limiter skipping path", "path", path, "skip_path", skipPath)
+
+			return true
+		}
+	}
+
+	// Skip methods from config
+	for _, skipMethod := range config.SkipMethods {
+		if method == skipMethod {
+			m.logger.Debug("Rate limiter skipping method", "method", method, "skip_method", skipMethod)
+
+			return true
+		}
+	}
+
+	return false
+}
+
+// createRateLimitStore creates the rate limiter store
+func (m *Manager) createRateLimitStore(config appconfig.RateLimitConfig) echomw.RateLimiterStore {
+	return echomw.NewRateLimiterMemoryStoreWithConfig(
+		echomw.RateLimiterMemoryStoreConfig{
+			Rate:      rate.Limit(config.Requests),
+			Burst:     config.Burst,
+			ExpiresIn: config.Window,
 		},
-		ErrorHandler: func(_ echo.Context, _ error) error {
-			return echo.NewHTTPError(http.StatusTooManyRequests,
-				"Rate limit exceeded: too many requests from the same form or origin")
-		},
-		DenyHandler: func(_ echo.Context, _ string, _ error) error {
-			return echo.NewHTTPError(http.StatusTooManyRequests,
-				"Rate limit exceeded: please try again later")
-		},
-	})
+	)
+}
+
+// createIdentifierExtractor creates the identifier extraction function
+func (m *Manager) createIdentifierExtractor() echomw.Extractor {
+	return func(c echo.Context) (string, error) {
+		path := c.Request().URL.Path
+
+		// Use different strategies based on path type
+		switch {
+		case m.pathChecker.IsAuthPath(path):
+			return m.getIPBasedIdentifier(c), nil
+		case m.pathChecker.IsFormPath(path):
+			return m.getFormBasedIdentifier(c), nil
+		default:
+			return m.getDefaultIdentifier(c), nil
+		}
+	}
+}
+
+// getIPBasedIdentifier creates an identifier based on IP address
+func (m *Manager) getIPBasedIdentifier(c echo.Context) string {
+	return fmt.Sprintf("ip:%s", c.RealIP())
+}
+
+// getFormBasedIdentifier creates an identifier based on form ID and origin
+func (m *Manager) getFormBasedIdentifier(c echo.Context) string {
+	formID := c.Param("formID")
+	if formID == "" {
+		formID = "unknown"
+	}
+
+	origin := c.Request().Header.Get("Origin")
+	if origin == "" {
+		origin = "unknown"
+	}
+
+	return fmt.Sprintf("form:%s:%s", formID, origin)
+}
+
+// getDefaultIdentifier creates a default identifier
+func (m *Manager) getDefaultIdentifier(c echo.Context) string {
+	return fmt.Sprintf("default:%s", c.RealIP())
+}
+
+// createRateLimitErrorHandler creates the error handler for rate limiting
+func (m *Manager) createRateLimitErrorHandler() func(c echo.Context, err error) error {
+	return func(c echo.Context, err error) error {
+		m.logger.Warn("Rate limit exceeded",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"ip", c.RealIP(),
+			"error", err,
+		)
+
+		return echo.NewHTTPError(http.StatusTooManyRequests, RateLimitExceededMsg)
+	}
+}
+
+// createRateLimitDenyHandler creates the deny handler for rate limiting
+func (m *Manager) createRateLimitDenyHandler() func(c echo.Context, identifier string, err error) error {
+	return func(c echo.Context, identifier string, err error) error {
+		m.logger.Warn("Rate limit denied",
+			"path", c.Request().URL.Path,
+			"method", c.Request().Method,
+			"ip", c.RealIP(),
+			"identifier", identifier,
+			"error", err,
+		)
+
+		return echo.NewHTTPError(http.StatusTooManyRequests, RateLimitDeniedMsg)
+	}
 }
 
 // isNoisePath checks if the path should be suppressed from logging
 func isNoisePath(path string) bool {
 	const faviconPath = "/favicon.ico"
+
 	return strings.HasPrefix(path, "/.well-known") ||
 		path == faviconPath ||
 		strings.HasPrefix(path, "/robots.txt") ||

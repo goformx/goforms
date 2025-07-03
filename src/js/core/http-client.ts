@@ -35,12 +35,14 @@ export interface HttpResponse<T = unknown> {
 export class HttpClient {
   private static readonly DEFAULT_TIMEOUT = 30000; // 30 seconds
 
-  private static getCSRFToken(): string {
+  private static getCSRFToken(): string | null {
     const meta = document.querySelector<HTMLMetaElement>(
       "meta[name='csrf-token']",
     );
     if (!meta?.content) {
-      throw new Error("Catastrophic. CSRF token not found.");
+      // Return null instead of throwing error when CSRF token is not found
+      // This allows the application to work when CSRF is disabled
+      return null;
     }
     return meta.content;
   }
@@ -114,6 +116,17 @@ export class HttpClient {
     };
   }
 
+  private static isPublicEndpoint(url: string): boolean {
+    // Check if this is a public API endpoint that doesn't require CSRF
+    const publicEndpoints = [
+      "/api/v1/forms/", // Form submission endpoints
+      "/health",
+      "/healthz",
+    ];
+
+    return publicEndpoints.some((endpoint) => url.includes(endpoint));
+  }
+
   private static async makeRequest<T>(
     url: string,
     options: HttpRequestOptions = {},
@@ -133,16 +146,17 @@ export class HttpClient {
     try {
       const headers = new Headers(options.headers);
 
-      // Add CSRF token for non-GET requests
-      if (options.method !== "GET") {
-        try {
-          const csrfToken = this.getCSRFToken();
+      // Add CSRF token for non-GET requests only if CSRF is enabled and not a public endpoint
+      if (options.method !== "GET" && !this.isPublicEndpoint(url)) {
+        const csrfToken = this.getCSRFToken();
+        if (csrfToken) {
           headers.set("X-Csrf-Token", csrfToken);
-          Logger.log("CSRF Token status verified");
-        } catch (error) {
-          Logger.error("CSRF token error:", error);
-          throw FormBuilderError.networkError("CSRF token not found", url);
+          Logger.log("CSRF Token included in request");
+        } else {
+          throw new Error("CSRF token not found");
         }
+      } else if (this.isPublicEndpoint(url)) {
+        Logger.log("Skipping CSRF token for public endpoint");
       }
 
       // Set content type if not FormData

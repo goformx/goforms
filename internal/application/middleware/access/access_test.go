@@ -269,13 +269,17 @@ func TestDefaultRules(t *testing.T) {
 
 	for path, expectedLevel := range essentialPaths {
 		found := false
+
 		for _, rule := range rules {
 			if rule.Path == path {
 				assert.Equal(t, expectedLevel, rule.AccessLevel, "Path %s should have access level %v", path, expectedLevel)
+
 				found = true
+
 				break
 			}
 		}
+
 		assert.True(t, found, "Path %s should be in default rules", path)
 	}
 }

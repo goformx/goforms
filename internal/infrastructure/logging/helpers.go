@@ -11,6 +11,7 @@ import (
 // convertToZapFields converts a slice of fields to zap fields with performance optimization
 func convertToZapFields(fields []any, fieldSanitizer *Sanitizer) []zap.Field {
 	zapFields := make([]zap.Field, 0, len(fields)/FieldPairSize)
+
 	for i := 0; i < len(fields); i += FieldPairSize {
 		if i+1 >= len(fields) {
 			break
@@ -26,6 +27,7 @@ func convertToZapFields(fields []any, fieldSanitizer *Sanitizer) []zap.Field {
 		// Use optimized field creation that preserves native types
 		zapFields = append(zapFields, createOptimizedField(key, value, fieldSanitizer))
 	}
+
 	return zapFields
 }
 
@@ -43,6 +45,7 @@ func createOptimizedField(key string, value any, fieldSanitizer *Sanitizer) zap.
 		if needsStringSanitization(key, v) {
 			return zap.String(key, fieldSanitizer.SanitizeField(key, v))
 		}
+
 		return zap.String(key, v)
 	case int:
 		return zap.Int(key, v)
@@ -87,5 +90,6 @@ func sanitizeError(err error, sanitizer sanitization.ServiceInterface) string {
 	if sanitizer != nil {
 		return sanitizer.SanitizeForLogging(errMsg)
 	}
+
 	return errMsg
 }

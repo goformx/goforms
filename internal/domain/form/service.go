@@ -97,6 +97,10 @@ func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
 
 // DeleteForm deletes a form
 func (s *formService) DeleteForm(ctx context.Context, formID string) error {
+	if formID == "" {
+		return fmt.Errorf("failed to delete form: formID is required")
+	}
+
 	if err := s.repository.DeleteForm(ctx, formID); err != nil {
 		return fmt.Errorf("failed to delete form: %w", err)
 	}
@@ -114,6 +118,7 @@ func (s *formService) GetForm(ctx context.Context, formID string) (*model.Form, 
 	if err != nil {
 		return nil, fmt.Errorf("get form by ID: %w", err)
 	}
+
 	return form, nil
 }
 
@@ -123,6 +128,7 @@ func (s *formService) ListForms(ctx context.Context, userID string) ([]*model.Fo
 	if err != nil {
 		return nil, fmt.Errorf("failed to list forms: %w", err)
 	}
+
 	return forms, nil
 }
 
@@ -137,6 +143,7 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	if getErr != nil {
 		return fmt.Errorf("get form for submission: %w", getErr)
 	}
+
 	if form == nil {
 		return errors.New("form not found")
 	}
@@ -149,6 +156,7 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 
 	// Publish form submitted event
 	event := formevents.NewFormSubmittedEvent(submission)
+
 	publishErr := s.eventBus.Publish(ctx, event)
 	if publishErr != nil {
 		s.logger.Error("failed to publish form submitted event", "error", publishErr)
@@ -158,6 +166,7 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	validationErr := submission.Validate()
 	isValid := validationErr == nil
 	validationEvent := formevents.NewFormValidatedEvent(submission.FormID, isValid)
+
 	validationPublishErr := s.eventBus.Publish(ctx, validationEvent)
 	if validationPublishErr != nil {
 		s.logger.Error("failed to publish form validated event", "error", validationPublishErr)
@@ -168,6 +177,7 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 	}
 
 	processingEvent := formevents.NewFormProcessedEvent(submission.FormID, submission.ID)
+
 	processingPublishErr := s.eventBus.Publish(ctx, processingEvent)
 	if processingPublishErr != nil {
 		s.logger.Error("failed to publish form processed event", "error", processingPublishErr)
@@ -182,6 +192,7 @@ func (s *formService) GetFormSubmission(ctx context.Context, submissionID string
 	if err != nil {
 		return nil, fmt.Errorf("get form submission by ID: %w", err)
 	}
+
 	return submission, nil
 }
 
@@ -191,6 +202,7 @@ func (s *formService) ListFormSubmissions(ctx context.Context, formID string) ([
 	if err != nil {
 		return nil, fmt.Errorf("list form submissions: %w", err)
 	}
+
 	return submissions, nil
 }
 
@@ -220,5 +232,6 @@ func (s *formService) TrackFormAnalytics(ctx context.Context, formID, eventType 
 	if err := s.eventBus.Publish(ctx, event); err != nil {
 		return fmt.Errorf("failed to publish analytics event: %w", err)
 	}
+
 	return nil
 }

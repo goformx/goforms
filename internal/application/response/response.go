@@ -19,6 +19,7 @@ type APIResponse struct {
 func Success(c echo.Context, data any) error {
 	return c.JSON(http.StatusOK, APIResponse{
 		Success: true,
+		Message: "",
 		Data:    data,
 	})
 }
@@ -28,5 +29,6 @@ func ErrorResponse(c echo.Context, statusCode int, message string) error {
 	return c.JSON(statusCode, APIResponse{
 		Success: false,
 		Message: message,
+		Data:    nil,
 	})
 }

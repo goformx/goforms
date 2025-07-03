@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
@@ -15,7 +16,6 @@ import (
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
@@ -30,7 +30,6 @@ type AuthHandler struct {
 	ResponseBuilder *AuthResponseBuilder
 	AuthService     *AuthService
 	Sanitizer       sanitization.ServiceInterface
-	AssetManager    *web.AssetManager
 }
 
 const (
@@ -52,13 +51,13 @@ func NewAuthHandler(
 	responseBuilder *AuthResponseBuilder,
 	authService *AuthService,
 	sanitizer sanitization.ServiceInterface,
-	assetManager *web.AssetManager,
 ) (*AuthHandler, error) {
 	if base == nil || authMiddleware == nil || requestUtils == nil ||
 		schemaGenerator == nil || requestParser == nil || responseBuilder == nil ||
-		authService == nil || sanitizer == nil || assetManager == nil {
+		authService == nil || sanitizer == nil {
 		return nil, errors.New("missing required dependencies for AuthHandler")
 	}
+
 	return &AuthHandler{
 		BaseHandler:     base,
 		AuthMiddleware:  authMiddleware,
@@ -68,7 +67,6 @@ func NewAuthHandler(
 		ResponseBuilder: responseBuilder,
 		AuthService:     authService,
 		Sanitizer:       sanitizer,
-		AssetManager:    assetManager,
 	}, nil
 }
 
@@ -77,7 +75,6 @@ func NewAuthHandler(
 func (h *AuthHandler) Register(e *echo.Echo) {
 	// Routes are registered by RegisterHandlers function
 	// This method is required to satisfy the Handler interface
-
 	// Add a simple test endpoint to verify JSON responses work
 	api := e.Group(constants.PathAPIv1)
 	api.GET("/test", h.TestEndpoint)
@@ -93,19 +90,7 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
-	// Force CSRF token generation
-	_ = c.Get("csrf")
-	data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
-	if mwcontext.IsAuthenticated(c) {
-		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
-			return fmt.Errorf("redirect to dashboard: %w", err)
-		}
-		return nil
-	}
-	if err := h.Renderer.Render(c, pages.Login(data)); err != nil {
-		return fmt.Errorf("render login page: %w", err)
-	}
-	return nil
+	return h.renderAuthPage(c, "Login", pages.Login)
 }
 
 // LoginPost handles POST /login - processes the login form
@@ -119,127 +104,30 @@ func (h *AuthHandler) Login(c echo.Context) error {
 //   - HTML response with error for regular requests
 //   - Redirect to dashboard on success
 func (h *AuthHandler) LoginPost(c echo.Context) error {
-	email, password, err := h.RequestParser.ParseLogin(c)
-	if err != nil {
-		h.Logger.Error("failed to parse login request", "error", err)
-		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(
-				c, constants.StatusBadRequest, constants.ErrMsgInvalidRequest,
-			)
-		}
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
-		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidRequest)
-	}
-
-	email = h.Sanitizer.Email(email)
-
-	_, sessionID, err := h.AuthService.Login(c.Request().Context(), email, password, c.Request().UserAgent())
-	if err != nil {
-		h.Logger.Error("login failed", "error", err)
-		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(
-				c, constants.StatusUnauthorized, constants.ErrMsgInvalidCredentials,
-			)
-		}
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Login")
-		return h.ResponseBuilder.HTMLFormError(c, "login", &data, constants.ErrMsgInvalidCredentials)
-	}
-
-	h.SessionManager.SetSessionCookie(c, sessionID)
-
-	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return response.Success(c, map[string]string{
-			"redirect": constants.PathDashboard,
-		})
-	}
-	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
+	return h.handleAuthSubmission(c, h.processLogin, "Login")
 }
 
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
-	// Force CSRF token generation
-	_ = c.Get("csrf")
-	data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
-	if mwcontext.IsAuthenticated(c) {
-		if err := c.Redirect(constants.StatusSeeOther, constants.PathDashboard); err != nil {
-			return fmt.Errorf("redirect to dashboard: %w", err)
-		}
-		return nil
-	}
-	if err := h.Renderer.Render(c, pages.Signup(data)); err != nil {
-		return fmt.Errorf("render signup page: %w", err)
-	}
-	return nil
+	return h.renderAuthPage(c, "Sign Up", pages.Signup)
 }
 
 // SignupPost handles the signup form submission
 func (h *AuthHandler) SignupPost(c echo.Context) error {
-	signup, err := h.RequestParser.ParseSignup(c)
-	if err != nil {
-		h.Logger.Error("failed to parse signup request", "error", err)
-		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(
-				c,
-				constants.StatusBadRequest,
-				constants.ErrMsgInvalidRequest,
-			)
-		}
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
-		return h.ResponseBuilder.HTMLFormError(c, "signup", &data, constants.ErrMsgInvalidRequest)
-	}
-
-	signup.Email = h.Sanitizer.Email(signup.Email)
-
-	_, sessionID, err := h.AuthService.Signup(c.Request().Context(), signup, c.Request().UserAgent())
-	if err != nil {
-		h.Logger.Error("signup failed", "error", err)
-		if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-			return h.ResponseBuilder.AJAXError(
-				c,
-				constants.StatusBadRequest,
-				"Unable to create account. Please try again.",
-			)
-		}
-		data := view.BuildPageData(h.Config, h.AssetManager, c, "Sign Up")
-		return h.ResponseBuilder.HTMLFormError(
-			c,
-			"signup",
-			&data,
-			"Unable to create account. Please try again.",
-		)
-	}
-
-	h.SessionManager.SetSessionCookie(c, sessionID)
-
-	if c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader {
-		return response.Success(c, map[string]string{
-			"message":  constants.MsgSignupSuccess,
-			"redirect": constants.PathDashboard,
-		})
-	}
-	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
+	return h.handleAuthSubmission(c, h.processSignup, "Sign Up")
 }
 
 // Logout handles POST /logout - processes the logout request
 func (h *AuthHandler) Logout(c echo.Context) error {
-	// Get session cookie
-	cookie, err := c.Cookie(h.SessionManager.GetCookieName())
-	if err != nil {
-		return fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
+	if err := h.clearUserSession(c); err != nil {
+		h.Logger.Error("failed to clear session", "error", err)
 	}
 
-	// Delete session
-	h.SessionManager.DeleteSession(cookie.Value)
-
-	// Clear session cookie
-	h.SessionManager.ClearSessionCookie(c)
-
-	return fmt.Errorf("redirect to login: %w", c.Redirect(constants.StatusSeeOther, constants.PathLogin))
+	return h.redirectToLogin(c)
 }
 
 // LoginValidation handles the login form validation schema request
 func (h *AuthHandler) LoginValidation(c echo.Context) error {
-	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateLoginSchema()
 
 	return response.Success(c, schema)
@@ -247,7 +135,6 @@ func (h *AuthHandler) LoginValidation(c echo.Context) error {
 
 // SignupValidation returns the validation schema for the signup form
 func (h *AuthHandler) SignupValidation(c echo.Context) error {
-	// Generate schema using the validation package
 	schema := h.SchemaGenerator.GenerateSignupSchema()
 
 	return response.Success(c, schema)
@@ -263,4 +150,129 @@ func (h *AuthHandler) Start(_ context.Context) error {
 // This is called during application shutdown.
 func (h *AuthHandler) Stop(_ context.Context) error {
 	return nil // No cleanup needed
+}
+
+// Helper methods for DRY and SRP compliance
+
+// renderAuthPage handles the common pattern for rendering auth pages
+func (h *AuthHandler) renderAuthPage(
+	c echo.Context,
+	title string,
+	templateFunc func(view.PageData) templ.Component,
+) error {
+	// Force CSRF token generation
+	_ = c.Get("csrf")
+
+	data := h.NewPageData(c, title)
+
+	if mwcontext.IsAuthenticated(c) {
+		return h.redirectToDashboard(c)
+	}
+
+	return fmt.Errorf("render auth page: %w", h.Renderer.Render(c, templateFunc(*data)))
+}
+
+// handleAuthSubmission handles the common pattern for auth form submissions
+func (h *AuthHandler) handleAuthSubmission(c echo.Context, processor func(echo.Context) error, pageTitle string) error {
+	if err := processor(c); err != nil {
+		return h.handleAuthError(c, err, pageTitle)
+	}
+
+	return h.handleAuthSuccess(c)
+}
+
+// processLogin handles login-specific processing
+func (h *AuthHandler) processLogin(c echo.Context) error {
+	email, password, err := h.RequestParser.ParseLogin(c)
+	if err != nil {
+		h.Logger.Error("failed to parse login request", "error", err)
+
+		return fmt.Errorf("parse login: %w", err)
+	}
+
+	email = h.Sanitizer.Email(email)
+
+	_, sessionID, err := h.AuthService.Login(c.Request().Context(), email, password, c.Request().UserAgent())
+	if err != nil {
+		h.Logger.Error("login failed", "error", err)
+
+		return fmt.Errorf("login: %w", err)
+	}
+
+	h.SessionManager.SetSessionCookie(c, sessionID)
+
+	return nil
+}
+
+// processSignup handles signup-specific processing
+func (h *AuthHandler) processSignup(c echo.Context) error {
+	signup, err := h.RequestParser.ParseSignup(c)
+	if err != nil {
+		h.Logger.Error("failed to parse signup request", "error", err)
+
+		return fmt.Errorf("parse signup: %w", err)
+	}
+
+	signup.Email = h.Sanitizer.Email(signup.Email)
+
+	_, sessionID, err := h.AuthService.Signup(c.Request().Context(), signup, c.Request().UserAgent())
+	if err != nil {
+		h.Logger.Error("signup failed", "error", err)
+
+		return fmt.Errorf("signup: %w", err)
+	}
+
+	h.SessionManager.SetSessionCookie(c, sessionID)
+
+	return nil
+}
+
+// handleAuthError handles authentication errors with appropriate response format
+func (h *AuthHandler) handleAuthError(c echo.Context, err error, pageTitle string) error {
+	if h.isAJAXRequest(c) {
+		return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, err.Error())
+	}
+
+	data := h.NewPageData(c, pageTitle)
+
+	return h.ResponseBuilder.HTMLFormError(c, pageTitle, data, err.Error())
+}
+
+// handleAuthSuccess handles successful authentication with appropriate response format
+func (h *AuthHandler) handleAuthSuccess(c echo.Context) error {
+	if h.isAJAXRequest(c) {
+		return response.Success(c, map[string]string{
+			"redirect": constants.PathDashboard,
+		})
+	}
+
+	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
+}
+
+// clearUserSession clears the user's session
+func (h *AuthHandler) clearUserSession(c echo.Context) error {
+	cookie, err := c.Cookie(h.SessionManager.GetCookieName())
+	if err != nil {
+		return fmt.Errorf("get session cookie: %w", err)
+	}
+
+	h.SessionManager.DeleteSession(cookie.Value)
+	h.SessionManager.ClearSessionCookie(c)
+
+	return nil
+}
+
+// redirectToDashboard redirects to the dashboard
+func (h *AuthHandler) redirectToDashboard(c echo.Context) error {
+	return c.Redirect(constants.StatusSeeOther, constants.PathDashboard)
+}
+
+// redirectToLogin redirects to the login page
+func (h *AuthHandler) redirectToLogin(c echo.Context) error {
+	return c.Redirect(constants.StatusSeeOther, constants.PathLogin)
+}
+
+// isAJAXRequest checks if the request is an AJAX request
+func (h *AuthHandler) isAJAXRequest(c echo.Context) bool {
+	return c.Request().Header.Get(constants.HeaderXRequestedWith) == XMLHttpRequestHeader
 }

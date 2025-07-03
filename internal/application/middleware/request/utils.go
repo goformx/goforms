@@ -43,12 +43,14 @@ func (ru *Utils) ParseRequestData(c echo.Context, target any) error {
 		if err := json.NewDecoder(c.Request().Body).Decode(target); err != nil {
 			return fmt.Errorf("decode JSON request body: %w", err)
 		}
+
 		return nil
 	default:
 		// Handle form data
 		if err := c.Bind(target); err != nil {
 			return fmt.Errorf("bind form data: %w", err)
 		}
+
 		return nil
 	}
 }

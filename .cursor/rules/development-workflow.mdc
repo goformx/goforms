@@ -1,0 +1,142 @@
+---
+description: Development workflow, build automation, and task management guidelines
+globs: 
+alwaysApply: false
+---
+# Development Workflow
+
+## Task Automation
+
+### Main Taskfile
+The project uses [Task](mdc:https:/taskfile.dev) for automation with configuration in [Taskfile.yml](mdc:Taskfile.yml).
+
+### Key Commands
+- `task dev` - Start full development environment (frontend + backend)
+- `task build` - Build entire application
+- `task install` - Install all dependencies
+- `task lint` - Run all linters
+- `task test` - Run all tests
+- `task clean` - Remove generated artifacts
+
+### Task Organization
+- **Main Tasks**: Core development tasks in [Taskfile.yml](mdc:Taskfile.yml)
+- **Migration Tasks**: Database operations in [Taskfile.migrate.yml](mdc:Taskfile.migrate.yml)
+- **User Management**: User-related tasks in [Taskfile.user.yml](mdc:Taskfile.user.yml)
+- **GitHub Actions**: Local CI testing in [Taskfile.act.yml](mdc:Taskfile.act.yml)
+
+## Development Environment
+
+### Dev Container
+- Uses VS Code Dev Containers for consistent development
+- Configuration in [.devcontainer/](mdc:.devcontainer)
+- Automatic setup of Go, Node.js, and database tools
+
+### Hot Reload
+- **Backend**: Uses [Air](mdc:https:/github.com/air-verse/air) configured in [.air.toml](mdc:.air.toml)
+- **Frontend**: Vite dev server with HMR
+- **Database**: Automatic migration application
+
+## Build Process
+
+### Backend Build
+1. **Code Generation**: Run `task generate` to create mocks and templates
+2. **Compilation**: Build Go binary with version information
+3. **Testing**: Run unit and integration tests
+4. **Linting**: Check code quality with golangci-lint
+
+### Frontend Build
+1. **Type Checking**: Validate TypeScript types
+2. **Linting**: Run ESLint and Prettier
+3. **Compilation**: Build with Vite for production
+4. **Asset Processing**: Optimize and copy assets
+
+### Full Build Pipeline
+```bash
+task install    # Install dependencies
+task generate   # Generate code artifacts
+task build      # Build both frontend and backend
+task test       # Run all tests
+task lint       # Check code quality
+```
+
+## Database Management
+
+### Migrations
+- **Location**: [migrations/](mdc:migrations) directory
+- **Up**: `task migrate:up` - Apply pending migrations
+- **Down**: `task migrate:down` - Rollback migrations
+- **Status**: `task migrate:status` - Check migration status
+
+### Development Database
+- PostgreSQL container for development
+- Automatic setup in dev container
+- Test database for isolated testing
+
+## Code Quality
+
+### Linting
+- **Go**: golangci-lint with configuration in [.golangci.yml](mdc:.golangci.yml)
+- **TypeScript**: ESLint with configuration in [eslint.config.js](mdc:eslint.config.js)
+- **Formatting**: Prettier for consistent code style
+
+### Testing
+- **Backend**: Testify framework with mocks
+- **Frontend**: Vitest with configuration in [vitest.config.ts](mdc:vitest.config.ts)
+- **Coverage**: Generate coverage reports for both layers
+
+## Version Management
+
+### Build Information
+- Git version and commit information
+- Build timestamp
+- Go version
+- Embedded in binary via ldflags
+
+### Environment Variables
+- Loaded from `.env` file
+- Database configuration
+- Security settings
+- Development vs production settings
+
+## CI/CD Integration
+
+### Local CI Testing
+- Use `task ci` to run GitHub Actions locally with Act
+- Configuration in [Taskfile.act.yml](mdc:Taskfile.act.yml)
+- Test workflows before pushing
+
+### GitHub Actions
+- Configuration in [.github/workflows/](mdc:.github/workflows)
+- Automated testing and deployment
+- Code quality checks
+
+## Development Tips
+
+### Getting Started
+1. Clone repository and open in dev container
+2. Copy `.env.example` to `.env` and configure
+3. Run `task install` to install dependencies
+4. Run `task dev` to start development servers
+
+### Common Issues
+- **CSRF Errors**: Clear browser cookies and restart backend
+- **Database Issues**: Run `task migrate:down` then `task migrate:up`
+- **Build Errors**: Run `task clean` then `task install`
+
+### Performance
+- Use `task dev:backend` for backend-only development
+- Use `task dev:frontend` for frontend-only development
+- Monitor resource usage in dev container
+
+## Deployment
+
+### Production Build
+- Optimized builds with minification
+- Asset compression and optimization
+- Environment-specific configuration
+- Health checks and monitoring
+
+### Docker Support
+- Multi-stage builds for efficiency
+- Configuration in [docker/](mdc:docker)
+- Production-ready containers

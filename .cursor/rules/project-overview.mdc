@@ -1,0 +1,49 @@
+---
+description: 
+globs: 
+alwaysApply: true
+---
+# GoFormX Project Overview
+
+GoFormX is a modern Go web application for form management with a MariaDB backend and TypeScript frontend.
+
+## Project Structure
+
+### Backend (Go)
+- **Entry Point**: [main.go](mdc:main.go) - Application entry point with fx dependency injection
+- **Architecture**: Clean Architecture with hexagonal design
+  - `internal/domain/` - Business logic and entities
+  - `internal/application/` - Use cases and application services
+  - `internal/infrastructure/` - External concerns (DB, config, logging)
+  - `internal/presentation/` - Web handlers and API endpoints
+- **Framework**: Echo v4 for HTTP server
+- **DI**: Uber FX for dependency injection
+- **Database**: PostgreSQL with migrations in [migrations/](mdc:migrations)
+- **Testing**: Testify framework with mocks in [test/mocks/](mdc:test/mocks)
+
+### Frontend (TypeScript)
+- **Entry Point**: [src/](mdc:src) - TypeScript source files
+- **Build Tool**: Vite with configuration in [vite.config.ts](mdc:vite.config.ts)
+- **Framework**: Form.io integration with custom components
+- **Styling**: CSS with PostCSS processing
+- **Testing**: Vitest with configuration in [vitest.config.ts](mdc:vitest.config.ts)
+
+### Configuration & Build
+- **Task Automation**: [Taskfile.yml](mdc:Taskfile.yml) - Main build and development tasks
+- **Go Configuration**: [go.mod](mdc:go.mod) and [go.sum](mdc:go.sum)
+- **Frontend Config**: [package.json](mdc:package.json) and [tsconfig.json](mdc:tsconfig.json)
+- **Linting**: [.golangci.yml](mdc:.golangci.yml) for Go, [eslint.config.js](mdc:eslint.config.js) for TypeScript
+- **Development**: [.air.toml](mdc:.air.toml) for hot reload
+
+## Key Development Commands
+- `task dev` - Start development environment (frontend + backend)
+- `task build` - Build entire application
+- `task lint` - Run all linters
+- `task test` - Run all tests
+- `task migrate:up` - Run database migrations
+
+## Development Environment
+- Uses Dev Containers for consistent development
+- Frontend runs on localhost:5173
+- Backend runs on localhost:8090
+- CSRF configured for cross-origin development

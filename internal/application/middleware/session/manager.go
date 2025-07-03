@@ -77,6 +77,7 @@ func (sm *Manager) initialize() error {
 	sessions, err := sm.storage.Load()
 	if err != nil {
 		sm.logger.Error("failed to load sessions", "error", err)
+
 		return fmt.Errorf("failed to load sessions: %w", err)
 	}
 
@@ -113,6 +114,7 @@ func (sm *Manager) cleanupExpiredSessions() {
 	for id, session := range sm.sessions {
 		if session.ExpiresAt.Before(now) {
 			delete(sm.sessions, id)
+
 			expiredCount++
 		}
 	}
@@ -131,9 +133,11 @@ func (sm *Manager) cleanupExpiredSessions() {
 func (sm *Manager) saveSessions() error {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
+
 	if err := sm.storage.Save(sm.sessions); err != nil {
 		return fmt.Errorf("save sessions to storage: %w", err)
 	}
+
 	return nil
 }
 
@@ -144,6 +148,7 @@ func (sm *Manager) CreateSession(userID, email, role string) (string, error) {
 	if _, err := rand.Read(sessionID); err != nil {
 		return "", fmt.Errorf("failed to generate session ID: %w", err)
 	}
+
 	sessionIDStr := base64.URLEncoding.EncodeToString(sessionID)
 
 	// Create session
@@ -163,6 +168,7 @@ func (sm *Manager) CreateSession(userID, email, role string) (string, error) {
 	// Save sessions to file
 	if err := sm.saveSessions(); err != nil {
 		sm.logger.Error("failed to save sessions", "error", err)
+
 		return "", fmt.Errorf("failed to save session: %w", err)
 	}
 
@@ -173,6 +179,7 @@ func (sm *Manager) CreateSession(userID, email, role string) (string, error) {
 func (sm *Manager) GetSession(sessionID string) (*Session, bool) {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
+
 	return sm.sessions[sessionID], sm.sessions[sessionID] != nil
 }
 

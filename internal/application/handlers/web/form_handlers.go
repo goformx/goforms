@@ -24,9 +24,14 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 		return err
 	}
 
-	data := h.BuildPageData(c, "New Form")
-	data.User = user
-	return fmt.Errorf("render new form: %w", h.Renderer.Render(c, pages.NewForm(data)))
+	data := h.NewPageData(c, "New Form")
+	data.SetUser(user)
+
+	if renderErr := h.Renderer.Render(c, pages.NewForm(*data)); renderErr != nil {
+		return fmt.Errorf("failed to render new form page: %w", renderErr)
+	}
+
+	return nil
 }
 
 // handleCreate processes form creation requests
@@ -69,13 +74,17 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	// Log form access for debugging
 	h.FormService.LogFormAccess(form)
 
-	data := h.BuildPageData(c, "Edit Form")
-	data.User = user
-	data.Form = form
-	data.FormBuilderAssetPath = h.AssetManager.AssetPath("src/js/pages/form-builder.ts")
+	data := h.NewPageData(c, "Edit Form").
+		WithForm(form).
+		WithFormBuilderAssetPath(h.AssetManager.AssetPath("src/js/pages/form-builder.ts"))
 
-	return fmt.Errorf("render edit form: %w",
-		pages.EditForm(data, form).Render(c.Request().Context(), c.Response().Writer))
+	data.SetUser(user)
+
+	if renderErr := h.Renderer.Render(c, pages.EditForm(*data, form)); renderErr != nil {
+		return fmt.Errorf("failed to render edit form page: %w", renderErr)
+	}
+
+	return nil
 }
 
 // handleUpdate processes form update requests
@@ -99,6 +108,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Update form using business logic service
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form, req); updateErr != nil {
 		h.Logger.Error("failed to update form", "error", updateErr)
+
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
@@ -122,6 +132,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 
 	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), form.ID); deleteErr != nil {
 		h.Logger.Error("failed to delete form", "error", deleteErr)
+
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 
@@ -143,15 +154,21 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	submissions, err := h.FormService.GetFormSubmissions(c.Request().Context(), form.ID)
 	if err != nil {
 		h.Logger.Error("failed to get form submissions", "error", err)
+
 		return h.HandleError(c, err, "Failed to get form submissions")
 	}
 
-	data := h.BuildPageData(c, "Form Submissions")
-	data.User = user
-	data.Form = form
-	data.Submissions = submissions
+	data := h.NewPageData(c, "Form Submissions").
+		WithForm(form).
+		WithSubmissions(submissions)
 
-	return fmt.Errorf("render submissions: %w", h.Renderer.Render(c, pages.FormSubmissions(data)))
+	data.SetUser(user)
+
+	if renderErr := h.Renderer.Render(c, pages.FormSubmissions(*data)); renderErr != nil {
+		return fmt.Errorf("failed to render form submissions page: %w", renderErr)
+	}
+
+	return nil
 }
 
 // handleFormCreationError handles form creation errors

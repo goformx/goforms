@@ -65,6 +65,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.Use
 			return nil, fmt.Errorf("failed to check existing user: %w", err)
 		}
 	}
+
 	if existingUser != nil {
 		return nil, ErrUserExists
 	}
@@ -73,12 +74,14 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.Use
 	user, err := entities.NewUser(signup.Email, signup.Password, signup.Email[:strings.Index(signup.Email, "@")+1], "")
 	if err != nil {
 		s.logger.Error("failed to create user", "error", err)
+
 		return nil, fmt.Errorf("failed to create user: %w", err)
 	}
 
 	// Save user
 	if createErr := s.repo.Create(ctx, user); createErr != nil {
 		s.logger.Error("failed to create user", "error", createErr)
+
 		return nil, fmt.Errorf("create: %w", createErr)
 	}
 
@@ -90,14 +93,17 @@ func (s *ServiceImpl) Login(ctx context.Context, login *Login) (*LoginResponse, 
 	user, err := s.repo.GetByEmail(ctx, login.Email)
 	if err != nil {
 		s.logger.Error("failed to get user by email", "error", err)
+
 		return nil, ErrInvalidCredentials
 	}
+
 	if user == nil {
 		return nil, ErrInvalidCredentials
 	}
 
 	if !user.CheckPassword(login.Password) {
 		s.logger.Error("password mismatch", "email", login.Email)
+
 		return nil, ErrInvalidCredentials
 	}
 
@@ -118,6 +124,7 @@ func (s *ServiceImpl) GetUserByID(ctx context.Context, id string) (*entities.Use
 	if err != nil {
 		return nil, fmt.Errorf("get user by ID: %w", err)
 	}
+
 	return user, nil
 }
 
@@ -127,6 +134,7 @@ func (s *ServiceImpl) GetUserByEmail(ctx context.Context, email string) (*entiti
 	if err != nil {
 		return nil, fmt.Errorf("get user by email: %w", err)
 	}
+
 	return user, nil
 }
 
@@ -135,6 +143,7 @@ func (s *ServiceImpl) UpdateUser(ctx context.Context, user *entities.User) error
 	if err := s.repo.Update(ctx, user); err != nil {
 		return fmt.Errorf("update user: %w", err)
 	}
+
 	return nil
 }
 
@@ -143,6 +152,7 @@ func (s *ServiceImpl) DeleteUser(ctx context.Context, id string) error {
 	if err := s.repo.Delete(ctx, id); err != nil {
 		return fmt.Errorf("delete user: %w", err)
 	}
+
 	return nil
 }
 
@@ -152,6 +162,7 @@ func (s *ServiceImpl) ListUsers(ctx context.Context, offset, limit int) ([]*enti
 	if err != nil {
 		return nil, fmt.Errorf("list users: %w", err)
 	}
+
 	return users, nil
 }
 
@@ -161,6 +172,7 @@ func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*entities.User, e
 	if err != nil {
 		return nil, fmt.Errorf("get user by ID: %w", err)
 	}
+
 	return user, nil
 }
 
@@ -171,7 +183,9 @@ func (s *ServiceImpl) Authenticate(ctx context.Context, email, password string) 
 		if domainerrors.GetErrorCode(err) == domainerrors.ErrCodeNotFound {
 			return nil, ErrInvalidCredentials
 		}
+
 		wrappedErr := domainerrors.WrapError(err, domainerrors.ErrCodeAuthentication, "failed to get user by email")
+
 		return nil, fmt.Errorf("authenticate user: %w", wrappedErr)
 	}
 

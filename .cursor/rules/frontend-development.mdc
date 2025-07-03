@@ -1,170 +1,148 @@
 ---
-description: 
-globs: *.ts,*.css,*.js,src/**/*
+description: Frontend development guidelines for TypeScript, Vite, and Form.io
+globs: ["src/**/*", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.css", "package.json", "tsconfig.json", "vite.config.ts"]
 alwaysApply: false
 ---
+
 # Frontend Development Guidelines
 
-## Overview
-The frontend uses vanilla TypeScript with templ templates, following a feature-based architecture with service separation and path mapping.
+## Technology Stack
 
-## Core Technologies
-- **TypeScript**: Strict mode with path mapping
-- **Vanilla TypeScript**: No React, modular DOM manipulation
-- **Templ Templates**: Server-side HTML templates
-- **Vite**: Build tool with HMR
-- **CSS**: Component-based styling
+### Core Technologies
+- **TypeScript**: Primary language with strict type checking
+- **Vite**: Build tool and dev server configured in [vite.config.ts](mdc:vite.config.ts)
+- **Form.io**: Form builder and renderer integration
+- **PostCSS**: CSS processing with configuration in [postcss.config.cjs](mdc:postcss.config.cjs)
+
+### Development Tools
+- **ESLint**: Code linting configured in [eslint.config.js](mdc:eslint.config.js)
+- **Prettier**: Code formatting
+- **Vitest**: Testing framework configured in [vitest.config.ts](mdc:vitest.config.ts)
 
 ## Project Structure
-```
-src/
-├── js/                    # TypeScript source files
-│   ├── core/             # Core functionality (config, errors, http-client)
-│   ├── features/         # Feature-based organization
-│   ├── pages/            # Page-level components
-│   └── shared/           # Shared utilities and types
-└── css/                  # Stylesheets
-```
 
-## Import Standards
+### Source Organization
+- **Entry Point**: [src/](mdc:src) - Main source directory
+- **JavaScript**: [src/js/](mdc:src/js) - TypeScript/JavaScript files
+- **CSS**: [src/css/](mdc:src/css) - Stylesheets
+- **Types**: [src/types/](mdc:src/types) - TypeScript type definitions
+- **Public**: [public/](mdc:public) - Static assets
 
-### Path Mapping
-```typescript
-// ✅ Use path mapping
-import { FormBuilderError } from "@/core/errors/form-builder-error";
-import { HttpClient } from "@/core/http-client";
-import { FormService } from "@/features/forms/services/form-service";
+### Build Output
+- **Distribution**: [dist/](mdc:dist) - Built files for production
+- **Assets**: Automatically copied and optimized during build
 
-// ❌ Avoid relative imports
-import { FormBuilderError } from "../../../core/errors/form-builder-error";
-```
+## Development Workflow
 
-### Path Mapping Configuration
-- `@/core/*` - Core application functionality
-- `@/features/*` - Feature-specific code
-- `@/shared/*` - Shared utilities and types
+### Commands
+- `npm run dev` - Start development server (localhost:5173)
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix linting issues
+- `npm run typecheck` - TypeScript type checking
+- `npm run format` - Format code with Prettier
+- `npm run test` - Run tests with Vitest
 
-## Service Architecture
+### Hot Reload
+- Vite provides fast hot module replacement
+- Changes to TypeScript and CSS files are reflected immediately
+- Form.io components are hot-reloadable
 
-### Three-Tier Service Pattern
-```typescript
-// 1. API Service - HTTP operations only
-export class FormApiService {
-  async getSchema(formId: string): Promise<FormSchema> {
-    const response = await HttpClient.get(`/api/forms/${formId}/schema`);
-    return response.json();
-  }
-}
+## TypeScript Guidelines
 
-// 2. UI Service - DOM manipulation only
-export class FormUIService {
-  updateFormCard(formId: string, updates: any): void {
-    const card = document.querySelector(`[data-form-id="${formId}"]`);
-    if (card) {
-      // Update card content
-    }
-  }
-}
+### Type Safety
+- Use strict TypeScript configuration from [tsconfig.json](mdc:tsconfig.json)
+- Define interfaces for all data structures
+- Use type guards for runtime type checking
+- Avoid `any` type - use `unknown` or proper types
 
-// 3. Orchestration Service - Coordinates API and UI
-export class FormService {
-  private apiService: FormApiService;
-  private uiService: FormUIService;
-  
-  async updateFormDetails(formId: string, details: any): Promise<void> {
-    await this.apiService.updateFormDetails(formId, details);
-    this.uiService.updateFormCard(formId, details);
-  }
-}
-```
+### Code Organization
+- Use ES6 modules for imports/exports
+- Group related functionality in modules
+- Use barrel exports for clean imports
+- Keep files focused and single-purpose
 
-## HTTP Client Standards
+## Form.io Integration
 
-### Consistent HTTP Operations
-```typescript
-// ✅ Use HttpClient
-const response = await HttpClient.get(url);
-const response = await HttpClient.post(url, data);
-const response = await HttpClient.put(url, data);
-const response = await HttpClient.delete(url);
+### Custom Components
+- Extend Form.io components for custom functionality
+- Use the `@goformx/formio` package for project-specific components
+- Follow Form.io component lifecycle methods
+- Implement proper validation and error handling
 
-// ❌ Avoid direct fetch calls
-const response = await fetch(url, { /* ... */ });
-```
+### Form Configuration
+- Use JSON schema for form definitions
+- Implement custom validators when needed
+- Handle form submission and data processing
+- Support form versioning and templates
 
-### Standardized Response Format
-The HTTP Client automatically handles the standardized API response format:
+## Styling
 
-```typescript
-// All API responses follow this structure:
-interface ApiResponse<T> {
-  success: boolean;
-  message?: string;
-  data?: T;
-  errors?: Record<string, string[]>;
-}
+### CSS Architecture
+- Use PostCSS for processing
+- Follow BEM methodology for class naming
+- Use CSS custom properties for theming
+- Implement responsive design patterns
 
-// Success response handling
-const response = await HttpClient.get('/api/forms/123');
-// response.data contains the actual payload
-// response.success === true
+### Asset Management
+- Fonts are copied from Form.io to [public/fonts/](mdc:public/fonts)
+- Images and other assets in [public/](mdc:public)
+- Use relative paths for asset references
 
-// Error response handling
-try {
-  const response = await HttpClient.get('/api/forms/123');
-  // HttpClient automatically throws on error responses
-} catch (error) {
-  // error.message contains the error message from the API
-  throw new FormBuilderError("API Error", error.message);
-}
-```
+## Testing
 
-### Error Handling
-```typescript
-try {
-  const response = await HttpClient.get(url);
-  // HttpClient handles standardized responses automatically
-  return response; // Already processed and validated
-} catch (error) {
-  throw new FormBuilderError("Network error", "Check your connection.");
-}
-```
+### Test Structure
+- Unit tests alongside source files
+- Use Vitest for fast, modern testing
+- Mock external dependencies
+- Test component behavior and user interactions
 
-## State Management
+### Test Coverage
+- Aim for high test coverage
+- Test both success and error scenarios
+- Use snapshot testing for UI components
+- Test form validation and submission logic
 
-### Proper State Management
-```typescript
-// ✅ State management class
-export class FormState {
-  private state = new Map<string, any>();
-  
-  set(key: string, value: any): void {
-    this.state.set(key, value);
-  }
-  
-  get<T>(key: string): T | undefined {
-    return this.state.get(key) as T | undefined;
-  }
-}
+## Performance
 
-// ❌ Avoid global variables
-window.formBuilder = builder;
-```
+### Build Optimization
+- Vite provides automatic code splitting
+- Tree shaking removes unused code
+- Assets are optimized and compressed
+- Use dynamic imports for lazy loading
 
-## Build System
+### Runtime Performance
+- Minimize bundle size
+- Use efficient algorithms and data structures
+- Implement proper error boundaries
+- Monitor and optimize form rendering performance
 
-### Vite Configuration
-- **Development**: HMR with WebSocket
-- **Production**: Asset optimization and minification
-- **TypeScript**: ESNext target
-- **CSS**: PostCSS with autoprefixer
-- **Path Mapping**: Configured in tsconfig.json and vite.config.ts
+## Security
 
-## Best Practices
+### Input Validation
+- Validate all user inputs
+- Sanitize data before processing
+- Use Content Security Policy headers
+- Implement proper CSRF protection
 
-1. **Feature-based Organization**: Organize by features, not types
-2. **Service Separation**: Separate API, UI, and business logic
-3. **Path Mapping**: Use consistent import paths
-4. **State Management**: Avoid global variables
-5. **Error Handling**: Use consistent error patterns
-6. **Type Safety**: Use strict TypeScript configuration
+### Data Handling
+- Don't store sensitive data in localStorage
+- Use secure communication with backend
+- Implement proper session management
+- Follow OWASP security guidelines
+
+## Deployment
+
+### Build Process
+- Production builds are optimized and minified
+- Assets are hashed for cache busting
+- Environment variables are injected at build time
+- Source maps are generated for debugging
+
+### Environment Configuration
+- Use environment variables for configuration
+- Different settings for development and production
+- Secure handling of API keys and secrets
+- Proper error handling for miss
+
+

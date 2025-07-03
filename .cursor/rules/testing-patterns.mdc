@@ -1,0 +1,496 @@
+---
+description:
+globs:
+alwaysApply: false
+---
+
+# Testing Patterns for Middleware & Clean Architecture
+
+## Overview
+
+The GoForms project uses comprehensive testing patterns that align with clean architecture principles and the new middleware orchestration system.
+
+## Test Structure
+
+### Test Organization
+
+```
+internal/application/middleware/
+├── core/
+│   ├── interfaces_test.go
+│   ├── request_test.go
+│   └── response_test.go
+├── chain/
+│   └── chain_test.go
+├── echo_adapter_test.go
+├── orchestrator_test.go
+├── registry_test.go
+└── config_test.go
+```
+
+### Test File Naming
+
+- Unit tests: `*_test.go` alongside source files
+- Integration tests: `*_integration_test.go`
+- Benchmark tests: `*_benchmark_test.go`
+- Example tests: `*_example_test.go`
+
+## Mock Infrastructure
+
+### Using Existing Mocks
+
+The project has a comprehensive mock infrastructure in [test/mocks/](mdc:test/mocks/):
+
+- [logging/mock_logger.go](mdc:test/mocks/logging/mock_logger.go) - Logger mocks
+- [form/mock_service.go](mdc:test/mocks/form/mock_service.go) - Service mocks
+- [user/mock_repository.go](mdc:test/mocks/user/mock_repository.go) - Repository mocks
+
+### Creating New Mocks
+
+```go
+// For core interfaces that don't have existing mocks
+type mockMiddleware struct {
+    name     string
+    priority int
+}
+
+func (m *mockMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    return next(ctx, req)
+}
+
+func (m *mockMiddleware) Name() string {
+    return m.name
+}
+
+func (m *mockMiddleware) Priority() int {
+    return m.priority
+}
+```
+
+## Unit Testing Patterns
+
+### Interface Testing
+
+```go
+func TestMiddlewareInterface(t *testing.T) {
+    // Test interface compliance
+    var _ core.Middleware = (*mockMiddleware)(nil)
+
+    // Test basic functionality
+    mw := &mockMiddleware{name: "test", priority: 50}
+    assert.Equal(t, "test", mw.Name())
+    assert.Equal(t, 50, mw.Priority())
+}
+```
+
+### Request/Response Testing
+
+```go
+func TestRequestResponse(t *testing.T) {
+    // Create test request
+    req := core.NewRequest("GET", "/test")
+    req.SetHeader("Content-Type", "application/json")
+    req.SetBody(strings.NewReader(`{"key":"value"}`))
+
+    // Test request properties
+    assert.Equal(t, "GET", req.Method())
+    assert.Equal(t, "/test", req.Path())
+    assert.Equal(t, "application/json", req.ContentType())
+
+    // Create test response
+    resp := core.NewResponse(http.StatusOK)
+    resp.SetHeader("X-Test", "value")
+    resp.SetBodyBytes([]byte(`{"result":"success"}`))
+
+    // Test response properties
+    assert.Equal(t, http.StatusOK, resp.StatusCode())
+    assert.Equal(t, "value", resp.Headers().Get("X-Test"))
+    assert.Equal(t, `{"result":"success"}`, string(resp.BodyBytes()))
+}
+```
+
+### Chain Testing
+
+```go
+func TestChainExecution(t *testing.T) {
+    // Create middleware chain
+    mw1 := &mockMiddleware{name: "mw1", priority: 10}
+    mw2 := &mockMiddleware{name: "mw2", priority: 20}
+
+    chain := chain.NewChainImpl([]core.Middleware{mw1, mw2})
+
+    // Test chain execution
+    req := core.NewRequest("GET", "/test")
+    response := chain.Process(context.Background(), req)
+
+    assert.NotNil(t, response)
+    assert.Equal(t, 2, chain.Length())
+
+    // Test middleware order
+    middlewares := chain.List()
+    assert.Equal(t, "mw1", middlewares[0].Name())
+    assert.Equal(t, "mw2", middlewares[1].Name())
+}
+```
+
+## Integration Testing
+
+### Registry Integration
+
+```go
+func TestRegistryIntegration(t *testing.T) {
+    // Setup
+    registry := middleware.NewRegistry(logger, config)
+
+    // Register middleware
+    mw := &mockMiddleware{name: "test", priority: 50}
+    err := registry.Register("test", mw)
+    assert.NoError(t, err)
+
+    // Test retrieval
+    retrieved, exists := registry.Get("test")
+    assert.True(t, exists)
+    assert.Equal(t, mw, retrieved)
+
+    // Test listing
+    names := registry.List()
+    assert.Contains(t, names, "test")
+
+    // Test removal
+    removed := registry.Remove("test")
+    assert.True(t, removed)
+
+    _, exists = registry.Get("test")
+    assert.False(t, exists)
+}
+```
+
+### Orchestrator Integration
+
+```go
+func TestOrchestratorIntegration(t *testing.T) {
+    // Setup mocks
+    registry := newMockRegistry()
+    config := newMockConfig()
+    logger := &mockLogger{}
+
+    // Setup middleware
+    corsMw := &mockMiddleware{name: "cors", priority: 10}
+    authMw := &mockMiddleware{name: "auth", priority: 20}
+
+    registry.middlewares["cors"] = corsMw
+    registry.middlewares["auth"] = authMw
+
+    // Setup configuration
+    config.enabledMiddleware["cors"] = true
+    config.enabledMiddleware["auth"] = true
+    config.middlewareConfig["cors"] = map[string]any{
+        "category": core.MiddlewareCategoryBasic,
+    }
+    config.middlewareConfig["auth"] = map[string]any{
+        "category": core.MiddlewareCategoryAuth,
+    }
+    config.chainConfigs[core.ChainTypeAPI] = middleware.ChainConfig{Enabled: true}
+
+    // Setup expectations
+    config.On("IsMiddlewareEnabled", "cors").Return(true)
+    config.On("IsMiddlewareEnabled", "auth").Return(true)
+    config.On("GetMiddlewareConfig", "cors").Return(map[string]any{"category": core.MiddlewareCategoryBasic})
+    config.On("GetMiddlewareConfig", "auth").Return(map[string]any{"category": core.MiddlewareCategoryAuth})
+    config.On("GetChainConfig", core.ChainTypeAPI).Return(middleware.ChainConfig{Enabled: true})
+    logger.On("Info", mock.Anything, mock.Anything).Return()
+
+    // Create orchestrator
+    orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+    // Test chain creation
+    chain, err := orchestrator.CreateChain(core.ChainTypeAPI)
+    assert.NoError(t, err)
+    assert.NotNil(t, chain)
+    assert.Equal(t, 2, chain.Length())
+
+    // Verify expectations
+    config.AssertExpectations(t)
+    logger.AssertExpectations(t)
+}
+```
+
+## Echo Adapter Testing
+
+### Request Conversion Testing
+
+```go
+func TestEchoRequestConversion(t *testing.T) {
+    // Setup Echo context
+    e := echo.New()
+    req := httptest.NewRequest(http.MethodGet, "/test", nil)
+    req.Header.Set("Content-Type", "application/json")
+    rec := httptest.NewRecorder()
+    echoCtx := e.NewContext(req, rec)
+
+    // Convert to core request
+    coreReq := echo_adapter.NewRequest(echoCtx)
+
+    // Test conversion
+    assert.Equal(t, "GET", coreReq.Method())
+    assert.Equal(t, "/test", coreReq.Path())
+    assert.Equal(t, "application/json", coreReq.ContentType())
+}
+```
+
+### Response Conversion Testing
+
+```go
+func TestEchoResponseConversion(t *testing.T) {
+    // Setup Echo context
+    e := echo.New()
+    req := httptest.NewRequest(http.MethodGet, "/test", nil)
+    rec := httptest.NewRecorder()
+    echoCtx := e.NewContext(req, rec)
+
+    // Create core response
+    coreResp := core.NewResponse(http.StatusOK)
+    coreResp.SetHeader("X-Test", "value")
+    coreResp.SetBodyBytes([]byte(`{"result":"success"}`))
+
+    // Convert to Echo response
+    echo_adapter.WriteResponse(echoCtx, coreResp)
+
+    // Test conversion
+    assert.Equal(t, http.StatusOK, rec.Code)
+    assert.Equal(t, "value", rec.Header().Get("X-Test"))
+    assert.Equal(t, `{"result":"success"}`, rec.Body.String())
+}
+```
+
+## Configuration Testing
+
+### Configuration Validation
+
+```go
+func TestConfigurationValidation(t *testing.T) {
+    // Setup orchestrator
+    orchestrator := middleware.NewOrchestrator(registry, config, logger)
+
+    // Test valid configuration
+    err := orchestrator.ValidateConfiguration()
+    assert.NoError(t, err)
+
+    // Test invalid configuration (missing dependencies)
+    config.middlewareConfig["dependent"] = map[string]any{
+        "dependencies": []string{"missing"},
+    }
+
+    err = orchestrator.ValidateConfiguration()
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "missing dependency")
+}
+```
+
+### Chain Configuration Testing
+
+```go
+func TestChainConfiguration(t *testing.T) {
+    // Test chain info
+    info := orchestrator.GetChainInfo(core.ChainTypeAPI)
+    assert.Equal(t, core.ChainTypeAPI, info.Type)
+    assert.Equal(t, "api", info.Name())
+    assert.True(t, info.Enabled)
+    assert.Contains(t, info.Categories, core.MiddlewareCategoryBasic)
+    assert.Contains(t, info.Categories, core.MiddlewareCategorySecurity)
+}
+```
+
+## Performance Testing
+
+### Benchmark Tests
+
+```go
+func BenchmarkChainExecution(b *testing.B) {
+    // Setup chain
+    middlewares := make([]core.Middleware, 10)
+    for i := 0; i < 10; i++ {
+        middlewares[i] = &mockMiddleware{
+            name:     fmt.Sprintf("mw%d", i),
+            priority: i * 10,
+        }
+    }
+
+    chain := chain.NewChainImpl(middlewares)
+    req := core.NewRequest("GET", "/test")
+
+    b.ResetTimer()
+    for i := 0; i < b.N; i++ {
+        chain.Process(context.Background(), req)
+    }
+}
+```
+
+### Memory Testing
+
+```go
+func TestMemoryUsage(t *testing.T) {
+    // Test memory allocation
+    var m runtime.MemStats
+    runtime.ReadMemStats(&m)
+    before := m.Alloc
+
+    // Create large chain
+    middlewares := make([]core.Middleware, 1000)
+    for i := 0; i < 1000; i++ {
+        middlewares[i] = &mockMiddleware{name: fmt.Sprintf("mw%d", i)}
+    }
+
+    chain := chain.NewChainImpl(middlewares)
+
+    runtime.ReadMemStats(&m)
+    after := m.Alloc
+
+    // Verify reasonable memory usage
+    memoryUsed := after - before
+    assert.Less(t, memoryUsed, uint64(1024*1024)) // Less than 1MB
+}
+```
+
+## Error Testing
+
+### Error Scenarios
+
+```go
+func TestErrorScenarios(t *testing.T) {
+    // Test missing middleware
+    _, err := orchestrator.CreateChain(core.ChainTypeAPI)
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "missing middleware")
+
+    // Test dependency conflicts
+    config.middlewareConfig["conflicting"] = map[string]any{
+        "conflicts": []string{"existing"},
+    }
+
+    err = orchestrator.ValidateConfiguration()
+    assert.Error(t, err)
+    assert.Contains(t, err.Error(), "conflicts with")
+
+    // Test invalid configuration
+    config.chainConfigs[core.ChainTypeAPI] = middleware.ChainConfig{Enabled: false}
+
+    chain, err := orchestrator.CreateChain(core.ChainTypeAPI)
+    assert.NoError(t, err)
+    assert.Equal(t, 0, chain.Length()) // Empty chain when disabled
+}
+```
+
+### Panic Recovery Testing
+
+```go
+func TestPanicRecovery(t *testing.T) {
+    // Create middleware that panics
+    panicMw := &mockMiddleware{name: "panic"}
+    panicMw.Process = func(ctx context.Context, req core.Request, next core.Handler) core.Response {
+        panic("test panic")
+    }
+
+    chain := chain.NewChainImpl([]core.Middleware{panicMw})
+    req := core.NewRequest("GET", "/test")
+
+    // Should not panic, should return error response
+    response := chain.Process(context.Background(), req)
+    assert.NotNil(t, response)
+    assert.True(t, response.IsError())
+}
+```
+
+## Test Utilities
+
+### Test Helpers
+
+```go
+// Create test request
+func createTestRequest(method, path string) core.Request {
+    req := core.NewRequest(method, path)
+    req.SetHeader("User-Agent", "test-agent")
+    req.SetHeader("Content-Type", "application/json")
+    return req
+}
+
+// Create test response
+func createTestResponse(statusCode int, body string) core.Response {
+    resp := core.NewResponse(statusCode)
+    resp.SetBodyBytes([]byte(body))
+    resp.SetContentType("application/json")
+    return resp
+}
+
+// Create mock middleware
+func createMockMiddleware(name string, priority int) core.Middleware {
+    return &mockMiddleware{
+        name:     name,
+        priority: priority,
+    }
+}
+```
+
+### Test Setup/Teardown
+
+```go
+func TestMain(m *testing.M) {
+    // Setup
+    setupTestEnvironment()
+
+    // Run tests
+    code := m.Run()
+
+    // Teardown
+    teardownTestEnvironment()
+
+    os.Exit(code)
+}
+
+func setupTestEnvironment() {
+    // Initialize test configuration
+    // Setup test database
+    // Initialize test logger
+}
+
+func teardownTestEnvironment() {
+    // Cleanup test data
+    // Close connections
+    // Reset state
+}
+```
+
+## Continuous Integration
+
+### Test Commands
+
+```bash
+# Run all tests
+go test ./...
+
+# Run tests with coverage
+go test -cover ./...
+
+# Run tests with race detection
+go test -race ./...
+
+# Run benchmarks
+go test -bench=. ./...
+
+# Run specific test
+go test -run TestOrchestrator ./internal/application/middleware/...
+```
+
+### Coverage Requirements
+
+- Unit tests: >90% coverage
+- Integration tests: >80% coverage
+- Critical paths: 100% coverage
+
+### Test Quality Gates
+
+- All tests must pass
+- No race conditions
+- Coverage thresholds met
+- Performance benchmarks within limits
+- No memory leaks

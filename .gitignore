@@ -43,7 +43,6 @@ air.log
 # IDE & Editor Files
 # =============================================
 .idea/
-.vscode/
 *.swp
 *.swo
 *~

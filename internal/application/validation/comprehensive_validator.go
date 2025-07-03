@@ -36,7 +36,9 @@ func (v *ComprehensiveValidator) ValidateForm(schema, submission model.JSON) Res
 		result.Errors = append(result.Errors, Error{
 			Field:   "schema",
 			Message: "Invalid form schema: missing components",
+			Rule:    "",
 		})
+
 		return result
 	}
 

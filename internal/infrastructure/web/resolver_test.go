@@ -27,7 +27,11 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 	mockLogger := mocklogging.NewMockLogger(ctrl)
 
 	mockLogger.EXPECT().Debug(
-		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
+		"development asset resolved",
+		"input", gomock.Any(),
+		"output", gomock.Any(),
+		"base_url", gomock.Any(),
+		"cached", gomock.Any(),
 	).AnyTimes()
 
 	resolver := web.NewDevelopmentAssetResolver(cfg, mockLogger)
@@ -39,8 +43,8 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 	}{
 		{
 			name:     "src file",
-			path:     "src/js/pages/main.ts",
-			expected: "http://localhost:5173/src/js/pages/main.ts",
+			path:     "src/js/main.ts",
+			expected: "http://localhost:5173/src/js/main.ts",
 		},
 		{
 			name:     "css file",
@@ -50,12 +54,12 @@ func TestDevelopmentAssetResolver(t *testing.T) {
 		{
 			name:     "js file",
 			path:     "main.js",
-			expected: "http://localhost:5173/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/main.ts",
 		},
 		{
 			name:     "ts file",
 			path:     "main.ts",
-			expected: "http://localhost:5173/src/js/pages/main.ts",
+			expected: "http://localhost:5173/src/js/main.ts",
 		},
 		{
 			name:     "other file",
@@ -86,6 +90,19 @@ func TestProductionAssetResolver(t *testing.T) {
 		},
 	}
 	mockLogger := mocklogging.NewMockLogger(ctrl)
+
+	mockLogger.EXPECT().Debug(
+		"production asset resolved",
+		"input", gomock.Any(),
+		"output", gomock.Any(),
+		"manifest_entry", gomock.Any(),
+	).AnyTimes()
+
+	mockLogger.EXPECT().Warn(
+		"asset not found in manifest",
+		"path", gomock.Any(),
+		"available_assets", gomock.Any(),
+	).AnyTimes()
 
 	resolver := web.NewProductionAssetResolver(manifest, mockLogger)
 
@@ -122,8 +139,10 @@ func TestProductionAssetResolver(t *testing.T) {
 			result, err := resolver.ResolveAssetPath(t.Context(), tt.path)
 			if tt.expectError {
 				require.Error(t, err)
+
 				return
 			}
+
 			require.NoError(t, err)
 			assert.Equal(t, tt.expected, result)
 		})
@@ -146,12 +165,22 @@ func TestAssetManager(t *testing.T) {
 
 	// Expect debug calls from DevelopmentAssetResolver
 	mockLogger.EXPECT().Debug(
-		"development asset resolved", "input", gomock.Any(), "output", gomock.Any(), "vite_url", gomock.Any(),
+		"development asset resolved",
+		"input", gomock.Any(),
+		"output", gomock.Any(),
+		"base_url", gomock.Any(),
+		"cached", gomock.Any(),
 	).AnyTimes()
 
 	// Expect debug calls from AssetManager
 	mockLogger.EXPECT().Debug(
 		"asset resolved", "asset_path", gomock.Any(), "resolved", gomock.Any(),
+	).AnyTimes()
+
+	// Expect debug calls for cache clearing
+	mockLogger.EXPECT().Debug(
+		"asset cache cleared",
+		"previous_size", gomock.Any(),
 	).AnyTimes()
 
 	var distFS embed.FS
@@ -161,7 +190,7 @@ func TestAssetManager(t *testing.T) {
 	assert.NotNil(t, manager)
 
 	path := manager.AssetPath("main.js")
-	assert.Equal(t, "http://localhost:5173/src/js/pages/main.ts", path)
+	assert.Equal(t, "http://localhost:5173/src/js/main.ts", path)
 
 	path2 := manager.AssetPath("main.js")
 	assert.Equal(t, path, path2)

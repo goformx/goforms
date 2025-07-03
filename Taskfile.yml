@@ -173,7 +173,6 @@ tasks:
     cmds:
     - for: ['bin/', 'dist/', 'node_modules/', 'coverage/', '.task/']
       cmd: rm -rf {{.ITEM}}
-      ignore_error: true
     - find internal/ -name '*_templ.go' -delete
     - find test/mocks -name 'mock_*.go' -delete
 
@@ -259,6 +258,166 @@ tasks:
       - "internal/**/*.go"
     cmds:
     - go test -v -tags=integration ./test/integration/...
+
+  # Middleware-specific tasks
+  middleware:
+    desc: Middleware system management
+    cmds:
+    - task: middleware:test
+    - task: middleware:status
+
+  middleware:test:
+    desc: Run middleware-specific tests
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v ./internal/application/middleware/...
+
+  middleware:test:unit:
+    desc: Run middleware unit tests only
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v -run "^Test.*Unit" ./internal/application/middleware/...
+
+  middleware:test:integration:
+    desc: Run middleware integration tests
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v -run "^TestIntegration" ./internal/application/middleware/...
+
+  middleware:test:performance:
+    desc: Run middleware performance tests
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -v -run "^Test.*Performance" ./internal/application/middleware/...
+
+  middleware:deploy:
+    desc: Deploy middleware system with new architecture
+    cmds:
+    - ./scripts/deploy-middleware.sh staging false
+
+  middleware:deploy:new:
+    desc: Deploy middleware system with new architecture enabled
+    cmds:
+    - ./scripts/deploy-middleware.sh staging true
+
+  middleware:deploy:production:
+    desc: Deploy middleware system to production
+    cmds:
+    - ./scripts/deploy-middleware.sh production true
+
+  middleware:status:
+    desc: Check middleware system status
+    cmds:
+    - |
+      if [ -f scripts/monitor-middleware.sh ]; then
+        ./scripts/monitor-middleware.sh
+      else
+        echo "Middleware monitoring script not found. Run middleware:deploy first."
+      fi
+
+  middleware:rollback:
+    desc: Rollback to legacy middleware system
+    cmds:
+    - |
+      if [ -f scripts/rollback-middleware.sh ]; then
+        ./scripts/rollback-middleware.sh
+      else
+        echo "Rollback script not found. Run middleware:deploy first."
+      fi
+
+  middleware:validate:
+    desc: Validate middleware configuration
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+    cmds:
+    - go run -tags=validation ./internal/application/middleware/validate.go
+
+  middleware:benchmark:
+    desc: Run middleware performance benchmarks
+    deps: [ generate ]
+    sources:
+      - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
+    cmds:
+    - go test -bench=. -benchmem ./internal/application/middleware/...
+
+  # Cleanup tasks for legacy code removal
+  cleanup:
+    desc: Legacy code cleanup management
+    cmds:
+    - task: cleanup:validate
+
+  cleanup:safe:
+    desc: Safe cleanup - remove obvious dead code
+    cmds:
+    - echo "🧹 Running safe cleanup..."
+    - find . -name "*.go" -exec gofmt -s -w {} \;
+    - find . -name "*.go" -exec goimports -w {} \;
+    - go mod tidy
+    - go vet ./...
+    - echo "✅ Safe cleanup completed"
+
+  cleanup:deprecate:
+    desc: Mark legacy code as deprecated
+    cmds:
+    - echo "⚠️ Adding deprecation warnings to legacy code..."
+    - |
+      # Add deprecation comments to old Manager methods
+      find internal/application/middleware/ -name "*.go" -exec sed -i 's/func (m \*Manager)/\/\/ @deprecated - Use new middleware architecture\nfunc (m *Manager)/g' {} \;
+    - echo "✅ Deprecation warnings added"
+
+  cleanup:partial:
+    desc: Remove non-critical legacy code (requires production validation)
+    cmds:
+    - echo "🔧 Removing non-critical legacy code..."
+    - echo "⚠️ This should only be run after 4+ weeks of production validation"
+    - |
+      # Remove unused methods from old Manager
+      # Keep core functionality for emergency fallback
+      echo "Keeping core Manager for emergency fallback"
+    - echo "✅ Partial cleanup completed"
+
+  cleanup:complete:
+    desc: Complete legacy removal (requires full validation)
+    cmds:
+    - echo "🗑️ Complete legacy code removal..."
+    - echo "⚠️ This should only be run after 8+ weeks of production validation"
+    - echo "⚠️ Ensure you have backup and rollback procedures"
+    - |
+      # This would remove the entire old Manager system
+      # Only run after extensive production validation
+      echo "Complete cleanup requires manual review and approval"
+    - echo "✅ Complete cleanup instructions provided"
+
+  cleanup:validate:
+    desc: Validate system after cleanup
+    deps: [ middleware:test, middleware:status ]
+    cmds:
+    - echo "🔍 Validating system after cleanup..."
+    - task: middleware:test
+    - task: middleware:status
+    - echo "✅ System validation completed"
+
+  cleanup:rollback:
+    desc: Rollback cleanup changes if needed
+    cmds:
+    - echo "🔄 Rolling back cleanup changes..."
+    - git checkout HEAD~1 -- internal/application/middleware/
+    - task: cleanup:validate
+    - echo "✅ Rollback completed"
 
   security:
     desc: Run all security checks

@@ -10,7 +10,18 @@ func NewSchemaParser() *SchemaParser {
 
 // ExtractValidationRules extracts validation rules from a component
 func (p *SchemaParser) ExtractValidationRules(component map[string]any) FieldValidation {
-	validation := FieldValidation{}
+	validation := FieldValidation{
+		Required:    false,
+		Type:        "",
+		MinLength:   0,
+		MaxLength:   0,
+		Min:         0,
+		Max:         0,
+		Pattern:     "",
+		Options:     []string{},
+		CustomRules: []Rule{},
+		Conditional: map[string]any{},
+	}
 
 	// Extract basic validation properties
 	p.extractBasicValidation(component, &validation)
@@ -49,6 +60,7 @@ func (p *SchemaParser) extractLengthValidation(validate map[string]any, validati
 	if minLength, minLengthOk := validate["minLength"].(float64); minLengthOk {
 		validation.MinLength = int(minLength)
 	}
+
 	if maxLength, maxLengthOk := validate["maxLength"].(float64); maxLengthOk {
 		validation.MaxLength = int(maxLength)
 	}
@@ -59,6 +71,7 @@ func (p *SchemaParser) extractNumericValidation(validate map[string]any, validat
 	if minVal, minOk := validate["min"].(float64); minOk {
 		validation.Min = minVal
 	}
+
 	if maxVal, maxOk := validate["max"].(float64); maxOk {
 		validation.Max = maxVal
 	}
@@ -110,12 +123,14 @@ func (p *SchemaParser) extractOptionValue(value any, validation *FieldValidation
 // ExtractComponents extracts components from a form schema
 func (p *SchemaParser) ExtractComponents(schema map[string]any) ([]any, bool) {
 	components, ok := schema["components"].([]any)
+
 	return components, ok
 }
 
 // ExtractComponentKey extracts the key from a component
 func (p *SchemaParser) ExtractComponentKey(component map[string]any) (string, bool) {
 	key, ok := component["key"].(string)
+
 	return key, ok
 }
 

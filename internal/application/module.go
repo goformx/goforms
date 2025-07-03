@@ -74,6 +74,7 @@ func (d Dependencies) Validate() error {
 			return errors.New(r.name + " is required")
 		}
 	}
+
 	return nil
 }
 
@@ -95,7 +96,7 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 }
 
 // Module represents the application module
-var Module = fx.Options(
+var Module = fx.Module("application",
 	fx.Provide(
 		New,
 		provideRequestUtils,
@@ -169,6 +170,7 @@ func (a *Application) Start(_ context.Context) error {
 
 	// Register all handlers
 	var handlers []web.Handler
+
 	fx.Populate(&handlers)
 
 	for _, handler := range handlers {
@@ -181,6 +183,7 @@ func (a *Application) Start(_ context.Context) error {
 	}
 
 	a.logger.Info("Application started successfully")
+
 	return nil
 }
 
@@ -188,5 +191,6 @@ func (a *Application) Start(_ context.Context) error {
 func (a *Application) Stop(_ context.Context) error {
 	a.logger.Info("Stopping application...")
 	a.logger.Info("Application stopped successfully")
+
 	return nil
 }

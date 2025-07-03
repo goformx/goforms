@@ -87,6 +87,7 @@ func (h *FormErrorHandlerImpl) HandleFormNotFoundError(c echo.Context, formID st
 	if formID != "" {
 		message = fmt.Sprintf("Form not found: %s", formID)
 	}
+
 	return h.responseBuilder.BuildErrorResponse(c, http.StatusNotFound, message)
 }
 

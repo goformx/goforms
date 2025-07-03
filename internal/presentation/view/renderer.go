@@ -36,15 +36,24 @@ func NewRenderer(logger logging.Logger) Renderer {
 func (r *renderer) Render(c echo.Context, t templ.Component) error {
 	if c == nil {
 		r.logger.Error("failed to render template", "error", "nil context", "template", nil)
+
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to render page")
 	}
+
 	if t == nil {
 		r.logger.Error("failed to render template", "error", "nil component", "template", nil)
+
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to render page")
 	}
+
+	// Set Content-Type header for HTML responses
+	c.Response().Header().Set("Content-Type", "text/html; charset=utf-8")
+
 	if err := t.Render(c.Request().Context(), c.Response().Writer); err != nil {
 		r.logger.Error("failed to render template", "error", err, "template", fmt.Sprintf("%T", t))
+
 		return echo.NewHTTPError(http.StatusInternalServerError, "Failed to render page")
 	}
+
 	return nil
 }

@@ -47,38 +47,79 @@ type DatabaseLoggingConfig struct {
 func (c *DatabaseConfig) Validate() error {
 	var errs []string
 
-	if c.Host == "" {
-		errs = append(errs, "database host is required")
-	}
-	if c.Port <= 0 || c.Port > 65535 {
-		errs = append(errs, "database port must be between 1 and 65535")
-	}
-	if c.Username == "" {
-		errs = append(errs, "database username is required")
-	}
-	if c.Password == "" {
-		errs = append(errs, "database password is required")
-	}
-	if c.Name == "" {
-		errs = append(errs, "database name is required")
+	// Validate common fields
+	if err := c.validateCommonFields(); err != nil {
+		errs = append(errs, err.Error())
 	}
 
-	// Validate database-specific settings
-	switch c.Driver {
-	case "postgres":
-		if c.SSLMode == "" {
-			errs = append(errs, "PostgreSQL SSL mode is required")
-		}
-	case "mariadb":
-		if c.RootPassword == "" {
-			errs = append(errs, "MariaDB root password is required")
-		}
-	default:
-		errs = append(errs, "unsupported database driver type")
+	// Validate driver-specific fields
+	if err := c.validateDriverSpecificFields(); err != nil {
+		errs = append(errs, err.Error())
 	}
 
 	if len(errs) > 0 {
 		return fmt.Errorf("database config validation errors: %s", strings.Join(errs, "; "))
+	}
+
+	return nil
+}
+
+// validateCommonFields validates common database configuration fields
+func (c *DatabaseConfig) validateCommonFields() error {
+	var errs []string
+
+	if c.Host == "" {
+		errs = append(errs, "database host is required")
+	}
+
+	if c.Port <= 0 || c.Port > 65535 {
+		errs = append(errs, "database port must be between 1 and 65535")
+	}
+
+	if c.Username == "" {
+		errs = append(errs, "database username is required")
+	}
+
+	if c.Password == "" {
+		errs = append(errs, "database password is required")
+	}
+
+	if c.Name == "" {
+		errs = append(errs, "database name is required")
+	}
+
+	if len(errs) > 0 {
+		return fmt.Errorf("%s", strings.Join(errs, "; "))
+	}
+
+	return nil
+}
+
+// validateDriverSpecificFields validates driver-specific configuration fields
+func (c *DatabaseConfig) validateDriverSpecificFields() error {
+	switch c.Driver {
+	case "postgres":
+		return c.validatePostgresFields()
+	case "mariadb":
+		return c.validateMariaDBFields()
+	default:
+		return fmt.Errorf("unsupported database driver type")
+	}
+}
+
+// validatePostgresFields validates PostgreSQL-specific fields
+func (c *DatabaseConfig) validatePostgresFields() error {
+	if c.SSLMode == "" {
+		return fmt.Errorf("PostgreSQL SSL mode is required")
+	}
+
+	return nil
+}
+
+// validateMariaDBFields validates MariaDB-specific fields
+func (c *DatabaseConfig) validateMariaDBFields() error {
+	if c.RootPassword == "" {
+		return fmt.Errorf("MariaDB root password is required")
 	}
 
 	return nil

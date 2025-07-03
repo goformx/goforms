@@ -46,9 +46,11 @@ func (f *Field) Validate() error {
 	if f.Label == "" {
 		return errors.New("label is required")
 	}
+
 	if f.Type == "" {
 		return errors.New("type is required")
 	}
+
 	return nil
 }
 
@@ -105,9 +107,11 @@ func (f *Form) BeforeCreate(_ *gorm.DB) error {
 	if f.CorsOrigins == nil {
 		f.CorsOrigins = JSON{}
 	}
+
 	if f.CorsMethods == nil {
 		f.CorsMethods = JSON{}
 	}
+
 	if f.CorsHeaders == nil {
 		f.CorsHeaders = JSON{}
 	}
@@ -118,6 +122,7 @@ func (f *Form) BeforeCreate(_ *gorm.DB) error {
 // BeforeUpdate is a GORM hook that runs before updating a form
 func (f *Form) BeforeUpdate(_ *gorm.DB) error {
 	f.UpdatedAt = time.Now()
+
 	return nil
 }
 
@@ -127,12 +132,15 @@ func (f *Form) BeforeSave(_ *gorm.DB) error {
 	if f.CorsOrigins == nil {
 		f.CorsOrigins = JSON{}
 	}
+
 	if f.CorsMethods == nil {
 		f.CorsMethods = JSON{}
 	}
+
 	if f.CorsHeaders == nil {
 		f.CorsHeaders = JSON{}
 	}
+
 	return nil
 }
 
@@ -143,6 +151,7 @@ type JSON map[string]any
 func (j *JSON) Scan(value any) error {
 	if value == nil {
 		*j = nil
+
 		return nil
 	}
 
@@ -151,13 +160,27 @@ func (j *JSON) Scan(value any) error {
 		return fmt.Errorf("failed to unmarshal JSON value: %v", value)
 	}
 
-	result := make(map[string]any)
+	// First try to unmarshal as an object
+	var result map[string]any
+
 	err := json.Unmarshal(bytes, &result)
+	if err == nil {
+		*j = JSON(result)
+
+		return nil
+	}
+
+	// If that fails, try to unmarshal as an array and convert to object
+	var arrayResult []any
+
+	err = json.Unmarshal(bytes, &arrayResult)
 	if err != nil {
 		return fmt.Errorf("unmarshal JSON scan value: %w", err)
 	}
 
-	*j = JSON(result)
+	// Convert array to object with "data" key
+	*j = JSON{"data": arrayResult}
+
 	return nil
 }
 
@@ -166,10 +189,12 @@ func (j *JSON) Value() (driver.Value, error) {
 	if j == nil {
 		return nil, ErrInvalidJSON
 	}
+
 	data, err := json.Marshal(*j)
 	if err != nil {
 		return nil, fmt.Errorf("marshal JSON value: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -178,10 +203,12 @@ func (j *JSON) MarshalJSON() ([]byte, error) {
 	if j == nil {
 		return nil, ErrInvalidJSON
 	}
+
 	data, err := json.Marshal(*j)
 	if err != nil {
 		return nil, fmt.Errorf("marshal JSON to bytes: %w", err)
 	}
+
 	return data, nil
 }
 
@@ -190,9 +217,11 @@ func (j *JSON) UnmarshalJSON(data []byte) error {
 	if j == nil {
 		return ErrInvalidJSON
 	}
+
 	if err := json.Unmarshal(data, (*map[string]any)(j)); err != nil {
 		return fmt.Errorf("unmarshal JSON from bytes: %w", err)
 	}
+
 	return nil
 }
 
@@ -210,6 +239,8 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
+		DeletedAt:   gorm.DeletedAt{},
+		Fields:      []Field{},
 		CorsOrigins: JSON{},
 		CorsMethods: JSON{},
 		CorsHeaders: JSON{},
@@ -253,7 +284,26 @@ func validateProperty(name string, prop any) error {
 
 // validateSchema validates the form schema
 func (f *Form) validateSchema() error {
-	// Check for required schema fields
+	// Validate required schema fields
+	if err := f.validateRequiredSchemaFields(); err != nil {
+		return err
+	}
+
+	// Validate schema type
+	if err := f.validateSchemaType(); err != nil {
+		return err
+	}
+
+	// Validate schema content
+	if err := f.validateSchemaContent(); err != nil {
+		return err
+	}
+
+	return nil
+}
+
+// validateRequiredSchemaFields validates that all required schema fields are present
+func (f *Form) validateRequiredSchemaFields() error {
 	requiredFields := []string{"type"}
 	for _, field := range requiredFields {
 		if _, exists := f.Schema[field]; !exists {
@@ -261,30 +311,26 @@ func (f *Form) validateSchema() error {
 		}
 	}
 
-	// Validate schema type
+	return nil
+}
+
+// validateSchemaType validates that the schema type is correct
+func (f *Form) validateSchemaType() error {
 	schemaType, typeOk := f.Schema["type"].(string)
 	if !typeOk || schemaType != "object" {
 		return errors.New("invalid schema type: must be 'object'")
 	}
 
-	// Check for either properties or components
-	hasProperties := false
-	hasComponents := false
+	return nil
+}
 
-	if properties, propsOk := f.Schema["properties"].(map[string]any); propsOk {
-		hasProperties = true
-		// Validate each property
-		for name, prop := range properties {
-			if err := validateProperty(name, prop); err != nil {
-				return err
-			}
-		}
-	}
+// validateSchemaContent validates the content of the schema (properties or components)
+func (f *Form) validateSchemaContent() error {
+	hasProperties, propErr := f.validateProperties()
+	hasComponents := f.validateComponents()
 
-	if components, compsOk := f.Schema["components"].([]any); compsOk {
-		hasComponents = true
-		// Components array is valid even if empty
-		_ = components
+	if propErr != nil {
+		return propErr
 	}
 
 	if !hasProperties && !hasComponents {
@@ -294,28 +340,58 @@ func (f *Form) validateSchema() error {
 	return nil
 }
 
+// validateProperties validates the properties section of the schema
+func (f *Form) validateProperties() (bool, error) {
+	properties, propsOk := f.Schema["properties"].(map[string]any)
+	if !propsOk {
+		return false, nil
+	}
+
+	// Validate each property
+	for name, prop := range properties {
+		if err := validateProperty(name, prop); err != nil {
+			return false, err
+		}
+	}
+
+	return true, nil
+}
+
+// validateComponents validates the components section of the schema
+func (f *Form) validateComponents() bool {
+	_, compsOk := f.Schema["components"].([]any)
+
+	return compsOk
+}
+
 // Validate validates the form
 func (f *Form) Validate() error {
 	if f.Title == "" {
 		return errors.New("title is required")
 	}
+
 	if len(f.Title) < MinTitleLength {
 		return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
 	}
+
 	if len(f.Title) > MaxTitleLength {
 		return fmt.Errorf("title must be between %d and %d characters", MinTitleLength, MaxTitleLength)
 	}
+
 	if len(f.Description) > MaxDescriptionLength {
 		return fmt.Errorf("description must not exceed %d characters", MaxDescriptionLength)
 	}
+
 	if len(f.Fields) > MaxFields {
 		return fmt.Errorf("form cannot have more than %d fields", MaxFields)
 	}
+
 	for i := range f.Fields {
 		if err := f.Fields[i].Validate(); err != nil {
 			return fmt.Errorf("invalid field: %w", err)
 		}
 	}
+
 	return f.validateSchema()
 }
 
@@ -350,12 +426,26 @@ func extractStringSlice(data JSON, key string) []string {
 		return result
 	}
 
+	// First try to get the value directly by key
 	if arr, ok := data[key].([]any); ok {
 		for _, item := range arr {
 			if str, strOk := item.(string); strOk {
 				result = append(result, str)
 			}
 		}
+
+		return result
+	}
+
+	// If not found by key, check if the data itself is an array (stored under "data" key)
+	if arr, ok := data["data"].([]any); ok {
+		for _, item := range arr {
+			if str, strOk := item.(string); strOk {
+				result = append(result, str)
+			}
+		}
+
+		return result
 	}
 
 	return result
@@ -366,6 +456,7 @@ func (f *Form) GetCorsConfig() (origins, methods, headers []string) {
 	origins = extractStringSlice(f.CorsOrigins, "origins")
 	methods = extractStringSlice(f.CorsMethods, "methods")
 	headers = extractStringSlice(f.CorsHeaders, "headers")
+
 	return origins, methods, headers
 }
 

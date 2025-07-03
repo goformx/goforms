@@ -15,6 +15,7 @@ import (
 // Recovery returns a middleware that recovers from panics
 func Recovery(logger logging.Logger, sanitizer sanitization.ServiceInterface) echo.MiddlewareFunc {
 	logger = logger.WithComponent("recovery")
+
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
 			defer func() {
@@ -23,6 +24,7 @@ func Recovery(logger logging.Logger, sanitizer sanitization.ServiceInterface) ec
 					handleError(c, err, logger, sanitizer)
 				}
 			}()
+
 			return next(c)
 		}
 	}
@@ -77,6 +79,7 @@ func handleError(c echo.Context, err error, logger logging.Logger, sanitizer san
 				"original_error", err,
 			)
 		}
+
 		return
 	}
 

@@ -40,6 +40,7 @@ func (b *MemoryEventBus) Publish(ctx context.Context, event events.Event) error 
 			)
 		}
 	}
+
 	return nil
 }
 
@@ -53,6 +54,7 @@ func (b *MemoryEventBus) PublishBatch(ctx context.Context, eventList []events.Ev
 			return fmt.Errorf("failed to publish event: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -70,6 +72,7 @@ func (b *MemoryEventBus) Subscribe(
 	}
 
 	b.handlers[eventName] = append(b.handlers[eventName], handler)
+
 	return nil
 }
 
@@ -79,6 +82,7 @@ func (b *MemoryEventBus) Unsubscribe(_ context.Context, eventName string) error 
 	defer b.handlersMu.Unlock()
 
 	delete(b.handlers, eventName)
+
 	return nil
 }
 

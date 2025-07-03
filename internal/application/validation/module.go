@@ -7,7 +7,7 @@ import (
 )
 
 // Module provides validation dependencies
-var Module = fx.Options(
+var Module = fx.Module("validation",
 	fx.Provide(
 		// Core validator
 		infra_validation.New,

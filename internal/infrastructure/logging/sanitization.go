@@ -47,43 +47,67 @@ func (s *Sanitizer) sanitizeString(key, value string) string {
 		return cached
 	}
 
-	var sanitized string
-
-	switch {
-	case key == "path" || strings.Contains(key, "path"):
-		sanitized = s.sanitizePath(value)
-	case key == "user_agent" || strings.Contains(key, "user_agent"):
-		sanitized = s.sanitizeUserAgent(value)
-	case key == "uuid" || strings.Contains(key, "uuid") || strings.Contains(key, "id"):
-		sanitized = s.sanitizeUUID(value)
-	case key == "error" || key == "err" || strings.Contains(key, "error"):
-		sanitized = s.sanitizeErrorString(value)
-	default:
-		sanitized = s.sanitizeGenericString(value)
-	}
+	sanitized := s.sanitizeByKey(key, value)
 
 	// Cache the result
 	s.cache[cacheKey] = sanitized
+
 	return sanitized
+}
+
+// sanitizeByKey determines the appropriate sanitization method based on the key
+func (s *Sanitizer) sanitizeByKey(key, value string) string {
+	switch {
+	case s.isPathKey(key):
+		return s.sanitizePath(value)
+	case s.isUserAgentKey(key):
+		return s.sanitizeUserAgent(value)
+	case s.isUUIDKey(key):
+		return s.sanitizeUUID(value)
+	case s.isErrorKey(key):
+		return s.sanitizeErrorString(value)
+	default:
+		return s.sanitizeGenericString(value)
+	}
+}
+
+// isPathKey checks if the key represents a path field
+func (s *Sanitizer) isPathKey(key string) bool {
+	return key == "path" || strings.Contains(key, "path")
+}
+
+// isUserAgentKey checks if the key represents a user agent field
+func (s *Sanitizer) isUserAgentKey(key string) bool {
+	return key == "user_agent" || strings.Contains(key, "user_agent")
+}
+
+// isUUIDKey checks if the key represents a UUID or ID field
+func (s *Sanitizer) isUUIDKey(key string) bool {
+	return key == "uuid" || strings.Contains(key, "uuid") || strings.Contains(key, "id")
+}
+
+// isErrorKey checks if the key represents an error field
+func (s *Sanitizer) isErrorKey(key string) bool {
+	return key == "error" || key == "err" || strings.Contains(key, "error")
 }
 
 // sanitizePath sanitizes a path value
 func (s *Sanitizer) sanitizePath(value string) string {
 	if value == "" || !strings.HasPrefix(value, "/") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Check for dangerous characters
 	dangerousChars := []string{"\\", "<", ">", "\"", "'", "\x00", "\n", "\r"}
 	for _, char := range dangerousChars {
 		if strings.Contains(value, char) {
-			return "[invalid path]"
+			return InvalidPathMessage
 		}
 	}
 
 	// Check for path traversal attempts
 	if strings.Contains(value, "..") || strings.Contains(value, "//") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Truncate if too long
@@ -119,6 +143,7 @@ func (s *Sanitizer) sanitizeUUID(value string) string {
 		// Standard UUID format: mask middle part
 		return value[:8] + "..." + value[len(value)-4:]
 	}
+
 	return value
 }
 
@@ -127,6 +152,7 @@ func (s *Sanitizer) sanitizeErrorString(value string) string {
 	if value == "" {
 		return ""
 	}
+
 	return sanitize.SingleLine(value)
 }
 
@@ -135,6 +161,7 @@ func (s *Sanitizer) sanitizeError(err error) string {
 	if err == nil {
 		return ""
 	}
+
 	return s.sanitizeErrorString(err.Error())
 }
 

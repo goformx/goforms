@@ -38,8 +38,10 @@ func (s *Store) CreateForm(ctx context.Context, formModel *model.Form) error {
 			"form_id", formModel.ID,
 			"error", err,
 		)
+
 		return fmt.Errorf("create form: %w", common.NewDatabaseError("create", "form", formModel.ID, err))
 	}
+
 	return nil
 }
 
@@ -53,7 +55,9 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 		s.logger.Warn("invalid form ID format received",
 			"id_length", len(id),
 			"error_type", "invalid_uuid_format")
+
 		invalidErr := common.NewInvalidInputError("get", "form", id, err)
+
 		return nil, fmt.Errorf("get form by ID: %w", invalidErr)
 	}
 
@@ -63,13 +67,17 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 			s.logger.Debug("form not found in database",
 				"id_length", len(normalizedID),
 				"error_type", "not_found")
+
 			return nil, fmt.Errorf("get form by ID: %w", common.NewNotFoundError("get", "form", normalizedID))
 		}
+
 		s.logger.Error("database error while getting form",
 			"id_length", len(normalizedID),
 			"error", err,
 			"error_type", "database_error")
+
 		dbErr := common.NewDatabaseError("get", "form", normalizedID, err)
+
 		return nil, fmt.Errorf("get form by ID: %w", dbErr)
 	}
 
@@ -91,8 +99,10 @@ func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, er
 			"user_id", userID,
 			"error", err,
 		)
+
 		return nil, fmt.Errorf("list forms: %w", common.NewDatabaseError("list", "form", "", err))
 	}
+
 	return forms, nil
 }
 
@@ -102,9 +112,11 @@ func (s *Store) UpdateForm(ctx context.Context, formModel *model.Form) error {
 	if result.Error != nil {
 		return fmt.Errorf("update form: %w", common.NewDatabaseError("update", "form", formModel.ID, result.Error))
 	}
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("update form: %w", common.NewNotFoundError("update", "form", formModel.ID))
 	}
+
 	return nil
 }
 
@@ -118,7 +130,9 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 		s.logger.Warn("invalid form ID format received for deletion",
 			"id_length", len(id),
 			"error_type", "invalid_uuid_format")
+
 		invalidErr := common.NewInvalidInputError("delete", "form", id, err)
+
 		return fmt.Errorf("delete form: %w", invalidErr)
 	}
 
@@ -128,6 +142,7 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 			"id_length", len(normalizedID),
 			"error", result.Error,
 			"error_type", "database_error")
+
 		return fmt.Errorf("delete form: %w", common.NewDatabaseError("delete", "form", normalizedID, result.Error))
 	}
 
@@ -135,6 +150,7 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 		s.logger.Debug("form not found for deletion",
 			"id_length", len(normalizedID),
 			"error_type", "not_found")
+
 		return fmt.Errorf("delete form: %w", common.NewNotFoundError("delete", "form", normalizedID))
 	}
 
@@ -150,6 +166,7 @@ func (s *Store) GetFormsByStatus(ctx context.Context, status string) ([]*model.F
 	if err := s.db.GetDB().WithContext(ctx).Where("status = ?", status).Find(&forms).Error; err != nil {
 		return nil, fmt.Errorf("failed to get forms by status: %w", err)
 	}
+
 	return forms, nil
 }
 
@@ -161,8 +178,10 @@ func (s *Store) CreateSubmission(ctx context.Context, submission *model.FormSubm
 			"form_id", submission.FormID,
 			"error", err,
 		)
+
 		return fmt.Errorf("create submission: %w", common.NewDatabaseError("create", "form_submission", submission.ID, err))
 	}
+
 	return nil
 }
 
@@ -174,9 +193,11 @@ func (s *Store) GetSubmissionByID(ctx context.Context, submissionID string) (*mo
 			return nil, fmt.Errorf("get submission by ID: %w",
 				common.NewNotFoundError("get", "form_submission", submissionID))
 		}
+
 		return nil, fmt.Errorf("get submission by ID: %w",
 			common.NewDatabaseError("get", "form_submission", submissionID, err))
 	}
+
 	return &submission, nil
 }
 
@@ -188,8 +209,10 @@ func (s *Store) ListSubmissions(ctx context.Context, formID string) ([]*model.Fo
 			"form_id", formID,
 			"error", err,
 		)
+
 		return nil, fmt.Errorf("list form submissions: %w", common.NewDatabaseError("list", "form_submission", formID, err))
 	}
+
 	return submissions, nil
 }
 
@@ -204,12 +227,15 @@ func (s *Store) UpdateSubmission(ctx context.Context, submission *model.FormSubm
 			"submission_id", submission.ID,
 			"error", result.Error,
 		)
+
 		return fmt.Errorf("update submission: %w",
 			common.NewDatabaseError("update", "form_submission", submission.ID, result.Error))
 	}
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("update submission: %w", common.NewNotFoundError("update", "form_submission", submission.ID))
 	}
+
 	return nil
 }
 
@@ -221,12 +247,15 @@ func (s *Store) DeleteSubmission(ctx context.Context, submissionID string) error
 			"submission_id", submissionID,
 			"error", result.Error,
 		)
+
 		return fmt.Errorf("delete submission: %w",
 			common.NewDatabaseError("delete", "form_submission", submissionID, result.Error))
 	}
+
 	if result.RowsAffected == 0 {
 		return fmt.Errorf("delete submission: %w", common.NewNotFoundError("delete", "form_submission", submissionID))
 	}
+
 	return nil
 }
 
@@ -242,6 +271,7 @@ func (s *Store) GetByFormIDPaginated(
 	params common.PaginationParams,
 ) (*common.PaginationResult, error) {
 	var total int64
+
 	query := s.db.GetDB().WithContext(ctx).Model(&model.FormSubmission{}).Where("form_id = ?", formID)
 	if err := query.Count(&total).Error; err != nil {
 		return nil, fmt.Errorf("failed to count submissions: %w", err)
@@ -271,12 +301,14 @@ func (s *Store) GetByFormAndUser(
 	userID string,
 ) (*model.FormSubmission, error) {
 	var submission model.FormSubmission
+
 	query := s.db.GetDB().WithContext(ctx).
 		Where("form_id = ? AND user_id = ?", formID, userID).
 		First(&submission)
 	if err := query.Error; err != nil {
 		return nil, fmt.Errorf("failed to get submission: %w", err)
 	}
+
 	return &submission, nil
 }
 
@@ -291,5 +323,6 @@ func (s *Store) GetSubmissionsByStatus(
 		Find(&submissions).Error; err != nil {
 		return nil, fmt.Errorf("failed to get submissions: %w", err)
 	}
+
 	return submissions, nil
 }

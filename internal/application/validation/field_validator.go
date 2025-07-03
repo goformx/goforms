@@ -77,8 +77,10 @@ func (v *FieldValidator) validateRequired(fieldName string, value any, rules *Fi
 		return []Error{{
 			Field:   fieldName,
 			Message: rules.getMessage("required", "This field is required"),
+			Rule:    "required",
 		}}
 	}
+
 	return nil
 }
 
@@ -91,12 +93,15 @@ func (v *FieldValidator) validateStringField(fieldName string, value any, rules 
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("minLength", fmt.Sprintf("Minimum length is %d characters", rules.MinLength)),
+				Rule:    "minLength",
 			})
 		}
+
 		if rules.MaxLength > 0 && len(strValue) > rules.MaxLength {
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("maxLength", fmt.Sprintf("Maximum length is %d characters", rules.MaxLength)),
+				Rule:    "maxLength",
 			})
 		}
 	}
@@ -113,12 +118,15 @@ func (v *FieldValidator) validateNumericField(fieldName string, value any, rules
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("min", fmt.Sprintf("Minimum value is %g", rules.Min)),
+				Rule:    "min",
 			})
 		}
+
 		if rules.Max != 0 && numValue > rules.Max {
 			errors = append(errors, Error{
 				Field:   fieldName,
 				Message: rules.getMessage("max", fmt.Sprintf("Maximum value is %g", rules.Max)),
+				Rule:    "max",
 			})
 		}
 	}
@@ -138,12 +146,15 @@ func (v *FieldValidator) validatePattern(fieldName string, value any, pattern st
 			return []Error{{
 				Field:   fieldName,
 				Message: fmt.Sprintf("Invalid regex pattern: %v", err),
+				Rule:    "pattern",
 			}}
 		}
+
 		if !matched {
 			return []Error{{
 				Field:   fieldName,
 				Message: "Value does not match required pattern",
+				Rule:    "pattern",
 			}}
 		}
 	}
@@ -163,9 +174,11 @@ func (v *FieldValidator) validateOptions(fieldName string, value any, options []
 				return nil
 			}
 		}
+
 		return []Error{{
 			Field:   fieldName,
 			Message: "Invalid option selected",
+			Rule:    "options",
 		}}
 	}
 
@@ -201,6 +214,7 @@ func (v *FieldValidator) ValidateFieldType(fieldName string, value any, fieldTyp
 	case "integer":
 		return v.validateInteger(fieldName, value)
 	}
+
 	return nil
 }
 
@@ -215,6 +229,7 @@ func (v *FieldValidator) validateEmail(fieldName string, value any) *Error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -229,6 +244,7 @@ func (v *FieldValidator) validateURL(fieldName string, value any) *Error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -243,6 +259,7 @@ func (v *FieldValidator) validatePhoneNumber(fieldName string, value any) *Error
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -257,6 +274,7 @@ func (v *FieldValidator) validateDate(fieldName string, value any) *Error {
 			}
 		}
 	}
+
 	return nil
 }
 
@@ -269,6 +287,7 @@ func (v *FieldValidator) validateNumber(fieldName string, value any) *Error {
 			Rule:    "number",
 		}
 	}
+
 	return nil
 }
 
@@ -289,6 +308,7 @@ func (v *FieldValidator) validateInteger(fieldName string, value any) *Error {
 			Rule:    "integer",
 		}
 	}
+
 	return nil
 }
 
@@ -353,5 +373,6 @@ func (v *FieldValidator) toFloat64(value any) (float64, bool) {
 			return f, true
 		}
 	}
+
 	return 0, false
 }

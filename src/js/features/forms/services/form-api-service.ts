@@ -128,7 +128,7 @@ export class FormApiService {
     try {
       // HttpClient.put returns HttpResponse, not Response
       await HttpClient.put(
-        `${this.baseUrl}/dashboard/forms/${formId}`,
+        `${this.baseUrl}/forms/${formId}`,
         JSON.stringify(details),
       );
 
@@ -192,6 +192,157 @@ export class FormApiService {
       }
       throw FormBuilderError.saveFailed(
         "Failed to submit form",
+        formId,
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  // =============================================
+  // CREATE OPERATIONS
+  // =============================================
+
+  /**
+   * Create a new form
+   */
+  public async createForm(data: {
+    title: string;
+    description?: string;
+  }): Promise<{ formId: string }> {
+    try {
+      // Create FormData for form submission
+      const formData = new FormData();
+      formData.append("title", data.title);
+      if (data.description) {
+        formData.append("description", data.description);
+      }
+
+      const response = await HttpClient.post<{ form_id: string }>(
+        `${this.baseUrl}/forms`,
+        formData as object,
+      );
+
+      return { formId: response.data.form_id };
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.saveFailed(
+        "Failed to create form",
+        "new",
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  // =============================================
+  // READ OPERATIONS
+  // =============================================
+
+  /**
+   * Get complete form data
+   */
+  public async getForm(formId: string): Promise<any> {
+    try {
+      const response = await HttpClient.get(
+        `${this.baseUrl}/api/v1/forms/${formId}`,
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.loadFailed(
+        "Failed to get form",
+        formId,
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  /**
+   * Get user's forms list
+   */
+  public async listForms(): Promise<any[]> {
+    try {
+      const response = await HttpClient.get(`${this.baseUrl}/forms`);
+      return (response.data as any[]) ?? [];
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.loadFailed(
+        "Failed to list forms",
+        "forms",
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  /**
+   * Get form details (metadata only)
+   */
+  public async getFormDetails(formId: string): Promise<any> {
+    try {
+      const response = await HttpClient.get(
+        `${this.baseUrl}/api/v1/forms/${formId}/details`,
+      );
+      return response.data;
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.loadFailed(
+        "Failed to get form details",
+        formId,
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  // =============================================
+  // UPDATE OPERATIONS
+  // =============================================
+
+  /**
+   * Update form status
+   */
+  public async updateFormStatus(formId: string, status: string): Promise<void> {
+    try {
+      await HttpClient.put(
+        `${this.baseUrl}/forms/${formId}/status`,
+        JSON.stringify({ status }),
+      );
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.saveFailed(
+        "Failed to update form status",
+        formId,
+        error instanceof Error ? error : undefined,
+      );
+    }
+  }
+
+  /**
+   * Update form CORS settings
+   */
+  public async updateFormCors(
+    formId: string,
+    corsOrigins: string,
+  ): Promise<void> {
+    try {
+      await HttpClient.put(
+        `${this.baseUrl}/forms/${formId}/cors`,
+        JSON.stringify({ cors_origins: corsOrigins }),
+      );
+    } catch (error) {
+      if (error instanceof FormBuilderError) {
+        throw error;
+      }
+      throw FormBuilderError.saveFailed(
+        "Failed to update form CORS settings",
         formId,
         error instanceof Error ? error : undefined,
       );

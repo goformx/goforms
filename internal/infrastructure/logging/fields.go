@@ -30,6 +30,10 @@ const (
 	PathFieldType
 	UserAgentFieldType
 	SensitiveFieldType
+	// InvalidPathMessage is the message returned for invalid paths
+	InvalidPathMessage = "[invalid path]"
+	// UUIDDashCount is the number of dashes in a standard UUID
+	UUIDDashCount = 4
 )
 
 // String creates a string field
@@ -94,68 +98,129 @@ func (f Field) ToZapField() zap.Field {
 		return zap.String(f.Key, "****")
 	}
 
-	switch f.Type {
-	case StringFieldType:
-		return zap.String(f.Key, f.Value.(string))
-	case IntFieldType:
-		switch v := f.Value.(type) {
-		case int:
-			return zap.Int(f.Key, v)
-		case int64:
-			return zap.Int64(f.Key, v)
-		default:
-			return zap.Any(f.Key, f.Value)
-		}
-	case FloatFieldType:
-		return zap.Float64(f.Key, f.Value.(float64))
-	case BoolFieldType:
-		return zap.Bool(f.Key, f.Value.(bool))
-	case ErrorFieldType:
-		if err, ok := f.Value.(error); ok {
-			return zap.Error(err)
-		}
-		return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
-	case UUIDFieldType:
-		return zap.String(f.Key, maskUUID(f.Value.(string)))
-	case PathFieldType:
-		return zap.String(f.Key, sanitizePath(f.Value.(string)))
-	case UserAgentFieldType:
-		return zap.String(f.Key, sanitizeUserAgent(f.Value.(string)))
-	case ObjectFieldType:
+	return f.convertByType()
+}
+
+// convertByType converts the field based on its type
+func (f Field) convertByType() zap.Field {
+	converter, exists := fieldTypeConverters[f.Type]
+	if !exists {
 		return zap.Any(f.Key, f.Value)
-	case SensitiveFieldType:
+	}
+
+	return converter(f)
+}
+
+// fieldTypeConverters maps field types to their conversion functions
+var fieldTypeConverters = map[FieldType]func(Field) zap.Field{
+	StringFieldType: func(f Field) zap.Field {
+		if str, ok := f.Value.(string); ok {
+			return zap.String(f.Key, str)
+		}
+
+		return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
+	},
+	IntFieldType: func(f Field) zap.Field {
+		return f.convertIntField()
+	},
+	FloatFieldType: func(f Field) zap.Field {
+		if val, ok := f.Value.(float64); ok {
+			return zap.Float64(f.Key, val)
+		}
+
+		return zap.Any(f.Key, f.Value)
+	},
+	BoolFieldType: func(f Field) zap.Field {
+		if val, ok := f.Value.(bool); ok {
+			return zap.Bool(f.Key, val)
+		}
+
+		return zap.Any(f.Key, f.Value)
+	},
+	ErrorFieldType: func(f Field) zap.Field {
+		return f.convertErrorField()
+	},
+	UUIDFieldType: func(f Field) zap.Field {
+		if val, ok := f.Value.(string); ok {
+			return zap.String(f.Key, maskUUID(val))
+		}
+
+		return zap.Any(f.Key, f.Value)
+	},
+	PathFieldType: func(f Field) zap.Field {
+		if val, ok := f.Value.(string); ok {
+			return zap.String(f.Key, sanitizePath(val))
+		}
+
+		return zap.Any(f.Key, f.Value)
+	},
+	UserAgentFieldType: func(f Field) zap.Field {
+		if val, ok := f.Value.(string); ok {
+			return zap.String(f.Key, sanitizeUserAgent(val))
+		}
+
+		return zap.Any(f.Key, f.Value)
+	},
+	ObjectFieldType: func(f Field) zap.Field {
+		return zap.Any(f.Key, f.Value)
+	},
+	SensitiveFieldType: func(f Field) zap.Field {
 		return zap.String(f.Key, "****")
+	},
+}
+
+// convertIntField converts an integer field with type checking
+func (f Field) convertIntField() zap.Field {
+	switch v := f.Value.(type) {
+	case int:
+		return zap.Int(f.Key, v)
+	case int64:
+		return zap.Int64(f.Key, v)
 	default:
 		return zap.Any(f.Key, f.Value)
 	}
 }
 
+// convertErrorField converts an error field with proper error handling
+func (f Field) convertErrorField() zap.Field {
+	if err, ok := f.Value.(error); ok {
+		return zap.Error(err)
+	}
+
+	return zap.String(f.Key, fmt.Sprintf("%v", f.Value))
+}
+
 // maskUUID masks a UUID value for security
 func maskUUID(value string) string {
-	if len(value) == 36 && strings.Count(value, "-") == 4 {
+	const uuidLength = 36
+
+	const uuidDashCount = 4
+
+	if len(value) == uuidLength && strings.Count(value, "-") == uuidDashCount {
 		// Standard UUID format: mask middle part
 		return value[:8] + "..." + value[len(value)-4:]
 	}
+
 	return value
 }
 
 // sanitizePath sanitizes a path value
 func sanitizePath(value string) string {
 	if value == "" || !strings.HasPrefix(value, "/") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Check for dangerous characters
 	dangerousChars := []string{"\\", "<", ">", "\"", "'", "\x00", "\n", "\r"}
 	for _, char := range dangerousChars {
 		if strings.Contains(value, char) {
-			return "[invalid path]"
+			return InvalidPathMessage
 		}
 	}
 
 	// Check for path traversal attempts
 	if strings.Contains(value, "..") || strings.Contains(value, "//") {
-		return "[invalid path]"
+		return InvalidPathMessage
 	}
 
 	// Truncate if too long
@@ -215,6 +280,7 @@ func isSensitiveKey(key string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
@@ -226,6 +292,7 @@ func SensitiveField(key string, value any) zap.Field {
 	if isSensitiveKey(key) {
 		return zap.String(key, "****")
 	}
+
 	return zap.Any(key, value)
 }
 
@@ -234,6 +301,7 @@ func Sanitized(key, value string) zap.Field {
 	if isSensitiveKey(key) {
 		return zap.String(key, "****")
 	}
+
 	return zap.String(key, sanitize.SingleLine(value))
 }
 
@@ -242,6 +310,7 @@ func SafeString(key, value string) zap.Field {
 	if isSensitiveKey(key) {
 		return zap.String(key, "****")
 	}
+
 	return zap.String(key, value)
 }
 
@@ -252,7 +321,11 @@ func RequestID(key, value string) zap.Field {
 	}
 
 	// Validate UUID format for request ID
-	if len(value) == 36 && strings.Count(value, "-") == 4 {
+	const uuidLength = 36
+
+	const uuidDashCount = 4
+
+	if len(value) == uuidLength && strings.Count(value, "-") == uuidDashCount {
 		return zap.String(key, value)
 	}
 
@@ -266,6 +339,7 @@ func CustomField(key string, value any, sanitizer func(any) string) zap.Field {
 	}
 
 	sanitizedValue := sanitizer(value)
+
 	return zap.String(key, sanitizedValue)
 }
 
@@ -283,6 +357,7 @@ func MaskedField(key, value, mask string) zap.Field {
 
 	// For longer values, show first 2 and last 2 characters with mask in middle
 	maskedValue := value[:2] + mask + value[len(value)-2:]
+
 	return zap.String(key, maskedValue)
 }
 
@@ -307,6 +382,7 @@ func ObjectField(key string, obj any) zap.Field {
 
 	// Convert object to string and sanitize
 	objStr := fmt.Sprintf("%v", obj)
+
 	return zap.String(key, sanitize.SingleLine(objStr))
 }
 
@@ -326,12 +402,14 @@ func NewSensitiveObject(key string, value any) SensitiveObject {
 func (s SensitiveObject) MarshalLogObject(enc zapcore.ObjectEncoder) error {
 	if isSensitiveKey(s.key) {
 		enc.AddString(s.key, "****")
+
 		return nil
 	}
 
 	// For non-sensitive objects, add as string
 	objStr := fmt.Sprintf("%v", s.value)
 	enc.AddString(s.key, sanitize.SingleLine(objStr))
+
 	return nil
 }
 

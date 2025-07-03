@@ -4,6 +4,7 @@ import (
 	"github.com/goformx/goforms/internal/presentation/templates/shared"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
+	"github.com/goformx/goforms/internal/presentation/templates/components"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -42,7 +43,7 @@ templ FormDetailsContent(data view.PageData) {
 	<div id="form_error" class="form-error"></div>
 	@FormFieldGroup("Form Title", "title", FormTitleInput(data), "title_error")
 	@FormFieldGroup("Description", "description", FormDescriptionInput(data), "description_error")
-	<div class="form-actions" style="display: none;">
+	<div class="form-actions hidden">
 		<a href="/dashboard" class="gf-button gf-button--outline">Cancel</a>
 		<button type="submit" class="gf-button gf-button--primary">Update Details</button>
 	</div>
@@ -62,39 +63,50 @@ templ FormFieldsContent(data view.PageData) {
 			<span>View Schema</span>
 		</button>
 		<button id="save-fields-btn" class="gf-button gf-button--primary gf-button--lg" type="button">
-			<span class="spinner" style="display:none;"></span>
+			<span class="spinner"></span>
 			<span>Save Fields</span>
 		</button>
-		<span id="schema-save-feedback" style="margin-left:1em;"></span>
+		<span id="schema-save-feedback"></span>
 	</div>
 </div>
 }
 
 templ EditForm(data view.PageData, form *model.Form) {
-@layouts.Layout(data, editFormContent(data, form))
+	@layouts.Layout(data, EditFormWrapper(data, form))
+}
+
+templ EditFormWrapper(data view.PageData, form *model.Form) {
+	@EditFormHeader(data, form)
+	@editFormContent(data, form)
+}
+
+templ EditFormHeader(data view.PageData, form *model.Form) {
+	@components.DashboardHeader(components.DashboardHeaderProps{
+		Title:    "Edit Form",
+		Subtitle: "Configure your form settings and fields",
+		Actions: []components.DashboardHeaderAction{
+			{
+				Href:  "/forms/" + data.Form.ID + "/preview",
+				Label: "Preview",
+				Icon:  "bi bi-eye",
+				Class: "gf-button gf-button--outline",
+				Title: "Preview Form",
+			},
+			{
+				Href:  "/forms/" + data.Form.ID + "/submissions",
+				Label: "View Submissions",
+				Icon:  "bi bi-list-check",
+				Class: "gf-button gf-button--outline",
+				Title: "View Form Submissions",
+			},
+		},
+	})
 }
 
 templ editFormContent(data view.PageData, form *model.Form) {
-<div class="dashboard-page">
-	<div class="dashboard-container">
-		<div class="dashboard-header">
-			<div class="dashboard-header-left">
-				<h1 class="dashboard-title">Edit Form</h1>
-				<p class="dashboard-subtitle">Configure your form settings and fields</p>
-			</div>
-			<div class="dashboard-header-right">
-				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/preview") } class="gf-button gf-button--outline">
-					<i class="bi bi-eye"></i>
-					<span>Preview</span>
-				</a>
-				<a href={ templ.SafeURL("/forms/" + data.Form.ID + "/submissions") } class="gf-button gf-button--outline">
-					<i class="bi bi-list-check"></i>
-					<span>View Submissions</span>
-				</a>
-			</div>
-		</div>
-
-		<div class="dashboard-content form-builder-content">
+	<div class="dashboard-page">
+		<div class="dashboard-container">
+			<div class="dashboard-content form-builder-content">
 			<div class="form-builder-grid">
 				<div class="form-builder-sidebar">
 					<div class="form-panel">
@@ -117,20 +129,23 @@ templ editFormContent(data view.PageData, form *model.Form) {
 							<div class="form-group">
 								<label for="status">Status</label>
 								<select id="status" name="status" class="gf-input">
-									if form.Status == "draft" {
-										<option value="draft" selected>Draft</option>
-									} else {
-										<option value="draft">Draft</option>
+									switch form.Status {
+										case "draft":
+											<option value="draft" selected>Draft</option>
+										default:
+											<option value="draft">Draft</option>
 									}
-									if form.Status == "published" {
-										<option value="published" selected>Published</option>
-									} else {
-										<option value="published">Published</option>
+									switch form.Status {
+										case "published":
+											<option value="published" selected>Published</option>
+										default:
+											<option value="published">Published</option>
 									}
-									if form.Status == "archived" {
-										<option value="archived" selected>Archived</option>
-									} else {
-										<option value="archived">Archived</option>
+									switch form.Status {
+										case "archived":
+											<option value="archived" selected>Archived</option>
+										default:
+											<option value="archived">Archived</option>
 									}
 								</select>
 							</div>
@@ -164,10 +179,10 @@ templ editFormContent(data view.PageData, form *model.Form) {
 								<span>View Schema</span>
 							</button>
 							<button id="save-fields-btn" class="gf-button gf-button--primary" type="button">
-								<span class="spinner" style="display:none;"></span>
+								<span class="spinner"></span>
 								<span>Save Fields</span>
 							</button>
-							<span id="schema-save-feedback" style="margin-left:1em;"></span>
+							<span id="schema-save-feedback"></span>
 						</div>
 					</div>
 				</div>
@@ -176,62 +191,7 @@ templ editFormContent(data view.PageData, form *model.Form) {
 	</div>
 </div>
 
-<style>
-	.form-builder-grid {
-		display: grid;
-		grid-template-columns: 300px 1fr;
-		gap: var(--spacing-6);
-		align-items: start;
-	}
 
-	@media (max-width: 1024px) {
-		.form-builder-grid {
-			grid-template-columns: 1fr;
-		}
-	}
-
-	.form-builder-sidebar {
-		position: sticky;
-		top: var(--spacing-6);
-	}
-
-	.form-builder-main {
-		min-width: 0;
-		/* Prevent grid item from overflowing */
-	}
-
-	.dashboard-header {
-		display: flex;
-		justify-content: space-between;
-		align-items: center;
-		margin-bottom: var(--spacing-6);
-	}
-
-	.dashboard-header-right {
-		display: flex;
-		gap: var(--spacing-4);
-	}
-
-	.form-builder-container {
-		min-height: 500px;
-		border: 1px solid var(--border-color);
-		border-radius: var(--border-radius);
-		background: var(--background-color);
-		padding: var(--spacing-4);
-	}
-
-	.form-builder {
-		width: 100%;
-		height: 100%;
-	}
-
-	.form-builder-actions {
-		display: flex;
-		gap: var(--spacing-4);
-		margin-top: var(--spacing-4);
-		align-items: center;
-	}
-</style>
 
 @templ.JSONScript("form-builder-data", data.FormBuilderAssetPath)
 if data.IsDevelopment {
@@ -270,11 +230,11 @@ document.addEventListener('DOMContentLoaded', function() {
 	const form = document.getElementById('edit-form');
 	const statusSelect = document.getElementById('status');
 	const corsOriginsInput = document.getElementById('cors_origins');
-	
+
 	if (form) {
 		form.addEventListener('submit', async function(e) {
 			e.preventDefault();
-			
+
 			// Validate CORS origins if status is published
 			if (statusSelect.value === 'published') {
 				const corsOrigins = corsOriginsInput.value.trim();
@@ -284,12 +244,12 @@ document.addEventListener('DOMContentLoaded', function() {
 					return;
 				}
 			}
-			
+
 			const submitBtn = form.querySelector('button[type="submit"]');
 			const originalText = submitBtn.innerHTML;
 			submitBtn.innerHTML = 'Saving...';
 			submitBtn.disabled = true;
-			
+
 			try {
 				const formData = new FormData(form);
 				const response = await fetch(form.action, {
@@ -299,33 +259,31 @@ document.addEventListener('DOMContentLoaded', function() {
 						'X-Requested-With': 'XMLHttpRequest'
 					}
 				});
-				
+
 				const result = await response.json();
-				
+
 				if (result.success) {
 					// Show success message
 					const successDiv = document.createElement('div');
 					successDiv.className = 'alert alert-success';
 					successDiv.textContent = result.message;
-					successDiv.style.cssText = 'background: #d4edda; color: #155724; padding: 10px; border-radius: 4px; margin-bottom: 15px;';
-					
+
 					// Insert before the form
 					form.parentNode.insertBefore(successDiv, form);
-					
+
 					// Remove success message after 3 seconds
 					setTimeout(() => {
 						successDiv.remove();
-					}, 5173);
+					}, 3000);
 				} else {
 					// Show error message
 					const errorDiv = document.createElement('div');
 					errorDiv.className = 'alert alert-error';
 					errorDiv.textContent = result.message || 'An error occurred';
-					errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px;';
-					
+
 					// Insert before the form
 					form.parentNode.insertBefore(errorDiv, form);
-					
+
 					// Remove error message after 5 seconds
 					setTimeout(() => {
 						errorDiv.remove();
@@ -336,11 +294,10 @@ document.addEventListener('DOMContentLoaded', function() {
 				const errorDiv = document.createElement('div');
 				errorDiv.className = 'alert alert-error';
 				errorDiv.textContent = 'An error occurred while saving the form';
-				errorDiv.style.cssText = 'background: #f8d7da; color: #721c24; padding: 10px; border-radius: 4px; margin-bottom: 15px;';
-				
+
 				// Insert before the form
 				form.parentNode.insertBefore(errorDiv, form);
-				
+
 				// Remove error message after 5 seconds
 				setTimeout(() => {
 					errorDiv.remove();

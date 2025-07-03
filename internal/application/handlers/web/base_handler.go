@@ -29,7 +29,7 @@ type BaseHandler struct {
 	Renderer       view.Renderer
 	SessionManager *session.Manager
 	ErrorHandler   response.ErrorHandlerInterface
-	AssetManager   *web.AssetManager
+	AssetManager   web.AssetManagerInterface // Use interface instead of concrete type
 }
 
 // NewBaseHandler creates a new base handler with common dependencies
@@ -41,7 +41,7 @@ func NewBaseHandler(
 	renderer view.Renderer,
 	sessionManager *session.Manager,
 	errorHandler response.ErrorHandlerInterface,
-	assetManager *web.AssetManager,
+	assetManager web.AssetManagerInterface, // Use interface
 ) *BaseHandler {
 	return &BaseHandler{
 		Logger:         logger,
@@ -65,15 +65,16 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 	userEntity, err := h.UserService.GetUserByID(c.Request().Context(), userID)
 	if err != nil || userEntity == nil {
 		h.Logger.Error("failed to get user", "error", err)
+
 		return nil, h.HandleError(c, err, "Failed to get user")
 	}
 
 	return userEntity, nil
 }
 
-// BuildPageData creates page data with common fields
-func (h *BaseHandler) BuildPageData(c echo.Context, title string) view.PageData {
-	return view.BuildPageData(h.Config, h.AssetManager, c, title)
+// NewPageData creates page data with common fields
+func (h *BaseHandler) NewPageData(c echo.Context, title string) *view.PageData {
+	return view.NewPageData(h.Config, h.AssetManager, c, title)
 }
 
 // HandleError handles common error scenarios
@@ -82,6 +83,7 @@ func (h *BaseHandler) HandleError(c echo.Context, err error, message string) err
 	if handleErr := h.ErrorHandler.HandleError(err, c, message); handleErr != nil {
 		return fmt.Errorf("handle error: %w", handleErr)
 	}
+
 	return nil
 }
 
@@ -90,6 +92,7 @@ func (h *BaseHandler) HandleNotFound(c echo.Context, message string) error {
 	if notFoundErr := h.ErrorHandler.HandleNotFoundError(message, c); notFoundErr != nil {
 		return fmt.Errorf("handle not found error: %w", notFoundErr)
 	}
+
 	return nil
 }
 
@@ -100,6 +103,21 @@ func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
 	); forbiddenErr != nil {
 		return fmt.Errorf("handle forbidden error: %w", forbiddenErr)
 	}
+
+	return nil
+}
+
+// GetAssetBaseURL returns the base URL for assets (convenience method)
+func (h *BaseHandler) GetAssetBaseURL() string {
+	return h.AssetManager.GetBaseURL()
+}
+
+// ValidateAssetPath validates an asset path (convenience method)
+func (h *BaseHandler) ValidateAssetPath(path string) error {
+	if err := h.AssetManager.ValidatePath(path); err != nil {
+		return fmt.Errorf("validate asset path: %w", err)
+	}
+
 	return nil
 }
 

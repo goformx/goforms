@@ -52,15 +52,19 @@ func (c *AppConfig) Validate() error {
 	if c.Name == "" {
 		errs = append(errs, "app name is required")
 	}
+
 	if c.GetServerPort() <= 0 || c.GetServerPort() > 65535 {
 		errs = append(errs, "app port must be between 1 and 65535")
 	}
+
 	if c.ReadTimeout <= 0 {
 		errs = append(errs, "read timeout must be positive")
 	}
+
 	if c.WriteTimeout <= 0 {
 		errs = append(errs, "write timeout must be positive")
 	}
+
 	if c.IdleTimeout <= 0 {
 		errs = append(errs, "idle timeout must be positive")
 	}

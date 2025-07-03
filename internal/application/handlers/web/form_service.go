@@ -42,7 +42,11 @@ func (s *FormService) CreateForm(ctx context.Context, userID string, req *FormCr
 
 	form := model.NewForm(userID, req.Title, "", schema)
 
-	return form, fmt.Errorf("create form: %w", s.formService.CreateForm(ctx, form))
+	if err := s.formService.CreateForm(ctx, form); err != nil {
+		return nil, fmt.Errorf("create form: %w", err)
+	}
+
+	return form, nil
 }
 
 // UpdateForm updates an existing form with the given request data
@@ -55,12 +59,20 @@ func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *For
 		form.CorsOrigins = model.JSON{"origins": parseCSV(req.CorsOrigins)}
 	}
 
-	return fmt.Errorf("update form: %w", s.formService.UpdateForm(ctx, form))
+	if err := s.formService.UpdateForm(ctx, form); err != nil {
+		return fmt.Errorf("update form: %w", err)
+	}
+
+	return nil
 }
 
 // DeleteForm deletes a form by ID
 func (s *FormService) DeleteForm(ctx context.Context, formID string) error {
-	return fmt.Errorf("delete form: %w", s.formService.DeleteForm(ctx, formID))
+	if err := s.formService.DeleteForm(ctx, formID); err != nil {
+		return fmt.Errorf("delete form: %w", err)
+	}
+
+	return nil
 }
 
 // GetFormSubmissions retrieves submissions for a form
@@ -69,6 +81,7 @@ func (s *FormService) GetFormSubmissions(ctx context.Context, formID string) ([]
 	if err != nil {
 		return nil, fmt.Errorf("list form submissions: %w", err)
 	}
+
 	return submissions, nil
 }
 
@@ -86,13 +99,17 @@ func parseCSV(input string) []string {
 	if input == "" {
 		return []string{} // Return empty slice instead of nil
 	}
+
 	parts := strings.Split(input, ",")
+
 	var result []string
+
 	for _, part := range parts {
 		trimmed := strings.TrimSpace(part)
 		if trimmed != "" {
 			result = append(result, trimmed)
 		}
 	}
+
 	return result
 }

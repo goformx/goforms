@@ -97,12 +97,6 @@ const (
 	SessionTimeout         = 5 // seconds
 	SessionCleanupInterval = 1 // hour
 
-	// Request timeouts
-	RequestTimeout = 30 // seconds
-	ReadTimeout    = 15 // seconds
-	WriteTimeout   = 15 // seconds
-	IdleTimeout    = 60 // seconds
-
 	// Rate limiting
 	RateLimitBurst   = 5
 	DefaultRateLimit = 20
@@ -303,5 +297,6 @@ func IsStaticFile(path string) bool {
 			return true
 		}
 	}
+
 	return false
 }

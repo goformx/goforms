@@ -45,6 +45,8 @@ type FormResponseBuilder interface {
 	BuildErrorResponse(c echo.Context, statusCode int, message string) error
 	BuildSchemaResponse(c echo.Context, schema model.JSON) error
 	BuildSubmissionResponse(c echo.Context, submission *model.FormSubmission) error
+	BuildFormResponse(c echo.Context, form *model.Form) error
+	BuildFormListResponse(c echo.Context, forms []*model.Form) error
 	BuildValidationErrorResponse(c echo.Context, field, message string) error
 	BuildMultipleErrorResponse(c echo.Context, errors []validation.Error) error
 }

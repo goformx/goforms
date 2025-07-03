@@ -69,15 +69,19 @@ func (p CoreParams) Validate() error {
 	if p.Config == nil {
 		return ErrMissingConfig
 	}
+
 	if p.Logger == nil {
 		return ErrMissingLogger
 	}
+
 	if p.Renderer == nil {
 		return errors.New("renderer is required")
 	}
+
 	if p.Echo == nil {
 		return errors.New("echo instance is required")
 	}
+
 	return nil
 }
 
@@ -94,9 +98,11 @@ func (p ServiceParams) Validate() error {
 	if p.UserService == nil {
 		return errors.New("user service is required")
 	}
+
 	if p.FormService == nil {
 		return errors.New("form service is required")
 	}
+
 	return nil
 }
 
@@ -149,6 +155,7 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 	if p.Config == nil {
 		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingConfig)
 	}
+
 	if p.Sanitizer == nil {
 		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingSanitizer)
 	}
@@ -231,24 +238,29 @@ func ProvideAssetServer(p AssetServerParams) (infraweb.AssetServer, error) {
 	if p.Config == nil {
 		return nil, fmt.Errorf("asset server creation failed: %w", ErrMissingConfig)
 	}
+
 	if p.Logger == nil {
 		return nil, fmt.Errorf("asset server creation failed: %w", ErrMissingLogger)
 	}
 
 	if p.Config.App.IsDevelopment() {
 		p.Logger.Info("Initializing development asset server for static files")
+
 		return infraweb.NewDevelopmentAssetServer(p.Config, p.Logger), nil
 	}
 
 	p.Logger.Info("Initializing embedded asset server for production")
+
 	return infraweb.NewEmbeddedAssetServer(p.Logger, p.DistFS), nil
 }
 
 // NewAssetManager creates a new asset manager with proper dependency validation.
-func NewAssetManager(p AssetManagerParams) (*infraweb.AssetManager, error) {
+// Returns the interface type for better dependency injection.
+func NewAssetManager(p AssetManagerParams) (infraweb.AssetManagerInterface, error) {
 	if p.Logger == nil {
 		return nil, fmt.Errorf("asset manager creation failed: %w", ErrMissingLogger)
 	}
+
 	if p.Config == nil {
 		return nil, fmt.Errorf("asset manager creation failed: %w", ErrMissingConfig)
 	}
@@ -289,6 +301,7 @@ func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger)
 	if cfg == nil {
 		return nil, ErrMissingConfig
 	}
+
 	if logger == nil {
 		return nil, ErrMissingLogger
 	}
@@ -302,10 +315,12 @@ func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger)
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			logger.Info("Database connection established")
+
 			return nil
 		},
 		OnStop: func(_ context.Context) error {
 			logger.Info("Closing database connection")
+
 			return db.Close()
 		},
 	})
@@ -320,7 +335,7 @@ func ProvideSanitizationService() sanitization.ServiceInterface {
 
 // Module provides comprehensive infrastructure dependencies with proper error handling,
 // lifecycle management, and clear separation of concerns.
-var Module = fx.Options(
+var Module = fx.Module("infrastructure",
 	// Core infrastructure providers
 	fx.Provide(
 		// Echo web framework
@@ -346,12 +361,15 @@ var Module = fx.Options(
 		NewEventPublisher,
 		event.NewMemoryEventBus,
 
-		// Asset handling
+		// Asset handling - provide both the interface and the module
 		fx.Annotate(
 			ProvideAssetServer,
 			fx.As(new(infraweb.AssetServer)),
 		),
-		NewAssetManager,
+		fx.Annotate(
+			NewAssetManager,
+			fx.As(new(infraweb.AssetManagerInterface)),
+		),
 	),
 
 	// Lifecycle management
@@ -359,10 +377,12 @@ var Module = fx.Options(
 		lc.Append(fx.Hook{
 			OnStart: func(_ context.Context) error {
 				logger.Info("Infrastructure module initialized")
+
 				return nil
 			},
 			OnStop: func(_ context.Context) error {
 				logger.Info("Infrastructure module shutting down")
+
 				return nil
 			},
 		})

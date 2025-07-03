@@ -8,11 +8,36 @@
     "go.formatFlags": [
         "-s"
     ],
+    "go.lintOnSave": "package",
+    "go.buildOnSave": "package",
+    "go.vetOnSave": "package",
+    "go.testFlags": [
+        "-v",
+        "-race"
+    ],
+    "go.toolsManagement.autoUpdate": true,
+    "go.languageServerExperimentalFeatures": {
+        "diagnostics": true,
+        "documentLink": true
+    },
     "templ.executablePath": "/go/bin/templ",
+    "files.associations": {
+        "*.templ": "templ"
+    },
     "editor.formatOnSave": true,
+    "editor.rulers": [
+        80,
+        120
+    ],
+    "files.trimTrailingWhitespace": true,
+    "files.insertFinalNewline": true,
     "[go]": {
         "editor.defaultFormatter": "golang.go",
-        "editor.formatOnSave": true
+        "editor.formatOnSave": true,
+        "editor.codeActionsOnSave": {
+            "source.organizeImports": "explicit",
+            "source.fixAll": "explicit"
+        }
     },
     "[typescript]": {
         "editor.defaultFormatter": "vscode.typescript-language-features",
@@ -26,13 +51,19 @@
         "editor.defaultFormatter": "kennylong.kubernetes-yaml-formatter"
     },
     "[github-actions-workflow]": {
-        "editor.defaultFormatter": "kachick.vscode-yamlfmt"
-    },
-    "files.associations": {
-        "*.templ": "templ"
+        "editor.defaultFormatter": "kennylong.kubernetes-yaml-formatter"
     },
     "prettier.documentSelectors": [
         "*.ts",
         "*.js"
-    ]
+    ],
+    "go.toolsGopath": "/go",
+    "go.gopath": "/go",
+    "go.goroot": "/usr/local/go",
+    "go.coverOnSave": true,
+    "go.coverageDecorator": {
+        "type": "gutter",
+        "coveredHighlightColor": "rgba(64,128,128,0.5)",
+        "uncoveredHighlightColor": "rgba(128,64,64,0.25)"
+    }
 }
