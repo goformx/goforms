@@ -27,7 +27,7 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 	data := h.NewPageData(c, "New Form")
 	data.SetUser(user)
 
-	return fmt.Errorf("render new form: %w", h.Renderer.Render(c, pages.NewForm(*data)))
+	return h.Renderer.Render(c, pages.NewForm(*data))
 }
 
 // handleCreate processes form creation requests
@@ -76,7 +76,7 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 
 	data.SetUser(user)
 
-	return fmt.Errorf("render edit form: %w", h.Renderer.Render(c, pages.EditForm(*data, form)))
+	return h.Renderer.Render(c, pages.EditForm(*data, form))
 }
 
 // handleUpdate processes form update requests
@@ -156,7 +156,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 
 	data.SetUser(user)
 
-	return fmt.Errorf("render submissions: %w", h.Renderer.Render(c, pages.FormSubmissions(*data)))
+	return h.Renderer.Render(c, pages.FormSubmissions(*data))
 }
 
 // handleFormCreationError handles form creation errors
