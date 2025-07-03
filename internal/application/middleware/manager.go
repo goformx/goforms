@@ -332,97 +332,100 @@ func getTokenLength(tokenLength int) int {
 	return tokenLength
 }
 
-// createCSRFSkipper creates a function that determines if CSRF protection should be skipped
+// createCSRFSkipper creates a CSRF skipper function with reduced complexity
 func createCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 	return func(c echo.Context) bool {
 		path := c.Request().URL.Path
 		method := c.Request().Method
 
-		// Add debug logging in development mode
+		// Log debug information in development mode
 		if isDevelopment {
-			// Use structured logging with proper key-value formatting
-			c.Logger().Debug("CSRF skipper check",
-				"path", path,
-				"method", method,
-				"is_safe_method", isSafeMethod(method),
-				"is_auth_page", isAuthPage(path),
-				"is_form_page", isFormPage(path),
-				"is_api_route", isAPIRoute(path),
-				"is_health_route", isHealthRoute(path),
-				"is_static_route", isStaticRoute(path),
-				"is_form_submission_route", isFormSubmissionRoute(path),
-				"is_auth_endpoint", isAuthEndpoint(path))
+			logCSRFSkipperDebug(c, path, method)
 		}
 
-		// For GET requests, only skip CSRF if it's not a page that needs token generation
-		if isSafeMethod(c.Request().Method) {
-			// Allow CSRF token generation for auth pages and form pages
-			if isAuthPage(c.Request().URL.Path) || isFormPage(c.Request().URL.Path) {
-				if isDevelopment {
-					c.Logger().Debug("CSRF not skipped - token generation needed", "path", path)
-				}
+		// Handle safe methods (GET, HEAD, OPTIONS)
+		if isSafeMethod(method) {
+			return handleSafeMethodCSRF(c, path, isDevelopment)
+		}
 
-				return false
-			}
-
-			if isDevelopment {
-				c.Logger().Debug("CSRF skipped - safe method", "path", path, "method", method)
-			}
-
+		// Check various route types for CSRF skipping
+		if shouldSkipCSRFForRoute(path, isDevelopment) {
 			return true
 		}
 
-		// Skip CSRF for authentication endpoints (login, signup, etc.)
-		if isAuthEndpoint(c.Request().URL.Path) {
-			if isDevelopment {
-				c.Logger().Debug("CSRF skipped - auth endpoint", "path", path)
-			}
-
-			return true
-		}
-
-		// Skip CSRF for API routes in development
-		if isDevelopment && isAPIRoute(c.Request().URL.Path) {
-			if isDevelopment {
-				c.Logger().Debug("CSRF skipped - API route in development", "path", path)
-			}
-
-			return true
-		}
-
-		// Skip CSRF for health check routes
-		if isHealthRoute(c.Request().URL.Path) {
-			if isDevelopment {
-				c.Logger().Debug("CSRF skipped - health route", "path", path)
-			}
-
-			return true
-		}
-
-		// Skip CSRF for static asset routes
-		if isStaticRoute(c.Request().URL.Path) {
-			if isDevelopment {
-				c.Logger().Debug("CSRF skipped - static route", "path", path)
-			}
-
-			return true
-		}
-
-		// Skip CSRF for form submission endpoints (handled by form-specific CORS)
-		if isFormSubmissionRoute(c.Request().URL.Path) {
-			if isDevelopment {
-				c.Logger().Debug("CSRF skipped - form submission route", "path", path)
-			}
-
-			return true
-		}
-
+		// Log that CSRF protection is required
 		if isDevelopment {
 			c.Logger().Debug("CSRF not skipped - requires protection", "path", path, "method", method)
 		}
 
 		return false
 	}
+}
+
+// logCSRFSkipperDebug logs debug information for CSRF skipper
+func logCSRFSkipperDebug(c echo.Context, path, method string) {
+	c.Logger().Debug("CSRF skipper check",
+		"path", path,
+		"method", method,
+		"is_safe_method", isSafeMethod(method),
+		"is_auth_page", isAuthPage(path),
+		"is_form_page", isFormPage(path),
+		"is_api_route", isAPIRoute(path),
+		"is_health_route", isHealthRoute(path),
+		"is_static_route", isStaticRoute(path),
+		"is_form_submission_route", isFormSubmissionRoute(path),
+		"is_auth_endpoint", isAuthEndpoint(path))
+}
+
+// handleSafeMethodCSRF handles CSRF logic for safe HTTP methods
+func handleSafeMethodCSRF(c echo.Context, path string, isDevelopment bool) bool {
+	// Allow CSRF token generation for auth pages and form pages
+	if isAuthPage(path) || isFormPage(path) {
+		if isDevelopment {
+			c.Logger().Debug("CSRF not skipped - token generation needed", "path", path)
+		}
+		return false
+	}
+
+	if isDevelopment {
+		c.Logger().Debug("CSRF skipped - safe method", "path", path, "method", c.Request().Method)
+	}
+	return true
+}
+
+// shouldSkipCSRFForRoute checks if CSRF should be skipped for the given route
+func shouldSkipCSRFForRoute(path string, isDevelopment bool) bool {
+	// Skip CSRF for authentication endpoints
+	if isAuthEndpoint(path) {
+		return true
+	}
+
+	// Skip CSRF for API routes in development
+	if isDevelopment && isAPIRoute(path) {
+		return true
+	}
+
+	// Skip CSRF for health check routes
+	if isHealthRoute(path) {
+		return true
+	}
+
+	// Skip CSRF for static asset routes
+	if isStaticRoute(path) {
+		return true
+	}
+
+	// Skip CSRF for form submission endpoints
+	if isFormSubmissionRoute(path) {
+		return true
+	}
+
+	return false
+}
+
+// logCSRFSkipReason logs the reason for skipping CSRF (helper for route-specific logging)
+func logCSRFSkipReason(c echo.Context, path, reason string) {
+	c.Logger().Debug("CSRF skipped - "+reason, "path", path)
 }
 
 // isSafeMethod checks if the HTTP method is safe (doesn't modify state)
