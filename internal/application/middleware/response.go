@@ -403,6 +403,7 @@ func (r *httpResponse) readFromBytesReader(reader *bytes.Reader) []byte {
 
 	if data, err := io.ReadAll(reader); err == nil {
 		r.bodyBytes = data
+
 		return data
 	}
 
@@ -413,6 +414,7 @@ func (r *httpResponse) readFromBytesReader(reader *bytes.Reader) []byte {
 func (r *httpResponse) readFromGenericReader() []byte {
 	if data, err := io.ReadAll(r.body); err == nil {
 		r.bodyBytes = data
+
 		return data
 	}
 
@@ -645,6 +647,7 @@ func (r *httpResponse) WriteTo(w io.Writer) (int64, error) {
 // writeStatusLine writes the HTTP status line
 func (r *httpResponse) writeStatusLine(w io.Writer) (int64, error) {
 	statusLine := fmt.Sprintf("HTTP/1.1 %d %s\r\n", r.statusCode, http.StatusText(r.statusCode))
+
 	bytesWritten, err := w.Write([]byte(statusLine))
 	if err != nil {
 		return 0, fmt.Errorf("failed to write status line: %w", err)
@@ -672,6 +675,7 @@ func (r *httpResponse) setDefaultHeaders() {
 // writeHeaders writes all response headers
 func (r *httpResponse) writeHeaders(w io.Writer) (int64, error) {
 	var totalBytes int64
+
 	for key, values := range r.headers {
 		for _, value := range values {
 			headerLine := fmt.Sprintf("%s: %s\r\n", key, value)
@@ -689,6 +693,7 @@ func (r *httpResponse) writeHeaders(w io.Writer) (int64, error) {
 // writeCookies writes all cookies as Set-Cookie headers
 func (r *httpResponse) writeCookies(w io.Writer) (int64, error) {
 	var totalBytes int64
+
 	for _, cookie := range r.cookies {
 		cookieHeader := fmt.Sprintf("Set-Cookie: %s\r\n", cookie.String())
 		if bytesWritten, err := w.Write([]byte(cookieHeader)); err != nil {
