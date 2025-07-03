@@ -39,7 +39,7 @@ linters:
     - unparam
     - whitespace
     - wrapcheck
-    
+
     # Additional linters that help with Fx patterns
     - cyclop          # Enforces cyclomatic complexity (helps with Fx constructors)
     - decorder        # Enforces declaration order (good for Fx modules)
@@ -57,25 +57,25 @@ linters:
     - reassign        # Checks for reassigning variables
     # - varnamelen      # Checks variable name length
     - wastedassign    # Finds assignments to existing variables
-    - wsl             # Enforces whitespace rules
+    - wsl_v5          # Enforces whitespace rules (updated from deprecated wsl)
 
   settings:
     errcheck:
       check-type-assertions: true
       check-blank: true
-      
+
     errorlint:
       errorf: true
       asserts: true
       comparison: true
-      
+
     exhaustive:
       check:
         - switch
         - map
       explicit-exhaustive-switch: true
       explicit-exhaustive-map: true
-      
+
     exhaustruct:
       # Exclude certain structs from exhaustive initialization
       exclude:
@@ -88,11 +88,11 @@ linters:
         - '.*Test.*'
         # Generated structs
         - '.*templ.*'
-      
+
     goconst:
       min-len: 3
       min-occurrences: 3
-      
+
     gocritic:
       disabled-checks:
         - ifElseChain
@@ -117,10 +117,10 @@ linters:
           skipArchDependent: true
         underef:
           skipRecvDeref: true
-          
+
     gocyclo:
       min-complexity: 15
-      
+
     gomodguard:
       blocked:
         modules:
@@ -129,11 +129,11 @@ linters:
               recommendations:
                 - Use fx.Provide with configuration constructors instead
           # Add other modules you want to restrict
-        
+
     gosec:
       severity: medium
       confidence: medium
-      
+
     govet:
       disable:
         - fieldalignment  # Can be too strict for Fx dependency structs
@@ -141,7 +141,7 @@ linters:
       settings:
         shadow:
           strict: true
-          
+
     ireturn:
       allow:
         - anon
@@ -190,17 +190,17 @@ linters:
         - '.*FormRetriever'
         - '.*FormOwnershipValidator'
         - '.*DB'
-        
+
     lll:
       line-length: 120
       tab-width: 1
-      
+
     maintidx:
       under: 20
-      
+
     misspell:
       locale: US
-      
+
     mnd:
       checks:
         - argument
@@ -221,13 +221,13 @@ linters:
         - 'make'
         - 'time.Duration'
         - 'fx.Options'
-      
+
     nakedret:
       max-func-lines: 30
-      
+
     nestif:
       min-complexity: 4
-      
+
     nilnil:
       checked-types:
         - ptr
@@ -235,28 +235,28 @@ linters:
         - iface
         - map
         - chan
-        
+
     nolintlint:
       require-explanation: true
       require-specific: true
       allow-unused: false
-      
+
     paralleltest:
       ignore-missing: true
-      
+
     prealloc:
       simple: true
       range-loops: true
       for-loops: false
-      
+
     reassign:
       patterns:
         - '.*'
-        
+
     staticcheck:
       checks:
         - all
-        
+
     tagliatelle:
       case:
         rules:
@@ -267,16 +267,16 @@ linters:
           xml: camel
           yaml: snake
         use-field-name: true
-        
+
     unparam:
       check-exported: false
-      
+
     unused:
       field-writes-are-uses: true
       post-statements-are-reads: true
       parameters-are-used: true
       local-variables-are-used: true
-      
+
     varnamelen:
       min-name-length: 2
       ignore-type-assert-ok: true
@@ -295,7 +295,7 @@ linters:
         - lc  # lifecycle
         - in  # input struct
         - out # output struct
-        
+
     wrapcheck:
       ignore-sigs:
         - .Errorf(
@@ -315,14 +315,11 @@ linters:
         - fx.Provide(
         - fx.Invoke(
         - fx.Options(
-        
-    wsl:
-      strict-append: true
-      allow-assign-and-call: true
-      allow-assign-and-anything: false
-      allow-multiline-assign: true
-      force-case-trailing-whitespace: 0
-      allow-separated-leading-comment: false
+
+    wsl_v5:
+      allow-first-in-block: true
+      allow-whole-block: false
+      branch-max-lines: 2
 
   exclusions:
     generated: lax
@@ -346,13 +343,13 @@ linters:
           - cyclop
           - maintidx
           - gocognit
-      
+
       # Exclude wrapcheck for test files (tests often don't need error wrapping)
       - path: _test\.go
         linters:
           - wrapcheck
           - errorlint
-      
+
       # Exclude certain rules for generated code
       - path: _templ\.go
         linters:
@@ -361,7 +358,7 @@ linters:
           - exhaustruct
           - varnamelen
           - wsl
-      
+
       # Exclude some rules for integration tests
       - path: test/integration/
         linters:
@@ -371,7 +368,7 @@ linters:
           - gocyclo
           - cyclop
           - maintidx
-      
+
       # Exclude some rules for mock files
       - path: test/mocks/
         linters:
@@ -381,18 +378,18 @@ linters:
           - nolintlint
           - varnamelen
           - exhaustruct
-      
+
       # Allow longer parameter lists for Fx constructors
       - linters:
           - gocritic
         text: "hugeParam"
-        
+
       # Allow certain patterns in Fx modules
       - path: ".*module.*\\.go"
         linters:
           - funlen  # Module files can be longer
           - gocyclo
-        
+
       # Allow some patterns in main.go (Fx app setup)
       - path: "main\\.go"
         linters:
@@ -400,13 +397,13 @@ linters:
           - gocyclo
           - cyclop
           - exhaustruct  # fx.Options don't need exhaustive initialization
-        
+
       # Allow interface returns in service layers (common Fx pattern)
       - text: "returns interface"
         linters:
           - ireturn
         path: "(service|repository|handler).*\\.go"
-        
+
       # Common Fx patterns that trigger false positives
       - text: "cyclomatic complexity"
         linters:
