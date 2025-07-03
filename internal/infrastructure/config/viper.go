@@ -9,7 +9,6 @@ import (
 	"strings"
 	"time"
 
-	"github.com/fsnotify/fsnotify"
 	"github.com/spf13/viper"
 	"go.uber.org/fx"
 )
@@ -26,61 +25,71 @@ func NewViperConfig() *ViperConfig {
 	// Set default values
 	setDefaults(v)
 
-	// Configure Viper
+	// Configure Viper with best practices
 	v.SetEnvPrefix("GOFORMS")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
-	// Set config file search paths
+	// Set config file search paths (order matters - first found wins)
 	v.AddConfigPath(".")
 	v.AddConfigPath("./config")
 	v.AddConfigPath("/etc/goforms")
 	v.AddConfigPath("$HOME/.goforms")
 
-	// Set config file names (without extension)
+	// Set config file names (without extension) - try multiple formats
 	v.SetConfigName("config")
 	v.SetConfigType("yaml") // Default to YAML
 
 	return &ViperConfig{viper: v}
 }
 
-// Load loads configuration using Viper
+// Load loads configuration using Viper with improved error handling
 func (vc *ViperConfig) Load() (*Config, error) {
 	if err := vc.loadConfigFiles(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load configuration files: %w", err)
 	}
 
 	config := &Config{}
 
 	if err := vc.loadAllConfigSections(config); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to load configuration sections: %w", err)
 	}
 
-	// Validate configuration
+	// Validate configuration with detailed error reporting
 	if err := config.validateConfig(); err != nil {
-		return nil, fmt.Errorf("config validation failed: %w", err)
+		return nil, fmt.Errorf("configuration validation failed: %w", err)
 	}
 
 	return config, nil
 }
 
-// loadConfigFiles loads configuration files
+// loadConfigFiles loads configuration files with better error handling
 func (vc *ViperConfig) loadConfigFiles() error {
 	// Try to read config file
 	if err := vc.viper.ReadInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
-			return fmt.Errorf("failed to read config file: %w", err)
+			// Config file not found is not an error - we can use environment variables
+			fmt.Printf("No configuration file found, using environment variables and defaults\n")
+
+			return nil
 		}
+
+		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Config file not found, continue with environment variables only
-	// Load .env file if it exists
+	// Log which config file was loaded
+	fmt.Printf("Loaded configuration from: %s\n", vc.viper.ConfigFileUsed())
+
+	// Try to merge additional config files (like .env)
 	if err := vc.viper.MergeInConfig(); err != nil {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
-			return fmt.Errorf("failed to merge config: %w", err)
+			// Additional config file not found is not an error
+			return nil
 		}
+
+		return fmt.Errorf("failed to merge additional config: %w", err)
 	}
 
 	return nil
@@ -468,14 +477,6 @@ func (vc *ViperConfig) LoadForEnvironment(env string) (*Config, error) {
 	config.App.Environment = env
 
 	return config, nil
-}
-
-// WatchConfig watches for configuration changes and reloads when files change
-func (vc *ViperConfig) WatchConfig(callback func()) {
-	vc.viper.WatchConfig()
-	vc.viper.OnConfigChange(func(e fsnotify.Event) {
-		callback()
-	})
 }
 
 // setDefaults sets default configuration values

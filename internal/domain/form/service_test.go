@@ -169,11 +169,13 @@ func TestService_UpdateForm(t *testing.T) {
 			require.Equal(t, "Updated Title", f.Title)
 			require.Equal(t, "Updated Description", f.Description)
 			require.Equal(t, "published", f.Status)
+
 			return nil
 		})
 
 		eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, event events.Event) error {
 			require.Equal(t, "form.updated", event.Name())
+
 			return nil
 		})
 
@@ -243,12 +245,15 @@ func TestService_DeleteForm(t *testing.T) {
 		repo.EXPECT().DeleteForm(gomock.Any(), formID).Return(nil)
 		eventBus.EXPECT().Publish(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, event events.Event) error {
 			require.Equal(t, "form.deleted", event.Name())
+
 			return nil
 		})
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
+
 		err := svc.DeleteForm(ctx, formID)
 		require.NoError(t, err)
 	})
@@ -262,8 +267,10 @@ func TestService_DeleteForm(t *testing.T) {
 		repo.EXPECT().DeleteForm(gomock.Any(), formID).Return(errors.New("database error"))
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
+
 		err := svc.DeleteForm(ctx, formID)
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to delete form")
@@ -280,8 +287,10 @@ func TestService_DeleteForm(t *testing.T) {
 		logger.EXPECT().Error(gomock.Any(), gomock.Any(), gomock.Any()).Return()
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
+
 		err := svc.DeleteForm(ctx, formID)
 		require.NoError(t, err) // Event bus errors are logged but don't fail the operation
 	})
@@ -293,8 +302,10 @@ func TestService_DeleteForm(t *testing.T) {
 		logger := mocklogging.NewMockLogger(ctrl)
 
 		svc := domainform.NewService(repo, eventBus, logger)
+
 		ctx, cancel := context.WithTimeout(t.Context(), 2*time.Second)
 		defer cancel()
+
 		err := svc.DeleteForm(ctx, "")
 		require.Error(t, err)
 		require.Contains(t, err.Error(), "failed to delete form")

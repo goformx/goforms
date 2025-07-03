@@ -71,6 +71,7 @@ func (s *FormService) DeleteForm(ctx context.Context, formID string) error {
 	if err := s.formService.DeleteForm(ctx, formID); err != nil {
 		return fmt.Errorf("delete form: %w", err)
 	}
+
 	return nil
 }
 

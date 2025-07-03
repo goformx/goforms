@@ -98,9 +98,10 @@ func (h *FormAPIHandler) handleListForms(c echo.Context) error {
 	}
 
 	// Get forms for the user
-	forms, err := h.FormBaseHandler.FormService.ListForms(c.Request().Context(), userID)
+	forms, err := h.FormService.ListForms(c.Request().Context(), userID)
 	if err != nil {
 		h.Logger.Error("failed to list forms", "error", err)
+
 		return h.HandleError(c, err, "Failed to list forms")
 	}
 
