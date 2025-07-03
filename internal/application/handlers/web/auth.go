@@ -14,6 +14,7 @@ import (
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/response"
+	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
@@ -28,7 +29,7 @@ type AuthHandler struct {
 	SchemaGenerator *validation.SchemaGenerator
 	RequestParser   *AuthRequestParser
 	ResponseBuilder *AuthResponseBuilder
-	AuthService     *AuthService
+	AuthService     *services.AuthService
 	Sanitizer       sanitization.ServiceInterface
 }
 
@@ -49,7 +50,7 @@ func NewAuthHandler(
 	schemaGenerator *validation.SchemaGenerator,
 	requestParser *AuthRequestParser,
 	responseBuilder *AuthResponseBuilder,
-	authService *AuthService,
+	authService *services.AuthService,
 	sanitizer sanitization.ServiceInterface,
 ) (*AuthHandler, error) {
 	if base == nil || authMiddleware == nil || requestUtils == nil ||

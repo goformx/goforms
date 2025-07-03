@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/goformx/goforms/internal/application/dto"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
@@ -37,8 +38,8 @@ func NewFormRequestProcessor(
 }
 
 // ProcessCreateRequest processes form creation requests
-func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCreateRequest, error) {
-	req := &FormCreateRequest{
+func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*dto.FormCreateRequest, error) {
+	req := &dto.FormCreateRequest{
 		Title: p.sanitizer.String(c.FormValue("title")),
 	}
 
@@ -50,8 +51,8 @@ func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCr
 }
 
 // ProcessUpdateRequest processes form update requests
-func (p *FormRequestProcessorImpl) ProcessUpdateRequest(c echo.Context) (*FormUpdateRequest, error) {
-	req := &FormUpdateRequest{
+func (p *FormRequestProcessorImpl) ProcessUpdateRequest(c echo.Context) (*dto.FormUpdateRequest, error) {
+	req := &dto.FormUpdateRequest{
 		Title:       p.sanitizer.String(c.FormValue("title")),
 		Description: p.sanitizer.String(c.FormValue("description")),
 		Status:      p.sanitizer.String(c.FormValue("status")),
@@ -113,7 +114,7 @@ func (p *FormRequestProcessorImpl) ProcessSubmissionRequest(c echo.Context) (mod
 }
 
 // validateCreateRequest validates form creation request
-func (p *FormRequestProcessorImpl) validateCreateRequest(req *FormCreateRequest) error {
+func (p *FormRequestProcessorImpl) validateCreateRequest(req *dto.FormCreateRequest) error {
 	if req.Title == "" {
 		return errors.New("title is required")
 	}
@@ -126,7 +127,7 @@ func (p *FormRequestProcessorImpl) validateCreateRequest(req *FormCreateRequest)
 }
 
 // validateUpdateRequest validates form update request
-func (p *FormRequestProcessorImpl) validateUpdateRequest(req *FormUpdateRequest) error {
+func (p *FormRequestProcessorImpl) validateUpdateRequest(req *dto.FormUpdateRequest) error {
 	if req.Title == "" {
 		return errors.New("title is required")
 	}

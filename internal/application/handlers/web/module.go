@@ -23,6 +23,7 @@ import (
 	"github.com/goformx/goforms/internal/presentation/view"
 
 	"github.com/goformx/goforms/internal/application/constants"
+	"github.com/goformx/goforms/internal/application/services"
 )
 
 // Module provides web handler dependencies
@@ -41,7 +42,7 @@ var Module = fx.Module("web-handlers",
 			NewAuthResponseBuilder,
 			fx.ParamTags(``),
 		),
-		NewAuthService,
+		services.NewAuthService,
 
 		// Legacy HandlerDeps for backward compatibility
 		fx.Annotate(
@@ -78,7 +79,7 @@ var Module = fx.Module("web-handlers",
 				schemaGenerator *validation.SchemaGenerator,
 				requestParser *AuthRequestParser,
 				responseBuilder *AuthResponseBuilder,
-				authService *AuthService,
+				authService *services.AuthService,
 				sanitizer sanitization.ServiceInterface,
 			) (Handler, error) {
 				return NewAuthHandler(

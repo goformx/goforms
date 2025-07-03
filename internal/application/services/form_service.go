@@ -1,12 +1,13 @@
-// Package web provides HTTP handlers for web-based functionality including
+// Package services provides HTTP handlers for web-based functionality including
 // authentication, form management, and user interface components.
-package web
+package services
 
 import (
 	"context"
 	"fmt"
 	"strings"
 
+	"github.com/goformx/goforms/internal/application/dto"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -27,7 +28,7 @@ func NewFormService(formService formdomain.Service, logger logging.Logger) *Form
 }
 
 // CreateForm creates a new form with the given request data
-func (s *FormService) CreateForm(ctx context.Context, userID string, req *FormCreateRequest) (*model.Form, error) {
+func (s *FormService) CreateForm(ctx context.Context, userID string, req *dto.FormCreateRequest) (*model.Form, error) {
 	schema := model.JSON{
 		"type": "object",
 		"components": []any{
@@ -50,7 +51,7 @@ func (s *FormService) CreateForm(ctx context.Context, userID string, req *FormCr
 }
 
 // UpdateForm updates an existing form with the given request data
-func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *FormUpdateRequest) error {
+func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *dto.FormUpdateRequest) error {
 	form.Title = req.Title
 	form.Description = req.Description
 	form.Status = req.Status

@@ -3,22 +3,10 @@ package web
 import (
 	"github.com/labstack/echo/v4"
 
+	"github.com/goformx/goforms/internal/application/dto"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
 )
-
-// FormCreateRequest represents the data needed to create a form
-type FormCreateRequest struct {
-	Title string `json:"title"`
-}
-
-// FormUpdateRequest represents the data needed to update a form
-type FormUpdateRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Status      string `json:"status"`
-	CorsOrigins string `json:"cors_origins"`
-}
 
 // FormRetriever interface for retrieving forms
 type FormRetriever interface {
@@ -33,8 +21,8 @@ type FormOwnershipValidator interface {
 
 // FormRequestProcessor interface for processing form requests
 type FormRequestProcessor interface {
-	ProcessCreateRequest(c echo.Context) (*FormCreateRequest, error)
-	ProcessUpdateRequest(c echo.Context) (*FormUpdateRequest, error)
+	ProcessCreateRequest(c echo.Context) (*dto.FormCreateRequest, error)
+	ProcessUpdateRequest(c echo.Context) (*dto.FormUpdateRequest, error)
 	ProcessSchemaUpdateRequest(c echo.Context) (model.JSON, error)
 	ProcessSubmissionRequest(c echo.Context) (model.JSON, error)
 }
