@@ -425,11 +425,6 @@ func shouldSkipCSRFForRoute(path string, isDevelopment bool) bool {
 	return false
 }
 
-// logCSRFSkipReason logs the reason for skipping CSRF (helper for route-specific logging)
-func logCSRFSkipReason(c echo.Context, path, reason string) {
-	c.Logger().Debug("CSRF skipped - "+reason, "path", path)
-}
-
 // isSafeMethod checks if the HTTP method is safe (doesn't modify state)
 func isSafeMethod(method string) bool {
 	safeMethods := []string{"GET", "HEAD", "OPTIONS"}

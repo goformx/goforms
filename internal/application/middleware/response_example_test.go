@@ -1,4 +1,4 @@
-package middleware
+package middleware_test
 
 import (
 	"bytes"
@@ -6,6 +6,8 @@ import (
 	"net/http"
 	"testing"
 	"time"
+
+	"github.com/goformx/goforms/internal/application/middleware"
 )
 
 // Test the response implementation
@@ -13,7 +15,7 @@ func TestResponseImplementation(t *testing.T) {
 	// Test JSON response
 	t.Run("JSON Response", func(t *testing.T) {
 		data := map[string]string{"message": "test"}
-		resp := NewJSONResponse(data)
+		resp := middleware.NewJSONResponse(data)
 
 		if resp.StatusCode() != http.StatusOK {
 			t.Errorf("Expected status 200, got %d", resp.StatusCode())
@@ -52,7 +54,7 @@ func TestResponseImplementation(t *testing.T) {
 	// Test error response
 	t.Run("Error Response", func(t *testing.T) {
 		testErr := fmt.Errorf("test error")
-		resp := NewErrorResponse(http.StatusBadRequest, testErr)
+		resp := middleware.NewErrorResponse(http.StatusBadRequest, testErr)
 
 		if resp.StatusCode() != http.StatusBadRequest {
 			t.Errorf("Expected status 400, got %d", resp.StatusCode())
@@ -70,7 +72,7 @@ func TestResponseImplementation(t *testing.T) {
 	// Test redirect response
 	t.Run("Redirect Response", func(t *testing.T) {
 		location := "/new-location"
-		resp := NewRedirectResponse(http.StatusFound, location)
+		resp := middleware.NewRedirectResponse(http.StatusFound, location)
 
 		if resp.StatusCode() != http.StatusFound {
 			t.Errorf("Expected status 302, got %d", resp.StatusCode())
@@ -87,7 +89,7 @@ func TestResponseImplementation(t *testing.T) {
 
 	// Test response builder
 	t.Run("Response Builder", func(t *testing.T) {
-		resp := NewResponseBuilder().
+		resp := middleware.NewResponseBuilder().
 			StatusCode(http.StatusCreated).
 			JSON().
 			BodyBytes([]byte(`{"id": 123}`)).
@@ -109,7 +111,7 @@ func TestResponseImplementation(t *testing.T) {
 
 	// Test response cloning
 	t.Run("Response Cloning", func(t *testing.T) {
-		original := NewJSONResponse(map[string]string{"test": "data"})
+		original := middleware.NewJSONResponse(map[string]string{"test": "data"})
 		original.SetHeader("X-Original", "value")
 
 		cloned := original.Clone()
@@ -142,7 +144,7 @@ func BenchmarkNewJSONResponse(b *testing.B) {
 	b.ResetTimer()
 
 	for i := 0; i < b.N; i++ {
-		resp := NewJSONResponse(data)
+		resp := middleware.NewJSONResponse(data)
 		if resp == nil {
 			b.Fatal("Response should not be nil")
 		}
@@ -156,7 +158,7 @@ func BenchmarkResponseWriteTo(b *testing.B) {
 		"timestamp": time.Now().Unix(),
 	}
 
-	resp := NewJSONResponse(data)
+	resp := middleware.NewJSONResponse(data)
 	resp.SetHeader("X-Custom-Header", "custom-value")
 	resp.SetRequestID("req-123")
 

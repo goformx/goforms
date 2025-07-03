@@ -9,6 +9,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/core"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
+	"github.com/stretchr/testify/require"
 )
 
 // mockMiddleware implements core.Middleware for testing
@@ -564,11 +565,11 @@ func TestOrchestrator_ChainManagement(t *testing.T) {
 
 	// Create a chain
 	chain, err := orchestrator.CreateChain(core.ChainTypeDefault)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// Register the chain
 	err = orchestrator.RegisterChain("test-chain", chain)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 
 	// List chains
 	chains := orchestrator.ListChains()
@@ -711,7 +712,7 @@ func TestOrchestrator_CacheManagement(t *testing.T) {
 
 	// Build a chain to populate cache
 	chain, err := orchestrator.GetChainForPath(core.ChainTypeDefault, "/test")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain)
 
 	// Get cache stats

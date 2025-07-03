@@ -17,7 +17,11 @@ type MigrationAdapter struct {
 }
 
 // NewMigrationAdapter creates a new migration adapter
-func NewMigrationAdapter(orchestrator core.Orchestrator, registry core.Registry, logger logging.Logger) *MigrationAdapter {
+func NewMigrationAdapter(
+	orchestrator core.Orchestrator,
+	registry core.Registry,
+	logger logging.Logger,
+) *MigrationAdapter {
 	return &MigrationAdapter{
 		orchestrator: orchestrator,
 		registry:     registry,

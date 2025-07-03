@@ -85,7 +85,7 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 		for _, chainType := range chainTypes {
 			t.Run(chainType.String(), func(t *testing.T) {
 				mwChain, chainErr := orchestrator.BuildChain(chainType)
-				assert.NoError(t, chainErr)
+				require.NoError(t, chainErr)
 				assert.NotNil(t, mwChain)
 				assert.GreaterOrEqual(t, mwChain.Length(), 0)
 			})
@@ -105,7 +105,7 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 		paths := []string{"/api/users", "/dashboard", "/login", "/admin/users", "/", "/static/css/style.css"}
 		for _, path := range paths {
 			chain, chainErr := adapter.BuildChainForPath(path)
-			assert.NoError(t, chainErr)
+			require.NoError(t, chainErr)
 			assert.NotNil(t, chain)
 		}
 	})
