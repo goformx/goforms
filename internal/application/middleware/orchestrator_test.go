@@ -225,7 +225,7 @@ func TestOrchestrator_CreateChain(t *testing.T) {
 
 	// Test creating a chain
 	chain, err := orchestrator.CreateChain(core.ChainTypeAPI)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain)
 	assert.Equal(t, 3, chain.Length())
 
@@ -290,7 +290,7 @@ func TestOrchestrator_BuildChainForPath(t *testing.T) {
 
 	// Test building chain for API path
 	chain, err := orchestrator.BuildChainForPath(core.ChainTypeAPI, "/api/users")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain)
 	assert.Equal(t, 3, chain.Length()) // cors, auth, api-specific (logging not included in API chain)
 

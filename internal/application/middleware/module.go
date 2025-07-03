@@ -136,7 +136,7 @@ var Module = fx.Module("middleware",
 
 				// Validate orchestrator configuration
 				if err := orchestrator.ValidateConfiguration(); err != nil {
-					return err
+					return fmt.Errorf("failed to validate orchestrator configuration: %w", err)
 				}
 
 				logger.Info("middleware system initialized successfully")

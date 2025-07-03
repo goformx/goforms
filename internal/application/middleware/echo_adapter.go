@@ -172,7 +172,7 @@ func (ea *EchoOrchestratorAdapter) setupPublicChain(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) setupStaticChain(e *echo.Echo) error {
 	chain, err := ea.orchestrator.BuildChain(core.ChainTypeStatic)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build static chain: %w", err)
 	}
 
 	echoMiddleware := ea.convertChainToEcho(chain)

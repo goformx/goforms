@@ -300,7 +300,7 @@ func TestIntegration_ErrorHandling(t *testing.T) {
 		// Test migration with missing middleware
 		err := migrationAdapter.ValidateMigration()
 		// This should fail because not all required middleware are registered
-		assert.Error(t, err)
+		require.Error(t, err)
 
 		// Test rollback on error
 		migrationAdapter.EnableNewSystem()
