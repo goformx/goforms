@@ -183,9 +183,6 @@ func (r *DevelopmentAssetResolver) buildPathRules() []AssetPathRule {
 			},
 			Transform: func(path, baseURL string) string {
 				baseName := strings.TrimSuffix(strings.TrimSuffix(path, ".js"), ".ts")
-				if baseName == "main" {
-					return fmt.Sprintf("%s/src/js/pages/%s.ts", baseURL, baseName)
-				}
 
 				return fmt.Sprintf("%s/src/js/%s.ts", baseURL, baseName)
 			},

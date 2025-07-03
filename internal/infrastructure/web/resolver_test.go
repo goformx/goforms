@@ -190,7 +190,7 @@ func TestAssetManager(t *testing.T) {
 	assert.NotNil(t, manager)
 
 	path := manager.AssetPath("main.js")
-	assert.Equal(t, "http://localhost:5173/src/js/pages/main.ts", path)
+	assert.Equal(t, "http://localhost:5173/src/js/main.ts", path)
 
 	path2 := manager.AssetPath("main.js")
 	assert.Equal(t, path, path2)
