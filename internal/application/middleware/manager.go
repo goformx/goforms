@@ -384,12 +384,14 @@ func handleSafeMethodCSRF(c echo.Context, path string, isDevelopment bool) bool 
 		if isDevelopment {
 			c.Logger().Debug("CSRF not skipped - token generation needed", "path", path)
 		}
+
 		return false
 	}
 
 	if isDevelopment {
 		c.Logger().Debug("CSRF skipped - safe method", "path", path, "method", c.Request().Method)
 	}
+
 	return true
 }
 
