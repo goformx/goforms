@@ -104,8 +104,8 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 		// Test chain building for specific paths
 		paths := []string{"/api/users", "/dashboard", "/login", "/admin/users", "/", "/static/css/style.css"}
 		for _, path := range paths {
-			chain, err := adapter.BuildChainForPath(path)
-			assert.NoError(t, err)
+			chain, chainErr := adapter.BuildChainForPath(path)
+			assert.NoError(t, chainErr)
 			assert.NotNil(t, chain)
 		}
 	})
@@ -239,8 +239,8 @@ func TestIntegration_PathBasedChains(t *testing.T) {
 
 		for _, tc := range testCases {
 			t.Run(tc.path, func(t *testing.T) {
-				chain, err := adapter.BuildChainForPath(tc.path)
-				require.NoError(t, err)
+				chain, chainErr := adapter.BuildChainForPath(tc.path)
+				require.NoError(t, chainErr)
 				assert.NotNil(t, chain)
 			})
 		}
@@ -271,8 +271,8 @@ func TestIntegration_Performance(t *testing.T) {
 		start := time.Now()
 
 		for i := 0; i < 100; i++ {
-			chain, err := orchestrator.BuildChain(core.ChainTypeDefault)
-			require.NoError(t, err)
+			chain, chainErr := orchestrator.BuildChain(core.ChainTypeDefault)
+			require.NoError(t, chainErr)
 			assert.NotNil(t, chain)
 		}
 

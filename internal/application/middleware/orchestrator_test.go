@@ -46,9 +46,9 @@ func newMockRegistry() *mockRegistry {
 	}
 }
 
-func (m *mockRegistry) Register(name string, middleware core.Middleware) error {
-	args := m.Called(name, middleware)
-	m.middlewares[name] = middleware
+func (m *mockRegistry) Register(name string, mw core.Middleware) error {
+	args := m.Called(name, mw)
+	m.middlewares[name] = mw
 
 	return args.Error(0)
 }
