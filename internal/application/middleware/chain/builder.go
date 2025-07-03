@@ -78,8 +78,10 @@ func (b *ChainBuilder) resolveMiddleware(names []string) []core.Middleware {
 			if b.logger != nil {
 				b.logger.Warn("middleware %q not found in registry", name)
 			}
+
 			continue
 		}
+
 		middlewares = append(middlewares, mw)
 	}
 
