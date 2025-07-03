@@ -431,7 +431,7 @@ func (o *orchestrator) applyPathSpecificMiddleware(baseChain core.Chain, request
 	for _, name := range allNames {
 		if mw, ok := o.registry.Get(name); ok {
 			config := o.config.GetMiddlewareConfig(name)
-			if o.shouldAddPathSpecificMiddleware(name, config, requestPath) {
+			if o.shouldAddPathSpecificMiddleware(config, requestPath) {
 				baseChain.Add(mw)
 				o.logger.Info("added path-specific middleware", "name", name, "path", requestPath)
 			}
@@ -672,7 +672,6 @@ func (o *orchestrator) validateRegistryDependency(name string, config map[string
 
 // shouldAddPathSpecificMiddleware determines if middleware should be added for the given path.
 func (o *orchestrator) shouldAddPathSpecificMiddleware(
-	name string,
 	config map[string]any,
 	requestPath string,
 ) bool {
