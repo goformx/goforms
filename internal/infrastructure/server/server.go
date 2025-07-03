@@ -12,7 +12,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/version"
@@ -122,7 +121,7 @@ func New(deps Deps) *Server {
 
 	// Add health check endpoint
 	deps.Echo.GET("/health", func(c echo.Context) error {
-		return response.Success(c, map[string]string{
+		return c.JSON(http.StatusOK, map[string]string{
 			"status": "ok",
 			"time":   time.Now().Format(time.RFC3339),
 		})

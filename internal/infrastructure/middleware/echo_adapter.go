@@ -10,20 +10,19 @@ import (
 	"net/http"
 	"strings"
 
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/labstack/echo/v4"
-
-	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
 // EchoAdapter adapts our framework-agnostic middleware to Echo's middleware interface.
 // This adapter follows the adapter pattern to bridge between our clean architecture
 // and Echo's framework-specific implementation.
 type EchoAdapter struct {
-	middleware core.Middleware
+	middleware interfaces.Middleware
 }
 
 // NewEchoAdapter creates a new Echo adapter for the given middleware.
-func NewEchoAdapter(middleware core.Middleware) *EchoAdapter {
+func NewEchoAdapter(middleware interfaces.Middleware) *EchoAdapter {
 	return &EchoAdapter{
 		middleware: middleware,
 	}
@@ -42,7 +41,7 @@ func (a *EchoAdapter) ToEchoMiddleware() echo.MiddlewareFunc {
 			resp := a.middleware.Process(
 				c.Request().Context(),
 				req,
-				func(ctx context.Context, r core.Request) core.Response {
+				func(ctx context.Context, r interfaces.Request) interfaces.Response {
 					// Call next handler in Echo chain
 					if err := next(c); err != nil {
 						// Convert Echo error to our Response interface
@@ -82,12 +81,12 @@ func (a *EchoAdapter) determineStatusCode(err error) int {
 }
 
 // convertEchoError converts an Echo error to our Response interface.
-func (a *EchoAdapter) convertEchoError(err error, c echo.Context) core.Response {
+func (a *EchoAdapter) convertEchoError(err error, c echo.Context) interfaces.Response {
 	// Determine appropriate status code based on error type
 	statusCode := a.determineStatusCode(err)
 
 	// Create error response
-	errorResp := core.NewErrorResponse(statusCode, err)
+	errorResp := interfaces.NewErrorResponse(statusCode, err)
 
 	// Set request ID if available
 	if requestID := c.Get("request_id"); requestID != nil {
@@ -100,12 +99,12 @@ func (a *EchoAdapter) convertEchoError(err error, c echo.Context) core.Response 
 }
 
 // convertEchoResponse converts Echo's response to our Response interface.
-func (a *EchoAdapter) convertEchoResponse(c echo.Context) core.Response {
+func (a *EchoAdapter) convertEchoResponse(c echo.Context) interfaces.Response {
 	// Get response from Echo context
 	response := c.Response()
 
 	// Create our response
-	resp := core.NewResponse(response.Status)
+	resp := interfaces.NewResponse(response.Status)
 
 	// Copy headers
 	for key, values := range response.Header() {
@@ -139,7 +138,7 @@ func (a *EchoAdapter) convertEchoResponse(c echo.Context) core.Response {
 }
 
 // applyHeaders applies response headers to Echo context
-func (a *EchoAdapter) applyHeaders(c echo.Context, resp core.Response) {
+func (a *EchoAdapter) applyHeaders(c echo.Context, resp interfaces.Response) {
 	// Apply headers
 	for key, values := range resp.Headers() {
 		for _, value := range values {
@@ -149,7 +148,7 @@ func (a *EchoAdapter) applyHeaders(c echo.Context, resp core.Response) {
 }
 
 // applyCookies applies response cookies to Echo context
-func (a *EchoAdapter) applyCookies(c echo.Context, resp core.Response) {
+func (a *EchoAdapter) applyCookies(c echo.Context, resp interfaces.Response) {
 	// Apply cookies
 	for _, cookie := range resp.Cookies() {
 		c.SetCookie(cookie)
@@ -157,7 +156,7 @@ func (a *EchoAdapter) applyCookies(c echo.Context, resp core.Response) {
 }
 
 // handleRedirect handles redirect responses
-func (a *EchoAdapter) handleRedirect(c echo.Context, resp core.Response) error {
+func (a *EchoAdapter) handleRedirect(c echo.Context, resp interfaces.Response) error {
 	if resp.IsRedirect() && resp.Location() != "" {
 		return c.Redirect(resp.StatusCode(), resp.Location())
 	}
@@ -166,7 +165,7 @@ func (a *EchoAdapter) handleRedirect(c echo.Context, resp core.Response) error {
 }
 
 // handleError handles error responses
-func (a *EchoAdapter) handleError(resp core.Response) error {
+func (a *EchoAdapter) handleError(resp interfaces.Response) error {
 	if resp.IsError() {
 		if resp.Error() != nil {
 			return fmt.Errorf("response error: %w", resp.Error())
@@ -179,7 +178,7 @@ func (a *EchoAdapter) handleError(resp core.Response) error {
 }
 
 // writeBody writes the response body to Echo's response writer
-func (a *EchoAdapter) writeBody(c echo.Context, resp core.Response) error {
+func (a *EchoAdapter) writeBody(c echo.Context, resp interfaces.Response) error {
 	// Write response body if available
 	if resp.Body() != nil {
 		// Copy body to Echo's response writer
@@ -197,7 +196,7 @@ func (a *EchoAdapter) writeBody(c echo.Context, resp core.Response) error {
 }
 
 // applyResponse applies our Response interface to Echo's context.
-func (a *EchoAdapter) applyResponse(c echo.Context, resp core.Response) error {
+func (a *EchoAdapter) applyResponse(c echo.Context, resp interfaces.Response) error {
 	// Set status code
 	c.Response().Status = resp.StatusCode()
 
@@ -221,11 +220,11 @@ func (a *EchoAdapter) applyResponse(c echo.Context, resp core.Response) error {
 
 // EchoChainAdapter adapts our middleware chain to Echo's middleware chain.
 type EchoChainAdapter struct {
-	chain core.Chain
+	chain interfaces.Chain
 }
 
 // NewEchoChainAdapter creates a new Echo chain adapter.
-func NewEchoChainAdapter(chain core.Chain) *EchoChainAdapter {
+func NewEchoChainAdapter(chain interfaces.Chain) *EchoChainAdapter {
 	return &EchoChainAdapter{
 		chain: chain,
 	}
@@ -251,11 +250,11 @@ func (a *EchoChainAdapter) ToEchoMiddleware() echo.MiddlewareFunc {
 
 // EchoRegistryAdapter adapts our middleware registry to Echo's middleware system.
 type EchoRegistryAdapter struct {
-	registry core.Registry
+	registry interfaces.Registry
 }
 
 // NewEchoRegistryAdapter creates a new Echo registry adapter.
-func NewEchoRegistryAdapter(registry core.Registry) *EchoRegistryAdapter {
+func NewEchoRegistryAdapter(registry interfaces.Registry) *EchoRegistryAdapter {
 	return &EchoRegistryAdapter{
 		registry: registry,
 	}
@@ -293,13 +292,13 @@ type EchoMiddlewareWrapper struct {
 }
 
 // Process implements our Middleware interface by converting to Echo middleware.
-func (w *EchoMiddlewareWrapper) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (w *EchoMiddlewareWrapper) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// This is a simplified implementation
 	// In a real implementation, you would need to create a mock Echo context
 	// and handle the conversion properly
 
 	// For now, we'll return a simple response indicating the middleware was processed
-	resp := core.NewResponse(http.StatusOK)
+	resp := interfaces.NewResponse(http.StatusOK)
 	resp.SetContentType("text/plain")
 	resp.SetBodyBytes([]byte("Echo middleware processed"))
 
@@ -319,18 +318,18 @@ func (w *EchoMiddlewareWrapper) Priority() int {
 
 // EchoOrchestratorAdapter adapts our orchestrator to Echo's middleware system.
 type EchoOrchestratorAdapter struct {
-	orchestrator core.Orchestrator
+	orchestrator interfaces.Orchestrator
 }
 
 // NewEchoOrchestratorAdapter creates a new Echo orchestrator adapter.
-func NewEchoOrchestratorAdapter(orchestrator core.Orchestrator) *EchoOrchestratorAdapter {
+func NewEchoOrchestratorAdapter(orchestrator interfaces.Orchestrator) *EchoOrchestratorAdapter {
 	return &EchoOrchestratorAdapter{
 		orchestrator: orchestrator,
 	}
 }
 
 // SetupEchoMiddleware sets up Echo middleware based on our orchestrator configuration.
-func (a *EchoOrchestratorAdapter) SetupEchoMiddleware(e *echo.Echo, chainType core.ChainType) error {
+func (a *EchoOrchestratorAdapter) SetupEchoMiddleware(e *echo.Echo, chainType interfaces.ChainType) error {
 	// Create middleware chain
 	chain, err := a.orchestrator.CreateChain(chainType)
 	if err != nil {
@@ -348,7 +347,7 @@ func (a *EchoOrchestratorAdapter) SetupEchoMiddleware(e *echo.Echo, chainType co
 }
 
 // RegisterEchoChain registers a named chain for use with Echo.
-func (a *EchoOrchestratorAdapter) RegisterEchoChain(name string, chainType core.ChainType) error {
+func (a *EchoOrchestratorAdapter) RegisterEchoChain(name string, chainType interfaces.ChainType) error {
 	chain, err := a.orchestrator.CreateChain(chainType)
 	if err != nil {
 		return fmt.Errorf("failed to create chain for registration: %w", err)

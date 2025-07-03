@@ -8,7 +8,7 @@ import (
 	"sync"
 	"time"
 
-	"github.com/goformx/goforms/internal/domain/form/event"
+	"github.com/goformx/goforms/internal/domain/common/events"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -24,17 +24,17 @@ var ErrInvalidEvent = errors.New("invalid event")
 type MemoryPublisher struct {
 	logger    logging.Logger
 	mu        sync.RWMutex
-	events    []event.Event
-	handlers  map[string][]func(ctx context.Context, event event.Event) error
+	events    []events.Event
+	handlers  map[string][]func(ctx context.Context, event events.Event) error
 	maxEvents int
 }
 
 // NewMemoryPublisher creates a new in-memory event publisher
-func NewMemoryPublisher(logger logging.Logger) event.Publisher {
+func NewMemoryPublisher(logger logging.Logger) *MemoryPublisher {
 	return &MemoryPublisher{
 		logger:    logger,
-		events:    make([]event.Event, 0),
-		handlers:  make(map[string][]func(ctx context.Context, event event.Event) error),
+		events:    make([]events.Event, 0),
+		handlers:  make(map[string][]func(ctx context.Context, event events.Event) error),
 		maxEvents: DefaultMaxEvents,
 	}
 }
@@ -52,7 +52,7 @@ func (p *MemoryPublisher) WithMaxEvents(maxEvents int) *MemoryPublisher {
 // Publish publishes an event to memory
 func (p *MemoryPublisher) Publish(
 	ctx context.Context,
-	evt event.Event,
+	evt events.Event,
 ) error {
 	if evt == nil {
 		return ErrInvalidEvent
@@ -72,7 +72,7 @@ func (p *MemoryPublisher) Publish(
 	// Notify handlers
 	if handlers, ok := p.handlers[evt.Name()]; ok {
 		for _, handler := range handlers {
-			go func(h func(ctx context.Context, event event.Event) error) {
+			go func(h func(ctx context.Context, event events.Event) error) {
 				if err := h(ctx, evt); err != nil {
 					p.logger.Error("failed to handle event", "error", err, "event", evt.Name())
 				}
@@ -83,11 +83,29 @@ func (p *MemoryPublisher) Publish(
 	return nil
 }
 
+// PublishBatch publishes multiple events to memory
+func (p *MemoryPublisher) PublishBatch(
+	ctx context.Context,
+	evts []events.Event,
+) error {
+	if evts == nil || len(evts) == 0 {
+		return nil
+	}
+
+	for _, evt := range evts {
+		if err := p.Publish(ctx, evt); err != nil {
+			return err
+		}
+	}
+
+	return nil
+}
+
 // Subscribe adds a handler for a specific event type
 func (p *MemoryPublisher) Subscribe(
 	_ context.Context,
 	eventName string,
-	handler func(ctx context.Context, event event.Event) error,
+	handler func(ctx context.Context, event events.Event) error,
 ) error {
 	if handler == nil {
 		return errors.New("handler cannot be nil")
@@ -97,7 +115,7 @@ func (p *MemoryPublisher) Subscribe(
 	defer p.mu.Unlock()
 
 	if _, ok := p.handlers[eventName]; !ok {
-		p.handlers[eventName] = make([]func(ctx context.Context, event event.Event) error, 0)
+		p.handlers[eventName] = make([]func(ctx context.Context, event events.Event) error, 0)
 	}
 
 	p.handlers[eventName] = append(p.handlers[eventName], handler)
@@ -106,11 +124,11 @@ func (p *MemoryPublisher) Subscribe(
 }
 
 // GetEvents returns all published events
-func (p *MemoryPublisher) GetEvents() []event.Event {
+func (p *MemoryPublisher) GetEvents() []events.Event {
 	p.mu.RLock()
 	defer p.mu.RUnlock()
 
-	events := make([]event.Event, len(p.events))
+	events := make([]events.Event, len(p.events))
 	copy(events, p.events)
 
 	return events
@@ -121,5 +139,30 @@ func (p *MemoryPublisher) ClearEvents() {
 	p.mu.Lock()
 	defer p.mu.Unlock()
 
-	p.events = make([]event.Event, 0)
+	p.events = make([]events.Event, 0)
+}
+
+// Unsubscribe removes all handlers for a specific event type (no-op for in-memory)
+func (p *MemoryPublisher) Unsubscribe(ctx context.Context, eventName string) error {
+	p.mu.Lock()
+	defer p.mu.Unlock()
+
+	delete(p.handlers, eventName)
+
+	return nil
+}
+
+// Start starts the event bus (no-op for in-memory)
+func (p *MemoryPublisher) Start(ctx context.Context) error {
+	return nil
+}
+
+// Stop stops the event bus (no-op for in-memory)
+func (p *MemoryPublisher) Stop(ctx context.Context) error {
+	return nil
+}
+
+// Health returns the health status of the event bus (always healthy for in-memory)
+func (p *MemoryPublisher) Health(ctx context.Context) error {
+	return nil
 }

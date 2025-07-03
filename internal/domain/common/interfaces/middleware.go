@@ -1,7 +1,7 @@
-// Package core provides the core interfaces and types for middleware functionality.
-// This package contains only interfaces and types with no external dependencies,
-// enabling clean architecture and avoiding import cycles.
-package core
+// Package interfaces provides domain-level interfaces that can be used across layers
+// without creating circular dependencies. These interfaces are framework-agnostic
+// and follow clean architecture principles.
+package interfaces
 
 import (
 	"context"
@@ -257,8 +257,7 @@ type Response interface {
 	Clone() Response
 }
 
-// Chain represents a sequence of middleware that can be executed in order.
-// The chain manages the execution flow and ensures proper middleware ordering.
+// Chain interface defines a middleware chain that can be executed
 type Chain interface {
 	// Process executes the middleware chain for a given request.
 	// Returns the final response after all middleware have been processed.
@@ -290,8 +289,7 @@ type Chain interface {
 	Length() int
 }
 
-// Registry manages middleware registration and discovery.
-// Provides a centralized way to register, retrieve, and manage middleware components.
+// Registry interface defines a middleware registry
 type Registry interface {
 	// Register adds middleware to the registry with a unique name.
 	// Returns an error if middleware with the same name already exists.
@@ -315,16 +313,39 @@ type Registry interface {
 	Count() int
 }
 
-// Logger is a minimal logging interface for orchestration events.
+// Logger interface for middleware logging
 type Logger interface {
 	Info(msg string, args ...any)
 	Warn(msg string, args ...any)
 	Error(msg string, args ...any)
 }
 
-// Orchestrator manages the composition and execution of middleware chains.
-// Responsible for creating, configuring, and managing middleware chains
-// based on application requirements and configuration.
+// ChainType represents the type of middleware chain
+type ChainType string
+
+const (
+	// ChainTypeGlobal represents global middleware that runs on all requests
+	ChainTypeGlobal ChainType = "global"
+	// ChainTypeAPI represents API-specific middleware
+	ChainTypeAPI ChainType = "api"
+	// ChainTypeWeb represents web-specific middleware
+	ChainTypeWeb ChainType = "web"
+	// ChainTypeAuth represents authentication middleware
+	ChainTypeAuth ChainType = "auth"
+	// ChainTypeAdmin represents admin-specific middleware
+	ChainTypeAdmin ChainType = "admin"
+)
+
+// ChainInfo provides information about a middleware chain
+type ChainInfo struct {
+	Type        ChainType
+	Name        string
+	Description string
+	Middleware  []string
+	Priority    int
+}
+
+// Orchestrator interface defines middleware orchestration
 type Orchestrator interface {
 	// CreateChain creates a new middleware chain with the specified type.
 	// ChainType determines which middleware are included and their order.
@@ -370,31 +391,19 @@ type Orchestrator interface {
 	ValidateConfiguration() error
 }
 
-// Response constructors for common use cases
+// Factory functions for creating Response objects
+// These are placeholder functions that should be implemented by the application layer
 
 // NewResponse creates a new response with the given status code
 func NewResponse(statusCode int) Response {
-	return &httpResponse{
-		statusCode:    statusCode,
-		headers:       make(http.Header),
-		body:          nil,
-		bodyBytes:     nil,
-		contentType:   "",
-		contentLength: 0,
-		location:      "",
-		cookies:       make([]*http.Cookie, 0),
-		err:           nil,
-		context:       context.Background(),
-		timestamp:     time.Now(),
-		requestID:     "",
-		values:        make(map[string]any),
-	}
+	// This is a placeholder - the actual implementation should be in the application layer
+	// that implements these interfaces
+	return nil
 }
 
 // NewErrorResponse creates a new error response with the given status code and error
 func NewErrorResponse(statusCode int, err error) Response {
-	resp := NewResponse(statusCode)
-	resp.SetError(err)
-
-	return resp
+	// This is a placeholder - the actual implementation should be in the application layer
+	// that implements these interfaces
+	return nil
 }

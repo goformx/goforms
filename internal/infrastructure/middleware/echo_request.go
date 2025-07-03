@@ -14,7 +14,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/goformx/goforms/internal/application/middleware/core"
+	interfaces "github.com/goformx/goforms/internal/domain/common/interfaces"
 )
 
 // EchoRequest wraps Echo's echo.Context to implement our Request interface.
@@ -25,7 +25,7 @@ type EchoRequest struct {
 }
 
 // NewEchoRequest creates a new Echo request wrapper.
-func NewEchoRequest(c echo.Context) core.Request {
+func NewEchoRequest(c echo.Context) interfaces.Request {
 	return &EchoRequest{
 		context: c,
 		form:    make(url.Values),
@@ -103,7 +103,7 @@ func (r *EchoRequest) Context() context.Context {
 }
 
 // WithContext returns a new request with the given context
-func (r *EchoRequest) WithContext(ctx context.Context) core.Request {
+func (r *EchoRequest) WithContext(ctx context.Context) interfaces.Request {
 	newReq := *r
 	newReq.context = r.context // Echo context doesn't support context replacement
 

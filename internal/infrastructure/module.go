@@ -4,7 +4,6 @@
 package infrastructure
 
 import (
-	"context"
 	"errors"
 	"fmt"
 
@@ -13,16 +12,14 @@ import (
 
 	"embed"
 
-	"github.com/goformx/goforms/internal/application/handlers/web"
+	"github.com/goformx/goforms/internal/domain/common/events"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/domain/form"
-	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
 	infraweb "github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/view"
@@ -139,7 +136,7 @@ type AssetManagerParams struct {
 
 // NewEventPublisher creates a new event publisher with proper dependency validation.
 // It returns an error if required dependencies are missing or invalid.
-func NewEventPublisher(p EventPublisherParams) (formevent.Publisher, error) {
+func NewEventPublisher(p EventPublisherParams) (events.EventBus, error) {
 	if p.Logger == nil {
 		return nil, fmt.Errorf("event publisher creation failed: %w", ErrMissingLogger)
 	}
@@ -279,112 +276,19 @@ func AnnotateHandler(fn any) fx.Option {
 	return fx.Provide(
 		fx.Annotate(
 			fn,
-			fx.As(new(web.Handler)),
+			fx.As(new(interfaces.WebHandler)),
 			fx.ResultTags(`group:"handlers"`),
 		),
 	)
 }
 
-// ProvideEcho creates and configures a new Echo instance with sensible defaults.
-func ProvideEcho() *echo.Echo {
-	e := echo.New()
-
-	// Configure Echo with production-ready settings
-	e.HideBanner = true
-	e.HidePort = true
-
-	return e
-}
-
-// ProvideDatabase creates a new database connection with lifecycle management.
-func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (database.DB, error) {
-	if cfg == nil {
-		return nil, ErrMissingConfig
-	}
-
-	if logger == nil {
-		return nil, ErrMissingLogger
-	}
-
-	db, err := database.New(cfg, logger)
-	if err != nil {
-		return nil, fmt.Errorf("failed to create database connection: %w", err)
-	}
-
-	// Register lifecycle hooks for graceful shutdown
-	lc.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
-			logger.Info("Database connection established")
-
-			return nil
-		},
-		OnStop: func(_ context.Context) error {
-			logger.Info("Closing database connection")
-
-			return db.Close()
-		},
-	})
-
-	return db, nil
-}
-
-// ProvideSanitizationService creates a new sanitization service with proper annotations.
-func ProvideSanitizationService() sanitization.ServiceInterface {
-	return sanitization.NewService()
-}
-
-// Module provides comprehensive infrastructure dependencies with proper error handling,
-// lifecycle management, and clear separation of concerns.
+// Module provides all infrastructure dependencies for the application
 var Module = fx.Module("infrastructure",
-	// Core infrastructure providers
 	fx.Provide(
-		// Echo web framework
-		ProvideEcho,
-
-		// Database with lifecycle management
-		ProvideDatabase,
-
-		// HTTP server
-		server.New,
-
-		// Sanitization service
-		fx.Annotate(
-			ProvideSanitizationService,
-			fx.As(new(sanitization.ServiceInterface)),
-		),
-
-		// Logging system
+		NewEventPublisher,
 		NewLoggerFactory,
 		NewLogger,
-
-		// Event system
-		NewEventPublisher,
-		event.NewMemoryEventBus,
-
-		// Asset handling - provide both the interface and the module
-		fx.Annotate(
-			ProvideAssetServer,
-			fx.As(new(infraweb.AssetServer)),
-		),
-		fx.Annotate(
-			NewAssetManager,
-			fx.As(new(infraweb.AssetManagerInterface)),
-		),
+		ProvideAssetServer,
+		NewAssetManager,
 	),
-
-	// Lifecycle management
-	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, _ *config.Config) {
-		lc.Append(fx.Hook{
-			OnStart: func(_ context.Context) error {
-				logger.Info("Infrastructure module initialized")
-
-				return nil
-			},
-			OnStop: func(_ context.Context) error {
-				logger.Info("Infrastructure module shutting down")
-
-				return nil
-			},
-		})
-	}),
 )

@@ -1,7 +1,7 @@
 package middleware
 
 import (
-	"github.com/goformx/goforms/internal/application/middleware/core"
+	interfaces "github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
@@ -22,7 +22,7 @@ type MiddlewareConfig interface {
 	GetMiddlewareConfig(name string) map[string]any
 
 	// GetChainConfig returns configuration for a specific chain type
-	GetChainConfig(chainType core.ChainType) ChainConfig
+	GetChainConfig(chainType interfaces.ChainType) ChainConfig
 }
 
 // middlewareConfig implements the MiddlewareConfig interface
@@ -125,7 +125,7 @@ func (c *middlewareConfig) GetMiddlewareConfig(name string) map[string]any {
 }
 
 // GetChainConfig returns configuration for a specific chain type
-func (c *middlewareConfig) GetChainConfig(chainType core.ChainType) ChainConfig {
+func (c *middlewareConfig) GetChainConfig(chainType interfaces.ChainType) ChainConfig {
 	chainConfig := ChainConfig{
 		Enabled: true, // Default to enabled
 	}
@@ -172,27 +172,27 @@ func (c *middlewareConfig) getDefaultEnabledMiddleware() []string {
 }
 
 // getMiddlewareCategory returns the category for a middleware
-func (c *middlewareConfig) getMiddlewareCategory(name string) core.MiddlewareCategory {
-	categories := map[string]core.MiddlewareCategory{
-		"recovery":         core.MiddlewareCategoryBasic,
-		"cors":             core.MiddlewareCategoryBasic,
-		"request-id":       core.MiddlewareCategoryBasic,
-		"timeout":          core.MiddlewareCategoryBasic,
-		"logging":          core.MiddlewareCategoryLogging,
-		"security-headers": core.MiddlewareCategorySecurity,
-		"csrf":             core.MiddlewareCategorySecurity,
-		"rate-limit":       core.MiddlewareCategorySecurity,
-		"input-validation": core.MiddlewareCategorySecurity,
-		"session":          core.MiddlewareCategoryAuth,
-		"authentication":   core.MiddlewareCategoryAuth,
-		"authorization":    core.MiddlewareCategoryAuth,
+func (c *middlewareConfig) getMiddlewareCategory(name string) string {
+	categories := map[string]string{
+		"recovery":         "basic",
+		"cors":             "basic",
+		"request-id":       "basic",
+		"timeout":          "basic",
+		"logging":          "logging",
+		"security-headers": "security",
+		"csrf":             "security",
+		"rate-limit":       "security",
+		"input-validation": "security",
+		"session":          "auth",
+		"authentication":   "auth",
+		"authorization":    "auth",
 	}
 
 	if category, exists := categories[name]; exists {
 		return category
 	}
 
-	return core.MiddlewareCategoryBasic
+	return "basic"
 }
 
 // getMiddlewarePriority returns the priority for a middleware
@@ -328,158 +328,80 @@ func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]any
 }
 
 // getChainMiddleware returns middleware names for a specific chain type
-func (c *middlewareConfig) getChainMiddleware(chainType core.ChainType) []string {
+func (c *middlewareConfig) getChainMiddleware(chainType interfaces.ChainType) []string {
 	switch chainType {
-	case core.ChainTypeDefault:
-		return []string{"recovery", "cors", "request-id", "timeout"}
-	case core.ChainTypeAPI:
-		return []string{"security-headers", "session", "csrf", "rate-limit", "authentication", "authorization"}
-	case core.ChainTypeWeb:
-		return []string{"session", "authentication", "authorization"}
-	case core.ChainTypeAuth:
-		return []string{"session", "authentication"}
-	case core.ChainTypeAdmin:
-		return []string{"session", "authentication", "authorization"}
-	case core.ChainTypePublic:
-		return []string{"recovery", "cors"}
-	case core.ChainTypeStatic:
-		return []string{"recovery"}
+	case interfaces.ChainTypeGlobal:
+		return []string{"recovery", "cors", "security-headers", "request-id", "timeout", "logging"}
+	case interfaces.ChainTypeAPI:
+		return []string{"recovery", "cors", "security-headers", "request-id", "timeout", "logging", "authentication", "authorization"}
+	case interfaces.ChainTypeWeb:
+		return []string{"recovery", "cors", "security-headers", "request-id", "timeout", "logging", "csrf", "session", "authentication", "authorization"}
+	case interfaces.ChainTypeAuth:
+		return []string{"recovery", "cors", "security-headers", "request-id", "timeout", "logging", "authentication"}
+	case interfaces.ChainTypeAdmin:
+		return []string{"recovery", "cors", "security-headers", "request-id", "timeout", "logging", "authentication", "authorization"}
 	default:
-		return []string{}
+		return []string{"recovery", "cors", "request-id", "logging"}
 	}
 }
 
 // getChainPaths returns path patterns for a specific chain type
-func (c *middlewareConfig) getChainPaths(chainType core.ChainType) []string {
+func (c *middlewareConfig) getChainPaths(chainType interfaces.ChainType) []string {
 	switch chainType {
-	case core.ChainTypeDefault:
+	case interfaces.ChainTypeGlobal:
 		return []string{"/*"}
-	case core.ChainTypeAPI:
+	case interfaces.ChainTypeAPI:
 		return []string{"/api/*"}
-	case core.ChainTypeWeb:
-		return []string{"/dashboard/*", "/forms/*"}
-	case core.ChainTypeAuth:
-		return []string{"/login", "/signup", "/logout"}
-	case core.ChainTypeAdmin:
+	case interfaces.ChainTypeWeb:
+		return []string{"/web/*", "/pages/*"}
+	case interfaces.ChainTypeAuth:
+		return []string{"/auth/*", "/login", "/logout"}
+	case interfaces.ChainTypeAdmin:
 		return []string{"/admin/*"}
-	case core.ChainTypePublic:
-		return []string{"/", "/public/*"}
-	case core.ChainTypeStatic:
-		return []string{"/static/*", "/assets/*"}
 	default:
-		return []string{}
+		return []string{"/*"}
 	}
 }
 
 // getChainCustomConfig returns custom configuration for a specific chain type
-func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[string]any {
-	customConfigs := c.getChainCustomConfigs()
-
-	if chainConfig, exists := customConfigs[chainType]; exists {
-		return chainConfig
+func (c *middlewareConfig) getChainCustomConfig(chainType interfaces.ChainType) map[string]any {
+	configs := map[interfaces.ChainType]map[string]any{
+		interfaces.ChainTypeGlobal: {
+			"timeout": "30s",
+			"cors": map[string]any{
+				"allowed_origins": []string{"*"},
+				"allowed_methods": []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"},
+			},
+		},
+		interfaces.ChainTypeAPI: {
+			"timeout": "60s",
+			"rate_limit": map[string]any{
+				"requests_per_minute": 100,
+			},
+		},
+		interfaces.ChainTypeWeb: {
+			"timeout": "30s",
+			"csrf": map[string]any{
+				"token_length": 32,
+			},
+		},
+		interfaces.ChainTypeAuth: {
+			"timeout": "30s",
+			"session": map[string]any{
+				"max_age": 3600,
+			},
+		},
+		interfaces.ChainTypeAdmin: {
+			"timeout": "60s",
+			"rate_limit": map[string]any{
+				"requests_per_minute": 50,
+			},
+		},
 	}
 
-	// Return default configuration for unknown chain types
-	return map[string]any{
-		"enabled": true,
-		"timeout": 30,
+	if config, exists := configs[chainType]; exists {
+		return config
 	}
-}
 
-// Chain custom configs as package-level variables
-var chainCustomConfigDefault = map[string]any{
-	"timeout":          30,
-	"max_body_size":    "10MB",
-	"compress":         true,
-	"cors_origins":     []string{"*"},
-	"security_headers": true,
-}
-
-var chainCustomConfigAPI = map[string]any{
-	"timeout":          60,
-	"max_body_size":    "50MB",
-	"compress":         true,
-	"cors_origins":     []string{"https://api.example.com"},
-	"rate_limit":       true,
-	"authentication":   true,
-	"authorization":    true,
-	"request_logging":  true,
-	"response_logging": false,
-}
-
-var chainCustomConfigWeb = map[string]any{
-	"timeout":          30,
-	"max_body_size":    "25MB",
-	"compress":         true,
-	"cors_origins":     []string{"https://app.example.com"},
-	"session":          true,
-	"authentication":   true,
-	"authorization":    true,
-	"request_logging":  true,
-	"response_logging": false,
-}
-
-var chainCustomConfigAuth = map[string]any{
-	"timeout":          15,
-	"max_body_size":    "5MB",
-	"compress":         false,
-	"cors_origins":     []string{"https://auth.example.com"},
-	"session":          true,
-	"authentication":   true,
-	"csrf_protection":  true,
-	"request_logging":  true,
-	"response_logging": false,
-}
-
-var chainCustomConfigAdmin = map[string]any{
-	"timeout":          60,
-	"max_body_size":    "100MB",
-	"compress":         true,
-	"cors_origins":     []string{"https://admin.example.com"},
-	"session":          true,
-	"authentication":   true,
-	"authorization":    true,
-	"rate_limit":       true,
-	"request_logging":  true,
-	"response_logging": true,
-	"audit_logging":    true,
-}
-
-var chainCustomConfigPublic = map[string]any{
-	"timeout":          10,
-	"max_body_size":    "1MB",
-	"compress":         true,
-	"cors_origins":     []string{"*"},
-	"session":          false,
-	"authentication":   false,
-	"authorization":    false,
-	"request_logging":  false,
-	"response_logging": false,
-}
-
-var chainCustomConfigStatic = map[string]any{
-	"timeout":          5,
-	"max_body_size":    "100MB",
-	"compress":         true,
-	"cors_origins":     []string{"*"},
-	"session":          false,
-	"authentication":   false,
-	"authorization":    false,
-	"request_logging":  false,
-	"response_logging": false,
-	"cache_headers":    true,
-	"cache_duration":   86400, // 24 hours
-}
-
-// getChainCustomConfigs returns the complete chain configuration map
-func (c *middlewareConfig) getChainCustomConfigs() map[core.ChainType]map[string]any {
-	return map[core.ChainType]map[string]any{
-		core.ChainTypeDefault: chainCustomConfigDefault,
-		core.ChainTypeAPI:     chainCustomConfigAPI,
-		core.ChainTypeWeb:     chainCustomConfigWeb,
-		core.ChainTypeAuth:    chainCustomConfigAuth,
-		core.ChainTypeAdmin:   chainCustomConfigAdmin,
-		core.ChainTypePublic:  chainCustomConfigPublic,
-		core.ChainTypeStatic:  chainCustomConfigStatic,
-	}
+	return make(map[string]any)
 }

@@ -46,12 +46,9 @@ type appParams struct {
 	Server            *server.Server         // Custom server implementation
 	Logger            logging.Logger         // Application logger
 	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
-	MiddlewareManager *appmiddleware.Manager // Legacy middleware management
+	MiddlewareManager *appmiddleware.Manager // Middleware management
 	AccessManager     *access.Manager        // Access control management
 	Config            *config.Config         // Application configuration
-
-	// NEW: New middleware system components
-	MigrationAdapter *appmiddleware.MigrationAdapter // Migration adapter for gradual transition
 }
 
 // setupHandlers registers all web handlers with the Echo server.
@@ -79,10 +76,8 @@ func setupHandlers(
 // and registering all web handlers.
 // Note: params is passed by value, not as a pointer
 func setupApplication(params appParams) error {
-	// Use the migration adapter to setup middleware with fallback capability
-	if err := params.MigrationAdapter.SetupWithFallback(params.Echo, params.MiddlewareManager); err != nil {
-		return fmt.Errorf("failed to setup middleware: %w", err)
-	}
+	// Setup middleware using the legacy middleware manager
+	params.MiddlewareManager.Setup(params.Echo)
 
 	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
 }
@@ -101,14 +96,6 @@ func setupLifecycle(params appParams) {
 				"environment", params.Config.App.Environment,
 				"build_time", versionInfo.BuildTime,
 				"git_commit", versionInfo.GitCommit,
-			)
-
-			// Log middleware system status
-			migrationStatus := params.MigrationAdapter.GetMigrationStatus()
-			params.Logger.Info("middleware system status",
-				"new_system_enabled", migrationStatus.NewSystemEnabled,
-				"registered_middleware_count", len(migrationStatus.RegisteredMiddleware),
-				"available_chains_count", len(migrationStatus.AvailableChains),
 			)
 
 			// Start the server in a goroutine to prevent blocking

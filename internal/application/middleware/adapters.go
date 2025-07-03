@@ -4,11 +4,11 @@ import (
 	"context"
 	"time"
 
-	"github.com/goformx/goforms/internal/application/middleware/core"
+	interfaces "github.com/goformx/goforms/internal/domain/common/interfaces"
 )
 
 // NewRecoveryMiddleware creates a new recovery middleware
-func NewRecoveryMiddleware() core.Middleware {
+func NewRecoveryMiddleware() interfaces.Middleware {
 	return &recoveryMiddleware{
 		name:     "recovery",
 		priority: 10,
@@ -16,7 +16,7 @@ func NewRecoveryMiddleware() core.Middleware {
 }
 
 // NewCORSMiddleware creates a new CORS middleware
-func NewCORSMiddleware() core.Middleware {
+func NewCORSMiddleware() interfaces.Middleware {
 	return &corsMiddleware{
 		name:     "cors",
 		priority: 20,
@@ -24,7 +24,7 @@ func NewCORSMiddleware() core.Middleware {
 }
 
 // NewSecurityHeadersMiddleware creates a new security headers middleware
-func NewSecurityHeadersMiddleware() core.Middleware {
+func NewSecurityHeadersMiddleware() interfaces.Middleware {
 	return &securityHeadersMiddleware{
 		name:     "security-headers",
 		priority: 50,
@@ -32,7 +32,7 @@ func NewSecurityHeadersMiddleware() core.Middleware {
 }
 
 // NewRequestIDMiddleware creates a new request ID middleware
-func NewRequestIDMiddleware() core.Middleware {
+func NewRequestIDMiddleware() interfaces.Middleware {
 	return &requestIDMiddleware{
 		name:     "request-id",
 		priority: 30,
@@ -40,7 +40,7 @@ func NewRequestIDMiddleware() core.Middleware {
 }
 
 // NewTimeoutMiddleware creates a new timeout middleware
-func NewTimeoutMiddleware() core.Middleware {
+func NewTimeoutMiddleware() interfaces.Middleware {
 	return &timeoutMiddleware{
 		name:     "timeout",
 		priority: 40,
@@ -48,7 +48,7 @@ func NewTimeoutMiddleware() core.Middleware {
 }
 
 // NewLoggingMiddleware creates a new logging middleware
-func NewLoggingMiddleware() core.Middleware {
+func NewLoggingMiddleware() interfaces.Middleware {
 	return &loggingMiddleware{
 		name:     "logging",
 		priority: 90,
@@ -56,7 +56,7 @@ func NewLoggingMiddleware() core.Middleware {
 }
 
 // NewCSRFMiddleware creates a new CSRF middleware
-func NewCSRFMiddleware() core.Middleware {
+func NewCSRFMiddleware() interfaces.Middleware {
 	return &csrfMiddleware{
 		name:     "csrf",
 		priority: 60,
@@ -64,7 +64,7 @@ func NewCSRFMiddleware() core.Middleware {
 }
 
 // NewRateLimitMiddleware creates a new rate limit middleware
-func NewRateLimitMiddleware() core.Middleware {
+func NewRateLimitMiddleware() interfaces.Middleware {
 	return &rateLimitMiddleware{
 		name:     "rate-limit",
 		priority: 70,
@@ -72,7 +72,7 @@ func NewRateLimitMiddleware() core.Middleware {
 }
 
 // NewInputValidationMiddleware creates a new input validation middleware
-func NewInputValidationMiddleware() core.Middleware {
+func NewInputValidationMiddleware() interfaces.Middleware {
 	return &inputValidationMiddleware{
 		name:     "input-validation",
 		priority: 80,
@@ -80,7 +80,7 @@ func NewInputValidationMiddleware() core.Middleware {
 }
 
 // NewSessionMiddleware creates a new session middleware
-func NewSessionMiddleware() core.Middleware {
+func NewSessionMiddleware() interfaces.Middleware {
 	return &sessionMiddleware{
 		name:     "session",
 		priority: 100,
@@ -88,7 +88,7 @@ func NewSessionMiddleware() core.Middleware {
 }
 
 // NewAuthenticationMiddleware creates a new authentication middleware
-func NewAuthenticationMiddleware() core.Middleware {
+func NewAuthenticationMiddleware() interfaces.Middleware {
 	return &authenticationMiddleware{
 		name:     "authentication",
 		priority: 110,
@@ -96,7 +96,7 @@ func NewAuthenticationMiddleware() core.Middleware {
 }
 
 // NewAuthorizationMiddleware creates a new authorization middleware
-func NewAuthorizationMiddleware() core.Middleware {
+func NewAuthorizationMiddleware() interfaces.Middleware {
 	return &authorizationMiddleware{
 		name:     "authorization",
 		priority: 120,
@@ -110,7 +110,7 @@ type recoveryMiddleware struct {
 	priority int
 }
 
-func (m *recoveryMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *recoveryMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	defer func() {
 		if r := recover(); r != nil {
 			// Log the panic and return error response
@@ -135,7 +135,7 @@ type corsMiddleware struct {
 	priority int
 }
 
-func (m *corsMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *corsMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// CORS logic would be implemented here
 	return next(ctx, req)
 }
@@ -153,7 +153,7 @@ type securityHeadersMiddleware struct {
 	priority int
 }
 
-func (m *securityHeadersMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *securityHeadersMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Security headers logic would be implemented here
 	return next(ctx, req)
 }
@@ -171,7 +171,7 @@ type requestIDMiddleware struct {
 	priority int
 }
 
-func (m *requestIDMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *requestIDMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Request ID logic would be implemented here
 	return next(ctx, req)
 }
@@ -189,7 +189,7 @@ type timeoutMiddleware struct {
 	priority int
 }
 
-func (m *timeoutMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *timeoutMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Timeout logic would be implemented here
 	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
 	defer cancel()
@@ -210,7 +210,7 @@ type loggingMiddleware struct {
 	priority int
 }
 
-func (m *loggingMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *loggingMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Logging logic would be implemented here
 	return next(ctx, req)
 }
@@ -228,7 +228,7 @@ type csrfMiddleware struct {
 	priority int
 }
 
-func (m *csrfMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *csrfMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// CSRF logic would be implemented here
 	return next(ctx, req)
 }
@@ -246,7 +246,7 @@ type rateLimitMiddleware struct {
 	priority int
 }
 
-func (m *rateLimitMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *rateLimitMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Rate limiting logic would be implemented here
 	return next(ctx, req)
 }
@@ -264,7 +264,7 @@ type inputValidationMiddleware struct {
 	priority int
 }
 
-func (m *inputValidationMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *inputValidationMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Input validation logic would be implemented here
 	return next(ctx, req)
 }
@@ -282,7 +282,7 @@ type sessionMiddleware struct {
 	priority int
 }
 
-func (m *sessionMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *sessionMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Session logic would be implemented here
 	return next(ctx, req)
 }
@@ -300,7 +300,7 @@ type authenticationMiddleware struct {
 	priority int
 }
 
-func (m *authenticationMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *authenticationMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Authentication logic would be implemented here
 	return next(ctx, req)
 }
@@ -318,7 +318,7 @@ type authorizationMiddleware struct {
 	priority int
 }
 
-func (m *authorizationMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+func (m *authorizationMiddleware) Process(ctx context.Context, req interfaces.Request, next interfaces.Handler) interfaces.Response {
 	// Authorization logic would be implemented here
 	return next(ctx, req)
 }
