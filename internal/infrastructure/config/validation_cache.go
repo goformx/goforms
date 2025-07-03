@@ -7,11 +7,16 @@ import (
 
 // validateCacheConfig validates cache configuration
 func validateCacheConfig(cfg CacheConfig, result *ValidationResult) {
+	validateCacheType(cfg, result)
+	validateCacheRedis(cfg, result)
+	validateCacheTTL(cfg, result)
+}
+
+func validateCacheType(cfg CacheConfig, result *ValidationResult) {
 	if cfg.Type == "" {
 		result.AddError("cache.type", "cache type is required", cfg.Type)
 	}
 
-	// Validate cache type
 	supportedTypes := []string{"memory", "redis"}
 	typeValid := false
 
@@ -26,26 +31,30 @@ func validateCacheConfig(cfg CacheConfig, result *ValidationResult) {
 	if !typeValid {
 		result.AddError("cache.type", "unsupported cache type", cfg.Type)
 	}
+}
 
-	// Validate Redis configuration
-	if strings.EqualFold(cfg.Type, "redis") {
-		if cfg.Redis.Host == "" {
-			result.AddError("cache.redis.host",
-				"Redis host is required for Redis cache", cfg.Redis.Host)
-		}
-
-		if cfg.Redis.Port <= 0 || cfg.Redis.Port > 65535 {
-			result.AddError("cache.redis.port",
-				"Redis port must be between 1 and 65535", cfg.Redis.Port)
-		}
-
-		if cfg.Redis.DB < 0 {
-			result.AddError("cache.redis.db",
-				"Redis database number must be non-negative", cfg.Redis.DB)
-		}
+func validateCacheRedis(cfg CacheConfig, result *ValidationResult) {
+	if !strings.EqualFold(cfg.Type, "redis") {
+		return
 	}
 
-	// Validate TTL
+	if cfg.Redis.Host == "" {
+		result.AddError("cache.redis.host",
+			"Redis host is required for Redis cache", cfg.Redis.Host)
+	}
+
+	if cfg.Redis.Port <= 0 || cfg.Redis.Port > 65535 {
+		result.AddError("cache.redis.port",
+			"Redis port must be between 1 and 65535", cfg.Redis.Port)
+	}
+
+	if cfg.Redis.DB < 0 {
+		result.AddError("cache.redis.db",
+			"Redis database number must be non-negative", cfg.Redis.DB)
+	}
+}
+
+func validateCacheTTL(cfg CacheConfig, result *ValidationResult) {
 	if cfg.TTL <= 0 {
 		result.AddError("cache.ttl", "cache TTL must be positive", cfg.TTL)
 	}

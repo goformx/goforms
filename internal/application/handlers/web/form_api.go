@@ -109,7 +109,14 @@ func (h *FormAPIHandler) handleListForms(c echo.Context) error {
 		"user_id", h.Logger.SanitizeField("user_id", userID),
 		"form_count", len(forms))
 
-	return h.ResponseBuilder.BuildFormListResponse(c, forms)
+	// Build response with proper error checking
+	if err := h.ResponseBuilder.BuildFormListResponse(c, forms); err != nil {
+		h.Logger.Error("failed to build form list response", "error", err)
+
+		return h.HandleError(c, err, "Failed to build response")
+	}
+
+	return nil
 }
 
 // GET /api/v1/forms/:id
@@ -119,7 +126,14 @@ func (h *FormAPIHandler) handleGetForm(c echo.Context) error {
 		return err
 	}
 
-	return h.buildFormResponse(c, form)
+	// Build response with proper error checking
+	if err := h.ResponseBuilder.BuildFormResponse(c, form); err != nil {
+		h.Logger.Error("failed to build form response", "error", err, "form_id", form.ID)
+
+		return h.HandleError(c, err, "Failed to build response")
+	}
+
+	return nil
 }
 
 // GET /api/v1/forms/:id/schema
@@ -129,7 +143,14 @@ func (h *FormAPIHandler) handleFormSchema(c echo.Context) error {
 		return err
 	}
 
-	return h.buildSchemaResponse(c, form.Schema)
+	// Build response with proper error checking
+	if err := h.ResponseBuilder.BuildSchemaResponse(c, form.Schema); err != nil {
+		h.Logger.Error("failed to build schema response", "error", err, "form_id", form.ID)
+
+		return h.HandleError(c, err, "Failed to build response")
+	}
+
+	return nil
 }
 
 // GET /api/v1/forms/:id/validation
@@ -177,7 +198,14 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 		return updateErr
 	}
 
-	return h.buildSchemaResponse(c, form.Schema)
+	// Build response with proper error checking
+	if err := h.ResponseBuilder.BuildSchemaResponse(c, form.Schema); err != nil {
+		h.Logger.Error("failed to build schema response", "error", err, "form_id", form.ID)
+
+		return h.HandleError(c, err, "Failed to build response")
+	}
+
+	return nil
 }
 
 // POST /api/v1/forms/:id/submit
@@ -210,7 +238,19 @@ func (h *FormAPIHandler) handleFormSubmit(c echo.Context) error {
 
 	h.Logger.Info("Form submitted successfully", "form_id", form.ID, "submission_id", submission.ID)
 
-	return h.buildSubmissionResponse(c, submission)
+	// Build response with proper error checking
+	if err := h.ResponseBuilder.BuildSubmissionResponse(c, submission); err != nil {
+		h.Logger.Error(
+			"failed to build submission response",
+			"error", err,
+			"form_id", form.ID,
+			"submission_id", submission.ID,
+		)
+
+		return h.HandleError(c, err, "Failed to build response")
+	}
+
+	return nil
 }
 
 // Start initializes the form API handler.
@@ -344,19 +384,6 @@ func (h *FormAPIHandler) createAndSubmitForm(
 	}
 
 	return submission, nil
-}
-
-// Response building helpers
-func (h *FormAPIHandler) buildFormResponse(c echo.Context, form *model.Form) error {
-	return h.wrapError("build form response", h.ResponseBuilder.BuildFormResponse(c, form))
-}
-
-func (h *FormAPIHandler) buildSchemaResponse(c echo.Context, schema model.JSON) error {
-	return h.wrapError("build schema response", h.ResponseBuilder.BuildSchemaResponse(c, schema))
-}
-
-func (h *FormAPIHandler) buildSubmissionResponse(c echo.Context, submission *model.FormSubmission) error {
-	return h.wrapError("build submission response", h.ResponseBuilder.BuildSubmissionResponse(c, submission))
 }
 
 // wrapError provides consistent error wrapping
