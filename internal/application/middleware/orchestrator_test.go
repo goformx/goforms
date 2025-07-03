@@ -340,12 +340,12 @@ func TestOrchestrator_GetChainForPath_Caching(t *testing.T) {
 
 	// First call should build the chain
 	chain1, err := orchestrator.GetChainForPath(core.ChainTypeAPI, "/api/users")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain1)
 
 	// Second call should return cached chain
 	chain2, err := orchestrator.GetChainForPath(core.ChainTypeAPI, "/api/users")
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain2)
 	assert.Equal(t, chain1, chain2)
 
@@ -403,7 +403,7 @@ func TestOrchestrator_ConfigurationValidation(t *testing.T) {
 
 	// Test creating a chain with dependencies
 	chain, err := orchestrator.CreateChain(core.ChainTypeWeb)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain)
 	assert.Equal(t, 2, chain.Length())
 
@@ -458,7 +458,7 @@ func TestOrchestrator_DisabledMiddleware(t *testing.T) {
 
 	// Test creating a chain - should only include enabled middleware
 	chain, err := orchestrator.CreateChain(core.ChainTypeAPI)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain)
 	assert.Equal(t, 1, chain.Length())
 
@@ -621,7 +621,7 @@ func TestOrchestrator_PerformanceTracking(t *testing.T) {
 
 	// Create a chain
 	chain, err := orchestrator.CreateChain(core.ChainTypeDefault)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, chain)
 
 	// Get performance metrics

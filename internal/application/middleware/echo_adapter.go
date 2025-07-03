@@ -121,7 +121,7 @@ func (ea *EchoOrchestratorAdapter) setupWebChain(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) setupAuthChain(e *echo.Echo) error {
 	chain, err := ea.orchestrator.BuildChain(core.ChainTypeAuth)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build auth chain: %w", err)
 	}
 
 	echoMiddleware := ea.convertChainToEcho(chain)
@@ -138,7 +138,7 @@ func (ea *EchoOrchestratorAdapter) setupAuthChain(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) setupAdminChain(e *echo.Echo) error {
 	chain, err := ea.orchestrator.BuildChain(core.ChainTypeAdmin)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build admin chain: %w", err)
 	}
 
 	echoMiddleware := ea.convertChainToEcho(chain)
@@ -155,7 +155,7 @@ func (ea *EchoOrchestratorAdapter) setupAdminChain(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) setupPublicChain(e *echo.Echo) error {
 	chain, err := ea.orchestrator.BuildChain(core.ChainTypePublic)
 	if err != nil {
-		return err
+		return fmt.Errorf("failed to build public chain: %w", err)
 	}
 
 	echoMiddleware := ea.convertChainToEcho(chain)

@@ -3,6 +3,7 @@ package middleware
 
 import (
 	"context"
+	"fmt"
 
 	"go.uber.org/fx"
 
@@ -168,7 +169,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 
 	for _, m := range basicMiddleware {
 		if err := registry.Register(m.name, m.mw); err != nil {
-			return err
+			return fmt.Errorf("failed to register basic middleware %s: %w", m.name, err)
 		}
 
 		logger.Info("registered middleware", "name", m.name)
@@ -186,7 +187,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 
 	for _, m := range securityMiddleware {
 		if err := registry.Register(m.name, m.mw); err != nil {
-			return err
+			return fmt.Errorf("failed to register security middleware %s: %w", m.name, err)
 		}
 
 		logger.Info("registered security middleware", "name", m.name)
@@ -204,7 +205,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 
 	for _, m := range authMiddleware {
 		if err := registry.Register(m.name, m.mw); err != nil {
-			return err
+			return fmt.Errorf("failed to register auth middleware %s: %w", m.name, err)
 		}
 
 		logger.Info("registered auth middleware", "name", m.name)
