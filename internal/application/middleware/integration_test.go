@@ -14,6 +14,7 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/mocks"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 )
@@ -39,13 +40,24 @@ func TestManager_MiddlewareSetup(t *testing.T) {
 	logger.EXPECT().WithUserID(gomock.Any()).Return(logger).AnyTimes()
 	logger.EXPECT().WithError(gomock.Any()).Return(logger).AnyTimes()
 	logger.EXPECT().SanitizeField(gomock.Any(), gomock.Any()).Return("").AnyTimes()
+	sanitizer.EXPECT().SingleLine(gomock.Any()).Return("").AnyTimes()
 
 	cfg := &config.Config{}
 
+	// Create a proper AccessManager for the test
+	accessManager := access.NewManager(&access.Config{
+		DefaultAccess: access.Public,
+		PublicPaths:   []string{"/test"},
+	}, []access.Rule{})
+
 	manager := middleware.NewManager(&middleware.ManagerConfig{
-		Logger:    logger,
-		Config:    cfg,
-		Sanitizer: sanitizer,
+		Logger:         logger,
+		Config:         cfg,
+		UserService:    nil,
+		FormService:    nil,
+		SessionManager: nil,
+		AccessManager:  accessManager,
+		Sanitizer:      sanitizer,
 	})
 	e := echo.New()
 	manager.Setup(e)
@@ -59,6 +71,6 @@ func TestManager_MiddlewareSetup(t *testing.T) {
 	rec := httptest.NewRecorder()
 	e.ServeHTTP(rec, req)
 
-	require.Equal(t, http.StatusOK, rec.Code)
+	require.Equal(t, http.StatusOK, rec.Code, "Response body: %s", rec.Body.String())
 	assert.Equal(t, "ok", rec.Body.String())
 }
