@@ -456,7 +456,7 @@ func (o *orchestrator) filterByPath(chainObj core.Chain, requestPath string) cor
 			continue
 		}
 
-		if o.shouldExcludeByPathRequirement(mw.Name(), config, requestPath) {
+		if o.shouldExcludeByPathRequirement(config, requestPath) {
 			o.logger.Info("excluded middleware by path requirement", "name", mw.Name(), "path", requestPath)
 
 			continue
@@ -689,6 +689,7 @@ func (o *orchestrator) shouldAddPathSpecificMiddleware(
 func (o *orchestrator) shouldExcludeByPath(_ string, config map[string]any, requestPath string) bool {
 	if excludePaths, ok := config["exclude_paths"]; ok {
 		if pathList, ok := excludePaths.([]string); ok {
+
 			return o.matchesAnyPath(requestPath, pathList)
 		}
 	}
@@ -698,7 +699,6 @@ func (o *orchestrator) shouldExcludeByPath(_ string, config map[string]any, requ
 
 // shouldExcludeByPathRequirement checks if middleware should be excluded based on include_paths.
 func (o *orchestrator) shouldExcludeByPathRequirement(
-	name string,
 	config map[string]any,
 	requestPath string,
 ) bool {
