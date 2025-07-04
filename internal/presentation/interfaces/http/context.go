@@ -6,10 +6,10 @@ import (
 )
 
 // Minimal Request interface stub for context reference
-type Request interface{}
+type Request any
 
 // Minimal Response interface stub for context reference
-type Response interface{}
+type Response any
 
 // UserContext represents authenticated user information
 // (can be extended as needed)
@@ -23,8 +23,8 @@ type UserContext struct {
 type Session interface {
 	ID() string
 	UserID() string
-	Get(key string) (interface{}, bool)
-	Set(key string, value interface{})
+	Get(key string) (any, bool)
+	Set(key string, value any)
 	Delete(key string)
 	Destroy() error
 }
@@ -41,8 +41,8 @@ type Context interface {
 	WithContext(ctx context.Context) Context
 
 	// Value storage (for middleware, etc.)
-	Get(key string) (interface{}, bool)
-	Set(key string, value interface{})
+	Get(key string) (any, bool)
+	Set(key string, value any)
 	Delete(key string)
 
 	// User/session access
@@ -59,7 +59,7 @@ type Context interface {
 	PathParam(name string) string
 
 	// Response methods
-	JSON(code int, i interface{}) error
+	JSON(code int, i any) error
 	JSONBlob(code int, b []byte) error
 	String(code int, s string) error
 	HTML(code int, html string) error

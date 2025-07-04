@@ -42,14 +42,14 @@ func (a *EchoContextAdapter) WithContext(ctx context.Context) httpiface.Context 
 }
 
 // Get retrieves a value from echo.Context
-func (a *EchoContextAdapter) Get(key string) (interface{}, bool) {
+func (a *EchoContextAdapter) Get(key string) (any, bool) {
 	v := a.echoCtx.Get(key)
 
 	return v, v != nil
 }
 
 // Set sets a value in echo.Context
-func (a *EchoContextAdapter) Set(key string, value interface{}) {
+func (a *EchoContextAdapter) Set(key string, value any) {
 	a.echoCtx.Set(key, value)
 }
 
@@ -108,7 +108,7 @@ func (a *EchoContextAdapter) PathParam(name string) string {
 }
 
 // JSON sends a JSON response
-func (a *EchoContextAdapter) JSON(code int, i interface{}) error {
+func (a *EchoContextAdapter) JSON(code int, i any) error {
 	return a.echoCtx.JSON(code, i)
 }
 
@@ -139,7 +139,7 @@ func (a *EchoContextAdapter) Redirect(code int, url string) error {
 
 // Error sends an error response
 func (a *EchoContextAdapter) Error(err error) error {
-	return a.echoCtx.JSON(500, map[string]interface{}{
+	return a.echoCtx.JSON(500, map[string]any{
 		"error": err.Error(),
 	})
 }

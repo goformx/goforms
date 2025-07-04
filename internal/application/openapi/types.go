@@ -66,7 +66,7 @@ type ValidationErrorHandler interface {
 		ctx context.Context,
 		err error,
 		errorType ValidationErrorType,
-		metadata map[string]interface{},
+		metadata map[string]any,
 	) error
 }
 

@@ -46,8 +46,8 @@ func NewValidationHandler() *ValidationHandler {
 // handleNewFormValidation returns validation schema for new form creation
 func (h *ValidationHandler) handleNewFormValidation(ctx httpiface.Context) error {
 	// TODO: Implement actual validation schema generation
-	schema := map[string]interface{}{
-		"title": map[string]interface{}{
+	schema := map[string]any{
+		"title": map[string]any{
 			"type":    "required",
 			"message": "Form title is required",
 		},
@@ -60,17 +60,17 @@ func (h *ValidationHandler) handleNewFormValidation(ctx httpiface.Context) error
 func (h *ValidationHandler) handleFormValidation(ctx httpiface.Context) error {
 	formID := ctx.Param("id")
 	if formID == "" {
-		return ctx.JSON(400, map[string]interface{}{
+		return ctx.JSON(400, map[string]any{
 			"error": "Form ID is required",
 		})
 	}
 
 	// TODO: Implement actual form validation schema generation
 	// For now, return placeholder response
-	clientValidation := map[string]interface{}{
+	clientValidation := map[string]any{
 		"form_id": formID,
-		"fields":  []interface{}{},
-		"rules":   map[string]interface{}{},
+		"fields":  []any{},
+		"rules":   map[string]any{},
 	}
 
 	return ctx.JSON(200, clientValidation)
@@ -79,12 +79,12 @@ func (h *ValidationHandler) handleFormValidation(ctx httpiface.Context) error {
 // handleLoginValidation returns login form validation schema
 func (h *ValidationHandler) handleLoginValidation(ctx httpiface.Context) error {
 	// TODO: Implement actual login validation schema
-	schema := map[string]interface{}{
-		"email": map[string]interface{}{
+	schema := map[string]any{
+		"email": map[string]any{
 			"type":    "required|email",
 			"message": "Valid email is required",
 		},
-		"password": map[string]interface{}{
+		"password": map[string]any{
 			"type":    "required|min:6",
 			"message": "Password must be at least 6 characters",
 		},
@@ -96,20 +96,20 @@ func (h *ValidationHandler) handleLoginValidation(ctx httpiface.Context) error {
 // handleSignupValidation returns signup form validation schema
 func (h *ValidationHandler) handleSignupValidation(ctx httpiface.Context) error {
 	// TODO: Implement actual signup validation schema
-	schema := map[string]interface{}{
-		"name": map[string]interface{}{
+	schema := map[string]any{
+		"name": map[string]any{
 			"type":    "required|min:2",
 			"message": "Name must be at least 2 characters",
 		},
-		"email": map[string]interface{}{
+		"email": map[string]any{
 			"type":    "required|email|unique:users",
 			"message": "Valid and unique email is required",
 		},
-		"password": map[string]interface{}{
+		"password": map[string]any{
 			"type":    "required|min:8|confirmed",
 			"message": "Password must be at least 8 characters and confirmed",
 		},
-		"password_confirmation": map[string]interface{}{
+		"password_confirmation": map[string]any{
 			"type":    "required",
 			"message": "Password confirmation is required",
 		},

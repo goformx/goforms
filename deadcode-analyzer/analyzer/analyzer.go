@@ -134,7 +134,7 @@ func (a *Analyzer) analyzeAllFiles() (*Results, error) {
 	results := &Results{
 		Files:      fileAnalyses,
 		TotalFiles: len(fileAnalyses),
-		Summary:    make(map[string]interface{}),
+		Summary:    make(map[string]any),
 	}
 
 	for _, analysis := range fileAnalyses {

@@ -71,13 +71,13 @@ func (h *OpenAPIHandler) serveOpenAPISpec(ctx httpiface.Context) error {
 // serveOpenAPIJSON serves the OpenAPI JSON specification
 func (h *OpenAPIHandler) serveOpenAPIJSON(ctx httpiface.Context) error {
 	// TODO: Implement actual OpenAPI JSON spec serving
-	spec := map[string]interface{}{
+	spec := map[string]any{
 		"openapi": "3.0.0",
-		"info": map[string]interface{}{
+		"info": map[string]any{
 			"title":   "GoFormX API",
 			"version": "1.0.0",
 		},
-		"paths": map[string]interface{}{},
+		"paths": map[string]any{},
 	}
 
 	jsonData, err := json.MarshalIndent(spec, "", "  ")
@@ -90,7 +90,7 @@ func (h *OpenAPIHandler) serveOpenAPIJSON(ctx httpiface.Context) error {
 
 // serveHealthCheck serves the health check endpoint
 func (h *OpenAPIHandler) serveHealthCheck(ctx httpiface.Context) error {
-	healthData := map[string]interface{}{
+	healthData := map[string]any{
 		"status":    "healthy",
 		"timestamp": "2024-01-01T00:00:00Z",
 		"version":   "1.0.0",
@@ -103,7 +103,7 @@ func (h *OpenAPIHandler) serveHealthCheck(ctx httpiface.Context) error {
 func (h *OpenAPIHandler) validateOpenAPISpec(ctx httpiface.Context) error {
 	// TODO: Implement actual OpenAPI validation
 	// For now, return placeholder response
-	response := map[string]interface{}{
+	response := map[string]any{
 		"valid":   true,
 		"message": "OpenAPI specification is valid (placeholder)",
 	}

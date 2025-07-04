@@ -82,5 +82,5 @@ type Results struct {
 	PotentiallySafe int
 	Dangerous       int
 	NeverDelete     int
-	Summary         map[string]interface{}
+	Summary         map[string]any
 }

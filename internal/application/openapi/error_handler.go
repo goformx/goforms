@@ -26,7 +26,7 @@ func (h *validationErrorHandler) HandleError(
 	ctx context.Context,
 	err error,
 	errorType ValidationErrorType,
-	metadata map[string]interface{},
+	metadata map[string]any,
 ) error {
 	var (
 		shouldBlock  bool
@@ -47,7 +47,7 @@ func (h *validationErrorHandler) HandleError(
 
 	// Log the error if logging is enabled
 	if h.config.LogValidationErrors {
-		logFields := []interface{}{"error", err}
+		logFields := []any{"error", err}
 		for key, value := range metadata {
 			logFields = append(logFields, key, value)
 		}

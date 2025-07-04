@@ -52,7 +52,7 @@ func TestValidationErrorHandler_HandleError_RequestValidationError_Blocking(t *t
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 		"ip":     "127.0.0.1",
@@ -87,7 +87,7 @@ func TestValidationErrorHandler_HandleError_ResponseValidationError_Blocking(t *
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 		"status": 500,
@@ -122,7 +122,7 @@ func TestValidationErrorHandler_HandleError_RequestValidationError_NonBlocking(t
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 		"ip":     "127.0.0.1",
@@ -150,7 +150,7 @@ func TestValidationErrorHandler_HandleError_ResponseValidationError_NonBlocking(
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 		"status": 500,
@@ -178,7 +178,7 @@ func TestValidationErrorHandler_HandleError_NoLogging(t *testing.T) {
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 	}
@@ -204,7 +204,7 @@ func TestValidationErrorHandler_HandleError_UnknownErrorType(t *testing.T) {
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 	}
@@ -231,7 +231,7 @@ func TestValidationErrorHandler_HandleError_EmptyMetadata(t *testing.T) {
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{}
+	metadata := map[string]any{}
 
 	// Expect logging
 	logger.EXPECT().Warn("Request validation failed", gomock.Any()).Times(1)
@@ -279,7 +279,7 @@ func TestValidationErrorHandler_HandleError_NilError(t *testing.T) {
 
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 	}
@@ -307,7 +307,7 @@ func TestValidationErrorHandler_HandleError_ComplexMetadata(t *testing.T) {
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":      "/api/v1/users/123",
 		"method":    "POST",
 		"ip":        "192.168.1.100",
@@ -342,7 +342,7 @@ func TestValidationErrorHandler_HandleError_AllErrorTypes(t *testing.T) {
 	handler := openapi.NewValidationErrorHandler(logger, config)
 	ctx := context.Background()
 	testError := errors.New("test validation error")
-	metadata := map[string]interface{}{
+	metadata := map[string]any{
 		"path":   "/test",
 		"method": "GET",
 	}

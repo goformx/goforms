@@ -60,10 +60,10 @@ type ChainConfigs struct {
 
 // ChainConfig defines configuration for a specific middleware chain
 type ChainConfig struct {
-	Enabled         bool                   `json:"enabled"`
-	MiddlewareNames []string               `json:"middleware_names"`
-	Paths           []string               `json:"paths"`
-	CustomConfig    map[string]interface{} `json:"custom_config"`
+	Enabled         bool           `json:"enabled"`
+	MiddlewareNames []string       `json:"middleware_names"`
+	Paths           []string       `json:"paths"`
+	CustomConfig    map[string]any `json:"custom_config"`
 }
 
 // RecoveryMiddlewareConfig defines recovery middleware configuration
