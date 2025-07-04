@@ -112,14 +112,15 @@ func (a *Analyzer) analyzeAllFiles() (*Results, error) {
 
 	// Analyze each file
 	for _, filePath := range files {
-		analysis, err := a.analyzeFile(filePath)
-		if err != nil {
+		analysis, analysisErr := a.analyzeFile(filePath)
+		if analysisErr != nil {
 			if a.config.Verbose {
-				log.Printf("Error analyzing %s: %v", filePath, err)
+				log.Printf("Error analyzing %s: %v", filePath, analysisErr)
 			}
 
 			continue // Continue with other files
 		}
+
 		fileAnalyses = append(fileAnalyses, analysis)
 	}
 
@@ -211,23 +212,32 @@ func (a *Analyzer) printResults(results *Results) {
 func (a *Analyzer) printUltraSafeCandidates(results *Results) {
 	fmt.Println("🟢 ULTRA-SAFE Candidates (Safe to delete):")
 	fmt.Println("-------------------------------------------")
+
 	ultraSafeFound := false
+
 	for _, result := range results.Files {
-		if result.SafetyLevel == UltraSafe {
-			ultraSafeFound = true
-			fmt.Printf("  %s\n", result.Path)
-			fmt.Printf("    Functions: %d/%d unreachable\n", result.UnreachableFunctions, result.TotalFunctions)
-			fmt.Printf("    Lines: %d\n", result.TotalLines)
-			fmt.Printf("    Safety Score: %d\n", result.SafetyScore)
-			if len(result.Reasons) > 0 {
-				fmt.Printf("    Reasons: %s\n", result.Reasons)
-			}
-			fmt.Println()
+		if result.SafetyLevel != UltraSafe {
+			continue
 		}
+
+		ultraSafeFound = true
+
+		fmt.Printf("  %s\n", result.Path)
+		fmt.Printf("    Functions: %d/%d unreachable\n", result.UnreachableFunctions, result.TotalFunctions)
+		fmt.Printf("    Lines: %d\n", result.TotalLines)
+		fmt.Printf("    Safety Score: %d\n", result.SafetyScore)
+
+		if len(result.Reasons) > 0 {
+			fmt.Printf("    Reasons: %s\n", result.Reasons)
+		}
+
+		fmt.Println()
 	}
+
 	if !ultraSafeFound {
 		fmt.Println("  No ultra-safe candidates found (this is good!)")
 	}
+
 	fmt.Println()
 }
 
@@ -235,9 +245,11 @@ func (a *Analyzer) printUltraSafeCandidates(results *Results) {
 func (a *Analyzer) printDangerousFiles(results *Results) {
 	fmt.Println("🔴 DANGEROUS Files (DO NOT DELETE):")
 	fmt.Println("-----------------------------------")
+
 	for _, result := range results.Files {
 		if result.SafetyLevel == Dangerous || result.SafetyLevel == NeverDelete {
 			fmt.Printf("  %s (%s)\n", result.Path, result.SafetyLevel)
+
 			if len(result.Reasons) > 0 {
 				fmt.Printf("    Reasons: %s\n", result.Reasons)
 			}

@@ -53,8 +53,8 @@ func (fd *FxDetector) Analyze(file *ast.File, analysis *FileAnalysis) {
 
 // analyzeFxCall analyzes Fx function calls
 func (fd *FxDetector) analyzeFxCall(call *ast.CallExpr, analysis *FileAnalysis) {
-	if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-		if ident, ok := sel.X.(*ast.Ident); ok {
+	if sel, ok1 := call.Fun.(*ast.SelectorExpr); ok1 {
+		if ident, ok2 := sel.X.(*ast.Ident); ok2 {
 			if ident.Name == "fx" {
 				analysis.HasFxUsage = true
 				analysis.Reasons = append(analysis.Reasons, "Contains Fx dependency injection usage")
@@ -78,19 +78,16 @@ func (fd *FxDetector) analyzeFxCall(call *ast.CallExpr, analysis *FileAnalysis) 
 
 // analyzeFxProvide analyzes fx.Provide calls
 func (fd *FxDetector) analyzeFxProvide(call *ast.CallExpr, analysis *FileAnalysis) {
-	// fx.Provide can take multiple arguments
 	for _, arg := range call.Args {
-		if _, ok := arg.(*ast.FuncLit); ok {
-			// Anonymous function provided
+		switch v := arg.(type) {
+		case *ast.FuncLit:
 			analysis.Reasons = append(analysis.Reasons, "Provides anonymous function")
-		} else if ident, ok := arg.(*ast.Ident); ok {
-			// Named function provided
-			fd.providedFunctions[ident.Name] = true
-			analysis.Reasons = append(analysis.Reasons, "Provides function: "+ident.Name)
-		} else if sel, ok := arg.(*ast.SelectorExpr); ok {
-			// Package function provided
-			if pkgIdent, ok := sel.X.(*ast.Ident); ok {
-				funcName := pkgIdent.Name + "." + sel.Sel.Name
+		case *ast.Ident:
+			fd.providedFunctions[v.Name] = true
+			analysis.Reasons = append(analysis.Reasons, "Provides function: "+v.Name)
+		case *ast.SelectorExpr:
+			if pkgIdent, ok1 := v.X.(*ast.Ident); ok1 {
+				funcName := pkgIdent.Name + "." + v.Sel.Name
 				fd.providedFunctions[funcName] = true
 				analysis.Reasons = append(analysis.Reasons, "Provides function: "+funcName)
 			}
@@ -101,17 +98,15 @@ func (fd *FxDetector) analyzeFxProvide(call *ast.CallExpr, analysis *FileAnalysi
 // analyzeFxInvoke analyzes fx.Invoke calls
 func (fd *FxDetector) analyzeFxInvoke(call *ast.CallExpr, analysis *FileAnalysis) {
 	for _, arg := range call.Args {
-		if _, ok := arg.(*ast.FuncLit); ok {
-			// Anonymous function invoked
+		switch v := arg.(type) {
+		case *ast.FuncLit:
 			analysis.Reasons = append(analysis.Reasons, "Invokes anonymous function")
-		} else if ident, ok := arg.(*ast.Ident); ok {
-			// Named function invoked
-			fd.invokedFunctions[ident.Name] = true
-			analysis.Reasons = append(analysis.Reasons, "Invokes function: "+ident.Name)
-		} else if sel, ok := arg.(*ast.SelectorExpr); ok {
-			// Package function invoked
-			if pkgIdent, ok := sel.X.(*ast.Ident); ok {
-				funcName := pkgIdent.Name + "." + sel.Sel.Name
+		case *ast.Ident:
+			fd.invokedFunctions[v.Name] = true
+			analysis.Reasons = append(analysis.Reasons, "Invokes function: "+v.Name)
+		case *ast.SelectorExpr:
+			if pkgIdent, ok1 := v.X.(*ast.Ident); ok1 {
+				funcName := pkgIdent.Name + "." + v.Sel.Name
 				fd.invokedFunctions[funcName] = true
 				analysis.Reasons = append(analysis.Reasons, "Invokes function: "+funcName)
 			}
@@ -124,10 +119,12 @@ func (fd *FxDetector) analyzeFxModule(call *ast.CallExpr, analysis *FileAnalysis
 	if len(call.Args) < 2 {
 		return
 	}
+
 	nameLit, ok := call.Args[0].(*ast.BasicLit)
 	if !ok || nameLit.Kind != token.STRING {
 		return
 	}
+
 	moduleName := strings.Trim(nameLit.Value, "\"")
 	module := &FxModule{
 		Name: moduleName,
@@ -145,9 +142,10 @@ func (fd *FxDetector) parseModuleOptions(arg ast.Expr, module *FxModule) {
 	if !ok {
 		return
 	}
+
 	for _, option := range options.Elts {
-		if call, ok := option.(*ast.CallExpr); ok {
-			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
+		if call, ok1 := option.(*ast.CallExpr); ok1 {
+			if sel, ok2 := call.Fun.(*ast.SelectorExpr); ok2 {
 				module.Options = append(module.Options, sel.Sel.Name)
 			}
 		}
@@ -155,14 +153,12 @@ func (fd *FxDetector) parseModuleOptions(arg ast.Expr, module *FxModule) {
 }
 
 // analyzeFxAnnotate analyzes fx.Annotate calls
-func (fd *FxDetector) analyzeFxAnnotate(call *ast.CallExpr, analysis *FileAnalysis) {
-	// fx.Annotate is used for dependency injection with annotations
+func (fd *FxDetector) analyzeFxAnnotate(_ *ast.CallExpr, analysis *FileAnalysis) {
 	analysis.Reasons = append(analysis.Reasons, "Uses Fx annotations")
 }
 
 // analyzeFxOptions analyzes fx.Options calls
-func (fd *FxDetector) analyzeFxOptions(call *ast.CallExpr, analysis *FileAnalysis) {
-	// fx.Options groups multiple Fx options
+func (fd *FxDetector) analyzeFxOptions(_ *ast.CallExpr, analysis *FileAnalysis) {
 	analysis.Reasons = append(analysis.Reasons, "Uses Fx options grouping")
 }
 
@@ -195,7 +191,7 @@ func (fd *FxDetector) analyzeConstructor(fn *ast.FuncDecl, analysis *FileAnalysi
 func (fd *FxDetector) analyzeFxAssignment(assign *ast.AssignStmt, analysis *FileAnalysis) {
 	// Look for assignments that might be Fx-related
 	for _, rhs := range assign.Rhs {
-		if call, ok := rhs.(*ast.CallExpr); ok {
+		if call, ok1 := rhs.(*ast.CallExpr); ok1 {
 			fd.analyzeFxCall(call, analysis)
 		}
 	}
@@ -223,11 +219,12 @@ func (fd *FxDetector) hasReflectionUsage(fn *ast.FuncDecl) bool {
 	}
 
 	hasReflection := false
+
 	ast.Inspect(fn.Body, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.CallExpr:
-			if sel, ok := x.Fun.(*ast.SelectorExpr); ok {
-				if ident, ok := sel.X.(*ast.Ident); ok {
+			if sel, ok1 := x.Fun.(*ast.SelectorExpr); ok1 {
+				if ident, ok2 := sel.X.(*ast.Ident); ok2 {
 					if ident.Name == "reflect" {
 						hasReflection = true
 
@@ -250,8 +247,8 @@ func (fd *FxDetector) DetectFxPatterns(file *ast.File) []string {
 	ast.Inspect(file, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.CallExpr:
-			if sel, ok := x.Fun.(*ast.SelectorExpr); ok {
-				if ident, ok := sel.X.(*ast.Ident); ok {
+			if sel, ok1 := x.Fun.(*ast.SelectorExpr); ok1 {
+				if ident, ok2 := sel.X.(*ast.Ident); ok2 {
 					if ident.Name == "fx" {
 						patterns = append(patterns, "fx."+sel.Sel.Name)
 					}

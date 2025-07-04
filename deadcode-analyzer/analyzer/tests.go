@@ -20,6 +20,7 @@ func (ta *TestAnalyzer) Analyze(file *ast.File, analysis *FileAnalysis) {
 		ta.detectTestFunction(n, analysis)
 		ta.detectTestImport(n, analysis)
 		ta.detectTestCall(n, analysis)
+
 		return true
 	})
 }
@@ -36,6 +37,7 @@ func (ta *TestAnalyzer) detectTestFunction(n ast.Node, analysis *FileAnalysis) {
 	if !ok {
 		return
 	}
+
 	if strings.HasPrefix(fn.Name.Name, "Test") ||
 		strings.HasPrefix(fn.Name.Name, "Benchmark") ||
 		strings.HasPrefix(fn.Name.Name, "Example") {
@@ -49,6 +51,7 @@ func (ta *TestAnalyzer) detectTestImport(n ast.Node, analysis *FileAnalysis) {
 	if !ok || imp.Path == nil {
 		return
 	}
+
 	importPath := strings.Trim(imp.Path.Value, "\"")
 	if strings.Contains(importPath, "testing") ||
 		strings.Contains(importPath, "testify") {
@@ -62,14 +65,17 @@ func (ta *TestAnalyzer) detectTestCall(n ast.Node, analysis *FileAnalysis) {
 	if !ok {
 		return
 	}
+
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return
 	}
+
 	ident, ok := sel.X.(*ast.Ident)
 	if !ok {
 		return
 	}
+
 	if strings.Contains(strings.ToLower(ident.Name), "test") ||
 		strings.Contains(strings.ToLower(sel.Sel.Name), "assert") ||
 		strings.Contains(strings.ToLower(sel.Sel.Name), "require") {
@@ -81,11 +87,14 @@ func (ta *TestAnalyzer) detectTestCall(n ast.Node, analysis *FileAnalysis) {
 // DetectTestPatterns detects specific test patterns
 func (ta *TestAnalyzer) DetectTestPatterns(file *ast.File) []string {
 	var patterns []string
+
 	ast.Inspect(file, func(n ast.Node) bool {
 		ta.appendTestFunctionPattern(n, &patterns)
 		ta.appendTestCallPattern(n, &patterns)
+
 		return true
 	})
+
 	return patterns
 }
 
@@ -94,6 +103,7 @@ func (ta *TestAnalyzer) appendTestFunctionPattern(n ast.Node, patterns *[]string
 	if !ok {
 		return
 	}
+
 	if strings.HasPrefix(fn.Name.Name, "Test") ||
 		strings.HasPrefix(fn.Name.Name, "Benchmark") ||
 		strings.HasPrefix(fn.Name.Name, "Example") {
@@ -106,14 +116,17 @@ func (ta *TestAnalyzer) appendTestCallPattern(n ast.Node, patterns *[]string) {
 	if !ok {
 		return
 	}
+
 	sel, ok := call.Fun.(*ast.SelectorExpr)
 	if !ok {
 		return
 	}
+
 	ident, ok := sel.X.(*ast.Ident)
 	if !ok {
 		return
 	}
+
 	if strings.Contains(strings.ToLower(ident.Name), "test") ||
 		strings.Contains(strings.ToLower(sel.Sel.Name), "assert") ||
 		strings.Contains(strings.ToLower(sel.Sel.Name), "require") {

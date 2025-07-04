@@ -56,6 +56,7 @@ func (ia *ImportAnalyzer) getPackagePathFromFilePath(filePath string) string {
 
 	// Find the "internal" directory
 	internalIndex := -1
+
 	for i, part := range parts {
 		if part == "internal" {
 			internalIndex = i

@@ -32,25 +32,19 @@ func NewCallGraphAnalyzer() *CallGraphAnalyzer {
 // Build constructs the call graph from loaded packages
 func (cga *CallGraphAnalyzer) Build(pkgs []*packages.Package) error {
 	// First pass: collect all functions and identify entry points
-	if err := cga.collectFunctions(pkgs); err != nil {
-		return fmt.Errorf("failed to collect functions: %w", err)
-	}
+	cga.collectFunctions(pkgs)
 
 	// Second pass: build the call graph
-	if err := cga.buildCallGraph(pkgs); err != nil {
-		return fmt.Errorf("failed to build call graph: %w", err)
-	}
+	cga.buildCallGraph(pkgs)
 
 	// Third pass: identify interface implementations
-	if err := cga.analyzeInterfaces(pkgs); err != nil {
-		return fmt.Errorf("failed to analyze interfaces: %w", err)
-	}
+	cga.analyzeInterfaces(pkgs)
 
 	return nil
 }
 
 // collectFunctions collects all functions and identifies entry points
-func (cga *CallGraphAnalyzer) collectFunctions(pkgs []*packages.Package) error {
+func (cga *CallGraphAnalyzer) collectFunctions(pkgs []*packages.Package) {
 	for _, pkg := range pkgs {
 		if pkg.Types == nil {
 			continue
@@ -87,12 +81,10 @@ func (cga *CallGraphAnalyzer) collectFunctions(pkgs []*packages.Package) error {
 
 		cga.packageGraph[pkg.PkgPath] = packageInfo
 	}
-
-	return nil
 }
 
 // buildCallGraph builds the actual call graph by analyzing function calls
-func (cga *CallGraphAnalyzer) buildCallGraph(pkgs []*packages.Package) error {
+func (cga *CallGraphAnalyzer) buildCallGraph(pkgs []*packages.Package) {
 	for _, pkg := range pkgs {
 		if pkg.Types == nil {
 			continue
@@ -102,8 +94,6 @@ func (cga *CallGraphAnalyzer) buildCallGraph(pkgs []*packages.Package) error {
 			cga.analyzeFileForCalls(file, pkg)
 		}
 	}
-
-	return nil
 }
 
 // analyzeFileForCalls analyzes a single file for function calls
@@ -189,7 +179,7 @@ func (cga *CallGraphAnalyzer) resolveSelectorCall(ident *ast.Ident, selName stri
 }
 
 // analyzeInterfaces analyzes interface implementations
-func (cga *CallGraphAnalyzer) analyzeInterfaces(pkgs []*packages.Package) error {
+func (cga *CallGraphAnalyzer) analyzeInterfaces(pkgs []*packages.Package) {
 	for _, pkg := range pkgs {
 		if pkg.Types == nil {
 			continue
@@ -214,8 +204,6 @@ func (cga *CallGraphAnalyzer) analyzeInterfaces(pkgs []*packages.Package) error 
 			})
 		}
 	}
-
-	return nil
 }
 
 // findInterfaceImplementations finds which interfaces a type implements
@@ -235,14 +223,18 @@ func (cga *CallGraphAnalyzer) isFxEntryPoint(fn *ast.FuncDecl) bool {
 		return false
 	}
 
+	hasFxUsage := false
+
 	ast.Inspect(fn.Body, func(n ast.Node) bool {
 		switch call := n.(type) {
 		case *ast.CallExpr:
-			if sel, ok := call.Fun.(*ast.SelectorExpr); ok {
-				if ident, ok := sel.X.(*ast.Ident); ok {
+			if sel, ok1 := call.Fun.(*ast.SelectorExpr); ok1 {
+				if ident, ok2 := sel.X.(*ast.Ident); ok2 {
 					if ident.Name == "fx" {
 						switch sel.Sel.Name {
 						case "Provide", "Invoke", "Annotate":
+							hasFxUsage = true
+
 							return false // Stop traversal, found Fx usage
 						}
 					}
@@ -253,7 +245,7 @@ func (cga *CallGraphAnalyzer) isFxEntryPoint(fn *ast.FuncDecl) bool {
 		return true
 	})
 
-	return false
+	return hasFxUsage
 }
 
 // AnalyzeReachability determines which functions in a file are unreachable
@@ -263,6 +255,7 @@ func (cga *CallGraphAnalyzer) AnalyzeReachability(filePath string, analysis *Fil
 
 	// Find all functions in this file
 	var fileFunctions []string
+
 	for funcName := range cga.callGraph {
 		if strings.HasPrefix(funcName, packagePath) {
 			fileFunctions = append(fileFunctions, funcName)
@@ -271,6 +264,7 @@ func (cga *CallGraphAnalyzer) AnalyzeReachability(filePath string, analysis *Fil
 
 	// Count unreachable functions
 	unreachableCount := 0
+
 	for _, funcName := range fileFunctions {
 		if !cga.isFunctionReachable(funcName) {
 			unreachableCount++
@@ -325,7 +319,6 @@ func (cga *CallGraphAnalyzer) canReach(start, target string, visited map[string]
 func (cga *CallGraphAnalyzer) getPackagePathFromFilePath(filePath string) string {
 	// Convert file path to package path
 	// e.g., "internal/domain/user/repository.go" -> "github.com/goformx/goforms/internal/domain/user"
-
 	parts := strings.Split(filePath, "/")
 	if len(parts) < 2 {
 		return ""
@@ -333,6 +326,7 @@ func (cga *CallGraphAnalyzer) getPackagePathFromFilePath(filePath string) string
 
 	// Find the "internal" directory
 	internalIndex := -1
+
 	for i, part := range parts {
 		if part == "internal" {
 			internalIndex = i

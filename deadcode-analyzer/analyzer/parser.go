@@ -47,6 +47,7 @@ func (p *Parser) LoadProject(projectRoot string) error {
 	}
 
 	p.pkgs = pkgs
+
 	return nil
 }
 
@@ -57,7 +58,12 @@ func (p *Parser) GetPackages() []*packages.Package {
 
 // ParseFile parses a single Go file
 func (p *Parser) ParseFile(filePath string) (*ast.File, error) {
-	return parser.ParseFile(p.fset, filePath, nil, parser.ParseComments)
+	file, err := parser.ParseFile(p.fset, filePath, nil, parser.ParseComments)
+	if err != nil {
+		return nil, fmt.Errorf("failed to parse file %s: %w", filePath, err)
+	}
+
+	return file, nil
 }
 
 // GetGoFiles returns all Go files in the specified directory
@@ -72,9 +78,9 @@ func (p *Parser) GetGoFiles(dir string) ([]string, error) {
 		if !info.IsDir() && strings.HasSuffix(path, ".go") {
 			files = append(files, path)
 		}
+
 		return nil
 	})
-
 	if err != nil {
 		return nil, fmt.Errorf("failed to walk directory: %w", err)
 	}
@@ -107,6 +113,7 @@ func (p *Parser) AnalyzeFile(file *ast.File, analysis *FileAnalysis) {
 				analysis.ImportedPackages = append(analysis.ImportedPackages, strings.Trim(x.Path.Value, "\""))
 			}
 		}
+
 		return true
 	})
 }

@@ -186,18 +186,21 @@ func (sa *SafetyAnalyzer) calculateFunctionTypePenalty(analysis *FileAnalysis) i
 	// Check for init functions
 	if sa.hasInitFunctions(analysis) {
 		penalty += 5000
+
 		analysis.Reasons = append(analysis.Reasons, "Contains init() functions - DANGEROUS")
 	}
 
 	// Check for main function
 	if sa.hasMainFunction(analysis) {
 		penalty += 10000
+
 		analysis.Reasons = append(analysis.Reasons, "Contains main() function - DANGEROUS")
 	}
 
 	// Check for global variables
 	if sa.hasGlobalVariables(analysis) {
 		penalty += 3000
+
 		analysis.Reasons = append(analysis.Reasons, "Contains global variables - DANGEROUS")
 	}
 
@@ -212,7 +215,6 @@ func (sa *SafetyAnalyzer) hasStateModification(analysis *FileAnalysis) bool {
 	// - Network calls
 	// - Global variable modifications
 	// For now, we'll use heuristics based on file path and content
-
 	stateModifyingPatterns := []string{
 		"database", "db", "sql", "gorm",
 		"file", "fs", "os", "io",
@@ -238,7 +240,6 @@ func (sa *SafetyAnalyzer) isPureUtility(analysis *FileAnalysis) bool {
 	// - No database/file/network operations
 	// - No global state modifications
 	// - Small, focused functions
-
 	pureUtilityPatterns := []string{
 		"utils", "util", "helper", "helpers",
 		"math", "string", "time", "format",
@@ -288,27 +289,30 @@ func (sa *SafetyAnalyzer) isCriticalPackage(filePath string) bool {
 			return true
 		}
 	}
+
 	return false
 }
 
 // AnalyzeFunctionComplexity analyzes the complexity of functions in a file
-func (sa *SafetyAnalyzer) AnalyzeFunctionComplexity(file *ast.File) (int, []string) {
-	complexityTotal := 0
-	var reasons []string
+func (sa *SafetyAnalyzer) AnalyzeFunctionComplexity(file *ast.File) (complexityTotal int, reasons []string) {
+	complexityTotal = 0
+	reasons = nil
 
 	ast.Inspect(file, func(n ast.Node) bool {
 		switch x := n.(type) {
 		case *ast.FuncDecl:
 			complexity := sa.calculateFunctionComplexity(x)
+
 			complexityTotal += complexity
 			if complexity > 10 {
 				reasons = append(reasons, "High complexity function: "+x.Name.Name)
 			}
 		}
+
 		return true
 	})
 
-	return complexityTotal, reasons
+	return
 }
 
 // calculateFunctionComplexity calculates cyclomatic complexity of a function
@@ -329,6 +333,7 @@ func (sa *SafetyAnalyzer) calculateFunctionComplexity(fn *ast.FuncDecl) int {
 				complexity++
 			}
 		}
+
 		return true
 	})
 
