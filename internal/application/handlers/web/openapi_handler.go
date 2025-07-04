@@ -3,6 +3,7 @@ package web
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 
 	"github.com/getkin/kin-openapi/openapi3"
@@ -64,36 +65,52 @@ func (h *OpenAPIHandler) Register(_ *echo.Echo) {
 func (h *OpenAPIHandler) serveOpenAPISpec(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "application/x-yaml")
 
-	return c.String(http.StatusOK, OpenAPISpec)
+	if err := c.String(http.StatusOK, OpenAPISpec); err != nil {
+		return fmt.Errorf("serve openapi spec: %w", err)
+	}
+
+	return nil
 }
 
 // serveOpenAPIJSON serves the OpenAPI JSON specification
 func (h *OpenAPIHandler) serveOpenAPIJSON(c echo.Context) error {
-	if h.spec != nil {
-		// Convert the parsed spec to JSON
-		jsonData, err := json.MarshalIndent(h.spec, "", "  ")
-		if err != nil {
-			h.Logger.Error("failed to marshal OpenAPI spec to JSON", "error", err)
-			// Fallback to raw spec
-			c.Response().Header().Set("Content-Type", "application/json")
-
-			return c.String(http.StatusOK, OpenAPISpec)
-		}
-
+	if h.spec == nil {
+		// Fallback to raw spec if parsing failed
 		c.Response().Header().Set("Content-Type", "application/json")
 
-		return c.JSONBlob(http.StatusOK, jsonData)
+		if err := c.String(http.StatusOK, OpenAPISpec); err != nil {
+			return fmt.Errorf("serve openapi spec fallback: %w", err)
+		}
+
+		return nil
 	}
 
-	// Fallback to raw spec if parsing failed
+	// Convert the parsed spec to JSON
+	jsonData, err := json.MarshalIndent(h.spec, "", "  ")
+	if err != nil {
+		h.Logger.Error("failed to marshal OpenAPI spec to JSON", "error", err)
+		// Fallback to raw spec
+		c.Response().Header().Set("Content-Type", "application/json")
+
+		if fallbackErr := c.String(http.StatusOK, OpenAPISpec); fallbackErr != nil {
+			return fmt.Errorf("serve openapi spec fallback: %w", fallbackErr)
+		}
+
+		return nil
+	}
+
 	c.Response().Header().Set("Content-Type", "application/json")
 
-	return c.String(http.StatusOK, OpenAPISpec)
+	if jsonErr := c.JSONBlob(http.StatusOK, jsonData); jsonErr != nil {
+		return fmt.Errorf("serve openapi json: %w", jsonErr)
+	}
+
+	return nil
 }
 
 // serveHealthCheck serves the health check endpoint
 func (h *OpenAPIHandler) serveHealthCheck(c echo.Context) error {
-	healthData := map[string]interface{}{
+	healthData := map[string]any{
 		"status":    "healthy",
 		"timestamp": "2024-01-01T00:00:00Z",
 		"version":   "1.0.0",
@@ -109,7 +126,7 @@ func (h *OpenAPIHandler) validateOpenAPISpec(c echo.Context) error {
 	}
 
 	if err := c.Bind(&request); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+		return c.JSON(http.StatusBadRequest, map[string]any{
 			"error": "Invalid request format",
 		})
 	}
@@ -117,23 +134,23 @@ func (h *OpenAPIHandler) validateOpenAPISpec(c echo.Context) error {
 	// Parse the provided specification
 	loader := openapi3.NewLoader()
 
-	spec, err := loader.LoadFromData([]byte(request.Spec))
-	if err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+	spec, parseErr := loader.LoadFromData([]byte(request.Spec))
+	if parseErr != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{
 			"error":   "Failed to parse OpenAPI specification",
-			"details": err.Error(),
+			"details": parseErr.Error(),
 		})
 	}
 
 	// Validate the specification
-	if err := spec.Validate(context.Background()); err != nil {
-		return c.JSON(http.StatusBadRequest, map[string]interface{}{
+	if validateErr := spec.Validate(c.Request().Context()); validateErr != nil {
+		return c.JSON(http.StatusBadRequest, map[string]any{
 			"error":   "OpenAPI specification validation failed",
-			"details": err.Error(),
+			"details": validateErr.Error(),
 		})
 	}
 
-	return c.JSON(http.StatusOK, map[string]interface{}{
+	return c.JSON(http.StatusOK, map[string]any{
 		"valid":   true,
 		"message": "OpenAPI specification is valid",
 	})
@@ -194,14 +211,18 @@ func (h *OpenAPIHandler) serveDocsUI(c echo.Context) error {
 
 	c.Response().Header().Set("Content-Type", "text/html")
 
-	return c.String(http.StatusOK, html)
+	if err := c.String(http.StatusOK, html); err != nil {
+		return fmt.Errorf("serve docs ui: %w", err)
+	}
+
+	return nil
 }
 
 // Start initializes the OpenAPI handler
-func (h *OpenAPIHandler) Start(_ context.Context) error {
+func (h *OpenAPIHandler) Start(ctx context.Context) error {
 	// Validate the OpenAPI specification if it was parsed successfully
 	if h.spec != nil {
-		if err := h.spec.Validate(context.Background()); err != nil {
+		if err := h.spec.Validate(ctx); err != nil {
 			h.Logger.Warn("OpenAPI specification validation failed", "error", err)
 		} else {
 			h.Logger.Info("OpenAPI specification validated successfully")
