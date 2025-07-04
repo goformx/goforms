@@ -90,12 +90,14 @@ func (h *FormHandler) NewForm(ctx httpiface.Context) error {
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
 	user, err := h.getUserFromSession(echoCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for new form access", "error", err)
+
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
@@ -107,12 +109,14 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
 	user, err := h.getUserFromSession(echoCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for form creation", "error", err)
+
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
@@ -120,6 +124,7 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	formData, err := h.requestParser.ParseCreateForm(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse create form request", "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid request format", 400)
 	}
 
@@ -135,6 +140,7 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	// Create form using service
 	if err := h.formService.CreateForm(echoCtx.Request().Context(), formData); err != nil {
 		h.logger.Error("failed to create form", "user_id", user.ID, "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to create form. Please try again.", 500)
 	}
 
@@ -146,12 +152,14 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
 	user, err := h.getUserFromSession(echoCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for edit form access", "error", err)
+
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
@@ -159,6 +167,7 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	formID, err := h.requestParser.ParseFormID(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid form ID", 400)
 	}
 
@@ -166,12 +175,14 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	form, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form", "form_id", formID, "error", err)
+
 		return h.responseBuilder.BuildFormNotFoundResponse(echoCtx)
 	}
 
 	// Check form ownership
 	if form.UserID != user.ID {
 		h.logger.Warn("unauthorized form access", "user_id", user.ID, "form_user_id", form.UserID, "form_id", formID)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to edit this form", 403)
 	}
 
@@ -183,12 +194,14 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
 	user, err := h.getUserFromSession(echoCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for form update", "error", err)
+
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
@@ -196,6 +209,7 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	formID, err := h.requestParser.ParseFormID(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid form ID", 400)
 	}
 
@@ -203,12 +217,14 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	existingForm, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for update", "form_id", formID, "error", err)
+
 		return h.responseBuilder.BuildFormNotFoundResponse(echoCtx)
 	}
 
 	// Check form ownership
 	if existingForm.UserID != user.ID {
 		h.logger.Warn("unauthorized form update", "user_id", user.ID, "form_user_id", existingForm.UserID, "form_id", formID)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to update this form", 403)
 	}
 
@@ -216,6 +232,7 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	updateData, err := h.requestParser.ParseUpdateForm(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse update form request", "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid request format", 400)
 	}
 
@@ -226,10 +243,12 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 
 	// Update form fields
 	existingForm.Title = updateData.Title
+
 	existingForm.Description = updateData.Description
 	if updateData.Status != "" {
 		existingForm.Status = updateData.Status
 	}
+
 	if updateData.Schema != nil {
 		existingForm.Schema = updateData.Schema
 	}
@@ -237,6 +256,7 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	// Update form using service
 	if err := h.formService.UpdateForm(echoCtx.Request().Context(), existingForm); err != nil {
 		h.logger.Error("failed to update form", "form_id", formID, "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to update form. Please try again.", 500)
 	}
 
@@ -248,12 +268,14 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
 	user, err := h.getUserFromSession(echoCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for form deletion", "error", err)
+
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
@@ -261,6 +283,7 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	formID, err := h.requestParser.ParseFormID(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid form ID", 400)
 	}
 
@@ -268,18 +291,21 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	form, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for deletion", "form_id", formID, "error", err)
+
 		return h.responseBuilder.BuildFormNotFoundResponse(echoCtx)
 	}
 
 	// Check form ownership
 	if form.UserID != user.ID {
 		h.logger.Warn("unauthorized form deletion", "user_id", user.ID, "form_user_id", form.UserID, "form_id", formID)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to delete this form", 403)
 	}
 
 	// Delete form using service
 	if err := h.formService.DeleteForm(echoCtx.Request().Context(), formID); err != nil {
 		h.logger.Error("failed to delete form", "form_id", formID, "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to delete form. Please try again.", 500)
 	}
 
@@ -291,12 +317,14 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
 	user, err := h.getUserFromSession(echoCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for form submissions access", "error", err)
+
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
@@ -304,6 +332,7 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	formID, err := h.requestParser.ParseFormID(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid form ID", 400)
 	}
 
@@ -311,12 +340,14 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	form, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for submissions", "form_id", formID, "error", err)
+
 		return h.responseBuilder.BuildFormNotFoundResponse(echoCtx)
 	}
 
 	// Check form ownership
 	if form.UserID != user.ID {
 		h.logger.Warn("unauthorized form submissions access", "user_id", user.ID, "form_user_id", form.UserID, "form_id", formID)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to view submissions for this form", 403)
 	}
 
@@ -324,6 +355,7 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	submissions, err := h.formService.ListFormSubmissions(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form submissions", "form_id", formID, "error", err)
+
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to load form submissions. Please try again.", 500)
 	}
 

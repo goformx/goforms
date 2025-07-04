@@ -98,6 +98,7 @@ func (p *FormRequestParser) ParseFormID(c echo.Context) (string, error) {
 	if formID == "" {
 		return "", fmt.Errorf("form ID is required")
 	}
+
 	return formID, nil
 }
 
@@ -144,12 +145,15 @@ func (p *FormRequestParser) ValidateUpdateForm(form *model.Form) error {
 	if form.Status != "" {
 		validStatuses := []string{"draft", "published", "archived"}
 		isValid := false
+
 		for _, status := range validStatuses {
 			if form.Status == status {
 				isValid = true
+
 				break
 			}
 		}
+
 		if !isValid {
 			return fmt.Errorf("invalid status: must be one of %v", validStatuses)
 		}

@@ -245,6 +245,7 @@ func (p *PageData) GetUserEmail() string {
 // WithUser sets the current user (fluent interface)
 func (p *PageData) WithUser(user *entities.User) *PageData {
 	p.User = user
+
 	return p
 }
 

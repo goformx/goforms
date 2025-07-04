@@ -53,6 +53,7 @@ func (h *PageHandler) handleHome(ctx httpiface.Context) error {
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
+
 		return echo.NewHTTPError(500, "Internal server error")
 	}
 
