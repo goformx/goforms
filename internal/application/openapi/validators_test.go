@@ -113,7 +113,7 @@ func TestOpenAPIRequestValidator_ValidateRequest_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	err = validator.ValidateRequest(req, route, pathParams)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestOpenAPIRequestValidator_ValidateRequest_WithPathParams(t *testing.T) {
@@ -143,7 +143,7 @@ func TestOpenAPIRequestValidator_ValidateRequest_WithAuth(t *testing.T) {
 	require.NoError(t, err)
 
 	err = validator.ValidateRequest(req, route, pathParams)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestOpenAPIRequestValidator_ValidateRequest_InvalidPath(t *testing.T) {
@@ -167,7 +167,7 @@ func TestOpenAPIRequestValidator_FindRoute_Success(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	route, pathParams, err := validator.FindRoute(req)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.NotNil(t, route)
 	assert.NotNil(t, pathParams)
 }
@@ -218,7 +218,7 @@ func TestOpenAPIResponseValidator_ValidateResponse_Success(t *testing.T) {
 	require.NoError(t, err)
 
 	err = validator.ValidateResponse(req, resp, body, route, pathParams)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestOpenAPIResponseValidator_ValidateResponse_InvalidStatus(t *testing.T) {
@@ -298,7 +298,7 @@ func TestOpenAPIResponseValidator_ValidateResponse_EmptyBody(t *testing.T) {
 	require.NoError(t, err)
 
 	err = validator.ValidateResponse(req, resp, body, route, pathParams)
-	assert.NoError(t, err) // Empty body should be valid for JSON
+	require.NoError(t, err) // Empty body should be valid for JSON
 }
 
 func TestOpenAPIResponseValidator_ValidateResponse_NilRoute(t *testing.T) {
@@ -382,7 +382,7 @@ paths:
 	require.NoError(t, err)
 
 	err = validator.ValidateRequest(req, route, pathParams)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 }
 
 func TestOpenAPIRequestValidator_ValidateRequest_InvalidBody(t *testing.T) {

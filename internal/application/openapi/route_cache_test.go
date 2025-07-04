@@ -58,6 +58,9 @@ func createRouteCacheTestRouter(t *testing.T) routers.Router {
 	return router
 }
 
+// Returning the interface is required for test helpers.
+//
+//nolint:ireturn // echo.Context is an interface; concrete type is not exported.
 func createRouteCacheTestEchoContext(t *testing.T) echo.Context {
 	t.Helper()
 

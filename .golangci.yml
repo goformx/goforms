@@ -198,6 +198,8 @@ linters:
         - '.*Request'
         - '.*Response'
         - '.*Config'
+        - 'echo\.Context'
+        - 'routers\.Router'
 
     lll:
       line-length: 120
