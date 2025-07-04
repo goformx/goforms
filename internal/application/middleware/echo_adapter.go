@@ -78,8 +78,6 @@ func (ea *EchoOrchestratorAdapter) setupDefaultChain(e *echo.Echo) error {
 		e.Use(mw)
 	}
 
-	ea.logger.Info("default middleware chain applied", "middleware_count", len(echoMiddleware))
-
 	return nil
 }
 
@@ -94,8 +92,6 @@ func (ea *EchoOrchestratorAdapter) setupAPIChain(e *echo.Echo) error {
 	for _, mw := range echoMiddleware {
 		e.Use(mw)
 	}
-
-	ea.logger.Info("API middleware chain applied", "middleware_count", len(echoMiddleware))
 
 	return nil
 }
@@ -112,8 +108,6 @@ func (ea *EchoOrchestratorAdapter) setupWebChain(e *echo.Echo) error {
 		e.Use(mw)
 	}
 
-	ea.logger.Info("web middleware chain applied", "middleware_count", len(echoMiddleware))
-
 	return nil
 }
 
@@ -128,8 +122,6 @@ func (ea *EchoOrchestratorAdapter) setupAuthChain(e *echo.Echo) error {
 	for _, mw := range echoMiddleware {
 		e.Use(mw)
 	}
-
-	ea.logger.Info("auth middleware chain applied", "middleware_count", len(echoMiddleware))
 
 	return nil
 }
@@ -146,8 +138,6 @@ func (ea *EchoOrchestratorAdapter) setupAdminChain(e *echo.Echo) error {
 		e.Use(mw)
 	}
 
-	ea.logger.Info("admin middleware chain applied", "middleware_count", len(echoMiddleware))
-
 	return nil
 }
 
@@ -162,8 +152,6 @@ func (ea *EchoOrchestratorAdapter) setupPublicChain(e *echo.Echo) error {
 	for _, mw := range echoMiddleware {
 		e.Use(mw)
 	}
-
-	ea.logger.Info("public middleware chain applied", "middleware_count", len(echoMiddleware))
 
 	return nil
 }
@@ -180,21 +168,17 @@ func (ea *EchoOrchestratorAdapter) setupStaticChain(e *echo.Echo) error {
 		e.Use(mw)
 	}
 
-	ea.logger.Info("static middleware chain applied", "middleware_count", len(echoMiddleware))
-
 	return nil
 }
 
 // convertChainToEcho converts a middleware chain to Echo middleware functions
-func (ea *EchoOrchestratorAdapter) convertChainToEcho(chain core.Chain) []echo.MiddlewareFunc {
+func (ea *EchoOrchestratorAdapter) convertChainToEcho(_ core.Chain) []echo.MiddlewareFunc {
 	var echoMiddleware []echo.MiddlewareFunc
 
 	// For now, return a simple no-op middleware
 	// This will be expanded to convert actual middleware
 	echoMiddleware = append(echoMiddleware, func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			ea.logger.Debug("middleware chain processing", "chain_length", chain.Length())
-
 			return next(c)
 		}
 	})

@@ -140,7 +140,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 			return fmt.Errorf("failed to register basic middleware %s: %w", m.name, err)
 		}
 
-		logger.Info("registered middleware", "name", m.name)
+		logger.Debug("registered middleware", "name", m.name)
 	}
 
 	// Register security middleware
@@ -158,7 +158,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 			return fmt.Errorf("failed to register security middleware %s: %w", m.name, err)
 		}
 
-		logger.Info("registered security middleware", "name", m.name)
+		logger.Debug("registered security middleware", "name", m.name)
 	}
 
 	// Register auth middleware
@@ -176,7 +176,7 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 			return fmt.Errorf("failed to register auth middleware %s: %w", m.name, err)
 		}
 
-		logger.Info("registered auth middleware", "name", m.name)
+		logger.Debug("registered auth middleware", "name", m.name)
 	}
 
 	return nil

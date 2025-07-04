@@ -40,8 +40,6 @@ func (r *registry) Register(name string, mw core.Middleware) error {
 	}
 
 	if !r.config.IsMiddlewareEnabled(name) {
-		r.logger.Info("middleware %q is disabled by config", name)
-
 		return nil
 	}
 
@@ -76,10 +74,8 @@ func (r *registry) setupMiddlewareMetadata(name string) {
 
 // extractCategory extracts the category from middleware config
 func (r *registry) extractCategory(config map[string]any) core.MiddlewareCategory {
-	if catVal, exists := config["category"]; exists {
-		if c, ok := catVal.(core.MiddlewareCategory); ok {
-			return c
-		}
+	if cat, ok := config["category"].(core.MiddlewareCategory); ok {
+		return cat
 	}
 
 	return core.MiddlewareCategoryBasic
@@ -87,21 +83,17 @@ func (r *registry) extractCategory(config map[string]any) core.MiddlewareCategor
 
 // extractPriority extracts the priority from middleware config
 func (r *registry) extractPriority(config map[string]any) int {
-	if prioVal, exists := config["priority"]; exists {
-		if p, ok := prioVal.(int); ok {
-			return p
-		}
+	if prio, ok := config["priority"].(int); ok {
+		return prio
 	}
 
-	return 50
+	return 50 // Default priority
 }
 
 // extractDependencies extracts dependencies from middleware config
 func (r *registry) extractDependencies(config map[string]any) []string {
-	if deps, exists := config["dependencies"]; exists {
-		if depList, ok := deps.([]string); ok {
-			return depList
-		}
+	if deps, ok := config["dependencies"].([]string); ok {
+		return deps
 	}
 
 	return nil
@@ -109,10 +101,8 @@ func (r *registry) extractDependencies(config map[string]any) []string {
 
 // extractConflicts extracts conflicts from middleware config
 func (r *registry) extractConflicts(config map[string]any) []string {
-	if confs, exists := config["conflicts"]; exists {
-		if confList, ok := confs.([]string); ok {
-			return confList
-		}
+	if confs, ok := config["conflicts"].([]string); ok {
+		return confs
 	}
 
 	return nil
@@ -122,9 +112,9 @@ func (r *registry) Get(name string) (core.Middleware, bool) {
 	r.mu.RLock()
 	defer r.mu.RUnlock()
 
-	mw, ok := r.middlewares[name]
+	mw, exists := r.middlewares[name]
 
-	return mw, ok
+	return mw, exists
 }
 
 func (r *registry) List() []string {
@@ -145,26 +135,29 @@ func (r *registry) Remove(name string) bool {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
-	if _, exists := r.middlewares[name]; exists {
-		delete(r.middlewares, name)
-		delete(r.priorities, name)
-		delete(r.dependencies, name)
-		delete(r.conflicts, name)
-
-		for cat, names := range r.categories {
-			for i, n := range names {
-				if n == name {
-					r.categories[cat] = append(names[:i], names[i+1:]...)
-
-					break
-				}
-			}
-		}
-
-		return true
+	if _, exists := r.middlewares[name]; !exists {
+		return false
 	}
 
-	return false
+	delete(r.middlewares, name)
+
+	// Remove from categories
+	for cat, names := range r.categories {
+		for i, n := range names {
+			if n == name {
+				r.categories[cat] = append(names[:i], names[i+1:]...)
+
+				break
+			}
+		}
+	}
+
+	// Remove from other maps
+	delete(r.priorities, name)
+	delete(r.dependencies, name)
+	delete(r.conflicts, name)
+
+	return true
 }
 
 func (r *registry) Clear() {

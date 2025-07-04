@@ -64,11 +64,7 @@ func (o *orchestrator) CreateChain(chainType core.ChainType) (core.Chain, error)
 	// Build chain using chain builder
 	chainImpl := chain.NewChainImpl(activeMiddlewares)
 
-	o.logger.Info("built middleware chain",
-		"chain_type", chainType,
-		"middleware_count", len(activeMiddlewares),
-		"middleware_names", o.getMiddlewareNames(activeMiddlewares),
-		"build_time", time.Since(start))
+	o.logger.Debug("built middleware chain", "chain_type", chainType, "count", len(activeMiddlewares))
 
 	return chainImpl, nil
 }
@@ -98,7 +94,7 @@ func (o *orchestrator) RegisterChain(name string, chainObj core.Chain) error {
 	}
 
 	o.chains[name] = chainObj
-	o.logger.Info("registered named chain", "name", name, "middleware_count", chainObj.Length())
+	o.logger.Debug("registered named chain", "name", name)
 
 	return nil
 }
@@ -337,15 +333,11 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 
 		// Check if middleware is enabled globally
 		if !o.config.IsMiddlewareEnabled(name) {
-			o.logger.Info("middleware disabled by config", "name", name)
-
 			continue
 		}
 
 		// Check if middleware is enabled for this chain
 		if !chainConfig.Enabled {
-			o.logger.Info("chain disabled by config", "chain_type", chainType)
-
 			continue
 		}
 
@@ -362,8 +354,6 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 			}
 
 			if !found {
-				o.logger.Info("middleware not in chain config", "name", name, "chain_type", chainType)
-
 				continue
 			}
 		}
@@ -427,7 +417,6 @@ func (o *orchestrator) applyPathSpecificMiddleware(baseChain core.Chain, request
 			config := o.config.GetMiddlewareConfig(name)
 			if o.shouldAddPathSpecificMiddleware(config, requestPath) {
 				baseChain.Add(mw)
-				o.logger.Info("added path-specific middleware", "name", name, "path", requestPath)
 			}
 		}
 	}
@@ -445,14 +434,10 @@ func (o *orchestrator) filterByPath(chainObj core.Chain, requestPath string) cor
 		config := o.config.GetMiddlewareConfig(mw.Name())
 
 		if o.shouldExcludeByPath(mw.Name(), config, requestPath) {
-			o.logger.Info("excluded middleware by path", "name", mw.Name(), "path", requestPath)
-
 			continue
 		}
 
 		if o.shouldExcludeByPathRequirement(config, requestPath) {
-			o.logger.Info("excluded middleware by path requirement", "name", mw.Name(), "path", requestPath)
-
 			continue
 		}
 

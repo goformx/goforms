@@ -26,7 +26,6 @@ type DashboardHandler struct {
 	config          *config.Config
 	assetManager    web.AssetManagerInterface
 	logger          logging.Logger
-	requestParser   *DashboardRequestParser
 	responseBuilder *DashboardResponseBuilder
 }
 
@@ -47,7 +46,6 @@ func NewDashboardHandler(
 		config:          config,
 		assetManager:    assetManager,
 		logger:          logger,
-		requestParser:   NewDashboardRequestParser(),
 		responseBuilder: NewDashboardResponseBuilder(config, assetManager, renderer, logger),
 	}
 
@@ -62,7 +60,6 @@ func NewDashboardHandler(
 
 // Dashboard handles GET /dashboard
 func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
-	// Extract the underlying Echo context for session management and rendering
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
@@ -70,7 +67,6 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
-	// Get user from session manager
 	user, err := h.getUserFromSession(echoCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for dashboard access", "error", err)
@@ -78,29 +74,6 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
-	// Parse dashboard filters (for future extensibility)
-	filters, err := h.requestParser.ParseDashboardFilters(echoCtx)
-	if err != nil {
-		h.logger.Warn("invalid dashboard filters", "error", err)
-		// Continue with default filters instead of failing
-		filters = make(map[string]string)
-	}
-
-	// Validate filters
-	if err := h.requestParser.ValidateDashboardFilters(filters); err != nil {
-		h.logger.Warn("invalid dashboard filter parameters", "error", err)
-		// Continue with default filters instead of failing
-		filters = make(map[string]string)
-	}
-
-	// Parse pagination parameters (for future extensibility)
-	_, _, err = h.requestParser.ParsePaginationParams(echoCtx)
-	if err != nil {
-		h.logger.Warn("invalid pagination parameters", "error", err)
-		// Continue with default pagination instead of failing
-	}
-
-	// Fetch forms for the user
 	forms, err := h.formService.ListForms(echoCtx.Request().Context(), user.ID)
 	if err != nil {
 		h.logger.Error("failed to fetch user forms", "user_id", user.ID, "error", err)
@@ -108,7 +81,6 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return h.responseBuilder.BuildDashboardErrorResponse(echoCtx, "Failed to load your forms. Please try again.")
 	}
 
-	// Build and return dashboard response
 	return h.responseBuilder.BuildDashboardResponse(echoCtx, user, forms)
 }
 
