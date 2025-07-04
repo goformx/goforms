@@ -45,15 +45,7 @@ func (h *validationErrorHandler) HandleError(
 		errorMessage = "Validation failed"
 	}
 
-	if shouldBlock {
-		statusCode := http.StatusBadRequest
-		if errorType == ResponseValidationError {
-			statusCode = http.StatusInternalServerError
-		}
-
-		return echo.NewHTTPError(statusCode, fmt.Sprintf("%s: %v", errorMessage, err))
-	}
-
+	// Log the error if logging is enabled
 	if h.config.LogValidationErrors {
 		logFields := []interface{}{"error", err}
 		for key, value := range metadata {
@@ -61,6 +53,16 @@ func (h *validationErrorHandler) HandleError(
 		}
 
 		h.logger.Warn(errorMessage, logFields...)
+	}
+
+	// Return HTTP error if blocking is enabled
+	if shouldBlock {
+		statusCode := http.StatusBadRequest
+		if errorType == ResponseValidationError {
+			statusCode = http.StatusInternalServerError
+		}
+
+		return echo.NewHTTPError(statusCode, fmt.Sprintf("%s: %v", errorMessage, err))
 	}
 
 	return nil
