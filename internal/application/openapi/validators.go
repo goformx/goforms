@@ -13,12 +13,12 @@ import (
 
 // OpenAPIRequestValidator implements RequestValidator
 type OpenAPIRequestValidator struct {
-	router routers.Router
+	Router routers.Router
 }
 
 // NewOpenAPIRequestValidator creates a new request validator
 func NewOpenAPIRequestValidator(router routers.Router) RequestValidator {
-	return &OpenAPIRequestValidator{router: router}
+	return &OpenAPIRequestValidator{Router: router}
 }
 
 // ValidateRequest validates the incoming request against the OpenAPI spec
@@ -90,4 +90,9 @@ func (v *OpenAPIResponseValidator) ValidateResponse(
 	}
 
 	return nil
+}
+
+// FindRoute finds a route in the OpenAPI spec
+func (v *OpenAPIRequestValidator) FindRoute(req *http.Request) (*routers.Route, map[string]string, error) {
+	return v.Router.FindRoute(req)
 }

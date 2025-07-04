@@ -3,7 +3,7 @@ package providers
 import (
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/openapi"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
@@ -11,9 +11,9 @@ import (
 // OpenAPIValidationProvider provides the OpenAPI validation middleware
 func OpenAPIValidationProvider() fx.Option {
 	return fx.Provide(
-		func(logger logging.Logger, cfg *config.Config) (*middleware.OpenAPIValidationMiddleware, error) {
+		func(logger logging.Logger, cfg *config.Config) (*openapi.OpenAPIValidationMiddleware, error) {
 			// Convert centralized config to middleware config
-			openAPIConfig := &middleware.Config{
+			openAPIConfig := &openapi.Config{
 				EnableRequestValidation:  cfg.API.OpenAPI.EnableRequestValidation,
 				EnableResponseValidation: cfg.API.OpenAPI.EnableResponseValidation,
 				LogValidationErrors:      cfg.API.OpenAPI.LogValidationErrors,
@@ -23,7 +23,7 @@ func OpenAPIValidationProvider() fx.Option {
 				SkipMethods:              cfg.API.OpenAPI.SkipMethods,
 			}
 
-			return middleware.NewOpenAPIValidationMiddleware(logger, openAPIConfig)
+			return openapi.NewOpenAPIValidationMiddleware(logger, openAPIConfig)
 		},
 	)
 }

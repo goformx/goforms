@@ -26,24 +26,6 @@ type OpenAPIValidationMiddleware struct {
 	config            *Config
 }
 
-// Config holds configuration for OpenAPI validation middleware
-type Config struct {
-	// EnableRequestValidation enables validation of incoming requests
-	EnableRequestValidation bool
-	// EnableResponseValidation enables validation of outgoing responses
-	EnableResponseValidation bool
-	// LogValidationErrors logs validation errors (doesn't block requests)
-	LogValidationErrors bool
-	// BlockInvalidRequests blocks requests that don't match the spec
-	BlockInvalidRequests bool
-	// BlockInvalidResponses blocks responses that don't match the spec
-	BlockInvalidResponses bool
-	// SkipPaths are paths that should be skipped for validation
-	SkipPaths []string
-	// SkipMethods are HTTP methods that should be skipped for validation
-	SkipMethods []string
-}
-
 // NewOpenAPIValidationMiddleware creates a new OpenAPI validation middleware
 func NewOpenAPIValidationMiddleware(logger logging.Logger, config *Config) (*OpenAPIValidationMiddleware, error) {
 	if config == nil {
@@ -125,43 +107,72 @@ func (m *OpenAPIValidationMiddleware) Middleware() echo.MiddlewareFunc {
 // getOrFindRoute gets cached route or finds a new one
 func (m *OpenAPIValidationMiddleware) getOrFindRoute(c echo.Context) (*routers.Route, map[string]string, error) {
 	route, pathParams, ok := m.routeCache.Get(c)
-	if !ok {
-		var err error
+	if ok {
+		return route, pathParams, nil
+	}
 
-		route, pathParams, err = m.findRoute(c.Request())
-		if err != nil {
-			return nil, nil, m.errorHandler.HandleError(c.Request().Context(), err, RequestValidationError, map[string]interface{}{
+	return m.findAndCacheRoute(c)
+}
+
+// findAndCacheRoute finds a route and caches it
+func (m *OpenAPIValidationMiddleware) findAndCacheRoute(c echo.Context) (*routers.Route, map[string]string, error) {
+	requestValidator, ok := m.requestValidator.(*OpenAPIRequestValidator)
+	if !ok {
+		return nil, nil, fmt.Errorf("request validator does not support route finding")
+	}
+
+	route, pathParams, err := requestValidator.FindRoute(c.Request())
+	if err != nil {
+		return nil, nil, m.errorHandler.HandleError(
+			c.Request().Context(),
+			err,
+			RequestValidationError,
+			map[string]interface{}{
 				"path":   c.Path(),
 				"method": c.Request().Method,
 				"ip":     c.RealIP(),
-			})
-		}
-
-		m.routeCache.Set(c, route, pathParams)
+			},
+		)
 	}
+
+	m.routeCache.Set(c, route, pathParams)
 
 	return route, pathParams, nil
 }
 
 // validateRequestIfEnabled validates the request if enabled
-func (m *OpenAPIValidationMiddleware) validateRequestIfEnabled(c echo.Context, route *routers.Route, pathParams map[string]string) error {
+func (m *OpenAPIValidationMiddleware) validateRequestIfEnabled(
+	c echo.Context,
+	route *routers.Route,
+	pathParams map[string]string,
+) error {
 	if !m.config.EnableRequestValidation {
 		return nil
 	}
 
 	if err := m.requestValidator.ValidateRequest(c.Request(), route, pathParams); err != nil {
-		return m.errorHandler.HandleError(c.Request().Context(), err, RequestValidationError, map[string]interface{}{
-			"path":   c.Path(),
-			"method": c.Request().Method,
-			"ip":     c.RealIP(),
-		})
+		return m.errorHandler.HandleError(
+			c.Request().Context(),
+			err,
+			RequestValidationError,
+			map[string]interface{}{
+				"path":   c.Path(),
+				"method": c.Request().Method,
+				"ip":     c.RealIP(),
+			},
+		)
 	}
 
 	return nil
 }
 
 // validateResponseIfEnabled validates the response if enabled
-func (m *OpenAPIValidationMiddleware) validateResponseIfEnabled(c echo.Context, responseCapture *CapturedResponse, route *routers.Route, pathParams map[string]string) error {
+func (m *OpenAPIValidationMiddleware) validateResponseIfEnabled(
+	c echo.Context,
+	responseCapture *CapturedResponse,
+	route *routers.Route,
+	pathParams map[string]string,
+) error {
 	if !m.config.EnableResponseValidation || responseCapture == nil {
 		return nil
 	}
@@ -193,15 +204,12 @@ func (m *OpenAPIValidationMiddleware) validateResponseIfEnabled(c echo.Context, 
 	return nil
 }
 
-// findRoute finds a route in the OpenAPI spec
-func (m *OpenAPIValidationMiddleware) findRoute(req *http.Request) (*routers.Route, map[string]string, error) {
-	// This would need to be implemented based on the router interface
-	// For now, we'll need to access the router from the validators
-	return nil, nil, fmt.Errorf("route finding not implemented in this refactor")
-}
-
 // Router returns the router for testing purposes
 func (m *OpenAPIValidationMiddleware) Router() routers.Router {
-	// This would need to be accessed from the validators
+	// Access router from the request validator
+	if requestValidator, ok := m.requestValidator.(*OpenAPIRequestValidator); ok {
+		return requestValidator.Router
+	}
+
 	return nil
 }
