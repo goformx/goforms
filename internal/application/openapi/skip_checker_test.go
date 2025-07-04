@@ -208,8 +208,35 @@ func TestSkipConditionChecker_ShouldSkip_EdgeCases(t *testing.T) {
 	assert.True(t, checker.ShouldSkip("/api/v1/users", "GET"))
 
 	// Test methods
-	assert.True(t, checker.ShouldSkip("/users", "GET"))
-	assert.True(t, checker.ShouldSkip("/users", "POST"))
+	result1 := checker.ShouldSkip("/users", "GET")
+	t.Logf("ShouldSkip('/users', 'GET') = %v", result1)
+	assert.True(t, result1)
+
+	result2 := checker.ShouldSkip("/users", "POST")
+	t.Logf("ShouldSkip('/users', 'POST') = %v", result2)
+	assert.True(t, result2)
+
 	assert.False(t, checker.ShouldSkip("/users", "PUT"))
 	assert.False(t, checker.ShouldSkip("/users", "DELETE"))
+}
+
+func TestSkipConditionChecker_Debug(t *testing.T) {
+	config := &openapi.Config{
+		SkipPaths:   []string{"/", "/api"},
+		SkipMethods: []string{"GET", "POST"},
+	}
+
+	checker := openapi.NewSkipConditionChecker(config)
+
+	// Debug: Check what happens with /users path and GET method
+	result := checker.ShouldSkip("/users", "GET")
+	t.Logf("ShouldSkip('/users', 'GET') = %v", result)
+
+	// Debug: Check what happens with /users path and POST method
+	result2 := checker.ShouldSkip("/users", "POST")
+	t.Logf("ShouldSkip('/users', 'POST') = %v", result2)
+
+	// Debug: Check what happens with / path and GET method
+	result3 := checker.ShouldSkip("/", "GET")
+	t.Logf("ShouldSkip('/', 'GET') = %v", result3)
 }

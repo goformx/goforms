@@ -61,9 +61,9 @@ func (s *skipConditionChecker) matchesPath(path, skipPath string) bool {
 		return true
 	}
 
-	// Handle root path - should match exactly or be a prefix
+	// Handle root path - should match exactly
 	if skipPath == "/" {
-		return path == "/" || strings.HasPrefix(path, "/")
+		return path == "/"
 	}
 
 	// For other paths, use proper prefix matching
