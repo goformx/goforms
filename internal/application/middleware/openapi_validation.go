@@ -97,10 +97,12 @@ func (m *OpenAPIValidationMiddleware) Middleware() echo.MiddlewareFunc {
 			route, pathParams, ok := getOpenAPIRouteAndParams(c)
 			if !ok {
 				var err error
+
 				route, pathParams, err = m.router.FindRoute(c.Request())
 				if err != nil {
 					return m.handleRequestValidationError(c, err)
 				}
+
 				setOpenAPIRouteAndParams(c, route, pathParams)
 			}
 
@@ -123,6 +125,7 @@ func (m *OpenAPIValidationMiddleware) Middleware() echo.MiddlewareFunc {
 			}
 
 			m.restoreResponseWriter(c, responseCapture)
+
 			return err
 		}
 	}
@@ -282,6 +285,7 @@ func (m *OpenAPIValidationMiddleware) validateRequest(c echo.Context) error {
 					// For test purposes, always succeed
 					return nil
 				}
+
 				return fmt.Errorf("unsupported security scheme: %s", input.SecuritySchemeName)
 			},
 		},
@@ -339,6 +343,7 @@ type responseCaptureWriter struct {
 // Write captures the response body
 func (w *responseCaptureWriter) Write(b []byte) (int, error) {
 	*w.body = append(*w.body, b...)
+
 	return w.Writer.Write(b)
 }
 
@@ -365,6 +370,7 @@ func (w *responseCaptureWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 	if hijacker, ok := w.Writer.(http.Hijacker); ok {
 		return hijacker.Hijack()
 	}
+
 	return nil, nil, fmt.Errorf("underlying writer does not implement http.Hijacker")
 }
 
@@ -383,12 +389,14 @@ func setOpenAPIRouteAndParams(c echo.Context, route *routers.Route, pathParams m
 func getOpenAPIRouteAndParams(c echo.Context) (*routers.Route, map[string]string, bool) {
 	r, rok := c.Get(openapiRouteKey).(*routers.Route)
 	p, pok := c.Get(openapiPathParamsKey).(map[string]string)
+
 	return r, p, rok && pok
 }
 
 // New versions that use cached route/params
 func (m *OpenAPIValidationMiddleware) validateRequestWithRoute(c echo.Context, route *routers.Route, pathParams map[string]string) error {
 	request := c.Request()
+
 	validationInput := &openapi3filter.RequestValidationInput{
 		Request:    request,
 		PathParams: pathParams,
@@ -403,6 +411,7 @@ func (m *OpenAPIValidationMiddleware) validateRequestWithRoute(c echo.Context, r
 					// For test purposes, always succeed
 					return nil
 				}
+
 				return fmt.Errorf("unsupported security scheme: %s", input.SecuritySchemeName)
 			},
 		},
@@ -410,12 +419,14 @@ func (m *OpenAPIValidationMiddleware) validateRequestWithRoute(c echo.Context, r
 	if validateErr := openapi3filter.ValidateRequest(context.Background(), validationInput); validateErr != nil {
 		return fmt.Errorf("request validation failed: %w", validateErr)
 	}
+
 	return nil
 }
 
 func (m *OpenAPIValidationMiddleware) validateResponseWithRoute(c echo.Context, responseBody []byte, route *routers.Route, pathParams map[string]string) error {
 	request := c.Request()
 	response := c.Response()
+
 	validationInput := &openapi3filter.ResponseValidationInput{
 		RequestValidationInput: &openapi3filter.RequestValidationInput{
 			Request:    request,
@@ -432,5 +443,6 @@ func (m *OpenAPIValidationMiddleware) validateResponseWithRoute(c echo.Context, 
 	if validateErr := openapi3filter.ValidateResponse(context.Background(), validationInput); validateErr != nil {
 		return fmt.Errorf("response validation failed: %w", validateErr)
 	}
+
 	return nil
 }

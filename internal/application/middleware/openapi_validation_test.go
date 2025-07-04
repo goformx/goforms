@@ -336,6 +336,7 @@ func TestOpenAPIValidationMiddleware_SpecLoading(t *testing.T) {
 
 		for _, path := range testPaths {
 			req := httptest.NewRequest(http.MethodGet, path, http.NoBody)
+
 			route, _, err := router.FindRoute(req)
 			if err != nil {
 				t.Logf("Could not find %s route: %v", path, err)
@@ -349,8 +350,8 @@ func TestOpenAPIValidationMiddleware_SpecLoading(t *testing.T) {
 
 	// Test if we can find the health route (which should be public)
 	req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
-	route, _, err := validationMiddleware.Router().FindRoute(req)
 
+	route, _, err := validationMiddleware.Router().FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find /health route: %v", err)
 	} else {
@@ -360,8 +361,8 @@ func TestOpenAPIValidationMiddleware_SpecLoading(t *testing.T) {
 	// Test if we can find the forms route
 	req = httptest.NewRequest(http.MethodGet, "/api/v1/forms", http.NoBody)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session-id"})
-	route, _, err = validationMiddleware.Router().FindRoute(req)
 
+	route, _, err = validationMiddleware.Router().FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find /api/v1/forms route: %v", err)
 	} else {
@@ -399,6 +400,7 @@ func TestOpenAPISpecLoading(t *testing.T) {
 		for _, path := range testPaths {
 			if pathItem := doc.Paths.Find(path); pathItem != nil {
 				t.Logf("Path %s exists with operations", path)
+
 				operations := pathItem.Operations()
 				for method := range operations {
 					t.Logf("  - %s", method)
@@ -444,6 +446,7 @@ func TestGorillaMuxRouterCreation(t *testing.T) {
 
 	for _, tc := range testCases {
 		req := httptest.NewRequest(tc.method, tc.path, http.NoBody)
+
 		route, pathParams, err := router.FindRoute(req)
 		if err != nil {
 			t.Logf("Could not find %s %s: %v", tc.method, tc.path, err)
@@ -491,6 +494,7 @@ paths:
 
 	// Test route finding
 	req := httptest.NewRequest("GET", "/test", http.NoBody)
+
 	route, pathParams, err := router.FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find GET /test: %v", err)
@@ -573,6 +577,7 @@ paths:
 
 	for _, tc := range testCases {
 		req := httptest.NewRequest(tc.method, tc.path, http.NoBody)
+
 		route, pathParams, err := router.FindRoute(req)
 		if err != nil {
 			t.Logf("Could not find %s %s: %v", tc.method, tc.path, err)
@@ -629,6 +634,7 @@ paths:
 	// Test route finding
 	req := httptest.NewRequest("GET", "/api/v1/forms", http.NoBody)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "test"})
+
 	route, pathParams, err := router.FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find GET /api/v1/forms with security: %v", err)
@@ -684,6 +690,7 @@ paths:
 
 	// Test route finding without authentication
 	req := httptest.NewRequest("GET", "/api/v1/forms", http.NoBody)
+
 	route, pathParams, err := router.FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find GET /api/v1/forms without auth: %v", err)
@@ -694,6 +701,7 @@ paths:
 	// Test route finding with authentication
 	req = httptest.NewRequest("GET", "/api/v1/forms", http.NoBody)
 	req.AddCookie(&http.Cookie{Name: "session", Value: "test"})
+
 	route, pathParams, err = router.FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find GET /api/v1/forms with auth: %v", err)
@@ -767,6 +775,7 @@ paths:
 
 	// Test route finding
 	req := httptest.NewRequest("GET", "/api/v1/forms", http.NoBody)
+
 	route, pathParams, err := router.FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find GET /api/v1/forms with allOf: %v", err)
@@ -879,6 +888,7 @@ paths:
 		if tc.auth {
 			req.AddCookie(&http.Cookie{Name: "session", Value: "test"})
 		}
+
 		route, pathParams, err := router.FindRoute(req)
 		if err != nil {
 			t.Logf("Could not find %s %s (auth: %t): %v", tc.method, tc.path, tc.auth, err)
@@ -924,6 +934,7 @@ func TestActualOpenAPISpec(t *testing.T) {
 		if tc.auth {
 			req.AddCookie(&http.Cookie{Name: "session", Value: "test"})
 		}
+
 		route, pathParams, err := router.FindRoute(req)
 		if err != nil {
 			t.Logf("Could not find %s %s (auth: %t): %v", tc.method, tc.path, tc.auth, err)
@@ -964,6 +975,7 @@ func TestOpenAPISpecValidation(t *testing.T) {
 	for _, path := range testPaths {
 		if pathItem := doc.Paths.Find(path); pathItem != nil {
 			t.Logf("Path %s exists with %d operations", path, len(pathItem.Operations()))
+
 			for method := range pathItem.Operations() {
 				t.Logf("  - %s", method)
 			}
@@ -976,6 +988,7 @@ func TestOpenAPISpecValidation(t *testing.T) {
 	router, err := gorillamux.NewRouter(doc)
 	if err != nil {
 		t.Logf("Failed to create router: %v", err)
+
 		return
 	}
 
@@ -983,6 +996,7 @@ func TestOpenAPISpecValidation(t *testing.T) {
 
 	// Test a simple route
 	req := httptest.NewRequest("GET", "/health", http.NoBody)
+
 	route, pathParams, err := router.FindRoute(req)
 	if err != nil {
 		t.Logf("Could not find GET /health: %v", err)
