@@ -275,21 +275,27 @@ func (a *Analyzer) printProtectionSummary(results *Results) {
 		if result.IsCritical {
 			criticalCount++
 		}
+
 		if result.HasFxUsage {
 			fxCount++
 		}
+
 		if result.HasInterfaces {
 			interfaceCount++
 		}
+
 		if len(result.ExportedFunctions) > 0 {
 			exportedCount++
 		}
+
 		if result.HasTests {
 			testCount++
 		}
+
 		if result.HasTemplates {
 			templateCount++
 		}
+
 		if result.IsImported {
 			importedCount++
 		}
@@ -354,41 +360,59 @@ func (a *Analyzer) printDangerousFiles(results *Results) {
 	dangerousFound := false
 
 	for _, result := range results.Files {
-		if result.SafetyLevel == Dangerous || result.SafetyLevel == NeverDelete {
+		if a.isDangerousFile(result) {
 			dangerousFound = true
 
-			fmt.Printf("  %s (%s)\n", result.Path, result.SafetyLevel)
-			fmt.Printf("    Safety Score: %d\n", result.SafetyScore)
-
-			if len(result.Reasons) > 0 {
-				fmt.Printf("    Protection reasons: %s\n", strings.Join(result.Reasons, ", "))
-			}
-
-			// Show specific details
-			if result.HasFxUsage {
-				fmt.Printf("    ⚠️  Contains Fx dependency injection usage\n")
-			}
-			if result.HasInterfaces {
-				fmt.Printf("    ⚠️  Contains interfaces that may be implemented elsewhere\n")
-			}
-			if len(result.ExportedFunctions) > 0 {
-				fmt.Printf("    ⚠️  Exports functions: %s\n", strings.Join(result.ExportedFunctions, ", "))
-			}
-			if result.IsImported {
-				fmt.Printf("    ⚠️  Imported by other packages\n")
-			}
-			if result.HasTests {
-				fmt.Printf("    ⚠️  Has associated tests\n")
-			}
-			if result.HasTemplates {
-				fmt.Printf("    ⚠️  Contains template usage\n")
-			}
-
-			fmt.Println()
+			a.printDangerousFileDetails(result)
 		}
 	}
 
 	if !dangerousFound {
 		fmt.Println("  No dangerous files found")
+	}
+}
+
+// isDangerousFile checks if a file is dangerous or should never be deleted
+func (a *Analyzer) isDangerousFile(result *FileAnalysis) bool {
+	return result.SafetyLevel == Dangerous || result.SafetyLevel == NeverDelete
+}
+
+// printDangerousFileDetails prints detailed information about a dangerous file
+func (a *Analyzer) printDangerousFileDetails(result *FileAnalysis) {
+	fmt.Printf("  %s (%s)\n", result.Path, result.SafetyLevel)
+	fmt.Printf("    Safety Score: %d\n", result.SafetyScore)
+
+	if len(result.Reasons) > 0 {
+		fmt.Printf("    Protection reasons: %s\n", strings.Join(result.Reasons, ", "))
+	}
+
+	a.printDangerousFileWarnings(result)
+	fmt.Println()
+}
+
+// printDangerousFileWarnings prints specific warnings for dangerous files
+func (a *Analyzer) printDangerousFileWarnings(result *FileAnalysis) {
+	if result.HasFxUsage {
+		fmt.Printf("    ⚠️  Contains Fx dependency injection usage\n")
+	}
+
+	if result.HasInterfaces {
+		fmt.Printf("    ⚠️  Contains interfaces that may be implemented elsewhere\n")
+	}
+
+	if len(result.ExportedFunctions) > 0 {
+		fmt.Printf("    ⚠️  Exports functions: %s\n", strings.Join(result.ExportedFunctions, ", "))
+	}
+
+	if result.IsImported {
+		fmt.Printf("    ⚠️  Imported by other packages\n")
+	}
+
+	if result.HasTests {
+		fmt.Printf("    ⚠️  Has associated tests\n")
+	}
+
+	if result.HasTemplates {
+		fmt.Printf("    ⚠️  Contains template usage\n")
 	}
 }

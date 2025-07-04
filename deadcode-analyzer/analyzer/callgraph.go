@@ -370,6 +370,7 @@ func (cga *CallGraphAnalyzer) GetCallees(funcName string) []string {
 // GetUnreachableFunctions returns all unreachable functions in a file
 func (cga *CallGraphAnalyzer) GetUnreachableFunctions(filePath string) []string {
 	packagePath := cga.getPackagePathFromFilePath(filePath)
+
 	var unreachable []string
 
 	for funcName := range cga.callGraph {
