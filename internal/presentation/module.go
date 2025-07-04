@@ -136,7 +136,7 @@ var Module = fx.Module("presentation",
 			fx.ResultTags(`group:"handlers"`),
 		),
 		fx.Annotate(
-			api.NewApiHandler,
+			api.NewAPIHandler,
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),

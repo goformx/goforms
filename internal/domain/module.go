@@ -114,7 +114,8 @@ func NewStores(p StoreParams) (Stores, error) {
 	formRepo := formstore.NewStore(p.DB, p.Logger)
 	formSubmissionRepo := formsubmissionstore.NewStore(p.DB, p.Logger)
 
-	fmt.Printf("[DEBUG] NewStores created userRepo: %T, formRepo: %T, formSubmissionRepo: %T\n", userRepo, formRepo, formSubmissionRepo)
+	fmt.Printf("[DEBUG] NewStores created userRepo: %T, formRepo: %T, formSubmissionRepo: %T\n",
+		userRepo, formRepo, formSubmissionRepo)
 
 	// Validate repository instances
 	if userRepo == nil || formRepo == nil || formSubmissionRepo == nil {

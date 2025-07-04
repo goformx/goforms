@@ -9,13 +9,13 @@ import (
 
 // ApiHandler handles all API form-related routes
 // Implements httpiface.Handler
-type ApiHandler struct {
+type APIHandler struct {
 	handlers.BaseHandler
 }
 
 // NewApiHandler creates a new ApiHandler and registers all API routes
-func NewApiHandler() *ApiHandler {
-	h := &ApiHandler{
+func NewAPIHandler() *APIHandler {
+	h := &APIHandler{
 		BaseHandler: *handlers.NewBaseHandler("api"),
 	}
 
@@ -55,31 +55,31 @@ func NewApiHandler() *ApiHandler {
 }
 
 // ListForms handles GET /api/v1/forms
-func (h *ApiHandler) ListForms(ctx httpiface.Context) error {
-	return fmt.Errorf("List forms (placeholder)")
+func (h *APIHandler) ListForms(ctx httpiface.Context) error {
+	return fmt.Errorf("list forms (placeholder)")
 }
 
 // GetForm handles GET /api/v1/forms/:id
-func (h *ApiHandler) GetForm(ctx httpiface.Context) error {
-	return fmt.Errorf("Get form (placeholder)")
+func (h *APIHandler) GetForm(ctx httpiface.Context) error {
+	return fmt.Errorf("get form (placeholder)")
 }
 
 // GetFormSchema handles GET /api/v1/forms/:id/schema
-func (h *ApiHandler) GetFormSchema(ctx httpiface.Context) error {
-	return fmt.Errorf("Get form schema (placeholder)")
+func (h *APIHandler) GetFormSchema(ctx httpiface.Context) error {
+	return fmt.Errorf("get form schema (placeholder)")
 }
 
 // GetFormValidationSchema handles GET /api/v1/forms/:id/validation
-func (h *ApiHandler) GetFormValidationSchema(ctx httpiface.Context) error {
-	return fmt.Errorf("Get form validation schema (placeholder)")
+func (h *APIHandler) GetFormValidationSchema(ctx httpiface.Context) error {
+	return fmt.Errorf("get form validation schema (placeholder)")
 }
 
 // UpdateFormSchema handles PUT /api/v1/forms/:id/schema
-func (h *ApiHandler) UpdateFormSchema(ctx httpiface.Context) error {
-	return fmt.Errorf("Update form schema (placeholder)")
+func (h *APIHandler) UpdateFormSchema(ctx httpiface.Context) error {
+	return fmt.Errorf("update form schema (placeholder)")
 }
 
 // SubmitForm handles POST /api/v1/forms/:id/submit
-func (h *ApiHandler) SubmitForm(ctx httpiface.Context) error {
-	return fmt.Errorf("Submit form (placeholder)")
+func (h *APIHandler) SubmitForm(ctx httpiface.Context) error {
+	return fmt.Errorf("submit form (placeholder)")
 }

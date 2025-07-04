@@ -35,7 +35,7 @@ func NewAuthHandler(
 	userService user.Service,
 	sessionManager *session.Manager,
 	renderer view.Renderer,
-	config *config.Config,
+	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
 	logger logging.Logger,
 ) *AuthHandler {
@@ -44,11 +44,11 @@ func NewAuthHandler(
 		userService:     userService,
 		sessionManager:  sessionManager,
 		renderer:        renderer,
-		config:          config,
+		config:          cfg,
 		assetManager:    assetManager,
 		logger:          logger,
 		requestParser:   NewAuthRequestParser(),
-		responseBuilder: NewAuthResponseBuilder(config, assetManager, renderer, logger),
+		responseBuilder: NewAuthResponseBuilder(cfg, assetManager, renderer, logger),
 	}
 
 	h.AddRoute(httpiface.Route{
@@ -123,8 +123,8 @@ func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
 	}
 
 	// Validate login credentials
-	if err := h.requestParser.ValidateLogin(email, password); err != nil {
-		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "credentials", err.Error())
+	if validateErr := h.requestParser.ValidateLogin(email, password); validateErr != nil {
+		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "credentials", validateErr.Error())
 	}
 
 	// Attempt login using user service
@@ -197,8 +197,8 @@ func (h *AuthHandler) SignupPost(ctx httpiface.Context) error {
 	}
 
 	// Validate signup data
-	if err := h.requestParser.ValidateSignup(signupRequest); err != nil {
-		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "signup", err.Error())
+	if validateErr := h.requestParser.ValidateSignup(signupRequest); validateErr != nil {
+		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "signup", validateErr.Error())
 	}
 
 	// Additional password strength validation
@@ -269,5 +269,5 @@ func (h *AuthHandler) Logout(ctx httpiface.Context) error {
 
 // TestEndpoint handles GET /api/v1/test
 func (h *AuthHandler) TestEndpoint(ctx httpiface.Context) error {
-	return fmt.Errorf("Test endpoint working (placeholder)")
+	return fmt.Errorf("test endpoint working (placeholder)")
 }

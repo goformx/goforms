@@ -26,13 +26,13 @@ type FormResponseBuilder struct {
 
 // NewFormResponseBuilder creates a new form response builder
 func NewFormResponseBuilder(
-	config *config.Config,
+	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
 	renderer view.Renderer,
 	logger logging.Logger,
 ) *FormResponseBuilder {
 	return &FormResponseBuilder{
-		config:       config,
+		config:       cfg,
 		assetManager: assetManager,
 		renderer:     renderer,
 		logger:       logger,
@@ -145,7 +145,10 @@ func (b *FormResponseBuilder) BuildFormSubmissionsResponse(
 	form *model.Form,
 	submissions []*model.FormSubmission,
 ) error {
-	b.logger.Info("form submissions page rendered", "user_id", user.ID, "form_id", form.ID, "submissions_count", len(submissions))
+	b.logger.Info("form submissions page rendered",
+		"user_id", user.ID,
+		"form_id", form.ID,
+		"submissions_count", len(submissions))
 
 	// Check if this is an API request
 	if b.isAPIRequest(c) {
@@ -277,7 +280,12 @@ func (b *FormResponseBuilder) renderEditForm(c echo.Context, user *entities.User
 }
 
 // renderFormSubmissions renders the form submissions page
-func (b *FormResponseBuilder) renderFormSubmissions(c echo.Context, user *entities.User, form *model.Form, submissions []*model.FormSubmission) error {
+func (b *FormResponseBuilder) renderFormSubmissions(
+	c echo.Context,
+	user *entities.User,
+	form *model.Form,
+	submissions []*model.FormSubmission,
+) error {
 	// Create page data for the form submissions template
 	pageData := view.NewPageData(b.config, b.assetManager, c, "Form Submissions")
 	pageData = pageData.WithUser(user).WithForm(form).WithSubmissions(submissions)

@@ -35,7 +35,7 @@ func NewFormHandler(
 	formService form.Service,
 	sessionManager *session.Manager,
 	renderer view.Renderer,
-	config *config.Config,
+	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
 	logger logging.Logger,
 ) *FormHandler {
@@ -44,11 +44,11 @@ func NewFormHandler(
 		formService:     formService,
 		sessionManager:  sessionManager,
 		renderer:        renderer,
-		config:          config,
+		config:          cfg,
 		assetManager:    assetManager,
 		logger:          logger,
 		requestParser:   NewFormRequestParser(),
-		responseBuilder: NewFormResponseBuilder(config, assetManager, renderer, logger),
+		responseBuilder: NewFormResponseBuilder(cfg, assetManager, renderer, logger),
 	}
 
 	h.AddRoute(httpiface.Route{
@@ -129,8 +129,8 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	}
 
 	// Validate form data
-	if err := h.requestParser.ValidateCreateForm(formData); err != nil {
-		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "form", err.Error())
+	if validateErr := h.requestParser.ValidateCreateForm(formData); validateErr != nil {
+		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "form", validateErr.Error())
 	}
 
 	// Set user ID and create form
@@ -138,8 +138,8 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	formData.Status = "draft" // Default status
 
 	// Create form using service
-	if err := h.formService.CreateForm(echoCtx.Request().Context(), formData); err != nil {
-		h.logger.Error("failed to create form", "user_id", user.ID, "error", err)
+	if createErr := h.formService.CreateForm(echoCtx.Request().Context(), formData); createErr != nil {
+		h.logger.Error("failed to create form", "user_id", user.ID, "error", createErr)
 
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to create form. Please try again.", 500)
 	}
@@ -172,7 +172,7 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	}
 
 	// Get form from service
-	form, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
+	formData, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form", "form_id", formID, "error", err)
 
@@ -180,13 +180,13 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	}
 
 	// Check form ownership
-	if form.UserID != user.ID {
-		h.logger.Warn("unauthorized form access", "user_id", user.ID, "form_user_id", form.UserID, "form_id", formID)
+	if formData.UserID != user.ID {
+		h.logger.Warn("unauthorized form access", "user_id", user.ID, "form_user_id", formData.UserID, "form_id", formID)
 
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to edit this form", 403)
 	}
 
-	return h.responseBuilder.BuildEditFormResponse(echoCtx, user, form)
+	return h.responseBuilder.BuildEditFormResponse(echoCtx, user, formData)
 }
 
 // UpdateForm handles PUT /forms/:id
@@ -237,8 +237,8 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	}
 
 	// Validate update data
-	if err := h.requestParser.ValidateUpdateForm(updateData); err != nil {
-		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "form", err.Error())
+	if validateErr := h.requestParser.ValidateUpdateForm(updateData); validateErr != nil {
+		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "form", validateErr.Error())
 	}
 
 	// Update form fields
@@ -254,8 +254,8 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	}
 
 	// Update form using service
-	if err := h.formService.UpdateForm(echoCtx.Request().Context(), existingForm); err != nil {
-		h.logger.Error("failed to update form", "form_id", formID, "error", err)
+	if updateErr := h.formService.UpdateForm(echoCtx.Request().Context(), existingForm); updateErr != nil {
+		h.logger.Error("failed to update form", "form_id", formID, "error", updateErr)
 
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to update form. Please try again.", 500)
 	}
@@ -288,7 +288,7 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	}
 
 	// Get form to check ownership
-	form, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
+	formToDelete, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for deletion", "form_id", formID, "error", err)
 
@@ -296,15 +296,15 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	}
 
 	// Check form ownership
-	if form.UserID != user.ID {
-		h.logger.Warn("unauthorized form deletion", "user_id", user.ID, "form_user_id", form.UserID, "form_id", formID)
+	if formToDelete.UserID != user.ID {
+		h.logger.Warn("unauthorized form deletion", "user_id", user.ID, "form_user_id", formToDelete.UserID, "form_id", formID)
 
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to delete this form", 403)
 	}
 
 	// Delete form using service
-	if err := h.formService.DeleteForm(echoCtx.Request().Context(), formID); err != nil {
-		h.logger.Error("failed to delete form", "form_id", formID, "error", err)
+	if deleteErr := h.formService.DeleteForm(echoCtx.Request().Context(), formID); deleteErr != nil {
+		h.logger.Error("failed to delete form", "form_id", formID, "error", deleteErr)
 
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to delete form. Please try again.", 500)
 	}
@@ -337,7 +337,7 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	}
 
 	// Get form to check ownership
-	form, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
+	formForSubmissions, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for submissions", "form_id", formID, "error", err)
 
@@ -345,10 +345,14 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	}
 
 	// Check form ownership
-	if form.UserID != user.ID {
-		h.logger.Warn("unauthorized form submissions access", "user_id", user.ID, "form_user_id", form.UserID, "form_id", formID)
+	if formForSubmissions.UserID != user.ID {
+		h.logger.Warn("unauthorized form submissions access",
+			"user_id", user.ID,
+			"form_user_id", formForSubmissions.UserID,
+			"form_id", formID)
 
-		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to view submissions for this form", 403)
+		return h.responseBuilder.BuildFormErrorResponse(echoCtx,
+			"You don't have permission to view submissions for this form", 403)
 	}
 
 	// Get form submissions
@@ -359,7 +363,7 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to load form submissions. Please try again.", 500)
 	}
 
-	return h.responseBuilder.BuildFormSubmissionsResponse(echoCtx, user, form, submissions)
+	return h.responseBuilder.BuildFormSubmissionsResponse(echoCtx, user, formForSubmissions, submissions)
 }
 
 // getUserFromSession extracts user information from the session
@@ -371,21 +375,21 @@ func (h *FormHandler) getUserFromSession(c echo.Context) (*entities.User, error)
 	}
 
 	// Get session from manager
-	session, exists := h.sessionManager.GetSession(cookie.Value)
+	sess, exists := h.sessionManager.GetSession(cookie.Value)
 	if !exists {
 		return nil, fmt.Errorf("session not found")
 	}
 
 	// Check if session is expired
-	if time.Now().After(session.ExpiresAt) {
+	if time.Now().After(sess.ExpiresAt) {
 		return nil, fmt.Errorf("session expired")
 	}
 
 	// Create user entity from session data
 	user := &entities.User{
-		ID:    session.UserID,
-		Email: session.Email,
-		Role:  session.Role,
+		ID:    sess.UserID,
+		Email: sess.Email,
+		Role:  sess.Role,
 	}
 
 	return user, nil

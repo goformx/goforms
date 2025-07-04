@@ -133,8 +133,8 @@ func (a *EchoContextAdapter) NoContent(code int) error {
 }
 
 // Redirect redirects the request
-func (a *EchoContextAdapter) Redirect(code int, url string) error {
-	return a.echoCtx.Redirect(code, url)
+func (a *EchoContextAdapter) Redirect(code int, redirectURL string) error {
+	return a.echoCtx.Redirect(code, redirectURL)
 }
 
 // Error sends an error response

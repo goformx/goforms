@@ -68,5 +68,6 @@ func (h *PageHandler) handleHome(ctx httpiface.Context) error {
 	if err := h.renderer.Render(echoCtx, homeComponent); err != nil {
 		return fmt.Errorf("failed to render home page: %w", err)
 	}
+
 	return nil
 }

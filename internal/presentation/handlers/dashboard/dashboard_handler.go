@@ -34,7 +34,7 @@ func NewDashboardHandler(
 	formService form.Service,
 	sessionManager *session.Manager,
 	renderer view.Renderer,
-	config *config.Config,
+	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
 	logger logging.Logger,
 ) *DashboardHandler {
@@ -43,10 +43,10 @@ func NewDashboardHandler(
 		formService:     formService,
 		sessionManager:  sessionManager,
 		renderer:        renderer,
-		config:          config,
+		config:          cfg,
 		assetManager:    assetManager,
 		logger:          logger,
-		responseBuilder: NewDashboardResponseBuilder(config, assetManager, renderer, logger),
+		responseBuilder: NewDashboardResponseBuilder(cfg, assetManager, renderer, logger),
 	}
 
 	h.AddRoute(httpiface.Route{
@@ -93,21 +93,21 @@ func (h *DashboardHandler) getUserFromSession(c echo.Context) (*entities.User, e
 	}
 
 	// Get session from manager
-	session, exists := h.sessionManager.GetSession(cookie.Value)
+	sess, exists := h.sessionManager.GetSession(cookie.Value)
 	if !exists {
 		return nil, fmt.Errorf("session not found")
 	}
 
 	// Check if session is expired
-	if time.Now().After(session.ExpiresAt) {
+	if time.Now().After(sess.ExpiresAt) {
 		return nil, fmt.Errorf("session expired")
 	}
 
 	// Create user entity from session data
 	user := &entities.User{
-		ID:    session.UserID,
-		Email: session.Email,
-		Role:  session.Role,
+		ID:    sess.UserID,
+		Email: sess.Email,
+		Role:  sess.Role,
 	}
 
 	return user, nil

@@ -25,13 +25,13 @@ type DashboardResponseBuilder struct {
 
 // NewDashboardResponseBuilder creates a new dashboard response builder
 func NewDashboardResponseBuilder(
-	config *config.Config,
+	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
 	renderer view.Renderer,
 	logger logging.Logger,
 ) *DashboardResponseBuilder {
 	return &DashboardResponseBuilder{
-		config:       config,
+		config:       cfg,
 		assetManager: assetManager,
 		renderer:     renderer,
 		logger:       logger,
