@@ -12,13 +12,14 @@ import (
 
 	"github.com/goformx/goforms/internal/application/middleware/chain"
 	"github.com/goformx/goforms/internal/application/middleware/core"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // orchestrator implements the core.Orchestrator interface.
 type orchestrator struct {
 	registry core.Registry
 	config   MiddlewareConfig
-	logger   core.Logger
+	logger   logging.Logger
 	cache    map[string]core.Chain
 	cacheMu  sync.RWMutex
 	chains   map[string]core.Chain
@@ -29,7 +30,7 @@ type orchestrator struct {
 }
 
 // NewOrchestrator creates a new middleware orchestrator.
-func NewOrchestrator(registry core.Registry, config MiddlewareConfig, logger core.Logger) core.Orchestrator {
+func NewOrchestrator(registry core.Registry, config MiddlewareConfig, logger logging.Logger) core.Orchestrator {
 	return &orchestrator{
 		registry:   registry,
 		config:     config,

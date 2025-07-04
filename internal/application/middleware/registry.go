@@ -6,6 +6,7 @@ import (
 	"sync"
 
 	"github.com/goformx/goforms/internal/application/middleware/core"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 type registry struct {
@@ -15,11 +16,11 @@ type registry struct {
 	priorities   map[string]int
 	dependencies map[string][]string
 	conflicts    map[string][]string
-	logger       core.Logger
+	logger       logging.Logger
 	config       MiddlewareConfig
 }
 
-func NewRegistry(logger core.Logger, config MiddlewareConfig) core.Registry {
+func NewRegistry(logger logging.Logger, config MiddlewareConfig) core.Registry {
 	return &registry{
 		middlewares:  make(map[string]core.Middleware),
 		categories:   make(map[core.MiddlewareCategory][]string),

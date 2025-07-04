@@ -315,15 +315,6 @@ type Registry interface {
 	Count() int
 }
 
-// Logger is a minimal logging interface for orchestration events.
-type Logger interface {
-	Debug(msg string, args ...any)
-	Info(msg string, args ...any)
-	Warn(msg string, args ...any)
-	Error(msg string, args ...any)
-	Fatal(msg string, args ...any)
-}
-
 // Orchestrator manages the composition and execution of middleware chains.
 // Responsible for creating, configuring, and managing middleware chains
 // based on application requirements and configuration.
