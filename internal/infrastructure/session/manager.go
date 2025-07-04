@@ -13,6 +13,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
@@ -198,4 +199,25 @@ func (sm *Manager) DeleteSession(sessionID string) {
 // GetCookieName returns the name of the session cookie
 func (sm *Manager) GetCookieName() string {
 	return sm.cookieName
+}
+
+func (sm *Manager) CreateSessionApp(userID, email, role string) (string, error) {
+	return sm.CreateSession(userID, email, role)
+}
+
+func (sm *Manager) DeleteSessionApp(sessionID string) {
+	sm.DeleteSession(sessionID)
+}
+
+func (sm *Manager) GetSessionApp(sessionID string) (services.SessionData, bool) {
+	sess, ok := sm.GetSession(sessionID)
+	if !ok || sess == nil {
+		return services.SessionData{}, false
+	}
+	return services.SessionData{
+		UserID:    sess.UserID,
+		Email:     sess.Email,
+		Role:      sess.Role,
+		ExpiresAt: sess.ExpiresAt,
+	}, true
 }

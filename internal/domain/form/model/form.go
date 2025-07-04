@@ -10,7 +10,6 @@ import (
 	"database/sql/driver"
 
 	"github.com/google/uuid"
-	"gorm.io/gorm"
 )
 
 const (
@@ -56,22 +55,19 @@ func (f *Field) Validate() error {
 
 // Form represents a form in the system
 type Form struct {
-	ID          string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID      string         `json:"user_id" gorm:"not null;index;type:uuid"`
-	Title       string         `json:"title" gorm:"not null;size:100"`
-	Description string         `json:"description" gorm:"size:500"`
-	Schema      JSON           `json:"schema" gorm:"type:jsonb;not null"`
-	Active      bool           `json:"active" gorm:"not null;default:true"`
-	CreatedAt   time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
-	UpdatedAt   time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
-	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
-	Fields      []Field        `json:"fields" gorm:"foreignKey:FormID"`
-	Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
-
-	// CORS settings for form embedding
-	CorsOrigins JSON `json:"cors_origins" gorm:"type:json"`
-	CorsMethods JSON `json:"cors_methods" gorm:"type:json"`
-	CorsHeaders JSON `json:"cors_headers" gorm:"type:json"`
+	ID          string    `json:"id"`
+	UserID      string    `json:"user_id"`
+	Title       string    `json:"title"`
+	Description string    `json:"description"`
+	Schema      JSON      `json:"schema"`
+	Active      bool      `json:"active"`
+	CreatedAt   time.Time `json:"created_at"`
+	UpdatedAt   time.Time `json:"updated_at"`
+	Fields      []Field   `json:"fields"`
+	Status      string    `json:"status"`
+	CorsOrigins JSON      `json:"cors_origins"`
+	CorsMethods JSON      `json:"cors_methods"`
+	CorsHeaders JSON      `json:"cors_headers"`
 }
 
 // GetID returns the form's ID
@@ -82,147 +78,6 @@ func (f *Form) GetID() string {
 // SetID sets the form's ID
 func (f *Form) SetID(id string) {
 	f.ID = id
-}
-
-// TableName specifies the table name for the Form model
-func (f *Form) TableName() string {
-	return "forms"
-}
-
-// BeforeCreate is a GORM hook that runs before creating a form
-func (f *Form) BeforeCreate(_ *gorm.DB) error {
-	if f.ID == "" {
-		f.ID = uuid.New().String()
-	}
-
-	if !f.Active {
-		f.Active = true
-	}
-
-	if f.Status == "" {
-		f.Status = "draft"
-	}
-
-	// Ensure CORS fields are properly initialized
-	if f.CorsOrigins == nil {
-		f.CorsOrigins = JSON{}
-	}
-
-	if f.CorsMethods == nil {
-		f.CorsMethods = JSON{}
-	}
-
-	if f.CorsHeaders == nil {
-		f.CorsHeaders = JSON{}
-	}
-
-	return nil
-}
-
-// BeforeUpdate is a GORM hook that runs before updating a form
-func (f *Form) BeforeUpdate(_ *gorm.DB) error {
-	f.UpdatedAt = time.Now()
-
-	return nil
-}
-
-// BeforeSave is a GORM hook that runs before saving a form
-func (f *Form) BeforeSave(_ *gorm.DB) error {
-	// Ensure CORS fields are properly initialized
-	if f.CorsOrigins == nil {
-		f.CorsOrigins = JSON{}
-	}
-
-	if f.CorsMethods == nil {
-		f.CorsMethods = JSON{}
-	}
-
-	if f.CorsHeaders == nil {
-		f.CorsHeaders = JSON{}
-	}
-
-	return nil
-}
-
-// JSON is a custom type for handling JSON data
-type JSON map[string]any
-
-// Scan implements the sql.Scanner interface for JSON
-func (j *JSON) Scan(value any) error {
-	if value == nil {
-		*j = nil
-
-		return nil
-	}
-
-	bytes, ok := value.([]byte)
-	if !ok {
-		return fmt.Errorf("failed to unmarshal JSON value: %v", value)
-	}
-
-	// First try to unmarshal as an object
-	var result map[string]any
-
-	err := json.Unmarshal(bytes, &result)
-	if err == nil {
-		*j = JSON(result)
-
-		return nil
-	}
-
-	// If that fails, try to unmarshal as an array and convert to object
-	var arrayResult []any
-
-	err = json.Unmarshal(bytes, &arrayResult)
-	if err != nil {
-		return fmt.Errorf("unmarshal JSON scan value: %w", err)
-	}
-
-	// Convert array to object with "data" key
-	*j = JSON{"data": arrayResult}
-
-	return nil
-}
-
-// Value implements the driver.Valuer interface for JSON
-func (j *JSON) Value() (driver.Value, error) {
-	if j == nil {
-		return nil, ErrInvalidJSON
-	}
-
-	data, err := json.Marshal(*j)
-	if err != nil {
-		return nil, fmt.Errorf("marshal JSON value: %w", err)
-	}
-
-	return data, nil
-}
-
-// MarshalJSON implements the json.Marshaler interface
-func (j *JSON) MarshalJSON() ([]byte, error) {
-	if j == nil {
-		return nil, ErrInvalidJSON
-	}
-
-	data, err := json.Marshal(*j)
-	if err != nil {
-		return nil, fmt.Errorf("marshal JSON to bytes: %w", err)
-	}
-
-	return data, nil
-}
-
-// UnmarshalJSON implements the json.Unmarshaler interface
-func (j *JSON) UnmarshalJSON(data []byte) error {
-	if j == nil {
-		return ErrInvalidJSON
-	}
-
-	if err := json.Unmarshal(data, (*map[string]any)(j)); err != nil {
-		return fmt.Errorf("unmarshal JSON from bytes: %w", err)
-	}
-
-	return nil
 }
 
 // NewForm creates a new form instance
@@ -239,7 +94,6 @@ func NewForm(userID, title, description string, schema JSON) *Form {
 		Status:      "draft",
 		CreatedAt:   now,
 		UpdatedAt:   now,
-		DeletedAt:   gorm.DeletedAt{},
 		Fields:      []Field{},
 		CorsOrigins: JSON{},
 		CorsMethods: JSON{},
@@ -465,4 +319,85 @@ func (f *Form) SetCorsConfig(origins, methods, headers []string) {
 	f.CorsOrigins = JSON{"origins": origins}
 	f.CorsMethods = JSON{"methods": methods}
 	f.CorsHeaders = JSON{"headers": headers}
+}
+
+// JSON is a custom type for handling JSON data
+type JSON map[string]any
+
+// Scan implements the sql.Scanner interface for JSON
+func (j *JSON) Scan(value any) error {
+	if value == nil {
+		*j = nil
+
+		return nil
+	}
+
+	bytes, ok := value.([]byte)
+	if !ok {
+		return fmt.Errorf("failed to unmarshal JSON value: %v", value)
+	}
+
+	// First try to unmarshal as an object
+	var result map[string]any
+
+	err := json.Unmarshal(bytes, &result)
+	if err == nil {
+		*j = JSON(result)
+
+		return nil
+	}
+
+	// If that fails, try to unmarshal as an array and convert to object
+	var arrayResult []any
+
+	err = json.Unmarshal(bytes, &arrayResult)
+	if err != nil {
+		return fmt.Errorf("unmarshal JSON scan value: %w", err)
+	}
+
+	// Convert array to object with "data" key
+	*j = JSON{"data": arrayResult}
+
+	return nil
+}
+
+// Value implements the driver.Valuer interface for JSON
+func (j *JSON) Value() (driver.Value, error) {
+	if j == nil {
+		return nil, ErrInvalidJSON
+	}
+
+	data, err := json.Marshal(*j)
+	if err != nil {
+		return nil, fmt.Errorf("marshal JSON value: %w", err)
+	}
+
+	return data, nil
+}
+
+// MarshalJSON implements the json.Marshaler interface
+func (j *JSON) MarshalJSON() ([]byte, error) {
+	if j == nil {
+		return nil, ErrInvalidJSON
+	}
+
+	data, err := json.Marshal(*j)
+	if err != nil {
+		return nil, fmt.Errorf("marshal JSON to bytes: %w", err)
+	}
+
+	return data, nil
+}
+
+// UnmarshalJSON implements the json.Unmarshaler interface
+func (j *JSON) UnmarshalJSON(data []byte) error {
+	if j == nil {
+		return ErrInvalidJSON
+	}
+
+	if err := json.Unmarshal(data, (*map[string]any)(j)); err != nil {
+		return fmt.Errorf("unmarshal JSON from bytes: %w", err)
+	}
+
+	return nil
 }

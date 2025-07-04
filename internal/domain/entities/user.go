@@ -9,7 +9,6 @@ import (
 
 	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
-	"gorm.io/gorm"
 )
 
 var (
@@ -26,58 +25,15 @@ const (
 
 // User represents a user entity
 type User struct {
-	ID             string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	Email          string         `json:"email" gorm:"uniqueIndex;not null;size:255"`
-	HashedPassword string         `json:"-" gorm:"column:hashed_password;not null;size:255"`
-	FirstName      string         `json:"first_name" gorm:"not null;size:100"`
-	LastName       string         `json:"last_name" gorm:"not null;size:100"`
-	Role           string         `json:"role" gorm:"not null;size:50;default:user"`
-	Active         bool           `json:"active" gorm:"not null;default:true"`
-	CreatedAt      time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
-	UpdatedAt      time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
-	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
-}
-
-// TableName specifies the table name for the User model
-func (u *User) TableName() string {
-	return "users"
-}
-
-// BeforeCreate is a GORM hook that runs before creating a user
-func (u *User) BeforeCreate(_ *gorm.DB) error {
-	if u.ID == "" {
-		u.ID = uuid.New().String()
-	}
-
-	if u.Role == "" {
-		u.Role = "user"
-	}
-
-	if !u.Active {
-		u.Active = true
-	}
-
-	return nil
-}
-
-// BeforeUpdate is a GORM hook that runs before updating a user
-func (u *User) BeforeUpdate(_ *gorm.DB) error {
-	u.UpdatedAt = time.Now()
-
-	return nil
-}
-
-// AfterFind is a GORM hook that runs after finding a user
-func (u *User) AfterFind(_ *gorm.DB) error {
-	// Ensure UUID is properly formatted
-	if u.ID != "" {
-		// Try to parse as UUID to validate format
-		if _, err := uuid.Parse(u.ID); err != nil {
-			return fmt.Errorf("invalid UUID format: %w", err)
-		}
-	}
-
-	return nil
+	ID             string    `json:"id"`
+	Email          string    `json:"email"`
+	HashedPassword string    `json:"-"`
+	FirstName      string    `json:"first_name"`
+	LastName       string    `json:"last_name"`
+	Role           string    `json:"role"`
+	Active         bool      `json:"active"`
+	CreatedAt      time.Time `json:"created_at"`
+	UpdatedAt      time.Time `json:"updated_at"`
 }
 
 // NewUser creates a new user instance with validation
@@ -105,7 +61,6 @@ func NewUser(email, password, firstName, lastName string) (*User, error) {
 		Active:         true,
 		CreatedAt:      time.Now(),
 		UpdatedAt:      time.Now(),
-		DeletedAt:      gorm.DeletedAt{},
 	}, nil
 }
 

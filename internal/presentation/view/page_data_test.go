@@ -9,7 +9,6 @@ import (
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 	"go.uber.org/mock/gomock"
-	"gorm.io/gorm"
 
 	contextmw "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/entities"
@@ -48,7 +47,6 @@ func TestGetCurrentUser(t *testing.T) {
 				Active:         false,
 				CreatedAt:      time.Time{},
 				UpdatedAt:      time.Time{},
-				DeletedAt:      gorm.DeletedAt{},
 			},
 		},
 		{
@@ -73,7 +71,6 @@ func TestGetCurrentUser(t *testing.T) {
 				Active:         false,
 				CreatedAt:      time.Time{},
 				UpdatedAt:      time.Time{},
-				DeletedAt:      gorm.DeletedAt{},
 			},
 		},
 		{
@@ -261,7 +258,6 @@ func TestNewPageDataWithTitle(t *testing.T) {
 		Active:         false,
 		CreatedAt:      time.Time{},
 		UpdatedAt:      time.Time{},
-		DeletedAt:      gorm.DeletedAt{},
 	}
 
 	// Note: This test is for the simple constructor that was in the original code
@@ -359,7 +355,6 @@ func TestPageData_IsAuthenticated(t *testing.T) {
 				Active:         false,
 				CreatedAt:      time.Time{},
 				UpdatedAt:      time.Time{},
-				DeletedAt:      gorm.DeletedAt{},
 			},
 			want: true,
 		},
@@ -412,7 +407,6 @@ func TestPageData_GetUser(t *testing.T) {
 		Active:         false,
 		CreatedAt:      time.Time{},
 		UpdatedAt:      time.Time{},
-		DeletedAt:      gorm.DeletedAt{},
 	}
 
 	pageData := &view.PageData{
@@ -441,7 +435,6 @@ func TestPageData_GetUserID(t *testing.T) {
 				Active:         false,
 				CreatedAt:      time.Time{},
 				UpdatedAt:      time.Time{},
-				DeletedAt:      gorm.DeletedAt{},
 			},
 			want: "user-123",
 		},
@@ -481,7 +474,6 @@ func TestPageData_GetUserEmail(t *testing.T) {
 				Active:         false,
 				CreatedAt:      time.Time{},
 				UpdatedAt:      time.Time{},
-				DeletedAt:      gorm.DeletedAt{},
 			},
 			want: "test@example.com",
 		},
@@ -516,7 +508,6 @@ func TestPageData_WithUser(t *testing.T) {
 		Active:         false,
 		CreatedAt:      time.Time{},
 		UpdatedAt:      time.Time{},
-		DeletedAt:      gorm.DeletedAt{},
 	}
 
 	// Test that WithUser returns the PageData instance for chaining

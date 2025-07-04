@@ -8,20 +8,33 @@ import (
 	"github.com/goformx/goforms/internal/application/dto"
 	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/domain/user"
-	"github.com/goformx/goforms/internal/infrastructure/session"
 )
+
+// SessionManager is an interface for session management (to be implemented in infrastructure)
+type SessionManager interface {
+	CreateSession(userID, email, role string) (string, error)
+	DeleteSession(sessionID string)
+	GetSession(sessionID string) (sessionData SessionData, exists bool)
+}
+
+type SessionData struct {
+	UserID    string
+	Email     string
+	Role      string
+	ExpiresAt time.Time
+}
 
 // AuthUseCaseService handles authentication use cases
 type AuthUseCaseService struct {
 	userService    user.Service
-	sessionManager *session.Manager
+	sessionManager SessionManager
 	logger         interfaces.Logger
 }
 
 // NewAuthUseCaseService creates a new authentication use case service
 func NewAuthUseCaseService(
 	userService user.Service,
-	sessionManager *session.Manager,
+	sessionManager SessionManager,
 	logger interfaces.Logger,
 ) *AuthUseCaseService {
 	return &AuthUseCaseService{

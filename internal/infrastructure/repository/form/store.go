@@ -10,6 +10,9 @@ import (
 	"github.com/google/uuid"
 	"gorm.io/gorm"
 
+	"encoding/json"
+	"time"
+
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/database"
@@ -31,15 +34,135 @@ func NewStore(db database.DB, logger logging.Logger) form.Repository {
 	}
 }
 
+// FormModel is the infrastructure representation of a form for GORM
+// This struct contains all GORM-specific fields and tags
+// and is mapped to/from the pure domain Form entity
+
+type FormModel struct {
+	ID          string         `gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
+	UserID      string         `gorm:"not null;index;type:uuid"`
+	Title       string         `gorm:"not null;size:100"`
+	Description string         `gorm:"size:500"`
+	Schema      []byte         `gorm:"type:jsonb;not null"`
+	Active      bool           `gorm:"not null;default:true"`
+	CreatedAt   time.Time      `gorm:"not null;autoCreateTime"`
+	UpdatedAt   time.Time      `gorm:"not null;autoUpdateTime"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"`
+	Status      string         `gorm:"size:20;not null;default:'draft'"`
+	CorsOrigins []byte         `gorm:"type:json"`
+	CorsMethods []byte         `gorm:"type:json"`
+	CorsHeaders []byte         `gorm:"type:json"`
+}
+
+func (FormModel) TableName() string { return "forms" }
+
+func (m *FormModel) BeforeCreate(tx *gorm.DB) error {
+	if m.ID == "" {
+		m.ID = uuid.New().String()
+	}
+	if !m.Active {
+		m.Active = true
+	}
+	if m.Status == "" {
+		m.Status = "draft"
+	}
+	return nil
+}
+
+func (m *FormModel) BeforeUpdate(tx *gorm.DB) error {
+	m.UpdatedAt = time.Now()
+	return nil
+}
+
+// Mapper: domain <-> infra
+func formModelFromDomain(f *model.Form) (*FormModel, error) {
+	if f == nil {
+		return nil, nil
+	}
+	// Marshal JSON fields
+	schema, err := json.Marshal(f.Schema)
+	if err != nil {
+		return nil, err
+	}
+	corsOrigins, err := json.Marshal(f.CorsOrigins)
+	if err != nil {
+		return nil, err
+	}
+	corsMethods, err := json.Marshal(f.CorsMethods)
+	if err != nil {
+		return nil, err
+	}
+	corsHeaders, err := json.Marshal(f.CorsHeaders)
+	if err != nil {
+		return nil, err
+	}
+	return &FormModel{
+		ID:          f.ID,
+		UserID:      f.UserID,
+		Title:       f.Title,
+		Description: f.Description,
+		Schema:      schema,
+		Active:      f.Active,
+		CreatedAt:   f.CreatedAt,
+		UpdatedAt:   f.UpdatedAt,
+		Status:      f.Status,
+		CorsOrigins: corsOrigins,
+		CorsMethods: corsMethods,
+		CorsHeaders: corsHeaders,
+	}, nil
+}
+
+func (m *FormModel) ToDomain() (*model.Form, error) {
+	if m == nil {
+		return nil, nil
+	}
+	var schema model.JSON
+	if err := json.Unmarshal(m.Schema, &schema); err != nil {
+		return nil, err
+	}
+	var corsOrigins model.JSON
+	if err := json.Unmarshal(m.CorsOrigins, &corsOrigins); err != nil {
+		return nil, err
+	}
+	var corsMethods model.JSON
+	if err := json.Unmarshal(m.CorsMethods, &corsMethods); err != nil {
+		return nil, err
+	}
+	var corsHeaders model.JSON
+	if err := json.Unmarshal(m.CorsHeaders, &corsHeaders); err != nil {
+		return nil, err
+	}
+	return &model.Form{
+		ID:          m.ID,
+		UserID:      m.UserID,
+		Title:       m.Title,
+		Description: m.Description,
+		Schema:      schema,
+		Active:      m.Active,
+		CreatedAt:   m.CreatedAt,
+		UpdatedAt:   m.UpdatedAt,
+		Status:      m.Status,
+		CorsOrigins: corsOrigins,
+		CorsMethods: corsMethods,
+		CorsHeaders: corsHeaders,
+	}, nil
+}
+
 // CreateForm creates a new form
-func (s *Store) CreateForm(ctx context.Context, formModel *model.Form) error {
+func (s *Store) CreateForm(ctx context.Context, formEntity *model.Form) error {
+	formModel, err := formModelFromDomain(formEntity)
+	if err != nil {
+		return fmt.Errorf("create form: %w", err)
+	}
+
 	if err := s.db.GetDB().WithContext(ctx).Create(formModel).Error; err != nil {
 		s.logger.Error("failed to create form",
-			"form_id", formModel.ID,
+			"form_id", formEntity.ID,
+			"user_id", formEntity.UserID,
 			"error", err,
 		)
 
-		return fmt.Errorf("create form: %w", common.NewDatabaseError("create", "form", formModel.ID, err))
+		return fmt.Errorf("create form: %w", common.NewDatabaseError("create", "form", formEntity.ID, err))
 	}
 
 	return nil
@@ -58,43 +181,46 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 
 		invalidErr := common.NewInvalidInputError("get", "form", id, err)
 
-		return nil, fmt.Errorf("get form by ID: %w", invalidErr)
+		return nil, fmt.Errorf("get form: %w", invalidErr)
 	}
 
-	var formModel model.Form
+	var formModel FormModel
 	if err := s.db.GetDB().WithContext(ctx).Where("uuid = ?", normalizedID).First(&formModel).Error; err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			s.logger.Debug("form not found in database",
+			s.logger.Debug("form not found",
 				"id_length", len(normalizedID),
 				"error_type", "not_found")
 
-			return nil, fmt.Errorf("get form by ID: %w", common.NewNotFoundError("get", "form", normalizedID))
+			return nil, fmt.Errorf("get form: %w", common.NewNotFoundError("get", "form", normalizedID))
 		}
 
-		s.logger.Error("database error while getting form",
+		s.logger.Error("failed to get form",
 			"id_length", len(normalizedID),
 			"error", err,
 			"error_type", "database_error")
 
-		dbErr := common.NewDatabaseError("get", "form", normalizedID, err)
+		return nil, fmt.Errorf("get form: %w", common.NewDatabaseError("get", "form", normalizedID, err))
+	}
 
-		return nil, fmt.Errorf("get form by ID: %w", dbErr)
+	form, err := formModel.ToDomain()
+	if err != nil {
+		return nil, fmt.Errorf("get form: %w", err)
 	}
 
 	s.logger.Debug("form retrieved successfully",
 		"id_length", len(normalizedID),
 		"form_title", formModel.Title)
 
-	return &formModel, nil
+	return form, nil
 }
 
 // ListForms retrieves all forms for a user
 func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, error) {
-	var forms []*model.Form
+	var formModels []*FormModel
 	if err := s.db.GetDB().WithContext(ctx).
 		Where("user_id = ?", userID).
 		Order("created_at DESC").
-		Find(&forms).Error; err != nil {
+		Find(&formModels).Error; err != nil {
 		s.logger.Error("failed to list forms",
 			"user_id", userID,
 			"error", err,
@@ -103,18 +229,32 @@ func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, er
 		return nil, fmt.Errorf("list forms: %w", common.NewDatabaseError("list", "form", "", err))
 	}
 
+	forms := make([]*model.Form, len(formModels))
+	for i, formModel := range formModels {
+		form, err := formModel.ToDomain()
+		if err != nil {
+			return nil, fmt.Errorf("list forms: %w", err)
+		}
+		forms[i] = form
+	}
+
 	return forms, nil
 }
 
 // UpdateForm updates a form
-func (s *Store) UpdateForm(ctx context.Context, formModel *model.Form) error {
-	result := s.db.GetDB().WithContext(ctx).Model(&model.Form{}).Where("uuid = ?", formModel.ID).Updates(formModel)
+func (s *Store) UpdateForm(ctx context.Context, formEntity *model.Form) error {
+	formModel, err := formModelFromDomain(formEntity)
+	if err != nil {
+		return fmt.Errorf("update form: %w", err)
+	}
+
+	result := s.db.GetDB().WithContext(ctx).Model(&FormModel{}).Where("uuid = ?", formEntity.ID).Updates(formModel)
 	if result.Error != nil {
-		return fmt.Errorf("update form: %w", common.NewDatabaseError("update", "form", formModel.ID, result.Error))
+		return fmt.Errorf("update form: %w", common.NewDatabaseError("update", "form", formEntity.ID, result.Error))
 	}
 
 	if result.RowsAffected == 0 {
-		return fmt.Errorf("update form: %w", common.NewNotFoundError("update", "form", formModel.ID))
+		return fmt.Errorf("update form: %w", common.NewNotFoundError("update", "form", formEntity.ID))
 	}
 
 	return nil
@@ -136,7 +276,7 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 		return fmt.Errorf("delete form: %w", invalidErr)
 	}
 
-	result := s.db.GetDB().WithContext(ctx).Where("uuid = ?", normalizedID).Delete(&model.Form{})
+	result := s.db.GetDB().WithContext(ctx).Where("uuid = ?", normalizedID).Delete(&FormModel{})
 	if result.Error != nil {
 		s.logger.Error("failed to delete form",
 			"id_length", len(normalizedID),
@@ -162,9 +302,18 @@ func (s *Store) DeleteForm(ctx context.Context, id string) error {
 
 // GetFormsByStatus returns forms by their active status
 func (s *Store) GetFormsByStatus(ctx context.Context, status string) ([]*model.Form, error) {
-	var forms []*model.Form
-	if err := s.db.GetDB().WithContext(ctx).Where("status = ?", status).Find(&forms).Error; err != nil {
+	var formModels []*FormModel
+	if err := s.db.GetDB().WithContext(ctx).Where("status = ?", status).Find(&formModels).Error; err != nil {
 		return nil, fmt.Errorf("failed to get forms by status: %w", err)
+	}
+
+	forms := make([]*model.Form, len(formModels))
+	for i, formModel := range formModels {
+		form, err := formModel.ToDomain()
+		if err != nil {
+			return nil, fmt.Errorf("get forms by status: %w", err)
+		}
+		forms[i] = form
 	}
 
 	return forms, nil

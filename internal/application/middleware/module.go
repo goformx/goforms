@@ -11,6 +11,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	"github.com/goformx/goforms/internal/application/middleware/core"
+	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/session"
@@ -47,7 +48,7 @@ var Module = fx.Module("middleware",
 				lc fx.Lifecycle,
 				accessManager *access.Manager,
 				pathManager *constants.PathManager,
-			) *session.Manager {
+			) services.SessionManager {
 				sessionConfig := &session.Config{
 					SessionConfig: &cfg.Session,
 					Config:        cfg,
@@ -55,8 +56,11 @@ var Module = fx.Module("middleware",
 					StaticPaths:   pathManager.StaticPaths,
 				}
 
-				return session.NewManager(logger, sessionConfig, lc, accessManager)
+				manager := session.NewManager(logger, sessionConfig, lc, accessManager)
+				// Create an adapter that implements the SessionManager interface
+				return &sessionManagerAdapter{manager: manager}
 			},
+			fx.As(new(services.SessionManager)),
 		),
 
 		// NEW ARCHITECTURE: Core middleware components
@@ -231,4 +235,21 @@ func generateAccessRules(pathManager *constants.PathManager) []access.Rule {
 	}
 
 	return rules
+}
+
+// sessionManagerAdapter adapts session.Manager to services.SessionManager interface
+type sessionManagerAdapter struct {
+	manager *session.Manager
+}
+
+func (a *sessionManagerAdapter) CreateSession(userID, email, role string) (string, error) {
+	return a.manager.CreateSessionApp(userID, email, role)
+}
+
+func (a *sessionManagerAdapter) DeleteSession(sessionID string) {
+	a.manager.DeleteSessionApp(sessionID)
+}
+
+func (a *sessionManagerAdapter) GetSession(sessionID string) (services.SessionData, bool) {
+	return a.manager.GetSessionApp(sessionID)
 }

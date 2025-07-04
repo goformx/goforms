@@ -23,7 +23,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/infrastructure/session"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -43,7 +42,7 @@ type Dependencies struct {
 	DomainModule     fx.Option
 	Presentation     fx.Option
 	MiddlewareModule fx.Option
-	SessionManager   *session.Manager
+	SessionManager   services.SessionManager
 	Renderer         view.Renderer
 	AccessManager    *access.Manager
 	Sanitizer        sanitization.ServiceInterface
@@ -147,7 +146,7 @@ type Application struct {
 	domainModule     fx.Option
 	presentation     fx.Option
 	middlewareModule fx.Option
-	sessionManager   *session.Manager
+	sessionManager   services.SessionManager
 	renderer         view.Renderer
 }
 
