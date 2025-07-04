@@ -42,17 +42,16 @@ const DefaultShutdownTimeout = 30 * time.Second
 // Note: This struct should be used by value, not as a pointer, when fx.In is embedded.
 type appParams struct {
 	fx.In
-	Lifecycle         fx.Lifecycle           // Manages application lifecycle hooks
-	Echo              *echo.Echo             // HTTP server framework instance
-	Server            *server.Server         // Custom server implementation
-	Logger            logging.Logger         // Application logger
-	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
-	MiddlewareManager *appmiddleware.Manager // Legacy middleware management
-	AccessManager     *access.Manager        // Access control management
-	Config            *config.Config         // Application configuration
+	Lifecycle     fx.Lifecycle    // Manages application lifecycle hooks
+	Echo          *echo.Echo      // HTTP server framework instance
+	Server        *server.Server  // Custom server implementation
+	Logger        logging.Logger  // Application logger
+	Handlers      []web.Handler   `group:"handlers"` // Web request handlers
+	AccessManager *access.Manager // Access control management
+	Config        *config.Config  // Application configuration
 
-	// NEW: New middleware system components
-	MigrationAdapter *appmiddleware.MigrationAdapter // Migration adapter for gradual transition
+	// New middleware system components
+	EchoOrchestratorAdapter *appmiddleware.EchoOrchestratorAdapter // Echo orchestrator adapter
 }
 
 // setupHandlers registers all web handlers with the Echo server.
@@ -80,8 +79,8 @@ func setupHandlers(
 // and registering all web handlers.
 // Note: params is passed by value, not as a pointer
 func setupApplication(params appParams) error {
-	// Use the migration adapter to setup middleware with fallback capability
-	if err := params.MigrationAdapter.SetupWithFallback(params.Echo, params.MiddlewareManager); err != nil {
+	// Setup middleware using the new orchestrator system
+	if err := params.EchoOrchestratorAdapter.SetupMiddleware(params.Echo); err != nil {
 		return fmt.Errorf("failed to setup middleware: %w", err)
 	}
 
@@ -105,12 +104,7 @@ func setupLifecycle(params appParams) {
 			)
 
 			// Log middleware system status
-			migrationStatus := params.MigrationAdapter.GetMigrationStatus()
-			params.Logger.Info("middleware system status",
-				"new_system_enabled", migrationStatus.NewSystemEnabled,
-				"registered_middleware_count", len(migrationStatus.RegisteredMiddleware),
-				"available_chains_count", len(migrationStatus.AvailableChains),
-			)
+			params.Logger.Info("middleware system initialized with new orchestrator")
 
 			// Start the server in a goroutine to prevent blocking
 			go func() {

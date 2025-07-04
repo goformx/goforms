@@ -12,11 +12,8 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	"github.com/goformx/goforms/internal/application/middleware/core"
 	"github.com/goformx/goforms/internal/application/middleware/session"
-	formdomain "github.com/goformx/goforms/internal/domain/form"
-	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
 // Module provides all middleware dependencies
@@ -88,35 +85,6 @@ var Module = fx.Module("middleware",
 		// Echo integration adapter
 		fx.Annotate(
 			NewEchoOrchestratorAdapter,
-		),
-
-		// Migration adapter for gradual transition
-		fx.Annotate(
-			NewMigrationAdapter,
-		),
-
-		// LEGACY: Manager with simplified config - direct infrastructure config usage
-		// This will be removed after migration is complete
-		fx.Annotate(
-			func(
-				logger logging.Logger,
-				cfg *config.Config,
-				userService user.Service,
-				formService formdomain.Service,
-				sessionManager *session.Manager,
-				accessManager *access.Manager,
-				sanitizer sanitization.ServiceInterface,
-			) *Manager {
-				return NewManager(&ManagerConfig{
-					Logger:         logger,
-					Config:         cfg, // Single source of truth
-					UserService:    userService,
-					FormService:    formService,
-					SessionManager: sessionManager,
-					AccessManager:  accessManager,
-					Sanitizer:      sanitizer,
-				})
-			},
 		),
 	),
 

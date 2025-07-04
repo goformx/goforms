@@ -35,17 +35,16 @@ type Dependencies struct {
 	FormService form.Service
 
 	// Infrastructure
-	Logger            logging.Logger
-	Config            *config.Config
-	Server            *server.Server
-	DomainModule      fx.Option
-	Presentation      fx.Option
-	MiddlewareModule  fx.Option
-	SessionManager    *session.Manager
-	Renderer          view.Renderer
-	MiddlewareManager *middleware.Manager
-	AccessManager     *access.Manager
-	Sanitizer         sanitization.ServiceInterface
+	Logger           logging.Logger
+	Config           *config.Config
+	Server           *server.Server
+	DomainModule     fx.Option
+	Presentation     fx.Option
+	MiddlewareModule fx.Option
+	SessionManager   *session.Manager
+	Renderer         view.Renderer
+	AccessManager    *access.Manager
+	Sanitizer        sanitization.ServiceInterface
 }
 
 // Validate checks if all required dependencies are present
@@ -64,7 +63,6 @@ func (d Dependencies) Validate() error {
 		{"MiddlewareModule", d.MiddlewareModule},
 		{"SessionManager", d.SessionManager},
 		{"Renderer", d.Renderer},
-		{"MiddlewareManager", d.MiddlewareManager},
 		{"AccessManager", d.AccessManager},
 		{"Sanitizer", d.Sanitizer},
 	}
@@ -85,13 +83,12 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 	}
 
 	return &web.HandlerDeps{
-		UserService:       deps.UserService,
-		FormService:       deps.FormService,
-		SessionManager:    deps.SessionManager,
-		MiddlewareManager: deps.MiddlewareManager,
-		Config:            deps.Config,
-		Logger:            deps.Logger,
-		Renderer:          deps.Renderer,
+		UserService:    deps.UserService,
+		FormService:    deps.FormService,
+		SessionManager: deps.SessionManager,
+		Config:         deps.Config,
+		Logger:         deps.Logger,
+		Renderer:       deps.Renderer,
 	}, nil
 }
 

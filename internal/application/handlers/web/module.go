@@ -9,7 +9,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	"github.com/goformx/goforms/internal/application/middleware/request"
@@ -43,25 +42,23 @@ var Module = fx.Module("web-handlers",
 		),
 		NewAuthService,
 
-		// Legacy HandlerDeps for backward compatibility
+		// HandlerDeps provider
 		fx.Annotate(
 			func(
 				logger logging.Logger,
 				cfg *config.Config,
 				sessionManager *session.Manager,
-				middlewareManager *middleware.Manager,
 				renderer view.Renderer,
 				userService user.Service,
 				formService form.Service,
 			) *HandlerDeps {
 				return &HandlerDeps{
-					Logger:            logger,
-					Config:            cfg,
-					SessionManager:    sessionManager,
-					MiddlewareManager: middlewareManager,
-					Renderer:          renderer,
-					UserService:       userService,
-					FormService:       formService,
+					Logger:         logger,
+					Config:         cfg,
+					SessionManager: sessionManager,
+					Renderer:       renderer,
+					UserService:    userService,
+					FormService:    formService,
 				}
 			},
 		),

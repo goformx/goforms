@@ -6,7 +6,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -50,8 +49,6 @@ type HandlerDeps struct {
 	Config *config.Config
 	// SessionManager handles user sessions and authentication state
 	SessionManager *session.Manager
-	// MiddlewareManager manages middleware configuration and setup
-	MiddlewareManager *middleware.Manager
 	// Renderer handles view rendering and template management
 	Renderer view.Renderer
 	// UserService provides user-related operations and business logic
@@ -83,7 +80,6 @@ func (d *HandlerDeps) Validate() error {
 		{"Logger", d.Logger},
 		{"Config", d.Config},
 		{"SessionManager", d.SessionManager},
-		{"MiddlewareManager", d.MiddlewareManager},
 		{"Renderer", d.Renderer},
 	}
 
@@ -100,13 +96,12 @@ func (d *HandlerDeps) Validate() error {
 // This struct is used to pass dependencies to NewHandlerDeps
 // in a type-safe and explicit way.
 type HandlerParams struct {
-	UserService       user.Service
-	FormService       form.Service
-	Logger            logging.Logger
-	Config            *config.Config
-	SessionManager    *session.Manager
-	MiddlewareManager *middleware.Manager
-	Renderer          view.Renderer
+	UserService    user.Service
+	FormService    form.Service
+	Logger         logging.Logger
+	Config         *config.Config
+	SessionManager *session.Manager
+	Renderer       view.Renderer
 }
 
 // NewHandlerDeps creates a new HandlerDeps instance.
@@ -114,13 +109,12 @@ type HandlerParams struct {
 // initialized and validated before being used by a handler.
 func NewHandlerDeps(params *HandlerParams) (*HandlerDeps, error) {
 	deps := &HandlerDeps{
-		UserService:       params.UserService,
-		FormService:       params.FormService,
-		Logger:            params.Logger,
-		Config:            params.Config,
-		SessionManager:    params.SessionManager,
-		MiddlewareManager: params.MiddlewareManager,
-		Renderer:          params.Renderer,
+		UserService:    params.UserService,
+		FormService:    params.FormService,
+		Logger:         params.Logger,
+		Config:         params.Config,
+		SessionManager: params.SessionManager,
+		Renderer:       params.Renderer,
 	}
 
 	if err := deps.Validate(); err != nil {
