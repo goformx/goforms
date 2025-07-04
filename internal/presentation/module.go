@@ -6,9 +6,8 @@ import (
 
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application/middleware/session"
-	"github.com/goformx/goforms/internal/domain/form"
-	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/application/adapters/http"
+	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
@@ -28,34 +27,37 @@ import (
 // AuthHandlerParams contains dependencies for creating an AuthHandler
 type AuthHandlerParams struct {
 	fx.In
-	UserService    user.Service
-	SessionManager *session.Manager
-	Renderer       view.Renderer
-	Config         *config.Config
-	AssetManager   web.AssetManagerInterface
-	Logger         logging.Logger
+	AuthService     *services.AuthUseCaseService
+	RequestAdapter  http.RequestAdapter
+	ResponseAdapter http.ResponseAdapter
+	Renderer        view.Renderer
+	Config          *config.Config
+	AssetManager    web.AssetManagerInterface
+	Logger          logging.Logger
 }
 
 // DashboardHandlerParams contains dependencies for creating a DashboardHandler
 type DashboardHandlerParams struct {
 	fx.In
-	FormService    form.Service
-	SessionManager *session.Manager
-	Renderer       view.Renderer
-	Config         *config.Config
-	AssetManager   web.AssetManagerInterface
-	Logger         logging.Logger
+	FormService     *services.FormUseCaseService
+	RequestAdapter  http.RequestAdapter
+	ResponseAdapter http.ResponseAdapter
+	Renderer        view.Renderer
+	Config          *config.Config
+	AssetManager    web.AssetManagerInterface
+	Logger          logging.Logger
 }
 
 // FormHandlerParams contains dependencies for creating a FormHandler
 type FormHandlerParams struct {
 	fx.In
-	FormService    form.Service
-	SessionManager *session.Manager
-	Renderer       view.Renderer
-	Config         *config.Config
-	AssetManager   web.AssetManagerInterface
-	Logger         logging.Logger
+	FormService     *services.FormUseCaseService
+	RequestAdapter  http.RequestAdapter
+	ResponseAdapter http.ResponseAdapter
+	Renderer        view.Renderer
+	Config          *config.Config
+	AssetManager    web.AssetManagerInterface
+	Logger          logging.Logger
 }
 
 // PageHandlerParams contains dependencies for creating a PageHandler
@@ -70,8 +72,9 @@ type PageHandlerParams struct {
 // NewAuthHandlerWithDeps creates a new AuthHandler with injected dependencies
 func NewAuthHandlerWithDeps(params AuthHandlerParams) *auth.AuthHandler {
 	return auth.NewAuthHandler(
-		params.UserService,
-		params.SessionManager,
+		params.AuthService,
+		params.RequestAdapter,
+		params.ResponseAdapter,
 		params.Renderer,
 		params.Config,
 		params.AssetManager,
@@ -83,7 +86,8 @@ func NewAuthHandlerWithDeps(params AuthHandlerParams) *auth.AuthHandler {
 func NewDashboardHandlerWithDeps(params DashboardHandlerParams) *dashboard.DashboardHandler {
 	return dashboard.NewDashboardHandler(
 		params.FormService,
-		params.SessionManager,
+		params.RequestAdapter,
+		params.ResponseAdapter,
 		params.Renderer,
 		params.Config,
 		params.AssetManager,
@@ -95,7 +99,8 @@ func NewDashboardHandlerWithDeps(params DashboardHandlerParams) *dashboard.Dashb
 func NewFormHandlerWithDeps(params FormHandlerParams) *forms.FormHandler {
 	return forms.NewFormHandler(
 		params.FormService,
-		params.SessionManager,
+		params.RequestAdapter,
+		params.ResponseAdapter,
 		params.Renderer,
 		params.Config,
 		params.AssetManager,

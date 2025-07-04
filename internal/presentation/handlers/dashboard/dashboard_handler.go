@@ -2,11 +2,10 @@ package dashboard
 
 import (
 	"fmt"
-	"time"
 
-	"github.com/goformx/goforms/internal/application/middleware/session"
-	"github.com/goformx/goforms/internal/domain/entities"
-	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/application/adapters/http"
+	"github.com/goformx/goforms/internal/application/dto"
+	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
@@ -20,19 +19,20 @@ import (
 // Implements httpiface.Handler
 type DashboardHandler struct {
 	handlers.BaseHandler
-	formService     form.Service
-	sessionManager  *session.Manager
+	formService     *services.FormUseCaseService
+	requestAdapter  http.RequestAdapter
+	responseAdapter http.ResponseAdapter
 	renderer        view.Renderer
 	config          *config.Config
 	assetManager    web.AssetManagerInterface
 	logger          logging.Logger
-	responseBuilder *DashboardResponseBuilder
 }
 
 // NewDashboardHandler creates a new DashboardHandler and registers the /dashboard route
 func NewDashboardHandler(
-	formService form.Service,
-	sessionManager *session.Manager,
+	formService *services.FormUseCaseService,
+	requestAdapter http.RequestAdapter,
+	responseAdapter http.ResponseAdapter,
 	renderer view.Renderer,
 	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
@@ -41,12 +41,12 @@ func NewDashboardHandler(
 	h := &DashboardHandler{
 		BaseHandler:     *handlers.NewBaseHandler("dashboard"),
 		formService:     formService,
-		sessionManager:  sessionManager,
+		requestAdapter:  requestAdapter,
+		responseAdapter: responseAdapter,
 		renderer:        renderer,
 		config:          cfg,
 		assetManager:    assetManager,
 		logger:          logger,
-		responseBuilder: NewDashboardResponseBuilder(cfg, assetManager, renderer, logger),
 	}
 
 	h.AddRoute(httpiface.Route{
@@ -60,6 +60,7 @@ func NewDashboardHandler(
 
 // Dashboard handles GET /dashboard
 func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
+	// Extract the underlying Echo context
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
@@ -67,48 +68,35 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
-	user, err := h.getUserFromSession(echoCtx)
+	// Wrap echo context with our adapter
+	adapterCtx := http.NewEchoContextAdapter(echoCtx)
+
+	// Parse user ID from context (session)
+	userID, err := h.requestAdapter.ParseUserID(adapterCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for dashboard access", "error", err)
 
-		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
+		return h.responseAdapter.BuildUnauthorizedResponse(adapterCtx)
 	}
 
-	forms, err := h.formService.ListForms(echoCtx.Request().Context(), user.ID)
+	// Parse pagination request
+	paginationReq, err := h.requestAdapter.ParsePaginationRequest(adapterCtx)
 	if err != nil {
-		h.logger.Error("failed to fetch user forms", "user_id", user.ID, "error", err)
-
-		return h.responseBuilder.BuildDashboardErrorResponse(echoCtx, "Failed to load your forms. Please try again.")
+		// Use default pagination if not provided
+		paginationReq = &dto.PaginationRequest{
+			Page:  1,
+			Limit: 10,
+		}
 	}
 
-	return h.responseBuilder.BuildDashboardResponse(echoCtx, user, forms)
-}
-
-// getUserFromSession extracts user information from the session
-func (h *DashboardHandler) getUserFromSession(c echo.Context) (*entities.User, error) {
-	// Get session cookie
-	cookie, err := c.Cookie(h.sessionManager.GetCookieName())
+	// Call application service
+	dashboardResp, err := h.formService.ListForms(echoCtx.Request().Context(), userID, paginationReq)
 	if err != nil {
-		return nil, fmt.Errorf("no session cookie found")
+		h.logger.Error("failed to fetch user forms", "user_id", userID, "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Failed to load your forms. Please try again."))
 	}
 
-	// Get session from manager
-	sess, exists := h.sessionManager.GetSession(cookie.Value)
-	if !exists {
-		return nil, fmt.Errorf("session not found")
-	}
-
-	// Check if session is expired
-	if time.Now().After(sess.ExpiresAt) {
-		return nil, fmt.Errorf("session expired")
-	}
-
-	// Create user entity from session data
-	user := &entities.User{
-		ID:    sess.UserID,
-		Email: sess.Email,
-		Role:  sess.Role,
-	}
-
-	return user, nil
+	// Build response using adapter
+	return h.responseAdapter.BuildFormListResponse(adapterCtx, dashboardResp)
 }

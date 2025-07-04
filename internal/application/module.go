@@ -10,11 +10,13 @@ import (
 
 	"github.com/labstack/echo/v4"
 
+	"github.com/goformx/goforms/internal/application/adapters/http"
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/request"
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/application/response"
+	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -85,6 +87,12 @@ var Module = fx.Module("application",
 		provideRequestUtils,
 		provideErrorHandler,
 		provideRecoveryMiddleware,
+		// Application services
+		services.NewAuthUseCaseService,
+		services.NewFormUseCaseService,
+		// HTTP adapters
+		http.NewEchoRequestAdapter,
+		http.NewEchoResponseAdapter,
 	),
 	validation.Module,
 )
