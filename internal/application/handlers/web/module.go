@@ -131,6 +131,14 @@ var Module = fx.Module("web-handlers",
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
+
+		// OpenAPI handler - public access
+		fx.Annotate(
+			func(base *BaseHandler) (Handler, error) {
+				return NewOpenAPIHandler(base), nil
+			},
+			fx.ResultTags(`group:"handlers"`),
+		),
 	),
 
 	// Lifecycle hooks
@@ -208,6 +216,8 @@ func (rr *RouteRegistrar) registerHandlerRoutes(e *echo.Echo, handler Handler) {
 		rr.registerFormAPIRoutes(e, h)
 	case *DashboardHandler:
 		rr.registerDashboardRoutes(e, h)
+	case *OpenAPIHandler:
+		rr.registerOpenAPIRoutes(e, h)
 	}
 }
 
@@ -249,6 +259,11 @@ func (rr *RouteRegistrar) registerDashboardRoutes(e *echo.Echo, h *DashboardHand
 	// Apply auth middleware to fetch and store user in context
 	dashboard.Use(h.AuthMiddleware.RequireAuth)
 	dashboard.GET("", h.handleDashboard)
+}
+
+// registerOpenAPIRoutes registers OpenAPI documentation routes
+func (rr *RouteRegistrar) registerOpenAPIRoutes(e *echo.Echo, h *OpenAPIHandler) {
+	h.RegisterRoutes(e)
 }
 
 // RegisterHandlers registers all handlers with the Echo instance
