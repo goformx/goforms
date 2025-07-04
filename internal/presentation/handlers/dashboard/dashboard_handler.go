@@ -63,6 +63,7 @@ func (h *DashboardHandler) getInfraContext(ctx httpiface.Context) (http.Context,
 	if infraCtx, ok := ctx.(*http.EchoContextAdapter); ok {
 		return infraCtx, nil
 	}
+
 	return nil, fmt.Errorf("invalid context type")
 }
 
@@ -72,6 +73,7 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
@@ -79,6 +81,7 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	userID, err := h.requestAdapter.ParseUserID(infraCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for dashboard access", "error", err)
+
 		return h.responseAdapter.BuildUnauthorizedResponse(infraCtx)
 	}
 
@@ -96,6 +99,7 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	dashboardResp, err := h.formService.ListForms(ctx.RequestContext(), userID, paginationReq)
 	if err != nil {
 		h.logger.Error("failed to fetch user forms", "user_id", userID, "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load your forms, please try again"))
 	}
 

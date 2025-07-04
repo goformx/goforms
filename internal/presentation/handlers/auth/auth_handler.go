@@ -127,6 +127,7 @@ func (h *AuthHandler) getInfraContext(ctx httpiface.Context) (http.Context, erro
 	if infraCtx, ok := ctx.(*http.EchoContextAdapter); ok {
 		return infraCtx, nil
 	}
+
 	return nil, fmt.Errorf("invalid context type")
 }
 
@@ -136,6 +137,7 @@ func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
@@ -143,6 +145,7 @@ func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
 	loginReq, err := h.requestAdapter.ParseLoginRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse login request", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
 	}
 
@@ -150,6 +153,7 @@ func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
 	loginResp, err := h.authService.Login(ctx.RequestContext(), loginReq)
 	if err != nil {
 		h.logger.Warn("login failed", "email", loginReq.Email, "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid email or password"))
 	}
 
@@ -183,6 +187,7 @@ func (h *AuthHandler) SignupPost(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
@@ -190,6 +195,7 @@ func (h *AuthHandler) SignupPost(ctx httpiface.Context) error {
 	signupReq, err := h.requestAdapter.ParseSignupRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse signup request", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
 	}
 
@@ -197,6 +203,7 @@ func (h *AuthHandler) SignupPost(ctx httpiface.Context) error {
 	signupResp, err := h.authService.Signup(ctx.RequestContext(), signupReq)
 	if err != nil {
 		h.logger.Warn("signup failed", "email", signupReq.Email, "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to create account, please try again"))
 	}
 
@@ -210,6 +217,7 @@ func (h *AuthHandler) Logout(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
@@ -217,6 +225,7 @@ func (h *AuthHandler) Logout(ctx httpiface.Context) error {
 	logoutReq, err := h.requestAdapter.ParseLogoutRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse logout request", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
 	}
 
@@ -224,6 +233,7 @@ func (h *AuthHandler) Logout(ctx httpiface.Context) error {
 	logoutResp, err := h.authService.Logout(ctx.RequestContext(), logoutReq)
 	if err != nil {
 		h.logger.Error("logout failed", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to logout"))
 	}
 

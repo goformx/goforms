@@ -87,6 +87,7 @@ func (h *FormHandler) getInfraContext(ctx httpiface.Context) (http.Context, erro
 	if infraCtx, ok := ctx.(*http.EchoContextAdapter); ok {
 		return infraCtx, nil
 	}
+
 	return nil, fmt.Errorf("invalid context type")
 }
 
@@ -96,6 +97,7 @@ func (h *FormHandler) NewForm(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 	// For now, return a simple success response since GetNewFormPage doesn't exist
@@ -109,18 +111,21 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 	// Parse request using adapter
 	createReq, err := h.requestAdapter.ParseCreateFormRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse create form request", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid request format"))
 	}
 	// Call application service
 	createResp, err := h.formService.CreateForm(ctx.RequestContext(), createReq)
 	if err != nil {
 		h.logger.Error("failed to create form", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to create form, please try again"))
 	}
 	// Build response using adapter
@@ -133,18 +138,21 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 	// Parse form ID
 	formID, err := h.requestAdapter.ParseFormID(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid form ID"))
 	}
 	// Call application service
 	editResp, err := h.formService.GetForm(ctx.RequestContext(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for edit", "form_id", formID, "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Failed to load form for editing"))
 	}
 	// Build response using adapter
@@ -157,18 +165,21 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 	// Parse form ID
 	formID, err := h.requestAdapter.ParseFormID(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid form ID"))
 	}
 	// Parse update request
 	updateReq, err := h.requestAdapter.ParseUpdateFormRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse update form request", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid request format"))
 	}
 	// Set form ID in request
@@ -177,6 +188,7 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	updateResp, err := h.formService.UpdateForm(ctx.RequestContext(), updateReq)
 	if err != nil {
 		h.logger.Error("failed to update form", "form_id", formID, "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Failed to update form. Please try again."))
 	}
 	// Build response using adapter
@@ -189,18 +201,21 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 	// Parse form ID
 	formID, err := h.requestAdapter.ParseFormID(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid form ID"))
 	}
 	// Parse delete request
 	deleteReq, err := h.requestAdapter.ParseDeleteFormRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse delete form request", "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid request format"))
 	}
 	// Set form ID in request
@@ -209,6 +224,7 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	deleteResp, err := h.formService.DeleteForm(ctx.RequestContext(), deleteReq)
 	if err != nil {
 		h.logger.Error("failed to delete form", "form_id", formID, "error", err)
+
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Failed to delete form. Please try again."))
 	}
 	// Build response using adapter
@@ -221,6 +237,7 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 	// For now, return a simple success response since GetFormSubmissions doesn't exist

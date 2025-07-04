@@ -60,5 +60,6 @@ func (h *PageHandler) handleHome(ctx httpiface.Context) error {
 
 	// Render the home page using the framework-agnostic interface
 	homeComponent := pages.Home(*pageData)
+
 	return ctx.RenderComponent(homeComponent)
 }
