@@ -237,3 +237,5 @@ tool (
 	github.com/golang-migrate/migrate/v4/cmd/migrate
 	go.uber.org/mock/mockgen
 )
+
+replace github.com/goformx/goforms/deadcode-analyzer => ./deadcode-analyzer
