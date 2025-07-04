@@ -10,7 +10,6 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/goformx/goforms/internal/application/handlers/web"
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/request"
@@ -20,6 +19,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
@@ -38,6 +38,7 @@ type Dependencies struct {
 	Logger           logging.Logger
 	Config           *config.Config
 	Server           *server.Server
+	DB               database.DB
 	DomainModule     fx.Option
 	Presentation     fx.Option
 	MiddlewareModule fx.Option
@@ -58,6 +59,7 @@ func (d Dependencies) Validate() error {
 		{"Logger", d.Logger},
 		{"Config", d.Config},
 		{"Server", d.Server},
+		{"DB", d.DB},
 		{"DomainModule", d.DomainModule},
 		{"Presentation", d.Presentation},
 		{"MiddlewareModule", d.MiddlewareModule},
@@ -74,22 +76,6 @@ func (d Dependencies) Validate() error {
 	}
 
 	return nil
-}
-
-// NewHandlerDeps creates handler dependencies
-func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
-	if err := deps.Validate(); err != nil {
-		return nil, err
-	}
-
-	return &web.HandlerDeps{
-		UserService:    deps.UserService,
-		FormService:    deps.FormService,
-		SessionManager: deps.SessionManager,
-		Config:         deps.Config,
-		Logger:         deps.Logger,
-		Renderer:       deps.Renderer,
-	}, nil
 }
 
 // Module represents the application module
@@ -162,17 +148,7 @@ type Application struct {
 func (a *Application) Start(_ context.Context) error {
 	a.logger.Info("Starting application...")
 
-	// Get the Echo instance
-	e := a.server.Echo()
-
-	// Register all handlers
-	var handlers []web.Handler
-
-	fx.Populate(&handlers)
-
-	for _, handler := range handlers {
-		handler.Register(e)
-	}
+	// Handler registration is now handled by the presentation module
 
 	// Start the server
 	if err := a.server.Start(); err != nil {

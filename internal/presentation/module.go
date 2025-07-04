@@ -2,59 +2,81 @@
 package presentation
 
 import (
-	"errors"
+	"context"
 
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/presentation/adapters/echo"
+	"github.com/goformx/goforms/internal/presentation/handlers/api"
+	"github.com/goformx/goforms/internal/presentation/handlers/auth"
+	"github.com/goformx/goforms/internal/presentation/handlers/dashboard"
+	"github.com/goformx/goforms/internal/presentation/handlers/forms"
+	"github.com/goformx/goforms/internal/presentation/handlers/openapi"
+	"github.com/goformx/goforms/internal/presentation/handlers/pages"
+	"github.com/goformx/goforms/internal/presentation/handlers/validation"
+	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
+	echosrv "github.com/labstack/echo/v4"
 )
 
-// Dependencies contains all presentation layer dependencies
-type Dependencies struct {
-	fx.In
-
-	// Infrastructure
-	Logger logging.Logger
-	Config *config.Config
-}
-
-// Validate checks if all required dependencies are present
-func (d *Dependencies) Validate() error {
-	required := []struct {
-		name  string
-		value any
-	}{
-		{"Logger", d.Logger},
-		{"Config", d.Config},
-	}
-
-	for _, r := range required {
-		if r.value == nil {
-			return errors.New(r.name + " is required")
-		}
-	}
-
-	return nil
-}
-
-// NewRenderer creates a new view renderer
-func NewRenderer(deps Dependencies) (view.Renderer, error) {
-	if err := deps.Validate(); err != nil {
-		return nil, err
-	}
-
-	return view.NewRenderer(deps.Logger), nil
-}
-
-// Module provides all presentation layer dependencies
 var Module = fx.Module("presentation",
-	// View renderer
 	fx.Provide(
 		fx.Annotate(
-			NewRenderer,
-			fx.As(new(view.Renderer)),
+			pages.NewPageHandler,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
 		),
+		fx.Annotate(
+			auth.NewAuthHandler,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
+			dashboard.NewDashboardHandler,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
+			forms.NewFormHandler,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
+			api.NewApiHandler,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
+			openapi.NewOpenAPIHandler,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
+			validation.NewValidationHandler,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		echo.NewEchoAdapter,
 	),
+	fx.Invoke(RegisterRoutes),
 )
+
+// RegisterRoutes registers all handlers with the EchoAdapter
+func RegisterRoutes(
+	lc fx.Lifecycle,
+	e *echosrv.Echo,
+	adapter *echo.EchoAdapter,
+	handlers struct {
+		fx.In
+		Handlers []httpiface.Handler `group:"handlers"`
+	},
+) {
+	lc.Append(fx.Hook{
+		OnStart: func(_ context.Context) error {
+			for _, h := range handlers.Handlers {
+				adapter.RegisterHandler(h)
+			}
+
+			return nil
+		},
+	})
+}

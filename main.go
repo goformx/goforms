@@ -17,7 +17,6 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application"
-	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/providers"
@@ -46,33 +45,11 @@ type appParams struct {
 	Echo          *echo.Echo      // HTTP server framework instance
 	Server        *server.Server  // Custom server implementation
 	Logger        logging.Logger  // Application logger
-	Handlers      []web.Handler   `group:"handlers"` // Web request handlers
 	AccessManager *access.Manager // Access control management
 	Config        *config.Config  // Application configuration
 
 	// New middleware system components
 	EchoOrchestratorAdapter *appmiddleware.EchoOrchestratorAdapter // Echo orchestrator adapter
-}
-
-// setupHandlers registers all web handlers with the Echo server.
-// It validates that no nil handlers are present and registers each handler
-// with the Echo instance.
-func setupHandlers(
-	handlers []web.Handler,
-	e *echo.Echo,
-	accessManager *access.Manager,
-	logger logging.Logger,
-) error {
-	for i, handler := range handlers {
-		if handler == nil {
-			return fmt.Errorf("nil handler encountered at index %d", i)
-		}
-	}
-
-	// Use the RegisterHandlers function to properly register routes with access control
-	web.RegisterHandlers(e, handlers, accessManager, logger)
-
-	return nil
 }
 
 // setupApplication initializes the application by setting up middleware
@@ -84,7 +61,7 @@ func setupApplication(params appParams) error {
 		return fmt.Errorf("failed to setup middleware: %w", err)
 	}
 
-	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
+	return nil
 }
 
 // setupLifecycle configures the application lifecycle hooks for startup and shutdown.
@@ -141,14 +118,13 @@ func main() {
 		fx.Provide(func() embed.FS {
 			return distFS
 		}),
-		// Include all application modules
-		config.Module, // Config must come first as other modules depend on it
-		infrastructure.Module,
-		domain.Module,
-		application.Module,
-		appmiddleware.Module,
-		presentation.Module,
-		web.Module,
+		// Include all application modules in dependency order
+		config.Module,         // Config must come first as other modules depend on it
+		infrastructure.Module, // Infrastructure (database, logging, etc.)
+		domain.Module,         // Domain services and repositories
+		application.Module,    // Application layer services
+		appmiddleware.Module,  // Middleware orchestration
+		presentation.Module,   // Presentation layer (handlers, templates)
 		// Include OpenAPI validation provider
 		providers.OpenAPIValidationProvider(),
 		// Invoke setup functions
