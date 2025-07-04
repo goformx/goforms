@@ -13,9 +13,9 @@ import (
 	"github.com/google/uuid"
 
 	"github.com/goformx/goforms/internal/domain/common/events"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	formevents "github.com/goformx/goforms/internal/domain/form/events"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 const (
@@ -41,11 +41,11 @@ type Service interface {
 type formService struct {
 	repository Repository
 	eventBus   events.EventBus
-	logger     logging.Logger
+	logger     interfaces.Logger
 }
 
 // NewService creates a new form service
-func NewService(repository Repository, eventBus events.EventBus, logger logging.Logger) Service {
+func NewService(repository Repository, eventBus events.EventBus, logger interfaces.Logger) Service {
 	return &formService{
 		repository: repository,
 		eventBus:   eventBus,

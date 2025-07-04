@@ -7,7 +7,7 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 )
 
 const (
@@ -25,7 +25,7 @@ const (
 
 // HandlerConfig represents the configuration for an event handler
 type HandlerConfig struct {
-	Logger     logging.Logger
+	Logger     interfaces.Logger
 	RetryCount int
 	Timeout    time.Duration
 	RetryDelay time.Duration
@@ -89,23 +89,28 @@ func (h *BaseHandler) HandleWithRetry(
 
 // LogEvent logs an event
 func (h *BaseHandler) LogEvent(event Event, level, message string, fields ...any) {
-	logger := h.config.Logger.With(
+	logger := h.config.Logger.WithFields(
 		"event", event.Name(),
 		"timestamp", event.Timestamp(),
 		"metadata", event.Metadata(),
 	)
 
+	// Add additional fields
+	if len(fields) > 0 {
+		logger = logger.WithFields(fields...)
+	}
+
 	switch level {
 	case "debug":
-		logger.Debug(message, fields...)
+		logger.Debug(message)
 	case "info":
-		logger.Info(message, fields...)
+		logger.Info(message)
 	case "warn":
-		logger.Warn(message, fields...)
+		logger.Warn(message)
 	case "error":
-		logger.Error(message, fields...)
+		logger.Error(message)
 	default:
-		logger.Info(message, fields...)
+		logger.Info(message)
 	}
 }
 

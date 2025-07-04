@@ -7,7 +7,7 @@ import (
 	"errors"
 
 	"github.com/goformx/goforms/internal/domain/common/events"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 )
 
 // ErrInvalidEventPayload represents an invalid event payload error
@@ -20,12 +20,12 @@ const (
 
 // EventHandler handles form-related events
 type EventHandler struct {
-	logger   logging.Logger
+	logger   interfaces.Logger
 	handlers map[string]func(context.Context, events.Event) error
 }
 
 // NewEventHandler creates a new form event handler
-func NewEventHandler(logger logging.Logger) *EventHandler {
+func NewEventHandler(logger interfaces.Logger) *EventHandler {
 	h := &EventHandler{
 		logger: logger,
 	}

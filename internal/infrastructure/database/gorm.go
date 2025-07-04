@@ -333,7 +333,7 @@ func (db *GormDB) collectAndLogMetrics() {
 
 	sqlDB, err := db.DB.DB()
 	if err != nil {
-		db.logger.Error("failed to get database instance", map[string]any{"error": err})
+		db.logger.Error("failed to get database instance", "error", err)
 
 		return
 	}
@@ -354,24 +354,20 @@ func (db *GormDB) collectAndLogMetrics() {
 	db.addDatabaseSpecificMetrics(metrics)
 
 	// Log the metrics
-	db.logger.Info("database connection pool status", map[string]any{"metrics": metrics})
+	db.logger.Info("database connection pool status", "metrics", metrics)
 
 	// Check for high usage
 	if float64(stats.InUse)/float64(stats.MaxOpenConnections) > ConnectionPoolWarningThreshold {
 		db.logger.Warn("database connection pool usage is high",
-			map[string]any{
-				"in_use":   stats.InUse,
-				"max_open": stats.MaxOpenConnections,
-			})
+			"in_use", stats.InUse,
+			"max_open", stats.MaxOpenConnections)
 	}
 
 	// Check for long wait times
 	if stats.WaitDuration > time.Second*5 {
 		db.logger.Warn("database connection wait time is high",
-			map[string]any{
-				"wait_duration": stats.WaitDuration,
-				"wait_count":    stats.WaitCount,
-			})
+			"wait_duration", stats.WaitDuration,
+			"wait_count", stats.WaitCount)
 	}
 }
 

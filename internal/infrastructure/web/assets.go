@@ -72,7 +72,10 @@ func (m *AssetManager) AssetPath(path string) string {
 		return path
 	}
 
-	m.logger.Debug("asset resolved", "asset_path", path, "resolved", resolvedPath)
+	m.logger.Debug("asset resolved",
+		"asset_path", path,
+		"resolved", resolvedPath,
+	)
 
 	return resolvedPath
 }
@@ -121,7 +124,9 @@ func (m *AssetManager) ClearCache() {
 	oldSize := len(m.pathCache)
 	m.pathCache = make(map[string]string)
 
-	m.logger.Debug("asset cache cleared", "previous_size", oldSize)
+	m.logger.Debug("asset cache cleared",
+		"previous_size", oldSize,
+	)
 }
 
 // ValidatePath validates an asset path

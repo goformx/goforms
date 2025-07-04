@@ -3,6 +3,10 @@
 //go:generate mockgen -typed -source=types.go -destination=../../../test/mocks/logging/mock_logger.go -package=logging
 package logging
 
+import (
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
+)
+
 const (
 	// LogEncodingConsole represents console encoding for logs
 	LogEncodingConsole = "console"
@@ -33,11 +37,13 @@ const (
 )
 
 // Logger interface defines the logging contract
+// This interface extends the domain Logger interface to provide additional functionality
+// while maintaining compatibility with domain logging requirements
 type Logger interface {
-	Debug(msg string, fields ...any)
-	Info(msg string, fields ...any)
-	Warn(msg string, fields ...any)
-	Error(msg string, fields ...any)
+	// Domain interface compliance
+	interfaces.Logger
+
+	// Infrastructure-specific methods
 	Fatal(msg string, fields ...any)
 	With(fields ...any) Logger
 	WithComponent(component string) Logger
@@ -45,14 +51,7 @@ type Logger interface {
 	WithRequestID(requestID string) Logger
 	WithUserID(userID string) Logger
 	WithError(err error) Logger
-	WithFields(fields map[string]any) Logger
-	// New Field-based API methods
-	WithFieldsStructured(fields ...Field) Logger
-	DebugWithFields(msg string, fields ...Field)
-	InfoWithFields(msg string, fields ...Field)
-	WarnWithFields(msg string, fields ...Field)
-	ErrorWithFields(msg string, fields ...Field)
-	FatalWithFields(msg string, fields ...Field)
+	WithFieldsMap(fields map[string]any) Logger
 	SanitizeField(key string, value any) string
 }
 

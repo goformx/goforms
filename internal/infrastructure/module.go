@@ -13,6 +13,7 @@ import (
 
 	"embed"
 
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/domain/form"
 	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -20,6 +21,9 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/event"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	formstore "github.com/goformx/goforms/internal/infrastructure/repository/form"
+	formsubmissionstore "github.com/goformx/goforms/internal/infrastructure/repository/form/submission"
+	userstore "github.com/goformx/goforms/internal/infrastructure/repository/user"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
@@ -342,6 +346,65 @@ func ProvideSanitizationService() sanitization.ServiceInterface {
 	return sanitization.NewService()
 }
 
+// RepositoryParams groups repository dependencies
+type RepositoryParams struct {
+	fx.In
+	DB     database.DB
+	Logger logging.Logger
+}
+
+// RepositoryProviders groups all repository implementations
+type RepositoryProviders struct {
+	fx.Out
+	UserRepository           user.Repository
+	FormRepository           form.Repository
+	FormSubmissionRepository form.SubmissionRepository
+}
+
+// NewRepositories creates new repository instances with proper validation and error handling
+func NewRepositories(p RepositoryParams) (RepositoryProviders, error) {
+	fmt.Printf("[DEBUG] NewRepositories called with DB: %T, Logger: %T\n", p.DB, p.Logger)
+
+	if p.DB == nil {
+		fmt.Println("[DEBUG] NewRepositories: DB is nil!")
+
+		return RepositoryProviders{}, errors.New("database connection is required")
+	}
+
+	if p.Logger == nil {
+		fmt.Println("[DEBUG] NewRepositories: Logger is nil!")
+
+		return RepositoryProviders{}, errors.New("logger is required")
+	}
+
+	// Initialize repositories using the interface
+	userRepo := userstore.NewStore(p.DB, p.Logger)
+	formRepo := formstore.NewStore(p.DB, p.Logger)
+	formSubmissionRepo := formsubmissionstore.NewStore(p.DB, p.Logger)
+
+	fmt.Printf("[DEBUG] NewRepositories created userRepo: %T, formRepo: %T, formSubmissionRepo: %T\n",
+		userRepo, formRepo, formSubmissionRepo)
+
+	// Validate repository instances
+	if userRepo == nil || formRepo == nil || formSubmissionRepo == nil {
+		p.Logger.Error("failed to create repository",
+			"operation", "repository_initialization",
+			"repository_type", "user/form/submission",
+			"error_type", "nil_repository",
+		)
+
+		fmt.Println("[DEBUG] NewRepositories: One or more repositories are nil!")
+
+		return RepositoryProviders{}, errors.New("failed to create repository: one or more repositories are nil")
+	}
+
+	return RepositoryProviders{
+		UserRepository:           userRepo,
+		FormRepository:           formRepo,
+		FormSubmissionRepository: formSubmissionRepo,
+	}, nil
+}
+
 // Module provides comprehensive infrastructure dependencies with proper error handling,
 // lifecycle management, and clear separation of concerns.
 var Module = fx.Module("infrastructure",
@@ -364,7 +427,11 @@ var Module = fx.Module("infrastructure",
 
 		// Logging system
 		NewLoggerFactory,
-		NewLogger,
+		fx.Annotate(
+			NewLogger,
+			fx.As(new(logging.Logger)),
+			fx.As(new(interfaces.Logger)),
+		),
 
 		// Event system
 		NewEventPublisher,
@@ -385,6 +452,9 @@ var Module = fx.Module("infrastructure",
 			view.NewRenderer,
 			fx.As(new(view.Renderer)),
 		),
+
+		// Repository implementations
+		NewRepositories,
 	),
 
 	// Lifecycle management

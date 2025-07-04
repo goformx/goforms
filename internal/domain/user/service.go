@@ -8,8 +8,8 @@ import (
 	"strings"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/domain/entities"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // Signup represents a user signup request
@@ -57,12 +57,12 @@ type Service interface {
 
 // ServiceImpl implements the Service interface
 type ServiceImpl struct {
-	logger logging.Logger
+	logger interfaces.Logger
 	repo   Repository
 }
 
 // NewService creates a new user service
-func NewService(repo Repository, logger logging.Logger) Service {
+func NewService(repo Repository, logger interfaces.Logger) Service {
 	return &ServiceImpl{
 		repo:   repo,
 		logger: logger,

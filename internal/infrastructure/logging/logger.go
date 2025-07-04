@@ -1,8 +1,11 @@
 package logging
 
 import (
+	"context"
+
 	"go.uber.org/zap"
 
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
@@ -68,8 +71,8 @@ func (l *logger) WithError(err error) Logger {
 	return l.With("error", sanitizeError(err, l.sanitizer))
 }
 
-// WithFields adds multiple fields to the logger (legacy method)
-func (l *logger) WithFields(fields map[string]any) Logger {
+// WithFieldsMap adds multiple fields to the logger (legacy method)
+func (l *logger) WithFieldsMap(fields map[string]any) Logger {
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {
 		zapFields = append(zapFields, zap.String(k, l.SanitizeField(k, v)))
@@ -83,8 +86,13 @@ func (l *logger) SanitizeField(key string, value any) string {
 	return l.fieldSanitizer.SanitizeField(key, value)
 }
 
-// Debug logs a debug message
+// Debug logs a debug message (implements interfaces.Logger.Debug)
 func (l *logger) Debug(msg string, fields ...any) {
+	l.zapLogger.Debug(msg, convertToZapFields(fields, l.fieldSanitizer)...)
+}
+
+// DebugWithAny logs a debug message with any fields (legacy method)
+func (l *logger) DebugWithAny(msg string, fields ...any) {
 	l.zapLogger.Debug(msg, convertToZapFields(fields, l.fieldSanitizer)...)
 }
 
@@ -98,8 +106,13 @@ func (l *logger) DebugWithFields(msg string, fields ...Field) {
 	l.zapLogger.Debug(msg, zapFields...)
 }
 
-// Info logs an info message
+// Info logs an info message (implements interfaces.Logger.Info)
 func (l *logger) Info(msg string, fields ...any) {
+	l.zapLogger.Info(msg, convertToZapFields(fields, l.fieldSanitizer)...)
+}
+
+// InfoWithAny logs an info message with any fields (legacy method)
+func (l *logger) InfoWithAny(msg string, fields ...any) {
 	l.zapLogger.Info(msg, convertToZapFields(fields, l.fieldSanitizer)...)
 }
 
@@ -113,8 +126,13 @@ func (l *logger) InfoWithFields(msg string, fields ...Field) {
 	l.zapLogger.Info(msg, zapFields...)
 }
 
-// Warn logs a warning message
+// Warn logs a warning message (implements interfaces.Logger.Warn)
 func (l *logger) Warn(msg string, fields ...any) {
+	l.zapLogger.Warn(msg, convertToZapFields(fields, l.fieldSanitizer)...)
+}
+
+// WarnWithAny logs a warning message with any fields (legacy method)
+func (l *logger) WarnWithAny(msg string, fields ...any) {
 	l.zapLogger.Warn(msg, convertToZapFields(fields, l.fieldSanitizer)...)
 }
 
@@ -128,8 +146,13 @@ func (l *logger) WarnWithFields(msg string, fields ...Field) {
 	l.zapLogger.Warn(msg, zapFields...)
 }
 
-// Error logs an error message
+// Error logs an error message (implements interfaces.Logger.Error)
 func (l *logger) Error(msg string, fields ...any) {
+	l.zapLogger.Error(msg, convertToZapFields(fields, l.fieldSanitizer)...)
+}
+
+// ErrorWithAny logs an error message with any fields (legacy method)
+func (l *logger) ErrorWithAny(msg string, fields ...any) {
 	l.zapLogger.Error(msg, convertToZapFields(fields, l.fieldSanitizer)...)
 }
 
@@ -156,4 +179,18 @@ func (l *logger) FatalWithFields(msg string, fields ...Field) {
 	}
 
 	l.zapLogger.Fatal(msg, zapFields...)
+}
+
+// WithContext implements interfaces.Logger.WithContext
+func (l *logger) WithContext(ctx context.Context) interfaces.Logger {
+	// For now, return the same logger since zap doesn't have context-specific logging
+	// In a more sophisticated implementation, you might want to extract request ID or other context
+	return l
+}
+
+// WithFields implements interfaces.Logger.WithFields
+func (l *logger) WithFields(fields ...any) interfaces.Logger {
+	zapFields := convertToZapFields(fields, l.fieldSanitizer)
+
+	return newLogger(l.zapLogger.With(zapFields...), l.sanitizer, l.fieldSanitizer)
 }
