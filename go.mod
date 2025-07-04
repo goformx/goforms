@@ -98,6 +98,7 @@ require (
 	github.com/goccy/go-json v0.9.11 // indirect
 	github.com/gocql/gocql v0.0.0-20210515062232-b7ef815b4556 // indirect
 	github.com/godbus/dbus v0.0.0-20190726142602-4481cbc300e2 // indirect
+	github.com/goformx/goforms/deadcode-analyzer v0.0.0-00010101000000-000000000000 // indirect
 	github.com/golang-jwt/jwt/v4 v4.5.2 // indirect
 	github.com/golang-migrate/migrate/v4 v4.18.2 // indirect
 	github.com/golang-sql/civil v0.0.0-20190719163853-cb61b32ac6fe // indirect
@@ -237,3 +238,5 @@ tool (
 	github.com/golang-migrate/migrate/v4/cmd/migrate
 	go.uber.org/mock/mockgen
 )
+
+replace github.com/goformx/goforms/deadcode-analyzer => ./deadcode-analyzer
