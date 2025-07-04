@@ -5,7 +5,14 @@ footer {
   border-top: 1px solid #e2e8f0;
 }
 
-footer .container {
+.footer-container {
+  max-width: var(--container-max-width);
+  margin: var(--container-margin);
+  padding: 0 var(--container-padding-x);
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   text-align: center;
   color: var(--text-light);
 }
@@ -21,7 +28,11 @@ footer a:hover {
   color: var(--accent);
 }
 
-@media (max-width: var(--breakpoint-md)) {
+@media (max-width: 768px) {
+  .footer-container {
+    padding: 0 var(--container-padding-x-mobile);
+  }
+
   footer {
     margin-top: var(--section-spacing-mobile);
   }
