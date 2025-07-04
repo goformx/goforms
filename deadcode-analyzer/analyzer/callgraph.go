@@ -366,3 +366,23 @@ func (cga *CallGraphAnalyzer) GetCallers(funcName string) []string {
 func (cga *CallGraphAnalyzer) GetCallees(funcName string) []string {
 	return cga.callGraph[funcName]
 }
+
+// GetUnreachableFunctions returns all unreachable functions in a file
+func (cga *CallGraphAnalyzer) GetUnreachableFunctions(filePath string) []string {
+	packagePath := cga.getPackagePathFromFilePath(filePath)
+	var unreachable []string
+
+	for funcName := range cga.callGraph {
+		if strings.HasPrefix(funcName, packagePath) {
+			if !cga.isFunctionReachable(funcName) {
+				// Extract just the function name from the full path
+				parts := strings.Split(funcName, ".")
+				if len(parts) > 0 {
+					unreachable = append(unreachable, parts[len(parts)-1])
+				}
+			}
+		}
+	}
+
+	return unreachable
+}

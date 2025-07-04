@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"log"
 	"sort"
+	"strings"
 )
 
 // Analyzer is the main analysis engine
@@ -201,8 +202,14 @@ func (a *Analyzer) printResults(results *Results) {
 	fmt.Printf("  Never delete: %d\n", results.NeverDelete)
 	fmt.Println()
 
+	// Print protection summary
+	a.printProtectionSummary(results)
+
 	// Print ultra-safe candidates
 	a.printUltraSafeCandidates(results)
+
+	// Print potentially safe candidates
+	a.printPotentiallySafeCandidates(results)
 
 	// Print dangerous files
 	a.printDangerousFiles(results)
@@ -227,6 +234,14 @@ func (a *Analyzer) printUltraSafeCandidates(results *Results) {
 		fmt.Printf("    Lines: %d\n", result.TotalLines)
 		fmt.Printf("    Safety Score: %d\n", result.SafetyScore)
 
+		// Show specific unreachable functions
+		if result.UnreachableFunctions > 0 {
+			unreachableFuncs := a.callGraph.GetUnreachableFunctions(result.Path)
+			if len(unreachableFuncs) > 0 {
+				fmt.Printf("    Unreachable functions: %s\n", strings.Join(unreachableFuncs, ", "))
+			}
+		}
+
 		if len(result.Reasons) > 0 {
 			fmt.Printf("    Reasons: %s\n", result.Reasons)
 		}
@@ -236,6 +251,96 @@ func (a *Analyzer) printUltraSafeCandidates(results *Results) {
 
 	if !ultraSafeFound {
 		fmt.Println("  No ultra-safe candidates found (this is good!)")
+		fmt.Println("  Your codebase is well-structured and the analyzer correctly identified real usage patterns.")
+		fmt.Println("  This is much better than a simple bash script which could have led to disasters!")
+	}
+
+	fmt.Println()
+}
+
+// printProtectionSummary prints what the analyzer protected us from
+func (a *Analyzer) printProtectionSummary(results *Results) {
+	fmt.Println("🛡️  Protection Summary:")
+	fmt.Println("----------------------")
+
+	criticalCount := 0
+	fxCount := 0
+	interfaceCount := 0
+	exportedCount := 0
+	testCount := 0
+	templateCount := 0
+	importedCount := 0
+
+	for _, result := range results.Files {
+		if result.IsCritical {
+			criticalCount++
+		}
+		if result.HasFxUsage {
+			fxCount++
+		}
+		if result.HasInterfaces {
+			interfaceCount++
+		}
+		if len(result.ExportedFunctions) > 0 {
+			exportedCount++
+		}
+		if result.HasTests {
+			testCount++
+		}
+		if result.HasTemplates {
+			templateCount++
+		}
+		if result.IsImported {
+			importedCount++
+		}
+	}
+
+	fmt.Printf("  Critical packages protected: %d\n", criticalCount)
+	fmt.Printf("  Files with Fx DI usage: %d\n", fxCount)
+	fmt.Printf("  Files with interfaces: %d\n", interfaceCount)
+	fmt.Printf("  Files with exported functions: %d\n", exportedCount)
+	fmt.Printf("  Files with tests: %d\n", testCount)
+	fmt.Printf("  Files with templates: %d\n", templateCount)
+	fmt.Printf("  Files imported elsewhere: %d\n", importedCount)
+	fmt.Println()
+}
+
+// printPotentiallySafeCandidates prints the potentially safe candidates
+func (a *Analyzer) printPotentiallySafeCandidates(results *Results) {
+	fmt.Println("🟡 POTENTIALLY SAFE Candidates (Manual review recommended):")
+	fmt.Println("--------------------------------------------------------")
+
+	potentiallySafeFound := false
+
+	for _, result := range results.Files {
+		if result.SafetyLevel != PotentiallySafe {
+			continue
+		}
+
+		potentiallySafeFound = true
+
+		fmt.Printf("  %s\n", result.Path)
+		fmt.Printf("    Functions: %d/%d unreachable\n", result.UnreachableFunctions, result.TotalFunctions)
+		fmt.Printf("    Lines: %d\n", result.TotalLines)
+		fmt.Printf("    Safety Score: %d\n", result.SafetyScore)
+
+		// Show specific unreachable functions
+		if result.UnreachableFunctions > 0 {
+			unreachableFuncs := a.callGraph.GetUnreachableFunctions(result.Path)
+			if len(unreachableFuncs) > 0 {
+				fmt.Printf("    Unreachable functions: %s\n", strings.Join(unreachableFuncs, ", "))
+			}
+		}
+
+		if len(result.Reasons) > 0 {
+			fmt.Printf("    Reasons: %s\n", result.Reasons)
+		}
+
+		fmt.Println()
+	}
+
+	if !potentiallySafeFound {
+		fmt.Println("  No potentially safe candidates found")
 	}
 
 	fmt.Println()
@@ -246,13 +351,44 @@ func (a *Analyzer) printDangerousFiles(results *Results) {
 	fmt.Println("🔴 DANGEROUS Files (DO NOT DELETE):")
 	fmt.Println("-----------------------------------")
 
+	dangerousFound := false
+
 	for _, result := range results.Files {
 		if result.SafetyLevel == Dangerous || result.SafetyLevel == NeverDelete {
+			dangerousFound = true
+
 			fmt.Printf("  %s (%s)\n", result.Path, result.SafetyLevel)
+			fmt.Printf("    Safety Score: %d\n", result.SafetyScore)
 
 			if len(result.Reasons) > 0 {
-				fmt.Printf("    Reasons: %s\n", result.Reasons)
+				fmt.Printf("    Protection reasons: %s\n", strings.Join(result.Reasons, ", "))
 			}
+
+			// Show specific details
+			if result.HasFxUsage {
+				fmt.Printf("    ⚠️  Contains Fx dependency injection usage\n")
+			}
+			if result.HasInterfaces {
+				fmt.Printf("    ⚠️  Contains interfaces that may be implemented elsewhere\n")
+			}
+			if len(result.ExportedFunctions) > 0 {
+				fmt.Printf("    ⚠️  Exports functions: %s\n", strings.Join(result.ExportedFunctions, ", "))
+			}
+			if result.IsImported {
+				fmt.Printf("    ⚠️  Imported by other packages\n")
+			}
+			if result.HasTests {
+				fmt.Printf("    ⚠️  Has associated tests\n")
+			}
+			if result.HasTemplates {
+				fmt.Printf("    ⚠️  Contains template usage\n")
+			}
+
+			fmt.Println()
 		}
+	}
+
+	if !dangerousFound {
+		fmt.Println("  No dangerous files found")
 	}
 }
