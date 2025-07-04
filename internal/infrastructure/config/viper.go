@@ -415,6 +415,15 @@ func (vc *ViperConfig) loadAPIConfig(config *Config) error {
 			RPS:     vc.viper.GetInt("api.rate_limit.rps"),
 			Burst:   vc.viper.GetInt("api.rate_limit.burst"),
 		},
+		OpenAPI: OpenAPIConfig{
+			EnableRequestValidation:  vc.viper.GetBool("api.openapi.enable_request_validation"),
+			EnableResponseValidation: vc.viper.GetBool("api.openapi.enable_response_validation"),
+			LogValidationErrors:      vc.viper.GetBool("api.openapi.log_validation_errors"),
+			BlockInvalidRequests:     vc.viper.GetBool("api.openapi.block_invalid_requests"),
+			BlockInvalidResponses:    vc.viper.GetBool("api.openapi.block_invalid_responses"),
+			SkipPaths:                vc.viper.GetStringSlice("api.openapi.skip_paths"),
+			SkipMethods:              vc.viper.GetStringSlice("api.openapi.skip_methods"),
+		},
 	}
 
 	return nil
@@ -691,6 +700,24 @@ func setAPIDefaults(v *viper.Viper) {
 	v.SetDefault("api.rate_limit.enabled", true)
 	v.SetDefault("api.rate_limit.rps", 1000)
 	v.SetDefault("api.rate_limit.burst", 2000)
+
+	// OpenAPI validation defaults
+	v.SetDefault("api.openapi.enable_request_validation", true)
+	v.SetDefault("api.openapi.enable_response_validation", true)
+	v.SetDefault("api.openapi.log_validation_errors", true)
+	v.SetDefault("api.openapi.block_invalid_requests", false)
+	v.SetDefault("api.openapi.block_invalid_responses", false)
+	v.SetDefault("api.openapi.skip_paths", []string{
+		"/health",
+		"/metrics",
+		"/docs",
+		"/openapi.yaml",
+		"/openapi.json",
+	})
+	v.SetDefault("api.openapi.skip_methods", []string{
+		"OPTIONS",
+		"HEAD",
+	})
 }
 
 // setWebDefaults sets web default values

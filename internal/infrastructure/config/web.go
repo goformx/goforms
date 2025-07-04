@@ -24,6 +24,18 @@ type APIConfig struct {
 	Timeout    time.Duration   `json:"timeout"`
 	MaxRetries int             `json:"max_retries"`
 	RateLimit  RateLimitConfig `json:"rate_limit"`
+	OpenAPI    OpenAPIConfig   `json:"openapi"`
+}
+
+// OpenAPIConfig holds OpenAPI validation configuration
+type OpenAPIConfig struct {
+	EnableRequestValidation  bool     `json:"enable_request_validation"`
+	EnableResponseValidation bool     `json:"enable_response_validation"`
+	LogValidationErrors      bool     `json:"log_validation_errors"`
+	BlockInvalidRequests     bool     `json:"block_invalid_requests"`
+	BlockInvalidResponses    bool     `json:"block_invalid_responses"`
+	SkipPaths                []string `json:"skip_paths"`
+	SkipMethods              []string `json:"skip_methods"`
 }
 
 // WebConfig holds web-related configuration
@@ -54,4 +66,26 @@ type AdminUserConfig struct {
 type DefaultUserConfig struct {
 	Role        string   `json:"role"`
 	Permissions []string `json:"permissions"`
+}
+
+// DefaultOpenAPIConfig returns the default OpenAPI validation configuration
+func DefaultOpenAPIConfig() OpenAPIConfig {
+	return OpenAPIConfig{
+		EnableRequestValidation:  true,
+		EnableResponseValidation: true,
+		LogValidationErrors:      true,
+		BlockInvalidRequests:     false, // Start with logging only
+		BlockInvalidResponses:    false, // Start with logging only
+		SkipPaths: []string{
+			"/health",
+			"/metrics",
+			"/docs",
+			"/openapi.yaml",
+			"/openapi.json",
+		},
+		SkipMethods: []string{
+			"OPTIONS",
+			"HEAD",
+		},
+	}
 }

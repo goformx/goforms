@@ -20,6 +20,7 @@ import (
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/providers"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -154,6 +155,8 @@ func main() {
 		appmiddleware.Module,
 		presentation.Module,
 		web.Module,
+		// Include OpenAPI validation provider
+		providers.OpenAPIValidationProvider(),
 		// Invoke setup functions
 		fx.Invoke(setupApplication),
 		fx.Invoke(setupLifecycle),

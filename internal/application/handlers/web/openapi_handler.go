@@ -10,6 +10,7 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
+	"github.com/goformx/goforms/internal/infrastructure/openapi"
 )
 
 // OpenAPIHandler handles OpenAPI documentation requests
@@ -23,7 +24,7 @@ func NewOpenAPIHandler(base *BaseHandler) *OpenAPIHandler {
 	// Parse the OpenAPI specification
 	loader := openapi3.NewLoader()
 
-	spec, err := loader.LoadFromData([]byte(OpenAPISpec))
+	spec, err := loader.LoadFromData([]byte(openapi.OpenAPISpec))
 	if err != nil {
 		// Log error but don't fail - we'll serve the raw spec as fallback
 		base.Logger.Error("failed to parse OpenAPI spec", "error", err)
@@ -65,7 +66,7 @@ func (h *OpenAPIHandler) Register(_ *echo.Echo) {
 func (h *OpenAPIHandler) serveOpenAPISpec(c echo.Context) error {
 	c.Response().Header().Set("Content-Type", "application/x-yaml")
 
-	if err := c.String(http.StatusOK, OpenAPISpec); err != nil {
+	if err := c.String(http.StatusOK, openapi.OpenAPISpec); err != nil {
 		return fmt.Errorf("serve openapi spec: %w", err)
 	}
 
@@ -78,7 +79,7 @@ func (h *OpenAPIHandler) serveOpenAPIJSON(c echo.Context) error {
 		// Fallback to raw spec if parsing failed
 		c.Response().Header().Set("Content-Type", "application/json")
 
-		if err := c.String(http.StatusOK, OpenAPISpec); err != nil {
+		if err := c.String(http.StatusOK, openapi.OpenAPISpec); err != nil {
 			return fmt.Errorf("serve openapi spec fallback: %w", err)
 		}
 
@@ -92,7 +93,7 @@ func (h *OpenAPIHandler) serveOpenAPIJSON(c echo.Context) error {
 		// Fallback to raw spec
 		c.Response().Header().Set("Content-Type", "application/json")
 
-		if fallbackErr := c.String(http.StatusOK, OpenAPISpec); fallbackErr != nil {
+		if fallbackErr := c.String(http.StatusOK, openapi.OpenAPISpec); fallbackErr != nil {
 			return fmt.Errorf("serve openapi spec fallback: %w", fallbackErr)
 		}
 
