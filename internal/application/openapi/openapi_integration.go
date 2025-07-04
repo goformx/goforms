@@ -1,4 +1,4 @@
-package middleware
+package openapi
 
 import (
 	"github.com/labstack/echo/v4"
