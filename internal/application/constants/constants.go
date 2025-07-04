@@ -131,7 +131,7 @@ const (
 
 // Error Messages
 const (
-	ErrMsgInvalidRequest     = "Invalid request format"
+	ErrMsgInvalidRequest     = "invalid request format"
 	ErrMsgInvalidCredentials = "Invalid email or password"
 	ErrMsgAccountCreated     = "Account created successfully!"
 	ErrMsgServiceUnhealthy   = "Service is not healthy"

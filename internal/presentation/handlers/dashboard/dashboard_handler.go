@@ -82,7 +82,11 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Warn("authentication required for dashboard access", "error", err)
 
-		return h.responseAdapter.BuildUnauthorizedResponse(infraCtx)
+		if unauthorizedErr := h.responseAdapter.BuildUnauthorizedResponse(infraCtx); unauthorizedErr != nil {
+			return fmt.Errorf("failed to build unauthorized response: %w", unauthorizedErr)
+		}
+
+		return nil
 	}
 
 	// Parse pagination request
@@ -104,5 +108,9 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	}
 
 	// Build response using adapter
-	return h.responseAdapter.BuildFormListResponse(infraCtx, dashboardResp)
+	if formListErr := h.responseAdapter.BuildFormListResponse(infraCtx, dashboardResp); formListErr != nil {
+		return fmt.Errorf("failed to build form list response: %w", formListErr)
+	}
+
+	return nil
 }

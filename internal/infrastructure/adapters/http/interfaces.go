@@ -46,8 +46,8 @@ type ResponseAdapter interface {
 	BuildForbiddenResponse(ctx Context) error
 
 	// Generic responses
-	BuildSuccessResponse(ctx Context, message string, data interface{}) error
-	BuildJSONResponse(ctx Context, statusCode int, data interface{}) error
+	BuildSuccessResponse(ctx Context, message string, data any) error
+	BuildJSONResponse(ctx Context, statusCode int, data any) error
 }
 
 // Context represents a framework-agnostic HTTP context
@@ -62,13 +62,13 @@ type Context interface {
 	Headers() map[string]string
 
 	// Response methods
-	JSON(statusCode int, data interface{}) error
+	JSON(statusCode int, data any) error
 	Redirect(statusCode int, url string) error
 	NoContent(statusCode int) error
 
 	// Context methods
-	Get(key string) interface{}
-	Set(key string, value interface{})
+	Get(key string) any
+	Set(key string, value any)
 
 	// Context propagation (needed for application services)
 	RequestContext() context.Context

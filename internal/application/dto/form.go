@@ -8,33 +8,33 @@ import (
 
 // CreateFormRequest represents a form creation request
 type CreateFormRequest struct {
-	Title       string                 `json:"title" validate:"required,min=1,max=255"`
-	Description string                 `json:"description"`
-	Schema      map[string]interface{} `json:"schema" validate:"required"`
-	UserID      string                 `json:"user_id" validate:"required"`
-	Status      string                 `json:"status"`
+	Title       string         `json:"title" validate:"required,min=1,max=255"`
+	Description string         `json:"description"`
+	Schema      map[string]any `json:"schema" validate:"required"`
+	UserID      string         `json:"user_id" validate:"required"`
+	Status      string         `json:"status"`
 }
 
 // UpdateFormRequest represents a form update request
 type UpdateFormRequest struct {
-	ID          string                 `json:"id" validate:"required"`
-	Title       string                 `json:"title" validate:"required,min=1,max=255"`
-	Description string                 `json:"description"`
-	Schema      map[string]interface{} `json:"schema" validate:"required"`
-	UserID      string                 `json:"user_id" validate:"required"`
-	Status      string                 `json:"status"`
+	ID          string         `json:"id" validate:"required"`
+	Title       string         `json:"title" validate:"required,min=1,max=255"`
+	Description string         `json:"description"`
+	Schema      map[string]any `json:"schema" validate:"required"`
+	UserID      string         `json:"user_id" validate:"required"`
+	Status      string         `json:"status"`
 }
 
 // FormResponse represents a form response
 type FormResponse struct {
-	ID          string                 `json:"id"`
-	Title       string                 `json:"title"`
-	Description string                 `json:"description"`
-	Schema      map[string]interface{} `json:"schema"`
-	UserID      string                 `json:"user_id"`
-	Status      string                 `json:"status"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID          string         `json:"id"`
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	Schema      map[string]any `json:"schema"`
+	UserID      string         `json:"user_id"`
+	Status      string         `json:"status"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 // FormListResponse represents a list of forms
@@ -58,31 +58,31 @@ type DeleteFormResponse struct {
 
 // SubmitFormRequest represents a form submission request
 type SubmitFormRequest struct {
-	FormID string                 `json:"form_id" validate:"required"`
-	Data   map[string]interface{} `json:"data" validate:"required"`
-	UserID string                 `json:"user_id,omitempty"`
+	FormID string         `json:"form_id" validate:"required"`
+	Data   map[string]any `json:"data" validate:"required"`
+	UserID string         `json:"user_id,omitempty"`
 }
 
 // SubmitFormResponse represents a successful form submission response
 type SubmitFormResponse struct {
-	SubmissionID string                 `json:"submission_id"`
-	FormID       string                 `json:"form_id"`
-	Data         map[string]interface{} `json:"data"`
-	SubmittedAt  time.Time              `json:"submitted_at"`
+	SubmissionID string         `json:"submission_id"`
+	FormID       string         `json:"form_id"`
+	Data         map[string]any `json:"data"`
+	SubmittedAt  time.Time      `json:"submitted_at"`
 }
 
 // FormSchemaResponse represents a form schema response
 type FormSchemaResponse struct {
-	ID     string                 `json:"id"`
-	Schema map[string]interface{} `json:"schema"`
+	ID     string         `json:"id"`
+	Schema map[string]any `json:"schema"`
 }
 
 // FormValidationSchemaResponse represents a form validation schema response
 type FormValidationSchemaResponse struct {
-	FormID string                 `json:"form_id"`
-	Schema map[string]interface{} `json:"schema"`
-	Rules  map[string]interface{} `json:"rules"`
-	Fields []string               `json:"fields"`
+	FormID string         `json:"form_id"`
+	Schema map[string]any `json:"schema"`
+	Rules  map[string]any `json:"rules"`
+	Fields []string       `json:"fields"`
 }
 
 // FormError represents form-related errors

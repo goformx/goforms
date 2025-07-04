@@ -20,17 +20,17 @@ type PaginationResponse struct {
 
 // ErrorResponse represents a generic error response
 type ErrorResponse struct {
-	Code      string                 `json:"code"`
-	Message   string                 `json:"message"`
-	Details   map[string]interface{} `json:"details,omitempty"`
-	Timestamp time.Time              `json:"timestamp"`
+	Code      string         `json:"code"`
+	Message   string         `json:"message"`
+	Details   map[string]any `json:"details,omitempty"`
+	Timestamp time.Time      `json:"timestamp"`
 }
 
 // SuccessResponse represents a generic success response
 type SuccessResponse struct {
-	Message   string      `json:"message"`
-	Data      interface{} `json:"data,omitempty"`
-	Timestamp time.Time   `json:"timestamp"`
+	Message   string    `json:"message"`
+	Data      any       `json:"data,omitempty"`
+	Timestamp time.Time `json:"timestamp"`
 }
 
 // ValidationError represents validation errors
@@ -57,7 +57,7 @@ func NewErrorResponse(code, message string) ErrorResponse {
 }
 
 // NewSuccessResponse creates a new success response
-func NewSuccessResponse(message string, data interface{}) SuccessResponse {
+func NewSuccessResponse(message string, data any) SuccessResponse {
 	return SuccessResponse{
 		Message:   message,
 		Data:      data,

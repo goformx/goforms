@@ -45,22 +45,22 @@ type Context interface {
 	Headers() map[string]string
 
 	// Response methods
-	JSON(statusCode int, data interface{}) error
+	JSON(statusCode int, data any) error
 	JSONBlob(statusCode int, data []byte) error
 	String(statusCode int, data string) error
 	Redirect(statusCode int, url string) error
 	NoContent(statusCode int) error
 
 	// Context methods
-	Get(key string) interface{}
-	Set(key string, value interface{})
+	Get(key string) any
+	Set(key string, value any)
 
 	// Context propagation (needed for application services)
 	RequestContext() context.Context
 
 	// Presentation methods
-	RenderComponent(component interface{}) error
+	RenderComponent(component any) error
 
 	// Request access (for bridge methods)
-	GetUnderlyingContext() interface{}
+	GetUnderlyingContext() any
 }

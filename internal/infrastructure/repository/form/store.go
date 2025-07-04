@@ -81,27 +81,27 @@ func (m *FormModel) BeforeUpdate(tx *gorm.DB) error {
 // Mapper: domain <-> infra
 func formModelFromDomain(f *model.Form) (*FormModel, error) {
 	if f == nil {
-		return nil, nil
+		return nil, fmt.Errorf("form cannot be nil")
 	}
 	// Marshal JSON fields
 	schema, err := json.Marshal(f.Schema)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal form schema: %w", err)
 	}
 
 	corsOrigins, err := json.Marshal(f.CorsOrigins)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal CORS origins: %w", err)
 	}
 
 	corsMethods, err := json.Marshal(f.CorsMethods)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal CORS methods: %w", err)
 	}
 
 	corsHeaders, err := json.Marshal(f.CorsHeaders)
 	if err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to marshal CORS headers: %w", err)
 	}
 
 	return &FormModel{
@@ -122,27 +122,27 @@ func formModelFromDomain(f *model.Form) (*FormModel, error) {
 
 func (m *FormModel) ToDomain() (*model.Form, error) {
 	if m == nil {
-		return nil, nil
+		return nil, fmt.Errorf("form model cannot be nil")
 	}
 
 	var schema model.JSON
 	if err := json.Unmarshal(m.Schema, &schema); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal form schema: %w", err)
 	}
 
 	var corsOrigins model.JSON
 	if err := json.Unmarshal(m.CorsOrigins, &corsOrigins); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal CORS origins: %w", err)
 	}
 
 	var corsMethods model.JSON
 	if err := json.Unmarshal(m.CorsMethods, &corsMethods); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal CORS methods: %w", err)
 	}
 
 	var corsHeaders model.JSON
 	if err := json.Unmarshal(m.CorsHeaders, &corsHeaders); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to unmarshal CORS headers: %w", err)
 	}
 
 	return &model.Form{
@@ -168,14 +168,14 @@ func (s *Store) CreateForm(ctx context.Context, formEntity *model.Form) error {
 		return fmt.Errorf("create form: %w", err)
 	}
 
-	if err := s.db.GetDB().WithContext(ctx).Create(formModel).Error; err != nil {
+	if createErr := s.db.GetDB().WithContext(ctx).Create(formModel).Error; createErr != nil {
 		s.logger.Error("failed to create form",
 			"form_id", formEntity.ID,
 			"user_id", formEntity.UserID,
-			"error", err,
+			"error", createErr,
 		)
 
-		return fmt.Errorf("create form: %w", common.NewDatabaseError("create", "form", formEntity.ID, err))
+		return fmt.Errorf("create form: %w", common.NewDatabaseError("create", "form", formEntity.ID, createErr))
 	}
 
 	return nil
@@ -215,7 +215,7 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 		return nil, fmt.Errorf("get form: %w", common.NewDatabaseError("get", "form", normalizedID, err))
 	}
 
-	form, err := formModel.ToDomain()
+	formEntity, err := formModel.ToDomain()
 	if err != nil {
 		return nil, fmt.Errorf("get form: %w", err)
 	}
@@ -224,7 +224,7 @@ func (s *Store) GetFormByID(ctx context.Context, id string) (*model.Form, error)
 		"id_length", len(normalizedID),
 		"form_title", formModel.Title)
 
-	return form, nil
+	return formEntity, nil
 }
 
 // ListForms retrieves all forms for a user
@@ -244,12 +244,12 @@ func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, er
 
 	forms := make([]*model.Form, len(formModels))
 	for i, formModel := range formModels {
-		form, err := formModel.ToDomain()
+		formEntity, err := formModel.ToDomain()
 		if err != nil {
 			return nil, fmt.Errorf("list forms: %w", err)
 		}
 
-		forms[i] = form
+		forms[i] = formEntity
 	}
 
 	return forms, nil
@@ -323,12 +323,12 @@ func (s *Store) GetFormsByStatus(ctx context.Context, status string) ([]*model.F
 
 	forms := make([]*model.Form, len(formModels))
 	for i, formModel := range formModels {
-		form, err := formModel.ToDomain()
+		formEntity, err := formModel.ToDomain()
 		if err != nil {
 			return nil, fmt.Errorf("get forms by status: %w", err)
 		}
 
-		forms[i] = form
+		forms[i] = formEntity
 	}
 
 	return forms, nil

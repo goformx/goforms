@@ -3,6 +3,10 @@ package auth
 import (
 	"fmt"
 
+	"context"
+
+	"github.com/goformx/goforms/internal/application/dto"
+
 	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
@@ -13,7 +17,6 @@ import (
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/labstack/echo/v4"
 )
 
 // AuthHandler handles authentication-related routes
@@ -101,24 +104,11 @@ func (h *AuthHandler) Login(ctx httpiface.Context) error {
 	// Render the login page using the framework-agnostic interface
 	loginComponent := pages.Login(*pageData)
 
-	return ctx.RenderComponent(loginComponent)
-}
-
-// handleAuthRequest is a helper method to reduce code duplication in auth handlers
-func (h *AuthHandler) handleAuthRequest(ctx httpiface.Context, operation string, handler func(http.Context, echo.Context) error) error {
-	// Extract the underlying Echo context
-	echoCtx, ok := ctx.GetUnderlyingContext().(echo.Context)
-	if !ok {
-		h.logger.Error("failed to get echo context from httpiface.Context")
-
-		return fmt.Errorf("internal server error: context conversion failed")
+	if err := ctx.RenderComponent(loginComponent); err != nil {
+		return fmt.Errorf("failed to render login component: %w", err)
 	}
 
-	// Wrap echo context with our adapter
-	adapterCtx := http.NewEchoContextAdapter(echoCtx)
-
-	// Call the specific handler
-	return handler(adapterCtx, echoCtx)
+	return nil
 }
 
 // getInfraContext is a simple bridge to convert presentation Context to infrastructure Context
@@ -131,9 +121,16 @@ func (h *AuthHandler) getInfraContext(ctx httpiface.Context) (http.Context, erro
 	return nil, fmt.Errorf("invalid context type")
 }
 
-// LoginPost handles POST /login
-func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
-	// Get infrastructure context using bridge
+// handleAuthPost is a generic handler for login/signup POST requests
+func handleAuthPost[
+	Req any, Resp any](
+	h *AuthHandler,
+	ctx httpiface.Context,
+	parseReq func(http.Context) (Req, error),
+	serviceFunc func(context.Context, Req) (Resp, error),
+	buildResp func(http.Context, Resp) error,
+	invalidInputMsg, serviceFailMsg string,
+) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
@@ -141,24 +138,39 @@ func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
-	// Parse request using adapter
-	loginReq, err := h.requestAdapter.ParseLoginRequest(infraCtx)
+	req, err := parseReq(infraCtx)
 	if err != nil {
-		h.logger.Error("failed to parse login request", "error", err)
+		h.logger.Error("failed to parse request", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("%s", invalidInputMsg))
 	}
 
-	// Call application service
-	loginResp, err := h.authService.Login(ctx.RequestContext(), loginReq)
+	resp, err := serviceFunc(ctx.RequestContext(), req)
 	if err != nil {
-		h.logger.Warn("login failed", "email", loginReq.Email, "error", err)
+		h.logger.Warn("service failed", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid email or password"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("%s", serviceFailMsg))
 	}
 
-	// Build response using adapter
-	return h.responseAdapter.BuildLoginResponse(infraCtx, loginResp)
+	if buildErr := buildResp(infraCtx, resp); buildErr != nil {
+		return fmt.Errorf("failed to build response: %w", buildErr)
+	}
+
+	return nil
+}
+
+// LoginPost handles POST /login
+func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
+	return handleAuthPost[
+		*dto.LoginRequest, *dto.LoginResponse](
+		h,
+		ctx,
+		h.requestAdapter.ParseLoginRequest,
+		h.authService.Login,
+		h.responseAdapter.BuildLoginResponse,
+		"invalid request format",
+		"invalid email or password",
+	)
 }
 
 // Signup handles GET /signup
@@ -178,37 +190,25 @@ func (h *AuthHandler) Signup(ctx httpiface.Context) error {
 	// Render the signup page using the framework-agnostic interface
 	signupComponent := pages.Signup(*pageData)
 
-	return ctx.RenderComponent(signupComponent)
+	if err := ctx.RenderComponent(signupComponent); err != nil {
+		return fmt.Errorf("failed to render signup component: %w", err)
+	}
+
+	return nil
 }
 
 // SignupPost handles POST /signup
 func (h *AuthHandler) SignupPost(ctx httpiface.Context) error {
-	// Get infrastructure context using bridge
-	infraCtx, err := h.getInfraContext(ctx)
-	if err != nil {
-		h.logger.Error("failed to get infrastructure context", "error", err)
-
-		return fmt.Errorf("internal server error: context conversion failed")
-	}
-
-	// Parse request using adapter
-	signupReq, err := h.requestAdapter.ParseSignupRequest(infraCtx)
-	if err != nil {
-		h.logger.Error("failed to parse signup request", "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
-	}
-
-	// Call application service
-	signupResp, err := h.authService.Signup(ctx.RequestContext(), signupReq)
-	if err != nil {
-		h.logger.Warn("signup failed", "email", signupReq.Email, "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to create account, please try again"))
-	}
-
-	// Build response using adapter
-	return h.responseAdapter.BuildSignupResponse(infraCtx, signupResp)
+	return handleAuthPost[
+		*dto.SignupRequest, *dto.SignupResponse](
+		h,
+		ctx,
+		h.requestAdapter.ParseSignupRequest,
+		h.authService.Signup,
+		h.responseAdapter.BuildSignupResponse,
+		"invalid request format",
+		"failed to create account, please try again",
+	)
 }
 
 // Logout handles POST /logout
@@ -238,7 +238,11 @@ func (h *AuthHandler) Logout(ctx httpiface.Context) error {
 	}
 
 	// Build response using adapter
-	return h.responseAdapter.BuildLogoutResponse(infraCtx, logoutResp)
+	if logoutBuildErr := h.responseAdapter.BuildLogoutResponse(infraCtx, logoutResp); logoutBuildErr != nil {
+		return fmt.Errorf("failed to build logout response: %w", logoutBuildErr)
+	}
+
+	return nil
 }
 
 // TestEndpoint handles GET /api/v1/test

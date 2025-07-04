@@ -14,22 +14,22 @@ type ViewUser struct {
 
 // ViewForm represents form data for view rendering
 type ViewForm struct {
-	ID          string                 `json:"id"`
-	Title       string                 `json:"title"`
-	Description string                 `json:"description"`
-	Schema      map[string]interface{} `json:"schema"`
-	UserID      string                 `json:"user_id"`
-	Status      string                 `json:"status"`
-	CreatedAt   time.Time              `json:"created_at"`
-	UpdatedAt   time.Time              `json:"updated_at"`
+	ID          string         `json:"id"`
+	Title       string         `json:"title"`
+	Description string         `json:"description"`
+	Schema      map[string]any `json:"schema"`
+	UserID      string         `json:"user_id"`
+	Status      string         `json:"status"`
+	CreatedAt   time.Time      `json:"created_at"`
+	UpdatedAt   time.Time      `json:"updated_at"`
 }
 
 // ViewFormSubmission represents form submission data for view rendering
 type ViewFormSubmission struct {
-	ID        string                 `json:"id"`
-	FormID    string                 `json:"form_id"`
-	Data      map[string]interface{} `json:"data"`
-	CreatedAt time.Time              `json:"created_at"`
+	ID        string         `json:"id"`
+	FormID    string         `json:"form_id"`
+	Data      map[string]any `json:"data"`
+	CreatedAt time.Time      `json:"created_at"`
 }
 
 // ViewMessage represents a user-facing message
@@ -55,7 +55,7 @@ type ViewPageData struct {
 	Submissions          []*ViewFormSubmission
 	CSRFToken            string
 	IsDevelopment        bool
-	Content              interface{} // templ.Component or similar
+	Content              any // templ.Component or similar
 	FormBuilderAssetPath string
 	FormPreviewAssetPath string
 	Message              *ViewMessage
@@ -81,7 +81,7 @@ type ViewSessionData struct {
 }
 
 // ConvertUserToView converts domain user to view DTO
-func ConvertUserToView(user interface{}) *ViewUser {
+func ConvertUserToView(user any) *ViewUser {
 	if user == nil {
 		return nil
 	}
@@ -96,7 +96,7 @@ func ConvertUserToView(user interface{}) *ViewUser {
 }
 
 // ConvertFormToView converts domain form to view DTO
-func ConvertFormToView(form interface{}) *ViewForm {
+func ConvertFormToView(form any) *ViewForm {
 	if form == nil {
 		return nil
 	}
@@ -116,13 +116,13 @@ func ConvertFormToView(form interface{}) *ViewForm {
 }
 
 // ConvertFormListToView converts domain form list to view DTOs
-func ConvertFormListToView(forms interface{}) []*ViewForm {
+func ConvertFormListToView(forms any) []*ViewForm {
 	// Implementation depends on the actual form list type
 	return []*ViewForm{}
 }
 
 // ConvertSubmissionToView converts domain submission to view DTO
-func ConvertSubmissionToView(submission interface{}) *ViewFormSubmission {
+func ConvertSubmissionToView(submission any) *ViewFormSubmission {
 	if submission == nil {
 		return nil
 	}
@@ -137,7 +137,7 @@ func ConvertSubmissionToView(submission interface{}) *ViewFormSubmission {
 }
 
 // ConvertSubmissionListToView converts domain submission list to view DTOs
-func ConvertSubmissionListToView(submissions interface{}) []*ViewFormSubmission {
+func ConvertSubmissionListToView(submissions any) []*ViewFormSubmission {
 	// Implementation depends on the actual submission list type
 	return []*ViewFormSubmission{}
 }

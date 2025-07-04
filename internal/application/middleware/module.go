@@ -243,7 +243,12 @@ type sessionManagerAdapter struct {
 }
 
 func (a *sessionManagerAdapter) CreateSession(userID, email, role string) (string, error) {
-	return a.manager.CreateSessionApp(userID, email, role)
+	sessionID, err := a.manager.CreateSessionApp(userID, email, role)
+	if err != nil {
+		return "", fmt.Errorf("failed to create session: %w", err)
+	}
+
+	return sessionID, nil
 }
 
 func (a *sessionManagerAdapter) DeleteSession(sessionID string) {

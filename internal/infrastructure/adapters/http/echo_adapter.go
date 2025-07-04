@@ -219,29 +219,38 @@ func (a *EchoRequestAdapter) ParseSubmitFormRequest(ctx Context) (*dto.SubmitFor
 			return nil, fmt.Errorf("failed to bind submit form request: %w", err)
 		}
 	} else {
-		// For form data, we need to parse the form values
-		if err := echoCtx.Request().ParseForm(); err != nil {
-			return nil, fmt.Errorf("failed to parse form: %w", err)
+		if err := a.parseFormData(echoCtx, &request); err != nil {
+			return nil, err
 		}
-
-		// Convert form values to map[string]interface{}
-		data := make(map[string]interface{})
-
-		for key, values := range echoCtx.Request().Form {
-			if len(values) == 1 {
-				data[key] = values[0]
-			} else {
-				data[key] = values
-			}
-		}
-
-		request.Data = data
 	}
 
 	// Get form ID from path
 	request.FormID = echoCtx.Param("id")
 
 	return &request, nil
+}
+
+// parseFormData parses form data and populates the request
+func (a *EchoRequestAdapter) parseFormData(echoCtx *EchoContextAdapter, request *dto.SubmitFormRequest) error {
+	// For form data, we need to parse the form values
+	if err := echoCtx.Request().ParseForm(); err != nil {
+		return fmt.Errorf("failed to parse form: %w", err)
+	}
+
+	// Convert form values to map[string]any
+	data := make(map[string]any)
+
+	for key, values := range echoCtx.Request().Form {
+		if len(values) == 1 {
+			data[key] = values[0]
+		} else {
+			data[key] = values
+		}
+	}
+
+	request.Data = data
+
+	return nil
 }
 
 // ParsePaginationRequest parses pagination request from Echo context
@@ -410,7 +419,7 @@ func (a *EchoResponseAdapter) BuildErrorResponse(ctx Context, err error) error {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusInternalServerError, map[string]interface{}{
+	return echoCtx.JSON(http.StatusInternalServerError, map[string]any{
 		"error": err.Error(),
 	})
 }
@@ -422,7 +431,7 @@ func (a *EchoResponseAdapter) BuildValidationErrorResponse(ctx Context, errors [
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusBadRequest, map[string]interface{}{
+	return echoCtx.JSON(http.StatusBadRequest, map[string]any{
 		"errors": errors,
 	})
 }
@@ -434,7 +443,7 @@ func (a *EchoResponseAdapter) BuildNotFoundResponse(ctx Context, resource string
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusNotFound, map[string]interface{}{
+	return echoCtx.JSON(http.StatusNotFound, map[string]any{
 		"error": fmt.Sprintf("%s not found", resource),
 	})
 }
@@ -446,7 +455,7 @@ func (a *EchoResponseAdapter) BuildUnauthorizedResponse(ctx Context) error {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusUnauthorized, map[string]interface{}{
+	return echoCtx.JSON(http.StatusUnauthorized, map[string]any{
 		"error": "unauthorized",
 	})
 }
@@ -458,26 +467,26 @@ func (a *EchoResponseAdapter) BuildForbiddenResponse(ctx Context) error {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusForbidden, map[string]interface{}{
+	return echoCtx.JSON(http.StatusForbidden, map[string]any{
 		"error": "forbidden",
 	})
 }
 
 // BuildSuccessResponse builds success response for Echo context
-func (a *EchoResponseAdapter) BuildSuccessResponse(ctx Context, message string, data interface{}) error {
+func (a *EchoResponseAdapter) BuildSuccessResponse(ctx Context, message string, data any) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusOK, map[string]interface{}{
+	return echoCtx.JSON(http.StatusOK, map[string]any{
 		"message": message,
 		"data":    data,
 	})
 }
 
 // BuildJSONResponse builds generic JSON response for Echo context
-func (a *EchoResponseAdapter) BuildJSONResponse(ctx Context, statusCode int, data interface{}) error {
+func (a *EchoResponseAdapter) BuildJSONResponse(ctx Context, statusCode int, data any) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
@@ -549,18 +558,26 @@ func (e *EchoContextAdapter) Body() []byte {
 }
 
 // JSON sends a JSON response
-func (e *EchoContextAdapter) JSON(statusCode int, data interface{}) error {
+func (e *EchoContextAdapter) JSON(statusCode int, data any) error {
 	return e.Context.JSON(statusCode, data)
 }
 
 // JSONBlob sends a JSON blob response
 func (e *EchoContextAdapter) JSONBlob(statusCode int, data []byte) error {
-	return e.Context.JSONBlob(statusCode, data)
+	if err := e.Context.JSONBlob(statusCode, data); err != nil {
+		return fmt.Errorf("failed to write JSON blob response: %w", err)
+	}
+
+	return nil
 }
 
 // String sends a string response
 func (e *EchoContextAdapter) String(statusCode int, data string) error {
-	return e.Context.String(statusCode, data)
+	if err := e.Context.String(statusCode, data); err != nil {
+		return fmt.Errorf("failed to write string response: %w", err)
+	}
+
+	return nil
 }
 
 // Redirect redirects the request
@@ -570,16 +587,20 @@ func (e *EchoContextAdapter) Redirect(statusCode int, url string) error {
 
 // NoContent sends a no content response
 func (e *EchoContextAdapter) NoContent(statusCode int) error {
-	return e.Context.NoContent(statusCode)
+	if err := e.Context.NoContent(statusCode); err != nil {
+		return fmt.Errorf("failed to write no content response: %w", err)
+	}
+
+	return nil
 }
 
 // Get retrieves a value from the context
-func (e *EchoContextAdapter) Get(key string) interface{} {
+func (e *EchoContextAdapter) Get(key string) any {
 	return e.Context.Get(key)
 }
 
 // Set stores a value in the context
-func (e *EchoContextAdapter) Set(key string, value interface{}) {
+func (e *EchoContextAdapter) Set(key string, value any) {
 	e.Context.Set(key, value)
 }
 
@@ -589,15 +610,19 @@ func (e *EchoContextAdapter) RequestContext() context.Context {
 }
 
 // GetUnderlyingContext returns the underlying Echo context for bridge methods
-func (e *EchoContextAdapter) GetUnderlyingContext() interface{} {
+func (e *EchoContextAdapter) GetUnderlyingContext() any {
 	return e.Context
 }
 
 // RenderComponent renders a component
-func (e *EchoContextAdapter) RenderComponent(component interface{}) error {
+func (e *EchoContextAdapter) RenderComponent(component any) error {
 	// This would delegate to the renderer service
 	// For now, we'll use Echo's built-in rendering
-	return e.Render(http.StatusOK, "component", component)
+	if err := e.Render(http.StatusOK, "component", component); err != nil {
+		return fmt.Errorf("failed to render component: %w", err)
+	}
+
+	return nil
 }
 
 // EchoAdapter registers handlers with an echo.Echo instance.
@@ -611,7 +636,7 @@ func NewEchoAdapter(e *echo.Echo) *EchoAdapter {
 }
 
 // RegisterHandler registers all routes from the given handler with Echo.
-func (a *EchoAdapter) RegisterHandler(handler interface{}) error {
+func (a *EchoAdapter) RegisterHandler(handler any) error {
 	// This is a simple adapter that just passes through to Echo
 	// The actual handler registration logic should be in the presentation layer
 	// This is just a placeholder to satisfy the dependency injection

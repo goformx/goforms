@@ -102,7 +102,11 @@ func (h *FormHandler) NewForm(ctx httpiface.Context) error {
 	}
 	// For now, return a simple success response since GetNewFormPage doesn't exist
 	// TODO: Add GetNewFormPage method to FormUseCaseService
-	return h.responseAdapter.BuildSuccessResponse(infraCtx, "New form page loaded", nil)
+	if buildErr := h.responseAdapter.BuildSuccessResponse(infraCtx, "New form page loaded", nil); buildErr != nil {
+		return fmt.Errorf("failed to build success response: %w", buildErr)
+	}
+
+	return nil
 }
 
 // CreateForm handles POST /forms
@@ -119,7 +123,7 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to parse create form request", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid request format"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
 	}
 	// Call application service
 	createResp, err := h.formService.CreateForm(ctx.RequestContext(), createReq)
@@ -129,7 +133,11 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to create form, please try again"))
 	}
 	// Build response using adapter
-	return h.responseAdapter.BuildFormResponse(infraCtx, createResp)
+	if buildErr := h.responseAdapter.BuildFormResponse(infraCtx, createResp); buildErr != nil {
+		return fmt.Errorf("failed to build form response: %w", buildErr)
+	}
+
+	return nil
 }
 
 // EditForm handles GET /forms/:id/edit
@@ -146,17 +154,21 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid form ID"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
 	}
 	// Call application service
 	editResp, err := h.formService.GetForm(ctx.RequestContext(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for edit", "form_id", formID, "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Failed to load form for editing"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load form for editing"))
 	}
 	// Build response using adapter
-	return h.responseAdapter.BuildFormResponse(infraCtx, editResp)
+	if buildErr := h.responseAdapter.BuildFormResponse(infraCtx, editResp); buildErr != nil {
+		return fmt.Errorf("failed to build form response: %w", buildErr)
+	}
+
+	return nil
 }
 
 // UpdateForm handles PUT /forms/:id
@@ -173,14 +185,14 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid form ID"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
 	}
 	// Parse update request
 	updateReq, err := h.requestAdapter.ParseUpdateFormRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse update form request", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid request format"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
 	}
 	// Set form ID in request
 	updateReq.ID = formID
@@ -189,10 +201,14 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to update form", "form_id", formID, "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Failed to update form. Please try again."))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to update form, please try again"))
 	}
 	// Build response using adapter
-	return h.responseAdapter.BuildFormResponse(infraCtx, updateResp)
+	if buildErr := h.responseAdapter.BuildFormResponse(infraCtx, updateResp); buildErr != nil {
+		return fmt.Errorf("failed to build form response: %w", buildErr)
+	}
+
+	return nil
 }
 
 // DeleteForm handles DELETE /forms/:id
@@ -209,14 +225,14 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid form ID"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
 	}
 	// Parse delete request
 	deleteReq, err := h.requestAdapter.ParseDeleteFormRequest(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse delete form request", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Invalid request format"))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid request format"))
 	}
 	// Set form ID in request
 	deleteReq.ID = formID
@@ -225,10 +241,14 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to delete form", "form_id", formID, "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("Failed to delete form. Please try again."))
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to delete form, please try again"))
 	}
 	// Build response using adapter
-	return h.responseAdapter.BuildSuccessResponse(infraCtx, deleteResp.Message, nil)
+	if buildErr := h.responseAdapter.BuildSuccessResponse(infraCtx, deleteResp.Message, nil); buildErr != nil {
+		return fmt.Errorf("failed to build success response: %w", buildErr)
+	}
+
+	return nil
 }
 
 // FormSubmissions handles GET /forms/:id/submissions
@@ -242,5 +262,9 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	}
 	// For now, return a simple success response since GetFormSubmissions doesn't exist
 	// TODO: Add GetFormSubmissions method to FormUseCaseService
-	return h.responseAdapter.BuildSuccessResponse(infraCtx, "Form submissions loaded", nil)
+	if buildErr := h.responseAdapter.BuildSuccessResponse(infraCtx, "Form submissions loaded", nil); buildErr != nil {
+		return fmt.Errorf("failed to build success response: %w", buildErr)
+	}
+
+	return nil
 }

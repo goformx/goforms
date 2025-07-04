@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"fmt"
+
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/view"
@@ -61,5 +63,9 @@ func (h *PageHandler) handleHome(ctx httpiface.Context) error {
 	// Render the home page using the framework-agnostic interface
 	homeComponent := pages.Home(*pageData)
 
-	return ctx.RenderComponent(homeComponent)
+	if renderErr := ctx.RenderComponent(homeComponent); renderErr != nil {
+		return fmt.Errorf("failed to render home component: %w", renderErr)
+	}
+
+	return nil
 }

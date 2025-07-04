@@ -24,12 +24,12 @@ type ApplicationSetup struct {
 // NewApplicationSetup creates a new ApplicationSetup instance
 func NewApplicationSetup(
 	logger logging.Logger,
-	echo *echo.Echo,
+	echoInstance *echo.Echo,
 	orchestrator *appmiddleware.EchoOrchestratorAdapter,
 ) *ApplicationSetup {
 	return &ApplicationSetup{
 		logger:       logger,
-		echo:         echo,
+		echo:         echoInstance,
 		orchestrator: orchestrator,
 	}
 }
