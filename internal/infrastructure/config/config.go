@@ -9,19 +9,20 @@ import (
 
 // Config represents the complete application configuration
 type Config struct {
-	App      AppConfig      `json:"app"`
-	Database DatabaseConfig `json:"database"`
-	Security SecurityConfig `json:"security"`
-	Email    EmailConfig    `json:"email"`
-	Storage  StorageConfig  `json:"storage"`
-	Cache    CacheConfig    `json:"cache"`
-	Logging  LoggingConfig  `json:"logging"`
-	Session  SessionConfig  `json:"session"`
-	Auth     AuthConfig     `json:"auth"`
-	Form     FormConfig     `json:"form"`
-	API      APIConfig      `json:"api"`
-	Web      WebConfig      `json:"web"`
-	User     UserConfig     `json:"user"`
+	App        AppConfig        `json:"app"`
+	Database   DatabaseConfig   `json:"database"`
+	Security   SecurityConfig   `json:"security"`
+	Email      EmailConfig      `json:"email"`
+	Storage    StorageConfig    `json:"storage"`
+	Cache      CacheConfig      `json:"cache"`
+	Logging    LoggingConfig    `json:"logging"`
+	Session    SessionConfig    `json:"session"`
+	Auth       AuthConfig       `json:"auth"`
+	Form       FormConfig       `json:"form"`
+	API        APIConfig        `json:"api"`
+	Web        WebConfig        `json:"web"`
+	User       UserConfig       `json:"user"`
+	Middleware MiddlewareConfig `json:"middleware"`
 }
 
 // validateConfig validates the configuration
@@ -61,6 +62,11 @@ func (c *Config) validateCoreConfig() error {
 
 	// Validate Security config
 	if err := c.Security.Validate(); err != nil {
+		errs = append(errs, err.Error())
+	}
+
+	// Validate Middleware config
+	if err := c.Middleware.Validate(); err != nil {
 		errs = append(errs, err.Error())
 	}
 

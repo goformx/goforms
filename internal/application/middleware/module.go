@@ -62,7 +62,7 @@ var Module = fx.Module("middleware",
 		// NEW ARCHITECTURE: Core middleware components
 		// Middleware configuration provider
 		fx.Annotate(
-			NewMiddlewareConfig,
+			NewViperMiddlewareConfig,
 			fx.As(new(MiddlewareConfig)),
 		),
 

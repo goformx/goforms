@@ -134,3 +134,185 @@ security:
       - "127.0.0.1"
       - "::1"
       # Add your reverse proxy IPs here
+
+# Middleware configuration
+middleware:
+  enabled: true
+
+  # Global middleware settings
+  global:
+    cache_enabled: true
+    cache_ttl: 300  # 5 minutes
+
+    # Default enabled middleware
+    default_enabled:
+      - "recovery"
+      - "cors"
+      - "request_id"
+      - "logging"
+
+    # Environment-specific middleware
+    development:
+      - "recovery"
+      - "cors"
+      - "request_id"
+      - "logging"
+      - "session"
+      - "authentication"
+      - "authorization"
+
+    production:
+      - "recovery"
+      - "cors"
+      - "security_headers"
+      - "request_id"
+      - "timeout"
+      - "logging"
+      - "csrf"
+      - "rate_limit"
+      - "session"
+      - "authentication"
+      - "authorization"
+
+  # Individual middleware configurations
+  recovery:
+    enabled: true
+
+  cors:
+    enabled: true
+
+  request_id:
+    enabled: true
+
+  timeout:
+    enabled: true
+    timeout_seconds: 30
+    grace_period: 5
+
+  security_headers:
+    enabled: true
+
+  csrf:
+    enabled: true
+    token_header: "X-CSRF-Token"
+    cookie_name: "csrf_token"
+    expire_time: 3600  # 1 hour
+    include_paths:
+      - "/api/*"
+      - "/forms/*"
+    exclude_paths:
+      - "/api/public/*"
+      - "/static/*"
+
+  rate_limit:
+    enabled: true
+    requests_per_minute: 60
+    burst_size: 10
+    window_size: 60  # seconds
+    include_paths:
+      - "/api/*"
+    exclude_paths:
+      - "/health"
+      - "/metrics"
+
+  input_validation:
+    enabled: true
+
+  logging:
+    enabled: true
+    log_level: "info"
+    include_body: false
+    mask_headers:
+      - "authorization"
+      - "cookie"
+    log_requests: true
+    log_responses: true
+
+  session:
+    enabled: true
+    session_timeout: 3600  # 1 hour
+    refresh_timeout: 300   # 5 minutes
+    secure_cookies: true
+    http_only: true
+
+  authentication:
+    enabled: true
+    jwt_secret: "your-secret-key-change-in-production"
+    token_expiry: 3600    # 1 hour
+    refresh_expiry: 86400 # 24 hours
+
+  authorization:
+    enabled: true
+    default_role: "user"
+    admin_role: "admin"
+    cache_ttl: 300  # 5 minutes
+
+  # Chain configurations
+  chains:
+    default:
+      enabled: true
+      middleware_names:
+        - "recovery"
+        - "cors"
+        - "request_id"
+        - "timeout"
+      paths:
+        - "/*"
+
+    api:
+      enabled: true
+      middleware_names:
+        - "security_headers"
+        - "session"
+        - "csrf"
+        - "rate_limit"
+        - "authentication"
+        - "authorization"
+      paths:
+        - "/api/*"
+
+    web:
+      enabled: true
+      middleware_names:
+        - "session"
+        - "authentication"
+        - "authorization"
+      paths:
+        - "/dashboard/*"
+        - "/forms/*"
+
+    auth:
+      enabled: true
+      middleware_names:
+        - "session"
+        - "authentication"
+      paths:
+        - "/login"
+        - "/signup"
+        - "/logout"
+
+    admin:
+      enabled: true
+      middleware_names:
+        - "session"
+        - "authentication"
+        - "authorization"
+      paths:
+        - "/admin/*"
+
+    public:
+      enabled: true
+      middleware_names:
+        - "recovery"
+        - "cors"
+      paths:
+        - "/"
+        - "/public/*"
+
+    static:
+      enabled: true
+      middleware_names:
+        - "recovery"
+      paths:
+        - "/static/*"
+        - "/assets/*"

@@ -111,6 +111,7 @@ func (vc *ViperConfig) loadAllConfigSections(config *Config) error {
 		vc.loadAPIConfig,
 		vc.loadWebConfig,
 		vc.loadUserConfig,
+		vc.loadMiddlewareConfig,
 	}
 
 	for _, loader := range loaders {
@@ -461,6 +462,108 @@ func (vc *ViperConfig) loadUserConfig(config *Config) error {
 	return nil
 }
 
+// loadMiddlewareConfig loads middleware configuration
+func (vc *ViperConfig) loadMiddlewareConfig(config *Config) error {
+	config.Middleware = MiddlewareConfig{
+		Enabled: vc.viper.GetBool("middleware.enabled"),
+		Recovery: RecoveryMiddlewareConfig{
+			Enabled: vc.viper.GetBool("middleware.recovery.enabled"),
+		},
+		CORS: CORSMiddlewareConfig{
+			Enabled: vc.viper.GetBool("middleware.cors.enabled"),
+		},
+		RequestID: RequestIDMiddlewareConfig{
+			Enabled: vc.viper.GetBool("middleware.request_id.enabled"),
+		},
+		Timeout: TimeoutMiddlewareConfig{
+			Enabled:        vc.viper.GetBool("middleware.timeout.enabled"),
+			TimeoutSeconds: vc.viper.GetInt("middleware.timeout.timeout_seconds"),
+			GracePeriod:    vc.viper.GetInt("middleware.timeout.grace_period"),
+		},
+		SecurityHeaders: SecurityHeadersMiddlewareConfig{
+			Enabled: vc.viper.GetBool("middleware.security_headers.enabled"),
+		},
+		CSRF: CSRFMiddlewareConfig{
+			Enabled:      vc.viper.GetBool("middleware.csrf.enabled"),
+			TokenHeader:  vc.viper.GetString("middleware.csrf.token_header"),
+			CookieName:   vc.viper.GetString("middleware.csrf.cookie_name"),
+			ExpireTime:   vc.viper.GetInt("middleware.csrf.expire_time"),
+			IncludePaths: vc.viper.GetStringSlice("middleware.csrf.include_paths"),
+			ExcludePaths: vc.viper.GetStringSlice("middleware.csrf.exclude_paths"),
+		},
+		RateLimit: RateLimitMiddlewareConfig{
+			Enabled:           vc.viper.GetBool("middleware.rate_limit.enabled"),
+			RequestsPerMinute: vc.viper.GetInt("middleware.rate_limit.requests_per_minute"),
+			BurstSize:         vc.viper.GetInt("middleware.rate_limit.burst_size"),
+			WindowSize:        vc.viper.GetInt("middleware.rate_limit.window_size"),
+			IncludePaths:      vc.viper.GetStringSlice("middleware.rate_limit.include_paths"),
+			ExcludePaths:      vc.viper.GetStringSlice("middleware.rate_limit.exclude_paths"),
+		},
+		InputValidation: InputValidationMiddlewareConfig{
+			Enabled: vc.viper.GetBool("middleware.input_validation.enabled"),
+		},
+		Logging: LoggingMiddlewareConfig{
+			Enabled:      vc.viper.GetBool("middleware.logging.enabled"),
+			LogLevel:     vc.viper.GetString("middleware.logging.log_level"),
+			IncludeBody:  vc.viper.GetBool("middleware.logging.include_body"),
+			MaskHeaders:  vc.viper.GetStringSlice("middleware.logging.mask_headers"),
+			LogRequests:  vc.viper.GetBool("middleware.logging.log_requests"),
+			LogResponses: vc.viper.GetBool("middleware.logging.log_responses"),
+			IncludePaths: vc.viper.GetStringSlice("middleware.logging.include_paths"),
+			ExcludePaths: vc.viper.GetStringSlice("middleware.logging.exclude_paths"),
+		},
+		Session: SessionMiddlewareConfig{
+			Enabled:        vc.viper.GetBool("middleware.session.enabled"),
+			SessionTimeout: vc.viper.GetInt("middleware.session.session_timeout"),
+			RefreshTimeout: vc.viper.GetInt("middleware.session.refresh_timeout"),
+			SecureCookies:  vc.viper.GetBool("middleware.session.secure_cookies"),
+			HTTPOnly:       vc.viper.GetBool("middleware.session.http_only"),
+		},
+		Authentication: AuthenticationMiddlewareConfig{
+			Enabled:       vc.viper.GetBool("middleware.authentication.enabled"),
+			JWTSecret:     vc.viper.GetString("middleware.authentication.jwt_secret"),
+			TokenExpiry:   vc.viper.GetInt("middleware.authentication.token_expiry"),
+			RefreshExpiry: vc.viper.GetInt("middleware.authentication.refresh_expiry"),
+		},
+		Authorization: AuthorizationMiddlewareConfig{
+			Enabled:     vc.viper.GetBool("middleware.authorization.enabled"),
+			DefaultRole: vc.viper.GetString("middleware.authorization.default_role"),
+			AdminRole:   vc.viper.GetString("middleware.authorization.admin_role"),
+			CacheTTL:    vc.viper.GetInt("middleware.authorization.cache_ttl"),
+		},
+		Chains: ChainConfigs{
+			Default: vc.loadChainConfig("middleware.chains.default"),
+			API:     vc.loadChainConfig("middleware.chains.api"),
+			Web:     vc.loadChainConfig("middleware.chains.web"),
+			Auth:    vc.loadChainConfig("middleware.chains.auth"),
+			Admin:   vc.loadChainConfig("middleware.chains.admin"),
+			Public:  vc.loadChainConfig("middleware.chains.public"),
+			Static:  vc.loadChainConfig("middleware.chains.static"),
+		},
+		Global: GlobalMiddlewareConfig{
+			DefaultEnabled: vc.viper.GetStringSlice("middleware.global.default_enabled"),
+			Development:    vc.viper.GetStringSlice("middleware.global.development"),
+			Production:     vc.viper.GetStringSlice("middleware.global.production"),
+			Staging:        vc.viper.GetStringSlice("middleware.global.staging"),
+			Test:           vc.viper.GetStringSlice("middleware.global.test"),
+			CacheEnabled:   vc.viper.GetBool("middleware.global.cache_enabled"),
+			CacheTTL:       vc.viper.GetInt("middleware.global.cache_ttl"),
+		},
+	}
+
+	return nil
+}
+
+// loadChainConfig loads configuration for a specific chain
+func (vc *ViperConfig) loadChainConfig(prefix string) ChainConfig {
+	return ChainConfig{
+		Enabled:         vc.viper.GetBool(prefix + ".enabled"),
+		MiddlewareNames: vc.viper.GetStringSlice(prefix + ".middleware_names"),
+		Paths:           vc.viper.GetStringSlice(prefix + ".paths"),
+		CustomConfig:    vc.viper.GetStringMap(prefix + ".custom_config"),
+	}
+}
+
 // LoadForEnvironment loads configuration for a specific environment
 func (vc *ViperConfig) LoadForEnvironment(env string) (*Config, error) {
 	// Set environment-specific config file
@@ -503,6 +606,7 @@ func setDefaults(v *viper.Viper) {
 	setAPIDefaults(v)
 	setWebDefaults(v)
 	setUserDefaults(v)
+	setMiddlewareDefaults(v)
 }
 
 // setAppDefaults sets application default values
@@ -738,6 +842,155 @@ func setUserDefaults(v *viper.Viper) {
 	v.SetDefault("user.admin.name", "Administrator")
 	v.SetDefault("user.default.role", "user")
 	v.SetDefault("user.default.permissions", []string{"read"})
+}
+
+// setMiddlewareDefaults sets middleware default values
+func setMiddlewareDefaults(v *viper.Viper) {
+	// Global middleware settings
+	v.SetDefault("middleware.enabled", true)
+	v.SetDefault("middleware.global.cache_enabled", true)
+	v.SetDefault("middleware.global.cache_ttl", 300) // 5 minutes
+
+	// Default enabled middleware by environment
+	v.SetDefault("middleware.global.default_enabled", []string{
+		"recovery",
+		"cors",
+		"request_id",
+		"logging",
+	})
+
+	v.SetDefault("middleware.global.development", []string{
+		"recovery",
+		"cors",
+		"request_id",
+		"logging",
+		"session",
+		"authentication",
+		"authorization",
+	})
+
+	v.SetDefault("middleware.global.production", []string{
+		"recovery",
+		"cors",
+		"security_headers",
+		"request_id",
+		"timeout",
+		"logging",
+		"csrf",
+		"rate_limit",
+		"session",
+		"authentication",
+		"authorization",
+	})
+
+	// Individual middleware configurations
+	v.SetDefault("middleware.recovery.enabled", true)
+
+	v.SetDefault("middleware.cors.enabled", true)
+
+	v.SetDefault("middleware.request_id.enabled", true)
+
+	v.SetDefault("middleware.timeout.enabled", true)
+	v.SetDefault("middleware.timeout.timeout_seconds", 30)
+	v.SetDefault("middleware.timeout.grace_period", 5)
+
+	v.SetDefault("middleware.security_headers.enabled", true)
+
+	v.SetDefault("middleware.csrf.enabled", true)
+	v.SetDefault("middleware.csrf.token_header", "X-CSRF-Token")
+	v.SetDefault("middleware.csrf.cookie_name", "csrf_token")
+	v.SetDefault("middleware.csrf.expire_time", 3600) // 1 hour
+	v.SetDefault("middleware.csrf.include_paths", []string{"/api/*", "/forms/*"})
+	v.SetDefault("middleware.csrf.exclude_paths", []string{"/api/public/*", "/static/*"})
+
+	v.SetDefault("middleware.rate_limit.enabled", true)
+	v.SetDefault("middleware.rate_limit.requests_per_minute", 60)
+	v.SetDefault("middleware.rate_limit.burst_size", 10)
+	v.SetDefault("middleware.rate_limit.window_size", 60) // seconds
+	v.SetDefault("middleware.rate_limit.include_paths", []string{"/api/*"})
+	v.SetDefault("middleware.rate_limit.exclude_paths", []string{"/health", "/metrics"})
+
+	v.SetDefault("middleware.input_validation.enabled", true)
+
+	v.SetDefault("middleware.logging.enabled", true)
+	v.SetDefault("middleware.logging.log_level", "info")
+	v.SetDefault("middleware.logging.include_body", false)
+	v.SetDefault("middleware.logging.mask_headers", []string{"authorization", "cookie"})
+	v.SetDefault("middleware.logging.log_requests", true)
+	v.SetDefault("middleware.logging.log_responses", true)
+
+	v.SetDefault("middleware.session.enabled", true)
+	v.SetDefault("middleware.session.session_timeout", 3600) // 1 hour
+	v.SetDefault("middleware.session.refresh_timeout", 300)  // 5 minutes
+	v.SetDefault("middleware.session.secure_cookies", true)
+	v.SetDefault("middleware.session.http_only", true)
+
+	v.SetDefault("middleware.authentication.enabled", true)
+	v.SetDefault("middleware.authentication.jwt_secret", "your-secret-key")
+	v.SetDefault("middleware.authentication.token_expiry", 3600)    // 1 hour
+	v.SetDefault("middleware.authentication.refresh_expiry", 86400) // 24 hours
+
+	v.SetDefault("middleware.authorization.enabled", true)
+	v.SetDefault("middleware.authorization.default_role", "user")
+	v.SetDefault("middleware.authorization.admin_role", "admin")
+	v.SetDefault("middleware.authorization.cache_ttl", 300) // 5 minutes
+
+	// Chain configurations
+	v.SetDefault("middleware.chains.default.enabled", true)
+	v.SetDefault("middleware.chains.default.middleware_names", []string{
+		"recovery",
+		"cors",
+		"request_id",
+		"timeout",
+	})
+	v.SetDefault("middleware.chains.default.paths", []string{"/*"})
+
+	v.SetDefault("middleware.chains.api.enabled", true)
+	v.SetDefault("middleware.chains.api.middleware_names", []string{
+		"security_headers",
+		"session",
+		"csrf",
+		"rate_limit",
+		"authentication",
+		"authorization",
+	})
+	v.SetDefault("middleware.chains.api.paths", []string{"/api/*"})
+
+	v.SetDefault("middleware.chains.web.enabled", true)
+	v.SetDefault("middleware.chains.web.middleware_names", []string{
+		"session",
+		"authentication",
+		"authorization",
+	})
+	v.SetDefault("middleware.chains.web.paths", []string{"/dashboard/*", "/forms/*"})
+
+	v.SetDefault("middleware.chains.auth.enabled", true)
+	v.SetDefault("middleware.chains.auth.middleware_names", []string{
+		"session",
+		"authentication",
+	})
+	v.SetDefault("middleware.chains.auth.paths", []string{"/login", "/signup", "/logout"})
+
+	v.SetDefault("middleware.chains.admin.enabled", true)
+	v.SetDefault("middleware.chains.admin.middleware_names", []string{
+		"session",
+		"authentication",
+		"authorization",
+	})
+	v.SetDefault("middleware.chains.admin.paths", []string{"/admin/*"})
+
+	v.SetDefault("middleware.chains.public.enabled", true)
+	v.SetDefault("middleware.chains.public.middleware_names", []string{
+		"recovery",
+		"cors",
+	})
+	v.SetDefault("middleware.chains.public.paths", []string{"/", "/public/*"})
+
+	v.SetDefault("middleware.chains.static.enabled", true)
+	v.SetDefault("middleware.chains.static.middleware_names", []string{
+		"recovery",
+	})
+	v.SetDefault("middleware.chains.static.paths", []string{"/static/*", "/assets/*"})
 }
 
 // NewViperConfigProvider creates an Fx provider for Viper configuration
