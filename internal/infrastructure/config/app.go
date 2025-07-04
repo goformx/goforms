@@ -16,14 +16,15 @@ type AppConfig struct {
 	LogLevel    string `json:"log_level"`
 
 	// Server Settings
-	URL            string        `json:"url"`
-	Scheme         string        `json:"scheme"`
-	Port           int           `json:"port"`
-	Host           string        `json:"host"`
-	ReadTimeout    time.Duration `json:"read_timeout"`
-	WriteTimeout   time.Duration `json:"write_timeout"`
-	IdleTimeout    time.Duration `json:"idle_timeout"`
-	RequestTimeout time.Duration `json:"request_timeout"`
+	URL             string        `json:"url"`
+	Scheme          string        `json:"scheme"`
+	Port            int           `json:"port"`
+	Host            string        `json:"host"`
+	ReadTimeout     time.Duration `json:"read_timeout"`
+	WriteTimeout    time.Duration `json:"write_timeout"`
+	IdleTimeout     time.Duration `json:"idle_timeout"`
+	RequestTimeout  time.Duration `json:"request_timeout"`
+	ShutdownTimeout time.Duration `json:"shutdown_timeout" default:"30s"`
 
 	// Development Settings
 	ViteDevHost string `json:"vite_dev_host"`
@@ -37,7 +38,19 @@ func (c *AppConfig) IsDevelopment() bool {
 
 // GetServerURL returns the server URL
 func (c *AppConfig) GetServerURL() string {
-	return c.URL
+	if c.URL != "" {
+		return c.URL
+	}
+	// Fallback to constructing URL from scheme, host, and port
+	if c.Scheme == "" {
+		c.Scheme = "http"
+	}
+
+	if c.Host == "" {
+		c.Host = "localhost"
+	}
+
+	return fmt.Sprintf("%s://%s:%d", c.Scheme, c.Host, c.Port)
 }
 
 // GetServerPort returns the server port

@@ -10,127 +10,19 @@ import (
 	"os"
 	"os/signal"
 	"syscall"
-	"time"
-
-	"go.uber.org/fx"
-
-	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application"
-	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
-	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/providers"
-	"github.com/goformx/goforms/internal/domain"
-	"github.com/goformx/goforms/internal/infrastructure"
-	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/infrastructure/version"
-	"github.com/goformx/goforms/internal/presentation"
 )
 
 //go:embed all:dist
 var distFS embed.FS
 
-// DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown
-// before forcing termination.
-const DefaultShutdownTimeout = 30 * time.Second
-
-// appParams defines the dependency injection parameters for the application.
-// It uses fx.In to automatically inject dependencies provided by the fx container.
-// Note: This struct should be used by value, not as a pointer, when fx.In is embedded.
-type appParams struct {
-	fx.In
-	Lifecycle     fx.Lifecycle    // Manages application lifecycle hooks
-	Echo          *echo.Echo      // HTTP server framework instance
-	Server        *server.Server  // Custom server implementation
-	Logger        logging.Logger  // Application logger
-	AccessManager *access.Manager // Access control management
-	Config        *config.Config  // Application configuration
-
-	// New middleware system components
-	EchoOrchestratorAdapter *appmiddleware.EchoOrchestratorAdapter // Echo orchestrator adapter
-}
-
-// setupApplication initializes the application by setting up middleware
-// and registering all web handlers.
-// Note: params is passed by value, not as a pointer
-func setupApplication(params appParams) error {
-	// Setup middleware using the new orchestrator system
-	if err := params.EchoOrchestratorAdapter.SetupMiddleware(params.Echo); err != nil {
-		return fmt.Errorf("failed to setup middleware: %w", err)
-	}
-
-	return nil
-}
-
-// setupLifecycle configures the application lifecycle hooks for startup and shutdown.
-// It logs application information and manages server startup in a goroutine.
-// Note: params is passed by value, not as a pointer
-func setupLifecycle(params appParams) {
-	params.Lifecycle.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
-			versionInfo := version.GetInfo()
-			// Log application startup information
-			params.Logger.Info("starting application",
-				"app", params.Config.App.Name,
-				"version", versionInfo.Version,
-				"environment", params.Config.App.Environment,
-				"build_time", versionInfo.BuildTime,
-				"git_commit", versionInfo.GitCommit,
-			)
-
-			// Log middleware system status
-			params.Logger.Info("middleware system initialized with new orchestrator")
-
-			// Start the server in a goroutine to prevent blocking
-			go func() {
-				if err := params.Server.Start(); err != nil {
-					params.Logger.Fatal("server startup failed", "error", err)
-					os.Exit(1)
-				}
-			}()
-
-			return nil
-		},
-		OnStop: func(_ context.Context) error {
-			versionInfo := version.GetInfo()
-			// Log application shutdown information
-			params.Logger.Info("shutting down application",
-				"app", params.Config.App.Name,
-				"version", versionInfo.Version,
-				"build_time", versionInfo.BuildTime,
-				"git_commit", versionInfo.GitCommit,
-			)
-
-			return nil
-		},
-	})
-}
-
 // main is the entry point of the application.
 // It initializes the dependency injection container, starts the application,
 // and handles graceful shutdown on termination signals.
 func main() {
-	// Initialize the fx application container with all required modules and providers
-	app := fx.New(
-		// Provide embedded filesystem
-		fx.Provide(func() embed.FS {
-			return distFS
-		}),
-		// Include all application modules in dependency order
-		config.Module,         // Config must come first as other modules depend on it
-		infrastructure.Module, // Infrastructure (database, logging, etc.)
-		domain.Module,         // Domain services and repositories
-		application.Module,    // Application layer services
-		appmiddleware.Module,  // Middleware orchestration
-		presentation.Module,   // Presentation layer (handlers, templates)
-		// Include OpenAPI validation provider
-		providers.OpenAPIValidationProvider(),
-		// Invoke setup functions
-		fx.Invoke(setupApplication),
-		fx.Invoke(setupLifecycle),
-	)
+	// Create the application using the extracted function
+	app := application.NewApplication(distFS)
 
 	// Start the application
 	if startErr := app.Start(context.Background()); startErr != nil {
@@ -145,7 +37,8 @@ func main() {
 	// Wait for interrupt signal
 	<-sigChan
 
-	// Attempt graceful shutdown
+	// Attempt graceful shutdown with configurable timeout
+	// The timeout is now handled within the application lifecycle
 	if stopErr := app.Stop(context.Background()); stopErr != nil {
 		fmt.Fprintf(os.Stderr, "Application shutdown failed: %v\n", stopErr)
 		os.Exit(1)

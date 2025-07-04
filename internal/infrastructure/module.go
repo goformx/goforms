@@ -417,7 +417,18 @@ var Module = fx.Module("infrastructure",
 		ProvideDatabase,
 
 		// HTTP server
-		server.New,
+		fx.Annotate(
+			server.New,
+			fx.As(new(server.ServerInterface)),
+		),
+
+		// Config interface
+		fx.Annotate(
+			func(cfg *config.Config) config.ConfigInterface {
+				return cfg
+			},
+			fx.As(new(config.ConfigInterface)),
+		),
 
 		// Sanitization service
 		fx.Annotate(

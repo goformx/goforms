@@ -27,12 +27,16 @@ const (
 )
 
 // Server handles HTTP server lifecycle and configuration
+// Implements ServerInterface
 type Server struct {
 	echo   *echo.Echo
 	logger logging.Logger
 	config *config.Config
 	server *http.Server
 }
+
+// Ensure Server implements ServerInterface
+var _ ServerInterface = (*Server)(nil)
 
 // URL returns the server's full HTTP URL
 func (s *Server) URL() string {
@@ -107,7 +111,7 @@ type Deps struct {
 }
 
 // New creates a new server instance with the provided dependencies
-func New(deps Deps) *Server {
+func New(deps Deps) ServerInterface {
 	srv := &Server{
 		echo:   deps.Echo,
 		logger: deps.Logger,
@@ -145,11 +149,17 @@ func New(deps Deps) *Server {
 
 			srv.logger.Info("shutting down server")
 
-			shutdownCtx, cancel := context.WithTimeout(ctx, ShutdownTimeout)
+			// Use configurable shutdown timeout if available, otherwise use default
+			shutdownTimeout := ShutdownTimeout
+			if srv.config.App.ShutdownTimeout > 0 {
+				shutdownTimeout = srv.config.App.ShutdownTimeout
+			}
+
+			shutdownCtx, cancel := context.WithTimeout(ctx, shutdownTimeout)
 			defer cancel()
 
 			if err := srv.server.Shutdown(shutdownCtx); err != nil {
-				srv.logger.Error("server shutdown error", "error", err, "timeout", ShutdownTimeout)
+				srv.logger.Error("server shutdown error", "error", err, "timeout", shutdownTimeout)
 
 				return fmt.Errorf("server shutdown error: %w", err)
 			}

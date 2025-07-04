@@ -25,6 +25,79 @@ type Config struct {
 	Middleware MiddlewareConfig `json:"middleware"`
 }
 
+// Ensure Config implements ConfigInterface
+var _ ConfigInterface = (*Config)(nil)
+
+// App returns the application configuration
+func (c *Config) GetApp() AppConfig {
+	return c.App
+}
+
+// Database returns the database configuration
+func (c *Config) GetDatabase() DatabaseConfig {
+	return c.Database
+}
+
+// Security returns the security configuration
+func (c *Config) GetSecurity() SecurityConfig {
+	return c.Security
+}
+
+// Email returns the email configuration
+func (c *Config) GetEmail() EmailConfig {
+	return c.Email
+}
+
+// Storage returns the storage configuration
+func (c *Config) GetStorage() StorageConfig {
+	return c.Storage
+}
+
+// Cache returns the cache configuration
+func (c *Config) GetCache() CacheConfig {
+	return c.Cache
+}
+
+// Logging returns the logging configuration
+func (c *Config) GetLogging() LoggingConfig {
+	return c.Logging
+}
+
+// Session returns the session configuration
+func (c *Config) GetSession() SessionConfig {
+	return c.Session
+}
+
+// Auth returns the auth configuration
+func (c *Config) GetAuth() AuthConfig {
+	return c.Auth
+}
+
+// Form returns the form configuration
+func (c *Config) GetForm() FormConfig {
+	return c.Form
+}
+
+// API returns the API configuration
+func (c *Config) GetAPI() APIConfig {
+	return c.API
+}
+
+// Web returns the web configuration
+func (c *Config) GetWeb() WebConfig {
+	return c.Web
+}
+
+// User returns the user configuration
+func (c *Config) GetUser() UserConfig {
+	return c.User
+}
+
+// Middleware returns the middleware configuration
+func (c *Config) GetMiddleware() MiddlewareConfig {
+	return c.Middleware
+}
+
 // validateConfig validates the configuration
 func (c *Config) validateConfig() error {
 	var errs []string
