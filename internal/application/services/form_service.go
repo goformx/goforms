@@ -28,7 +28,10 @@ func NewFormUseCaseService(
 }
 
 // CreateForm handles form creation use case
-func (s *FormUseCaseService) CreateForm(ctx context.Context, request *dto.CreateFormRequest) (*dto.FormResponse, error) {
+func (s *FormUseCaseService) CreateForm(
+	ctx context.Context,
+	request *dto.CreateFormRequest,
+) (*dto.FormResponse, error) {
 	s.logger.Info("processing create form request", "user_id", request.UserID, "title", request.Title)
 
 	// Convert DTO to domain model
@@ -57,7 +60,10 @@ func (s *FormUseCaseService) CreateForm(ctx context.Context, request *dto.Create
 }
 
 // UpdateForm handles form update use case
-func (s *FormUseCaseService) UpdateForm(ctx context.Context, request *dto.UpdateFormRequest) (*dto.FormResponse, error) {
+func (s *FormUseCaseService) UpdateForm(
+	ctx context.Context,
+	request *dto.UpdateFormRequest,
+) (*dto.FormResponse, error) {
 	s.logger.Info("processing update form request", "form_id", request.ID, "user_id", request.UserID)
 
 	// Get existing form
@@ -70,7 +76,10 @@ func (s *FormUseCaseService) UpdateForm(ctx context.Context, request *dto.Update
 
 	// Check ownership
 	if existingForm.UserID != request.UserID {
-		s.logger.Warn("unauthorized form update attempt", "form_id", request.ID, "user_id", request.UserID, "form_owner", existingForm.UserID)
+		s.logger.Warn("unauthorized form update attempt",
+			"form_id", request.ID,
+			"user_id", request.UserID,
+			"form_owner", existingForm.UserID)
 
 		return nil, fmt.Errorf("unauthorized: you don't have permission to update this form")
 	}
@@ -98,7 +107,10 @@ func (s *FormUseCaseService) UpdateForm(ctx context.Context, request *dto.Update
 }
 
 // DeleteForm handles form deletion use case
-func (s *FormUseCaseService) DeleteForm(ctx context.Context, request *dto.DeleteFormRequest) (*dto.DeleteFormResponse, error) {
+func (s *FormUseCaseService) DeleteForm(
+	ctx context.Context,
+	request *dto.DeleteFormRequest,
+) (*dto.DeleteFormResponse, error) {
 	s.logger.Info("processing delete form request", "form_id", request.ID, "user_id", request.UserID)
 
 	// Get existing form
@@ -111,7 +123,10 @@ func (s *FormUseCaseService) DeleteForm(ctx context.Context, request *dto.Delete
 
 	// Check ownership
 	if existingForm.UserID != request.UserID {
-		s.logger.Warn("unauthorized form deletion attempt", "form_id", request.ID, "user_id", request.UserID, "form_owner", existingForm.UserID)
+		s.logger.Warn("unauthorized form deletion attempt",
+			"form_id", request.ID,
+			"user_id", request.UserID,
+			"form_owner", existingForm.UserID)
 
 		return nil, fmt.Errorf("unauthorized: you don't have permission to delete this form")
 	}
@@ -152,7 +167,11 @@ func (s *FormUseCaseService) GetForm(ctx context.Context, formID string) (*dto.F
 }
 
 // ListForms handles form listing use case
-func (s *FormUseCaseService) ListForms(ctx context.Context, userID string, pagination *dto.PaginationRequest) (*dto.FormListResponse, error) {
+func (s *FormUseCaseService) ListForms(
+	ctx context.Context,
+	userID string,
+	pagination *dto.PaginationRequest,
+) (*dto.FormListResponse, error) {
 	s.logger.Debug("processing list forms request", "user_id", userID, "page", pagination.Page, "limit", pagination.Limit)
 
 	// Call domain service
@@ -180,7 +199,10 @@ func (s *FormUseCaseService) ListForms(ctx context.Context, userID string, pagin
 }
 
 // SubmitForm handles form submission use case
-func (s *FormUseCaseService) SubmitForm(ctx context.Context, request *dto.SubmitFormRequest) (*dto.SubmitFormResponse, error) {
+func (s *FormUseCaseService) SubmitForm(
+	ctx context.Context,
+	request *dto.SubmitFormRequest,
+) (*dto.SubmitFormResponse, error) {
 	s.logger.Info("processing form submission", "form_id", request.FormID, "user_id", request.UserID)
 
 	// Create submission model

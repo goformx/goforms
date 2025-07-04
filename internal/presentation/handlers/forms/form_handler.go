@@ -126,7 +126,7 @@ func (h *FormHandler) CreateForm(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to create form", "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Failed to create form. Please try again."))
+		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("failed to create form, please try again"))
 	}
 
 	// Build response using adapter

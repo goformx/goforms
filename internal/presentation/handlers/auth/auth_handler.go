@@ -106,37 +106,42 @@ func (h *AuthHandler) Login(ctx httpiface.Context) error {
 	return nil
 }
 
-// LoginPost handles POST /login
-func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
+// handleAuthRequest is a helper method to reduce code duplication in auth handlers
+func (h *AuthHandler) handleAuthRequest(ctx httpiface.Context, operation string, handler func(http.Context, echo.Context) error) error {
 	// Extract the underlying Echo context
 	echoCtx, ok := ctx.Request().(echo.Context)
 	if !ok {
 		h.logger.Error("failed to get echo context from httpiface.Context")
-
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
 	// Wrap echo context with our adapter
 	adapterCtx := http.NewEchoContextAdapter(echoCtx)
 
-	// Parse request using adapter
-	loginReq, err := h.requestAdapter.ParseLoginRequest(adapterCtx)
-	if err != nil {
-		h.logger.Error("failed to parse login request", "error", err)
+	// Call the specific handler
+	return handler(adapterCtx, echoCtx)
+}
 
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Invalid request format"))
-	}
+// LoginPost handles POST /login
+func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
+	return h.handleAuthRequest(ctx, "login", func(adapterCtx http.Context, echoCtx echo.Context) error {
+		// Parse request using adapter
+		loginReq, err := h.requestAdapter.ParseLoginRequest(adapterCtx)
+		if err != nil {
+			h.logger.Error("failed to parse login request", "error", err)
+			return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("invalid request format"))
+		}
 
-	// Call application service
-	loginResp, err := h.authService.Login(echoCtx.Request().Context(), loginReq)
-	if err != nil {
-		h.logger.Warn("login failed", "email", loginReq.Email, "error", err)
+		// Call application service
+		loginResp, err := h.authService.Login(echoCtx.Request().Context(), loginReq)
+		if err != nil {
+			h.logger.Warn("login failed", "email", loginReq.Email, "error", err)
+			return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("invalid email or password"))
+		}
 
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Invalid email or password"))
-	}
-
-	// Build response using adapter
-	return h.responseAdapter.BuildLoginResponse(adapterCtx, loginResp)
+		// Build response using adapter
+		return h.responseAdapter.BuildLoginResponse(adapterCtx, loginResp)
+	})
 }
 
 // Signup handles GET /signup
@@ -164,68 +169,46 @@ func (h *AuthHandler) Signup(ctx httpiface.Context) error {
 
 // SignupPost handles POST /signup
 func (h *AuthHandler) SignupPost(ctx httpiface.Context) error {
-	// Extract the underlying Echo context
-	echoCtx, ok := ctx.Request().(echo.Context)
-	if !ok {
-		h.logger.Error("failed to get echo context from httpiface.Context")
+	return h.handleAuthRequest(ctx, "signup", func(adapterCtx http.Context, echoCtx echo.Context) error {
+		// Parse request using adapter
+		signupReq, err := h.requestAdapter.ParseSignupRequest(adapterCtx)
+		if err != nil {
+			h.logger.Error("failed to parse signup request", "error", err)
+			return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("invalid request format"))
+		}
 
-		return fmt.Errorf("internal server error: context conversion failed")
-	}
+		// Call application service
+		signupResp, err := h.authService.Signup(echoCtx.Request().Context(), signupReq)
+		if err != nil {
+			h.logger.Warn("signup failed", "email", signupReq.Email, "error", err)
+			return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("failed to create account, please try again"))
+		}
 
-	// Wrap echo context with our adapter
-	adapterCtx := http.NewEchoContextAdapter(echoCtx)
-
-	// Parse request using adapter
-	signupReq, err := h.requestAdapter.ParseSignupRequest(adapterCtx)
-	if err != nil {
-		h.logger.Error("failed to parse signup request", "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Invalid request format"))
-	}
-
-	// Call application service
-	signupResp, err := h.authService.Signup(echoCtx.Request().Context(), signupReq)
-	if err != nil {
-		h.logger.Warn("signup failed", "email", signupReq.Email, "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Failed to create account. Please try again."))
-	}
-
-	// Build response using adapter
-	return h.responseAdapter.BuildSignupResponse(adapterCtx, signupResp)
+		// Build response using adapter
+		return h.responseAdapter.BuildSignupResponse(adapterCtx, signupResp)
+	})
 }
 
 // Logout handles POST /logout
 func (h *AuthHandler) Logout(ctx httpiface.Context) error {
-	// Extract the underlying Echo context
-	echoCtx, ok := ctx.Request().(echo.Context)
-	if !ok {
-		h.logger.Error("failed to get echo context from httpiface.Context")
+	return h.handleAuthRequest(ctx, "logout", func(adapterCtx http.Context, echoCtx echo.Context) error {
+		// Parse logout request
+		logoutReq, err := h.requestAdapter.ParseLogoutRequest(adapterCtx)
+		if err != nil {
+			h.logger.Error("failed to parse logout request", "error", err)
+			return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("invalid request format"))
+		}
 
-		return fmt.Errorf("internal server error: context conversion failed")
-	}
+		// Call application service
+		logoutResp, err := h.authService.Logout(echoCtx.Request().Context(), logoutReq)
+		if err != nil {
+			h.logger.Error("logout failed", "error", err)
+			return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("failed to logout"))
+		}
 
-	// Wrap echo context with our adapter
-	adapterCtx := http.NewEchoContextAdapter(echoCtx)
-
-	// Parse logout request
-	logoutReq, err := h.requestAdapter.ParseLogoutRequest(adapterCtx)
-	if err != nil {
-		h.logger.Error("failed to parse logout request", "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Invalid request format"))
-	}
-
-	// Call application service
-	logoutResp, err := h.authService.Logout(echoCtx.Request().Context(), logoutReq)
-	if err != nil {
-		h.logger.Error("logout failed", "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Failed to logout"))
-	}
-
-	// Build response using adapter
-	return h.responseAdapter.BuildLogoutResponse(adapterCtx, logoutResp)
+		// Build response using adapter
+		return h.responseAdapter.BuildLogoutResponse(adapterCtx, logoutResp)
+	})
 }
 
 // TestEndpoint handles GET /api/v1/test

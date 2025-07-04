@@ -94,7 +94,7 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to fetch user forms", "user_id", userID, "error", err)
 
-		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("Failed to load your forms. Please try again."))
+		return h.responseAdapter.BuildErrorResponse(adapterCtx, fmt.Errorf("failed to load your forms, please try again"))
 	}
 
 	// Build response using adapter
