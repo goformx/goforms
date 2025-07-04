@@ -12,13 +12,10 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/adapters/echo"
-	"github.com/goformx/goforms/internal/presentation/handlers/api"
 	"github.com/goformx/goforms/internal/presentation/handlers/auth"
 	"github.com/goformx/goforms/internal/presentation/handlers/dashboard"
 	"github.com/goformx/goforms/internal/presentation/handlers/forms"
-	"github.com/goformx/goforms/internal/presentation/handlers/openapi"
 	"github.com/goformx/goforms/internal/presentation/handlers/pages"
-	"github.com/goformx/goforms/internal/presentation/handlers/validation"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
 	"github.com/goformx/goforms/internal/presentation/view"
 	echosrv "github.com/labstack/echo/v4"
@@ -64,7 +61,7 @@ type FormHandlerParams struct {
 type PageHandlerParams struct {
 	fx.In
 	Renderer     view.Renderer
-	Cfg          *config.Config
+	Config       *config.Config
 	AssetManager web.AssetManagerInterface
 	Logger       logging.Logger
 }
@@ -112,7 +109,7 @@ func NewFormHandlerWithDeps(params FormHandlerParams) *forms.FormHandler {
 func NewPageHandlerWithDeps(params PageHandlerParams) *pages.PageHandler {
 	return pages.NewPageHandler(
 		params.Renderer,
-		params.Cfg,
+		params.Config,
 		params.AssetManager,
 		params.Logger,
 	)
@@ -137,21 +134,6 @@ var Module = fx.Module("presentation",
 		),
 		fx.Annotate(
 			NewFormHandlerWithDeps,
-			fx.As(new(httpiface.Handler)),
-			fx.ResultTags(`group:"handlers"`),
-		),
-		fx.Annotate(
-			api.NewAPIHandler,
-			fx.As(new(httpiface.Handler)),
-			fx.ResultTags(`group:"handlers"`),
-		),
-		fx.Annotate(
-			openapi.NewOpenAPIHandler,
-			fx.As(new(httpiface.Handler)),
-			fx.ResultTags(`group:"handlers"`),
-		),
-		fx.Annotate(
-			validation.NewValidationHandler,
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),

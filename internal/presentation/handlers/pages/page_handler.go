@@ -17,7 +17,7 @@ import (
 type PageHandler struct {
 	handlers.BaseHandler
 	renderer     view.Renderer
-	cfg          *config.Config
+	config       *config.Config
 	assetManager web.AssetManagerInterface
 	logger       logging.Logger
 }
@@ -32,7 +32,7 @@ func NewPageHandler(
 	h := &PageHandler{
 		BaseHandler:  *handlers.NewBaseHandler("pages"),
 		renderer:     renderer,
-		cfg:          cfg,
+		config:       cfg,
 		assetManager: assetManager,
 		logger:       logger,
 	}
@@ -60,7 +60,7 @@ func (h *PageHandler) handleHome(ctx httpiface.Context) error {
 	}
 
 	// Create page data for the home template
-	pageData := view.NewPageData(h.cfg, h.assetManager, echoCtx, "GoFormX - Self-Hosted Form Backend")
+	pageData := view.NewPageData(h.config, h.assetManager, echoCtx, "GoFormX - Self-Hosted Form Backend")
 
 	// Render the home page using the generated template
 	homeComponent := pages.Home(*pageData)
