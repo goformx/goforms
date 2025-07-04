@@ -81,14 +81,17 @@ func (h *ValidationHandler) handleFormValidation(c echo.Context) error {
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
 		h.Logger.Error("failed to get form for validation", "error", err, "form_id", formID)
+
 		return response.ErrorResponse(c, 404, "Form not found")
 	}
 
 	// Generate client-side validation rules from form schema
 	comprehensiveValidator := validation.NewComprehensiveValidator()
+
 	clientValidation, err := comprehensiveValidator.GenerateClientValidation(form.Schema)
 	if err != nil {
 		h.Logger.Error("failed to generate client validation schema", "error", err, "form_id", formID)
+
 		return response.ErrorResponse(c, 500, "Failed to generate validation schema")
 	}
 
@@ -98,11 +101,13 @@ func (h *ValidationHandler) handleFormValidation(c echo.Context) error {
 // handleLoginValidation returns login form validation schema
 func (h *ValidationHandler) handleLoginValidation(c echo.Context) error {
 	schema := h.SchemaGenerator.GenerateLoginSchema()
+
 	return response.Success(c, schema)
 }
 
 // handleSignupValidation returns signup form validation schema
 func (h *ValidationHandler) handleSignupValidation(c echo.Context) error {
 	schema := h.SchemaGenerator.GenerateSignupSchema()
+
 	return response.Success(c, schema)
 }

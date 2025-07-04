@@ -103,6 +103,7 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Update form using business logic service
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form, req); updateErr != nil {
 		h.Logger.Error("failed to update form", "error", updateErr)
+
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
@@ -124,6 +125,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 
 	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), form.ID); deleteErr != nil {
 		h.Logger.Error("failed to delete form", "error", deleteErr)
+
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 

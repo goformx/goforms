@@ -318,7 +318,7 @@ describe("FormApiService", () => {
       await service.updateFormDetails("test-form-id", formDetails);
 
       expect(mockHttpPut).toHaveBeenCalledWith(
-        `${window.location.origin}/forms/test-form-id`,
+        `${window.location.origin}/api/v1/forms/test-form-id`,
         JSON.stringify(formDetails),
       );
     });
@@ -326,7 +326,7 @@ describe("FormApiService", () => {
     it("should throw NetworkError when response is not ok", async () => {
       const networkError = FormBuilderError.networkError(
         "HTTP 400: Bad Request",
-        `${window.location.origin}/forms/test-form-id`,
+        `${window.location.origin}/api/v1/forms/test-form-id`,
         400,
       );
       mockHttpPut.mockRejectedValue(networkError);
@@ -339,7 +339,7 @@ describe("FormApiService", () => {
     it("should use default error message when response json fails", async () => {
       const networkError = FormBuilderError.networkError(
         "HTTP 500: Internal Server Error",
-        `${window.location.origin}/forms/test-form-id`,
+        `${window.location.origin}/api/v1/forms/test-form-id`,
         500,
       );
       mockHttpPut.mockRejectedValue(networkError);
@@ -364,14 +364,14 @@ describe("FormApiService", () => {
       await service.deleteForm("test-form-id");
 
       expect(mockHttpDelete).toHaveBeenCalledWith(
-        `${window.location.origin}/forms/test-form-id`,
+        `${window.location.origin}/api/v1/forms/test-form-id`,
       );
     });
 
     it("should throw NetworkError when deletion fails", async () => {
       const networkError = FormBuilderError.networkError(
         "HTTP 404: Not Found",
-        `${window.location.origin}/forms/test-form-id`,
+        `${window.location.origin}/api/v1/forms/test-form-id`,
         404,
       );
       mockHttpDelete.mockRejectedValue(networkError);
