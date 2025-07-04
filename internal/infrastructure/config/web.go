@@ -24,7 +24,7 @@ type APIConfig struct {
 	Timeout    time.Duration   `json:"timeout"`
 	MaxRetries int             `json:"max_retries"`
 	RateLimit  RateLimitConfig `json:"rate_limit"`
-	OpenAPI    OpenAPIConfig   `json:"openapi"`
+	OpenAPI    OpenAPIConfig   `json:"open_api"`
 }
 
 // OpenAPIConfig holds OpenAPI validation configuration

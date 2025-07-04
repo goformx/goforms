@@ -84,8 +84,8 @@ func (m *OpenAPIValidationMiddleware) Middleware() echo.MiddlewareFunc {
 				return err
 			}
 
-			if err := m.validateRequestIfEnabled(c, route, pathParams); err != nil {
-				return err
+			if validationErr := m.validateRequestIfEnabled(c, route, pathParams); validationErr != nil {
+				return validationErr
 			}
 
 			responseCapture := m.responseCapture.Setup(c)
@@ -123,7 +123,7 @@ func (m *OpenAPIValidationMiddleware) findAndCacheRoute(c echo.Context) (*router
 
 	route, pathParams, err := requestValidator.FindRoute(c.Request())
 	if err != nil {
-		return nil, nil, m.errorHandler.HandleError(
+		return nil, nil, fmt.Errorf("failed to find route: %w", m.errorHandler.HandleError(
 			c.Request().Context(),
 			err,
 			RequestValidationError,
@@ -132,7 +132,7 @@ func (m *OpenAPIValidationMiddleware) findAndCacheRoute(c echo.Context) (*router
 				"method": c.Request().Method,
 				"ip":     c.RealIP(),
 			},
-		)
+		))
 	}
 
 	m.routeCache.Set(c, route, pathParams)
@@ -151,7 +151,7 @@ func (m *OpenAPIValidationMiddleware) validateRequestIfEnabled(
 	}
 
 	if err := m.requestValidator.ValidateRequest(c.Request(), route, pathParams); err != nil {
-		return m.errorHandler.HandleError(
+		return fmt.Errorf("request validation failed: %w", m.errorHandler.HandleError(
 			c.Request().Context(),
 			err,
 			RequestValidationError,
@@ -160,7 +160,7 @@ func (m *OpenAPIValidationMiddleware) validateRequestIfEnabled(
 				"method": c.Request().Method,
 				"ip":     c.RealIP(),
 			},
-		)
+		))
 	}
 
 	return nil
@@ -189,7 +189,7 @@ func (m *OpenAPIValidationMiddleware) validateResponseIfEnabled(
 		route,
 		pathParams,
 	); validationErr != nil {
-		return m.errorHandler.HandleError(
+		return fmt.Errorf("response validation failed: %w", m.errorHandler.HandleError(
 			c.Request().Context(),
 			validationErr,
 			ResponseValidationError,
@@ -198,7 +198,7 @@ func (m *OpenAPIValidationMiddleware) validateResponseIfEnabled(
 				"method": c.Request().Method,
 				"status": c.Response().Status,
 			},
-		)
+		))
 	}
 
 	return nil

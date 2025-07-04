@@ -9,7 +9,7 @@ import (
 type routeCache struct{}
 
 // NewRouteCache creates a new route cache
-func NewRouteCache() RouteCache {
+func NewRouteCache() *routeCache {
 	return &routeCache{}
 }
 

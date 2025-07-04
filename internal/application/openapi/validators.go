@@ -94,5 +94,10 @@ func (v *OpenAPIResponseValidator) ValidateResponse(
 
 // FindRoute finds a route in the OpenAPI spec
 func (v *OpenAPIRequestValidator) FindRoute(req *http.Request) (*routers.Route, map[string]string, error) {
-	return v.Router.FindRoute(req)
+	route, pathParams, err := v.Router.FindRoute(req)
+	if err != nil {
+		return nil, nil, fmt.Errorf("failed to find route: %w", err)
+	}
+
+	return route, pathParams, nil
 }

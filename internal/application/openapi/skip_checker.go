@@ -9,7 +9,7 @@ type skipConditionChecker struct {
 }
 
 // NewSkipConditionChecker creates a new skip condition checker
-func NewSkipConditionChecker(config *Config) SkipConditionChecker {
+func NewSkipConditionChecker(config *Config) *skipConditionChecker {
 	return &skipConditionChecker{
 		skipPaths:   config.SkipPaths,
 		skipMethods: config.SkipMethods,
