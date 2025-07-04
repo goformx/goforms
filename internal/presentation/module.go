@@ -58,6 +58,15 @@ type FormHandlerParams struct {
 	Logger         logging.Logger
 }
 
+// PageHandlerParams contains dependencies for creating a PageHandler
+type PageHandlerParams struct {
+	fx.In
+	Renderer     view.Renderer
+	Config       *config.Config
+	AssetManager web.AssetManagerInterface
+	Logger       logging.Logger
+}
+
 // NewAuthHandlerWithDeps creates a new AuthHandler with injected dependencies
 func NewAuthHandlerWithDeps(params AuthHandlerParams) *auth.AuthHandler {
 	return auth.NewAuthHandler(
@@ -94,10 +103,20 @@ func NewFormHandlerWithDeps(params FormHandlerParams) *forms.FormHandler {
 	)
 }
 
+// NewPageHandlerWithDeps creates a new PageHandler with injected dependencies
+func NewPageHandlerWithDeps(params PageHandlerParams) *pages.PageHandler {
+	return pages.NewPageHandler(
+		params.Renderer,
+		params.Config,
+		params.AssetManager,
+		params.Logger,
+	)
+}
+
 var Module = fx.Module("presentation",
 	fx.Provide(
 		fx.Annotate(
-			pages.NewPageHandler,
+			NewPageHandlerWithDeps,
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),
