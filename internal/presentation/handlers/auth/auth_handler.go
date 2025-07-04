@@ -101,7 +101,11 @@ func (h *AuthHandler) Login(ctx httpiface.Context) error {
 	// Render the login page using the generated template
 	loginComponent := pages.Login(*pageData)
 
-	return h.renderer.Render(echoCtx, loginComponent)
+	if err := h.renderer.Render(echoCtx, loginComponent); err != nil {
+		return fmt.Errorf("failed to render login page: %w", err)
+	}
+
+	return nil
 }
 
 // LoginPost handles POST /login
@@ -175,7 +179,11 @@ func (h *AuthHandler) Signup(ctx httpiface.Context) error {
 	// Render the signup page using the generated template
 	signupComponent := pages.Signup(*pageData)
 
-	return h.renderer.Render(echoCtx, signupComponent)
+	if err := h.renderer.Render(echoCtx, signupComponent); err != nil {
+		return fmt.Errorf("failed to render signup page: %w", err)
+	}
+
+	return nil
 }
 
 // SignupPost handles POST /signup

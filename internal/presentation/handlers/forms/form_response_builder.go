@@ -264,7 +264,11 @@ func (b *FormResponseBuilder) renderNewForm(c echo.Context, user *entities.User)
 	// Render the new form page using the generated template
 	newFormComponent := pages.NewForm(*pageData)
 
-	return b.renderer.Render(c, newFormComponent)
+	if err := b.renderer.Render(c, newFormComponent); err != nil {
+		return fmt.Errorf("failed to render new form component: %w", err)
+	}
+
+	return nil
 }
 
 // renderEditForm renders the edit form page
@@ -276,7 +280,11 @@ func (b *FormResponseBuilder) renderEditForm(c echo.Context, user *entities.User
 	// Render the edit form page using the generated template
 	editFormComponent := pages.EditForm(*pageData, form)
 
-	return b.renderer.Render(c, editFormComponent)
+	if err := b.renderer.Render(c, editFormComponent); err != nil {
+		return fmt.Errorf("failed to render edit form component: %w", err)
+	}
+
+	return nil
 }
 
 // renderFormSubmissions renders the form submissions page
@@ -293,5 +301,9 @@ func (b *FormResponseBuilder) renderFormSubmissions(
 	// Render the form submissions page using the generated template
 	formSubmissionsComponent := pages.FormSubmissions(*pageData)
 
-	return b.renderer.Render(c, formSubmissionsComponent)
+	if err := b.renderer.Render(c, formSubmissionsComponent); err != nil {
+		return fmt.Errorf("failed to render form submissions component: %w", err)
+	}
+
+	return nil
 }

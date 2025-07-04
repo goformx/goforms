@@ -10,6 +10,7 @@ import (
 	"github.com/goformx/goforms/internal/presentation/handlers/auth"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 )
 
 func TestAuthRequestParser_ParseLogin(t *testing.T) {
@@ -64,7 +65,7 @@ func TestAuthRequestParser_ParseLogin(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, tt.expectedEmail, email)
 				assert.Equal(t, tt.expectedPass, password)
 			}
@@ -112,7 +113,7 @@ func TestAuthRequestParser_ParseSignup(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 				assert.Equal(t, "test@example.com", signup.Email)
 				assert.Equal(t, "password123", signup.Password)
 				assert.Equal(t, "password123", signup.ConfirmPassword)
@@ -157,7 +158,7 @@ func TestAuthRequestParser_ValidateLogin(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}
@@ -207,7 +208,7 @@ func TestAuthRequestParser_ValidateSignup(t *testing.T) {
 			if tt.expectError {
 				assert.Error(t, err)
 			} else {
-				assert.NoError(t, err)
+				require.NoError(t, err)
 			}
 		})
 	}

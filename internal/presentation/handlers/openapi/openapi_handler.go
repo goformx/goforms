@@ -65,7 +65,11 @@ func NewOpenAPIHandler() *OpenAPIHandler {
 func (h *OpenAPIHandler) serveOpenAPISpec(ctx httpiface.Context) error {
 	// TODO: Implement actual OpenAPI spec serving
 	// For now, return placeholder response
-	return ctx.String(http.StatusOK, "# OpenAPI Specification\n# TODO: Implement actual spec\n")
+	if err := ctx.String(http.StatusOK, "# OpenAPI Specification\n# TODO: Implement actual spec\n"); err != nil {
+		return fmt.Errorf("failed to write OpenAPI spec: %w", err)
+	}
+
+	return nil
 }
 
 // serveOpenAPIJSON serves the OpenAPI JSON specification
@@ -85,7 +89,11 @@ func (h *OpenAPIHandler) serveOpenAPIJSON(ctx httpiface.Context) error {
 		return fmt.Errorf("marshal openapi spec: %w", err)
 	}
 
-	return ctx.JSONBlob(http.StatusOK, jsonData)
+	if writeErr := ctx.JSONBlob(http.StatusOK, jsonData); writeErr != nil {
+		return fmt.Errorf("failed to write OpenAPI JSON: %w", writeErr)
+	}
+
+	return nil
 }
 
 // serveHealthCheck serves the health check endpoint
@@ -128,5 +136,9 @@ func (h *OpenAPIHandler) serveDocsUI(ctx httpiface.Context) error {
 </body>
 </html>`
 
-	return ctx.String(http.StatusOK, html)
+	if err := ctx.String(http.StatusOK, html); err != nil {
+		return fmt.Errorf("failed to write OpenAPI HTML: %w", err)
+	}
+
+	return nil
 }

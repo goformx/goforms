@@ -1,6 +1,7 @@
 package dashboard
 
 import (
+	"fmt"
 	"net/http"
 	"strings"
 
@@ -164,7 +165,11 @@ func (b *DashboardResponseBuilder) renderDashboard(c echo.Context, user *entitie
 	// Render the dashboard page using the generated template
 	dashboardComponent := pages.Dashboard(*pageData, forms)
 
-	return b.renderer.Render(c, dashboardComponent)
+	if err := b.renderer.Render(c, dashboardComponent); err != nil {
+		return fmt.Errorf("failed to render dashboard component: %w", err)
+	}
+
+	return nil
 }
 
 // renderDashboardWithError renders the dashboard page with an error message
@@ -177,5 +182,9 @@ func (b *DashboardResponseBuilder) renderDashboardWithError(c echo.Context, erro
 	// you might want to try to get the user and forms again, or show a different error page
 	dashboardComponent := pages.Dashboard(*pageData, []*model.Form{})
 
-	return b.renderer.Render(c, dashboardComponent)
+	if err := b.renderer.Render(c, dashboardComponent); err != nil {
+		return fmt.Errorf("failed to render dashboard error component: %w", err)
+	}
+
+	return nil
 }

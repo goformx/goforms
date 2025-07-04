@@ -2,6 +2,7 @@ package echo
 
 import (
 	"context"
+	"fmt"
 	"net/url"
 
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
@@ -96,7 +97,7 @@ func (a *EchoContextAdapter) FormValue(name string) string {
 // Form returns all form values
 func (a *EchoContextAdapter) Form() (url.Values, error) {
 	if err := a.echoCtx.Request().ParseForm(); err != nil {
-		return nil, err
+		return nil, fmt.Errorf("failed to parse form: %w", err)
 	}
 
 	return a.echoCtx.Request().Form, nil
@@ -114,22 +115,38 @@ func (a *EchoContextAdapter) JSON(code int, i any) error {
 
 // JSONBlob sends a JSON blob response
 func (a *EchoContextAdapter) JSONBlob(code int, b []byte) error {
-	return a.echoCtx.JSONBlob(code, b)
+	if err := a.echoCtx.JSONBlob(code, b); err != nil {
+		return fmt.Errorf("failed to write JSON blob: %w", err)
+	}
+
+	return nil
 }
 
 // String sends a string response
 func (a *EchoContextAdapter) String(code int, s string) error {
-	return a.echoCtx.String(code, s)
+	if err := a.echoCtx.String(code, s); err != nil {
+		return fmt.Errorf("failed to write string response: %w", err)
+	}
+
+	return nil
 }
 
 // HTML sends an HTML response
 func (a *EchoContextAdapter) HTML(code int, html string) error {
-	return a.echoCtx.HTML(code, html)
+	if err := a.echoCtx.HTML(code, html); err != nil {
+		return fmt.Errorf("failed to write HTML response: %w", err)
+	}
+
+	return nil
 }
 
 // NoContent sends a no content response
 func (a *EchoContextAdapter) NoContent(code int) error {
-	return a.echoCtx.NoContent(code)
+	if err := a.echoCtx.NoContent(code); err != nil {
+		return fmt.Errorf("failed to write no content response: %w", err)
+	}
+
+	return nil
 }
 
 // Redirect redirects the request
