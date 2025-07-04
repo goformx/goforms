@@ -152,13 +152,16 @@ func NewEventPublisher(p EventPublisherParams) (formevent.Publisher, error) {
 // NewLoggerFactory creates a new logger factory with proper configuration and error handling.
 func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 	fmt.Printf("[DEBUG] NewLoggerFactory called with Config: %T, Sanitizer: %T\n", p.Config, p.Sanitizer)
+
 	if p.Config == nil {
 		fmt.Println("[DEBUG] NewLoggerFactory: Config is nil!")
+
 		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingConfig)
 	}
 
 	if p.Sanitizer == nil {
 		fmt.Println("[DEBUG] NewLoggerFactory: Sanitizer is nil!")
+
 		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingSanitizer)
 	}
 
@@ -193,6 +196,7 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 	}
 
 	fmt.Printf("[DEBUG] NewLoggerFactory created factory: %T\n", factory)
+
 	return factory, nil
 }
 
@@ -223,8 +227,10 @@ func determineLogLevel(cfg *config.Config) string {
 // NewLogger creates a logger instance from the factory with proper error handling.
 func NewLogger(factory *logging.Factory) (logging.Logger, error) {
 	fmt.Printf("[DEBUG] NewLogger called with factory: %T\n", factory)
+
 	if factory == nil {
 		fmt.Println("[DEBUG] NewLogger: Factory is nil!")
+
 		return nil, errors.New("logger factory is required")
 	}
 
@@ -234,6 +240,7 @@ func NewLogger(factory *logging.Factory) (logging.Logger, error) {
 	}
 
 	fmt.Printf("[DEBUG] NewLogger created logger: %T\n", logger)
+
 	return logger, nil
 }
 
@@ -293,13 +300,16 @@ func ProvideEcho() *echo.Echo {
 // ProvideDatabase creates a new database connection with lifecycle management.
 func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (database.DB, error) {
 	fmt.Printf("[DEBUG] ProvideDatabase called with lc: %T, cfg: %T, logger: %T\n", lc, cfg, logger)
+
 	if cfg == nil {
 		fmt.Println("[DEBUG] ProvideDatabase: Config is nil!")
+
 		return nil, ErrMissingConfig
 	}
 
 	if logger == nil {
 		fmt.Println("[DEBUG] ProvideDatabase: Logger is nil!")
+
 		return nil, ErrMissingLogger
 	}
 
@@ -368,6 +378,12 @@ var Module = fx.Module("infrastructure",
 		fx.Annotate(
 			NewAssetManager,
 			fx.As(new(infraweb.AssetManagerInterface)),
+		),
+
+		// View renderer
+		fx.Annotate(
+			view.NewRenderer,
+			fx.As(new(view.Renderer)),
 		),
 	),
 

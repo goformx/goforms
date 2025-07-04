@@ -36,13 +36,16 @@ type UserServiceParams struct {
 // NewUserService creates a new user service with dependencies
 func NewUserService(p UserServiceParams) (user.Service, error) {
 	fmt.Printf("[DEBUG] NewUserService called with Repo: %T, Logger: %T\n", p.Repo, p.Logger)
+
 	if p.Repo == nil {
 		fmt.Println("[DEBUG] NewUserService: Repo is nil!")
+
 		return nil, errors.New("user repository is required")
 	}
 
 	if p.Logger == nil {
 		fmt.Println("[DEBUG] NewUserService: Logger is nil!")
+
 		return nil, errors.New("logger is required")
 	}
 
@@ -93,13 +96,16 @@ type Stores struct {
 // NewStores creates new store instances with proper validation and error handling
 func NewStores(p StoreParams) (Stores, error) {
 	fmt.Printf("[DEBUG] NewStores called with DB: %T, Logger: %T\n", p.DB, p.Logger)
+
 	if p.DB == nil {
 		fmt.Println("[DEBUG] NewStores: DB is nil!")
+
 		return Stores{}, errors.New("database connection is required")
 	}
 
 	if p.Logger == nil {
 		fmt.Println("[DEBUG] NewStores: Logger is nil!")
+
 		return Stores{}, errors.New("logger is required")
 	}
 
@@ -119,6 +125,7 @@ func NewStores(p StoreParams) (Stores, error) {
 		)
 
 		fmt.Println("[DEBUG] NewStores: One or more repositories are nil!")
+
 		return Stores{}, errors.New("failed to create repository: one or more repositories are nil")
 	}
 
