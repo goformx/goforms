@@ -159,8 +159,7 @@ func (b *DashboardResponseBuilder) isAPIRequest(c echo.Context) bool {
 func (b *DashboardResponseBuilder) renderDashboard(c echo.Context, user *entities.User, forms []*model.Form) error {
 	// Create page data for the dashboard template
 	pageData := view.NewPageData(b.config, b.assetManager, c, "Dashboard")
-	pageData.SetUser(user)
-	pageData = pageData.WithForms(forms)
+	pageData = pageData.WithUser(user).WithForms(forms)
 
 	// Render the dashboard page using the generated template
 	dashboardComponent := pages.Dashboard(*pageData, forms)

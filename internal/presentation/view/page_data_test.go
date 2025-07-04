@@ -503,7 +503,7 @@ func TestPageData_GetUserEmail(t *testing.T) {
 	}
 }
 
-func TestPageData_SetUser(t *testing.T) {
+func TestPageData_WithUser(t *testing.T) {
 	pageData := &view.PageData{}
 
 	user := &entities.User{
@@ -519,8 +519,17 @@ func TestPageData_SetUser(t *testing.T) {
 		DeletedAt:      gorm.DeletedAt{},
 	}
 
-	pageData.SetUser(user)
+	// Test that WithUser returns the PageData instance for chaining
+	result := pageData.WithUser(user)
 	assert.Equal(t, user, pageData.User)
+	assert.Equal(t, pageData, result) // Should return self for chaining
+
+	// Test chaining
+	pageData2 := &view.PageData{}
+	result2 := pageData2.WithUser(user).WithTitle("Test Title")
+	assert.Equal(t, user, pageData2.User)
+	assert.Equal(t, "Test Title", pageData2.Title)
+	assert.Equal(t, pageData2, result2) // Should return self for chaining
 }
 
 func TestPageData_HasMessage(t *testing.T) {
