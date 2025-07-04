@@ -47,6 +47,17 @@ type DashboardHandlerParams struct {
 	Logger         logging.Logger
 }
 
+// FormHandlerParams contains dependencies for creating a FormHandler
+type FormHandlerParams struct {
+	fx.In
+	FormService    form.Service
+	SessionManager *session.Manager
+	Renderer       view.Renderer
+	Config         *config.Config
+	AssetManager   web.AssetManagerInterface
+	Logger         logging.Logger
+}
+
 // NewAuthHandlerWithDeps creates a new AuthHandler with injected dependencies
 func NewAuthHandlerWithDeps(params AuthHandlerParams) *auth.AuthHandler {
 	return auth.NewAuthHandler(
@@ -62,6 +73,18 @@ func NewAuthHandlerWithDeps(params AuthHandlerParams) *auth.AuthHandler {
 // NewDashboardHandlerWithDeps creates a new DashboardHandler with injected dependencies
 func NewDashboardHandlerWithDeps(params DashboardHandlerParams) *dashboard.DashboardHandler {
 	return dashboard.NewDashboardHandler(
+		params.FormService,
+		params.SessionManager,
+		params.Renderer,
+		params.Config,
+		params.AssetManager,
+		params.Logger,
+	)
+}
+
+// NewFormHandlerWithDeps creates a new FormHandler with injected dependencies
+func NewFormHandlerWithDeps(params FormHandlerParams) *forms.FormHandler {
+	return forms.NewFormHandler(
 		params.FormService,
 		params.SessionManager,
 		params.Renderer,
@@ -89,7 +112,7 @@ var Module = fx.Module("presentation",
 			fx.ResultTags(`group:"handlers"`),
 		),
 		fx.Annotate(
-			forms.NewFormHandler,
+			NewFormHandlerWithDeps,
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),

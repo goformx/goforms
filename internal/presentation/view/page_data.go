@@ -247,6 +247,12 @@ func (p *PageData) SetUser(user *entities.User) {
 	p.User = user
 }
 
+// WithUser sets the current user (fluent interface)
+func (p *PageData) WithUser(user *entities.User) *PageData {
+	p.User = user
+	return p
+}
+
 // HasMessage checks if there's a message to display
 func (p *PageData) HasMessage() bool {
 	return p.Message != nil
