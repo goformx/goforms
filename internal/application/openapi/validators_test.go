@@ -79,6 +79,8 @@ components:
 `
 
 func createTestRouter(t *testing.T) routers.Router {
+	t.Helper()
+
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromData([]byte(testOpenAPISpec))
 	require.NoError(t, err)
@@ -102,7 +104,8 @@ func TestNewOpenAPIRequestValidator(t *testing.T) {
 
 func TestOpenAPIRequestValidator_ValidateRequest_Success(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	// Test valid request
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
@@ -115,7 +118,8 @@ func TestOpenAPIRequestValidator_ValidateRequest_Success(t *testing.T) {
 
 func TestOpenAPIRequestValidator_ValidateRequest_WithPathParams(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	// Test valid request with path parameters
 	req := httptest.NewRequest(http.MethodGet, "/test/123", http.NoBody)
@@ -123,13 +127,14 @@ func TestOpenAPIRequestValidator_ValidateRequest_WithPathParams(t *testing.T) {
 	require.NoError(t, err)
 
 	err = validator.ValidateRequest(req, route, pathParams)
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, "123", pathParams["id"])
 }
 
 func TestOpenAPIRequestValidator_ValidateRequest_WithAuth(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	// Test valid request with authentication
 	req := httptest.NewRequest(http.MethodGet, "/auth", http.NoBody)
@@ -143,7 +148,8 @@ func TestOpenAPIRequestValidator_ValidateRequest_WithAuth(t *testing.T) {
 
 func TestOpenAPIRequestValidator_ValidateRequest_InvalidPath(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	// Test invalid path
 	req := httptest.NewRequest(http.MethodGet, "/invalid", http.NoBody)
@@ -155,7 +161,8 @@ func TestOpenAPIRequestValidator_ValidateRequest_InvalidPath(t *testing.T) {
 
 func TestOpenAPIRequestValidator_FindRoute_Success(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	route, pathParams, err := validator.FindRoute(req)
@@ -167,7 +174,8 @@ func TestOpenAPIRequestValidator_FindRoute_Success(t *testing.T) {
 
 func TestOpenAPIRequestValidator_FindRoute_NotFound(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	req := httptest.NewRequest(http.MethodGet, "/nonexistent", http.NoBody)
 	route, pathParams, err := validator.FindRoute(req)
@@ -180,7 +188,8 @@ func TestOpenAPIRequestValidator_FindRoute_NotFound(t *testing.T) {
 
 func TestNewOpenAPIResponseValidator(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIResponseValidator(router)
+	validator, ok := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	require.True(t, ok)
 
 	assert.NotNil(t, validator)
 	assert.IsType(t, &openapi.OpenAPIResponseValidator{}, validator)
@@ -188,7 +197,8 @@ func TestNewOpenAPIResponseValidator(t *testing.T) {
 
 func TestOpenAPIResponseValidator_ValidateResponse_Success(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	validator, ok := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	require.True(t, ok)
 
 	// Create test request and response
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
@@ -211,7 +221,8 @@ func TestOpenAPIResponseValidator_ValidateResponse_Success(t *testing.T) {
 
 func TestOpenAPIResponseValidator_ValidateResponse_InvalidStatus(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	validator, ok := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	require.True(t, ok)
 
 	// Create test request and response with invalid status
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
@@ -235,7 +246,8 @@ func TestOpenAPIResponseValidator_ValidateResponse_InvalidStatus(t *testing.T) {
 
 func TestOpenAPIResponseValidator_ValidateResponse_InvalidContentType(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	validator, ok := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	require.True(t, ok)
 
 	// Create test request and response with invalid content type
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
@@ -259,7 +271,8 @@ func TestOpenAPIResponseValidator_ValidateResponse_InvalidContentType(t *testing
 
 func TestOpenAPIResponseValidator_ValidateResponse_EmptyBody(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	validator, ok := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	require.True(t, ok)
 
 	// Create test request and response with empty body
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
@@ -282,7 +295,8 @@ func TestOpenAPIResponseValidator_ValidateResponse_EmptyBody(t *testing.T) {
 
 func TestOpenAPIResponseValidator_ValidateResponse_NilRoute(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	validator, ok := openapi.NewOpenAPIResponseValidator(router).(*openapi.OpenAPIResponseValidator)
+	require.True(t, ok)
 
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	resp := &http.Response{
@@ -299,7 +313,8 @@ func TestOpenAPIResponseValidator_ValidateResponse_NilRoute(t *testing.T) {
 
 func TestOpenAPIRequestValidator_ValidateRequest_NilRoute(t *testing.T) {
 	router := createTestRouter(t)
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 
@@ -347,7 +362,8 @@ paths:
 	router, err := gorillamux.NewRouter(doc)
 	require.NoError(t, err)
 
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	// Test valid request with body
 	body := strings.NewReader(`{"name": "test", "age": 25}`)
@@ -397,7 +413,8 @@ paths:
 	router, err := gorillamux.NewRouter(doc)
 	require.NoError(t, err)
 
-	validator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	validator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
 
 	// Test invalid request with missing required field
 	body := strings.NewReader(`{"age": 25}`) // Missing required 'name' field
@@ -408,6 +425,6 @@ paths:
 	require.NoError(t, err)
 
 	err = validator.ValidateRequest(req, route, pathParams)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "request validation failed")
 }

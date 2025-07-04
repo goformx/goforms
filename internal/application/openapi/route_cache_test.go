@@ -43,6 +43,8 @@ paths:
 `
 
 func createRouteCacheTestRouter(t *testing.T) routers.Router {
+	t.Helper()
+
 	loader := openapi3.NewLoader()
 	doc, err := loader.LoadFromData([]byte(routeCacheTestOpenAPISpec))
 	require.NoError(t, err)
@@ -57,6 +59,8 @@ func createRouteCacheTestRouter(t *testing.T) routers.Router {
 }
 
 func createRouteCacheTestEchoContext(t *testing.T) echo.Context {
+	t.Helper()
+
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
@@ -149,7 +153,7 @@ func TestRouteCache_Get_DifferentContext(t *testing.T) {
 
 func TestRouteCache_Overwrite(t *testing.T) {
 	cache := openapi.NewRouteCache()
-	c := createTestEchoContext(t)
+	c := createRouteCacheTestEchoContext(t)
 	router := createRouteCacheTestRouter(t)
 
 	// Find first route
@@ -179,7 +183,7 @@ func TestRouteCache_Overwrite(t *testing.T) {
 
 func TestRouteCache_Set_NilValues(t *testing.T) {
 	cache := openapi.NewRouteCache()
-	c := createTestEchoContext(t)
+	c := createRouteCacheTestEchoContext(t)
 
 	// Set nil values
 	cache.Set(c, nil, nil)
@@ -194,7 +198,7 @@ func TestRouteCache_Set_NilValues(t *testing.T) {
 
 func TestRouteCache_Get_AfterNilSet(t *testing.T) {
 	cache := openapi.NewRouteCache()
-	c := createTestEchoContext(t)
+	c := createRouteCacheTestEchoContext(t)
 
 	// Set nil values
 	cache.Set(c, nil, nil)
@@ -212,9 +216,9 @@ func TestRouteCache_MultipleContexts(t *testing.T) {
 	router := createRouteCacheTestRouter(t)
 
 	// Create multiple contexts
-	c1 := createTestEchoContext(t)
-	c2 := createTestEchoContext(t)
-	c3 := createTestEchoContext(t)
+	c1 := createRouteCacheTestEchoContext(t)
+	c2 := createRouteCacheTestEchoContext(t)
+	c3 := createRouteCacheTestEchoContext(t)
 
 	// Find different routes
 	req1 := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)

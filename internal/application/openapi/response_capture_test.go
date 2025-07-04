@@ -7,11 +7,14 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 
 	"github.com/goformx/goforms/internal/application/openapi"
 )
 
 func createTestEchoContext(t *testing.T) echo.Context {
+	t.Helper()
+
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	rec := httptest.NewRecorder()
@@ -92,7 +95,7 @@ func TestResponseCaptureWriter_Write(t *testing.T) {
 	testData := []byte("Hello, World!")
 	n, err := c.Response().Writer.Write(testData)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(testData), n)
 	assert.Equal(t, testData, *capturedResponse.Body)
 }
@@ -109,9 +112,12 @@ func TestResponseCaptureWriter_Write_MultipleWrites(t *testing.T) {
 	data2 := []byte("World!")
 	data3 := []byte(" How are you?")
 
-	c.Response().Writer.Write(data1)
-	c.Response().Writer.Write(data2)
-	c.Response().Writer.Write(data3)
+	_, err := c.Response().Writer.Write(data1)
+	require.NoError(t, err)
+	_, err = c.Response().Writer.Write(data2)
+	require.NoError(t, err)
+	_, err = c.Response().Writer.Write(data3)
+	require.NoError(t, err)
 
 	expected := append(append(data1, data2...), data3...)
 	assert.Equal(t, expected, *capturedResponse.Body)
@@ -190,7 +196,7 @@ func TestResponseCaptureWriter_Write_ErrorHandling(t *testing.T) {
 	testData := []byte("test")
 	n, err := c.Response().Writer.Write(testData)
 
-	assert.NoError(t, err)
+	require.NoError(t, err)
 	assert.Equal(t, len(testData), n)
 	assert.Equal(t, testData, *capturedResponse.Body)
 }
@@ -208,7 +214,8 @@ func TestResponseCapture_Integration(t *testing.T) {
 
 	// Write response data
 	responseData := []byte(`{"message": "success"}`)
-	c.Response().Writer.Write(responseData)
+	_, err := c.Response().Writer.Write(responseData)
+	require.NoError(t, err)
 	c.Response().Writer.WriteHeader(http.StatusOK)
 
 	// Verify captured data
@@ -260,7 +267,8 @@ func TestResponseCapture_WriteToNilBody(t *testing.T) {
 
 	// Write data
 	testData := []byte("test")
-	c.Response().Writer.Write(testData)
+	_, err := c.Response().Writer.Write(testData)
+	require.NoError(t, err)
 
 	assert.Equal(t, testData, *capturedResponse.Body)
 }
@@ -275,7 +283,8 @@ func TestResponseCapture_MultipleSetups(t *testing.T) {
 
 	// Write data
 	testData := []byte("test")
-	c.Response().Writer.Write(testData)
+	_, err := c.Response().Writer.Write(testData)
+	require.NoError(t, err)
 
 	// Both captures should have the data
 	assert.Equal(t, testData, *capturedResponse1.Body)

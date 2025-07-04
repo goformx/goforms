@@ -8,6 +8,7 @@ import (
 
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
 	"github.com/goformx/goforms/internal/application/openapi"
@@ -16,6 +17,7 @@ import (
 
 // setupTest creates a test setup with logger and config
 func setupTest(t *testing.T) (*gomock.Controller, *logging.MockLogger, *openapi.Config) {
+	t.Helper()
 	ctrl := gomock.NewController(t)
 	logger := logging.NewMockLogger(ctrl)
 	config := &openapi.Config{
@@ -64,7 +66,8 @@ func TestValidationErrorHandler_HandleError_RequestValidationError_Blocking(t *t
 	assert.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 
-	httpError := result.(*echo.HTTPError)
+	httpError, ok := result.(*echo.HTTPError)
+	require.True(t, ok)
 	assert.Equal(t, http.StatusBadRequest, httpError.Code)
 	assert.Contains(t, httpError.Message, "Request validation failed")
 	assert.Contains(t, httpError.Message, "test validation error")
@@ -98,7 +101,8 @@ func TestValidationErrorHandler_HandleError_ResponseValidationError_Blocking(t *
 	assert.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 
-	httpError := result.(*echo.HTTPError)
+	httpError, ok := result.(*echo.HTTPError)
+	require.True(t, ok)
 	assert.Equal(t, http.StatusInternalServerError, httpError.Code)
 	assert.Contains(t, httpError.Message, "Response validation failed")
 	assert.Contains(t, httpError.Message, "test validation error")
@@ -347,17 +351,21 @@ func TestValidationErrorHandler_HandleError_AllErrorTypes(t *testing.T) {
 	logger.EXPECT().Warn("Request validation failed", gomock.Any()).Times(1)
 
 	result1 := handler.HandleError(ctx, testError, openapi.RequestValidationError, metadata)
-	assert.Error(t, result1)
+	require.Error(t, result1)
 	assert.IsType(t, &echo.HTTPError{}, result1)
-	assert.Equal(t, http.StatusBadRequest, result1.(*echo.HTTPError).Code)
+	httpError, ok := result1.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusBadRequest, httpError.Code)
 
 	// Test ResponseValidationError
 	logger.EXPECT().Warn("Response validation failed", gomock.Any()).Times(1)
 
 	result2 := handler.HandleError(ctx, testError, openapi.ResponseValidationError, metadata)
-	assert.Error(t, result2)
+	require.Error(t, result2)
 	assert.IsType(t, &echo.HTTPError{}, result2)
-	assert.Equal(t, http.StatusInternalServerError, result2.(*echo.HTTPError).Code)
+	httpError2, ok := result2.(*echo.HTTPError)
+	require.True(t, ok)
+	assert.Equal(t, http.StatusInternalServerError, httpError2.Code)
 
 	// Test unknown error type
 	logger.EXPECT().Warn("Validation failed", gomock.Any()).Times(1)
