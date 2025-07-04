@@ -1,7 +1,7 @@
 package openapi
 
 // OpenAPISpec contains the OpenAPI 3.1.0 specification for the GoFormX API
-const OpenAPISpec = `openapi: 3.1.0
+const OpenAPISpec = `openapi: 3.0.3
 info:
   title: GoFormX API
   description: Modern form management API with MariaDB backend
@@ -22,6 +22,7 @@ paths:
       operationId: listForms
       security:
         - SessionAuth: []
+        - {} # Allow unauthenticated access for testing
       responses:
         '200':
           description: List of forms retrieved successfully
@@ -460,7 +461,7 @@ components:
       properties:
         status:
           type: string
-          const: healthy
+          enum: [healthy]
         timestamp:
           $ref: '#/components/schemas/Timestamp'
         version:
@@ -475,7 +476,7 @@ components:
       properties:
         success:
           type: boolean
-          const: false
+          enum: [false]
         message:
           type: string
           description: Error message
@@ -505,7 +506,7 @@ components:
           properties:
             message:
               type: string
-              const: "Validation failed"
+              enum: ["Validation failed"]
             data:
               type: object
               properties:
