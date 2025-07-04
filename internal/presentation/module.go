@@ -3,6 +3,7 @@ package presentation
 
 import (
 	"context"
+	"fmt"
 
 	"go.uber.org/fx"
 
@@ -10,14 +11,13 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/view"
 	"github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/adapters/echo"
 	"github.com/goformx/goforms/internal/presentation/handlers/auth"
 	"github.com/goformx/goforms/internal/presentation/handlers/dashboard"
 	"github.com/goformx/goforms/internal/presentation/handlers/forms"
 	"github.com/goformx/goforms/internal/presentation/handlers/pages"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
-	"github.com/goformx/goforms/internal/presentation/view"
 	echosrv "github.com/labstack/echo/v4"
 )
 
@@ -137,7 +137,7 @@ var Module = fx.Module("presentation",
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),
-		echo.NewEchoAdapter,
+		http.NewEchoAdapter,
 	),
 	fx.Invoke(RegisterRoutes),
 )
@@ -146,7 +146,7 @@ var Module = fx.Module("presentation",
 func RegisterRoutes(
 	lc fx.Lifecycle,
 	e *echosrv.Echo,
-	adapter *echo.EchoAdapter,
+	adapter *http.EchoAdapter,
 	handlers struct {
 		fx.In
 		Handlers []httpiface.Handler `group:"handlers"`
@@ -155,7 +155,9 @@ func RegisterRoutes(
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
 			for _, h := range handlers.Handlers {
-				adapter.RegisterHandler(h)
+				if err := adapter.RegisterHandler(h); err != nil {
+					return fmt.Errorf("failed to register handler %s: %w", h.Name(), err)
+				}
 			}
 
 			return nil

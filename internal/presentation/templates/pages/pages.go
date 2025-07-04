@@ -7,8 +7,8 @@ import (
 
 	"github.com/a-h/templ"
 
+	"github.com/goformx/goforms/internal/infrastructure/view"
 	"github.com/goformx/goforms/internal/presentation/templates/layouts"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 // List renders a list of pages.

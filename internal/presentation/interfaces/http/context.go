@@ -2,14 +2,16 @@ package http
 
 import (
 	"context"
-	"net/url"
+
+	"github.com/goformx/goforms/internal/application/middleware"
+	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
-// Minimal Request interface stub for context reference
-type Request any
+// Request interface from application layer
+type Request = middleware.Request
 
-// Minimal Response interface stub for context reference
-type Response any
+// Response interface from application layer
+type Response = core.Response
 
 // UserContext represents authenticated user information
 // (can be extended as needed)
@@ -31,39 +33,34 @@ type Session interface {
 
 // Context is a framework-agnostic HTTP context abstraction
 // for use in handlers and middleware.
+// This interface matches the infrastructure Context interface to avoid conflicts.
 type Context interface {
-	// Request/Response access
-	Request() Request
-	Response() Response
-
-	// Context propagation
-	Context() context.Context
-	WithContext(ctx context.Context) Context
-
-	// Value storage (for middleware, etc.)
-	Get(key string) (any, bool)
-	Set(key string, value any)
-	Delete(key string)
-
-	// User/session access
-	User() *UserContext
-	SetUser(user *UserContext)
-	Session() Session
-	SetSession(session Session)
-
-	// Route/query/path params
+	// Request methods
+	Method() string
+	Path() string
 	Param(name string) string
 	QueryParam(name string) string
 	FormValue(name string) string
-	Form() (url.Values, error)
-	PathParam(name string) string
+	Body() []byte
+	Headers() map[string]string
 
 	// Response methods
-	JSON(code int, i any) error
-	JSONBlob(code int, b []byte) error
-	String(code int, s string) error
-	HTML(code int, html string) error
-	NoContent(code int) error
-	Redirect(code int, url string) error
-	Error(err error) error
+	JSON(statusCode int, data interface{}) error
+	JSONBlob(statusCode int, data []byte) error
+	String(statusCode int, data string) error
+	Redirect(statusCode int, url string) error
+	NoContent(statusCode int) error
+
+	// Context methods
+	Get(key string) interface{}
+	Set(key string, value interface{})
+
+	// Context propagation (needed for application services)
+	RequestContext() context.Context
+
+	// Presentation methods
+	RenderComponent(component interface{}) error
+
+	// Request access (for bridge methods)
+	GetUnderlyingContext() interface{}
 }

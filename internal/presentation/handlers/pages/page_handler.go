@@ -1,16 +1,13 @@
 package pages
 
 import (
-	"fmt"
-
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/view"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/goformx/goforms/internal/presentation/view"
-	"github.com/labstack/echo/v4"
 )
 
 // PageHandler handles public page routes (e.g., home page)
@@ -51,23 +48,17 @@ func NewPageHandler(
 
 // handleHome is the handler for GET /
 func (h *PageHandler) handleHome(ctx httpiface.Context) error {
-	// Extract the underlying Echo context for rendering
-	echoCtx, ok := ctx.Request().(echo.Context)
-	if !ok {
-		h.logger.Error("failed to get echo context from httpiface.Context")
-
-		return echo.NewHTTPError(500, "Internal server error")
-	}
-
 	// Create page data for the home template
-	pageData := view.NewPageData(h.config, h.assetManager, echoCtx, "GoFormX - Self-Hosted Form Backend")
-
-	// Render the home page using the generated template
-	homeComponent := pages.Home(*pageData)
-
-	if err := h.renderer.Render(echoCtx, homeComponent); err != nil {
-		return fmt.Errorf("failed to render home page: %w", err)
+	pageData := &view.PageData{
+		Title:       "GoFormX - Self-Hosted Form Backend",
+		Description: "Welcome to GoFormX!",
+		Version:     h.config.App.Version,
+		Environment: h.config.App.Environment,
+		Config:      h.config,
+		AssetPath:   h.assetManager.AssetPath,
 	}
 
-	return nil
+	// Render the home page using the framework-agnostic interface
+	homeComponent := pages.Home(*pageData)
+	return ctx.RenderComponent(homeComponent)
 }

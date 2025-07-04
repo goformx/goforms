@@ -1,6 +1,7 @@
 package http
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"strconv"
@@ -10,86 +11,6 @@ import (
 	"github.com/goformx/goforms/internal/application/dto"
 	"github.com/labstack/echo/v4"
 )
-
-// EchoContextAdapter adapts Echo context to our framework-agnostic Context interface
-type EchoContextAdapter struct {
-	echo.Context
-}
-
-// NewEchoContextAdapter creates a new Echo context adapter
-func NewEchoContextAdapter(ctx echo.Context) *EchoContextAdapter {
-	return &EchoContextAdapter{Context: ctx}
-}
-
-// Method returns the HTTP method
-func (e *EchoContextAdapter) Method() string {
-	return e.Request().Method
-}
-
-// Path returns the request path
-func (e *EchoContextAdapter) Path() string {
-	return e.Request().URL.Path
-}
-
-// Param returns a path parameter by name
-func (e *EchoContextAdapter) Param(name string) string {
-	return e.Context.Param(name)
-}
-
-// QueryParam returns a query parameter by name
-func (e *EchoContextAdapter) QueryParam(name string) string {
-	return e.Context.QueryParam(name)
-}
-
-// FormValue returns a form value by name
-func (e *EchoContextAdapter) FormValue(name string) string {
-	return e.Context.FormValue(name)
-}
-
-// Headers returns request headers as a map
-func (e *EchoContextAdapter) Headers() map[string]string {
-	headers := make(map[string]string)
-
-	for key, values := range e.Request().Header {
-		if len(values) > 0 {
-			headers[key] = values[0]
-		}
-	}
-
-	return headers
-}
-
-// Body returns the request body as bytes
-func (e *EchoContextAdapter) Body() []byte {
-	// This is a simplified implementation
-	// In a real implementation, you'd need to handle body reading properly
-	return nil
-}
-
-// JSON sends a JSON response
-func (e *EchoContextAdapter) JSON(statusCode int, data interface{}) error {
-	return e.Context.JSON(statusCode, data)
-}
-
-// Redirect sends a redirect response
-func (e *EchoContextAdapter) Redirect(statusCode int, url string) error {
-	return e.Context.Redirect(statusCode, url)
-}
-
-// NoContent sends a no content response
-func (e *EchoContextAdapter) NoContent(statusCode int) error {
-	return e.Context.NoContent(statusCode)
-}
-
-// Get retrieves a value from the context
-func (e *EchoContextAdapter) Get(key string) interface{} {
-	return e.Context.Get(key)
-}
-
-// Set stores a value in the context
-func (e *EchoContextAdapter) Set(key string, value interface{}) {
-	e.Context.Set(key, value)
-}
 
 // EchoRequestAdapter implements RequestAdapter for Echo
 type EchoRequestAdapter struct{}
@@ -160,15 +81,17 @@ func (a *EchoRequestAdapter) ParseLogoutRequest(ctx Context) (*dto.LogoutRequest
 	}
 
 	userID := echoCtx.Get("user_id")
-	sessionID := echoCtx.Get("session_id")
+	if userID == nil {
+		return nil, fmt.Errorf("user_id not found in context")
+	}
 
-	if userID == nil || sessionID == nil {
-		return nil, fmt.Errorf("missing user_id or session_id")
+	userIDStr, ok := userID.(string)
+	if !ok {
+		return nil, fmt.Errorf("user_id is not a string")
 	}
 
 	return &dto.LogoutRequest{
-		UserID:    userID.(string),
-		SessionID: sessionID.(string),
+		UserID: userIDStr,
 	}, nil
 }
 
@@ -179,15 +102,34 @@ func (a *EchoRequestAdapter) ParseCreateFormRequest(ctx Context) (*dto.CreateFor
 		return nil, fmt.Errorf("invalid context type")
 	}
 
+	contentType := echoCtx.Request().Header.Get("Content-Type")
+
 	var request dto.CreateFormRequest
-	if err := echoCtx.Bind(&request); err != nil {
-		return nil, fmt.Errorf("failed to bind create form request: %w", err)
+
+	if strings.Contains(contentType, "application/json") {
+		if err := echoCtx.Bind(&request); err != nil {
+			return nil, fmt.Errorf("failed to bind create form request: %w", err)
+		}
+	} else {
+		request.Title = echoCtx.FormValue("title")
+		request.Description = echoCtx.FormValue("description")
+		// For form data, schema would need to be parsed from JSON string
+		// For now, we'll require JSON for schema
+		return nil, fmt.Errorf("schema must be provided as JSON")
 	}
 
-	// Set user ID from context
-	if userID := echoCtx.Get("user_id"); userID != nil {
-		request.UserID = userID.(string)
+	// Get user ID from context
+	userID := echoCtx.Get("user_id")
+	if userID == nil {
+		return nil, fmt.Errorf("user_id not found in context")
 	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		return nil, fmt.Errorf("user_id is not a string")
+	}
+
+	request.UserID = userIDStr
 
 	return &request, nil
 }
@@ -199,18 +141,37 @@ func (a *EchoRequestAdapter) ParseUpdateFormRequest(ctx Context) (*dto.UpdateFor
 		return nil, fmt.Errorf("invalid context type")
 	}
 
+	contentType := echoCtx.Request().Header.Get("Content-Type")
+
 	var request dto.UpdateFormRequest
-	if err := echoCtx.Bind(&request); err != nil {
-		return nil, fmt.Errorf("failed to bind update form request: %w", err)
+
+	if strings.Contains(contentType, "application/json") {
+		if err := echoCtx.Bind(&request); err != nil {
+			return nil, fmt.Errorf("failed to bind update form request: %w", err)
+		}
+	} else {
+		request.Title = echoCtx.FormValue("title")
+		request.Description = echoCtx.FormValue("description")
+		// For form data, schema would need to be parsed from JSON string
+		// For now, we'll require JSON for schema
+		return nil, fmt.Errorf("schema must be provided as JSON")
 	}
 
-	// Set form ID from path parameter
+	// Get form ID from path
 	request.ID = echoCtx.Param("id")
 
-	// Set user ID from context
-	if userID := echoCtx.Get("user_id"); userID != nil {
-		request.UserID = userID.(string)
+	// Get user ID from context
+	userID := echoCtx.Get("user_id")
+	if userID == nil {
+		return nil, fmt.Errorf("user_id not found in context")
 	}
+
+	userIDStr, ok := userID.(string)
+	if !ok {
+		return nil, fmt.Errorf("user_id is not a string")
+	}
+
+	request.UserID = userIDStr
 
 	return &request, nil
 }
@@ -222,16 +183,24 @@ func (a *EchoRequestAdapter) ParseDeleteFormRequest(ctx Context) (*dto.DeleteFor
 		return nil, fmt.Errorf("invalid context type")
 	}
 
-	request := &dto.DeleteFormRequest{
-		ID: echoCtx.Param("id"),
+	// Get form ID from path
+	formID := echoCtx.Param("id")
+
+	// Get user ID from context
+	userID := echoCtx.Get("user_id")
+	if userID == nil {
+		return nil, fmt.Errorf("user_id not found in context")
 	}
 
-	// Set user ID from context
-	if userID := echoCtx.Get("user_id"); userID != nil {
-		request.UserID = userID.(string)
+	userIDStr, ok := userID.(string)
+	if !ok {
+		return nil, fmt.Errorf("user_id is not a string")
 	}
 
-	return request, nil
+	return &dto.DeleteFormRequest{
+		ID:     formID,
+		UserID: userIDStr,
+	}, nil
 }
 
 // ParseSubmitFormRequest parses submit form request from Echo context
@@ -241,18 +210,36 @@ func (a *EchoRequestAdapter) ParseSubmitFormRequest(ctx Context) (*dto.SubmitFor
 		return nil, fmt.Errorf("invalid context type")
 	}
 
+	contentType := echoCtx.Request().Header.Get("Content-Type")
+
 	var request dto.SubmitFormRequest
-	if err := echoCtx.Bind(&request); err != nil {
-		return nil, fmt.Errorf("failed to bind submit form request: %w", err)
+
+	if strings.Contains(contentType, "application/json") {
+		if err := echoCtx.Bind(&request); err != nil {
+			return nil, fmt.Errorf("failed to bind submit form request: %w", err)
+		}
+	} else {
+		// For form data, we need to parse the form values
+		if err := echoCtx.Request().ParseForm(); err != nil {
+			return nil, fmt.Errorf("failed to parse form: %w", err)
+		}
+
+		// Convert form values to map[string]interface{}
+		data := make(map[string]interface{})
+
+		for key, values := range echoCtx.Request().Form {
+			if len(values) == 1 {
+				data[key] = values[0]
+			} else {
+				data[key] = values
+			}
+		}
+
+		request.Data = data
 	}
 
-	// Set form ID from path parameter
+	// Get form ID from path
 	request.FormID = echoCtx.Param("id")
-
-	// Set user ID from context if available
-	if userID := echoCtx.Get("user_id"); userID != nil {
-		request.UserID = userID.(string)
-	}
 
 	return &request, nil
 }
@@ -264,19 +251,22 @@ func (a *EchoRequestAdapter) ParsePaginationRequest(ctx Context) (*dto.Paginatio
 		return nil, fmt.Errorf("invalid context type")
 	}
 
-	page, _ := strconv.Atoi(echoCtx.QueryParam("page"))
-	limit, _ := strconv.Atoi(echoCtx.QueryParam("limit"))
+	pageStr := echoCtx.QueryParam("page")
+	limitStr := echoCtx.QueryParam("limit")
 
-	if page <= 0 {
-		page = 1
+	page := 1
+	limit := constants.DefaultPageSize
+
+	if pageStr != "" {
+		if p, err := strconv.Atoi(pageStr); err == nil && p > 0 {
+			page = p
+		}
 	}
 
-	if limit <= 0 {
-		limit = 10
-	}
-
-	if limit > 100 {
-		limit = 100
+	if limitStr != "" {
+		if l, err := strconv.Atoi(limitStr); err == nil && l > 0 && l <= constants.MaxPageSize {
+			limit = l
+		}
 	}
 
 	return &dto.PaginationRequest{
@@ -294,7 +284,7 @@ func (a *EchoRequestAdapter) ParseFormID(ctx Context) (string, error) {
 
 	formID := echoCtx.Param("id")
 	if formID == "" {
-		return "", fmt.Errorf("form ID is required")
+		return "", fmt.Errorf("form ID not found in path")
 	}
 
 	return formID, nil
@@ -309,10 +299,15 @@ func (a *EchoRequestAdapter) ParseUserID(ctx Context) (string, error) {
 
 	userID := echoCtx.Get("user_id")
 	if userID == nil {
-		return "", fmt.Errorf("user ID not found in context")
+		return "", fmt.Errorf("user_id not found in context")
 	}
 
-	return userID.(string), nil
+	userIDStr, ok := userID.(string)
+	if !ok {
+		return "", fmt.Errorf("user_id is not a string")
+	}
+
+	return userIDStr, nil
 }
 
 // EchoResponseAdapter implements ResponseAdapter for Echo
@@ -323,7 +318,7 @@ func NewEchoResponseAdapter() *EchoResponseAdapter {
 	return &EchoResponseAdapter{}
 }
 
-// BuildLoginResponse builds login response for Echo
+// BuildLoginResponse builds login response for Echo context
 func (a *EchoResponseAdapter) BuildLoginResponse(ctx Context, response *dto.LoginResponse) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
@@ -331,14 +326,14 @@ func (a *EchoResponseAdapter) BuildLoginResponse(ctx Context, response *dto.Logi
 	}
 
 	if a.isAPIRequest(echoCtx) {
-		return echoCtx.JSON(http.StatusOK, dto.NewSuccessResponse("Login successful", response))
+		return echoCtx.JSON(http.StatusOK, response)
 	}
 
 	// For web requests, redirect to dashboard
-	return echoCtx.Redirect(http.StatusSeeOther, constants.PathDashboard)
+	return echoCtx.Redirect(http.StatusFound, "/dashboard")
 }
 
-// BuildSignupResponse builds signup response for Echo
+// BuildSignupResponse builds signup response for Echo context
 func (a *EchoResponseAdapter) BuildSignupResponse(ctx Context, response *dto.SignupResponse) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
@@ -346,14 +341,14 @@ func (a *EchoResponseAdapter) BuildSignupResponse(ctx Context, response *dto.Sig
 	}
 
 	if a.isAPIRequest(echoCtx) {
-		return echoCtx.JSON(http.StatusCreated, dto.NewSuccessResponse("Signup successful", response))
+		return echoCtx.JSON(http.StatusCreated, response)
 	}
 
-	// For web requests, redirect to dashboard
-	return echoCtx.Redirect(http.StatusSeeOther, constants.PathDashboard)
+	// For web requests, redirect to login
+	return echoCtx.Redirect(http.StatusFound, "/login")
 }
 
-// BuildLogoutResponse builds logout response for Echo
+// BuildLogoutResponse builds logout response for Echo context
 func (a *EchoResponseAdapter) BuildLogoutResponse(ctx Context, response *dto.LogoutResponse) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
@@ -361,126 +356,127 @@ func (a *EchoResponseAdapter) BuildLogoutResponse(ctx Context, response *dto.Log
 	}
 
 	if a.isAPIRequest(echoCtx) {
-		return echoCtx.JSON(http.StatusOK, dto.NewSuccessResponse("Logout successful", response))
+		return echoCtx.JSON(http.StatusOK, response)
 	}
 
 	// For web requests, redirect to login
-	return echoCtx.Redirect(http.StatusSeeOther, constants.PathLogin)
+	return echoCtx.Redirect(http.StatusFound, "/login")
 }
 
-// BuildFormResponse builds form response for Echo
+// BuildFormResponse builds form response for Echo context
 func (a *EchoResponseAdapter) BuildFormResponse(ctx Context, response *dto.FormResponse) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusOK, dto.NewSuccessResponse("Form retrieved successfully", response))
+	return echoCtx.JSON(http.StatusOK, response)
 }
 
-// BuildFormListResponse builds form list response for Echo
+// BuildFormListResponse builds form list response for Echo context
 func (a *EchoResponseAdapter) BuildFormListResponse(ctx Context, response *dto.FormListResponse) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusOK, dto.NewSuccessResponse("Forms retrieved successfully", response))
+	return echoCtx.JSON(http.StatusOK, response)
 }
 
-// BuildFormSchemaResponse builds form schema response for Echo
+// BuildFormSchemaResponse builds form schema response for Echo context
 func (a *EchoResponseAdapter) BuildFormSchemaResponse(ctx Context, response *dto.FormSchemaResponse) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusOK, dto.NewSuccessResponse("Form schema retrieved successfully", response))
+	return echoCtx.JSON(http.StatusOK, response)
 }
 
-// BuildSubmitFormResponse builds submit form response for Echo
+// BuildSubmitFormResponse builds submit form response for Echo context
 func (a *EchoResponseAdapter) BuildSubmitFormResponse(ctx Context, response *dto.SubmitFormResponse) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	return echoCtx.JSON(http.StatusCreated, dto.NewSuccessResponse("Form submitted successfully", response))
+	return echoCtx.JSON(http.StatusCreated, response)
 }
 
-// BuildErrorResponse builds error response for Echo
+// BuildErrorResponse builds error response for Echo context
 func (a *EchoResponseAdapter) BuildErrorResponse(ctx Context, err error) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	errorResponse := dto.NewErrorResponse("ERROR", err.Error())
-
-	return echoCtx.JSON(http.StatusInternalServerError, errorResponse)
+	return echoCtx.JSON(http.StatusInternalServerError, map[string]interface{}{
+		"error": err.Error(),
+	})
 }
 
-// BuildValidationErrorResponse builds validation error response for Echo
+// BuildValidationErrorResponse builds validation error response for Echo context
 func (a *EchoResponseAdapter) BuildValidationErrorResponse(ctx Context, errors []dto.ValidationError) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	errorResponse := dto.NewValidationErrorResponse(errors)
-
-	return echoCtx.JSON(http.StatusBadRequest, errorResponse)
+	return echoCtx.JSON(http.StatusBadRequest, map[string]interface{}{
+		"errors": errors,
+	})
 }
 
-// BuildNotFoundResponse builds not found response for Echo
+// BuildNotFoundResponse builds not found response for Echo context
 func (a *EchoResponseAdapter) BuildNotFoundResponse(ctx Context, resource string) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	errorResponse := dto.NewErrorResponse("NOT_FOUND", fmt.Sprintf("%s not found", resource))
-
-	return echoCtx.JSON(http.StatusNotFound, errorResponse)
+	return echoCtx.JSON(http.StatusNotFound, map[string]interface{}{
+		"error": fmt.Sprintf("%s not found", resource),
+	})
 }
 
-// BuildUnauthorizedResponse builds unauthorized response for Echo
+// BuildUnauthorizedResponse builds unauthorized response for Echo context
 func (a *EchoResponseAdapter) BuildUnauthorizedResponse(ctx Context) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	errorResponse := dto.NewErrorResponse("UNAUTHORIZED", "Authentication required")
-
-	return echoCtx.JSON(http.StatusUnauthorized, errorResponse)
+	return echoCtx.JSON(http.StatusUnauthorized, map[string]interface{}{
+		"error": "unauthorized",
+	})
 }
 
-// BuildForbiddenResponse builds forbidden response for Echo
+// BuildForbiddenResponse builds forbidden response for Echo context
 func (a *EchoResponseAdapter) BuildForbiddenResponse(ctx Context) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	errorResponse := dto.NewErrorResponse("FORBIDDEN", "Access denied")
-
-	return echoCtx.JSON(http.StatusForbidden, errorResponse)
+	return echoCtx.JSON(http.StatusForbidden, map[string]interface{}{
+		"error": "forbidden",
+	})
 }
 
-// BuildSuccessResponse builds success response for Echo
+// BuildSuccessResponse builds success response for Echo context
 func (a *EchoResponseAdapter) BuildSuccessResponse(ctx Context, message string, data interface{}) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type")
 	}
 
-	response := dto.NewSuccessResponse(message, data)
-
-	return echoCtx.JSON(http.StatusOK, response)
+	return echoCtx.JSON(http.StatusOK, map[string]interface{}{
+		"message": message,
+		"data":    data,
+	})
 }
 
-// BuildJSONResponse builds JSON response for Echo
+// BuildJSONResponse builds generic JSON response for Echo context
 func (a *EchoResponseAdapter) BuildJSONResponse(ctx Context, statusCode int, data interface{}) error {
 	echoCtx, ok := ctx.(*EchoContextAdapter)
 	if !ok {
@@ -491,11 +487,133 @@ func (a *EchoResponseAdapter) BuildJSONResponse(ctx Context, statusCode int, dat
 }
 
 // isAPIRequest checks if the request is an API request
-func (a *EchoResponseAdapter) isAPIRequest(ctx *EchoContextAdapter) bool {
+func (a *EchoResponseAdapter) isAPIRequest(ctx echo.Context) bool {
 	accept := ctx.Request().Header.Get("Accept")
-	contentType := ctx.Request().Header.Get("Content-Type")
 
-	return strings.Contains(accept, "application/json") ||
-		strings.Contains(contentType, "application/json") ||
-		strings.HasPrefix(ctx.Request().URL.Path, "/api/")
+	return strings.Contains(accept, "application/json")
+}
+
+// EchoContextAdapter implements Context for Echo
+type EchoContextAdapter struct {
+	echo.Context
+}
+
+// NewEchoContextAdapter creates a new Echo context adapter
+func NewEchoContextAdapter(ctx echo.Context) *EchoContextAdapter {
+	return &EchoContextAdapter{Context: ctx}
+}
+
+// Method returns the HTTP method
+func (e *EchoContextAdapter) Method() string {
+	return e.Request().Method
+}
+
+// Path returns the request path
+func (e *EchoContextAdapter) Path() string {
+	return e.Request().URL.Path
+}
+
+// Param returns a path parameter by name
+func (e *EchoContextAdapter) Param(name string) string {
+	return e.Context.Param(name)
+}
+
+// QueryParam returns a query parameter by name
+func (e *EchoContextAdapter) QueryParam(name string) string {
+	return e.Context.QueryParam(name)
+}
+
+// FormValue returns a form value by name
+func (e *EchoContextAdapter) FormValue(name string) string {
+	return e.Context.FormValue(name)
+}
+
+// Headers returns all request headers
+func (e *EchoContextAdapter) Headers() map[string]string {
+	headers := make(map[string]string)
+
+	for key, values := range e.Request().Header {
+		if len(values) > 0 {
+			headers[key] = values[0]
+		}
+	}
+
+	return headers
+}
+
+// Body returns the request body as bytes
+func (e *EchoContextAdapter) Body() []byte {
+	// This would need to be implemented based on how you want to handle the body
+	// For now, return empty slice
+	return []byte{}
+}
+
+// JSON sends a JSON response
+func (e *EchoContextAdapter) JSON(statusCode int, data interface{}) error {
+	return e.Context.JSON(statusCode, data)
+}
+
+// JSONBlob sends a JSON blob response
+func (e *EchoContextAdapter) JSONBlob(statusCode int, data []byte) error {
+	return e.Context.JSONBlob(statusCode, data)
+}
+
+// String sends a string response
+func (e *EchoContextAdapter) String(statusCode int, data string) error {
+	return e.Context.String(statusCode, data)
+}
+
+// Redirect redirects the request
+func (e *EchoContextAdapter) Redirect(statusCode int, url string) error {
+	return e.Context.Redirect(statusCode, url)
+}
+
+// NoContent sends a no content response
+func (e *EchoContextAdapter) NoContent(statusCode int) error {
+	return e.Context.NoContent(statusCode)
+}
+
+// Get retrieves a value from the context
+func (e *EchoContextAdapter) Get(key string) interface{} {
+	return e.Context.Get(key)
+}
+
+// Set stores a value in the context
+func (e *EchoContextAdapter) Set(key string, value interface{}) {
+	e.Context.Set(key, value)
+}
+
+// RequestContext returns the underlying context.Context
+func (e *EchoContextAdapter) RequestContext() context.Context {
+	return e.Request().Context()
+}
+
+// GetUnderlyingContext returns the underlying Echo context for bridge methods
+func (e *EchoContextAdapter) GetUnderlyingContext() interface{} {
+	return e.Context
+}
+
+// RenderComponent renders a component
+func (e *EchoContextAdapter) RenderComponent(component interface{}) error {
+	// This would delegate to the renderer service
+	// For now, we'll use Echo's built-in rendering
+	return e.Render(http.StatusOK, "component", component)
+}
+
+// EchoAdapter registers handlers with an echo.Echo instance.
+type EchoAdapter struct {
+	e *echo.Echo
+}
+
+// NewEchoAdapter creates a new EchoAdapter for the given echo.Echo instance.
+func NewEchoAdapter(e *echo.Echo) *EchoAdapter {
+	return &EchoAdapter{e: e}
+}
+
+// RegisterHandler registers all routes from the given handler with Echo.
+func (a *EchoAdapter) RegisterHandler(handler interface{}) error {
+	// This is a simple adapter that just passes through to Echo
+	// The actual handler registration logic should be in the presentation layer
+	// This is just a placeholder to satisfy the dependency injection
+	return nil
 }

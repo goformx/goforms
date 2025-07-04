@@ -1,6 +1,8 @@
 package http
 
 import (
+	"context"
+
 	"github.com/goformx/goforms/internal/application/dto"
 )
 
@@ -67,4 +69,7 @@ type Context interface {
 	// Context methods
 	Get(key string) interface{}
 	Set(key string, value interface{})
+
+	// Context propagation (needed for application services)
+	RequestContext() context.Context
 }

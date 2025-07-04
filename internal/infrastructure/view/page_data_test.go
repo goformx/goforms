@@ -13,7 +13,7 @@ import (
 	contextmw "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/infrastructure/config"
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/infrastructure/view"
 	webmocks "github.com/goformx/goforms/test/mocks/web"
 )
 

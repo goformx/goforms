@@ -27,8 +27,8 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
+	"github.com/goformx/goforms/internal/infrastructure/view"
 	infraweb "github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 const (

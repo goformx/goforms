@@ -14,7 +14,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/infrastructure/view"
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 )
 
