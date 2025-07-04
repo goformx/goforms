@@ -141,10 +141,9 @@ type SessionMiddlewareConfig struct {
 
 // AuthenticationMiddlewareConfig defines authentication middleware configuration
 type AuthenticationMiddlewareConfig struct {
-	Enabled       bool   `json:"enabled"`
-	JWTSecret     string `json:"jwt_secret"`
-	TokenExpiry   int    `json:"token_expiry"`   // seconds
-	RefreshExpiry int    `json:"refresh_expiry"` // seconds
+	Enabled       bool `json:"enabled"`
+	TokenExpiry   int  `json:"token_expiry"`   // seconds
+	RefreshExpiry int  `json:"refresh_expiry"` // seconds
 }
 
 // AuthorizationMiddlewareConfig defines authorization middleware configuration

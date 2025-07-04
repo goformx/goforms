@@ -311,7 +311,6 @@ func (c *ViperMiddlewareConfig) getCustomMiddlewareConfig(name string) map[strin
 		}
 	case "authentication":
 		return map[string]any{
-			"jwt_secret":     c.config.Middleware.Authentication.JWTSecret,
 			"token_expiry":   c.config.Middleware.Authentication.TokenExpiry,
 			"refresh_expiry": c.config.Middleware.Authentication.RefreshExpiry,
 		}

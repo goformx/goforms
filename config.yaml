@@ -237,7 +237,6 @@ middleware:
 
   authentication:
     enabled: true
-    jwt_secret: "your-secret-key-change-in-production"
     token_expiry: 3600    # 1 hour
     refresh_expiry: 86400 # 24 hours
 

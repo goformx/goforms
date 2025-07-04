@@ -521,7 +521,6 @@ func (vc *ViperConfig) loadMiddlewareConfig(config *Config) error {
 		},
 		Authentication: AuthenticationMiddlewareConfig{
 			Enabled:       vc.viper.GetBool("middleware.authentication.enabled"),
-			JWTSecret:     vc.viper.GetString("middleware.authentication.jwt_secret"),
 			TokenExpiry:   vc.viper.GetInt("middleware.authentication.token_expiry"),
 			RefreshExpiry: vc.viper.GetInt("middleware.authentication.refresh_expiry"),
 		},
@@ -926,7 +925,6 @@ func setMiddlewareDefaults(v *viper.Viper) {
 	v.SetDefault("middleware.session.http_only", true)
 
 	v.SetDefault("middleware.authentication.enabled", true)
-	v.SetDefault("middleware.authentication.jwt_secret", "your-secret-key")
 	v.SetDefault("middleware.authentication.token_expiry", 3600)    // 1 hour
 	v.SetDefault("middleware.authentication.refresh_expiry", 86400) // 24 hours
 
