@@ -20,6 +20,12 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/openapi"
 )
 
+// context keys for caching route and pathParams
+const (
+	openapiRouteKey      = "openapi_route"
+	openapiPathParamsKey = "openapi_path_params"
+)
+
 // OpenAPIValidationMiddleware validates requests and responses against OpenAPI specification
 type OpenAPIValidationMiddleware struct {
 	doc    *openapi3.T
@@ -53,7 +59,7 @@ func NewOpenAPIValidationMiddleware(logger logging.Logger, config *Config) (*Ope
 	}
 
 	// Load and parse the OpenAPI specification
-	loader := openapi3.NewLoader()
+	loader := &openapi3.Loader{Context: context.Background(), IsExternalRefsAllowed: true}
 
 	doc, err := loader.LoadFromData([]byte(openapi.OpenAPISpec))
 	if err != nil {
@@ -61,7 +67,7 @@ func NewOpenAPIValidationMiddleware(logger logging.Logger, config *Config) (*Ope
 	}
 
 	// Validate the specification
-	if validateErr := doc.Validate(context.Background()); validateErr != nil {
+	if validateErr := doc.Validate(loader.Context); validateErr != nil {
 		return nil, fmt.Errorf("invalid OpenAPI specification: %w", validateErr)
 	}
 
@@ -83,32 +89,40 @@ func NewOpenAPIValidationMiddleware(logger logging.Logger, config *Config) (*Ope
 func (m *OpenAPIValidationMiddleware) Middleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			// Check if we should skip validation for this path/method
 			if m.shouldSkip(c) {
 				return next(c)
 			}
 
+			// Find and cache route/params if not already cached
+			route, pathParams, ok := getOpenAPIRouteAndParams(c)
+			if !ok {
+				var err error
+				route, pathParams, err = m.router.FindRoute(c.Request())
+				if err != nil {
+					return m.handleRequestValidationError(c, err)
+				}
+				setOpenAPIRouteAndParams(c, route, pathParams)
+			}
+
 			// Validate request if enabled
-			if err := m.validateRequestIfEnabled(c); err != nil {
-				return err
+			if m.config.EnableRequestValidation {
+				if err := m.validateRequestWithRoute(c, route, pathParams); err != nil {
+					return m.handleRequestValidationError(c, err)
+				}
 			}
 
 			// Capture response for validation
 			responseCapture := m.setupResponseCapture(c)
-
-			// Call the next handler
 			err := next(c)
 
 			// Validate response if enabled
-			if err == nil {
-				if validationErr := m.validateResponseIfEnabled(c, responseCapture); validationErr != nil {
-					return validationErr
+			if err == nil && m.config.EnableResponseValidation && responseCapture != nil {
+				if validationErr := m.validateResponseWithRoute(c, *responseCapture.body, route, pathParams); validationErr != nil {
+					return m.handleResponseValidationError(c, validationErr, responseCapture)
 				}
 			}
 
-			// Restore original writer if we captured it
 			m.restoreResponseWriter(c, responseCapture)
-
 			return err
 		}
 	}
@@ -156,6 +170,7 @@ func (m *OpenAPIValidationMiddleware) setupResponseCapture(c echo.Context) *resp
 
 	responseWriter := &responseCaptureWriter{
 		Response: c.Response(),
+		Writer:   originalWriter,
 		body:     &responseBody,
 	}
 	c.Response().Writer = responseWriter
@@ -316,8 +331,9 @@ func (m *OpenAPIValidationMiddleware) validateResponse(c echo.Context, responseB
 
 // responseCaptureWriter captures the response body for validation
 type responseCaptureWriter struct {
-	*echo.Response
-	body *[]byte
+	Response *echo.Response
+	Writer   http.ResponseWriter
+	body     *[]byte
 }
 
 // Write captures the response body
@@ -328,8 +344,13 @@ func (w *responseCaptureWriter) Write(b []byte) (int, error) {
 
 // WriteHeader captures the response status
 func (w *responseCaptureWriter) WriteHeader(statusCode int) {
-	w.Status = statusCode
+	w.Response.Status = statusCode
 	w.Writer.WriteHeader(statusCode)
+}
+
+// Header returns the response headers
+func (w *responseCaptureWriter) Header() http.Header {
+	return w.Writer.Header()
 }
 
 // Flush flushes the underlying writer
@@ -350,4 +371,66 @@ func (w *responseCaptureWriter) Hijack() (net.Conn, *bufio.ReadWriter, error) {
 // Router returns the router for testing purposes
 func (m *OpenAPIValidationMiddleware) Router() routers.Router {
 	return m.router
+}
+
+// Helper to set route and pathParams in context
+func setOpenAPIRouteAndParams(c echo.Context, route *routers.Route, pathParams map[string]string) {
+	c.Set(openapiRouteKey, route)
+	c.Set(openapiPathParamsKey, pathParams)
+}
+
+// Helper to get route and pathParams from context
+func getOpenAPIRouteAndParams(c echo.Context) (*routers.Route, map[string]string, bool) {
+	r, rok := c.Get(openapiRouteKey).(*routers.Route)
+	p, pok := c.Get(openapiPathParamsKey).(map[string]string)
+	return r, p, rok && pok
+}
+
+// New versions that use cached route/params
+func (m *OpenAPIValidationMiddleware) validateRequestWithRoute(c echo.Context, route *routers.Route, pathParams map[string]string) error {
+	request := c.Request()
+	validationInput := &openapi3filter.RequestValidationInput{
+		Request:    request,
+		PathParams: pathParams,
+		Route:      route,
+		Options: &openapi3filter.Options{
+			IncludeResponseStatus: true,
+			AuthenticationFunc: func(ctx context.Context, input *openapi3filter.AuthenticationInput) error {
+				if input.SecurityScheme == nil {
+					return fmt.Errorf("security scheme is nil for %s", input.SecuritySchemeName)
+				}
+				if input.SecuritySchemeName == "SessionAuth" {
+					// For test purposes, always succeed
+					return nil
+				}
+				return fmt.Errorf("unsupported security scheme: %s", input.SecuritySchemeName)
+			},
+		},
+	}
+	if validateErr := openapi3filter.ValidateRequest(context.Background(), validationInput); validateErr != nil {
+		return fmt.Errorf("request validation failed: %w", validateErr)
+	}
+	return nil
+}
+
+func (m *OpenAPIValidationMiddleware) validateResponseWithRoute(c echo.Context, responseBody []byte, route *routers.Route, pathParams map[string]string) error {
+	request := c.Request()
+	response := c.Response()
+	validationInput := &openapi3filter.ResponseValidationInput{
+		RequestValidationInput: &openapi3filter.RequestValidationInput{
+			Request:    request,
+			PathParams: pathParams,
+			Route:      route,
+			Options: &openapi3filter.Options{
+				IncludeResponseStatus: true,
+			},
+		},
+		Status: response.Status,
+		Header: response.Header(),
+		Body:   io.NopCloser(bytes.NewReader(responseBody)),
+	}
+	if validateErr := openapi3filter.ValidateResponse(context.Background(), validationInput); validateErr != nil {
+		return fmt.Errorf("response validation failed: %w", validateErr)
+	}
+	return nil
 }
