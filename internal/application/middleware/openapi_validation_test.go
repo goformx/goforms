@@ -81,6 +81,12 @@ func TestOpenAPIValidationMiddleware_ValidateActualResponses(t *testing.T) {
 		})
 
 		req := httptest.NewRequest(http.MethodGet, "/api/v1/forms", http.NoBody)
+		req.AddCookie(&http.Cookie{Name: "session", Value: "test-session-id"})
+
+		// Add debugging headers
+		req.Header.Set("Accept", "application/json")
+		req.Header.Set("Content-Type", "application/json")
+
 		rec := httptest.NewRecorder()
 		e.ServeHTTP(rec, req)
 
@@ -279,4 +285,45 @@ func TestOpenAPIValidationMiddleware_SkipPaths(t *testing.T) {
 
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Equal(t, "skipped", rec.Body.String())
+}
+
+func TestOpenAPIValidationMiddleware_SpecLoading(t *testing.T) {
+	// Create a mock logger
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	logger := mocklogging.NewMockLogger(ctrl)
+
+	// Create the validation middleware
+	validationMiddleware, err := middleware.NewOpenAPIValidationMiddleware(logger, &middleware.Config{
+		EnableRequestValidation:  false, // Disable for this test
+		EnableResponseValidation: false,
+		LogValidationErrors:      false,
+		BlockInvalidRequests:     false,
+		BlockInvalidResponses:    false,
+		SkipPaths:                []string{},
+		SkipMethods:              []string{},
+	})
+	require.NoError(t, err)
+
+	// Test if we can find the health route (which should be public)
+	req := httptest.NewRequest(http.MethodGet, "/health", http.NoBody)
+	route, _, err := validationMiddleware.Router().FindRoute(req)
+
+	if err != nil {
+		t.Logf("Could not find /health route: %v", err)
+	} else {
+		t.Logf("Found route: %s", route.Path)
+	}
+
+	// Test if we can find the forms route
+	req = httptest.NewRequest(http.MethodGet, "/api/v1/forms", http.NoBody)
+	req.AddCookie(&http.Cookie{Name: "session", Value: "test-session-id"})
+	route, _, err = validationMiddleware.Router().FindRoute(req)
+
+	if err != nil {
+		t.Logf("Could not find /api/v1/forms route: %v", err)
+	} else {
+		t.Logf("Found route: %s", route.Path)
+	}
 }

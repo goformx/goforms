@@ -1,7 +1,7 @@
 package openapi
 
-// OpenAPISpec contains the OpenAPI 3.1 specification for the GoFormX API
-const OpenAPISpec = `openapi: 3.0.0
+// OpenAPISpec contains the OpenAPI 3.1.0 specification for the GoFormX API
+const OpenAPISpec = `openapi: 3.1.0
 info:
   title: GoFormX API
   description: Modern form management API with MariaDB backend
@@ -13,6 +13,7 @@ servers:
     description: Development server
   - url: https://api.goformx.com
     description: Production server
+
 paths:
   /api/v1/forms:
     get:
@@ -20,7 +21,7 @@ paths:
       description: Retrieve a list of forms for the authenticated user
       operationId: listForms
       security:
-        - BearerAuth: []
+        - SessionAuth: []
       responses:
         '200':
           description: List of forms retrieved successfully
@@ -63,43 +64,30 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Form'
+                $ref: '#/components/schemas/FormResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '422':
           $ref: '#/components/responses/ValidationError'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
   /api/v1/forms/{id}:
+    parameters:
+      - $ref: '#/components/parameters/FormId'
     get:
       summary: Get form by ID
       description: Retrieve a specific form by its ID
       operationId: getForm
       security:
-        - BearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Form ID
-          schema:
-            type: string
-            format: uuid
+        - SessionAuth: []
       responses:
         '200':
           description: Form retrieved successfully
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          form:
-                            $ref: '#/components/schemas/Form'
+                $ref: '#/components/schemas/FormResponse'
         '404':
           $ref: '#/components/responses/NotFound'
         '403':
@@ -110,14 +98,8 @@ paths:
       summary: Update form
       description: Update an existing form with the provided data
       operationId: updateForm
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Form ID
-          schema:
-            type: string
-            format: uuid
+      security:
+        - SessionAuth: []
       requestBody:
         required: true
         content:
@@ -130,7 +112,7 @@ paths:
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/Form'
+                $ref: '#/components/schemas/FormResponse'
         '400':
           $ref: '#/components/responses/BadRequest'
         '404':
@@ -143,14 +125,8 @@ paths:
       summary: Delete form
       description: Delete a form by its ID
       operationId: deleteForm
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Form ID
-          schema:
-            type: string
-            format: uuid
+      security:
+        - SessionAuth: []
       responses:
         '204':
           description: Form deleted successfully
@@ -158,27 +134,21 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
   /api/v1/forms/{id}/schema:
+    parameters:
+      - $ref: '#/components/parameters/FormId'
     get:
       summary: Get form schema
       description: Retrieve the JSON schema for a form
       operationId: getFormSchema
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Form ID
-          schema:
-            type: string
-            format: uuid
       responses:
         '200':
           description: Form schema retrieved successfully
           content:
             application/json:
               schema:
-                type: object
-                description: JSON schema defining the form structure
+                $ref: '#/components/schemas/JSONSchema'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
@@ -188,30 +158,20 @@ paths:
       description: Update the JSON schema for a form
       operationId: updateFormSchema
       security:
-        - BearerAuth: []
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Form ID
-          schema:
-            type: string
-            format: uuid
+        - SessionAuth: []
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              description: JSON schema defining the form structure
+              $ref: '#/components/schemas/JSONSchema'
       responses:
         '200':
           description: Form schema updated successfully
           content:
             application/json:
               schema:
-                type: object
-                description: Updated JSON schema
+                $ref: '#/components/schemas/JSONSchema'
         '400':
           $ref: '#/components/responses/BadRequest'
         '403':
@@ -220,19 +180,14 @@ paths:
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
   /api/v1/forms/{id}/validation:
+    parameters:
+      - $ref: '#/components/parameters/FormId'
     get:
       summary: Get form validation schema
       description: Retrieve client-side validation rules for a form
       operationId: getFormValidation
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Form ID
-          schema:
-            type: string
-            format: uuid
       responses:
         '200':
           description: Validation schema retrieved successfully
@@ -244,60 +199,39 @@ paths:
                   - type: object
                     properties:
                       data:
-                        type: object
-                        description: Client-side validation rules
+                        $ref: '#/components/schemas/ValidationRules'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
   /api/v1/forms/{id}/submit:
+    parameters:
+      - $ref: '#/components/parameters/FormId'
     post:
       summary: Submit form data
       description: Submit form data for processing
       operationId: submitForm
-      parameters:
-        - name: id
-          in: path
-          required: true
-          description: Form ID
-          schema:
-            type: string
-            format: uuid
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              description: Form submission data
+              $ref: '#/components/schemas/FormSubmissionData'
       responses:
         '200':
           description: Form submitted successfully
           content:
             application/json:
               schema:
-                allOf:
-                  - $ref: '#/components/schemas/APIResponse'
-                  - type: object
-                    properties:
-                      data:
-                        type: object
-                        properties:
-                          submission_id:
-                            type: string
-                            format: uuid
-                          status:
-                            type: string
-                            enum: [pending, processing, completed, failed]
-                          submitted_at:
-                            type: string
-                            format: date-time
+                $ref: '#/components/schemas/SubmissionResponse'
         '400':
           $ref: '#/components/responses/ValidationError'
         '404':
           $ref: '#/components/responses/NotFound'
         '500':
           $ref: '#/components/responses/InternalServerError'
+
   /health:
     get:
       summary: Health check
@@ -309,23 +243,28 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  status:
-                    type: string
-                    enum: [healthy]
-                  timestamp:
-                    type: string
-                    format: date-time
-                  version:
-                    type: string
+                $ref: '#/components/schemas/HealthResponse'
+
 components:
   securitySchemes:
-    BearerAuth:
-      type: http
-      scheme: bearer
-      bearerFormat: JWT
+    SessionAuth:
+      type: apiKey
+      in: cookie
+      name: session
+      description: Session cookie for authentication
+
+  parameters:
+    FormId:
+      name: id
+      in: path
+      required: true
+      description: Form ID
+      schema:
+        type: string
+        format: uuid
+
   schemas:
+    # Base response schema
     APIResponse:
       type: object
       required:
@@ -340,6 +279,58 @@ components:
         data:
           type: object
           description: Response data (structure varies by endpoint)
+
+    # Common field types
+    UUID:
+      type: string
+      format: uuid
+      description: Universally unique identifier
+
+    Timestamp:
+      type: string
+      format: date-time
+      description: ISO 8601 timestamp
+
+    FormStatus:
+      type: string
+      enum: [draft, active, inactive]
+      description: Current status of the form
+
+    SubmissionStatus:
+      type: string
+      enum: [pending, processing, completed, failed]
+      description: Current status of the submission
+
+    FormTitle:
+      type: string
+      minLength: 3
+      maxLength: 100
+      description: Title of the form
+
+    FormDescription:
+      type: string
+      maxLength: 500
+      description: Optional description of the form
+
+    FormName:
+      type: string
+      minLength: 1
+      maxLength: 255
+      description: Name of the form
+
+    JSONSchema:
+      type: object
+      description: JSON schema defining the form structure
+
+    ValidationRules:
+      type: object
+      description: Client-side validation rules
+
+    FormSubmissionData:
+      type: object
+      description: Form submission data
+
+    # Core entities
     Form:
       type: object
       required:
@@ -349,33 +340,20 @@ components:
         - updated_at
       properties:
         id:
-          type: string
-          format: uuid
-          description: Unique identifier for the form
+          $ref: '#/components/schemas/UUID'
         title:
-          type: string
-          minLength: 3
-          maxLength: 100
-          description: Title of the form
+          $ref: '#/components/schemas/FormTitle'
         description:
-          type: string
-          maxLength: 500
-          description: Optional description of the form
+          $ref: '#/components/schemas/FormDescription'
         status:
-          type: string
-          enum: [draft, active, inactive]
-          description: Current status of the form
+          $ref: '#/components/schemas/FormStatus'
         schema:
-          type: object
-          description: JSON schema defining the form structure
+          $ref: '#/components/schemas/JSONSchema'
         created_at:
-          type: string
-          format: date-time
-          description: Timestamp when the form was created
+          $ref: '#/components/schemas/Timestamp'
         updated_at:
-          type: string
-          format: date-time
-          description: Timestamp when the form was last updated
+          $ref: '#/components/schemas/Timestamp'
+
     FormListItem:
       type: object
       required:
@@ -385,30 +363,18 @@ components:
         - updated_at
       properties:
         id:
-          type: string
-          format: uuid
-          description: Unique identifier for the form
+          $ref: '#/components/schemas/UUID'
         title:
-          type: string
-          minLength: 3
-          maxLength: 100
-          description: Title of the form
+          $ref: '#/components/schemas/FormTitle'
         description:
-          type: string
-          maxLength: 500
-          description: Optional description of the form
+          $ref: '#/components/schemas/FormDescription'
         status:
-          type: string
-          enum: [draft, active, inactive]
-          description: Current status of the form
+          $ref: '#/components/schemas/FormStatus'
         created_at:
-          type: string
-          format: date-time
-          description: Timestamp when the form was created
+          $ref: '#/components/schemas/Timestamp'
         updated_at:
-          type: string
-          format: date-time
-          description: Timestamp when the form was last updated
+          $ref: '#/components/schemas/Timestamp'
+
     FormSubmission:
       type: object
       required:
@@ -419,60 +385,89 @@ components:
         - status
       properties:
         id:
-          type: string
-          format: uuid
-          description: Unique identifier for the submission
+          $ref: '#/components/schemas/UUID'
         form_id:
-          type: string
-          format: uuid
-          description: ID of the form this submission belongs to
+          $ref: '#/components/schemas/UUID'
         data:
-          type: object
-          description: Submitted form data
+          $ref: '#/components/schemas/FormSubmissionData'
         submitted_at:
-          type: string
-          format: date-time
-          description: Timestamp when the form was submitted
+          $ref: '#/components/schemas/Timestamp'
         status:
-          type: string
-          enum: [pending, processing, completed, failed]
-          description: Current status of the submission
+          $ref: '#/components/schemas/SubmissionStatus'
         metadata:
           type: object
           description: Additional metadata for the submission
+
+    # Request/Response schemas
     CreateFormRequest:
       type: object
       required:
         - name
       properties:
         name:
-          type: string
-          minLength: 1
-          maxLength: 255
-          description: Name of the form
+          $ref: '#/components/schemas/FormName'
         description:
           type: string
           maxLength: 1000
           description: Optional description of the form
         schema:
-          type: object
-          description: JSON schema defining the form structure
+          $ref: '#/components/schemas/JSONSchema'
+
     UpdateFormRequest:
       type: object
       properties:
         name:
-          type: string
-          minLength: 1
-          maxLength: 255
-          description: Name of the form
+          $ref: '#/components/schemas/FormName'
         description:
           type: string
           maxLength: 1000
           description: Optional description of the form
         schema:
-          type: object
-          description: JSON schema defining the form structure
-    Error:
+          $ref: '#/components/schemas/JSONSchema'
+
+    FormResponse:
+      allOf:
+        - $ref: '#/components/schemas/APIResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                form:
+                  $ref: '#/components/schemas/Form'
+
+    SubmissionResponse:
+      allOf:
+        - $ref: '#/components/schemas/APIResponse'
+        - type: object
+          properties:
+            data:
+              type: object
+              properties:
+                submission_id:
+                  $ref: '#/components/schemas/UUID'
+                status:
+                  $ref: '#/components/schemas/SubmissionStatus'
+                submitted_at:
+                  $ref: '#/components/schemas/Timestamp'
+
+    HealthResponse:
+      type: object
+      required:
+        - status
+        - timestamp
+        - version
+      properties:
+        status:
+          type: string
+          const: healthy
+        timestamp:
+          $ref: '#/components/schemas/Timestamp'
+        version:
+          type: string
+
+    # Error schemas
+    BaseError:
       type: object
       required:
         - success
@@ -480,78 +475,85 @@ components:
       properties:
         success:
           type: boolean
-          example: false
+          const: false
         message:
           type: string
           description: Error message
-    ValidationError:
+
+    ValidationErrorDetail:
       type: object
       required:
-        - success
+        - field
         - message
-        - data
       properties:
-        success:
-          type: boolean
-          example: false
+        field:
+          type: string
+          description: Field name that failed validation
         message:
           type: string
-          example: "Validation failed"
-        data:
-          type: object
+          description: Validation error message for the field
+        rule:
+          type: string
+          description: Validation rule that failed
+
+    ValidationError:
+      allOf:
+        - $ref: '#/components/schemas/BaseError'
+        - type: object
+          required:
+            - data
           properties:
-            errors:
-              type: array
-              items:
-                type: object
-                required:
-                  - field
-                  - message
-                properties:
-                  field:
-                    type: string
-                    description: Field name that failed validation
-                  message:
-                    type: string
-                    description: Validation error message for the field
-                  rule:
-                    type: string
-                    description: Validation rule that failed
+            message:
+              type: string
+              const: "Validation failed"
+            data:
+              type: object
+              properties:
+                errors:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/ValidationErrorDetail'
+
   responses:
     BadRequest:
       description: Bad request
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/BaseError'
+
     Unauthorized:
       description: Authentication required
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/BaseError'
+
     Forbidden:
       description: Access forbidden
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/BaseError'
+
     NotFound:
       description: Resource not found
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/BaseError'
+
     ValidationError:
       description: Validation error
       content:
         application/json:
           schema:
             $ref: '#/components/schemas/ValidationError'
+
     InternalServerError:
       description: Internal server error
       content:
         application/json:
           schema:
-            $ref: '#/components/schemas/Error'
+            $ref: '#/components/schemas/BaseError'
 `
