@@ -68,17 +68,13 @@ var Module = fx.Module("middleware",
 
 		// Registry provider
 		fx.Annotate(
-			func(logger logging.Logger, config MiddlewareConfig) core.Registry {
-				return NewRegistry(logger, config)
-			},
+			NewRegistry,
 			fx.As(new(core.Registry)),
 		),
 
 		// Orchestrator provider
 		fx.Annotate(
-			func(registry core.Registry, config MiddlewareConfig, logger logging.Logger) core.Orchestrator {
-				return NewOrchestrator(registry, config, logger)
-			},
+			NewOrchestrator,
 			fx.As(new(core.Orchestrator)),
 		),
 

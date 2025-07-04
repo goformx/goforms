@@ -25,13 +25,13 @@ type AuthResponseBuilder struct {
 
 // NewAuthResponseBuilder creates a new auth response builder
 func NewAuthResponseBuilder(
-	config *config.Config,
+	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
 	renderer view.Renderer,
 	logger logging.Logger,
 ) *AuthResponseBuilder {
 	return &AuthResponseBuilder{
-		config:       config,
+		config:       cfg,
 		assetManager: assetManager,
 		renderer:     renderer,
 		logger:       logger,

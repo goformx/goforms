@@ -297,7 +297,10 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 
 	// Check form ownership
 	if formToDelete.UserID != user.ID {
-		h.logger.Warn("unauthorized form deletion", "user_id", user.ID, "form_user_id", formToDelete.UserID, "form_id", formID)
+		h.logger.Warn("unauthorized form deletion",
+			"user_id", user.ID,
+			"form_user_id", formToDelete.UserID,
+			"form_id", formID)
 
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to delete this form", 403)
 	}
