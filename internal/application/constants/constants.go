@@ -85,8 +85,8 @@ const (
 	PathLoginPost  = "/login"
 	PathSignupPost = "/signup"
 	PathLogout     = "/logout"
-	PathAPIV1      = "/api/v1"
-	PathValidation = "/validation"
+	// Note: PathAPIV1 is duplicate of PathAPIv1 - using PathAPIv1 consistently
+	// Note: PathValidation is duplicate of PathAPIValidation - using PathAPIValidation consistently
 )
 
 // Timeouts and Intervals

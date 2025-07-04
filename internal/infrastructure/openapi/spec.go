@@ -1,7 +1,7 @@
 package openapi
 
 // OpenAPISpec contains the OpenAPI 3.1 specification for the GoFormX API
-const OpenAPISpec = `openapi: 3.1.0
+const OpenAPISpec = `openapi: 3.0.0
 info:
   title: GoFormX API
   description: Modern form management API with MariaDB backend

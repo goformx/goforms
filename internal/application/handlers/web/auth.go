@@ -126,19 +126,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 	return h.redirectToLogin(c)
 }
 
-// LoginValidation handles the login form validation schema request
-func (h *AuthHandler) LoginValidation(c echo.Context) error {
-	schema := h.SchemaGenerator.GenerateLoginSchema()
-
-	return response.Success(c, schema)
-}
-
-// SignupValidation returns the validation schema for the signup form
-func (h *AuthHandler) SignupValidation(c echo.Context) error {
-	schema := h.SchemaGenerator.GenerateSignupSchema()
-
-	return response.Success(c, schema)
-}
+// Note: LoginValidation and SignupValidation moved to ValidationHandler
 
 // Start initializes the auth handler.
 // This is called during application startup.

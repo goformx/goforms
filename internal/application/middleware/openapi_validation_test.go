@@ -24,13 +24,15 @@ func TestOpenAPIValidationMiddleware_ValidateActualResponses(t *testing.T) {
 
 	logger := mocklogging.NewMockLogger(ctrl)
 
-	// Create the validation middleware
+	// Create the validation middleware with proper skip paths
 	validationMiddleware, err := middleware.NewOpenAPIValidationMiddleware(logger, &middleware.Config{
 		EnableRequestValidation:  true,
 		EnableResponseValidation: true,
 		LogValidationErrors:      true,
 		BlockInvalidRequests:     false,
 		BlockInvalidResponses:    false,
+		SkipPaths:                []string{"/health"}, // Skip health endpoint for testing
+		SkipMethods:              []string{},
 	})
 	require.NoError(t, err)
 

@@ -128,7 +128,7 @@ export class FormApiService {
     try {
       // HttpClient.put returns HttpResponse, not Response
       await HttpClient.put(
-        `${this.baseUrl}/forms/${formId}`,
+        `${this.baseUrl}/api/v1/forms/${formId}`,
         JSON.stringify(details),
       );
 
@@ -149,7 +149,7 @@ export class FormApiService {
   public async deleteForm(formId: string): Promise<void> {
     try {
       // HttpClient.delete returns HttpResponse, not Response
-      await HttpClient.delete(`${this.baseUrl}/forms/${formId}`);
+      await HttpClient.delete(`${this.baseUrl}/api/v1/forms/${formId}`);
 
       // If we get here, the request was successful
       Logger.debug("Form deleted successfully");
@@ -218,7 +218,7 @@ export class FormApiService {
       }
 
       const response = await HttpClient.post<{ form_id: string }>(
-        `${this.baseUrl}/forms`,
+        `${this.baseUrl}/api/v1/forms`,
         formData as object,
       );
 
@@ -265,7 +265,7 @@ export class FormApiService {
    */
   public async listForms(): Promise<any[]> {
     try {
-      const response = await HttpClient.get(`${this.baseUrl}/forms`);
+      const response = await HttpClient.get(`${this.baseUrl}/api/v1/forms`);
       return (response.data as any[]) ?? [];
     } catch (error) {
       if (error instanceof FormBuilderError) {
@@ -310,7 +310,7 @@ export class FormApiService {
   public async updateFormStatus(formId: string, status: string): Promise<void> {
     try {
       await HttpClient.put(
-        `${this.baseUrl}/forms/${formId}/status`,
+        `${this.baseUrl}/api/v1/forms/${formId}`,
         JSON.stringify({ status }),
       );
     } catch (error) {
@@ -334,7 +334,7 @@ export class FormApiService {
   ): Promise<void> {
     try {
       await HttpClient.put(
-        `${this.baseUrl}/forms/${formId}/cors`,
+        `${this.baseUrl}/api/v1/forms/${formId}`,
         JSON.stringify({ cors_origins: corsOrigins }),
       );
     } catch (error) {

@@ -10,7 +10,6 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
@@ -70,16 +69,12 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Mana
 	forms.GET("/new", h.handleNew)
 	forms.POST("", h.handleCreate)
 	forms.GET("/:id/edit", h.handleEdit)
-	forms.POST("/:id/edit", h.handleUpdate)
 	forms.PUT("/:id", h.handleUpdate)
 	forms.DELETE("/:id", h.handleDelete)
 	forms.GET("/:id/submissions", h.handleSubmissions)
 	forms.GET("/:id/preview", h.handlePreview)
 
-	// API routes with validation
-	api := e.Group(constants.PathAPIV1)
-	validationGroup := api.Group(constants.PathValidation)
-	validationGroup.GET("/new-form", h.handleNewFormValidation)
+	// Note: Validation routes moved to dedicated ValidationHandler
 }
 
 // Register satisfies the Handler interface
@@ -150,14 +145,4 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 	return nil
 }
 
-// handleNewFormValidation returns the validation schema for the new form
-func (h *FormWebHandler) handleNewFormValidation(c echo.Context) error {
-	schema := map[string]any{
-		"title": map[string]any{
-			"type":    "required",
-			"message": "Form title is required",
-		},
-	}
-
-	return response.Success(c, schema)
-}
+// Note: handleNewFormValidation moved to ValidationHandler

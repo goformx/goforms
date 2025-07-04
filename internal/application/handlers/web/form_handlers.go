@@ -3,14 +3,11 @@
 package web
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/goformx/goforms/internal/application/constants"
-	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/presentation/templates/pages"
 )
 
@@ -44,19 +41,17 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)
 	if err != nil {
-		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
+		return h.HandleError(c, err, "Failed to create form")
 	}
 
 	// Create form using business logic service
 	form, err := h.FormService.CreateForm(c.Request().Context(), user.ID, req)
 	if err != nil {
-		return h.handleFormCreationError(c, err)
+		return h.HandleError(c, err, "Failed to create form")
 	}
 
-	return fmt.Errorf("build success response: %w",
-		h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
-			"form_id": form.ID,
-		}))
+	// Redirect to the edit page for the new form
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 // handleEdit displays the form editing page
@@ -102,20 +97,17 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessUpdateRequest(c)
 	if err != nil {
-		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
+		return h.HandleError(c, err, "Failed to update form")
 	}
 
 	// Update form using business logic service
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form, req); updateErr != nil {
 		h.Logger.Error("failed to update form", "error", updateErr)
-
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
-	return fmt.Errorf("build success response: %w",
-		h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
-			"form_id": form.ID,
-		}))
+	// Redirect back to the edit page
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 // handleDelete processes form deletion requests
@@ -132,11 +124,11 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 
 	if deleteErr := h.FormService.DeleteForm(c.Request().Context(), form.ID); deleteErr != nil {
 		h.Logger.Error("failed to delete form", "error", deleteErr)
-
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 
-	return fmt.Errorf("no content response: %w", c.NoContent(constants.StatusNoContent))
+	// Redirect to dashboard after deletion
+	return c.Redirect(http.StatusSeeOther, "/dashboard")
 }
 
 // handleSubmissions displays form submissions
@@ -171,17 +163,4 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	return nil
 }
 
-// handleFormCreationError handles form creation errors
-func (h *FormWebHandler) handleFormCreationError(c echo.Context, err error) error {
-	switch {
-	case errors.Is(err, model.ErrFormTitleRequired):
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required"))
-	case errors.Is(err, model.ErrFormSchemaRequired):
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required"))
-	default:
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to create form"))
-	}
-}
+// Note: handleFormCreationError removed - using standard error handling

@@ -139,6 +139,17 @@ var Module = fx.Module("web-handlers",
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
+
+		// Validation handler - public access
+		fx.Annotate(
+			func(
+				base *BaseHandler,
+				schemaGenerator *validation.SchemaGenerator,
+			) (Handler, error) {
+				return NewValidationHandler(base, schemaGenerator), nil
+			},
+			fx.ResultTags(`group:"handlers"`),
+		),
 	),
 
 	// Lifecycle hooks
@@ -218,6 +229,8 @@ func (rr *RouteRegistrar) registerHandlerRoutes(e *echo.Echo, handler Handler) {
 		rr.registerDashboardRoutes(e, h)
 	case *OpenAPIHandler:
 		rr.registerOpenAPIRoutes(e, h)
+	case *ValidationHandler:
+		rr.registerValidationRoutes(e, h)
 	}
 }
 
@@ -230,11 +243,7 @@ func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
 	e.POST(constants.PathSignupPost, h.SignupPost)
 	e.POST(constants.PathLogout, h.Logout)
 
-	// API routes with validation
-	api := e.Group(constants.PathAPIV1)
-	validationGroup := api.Group(constants.PathValidation)
-	validationGroup.GET("/user-login", h.LoginValidation)
-	validationGroup.GET("/user-signup", h.SignupValidation)
+	// Note: Validation routes moved to ValidationHandler
 }
 
 // registerWebRoutes registers public web routes
@@ -263,6 +272,11 @@ func (rr *RouteRegistrar) registerDashboardRoutes(e *echo.Echo, h *DashboardHand
 
 // registerOpenAPIRoutes registers OpenAPI documentation routes
 func (rr *RouteRegistrar) registerOpenAPIRoutes(e *echo.Echo, h *OpenAPIHandler) {
+	h.RegisterRoutes(e)
+}
+
+// registerValidationRoutes registers validation routes
+func (rr *RouteRegistrar) registerValidationRoutes(e *echo.Echo, h *ValidationHandler) {
 	h.RegisterRoutes(e)
 }
 
