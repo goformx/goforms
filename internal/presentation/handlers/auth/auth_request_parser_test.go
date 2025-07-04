@@ -1,4 +1,4 @@
-package auth
+package auth_test
 
 import (
 	"net/http"
@@ -7,12 +7,13 @@ import (
 	"testing"
 
 	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/presentation/handlers/auth"
 	"github.com/labstack/echo/v4"
 	"github.com/stretchr/testify/assert"
 )
 
 func TestAuthRequestParser_ParseLogin(t *testing.T) {
-	parser := NewAuthRequestParser()
+	parser := auth.NewAuthRequestParser()
 
 	tests := []struct {
 		name          string
@@ -72,7 +73,7 @@ func TestAuthRequestParser_ParseLogin(t *testing.T) {
 }
 
 func TestAuthRequestParser_ParseSignup(t *testing.T) {
-	parser := NewAuthRequestParser()
+	parser := auth.NewAuthRequestParser()
 
 	tests := []struct {
 		name        string
@@ -121,7 +122,7 @@ func TestAuthRequestParser_ParseSignup(t *testing.T) {
 }
 
 func TestAuthRequestParser_ValidateLogin(t *testing.T) {
-	parser := NewAuthRequestParser()
+	parser := auth.NewAuthRequestParser()
 
 	tests := []struct {
 		name        string
@@ -163,7 +164,7 @@ func TestAuthRequestParser_ValidateLogin(t *testing.T) {
 }
 
 func TestAuthRequestParser_ValidateSignup(t *testing.T) {
-	parser := NewAuthRequestParser()
+	parser := auth.NewAuthRequestParser()
 
 	tests := []struct {
 		name        string

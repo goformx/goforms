@@ -62,7 +62,7 @@ type FormHandlerParams struct {
 type PageHandlerParams struct {
 	fx.In
 	Renderer     view.Renderer
-	Config       *config.Config
+	Cfg          *config.Config
 	AssetManager web.AssetManagerInterface
 	Logger       logging.Logger
 }
@@ -107,7 +107,7 @@ func NewFormHandlerWithDeps(params FormHandlerParams) *forms.FormHandler {
 func NewPageHandlerWithDeps(params PageHandlerParams) *pages.PageHandler {
 	return pages.NewPageHandler(
 		params.Renderer,
-		params.Config,
+		params.Cfg,
 		params.AssetManager,
 		params.Logger,
 	)

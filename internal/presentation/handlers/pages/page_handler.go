@@ -1,6 +1,8 @@
 package pages
 
 import (
+	"fmt"
+
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
@@ -15,7 +17,7 @@ import (
 type PageHandler struct {
 	handlers.BaseHandler
 	renderer     view.Renderer
-	config       *config.Config
+	cfg          *config.Config
 	assetManager web.AssetManagerInterface
 	logger       logging.Logger
 }
@@ -23,14 +25,14 @@ type PageHandler struct {
 // NewPageHandler creates a new PageHandler with a single home route.
 func NewPageHandler(
 	renderer view.Renderer,
-	config *config.Config,
+	cfg *config.Config,
 	assetManager web.AssetManagerInterface,
 	logger logging.Logger,
 ) *PageHandler {
 	h := &PageHandler{
 		BaseHandler:  *handlers.NewBaseHandler("pages"),
 		renderer:     renderer,
-		config:       config,
+		cfg:          cfg,
 		assetManager: assetManager,
 		logger:       logger,
 	}
@@ -58,10 +60,13 @@ func (h *PageHandler) handleHome(ctx httpiface.Context) error {
 	}
 
 	// Create page data for the home template
-	pageData := view.NewPageData(h.config, h.assetManager, echoCtx, "GoFormX - Self-Hosted Form Backend")
+	pageData := view.NewPageData(h.cfg, h.assetManager, echoCtx, "GoFormX - Self-Hosted Form Backend")
 
 	// Render the home page using the generated template
 	homeComponent := pages.Home(*pageData)
 
-	return h.renderer.Render(echoCtx, homeComponent)
+	if err := h.renderer.Render(echoCtx, homeComponent); err != nil {
+		return fmt.Errorf("failed to render home page: %w", err)
+	}
+	return nil
 }

@@ -229,7 +229,10 @@ func (h *AuthHandler) SignupPost(ctx httpiface.Context) error {
 	if err != nil {
 		h.logger.Error("failed to create session for new user", "user_id", newUser.ID, "error", err)
 
-		return h.responseBuilder.BuildSignupErrorResponse(echoCtx, "Account created but failed to log you in. Please try logging in.")
+		return h.responseBuilder.BuildSignupErrorResponse(
+			echoCtx,
+			"Account created but failed to log you in. Please try logging in.",
+		)
 	}
 
 	// Set session cookie
