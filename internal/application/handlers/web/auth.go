@@ -157,6 +157,7 @@ func (h *AuthHandler) renderAuthPage(
 		return h.redirectToDashboard(c)
 	}
 
+	//nolint:wrapcheck // Rendering errors are handled at the top level
 	return h.Renderer.Render(c, templateFunc(*data))
 }
 
