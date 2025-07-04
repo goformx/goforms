@@ -161,7 +161,9 @@ func TestResponseCaptureWriter_Flush(t *testing.T) {
 	capture.Setup(c)
 
 	// Flush should not panic
-	c.Response().Writer.(http.Flusher).Flush()
+	flusher, ok := c.Response().Writer.(http.Flusher)
+	require.True(t, ok)
+	flusher.Flush()
 }
 
 func TestResponseCaptureWriter_Hijack(t *testing.T) {

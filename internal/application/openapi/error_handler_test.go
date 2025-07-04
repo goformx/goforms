@@ -63,7 +63,7 @@ func TestValidationErrorHandler_HandleError_RequestValidationError_Blocking(t *t
 
 	result := handler.HandleError(ctx, testError, openapi.RequestValidationError, metadata)
 
-	assert.Error(t, result)
+	require.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 
 	httpError, ok := result.(*echo.HTTPError)
@@ -98,7 +98,7 @@ func TestValidationErrorHandler_HandleError_ResponseValidationError_Blocking(t *
 
 	result := handler.HandleError(ctx, testError, openapi.ResponseValidationError, metadata)
 
-	assert.Error(t, result)
+	require.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 
 	httpError, ok := result.(*echo.HTTPError)
@@ -133,7 +133,7 @@ func TestValidationErrorHandler_HandleError_RequestValidationError_NonBlocking(t
 
 	result := handler.HandleError(ctx, testError, openapi.RequestValidationError, metadata)
 
-	assert.NoError(t, result) // Should not block, just log
+	require.NoError(t, result) // Should not block, just log
 }
 
 func TestValidationErrorHandler_HandleError_ResponseValidationError_NonBlocking(t *testing.T) {
@@ -161,7 +161,7 @@ func TestValidationErrorHandler_HandleError_ResponseValidationError_NonBlocking(
 
 	result := handler.HandleError(ctx, testError, openapi.ResponseValidationError, metadata)
 
-	assert.NoError(t, result) // Should not block, just log
+	require.NoError(t, result) // Should not block, just log
 }
 
 func TestValidationErrorHandler_HandleError_NoLogging(t *testing.T) {
@@ -187,7 +187,7 @@ func TestValidationErrorHandler_HandleError_NoLogging(t *testing.T) {
 
 	result := handler.HandleError(ctx, testError, openapi.RequestValidationError, metadata)
 
-	assert.NoError(t, result)
+	require.NoError(t, result)
 }
 
 func TestValidationErrorHandler_HandleError_UnknownErrorType(t *testing.T) {
@@ -214,7 +214,7 @@ func TestValidationErrorHandler_HandleError_UnknownErrorType(t *testing.T) {
 
 	result := handler.HandleError(ctx, testError, "unknown", metadata)
 
-	assert.NoError(t, result) // Unknown error types should not block
+	require.NoError(t, result) // Unknown error types should not block
 }
 
 func TestValidationErrorHandler_HandleError_EmptyMetadata(t *testing.T) {
@@ -238,7 +238,7 @@ func TestValidationErrorHandler_HandleError_EmptyMetadata(t *testing.T) {
 
 	result := handler.HandleError(ctx, testError, openapi.RequestValidationError, metadata)
 
-	assert.Error(t, result)
+	require.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 }
 
@@ -262,7 +262,7 @@ func TestValidationErrorHandler_HandleError_NilMetadata(t *testing.T) {
 
 	result := handler.HandleError(ctx, testError, openapi.RequestValidationError, nil)
 
-	assert.Error(t, result)
+	require.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 }
 
@@ -289,7 +289,7 @@ func TestValidationErrorHandler_HandleError_NilError(t *testing.T) {
 
 	result := handler.HandleError(ctx, nil, openapi.RequestValidationError, metadata)
 
-	assert.Error(t, result)
+	require.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 }
 
@@ -324,7 +324,7 @@ func TestValidationErrorHandler_HandleError_ComplexMetadata(t *testing.T) {
 
 	result := handler.HandleError(ctx, testError, openapi.RequestValidationError, metadata)
 
-	assert.Error(t, result)
+	require.Error(t, result)
 	assert.IsType(t, &echo.HTTPError{}, result)
 }
 
@@ -371,5 +371,5 @@ func TestValidationErrorHandler_HandleError_AllErrorTypes(t *testing.T) {
 	logger.EXPECT().Warn("Validation failed", gomock.Any()).Times(1)
 
 	result3 := handler.HandleError(ctx, testError, "unknown", metadata)
-	assert.NoError(t, result3)
+	require.NoError(t, result3)
 }

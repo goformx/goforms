@@ -154,7 +154,7 @@ func TestOpenAPIRequestValidator_ValidateRequest_InvalidPath(t *testing.T) {
 	// Test invalid path
 	req := httptest.NewRequest(http.MethodGet, "/invalid", http.NoBody)
 	route, pathParams, err := validator.FindRoute(req)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, route)
 	assert.Nil(t, pathParams)
 }
@@ -180,7 +180,7 @@ func TestOpenAPIRequestValidator_FindRoute_NotFound(t *testing.T) {
 	req := httptest.NewRequest(http.MethodGet, "/nonexistent", http.NoBody)
 	route, pathParams, err := validator.FindRoute(req)
 
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Nil(t, route)
 	assert.Nil(t, pathParams)
 	assert.Contains(t, err.Error(), "failed to find route")
@@ -211,7 +211,9 @@ func TestOpenAPIResponseValidator_ValidateResponse_Success(t *testing.T) {
 	body := []byte(`{"message": "test"}`)
 
 	// Get route for validation
-	requestValidator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	requestValidator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
+
 	route, pathParams, err := requestValidator.FindRoute(req)
 	require.NoError(t, err)
 
@@ -235,12 +237,14 @@ func TestOpenAPIResponseValidator_ValidateResponse_InvalidStatus(t *testing.T) {
 	body := []byte(`{"error": "not found"}`)
 
 	// Get route for validation
-	requestValidator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	requestValidator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
+
 	route, pathParams, err := requestValidator.FindRoute(req)
 	require.NoError(t, err)
 
 	err = validator.ValidateResponse(req, resp, body, route, pathParams)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "response validation failed")
 }
 
@@ -260,12 +264,14 @@ func TestOpenAPIResponseValidator_ValidateResponse_InvalidContentType(t *testing
 	body := []byte("plain text response")
 
 	// Get route for validation
-	requestValidator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	requestValidator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
+
 	route, pathParams, err := requestValidator.FindRoute(req)
 	require.NoError(t, err)
 
 	err = validator.ValidateResponse(req, resp, body, route, pathParams)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "response validation failed")
 }
 
@@ -285,7 +291,9 @@ func TestOpenAPIResponseValidator_ValidateResponse_EmptyBody(t *testing.T) {
 	body := []byte{}
 
 	// Get route for validation
-	requestValidator := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	requestValidator, ok := openapi.NewOpenAPIRequestValidator(router).(*openapi.OpenAPIRequestValidator)
+	require.True(t, ok)
+
 	route, pathParams, err := requestValidator.FindRoute(req)
 	require.NoError(t, err)
 
@@ -307,7 +315,7 @@ func TestOpenAPIResponseValidator_ValidateResponse_NilRoute(t *testing.T) {
 
 	// Test with nil route
 	err := validator.ValidateResponse(req, resp, body, nil, nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "response validation failed")
 }
 
@@ -320,7 +328,7 @@ func TestOpenAPIRequestValidator_ValidateRequest_NilRoute(t *testing.T) {
 
 	// Test with nil route
 	err := validator.ValidateRequest(req, nil, nil)
-	assert.Error(t, err)
+	require.Error(t, err)
 	assert.Contains(t, err.Error(), "request validation failed")
 }
 
