@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/getkin/kin-openapi/openapi3filter"
 	"github.com/getkin/kin-openapi/routers"
@@ -27,6 +28,10 @@ func (v *OpenAPIRequestValidator) ValidateRequest(
 	route *routers.Route,
 	pathParams map[string]string,
 ) error {
+	if route == nil {
+		return fmt.Errorf("request validation failed: route is nil")
+	}
+
 	validationInput := &openapi3filter.RequestValidationInput{
 		Request:    req,
 		PathParams: pathParams,
@@ -75,6 +80,20 @@ func (v *OpenAPIResponseValidator) ValidateResponse(
 		return fmt.Errorf("response validation failed: route is nil")
 	}
 
+	// Check if the response status is defined in the OpenAPI spec
+	statusStr := fmt.Sprintf("%d", resp.StatusCode)
+	if route.Operation.Responses.Map()[statusStr] == nil {
+		return fmt.Errorf("response validation failed: status code %d is not defined in the OpenAPI spec", resp.StatusCode)
+	}
+
+	// Handle empty body - it should be valid for JSON responses
+	var bodyReader io.ReadCloser
+	if len(body) == 0 {
+		bodyReader = io.NopCloser(strings.NewReader(""))
+	} else {
+		bodyReader = io.NopCloser(bytes.NewReader(body))
+	}
+
 	validationInput := &openapi3filter.ResponseValidationInput{
 		RequestValidationInput: &openapi3filter.RequestValidationInput{
 			Request:    req,
@@ -86,7 +105,7 @@ func (v *OpenAPIResponseValidator) ValidateResponse(
 		},
 		Status: resp.StatusCode,
 		Header: resp.Header,
-		Body:   io.NopCloser(bytes.NewReader(body)),
+		Body:   bodyReader,
 	}
 
 	if validateErr := openapi3filter.ValidateResponse(context.Background(), validationInput); validateErr != nil {

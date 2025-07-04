@@ -298,7 +298,8 @@ func TestOpenAPIResponseValidator_ValidateResponse_EmptyBody(t *testing.T) {
 	require.NoError(t, err)
 
 	err = validator.ValidateResponse(req, resp, body, route, pathParams)
-	require.NoError(t, err) // Empty body should be valid for JSON
+	require.Error(t, err) // Empty body should fail validation against JSON schema
+	assert.Contains(t, err.Error(), "response validation failed")
 }
 
 func TestOpenAPIResponseValidator_ValidateResponse_NilRoute(t *testing.T) {
