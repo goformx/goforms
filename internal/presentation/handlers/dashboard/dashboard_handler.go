@@ -2,21 +2,53 @@ package dashboard
 
 import (
 	"fmt"
+	"time"
 
+	"github.com/goformx/goforms/internal/application/middleware/session"
+	"github.com/goformx/goforms/internal/domain/entities"
+	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
+	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/labstack/echo/v4"
 )
 
 // DashboardHandler handles the /dashboard route
 // Implements httpiface.Handler
 type DashboardHandler struct {
 	handlers.BaseHandler
+	formService     form.Service
+	sessionManager  *session.Manager
+	renderer        view.Renderer
+	config          *config.Config
+	assetManager    web.AssetManagerInterface
+	logger          logging.Logger
+	requestParser   *DashboardRequestParser
+	responseBuilder *DashboardResponseBuilder
 }
 
 // NewDashboardHandler creates a new DashboardHandler and registers the /dashboard route
-func NewDashboardHandler() *DashboardHandler {
+func NewDashboardHandler(
+	formService form.Service,
+	sessionManager *session.Manager,
+	renderer view.Renderer,
+	config *config.Config,
+	assetManager web.AssetManagerInterface,
+	logger logging.Logger,
+) *DashboardHandler {
 	h := &DashboardHandler{
-		BaseHandler: *handlers.NewBaseHandler("dashboard"),
+		BaseHandler:     *handlers.NewBaseHandler("dashboard"),
+		formService:     formService,
+		sessionManager:  sessionManager,
+		renderer:        renderer,
+		config:          config,
+		assetManager:    assetManager,
+		logger:          logger,
+		requestParser:   NewDashboardRequestParser(),
+		responseBuilder: NewDashboardResponseBuilder(config, assetManager, renderer, logger),
 	}
 
 	h.AddRoute(httpiface.Route{
@@ -30,5 +62,81 @@ func NewDashboardHandler() *DashboardHandler {
 
 // Dashboard handles GET /dashboard
 func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
-	return fmt.Errorf("Dashboard page (placeholder)")
+	// Extract the underlying Echo context for session management and rendering
+	echoCtx, ok := ctx.Request().(echo.Context)
+	if !ok {
+		h.logger.Error("failed to get echo context from httpiface.Context")
+
+		return fmt.Errorf("internal server error: context conversion failed")
+	}
+
+	// Get user from session manager
+	user, err := h.getUserFromSession(echoCtx)
+	if err != nil {
+		h.logger.Warn("authentication required for dashboard access", "error", err)
+
+		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
+	}
+
+	// Parse dashboard filters (for future extensibility)
+	filters, err := h.requestParser.ParseDashboardFilters(echoCtx)
+	if err != nil {
+		h.logger.Warn("invalid dashboard filters", "error", err)
+		// Continue with default filters instead of failing
+		filters = make(map[string]string)
+	}
+
+	// Validate filters
+	if err := h.requestParser.ValidateDashboardFilters(filters); err != nil {
+		h.logger.Warn("invalid dashboard filter parameters", "error", err)
+		// Continue with default filters instead of failing
+		filters = make(map[string]string)
+	}
+
+	// Parse pagination parameters (for future extensibility)
+	_, _, err = h.requestParser.ParsePaginationParams(echoCtx)
+	if err != nil {
+		h.logger.Warn("invalid pagination parameters", "error", err)
+		// Continue with default pagination instead of failing
+	}
+
+	// Fetch forms for the user
+	forms, err := h.formService.ListForms(echoCtx.Request().Context(), user.ID)
+	if err != nil {
+		h.logger.Error("failed to fetch user forms", "user_id", user.ID, "error", err)
+
+		return h.responseBuilder.BuildDashboardErrorResponse(echoCtx, "Failed to load your forms. Please try again.")
+	}
+
+	// Build and return dashboard response
+	return h.responseBuilder.BuildDashboardResponse(echoCtx, user, forms)
+}
+
+// getUserFromSession extracts user information from the session
+func (h *DashboardHandler) getUserFromSession(c echo.Context) (*entities.User, error) {
+	// Get session cookie
+	cookie, err := c.Cookie(h.sessionManager.GetCookieName())
+	if err != nil {
+		return nil, fmt.Errorf("no session cookie found")
+	}
+
+	// Get session from manager
+	session, exists := h.sessionManager.GetSession(cookie.Value)
+	if !exists {
+		return nil, fmt.Errorf("session not found")
+	}
+
+	// Check if session is expired
+	if time.Now().After(session.ExpiresAt) {
+		return nil, fmt.Errorf("session expired")
+	}
+
+	// Create user entity from session data
+	user := &entities.User{
+		ID:    session.UserID,
+		Email: session.Email,
+		Role:  session.Role,
+	}
+
+	return user, nil
 }

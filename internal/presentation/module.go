@@ -7,6 +7,7 @@ import (
 	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/middleware/session"
+	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -35,10 +36,33 @@ type AuthHandlerParams struct {
 	Logger         logging.Logger
 }
 
+// DashboardHandlerParams contains dependencies for creating a DashboardHandler
+type DashboardHandlerParams struct {
+	fx.In
+	FormService    form.Service
+	SessionManager *session.Manager
+	Renderer       view.Renderer
+	Config         *config.Config
+	AssetManager   web.AssetManagerInterface
+	Logger         logging.Logger
+}
+
 // NewAuthHandlerWithDeps creates a new AuthHandler with injected dependencies
 func NewAuthHandlerWithDeps(params AuthHandlerParams) *auth.AuthHandler {
 	return auth.NewAuthHandler(
 		params.UserService,
+		params.SessionManager,
+		params.Renderer,
+		params.Config,
+		params.AssetManager,
+		params.Logger,
+	)
+}
+
+// NewDashboardHandlerWithDeps creates a new DashboardHandler with injected dependencies
+func NewDashboardHandlerWithDeps(params DashboardHandlerParams) *dashboard.DashboardHandler {
+	return dashboard.NewDashboardHandler(
+		params.FormService,
 		params.SessionManager,
 		params.Renderer,
 		params.Config,
@@ -60,7 +84,7 @@ var Module = fx.Module("presentation",
 			fx.ResultTags(`group:"handlers"`),
 		),
 		fx.Annotate(
-			dashboard.NewDashboardHandler,
+			NewDashboardHandlerWithDeps,
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),
