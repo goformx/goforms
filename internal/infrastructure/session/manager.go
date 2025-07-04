@@ -214,6 +214,7 @@ func (sm *Manager) GetSessionApp(sessionID string) (services.SessionData, bool) 
 	if !ok || sess == nil {
 		return services.SessionData{}, false
 	}
+
 	return services.SessionData{
 		UserID:    sess.UserID,
 		Email:     sess.Email,

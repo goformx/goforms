@@ -55,17 +55,21 @@ func (m *UserModel) BeforeCreate(tx *gorm.DB) error {
 	if m.ID == "" {
 		m.ID = uuid.New().String()
 	}
+
 	if m.Role == "" {
 		m.Role = "user"
 	}
+
 	if !m.Active {
 		m.Active = true
 	}
+
 	return nil
 }
 
 func (m *UserModel) BeforeUpdate(tx *gorm.DB) error {
 	m.UpdatedAt = time.Now()
+
 	return nil
 }
 
@@ -75,6 +79,7 @@ func (m *UserModel) AfterFind(tx *gorm.DB) error {
 			return fmt.Errorf("invalid UUID format: %w", err)
 		}
 	}
+
 	return nil
 }
 
@@ -83,6 +88,7 @@ func userModelFromDomain(u *entities.User) *UserModel {
 	if u == nil {
 		return nil
 	}
+
 	return &UserModel{
 		ID:             u.ID,
 		Email:          u.Email,
@@ -100,6 +106,7 @@ func (m *UserModel) ToDomain() *entities.User {
 	if m == nil {
 		return nil
 	}
+
 	return &entities.User{
 		ID:             m.ID,
 		Email:          m.Email,
@@ -116,6 +123,7 @@ func (m *UserModel) ToDomain() *entities.User {
 // Create stores a new user
 func (s *Store) Create(ctx context.Context, u *entities.User) error {
 	userModel := userModelFromDomain(u)
+
 	result := s.db.GetDB().WithContext(ctx).Create(userModel)
 	if result.Error != nil {
 		dbErr := common.NewDatabaseError("create", "user", u.ID, result.Error)
@@ -181,6 +189,7 @@ func (s *Store) GetByIDString(ctx context.Context, id string) (*entities.User, e
 // Update updates a user
 func (s *Store) Update(ctx context.Context, userEntity *entities.User) error {
 	userModel := userModelFromDomain(userEntity)
+
 	result := s.db.GetDB().WithContext(ctx).Save(userModel)
 	if result.Error != nil {
 		dbErr := common.NewDatabaseError("update", "user", userEntity.ID, result.Error)

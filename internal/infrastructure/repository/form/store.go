@@ -60,17 +60,21 @@ func (m *FormModel) BeforeCreate(tx *gorm.DB) error {
 	if m.ID == "" {
 		m.ID = uuid.New().String()
 	}
+
 	if !m.Active {
 		m.Active = true
 	}
+
 	if m.Status == "" {
 		m.Status = "draft"
 	}
+
 	return nil
 }
 
 func (m *FormModel) BeforeUpdate(tx *gorm.DB) error {
 	m.UpdatedAt = time.Now()
+
 	return nil
 }
 
@@ -84,18 +88,22 @@ func formModelFromDomain(f *model.Form) (*FormModel, error) {
 	if err != nil {
 		return nil, err
 	}
+
 	corsOrigins, err := json.Marshal(f.CorsOrigins)
 	if err != nil {
 		return nil, err
 	}
+
 	corsMethods, err := json.Marshal(f.CorsMethods)
 	if err != nil {
 		return nil, err
 	}
+
 	corsHeaders, err := json.Marshal(f.CorsHeaders)
 	if err != nil {
 		return nil, err
 	}
+
 	return &FormModel{
 		ID:          f.ID,
 		UserID:      f.UserID,
@@ -116,22 +124,27 @@ func (m *FormModel) ToDomain() (*model.Form, error) {
 	if m == nil {
 		return nil, nil
 	}
+
 	var schema model.JSON
 	if err := json.Unmarshal(m.Schema, &schema); err != nil {
 		return nil, err
 	}
+
 	var corsOrigins model.JSON
 	if err := json.Unmarshal(m.CorsOrigins, &corsOrigins); err != nil {
 		return nil, err
 	}
+
 	var corsMethods model.JSON
 	if err := json.Unmarshal(m.CorsMethods, &corsMethods); err != nil {
 		return nil, err
 	}
+
 	var corsHeaders model.JSON
 	if err := json.Unmarshal(m.CorsHeaders, &corsHeaders); err != nil {
 		return nil, err
 	}
+
 	return &model.Form{
 		ID:          m.ID,
 		UserID:      m.UserID,
@@ -235,6 +248,7 @@ func (s *Store) ListForms(ctx context.Context, userID string) ([]*model.Form, er
 		if err != nil {
 			return nil, fmt.Errorf("list forms: %w", err)
 		}
+
 		forms[i] = form
 	}
 
@@ -313,6 +327,7 @@ func (s *Store) GetFormsByStatus(ctx context.Context, status string) ([]*model.F
 		if err != nil {
 			return nil, fmt.Errorf("get forms by status: %w", err)
 		}
+
 		forms[i] = form
 	}
 
