@@ -181,5 +181,9 @@ func (b *AuthResponseBuilder) renderSignupWithError(c echo.Context, errorMessage
 
 	signupComponent := pages.Signup(*pageData)
 
-	return b.renderer.Render(c, signupComponent)
+	if err := b.renderer.Render(c, signupComponent); err != nil {
+		return fmt.Errorf("failed to render signup component: %w", err)
+	}
+
+	return nil
 }

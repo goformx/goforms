@@ -198,6 +198,8 @@ linters:
         - '.*Request'
         - '.*Response'
         - '.*Config'
+        - '.*Context'
+        - '.*Session'
         - 'echo\.Context'
         - 'routers\.Router'
 

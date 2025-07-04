@@ -14,7 +14,7 @@ import (
 
 // Returning the interface is required for test helpers.
 //
-//nolint:ireturn // echo.Context is an interface; concrete type is not exported.
+
 func createTestEchoContext(t *testing.T) echo.Context {
 	t.Helper()
 

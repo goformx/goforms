@@ -1,12 +1,14 @@
 package forms
 
 import (
+	"context"
 	"fmt"
 	"time"
 
 	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
@@ -205,7 +207,6 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 		return h.responseBuilder.BuildAuthenticationErrorResponse(echoCtx)
 	}
 
-	// Parse form ID
 	formID, err := h.requestParser.ParseFormID(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
@@ -213,38 +214,64 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid form ID", 400)
 	}
 
-	// Get existing form
+	existingForm, err := h.getAndValidateFormOwnership(echoCtx, formID, user.ID)
+	if err != nil {
+		return err
+	}
+
+	updateData, err := h.parseAndValidateUpdateData(echoCtx)
+	if err != nil {
+		return err
+	}
+
+	if updateErr := h.updateFormFields(existingForm, updateData); updateErr != nil {
+		h.logger.Error("failed to update form", "form_id", formID, "error", updateErr)
+
+		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to update form. Please try again.", 500)
+	}
+
+	return h.responseBuilder.BuildUpdateFormSuccessResponse(echoCtx, existingForm)
+}
+
+// getAndValidateFormOwnership retrieves a form and validates user ownership
+func (h *FormHandler) getAndValidateFormOwnership(echoCtx echo.Context, formID, userID string) (*model.Form, error) {
 	existingForm, err := h.formService.GetForm(echoCtx.Request().Context(), formID)
 	if err != nil {
 		h.logger.Error("failed to get form for update", "form_id", formID, "error", err)
 
-		return h.responseBuilder.BuildFormNotFoundResponse(echoCtx)
+		return nil, h.responseBuilder.BuildFormNotFoundResponse(echoCtx)
 	}
 
-	// Check form ownership
-	if existingForm.UserID != user.ID {
-		h.logger.Warn("unauthorized form update", "user_id", user.ID, "form_user_id", existingForm.UserID, "form_id", formID)
+	if existingForm.UserID != userID {
+		h.logger.Warn("unauthorized form update", "user_id", userID, "form_user_id", existingForm.UserID, "form_id", formID)
 
-		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to update this form", 403)
+		return nil, h.responseBuilder.BuildFormErrorResponse(echoCtx, "You don't have permission to update this form", 403)
 	}
 
-	// Parse update data
+	return existingForm, nil
+}
+
+// parseAndValidateUpdateData parses and validates the update form request
+func (h *FormHandler) parseAndValidateUpdateData(echoCtx echo.Context) (*model.Form, error) {
 	updateData, err := h.requestParser.ParseUpdateForm(echoCtx)
 	if err != nil {
 		h.logger.Error("failed to parse update form request", "error", err)
 
-		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid request format", 400)
+		return nil, h.responseBuilder.BuildFormErrorResponse(echoCtx, "Invalid request format", 400)
 	}
 
-	// Validate update data
 	if validateErr := h.requestParser.ValidateUpdateForm(updateData); validateErr != nil {
-		return h.responseBuilder.BuildValidationErrorResponse(echoCtx, "form", validateErr.Error())
+		return nil, h.responseBuilder.BuildValidationErrorResponse(echoCtx, "form", validateErr.Error())
 	}
 
-	// Update form fields
-	existingForm.Title = updateData.Title
+	return updateData, nil
+}
 
+// updateFormFields updates the form fields with the provided data
+func (h *FormHandler) updateFormFields(existingForm, updateData *model.Form) error {
+	existingForm.Title = updateData.Title
 	existingForm.Description = updateData.Description
+
 	if updateData.Status != "" {
 		existingForm.Status = updateData.Status
 	}
@@ -253,14 +280,11 @@ func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 		existingForm.Schema = updateData.Schema
 	}
 
-	// Update form using service
-	if updateErr := h.formService.UpdateForm(echoCtx.Request().Context(), existingForm); updateErr != nil {
-		h.logger.Error("failed to update form", "form_id", formID, "error", updateErr)
-
-		return h.responseBuilder.BuildFormErrorResponse(echoCtx, "Failed to update form. Please try again.", 500)
+	if err := h.formService.UpdateForm(context.Background(), existingForm); err != nil {
+		return fmt.Errorf("failed to update form: %w", err)
 	}
 
-	return h.responseBuilder.BuildUpdateFormSuccessResponse(echoCtx, existingForm)
+	return nil
 }
 
 // DeleteForm handles DELETE /forms/:id

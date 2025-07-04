@@ -39,7 +39,11 @@ func (a *EchoContextAdapter) Context() context.Context {
 // WithContext returns a new adapter with the given context (not implemented)
 func (a *EchoContextAdapter) WithContext(ctx context.Context) httpiface.Context {
 	// Not implemented: echo.Context does not support WithContext directly
-	return a
+	// Return a new adapter with the same echo context but updated request context
+	newAdapter := *a
+	newAdapter.echoCtx.SetRequest(a.echoCtx.Request().WithContext(ctx))
+
+	return &newAdapter
 }
 
 // Get retrieves a value from echo.Context
@@ -69,7 +73,7 @@ func (a *EchoContextAdapter) SetUser(user *httpiface.UserContext) {
 	a.user = user
 }
 
-// Session returns the session (stub)
+// Session returns the session
 func (a *EchoContextAdapter) Session() httpiface.Session {
 	return a.session
 }
