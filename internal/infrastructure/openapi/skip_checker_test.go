@@ -3,7 +3,7 @@ package openapi_test
 import (
 	"testing"
 
-	"github.com/goformx/goforms/internal/application/openapi"
+	"github.com/goformx/goforms/internal/infrastructure/openapi"
 	"github.com/stretchr/testify/assert"
 )
 

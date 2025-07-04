@@ -128,7 +128,16 @@ linters:
           - github.com/kelseyhightower/envconfig:
               recommendations:
                 - Use fx.Provide with configuration constructors instead
-          # Add other modules you want to restrict
+          # Architecture enforcement - prevent forbidden imports
+          - github.com/goformx/goforms/internal/infrastructure:
+              recommendations:
+                - Domain layer should not import infrastructure
+                - Use dependency inversion with interfaces
+          - github.com/goformx/goforms/internal/presentation:
+              recommendations:
+                - Domain layer should not import presentation
+                - Application layer should not import presentation
+                - Use application services instead
 
     gosec:
       severity: medium

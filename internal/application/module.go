@@ -10,21 +10,20 @@ import (
 
 	"github.com/labstack/echo/v4"
 
-	"github.com/goformx/goforms/internal/application/adapters/http"
 	"github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/middleware/request"
-	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
+	"github.com/goformx/goforms/internal/infrastructure/session"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -84,23 +83,23 @@ func (d Dependencies) Validate() error {
 var Module = fx.Module("application",
 	fx.Provide(
 		New,
-		provideRequestUtils,
 		provideErrorHandler,
 		provideRecoveryMiddleware,
 		// Application services
 		services.NewAuthUseCaseService,
 		services.NewFormUseCaseService,
 		// HTTP adapters
-		http.NewEchoRequestAdapter,
-		http.NewEchoResponseAdapter,
+		fx.Annotate(
+			http.NewEchoRequestAdapter,
+			fx.As(new(http.RequestAdapter)),
+		),
+		fx.Annotate(
+			http.NewEchoResponseAdapter,
+			fx.As(new(http.ResponseAdapter)),
+		),
 	),
 	validation.Module,
 )
-
-// provideRequestUtils creates a new request utils instance with sanitization service
-func provideRequestUtils(sanitizer sanitization.ServiceInterface) *request.Utils {
-	return request.NewUtils(sanitizer)
-}
 
 // provideErrorHandler creates a new error handler with sanitization service
 func provideErrorHandler(

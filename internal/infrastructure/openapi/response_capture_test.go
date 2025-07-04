@@ -9,7 +9,7 @@ import (
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
-	"github.com/goformx/goforms/internal/application/openapi"
+	"github.com/goformx/goforms/internal/infrastructure/openapi"
 )
 
 // Returning the interface is required for test helpers.

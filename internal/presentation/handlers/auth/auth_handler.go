@@ -3,8 +3,8 @@ package auth
 import (
 	"fmt"
 
-	"github.com/goformx/goforms/internal/application/adapters/http"
 	"github.com/goformx/goforms/internal/application/services"
+	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"

@@ -11,7 +11,6 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/openapi"
 )
 
 // OpenAPIValidationMiddleware validates requests and responses against OpenAPI specification
@@ -35,7 +34,7 @@ func NewOpenAPIValidationMiddleware(logger logging.Logger, config *Config) (*Ope
 	// Load and parse the OpenAPI specification
 	loader := &openapi3.Loader{Context: context.Background(), IsExternalRefsAllowed: true}
 
-	doc, err := loader.LoadFromData([]byte(openapi.OpenAPISpec))
+	doc, err := loader.LoadFromData([]byte(OpenAPISpec))
 	if err != nil {
 		return nil, fmt.Errorf("failed to load OpenAPI spec: %w", err)
 	}

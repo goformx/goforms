@@ -6,10 +6,10 @@ import (
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/middleware/context"
-	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/session"
 	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 )

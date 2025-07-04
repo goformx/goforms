@@ -6,9 +6,9 @@ import (
 	"time"
 
 	"github.com/goformx/goforms/internal/application/dto"
-	"github.com/goformx/goforms/internal/application/middleware/session"
 	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/session"
 )
 
 // AuthUseCaseService handles authentication use cases

@@ -11,7 +11,7 @@ import (
 	"github.com/stretchr/testify/require"
 	"go.uber.org/mock/gomock"
 
-	"github.com/goformx/goforms/internal/application/openapi"
+	"github.com/goformx/goforms/internal/infrastructure/openapi"
 	"github.com/goformx/goforms/test/mocks/logging"
 )
 

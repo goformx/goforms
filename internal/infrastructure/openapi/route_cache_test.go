@@ -12,7 +12,7 @@ import (
 	"github.com/stretchr/testify/require"
 
 	"github.com/getkin/kin-openapi/routers"
-	"github.com/goformx/goforms/internal/application/openapi"
+	"github.com/goformx/goforms/internal/infrastructure/openapi"
 )
 
 // Test data - minimal OpenAPI spec for route cache testing
