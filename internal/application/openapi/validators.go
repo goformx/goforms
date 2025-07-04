@@ -71,6 +71,10 @@ func (v *OpenAPIResponseValidator) ValidateResponse(
 	route *routers.Route,
 	pathParams map[string]string,
 ) error {
+	if route == nil {
+		return fmt.Errorf("response validation failed: route is nil")
+	}
+
 	validationInput := &openapi3filter.ResponseValidationInput{
 		RequestValidationInput: &openapi3filter.RequestValidationInput{
 			Request:    req,

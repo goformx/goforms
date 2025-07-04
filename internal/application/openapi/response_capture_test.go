@@ -183,7 +183,7 @@ func TestResponseCaptureWriter_Hijack(t *testing.T) {
 	conn, rw, err := hijacker.Hijack()
 	if err != nil {
 		// Hijack might fail in test environment, which is expected
-		assert.Contains(t, err.Error(), "failed to hijack connection")
+		assert.Contains(t, err.Error(), "underlying writer does not implement http.Hijacker")
 	} else {
 		assert.NotNil(t, conn)
 		assert.NotNil(t, rw)
