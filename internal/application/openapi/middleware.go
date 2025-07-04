@@ -155,7 +155,7 @@ func (m *OpenAPIValidationMiddleware) validateRequestIfEnabled(
 			c.Request().Context(),
 			err,
 			RequestValidationError,
-			map[string]interface{}{
+			map[string]any{
 				"path":   c.Path(),
 				"method": c.Request().Method,
 				"ip":     c.RealIP(),
@@ -193,7 +193,7 @@ func (m *OpenAPIValidationMiddleware) validateResponseIfEnabled(
 			c.Request().Context(),
 			validationErr,
 			ResponseValidationError,
-			map[string]interface{}{
+			map[string]any{
 				"path":   c.Path(),
 				"method": c.Request().Method,
 				"status": c.Response().Status,
