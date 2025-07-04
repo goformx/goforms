@@ -87,6 +87,8 @@ var Module = fx.Module("application",
 		// Application services
 		services.NewAuthUseCaseService,
 		services.NewFormUseCaseService,
+		// Application setup
+		NewApplicationSetup,
 		// HTTP adapters
 		fx.Annotate(
 			http.NewEchoRequestAdapter,
