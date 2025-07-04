@@ -26,24 +26,24 @@ templ loginContent(data view.PageData) {
 					<div class="gf-form-group">
 						<label for="email" class="gf-label">Email</label>
 						if data.IsDevelopment {
-							<input 
-								type="email" 
-								id="email" 
-								name="email" 
-								required 
+							<input
+								type="email"
+								id="email"
+								name="email"
+								required
 								class="gf-input"
-								placeholder="Enter your email" 
+								placeholder="Enter your email"
 								autocomplete="email"
 								value="test@example.com"
 							/>
 						} else {
-							<input 
-								type="email" 
-								id="email" 
-								name="email" 
-								required 
+							<input
+								type="email"
+								id="email"
+								name="email"
+								required
 								class="gf-input"
-								placeholder="Enter your email" 
+								placeholder="Enter your email"
 								autocomplete="email"
 							/>
 						}
@@ -53,24 +53,24 @@ templ loginContent(data view.PageData) {
 					<div class="gf-form-group">
 						<label for="password" class="gf-label">Password</label>
 						if data.IsDevelopment {
-							<input 
-								type="password" 
-								id="password" 
-								name="password" 
-								required 
+							<input
+								type="password"
+								id="password"
+								name="password"
+								required
 								class="gf-input"
-								placeholder="Enter your password" 
+								placeholder="Enter your password"
 								autocomplete="current-password"
 								value="Test123!"
 							/>
 						} else {
-							<input 
-								type="password" 
-								id="password" 
-								name="password" 
-								required 
+							<input
+								type="password"
+								id="password"
+								name="password"
+								required
 								class="gf-input"
-								placeholder="Enter your password" 
+								placeholder="Enter your password"
 								autocomplete="current-password"
 							/>
 						}
@@ -90,6 +90,6 @@ templ loginContent(data view.PageData) {
 	</div>
 </div>
 
-<script type="module" src={ data.AssetPath("src/js/features/forms/validation/validation.ts") }></script>
+<script type="module" src={ data.AssetPath("src/js/shared/validation.ts") }></script>
 <script type="module" src={ data.AssetPath("src/js/pages/login.ts") }></script>
 }
