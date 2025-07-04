@@ -1,0 +1,135 @@
+# Code Cleanup and Refactoring Best Practices
+
+## Identifying Unused Code
+
+### Search Strategy
+
+1. **Grep for direct usage** - Search for imports, function calls, type references
+2. **Check for indirect usage** - Look for interface implementations, dependency injection
+3. **Test compilation** - Temporarily rename/remove files to see if build breaks
+4. **Run tests** - Ensure functionality is preserved after cleanup
+
+### Common Patterns
+
+- Look for `grep_search` with specific patterns
+- Check for constructor functions (`New*`)
+- Search for interface implementations
+- Verify dependency injection wiring
+
+## Configuration System Refactoring
+
+### From Hardcoded to Viper
+
+When refactoring from hardcoded configuration to Viper:
+
+1. **Create configuration structures** in infrastructure layer
+2. **Add Viper loading logic** with proper defaults
+3. **Create configuration adapters** in application layer
+4. **Update dependency injection** to use new adapters
+5. **Add configuration files** with examples
+6. **Remove old hardcoded files** after verification
+
+### Configuration Hierarchy
+
+1. Environment Variables (highest priority)
+2. Config Files (YAML, JSON, TOML)
+3. Defaults (lowest priority)
+
+## File Organization
+
+### Before Cleanup
+
+- Identify redundant interfaces and types
+- Find duplicate functionality
+- Locate unused configuration files
+- Check for dead code paths
+
+### After Cleanup
+
+- Maintain single responsibility principle
+- Keep related functionality together
+- Use proper abstraction layers
+- Document configuration options
+
+## Testing Strategy
+
+### Before Removing Code
+
+1. **Run full test suite** to establish baseline
+2. **Check for compilation errors** with `go build ./...`
+3. **Verify functionality** with integration tests
+4. **Document current behavior** for comparison
+
+### After Refactoring
+
+1. **Run all tests** to ensure nothing broke
+2. **Test configuration loading** with different sources
+3. **Verify environment-specific behavior**
+4. **Check linting** for code quality issues
+
+## Common Pitfalls
+
+### Don't Remove Too Quickly
+
+- Always verify usage before deletion
+- Use temporary renames to test impact
+- Keep backups of removed files initially
+- Test thoroughly before committing
+
+### Configuration Migration
+
+- Maintain backward compatibility where possible
+- Provide clear migration guides
+- Use sensible defaults for missing values
+- Validate configuration on startup
+
+## Tools and Commands
+
+### Useful Commands
+
+```bash
+# Search for usage patterns
+grep_search "PatternName" include_pattern="*.go"
+
+# Test compilation
+go build ./...
+
+# Run tests
+go test ./path/to/package -v
+
+# Check code quality
+task lint:backend
+
+# Generate mocks
+task generate:mocks
+```
+
+### Verification Checklist
+
+- [ ] Code compiles without errors
+- [ ] All tests pass
+- [ ] No linting issues (or acceptable ones)
+- [ ] Configuration loads correctly
+- [ ] Environment variables work
+- [ ] Documentation is updated
+- [ ] No dead code remains
+
+## Examples from This Project
+
+### Middleware Configuration Cleanup
+
+- **Removed**: [internal/application/middleware/config.go](mdc:internal/application/middleware/config.go) - hardcoded configuration
+- **Removed**: [internal/application/middleware/chain/builder.go](mdc:internal/application/middleware/chain/builder.go) - unused builder
+- **Added**: [internal/infrastructure/config/middleware.go](mdc:internal/infrastructure/config/middleware.go) - Viper structures
+- **Added**: [internal/application/middleware/viper_config.go](mdc:internal/application/middleware/viper_config.go) - Viper adapter
+
+### JWT Reference Cleanup
+
+- Removed all JWT references from authentication configuration
+- Updated configuration structures and defaults
+- Maintained session-based authentication approach
+  description:
+  globs:
+  alwaysApply: false
+
+---

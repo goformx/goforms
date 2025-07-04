@@ -1,0 +1,85 @@
+# Middleware Configuration System
+
+## Overview
+
+The middleware system uses **Viper-based configuration** instead of hardcoded values, allowing for environment-specific settings via config files, environment variables, and defaults.
+
+## Key Files
+
+### Configuration Structure
+
+- [internal/infrastructure/config/middleware.go](mdc:internal/infrastructure/config/middleware.go) - Defines middleware configuration structures
+- [internal/infrastructure/config/viper.go](mdc:internal/infrastructure/config/viper.go) - Viper configuration loading and defaults
+- [internal/infrastructure/config/config.go](mdc:internal/infrastructure/config/config.go) - Main configuration struct including middleware
+
+### Application Layer
+
+- [internal/application/middleware/viper_config.go](mdc:internal/application/middleware/viper_config.go) - Viper-based middleware configuration adapter
+- [internal/application/middleware/module.go](mdc:internal/application/middleware/module.go) - Dependency injection setup
+- [config.yaml](mdc:config.yaml) - Main configuration file with middleware settings
+
+## Configuration Hierarchy
+
+1. **Environment Variables** (highest priority)
+
+   - Format: `GOFORMS_MIDDLEWARE_CSRF_ENABLED=true`
+   - Dots in config keys become underscores: `middleware.csrf.enabled` → `GOFORMS_MIDDLEWARE_CSRF_ENABLED`
+
+2. **Config Files** (YAML, JSON, TOML)
+
+   - [config.yaml](mdc:config.yaml) - Main configuration
+   - Environment-specific: `config.production.yaml`, `config.development.yaml`
+
+3. **Defaults** (lowest priority)
+   - Set in [internal/infrastructure/config/viper.go](mdc:internal/infrastructure/config/viper.go)
+
+## Environment-Specific Configuration
+
+```yaml
+middleware:
+  global:
+    development: ["recovery", "cors", "logging", "session"]
+    production: ["recovery", "cors", "security_headers", "csrf", "rate_limit"]
+```
+
+## Individual Middleware Configuration
+
+```yaml
+middleware:
+  csrf:
+    enabled: true
+    token_header: "X-CSRF-Token"
+    include_paths: ["/api/*", "/forms/*"]
+    exclude_paths: ["/api/public/*", "/static/*"]
+```
+
+## Chain-Based Configuration
+
+```yaml
+middleware:
+  chains:
+    api:
+      enabled: true
+      middleware_names: ["security_headers", "csrf", "authentication"]
+      paths: ["/api/*"]
+```
+
+## Adding New Middleware
+
+1. **Add to configuration structure** in [internal/infrastructure/config/middleware.go](mdc:internal/infrastructure/config/middleware.go)
+2. **Add loading logic** in [internal/infrastructure/config/viper.go](mdc:internal/infrastructure/config/viper.go)
+3. **Add defaults** in `setMiddlewareDefaults` function
+4. **Update adapter** in [internal/application/middleware/viper_config.go](mdc:internal/application/middleware/viper_config.go)
+5. **Add to config file** in [config.yaml](mdc:config.yaml)
+
+## Important Notes
+
+- **No JWT references** - Authentication uses session-based auth, not JWT
+- **Environment variables override** config file settings
+- **Validation** is built into the configuration structures
+- **Backward compatibility** maintained with existing middleware system
+  description:
+  globs:
+  alwaysApply: false
+
+---
