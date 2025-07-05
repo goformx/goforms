@@ -971,7 +971,7 @@ func setIndividualMiddlewareDefaults(v *viper.Viper) {
 	v.SetDefault("middleware.security_headers.enabled", true)
 
 	v.SetDefault("middleware.csrf.enabled", true)
-	v.SetDefault("middleware.csrf.token_header", "X-CSRF-Token")
+	v.SetDefault("middleware.csrf.token_header", "X-Csrf-Token")
 	v.SetDefault("middleware.csrf.cookie_name", "csrf_token")
 	v.SetDefault("middleware.csrf.expire_time", 3600) // 1 hour
 	v.SetDefault("middleware.csrf.include_paths", []string{"/api/*", "/forms/*"})

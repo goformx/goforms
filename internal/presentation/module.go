@@ -7,6 +7,7 @@ import (
 
 	"go.uber.org/fx"
 
+	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/services"
 	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -124,7 +125,9 @@ type EchoAdapterParams struct {
 
 // NewEchoAdapterWithDeps creates a new EchoAdapter with injected dependencies
 func NewEchoAdapterWithDeps(params EchoAdapterParams) *http.EchoAdapter {
-	return http.NewEchoAdapter(params.Echo, params.Renderer)
+	adapter := http.NewEchoAdapter(params.Echo, params.Renderer)
+
+	return adapter
 }
 
 var Module = fx.Module("presentation",
@@ -159,6 +162,7 @@ func RegisterRoutes(
 	lc fx.Lifecycle,
 	e *echosrv.Echo,
 	adapter *http.EchoAdapter,
+	orchestrator *appmiddleware.EchoOrchestratorAdapter,
 	handlers struct {
 		fx.In
 		Handlers []httpiface.Handler `group:"handlers"`
@@ -166,6 +170,9 @@ func RegisterRoutes(
 ) {
 	lc.Append(fx.Hook{
 		OnStart: func(_ context.Context) error {
+			// Set the middleware orchestrator on the adapter
+			adapter.SetMiddlewareOrchestrator(orchestrator)
+
 			for _, h := range handlers.Handlers {
 				if err := adapter.RegisterHandler(h); err != nil {
 					return fmt.Errorf("failed to register handler %s: %w", h.Name(), err)

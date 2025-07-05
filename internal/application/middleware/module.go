@@ -48,7 +48,7 @@ var Module = fx.Module("middleware",
 				lc fx.Lifecycle,
 				accessManager *access.Manager,
 				pathManager *constants.PathManager,
-			) services.SessionManager {
+			) *session.Manager {
 				sessionConfig := &session.Config{
 					SessionConfig: &cfg.Session,
 					Config:        cfg,
@@ -56,8 +56,13 @@ var Module = fx.Module("middleware",
 					StaticPaths:   pathManager.StaticPaths,
 				}
 
-				manager := session.NewManager(logger, sessionConfig, lc, accessManager)
-				// Create an adapter that implements the SessionManager interface
+				return session.NewManager(logger, sessionConfig, lc, accessManager)
+			},
+		),
+
+		// Session manager adapter for services.SessionManager interface
+		fx.Annotate(
+			func(manager *session.Manager) services.SessionManager {
 				return &sessionManagerAdapter{manager: manager}
 			},
 			fx.As(new(services.SessionManager)),

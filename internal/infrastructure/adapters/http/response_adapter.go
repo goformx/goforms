@@ -4,17 +4,23 @@ import (
 	"fmt"
 	"net/http"
 	"strings"
+	"time"
 
 	"github.com/goformx/goforms/internal/application/dto"
+	"github.com/goformx/goforms/internal/infrastructure/session"
 	"github.com/labstack/echo/v4"
 )
 
 // EchoResponseAdapter implements ResponseAdapter for Echo
-type EchoResponseAdapter struct{}
+type EchoResponseAdapter struct {
+	sessionManager *session.Manager
+}
 
 // NewEchoResponseAdapter creates a new Echo response adapter
-func NewEchoResponseAdapter() *EchoResponseAdapter {
-	return &EchoResponseAdapter{}
+func NewEchoResponseAdapter(sessionManager *session.Manager) *EchoResponseAdapter {
+	return &EchoResponseAdapter{
+		sessionManager: sessionManager,
+	}
 }
 
 // BuildLoginResponse builds login response for Echo context
@@ -24,12 +30,41 @@ func (a *EchoResponseAdapter) BuildLoginResponse(ctx Context, response *dto.Logi
 		return fmt.Errorf("invalid context type")
 	}
 
+	// Check if this is a form submission (POST request to /login)
+	if echoCtx.Method() == "POST" && echoCtx.Path() == "/login" {
+		// Set session cookie before redirecting
+		a.setSessionCookie(echoCtx, response.SessionID, response.ExpiresAt)
+
+		// For login form submissions, always redirect to dashboard
+		// This ensures proper login flow regardless of Accept header
+		return echoCtx.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	// For actual API requests (non-form submissions), return JSON
 	if a.isAPIRequest(echoCtx) {
 		return echoCtx.JSON(http.StatusOK, response)
 	}
 
 	// For web requests, redirect to dashboard
 	return echoCtx.Redirect(http.StatusFound, "/dashboard")
+}
+
+// setSessionCookie sets the session cookie in the response
+func (a *EchoResponseAdapter) setSessionCookie(ctx *EchoContextAdapter, sessionID string, expiresAt time.Time) {
+	// Get the configured cookie name from session manager
+	cookieName := a.sessionManager.GetCookieName()
+
+	cookie := &http.Cookie{
+		Name:     cookieName, // Use configured cookie name from session manager
+		Value:    sessionID,
+		Path:     "/",
+		HttpOnly: true,
+		Secure:   false, // Set to true in production with HTTPS
+		SameSite: http.SameSiteLaxMode,
+		Expires:  expiresAt,
+	}
+
+	ctx.SetCookie(cookie)
 }
 
 // BuildSignupResponse builds signup response for Echo context

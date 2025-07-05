@@ -194,12 +194,15 @@ middleware:
 
   csrf:
     enabled: true
-    token_header: "X-CSRF-Token"
+    token_header: "X-Csrf-Token"
     cookie_name: "csrf_token"
     expire_time: 3600  # 1 hour
     include_paths:
       - "/api/*"
       - "/forms/*"
+      - "/login"
+      - "/signup"
+      - "/logout"
     exclude_paths:
       - "/api/public/*"
       - "/static/*"
@@ -284,6 +287,7 @@ middleware:
       enabled: true
       middleware_names:
         - "session"
+        - "csrf"
         - "authentication"
       paths:
         - "/login"

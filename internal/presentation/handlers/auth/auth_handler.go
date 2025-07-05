@@ -93,6 +93,7 @@ func NewAuthHandler(
 func generateSimpleCSRFToken() string {
 	bytes := make([]byte, 32)
 	rand.Read(bytes)
+
 	return base64.URLEncoding.EncodeToString(bytes)
 }
 

@@ -283,3 +283,14 @@ func (sm *Manager) ClearSessionCookie(c echo.Context) {
 	cookie.Expires = time.Now().Add(-1 * time.Hour)
 	c.SetCookie(cookie)
 }
+
+// SessionMiddleware creates session middleware
+func (sm *Manager) SessionMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			path := c.Request().URL.Path
+
+			return sm.processSession(c, path, next)
+		}
+	}
+}

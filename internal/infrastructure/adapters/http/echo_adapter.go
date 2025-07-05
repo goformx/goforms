@@ -228,5 +228,6 @@ func (a *EchoAdapter) registerRoute(route httpiface.Route) error {
 
 	// Register the route
 	registerFunc(route.Path, echoHandler)
+
 	return nil
 }

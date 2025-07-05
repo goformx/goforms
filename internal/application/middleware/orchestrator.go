@@ -325,10 +325,36 @@ func (o *orchestrator) getOrderedByCategory(category core.MiddlewareCategory) []
 
 // filterByConfig filters middleware based on configuration settings.
 func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType core.ChainType) []core.Middleware {
-	filtered := make([]core.Middleware, 0, len(middlewares))
-
 	chainConfig := o.config.GetChainConfig(chainType)
 
+	// If no specific middleware names are configured, return all enabled middleware
+	if len(chainConfig.MiddlewareNames) == 0 {
+		filtered := make([]core.Middleware, 0, len(middlewares))
+
+		for _, mw := range middlewares {
+			name := mw.Name()
+
+			// Check if middleware is enabled globally
+			if !o.config.IsMiddlewareEnabled(name) {
+				continue
+			}
+
+			// Check if middleware is enabled for this chain
+			if !chainConfig.Enabled {
+				continue
+			}
+
+			filtered = append(filtered, mw)
+		}
+
+		return filtered
+	}
+
+	// If specific middleware names are configured, preserve the order from config
+	filtered := make([]core.Middleware, 0, len(chainConfig.MiddlewareNames))
+	middlewareMap := make(map[string]core.Middleware)
+
+	// Create a map of all available middleware
 	for _, mw := range middlewares {
 		name := mw.Name()
 
@@ -342,24 +368,14 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 			continue
 		}
 
-		// Check if middleware is in the chain's middleware list
-		if len(chainConfig.MiddlewareNames) > 0 {
-			found := false
+		middlewareMap[name] = mw
+	}
 
-			for _, allowedName := range chainConfig.MiddlewareNames {
-				if allowedName == name {
-					found = true
-
-					break
-				}
-			}
-
-			if !found {
-				continue
-			}
+	// Add middleware in the order specified in config
+	for _, name := range chainConfig.MiddlewareNames {
+		if mw, exists := middlewareMap[name]; exists {
+			filtered = append(filtered, mw)
 		}
-
-		filtered = append(filtered, mw)
 	}
 
 	return filtered

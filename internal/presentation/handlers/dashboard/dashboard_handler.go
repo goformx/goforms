@@ -136,6 +136,7 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	// Render dashboard template with form data
 	if err := h.renderer.Render(echoCtx.Context, pages.Dashboard(*pageData, forms)); err != nil {
 		h.logger.Error("failed to render dashboard template", "error", err)
+
 		return fmt.Errorf("failed to render dashboard: %w", err)
 	}
 

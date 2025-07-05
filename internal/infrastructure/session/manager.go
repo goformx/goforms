@@ -181,7 +181,8 @@ func (sm *Manager) GetSession(sessionID string) (*Session, bool) {
 	sm.mutex.RLock()
 	defer sm.mutex.RUnlock()
 
-	return sm.sessions[sessionID], sm.sessions[sessionID] != nil
+	session, exists := sm.sessions[sessionID]
+	return session, exists && session != nil
 }
 
 // DeleteSession removes a session

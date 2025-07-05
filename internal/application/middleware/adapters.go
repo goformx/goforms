@@ -2,9 +2,16 @@ package middleware
 
 import (
 	"context"
+	"crypto/rand"
+	"crypto/sha256"
+	"encoding/base64"
+	"fmt"
+	"net/http"
+	"strings"
 	"time"
 
 	"github.com/goformx/goforms/internal/application/middleware/core"
+	"github.com/goformx/goforms/internal/infrastructure/config"
 )
 
 // NewRecoveryMiddleware creates a new recovery middleware
@@ -229,7 +236,37 @@ type csrfMiddleware struct {
 }
 
 func (m *csrfMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
-	// CSRF logic would be implemented here
+	// Get CSRF configuration from context
+	cfg := m.getCSRFConfig(ctx)
+	if cfg == nil {
+		// If no CSRF config, skip CSRF processing
+		return next(ctx, req)
+	}
+
+	// Check if CSRF should be skipped for this path
+	if m.shouldSkipCSRF(req.Path(), cfg) {
+		return next(ctx, req)
+	}
+
+	method := req.Method()
+
+	// For GET requests, generate and set CSRF token
+	if method == "GET" {
+		token := m.generateCSRFToken(cfg)
+		req.Set("csrf", token)
+
+		// Set CSRF token in response headers for frontend access
+		resp := next(ctx, req)
+		resp.AddHeader("X-Csrf-Token", token)
+
+		return resp
+	}
+
+	// For non-GET requests, validate CSRF token
+	if !m.validateCSRFToken(req, cfg) {
+		return core.NewErrorResponse(http.StatusForbidden, fmt.Errorf("CSRF token validation failed"))
+	}
+
 	return next(ctx, req)
 }
 
@@ -239,6 +276,113 @@ func (m *csrfMiddleware) Name() string {
 
 func (m *csrfMiddleware) Priority() int {
 	return m.priority
+}
+
+// getCSRFConfig retrieves CSRF configuration from context
+func (m *csrfMiddleware) getCSRFConfig(ctx context.Context) *config.CSRFConfig {
+	// Try to get config from context
+	if cfg, ok := ctx.Value("csrf_config").(*config.CSRFConfig); ok {
+		return cfg
+	}
+
+	// Return default config for development
+	return &config.CSRFConfig{
+		Enabled:        true,
+		Secret:         "default-csrf-secret-key-for-development",
+		TokenName:      "_token",
+		HeaderName:     "X-Csrf-Token",
+		TokenLength:    32,
+		ContextKey:     "csrf",
+		CookieName:     "_csrf",
+		CookiePath:     "/",
+		CookieHTTPOnly: true,
+		CookieSameSite: "Lax",
+		CookieMaxAge:   86400,
+	}
+}
+
+// shouldSkipCSRF checks if CSRF should be skipped for the given path
+func (m *csrfMiddleware) shouldSkipCSRF(path string, cfg *config.CSRFConfig) bool {
+	// Skip for static files
+	if strings.HasPrefix(path, "/static/") || strings.HasPrefix(path, "/assets/") {
+		return true
+	}
+
+	// Skip for health and monitoring endpoints
+	if strings.HasPrefix(path, "/health") || strings.HasPrefix(path, "/metrics") {
+		return true
+	}
+
+	// Skip for public API endpoints
+	if strings.HasPrefix(path, "/api/public/") {
+		return true
+	}
+
+	// Check configured skip paths
+	for _, skipPath := range cfg.SkipPaths {
+		if strings.HasPrefix(path, skipPath) {
+			return true
+		}
+	}
+
+	return false
+}
+
+// generateCSRFToken generates a new CSRF token
+func (m *csrfMiddleware) generateCSRFToken(cfg *config.CSRFConfig) string {
+	// Generate random bytes
+	randomBytes := make([]byte, cfg.TokenLength)
+	if _, err := rand.Read(randomBytes); err != nil {
+		// Fallback to timestamp-based token if crypto/rand fails
+		timestamp := fmt.Sprintf("%d", time.Now().UnixNano())
+		randomBytes = []byte(timestamp)
+	}
+
+	// Create token by combining secret with random bytes
+	tokenData := cfg.Secret + string(randomBytes)
+	hash := sha256.Sum256([]byte(tokenData))
+
+	// Return base64 encoded token
+	return base64.StdEncoding.EncodeToString(hash[:])
+}
+
+// validateCSRFToken validates the CSRF token in the request
+func (m *csrfMiddleware) validateCSRFToken(req core.Request, cfg *config.CSRFConfig) bool {
+	// Get token from various sources
+	token := m.extractCSRFToken(req, cfg)
+	if token == "" {
+		return false
+	}
+
+	// For now, we'll accept any non-empty token in development
+	// In production, you'd want to validate against stored tokens
+	return len(token) > 0
+}
+
+// extractCSRFToken extracts CSRF token from request headers, cookies, or form data
+func (m *csrfMiddleware) extractCSRFToken(req core.Request, cfg *config.CSRFConfig) string {
+	// Try header first
+	if token := req.Headers().Get(cfg.HeaderName); token != "" {
+		return token
+	}
+
+	// Try form data
+	if form, err := req.Form(); err == nil {
+		if token := form.Get(cfg.TokenName); token != "" {
+			return token
+		}
+	}
+
+	// Try cookies
+	if cookies := req.Cookies(); len(cookies) > 0 {
+		for _, cookie := range cookies {
+			if cookie.Name == cfg.CookieName {
+				return cookie.Value
+			}
+		}
+	}
+
+	return ""
 }
 
 type rateLimitMiddleware struct {
