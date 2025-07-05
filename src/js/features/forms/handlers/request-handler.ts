@@ -27,22 +27,27 @@ export class RequestHandler {
 
         // For auth endpoints, we need to handle redirects properly
         // Use fetch directly instead of HttpClient to get the actual response
-        const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
+        const csrfToken = document.querySelector<HTMLMetaElement>(
+          'meta[name="csrf-token"]',
+        )?.content;
 
         const response = await fetch(form.action, {
-          method: 'POST',
+          method: "POST",
           headers: {
-            'Content-Type': 'application/json',
-            'Accept': 'application/json',
-            'X-Csrf-Token': csrfToken || '',
-            'X-Requested-With': 'XMLHttpRequest',
+            "Content-Type": "application/json",
+            "Accept": "application/json",
+            "X-Csrf-Token": csrfToken ?? "",
+            "X-Requested-With": "XMLHttpRequest",
           },
           body: JSON.stringify(data),
-          credentials: 'include',
+          credentials: "include",
         });
 
         Logger.debug("Auth response status:", response.status);
-        Logger.debug("Auth response headers:", Object.fromEntries(response.headers.entries()));
+        Logger.debug(
+          "Auth response headers:",
+          Object.fromEntries(response.headers.entries()),
+        );
 
         // If we get a redirect, follow it
         if (response.redirected) {
