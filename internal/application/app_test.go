@@ -2,7 +2,6 @@ package application_test
 
 import (
 	"context"
-	"embed"
 	"strings"
 	"testing"
 	"time"
@@ -21,9 +20,6 @@ import (
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 	mockserver "github.com/goformx/goforms/test/mocks/server"
 )
-
-// Create a simple embed.FS for testing
-var testDistFS = embed.FS{}
 
 // createTestConfig returns a valid *config.Config for testing
 func createTestConfig() *config.Config {
