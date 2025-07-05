@@ -101,11 +101,10 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load your forms, please try again"))
 	}
 
-	return h.renderDashboard(ctx, infraCtx, dashboardResp)
+	return h.renderDashboard(infraCtx, dashboardResp)
 }
 
 func (h *DashboardHandler) renderDashboard(
-	ctx httpiface.Context,
 	infraCtx http.Context,
 	dashboardResp *dto.FormListResponse,
 ) error {
