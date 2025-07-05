@@ -634,11 +634,29 @@ func (e *EchoContextAdapter) RenderComponent(component any) error {
 type EchoAdapter struct {
 	e        *echo.Echo
 	renderer view.Renderer
+	// Pre-defined method map to reduce cyclomatic complexity
+	methodMap map[string]func(string, echo.HandlerFunc) *echo.Route
 }
 
 // NewEchoAdapter creates a new EchoAdapter for the given echo.Echo instance.
 func NewEchoAdapter(e *echo.Echo, renderer view.Renderer) *EchoAdapter {
-	return &EchoAdapter{e: e, renderer: renderer}
+	adapter := &EchoAdapter{
+		e:        e,
+		renderer: renderer,
+	}
+
+	// Initialize method map once - using wrapper functions to match signature
+	adapter.methodMap = map[string]func(string, echo.HandlerFunc) *echo.Route{
+		"GET":     func(path string, h echo.HandlerFunc) *echo.Route { return e.GET(path, h) },
+		"POST":    func(path string, h echo.HandlerFunc) *echo.Route { return e.POST(path, h) },
+		"PUT":     func(path string, h echo.HandlerFunc) *echo.Route { return e.PUT(path, h) },
+		"DELETE":  func(path string, h echo.HandlerFunc) *echo.Route { return e.DELETE(path, h) },
+		"PATCH":   func(path string, h echo.HandlerFunc) *echo.Route { return e.PATCH(path, h) },
+		"OPTIONS": func(path string, h echo.HandlerFunc) *echo.Route { return e.OPTIONS(path, h) },
+		"HEAD":    func(path string, h echo.HandlerFunc) *echo.Route { return e.HEAD(path, h) },
+	}
+
+	return adapter
 }
 
 // RegisterHandler registers all routes from the given handler with Echo.
@@ -651,35 +669,32 @@ func (a *EchoAdapter) RegisterHandler(handler any) error {
 
 	// Register all routes from the handler
 	for _, route := range h.Routes() {
-		// Create Echo handler function that adapts our framework-agnostic handler
-		echoHandler := func(c echo.Context) error {
-			// Create our context adapter
-			ctx := NewEchoContextAdapter(c, a.renderer)
-
-			// Call the framework-agnostic handler
-			return route.Handler(ctx)
-		}
-
-		// Register the route with Echo based on the method
-		switch strings.ToUpper(route.Method) {
-		case "GET":
-			a.e.GET(route.Path, echoHandler)
-		case "POST":
-			a.e.POST(route.Path, echoHandler)
-		case "PUT":
-			a.e.PUT(route.Path, echoHandler)
-		case "DELETE":
-			a.e.DELETE(route.Path, echoHandler)
-		case "PATCH":
-			a.e.PATCH(route.Path, echoHandler)
-		case "OPTIONS":
-			a.e.OPTIONS(route.Path, echoHandler)
-		case "HEAD":
-			a.e.HEAD(route.Path, echoHandler)
-		default:
-			return fmt.Errorf("unsupported HTTP method: %s", route.Method)
+		if err := a.registerRoute(route); err != nil {
+			return err
 		}
 	}
+
+	return nil
+}
+
+// registerRoute registers a single route with Echo
+func (a *EchoAdapter) registerRoute(route httpiface.Route) error {
+	// Create Echo handler function that adapts our framework-agnostic handler
+	echoHandler := func(c echo.Context) error {
+		// Create our context adapter
+		ctx := NewEchoContextAdapter(c, a.renderer)
+		// Call the framework-agnostic handler
+		return route.Handler(ctx)
+	}
+
+	// Look up the method in our pre-defined map
+	registerFunc, exists := a.methodMap[strings.ToUpper(route.Method)]
+	if !exists {
+		return fmt.Errorf("unsupported HTTP method: %s", route.Method)
+	}
+
+	// Register the route
+	registerFunc(route.Path, echoHandler)
 
 	return nil
 }

@@ -823,7 +823,7 @@ func setLoggingDefaults(v *viper.Viper) {
 	v.SetDefault("logging.level", "info")
 	v.SetDefault("logging.format", "json")
 	v.SetDefault("logging.output", "stdout")
-	v.SetDefault("logging.file", "logs/app.log")
+	v.SetDefault("logging.file", "storage/logs/app.log")
 	v.SetDefault("logging.max_size", 100)
 	v.SetDefault("logging.max_backups", 3)
 	v.SetDefault("logging.max_age", 28)

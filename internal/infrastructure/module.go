@@ -177,7 +177,7 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 	if p.Config.App.IsDevelopment() {
 		outputPaths = []string{"stdout"}
 	} else {
-		outputPaths = []string{"stdout", "/var/log/app.log"}
+		outputPaths = []string{"stdout", "storage/logs/app.log"}
 	}
 
 	factoryConfig := logging.FactoryConfig{
