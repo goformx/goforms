@@ -75,11 +75,20 @@ func (a *EchoResponseAdapter) BuildSignupResponse(ctx Context, response *dto.Sig
 	}
 
 	if a.isAPIRequest(echoCtx) {
-		return echoCtx.JSON(http.StatusCreated, response)
+		// For AJAX requests, return JSON with redirect URL
+		return echoCtx.JSON(http.StatusCreated, map[string]any{
+			"user":       response.User,
+			"session_id": response.SessionID,
+			"expires_at": response.ExpiresAt,
+			"data": map[string]any{
+				"redirect": "/dashboard",
+				"message":  "Account created successfully! Redirecting to dashboard...",
+			},
+		})
 	}
 
-	// For web requests, redirect to login
-	return echoCtx.Redirect(http.StatusFound, "/login")
+	// For web requests, redirect to dashboard
+	return echoCtx.Redirect(http.StatusFound, "/dashboard")
 }
 
 // BuildLogoutResponse builds logout response for Echo context

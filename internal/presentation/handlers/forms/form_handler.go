@@ -66,6 +66,11 @@ func NewFormHandler(
 		Handler: h.EditForm,
 	})
 	h.AddRoute(httpiface.Route{
+		Method:  "GET",
+		Path:    "/forms/:id/preview",
+		Handler: h.PreviewForm,
+	})
+	h.AddRoute(httpiface.Route{
 		Method:  "PUT",
 		Path:    "/forms/:id",
 		Handler: h.UpdateForm,
@@ -209,6 +214,62 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	return h.renderer.Render(echoCtx.Context, pages.EditForm(*pageData, form))
 }
 
+// PreviewForm handles GET /forms/:id/preview
+func (h *FormHandler) PreviewForm(ctx httpiface.Context) error {
+	// Get infrastructure context using bridge
+	infraCtx, err := h.getInfraContext(ctx)
+	if err != nil {
+		h.logger.Error("failed to get infrastructure context", "error", err)
+
+		return fmt.Errorf("internal server error: context conversion failed")
+	}
+	// Parse form ID
+	formID, err := h.requestAdapter.ParseFormID(infraCtx)
+	if err != nil {
+		h.logger.Error("failed to parse form ID", "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
+	}
+	// Call application service
+	previewResp, err := h.formService.GetForm(ctx.RequestContext(), formID)
+	if err != nil {
+		h.logger.Error("failed to get form for preview", "form_id", formID, "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load form for preview"))
+	}
+
+	// Convert DTO to domain model for template rendering
+	form := &model.Form{
+		ID:          previewResp.ID,
+		Title:       previewResp.Title,
+		Description: previewResp.Description,
+		Schema:      previewResp.Schema,
+		UserID:      previewResp.UserID,
+		Status:      previewResp.Status,
+		CreatedAt:   previewResp.CreatedAt,
+		UpdatedAt:   previewResp.UpdatedAt,
+	}
+
+	// Get the underlying Echo context for rendering
+	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type for rendering")
+	}
+
+	// Create page data for template rendering
+	pageData := &view.PageData{
+		Title:                "Form Preview - " + form.Title,
+		Description:          "Preview your form as users will see it",
+		Form:                 form,
+		IsDevelopment:        h.config.App.IsDevelopment(),
+		AssetPath:            h.assetManager.AssetPath,
+		FormPreviewAssetPath: h.assetManager.AssetPath("src/js/pages/form-preview.ts"),
+	}
+
+	// Render the form preview template
+	return h.renderer.Render(echoCtx.Context, pages.FormPreview(*pageData, form))
+}
+
 // UpdateForm handles PUT /forms/:id
 func (h *FormHandler) UpdateForm(ctx httpiface.Context) error {
 	// Get infrastructure context using bridge
@@ -298,13 +359,52 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
-	// For now, return a simple success response since GetFormSubmissions doesn't exist
-	// TODO: Add GetFormSubmissions method to FormUseCaseService
-	if buildErr := h.responseAdapter.BuildSuccessResponse(infraCtx, "Form submissions loaded", nil); buildErr != nil {
-		return fmt.Errorf("failed to build success response: %w", buildErr)
+	// Parse form ID
+	formID, err := h.requestAdapter.ParseFormID(infraCtx)
+	if err != nil {
+		h.logger.Error("failed to parse form ID", "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
+	}
+	// Get the form first to verify it exists and get form details
+	formResp, err := h.formService.GetForm(ctx.RequestContext(), formID)
+	if err != nil {
+		h.logger.Error("failed to get form for submissions", "form_id", formID, "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load form"))
 	}
 
-	return nil
+	// Convert DTO to domain model for template rendering
+	form := &model.Form{
+		ID:          formResp.ID,
+		Title:       formResp.Title,
+		Description: formResp.Description,
+		Schema:      formResp.Schema,
+		UserID:      formResp.UserID,
+		Status:      formResp.Status,
+		CreatedAt:   formResp.CreatedAt,
+		UpdatedAt:   formResp.UpdatedAt,
+	}
+
+	// Get the underlying Echo context for rendering
+	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type for rendering")
+	}
+
+	// Create page data for template rendering
+	pageData := &view.PageData{
+		Title:         "Form Submissions - " + form.Title,
+		Description:   "View and manage form submissions",
+		Form:          form,
+		IsDevelopment: h.config.App.IsDevelopment(),
+		AssetPath:     h.assetManager.AssetPath,
+		// For now, we'll show an empty submissions list since the service doesn't exist yet
+		Submissions: []*model.FormSubmission{},
+	}
+
+	// Render the form submissions template
+	return h.renderer.Render(echoCtx.Context, pages.FormSubmissions(*pageData))
 }
 
 // GetFormSchema handles GET /api/v1/forms/:id/schema
