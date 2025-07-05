@@ -48,7 +48,7 @@ middleware:
 middleware:
   csrf:
     enabled: true
-    token_header: "X-CSRF-Token"
+    token_header: "X-Csrf-Token"
     include_paths: ["/api/*", "/forms/*"]
     exclude_paths: ["/api/public/*", "/static/*"]
 ```
