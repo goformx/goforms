@@ -36,16 +36,21 @@ func (r *registry) Register(name string, mw core.Middleware) error {
 	r.mu.Lock()
 	defer r.mu.Unlock()
 
+	r.logger.Debug("Attempting to register middleware", "name", name)
+
 	if _, exists := r.middlewares[name]; exists {
+		r.logger.Debug("Middleware already registered", "name", name)
 		return fmt.Errorf("middleware %q already registered", name)
 	}
 
 	if !r.config.IsMiddlewareEnabled(name) {
+		r.logger.Debug("Middleware disabled by config", "name", name)
 		return nil
 	}
 
 	r.middlewares[name] = mw
 	r.setupMiddlewareMetadata(name)
+	r.logger.Debug("Successfully registered middleware", "name", name)
 
 	return nil
 }

@@ -161,19 +161,22 @@ func (h *FormHandler) getFormAndContext(
 
 // NewForm handles GET /forms/new
 func (h *FormHandler) NewForm(ctx httpiface.Context) error {
-	// Get infrastructure context using bridge
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
-
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
-	// For now, return a simple success response since GetNewFormPage doesn't exist
-	// TODO: Add GetNewFormPage method to FormUseCaseService
-	if buildErr := h.responseAdapter.BuildSuccessResponse(infraCtx, "New form page loaded", nil); buildErr != nil {
-		return fmt.Errorf("failed to build success response: %w", buildErr)
+	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type for rendering")
 	}
 
+	pageData := view.NewPageData(h.config, h.assetManager, echoCtx.Context, "Create New Form")
+	pageData.Description = "Create a new form to collect responses."
+
+	if renderErr := h.renderer.Render(echoCtx.Context, pages.NewForm(*pageData)); renderErr != nil {
+		return fmt.Errorf("failed to render new form template: %w", renderErr)
+	}
 	return nil
 }
 

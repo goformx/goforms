@@ -158,6 +158,7 @@ middleware:
       - "request_id"
       - "logging"
       - "session"
+      - "csrf"
       - "authentication"
       - "authorization"
 
@@ -277,6 +278,7 @@ middleware:
       enabled: true
       middleware_names:
         - "session"
+        - "csrf"
         - "authentication"
         - "authorization"
       paths:

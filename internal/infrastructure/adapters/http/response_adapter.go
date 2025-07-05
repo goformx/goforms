@@ -74,8 +74,18 @@ func (a *EchoResponseAdapter) BuildSignupResponse(ctx Context, response *dto.Sig
 		return fmt.Errorf("invalid context type")
 	}
 
+	// Check if this is a form submission (POST request to /signup)
+	if echoCtx.Method() == "POST" && echoCtx.Path() == "/signup" {
+		// Set session cookie before redirecting
+		a.setSessionCookie(echoCtx, response.SessionID, response.ExpiresAt)
+
+		// For signup form submissions, always redirect to dashboard
+		// This ensures proper signup flow regardless of Accept header
+		return echoCtx.Redirect(http.StatusFound, "/dashboard")
+	}
+
+	// For actual API requests (non-form submissions), return JSON
 	if a.isAPIRequest(echoCtx) {
-		// For AJAX requests, return JSON with redirect URL
 		return echoCtx.JSON(http.StatusCreated, map[string]any{
 			"user":       response.User,
 			"session_id": response.SessionID,

@@ -194,21 +194,33 @@ func (ea *EchoOrchestratorAdapter) setupStaticChain(e *echo.Echo) error {
 func (ea *EchoOrchestratorAdapter) ConvertChainToEcho(chain core.Chain) []echo.MiddlewareFunc {
 	var echoMiddleware []echo.MiddlewareFunc
 
+	// Log the middleware in the chain
+	middlewares := chain.List()
+	ea.logger.Debug("Converting chain to Echo middleware", "chain_length", len(middlewares))
+	for _, mw := range middlewares {
+		ea.logger.Debug("Chain middleware", "name", mw.Name())
+	}
+
 	// Add CSRF middleware for auth routes
 	if ea.shouldApplyCSRF(chain) {
+		ea.logger.Debug("Adding CSRF middleware to chain")
 		echoMiddleware = append(echoMiddleware, ea.createCSRFMiddleware())
+	} else {
+		ea.logger.Debug("CSRF middleware not added to chain")
 	}
 
 	// Convert all middleware in the chain to Echo middleware
-	middlewares := chain.List()
-
 	for _, mw := range middlewares {
 		echoMw := ea.convertMiddlewareToEcho(mw)
 		if echoMw != nil {
 			echoMiddleware = append(echoMiddleware, echoMw)
+			ea.logger.Debug("Added Echo middleware", "name", mw.Name())
+		} else {
+			ea.logger.Debug("No Echo middleware for", "name", mw.Name())
 		}
 	}
 
+	ea.logger.Debug("Final Echo middleware count", "count", len(echoMiddleware))
 	return echoMiddleware
 }
 
@@ -240,7 +252,19 @@ func (ea *EchoOrchestratorAdapter) createAuthenticationMiddleware() echo.Middlew
 			// Check if user_id is set in context (by session middleware)
 			userID, exists := context.GetUserID(c)
 			if !exists || userID == "" {
-				return echo.NewHTTPError(http.StatusUnauthorized, "authentication required")
+				path := c.Request().URL.Path
+
+				// Check if this is an API request
+				isAPIRequest := strings.HasPrefix(path, "/api/")
+				acceptsJSON := strings.Contains(c.Request().Header.Get("Accept"), "application/json")
+
+				if isAPIRequest || acceptsJSON {
+					// Return JSON error response for API requests
+					return echo.NewHTTPError(http.StatusUnauthorized, "authentication required")
+				}
+
+				// For web requests, redirect to login
+				return c.Redirect(http.StatusSeeOther, "/login")
 			}
 
 			return next(c)
@@ -271,10 +295,12 @@ func (ea *EchoOrchestratorAdapter) shouldApplyCSRF(chain core.Chain) bool {
 
 	for _, mw := range middlewares {
 		if mw.Name() == "csrf" {
+			ea.logger.Debug("CSRF middleware found in chain", "name", mw.Name())
 			return true
 		}
 	}
 
+	ea.logger.Debug("CSRF middleware not found in chain")
 	return false
 }
 
@@ -289,6 +315,7 @@ func (ea *EchoOrchestratorAdapter) createCSRFMiddleware() echo.MiddlewareFunc {
 
 			// Skip CSRF for static files and health endpoints
 			if ea.shouldSkipCSRF(path) {
+				ea.logger.Debug("CSRF middleware skipped", "path", path, "method", method)
 				return next(c)
 			}
 
@@ -296,11 +323,14 @@ func (ea *EchoOrchestratorAdapter) createCSRFMiddleware() echo.MiddlewareFunc {
 			if method == httpMethodGET {
 				token := ea.generateCSRFToken()
 				c.Set("csrf", token)
+				ea.logger.Debug("CSRF token generated and set in context", "path", path, "token", token)
 			}
 
 			// For non-GET requests, validate CSRF token
 			if method != httpMethodGET {
-				if !ea.validateCSRFToken(c) {
+				valid := ea.validateCSRFToken(c)
+				ea.logger.Debug("CSRF token validation", "path", path, "method", method, "valid", valid)
+				if !valid {
 					ea.logger.Warn("CSRF token validation failed", "path", path, "method", method)
 
 					return echo.NewHTTPError(http.StatusForbidden, "CSRF token validation failed")
@@ -375,6 +405,7 @@ func (ea *EchoOrchestratorAdapter) validateCSRFToken(c echo.Context) bool {
 func (ea *EchoOrchestratorAdapter) BuildChainForPath(path string) (core.Chain, error) {
 	// Determine chain type based on path
 	chainType := ea.determineChainType(path)
+	ea.logger.Debug("Building chain for path", "path", path, "chain_type", chainType)
 
 	chain, err := ea.orchestrator.BuildChain(chainType)
 	if err != nil {

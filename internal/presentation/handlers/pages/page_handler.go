@@ -45,6 +45,15 @@ func NewPageHandler(
 		Description: "Home page",
 	})
 
+	// Register the demo page route
+	h.AddRoute(httpiface.Route{
+		Method:      "GET",
+		Path:        "/demo",
+		Handler:     h.handleDemo,
+		Name:        "demo",
+		Description: "Demo page",
+	})
+
 	return h
 }
 
@@ -65,6 +74,28 @@ func (h *PageHandler) handleHome(ctx httpiface.Context) error {
 
 	if renderErr := ctx.RenderComponent(homeComponent); renderErr != nil {
 		return fmt.Errorf("failed to render home component: %w", renderErr)
+	}
+
+	return nil
+}
+
+// handleDemo is the handler for GET /demo
+func (h *PageHandler) handleDemo(ctx httpiface.Context) error {
+	// Create page data for the demo template
+	pageData := &view.PageData{
+		Title:       "Demo - GoFormX",
+		Description: "Try out GoFormX with our interactive demo",
+		Version:     h.config.App.Version,
+		Environment: h.config.App.Environment,
+		Config:      h.config,
+		AssetPath:   h.assetManager.AssetPath,
+	}
+
+	// Render the demo page using the framework-agnostic interface
+	demoComponent := pages.Demo(*pageData)
+
+	if renderErr := ctx.RenderComponent(demoComponent); renderErr != nil {
+		return fmt.Errorf("failed to render demo component: %w", renderErr)
 	}
 
 	return nil

@@ -327,6 +327,12 @@ func (o *orchestrator) getOrderedByCategory(category core.MiddlewareCategory) []
 func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType core.ChainType) []core.Middleware {
 	chainConfig := o.config.GetChainConfig(chainType)
 
+	o.logger.Debug("Filtering middleware by config",
+		"chain_type", chainType,
+		"total_middleware", len(middlewares),
+		"chain_enabled", chainConfig.Enabled,
+		"configured_middleware", chainConfig.MiddlewareNames)
+
 	// If no specific middleware names are configured, return all enabled middleware
 	if len(chainConfig.MiddlewareNames) == 0 {
 		filtered := make([]core.Middleware, 0, len(middlewares))
@@ -336,15 +342,18 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 
 			// Check if middleware is enabled globally
 			if !o.config.IsMiddlewareEnabled(name) {
+				o.logger.Debug("Middleware filtered out - not enabled globally", "name", name)
 				continue
 			}
 
 			// Check if middleware is enabled for this chain
 			if !chainConfig.Enabled {
+				o.logger.Debug("Middleware filtered out - chain disabled", "name", name)
 				continue
 			}
 
 			filtered = append(filtered, mw)
+			o.logger.Debug("Middleware included in chain", "name", name)
 		}
 
 		return filtered
@@ -360,24 +369,31 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 
 		// Check if middleware is enabled globally
 		if !o.config.IsMiddlewareEnabled(name) {
+			o.logger.Debug("Middleware filtered out - not enabled globally", "name", name)
 			continue
 		}
 
 		// Check if middleware is enabled for this chain
 		if !chainConfig.Enabled {
+			o.logger.Debug("Middleware filtered out - chain disabled", "name", name)
 			continue
 		}
 
 		middlewareMap[name] = mw
+		o.logger.Debug("Middleware available for chain", "name", name)
 	}
 
 	// Add middleware in the order specified in config
 	for _, name := range chainConfig.MiddlewareNames {
 		if mw, exists := middlewareMap[name]; exists {
 			filtered = append(filtered, mw)
+			o.logger.Debug("Middleware added to chain from config", "name", name)
+		} else {
+			o.logger.Debug("Middleware not found in registry", "name", name)
 		}
 	}
 
+	o.logger.Debug("Final filtered middleware count", "count", len(filtered))
 	return filtered
 }
 

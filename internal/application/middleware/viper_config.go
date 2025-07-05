@@ -52,13 +52,19 @@ func (c *ViperMiddlewareConfig) IsMiddlewareEnabled(name string) bool {
 	// Get environment-specific enabled middleware
 	enabledMiddleware := c.getEnvironmentEnabledMiddleware()
 
+	c.logger.Debug("Checking if middleware is enabled",
+		"name", name,
+		"enabled_middleware", enabledMiddleware)
+
 	// Check if middleware is in the enabled list
 	for _, enabled := range enabledMiddleware {
 		if enabled == name {
+			c.logger.Debug("Middleware is enabled", "name", name)
 			return true
 		}
 	}
 
+	c.logger.Debug("Middleware is disabled", "name", name)
 	return false
 }
 
