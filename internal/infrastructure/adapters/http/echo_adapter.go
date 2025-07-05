@@ -193,40 +193,37 @@ func (a *EchoAdapter) RegisterHandler(handler any) error {
 
 // registerRoute registers a single route with Echo
 func (a *EchoAdapter) registerRoute(route httpiface.Route) error {
-	// Create Echo handler function that adapts our framework-agnostic handler
 	echoHandler := func(c echo.Context) error {
-		// Create our context adapter
 		ctx := NewEchoContextAdapter(c, a.renderer)
-		// Call the framework-agnostic handler
+
 		return route.Handler(ctx)
 	}
 
-	// Apply middleware chain if orchestrator is available
-	if a.middlewareOrchestrator != nil {
-		// Build middleware chain for this path
-		chain, err := a.middlewareOrchestrator.BuildChainForPath(route.Path)
-		if err != nil {
-			// Continue without middleware if chain building fails
-		} else {
-			// Convert chain to Echo middleware
-			echoMiddleware := a.middlewareOrchestrator.ConvertChainToEcho(chain)
+	// Refactored to reduce nesting
+	if a.middlewareOrchestrator == nil {
+		registerFunc, exists := a.methodMap[strings.ToUpper(route.Method)]
+		if !exists {
+			return fmt.Errorf("unsupported HTTP method: %s", route.Method)
+		}
 
-			if len(echoMiddleware) > 0 {
-				// Apply middleware to the handler
-				for i := len(echoMiddleware) - 1; i >= 0; i-- {
-					echoHandler = echoMiddleware[i](echoHandler)
-				}
-			}
+		registerFunc(route.Path, echoHandler)
+
+		return nil
+	}
+
+	chain, err := a.middlewareOrchestrator.BuildChainForPath(route.Path)
+	if err == nil {
+		echoMiddleware := a.middlewareOrchestrator.ConvertChainToEcho(chain)
+		for i := len(echoMiddleware) - 1; i >= 0; i-- {
+			echoHandler = echoMiddleware[i](echoHandler)
 		}
 	}
 
-	// Look up the method in our pre-defined map
 	registerFunc, exists := a.methodMap[strings.ToUpper(route.Method)]
 	if !exists {
 		return fmt.Errorf("unsupported HTTP method: %s", route.Method)
 	}
 
-	// Register the route
 	registerFunc(route.Path, echoHandler)
 
 	return nil

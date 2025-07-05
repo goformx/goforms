@@ -104,7 +104,11 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 	return h.renderDashboard(ctx, infraCtx, dashboardResp)
 }
 
-func (h *DashboardHandler) renderDashboard(ctx httpiface.Context, infraCtx http.Context, dashboardResp *dto.FormListResponse) error {
+func (h *DashboardHandler) renderDashboard(
+	ctx httpiface.Context,
+	infraCtx http.Context,
+	dashboardResp *dto.FormListResponse,
+) error {
 	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type for rendering")

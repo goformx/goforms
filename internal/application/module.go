@@ -23,7 +23,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/infrastructure/session"
 	"github.com/goformx/goforms/internal/infrastructure/view"
 )
 
@@ -96,11 +95,7 @@ var Module = fx.Module("application",
 			fx.As(new(http.RequestAdapter)),
 		),
 		// HTTP adapter factory
-		fx.Annotate(
-			func(e *echo.Echo, renderer view.Renderer, sessionManager *session.Manager) *http.AdapterFactory {
-				return http.NewAdapterFactory(e, renderer, sessionManager)
-			},
-		),
+		http.NewAdapterFactory,
 		// Response adapter through factory
 		fx.Annotate(
 			func(factory *http.AdapterFactory) http.ResponseAdapter {
