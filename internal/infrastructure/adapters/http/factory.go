@@ -1,21 +1,24 @@
 package http
 
 import (
+	"github.com/goformx/goforms/internal/infrastructure/session"
 	"github.com/goformx/goforms/internal/infrastructure/view"
 	"github.com/labstack/echo/v4"
 )
 
 // AdapterFactory provides a centralized way to create HTTP adapters
 type AdapterFactory struct {
-	echo     *echo.Echo
-	renderer view.Renderer
+	echo           *echo.Echo
+	renderer       view.Renderer
+	sessionManager *session.Manager
 }
 
 // NewAdapterFactory creates a new adapter factory
-func NewAdapterFactory(e *echo.Echo, renderer view.Renderer) *AdapterFactory {
+func NewAdapterFactory(e *echo.Echo, renderer view.Renderer, sessionManager *session.Manager) *AdapterFactory {
 	return &AdapterFactory{
-		echo:     e,
-		renderer: renderer,
+		echo:           e,
+		renderer:       renderer,
+		sessionManager: sessionManager,
 	}
 }
 
@@ -31,7 +34,7 @@ func (f *AdapterFactory) CreateRequestAdapter() RequestAdapter {
 
 // CreateResponseAdapter creates a new ResponseAdapter
 func (f *AdapterFactory) CreateResponseAdapter() ResponseAdapter {
-	return NewEchoResponseAdapter()
+	return NewEchoResponseAdapter(f.sessionManager)
 }
 
 // CreateContextAdapter creates a new ContextAdapter from an Echo context

@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"github.com/a-h/templ"
+	core "github.com/goformx/goforms/internal/application/middleware/core"
 	"github.com/goformx/goforms/internal/infrastructure/view"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
 	"github.com/labstack/echo/v4"
@@ -104,16 +105,6 @@ func (e *EchoContextAdapter) NoContent(statusCode int) error {
 	return nil
 }
 
-// Get retrieves a value from the context
-func (e *EchoContextAdapter) Get(key string) any {
-	return e.Context.Get(key)
-}
-
-// Set stores a value in the context
-func (e *EchoContextAdapter) Set(key string, value any) {
-	e.Context.Set(key, value)
-}
-
 // RequestContext returns the underlying context.Context
 func (e *EchoContextAdapter) RequestContext() context.Context {
 	return e.Request().Context()
@@ -146,6 +137,11 @@ type EchoAdapter struct {
 	renderer view.Renderer
 	// Pre-defined method map to reduce cyclomatic complexity
 	methodMap map[string]func(string, echo.HandlerFunc) *echo.Route
+	// Middleware orchestrator for applying middleware chains
+	middlewareOrchestrator interface {
+		BuildChainForPath(path string) (core.Chain, error)
+		ConvertChainToEcho(chain core.Chain) []echo.MiddlewareFunc
+	}
 }
 
 // NewEchoAdapter creates a new EchoAdapter for the given echo.Echo instance.
@@ -167,6 +163,14 @@ func NewEchoAdapter(e *echo.Echo, renderer view.Renderer) *EchoAdapter {
 	}
 
 	return adapter
+}
+
+// SetMiddlewareOrchestrator sets the middleware orchestrator for applying middleware chains
+func (a *EchoAdapter) SetMiddlewareOrchestrator(orchestrator interface {
+	BuildChainForPath(path string) (core.Chain, error)
+	ConvertChainToEcho(chain core.Chain) []echo.MiddlewareFunc
+}) {
+	a.middlewareOrchestrator = orchestrator
 }
 
 // RegisterHandler registers all routes from the given handler with Echo.
@@ -197,6 +201,25 @@ func (a *EchoAdapter) registerRoute(route httpiface.Route) error {
 		return route.Handler(ctx)
 	}
 
+	// Apply middleware chain if orchestrator is available
+	if a.middlewareOrchestrator != nil {
+		// Build middleware chain for this path
+		chain, err := a.middlewareOrchestrator.BuildChainForPath(route.Path)
+		if err != nil {
+			// Continue without middleware if chain building fails
+		} else {
+			// Convert chain to Echo middleware
+			echoMiddleware := a.middlewareOrchestrator.ConvertChainToEcho(chain)
+
+			if len(echoMiddleware) > 0 {
+				// Apply middleware to the handler
+				for i := len(echoMiddleware) - 1; i >= 0; i-- {
+					echoHandler = echoMiddleware[i](echoHandler)
+				}
+			}
+		}
+	}
+
 	// Look up the method in our pre-defined map
 	registerFunc, exists := a.methodMap[strings.ToUpper(route.Method)]
 	if !exists {
@@ -205,6 +228,5 @@ func (a *EchoAdapter) registerRoute(route httpiface.Route) error {
 
 	// Register the route
 	registerFunc(route.Path, echoHandler)
-
 	return nil
 }
