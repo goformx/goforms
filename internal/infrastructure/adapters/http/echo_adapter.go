@@ -201,8 +201,6 @@ func (a *EchoAdapter) registerRoute(route httpiface.Route) error {
 
 	// Refactored to reduce nesting
 	if a.middlewareOrchestrator == nil {
-		// Log when middleware orchestrator is not available
-		fmt.Printf("DEBUG: No middleware orchestrator for route %s %s\n", route.Method, route.Path)
 		registerFunc, exists := a.methodMap[strings.ToUpper(route.Method)]
 		if !exists {
 			return fmt.Errorf("unsupported HTTP method: %s", route.Method)
@@ -213,16 +211,11 @@ func (a *EchoAdapter) registerRoute(route httpiface.Route) error {
 		return nil
 	}
 
-	// Log when middleware orchestrator is being used
-	fmt.Printf("DEBUG: Building middleware chain for route %s %s\n", route.Method, route.Path)
-
 	chain, err := a.middlewareOrchestrator.BuildChainForPath(route.Path)
 	if err != nil {
-		fmt.Printf("DEBUG: Failed to build chain for %s %s: %v\n", route.Method, route.Path, err)
+		// Continue without middleware if chain building fails
 	} else {
-		fmt.Printf("DEBUG: Successfully built chain for %s %s\n", route.Method, route.Path)
 		echoMiddleware := a.middlewareOrchestrator.ConvertChainToEcho(chain)
-		fmt.Printf("DEBUG: Converted %d middleware for %s %s\n", len(echoMiddleware), route.Method, route.Path)
 		for i := len(echoMiddleware) - 1; i >= 0; i-- {
 			echoHandler = echoMiddleware[i](echoHandler)
 		}

@@ -155,17 +155,11 @@ func NewEventPublisher(p EventPublisherParams) (formevent.Publisher, error) {
 
 // NewLoggerFactory creates a new logger factory with proper configuration and error handling.
 func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
-	fmt.Printf("[DEBUG] NewLoggerFactory called with Config: %T, Sanitizer: %T\n", p.Config, p.Sanitizer)
-
 	if p.Config == nil {
-		fmt.Println("[DEBUG] NewLoggerFactory: Config is nil!")
-
 		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingConfig)
 	}
 
 	if p.Sanitizer == nil {
-		fmt.Println("[DEBUG] NewLoggerFactory: Sanitizer is nil!")
-
 		return nil, fmt.Errorf("logger factory creation failed: %w", ErrMissingSanitizer)
 	}
 
@@ -199,8 +193,6 @@ func NewLoggerFactory(p LoggerFactoryParams) (*logging.Factory, error) {
 		return nil, fmt.Errorf("failed to create logger factory: %w", err)
 	}
 
-	fmt.Printf("[DEBUG] NewLoggerFactory created factory: %T\n", factory)
-
 	return factory, nil
 }
 
@@ -230,11 +222,7 @@ func determineLogLevel(cfg *config.Config) string {
 
 // NewLogger creates a logger instance from the factory with proper error handling.
 func NewLogger(factory *logging.Factory) (logging.Logger, error) {
-	fmt.Printf("[DEBUG] NewLogger called with factory: %T\n", factory)
-
 	if factory == nil {
-		fmt.Println("[DEBUG] NewLogger: Factory is nil!")
-
 		return nil, errors.New("logger factory is required")
 	}
 
@@ -242,8 +230,6 @@ func NewLogger(factory *logging.Factory) (logging.Logger, error) {
 	if err != nil {
 		return nil, fmt.Errorf("failed to create logger: %w", err)
 	}
-
-	fmt.Printf("[DEBUG] NewLogger created logger: %T\n", logger)
 
 	return logger, nil
 }
@@ -303,17 +289,11 @@ func ProvideEcho() *echo.Echo {
 
 // ProvideDatabase creates a new database connection with lifecycle management.
 func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger) (database.DB, error) {
-	fmt.Printf("[DEBUG] ProvideDatabase called with lc: %T, cfg: %T, logger: %T\n", lc, cfg, logger)
-
 	if cfg == nil {
-		fmt.Println("[DEBUG] ProvideDatabase: Config is nil!")
-
 		return nil, ErrMissingConfig
 	}
 
 	if logger == nil {
-		fmt.Println("[DEBUG] ProvideDatabase: Logger is nil!")
-
 		return nil, ErrMissingLogger
 	}
 
@@ -321,8 +301,6 @@ func ProvideDatabase(lc fx.Lifecycle, cfg *config.Config, logger logging.Logger)
 	if err != nil {
 		return nil, fmt.Errorf("failed to create database connection: %w", err)
 	}
-
-	fmt.Printf("[DEBUG] ProvideDatabase created database: %T\n", db)
 
 	// Register lifecycle hooks for graceful shutdown
 	lc.Append(fx.Hook{
@@ -363,17 +341,11 @@ type RepositoryProviders struct {
 
 // NewRepositories creates new repository instances with proper validation and error handling
 func NewRepositories(p RepositoryParams) (RepositoryProviders, error) {
-	fmt.Printf("[DEBUG] NewRepositories called with DB: %T, Logger: %T\n", p.DB, p.Logger)
-
 	if p.DB == nil {
-		fmt.Println("[DEBUG] NewRepositories: DB is nil!")
-
 		return RepositoryProviders{}, errors.New("database connection is required")
 	}
 
 	if p.Logger == nil {
-		fmt.Println("[DEBUG] NewRepositories: Logger is nil!")
-
 		return RepositoryProviders{}, errors.New("logger is required")
 	}
 
@@ -382,9 +354,6 @@ func NewRepositories(p RepositoryParams) (RepositoryProviders, error) {
 	formRepo := formstore.NewStore(p.DB, p.Logger)
 	formSubmissionRepo := formsubmissionstore.NewStore(p.DB, p.Logger)
 
-	fmt.Printf("[DEBUG] NewRepositories created userRepo: %T, formRepo: %T, formSubmissionRepo: %T\n",
-		userRepo, formRepo, formSubmissionRepo)
-
 	// Validate repository instances
 	if userRepo == nil || formRepo == nil || formSubmissionRepo == nil {
 		p.Logger.Error("failed to create repository",
@@ -392,8 +361,6 @@ func NewRepositories(p RepositoryParams) (RepositoryProviders, error) {
 			"repository_type", "user/form/submission",
 			"error_type", "nil_repository",
 		)
-
-		fmt.Println("[DEBUG] NewRepositories: One or more repositories are nil!")
 
 		return RepositoryProviders{}, errors.New("failed to create repository: one or more repositories are nil")
 	}

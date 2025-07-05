@@ -11,7 +11,6 @@ package domain
 
 import (
 	"errors"
-	"fmt"
 
 	"go.uber.org/fx"
 
@@ -31,17 +30,11 @@ type UserServiceParams struct {
 
 // NewUserService creates a new user service with dependencies
 func NewUserService(p UserServiceParams) (user.Service, error) {
-	fmt.Printf("[DEBUG] NewUserService called with Repo: %T, Logger: %T\n", p.Repo, p.Logger)
-
 	if p.Repo == nil {
-		fmt.Println("[DEBUG] NewUserService: Repo is nil!")
-
 		return nil, errors.New("user repository is required")
 	}
 
 	if p.Logger == nil {
-		fmt.Println("[DEBUG] NewUserService: Logger is nil!")
-
 		return nil, errors.New("logger is required")
 	}
 
