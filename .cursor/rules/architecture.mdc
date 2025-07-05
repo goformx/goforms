@@ -63,6 +63,69 @@ The project enforces clean architecture through import restrictions:
 ### Architecture Linting
 Run `./scripts/arch-lint.sh` to validate architecture compliance.
 
+## Code Organization
+
+### File Structure
+- Use snake_case for file names
+- Group related functionality in packages
+- Keep packages focused and cohesive
+- Use `internal/` for private application code
+
+### Naming Conventions
+- Use camelCase for variables and functions
+- Use PascalCase for exported types and functions
+- Use UPPER_CASE for constants
+- Use descriptive names that explain intent
+
+### Error Handling
+- Always check errors and handle them appropriately
+- Use `fmt.Errorf` with `%w` verb for error wrapping
+- Return errors from functions, don't panic in production code
+- Use custom error types for domain-specific errors
+
+## Database
+
+### Migrations
+- Database migrations are in [migrations/](mdc:migrations)
+- Use `task migrate:up` to apply migrations
+- Use `task migrate:down` to rollback migrations
+- Always test migrations in development before production
+
+### Repository Pattern
+- Use repository interfaces in domain layer
+- Implement repositories in infrastructure layer
+- Use transactions for multi-step operations
+
+## Logging
+
+### Structured Logging
+- Use Zap logger for structured logging
+- Include relevant context in log fields
+- Use appropriate log levels (debug, info, warn, error)
+- Don't log sensitive information
+
+## API Design
+
+### RESTful Endpoints
+- Use HTTP status codes correctly
+- Return consistent JSON responses
+- Validate input data
+- Handle errors gracefully
+
+## Code Quality
+
+### Linting
+- Run `task lint:backend` to check code quality
+- Follow Go best practices and idioms
+- Use `go fmt` for consistent formatting
+- Use `go vet` for static analysis
+
+### Documentation
+- Document exported functions and types
+- Use clear, concise comments
+- Include examples for complex functions
+- Keep documentation up to date
+
 ## Testing Architecture
 
 ### Test Structure

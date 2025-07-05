@@ -132,12 +132,12 @@ Security is built into every layer with comprehensive security headers, CSRF pro
 Modern development workflow with hot reloading for both frontend and backend development.
 
 ## Related Rules
-- **[Architecture Guide](mdc:.cursor/rules/architecture.mdc)**: Clean architecture patterns and dependency injection
-- **[Development Workflow](mdc:.cursor/rules/development-workflow.mdc)**: Development practices and testing
-- **[Middleware Guide](mdc:.cursor/rules/middleware.mdc)**: Middleware architecture and security headers
-- **[Frontend Development](mdc:.cursor/rules/frontend-development.mdc)**: Frontend architecture and asset management
-- **[Testing Guide](mdc:.cursor/rules/testing.mdc)**: Testing patterns and integration testing
-- **[Security Guide](mdc:.cursor/rules/security.mdc)**: Security best practices and implementation
+- **[Architecture Guide](mdc:.cursor/rules/architecture.mdc)**: Clean architecture patterns, dependency injection, and Go development practices
+- **[Development Workflow](mdc:.cursor/rules/development-workflow.mdc)**: Development practices, hot reloading, and environment configuration
+- **[Middleware Guide](mdc:.cursor/rules/middleware.mdc)**: Middleware architecture, security headers, and configuration system
+- **[Frontend Development](mdc:.cursor/rules/frontend-development.mdc)**: Frontend architecture, asset management, and Form.io integration
+- **[Testing Guide](mdc:.cursor/rules/testing.mdc)**: Testing patterns, integration testing, and mock generation
+- **[Security Guide](mdc:.cursor/rules/security.mdc)**: Security best practices, CSRF protection, and input validation
 description:
 globs:
 alwaysApply: false

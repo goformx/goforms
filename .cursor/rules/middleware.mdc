@@ -109,6 +109,47 @@ Middleware lifecycle managed through FX dependency injection:
 - **Runtime**: Apply middleware based on routes
 - **Shutdown**: Clean up middleware resources
 
+## Configuration System
+
+### Configuration Hierarchy
+The middleware system uses Viper-based configuration with the following hierarchy:
+
+1. **Environment Variables** (highest priority)
+   - Format: `GOFORMS_MIDDLEWARE_CSRF_ENABLED=true`
+   - Dots in config keys become underscores: `middleware.csrf.enabled` → `GOFORMS_MIDDLEWARE_CSRF_ENABLED`
+
+2. **Config Files** (YAML, JSON, TOML)
+   - [config.yaml](mdc:config.yaml) - Main configuration
+   - Environment-specific: `config.production.yaml`, `config.development.yaml`
+
+3. **Defaults** (lowest priority)
+   - Set in [internal/infrastructure/config/viper.go](mdc:internal/infrastructure/config/viper.go)
+
+### Environment-Specific Configuration
+```yaml
+middleware:
+  global:
+    development: ["recovery", "cors", "logging", "session"]
+    production: ["recovery", "cors", "security_headers", "csrf", "rate_limit"]
+```
+
+### Individual Middleware Configuration
+```yaml
+middleware:
+  csrf:
+    enabled: true
+    token_header: "X-Csrf-Token"
+    include_paths: ["/api/*", "/forms/*"]
+    exclude_paths: ["/api/public/*", "/static/*"]
+```
+
+### Adding New Middleware
+1. **Add to configuration structure** in [internal/infrastructure/config/middleware.go](mdc:internal/infrastructure/config/middleware.go)
+2. **Add loading logic** in [internal/infrastructure/config/viper.go](mdc:internal/infrastructure/config/viper.go)
+3. **Add defaults** in `setMiddlewareDefaults` function
+4. **Update adapter** in [internal/application/middleware/viper_config.go](mdc:internal/application/middleware/viper_config.go)
+5. **Add to config file** in [config.yaml](mdc:config.yaml)
+
 ## Performance Optimization
 
 ### Middleware Caching

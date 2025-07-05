@@ -205,6 +205,12 @@ func TestServiceWithMock(t *testing.T) {
 }
 ```
 
+### Test Structure
+- Tests are in `*_test.go` files alongside the code they test
+- Use [testify](https://github.com/stretchr/testify) for assertions
+- Mock implementations are generated in [test/mocks/](mdc:test/mocks)
+- Use table-driven tests for multiple test cases
+
 ## Test Utilities
 
 ### Common Test Helpers
