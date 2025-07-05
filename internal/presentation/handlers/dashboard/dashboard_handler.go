@@ -5,6 +5,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/dto"
 	"github.com/goformx/goforms/internal/application/services"
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -12,6 +13,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
 )
 
 // DashboardHandler handles the /dashboard route
@@ -107,9 +109,34 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load your forms, please try again"))
 	}
 
-	// Build response using adapter
-	if formListErr := h.responseAdapter.BuildFormListResponse(infraCtx, dashboardResp); formListErr != nil {
-		return fmt.Errorf("failed to build form list response: %w", formListErr)
+	// Get the underlying Echo context
+	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type for rendering")
+	}
+
+	// Create page data for the dashboard
+	pageData := view.NewPageData(h.config, h.assetManager, echoCtx.Context, "Dashboard")
+
+	// Convert DTO forms to domain models for the template
+	forms := make([]*model.Form, len(dashboardResp.Forms))
+	for i, formDTO := range dashboardResp.Forms {
+		forms[i] = &model.Form{
+			ID:          formDTO.ID,
+			Title:       formDTO.Title,
+			Description: formDTO.Description,
+			Schema:      formDTO.Schema,
+			UserID:      formDTO.UserID,
+			Status:      formDTO.Status,
+			CreatedAt:   formDTO.CreatedAt,
+			UpdatedAt:   formDTO.UpdatedAt,
+		}
+	}
+
+	// Render dashboard template with form data
+	if err := h.renderer.Render(echoCtx.Context, pages.Dashboard(*pageData, forms)); err != nil {
+		h.logger.Error("failed to render dashboard template", "error", err)
+		return fmt.Errorf("failed to render dashboard: %w", err)
 	}
 
 	return nil

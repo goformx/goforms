@@ -1,6 +1,8 @@
 package auth
 
 import (
+	"crypto/rand"
+	"encoding/base64"
 	"fmt"
 
 	"context"
@@ -87,8 +89,19 @@ func NewAuthHandler(
 	return h
 }
 
+// generateSimpleCSRFToken generates a simple CSRF token
+func generateSimpleCSRFToken() string {
+	bytes := make([]byte, 32)
+	rand.Read(bytes)
+	return base64.URLEncoding.EncodeToString(bytes)
+}
+
 // Login handles GET /login
 func (h *AuthHandler) Login(ctx httpiface.Context) error {
+	// Generate CSRF token directly
+	csrfToken := generateSimpleCSRFToken()
+	ctx.Set("csrf", csrfToken)
+
 	// Create page data with proper asset path function
 	pageData := &view.PageData{
 		Title:         "Login",
@@ -99,7 +112,7 @@ func (h *AuthHandler) Login(ctx httpiface.Context) error {
 		User:          nil, // Will be set by middleware if authenticated
 		Forms:         make([]*model.Form, 0),
 		Submissions:   make([]*model.FormSubmission, 0),
-		CSRFToken:     "", // Will be set by middleware
+		CSRFToken:     csrfToken, // Set the generated token
 		IsDevelopment: h.config.App.IsDevelopment(),
 		Config:        h.config,
 	}
@@ -178,6 +191,10 @@ func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
 
 // Signup handles GET /signup
 func (h *AuthHandler) Signup(ctx httpiface.Context) error {
+	// Generate CSRF token directly
+	csrfToken := generateSimpleCSRFToken()
+	ctx.Set("csrf", csrfToken)
+
 	// Create page data with proper asset path function
 	pageData := &view.PageData{
 		Title:         "Sign Up",
@@ -188,7 +205,7 @@ func (h *AuthHandler) Signup(ctx httpiface.Context) error {
 		User:          nil, // Will be set by middleware if authenticated
 		Forms:         make([]*model.Form, 0),
 		Submissions:   make([]*model.FormSubmission, 0),
-		CSRFToken:     "", // Will be set by middleware
+		CSRFToken:     csrfToken, // Set the generated token
 		IsDevelopment: h.config.App.IsDevelopment(),
 		Config:        h.config,
 	}

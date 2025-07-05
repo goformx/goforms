@@ -25,20 +25,34 @@ export class RequestHandler {
 
         Logger.debug("Cleaned Form Data:", data);
 
-        const response = await HttpClient.post(form.action, data);
+        // For auth endpoints, we need to handle redirects properly
+        // Use fetch directly instead of HttpClient to get the actual response
+        const csrfToken = document.querySelector<HTMLMetaElement>('meta[name="csrf-token"]')?.content;
 
-        // Create a proper Response object for the ResponseHandler
-        return new Response(JSON.stringify(response), {
-          status: 200,
+        const response = await fetch(form.action, {
+          method: 'POST',
           headers: {
-            "Content-Type": "application/json",
-            "access-control-allow-credentials": "true",
-            "access-control-allow-headers":
-              "Content-Type,Authorization,X-Csrf-Token,X-Requested-With",
-            "access-control-allow-methods": "GET,POST,PUT,DELETE,OPTIONS",
-            "access-control-allow-origin": "http://localhost:8090",
+            'Content-Type': 'application/json',
+            'Accept': 'application/json',
+            'X-Csrf-Token': csrfToken || '',
+            'X-Requested-With': 'XMLHttpRequest',
           },
+          body: JSON.stringify(data),
+          credentials: 'include',
         });
+
+        Logger.debug("Auth response status:", response.status);
+        Logger.debug("Auth response headers:", Object.fromEntries(response.headers.entries()));
+
+        // If we get a redirect, follow it
+        if (response.redirected) {
+          Logger.debug("Redirecting to:", response.url);
+          window.location.href = response.url;
+          return new Response(null, { status: 200 }); // Return success to prevent error handling
+        }
+
+        // For non-redirect responses, return the actual response
+        return response;
       } else {
         // For non-auth endpoints, use HttpClient with FormData
         const response = await HttpClient.post(form.action, formData);
