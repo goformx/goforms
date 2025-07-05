@@ -133,7 +133,11 @@ func (e *EchoContextAdapter) RenderComponent(component any) error {
 	}
 
 	// Use the renderer service to render the templ component
-	return e.renderer.Render(e.Context, templComponent)
+	if err := e.renderer.Render(e.Context, templComponent); err != nil {
+		return fmt.Errorf("failed to render component: %w", err)
+	}
+
+	return nil
 }
 
 // EchoAdapter registers handlers with an echo.Echo instance.
