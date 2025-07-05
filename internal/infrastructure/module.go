@@ -13,7 +13,6 @@ import (
 
 	"embed"
 
-	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/domain/form"
 	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -416,18 +415,12 @@ var Module = fx.Module("infrastructure",
 		// Database with lifecycle management
 		ProvideDatabase,
 
-		// HTTP server
+		// HTTP server (concrete type, not interface)
 		fx.Annotate(
-			server.New,
-			fx.As(new(server.ServerInterface)),
-		),
-
-		// Config interface
-		fx.Annotate(
-			func(cfg *config.Config) config.ConfigInterface {
-				return cfg
+			func(deps server.Deps) *server.Server {
+				srv := server.New(deps)
+				return srv.(*server.Server)
 			},
-			fx.As(new(config.ConfigInterface)),
 		),
 
 		// Sanitization service
@@ -438,11 +431,6 @@ var Module = fx.Module("infrastructure",
 
 		// Logging system
 		NewLoggerFactory,
-		fx.Annotate(
-			NewLogger,
-			fx.As(new(logging.Logger)),
-			fx.As(new(interfaces.Logger)),
-		),
 
 		// Event system
 		NewEventPublisher,

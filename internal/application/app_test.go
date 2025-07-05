@@ -12,6 +12,8 @@ import (
 	"go.uber.org/mock/gomock"
 
 	"github.com/goformx/goforms/internal/application"
+	"github.com/goformx/goforms/internal/domain"
+	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
@@ -22,6 +24,70 @@ import (
 
 // Create a simple embed.FS for testing
 var testDistFS = embed.FS{}
+
+// createTestConfig returns a valid *config.Config for testing
+func createTestConfig() *config.Config {
+	return &config.Config{
+		App: config.AppConfig{
+			Name:            "test-app",
+			Version:         "0.0.1-test",
+			Environment:     "test",
+			Debug:           true,
+			LogLevel:        "debug",
+			URL:             "http://localhost:8080",
+			Scheme:          "http",
+			Port:            8080,
+			Host:            "localhost",
+			ReadTimeout:     5 * time.Second,
+			WriteTimeout:    5 * time.Second,
+			IdleTimeout:     5 * time.Second,
+			RequestTimeout:  5 * time.Second,
+			ShutdownTimeout: 5 * time.Second,
+		},
+		Database: config.DatabaseConfig{
+			Driver:          "postgres",
+			Host:            "localhost",
+			Port:            5432,
+			Name:            "testdb",
+			Username:        "testuser",
+			Password:        "testpass",
+			MaxOpenConns:    5,
+			MaxIdleConns:    2,
+			ConnMaxLifetime: 5 * time.Minute,
+			ConnMaxIdleTime: 5 * time.Minute,
+			SSLMode:         "disable",
+			Logging: config.DatabaseLoggingConfig{
+				SlowThreshold:  1 * time.Second,
+				Parameterized:  true,
+				IgnoreNotFound: true,
+				LogLevel:       "silent",
+			},
+		},
+		Security: config.SecurityConfig{
+			CSRF: config.CSRFConfig{
+				Enabled:        true,
+				Secret:         "abcdefghijklmnopqrstuvwxyz123456", // 32 chars
+				TokenName:      "_csrf",
+				HeaderName:     "X-Csrf-Token",
+				TokenLength:    32,
+				ContextKey:     "csrf",
+				CookieName:     "_csrf",
+				CookiePath:     "/",
+				CookieHTTPOnly: true,
+				CookieSameSite: "Lax",
+				CookieMaxAge:   86400,
+			},
+			CORS: config.CORSConfig{
+				Enabled:          true,
+				AllowedOrigins:   []string{"http://localhost"},
+				AllowedMethods:   []string{"GET", "POST", "PUT", "DELETE"},
+				AllowedHeaders:   []string{"*"},
+				AllowCredentials: false,
+			},
+		},
+		// ... add other required config sections with minimal valid values ...
+	}
+}
 
 func TestNewApplication(t *testing.T) {
 	t.Run("creates application successfully", func(t *testing.T) {
@@ -40,19 +106,22 @@ func TestNewApplication(t *testing.T) {
 			ShutdownTimeout: 5 * time.Second,
 		}).AnyTimes()
 
-		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
+			infrastructure.Module, // Only infrastructure, no config
+			domain.Module,         // Domain services
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
-				func() config.ConfigInterface { return mockConfig },
+				func() *config.Config { return createTestConfig() },
+				func() config.ConfigInterface { return createTestConfig() },
 			),
 		}
 
-		// Create application with test modules
-		app := application.NewApplication(testDistFS, testModules...)
+		// Create application with test modules (no config module)
+		app := fx.New(testModules...)
 
 		if app == nil {
 			t.Fatal("Expected application to be created, got nil")
@@ -77,19 +146,22 @@ func TestApplicationLifecycle(t *testing.T) {
 			ShutdownTimeout: 5 * time.Second,
 		}).AnyTimes()
 
-		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
+			infrastructure.Module, // Only infrastructure, no config
+			domain.Module,         // Domain services
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
-				func() config.ConfigInterface { return mockConfig },
+				func() *config.Config { return createTestConfig() },
+				func() config.ConfigInterface { return createTestConfig() },
 			),
 		}
 
 		// Create application with test modules
-		app := application.NewApplication(testDistFS, testModules...)
+		app := fx.New(testModules...)
 
 		// Start the application
 		if err := app.Start(context.Background()); err != nil {
@@ -120,14 +192,17 @@ func TestApplicationWithFxtest(t *testing.T) {
 			ShutdownTimeout: 5 * time.Second,
 		}).AnyTimes()
 
-		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
+			infrastructure.Module, // Only infrastructure, no config
+			domain.Module,         // Domain services
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
-				func() config.ConfigInterface { return mockConfig },
+				func() *config.Config { return createTestConfig() },
+				func() config.ConfigInterface { return createTestConfig() },
 			),
 		}
 

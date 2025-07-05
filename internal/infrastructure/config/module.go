@@ -22,6 +22,13 @@ var Module = fx.Module("config",
 	fx.Provide(NewAPIConfig),
 	fx.Provide(NewWebConfig),
 	fx.Provide(NewUserConfig),
+	fx.Provide(
+		func(cfg *Config) ConfigInterface { return cfg },
+		fx.Annotate(
+			func(cfg *Config) ConfigInterface { return cfg },
+			fx.As(new(ConfigInterface)),
+		),
+	),
 )
 
 // Individual config providers for fine-grained dependency injection

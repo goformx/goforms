@@ -17,6 +17,7 @@ import (
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/database"
@@ -80,6 +81,8 @@ func (d Dependencies) Validate() error {
 
 // Module represents the application module
 var Module = fx.Module("application",
+	config.Module,         // Production config
+	infrastructure.Module, // Infrastructure without config
 	fx.Provide(
 		New,
 		provideErrorHandler,
