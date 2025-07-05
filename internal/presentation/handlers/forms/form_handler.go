@@ -201,14 +201,10 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	}
 
 	// Create page data for template rendering
-	pageData := &view.PageData{
-		Title:                "Edit Form - " + form.Title,
-		Description:          "Edit your form settings and fields",
-		Form:                 form,
-		IsDevelopment:        h.config.App.IsDevelopment(),
-		AssetPath:            h.assetManager.AssetPath,
-		FormBuilderAssetPath: h.assetManager.AssetPath("src/js/pages/form-builder.ts"),
-	}
+	pageData := view.NewPageData(h.config, h.assetManager, echoCtx.Context, "Edit Form - "+form.Title)
+	pageData.Description = "Edit your form settings and fields"
+	pageData.Form = form
+	pageData.FormBuilderAssetPath = h.assetManager.AssetPath("src/js/pages/form-builder.ts")
 
 	// Render the edit form template
 	return h.renderer.Render(echoCtx.Context, pages.EditForm(*pageData, form))
@@ -257,14 +253,10 @@ func (h *FormHandler) PreviewForm(ctx httpiface.Context) error {
 	}
 
 	// Create page data for template rendering
-	pageData := &view.PageData{
-		Title:                "Form Preview - " + form.Title,
-		Description:          "Preview your form as users will see it",
-		Form:                 form,
-		IsDevelopment:        h.config.App.IsDevelopment(),
-		AssetPath:            h.assetManager.AssetPath,
-		FormPreviewAssetPath: h.assetManager.AssetPath("src/js/pages/form-preview.ts"),
-	}
+	pageData := view.NewPageData(h.config, h.assetManager, echoCtx.Context, "Form Preview - "+form.Title)
+	pageData.Description = "Preview your form as users will see it"
+	pageData.Form = form
+	pageData.FormPreviewAssetPath = h.assetManager.AssetPath("src/js/pages/form-preview.ts")
 
 	// Render the form preview template
 	return h.renderer.Render(echoCtx.Context, pages.FormPreview(*pageData, form))
@@ -393,15 +385,11 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	}
 
 	// Create page data for template rendering
-	pageData := &view.PageData{
-		Title:         "Form Submissions - " + form.Title,
-		Description:   "View and manage form submissions",
-		Form:          form,
-		IsDevelopment: h.config.App.IsDevelopment(),
-		AssetPath:     h.assetManager.AssetPath,
-		// For now, we'll show an empty submissions list since the service doesn't exist yet
-		Submissions: []*model.FormSubmission{},
-	}
+	pageData := view.NewPageData(h.config, h.assetManager, echoCtx.Context, "Form Submissions - "+form.Title)
+	pageData.Description = "View and manage form submissions"
+	pageData.Form = form
+	// For now, we'll show an empty submissions list since the service doesn't exist yet
+	pageData.Submissions = []*model.FormSubmission{}
 
 	// Render the form submissions template
 	return h.renderer.Render(echoCtx.Context, pages.FormSubmissions(*pageData))
@@ -461,11 +449,13 @@ func (h *FormHandler) UpdateFormSchema(ctx httpiface.Context) error {
 
 	// Parse the schema from request body
 	var schema map[string]any
+
 	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type for binding")
 	}
-	if err := echoCtx.Context.Bind(&schema); err != nil {
+
+	if err := echoCtx.Bind(&schema); err != nil {
 		h.logger.Error("failed to parse schema", "error", err)
 
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid schema format"))
