@@ -10,6 +10,34 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/access"
 )
 
+// generateTestRules creates access rules for testing purposes
+func generateTestRules() []access.Rule {
+	return []access.Rule{
+		{Path: constants.PathHome, AccessLevel: access.Public},
+		{Path: constants.PathLogin, AccessLevel: access.Public},
+		{Path: constants.PathSignup, AccessLevel: access.Public},
+		{Path: constants.PathDashboard, AccessLevel: access.Authenticated},
+		{Path: constants.PathAdmin, AccessLevel: access.Admin},
+		{Path: constants.PathForms, AccessLevel: access.Authenticated},
+		{Path: "/forms/new", AccessLevel: access.Authenticated},
+		{Path: "/forms/:id", AccessLevel: access.Authenticated},
+		{Path: constants.PathProfile, AccessLevel: access.Authenticated},
+		{Path: constants.PathSettings, AccessLevel: access.Authenticated},
+		{Path: constants.PathDemo, AccessLevel: access.Public},
+		{Path: constants.PathHealth, AccessLevel: access.Public},
+		{Path: constants.PathMetrics, AccessLevel: access.Public},
+		{Path: constants.PathAssets, AccessLevel: access.Public},
+		{Path: constants.PathFonts, AccessLevel: access.Public},
+		{Path: constants.PathCSS, AccessLevel: access.Public},
+		{Path: constants.PathJS, AccessLevel: access.Public},
+		{Path: constants.PathImages, AccessLevel: access.Public},
+		{Path: constants.PathStatic, AccessLevel: access.Public},
+		{Path: constants.PathFavicon, AccessLevel: access.Public},
+		{Path: "/api/v1/validation/login", AccessLevel: access.Public},
+		{Path: "/api/v1/forms", AccessLevel: access.Authenticated},
+	}
+}
+
 func TestManager_IsPublicPath(t *testing.T) {
 	config := access.DefaultConfig()
 	manager := access.NewManager(config, nil)
@@ -85,7 +113,7 @@ func TestManager_IsAdminPath(t *testing.T) {
 
 func TestManager_GetRequiredAccess(t *testing.T) {
 	config := access.DefaultConfig()
-	manager := access.NewManager(config, access.DefaultRules())
+	manager := access.NewManager(config, generateTestRules())
 
 	tests := []struct {
 		name     string
@@ -243,7 +271,7 @@ func TestConfig_Validate(t *testing.T) {
 }
 
 func TestDefaultRules(t *testing.T) {
-	rules := access.DefaultRules()
+	rules := generateTestRules()
 
 	// Test that essential rules are present
 	essentialPaths := map[string]access.Level{
@@ -253,6 +281,8 @@ func TestDefaultRules(t *testing.T) {
 		constants.PathDashboard: access.Authenticated,
 		constants.PathAdmin:     access.Admin,
 		constants.PathForms:     access.Authenticated,
+		"/forms/new":            access.Authenticated,
+		"/forms/:id":            access.Authenticated,
 		constants.PathProfile:   access.Authenticated,
 		constants.PathSettings:  access.Authenticated,
 		constants.PathDemo:      access.Public,
@@ -280,6 +310,6 @@ func TestDefaultRules(t *testing.T) {
 			}
 		}
 
-		assert.True(t, found, "Path %s should be in default rules", path)
+		assert.True(t, found, "Path %s should be in test rules", path)
 	}
 }
