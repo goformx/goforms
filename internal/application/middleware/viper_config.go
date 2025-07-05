@@ -60,11 +60,13 @@ func (c *ViperMiddlewareConfig) IsMiddlewareEnabled(name string) bool {
 	for _, enabled := range enabledMiddleware {
 		if enabled == name {
 			c.logger.Debug("Middleware is enabled", "name", name)
+
 			return true
 		}
 	}
 
 	c.logger.Debug("Middleware is disabled", "name", name)
+
 	return false
 }
 

@@ -197,6 +197,7 @@ func (ea *EchoOrchestratorAdapter) ConvertChainToEcho(chain core.Chain) []echo.M
 	// Log the middleware in the chain
 	middlewares := chain.List()
 	ea.logger.Debug("Converting chain to Echo middleware", "chain_length", len(middlewares))
+
 	for _, mw := range middlewares {
 		ea.logger.Debug("Chain middleware", "name", mw.Name())
 	}
@@ -214,6 +215,7 @@ func (ea *EchoOrchestratorAdapter) ConvertChainToEcho(chain core.Chain) []echo.M
 		echoMw := ea.convertMiddlewareToEcho(mw)
 		if echoMw != nil {
 			echoMiddleware = append(echoMiddleware, echoMw)
+
 			ea.logger.Debug("Added Echo middleware", "name", mw.Name())
 		} else {
 			ea.logger.Debug("No Echo middleware for", "name", mw.Name())
@@ -221,6 +223,7 @@ func (ea *EchoOrchestratorAdapter) ConvertChainToEcho(chain core.Chain) []echo.M
 	}
 
 	ea.logger.Debug("Final Echo middleware count", "count", len(echoMiddleware))
+
 	return echoMiddleware
 }
 
@@ -296,11 +299,13 @@ func (ea *EchoOrchestratorAdapter) shouldApplyCSRF(chain core.Chain) bool {
 	for _, mw := range middlewares {
 		if mw.Name() == "csrf" {
 			ea.logger.Debug("CSRF middleware found in chain", "name", mw.Name())
+
 			return true
 		}
 	}
 
 	ea.logger.Debug("CSRF middleware not found in chain")
+
 	return false
 }
 
@@ -316,6 +321,7 @@ func (ea *EchoOrchestratorAdapter) createCSRFMiddleware() echo.MiddlewareFunc {
 			// Skip CSRF for static files and health endpoints
 			if ea.shouldSkipCSRF(path) {
 				ea.logger.Debug("CSRF middleware skipped", "path", path, "method", method)
+
 				return next(c)
 			}
 
@@ -330,6 +336,7 @@ func (ea *EchoOrchestratorAdapter) createCSRFMiddleware() echo.MiddlewareFunc {
 			if method != httpMethodGET {
 				valid := ea.validateCSRFToken(c)
 				ea.logger.Debug("CSRF token validation", "path", path, "method", method, "valid", valid)
+
 				if !valid {
 					ea.logger.Warn("CSRF token validation failed", "path", path, "method", method)
 

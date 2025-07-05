@@ -164,8 +164,10 @@ func (h *FormHandler) NewForm(ctx httpiface.Context) error {
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
+
 	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type for rendering")
@@ -177,6 +179,7 @@ func (h *FormHandler) NewForm(ctx httpiface.Context) error {
 	if renderErr := h.renderer.Render(echoCtx.Context, pages.NewForm(*pageData)); renderErr != nil {
 		return fmt.Errorf("failed to render new form template: %w", renderErr)
 	}
+
 	return nil
 }
 

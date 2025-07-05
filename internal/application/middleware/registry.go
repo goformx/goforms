@@ -40,11 +40,13 @@ func (r *registry) Register(name string, mw core.Middleware) error {
 
 	if _, exists := r.middlewares[name]; exists {
 		r.logger.Debug("Middleware already registered", "name", name)
+
 		return fmt.Errorf("middleware %q already registered", name)
 	}
 
 	if !r.config.IsMiddlewareEnabled(name) {
 		r.logger.Debug("Middleware disabled by config", "name", name)
+
 		return nil
 	}
 

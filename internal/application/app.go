@@ -67,12 +67,14 @@ func NewApplication(distFS embed.FS, modules ...fx.Option) *fx.App {
 					// Register all middleware with the registry
 					if err := appmiddleware.RegisterAllMiddleware(registry, logger); err != nil {
 						logger.Error("Failed to register middleware", "error", err)
+
 						return fmt.Errorf("failed to register middleware: %w", err)
 					}
 
 					// Validate orchestrator configuration
 					if err := orchestrator.ValidateConfiguration(); err != nil {
 						logger.Error("Failed to validate orchestrator configuration", "error", err)
+
 						return fmt.Errorf("failed to validate orchestrator configuration: %w", err)
 					}
 

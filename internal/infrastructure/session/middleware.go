@@ -97,6 +97,7 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 	// If user is authenticated and trying to access a public path, redirect to dashboard
 	if sm.isPublicPath(path) {
 		sm.logger.Debug("Redirecting authenticated user from public path", "path", path, "user_id", session.UserID)
+
 		return c.Redirect(http.StatusSeeOther, constants.PathDashboard)
 	}
 
@@ -173,6 +174,7 @@ func (sm *Manager) isPublicPath(path string) bool {
 	if sm.accessManager != nil {
 		accessLevel := sm.accessManager.GetRequiredAccess(path, "GET")
 		sm.logger.Debug("Checking if path is public", "path", path, "access_level", accessLevel)
+
 		if accessLevel == access.Public {
 			return true
 		}
@@ -182,11 +184,13 @@ func (sm *Manager) isPublicPath(path string) bool {
 	for _, publicPath := range sm.config.PublicPaths {
 		if path == publicPath {
 			sm.logger.Debug("Path found in config public paths", "path", path)
+
 			return true
 		}
 	}
 
 	sm.logger.Debug("Path is not public", "path", path)
+
 	return false
 }
 

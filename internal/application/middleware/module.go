@@ -34,6 +34,7 @@ var Module = fx.Module("middleware",
 					AdminPaths:    pathManager.AdminPaths,
 				}
 				rules := generateAccessRules(pathManager)
+
 				return access.NewManager(config, rules)
 			},
 		),
@@ -111,8 +112,10 @@ func RegisterAllMiddleware(registry core.Registry, logger logging.Logger) error 
 
 	for _, m := range basicMiddleware {
 		logger.Debug("Registering basic middleware", "name", m.name)
+
 		if err := registry.Register(m.name, m.mw); err != nil {
 			logger.Error("Failed to register basic middleware", "name", m.name, "error", err)
+
 			return fmt.Errorf("failed to register basic middleware %s: %w", m.name, err)
 		}
 
@@ -131,8 +134,10 @@ func RegisterAllMiddleware(registry core.Registry, logger logging.Logger) error 
 
 	for _, m := range securityMiddleware {
 		logger.Debug("Registering security middleware", "name", m.name)
+
 		if err := registry.Register(m.name, m.mw); err != nil {
 			logger.Error("Failed to register security middleware", "name", m.name, "error", err)
+
 			return fmt.Errorf("failed to register security middleware %s: %w", m.name, err)
 		}
 
@@ -151,8 +156,10 @@ func RegisterAllMiddleware(registry core.Registry, logger logging.Logger) error 
 
 	for _, m := range authMiddleware {
 		logger.Debug("Registering auth middleware", "name", m.name)
+
 		if err := registry.Register(m.name, m.mw); err != nil {
 			logger.Error("Failed to register auth middleware", "name", m.name, "error", err)
+
 			return fmt.Errorf("failed to register auth middleware %s: %w", m.name, err)
 		}
 
@@ -160,6 +167,7 @@ func RegisterAllMiddleware(registry core.Registry, logger logging.Logger) error 
 	}
 
 	logger.Debug("Middleware registration completed", "total_count", registry.Count())
+
 	return nil
 }
 

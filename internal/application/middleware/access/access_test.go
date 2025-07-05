@@ -149,7 +149,7 @@ func TestManager_GetRequiredAccess(t *testing.T) {
 			name:     "public API validation endpoint",
 			path:     "/api/v1/validation/login",
 			method:   "GET",
-			expected: access.Authenticated,
+			expected: access.Public,
 		},
 		{
 			name:     "authenticated API endpoint",
