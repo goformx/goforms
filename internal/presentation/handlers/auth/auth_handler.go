@@ -89,16 +89,19 @@ func NewAuthHandler(
 
 // Login handles GET /login
 func (h *AuthHandler) Login(ctx httpiface.Context) error {
-	// Create page data for the login template using the view package
+	// Create page data with proper asset path function
 	pageData := &view.PageData{
-		Title:       "Login",
-		Description: "Login to your account",
-		Version:     h.config.App.Version,
-		Environment: h.config.App.Environment,
-		User:        nil, // Will be set by middleware if authenticated
-		Forms:       make([]*model.Form, 0),
-		Submissions: make([]*model.FormSubmission, 0),
-		Config:      h.config,
+		Title:         "Login",
+		Description:   "Login to your account",
+		Version:       h.config.App.Version,
+		Environment:   h.config.App.Environment,
+		AssetPath:     h.assetManager.AssetPath,
+		User:          nil, // Will be set by middleware if authenticated
+		Forms:         make([]*model.Form, 0),
+		Submissions:   make([]*model.FormSubmission, 0),
+		CSRFToken:     "", // Will be set by middleware
+		IsDevelopment: h.config.App.IsDevelopment(),
+		Config:        h.config,
 	}
 
 	// Render the login page using the framework-agnostic interface
@@ -175,16 +178,19 @@ func (h *AuthHandler) LoginPost(ctx httpiface.Context) error {
 
 // Signup handles GET /signup
 func (h *AuthHandler) Signup(ctx httpiface.Context) error {
-	// Create page data for the signup template using the view package
+	// Create page data with proper asset path function
 	pageData := &view.PageData{
-		Title:       "Sign Up",
-		Description: "Create a new account",
-		Version:     h.config.App.Version,
-		Environment: h.config.App.Environment,
-		User:        nil, // Will be set by middleware if authenticated
-		Forms:       make([]*model.Form, 0),
-		Submissions: make([]*model.FormSubmission, 0),
-		Config:      h.config,
+		Title:         "Sign Up",
+		Description:   "Create a new account",
+		Version:       h.config.App.Version,
+		Environment:   h.config.App.Environment,
+		AssetPath:     h.assetManager.AssetPath,
+		User:          nil, // Will be set by middleware if authenticated
+		Forms:         make([]*model.Form, 0),
+		Submissions:   make([]*model.FormSubmission, 0),
+		CSRFToken:     "", // Will be set by middleware
+		IsDevelopment: h.config.App.IsDevelopment(),
+		Config:        h.config,
 	}
 
 	// Render the signup page using the framework-agnostic interface

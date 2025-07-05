@@ -1,0 +1,193 @@
+package http
+
+import (
+	"fmt"
+	"net/http"
+	"strings"
+
+	"github.com/goformx/goforms/internal/application/dto"
+	"github.com/labstack/echo/v4"
+)
+
+// EchoResponseAdapter implements ResponseAdapter for Echo
+type EchoResponseAdapter struct{}
+
+// NewEchoResponseAdapter creates a new Echo response adapter
+func NewEchoResponseAdapter() *EchoResponseAdapter {
+	return &EchoResponseAdapter{}
+}
+
+// BuildLoginResponse builds login response for Echo context
+func (a *EchoResponseAdapter) BuildLoginResponse(ctx Context, response *dto.LoginResponse) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	if a.isAPIRequest(echoCtx) {
+		return echoCtx.JSON(http.StatusOK, response)
+	}
+
+	// For web requests, redirect to dashboard
+	return echoCtx.Redirect(http.StatusFound, "/dashboard")
+}
+
+// BuildSignupResponse builds signup response for Echo context
+func (a *EchoResponseAdapter) BuildSignupResponse(ctx Context, response *dto.SignupResponse) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	if a.isAPIRequest(echoCtx) {
+		return echoCtx.JSON(http.StatusCreated, response)
+	}
+
+	// For web requests, redirect to login
+	return echoCtx.Redirect(http.StatusFound, "/login")
+}
+
+// BuildLogoutResponse builds logout response for Echo context
+func (a *EchoResponseAdapter) BuildLogoutResponse(ctx Context, response *dto.LogoutResponse) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	if a.isAPIRequest(echoCtx) {
+		return echoCtx.JSON(http.StatusOK, response)
+	}
+
+	// For web requests, redirect to login
+	return echoCtx.Redirect(http.StatusFound, "/login")
+}
+
+// BuildFormResponse builds form response for Echo context
+func (a *EchoResponseAdapter) BuildFormResponse(ctx Context, response *dto.FormResponse) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusOK, response)
+}
+
+// BuildFormListResponse builds form list response for Echo context
+func (a *EchoResponseAdapter) BuildFormListResponse(ctx Context, response *dto.FormListResponse) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusOK, response)
+}
+
+// BuildFormSchemaResponse builds form schema response for Echo context
+func (a *EchoResponseAdapter) BuildFormSchemaResponse(ctx Context, response *dto.FormSchemaResponse) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusOK, response)
+}
+
+// BuildSubmitFormResponse builds submit form response for Echo context
+func (a *EchoResponseAdapter) BuildSubmitFormResponse(ctx Context, response *dto.SubmitFormResponse) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusCreated, response)
+}
+
+// BuildErrorResponse builds error response for Echo context
+func (a *EchoResponseAdapter) BuildErrorResponse(ctx Context, err error) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusInternalServerError, map[string]any{
+		"error": err.Error(),
+	})
+}
+
+// BuildValidationErrorResponse builds validation error response for Echo context
+func (a *EchoResponseAdapter) BuildValidationErrorResponse(ctx Context, errors []dto.ValidationError) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusBadRequest, map[string]any{
+		"errors": errors,
+	})
+}
+
+// BuildNotFoundResponse builds not found response for Echo context
+func (a *EchoResponseAdapter) BuildNotFoundResponse(ctx Context, resource string) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusNotFound, map[string]any{
+		"error": fmt.Sprintf("%s not found", resource),
+	})
+}
+
+// BuildUnauthorizedResponse builds unauthorized response for Echo context
+func (a *EchoResponseAdapter) BuildUnauthorizedResponse(ctx Context) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusUnauthorized, map[string]any{
+		"error": "unauthorized",
+	})
+}
+
+// BuildForbiddenResponse builds forbidden response for Echo context
+func (a *EchoResponseAdapter) BuildForbiddenResponse(ctx Context) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusForbidden, map[string]any{
+		"error": "forbidden",
+	})
+}
+
+// BuildSuccessResponse builds success response for Echo context
+func (a *EchoResponseAdapter) BuildSuccessResponse(ctx Context, message string, data any) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(http.StatusOK, map[string]any{
+		"message": message,
+		"data":    data,
+	})
+}
+
+// BuildJSONResponse builds generic JSON response for Echo context
+func (a *EchoResponseAdapter) BuildJSONResponse(ctx Context, statusCode int, data any) error {
+	echoCtx, ok := ctx.(*EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type")
+	}
+
+	return echoCtx.JSON(statusCode, data)
+}
+
+// isAPIRequest checks if the request is an API request
+func (a *EchoResponseAdapter) isAPIRequest(ctx echo.Context) bool {
+	accept := ctx.Request().Header.Get("Accept")
+
+	return strings.Contains(accept, "application/json")
+}
