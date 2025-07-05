@@ -3,7 +3,9 @@ package forms
 import (
 	"fmt"
 
+	"github.com/goformx/goforms/internal/application/dto"
 	"github.com/goformx/goforms/internal/application/services"
+	"github.com/goformx/goforms/internal/domain/form/model"
 	"github.com/goformx/goforms/internal/infrastructure/adapters/http"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -11,6 +13,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/web"
 	"github.com/goformx/goforms/internal/presentation/handlers"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
+	"github.com/goformx/goforms/internal/presentation/templates/pages"
 )
 
 // FormHandler handles all form-related routes
@@ -76,6 +79,16 @@ func NewFormHandler(
 		Method:  "GET",
 		Path:    "/forms/:id/submissions",
 		Handler: h.FormSubmissions,
+	})
+	h.AddRoute(httpiface.Route{
+		Method:  "GET",
+		Path:    "/api/v1/forms/:id/schema",
+		Handler: h.GetFormSchema,
+	})
+	h.AddRoute(httpiface.Route{
+		Method:  "PUT",
+		Path:    "/api/v1/forms/:id/schema",
+		Handler: h.UpdateFormSchema,
 	})
 
 	return h
@@ -163,12 +176,37 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load form for editing"))
 	}
-	// Build response using adapter
-	if buildErr := h.responseAdapter.BuildFormResponse(infraCtx, editResp); buildErr != nil {
-		return fmt.Errorf("failed to build form response: %w", buildErr)
+
+	// Convert DTO to domain model for template rendering
+	form := &model.Form{
+		ID:          editResp.ID,
+		Title:       editResp.Title,
+		Description: editResp.Description,
+		Schema:      editResp.Schema,
+		UserID:      editResp.UserID,
+		Status:      editResp.Status,
+		CreatedAt:   editResp.CreatedAt,
+		UpdatedAt:   editResp.UpdatedAt,
 	}
 
-	return nil
+	// Get the underlying Echo context for rendering
+	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type for rendering")
+	}
+
+	// Create page data for template rendering
+	pageData := &view.PageData{
+		Title:                "Edit Form - " + form.Title,
+		Description:          "Edit your form settings and fields",
+		Form:                 form,
+		IsDevelopment:        h.config.App.IsDevelopment(),
+		AssetPath:            h.assetManager.AssetPath,
+		FormBuilderAssetPath: h.assetManager.AssetPath("src/js/pages/form-builder.ts"),
+	}
+
+	// Render the edit form template
+	return h.renderer.Render(echoCtx.Context, pages.EditForm(*pageData, form))
 }
 
 // UpdateForm handles PUT /forms/:id
@@ -267,4 +305,97 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	}
 
 	return nil
+}
+
+// GetFormSchema handles GET /api/v1/forms/:id/schema
+func (h *FormHandler) GetFormSchema(ctx httpiface.Context) error {
+	// Get infrastructure context using bridge
+	infraCtx, err := h.getInfraContext(ctx)
+	if err != nil {
+		h.logger.Error("failed to get infrastructure context", "error", err)
+
+		return fmt.Errorf("internal server error: context conversion failed")
+	}
+	// Parse form ID
+	formID, err := h.requestAdapter.ParseFormID(infraCtx)
+	if err != nil {
+		h.logger.Error("failed to parse form ID", "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
+	}
+	// Call application service
+	editResp, err := h.formService.GetForm(ctx.RequestContext(), formID)
+	if err != nil {
+		h.logger.Error("failed to get form schema", "form_id", formID, "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load form schema"))
+	}
+	// Return just the schema as JSON
+	return infraCtx.JSON(200, editResp.Schema)
+}
+
+// UpdateFormSchema handles PUT /api/v1/forms/:id/schema
+func (h *FormHandler) UpdateFormSchema(ctx httpiface.Context) error {
+	// Get infrastructure context using bridge
+	infraCtx, err := h.getInfraContext(ctx)
+	if err != nil {
+		h.logger.Error("failed to get infrastructure context", "error", err)
+
+		return fmt.Errorf("internal server error: context conversion failed")
+	}
+	// Parse form ID
+	formID, err := h.requestAdapter.ParseFormID(infraCtx)
+	if err != nil {
+		h.logger.Error("failed to parse form ID", "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
+	}
+
+	// Get the existing form first to preserve its data
+	existingForm, err := h.formService.GetForm(ctx.RequestContext(), formID)
+	if err != nil {
+		h.logger.Error("failed to get existing form", "form_id", formID, "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to get form"))
+	}
+
+	// Parse the schema from request body
+	var schema map[string]any
+	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
+	if !ok {
+		return fmt.Errorf("invalid context type for binding")
+	}
+	if err := echoCtx.Context.Bind(&schema); err != nil {
+		h.logger.Error("failed to parse schema", "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid schema format"))
+	}
+
+	// Create update request preserving existing form data
+	updateReq := &dto.UpdateFormRequest{
+		ID:          formID,
+		Title:       existingForm.Title,
+		Description: existingForm.Description,
+		Schema:      schema,
+		Status:      existingForm.Status,
+	}
+
+	// Get user ID from context
+	userID := infraCtx.Get("user_id")
+	if userID != nil {
+		if userIDStr, ok := userID.(string); ok {
+			updateReq.UserID = userIDStr
+		}
+	}
+
+	// Call application service
+	updateResp, err := h.formService.UpdateForm(ctx.RequestContext(), updateReq)
+	if err != nil {
+		h.logger.Error("failed to update form schema", "form_id", formID, "error", err)
+
+		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to update form schema"))
+	}
+
+	// Return the updated schema
+	return infraCtx.JSON(200, updateResp.Schema)
 }

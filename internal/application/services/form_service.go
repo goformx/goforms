@@ -230,23 +230,3 @@ func (s *FormUseCaseService) SubmitForm(
 
 	return response, nil
 }
-
-// GetFormSchema handles form schema retrieval use case
-func (s *FormUseCaseService) GetFormSchema(ctx context.Context, formID string) (*dto.FormSchemaResponse, error) {
-	s.logger.Debug("processing get form schema request", "form_id", formID)
-
-	// Call domain service
-	formData, err := s.formService.GetForm(ctx, formID)
-	if err != nil {
-		s.logger.Error("failed to get form schema", "form_id", formID, "error", err)
-
-		return nil, fmt.Errorf("failed to get form schema: %w", err)
-	}
-
-	response := &dto.FormSchemaResponse{
-		ID:     formData.ID,
-		Schema: formData.Schema,
-	}
-
-	return response, nil
-}
