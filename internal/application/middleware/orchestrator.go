@@ -335,38 +335,70 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 
 	// If no specific middleware names are configured, return all enabled middleware
 	if len(chainConfig.MiddlewareNames) == 0 {
-		filtered := make([]core.Middleware, 0, len(middlewares))
-
-		for _, mw := range middlewares {
-			name := mw.Name()
-
-			// Check if middleware is enabled globally
-			if !o.config.IsMiddlewareEnabled(name) {
-				o.logger.Debug("Middleware filtered out - not enabled globally", "name", name)
-
-				continue
-			}
-
-			// Check if middleware is enabled for this chain
-			if !chainConfig.Enabled {
-				o.logger.Debug("Middleware filtered out - chain disabled", "name", name)
-
-				continue
-			}
-
-			filtered = append(filtered, mw)
-
-			o.logger.Debug("Middleware included in chain", "name", name)
-		}
-
-		return filtered
+		return o.filterAllEnabledMiddleware(middlewares, chainConfig)
 	}
 
 	// If specific middleware names are configured, preserve the order from config
+	return o.filterByConfiguredNames(middlewares, chainConfig)
+}
+
+// filterAllEnabledMiddleware filters middleware when no specific names are configured
+func (o *orchestrator) filterAllEnabledMiddleware(
+	middlewares []core.Middleware,
+	chainConfig ChainConfig,
+) []core.Middleware {
+	filtered := make([]core.Middleware, 0, len(middlewares))
+
+	for _, mw := range middlewares {
+		name := mw.Name()
+
+		// Check if middleware is enabled globally
+		if !o.config.IsMiddlewareEnabled(name) {
+			o.logger.Debug("Middleware filtered out - not enabled globally", "name", name)
+
+			continue
+		}
+
+		// Check if middleware is enabled for this chain
+		if !chainConfig.Enabled {
+			o.logger.Debug("Middleware filtered out - chain disabled", "name", name)
+
+			continue
+		}
+
+		filtered = append(filtered, mw)
+
+		o.logger.Debug("Middleware included in chain", "name", name)
+	}
+
+	return filtered
+}
+
+// filterByConfiguredNames filters middleware based on configured names
+func (o *orchestrator) filterByConfiguredNames(middlewares []core.Middleware, chainConfig ChainConfig) []core.Middleware {
 	filtered := make([]core.Middleware, 0, len(chainConfig.MiddlewareNames))
+	middlewareMap := o.buildMiddlewareMap(middlewares, chainConfig)
+
+	// Add middleware in the order specified in config
+	for _, name := range chainConfig.MiddlewareNames {
+		if mw, exists := middlewareMap[name]; exists {
+			filtered = append(filtered, mw)
+
+			o.logger.Debug("Middleware added to chain from config", "name", name)
+		} else {
+			o.logger.Debug("Middleware not found in registry", "name", name)
+		}
+	}
+
+	o.logger.Debug("Final filtered middleware count", "count", len(filtered))
+
+	return filtered
+}
+
+// buildMiddlewareMap creates a map of available middleware
+func (o *orchestrator) buildMiddlewareMap(middlewares []core.Middleware, chainConfig ChainConfig) map[string]core.Middleware {
 	middlewareMap := make(map[string]core.Middleware)
 
-	// Create a map of all available middleware
 	for _, mw := range middlewares {
 		name := mw.Name()
 
@@ -388,20 +420,7 @@ func (o *orchestrator) filterByConfig(middlewares []core.Middleware, chainType c
 		o.logger.Debug("Middleware available for chain", "name", name)
 	}
 
-	// Add middleware in the order specified in config
-	for _, name := range chainConfig.MiddlewareNames {
-		if mw, exists := middlewareMap[name]; exists {
-			filtered = append(filtered, mw)
-
-			o.logger.Debug("Middleware added to chain from config", "name", name)
-		} else {
-			o.logger.Debug("Middleware not found in registry", "name", name)
-		}
-	}
-
-	o.logger.Debug("Final filtered middleware count", "count", len(filtered))
-
-	return filtered
+	return middlewareMap
 }
 
 // validateChain validates middleware dependencies and conflicts.

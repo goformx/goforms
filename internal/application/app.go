@@ -38,83 +38,12 @@ func NewApplication(distFS embed.FS, modules ...fx.Option) *fx.App {
 		presentation.Module,   // Presentation layer (handlers, templates)
 		// Include OpenAPI validation provider
 		providers.OpenAPIValidationProvider(),
-		// Infrastructure lifecycle logging (moved from infrastructure module)
-		fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, _ config.ConfigInterface) {
-			lc.Append(fx.Hook{
-				OnStart: func(_ context.Context) error {
-					logger.Info("Infrastructure module initialized")
-
-					return nil
-				},
-				OnStop: func(_ context.Context) error {
-					logger.Info("Infrastructure module shutting down")
-
-					return nil
-				},
-			})
-		}),
-		// Middleware lifecycle logging and registration (moved from middleware module)
-		fx.Invoke(func(
-			lc fx.Lifecycle,
-			registry middlewarecore.Registry,
-			orchestrator middlewarecore.Orchestrator,
-			logger logging.Logger,
-		) {
-			logger.Debug("Setting up middleware registration hook")
-			lc.Append(fx.Hook{
-				OnStart: func(ctx context.Context) error {
-					logger.Debug("Middleware registration hook starting")
-					// Register all middleware with the registry
-					if err := appmiddleware.RegisterAllMiddleware(registry, logger); err != nil {
-						logger.Error("Failed to register middleware", "error", err)
-
-						return fmt.Errorf("failed to register middleware: %w", err)
-					}
-
-					// Validate orchestrator configuration
-					if err := orchestrator.ValidateConfiguration(); err != nil {
-						logger.Error("Failed to validate orchestrator configuration", "error", err)
-
-						return fmt.Errorf("failed to validate orchestrator configuration: %w", err)
-					}
-
-					logger.Info("middleware system initialized successfully")
-
-					return nil
-				},
-				OnStop: func(ctx context.Context) error {
-					logger.Info("middleware system shutting down")
-
-					return nil
-				},
-			})
-		}),
-		// Presentation route registration (moved from presentation module)
-		fx.Invoke(func(
-			lc fx.Lifecycle,
-			e *echosrv.Echo,
-			adapter *http.EchoAdapter,
-			orchestrator *appmiddleware.EchoOrchestratorAdapter,
-			handlers struct {
-				fx.In
-				Handlers []httpiface.Handler `group:"handlers"`
-			},
-		) {
-			lc.Append(fx.Hook{
-				OnStart: func(_ context.Context) error {
-					// Set the middleware orchestrator on the adapter
-					adapter.SetMiddlewareOrchestrator(orchestrator)
-
-					for _, h := range handlers.Handlers {
-						if err := adapter.RegisterHandler(h); err != nil {
-							return fmt.Errorf("failed to register handler %s: %w", h.Name(), err)
-						}
-					}
-
-					return nil
-				},
-			})
-		}),
+		// Infrastructure lifecycle logging
+		fx.Invoke(setupInfrastructureLifecycle),
+		// Middleware lifecycle logging and registration
+		fx.Invoke(setupMiddlewareLifecycle),
+		// Presentation route registration
+		fx.Invoke(setupPresentationLifecycle),
 		// Application setup functions (moved to end to ensure all dependencies are available)
 		fx.Invoke(setupApplication),
 		fx.Invoke(setupLifecycle),
@@ -124,6 +53,86 @@ func NewApplication(distFS embed.FS, modules ...fx.Option) *fx.App {
 	baseModules = append(baseModules, modules...)
 
 	return fx.New(baseModules...)
+}
+
+// setupInfrastructureLifecycle sets up infrastructure lifecycle hooks
+func setupInfrastructureLifecycle(lc fx.Lifecycle, logger logging.Logger, _ config.ConfigInterface) {
+	lc.Append(fx.Hook{
+		OnStart: func(_ context.Context) error {
+			logger.Info("Infrastructure module initialized")
+
+			return nil
+		},
+		OnStop: func(_ context.Context) error {
+			logger.Info("Infrastructure module shutting down")
+
+			return nil
+		},
+	})
+}
+
+// setupMiddlewareLifecycle sets up middleware lifecycle hooks
+func setupMiddlewareLifecycle(
+	lc fx.Lifecycle,
+	registry middlewarecore.Registry,
+	orchestrator middlewarecore.Orchestrator,
+	logger logging.Logger,
+) {
+	logger.Debug("Setting up middleware registration hook")
+	lc.Append(fx.Hook{
+		OnStart: func(ctx context.Context) error {
+			logger.Debug("Middleware registration hook starting")
+			// Register all middleware with the registry
+			if err := appmiddleware.RegisterAllMiddleware(registry, logger); err != nil {
+				logger.Error("Failed to register middleware", "error", err)
+
+				return fmt.Errorf("failed to register middleware: %w", err)
+			}
+
+			// Validate orchestrator configuration
+			if err := orchestrator.ValidateConfiguration(); err != nil {
+				logger.Error("Failed to validate orchestrator configuration", "error", err)
+
+				return fmt.Errorf("failed to validate orchestrator configuration: %w", err)
+			}
+
+			logger.Info("middleware system initialized successfully")
+
+			return nil
+		},
+		OnStop: func(ctx context.Context) error {
+			logger.Info("middleware system shutting down")
+
+			return nil
+		},
+	})
+}
+
+// setupPresentationLifecycle sets up presentation lifecycle hooks
+func setupPresentationLifecycle(
+	lc fx.Lifecycle,
+	e *echosrv.Echo,
+	adapter *http.EchoAdapter,
+	orchestrator *appmiddleware.EchoOrchestratorAdapter,
+	handlers struct {
+		fx.In
+		Handlers []httpiface.Handler `group:"handlers"`
+	},
+) {
+	lc.Append(fx.Hook{
+		OnStart: func(_ context.Context) error {
+			// Set the middleware orchestrator on the adapter
+			adapter.SetMiddlewareOrchestrator(orchestrator)
+
+			for _, h := range handlers.Handlers {
+				if err := adapter.RegisterHandler(h); err != nil {
+					return fmt.Errorf("failed to register handler %s: %w", h.Name(), err)
+				}
+			}
+
+			return nil
+		},
+	})
 }
 
 // setupApplication initializes the application using the ApplicationSetup service.
