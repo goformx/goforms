@@ -325,11 +325,8 @@ func TestLifecycleManager_ContextCancellation(t *testing.T) {
 		}).AnyTimes()
 
 		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
-		// Server.Start() will block, but context will be canceled
-		mockServer.EXPECT().Start().DoAndReturn(func() error {
-			// Simulate a blocking server that never returns
-			select {}
-		})
+		// Server.Start() might be called by the goroutine even after context cancellation
+		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		// Create lifecycle manager
 		params := application.LifecycleParams{
