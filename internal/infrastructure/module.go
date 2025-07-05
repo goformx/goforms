@@ -417,9 +417,14 @@ var Module = fx.Module("infrastructure",
 
 		// HTTP server (concrete type, not interface)
 		fx.Annotate(
-			func(deps server.Deps) *server.Server {
+			func(deps server.Deps) (*server.Server, error) {
 				srv := server.New(deps)
-				return srv.(*server.Server)
+				concrete, ok := srv.(*server.Server)
+				if !ok {
+					return nil, fmt.Errorf("server.New did not return *server.Server")
+				}
+
+				return concrete, nil
 			},
 		),
 

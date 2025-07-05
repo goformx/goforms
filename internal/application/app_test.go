@@ -115,7 +115,7 @@ func TestNewApplication(t *testing.T) {
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
-				func() *config.Config { return createTestConfig() },
+				createTestConfig,
 				func() config.ConfigInterface { return createTestConfig() },
 			),
 		}
@@ -155,7 +155,7 @@ func TestApplicationLifecycle(t *testing.T) {
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
-				func() *config.Config { return createTestConfig() },
+				createTestConfig,
 				func() config.ConfigInterface { return createTestConfig() },
 			),
 		}
@@ -201,7 +201,7 @@ func TestApplicationWithFxtest(t *testing.T) {
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
-				func() *config.Config { return createTestConfig() },
+				createTestConfig,
 				func() config.ConfigInterface { return createTestConfig() },
 			),
 		}
