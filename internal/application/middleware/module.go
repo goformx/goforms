@@ -2,7 +2,6 @@
 package middleware
 
 import (
-	"context"
 	"fmt"
 
 	"go.uber.org/fx"
@@ -92,41 +91,10 @@ var Module = fx.Module("middleware",
 			NewEchoOrchestratorAdapter,
 		),
 	),
-
-	// Lifecycle hooks for middleware initialization
-	fx.Invoke(func(
-		lc fx.Lifecycle,
-		registry core.Registry,
-		orchestrator core.Orchestrator,
-		logger logging.Logger,
-	) {
-		lc.Append(fx.Hook{
-			OnStart: func(ctx context.Context) error {
-				// Register all middleware with the registry
-				if err := registerAllMiddleware(registry, logger); err != nil {
-					return err
-				}
-
-				// Validate orchestrator configuration
-				if err := orchestrator.ValidateConfiguration(); err != nil {
-					return fmt.Errorf("failed to validate orchestrator configuration: %w", err)
-				}
-
-				logger.Info("middleware system initialized successfully")
-
-				return nil
-			},
-			OnStop: func(ctx context.Context) error {
-				logger.Info("middleware system shutting down")
-
-				return nil
-			},
-		})
-	}),
 )
 
-// registerAllMiddleware registers all middleware with the registry
-func registerAllMiddleware(registry core.Registry, logger logging.Logger) error {
+// RegisterAllMiddleware registers all middleware with the registry
+func RegisterAllMiddleware(registry core.Registry, logger logging.Logger) error {
 	// Register basic middleware
 	basicMiddleware := []struct {
 		name string

@@ -154,7 +154,6 @@ var Module = fx.Module("presentation",
 		),
 		NewEchoAdapterWithDeps,
 	),
-	fx.Invoke(RegisterRoutes),
 )
 
 // RegisterRoutes registers all handlers with the EchoAdapter

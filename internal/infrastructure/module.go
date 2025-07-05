@@ -13,6 +13,7 @@ import (
 
 	"embed"
 
+	"github.com/goformx/goforms/internal/domain/common/interfaces"
 	"github.com/goformx/goforms/internal/domain/form"
 	formevent "github.com/goformx/goforms/internal/domain/form/event"
 	"github.com/goformx/goforms/internal/domain/user"
@@ -436,6 +437,14 @@ var Module = fx.Module("infrastructure",
 
 		// Logging system
 		NewLoggerFactory,
+		NewLogger,
+		// Provide logging.Logger as interfaces.Logger for domain layer compatibility
+		fx.Annotate(
+			func(logger logging.Logger) interfaces.Logger {
+				return logger
+			},
+			fx.As(new(interfaces.Logger)),
+		),
 
 		// Event system
 		NewEventPublisher,
@@ -460,20 +469,4 @@ var Module = fx.Module("infrastructure",
 		// Repository implementations
 		NewRepositories,
 	),
-
-	// Lifecycle management
-	fx.Invoke(func(lc fx.Lifecycle, logger logging.Logger, _ *config.Config) {
-		lc.Append(fx.Hook{
-			OnStart: func(_ context.Context) error {
-				logger.Info("Infrastructure module initialized")
-
-				return nil
-			},
-			OnStop: func(_ context.Context) error {
-				logger.Info("Infrastructure module shutting down")
-
-				return nil
-			},
-		})
-	}),
 )

@@ -23,7 +23,6 @@ var Module = fx.Module("config",
 	fx.Provide(NewWebConfig),
 	fx.Provide(NewUserConfig),
 	fx.Provide(
-		func(cfg *Config) ConfigInterface { return cfg },
 		fx.Annotate(
 			func(cfg *Config) ConfigInterface { return cfg },
 			fx.As(new(ConfigInterface)),
