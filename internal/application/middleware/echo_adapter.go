@@ -278,6 +278,8 @@ func (ea *EchoOrchestratorAdapter) shouldApplyCSRF(chain core.Chain) bool {
 	return false
 }
 
+const httpMethodGET = "GET"
+
 // createCSRFMiddleware creates an Echo CSRF middleware
 func (ea *EchoOrchestratorAdapter) createCSRFMiddleware() echo.MiddlewareFunc {
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
@@ -291,13 +293,13 @@ func (ea *EchoOrchestratorAdapter) createCSRFMiddleware() echo.MiddlewareFunc {
 			}
 
 			// For GET requests, generate and set CSRF token
-			if method == "GET" {
+			if method == httpMethodGET {
 				token := ea.generateCSRFToken()
 				c.Set("csrf", token)
 			}
 
 			// For non-GET requests, validate CSRF token
-			if method != "GET" {
+			if method != httpMethodGET {
 				if !ea.validateCSRFToken(c) {
 					ea.logger.Warn("CSRF token validation failed", "path", path, "method", method)
 
@@ -351,20 +353,19 @@ func (ea *EchoOrchestratorAdapter) generateCSRFToken() string {
 
 // validateCSRFToken validates the CSRF token in the request
 func (ea *EchoOrchestratorAdapter) validateCSRFToken(c echo.Context) bool {
-	// Get token from header
 	token := c.Request().Header.Get("X-Csrf-Token")
 	if token != "" {
-		return len(token) > 0 // For now, accept any non-empty token
+		return true // For now, accept any non-empty token
 	}
 
-	// Try form data
-	if token := c.FormValue("_token"); token != "" {
-		return len(token) > 0
+	formToken := c.FormValue("_token")
+	if formToken != "" {
+		return true
 	}
 
-	// Try cookies
-	if cookie, err := c.Cookie("_csrf"); err == nil && cookie.Value != "" {
-		return len(cookie.Value) > 0
+	cookie, err := c.Cookie("_csrf")
+	if err == nil && cookie.Value != "" {
+		return true
 	}
 
 	return false

@@ -182,6 +182,7 @@ func (sm *Manager) GetSession(sessionID string) (*Session, bool) {
 	defer sm.mutex.RUnlock()
 
 	session, exists := sm.sessions[sessionID]
+
 	return session, exists && session != nil
 }
 

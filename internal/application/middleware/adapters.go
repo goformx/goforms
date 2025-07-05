@@ -348,15 +348,12 @@ func (m *csrfMiddleware) generateCSRFToken(cfg *config.CSRFConfig) string {
 
 // validateCSRFToken validates the CSRF token in the request
 func (m *csrfMiddleware) validateCSRFToken(req core.Request, cfg *config.CSRFConfig) bool {
-	// Get token from various sources
 	token := m.extractCSRFToken(req, cfg)
 	if token == "" {
 		return false
 	}
 
-	// For now, we'll accept any non-empty token in development
-	// In production, you'd want to validate against stored tokens
-	return len(token) > 0
+	return token != ""
 }
 
 // extractCSRFToken extracts CSRF token from request headers, cookies, or form data

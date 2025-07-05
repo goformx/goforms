@@ -92,7 +92,9 @@ func NewAuthHandler(
 // generateSimpleCSRFToken generates a simple CSRF token
 func generateSimpleCSRFToken() string {
 	bytes := make([]byte, 32)
-	rand.Read(bytes)
+	if _, err := rand.Read(bytes); err != nil {
+		panic("failed to generate CSRF token: " + err.Error())
+	}
 
 	return base64.URLEncoding.EncodeToString(bytes)
 }

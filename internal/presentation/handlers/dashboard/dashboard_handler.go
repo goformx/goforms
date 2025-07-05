@@ -71,7 +71,6 @@ func (h *DashboardHandler) getInfraContext(ctx httpiface.Context) (http.Context,
 
 // Dashboard handles GET /dashboard
 func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
-	// Get infrastructure context using bridge
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
@@ -79,7 +78,6 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return fmt.Errorf("internal server error: context conversion failed")
 	}
 
-	// Parse user ID from context (session)
 	userID, err := h.requestAdapter.ParseUserID(infraCtx)
 	if err != nil {
 		h.logger.Warn("authentication required for dashboard access", "error", err)
@@ -91,17 +89,11 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return nil
 	}
 
-	// Parse pagination request
 	paginationReq, err := h.requestAdapter.ParsePaginationRequest(infraCtx)
 	if err != nil {
-		// Use default pagination if not provided
-		paginationReq = &dto.PaginationRequest{
-			Page:  1,
-			Limit: 10,
-		}
+		paginationReq = &dto.PaginationRequest{Page: 1, Limit: 10}
 	}
 
-	// Call application service
 	dashboardResp, err := h.formService.ListForms(ctx.RequestContext(), userID, paginationReq)
 	if err != nil {
 		h.logger.Error("failed to fetch user forms", "user_id", userID, "error", err)
@@ -109,16 +101,17 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load your forms, please try again"))
 	}
 
-	// Get the underlying Echo context
+	return h.renderDashboard(ctx, infraCtx, dashboardResp)
+}
+
+func (h *DashboardHandler) renderDashboard(ctx httpiface.Context, infraCtx http.Context, dashboardResp *dto.FormListResponse) error {
 	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
 	if !ok {
 		return fmt.Errorf("invalid context type for rendering")
 	}
 
-	// Create page data for the dashboard
 	pageData := view.NewPageData(h.config, h.assetManager, echoCtx.Context, "Dashboard")
 
-	// Convert DTO forms to domain models for the template
 	forms := make([]*model.Form, len(dashboardResp.Forms))
 	for i, formDTO := range dashboardResp.Forms {
 		forms[i] = &model.Form{
@@ -133,7 +126,6 @@ func (h *DashboardHandler) Dashboard(ctx httpiface.Context) error {
 		}
 	}
 
-	// Render dashboard template with form data
 	if err := h.renderer.Render(echoCtx.Context, pages.Dashboard(*pageData, forms)); err != nil {
 		h.logger.Error("failed to render dashboard template", "error", err)
 
