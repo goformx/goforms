@@ -1,0 +1,93 @@
+# GoForms Architecture Guide
+
+## Clean Architecture Layers
+
+This project follows Clean Architecture principles with clear separation of concerns:
+
+### **Domain Layer** (`internal/domain/`)
+- **Purpose**: Pure business logic, entities, and interfaces
+- **Contains**: Entities, domain services, repository interfaces, domain events
+- **Dependencies**: None (pure Go, no external dependencies)
+- **Key Files**: [internal/domain/module.go](mdc:internal/domain/module.go), [internal/domain/common/interfaces/](mdc:internal/domain/common/interfaces/)
+
+### **Application Layer** (`internal/application/`)
+- **Purpose**: Use cases and application services
+- **Contains**: Application services, DTOs, middleware orchestration
+- **Dependencies**: Domain layer only
+- **Key Files**: [internal/application/module.go](mdc:internal/application/module.go), [internal/application/app.go](mdc:internal/application/app.go)
+
+### **Infrastructure Layer** (`internal/infrastructure/`)
+- **Purpose**: External concerns (database, HTTP, configuration, logging)
+- **Contains**: Database implementations, HTTP adapters, configuration, logging
+- **Dependencies**: Domain and Application layers
+- **Key Files**: [internal/infrastructure/module.go](mdc:internal/infrastructure/module.go), [internal/infrastructure/config/](mdc:internal/infrastructure/config/)
+
+### **Presentation Layer** (`internal/presentation/`)
+- **Purpose**: Web handlers, API endpoints, templates
+- **Contains**: HTTP handlers, route registration, template rendering
+- **Dependencies**: Application layer only
+- **Key Files**: [internal/presentation/module.go](mdc:internal/presentation/module.go), [internal/presentation/handlers/](mdc:internal/presentation/handlers/)
+
+## Dependency Injection with Uber FX
+
+The project uses Uber FX for dependency injection. See [main.go](mdc:main.go) for the main application setup.
+
+### Module Registration Order
+1. **Config** - Must come first as other modules depend on it
+2. **Infrastructure** - Database, logging, server setup
+3. **Domain** - Business logic and interfaces
+4. **Application** - Use cases and services
+5. **Middleware** - Cross-cutting concerns
+6. **Presentation** - HTTP handlers and routes
+
+### Key Dependencies
+- **Logger**: Provided by infrastructure, used throughout all layers
+- **Config**: Centralized configuration management
+- **Database**: GORM-based repositories with transaction support
+- **Server**: Echo web framework with middleware orchestration
+
+## Architecture Enforcement
+
+### Dependency Rules
+- **Domain** → No external dependencies
+- **Application** → Domain only
+- **Infrastructure** → Domain + Application
+- **Presentation** → Application only
+
+### Import Restrictions
+The project enforces clean architecture through import restrictions:
+- Domain layer cannot import infrastructure or presentation
+- Application layer cannot import presentation
+- Use dependency inversion with interfaces
+
+### Architecture Linting
+Run `./scripts/arch-lint.sh` to validate architecture compliance.
+
+## Testing Architecture
+
+### Test Structure
+- **Unit Tests**: `*_test.go` files alongside source code
+- **Integration Tests**: [test/integration/](mdc:test/integration/) directory
+- **Mock Generation**: [test/mocks/](mdc:test/mocks/) for interface mocking
+
+### Test Configuration
+Integration tests use [test/integration/public_pages_test.go](mdc:test/integration/public_pages_test.go) as a template for setting up test applications with proper middleware and security headers.
+
+## Security Architecture
+
+### Security Headers
+Security headers are implemented in [internal/application/middleware/adapters.go](mdc:internal/application/middleware/adapters.go) and configured in [internal/infrastructure/config/security.go](mdc:internal/infrastructure/config/security.go).
+
+### CSRF Protection
+CSRF tokens are generated cryptographically and validated per-request. Configuration in [config.yaml](mdc:config.yaml).
+
+### Middleware Chains
+Middleware is organized into chains for different route patterns:
+- **Public**: Basic security headers
+- **API**: Full authentication and authorization
+- **Web**: Session-based authentication
+- **Admin**: Administrative access control
+description:
+globs:
+alwaysApply: false
+---

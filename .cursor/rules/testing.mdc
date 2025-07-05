@@ -1,0 +1,293 @@
+# Testing Guide
+
+## Testing Philosophy
+
+### Test Structure
+- **Unit Tests**: `*_test.go` files alongside source code
+- **Integration Tests**: [test/integration/](mdc:test/integration/) directory
+- **Mock Generation**: [test/mocks/](mdc:test/mocks/) for interface mocking
+- **Test Utilities**: Shared test utilities and helpers
+
+### Testing Principles
+- **Minimal Output**: Prefer minimal console output, avoid verbose flags
+- **Fast Execution**: Tests should run quickly for development feedback
+- **Reliable**: Tests should be deterministic and not flaky
+- **Comprehensive**: Cover both success and error scenarios
+
+## Integration Testing
+
+### Test Application Setup
+Integration tests use the pattern from [test/integration/public_pages_test.go](mdc:test/integration/public_pages_test.go):
+
+```go
+func createTestAppWithEcho(t *testing.T) (*fxtest.App, *echo.Echo) {
+    // Configure test environment
+    testConfig := &config.Config{
+        App: config.AppConfig{
+            Environment: "development",
+            Debug: true,
+            // ... other config
+        },
+        Security: config.SecurityConfig{
+            SecurityHeaders: config.SecurityHeadersConfig{
+                Enabled: true,
+                XContentTypeOptions: "nosniff",
+                // ... other security headers
+            },
+        },
+        Middleware: config.MiddlewareConfig{
+            Enabled: true,
+            SecurityHeaders: config.SecurityHeadersMiddlewareConfig{
+                Enabled: true,
+            },
+            // ... middleware chains
+        },
+    }
+
+    // Setup FX test modules
+    testModules := []fx.Option{
+        fx.Provide(func() *config.Config { return testConfig }),
+        infrastructure.Module,
+        domain.Module,
+        application.Module,
+        middleware.Module,
+        presentation.Module,
+        fx.Invoke(presentation.RegisterRoutes),
+    }
+
+    app := fxtest.New(t, testModules...)
+    return app, echoInstance
+}
+```
+
+### Test Configuration Best Practices
+- **Development Environment**: Use development mode for asset resolution
+- **Security Headers**: Always enable security headers in tests
+- **Middleware Chains**: Configure all necessary middleware chains
+- **Database**: Use in-memory or test database
+- **Sessions**: Use memory-based sessions for testing
+
+## Security Testing
+
+### Security Headers Testing
+All public pages must be tested for security headers:
+
+```go
+func TestPublicPagesSecurityHeaders(t *testing.T) {
+    app, echoInstance := createTestAppWithEcho(t)
+    app.RequireStart()
+    defer app.RequireStop()
+
+    securityTests := []struct {
+        name     string
+        path     string
+        headers  map[string]string
+        critical bool
+    }{
+        {
+            name: "home page security headers",
+            path: "/",
+            headers: map[string]string{
+                "X-Content-Type-Options": "nosniff",
+            },
+            critical: true,
+        },
+        {
+            name: "health endpoint security headers",
+            path: "/health",
+            headers: map[string]string{
+                "X-Content-Type-Options": "nosniff",
+            },
+            critical: true,
+        },
+    }
+
+    for _, test := range securityTests {
+        t.Run(test.name, func(t *testing.T) {
+            req := httptest.NewRequest("GET", test.path, http.NoBody)
+            rec := httptest.NewRecorder()
+            echoInstance.ServeHTTP(rec, req)
+
+            for headerName, expectedValue := range test.headers {
+                actualValue := rec.Header().Get(headerName)
+                assert.Equal(t, expectedValue, actualValue,
+                    "Expected header %s to be '%s' for %s, got '%s'",
+                    headerName, expectedValue, test.path, actualValue)
+            }
+        })
+    }
+}
+```
+
+### Critical Security Tests
+- **X-Content-Type-Options**: Must be `nosniff` on all public pages
+- **Health Endpoint**: Must include security headers
+- **CSRF Protection**: Test token generation and validation
+- **Session Security**: Validate session configuration
+
+## Performance Testing
+
+### Response Time Testing
+Test critical endpoints for performance:
+
+```go
+func TestPublicPagesPerformance(t *testing.T) {
+    app, echoInstance := createTestAppWithEcho(t)
+    app.RequireStart()
+    defer app.RequireStop()
+
+    performanceTests := []struct {
+        name        string
+        path        string
+        maxDuration time.Duration
+        description string
+    }{
+        {
+            name:        "home page performance",
+            path:        "/",
+            maxDuration: 100 * time.Millisecond,
+            description: "Home page should respond quickly",
+        },
+        {
+            name:        "health endpoint performance",
+            path:        "/health",
+            maxDuration: 50 * time.Millisecond,
+            description: "Health endpoint should respond very quickly",
+        },
+    }
+
+    for _, test := range performanceTests {
+        t.Run(test.name, func(t *testing.T) {
+            req := httptest.NewRequest("GET", test.path, http.NoBody)
+            rec := httptest.NewRecorder()
+
+            start := time.Now()
+            echoInstance.ServeHTTP(rec, req)
+            duration := time.Since(start)
+
+            assert.LessOrEqual(t, duration, test.maxDuration,
+                "Expected response time <= %v for %s, got %v",
+                test.maxDuration, test.path, duration)
+        })
+    }
+}
+```
+
+## Mock Testing
+
+### Mock Generation
+Generate mocks for interfaces using `task generate:mocks`:
+
+```go
+//go:generate mockgen -source=repository.go -destination=test/mocks/mock_repository.go
+type Repository interface {
+    Find(id string) (*Entity, error)
+    Save(entity *Entity) error
+}
+```
+
+### Mock Usage
+Use mocks in unit tests:
+
+```go
+func TestServiceWithMock(t *testing.T) {
+    ctrl := gomock.NewController(t)
+    defer ctrl.Finish()
+
+    mockRepo := NewMockRepository(ctrl)
+    mockRepo.EXPECT().Find("test-id").Return(&Entity{ID: "test-id"}, nil)
+
+    service := NewService(mockRepo)
+    result, err := service.GetEntity("test-id")
+
+    assert.NoError(t, err)
+    assert.Equal(t, "test-id", result.ID)
+}
+```
+
+## Test Utilities
+
+### Common Test Helpers
+Create reusable test utilities:
+
+```go
+// test/helpers/helpers.go
+package helpers
+
+import (
+    "net/http/httptest"
+    "testing"
+
+    "github.com/labstack/echo/v4"
+    "github.com/stretchr/testify/require"
+)
+
+// CreateTestRequest creates a test request with proper setup
+func CreateTestRequest(method, path string, body io.Reader) *httptest.Request {
+    return httptest.NewRequest(method, path, body)
+}
+
+// AssertSecurityHeaders validates security headers on response
+func AssertSecurityHeaders(t *testing.T, rec *httptest.ResponseRecorder) {
+    require.Equal(t, "nosniff", rec.Header().Get("X-Content-Type-Options"))
+    require.Equal(t, "DENY", rec.Header().Get("X-Frame-Options"))
+    require.Equal(t, "1; mode=block", rec.Header().Get("X-XSS-Protection"))
+}
+```
+
+## Test Configuration
+
+### Environment Variables
+Set test-specific environment variables:
+
+```bash
+# Test environment variables
+GOFORMS_APP_ENVIRONMENT=test
+GOFORMS_DATABASE_DRIVER=sqlite
+GOFORMS_DATABASE_NAME=:memory:
+GOFORMS_SECURITY_CSRF_ENABLED=false
+GOFORMS_SECURITY_SECURITY_HEADERS_ENABLED=true
+```
+
+### Test Database
+Use in-memory database for tests:
+
+```go
+testConfig := &config.Config{
+    Database: config.DatabaseConfig{
+        Driver: "sqlite",
+        Name:   ":memory:",
+    },
+}
+```
+
+## Test Execution
+
+### Running Tests
+- **Unit Tests**: `go test ./...`
+- **Integration Tests**: `go test ./test/integration/...`
+- **Specific Package**: `go test ./internal/domain/...`
+- **Verbose Mode**: Use sparingly, prefer minimal output
+
+### Test Coverage
+- **Coverage Report**: `go test -cover ./...`
+- **Coverage HTML**: `go test -coverprofile=coverage.out && go tool cover -html=coverage.out`
+- **Coverage Threshold**: Aim for >80% coverage in domain and application layers
+
+## Continuous Integration
+
+### CI/CD Testing
+- **Pre-commit**: Run unit tests before commit
+- **CI Pipeline**: Run full test suite on pull requests
+- **Integration Tests**: Run integration tests in CI environment
+- **Performance Tests**: Monitor performance regressions
+
+### Test Environment
+- **Isolation**: Tests should be isolated and not depend on external services
+- **Cleanup**: Proper cleanup of test resources
+- **Parallel Execution**: Tests should be able to run in parallel
+- **Deterministic**: Tests should produce consistent results
+description:
+globs:
+alwaysApply: false
+---

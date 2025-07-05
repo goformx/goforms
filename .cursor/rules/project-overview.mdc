@@ -1,0 +1,144 @@
+# GoForms Project Overview
+
+## Project Description
+GoForms is a modern form building and management platform built with Go, following Clean Architecture principles. The application provides a comprehensive solution for creating, managing, and processing web forms with advanced security features and a responsive user interface.
+
+## Technology Stack
+
+### Backend
+- **Language**: Go 1.24
+- **Framework**: Echo (HTTP framework)
+- **Architecture**: Clean Architecture with Uber FX dependency injection
+- **Database**: GORM with PostgreSQL/MySQL support
+- **Templating**: Templ (Go templating engine)
+- **Configuration**: Viper with environment variable support
+
+### Frontend
+- **Build Tool**: Vite
+- **Language**: TypeScript
+- **Form Builder**: Form.io integration
+- **Styling**: CSS with layered architecture
+- **Hot Reloading**: Development with hot reloading
+
+### Security
+- **CSRF Protection**: Cryptographically secure tokens
+- **Security Headers**: Comprehensive security header implementation
+- **Input Validation**: Go validator with custom rules
+- **Rate Limiting**: Configurable rate limiting per IP
+- **Session Management**: Secure session handling
+
+## Project Structure
+
+### Core Architecture Layers
+- **[Domain Layer](mdc:.cursor/rules/architecture.mdc)**: Pure business logic and interfaces
+- **[Application Layer](mdc:.cursor/rules/architecture.mdc)**: Use cases and application services
+- **[Infrastructure Layer](mdc:.cursor/rules/architecture.mdc)**: External concerns (DB, HTTP, config)
+- **[Presentation Layer](mdc:.cursor/rules/architecture.mdc)**: Web handlers and API endpoints
+
+### Key Directories
+- **`internal/`**: Application code (private)
+- **`src/`**: Frontend source code
+- **`test/`**: Test files and utilities
+- **`migrations/`**: Database migrations
+- **`config/`**: Configuration files
+- **`scripts/`**: Build and utility scripts
+
+## Development Workflow
+
+### Getting Started
+1. **Environment Setup**: Configure environment variables
+2. **Database**: Run migrations with `task migrate:up`
+3. **Development Server**: Use hot reloading for development
+4. **Testing**: Run tests with minimal output preferred
+
+### Development Practices
+- **[Hot Reloading](mdc:.cursor/rules/development-workflow.mdc)**: Preferred over manual builds
+- **[Testing](mdc:.cursor/rules/testing.mdc)**: Comprehensive test coverage with integration tests
+- **[Security](mdc:.cursor/rules/security.mdc)**: Security-first development approach
+- **[Frontend](mdc:.cursor/rules/frontend-development.mdc)**: Modern frontend development with Vite
+
+## Key Features
+
+### Form Management
+- **Form Builder**: Drag-and-drop form creation
+- **Form Templates**: Reusable form templates
+- **Form Submissions**: Secure form submission handling
+- **Data Export**: Export form data in various formats
+
+### Security Features
+- **Security Headers**: X-Content-Type-Options, X-Frame-Options, etc.
+- **CSRF Protection**: Token-based CSRF protection
+- **Input Validation**: Comprehensive input validation
+- **Rate Limiting**: Configurable rate limiting
+- **Session Security**: Secure session management
+
+### User Management
+- **Authentication**: Secure user authentication
+- **Authorization**: Role-based access control
+- **User Profiles**: User profile management
+- **Session Management**: Secure session handling
+
+## Configuration
+
+### Environment Variables
+The project uses environment variables for configuration:
+- **`GOFORMS_APP_*`**: Application settings
+- **`GOFORMS_DATABASE_*`**: Database configuration
+- **`GOFORMS_SECURITY_*`**: Security settings
+- **`GOFORMS_APP_VITE_DEV_*`**: Vite development settings
+
+### Configuration Files
+- **[config.yaml](mdc:config.yaml)**: Main configuration file
+- **[.env](mdc:.env)**: Environment-specific settings
+- **[.golangci.yml](mdc:.golangci.yml)**: Linting configuration
+
+## Testing Strategy
+
+### Test Types
+- **Unit Tests**: Individual component testing
+- **Integration Tests**: End-to-end testing with full application
+- **Security Tests**: Security header and CSRF validation
+- **Performance Tests**: Response time validation
+
+### Test Configuration
+Integration tests use the pattern from [test/integration/public_pages_test.go](mdc:test/integration/public_pages_test.go) with proper middleware and security header configuration.
+
+## Deployment
+
+### Production Considerations
+- **HTTPS**: Enable TLS in production
+- **Security Headers**: All security headers enabled
+- **Rate Limiting**: Configure appropriate rate limits
+- **Monitoring**: Security event logging and monitoring
+- **Asset Optimization**: Optimized frontend assets
+
+### Docker Support
+- **Multi-stage Builds**: Efficient container builds
+- **Production Ready**: Optimized for production deployment
+- **Configuration**: Environment-based configuration
+
+## Architecture Highlights
+
+### Clean Architecture
+The project follows Clean Architecture principles with clear separation of concerns and dependency inversion.
+
+### Middleware System
+Sophisticated middleware system with framework-agnostic design and configurable chains.
+
+### Security First
+Security is built into every layer with comprehensive security headers, CSRF protection, and input validation.
+
+### Hot Reloading
+Modern development workflow with hot reloading for both frontend and backend development.
+
+## Related Rules
+- **[Architecture Guide](mdc:.cursor/rules/architecture.mdc)**: Clean architecture patterns and dependency injection
+- **[Development Workflow](mdc:.cursor/rules/development-workflow.mdc)**: Development practices and testing
+- **[Middleware Guide](mdc:.cursor/rules/middleware.mdc)**: Middleware architecture and security headers
+- **[Frontend Development](mdc:.cursor/rules/frontend-development.mdc)**: Frontend architecture and asset management
+- **[Testing Guide](mdc:.cursor/rules/testing.mdc)**: Testing patterns and integration testing
+- **[Security Guide](mdc:.cursor/rules/security.mdc)**: Security best practices and implementation
+description:
+globs:
+alwaysApply: false
+---

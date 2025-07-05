@@ -1,0 +1,337 @@
+# Security Guide
+
+## Security Architecture
+
+### Security Headers Implementation
+Security headers are implemented through middleware in [internal/application/middleware/adapters.go](mdc:internal/application/middleware/adapters.go):
+
+```go
+func (m *securityHeadersMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    cfg := m.getSecurityConfig(ctx)
+    if cfg == nil || !cfg.SecurityHeaders.Enabled {
+        return next(ctx, req)
+    }
+
+    resp := next(ctx, req)
+
+    // Set security headers conditionally
+    if cfg.SecurityHeaders.XContentTypeOptions != "" {
+        resp.SetHeader("X-Content-Type-Options", cfg.SecurityHeaders.XContentTypeOptions)
+    }
+    if cfg.SecurityHeaders.XFrameOptions != "" {
+        resp.SetHeader("X-Frame-Options", cfg.SecurityHeaders.XFrameOptions)
+    }
+    // ... more headers
+    return resp
+}
+```
+
+### Security Headers Configuration
+Configuration defined in [internal/infrastructure/config/security.go](mdc:internal/infrastructure/config/security.go):
+
+- **X-Content-Type-Options**: `nosniff` (prevents MIME type sniffing)
+- **X-Frame-Options**: `DENY` (prevents clickjacking)
+- **X-XSS-Protection**: `1; mode=block` (XSS protection)
+- **Referrer-Policy**: `strict-origin-when-cross-origin`
+- **Permissions-Policy**: Restricts browser features
+- **Strict-Transport-Security**: Only for HTTPS connections
+
+## CSRF Protection
+
+### CSRF Token Generation
+Cryptographically secure CSRF tokens generated in [internal/application/middleware/adapters.go](mdc:internal/application/middleware/adapters.go):
+
+```go
+func (m *csrfMiddleware) generateCSRFToken(cfg *config.CSRFConfig) string {
+    token := make([]byte, cfg.TokenLength)
+    if _, err := rand.Read(token); err != nil {
+        return ""
+    }
+
+    hash := sha256.Sum256(token)
+    return base64.StdEncoding.EncodeToString(hash[:])
+}
+```
+
+### CSRF Validation
+CSRF tokens validated for state-changing operations:
+
+```go
+func (m *csrfMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    method := req.Method()
+
+    if method == "GET" {
+        // Generate and set CSRF token
+        token := m.generateCSRFToken(cfg)
+        req.Set("csrf", token)
+        resp := next(ctx, req)
+        resp.AddHeader("X-Csrf-Token", token)
+        return resp
+    }
+
+    // Validate CSRF token for non-GET requests
+    if !m.validateCSRFToken(req, cfg) {
+        return core.NewErrorResponse(http.StatusForbidden, fmt.Errorf("CSRF token validation failed"))
+    }
+
+    return next(ctx, req)
+}
+```
+
+### CSRF Configuration
+Configuration in [config.yaml](mdc:config.yaml):
+- **Token Length**: 32 bytes (cryptographically secure)
+- **Token Storage**: Server-side storage (TODO: implement Redis/DB storage)
+- **Skip Paths**: `/health`, `/metrics`, webhook endpoints
+- **Cookie Settings**: HTTP-only, SameSite=Lax, secure in production
+
+## Session Security
+
+### Session Configuration
+Session security configured in [internal/infrastructure/config/](mdc:internal/infrastructure/config/):
+
+```go
+type SessionConfig struct {
+    Type       string        `json:"type"`
+    Secret     string        `json:"secret"`
+    MaxAge     time.Duration `json:"max_age"`
+    Domain     string        `json:"domain"`
+    Path       string        `json:"path"`
+    Secure     bool          `json:"secure"`
+    HTTPOnly   bool          `json:"http_only"`
+    SameSite   string        `json:"same_site"`
+    Store      string        `json:"store"`
+    CookieName string        `json:"cookie_name"`
+}
+```
+
+### Session Security Best Practices
+- **Secret Management**: Use environment variables for session secrets
+- **Cookie Security**: HTTP-only, SameSite=Lax, secure in production
+- **Session Timeout**: Appropriate timeout based on application needs
+- **Session Storage**: Memory for development, Redis/DB for production
+
+## Configuration Security
+
+### Environment Variables
+Use environment variables for sensitive configuration:
+
+```bash
+# Application settings
+GOFORMS_APP_ENVIRONMENT=production
+GOFORMS_APP_DEBUG=false
+
+# Database settings
+GOFORMS_DATABASE_HOST=localhost
+GOFORMS_DATABASE_PASSWORD=secure_password
+
+# Security settings
+GOFORMS_SECURITY_CSRF_SECRET=your-secure-csrf-secret
+GOFORMS_SECURITY_SESSION_SECRET=your-secure-session-secret
+GOFORMS_SECURITY_ENCRYPTION_KEY=your-encryption-key
+```
+
+### Configuration Validation
+Validate configuration on startup:
+
+```go
+func (c *Config) Validate() error {
+    if c.Security.CSRF.Secret == "" {
+        return errors.New("CSRF secret is required")
+    }
+    if len(c.Security.CSRF.Secret) < MinSecretLength {
+        return fmt.Errorf("CSRF secret must be at least %d characters", MinSecretLength)
+    }
+    return nil
+}
+```
+
+## Input Validation and Sanitization
+
+### Input Validation
+Use Go's validator package for input validation:
+
+```go
+type CreateUserRequest struct {
+    Email    string `json:"email" validate:"required,email"`
+    Password string `json:"password" validate:"required,min=8"`
+    Name     string `json:"name" validate:"required,min=2,max=100"`
+}
+```
+
+### Input Sanitization
+Sanitize user input to prevent XSS and injection attacks:
+
+```go
+func (s *SanitizationService) SanitizeHTML(input string) string {
+    return sanitize.HTML(input)
+}
+
+func (s *SanitizationService) SanitizeSQL(input string) string {
+    // Use parameterized queries instead of string concatenation
+    return input
+}
+```
+
+## Rate Limiting
+
+### Rate Limiting Configuration
+Rate limiting configured in [config.yaml](mdc:config.yaml):
+
+```yaml
+security:
+  rate_limit:
+    enabled: true
+    rps: 100
+    burst: 200
+    window: "1m"
+    per_ip: true
+    skip_paths:
+      - "/health"
+      - "/metrics"
+      - "/static/"
+```
+
+### Rate Limiting Implementation
+Rate limiting middleware prevents abuse:
+
+```go
+func (m *rateLimitMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    // Check rate limit for client IP
+    if !m.checkRateLimit(req.ClientIP()) {
+        return core.NewErrorResponse(http.StatusTooManyRequests, fmt.Errorf("rate limit exceeded"))
+    }
+    return next(ctx, req)
+}
+```
+
+## Content Security Policy
+
+### CSP Configuration
+Content Security Policy configured in [config.yaml](mdc:config.yaml):
+
+```yaml
+security:
+  csp:
+    enabled: true
+    default_src: "'self'"
+    script_src: "'self' 'unsafe-inline' 'unsafe-eval'"
+    style_src: "'self' 'unsafe-inline'"
+    img_src: "'self' data: https:"
+    connect_src: "'self' ws: wss:"
+    font_src: "'self'"
+    object_src: "'none'"
+    frame_src: "'none'"
+```
+
+### CSP Implementation
+CSP headers applied through middleware:
+
+```go
+func (m *cspMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
+    resp := next(ctx, req)
+
+    if cspValue := m.getCSPValue(); cspValue != "" {
+        resp.SetHeader("Content-Security-Policy", cspValue)
+    }
+
+    return resp
+}
+```
+
+## Security Testing
+
+### Security Headers Testing
+All public pages tested for security headers in [test/integration/public_pages_test.go](mdc:test/integration/public_pages_test.go):
+
+```go
+func TestPublicPagesSecurityHeaders(t *testing.T) {
+    // Test that all public pages return X-Content-Type-Options: nosniff
+    securityTests := []struct {
+        name    string
+        path    string
+        headers map[string]string
+    }{
+        {
+            name: "home page security headers",
+            path: "/",
+            headers: map[string]string{
+                "X-Content-Type-Options": "nosniff",
+            },
+        },
+    }
+
+    // ... test implementation
+}
+```
+
+### CSRF Testing
+Test CSRF token generation and validation:
+
+```go
+func TestCSRFProtection(t *testing.T) {
+    // Test token generation
+    // Test token validation
+    // Test token expiration
+    // Test invalid token rejection
+}
+```
+
+## Security Monitoring
+
+### Security Logging
+Log security events for monitoring:
+
+```go
+func (s *SecurityService) LogSecurityEvent(event SecurityEvent) {
+    s.logger.Warn("Security event detected",
+        "event_type", event.Type,
+        "ip_address", event.IPAddress,
+        "user_agent", event.UserAgent,
+        "timestamp", event.Timestamp,
+    )
+}
+```
+
+### Security Metrics
+Track security metrics for monitoring:
+
+- **Failed Authentication Attempts**
+- **CSRF Token Validation Failures**
+- **Rate Limit Violations**
+- **Suspicious Activity Patterns**
+
+## Production Security
+
+### HTTPS Configuration
+Enable HTTPS in production:
+
+```yaml
+security:
+  tls:
+    enabled: true
+    cert_file: "/path/to/cert.pem"
+    key_file: "/path/to/key.pem"
+    min_version: "1.2"
+```
+
+### Secure Headers in Production
+Additional security headers for production:
+
+```go
+// Set HSTS only for HTTPS
+if req.IsSecure() {
+    resp.SetHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+}
+```
+
+### Security Auditing
+Regular security audits:
+- **Dependency Scanning**: Scan for vulnerable dependencies
+- **Code Review**: Security-focused code reviews
+- **Penetration Testing**: Regular security testing
+- **Compliance**: Ensure compliance with security standards
+description:
+globs:
+alwaysApply: false
+---

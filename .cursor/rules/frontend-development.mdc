@@ -1,9 +1,3 @@
----
-description: Frontend development guidelines for TypeScript, Vite, and Form.io
-globs: ["src/**/*", "**/*.ts", "**/*.tsx", "**/*.js", "**/*.jsx", "**/*.css", "package.json", "tsconfig.json", "vite.config.ts"]
-alwaysApply: false
----
-
 # Frontend Development Guidelines
 
 ## Technology Stack
@@ -32,35 +26,59 @@ alwaysApply: false
 - **Distribution**: [dist/](mdc:dist) - Built files for production
 - **Assets**: Automatically copied and optimized during build
 
-## Development Workflow
+## Frontend Architecture
 
-### Commands
-- `npm run dev` - Start development server (localhost:5173)
-- `npm run build` - Build for production
-- `npm run lint` - Run ESLint
-- `npm run lint:fix` - Fix linting issues
-- `npm run typecheck` - TypeScript type checking
-- `npm run format` - Format code with Prettier
-- `npm run test` - Run tests with Vitest
+### Asset Management
+The project uses a sophisticated asset management system:
 
-### Hot Reload
-- Vite provides fast hot module replacement
-- Changes to TypeScript and CSS files are reflected immediately
-- Form.io components are hot-reloadable
+#### Development Assets
+- **Vite Dev Server**: Frontend assets served through Vite development server
+- **Hot Reloading**: Real-time updates during development
+- **Asset Resolution**: Automatic resolution of imports and dependencies
 
-## TypeScript Guidelines
+#### Production Assets
+- **Embedded Assets**: Assets embedded in binary using Go's `embed` directive
+- **Static File Server**: Served through [internal/infrastructure/web/](mdc:internal/infrastructure/web/)
+- **Caching Headers**: Appropriate cache headers for static assets
 
-### Type Safety
-- Use strict TypeScript configuration from [tsconfig.json](mdc:tsconfig.json)
-- Define interfaces for all data structures
-- Use type guards for runtime type checking
-- Avoid `any` type - use `unknown` or proper types
+### Asset Server Implementation
+Asset serving implemented in [internal/infrastructure/web/server.go](mdc:internal/infrastructure/web/server.go):
+- **Development Mode**: Proxy to Vite dev server
+- **Production Mode**: Serve embedded assets
+- **Security Headers**: Apply security headers to static assets
+- **MIME Type Detection**: Automatic MIME type detection
 
-### Code Organization
-- Use ES6 modules for imports/exports
-- Group related functionality in modules
-- Use barrel exports for clean imports
-- Keep files focused and single-purpose
+## CSS Architecture
+
+### CSS Organization
+CSS follows a layered architecture as documented in [src/css/README.md](mdc:src/css/README.md):
+
+#### Directory Structure
+```
+src/css/
+├── base/              # Foundation styles
+├── layouts/           # Layout components
+├── components/        # Reusable UI components
+├── pages/            # Page-specific styles
+├── dashboard/        # Dashboard-specific styles
+├── themes/           # Theme variations
+├── utils/            # Utility classes
+└── main.css          # Main entry point
+```
+
+#### CSS Layers
+CSS uses `@layer` directives for specificity control:
+1. **base** - Variables, reset, foundation styles
+2. **layouts** - Layout components and grid systems
+3. **components** - Reusable UI components
+4. **pages** - Page-specific styles
+5. **utils** - Utility classes and helpers
+6. **theme** - Theme variations and overrides
+
+### Naming Conventions
+- **CSS Classes**: Use kebab-case (`.form-group`, `.nav-item`)
+- **BEM Methodology**: For complex components (`.form__input--error`)
+- **Component Prefixes**: Use prefixes for component-specific styles
 
 ## Form.io Integration
 
@@ -75,6 +93,61 @@ alwaysApply: false
 - Implement custom validators when needed
 - Handle form submission and data processing
 - Support form versioning and templates
+
+### Form.io Customizations
+Form.io customizations in [src/css/formio-custom.css](mdc:src/css/formio-custom.css):
+- **Theme Overrides**: Custom styling for Form.io components
+- **Component Styling**: Consistent styling with application theme
+- **Responsive Design**: Mobile-friendly form layouts
+
+### Form Builder Styles
+Form builder specific styles in [src/css/pages/form-builder.css](mdc:src/css/pages/form-builder.css):
+- **Builder Interface**: Styling for form builder UI
+- **Component Library**: Styling for form components
+- **Preview Mode**: Styling for form preview
+
+## Development Workflow
+
+### Commands
+- `npm run dev` - Start development server (localhost:5173)
+- `npm run build` - Build for production
+- `npm run lint` - Run ESLint
+- `npm run lint:fix` - Fix linting issues
+- `npm run typecheck` - TypeScript type checking
+- `npm run format` - Format code with Prettier
+- `npm run test` - Run tests with Vitest
+
+### Hot Reloading
+- **Preferred Method**: Use hot reloading instead of manual builds
+- **Vite Integration**: Automatic hot reloading through Vite
+- **Asset Watching**: File system watching for changes
+- **Browser Sync**: Automatic browser refresh
+
+### Environment Configuration
+Frontend development environment variables:
+- **Vite Dev Host**: `GOFORMS_APP_VITE_DEV_HOST` (default: localhost)
+- **Vite Dev Port**: `GOFORMS_APP_VITE_DEV_PORT` (default: 5173)
+- **Asset Path**: Configure asset paths for different environments
+
+### Build Process
+- **Development**: Vite dev server with hot reloading
+- **Production**: Vite build with asset optimization
+- **Asset Embedding**: Go embed directive for production assets
+- **Minification**: CSS and JS minification for production
+
+## TypeScript Guidelines
+
+### Type Safety
+- Use strict TypeScript configuration from [tsconfig.json](mdc:tsconfig.json)
+- Define interfaces for all data structures
+- Use type guards for runtime type checking
+- Avoid `any` type - use `unknown` or proper types
+
+### Code Organization
+- Use ES6 modules for imports/exports
+- Group related functionality in modules
+- Use barrel exports for clean imports
+- Keep files focused and single-purpose
 
 ## Styling
 
@@ -142,6 +215,67 @@ alwaysApply: false
 ### Environment Configuration
 - Use environment variables for configuration
 - Different settings for development and production
+- Secure handling of API keys and secrets
+- Proper error handling for miss
+
+## Component Development
+
+### Component Structure
+- **Reusable Components**: Create reusable UI components
+- **Component Library**: Maintain consistent component library
+- **Documentation**: Document component usage and props
+- **Testing**: Unit tests for component behavior
+
+### Styling Guidelines
+- **CSS Custom Properties**: Use CSS variables for theming
+- **Responsive Design**: Mobile-first responsive design
+- **Accessibility**: Ensure components are accessible
+- **Performance**: Optimize CSS for performance
+
+## Asset Optimization
+
+### Performance Considerations
+- **Asset Compression**: Compress CSS and JS assets
+- **Image Optimization**: Optimize images for web
+- **Font Loading**: Optimize font loading and display
+- **Caching Strategy**: Implement appropriate caching headers
+
+### Security Headers
+Static assets receive security headers:
+- **X-Content-Type-Options**: `nosniff` for all assets
+- **Cache Control**: Appropriate cache headers
+- **Content Security Policy**: CSP headers for assets
+
+## Testing Frontend
+
+### Component Testing
+- **Unit Tests**: Test individual components
+- **Integration Tests**: Test component interactions
+- **Visual Testing**: Visual regression testing
+- **Accessibility Testing**: Ensure accessibility compliance
+
+### Asset Testing
+- **Asset Loading**: Test asset loading in different environments
+- **Performance Testing**: Measure asset loading performance
+- **Security Testing**: Validate security headers on assets
+- **Cross-browser Testing**: Test across different browsers
+
+## Deployment Considerations
+
+### Asset Pipeline
+- **Build Optimization**: Optimize assets for production
+- **Asset Embedding**: Embed critical assets in binary
+- **CDN Integration**: Use CDN for static assets in production
+- **Cache Invalidation**: Implement cache invalidation strategy
+
+### Environment Configuration
+- **Development**: Local asset serving with hot reloading
+- **Staging**: Production-like environment for testing
+- **Production**: Optimized assets with CDN delivery
+- **Configuration**: Environment-specific asset configuration
+
+
+
 - Secure handling of API keys and secrets
 - Proper error handling for miss
 

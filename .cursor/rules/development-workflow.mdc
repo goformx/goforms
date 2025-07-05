@@ -1,8 +1,3 @@
----
-description: Development workflow, build automation, and task management guidelines
-globs: 
-alwaysApply: false
----
 # Development Workflow
 
 ## Task Automation
@@ -135,6 +130,121 @@ task lint       # Check code quality
 - Asset compression and optimization
 - Environment-specific configuration
 - Health checks and monitoring
+
+### Docker Support
+- Multi-stage builds for efficiency
+- Configuration in [docker/](mdc:docker)
+- Production-ready containers
+
+# Development Workflow Guide
+
+## Testing Guidelines
+
+### Test Execution
+- **Unit Tests**: Run with `go test ./...` (minimal output preferred)
+- **Integration Tests**: Run with `go test ./test/integration/...`
+- **Avoid Verbose Flags**: Use `-v` sparingly, prefer minimal console output
+- **Test Coverage**: Aim for high coverage, especially in domain and application layers
+
+### Test Configuration
+Integration tests should follow the pattern in [test/integration/public_pages_test.go](mdc:test/integration/public_pages_test.go):
+- Use `fxtest.New()` for dependency injection in tests
+- Configure security headers and middleware properly
+- Test both success and error scenarios
+- Validate security headers on public endpoints
+
+### Mock Generation
+- Generate mocks for interfaces using `task generate:mocks`
+- Mocks are stored in [test/mocks/](mdc:test/mocks/)
+- Use `//go:generate` directives in interface files
+
+## Hot Reloading Development
+
+### Development Server
+- **Preferred Workflow**: Use hot reloading instead of manual builds
+- **Vite Integration**: Frontend assets served through Vite dev server
+- **Backend Hot Reload**: Use tools like `air` or `realize` for Go hot reloading
+- **Asset Management**: Development assets served from [internal/infrastructure/web/](mdc:internal/infrastructure/web/)
+
+### Environment Configuration
+Use environment variables for configuration:
+- **Application**: `GOFORMS_APP_*` for application settings
+- **Database**: `GOFORMS_DATABASE_*` for database settings
+- **Security**: `GOFORMS_SECURITY_*` for security settings
+- **Vite Dev**: `GOFORMS_APP_VITE_DEV_*` for Vite development server settings
+
+## Code Quality
+
+### Linting and Formatting
+- **Go Formatting**: Use `go fmt` for consistent formatting
+- **Linting**: Run `task lint:backend` for comprehensive linting
+- **Architecture Linting**: Run `./scripts/arch-lint.sh` to validate clean architecture
+- **Security Scanning**: Use `gosec` for security vulnerability scanning
+
+### Code Organization
+- **File Naming**: Use snake_case for file names
+- **Package Structure**: Keep packages focused and cohesive
+- **Interface Design**: Use interfaces for dependency inversion
+- **Error Handling**: Always check errors and handle appropriately
+
+## Database Development
+
+### Migrations
+- **Location**: [migrations/](mdc:migrations/) directory
+- **Commands**:
+  - `task migrate:up` - Apply migrations
+  - `task migrate:down` - Rollback migrations
+  - `task migrate:create` - Create new migration
+- **Testing**: Always test migrations in development before production
+
+### Repository Pattern
+- **Domain Interfaces**: Define in domain layer
+- **Implementations**: Place in infrastructure layer
+- **Transactions**: Use for multi-step operations
+- **Testing**: Mock repositories in unit tests
+
+## Security Development
+
+### Security Headers
+Security headers are automatically applied through middleware chains:
+- **X-Content-Type-Options**: `nosniff`
+- **X-Frame-Options**: `DENY`
+- **X-XSS-Protection**: `1; mode=block`
+- **Referrer-Policy**: `strict-origin-when-cross-origin`
+
+### CSRF Protection
+- **Token Generation**: Cryptographically secure tokens
+- **Validation**: Per-request validation for state-changing operations
+- **Configuration**: Managed through [config.yaml](mdc:config.yaml)
+
+### Session Management
+- **Development**: Memory-based sessions for testing
+- **Production**: File-based or Redis sessions
+- **Security**: HTTP-only cookies with appropriate SameSite settings
+
+## Performance Considerations
+
+### Middleware Optimization
+- **Chain Caching**: Middleware chains are cached for performance
+- **Conditional Execution**: Security headers only applied when enabled
+- **Request Filtering**: Skip middleware for static assets
+
+### Database Optimization
+- **Connection Pooling**: Configured through GORM
+- **Query Optimization**: Use indexes and efficient queries
+- **Transaction Management**: Proper transaction boundaries
+
+## Deployment Preparation
+
+### Configuration Management
+- **Environment Variables**: Use for sensitive configuration
+- **Validation**: Validate configuration on startup
+- **Defaults**: Provide sensible defaults for development
+
+### Asset Management
+- **Development**: Served from Vite dev server
+- **Production**: Embedded in binary using `embed` directive
+- **Caching**: Appropriate cache headers for static assets
 
 ### Docker Support
 - Multi-stage builds for efficiency

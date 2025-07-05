@@ -1,0 +1,142 @@
+# Middleware Architecture Guide
+
+## Middleware System Overview
+
+The project uses a sophisticated middleware system with clean architecture principles:
+
+### Core Middleware Interface
+All middleware implements the interface defined in [internal/application/middleware/core/interfaces.go](mdc:internal/application/middleware/core/interfaces.go):
+- **Framework Agnostic**: Works with any HTTP framework
+- **Priority Based**: Lower numbers execute first
+- **Context Aware**: Access to request context and configuration
+
+### Middleware Adapters
+Echo framework integration through [internal/application/middleware/echo_adapter.go](mdc:internal/application/middleware/echo_adapter.go):
+- **Orchestrator Pattern**: Centralized middleware management
+- **Chain Configuration**: Route-based middleware chains
+- **Conditional Execution**: Skip middleware based on configuration
+
+## Security Headers Implementation
+
+### Security Headers Middleware
+Implemented in [internal/application/middleware/adapters.go](mdc:internal/application/middleware/adapters.go):
+
+```go
+// Security headers are applied conditionally
+if cfg.SecurityHeaders.Enabled {
+    resp.SetHeader("X-Content-Type-Options", "nosniff")
+    resp.SetHeader("X-Frame-Options", "DENY")
+    resp.SetHeader("X-XSS-Protection", "1; mode=block")
+    // ... more headers
+}
+```
+
+### Configuration
+Security headers configuration in [internal/infrastructure/config/security.go](mdc:internal/infrastructure/config/security.go):
+- **X-Content-Type-Options**: `nosniff` (prevents MIME type sniffing)
+- **X-Frame-Options**: `DENY` (prevents clickjacking)
+- **X-XSS-Protection**: `1; mode=block` (XSS protection)
+- **Referrer-Policy**: `strict-origin-when-cross-origin`
+- **Permissions-Policy**: Restricts browser features
+
+### Testing Security Headers
+Integration tests validate security headers in [test/integration/public_pages_test.go](mdc:test/integration/public_pages_test.go):
+- All public pages must return `X-Content-Type-Options: nosniff`
+- Health endpoint must include security headers
+- Critical pages tested for security compliance
+
+## Middleware Chains
+
+### Chain Configuration
+Middleware chains defined in [internal/infrastructure/config/middleware.go](mdc:internal/infrastructure/config/middleware.go):
+
+#### Public Chain
+- **Paths**: `/`, `/login`, `/signup`, `/health`
+- **Middleware**: `recovery`, `cors`, `security-headers`
+- **Purpose**: Basic security for public pages
+
+#### API Chain
+- **Paths**: `/api/*`
+- **Middleware**: `recovery`, `cors`, `security-headers`
+- **Purpose**: API endpoints with security headers
+
+#### Web Chain
+- **Paths**: `/forms/*`, `/dashboard/*`
+- **Middleware**: `recovery`, `cors`, `security-headers`
+- **Purpose**: Web application pages
+
+### Global Middleware
+Global middleware configuration in [config.yaml](mdc:config.yaml):
+- **Development**: Full middleware stack for debugging
+- **Production**: Optimized middleware for performance
+- **Environment Specific**: Different middleware per environment
+
+## CSRF Protection
+
+### CSRF Middleware
+CSRF protection implemented in [internal/application/middleware/adapters.go](mdc:internal/application/middleware/adapters.go):
+
+```go
+// Generate cryptographically secure tokens
+token := m.generateCSRFToken(cfg)
+
+// Validate tokens for state-changing operations
+if !m.validateCSRFToken(req, cfg) {
+    return core.NewErrorResponse(http.StatusForbidden, fmt.Errorf("CSRF token validation failed"))
+}
+```
+
+### CSRF Configuration
+Configuration in [config.yaml](mdc:config.yaml):
+- **Token Generation**: 32-byte cryptographically secure tokens
+- **Token Storage**: Server-side storage (TODO: implement)
+- **Skip Paths**: `/health`, `/metrics`, webhook endpoints
+- **Cookie Settings**: HTTP-only, SameSite=Lax
+
+## Middleware Registration
+
+### Registration Process
+Middleware registration in [internal/application/middleware/module.go](mdc:internal/application/middleware/module.go):
+1. **Registry Creation**: Centralized middleware registry
+2. **Factory Functions**: Create middleware instances
+3. **Chain Assembly**: Build middleware chains from configuration
+4. **Route Application**: Apply chains to specific routes
+
+### Lifecycle Management
+Middleware lifecycle managed through FX dependency injection:
+- **Startup**: Register all middleware
+- **Configuration**: Load middleware settings
+- **Runtime**: Apply middleware based on routes
+- **Shutdown**: Clean up middleware resources
+
+## Performance Optimization
+
+### Middleware Caching
+- **Chain Caching**: Middleware chains cached for performance
+- **Conditional Execution**: Skip middleware when disabled
+- **Request Filtering**: Skip middleware for static assets
+
+### Security Headers Optimization
+Security headers middleware optimized for performance:
+- **Early Return**: Skip if security headers disabled
+- **Conditional Headers**: Only set HSTS for HTTPS
+- **Minimal Overhead**: Efficient header setting
+
+## Testing Middleware
+
+### Integration Testing
+Middleware tested through integration tests:
+- **Security Headers**: Validate all required headers present
+- **CSRF Protection**: Test token generation and validation
+- **Error Handling**: Test middleware error scenarios
+- **Performance**: Measure middleware overhead
+
+### Unit Testing
+Individual middleware components unit tested:
+- **Mock Dependencies**: Use mocks for external dependencies
+- **Edge Cases**: Test error conditions and edge cases
+- **Configuration**: Test different configuration scenarios
+description:
+globs:
+alwaysApply: false
+---
