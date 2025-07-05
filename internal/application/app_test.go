@@ -12,7 +12,6 @@ import (
 
 	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/domain"
-	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
@@ -106,8 +105,7 @@ func TestNewApplication(t *testing.T) {
 		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
-			infrastructure.Module, // Only infrastructure, no config
-			domain.Module,         // Domain services
+			domain.Module, // Domain services
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
@@ -146,8 +144,7 @@ func TestApplicationLifecycle(t *testing.T) {
 		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
-			infrastructure.Module, // Only infrastructure, no config
-			domain.Module,         // Domain services
+			domain.Module, // Domain services
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },
@@ -192,8 +189,7 @@ func TestApplicationWithFxtest(t *testing.T) {
 		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
-			infrastructure.Module, // Only infrastructure, no config
-			domain.Module,         // Domain services
+			domain.Module, // Domain services
 			fx.Provide(
 				func() server.ServerInterface { return mockServer },
 				func() logging.Logger { return mockLogger },

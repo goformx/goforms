@@ -17,6 +17,8 @@ import (
 	"github.com/goformx/goforms/internal/presentation/handlers/auth"
 	"github.com/goformx/goforms/internal/presentation/handlers/dashboard"
 	"github.com/goformx/goforms/internal/presentation/handlers/forms"
+	"github.com/goformx/goforms/internal/presentation/handlers/health"
+	"github.com/goformx/goforms/internal/presentation/handlers/openapi"
 	"github.com/goformx/goforms/internal/presentation/handlers/pages"
 	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
 	echosrv "github.com/labstack/echo/v4"
@@ -116,6 +118,11 @@ func NewPageHandlerWithDeps(params PageHandlerParams) *pages.PageHandler {
 	)
 }
 
+// NewOpenAPIHandlerWithDeps creates a new OpenAPIHandler with injected dependencies
+func NewOpenAPIHandlerWithDeps() *openapi.OpenAPIHandler {
+	return openapi.NewOpenAPIHandler()
+}
+
 // EchoAdapterParams contains dependencies for creating an EchoAdapter
 type EchoAdapterParams struct {
 	fx.In
@@ -149,6 +156,16 @@ var Module = fx.Module("presentation",
 		),
 		fx.Annotate(
 			NewFormHandlerWithDeps,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
+			NewOpenAPIHandlerWithDeps,
+			fx.As(new(httpiface.Handler)),
+			fx.ResultTags(`group:"handlers"`),
+		),
+		fx.Annotate(
+			health.NewHealthHandler,
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),

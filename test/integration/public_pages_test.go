@@ -2,6 +2,7 @@ package integration_test
 
 import (
 	"embed"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"strings"
@@ -16,9 +17,12 @@ import (
 
 	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/middleware"
+	middlewarecore "github.com/goformx/goforms/internal/application/middleware/core"
 	"github.com/goformx/goforms/internal/domain"
 	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/presentation"
 )
 
@@ -33,7 +37,7 @@ func createTestAppWithEcho(t *testing.T) (*fxtest.App, *echo.Echo) {
 		App: config.AppConfig{
 			Name:            "test-app",
 			Version:         "0.0.1-test",
-			Environment:     "test",
+			Environment:     "development", // Use development mode for asset resolution
 			Debug:           true,
 			LogLevel:        "debug",
 			URL:             "http://localhost:8080",
@@ -45,14 +49,16 @@ func createTestAppWithEcho(t *testing.T) (*fxtest.App, *echo.Echo) {
 			IdleTimeout:     5 * time.Second,
 			RequestTimeout:  5 * time.Second,
 			ShutdownTimeout: 5 * time.Second,
+			ViteDevHost:     "localhost",
+			ViteDevPort:     "5173",
 		},
 		Database: config.DatabaseConfig{
 			Driver:          "postgres",
-			Host:            "localhost",
+			Host:            "postgres",
 			Port:            5432,
-			Name:            "testdb",
-			Username:        "testuser",
-			Password:        "testpass",
+			Name:            "goforms",
+			Username:        "goforms",
+			Password:        "goforms",
 			MaxOpenConns:    5,
 			MaxIdleConns:    2,
 			ConnMaxLifetime: 5 * time.Minute,
@@ -86,10 +92,84 @@ func createTestAppWithEcho(t *testing.T) (*fxtest.App, *echo.Echo) {
 				Burst:   10,
 				Window:  60,
 			},
+			SecurityHeaders: config.SecurityHeadersConfig{
+				Enabled:             true,
+				XFrameOptions:       "DENY",
+				XContentTypeOptions: "nosniff",
+				XXSSProtection:      "1; mode=block",
+				ReferrerPolicy:      "strict-origin-when-cross-origin",
+				PermissionsPolicy:   "camera=(), microphone=(), geolocation=()",
+			},
 		},
 		Session: config.SessionConfig{
-			Type:   "memory", // Use memory sessions for testing
-			Secret: "test-session-secret-key-for-testing-only",
+			Type:       "memory", // Use memory sessions for testing
+			Secret:     "test-session-secret-key-for-testing-only",
+			MaxAge:     24 * time.Hour,
+			Domain:     "",
+			Path:       "/",
+			Secure:     false,
+			HTTPOnly:   true,
+			SameSite:   "Lax",
+			Store:      "memory",
+			StoreFile:  "/tmp/test-sessions/sessions.json", // Provide a valid path for testing
+			CookieName: "test-session",
+		},
+		Middleware: config.MiddlewareConfig{
+			Enabled: true,
+			SecurityHeaders: config.SecurityHeadersMiddlewareConfig{
+				Enabled: true,
+			},
+			Chains: config.ChainConfigs{
+				Default: config.ChainConfig{
+					Enabled: true,
+					MiddlewareNames: []string{
+						"recovery",
+						"cors",
+						"security-headers",
+					},
+					Paths: []string{"/*"},
+				},
+				Public: config.ChainConfig{
+					Enabled: true,
+					MiddlewareNames: []string{
+						"recovery",
+						"cors",
+						"security-headers",
+					},
+					Paths: []string{"/", "/login", "/signup", "/health"},
+				},
+				API: config.ChainConfig{
+					Enabled: true,
+					MiddlewareNames: []string{
+						"recovery",
+						"cors",
+						"security-headers",
+					},
+					Paths: []string{"/api/*"},
+				},
+				Web: config.ChainConfig{
+					Enabled: true,
+					MiddlewareNames: []string{
+						"recovery",
+						"cors",
+						"security-headers",
+					},
+					Paths: []string{"/forms/*", "/dashboard/*"},
+				},
+			},
+			Global: config.GlobalMiddlewareConfig{
+				Development: []string{
+					"recovery",
+					"cors",
+					"request_id",
+					"logging",
+					"session",
+					"csrf",
+					"authentication",
+					"authorization",
+					"security-headers",
+				},
+			},
 		},
 	}
 
@@ -105,6 +185,16 @@ func createTestAppWithEcho(t *testing.T) (*fxtest.App, *echo.Echo) {
 		fx.Invoke(presentation.RegisterRoutes),
 		fx.Invoke(func(e *echo.Echo) {
 			echoInstance = e
+		}),
+		// Ensure server is instantiated to register health endpoint
+		fx.Invoke(func(s *server.Server) {
+			// Server is instantiated, health endpoint should be registered
+		}),
+		// Register all middleware for testing
+		fx.Invoke(func(registry middlewarecore.Registry, logger logging.Logger) {
+			if err := middleware.RegisterAllMiddleware(registry, logger); err != nil {
+				panic(fmt.Sprintf("Failed to register middleware: %v", err))
+			}
 		}),
 	}
 

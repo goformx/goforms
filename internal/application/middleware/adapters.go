@@ -161,8 +161,50 @@ type securityHeadersMiddleware struct {
 }
 
 func (m *securityHeadersMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
-	// Security headers logic would be implemented here
-	return next(ctx, req)
+	// Get security configuration from context
+	cfg := m.getSecurityConfig(ctx)
+	if cfg == nil {
+		// If no security config, skip security headers
+		return next(ctx, req)
+	}
+
+	// Process the request
+	resp := next(ctx, req)
+
+	// Set security headers if enabled
+	if cfg.SecurityHeaders.Enabled {
+		// Set X-Content-Type-Options
+		if cfg.SecurityHeaders.XContentTypeOptions != "" {
+			resp.SetHeader("X-Content-Type-Options", cfg.SecurityHeaders.XContentTypeOptions)
+		}
+
+		// Set X-Frame-Options
+		if cfg.SecurityHeaders.XFrameOptions != "" {
+			resp.SetHeader("X-Frame-Options", cfg.SecurityHeaders.XFrameOptions)
+		}
+
+		// Set X-XSS-Protection
+		if cfg.SecurityHeaders.XXSSProtection != "" {
+			resp.SetHeader("X-XSS-Protection", cfg.SecurityHeaders.XXSSProtection)
+		}
+
+		// Set Referrer-Policy
+		if cfg.SecurityHeaders.ReferrerPolicy != "" {
+			resp.SetHeader("Referrer-Policy", cfg.SecurityHeaders.ReferrerPolicy)
+		}
+
+		// Set Permissions-Policy
+		if cfg.SecurityHeaders.PermissionsPolicy != "" {
+			resp.SetHeader("Permissions-Policy", cfg.SecurityHeaders.PermissionsPolicy)
+		}
+
+		// Set Strict-Transport-Security (only for HTTPS)
+		if cfg.SecurityHeaders.StrictTransportSecurity != "" && req.IsSecure() {
+			resp.SetHeader("Strict-Transport-Security", cfg.SecurityHeaders.StrictTransportSecurity)
+		}
+	}
+
+	return resp
 }
 
 func (m *securityHeadersMiddleware) Name() string {
@@ -171,6 +213,26 @@ func (m *securityHeadersMiddleware) Name() string {
 
 func (m *securityHeadersMiddleware) Priority() int {
 	return m.priority
+}
+
+// getSecurityConfig retrieves security configuration from context
+func (m *securityHeadersMiddleware) getSecurityConfig(ctx context.Context) *config.SecurityConfig {
+	// Try to get config from context
+	if cfg, ok := ctx.Value("security_config").(*config.SecurityConfig); ok {
+		return cfg
+	}
+
+	// Return default config for development
+	return &config.SecurityConfig{
+		SecurityHeaders: config.SecurityHeadersConfig{
+			Enabled:             true,
+			XFrameOptions:       "DENY",
+			XContentTypeOptions: "nosniff",
+			XXSSProtection:      "1; mode=block",
+			ReferrerPolicy:      "strict-origin-when-cross-origin",
+			PermissionsPolicy:   "camera=(), microphone=(), geolocation=()",
+		},
+	}
 }
 
 type requestIDMiddleware struct {

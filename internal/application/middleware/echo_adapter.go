@@ -238,6 +238,8 @@ func (ea *EchoOrchestratorAdapter) convertMiddlewareToEcho(mw core.Middleware) e
 		return ea.createAuthorizationMiddleware()
 	case "csrf":
 		return ea.createCSRFMiddleware()
+	case "security-headers":
+		return ea.createSecurityHeadersMiddleware()
 	default:
 		return nil
 	}
@@ -481,4 +483,25 @@ func (ea *EchoOrchestratorAdapter) isPublicPath(path string) bool {
 func (ea *EchoOrchestratorAdapter) isStaticPath(path string) bool {
 	return len(path) >= 8 && path[:8] == "/static" ||
 		len(path) >= 8 && path[:8] == "/assets"
+}
+
+// createSecurityHeadersMiddleware creates an Echo security headers middleware
+func (ea *EchoOrchestratorAdapter) createSecurityHeadersMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			// Set security headers
+			c.Response().Header().Set("X-Content-Type-Options", "nosniff")
+			c.Response().Header().Set("X-Frame-Options", "DENY")
+			c.Response().Header().Set("X-XSS-Protection", "1; mode=block")
+			c.Response().Header().Set("Referrer-Policy", "strict-origin-when-cross-origin")
+			c.Response().Header().Set("Permissions-Policy", "camera=(), microphone=(), geolocation=()")
+
+			// Set Strict-Transport-Security only for HTTPS
+			if c.IsTLS() {
+				c.Response().Header().Set("Strict-Transport-Security", "max-age=31536000; includeSubDomains")
+			}
+
+			return next(c)
+		}
+	}
 }

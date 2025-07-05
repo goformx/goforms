@@ -137,7 +137,12 @@ func setupPresentationLifecycle(
 
 // setupApplication initializes the application using the ApplicationSetup service.
 func setupApplication(params appParams) error {
-	return params.SetupService.Setup()
+	// Set up middleware first
+	if err := params.SetupService.Setup(); err != nil {
+		return err
+	}
+	// No need to register health endpoint here anymore
+	return nil
 }
 
 // setupLifecycle configures the application lifecycle using the LifecycleManager.
