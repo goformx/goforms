@@ -29,7 +29,7 @@ type FormHandler struct {
 	logger          logging.Logger
 }
 
-// NewFormHandler creates a new FormHandler and registers all form routes
+//nolint:funlen // its fine, move along
 func NewFormHandler(
 	formService *services.FormUseCaseService,
 	requestAdapter http.RequestAdapter,
@@ -110,11 +110,15 @@ func (h *FormHandler) getInfraContext(ctx httpiface.Context) (http.Context, erro
 }
 
 // getFormAndContext is a helper function to get form data and context for rendering
-func (h *FormHandler) getFormAndContext(ctx httpiface.Context, formID string) (*model.Form, *http.EchoContextAdapter, error) {
+func (h *FormHandler) getFormAndContext(
+	ctx httpiface.Context,
+	_ string, // formID is not used since we parse it from the context
+) (*model.Form, *http.EchoContextAdapter, error) {
 	// Get infrastructure context using bridge
 	infraCtx, err := h.getInfraContext(ctx)
 	if err != nil {
 		h.logger.Error("failed to get infrastructure context", "error", err)
+
 		return nil, nil, fmt.Errorf("internal server error: context conversion failed")
 	}
 
@@ -122,6 +126,7 @@ func (h *FormHandler) getFormAndContext(ctx httpiface.Context, formID string) (*
 	parsedFormID, err := h.requestAdapter.ParseFormID(infraCtx)
 	if err != nil {
 		h.logger.Error("failed to parse form ID", "error", err)
+
 		return nil, nil, fmt.Errorf("invalid form ID")
 	}
 
@@ -129,6 +134,7 @@ func (h *FormHandler) getFormAndContext(ctx httpiface.Context, formID string) (*
 	formResp, err := h.formService.GetForm(ctx.RequestContext(), parsedFormID)
 	if err != nil {
 		h.logger.Error("failed to get form", "form_id", parsedFormID, "error", err)
+
 		return nil, nil, fmt.Errorf("failed to load form")
 	}
 
@@ -207,10 +213,11 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	form, echoCtx, err := h.getFormAndContext(ctx, "")
 	if err != nil {
 		// Get infrastructure context for error response
-		infraCtx, _ := h.getInfraContext(ctx)
-		if infraCtx != nil {
+		infraCtx, getCtxErr := h.getInfraContext(ctx)
+		if getCtxErr == nil && infraCtx != nil {
 			return h.responseAdapter.BuildErrorResponse(infraCtx, err)
 		}
+
 		return err
 	}
 
@@ -221,52 +228,24 @@ func (h *FormHandler) EditForm(ctx httpiface.Context) error {
 	pageData.FormBuilderAssetPath = h.assetManager.AssetPath("src/js/pages/form-builder.ts")
 
 	// Render the edit form template
-	if err := h.renderer.Render(echoCtx.Context, pages.EditForm(*pageData, form)); err != nil {
-		return fmt.Errorf("failed to render edit form template: %w", err)
+	if renderErr := h.renderer.Render(echoCtx.Context, pages.EditForm(*pageData, form)); renderErr != nil {
+		return fmt.Errorf("failed to render edit form template: %w", renderErr)
 	}
+
 	return nil
 }
 
 // PreviewForm handles GET /forms/:id/preview
 func (h *FormHandler) PreviewForm(ctx httpiface.Context) error {
-	// Get infrastructure context using bridge
-	infraCtx, err := h.getInfraContext(ctx)
+	form, echoCtx, err := h.getFormAndContext(ctx, "")
 	if err != nil {
-		h.logger.Error("failed to get infrastructure context", "error", err)
+		// Get infrastructure context for error response
+		infraCtx, getCtxErr := h.getInfraContext(ctx)
+		if getCtxErr == nil && infraCtx != nil {
+			return h.responseAdapter.BuildErrorResponse(infraCtx, err)
+		}
 
-		return fmt.Errorf("internal server error: context conversion failed")
-	}
-	// Parse form ID
-	formID, err := h.requestAdapter.ParseFormID(infraCtx)
-	if err != nil {
-		h.logger.Error("failed to parse form ID", "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
-	}
-	// Call application service
-	previewResp, err := h.formService.GetForm(ctx.RequestContext(), formID)
-	if err != nil {
-		h.logger.Error("failed to get form for preview", "form_id", formID, "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load form for preview"))
-	}
-
-	// Convert DTO to domain model for template rendering
-	form := &model.Form{
-		ID:          previewResp.ID,
-		Title:       previewResp.Title,
-		Description: previewResp.Description,
-		Schema:      previewResp.Schema,
-		UserID:      previewResp.UserID,
-		Status:      previewResp.Status,
-		CreatedAt:   previewResp.CreatedAt,
-		UpdatedAt:   previewResp.UpdatedAt,
-	}
-
-	// Get the underlying Echo context for rendering
-	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
-	if !ok {
-		return fmt.Errorf("invalid context type for rendering")
+		return err
 	}
 
 	// Create page data for template rendering
@@ -276,9 +255,10 @@ func (h *FormHandler) PreviewForm(ctx httpiface.Context) error {
 	pageData.FormPreviewAssetPath = h.assetManager.AssetPath("src/js/pages/form-preview.ts")
 
 	// Render the form preview template
-	if err := h.renderer.Render(echoCtx.Context, pages.FormPreview(*pageData, form)); err != nil {
-		return fmt.Errorf("failed to render form preview template: %w", err)
+	if renderErr := h.renderer.Render(echoCtx.Context, pages.FormPreview(*pageData, form)); renderErr != nil {
+		return fmt.Errorf("failed to render form preview template: %w", renderErr)
 	}
+
 	return nil
 }
 
@@ -364,44 +344,15 @@ func (h *FormHandler) DeleteForm(ctx httpiface.Context) error {
 
 // FormSubmissions handles GET /forms/:id/submissions
 func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
-	// Get infrastructure context using bridge
-	infraCtx, err := h.getInfraContext(ctx)
+	form, echoCtx, err := h.getFormAndContext(ctx, "")
 	if err != nil {
-		h.logger.Error("failed to get infrastructure context", "error", err)
+		// Get infrastructure context for error response
+		infraCtx, getCtxErr := h.getInfraContext(ctx)
+		if getCtxErr == nil && infraCtx != nil {
+			return h.responseAdapter.BuildErrorResponse(infraCtx, err)
+		}
 
-		return fmt.Errorf("internal server error: context conversion failed")
-	}
-	// Parse form ID
-	formID, err := h.requestAdapter.ParseFormID(infraCtx)
-	if err != nil {
-		h.logger.Error("failed to parse form ID", "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("invalid form ID"))
-	}
-	// Get the form first to verify it exists and get form details
-	formResp, err := h.formService.GetForm(ctx.RequestContext(), formID)
-	if err != nil {
-		h.logger.Error("failed to get form for submissions", "form_id", formID, "error", err)
-
-		return h.responseAdapter.BuildErrorResponse(infraCtx, fmt.Errorf("failed to load form"))
-	}
-
-	// Convert DTO to domain model for template rendering
-	form := &model.Form{
-		ID:          formResp.ID,
-		Title:       formResp.Title,
-		Description: formResp.Description,
-		Schema:      formResp.Schema,
-		UserID:      formResp.UserID,
-		Status:      formResp.Status,
-		CreatedAt:   formResp.CreatedAt,
-		UpdatedAt:   formResp.UpdatedAt,
-	}
-
-	// Get the underlying Echo context for rendering
-	echoCtx, ok := infraCtx.(*http.EchoContextAdapter)
-	if !ok {
-		return fmt.Errorf("invalid context type for rendering")
+		return err
 	}
 
 	// Create page data for template rendering
@@ -412,9 +363,10 @@ func (h *FormHandler) FormSubmissions(ctx httpiface.Context) error {
 	pageData.Submissions = []*model.FormSubmission{}
 
 	// Render the form submissions template
-	if err := h.renderer.Render(echoCtx.Context, pages.FormSubmissions(*pageData)); err != nil {
-		return fmt.Errorf("failed to render form submissions template: %w", err)
+	if renderErr := h.renderer.Render(echoCtx.Context, pages.FormSubmissions(*pageData)); renderErr != nil {
+		return fmt.Errorf("failed to render form submissions template: %w", renderErr)
 	}
+
 	return nil
 }
 
