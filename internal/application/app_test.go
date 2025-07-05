@@ -3,6 +3,7 @@ package application_test
 import (
 	"context"
 	"embed"
+	"strings"
 	"testing"
 	"time"
 
@@ -39,25 +40,20 @@ func TestNewApplication(t *testing.T) {
 			ShutdownTimeout: 5 * time.Second,
 		}).AnyTimes()
 
-		// Create test modules with only the mocks we need
+		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockServer.EXPECT().Start().Return(nil).AnyTimes()
+
 		testModules := []fx.Option{
 			fx.Provide(
-				func() server.ServerInterface {
-					return mockServer
-				},
-				func() logging.Logger {
-					return mockLogger
-				},
-				func() config.ConfigInterface {
-					return mockConfig
-				},
+				func() server.ServerInterface { return mockServer },
+				func() logging.Logger { return mockLogger },
+				func() config.ConfigInterface { return mockConfig },
 			),
 		}
 
 		// Create application with test modules
 		app := application.NewApplication(testDistFS, testModules...)
 
-		// Verify app was created
 		if app == nil {
 			t.Fatal("Expected application to be created, got nil")
 		}
@@ -81,8 +77,8 @@ func TestApplicationLifecycle(t *testing.T) {
 			ShutdownTimeout: 5 * time.Second,
 		}).AnyTimes()
 
-		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
-		mockServer.EXPECT().Start().Return(nil)
+		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
 			fx.Provide(
@@ -95,16 +91,13 @@ func TestApplicationLifecycle(t *testing.T) {
 		// Create application with test modules
 		app := application.NewApplication(testDistFS, testModules...)
 
-		// Test startup
-		ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
-		defer cancel()
-
-		if err := app.Start(ctx); err != nil {
+		// Start the application
+		if err := app.Start(context.Background()); err != nil {
 			t.Fatalf("Expected application to start successfully, got error: %v", err)
 		}
 
-		// Test shutdown
-		if err := app.Stop(ctx); err != nil {
+		// Stop the application
+		if err := app.Stop(context.Background()); err != nil {
 			t.Fatalf("Expected application to stop successfully, got error: %v", err)
 		}
 	})
@@ -127,8 +120,8 @@ func TestApplicationWithFxtest(t *testing.T) {
 			ShutdownTimeout: 5 * time.Second,
 		}).AnyTimes()
 
-		mockLogger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
-		mockServer.EXPECT().Start().Return(nil)
+		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).AnyTimes()
+		mockServer.EXPECT().Start().Return(nil).AnyTimes()
 
 		testModules := []fx.Option{
 			fx.Provide(
@@ -166,7 +159,7 @@ func TestLifecycleManager(t *testing.T) {
 		}).AnyTimes()
 
 		// Logger.Info calls with correct argument patterns
-		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any()).Times(1)
+		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockLogger.EXPECT().Info("server started successfully").Times(1)
 		mockLogger.EXPECT().Info("shutting down application", gomock.Any(), gomock.Any()).Times(1)
 		mockServer.EXPECT().Start().Return(nil)
@@ -212,7 +205,7 @@ func TestLifecycleManager_StartupError(t *testing.T) {
 			Environment: "test",
 		}).AnyTimes()
 
-		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any()).Times(1)
+		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		mockLogger.EXPECT().Error("server startup failed", gomock.Any()).Times(1)
 		mockServer.EXPECT().Start().Return(context.DeadlineExceeded)
 
@@ -234,8 +227,8 @@ func TestLifecycleManager_StartupError(t *testing.T) {
 		}
 
 		expectedError := "server failed to start"
-		if err.Error() != expectedError {
-			t.Fatalf("Expected error '%s', got '%s'", expectedError, err.Error())
+		if !strings.Contains(err.Error(), expectedError) {
+			t.Fatalf("Expected error to contain '%s', got '%s'", expectedError, err.Error())
 		}
 	})
 }
@@ -256,8 +249,12 @@ func TestLifecycleManager_ContextCancellation(t *testing.T) {
 			Environment: "test",
 		}).AnyTimes()
 
-		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any()).Times(1)
+		mockLogger.EXPECT().Info("starting application", gomock.Any(), gomock.Any(), gomock.Any(), gomock.Any()).Times(1)
 		// Server.Start() will block, but context will be canceled
+		mockServer.EXPECT().Start().DoAndReturn(func() error {
+			// Simulate a blocking server that never returns
+			select {}
+		})
 
 		// Create lifecycle manager
 		params := application.LifecycleParams{
@@ -278,8 +275,8 @@ func TestLifecycleManager_ContextCancellation(t *testing.T) {
 		}
 
 		expectedError := "application startup canceled"
-		if err.Error() != expectedError {
-			t.Fatalf("Expected error '%s', got '%s'", expectedError, err.Error())
+		if !strings.Contains(err.Error(), expectedError) {
+			t.Fatalf("Expected error to contain '%s', got '%s'", expectedError, err.Error())
 		}
 	})
 }

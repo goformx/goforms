@@ -7,8 +7,11 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/a-h/templ"
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/dto"
+	"github.com/goformx/goforms/internal/infrastructure/view"
+	httpiface "github.com/goformx/goforms/internal/presentation/interfaces/http"
 	"github.com/labstack/echo/v4"
 )
 
@@ -505,11 +508,12 @@ func (a *EchoResponseAdapter) isAPIRequest(ctx echo.Context) bool {
 // EchoContextAdapter implements Context for Echo
 type EchoContextAdapter struct {
 	echo.Context
+	renderer view.Renderer
 }
 
 // NewEchoContextAdapter creates a new Echo context adapter
-func NewEchoContextAdapter(ctx echo.Context) *EchoContextAdapter {
-	return &EchoContextAdapter{Context: ctx}
+func NewEchoContextAdapter(ctx echo.Context, renderer view.Renderer) *EchoContextAdapter {
+	return &EchoContextAdapter{Context: ctx, renderer: renderer}
 }
 
 // Method returns the HTTP method
@@ -616,29 +620,66 @@ func (e *EchoContextAdapter) GetUnderlyingContext() any {
 
 // RenderComponent renders a component
 func (e *EchoContextAdapter) RenderComponent(component any) error {
-	// This would delegate to the renderer service
-	// For now, we'll use Echo's built-in rendering
-	if err := e.Render(http.StatusOK, "component", component); err != nil {
-		return fmt.Errorf("failed to render component: %w", err)
+	// Type assert to templ.Component
+	templComponent, ok := component.(templ.Component)
+	if !ok {
+		return fmt.Errorf("component is not a templ.Component: %T", component)
 	}
 
-	return nil
+	// Use the renderer service to render the templ component
+	return e.renderer.Render(e.Context, templComponent)
 }
 
 // EchoAdapter registers handlers with an echo.Echo instance.
 type EchoAdapter struct {
-	e *echo.Echo
+	e        *echo.Echo
+	renderer view.Renderer
 }
 
 // NewEchoAdapter creates a new EchoAdapter for the given echo.Echo instance.
-func NewEchoAdapter(e *echo.Echo) *EchoAdapter {
-	return &EchoAdapter{e: e}
+func NewEchoAdapter(e *echo.Echo, renderer view.Renderer) *EchoAdapter {
+	return &EchoAdapter{e: e, renderer: renderer}
 }
 
 // RegisterHandler registers all routes from the given handler with Echo.
 func (a *EchoAdapter) RegisterHandler(handler any) error {
-	// This is a simple adapter that just passes through to Echo
-	// The actual handler registration logic should be in the presentation layer
-	// This is just a placeholder to satisfy the dependency injection
+	// Type assert to the Handler interface
+	h, ok := handler.(httpiface.Handler)
+	if !ok {
+		return fmt.Errorf("handler does not implement httpiface.Handler interface")
+	}
+
+	// Register all routes from the handler
+	for _, route := range h.Routes() {
+		// Create Echo handler function that adapts our framework-agnostic handler
+		echoHandler := func(c echo.Context) error {
+			// Create our context adapter
+			ctx := NewEchoContextAdapter(c, a.renderer)
+
+			// Call the framework-agnostic handler
+			return route.Handler(ctx)
+		}
+
+		// Register the route with Echo based on the method
+		switch strings.ToUpper(route.Method) {
+		case "GET":
+			a.e.GET(route.Path, echoHandler)
+		case "POST":
+			a.e.POST(route.Path, echoHandler)
+		case "PUT":
+			a.e.PUT(route.Path, echoHandler)
+		case "DELETE":
+			a.e.DELETE(route.Path, echoHandler)
+		case "PATCH":
+			a.e.PATCH(route.Path, echoHandler)
+		case "OPTIONS":
+			a.e.OPTIONS(route.Path, echoHandler)
+		case "HEAD":
+			a.e.HEAD(route.Path, echoHandler)
+		default:
+			return fmt.Errorf("unsupported HTTP method: %s", route.Method)
+		}
+	}
+
 	return nil
 }

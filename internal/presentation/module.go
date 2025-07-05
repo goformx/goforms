@@ -115,6 +115,18 @@ func NewPageHandlerWithDeps(params PageHandlerParams) *pages.PageHandler {
 	)
 }
 
+// EchoAdapterParams contains dependencies for creating an EchoAdapter
+type EchoAdapterParams struct {
+	fx.In
+	Echo     *echosrv.Echo
+	Renderer view.Renderer
+}
+
+// NewEchoAdapterWithDeps creates a new EchoAdapter with injected dependencies
+func NewEchoAdapterWithDeps(params EchoAdapterParams) *http.EchoAdapter {
+	return http.NewEchoAdapter(params.Echo, params.Renderer)
+}
+
 var Module = fx.Module("presentation",
 	fx.Provide(
 		fx.Annotate(
@@ -137,7 +149,7 @@ var Module = fx.Module("presentation",
 			fx.As(new(httpiface.Handler)),
 			fx.ResultTags(`group:"handlers"`),
 		),
-		http.NewEchoAdapter,
+		NewEchoAdapterWithDeps,
 	),
 	fx.Invoke(RegisterRoutes),
 )
