@@ -375,7 +375,10 @@ func (o *orchestrator) filterAllEnabledMiddleware(
 }
 
 // filterByConfiguredNames filters middleware based on configured names
-func (o *orchestrator) filterByConfiguredNames(middlewares []core.Middleware, chainConfig ChainConfig) []core.Middleware {
+func (o *orchestrator) filterByConfiguredNames(
+	middlewares []core.Middleware,
+	chainConfig ChainConfig,
+) []core.Middleware {
 	filtered := make([]core.Middleware, 0, len(chainConfig.MiddlewareNames))
 	middlewareMap := o.buildMiddlewareMap(middlewares, chainConfig)
 
@@ -396,7 +399,10 @@ func (o *orchestrator) filterByConfiguredNames(middlewares []core.Middleware, ch
 }
 
 // buildMiddlewareMap creates a map of available middleware
-func (o *orchestrator) buildMiddlewareMap(middlewares []core.Middleware, chainConfig ChainConfig) map[string]core.Middleware {
+func (o *orchestrator) buildMiddlewareMap(
+	middlewares []core.Middleware,
+	chainConfig ChainConfig,
+) map[string]core.Middleware {
 	middlewareMap := make(map[string]core.Middleware)
 
 	for _, mw := range middlewares {
