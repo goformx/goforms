@@ -34,13 +34,6 @@ var Module = fx.Module("middleware",
 					AdminPaths:    pathManager.AdminPaths,
 				}
 				rules := generateAccessRules(pathManager)
-
-				// Debug logging to show what rules are being created
-				fmt.Printf("DEBUG: Creating access manager with %d rules\n", len(rules))
-				for _, rule := range rules {
-					fmt.Printf("DEBUG: Access rule - Path: %s, AccessLevel: %d\n", rule.Path, rule.AccessLevel)
-				}
-
 				return access.NewManager(config, rules)
 			},
 		),
@@ -238,12 +231,6 @@ func generateAccessRules(pathManager *constants.PathManager) []access.Rule {
 			Path:        path,
 			AccessLevel: access.Authenticated,
 		})
-	}
-
-	// Debug logging to show what rules are being generated
-	fmt.Printf("DEBUG: Generated %d access rules\n", len(rules))
-	for _, rule := range rules {
-		fmt.Printf("DEBUG: Rule - Path: %s, AccessLevel: %d\n", rule.Path, rule.AccessLevel)
 	}
 
 	return rules

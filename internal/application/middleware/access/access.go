@@ -151,46 +151,33 @@ func matchPathPattern(pattern, path string) bool {
 
 // GetRequiredAccess returns the required access level for a path and method
 func (am *Manager) GetRequiredAccess(path, method string) Level {
-	// Debug logging to show what's being checked
-	fmt.Printf("DEBUG: GetRequiredAccess called for path: %s, method: %s\n", path, method)
-	fmt.Printf("DEBUG: Access manager has %d rules\n", len(am.rules))
-
 	// Check specific rules with pattern matching first
 	for _, rule := range am.rules {
-		fmt.Printf("DEBUG: Checking rule %s against path %s\n", rule.Path, path)
 		if matchPathPattern(rule.Path, path) {
-			fmt.Printf("DEBUG: Path %s MATCHES rule %s\n", path, rule.Path)
 			// If no methods specified, rule applies to all methods
 			if len(rule.Methods) == 0 {
-				fmt.Printf("DEBUG: Path %s matches rule %s, returning access level %d\n", path, rule.Path, rule.AccessLevel)
 				return rule.AccessLevel
 			}
 			// Check if method is in the allowed methods
 			for _, m := range rule.Methods {
 				if m == method {
-					fmt.Printf("DEBUG: Path %s matches rule %s with method %s, returning access level %d\n", path, rule.Path, method, rule.AccessLevel)
 					return rule.AccessLevel
 				}
 			}
-		} else {
-			fmt.Printf("DEBUG: Path %s does NOT match rule %s\n", path, rule.Path)
 		}
 	}
 
 	// If no specific rule matches, check if path is public
 	if am.IsPublicPath(path) {
-		fmt.Printf("DEBUG: Path %s is public (no specific rule matched)\n", path)
 		return Public
 	}
 
 	// Check if path requires admin access
 	if am.IsAdminPath(path) {
-		fmt.Printf("DEBUG: Path %s requires admin access\n", path)
 		return Admin
 	}
 
 	// Default to requiring authentication if no rule matches
-	fmt.Printf("DEBUG: Path %s has no matching rule, returning default access level %d\n", path, am.config.DefaultAccess)
 	return am.config.DefaultAccess
 }
 
@@ -201,46 +188,6 @@ func (c *Config) Validate() error {
 	}
 
 	return nil
-}
-
-// DefaultRules returns the default access rules for the application
-func DefaultRules() []Rule {
-	return []Rule{
-		// Public paths
-		{Path: constants.PathHome, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathLogin, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathSignup, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathForgotPassword, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathResetPassword, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathVerifyEmail, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathDemo, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathHealth, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathMetrics, AccessLevel: Public, Methods: []string{}},
-
-		// Static asset paths
-		{Path: constants.PathAssets, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathFonts, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathCSS, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathJS, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathImages, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathStatic, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathFavicon, AccessLevel: Public, Methods: []string{}},
-		{Path: constants.PathRobotsTxt, AccessLevel: Public, Methods: []string{}},
-
-		// Authenticated paths
-		{Path: constants.PathDashboard, AccessLevel: Authenticated, Methods: []string{}},
-		{Path: constants.PathForms, AccessLevel: Authenticated, Methods: []string{}},
-		{Path: "/forms/new", AccessLevel: Authenticated, Methods: []string{}},
-		{Path: "/forms/:id", AccessLevel: Authenticated, Methods: []string{}},
-		{Path: "/forms/:id/edit", AccessLevel: Authenticated, Methods: []string{}},
-		{Path: "/forms/:id/preview", AccessLevel: Authenticated, Methods: []string{}},
-		{Path: "/forms/:id/submissions", AccessLevel: Authenticated, Methods: []string{}},
-		{Path: constants.PathProfile, AccessLevel: Authenticated, Methods: []string{}},
-		{Path: constants.PathSettings, AccessLevel: Authenticated, Methods: []string{}},
-
-		// Admin paths
-		{Path: constants.PathAdmin, AccessLevel: Admin, Methods: []string{}},
-	}
 }
 
 // TestMatchPathPattern is a simple test function to verify pattern matching
