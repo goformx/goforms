@@ -105,6 +105,8 @@ function performancePlugin(): Plugin {
   };
 }
 
+
+
 export default defineConfig(({ mode, command }) => {
   const isDev = mode === "development";
   const isBuild = command === "build";
@@ -164,10 +166,17 @@ export default defineConfig(({ mode, command }) => {
     // Optimized server configuration
     server: {
       port: 5173,
-      host: "0.0.0.0",
+      host: isDev ? "0.0.0.0" : "localhost", // Only bind to all interfaces in dev
       strictPort: true,
       cors: {
-        origin: ["http://localhost:8090", "http://127.0.0.1:8090"],
+        origin: [
+          "http://localhost:8090",
+          "http://127.0.0.1:8090",
+          "http://localhost:40895",
+          "http://127.0.0.1:40895",
+          "http://localhost:5173",
+          "http://127.0.0.1:5173"
+        ],
         credentials: true,
         methods: ["GET", "POST", "PUT", "DELETE", "OPTIONS"],
         allowedHeaders: [
@@ -184,10 +193,10 @@ export default defineConfig(({ mode, command }) => {
         clientPort: 5173,
       },
       fs: {
-        strict: false,
-        allow: [".."],
+        strict: isDev ? false : true, // Strict mode in production
+        allow: isDev ? [".."] : [], // Only allow parent access in development
         // Deny access to sensitive files
-        deny: [".env*", "*.key", "*.pem"],
+        deny: [".env*", "*.key", "*.pem", "*.crt", "*.p12", "*.pfx"],
       },
       watch: {
         // Use native file system events instead of polling for better performance
@@ -383,6 +392,28 @@ export default defineConfig(({ mode, command }) => {
       // Custom plugins
       templWatcherPlugin(),
 
+      // Security plugin (always enabled)
+      {
+        name: "security-headers",
+        configureServer(server) {
+          server.middlewares.use((_req, res, next) => {
+            // Add security headers
+            res.setHeader("X-Content-Type-Options", "nosniff");
+            res.setHeader("X-Frame-Options", "DENY");
+            res.setHeader("X-XSS-Protection", "1; mode=block");
+            res.setHeader("Referrer-Policy", "strict-origin-when-cross-origin");
+            res.setHeader("Permissions-Policy", "camera=(), microphone=(), geolocation=()");
+
+            // Only add HSTS in production with HTTPS
+            if (!isDev) {
+              res.setHeader("Strict-Transport-Security", "max-age=31536000; includeSubDomains");
+            }
+
+            next();
+          });
+        },
+      },
+
       // Production-only plugins
       ...(isBuild
         ? [
@@ -410,9 +441,12 @@ export default defineConfig(({ mode, command }) => {
     // Preview server configuration
     preview: {
       port: 4173,
-      host: "0.0.0.0",
+      host: isDev ? "0.0.0.0" : "localhost", // Only bind to all interfaces in dev
       strictPort: true,
-      cors: true,
+      cors: {
+        origin: isDev ? ["http://localhost:4173", "http://127.0.0.1:4173"] : false,
+        credentials: false, // No credentials needed for preview
+      },
     },
 
     // ESBuild configuration for better performance
