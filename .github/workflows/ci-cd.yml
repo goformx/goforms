@@ -136,7 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: |
-      needs.test.outputs.should-build == 'true' && 
+      needs.test.outputs.should-build == 'true' &&
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     outputs:
       binary-artifact: goformx-binary
@@ -216,7 +216,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: |
-      needs.test.outputs.should-build == 'true' && 
+      needs.test.outputs.should-build == 'true' &&
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
       - name: Checkout repository
@@ -300,4 +300,3 @@ jobs:
           prerelease: ${{ contains(needs.build.outputs.version, '-') }}
           generate_release_notes: true
           make_latest: ${{ !contains(needs.build.outputs.version, '-') }}
-          
