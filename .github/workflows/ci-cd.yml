@@ -136,7 +136,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 15
     if: |
-      needs.test.outputs.should-build == 'true' && 
+      needs.test.outputs.should-build == 'true' &&
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     outputs:
       binary-artifact: goformx-binary
@@ -216,7 +216,7 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     if: |
-      needs.test.outputs.should-build == 'true' && 
+      needs.test.outputs.should-build == 'true' &&
       (github.ref == 'refs/heads/main' || startsWith(github.ref, 'refs/tags/v'))
     steps:
       - name: Checkout repository
@@ -247,6 +247,21 @@ jobs:
             type=sha,prefix={{branch}}-,format=short
             type=raw,value=latest,enable={{is_default_branch}}
 
+      - name: Get build info
+        id: build-info
+        run: |
+          if [[ $GITHUB_REF == refs/tags/* ]]; then
+            VERSION=${GITHUB_REF#refs/tags/}
+          else
+            VERSION=main-${GITHUB_SHA::8}
+          fi
+          BUILD_TIME=$(date -u '+%Y-%m-%d_%H:%M:%S')
+          GO_VERSION=$(go version | cut -d ' ' -f 3)
+          echo "version=$VERSION" >> $GITHUB_OUTPUT
+          echo "build-time=$BUILD_TIME" >> $GITHUB_OUTPUT
+          echo "git-commit=$GITHUB_SHA" >> $GITHUB_OUTPUT
+          echo "go-version=$GO_VERSION" >> $GITHUB_OUTPUT
+
       - name: Build and push Docker image
         id: push
         uses: docker/build-push-action@v6
@@ -256,6 +271,11 @@ jobs:
           push: ${{ github.event_name != 'pull_request' }}
           tags: ${{ steps.meta.outputs.tags }}
           labels: ${{ steps.meta.outputs.labels }}
+          build-args: |
+            VERSION=${{ steps.build-info.outputs.version }}
+            BUILD_TIME=${{ steps.build-info.outputs.build-time }}
+            GIT_COMMIT=${{ steps.build-info.outputs.git-commit }}
+            GO_VERSION=${{ steps.build-info.outputs.go-version }}
           cache-from: type=gha
           cache-to: type=gha,mode=max
           platforms: linux/amd64,linux/arm64
@@ -300,4 +320,3 @@ jobs:
           prerelease: ${{ contains(needs.build.outputs.version, '-') }}
           generate_release_notes: true
           make_latest: ${{ !contains(needs.build.outputs.version, '-') }}
-          
