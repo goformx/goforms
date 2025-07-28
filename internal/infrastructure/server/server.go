@@ -60,7 +60,8 @@ func (s *Server) Start() error {
 	// Start server in a goroutine
 	go func() {
 		// Create a listener to check if the server can bind to the port
-		listener, err := net.Listen("tcp", addr)
+		lc := &net.ListenConfig{}
+		listener, err := lc.Listen(context.Background(), "tcp", addr)
 		if err != nil {
 			errored <- fmt.Errorf("failed to create listener: %w", err)
 
