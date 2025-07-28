@@ -40,7 +40,7 @@ func (s *Server) URL() string {
 }
 
 // Start starts the server and returns when it's ready to accept connections
-func (s *Server) Start() error {
+func (s *Server) Start(ctx context.Context) error {
 	// Extract host and port from the URL for the HTTP server
 	addr := fmt.Sprintf("%s:%d", s.config.App.Host, s.config.App.Port)
 
@@ -61,7 +61,8 @@ func (s *Server) Start() error {
 	go func() {
 		// Create a listener to check if the server can bind to the port
 		lc := &net.ListenConfig{}
-		listener, err := lc.Listen(context.Background(), "tcp", addr)
+
+		listener, err := lc.Listen(ctx, "tcp", addr)
 		if err != nil {
 			errored <- fmt.Errorf("failed to create listener: %w", err)
 

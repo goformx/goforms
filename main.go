@@ -92,7 +92,7 @@ func setupApplication(params appParams) error {
 // Note: params is passed by value, not as a pointer
 func setupLifecycle(params appParams) {
 	params.Lifecycle.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
+		OnStart: func(ctx context.Context) error {
 			versionInfo := version.GetInfo()
 			// Log application startup information
 			params.Logger.Info("starting application",
@@ -113,7 +113,7 @@ func setupLifecycle(params appParams) {
 
 			// Start the server in a goroutine to prevent blocking
 			go func() {
-				if err := params.Server.Start(); err != nil {
+				if err := params.Server.Start(ctx); err != nil {
 					params.Logger.Fatal("server startup failed", "error", err)
 					os.Exit(1)
 				}

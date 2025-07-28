@@ -162,7 +162,7 @@ type Application struct {
 }
 
 // Start starts the application
-func (a *Application) Start(_ context.Context) error {
+func (a *Application) Start(ctx context.Context) error {
 	a.logger.Info("Starting application...")
 
 	// Get the Echo instance
@@ -178,7 +178,7 @@ func (a *Application) Start(_ context.Context) error {
 	}
 
 	// Start the server
-	if err := a.server.Start(); err != nil {
+	if err := a.server.Start(ctx); err != nil {
 		return fmt.Errorf("start server: %w", err)
 	}
 
