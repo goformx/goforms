@@ -1,4 +1,4 @@
-ARG VARIANT=1.24-bookworm
+ARG VARIANT=1.25-bookworm
 FROM mcr.microsoft.com/devcontainers/go:${VARIANT}
 
 # Install system dependencies for PostgreSQL and development
