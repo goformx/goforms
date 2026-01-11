@@ -21,8 +21,9 @@ type Factory struct {
 	sanitizer      sanitization.ServiceInterface
 	fieldSanitizer *Sanitizer
 	// Add testCore for test injection
-	testCore zapcore.Core
-	LogLevel string
+	testCore  zapcore.Core
+	LogLevel  string
+	zapLogger *zap.Logger // Store the created zap logger for slog adapter
 }
 
 // NewFactory creates a new logger factory with the given configuration
@@ -90,6 +91,14 @@ func (f *Factory) CreateLogger() (Logger, error) {
 	// Create logger with initial fields
 	zapLogger = zapLogger.With(fields...)
 
+	// Store the zap logger for slog adapter access
+	f.zapLogger = zapLogger
+
 	// Create our logger implementation
 	return newLogger(zapLogger, f.sanitizer, f.fieldSanitizer), nil
+}
+
+// GetZapLogger returns the underlying zap logger for slog integration
+func (f *Factory) GetZapLogger() *zap.Logger {
+	return f.zapLogger
 }
