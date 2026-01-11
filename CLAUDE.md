@@ -69,12 +69,41 @@ internal/
    - New: `internal/application/middleware/orchestrator.go`
    - Migration adapter provides fallback capability
 
-### Frontend (TypeScript/Vite)
+### Frontend (TypeScript/Vite/Vue 3)
 
-- Entry points in `src/js/` with multiple page-specific entries (main.ts, dashboard.ts, form-builder.ts, etc.)
-- Path aliases: `@/core`, `@/features`, `@/pages`, `@/shared`
-- Form.io integration with custom components via `@goformx/formio`
+- **Inertia.js** for SPA routing - Go backend renders pages, Vue handles client-side
+- Entry point: `src/main.ts` with Inertia app setup
+- Page components in `src/pages/` (e.g., `Dashboard/Index.vue`, `Forms/Edit.vue`)
+- Path aliases: `@/`, `@/components`, `@/pages`, `@/composables`, `@/lib`
+- **Tailwind CSS v4** with `@tailwindcss/postcss` plugin
+- **Form.io** integration with custom components via `@goformx/formio`
 - Build output: `dist/`
+
+### Inertia.js Patterns
+
+**IMPORTANT**: Web handlers must return Inertia-compatible responses:
+
+```go
+// ✅ Good - Render page for GET requests
+return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
+    "title": "Edit Form",
+    "form":  formData,
+})
+
+// ✅ Good - Redirect after mutations (POST/PUT/DELETE)
+return c.Redirect(http.StatusSeeOther, "/dashboard")
+
+// ✅ Good - Render page with error flash
+return h.Inertia.Render(c, "Forms/New", inertia.Props{
+    "title": "Create Form",
+    "flash": map[string]string{"error": "Form title is required"},
+})
+
+// ❌ Bad - JSON response breaks Inertia
+return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+```
+
+The gonertia template uses `{{ .inertia }}` and `{{ .inertiaHead }}` placeholders (see `internal/presentation/inertia/inertia.go`).
 
 ### Code Generation
 
@@ -82,15 +111,19 @@ internal/
 
 ## Configuration
 
-Uses Viper with environment variables. Key env var pattern: `<SECTION>_<KEY>`
+Uses Viper with environment variables. Viper maps nested config to env vars using underscore separator:
+
+- Config key `database.host` → env var `DATABASE_HOST`
+- Config key `security.csrf.enabled` → env var `SECURITY_CSRF_ENABLED`
 
 ```bash
 APP_ENV=development
-DB_HOST=localhost
+DATABASE_HOST=postgres-dev
 SECURITY_CSRF_COOKIE_SAME_SITE=Lax
 ```
 
 Configuration struct: `internal/infrastructure/config/`
+Default values: `internal/infrastructure/config/viper.go` (see `setDatabaseDefaults`, etc.)
 
 ## Database
 
@@ -100,10 +133,43 @@ Configuration struct: `internal/infrastructure/config/`
 
 ## Development Environment
 
-- Uses Dev Containers (VS Code)
-- Backend: `localhost:8090`
-- Frontend dev server: `localhost:5173`
-- CSRF configured for cross-origin development
+- Uses Docker Compose for local development
+- Backend: `localhost:8090` (Go/Echo)
+- Frontend dev server: `localhost:5173` (Vite)
+- PostgreSQL: `localhost:5432`
+- Access app via `localhost:8090` (not 5173) - Go serves HTML, Vite serves assets
+
+### Docker Commands
+
+```bash
+docker compose up              # Start all services
+docker compose down            # Stop all services
+docker compose restart goforms-dev  # Restart just the app
+docker compose logs -f goforms-dev  # Follow logs
+```
+
+### Environment Variables
+
+Viper maps config keys to env vars: `database.host` → `DATABASE_HOST`
+
+Key `.env` variables:
+```bash
+DATABASE_HOST=postgres-dev     # Docker service name
+DATABASE_PORT=5432
+DATABASE_NAME=goforms
+DATABASE_USERNAME=goforms
+DATABASE_PASSWORD=goforms
+```
+
+### CSP Configuration
+
+Form.io requires CDN access. Update `.env` for development:
+```bash
+SECURITY_CSP_SCRIPT_SRC="'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173 https://localhost:5173 https://cdn.form.io blob:"
+SECURITY_CSP_STYLE_SRC="'self' 'unsafe-inline' http://localhost:5173 https://localhost:5173 https://cdn.form.io"
+SECURITY_CSP_CONNECT_SRC="'self' ws: wss: http://localhost:5173 https://localhost:5173 https://cdn.form.io"
+SECURITY_CSP_FONT_SRC="'self' http://localhost:5173 https://localhost:5173 https://cdn.form.io"
+```
 
 ## Code Style
 
