@@ -4,14 +4,17 @@ output: 'prefixed'
 
 includes:
   migrate:
-    taskfile: Taskfile.migrate.yml
+    taskfile: tasks/Taskfile.migrate.yml
     namespace: migrate
   user:
-    taskfile: Taskfile.user.yml
+    taskfile: tasks/Taskfile.user.yml
     namespace: user
   act:
-    taskfile: Taskfile.act.yml
+    taskfile: tasks/Taskfile.act.yml
     namespace: act
+  docker:
+    taskfile: tasks/Taskfile.docker.yml
+    namespace: docker
 
 dotenv: [ '.env' ]
 
@@ -470,22 +473,6 @@ tasks:
     - task: format
     - task: lint
     - task: test
-
-  docker:build:
-    desc: Build Docker image
-    sources:
-      - Dockerfile
-      - "**/*.go"
-      - go.mod
-      - go.sum
-    cmds:
-    - docker build -t goforms:{{.VERSION}} .
-
-  docker:run:
-    desc: Run application in Docker container
-    deps: [ docker:build ]
-    cmds:
-    - docker run -p 8080:8080 goforms:{{.VERSION}}
 
   deps:update:
     desc: Update all dependencies
