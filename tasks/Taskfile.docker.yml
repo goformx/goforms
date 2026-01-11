@@ -47,19 +47,25 @@ tasks:
         fi
 
   # Development
-  dev-up:
+  dev:build:
+    desc: Build development Docker images
+    dir: docker/development
+    cmds:
+      - docker compose build
+
+  dev:up:
     desc: Start development environment
     dir: docker/development
     cmds:
       - docker compose up -d
 
-  dev-down:
+  dev:down:
     desc: Stop development environment
     dir: docker/development
     cmds:
       - docker compose down
 
-  dev-logs:
+  dev:logs:
     desc: View development logs
     dir: docker/development
     cmds:
@@ -98,7 +104,7 @@ tasks:
       - docker compose pull
 
   # Database management
-  db-backup:
+  db:backup:
     desc: Backup PostgreSQL database
     dir: docker/production
     cmds:
@@ -106,14 +112,14 @@ tasks:
       - docker compose exec -T postgres pg_dump -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms} > backup_$(date +%Y%m%d_%H%M%S).sql
       - 'echo "Backup completed: backup_$(date +%Y%m%d_%H%M%S).sql"'
 
-  db-restore:
+  db:restore:
     desc: Restore PostgreSQL database from backup
     dir: docker/production
     cmds:
       - echo "Restoring database from backup..."
       - docker compose exec -T postgres psql -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms} < backup_${BACKUP_FILE}
 
-  db-shell:
+  db:shell:
     desc: Open PostgreSQL shell
     dir: docker/production
     cmds:
