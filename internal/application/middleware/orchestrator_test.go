@@ -97,7 +97,7 @@ func (m *mockRegistry) GetOrdered(category core.MiddlewareCategory) []core.Middl
 		}
 	}
 	// Sort by priority
-	for i := 0; i < len(result)-1; i++ {
+	for i := range len(result) - 1 {
 		for j := i + 1; j < len(result); j++ {
 			if result[i].Priority() > result[j].Priority() {
 				result[i], result[j] = result[j], result[i]

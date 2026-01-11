@@ -5,6 +5,7 @@ import (
 	"sort"
 	"sync"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
@@ -93,7 +94,7 @@ func (r *registry) extractPriority(config map[string]any) int {
 		}
 	}
 
-	return 50
+	return constants.DefaultMiddlewarePriority
 }
 
 // extractDependencies extracts dependencies from middleware config

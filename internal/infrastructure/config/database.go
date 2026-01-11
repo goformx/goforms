@@ -1,6 +1,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -103,14 +104,14 @@ func (c *DatabaseConfig) validateDriverSpecificFields() error {
 	case "mariadb":
 		return c.validateMariaDBFields()
 	default:
-		return fmt.Errorf("unsupported database driver type")
+		return errors.New("unsupported database driver type")
 	}
 }
 
 // validatePostgresFields validates PostgreSQL-specific fields
 func (c *DatabaseConfig) validatePostgresFields() error {
 	if c.SSLMode == "" {
-		return fmt.Errorf("PostgreSQL SSL mode is required")
+		return errors.New("PostgreSQL SSL mode is required")
 	}
 
 	return nil
@@ -119,7 +120,7 @@ func (c *DatabaseConfig) validatePostgresFields() error {
 // validateMariaDBFields validates MariaDB-specific fields
 func (c *DatabaseConfig) validateMariaDBFields() error {
 	if c.RootPassword == "" {
-		return fmt.Errorf("MariaDB root password is required")
+		return errors.New("MariaDB root password is required")
 	}
 
 	return nil

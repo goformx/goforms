@@ -6,7 +6,6 @@ package constants
 
 import (
 	"net/http"
-	"strings"
 )
 
 // HTTP Status Codes
@@ -282,21 +281,47 @@ const (
 	FieldPairSize = 2
 	// DefaultUnknown is the default value for unknown identifiers
 	DefaultUnknown = "unknown"
+	// DefaultMiddlewarePriority is the default priority for middleware
+	DefaultMiddlewarePriority = 50
+)
+
+// Middleware Priority Constants
+const (
+	PriorityRecovery        = 10
+	PriorityCORS            = 20
+	PriorityRequestID       = 30
+	PriorityTimeout         = 40
+	PrioritySecurityHeaders = 50
+	PriorityCSRF            = 60
+	PriorityRateLimit       = 70
+	PriorityInputValidation = 80
+	PriorityLogging         = 90
+	PrioritySession         = 100
+	PriorityAuthentication  = 110
+	PriorityAuthorization   = 120
+)
+
+// Configuration Time Constants (in seconds)
+const (
+	TimeoutShort      = 5
+	TimeoutDefault    = 30
+	TimeoutMedium     = 60
+	TimeoutAuth       = 15
+	TimeoutPublic     = 10
+	SessionExpiry     = 3600  // 1 hour
+	RefreshTimeout    = 300   // 5 minutes
+	TokenExpiry       = 3600  // 1 hour
+	RefreshExpiry     = 86400 // 24 hours
+	CacheTTLShortSec  = 300   // 5 minutes
+	CacheDurationDay  = 86400 // 24 hours
+	RequestsPerMinute = 60
+	BurstSizeDefault  = 10
+	WindowSizeDefault = 60
+	GracePeriod       = 5
 )
 
 // StaticFileExtensions contains all supported static file extensions
 var StaticFileExtensions = []string{
 	".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".ico",
 	".svg", ".woff", ".woff2", ".ttf", ".eot",
-}
-
-// IsStaticFile checks if the given path is a static file
-func IsStaticFile(path string) bool {
-	for _, ext := range StaticFileExtensions {
-		if strings.HasSuffix(path, ext) {
-			return true
-		}
-	}
-
-	return false
 }

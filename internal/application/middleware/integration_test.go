@@ -262,7 +262,7 @@ func TestIntegration_Performance(t *testing.T) {
 	orchestrator := middleware.NewOrchestrator(registry, mwConfig, logger)
 
 	// Register multiple middleware
-	for i := 0; i < 10; i++ {
+	for i := range 10 {
 		err := registry.Register("test-mw-"+string(rune(i)), middleware.NewRecoveryMiddleware())
 		require.NoError(t, err)
 	}
@@ -270,7 +270,7 @@ func TestIntegration_Performance(t *testing.T) {
 	t.Run("Chain Building Performance", func(t *testing.T) {
 		start := time.Now()
 
-		for i := 0; i < 100; i++ {
+		for range 100 {
 			chain, chainErr := orchestrator.BuildChain(core.ChainTypeDefault)
 			require.NoError(t, chainErr)
 			assert.NotNil(t, chain)

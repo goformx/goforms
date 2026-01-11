@@ -208,7 +208,7 @@ func NewResponse(statusCode int) Response {
 
 // NewErrorResponse creates a new error response
 func NewErrorResponse(statusCode int, err error) Response {
-	if statusCode < 400 {
+	if statusCode < http.StatusBadRequest {
 		statusCode = http.StatusInternalServerError
 	}
 

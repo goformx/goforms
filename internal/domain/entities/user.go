@@ -26,16 +26,16 @@ const (
 
 // User represents a user entity
 type User struct {
-	ID             string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	Email          string         `json:"email" gorm:"uniqueIndex;not null;size:255"`
-	HashedPassword string         `json:"-" gorm:"column:hashed_password;not null;size:255"`
-	FirstName      string         `json:"first_name" gorm:"not null;size:100"`
-	LastName       string         `json:"last_name" gorm:"not null;size:100"`
-	Role           string         `json:"role" gorm:"not null;size:50;default:user"`
-	Active         bool           `json:"active" gorm:"not null;default:true"`
-	CreatedAt      time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
-	UpdatedAt      time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
-	DeletedAt      gorm.DeletedAt `json:"-" gorm:"index"`
+	ID             string         `gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+	Email          string         `gorm:"uniqueIndex;not null;size:255"                              json:"email"`
+	HashedPassword string         `gorm:"column:hashed_password;not null;size:255"                   json:"-"`
+	FirstName      string         `gorm:"not null;size:100"                                          json:"first_name"`
+	LastName       string         `gorm:"not null;size:100"                                          json:"last_name"`
+	Role           string         `gorm:"not null;size:50;default:user"                              json:"role"`
+	Active         bool           `gorm:"not null;default:true"                                      json:"active"`
+	CreatedAt      time.Time      `gorm:"not null;autoCreateTime"                                    json:"created_at"`
+	UpdatedAt      time.Time      `gorm:"not null;autoUpdateTime"                                    json:"updated_at"`
+	DeletedAt      gorm.DeletedAt `gorm:"index"                                                      json:"-"`
 }
 
 // TableName specifies the table name for the User model

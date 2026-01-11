@@ -31,14 +31,14 @@ var (
 
 // Field represents a form field
 type Field struct {
-	ID        string    `json:"id" gorm:"primaryKey"`
-	FormID    string    `json:"form_id" gorm:"not null"`
-	Label     string    `json:"label" gorm:"size:100;not null"`
-	Type      string    `json:"type" gorm:"size:20;not null"`
-	Required  bool      `json:"required" gorm:"not null;default:false"`
-	Options   []string  `json:"options" gorm:"type:json"`
-	CreatedAt time.Time `json:"created_at" gorm:"not null"`
-	UpdatedAt time.Time `json:"updated_at" gorm:"not null"`
+	ID        string    `gorm:"primaryKey"             json:"id"`
+	FormID    string    `gorm:"not null"               json:"form_id"`
+	Label     string    `gorm:"size:100;not null"      json:"label"`
+	Type      string    `gorm:"size:20;not null"       json:"type"`
+	Required  bool      `gorm:"not null;default:false" json:"required"`
+	Options   []string  `gorm:"type:json"              json:"options"`
+	CreatedAt time.Time `gorm:"not null"               json:"created_at"`
+	UpdatedAt time.Time `gorm:"not null"               json:"updated_at"`
 }
 
 // Validate validates the field
@@ -56,22 +56,22 @@ func (f *Field) Validate() error {
 
 // Form represents a form in the system
 type Form struct {
-	ID          string         `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	UserID      string         `json:"user_id" gorm:"not null;index;type:uuid"`
-	Title       string         `json:"title" gorm:"not null;size:100"`
-	Description string         `json:"description" gorm:"size:500"`
-	Schema      JSON           `json:"schema" gorm:"type:jsonb;not null"`
-	Active      bool           `json:"active" gorm:"not null;default:true"`
-	CreatedAt   time.Time      `json:"created_at" gorm:"not null;autoCreateTime"`
-	UpdatedAt   time.Time      `json:"updated_at" gorm:"not null;autoUpdateTime"`
-	DeletedAt   gorm.DeletedAt `json:"-" gorm:"index"`
-	Fields      []Field        `json:"fields" gorm:"foreignKey:FormID"`
-	Status      string         `json:"status" gorm:"size:20;not null;default:'draft'"`
+	ID          string         `gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+	UserID      string         `gorm:"not null;index;type:uuid"                                   json:"user_id"`
+	Title       string         `gorm:"not null;size:100"                                          json:"title"`
+	Description string         `gorm:"size:500"                                                   json:"description"`
+	Schema      JSON           `gorm:"type:jsonb;not null"                                        json:"schema"`
+	Active      bool           `gorm:"not null;default:true"                                      json:"active"`
+	CreatedAt   time.Time      `gorm:"not null;autoCreateTime"                                    json:"created_at"`
+	UpdatedAt   time.Time      `gorm:"not null;autoUpdateTime"                                    json:"updated_at"`
+	DeletedAt   gorm.DeletedAt `gorm:"index"                                                      json:"-"`
+	Fields      []Field        `gorm:"foreignKey:FormID"                                          json:"fields"`
+	Status      string         `gorm:"size:20;not null;default:'draft'"                           json:"status"`
 
 	// CORS settings for form embedding
-	CorsOrigins JSON `json:"cors_origins" gorm:"type:json"`
-	CorsMethods JSON `json:"cors_methods" gorm:"type:json"`
-	CorsHeaders JSON `json:"cors_headers" gorm:"type:json"`
+	CorsOrigins JSON `gorm:"type:json" json:"cors_origins"`
+	CorsMethods JSON `gorm:"type:json" json:"cors_methods"`
+	CorsHeaders JSON `gorm:"type:json" json:"cors_headers"`
 }
 
 // GetID returns the form's ID

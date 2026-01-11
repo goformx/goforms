@@ -10,14 +10,14 @@ import (
 
 // FormSubmission represents a form submission
 type FormSubmission struct {
-	ID          string           `json:"id" gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()"`
-	FormID      string           `json:"form_id" gorm:"not null;index;type:uuid"`
-	Data        JSON             `json:"data" gorm:"type:jsonb;not null"`
-	SubmittedAt time.Time        `json:"submitted_at" gorm:"not null"`
-	Status      SubmissionStatus `json:"status" gorm:"not null;size:20"`
-	Metadata    JSON             `json:"metadata" gorm:"type:jsonb"`
-	CreatedAt   time.Time        `json:"created_at" gorm:"not null;autoCreateTime"`
-	UpdatedAt   time.Time        `json:"updated_at" gorm:"not null;autoUpdateTime"`
+	ID          string           `gorm:"column:uuid;primaryKey;type:uuid;default:gen_random_uuid()" json:"id"`
+	FormID      string           `gorm:"not null;index;type:uuid"                                   json:"form_id"`
+	Data        JSON             `gorm:"type:jsonb;not null"                                        json:"data"`
+	SubmittedAt time.Time        `gorm:"not null"                                                   json:"submitted_at"`
+	Status      SubmissionStatus `gorm:"not null;size:20"                                           json:"status"`
+	Metadata    JSON             `gorm:"type:jsonb"                                                 json:"metadata"`
+	CreatedAt   time.Time        `gorm:"not null;autoCreateTime"                                    json:"created_at"`
+	UpdatedAt   time.Time        `gorm:"not null;autoUpdateTime"                                    json:"updated_at"`
 }
 
 // GetID returns the submission's ID

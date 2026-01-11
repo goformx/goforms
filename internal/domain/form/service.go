@@ -98,7 +98,7 @@ func (s *formService) UpdateForm(ctx context.Context, form *model.Form) error {
 // DeleteForm deletes a form
 func (s *formService) DeleteForm(ctx context.Context, formID string) error {
 	if formID == "" {
-		return fmt.Errorf("failed to delete form: formID is required")
+		return errors.New("failed to delete form: formID is required")
 	}
 
 	if err := s.repository.DeleteForm(ctx, formID); err != nil {
@@ -134,11 +134,12 @@ func (s *formService) ListForms(ctx context.Context, userID string) ([]*model.Fo
 
 // SubmitForm submits a form
 func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubmission) error {
+	// Validate submission BEFORE any database operations
 	if validateErr := submission.Validate(); validateErr != nil {
 		return fmt.Errorf("validate form submission: %w", validateErr)
 	}
 
-	// Validate the form exists
+	// Validate the form exists and is active
 	form, getErr := s.repository.GetFormByID(ctx, submission.FormID)
 	if getErr != nil {
 		return fmt.Errorf("get form for submission: %w", getErr)
@@ -148,42 +149,33 @@ func (s *formService) SubmitForm(ctx context.Context, submission *model.FormSubm
 		return errors.New("form not found")
 	}
 
-	// Create the submission
-	createErr := s.repository.CreateSubmission(ctx, submission)
-	if createErr != nil {
+	// Create the submission (validation already passed above)
+	if createErr := s.repository.CreateSubmission(ctx, submission); createErr != nil {
 		return fmt.Errorf("create form submission: %w", createErr)
 	}
 
-	// Publish form submitted event
-	event := formevents.NewFormSubmittedEvent(submission)
-
-	publishErr := s.eventBus.Publish(ctx, event)
-	if publishErr != nil {
-		s.logger.Error("failed to publish form submitted event", "error", publishErr)
-	}
-
-	// Validate the submission
-	validationErr := submission.Validate()
-	isValid := validationErr == nil
-	validationEvent := formevents.NewFormValidatedEvent(submission.FormID, isValid)
-
-	validationPublishErr := s.eventBus.Publish(ctx, validationEvent)
-	if validationPublishErr != nil {
-		s.logger.Error("failed to publish form validated event", "error", validationPublishErr)
-	}
-
-	if !isValid {
-		return fmt.Errorf("validate submission: %w", validationErr)
-	}
-
-	processingEvent := formevents.NewFormProcessedEvent(submission.FormID, submission.ID)
-
-	processingPublishErr := s.eventBus.Publish(ctx, processingEvent)
-	if processingPublishErr != nil {
-		s.logger.Error("failed to publish form processed event", "error", processingPublishErr)
-	}
+	// Publish events for the successfully created submission
+	s.publishSubmissionEvents(ctx, submission)
 
 	return nil
+}
+
+// publishSubmissionEvents publishes all events related to a form submission
+func (s *formService) publishSubmissionEvents(ctx context.Context, submission *model.FormSubmission) {
+	// Publish form submitted event
+	if err := s.eventBus.Publish(ctx, formevents.NewFormSubmittedEvent(submission)); err != nil {
+		s.logger.Error("failed to publish form submitted event", "error", err)
+	}
+
+	// Publish validation success event (validation passed before DB write)
+	if err := s.eventBus.Publish(ctx, formevents.NewFormValidatedEvent(submission.FormID, true)); err != nil {
+		s.logger.Error("failed to publish form validated event", "error", err)
+	}
+
+	// Publish form processed event
+	if err := s.eventBus.Publish(ctx, formevents.NewFormProcessedEvent(submission.FormID, submission.ID)); err != nil {
+		s.logger.Error("failed to publish form processed event", "error", err)
+	}
 }
 
 // GetFormSubmission retrieves a form submission by ID

@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"errors"
 	"fmt"
 
 	"github.com/goformx/goforms/internal/application/middleware/core"
@@ -56,7 +57,7 @@ func (ma *MigrationAdapter) setupOldSystem(e *echo.Echo, oldManager *Manager) er
 	ma.logger.Info("using legacy middleware manager system")
 
 	if oldManager == nil {
-		return fmt.Errorf("old manager is required when using legacy system")
+		return errors.New("old manager is required when using legacy system")
 	}
 
 	oldManager.Setup(e)

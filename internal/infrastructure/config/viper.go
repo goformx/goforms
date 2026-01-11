@@ -505,12 +505,12 @@ func setAppDefaults(v *viper.Viper) {
 	v.SetDefault("app.log_level", "info")
 	v.SetDefault("app.url", "http://localhost:8080")
 	v.SetDefault("app.scheme", "http")
-	v.SetDefault("app.port", 8080)
+	v.SetDefault("app.port", DefaultAppPort)
 	v.SetDefault("app.host", "localhost")
-	v.SetDefault("app.read_timeout", 15*time.Second)
-	v.SetDefault("app.write_timeout", 15*time.Second)
-	v.SetDefault("app.idle_timeout", 60*time.Second)
-	v.SetDefault("app.request_timeout", 30*time.Second)
+	v.SetDefault("app.read_timeout", DefaultReadTimeout)
+	v.SetDefault("app.write_timeout", DefaultWriteTimeout)
+	v.SetDefault("app.idle_timeout", DefaultIdleTimeout)
+	v.SetDefault("app.request_timeout", DefaultRequestTimeout)
 	v.SetDefault("app.vite_dev_host", "localhost")
 	v.SetDefault("app.vite_dev_port", "5173")
 }
@@ -519,15 +519,15 @@ func setAppDefaults(v *viper.Viper) {
 func setDatabaseDefaults(v *viper.Viper) {
 	v.SetDefault("database.driver", "postgres")
 	v.SetDefault("database.host", "localhost")
-	v.SetDefault("database.port", 5432)
+	v.SetDefault("database.port", DefaultDBPort)
 	v.SetDefault("database.name", "goforms")
 	v.SetDefault("database.username", "goforms")
 	v.SetDefault("database.password", "goforms")
 	v.SetDefault("database.ssl_mode", "disable")
-	v.SetDefault("database.max_open_conns", 25)
-	v.SetDefault("database.max_idle_conns", 25)
-	v.SetDefault("database.conn_max_lifetime", 5*time.Minute)
-	v.SetDefault("database.conn_max_idle_time", 5*time.Minute)
+	v.SetDefault("database.max_open_conns", DefaultMaxOpenConns)
+	v.SetDefault("database.max_idle_conns", DefaultMaxIdleConns)
+	v.SetDefault("database.conn_max_lifetime", DefaultConnLifetime)
+	v.SetDefault("database.conn_max_idle_time", DefaultConnIdleTime)
 }
 
 // setCSRFDefaults sets CSRF default values
@@ -536,7 +536,7 @@ func setCSRFDefaults(v *viper.Viper) {
 	v.SetDefault("security.csrf.secret", "csrf-secret")
 	v.SetDefault("security.csrf.token_name", "_token")
 	v.SetDefault("security.csrf.header_name", "X-Csrf-Token")
-	v.SetDefault("security.csrf.token_length", 32)
+	v.SetDefault("security.csrf.token_length", DefaultCSRFTokenLength)
 	v.SetDefault("security.csrf.token_lookup", "header:X-Csrf-Token")
 	v.SetDefault("security.csrf.context_key", "csrf")
 	v.SetDefault("security.csrf.cookie_name", "_csrf")
@@ -544,7 +544,7 @@ func setCSRFDefaults(v *viper.Viper) {
 	v.SetDefault("security.csrf.cookie_domain", "")
 	v.SetDefault("security.csrf.cookie_http_only", true)
 	v.SetDefault("security.csrf.cookie_same_site", "Lax")
-	v.SetDefault("security.csrf.cookie_max_age", 86400)
+	v.SetDefault("security.csrf.cookie_max_age", DefaultCookieMaxAge)
 }
 
 // setCORSDefaults sets CORS default values
@@ -556,7 +556,7 @@ func setCORSDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.allowed_headers", allowedHeaders)
 	v.SetDefault("security.cors.exposed_headers", []string{})
 	v.SetDefault("security.cors.allow_credentials", true)
-	v.SetDefault("security.cors.max_age", 86400)
+	v.SetDefault("security.cors.max_age", DefaultCookieMaxAge)
 }
 
 // setCSPDefaults sets CSP default values
@@ -589,8 +589,8 @@ func setSecurityDefaults(v *viper.Viper) {
 	setCSRFDefaults(v)
 	setCORSDefaults(v)
 	v.SetDefault("security.rate_limit.enabled", false)
-	v.SetDefault("security.rate_limit.rps", 100)
-	v.SetDefault("security.rate_limit.burst", 200)
+	v.SetDefault("security.rate_limit.rps", DefaultRateLimitRPS)
+	v.SetDefault("security.rate_limit.burst", DefaultRateLimitBurst)
 	v.SetDefault("security.rate_limit.window", "1m")
 	v.SetDefault("security.rate_limit.per_ip", false)
 	setCSPDefaults(v)
@@ -604,14 +604,14 @@ func setSecurityDefaults(v *viper.Viper) {
 	v.SetDefault("security.cookie_security.same_site", "Lax")
 	v.SetDefault("security.cookie_security.path", "/")
 	v.SetDefault("security.cookie_security.domain", "")
-	v.SetDefault("security.cookie_security.max_age", 86400)
+	v.SetDefault("security.cookie_security.max_age", DefaultCookieMaxAge)
 	v.SetDefault("security.trust_proxy.enabled", true)
 	v.SetDefault("security.trust_proxy.trusted_proxies", []string{"127.0.0.1", "::1"})
 }
 
 // setEmailDefaults sets email default values
 func setEmailDefaults(v *viper.Viper) {
-	v.SetDefault("email.port", 587)
+	v.SetDefault("email.port", DefaultSMTPPort)
 	v.SetDefault("email.use_tls", true)
 	v.SetDefault("email.use_ssl", false)
 	v.SetDefault("email.template", "default")
@@ -622,7 +622,7 @@ func setStorageDefaults(v *viper.Viper) {
 	v.SetDefault("storage.type", "local")
 	v.SetDefault("storage.local.path", "./uploads")
 	v.SetDefault("storage.s3.region", "us-east-1")
-	v.SetDefault("storage.max_size", 10*1024*1024) // 10MB
+	v.SetDefault("storage.max_size", DefaultMaxFileSize)
 	v.SetDefault("storage.allowed_extensions", []string{".jpg", ".jpeg", ".png", ".gif", ".pdf", ".doc", ".docx"})
 }
 
@@ -630,9 +630,9 @@ func setStorageDefaults(v *viper.Viper) {
 func setCacheDefaults(v *viper.Viper) {
 	v.SetDefault("cache.type", "memory")
 	v.SetDefault("cache.redis.host", "localhost")
-	v.SetDefault("cache.redis.port", 6379)
+	v.SetDefault("cache.redis.port", DefaultRedisPort)
 	v.SetDefault("cache.redis.db", 0)
-	v.SetDefault("cache.memory.max_size", 1000)
+	v.SetDefault("cache.memory.max_size", DefaultMemoryCacheSize)
 	v.SetDefault("cache.ttl", 1*time.Hour)
 }
 
@@ -642,9 +642,9 @@ func setLoggingDefaults(v *viper.Viper) {
 	v.SetDefault("logging.format", "json")
 	v.SetDefault("logging.output", "stdout")
 	v.SetDefault("logging.file", "logs/app.log")
-	v.SetDefault("logging.max_size", 100)
-	v.SetDefault("logging.max_backups", 3)
-	v.SetDefault("logging.max_age", 28)
+	v.SetDefault("logging.max_size", DefaultLogMaxSize)
+	v.SetDefault("logging.max_backups", DefaultLogMaxBackups)
+	v.SetDefault("logging.max_age", DefaultLogMaxAge)
 	v.SetDefault("logging.compress", true)
 }
 
@@ -652,7 +652,7 @@ func setLoggingDefaults(v *viper.Viper) {
 func setSessionDefaults(v *viper.Viper) {
 	v.SetDefault("session.type", "cookie")
 	v.SetDefault("session.secret", "session-secret")
-	v.SetDefault("session.max_age", 24*time.Hour)
+	v.SetDefault("session.max_age", DefaultSessionMaxAge)
 	v.SetDefault("session.path", "/")
 	v.SetDefault("session.secure", false)
 	v.SetDefault("session.http_only", true)
@@ -665,32 +665,32 @@ func setSessionDefaults(v *viper.Viper) {
 // setAuthDefaults sets authentication default values
 func setAuthDefaults(v *viper.Viper) {
 	v.SetDefault("auth.require_email_verification", false)
-	v.SetDefault("auth.password_min_length", 8)
+	v.SetDefault("auth.password_min_length", DefaultPasswordMinLength)
 	v.SetDefault("auth.password_require_special", true)
-	v.SetDefault("auth.session_timeout", 30*time.Minute)
-	v.SetDefault("auth.max_login_attempts", 5)
-	v.SetDefault("auth.lockout_duration", 15*time.Minute)
+	v.SetDefault("auth.session_timeout", DefaultAuthTimeout)
+	v.SetDefault("auth.max_login_attempts", DefaultMaxLoginAttempts)
+	v.SetDefault("auth.lockout_duration", DefaultLockoutTime)
 }
 
 // setFormDefaults sets form default values
 func setFormDefaults(v *viper.Viper) {
-	v.SetDefault("form.max_file_size", 10*1024*1024) // 10MB
+	v.SetDefault("form.max_file_size", DefaultMaxFileSize)
 	v.SetDefault("form.allowed_file_types", []string{"image/jpeg", "image/png", "image/gif", "application/pdf"})
-	v.SetDefault("form.max_fields", 100)
-	v.SetDefault("form.max_memory", 32*1024*1024) // 32MB
+	v.SetDefault("form.max_fields", DefaultMaxFields)
+	v.SetDefault("form.max_memory", DefaultMaxFormMemory)
 	v.SetDefault("form.validation.strict_mode", false)
-	v.SetDefault("form.validation.max_errors", 10)
+	v.SetDefault("form.validation.max_errors", DefaultMaxErrors)
 }
 
 // setAPIDefaults sets API default values
 func setAPIDefaults(v *viper.Viper) {
 	v.SetDefault("api.version", "v1")
 	v.SetDefault("api.prefix", "/api")
-	v.SetDefault("api.timeout", 30*time.Second)
-	v.SetDefault("api.max_retries", 3)
+	v.SetDefault("api.timeout", DefaultRequestTimeout)
+	v.SetDefault("api.max_retries", DefaultMaxRetries)
 	v.SetDefault("api.rate_limit.enabled", true)
-	v.SetDefault("api.rate_limit.rps", 1000)
-	v.SetDefault("api.rate_limit.burst", 2000)
+	v.SetDefault("api.rate_limit.rps", DefaultAPIRateLimitRPS)
+	v.SetDefault("api.rate_limit.burst", DefaultAPIRateBurst)
 }
 
 // setWebDefaults sets web default values
@@ -698,9 +698,9 @@ func setWebDefaults(v *viper.Viper) {
 	v.SetDefault("web.template_dir", "templates")
 	v.SetDefault("web.static_dir", "static")
 	v.SetDefault("web.assets_dir", "assets")
-	v.SetDefault("web.read_timeout", 15*time.Second)
-	v.SetDefault("web.write_timeout", 15*time.Second)
-	v.SetDefault("web.idle_timeout", 60*time.Second)
+	v.SetDefault("web.read_timeout", DefaultReadTimeout)
+	v.SetDefault("web.write_timeout", DefaultWriteTimeout)
+	v.SetDefault("web.idle_timeout", DefaultIdleTimeout)
 	v.SetDefault("web.gzip", true)
 }
 

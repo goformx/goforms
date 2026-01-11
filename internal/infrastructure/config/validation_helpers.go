@@ -9,11 +9,17 @@ import (
 	"time"
 )
 
+// File permission constants
+const (
+	permUserWrite = 0o200
+	permUserRead  = 0o400
+)
+
 // ValidationError represents a configuration validation error
 type ValidationError struct {
 	Field   string
 	Message string
-	Value   interface{}
+	Value   any
 }
 
 func (e ValidationError) Error() string {
@@ -27,7 +33,7 @@ type ValidationResult struct {
 }
 
 // AddError adds a validation error to the result
-func (r *ValidationResult) AddError(field, message string, value interface{}) {
+func (r *ValidationResult) AddError(field, message string, value any) {
 	r.IsValid = false
 	r.Errors = append(r.Errors, ValidationError{
 		Field:   field,
@@ -103,7 +109,7 @@ func isWritableDirectory(path string) bool {
 		return false
 	}
 
-	return info.IsDir() && (info.Mode()&0o200) != 0
+	return info.IsDir() && (info.Mode()&permUserWrite) != 0
 }
 
 // isReadableDirectory checks if a directory is readable
@@ -113,7 +119,7 @@ func isReadableDirectory(path string) bool {
 		return false
 	}
 
-	return info.IsDir() && (info.Mode()&0o400) != 0
+	return info.IsDir() && (info.Mode()&permUserRead) != 0
 }
 
 // isValidEmail checks if an email address is valid

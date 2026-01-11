@@ -17,6 +17,9 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
+// maxMultipartMemory is the maximum memory used for parsing multipart forms (32MB)
+const maxMultipartMemory = 32 << 20
+
 // EchoRequest wraps Echo's echo.Context to implement our Request interface.
 // This adapter provides access to Echo's request data through our framework-agnostic interface.
 type EchoRequest struct {
@@ -184,7 +187,7 @@ func (r *EchoRequest) MultipartForm() (*multipart.Form, error) {
 	}
 
 	// Parse multipart form if not already parsed
-	if err := r.context.Request().ParseMultipartForm(32 << 20); err != nil {
+	if err := r.context.Request().ParseMultipartForm(maxMultipartMemory); err != nil {
 		return nil, fmt.Errorf("failed to parse multipart form: %w", err)
 	}
 

@@ -187,7 +187,7 @@ func (ea *EchoOrchestratorAdapter) setupStaticChain(e *echo.Echo) error {
 
 // convertChainToEcho converts a middleware chain to Echo middleware functions
 func (ea *EchoOrchestratorAdapter) convertChainToEcho(chain core.Chain) []echo.MiddlewareFunc {
-	var echoMiddleware []echo.MiddlewareFunc
+	echoMiddleware := make([]echo.MiddlewareFunc, 0, 1)
 
 	// For now, return a simple no-op middleware
 	// This will be expanded to convert actual middleware
