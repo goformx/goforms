@@ -1,7 +1,6 @@
 package security
 
 import (
-	"errors"
 	"net/http"
 	"strings"
 
