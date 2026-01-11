@@ -3,6 +3,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 	"time"
@@ -192,15 +193,15 @@ func (s *SecurityConfig) Validate() error {
 // validateCSRF validates CSRF configuration
 func (s *SecurityConfig) validateCSRF() error {
 	if s.CSRF.Secret == "" {
-		return fmt.Errorf("CSRF secret is required")
+		return errors.New("CSRF secret is required")
 	}
 
 	if len(s.CSRF.Secret) < 32 {
-		return fmt.Errorf("CSRF secret must be at least 32 characters")
+		return errors.New("CSRF secret must be at least 32 characters")
 	}
 
 	if s.CSRF.TokenLength < 16 || s.CSRF.TokenLength > 64 {
-		return fmt.Errorf("CSRF token length must be between 16 and 64")
+		return errors.New("CSRF token length must be between 16 and 64")
 	}
 
 	// Validate SameSite values
@@ -211,7 +212,7 @@ func (s *SecurityConfig) validateCSRF() error {
 
 	// If SameSite=None, Secure must be true (in production)
 	if s.CSRF.CookieSameSite == "None" && !s.CSRF.CookieSecure {
-		return fmt.Errorf("CSRF cookie with SameSite=None requires Secure=true")
+		return errors.New("CSRF cookie with SameSite=None requires Secure=true")
 	}
 
 	return nil
@@ -223,7 +224,7 @@ func (s *SecurityConfig) validateCORS() error {
 	if s.CORS.AllowCredentials {
 		for _, origin := range s.CORS.AllowedOrigins {
 			if origin == "*" {
-				return fmt.Errorf("CORS wildcard origin '*' cannot be used with AllowCredentials=true")
+				return errors.New("CORS wildcard origin '*' cannot be used with AllowCredentials=true")
 			}
 		}
 	}
@@ -242,7 +243,7 @@ func (s *SecurityConfig) validateCORS() error {
 func (s *SecurityConfig) validateTLS() error {
 	if s.TLS.CertFile == "" || s.TLS.KeyFile == "" {
 		if !s.TLS.AutoCert {
-			return fmt.Errorf("TLS cert and key files are required when AutoCert is disabled")
+			return errors.New("TLS cert and key files are required when AutoCert is disabled")
 		}
 	}
 
@@ -264,7 +265,7 @@ func (s *SecurityConfig) validateCookieSecurity() error {
 
 	// If SameSite=None, Secure must be true
 	if s.CookieSecurity.SameSite == "None" && !s.CookieSecurity.Secure {
-		return fmt.Errorf("cookie with SameSite=None requires Secure=true")
+		return errors.New("cookie with SameSite=None requires Secure=true")
 	}
 
 	return nil

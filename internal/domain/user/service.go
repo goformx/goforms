@@ -16,14 +16,14 @@ import (
 
 // Signup represents a user signup request
 type Signup struct {
-	Email           string `json:"email" validate:"required,email"`
-	Password        string `json:"password" validate:"required,min=8"`
+	Email           string `json:"email"            validate:"required,email"`
+	Password        string `json:"password"         validate:"required,min=8"`
 	ConfirmPassword string `json:"confirm_password" validate:"required,eqfield=password"`
 }
 
 // Login represents a user login request
 type Login struct {
-	Email    string `json:"email" validate:"required,email"`
+	Email    string `json:"email"    validate:"required,email"`
 	Password string `json:"password" validate:"required"`
 }
 
@@ -91,7 +91,7 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.Use
 	// Create user with default first/last name (extract username before @)
 	atIndex := strings.Index(signup.Email, "@")
 	if atIndex == -1 {
-		return nil, fmt.Errorf("invalid email format: missing @ symbol")
+		return nil, errors.New("invalid email format: missing @ symbol")
 	}
 	username := signup.Email[:atIndex]
 

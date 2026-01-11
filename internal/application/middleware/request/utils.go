@@ -85,8 +85,8 @@ func (ru *Utils) GetContentType(c echo.Context) ContentType {
 
 // AuthFormData represents common form data structure for login/signup
 type AuthFormData struct {
-	Email    string `json:"email" form:"email"`
-	Password string `json:"password" form:"password"`
+	Email    string `form:"email"    json:"email"`
+	Password string `form:"password" json:"password"`
 }
 
 // ParseAuthData parses authentication form data

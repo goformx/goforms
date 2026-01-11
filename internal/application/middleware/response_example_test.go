@@ -2,7 +2,7 @@ package middleware_test
 
 import (
 	"bytes"
-	"fmt"
+	"errors"
 	"net/http"
 	"testing"
 	"time"
@@ -53,7 +53,7 @@ func TestResponseImplementation(t *testing.T) {
 
 	// Test error response
 	t.Run("Error Response", func(t *testing.T) {
-		testErr := fmt.Errorf("test error")
+		testErr := errors.New("test error")
 		resp := middleware.NewErrorResponse(http.StatusBadRequest, testErr)
 
 		if resp.StatusCode() != http.StatusBadRequest {
@@ -64,7 +64,7 @@ func TestResponseImplementation(t *testing.T) {
 			t.Error("Expected error response")
 		}
 
-		if resp.Error() != testErr {
+		if !errors.Is(resp.Error(), testErr) {
 			t.Error("Expected error to match")
 		}
 	})
@@ -143,7 +143,7 @@ func BenchmarkNewJSONResponse(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		resp := middleware.NewJSONResponse(data)
 		if resp == nil {
 			b.Fatal("Response should not be nil")
@@ -166,7 +166,7 @@ func BenchmarkResponseWriteTo(b *testing.B) {
 
 	b.ResetTimer()
 
-	for i := 0; i < b.N; i++ {
+	for range b.N {
 		buf.Reset()
 
 		_, err := resp.WriteTo(&buf)

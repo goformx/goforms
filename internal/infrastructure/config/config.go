@@ -3,6 +3,7 @@
 package config
 
 import (
+	"errors"
 	"fmt"
 	"strings"
 )
@@ -95,7 +96,7 @@ func (c *Config) validateConditionalConfig() error {
 // validateSessionConfig validates session configuration
 func (c *Config) validateSessionConfig() error {
 	if c.Session.Type != "none" && c.Session.Secret == "" {
-		return fmt.Errorf("session secret is required when session type is not 'none'")
+		return errors.New("session secret is required when session type is not 'none'")
 	}
 
 	return nil

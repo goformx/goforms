@@ -4,7 +4,7 @@ package middleware
 
 import (
 	"context"
-	"fmt"
+	"errors"
 	"io"
 	"mime/multipart"
 	"net/http"
@@ -388,7 +388,7 @@ func (r *request) Form() (url.Values, error) {
 func (r *request) MultipartForm() (*multipart.Form, error) {
 	// This is a simplified implementation
 	// In a real implementation, you would parse the multipart form
-	return nil, fmt.Errorf("multipart form parsing not implemented")
+	return nil, errors.New("multipart form parsing not implemented")
 }
 
 // IsAJAX returns true if the request is an AJAX request

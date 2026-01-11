@@ -3,6 +3,7 @@
 package auth
 
 import (
+	"errors"
 	"fmt"
 	"net/http"
 
@@ -96,7 +97,7 @@ func (am *Middleware) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 			return nil, fmt.Errorf("redirect to login: %w", redirectErr)
 		}
 
-		return nil, fmt.Errorf("user not authenticated")
+		return nil, errors.New("user not authenticated")
 	}
 
 	userEntity, err := am.userService.GetUserByID(c.Request().Context(), userID)
@@ -107,7 +108,7 @@ func (am *Middleware) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 			return nil, fmt.Errorf("handle authentication error: %w", handleErr)
 		}
 
-		return nil, fmt.Errorf("user not found")
+		return nil, errors.New("user not found")
 	}
 
 	return userEntity, nil

@@ -170,7 +170,7 @@ func TestManager_RateLimiter_Scenarios(t *testing.T) {
 			})
 
 			// Make requests and check status codes
-			for i := 0; i < tt.requestCount; i++ {
+			for i := range tt.requestCount {
 				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
 				req.Header.Set("X-Real-IP", "192.168.1.1")
 
