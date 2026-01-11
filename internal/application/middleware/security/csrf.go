@@ -46,20 +46,20 @@ func SetupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 			return func(c echo.Context) error {
 				// Call the CSRF middleware
 				err := csrfHandler(c)
-				
+
 				// After CSRF middleware runs, check if token exists
 				if token, ok := c.Get(csrfConfig.ContextKey).(string); ok && token != "" {
 					println("[CSRF DEBUG] After CSRF middleware: token found in context, length=", len(token))
 				} else {
 					println("[CSRF DEBUG] After CSRF middleware: token NOT in context, context_key=", csrfConfig.ContextKey)
 				}
-				
+
 				if cookie, cookieErr := c.Cookie(csrfConfig.CookieName); cookieErr == nil && cookie != nil && cookie.Value != "" {
 					println("[CSRF DEBUG] After CSRF middleware: token found in cookie, length=", len(cookie.Value))
 				} else {
 					println("[CSRF DEBUG] After CSRF middleware: token NOT in cookie, cookie_name=", csrfConfig.CookieName, ", error=", cookieErr)
 				}
-				
+
 				return err
 			}
 		}
