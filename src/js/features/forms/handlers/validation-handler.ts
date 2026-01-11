@@ -13,7 +13,9 @@ import type { z } from "zod";
 // Schema mapping for form validation
 const SCHEMA_MAP = {
   "login-form": loginSchema,
+  "user-login": loginSchema,
   "signup-form": signupSchema,
+  "user-signup": signupSchema,
   "contact-form": contactSchema,
 } as const;
 

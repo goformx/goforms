@@ -21,29 +21,30 @@ templ signupContent(data view.PageData) {
 					</div>
 
 					<form id="user-signup" class="form" method="POST" action="/signup" data-validate="signup">
+						<div class="form-success hidden"></div>
 						<div class="form-error"></div>
 
 						<div class="gf-form-group">
 							<label for="email" class="gf-label">Email</label>
 							if data.IsDevelopment {
-								<input 
-									type="email" 
-									id="email" 
-									name="email" 
-									required 
-									class="gf-input" 
-									placeholder="Enter your email" 
+								<input
+									type="email"
+									id="email"
+									name="email"
+									required
+									class="gf-input"
+									placeholder="Enter your email"
 									autocomplete="email"
 									value={ fmt.Sprintf("dev-user-%d@example.com", time.Now().Unix()) }
 								/>
 							} else {
-								<input 
-									type="email" 
-									id="email" 
-									name="email" 
-									required 
-									class="gf-input" 
-									placeholder="Enter your email" 
+								<input
+									type="email"
+									id="email"
+									name="email"
+									required
+									class="gf-input"
+									placeholder="Enter your email"
 									autocomplete="email"
 								/>
 							}
@@ -53,24 +54,24 @@ templ signupContent(data view.PageData) {
 						<div class="gf-form-group">
 							<label for="password" class="gf-label">Password</label>
 							if data.IsDevelopment {
-								<input 
-									type="password" 
-									id="password" 
-									name="password" 
-									required 
-									class="gf-input" 
-									placeholder="Create a password" 
+								<input
+									type="password"
+									id="password"
+									name="password"
+									required
+									class="gf-input"
+									placeholder="Create a password"
 									autocomplete="new-password"
 									value="Test123!"
 								/>
 							} else {
-								<input 
-									type="password" 
-									id="password" 
-									name="password" 
-									required 
-									class="gf-input" 
-									placeholder="Create a password" 
+								<input
+									type="password"
+									id="password"
+									name="password"
+									required
+									class="gf-input"
+									placeholder="Create a password"
 									autocomplete="new-password"
 								/>
 							}
@@ -80,24 +81,24 @@ templ signupContent(data view.PageData) {
 						<div class="gf-form-group">
 							<label for="confirm_password" class="gf-label">Confirm Password</label>
 							if data.IsDevelopment {
-								<input 
-									type="password" 
-									id="confirm_password" 
-									name="confirm_password" 
-									required 
-									class="gf-input" 
-									placeholder="Confirm your password" 
+								<input
+									type="password"
+									id="confirm_password"
+									name="confirm_password"
+									required
+									class="gf-input"
+									placeholder="Confirm your password"
 									autocomplete="new-password"
 									value="Test123!"
 								/>
 							} else {
-								<input 
-									type="password" 
-									id="confirm_password" 
-									name="confirm_password" 
-									required 
-									class="gf-input" 
-									placeholder="Confirm your password" 
+								<input
+									type="password"
+									id="confirm_password"
+									name="confirm_password"
+									required
+									class="gf-input"
+									placeholder="Confirm your password"
 									autocomplete="new-password"
 								/>
 							}
@@ -118,4 +119,4 @@ templ signupContent(data view.PageData) {
 	</div>
 
 	<script type="module" src={ data.AssetPath("src/js/pages/signup.ts") }></script>
-} 
+}

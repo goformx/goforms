@@ -21,29 +21,30 @@ templ loginContent(data view.PageData) {
 				</div>
 
 				<form id="user-login" class="form" method="POST" action="/login" data-validate="login">
+					<div class="form-success hidden"></div>
 					<div class="form-error"></div>
 
 					<div class="gf-form-group">
 						<label for="email" class="gf-label">Email</label>
 						if data.IsDevelopment {
-							<input 
-								type="email" 
-								id="email" 
-								name="email" 
-								required 
+							<input
+								type="email"
+								id="email"
+								name="email"
+								required
 								class="gf-input"
-								placeholder="Enter your email" 
+								placeholder="Enter your email"
 								autocomplete="email"
 								value="test@example.com"
 							/>
 						} else {
-							<input 
-								type="email" 
-								id="email" 
-								name="email" 
-								required 
+							<input
+								type="email"
+								id="email"
+								name="email"
+								required
 								class="gf-input"
-								placeholder="Enter your email" 
+								placeholder="Enter your email"
 								autocomplete="email"
 							/>
 						}
@@ -53,24 +54,24 @@ templ loginContent(data view.PageData) {
 					<div class="gf-form-group">
 						<label for="password" class="gf-label">Password</label>
 						if data.IsDevelopment {
-							<input 
-								type="password" 
-								id="password" 
-								name="password" 
-								required 
+							<input
+								type="password"
+								id="password"
+								name="password"
+								required
 								class="gf-input"
-								placeholder="Enter your password" 
+								placeholder="Enter your password"
 								autocomplete="current-password"
 								value="Test123!"
 							/>
 						} else {
-							<input 
-								type="password" 
-								id="password" 
-								name="password" 
-								required 
+							<input
+								type="password"
+								id="password"
+								name="password"
+								required
 								class="gf-input"
-								placeholder="Enter your password" 
+								placeholder="Enter your password"
 								autocomplete="current-password"
 							/>
 						}
