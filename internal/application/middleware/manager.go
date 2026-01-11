@@ -4,7 +4,6 @@ package middleware
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -193,24 +192,53 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 		HandleError: true,
 		Skipper:     isNoisePath,
 		LogValuesFunc: func(c echo.Context, v echomw.RequestLoggerValues) error {
-			if m.config.Config.App.IsDevelopment() {
-				fmt.Fprintf(os.Stdout, "%s %d %s %s %s\n",
-					time.Now().Format(time.RFC3339),
-					v.Status,
-					v.Method,
-					v.URI,
-					v.Latency,
-				)
-			} else {
-				m.logger.Info("request",
-					"method", v.Method,
-					"uri", v.URI,
-					"status", v.Status,
-					"latency", v.Latency,
-				)
+			// Get request ID from header
+			requestID := c.Request().Header.Get("X-Trace-Id")
+			logger := m.logger
+			if requestID != "" {
+				logger = logger.WithRequestID(requestID)
 			}
+
+			// Build base fields
+			fields := []any{
+				"method", v.Method,
+				"uri", v.URI,
+				"status", v.Status,
+				"latency_ms", v.Latency.Milliseconds(),
+				"remote_ip", c.RealIP(),
+			}
+
+			// Add user_id if authenticated
+			if userID, ok := contextmw.GetUserID(c); ok {
+				fields = append(fields, "user_id", userID)
+			}
+
+			// Add form_id if this is a form route
+			if formID := c.Param("id"); formID != "" && isFormRoute(v.URI) {
+				fields = append(fields, "form_id", formID)
+			}
+
+			// Log based on status and error
+			if v.Error != nil {
+				fields = append(fields, "error", v.Error.Error())
+				logger.Error("request failed", fields...)
+			} else if v.Status >= 500 {
+				logger.Error("request completed with server error", fields...)
+			} else if v.Status >= 400 {
+				logger.Warn("request completed with client error", fields...)
+			} else {
+				logger.Info("request completed", fields...)
+			}
+
 			return nil
 		},
+	}))
+
+	// Slow request detection middleware
+	e.Use(SlowRequestDetectorWithConfig(m.logger, SlowRequestConfig{
+		Threshold:         DefaultSlowRequestThreshold,
+		VerySlowThreshold: VerySlowRequestThreshold,
+		Skipper:           NewSlowRequestSkipper(),
 	}))
 }
 
@@ -257,6 +285,7 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 		csrfMiddleware := security.SetupCSRF(
 			&m.config.Config.Security.CSRF,
 			m.config.Config.App.Environment == "development",
+			m.logger,
 		)
 		e.Use(csrfMiddleware)
 		m.logger.Info("CSRF middleware registered",
@@ -290,6 +319,13 @@ func isNoisePath(c echo.Context) bool {
 		strings.Contains(path, "com.chrome.devtools") ||
 		strings.Contains(path, "devtools") ||
 		strings.Contains(path, "chrome-devtools")
+}
+
+// isFormRoute checks if the path is a form-related route
+func isFormRoute(path string) bool {
+	return strings.HasPrefix(path, "/forms/") ||
+		strings.HasPrefix(path, "/api/v1/forms/") ||
+		strings.HasPrefix(path, "/submit/")
 }
 
 // EchoLogger is exported for backward compatibility.

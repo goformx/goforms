@@ -68,7 +68,18 @@ func (l *logger) WithError(err error) Logger {
 	return l.With("error", sanitizeError(err, l.sanitizer))
 }
 
-// WithFields adds multiple fields to the logger (legacy method)
+// WithFields adds multiple fields to the logger.
+//
+// Deprecated: Use With(fields ...any) with key-value pairs instead.
+// This method will be removed in a future version.
+//
+// Example migration:
+//
+//	// Old:
+//	logger.WithFields(map[string]any{"form_id": id, "user_id": uid})
+//
+//	// New:
+//	logger.With("form_id", id, "user_id", uid)
 func (l *logger) WithFields(fields map[string]any) Logger {
 	zapFields := make([]zap.Field, 0, len(fields))
 	for k, v := range fields {

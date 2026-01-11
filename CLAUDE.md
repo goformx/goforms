@@ -470,6 +470,67 @@ SECURITY_CSP_FONT_SRC="'self' http://localhost:5173 https://localhost:5173 https
 - Linting: golangci-lint v2 with 40+ linters enabled (see `.golangci.yml`)
 - Frontend: ESLint + Prettier, strict TypeScript
 
+## Logging Conventions
+
+### DO:
+
+- Log at handler/boundary level, not inside helpers
+- Use structured key-value pairs: `logger.Info("msg", "key", value)`
+- Include contextual fields: request_id, user_id, form_id
+- Use error wrapping: `fmt.Errorf("context: %w", err)`
+- Log once per error (at the boundary that handles it)
+- Use `logging.LoggerFromContext(ctx)` to get an enriched logger
+
+### DON'T:
+
+- Use `println`, `fmt.Printf`, or `log.Printf`
+- Use `c.Logger()` - use the structured logger instead
+- Log entire request bodies
+- Log in tight loops or low-level utilities
+- Log secrets (password, token, key, secret, credential)
+- Duplicate logs (if returning error, don't also log it)
+
+### Log Levels:
+
+- **DEBUG**: Development-only, verbose tracing
+- **INFO**: Normal operations (request completed, form created)
+- **WARN**: Recoverable issues (slow request, rate limited)
+- **ERROR**: Failures requiring attention (DB errors, auth failures)
+- **FATAL**: Unrecoverable (startup failures only)
+
+### Required Fields by Context:
+
+- All requests: `request_id`, `method`, `path`, `status`, `latency_ms`
+- Authenticated: + `user_id`
+- Form operations: + `form_id`
+- Errors: + `error`, `error_type`
+
+### Logging Patterns:
+
+```go
+// Handler-level logging with context enrichment
+func (h *FormWebHandler) handleUpdate(c echo.Context) error {
+    logger := h.Logger.WithComponent("form_handler").
+        WithOperation("update").
+        With("form_id", form.ID)
+
+    if err := h.FormService.UpdateForm(ctx, form, req); err != nil {
+        logger.Error("form update failed", "error", err)
+        return h.handleFormUpdateError(c, form, err)
+    }
+
+    logger.Info("form updated successfully")
+    return c.Redirect(http.StatusSeeOther, redirectURL)
+}
+
+// Type-safe field construction for complex scenarios
+logger.InfoWithFields("form created",
+    logging.String("form_id", form.ID),
+    logging.String("user_id", userID),
+    logging.Int("field_count", len(form.Fields)),
+)
+```
+
 ## Linting Requirements
 
 **IMPORTANT**: All code must pass linting before commit. Run `task lint` to verify.

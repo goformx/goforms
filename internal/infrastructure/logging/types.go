@@ -32,27 +32,49 @@ const (
 	UUIDMaskSuffixLen = 4
 )
 
-// Logger interface defines the logging contract
+// Logger interface defines the logging contract.
+//
+// Preferred Usage Patterns:
+//
+// Option 1 - Variadic key-value pairs (recommended for most cases):
+//
+//	logger.Info("form created", "form_id", formID, "user_id", userID)
+//
+// Option 2 - Type-safe field constructors (recommended for complex fields):
+//
+//	logger.InfoWithFields("form created",
+//	    logging.String("form_id", formID),
+//	    logging.UUID("user_id", userID),
+//	)
 type Logger interface {
+	// Core logging methods - use variadic key-value pairs
 	Debug(msg string, fields ...any)
 	Info(msg string, fields ...any)
 	Warn(msg string, fields ...any)
 	Error(msg string, fields ...any)
 	Fatal(msg string, fields ...any)
+
+	// Context builders - chain these to add context
 	With(fields ...any) Logger
 	WithComponent(component string) Logger
 	WithOperation(operation string) Logger
 	WithRequestID(requestID string) Logger
 	WithUserID(userID string) Logger
 	WithError(err error) Logger
+
+	// Deprecated: Use With(fields ...any) with key-value pairs instead.
+	// This method will be removed in a future version.
 	WithFields(fields map[string]any) Logger
-	// New Field-based API methods
+
+	// Type-safe Field-based API methods for complex scenarios
 	WithFieldsStructured(fields ...Field) Logger
 	DebugWithFields(msg string, fields ...Field)
 	InfoWithFields(msg string, fields ...Field)
 	WarnWithFields(msg string, fields ...Field)
 	ErrorWithFields(msg string, fields ...Field)
 	FatalWithFields(msg string, fields ...Field)
+
+	// SanitizeField returns a masked version of a sensitive field value
 	SanitizeField(key string, value any) string
 }
 
