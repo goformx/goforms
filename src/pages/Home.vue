@@ -2,7 +2,7 @@
 import { Link } from "@inertiajs/vue3";
 import GuestLayout from "@/components/layout/GuestLayout.vue";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { FileText, Zap, Shield, Code, Database, Globe } from "lucide-vue-next";
 
 const features = [

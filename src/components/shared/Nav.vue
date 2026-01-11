@@ -16,6 +16,7 @@ interface Auth {
 
 interface PageProps {
   auth: Auth;
+  [key: string]: unknown;
 }
 
 const page = usePage<PageProps>();

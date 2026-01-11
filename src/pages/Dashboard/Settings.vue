@@ -3,7 +3,6 @@ import { ref, computed } from "vue";
 import { useForm } from "@inertiajs/vue3";
 import DashboardLayout from "@/components/layout/DashboardLayout.vue";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import {
   Card,
@@ -36,7 +35,6 @@ const form = useForm({
 
 const successMessage = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
-const showDeleteConfirm = ref(false);
 
 const isSubmitting = computed(() => form.processing);
 

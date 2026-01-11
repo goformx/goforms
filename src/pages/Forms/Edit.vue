@@ -14,7 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { useFormBuilder, type FormSchema } from "@/composables/useFormBuilder";
 import { useKeyboardShortcuts, formatShortcut } from "@/composables/useKeyboardShortcuts";
 import type { FormComponent } from "@/composables/useFormBuilderState";
-import { Eye, ListChecks, Save, Code, Undo2, Redo2, Settings, Keyboard } from "lucide-vue-next";
+import { Eye, ListChecks, Save, Code, Undo2, Redo2, Keyboard } from "lucide-vue-next";
 import { toast } from "vue-sonner";
 
 interface Form {

@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onMounted } from "vue";
 import { Button } from "@/components/ui/button";
-import { Separator } from "@/components/ui/separator";
 import { ChevronLeft, ChevronRight } from "lucide-vue-next";
 
 interface Props {
@@ -69,7 +68,7 @@ function toggleSettingsPanel() {
 <template>
   <div class="builder-layout flex flex-col h-full">
     <!-- Header Slot -->
-    <div v-if="$slots.header" class="builder-header border-b bg-background">
+    <div v-if="$slots['header']" class="builder-header border-b bg-background">
       <slot name="header" />
     </div>
 
@@ -164,7 +163,7 @@ function toggleSettingsPanel() {
     </div>
 
     <!-- Footer Slot -->
-    <div v-if="$slots.footer" class="builder-footer border-t bg-background">
+    <div v-if="$slots['footer']" class="builder-footer border-t bg-background">
       <slot name="footer" />
     </div>
   </div>

@@ -31,6 +31,14 @@ const emit = defineEmits<Emits>();
 
 const hasSelectedField = computed(() => props.selectedField !== null);
 
+// Non-null selected field for use in template (only accessed when hasSelectedField is true)
+const field = computed(() => props.selectedField as FormComponent);
+
+// Helper to get validate object
+const validate = computed(() => {
+  return (field.value?.["validate"] as Record<string, unknown> | undefined) ?? {};
+});
+
 /**
  * Update field property
  */
@@ -60,6 +68,32 @@ function deleteField() {
   if (!props.selectedField) return;
   emit("delete", props.selectedField.key);
 }
+
+// Event handlers with proper typing
+function onInputChange(key: string, event: Event) {
+  const target = event.target as HTMLInputElement;
+  updateField(key, target.value);
+}
+
+function onTextareaChange(key: string, event: Event) {
+  const target = event.target as HTMLTextAreaElement;
+  updateField(key, target.value);
+}
+
+function onSwitchChange(key: string, checked: boolean) {
+  updateField(key, checked);
+}
+
+function onValidateChange(validateKey: string, value: unknown) {
+  const newValidate = { ...validate.value, [validateKey]: value };
+  updateField("validate", newValidate);
+}
+
+function onValidateNumberChange(validateKey: string, event: Event) {
+  const target = event.target as HTMLInputElement;
+  const newValidate = { ...validate.value, [validateKey]: parseInt(target.value, 10) };
+  updateField("validate", newValidate);
+}
 </script>
 
 <template>
@@ -83,10 +117,10 @@ function deleteField() {
         <div class="flex items-start justify-between gap-2">
           <div class="flex-1 min-w-0">
             <h3 class="font-semibold text-sm truncate">
-              {{ props.selectedField.label || props.selectedField.type }}
+              {{ field.label ?? field.type }}
             </h3>
             <p class="text-xs text-muted-foreground truncate">
-              {{ props.selectedField.type }}
+              {{ field.type }}
             </p>
           </div>
           <div class="flex gap-1">
@@ -131,10 +165,10 @@ function deleteField() {
                 <Label for="field-label" class="text-xs">Label</Label>
                 <Input
                   id="field-label"
-                  :model-value="props.selectedField.label ?? ''"
+                  :model-value="field.label ?? ''"
                   type="text"
                   placeholder="Field label"
-                  @input="(e) => updateField('label', (e.target as HTMLInputElement).value)"
+                  @input="(e: Event) => onInputChange('label', e)"
                 />
               </div>
 
@@ -143,10 +177,10 @@ function deleteField() {
                 <Label for="field-placeholder" class="text-xs">Placeholder</Label>
                 <Input
                   id="field-placeholder"
-                  :model-value="(props.selectedField.placeholder as string | undefined) ?? ''"
+                  :model-value="(field['placeholder'] as string | undefined) ?? ''"
                   type="text"
                   placeholder="Placeholder text"
-                  @input="(e) => updateField('placeholder', (e.target as HTMLInputElement).value)"
+                  @input="(e: Event) => onInputChange('placeholder', e)"
                 />
               </div>
 
@@ -155,10 +189,10 @@ function deleteField() {
                 <Label for="field-description" class="text-xs">Description</Label>
                 <textarea
                   id="field-description"
-                  :value="(props.selectedField.description as string | undefined) ?? ''"
+                  :value="(field['description'] as string | undefined) ?? ''"
                   class="flex min-h-[60px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
                   placeholder="Field description"
-                  @input="(e) => updateField('description', (e.target as HTMLTextAreaElement).value)"
+                  @input="(e: Event) => onTextareaChange('description', e)"
                 />
               </div>
 
@@ -167,8 +201,8 @@ function deleteField() {
                 <Label for="field-hidden" class="text-xs">Hidden</Label>
                 <Switch
                   id="field-hidden"
-                  :checked="(props.selectedField.hidden as boolean | undefined) ?? false"
-                  @update:checked="(checked) => updateField('hidden', checked)"
+                  :checked="(field['hidden'] as boolean | undefined) ?? false"
+                  @update:checked="(checked: boolean) => onSwitchChange('hidden', checked)"
                 />
               </div>
 
@@ -177,8 +211,8 @@ function deleteField() {
                 <Label for="field-disabled" class="text-xs">Disabled</Label>
                 <Switch
                   id="field-disabled"
-                  :checked="(props.selectedField.disabled as boolean | undefined) ?? false"
-                  @update:checked="(checked) => updateField('disabled', checked)"
+                  :checked="(field['disabled'] as boolean | undefined) ?? false"
+                  @update:checked="(checked: boolean) => onSwitchChange('disabled', checked)"
                 />
               </div>
             </div>
@@ -192,10 +226,10 @@ function deleteField() {
                 <Label for="field-key" class="text-xs">Field Key (API Name)</Label>
                 <Input
                   id="field-key"
-                  :model-value="props.selectedField.key"
+                  :model-value="field.key"
                   type="text"
                   placeholder="fieldKey"
-                  @input="(e) => updateField('key', (e.target as HTMLInputElement).value)"
+                  @input="(e: Event) => onInputChange('key', e)"
                 />
                 <p class="text-xs text-muted-foreground">
                   Used to identify this field in the API
@@ -207,10 +241,10 @@ function deleteField() {
                 <Label for="field-default" class="text-xs">Default Value</Label>
                 <Input
                   id="field-default"
-                  :model-value="(props.selectedField.defaultValue as string | undefined) ?? ''"
+                  :model-value="(field['defaultValue'] as string | undefined) ?? ''"
                   type="text"
                   placeholder="Default value"
-                  @input="(e) => updateField('defaultValue', (e.target as HTMLInputElement).value)"
+                  @input="(e: Event) => onInputChange('defaultValue', e)"
                 />
               </div>
 
@@ -224,8 +258,8 @@ function deleteField() {
                 </div>
                 <Switch
                   id="field-persistent"
-                  :checked="(props.selectedField.persistent as boolean | undefined) ?? true"
-                  @update:checked="(checked) => updateField('persistent', checked)"
+                  :checked="(field['persistent'] as boolean | undefined) ?? true"
+                  @update:checked="(checked: boolean) => onSwitchChange('persistent', checked)"
                 />
               </div>
             </div>
@@ -242,11 +276,8 @@ function deleteField() {
                 </div>
                 <Switch
                   id="field-required"
-                  :checked="((props.selectedField.validate as Record<string, boolean> | undefined)?.required) ?? false"
-                  @update:checked="(checked) => {
-                    const validate = { ...((props.selectedField.validate as Record<string, unknown> | undefined) ?? {}), required: checked };
-                    updateField('validate', validate);
-                  }"
+                  :checked="(validate['required'] as boolean | undefined) ?? false"
+                  @update:checked="(checked: boolean) => onValidateChange('required', checked)"
                 />
               </div>
 
@@ -255,27 +286,24 @@ function deleteField() {
                 <Label for="field-error-label" class="text-xs">Custom Error Message</Label>
                 <Input
                   id="field-error-label"
-                  :model-value="(props.selectedField.errorLabel as string | undefined) ?? ''"
+                  :model-value="(field['errorLabel'] as string | undefined) ?? ''"
                   type="text"
                   placeholder="This field is required"
-                  @input="(e) => updateField('errorLabel', (e.target as HTMLInputElement).value)"
+                  @input="(e: Event) => onInputChange('errorLabel', e)"
                 />
               </div>
 
               <!-- Min/Max Length (for text fields) -->
-              <template v-if="['textfield', 'textarea', 'email'].includes(props.selectedField.type)">
+              <template v-if="['textfield', 'textarea', 'email'].includes(field.type)">
                 <Separator />
                 <div class="space-y-2">
                   <Label for="field-minlength" class="text-xs">Minimum Length</Label>
                   <Input
                     id="field-minlength"
-                    :model-value="((props.selectedField.validate as Record<string, number> | undefined)?.minLength) ?? ''"
+                    :model-value="(validate['minLength'] as number | undefined) ?? ''"
                     type="number"
                     placeholder="0"
-                    @input="(e) => {
-                      const validate = { ...((props.selectedField.validate as Record<string, unknown> | undefined) ?? {}), minLength: parseInt((e.target as HTMLInputElement).value, 10) };
-                      updateField('validate', validate);
-                    }"
+                    @input="(e: Event) => onValidateNumberChange('minLength', e)"
                   />
                 </div>
 
@@ -283,13 +311,10 @@ function deleteField() {
                   <Label for="field-maxlength" class="text-xs">Maximum Length</Label>
                   <Input
                     id="field-maxlength"
-                    :model-value="((props.selectedField.validate as Record<string, number> | undefined)?.maxLength) ?? ''"
+                    :model-value="(validate['maxLength'] as number | undefined) ?? ''"
                     type="number"
                     placeholder="Unlimited"
-                    @input="(e) => {
-                      const validate = { ...((props.selectedField.validate as Record<string, unknown> | undefined) ?? {}), maxLength: parseInt((e.target as HTMLInputElement).value, 10) };
-                      updateField('validate', validate);
-                    }"
+                    @input="(e: Event) => onValidateNumberChange('maxLength', e)"
                   />
                 </div>
               </template>

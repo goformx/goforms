@@ -1,6 +1,6 @@
 <script setup lang="ts">
 import { computed } from "vue";
-import { Link, router } from "@inertiajs/vue3";
+import { router } from "@inertiajs/vue3";
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -72,10 +72,6 @@ function editForm() {
 
 function previewForm() {
   router.visit(`/forms/${props.form.id}/preview`);
-}
-
-function viewSubmissions() {
-  router.visit(`/forms/${props.form.id}/submissions`);
 }
 
 // Dropdown actions
