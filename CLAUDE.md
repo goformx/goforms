@@ -72,12 +72,95 @@ internal/
 ### Frontend (TypeScript/Vite/Vue 3)
 
 - **Inertia.js** for SPA routing - Go backend renders pages, Vue handles client-side
-- Entry point: `src/main.ts` with Inertia app setup
+- Entry point: `src/main.ts` with Inertia app setup + Sonner toast provider
 - Page components in `src/pages/` (e.g., `Dashboard/Index.vue`, `Forms/Edit.vue`)
 - Path aliases: `@/`, `@/components`, `@/pages`, `@/composables`, `@/lib`
 - **Tailwind CSS v4** with `@tailwindcss/postcss` plugin
 - **Form.io** integration with custom components via `@goformx/formio`
+- **shadcn-vue** component library for UI primitives
 - Build output: `dist/`
+
+#### Frontend Architecture
+
+**Component Structure:**
+```
+src/
+├── components/
+│   ├── ui/                  # shadcn-vue UI primitives (22+ components)
+│   │   ├── button/, card/, input/, badge/, alert/
+│   │   ├── dialog/, sheet/, tabs/, tooltip/, popover/
+│   │   ├── dropdown-menu/, select/, switch/
+│   │   ├── command/, separator/, scroll-area/
+│   │   ├── sonner/ (toast), skeleton/, table/
+│   │   └── ... (see components.json for full list)
+│   ├── layout/              # Layout wrappers
+│   │   ├── AppLayout.vue, DashboardLayout.vue, GuestLayout.vue
+│   ├── shared/              # Shared components
+│   │   ├── Nav.vue, UserMenu.vue, DashboardHeader.vue
+│   ├── form-builder/        # Form builder specific
+│   │   ├── BuilderLayout.vue       # Three-panel builder layout
+│   │   ├── FieldsPanel.vue         # Searchable field library
+│   │   └── FieldSettingsPanel.vue  # Inline field settings
+│   └── dashboard/           # Dashboard specific
+│       └── FormCard.vue            # Form card component
+├── composables/             # Vue 3 Composition API composables
+│   ├── useFormBuilder.ts           # Form.io builder integration
+│   ├── useFormValidation.ts        # Zod validation
+│   ├── useFormBuilderState.ts      # Builder state + undo/redo
+│   ├── useKeyboardShortcuts.ts     # Keyboard shortcuts system
+│   ├── useThemeCustomization.ts    # Theme management
+│   └── useCommandPalette.ts        # Command palette logic
+├── pages/                   # Inertia.js pages
+│   ├── Dashboard/Index.vue  # Grid layout with search/filter
+│   └── Forms/Edit.vue       # Three-panel builder
+└── lib/
+    └── utils.ts             # Tailwind class utilities (cn)
+```
+
+**Key Composables:**
+
+1. **`useFormBuilder.ts`** - Form.io builder integration with:
+   - Auto-save with debounce (2s)
+   - Undo/redo history (50 actions)
+   - Field CRUD operations (duplicate, delete)
+   - Schema import/export
+   - Selected field state management
+
+2. **`useFormBuilderState.ts`** - Centralized builder state:
+   - Selected field tracking
+   - Dirty state management
+   - Undo/redo history with localStorage
+   - Field CRUD operations
+
+3. **`useKeyboardShortcuts.ts`** - Platform-aware shortcuts:
+   - Cmd on Mac, Ctrl on Windows
+   - Auto-cleanup on unmount
+   - Enable/disable toggling
+
+4. **`useThemeCustomization.ts`** - Theme management:
+   - CSS variable injection
+   - Presets: Linear, Stripe, Notion, Vercel
+   - Load/save to server and localStorage
+
+5. **`useCommandPalette.ts`** - Command palette:
+   - Fuzzy search across commands
+   - Recent commands tracking (last 10)
+   - localStorage persistence
+
+**Form Builder Architecture:**
+
+The form builder uses a three-panel layout:
+- **Left Panel**: Searchable field library (Basic, Layout, Advanced)
+- **Center Canvas**: Form.io builder instance
+- **Right Panel**: Tabbed field settings (Display, Data, Validation)
+
+Keyboard shortcuts:
+- `Cmd+S` - Save form
+- `Cmd+P` - Preview form
+- `Cmd+Z` / `Cmd+Shift+Z` - Undo/Redo
+- `Cmd+D` - Duplicate selected field
+- `Cmd+Backspace` - Delete selected field
+- `Cmd+/` - Show shortcuts help
 
 ### Inertia.js Patterns
 
@@ -104,6 +187,215 @@ return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
 ```
 
 The gonertia template uses `{{ .inertia }}` and `{{ .inertiaHead }}` placeholders (see `internal/presentation/inertia/inertia.go`).
+
+### UI Component Patterns
+
+#### Toast Notifications
+
+Use Sonner for all transient feedback (replaces inline alerts):
+
+```typescript
+import { toast } from "vue-sonner";
+
+// Success
+toast.success("Form saved successfully");
+
+// Error
+toast.error("Failed to save form");
+
+// Info
+toast.info("Processing...");
+
+// With description
+toast.success("Form saved", {
+  description: "Your changes have been saved successfully"
+});
+```
+
+**Toast Provider Setup:**
+The Sonner toast provider is configured in `src/main.ts` with:
+- Position: `top-right`
+- Rich colors: enabled
+- Auto-dismiss: default (4s)
+
+#### shadcn-vue Component Usage
+
+All UI components follow shadcn-vue patterns with Radix Vue primitives:
+
+```vue
+<script setup lang="ts">
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
+import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
+</script>
+
+<template>
+  <Card>
+    <CardHeader>
+      <CardTitle>Form Title</CardTitle>
+    </CardHeader>
+    <CardContent>
+      <div class="space-y-4">
+        <div class="space-y-2">
+          <Label for="name">Name</Label>
+          <Input id="name" v-model="form.name" type="text" />
+        </div>
+        <Button @click="save">Save</Button>
+      </div>
+    </CardContent>
+  </Card>
+</template>
+```
+
+**Component Variants:**
+```vue
+<!-- Buttons -->
+<Button variant="default">Default</Button>
+<Button variant="destructive">Delete</Button>
+<Button variant="outline">Cancel</Button>
+<Button variant="ghost">Ghost</Button>
+<Button variant="link">Link</Button>
+<Button size="sm">Small</Button>
+<Button size="lg">Large</Button>
+<Button size="icon">🔍</Button>
+
+<!-- Badges -->
+<Badge variant="default">Default</Badge>
+<Badge variant="secondary">Draft</Badge>
+<Badge variant="destructive">Error</Badge>
+<Badge variant="outline">Outline</Badge>
+
+<!-- Alerts -->
+<Alert variant="default">Info message</Alert>
+<Alert variant="destructive">Error message</Alert>
+```
+
+#### Keyboard Shortcuts Pattern
+
+Use `useKeyboardShortcuts` composable for keyboard-first interactions:
+
+```typescript
+import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
+
+const shortcuts = [
+  {
+    key: "s",
+    meta: true,  // Cmd on Mac, Ctrl on Windows
+    handler: () => save(),
+    description: "Save form"
+  },
+  {
+    key: "z",
+    meta: true,
+    shift: true,  // Cmd+Shift+Z
+    handler: () => redo(),
+    description: "Redo"
+  }
+];
+
+useKeyboardShortcuts(shortcuts);
+```
+
+#### Form Builder Integration
+
+When integrating with the form builder:
+
+```typescript
+import { useFormBuilder } from "@/composables/useFormBuilder";
+
+const {
+  isLoading,
+  error,
+  isSaving,
+  saveSchema,
+  getSchema,
+  selectedField,
+  selectField,
+  duplicateField,
+  deleteField,
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+} = useFormBuilder({
+  containerId: "form-schema-builder",
+  formId: props.form.id,
+  autoSave: false,  // Set to true for auto-save with 2s debounce
+  onSchemaChange: (schema) => {
+    // Handle schema changes
+  },
+});
+```
+
+#### Responsive Design Patterns
+
+Use Tailwind responsive prefixes:
+
+```vue
+<template>
+  <!-- Grid: 1 column mobile, 2 tablet, 3 desktop -->
+  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+    <FormCard v-for="form in forms" :key="form.id" :form="form" />
+  </div>
+
+  <!-- Stack on mobile, row on desktop -->
+  <div class="flex flex-col sm:flex-row gap-4">
+    <Input class="flex-1" />
+    <Button>Submit</Button>
+  </div>
+
+  <!-- Hide on mobile, show on desktop -->
+  <div class="hidden lg:block">Desktop only</div>
+</template>
+```
+
+#### Component Communication
+
+**Props & Emits Pattern:**
+```typescript
+interface Props {
+  form: Form;
+  readonly?: boolean;
+}
+
+interface Emits {
+  (e: "update", form: Form): void;
+  (e: "delete", formId: string): void;
+}
+
+const props = defineProps<Props>();
+const emit = defineEmits<Emits>();
+
+function handleUpdate() {
+  emit("update", props.form);
+}
+```
+
+**Composable Pattern:**
+```typescript
+// Composable for shared logic
+export function useFormActions(formId: string) {
+  const isLoading = ref(false);
+
+  async function save() {
+    isLoading.value = true;
+    try {
+      // Save logic
+      toast.success("Saved");
+    } catch (err) {
+      toast.error("Failed to save");
+    } finally {
+      isLoading.value = false;
+    }
+  }
+
+  return { isLoading, save };
+}
+```
 
 ### Code Generation
 
@@ -249,3 +541,29 @@ Before committing, ensure:
 - `task lint` passes (both backend and frontend)
 - `task test` passes
 - No new linter warnings introduced
+
+## Frontend Modernization
+
+The frontend has been modernized with a Linear/Vercel/Stripe/Notion-inspired design language. Key improvements:
+
+**New Features:**
+- Three-panel form builder with collapsible sides
+- Keyboard shortcuts for power users (Cmd+S, Cmd+Z, etc.)
+- Toast notifications (via Sonner)
+- Modern grid layouts with search/filter
+- Undo/redo with 50-action history
+- Auto-save with debounce
+- Theme customization system
+
+**When Building New Features:**
+- Use shadcn-vue components for UI primitives
+- Use composables for shared logic (not Pinia/Vuex)
+- Implement keyboard shortcuts for common actions
+- Use toast notifications instead of inline alerts
+- Follow responsive design patterns (mobile-first)
+- Add undo/redo for complex state changes
+
+**Reference Documentation:**
+- Full details in `MODERNIZATION_SUMMARY.md`
+- Component examples in existing pages (`Dashboard/Index.vue`, `Forms/Edit.vue`)
+- Composable patterns in `src/composables/`
