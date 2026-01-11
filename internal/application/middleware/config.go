@@ -1,6 +1,7 @@
 package middleware
 
 import (
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/core"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
@@ -216,7 +217,7 @@ func (c *middlewareConfig) getMiddlewarePriority(name string) int {
 		return priority
 	}
 
-	return 50 // Default priority
+	return constants.DefaultMiddlewarePriority
 }
 
 // getMiddlewareDependencies returns dependencies for a middleware

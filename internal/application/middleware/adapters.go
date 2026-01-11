@@ -7,6 +7,9 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
+// defaultMiddlewareTimeout is the default timeout for middleware operations
+const defaultMiddlewareTimeout = 30 * time.Second
+
 // NewRecoveryMiddleware creates a new recovery middleware
 func NewRecoveryMiddleware() core.Middleware {
 	return &recoveryMiddleware{
@@ -191,7 +194,7 @@ type timeoutMiddleware struct {
 
 func (m *timeoutMiddleware) Process(ctx context.Context, req core.Request, next core.Handler) core.Response {
 	// Timeout logic would be implemented here
-	timeoutCtx, cancel := context.WithTimeout(ctx, 30*time.Second)
+	timeoutCtx, cancel := context.WithTimeout(ctx, defaultMiddlewareTimeout)
 	defer cancel()
 
 	return next(timeoutCtx, req)

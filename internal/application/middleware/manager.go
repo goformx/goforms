@@ -266,6 +266,7 @@ func isNoisePath(c echo.Context) bool {
 		strings.Contains(path, "chrome-devtools")
 }
 
-// EchoLogger is exported for backward compatibility
-// Deprecated: Use adapters.NewEchoLogger instead
+// EchoLogger is exported for backward compatibility.
+//
+// Deprecated: Use adapters.NewEchoLogger instead.
 type EchoLogger = adapters.EchoLogger
