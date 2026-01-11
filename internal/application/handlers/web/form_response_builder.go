@@ -41,7 +41,11 @@ func (b *FormResponseBuilderImpl) BuildSchemaResponse(c echo.Context, schema mod
 	// Set content type for JSON response
 	c.Response().Header().Set("Content-Type", "application/json")
 
-	return c.JSON(http.StatusOK, schema)
+	// Wrap schema in standard API response format for frontend compatibility
+	return c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Data:    schema,
+	})
 }
 
 // BuildSubmissionResponse builds a submission response

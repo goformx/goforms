@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed, onMounted } from "vue";
+import { ref } from "vue";
 import { useForm, router, Link } from "@inertiajs/vue3";
 import DashboardLayout from "@/components/layout/DashboardLayout.vue";
 import { Button } from "@/components/ui/button";
@@ -39,14 +39,12 @@ const detailsForm = useForm({
 const successMessage = ref<string | null>(null);
 const errorMessage = ref<string | null>(null);
 const showSchemaModal = ref(false);
-
-const isDetailsSubmitting = computed(() => detailsForm.processing);
+const isSavingAll = ref(false);
 
 // Form builder
 const {
   isLoading: isBuilderLoading,
   error: builderError,
-  isSaving,
   saveSchema,
   getSchema,
 } = useFormBuilder({
@@ -57,7 +55,7 @@ const {
   },
 });
 
-function handleDetailsSubmit() {
+async function handleSave() {
   successMessage.value = null;
   errorMessage.value = null;
 
@@ -67,25 +65,27 @@ function handleDetailsSubmit() {
     return;
   }
 
-  detailsForm.put(`/forms/${props.form.id}`, {
-    onSuccess: () => {
-      successMessage.value = "Form details updated successfully";
-    },
-    onError: () => {
-      errorMessage.value = "Failed to update form details";
-    },
-  });
-}
-
-async function handleSaveSchema() {
-  successMessage.value = null;
-  errorMessage.value = null;
+  isSavingAll.value = true;
 
   try {
+    // Save schema first
     await saveSchema();
-    successMessage.value = "Form schema saved successfully";
-  } catch {
-    errorMessage.value = "Failed to save form schema";
+
+    // Then save details via Inertia
+    await new Promise<void>((resolve, reject) => {
+      detailsForm.put(`/forms/${props.form.id}`, {
+        preserveScroll: true,
+        onSuccess: () => resolve(),
+        onError: () => reject(new Error("Failed to save form details")),
+      });
+    });
+
+    successMessage.value = "Form saved successfully";
+  } catch (err) {
+    errorMessage.value =
+      err instanceof Error ? err.message : "Failed to save form";
+  } finally {
+    isSavingAll.value = false;
   }
 }
 
@@ -115,6 +115,11 @@ function closeSchemaModal() {
           Submissions
         </Link>
       </Button>
+      <Button :disabled="isSavingAll || isBuilderLoading" @click="handleSave">
+        <Save class="mr-2 h-4 w-4" />
+        <span v-if="isSavingAll">Saving...</span>
+        <span v-else>Save</span>
+      </Button>
     </template>
 
     <div class="space-y-6">
@@ -136,71 +141,62 @@ function closeSchemaModal() {
             <CardHeader>
               <CardTitle>Form Details</CardTitle>
             </CardHeader>
-            <form @submit.prevent="handleDetailsSubmit">
-              <CardContent class="space-y-4">
-                <div class="space-y-2">
-                  <Label for="title">Form Title</Label>
-                  <Input
-                    id="title"
-                    v-model="detailsForm.title"
-                    type="text"
-                    placeholder="Enter form title"
-                    required
-                  />
-                </div>
+            <CardContent class="space-y-4">
+              <div class="space-y-2">
+                <Label for="title">Form Title</Label>
+                <Input
+                  id="title"
+                  v-model="detailsForm.title"
+                  type="text"
+                  placeholder="Enter form title"
+                  required
+                />
+              </div>
 
-                <div class="space-y-2">
-                  <Label for="description">Description</Label>
-                  <textarea
-                    id="description"
-                    v-model="detailsForm.description"
-                    class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                    placeholder="Enter form description"
-                    rows="3"
-                  />
-                </div>
+              <div class="space-y-2">
+                <Label for="description">Description</Label>
+                <textarea
+                  id="description"
+                  v-model="detailsForm.description"
+                  class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                  placeholder="Enter form description"
+                  rows="3"
+                />
+              </div>
 
-                <div class="space-y-2">
-                  <Label for="status">Status</Label>
-                  <select
-                    id="status"
-                    v-model="detailsForm.status"
-                    class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  >
-                    <option value="draft">Draft</option>
-                    <option value="published">Published</option>
-                    <option value="archived">Archived</option>
-                  </select>
-                </div>
+              <div class="space-y-2">
+                <Label for="status">Status</Label>
+                <select
+                  id="status"
+                  v-model="detailsForm.status"
+                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
+                >
+                  <option value="draft">Draft</option>
+                  <option value="published">Published</option>
+                  <option value="archived">Archived</option>
+                </select>
+              </div>
 
-                <div class="space-y-2">
-                  <Label for="corsOrigins">Allowed Origins</Label>
-                  <Input
-                    id="corsOrigins"
-                    v-model="detailsForm.cors_origins"
-                    type="text"
-                    placeholder="e.g. *, https://example.com"
-                  />
-                  <p class="text-xs text-muted-foreground">
-                    Required when publishing. Use * to allow all origins.
-                  </p>
-                </div>
+              <div class="space-y-2">
+                <Label for="corsOrigins">Allowed Origins</Label>
+                <Input
+                  id="corsOrigins"
+                  v-model="detailsForm.cors_origins"
+                  type="text"
+                  placeholder="e.g. *, https://example.com"
+                />
+                <p class="text-xs text-muted-foreground">
+                  Required when publishing. Use * to allow all origins.
+                </p>
+              </div>
 
-                <div class="flex gap-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    @click="router.visit('/dashboard')"
-                  >
-                    Cancel
-                  </Button>
-                  <Button type="submit" :disabled="isDetailsSubmitting">
-                    <span v-if="isDetailsSubmitting">Saving...</span>
-                    <span v-else>Save Details</span>
-                  </Button>
-                </div>
-              </CardContent>
-            </form>
+              <Button
+                variant="outline"
+                @click="router.visit('/dashboard')"
+              >
+                Cancel
+              </Button>
+            </CardContent>
           </Card>
         </div>
 
@@ -209,17 +205,10 @@ function closeSchemaModal() {
           <Card>
             <CardHeader class="flex flex-row items-center justify-between">
               <CardTitle>Form Builder</CardTitle>
-              <div class="flex gap-2">
-                <Button variant="outline" size="sm" @click="viewSchema">
-                  <Code class="mr-2 h-4 w-4" />
-                  View Schema
-                </Button>
-                <Button size="sm" :disabled="isSaving" @click="handleSaveSchema">
-                  <Save class="mr-2 h-4 w-4" />
-                  <span v-if="isSaving">Saving...</span>
-                  <span v-else>Save Fields</span>
-                </Button>
-              </div>
+              <Button variant="outline" size="sm" @click="viewSchema">
+                <Code class="mr-2 h-4 w-4" />
+                View Schema
+              </Button>
             </CardHeader>
             <CardContent>
               <div v-if="isBuilderLoading" class="flex items-center justify-center py-12">
