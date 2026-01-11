@@ -135,10 +135,10 @@ func ValidateEnvironmentVariables() ValidationResult {
 	// Check for required environment variables
 	requiredVars := []string{
 		"APP_NAME",
-		"DATABASE_HOST",
-		"DATABASE_NAME",
-		"DATABASE_USERNAME",
-		"DATABASE_PASSWORD",
+		"DB_HOST",
+		"DB_NAME",
+		"DB_USERNAME",
+		"DB_PASSWORD",
 	}
 
 	for _, envVar := range requiredVars {

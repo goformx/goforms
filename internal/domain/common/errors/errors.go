@@ -49,7 +49,7 @@ const (
 	// ErrCodeConfig represents a configuration error
 	ErrCodeConfig ErrorCode = "CONFIG_ERROR"
 	// ErrCodeDatabase represents a database error
-	ErrCodeDatabase ErrorCode = "DATABASE_ERROR"
+	ErrCodeDatabase ErrorCode = "DB_ERROR"
 	// ErrCodeTimeout represents a timeout error
 	ErrCodeTimeout ErrorCode = "TIMEOUT"
 

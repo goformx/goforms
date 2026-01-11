@@ -3,18 +3,18 @@ version: '3'
 
 vars:
   MIGRATIONS_DIR: migrations
-  # Database variables
-  DB_CONNECTION: '{{.GOFORMS_DB_CONNECTION | default "mariadb"}}'
-  DB_HOST: '{{.GOFORMS_DB_HOST | default "localhost"}}'
-  DB_PORT: '{{.GOFORMS_DB_PORT | default "3306"}}'
-  DB_DATABASE: '{{.GOFORMS_DB_DATABASE | default "goforms"}}'
-  DB_USERNAME: '{{.GOFORMS_DB_USERNAME | default "goforms"}}'
-  DB_PASSWORD: '{{.GOFORMS_DB_PASSWORD | default "goforms"}}'
-  DB_SSLMODE: '{{.GOFORMS_DB_SSLMODE | default "disable"}}'
+  # Database variables (matches DB_* env vars from .env)
+  DB_CONNECTION: '{{.DB_DRIVER | default "postgres"}}'
+  DB_HOST: '{{.DB_HOST | default "localhost"}}'
+  DB_PORT: '{{.DB_PORT | default "5432"}}'
+  DB_DATABASE: '{{.DB_NAME | default "goforms"}}'
+  DB_USERNAME: '{{.DB_USERNAME | default "goforms"}}'
+  DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+  DB_SSLMODE: '{{.DB_SSLMODE | default "disable"}}'
 
   # Connection URLs
   DB_URL: '{{if eq .DB_CONNECTION "postgres"}}postgresql://{{.DB_USERNAME}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_DATABASE}}?sslmode={{.DB_SSLMODE}}{{else}}mysql://{{.DB_USERNAME}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_DATABASE}}?multiStatements=true{{end}}'
-  
+
   # Migration directory based on database type
   MIGRATION_PATH: '{{if eq .DB_CONNECTION "postgres"}}{{.MIGRATIONS_DIR}}/postgresql{{else}}{{.MIGRATIONS_DIR}}/mariadb{{end}}'
 
@@ -63,4 +63,4 @@ tasks:
     cmds:
     - |
       CURRENT_VERSION=$(migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" version | cut -d' ' -f1)
-      migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" force $CURRENT_VERSION 
+      migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" force $CURRENT_VERSION

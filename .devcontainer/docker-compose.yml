@@ -12,13 +12,13 @@ services:
       - "8090:8090"
       - "5173:5173"
     environment:
-      - GOFORMS_DB_CONNECTION=postgres
-      - GOFORMS_DB_HOST=postgres
-      - GOFORMS_DB_PORT=5432
-      - GOFORMS_DB_DATABASE=goforms
-      - GOFORMS_DB_USERNAME=goforms
-      - GOFORMS_DB_PASSWORD=goforms
-      - GOFORMS_DB_SSLMODE=disable
+      - DB_CONNECTION=postgres
+      - DB_HOST=postgres
+      - DB_PORT=5432
+      - DB_DATABASE=goforms
+      - DB_USERNAME=goforms
+      - DB_PASSWORD=goforms
+      - DB_SSLMODE=disable
     depends_on:
       postgres:
         condition: service_healthy

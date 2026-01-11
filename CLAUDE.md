@@ -87,7 +87,7 @@ Uses Viper with environment variables. Key env var pattern: `<SECTION>_<KEY>`
 
 ```bash
 APP_ENV=development
-DATABASE_HOST=localhost
+DB_HOST=localhost
 SECURITY_CSRF_COOKIE_SAME_SITE=Lax
 ```
 

@@ -78,13 +78,13 @@ The application automatically configures these settings in development mode, but
 
 ```bash
 # CSRF Configuration for Development
-GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE=Lax
-GOFORMS_SECURITY_SECURE_COOKIE=false
+SECURITY_CSRF_COOKIE_SAME_SITE=Lax
+SECURITY_SECURE_COOKIE=false
 
 # CORS Configuration
-GOFORMS_SECURITY_CORS_ENABLED=true
-GOFORMS_SECURITY_CORS_ORIGINS=http://localhost:5173
-GOFORMS_SECURITY_CORS_CREDENTIALS=true
+SECURITY_CORS_ENABLED=true
+SECURITY_CORS_ORIGINS=http://localhost:5173
+SECURITY_CORS_CREDENTIALS=true
 ```
 
 ### Troubleshooting CSRF Issues

@@ -139,8 +139,8 @@ security:
   # API Key authentication for form submissions
   api_key:
     enabled: false  # Set to true to enable API key authentication
-    # API keys are loaded from GOFORMS_API_KEYS environment variable (comma-separated)
-    # Example: GOFORMS_API_KEYS=key1,key2,key3
+    # API keys are loaded from API_KEYS environment variable (comma-separated)
+    # Example: API_KEYS=key1,key2,key3
     keys: []  # Leave empty when using environment variable
     header_name: "X-API-Key"  # Header name to read API key from
     query_param: ""  # Optional query parameter name

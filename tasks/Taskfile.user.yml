@@ -3,19 +3,19 @@ version: '3'
 
 vars:
   CLI_BIN: bin/goforms-cli
-  DB_USER: '{{.GOFORMS_DB_USER | default "goforms"}}'
-  DB_PASSWORD: '{{.GOFORMS_DB_PASSWORD | default "goforms"}}'
-  DB_NAME: '{{.GOFORMS_DB_NAME | default "goforms"}}'
-  DB_HOST: '{{.GOFORMS_DB_HOST | default "localhost"}}'
-  DB_PORT: '{{.GOFORMS_DB_PORT | default "3306"}}'
-  ADMIN_EMAIL: '{{.GOFORMS_ADMIN_EMAIL | default "admin@example.com"}}'
-  ADMIN_PASSWORD: '{{.GOFORMS_ADMIN_PASSWORD | default "admin123"}}'
-  ADMIN_FIRST_NAME: '{{.GOFORMS_ADMIN_FIRST_NAME | default "Admin"}}'
-  ADMIN_LAST_NAME: '{{.GOFORMS_ADMIN_LAST_NAME | default "User"}}'
-  USER_EMAIL: '{{.GOFORMS_USER_EMAIL | default "user@example.com"}}'
-  USER_PASSWORD: '{{.GOFORMS_USER_PASSWORD | default "user123"}}'
-  USER_FIRST_NAME: '{{.GOFORMS_USER_FIRST_NAME | default "John"}}'
-  USER_LAST_NAME: '{{.GOFORMS_USER_LAST_NAME | default "Doe"}}'
+  DB_USER: '{{.DB_USER | default "goforms"}}'
+  DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+  DB_NAME: '{{.DB_NAME | default "goforms"}}'
+  DB_HOST: '{{.DB_HOST | default "localhost"}}'
+  DB_PORT: '{{.DB_PORT | default "3306"}}'
+  ADMIN_EMAIL: '{{.ADMIN_EMAIL | default "admin@example.com"}}'
+  ADMIN_PASSWORD: '{{.ADMIN_PASSWORD | default "admin123"}}'
+  ADMIN_FIRST_NAME: '{{.ADMIN_FIRST_NAME | default "Admin"}}'
+  ADMIN_LAST_NAME: '{{.ADMIN_LAST_NAME | default "User"}}'
+  USER_EMAIL: '{{.USER_EMAIL | default "user@example.com"}}'
+  USER_PASSWORD: '{{.USER_PASSWORD | default "user123"}}'
+  USER_FIRST_NAME: '{{.USER_FIRST_NAME | default "John"}}'
+  USER_LAST_NAME: '{{.USER_LAST_NAME | default "Doe"}}'
 
 tasks:
   default:

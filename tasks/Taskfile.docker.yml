@@ -20,9 +20,9 @@ tasks:
       - echo "export IMAGE_TAG=\"latest\""
       - echo ""
       - echo "# Optional overrides:"
-      - echo "export GOFORMS_APP_NAME=\"GoFormX\""
-      - echo "export GOFORMS_APP_ENV=\"production\""
-      - echo "export GOFORMS_APP_DEBUG=\"false\""
+      - echo "export APP_NAME=\"GoFormX\""
+      - echo "export APP_ENV=\"production\""
+      - echo "export APP_DEBUG=\"false\""
 
   check-env:
     desc: Check if required environment variables are set
