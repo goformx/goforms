@@ -32,6 +32,10 @@ const (
 	EmailKey Key = "email"
 	// RoleKey is the context key for user role
 	RoleKey Key = "role"
+	// FirstNameKey is the context key for user first name
+	FirstNameKey Key = "first_name"
+	// LastNameKey is the context key for user last name
+	LastNameKey Key = "last_name"
 	// SessionKey is the context key for session
 	SessionKey Key = "session"
 )
@@ -155,6 +159,28 @@ func IsAdmin(c echo.Context) bool {
 	return ok && role == "admin"
 }
 
+// GetFirstName retrieves the user first name from context
+func GetFirstName(c echo.Context) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+
+	firstName, ok := c.Get(string(FirstNameKey)).(string)
+
+	return firstName, ok && firstName != ""
+}
+
+// GetLastName retrieves the user last name from context
+func GetLastName(c echo.Context) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+
+	lastName, ok := c.Get(string(LastNameKey)).(string)
+
+	return lastName, ok && lastName != ""
+}
+
 // SetUserID sets the user ID in context
 func SetUserID(c echo.Context, userID string) {
 	c.Set(string(UserIDKey), userID)
@@ -170,9 +196,21 @@ func SetRole(c echo.Context, role string) {
 	c.Set(string(RoleKey), role)
 }
 
+// SetFirstName sets the user first name in context
+func SetFirstName(c echo.Context, firstName string) {
+	c.Set(string(FirstNameKey), firstName)
+}
+
+// SetLastName sets the user last name in context
+func SetLastName(c echo.Context, lastName string) {
+	c.Set(string(LastNameKey), lastName)
+}
+
 // ClearUserContext clears all user-related data from context
 func ClearUserContext(c echo.Context) {
 	c.Set(string(UserIDKey), "")
 	c.Set(string(EmailKey), "")
 	c.Set(string(RoleKey), "")
+	c.Set(string(FirstNameKey), "")
+	c.Set(string(LastNameKey), "")
 }

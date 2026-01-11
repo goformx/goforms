@@ -6,8 +6,8 @@ import (
 	"fmt"
 	"time"
 
-	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
+	"github.com/romsar/gonertia"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
@@ -16,8 +16,7 @@ import (
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 )
 
 // AuthHandler handles authentication-related requests
@@ -90,7 +89,14 @@ func (h *AuthHandler) TestEndpoint(c echo.Context) error {
 
 // Login handles GET /login - displays the login form
 func (h *AuthHandler) Login(c echo.Context) error {
-	return h.renderAuthPage(c, "Login", pages.Login)
+	if mwcontext.IsAuthenticated(c) {
+		return h.redirectToDashboard(c)
+	}
+
+	return h.Inertia.Render(c, "Auth/Login", inertia.Props{
+		"title":         "Login",
+		"isDevelopment": h.Config.App.IsDevelopment(),
+	})
 }
 
 // LoginPost handles POST /login - processes the login form
@@ -104,23 +110,34 @@ func (h *AuthHandler) Login(c echo.Context) error {
 //   - HTML response with error for regular requests
 //   - Redirect to dashboard on success
 func (h *AuthHandler) LoginPost(c echo.Context) error {
-	return h.handleAuthSubmission(c, h.processLogin, "Login")
+	return h.handleAuthSubmission(c, h.processLogin, "Auth/Login")
 }
 
 // Signup handles GET /signup - displays the signup form
 func (h *AuthHandler) Signup(c echo.Context) error {
-	return h.renderAuthPage(c, "Sign Up", pages.Signup)
+	if mwcontext.IsAuthenticated(c) {
+		return h.redirectToDashboard(c)
+	}
+
+	return h.Inertia.Render(c, "Auth/Signup", inertia.Props{
+		"title": "Sign Up",
+	})
 }
 
 // SignupPost handles the signup form submission
 func (h *AuthHandler) SignupPost(c echo.Context) error {
-	return h.handleAuthSubmission(c, h.processSignup, "Sign Up")
+	return h.handleAuthSubmission(c, h.processSignup, "Auth/Signup")
 }
 
 // Logout handles POST /logout - processes the logout request
 func (h *AuthHandler) Logout(c echo.Context) error {
 	if err := h.clearUserSession(c); err != nil {
 		h.Logger.Error("failed to clear session", "error", err)
+	}
+
+	// For Inertia requests, use location redirect
+	if gonertia.IsInertiaRequest(c.Request()) {
+		return h.Inertia.Location(c, constants.PathLogin)
 	}
 
 	return h.redirectToLogin(c)
@@ -154,32 +171,10 @@ func (h *AuthHandler) Stop(_ context.Context) error {
 
 // Helper methods for DRY and SRP compliance
 
-// renderAuthPage handles the common pattern for rendering auth pages
-func (h *AuthHandler) renderAuthPage(
-	c echo.Context,
-	title string,
-	templateFunc func(view.PageData) templ.Component,
-) error {
-	// Force CSRF token generation
-	_ = c.Get("csrf")
-
-	data := h.NewPageData(c, title)
-
-	if mwcontext.IsAuthenticated(c) {
-		return h.redirectToDashboard(c)
-	}
-
-	if renderErr := h.Renderer.Render(c, templateFunc(*data)); renderErr != nil {
-		return h.HandleError(c, renderErr, "Failed to render auth page")
-	}
-
-	return nil
-}
-
 // handleAuthSubmission handles the common pattern for auth form submissions
-func (h *AuthHandler) handleAuthSubmission(c echo.Context, processor func(echo.Context) error, pageTitle string) error {
+func (h *AuthHandler) handleAuthSubmission(c echo.Context, processor func(echo.Context) error, page string) error {
 	if err := processor(c); err != nil {
-		return h.handleAuthError(c, err, pageTitle)
+		return h.handleAuthError(c, err, page)
 	}
 
 	return h.handleAuthSuccess(c)
@@ -232,14 +227,19 @@ func (h *AuthHandler) processSignup(c echo.Context) error {
 }
 
 // handleAuthError handles authentication errors with appropriate response format
-func (h *AuthHandler) handleAuthError(c echo.Context, err error, pageTitle string) error {
-	if h.isAJAXRequest(c) {
+func (h *AuthHandler) handleAuthError(c echo.Context, err error, page string) error {
+	// For Inertia requests, return validation errors
+	if gonertia.IsInertiaRequest(c.Request()) || h.isAJAXRequest(c) {
 		return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, err.Error())
 	}
 
-	data := h.NewPageData(c, pageTitle)
-
-	return h.ResponseBuilder.HTMLFormError(c, pageTitle, data, err.Error())
+	// For regular requests, render the page with error
+	return h.Inertia.Render(c, page, inertia.Props{
+		"title": page,
+		"flash": map[string]string{
+			"error": err.Error(),
+		},
+	})
 }
 
 // handleAuthSuccess handles successful authentication with appropriate response format
@@ -248,6 +248,11 @@ func (h *AuthHandler) handleAuthSuccess(c echo.Context) error {
 		return response.Success(c, map[string]string{
 			"redirect": constants.PathDashboard,
 		})
+	}
+
+	// For Inertia requests, use location redirect
+	if gonertia.IsInertiaRequest(c.Request()) {
+		return h.Inertia.Location(c, constants.PathDashboard)
 	}
 
 	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)

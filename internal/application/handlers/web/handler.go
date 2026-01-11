@@ -12,6 +12,7 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -52,8 +53,10 @@ type HandlerDeps struct {
 	SessionManager *session.Manager
 	// MiddlewareManager manages middleware configuration and setup
 	MiddlewareManager *middleware.Manager
-	// Renderer handles view rendering and template management
+	// Renderer handles view rendering and template management (legacy Templ)
 	Renderer view.Renderer
+	// Inertia handles Vue SPA rendering via Gonertia
+	Inertia *inertia.Manager
 	// UserService provides user-related operations and business logic
 	UserService user.Service
 	// FormService provides form-related operations and business logic

@@ -20,6 +20,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 	"github.com/goformx/goforms/internal/presentation/view"
 
 	"github.com/goformx/goforms/internal/application/constants"
@@ -32,7 +33,7 @@ var Module = fx.Module("web-handlers",
 		// Base handler for common functionality
 		fx.Annotate(
 			NewBaseHandler,
-			fx.ParamTags(``, ``, ``, ``, ``, ``, ``, ``),
+			fx.ParamTags(``, ``, ``, ``, ``, ``, ``, ``, ``),
 		),
 
 		// Auth components for SRP compliance
@@ -51,6 +52,7 @@ var Module = fx.Module("web-handlers",
 				sessionManager *session.Manager,
 				middlewareManager *middleware.Manager,
 				renderer view.Renderer,
+				inertiaManager *inertia.Manager,
 				userService user.Service,
 				formService form.Service,
 			) *HandlerDeps {
@@ -60,6 +62,7 @@ var Module = fx.Module("web-handlers",
 					SessionManager:    sessionManager,
 					MiddlewareManager: middlewareManager,
 					Renderer:          renderer,
+					Inertia:           inertiaManager,
 					UserService:       userService,
 					FormService:       formService,
 				}

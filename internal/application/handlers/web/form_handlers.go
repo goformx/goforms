@@ -6,13 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
-	"os"
 
 	"github.com/labstack/echo/v4"
+	"github.com/romsar/gonertia"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 )
 
 // HTTP handler methods for form operations
@@ -20,79 +20,14 @@ import (
 
 // handleNew displays the new form creation page
 func (h *FormWebHandler) handleNew(c echo.Context) error {
-	user, err := h.AuthHelper.RequireAuthenticatedUser(c)
+	_, err := h.AuthHelper.RequireAuthenticatedUser(c)
 	if err != nil {
 		return err
 	}
 
-	// Debug: Log CSRF token from context with configured key
-	csrfConfig := h.Config.Security.CSRF
-	csrfContextKey := csrfConfig.ContextKey
-	if csrfContextKey == "" {
-		csrfContextKey = "csrf"
-	}
-	csrfToken, _ := c.Get(csrfContextKey).(string)
-
-	// Also check cookie
-	csrfCookieName := csrfConfig.CookieName
-	if csrfCookieName == "" {
-		csrfCookieName = "_csrf"
-	}
-	csrfCookie, _ := c.Cookie(csrfCookieName)
-
-	cookieTokenLength := 0
-	if csrfCookie != nil && csrfCookie.Value != "" {
-		cookieTokenLength = len(csrfCookie.Value)
-	}
-
-	// Use fmt.Fprintf to os.Stdout to bypass logger sanitization for debugging
-	if h.Config.App.IsDevelopment() {
-		fmt.Fprintf(os.Stdout, "[CSRF DEBUG] handleNew: path=%s, context_key=%q, cookie_name=%q, token_in_context=%v (len=%d), token_in_cookie=%v (len=%d)\n",
-			c.Request().URL.Path,
-			csrfContextKey,
-			csrfCookieName,
-			csrfToken != "",
-			len(csrfToken),
-			csrfCookie != nil && csrfCookie.Value != "",
-			cookieTokenLength)
-		if csrfToken != "" {
-			fmt.Fprintf(os.Stdout, "[CSRF DEBUG] Token from context: %s\n", csrfToken)
-		}
-		if csrfCookie != nil && csrfCookie.Value != "" {
-			fmt.Fprintf(os.Stdout, "[CSRF DEBUG] Token from cookie: %s\n", csrfCookie.Value)
-		}
-	}
-
-	h.Logger.Debug("handleNew: CSRF token check",
-		"path", c.Request().URL.Path,
-		"context_key", csrfContextKey,
-		"cookie_name", csrfCookieName,
-		"token_in_context", csrfToken != "",
-		"token_in_context_length", len(csrfToken),
-		"token_in_cookie", csrfCookie != nil && csrfCookie.Value != "",
-		"token_in_cookie_length", cookieTokenLength)
-
-	data := h.NewPageData(c, "New Form")
-	data.SetUser(user)
-
-	// Debug: Log CSRF token in page data
-	tokenValuePreview := ""
-	if len(data.CSRFToken) > 0 && len(data.CSRFToken) <= 50 {
-		tokenValuePreview = data.CSRFToken
-	} else if len(data.CSRFToken) > 50 {
-		tokenValuePreview = data.CSRFToken[:50] + "..."
-	}
-
-	h.Logger.Debug("handleNew: CSRF token in page data",
-		"token_present", data.CSRFToken != "",
-		"token_length", len(data.CSRFToken),
-		"token_value_preview", tokenValuePreview)
-
-	if renderErr := h.Renderer.Render(c, pages.NewForm(*data)); renderErr != nil {
-		return fmt.Errorf("failed to render new form page: %w", renderErr)
-	}
-
-	return nil
+	return h.Inertia.Render(c, "Forms/New", inertia.Props{
+		"title": "Create New Form",
+	})
 }
 
 // handleCreate processes form creation requests
@@ -114,8 +49,8 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		return h.handleFormCreationError(c, err)
 	}
 
-	// For AJAX requests, return JSON so the frontend can handle the redirect
-	if c.Request().Header.Get(constants.HeaderXRequestedWith) == "XMLHttpRequest" {
+	// For AJAX/Inertia requests, return JSON so the frontend can handle the redirect
+	if c.Request().Header.Get(constants.HeaderXRequestedWith) == "XMLHttpRequest" || gonertia.IsInertiaRequest(c.Request()) {
 		return h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
 			"form_id": form.ID,
 		})
@@ -127,7 +62,7 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 
 // handleEdit displays the form editing page
 func (h *FormWebHandler) handleEdit(c echo.Context) error {
-	user, err := h.AuthHelper.RequireAuthenticatedUser(c)
+	_, err := h.AuthHelper.RequireAuthenticatedUser(c)
 	if err != nil {
 		return err
 	}
@@ -140,17 +75,18 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	// Log form access for debugging
 	h.FormService.LogFormAccess(form)
 
-	data := h.NewPageData(c, "Edit Form").
-		WithForm(form).
-		WithFormBuilderAssetPath(h.AssetManager.AssetPath("src/js/pages/form-builder.ts"))
-
-	data.SetUser(user)
-
-	if renderErr := h.Renderer.Render(c, pages.EditForm(*data, form)); renderErr != nil {
-		return fmt.Errorf("failed to render edit form page: %w", renderErr)
-	}
-
-	return nil
+	return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
+		"title": "Edit Form",
+		"form": map[string]interface{}{
+			"id":          form.ID,
+			"title":       form.Title,
+			"description": form.Description,
+			"status":      form.Status,
+			"corsOrigins": form.CorsOrigins,
+			"createdAt":   form.CreatedAt,
+			"updatedAt":   form.UpdatedAt,
+		},
+	})
 }
 
 // handleUpdate processes form update requests
@@ -207,7 +143,7 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 
 // handleSubmissions displays form submissions
 func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
-	user, err := h.AuthHelper.RequireAuthenticatedUser(c)
+	_, err := h.AuthHelper.RequireAuthenticatedUser(c)
 	if err != nil {
 		return err
 	}
@@ -224,17 +160,26 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to get form submissions")
 	}
 
-	data := h.NewPageData(c, "Form Submissions").
-		WithForm(form).
-		WithSubmissions(submissions)
-
-	data.SetUser(user)
-
-	if renderErr := h.Renderer.Render(c, pages.FormSubmissions(*data)); renderErr != nil {
-		return fmt.Errorf("failed to render form submissions page: %w", renderErr)
+	// Convert submissions to serializable format
+	submissionsList := make([]map[string]interface{}, len(submissions))
+	for i, s := range submissions {
+		submissionsList[i] = map[string]interface{}{
+			"id":        s.ID,
+			"data":      s.Data,
+			"status":    s.Status,
+			"createdAt": s.CreatedAt,
+			"updatedAt": s.UpdatedAt,
+		}
 	}
 
-	return nil
+	return h.Inertia.Render(c, "Forms/Submissions", inertia.Props{
+		"title": "Form Submissions",
+		"form": map[string]interface{}{
+			"id":    form.ID,
+			"title": form.Title,
+		},
+		"submissions": submissionsList,
+	})
 }
 
 // handleFormCreationError handles form creation errors
