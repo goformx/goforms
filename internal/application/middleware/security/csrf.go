@@ -104,7 +104,17 @@ func CreateCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 		}
 
 		if IsSafeMethod(method) {
-			return handleSafeMethodCSRF(c, path, isDevelopment)
+			skipResult := handleSafeMethodCSRF(c, path, isDevelopment)
+			if !skipResult {
+				// handleSafeMethodCSRF explicitly said DON'T skip
+				// This means it's a form/auth page that needs a token
+				if isDevelopment {
+					c.Logger().Debug("CSRF skipper: form/auth page detected, forcing token generation",
+						"path", path, "method", method)
+				}
+				return false // Don't skip, generate token
+			}
+			// If skipResult is true, continue to other checks
 		}
 
 		if shouldSkipCSRFForRoute(path, isDevelopment) {
@@ -152,6 +162,15 @@ func handleSafeMethodCSRF(c echo.Context, path string, isDevelopment bool) bool 
 
 // shouldSkipCSRFForRoute checks if CSRF should be skipped for the given route
 func shouldSkipCSRFForRoute(path string, isDevelopment bool) bool {
+	// NEVER skip CSRF for form pages or auth pages - they ALWAYS need tokens
+	// This acts as a safety guard even if other checks are misconfigured
+	if IsFormPage(path) || IsAuthPage(path) {
+		if isDevelopment {
+			println("[CSRF DEBUG] shouldSkipCSRFForRoute: NEVER skipping form/auth pages, path=", path)
+		}
+		return false
+	}
+
 	if IsAuthEndpoint(path) {
 		return true
 	}
@@ -237,9 +256,27 @@ func IsStaticRoute(path string) bool {
 
 // IsFormSubmissionRoute checks if the path is a form submission endpoint
 func IsFormSubmissionRoute(path string) bool {
-	return strings.Contains(path, "/api/v1/forms/") ||
-		strings.Contains(path, "/forms/") ||
-		strings.Contains(path, "/submit")
+	// Only skip CSRF for public API form submission endpoints
+	// These are typically POST/PUT/DELETE endpoints that don't need CSRF
+	// (e.g., public form submissions that use other auth mechanisms)
+
+	// Check for API submission endpoints
+	if strings.HasPrefix(path, "/api/v1/forms/submit") {
+		return true
+	}
+
+	// Check for direct submission endpoints (not form pages)
+	if strings.HasPrefix(path, "/submit/") {
+		return true
+	}
+
+	// Do NOT skip for:
+	// - /forms/new (form creation page)
+	// - /forms/:id (form detail page)
+	// - /forms/:id/edit (form edit page)
+	// These pages need CSRF tokens
+
+	return false
 }
 
 // IsAuthPage checks if the path is an authentication page
