@@ -4,6 +4,7 @@ import (
 	"context"
 	"time"
 
+	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/core"
 )
 
@@ -14,7 +15,7 @@ const defaultMiddlewareTimeout = 30 * time.Second
 func NewRecoveryMiddleware() core.Middleware {
 	return &recoveryMiddleware{
 		name:     "recovery",
-		priority: 10,
+		priority: constants.PriorityRecovery,
 	}
 }
 
@@ -22,7 +23,7 @@ func NewRecoveryMiddleware() core.Middleware {
 func NewCORSMiddleware() core.Middleware {
 	return &corsMiddleware{
 		name:     "cors",
-		priority: 20,
+		priority: constants.PriorityCORS,
 	}
 }
 
@@ -30,7 +31,7 @@ func NewCORSMiddleware() core.Middleware {
 func NewSecurityHeadersMiddleware() core.Middleware {
 	return &securityHeadersMiddleware{
 		name:     "security-headers",
-		priority: 50,
+		priority: constants.PrioritySecurityHeaders,
 	}
 }
 
@@ -38,7 +39,7 @@ func NewSecurityHeadersMiddleware() core.Middleware {
 func NewRequestIDMiddleware() core.Middleware {
 	return &requestIDMiddleware{
 		name:     "request-id",
-		priority: 30,
+		priority: constants.PriorityRequestID,
 	}
 }
 
@@ -46,7 +47,7 @@ func NewRequestIDMiddleware() core.Middleware {
 func NewTimeoutMiddleware() core.Middleware {
 	return &timeoutMiddleware{
 		name:     "timeout",
-		priority: 40,
+		priority: constants.PriorityTimeout,
 	}
 }
 
@@ -54,7 +55,7 @@ func NewTimeoutMiddleware() core.Middleware {
 func NewLoggingMiddleware() core.Middleware {
 	return &loggingMiddleware{
 		name:     "logging",
-		priority: 90,
+		priority: constants.PriorityLogging,
 	}
 }
 
@@ -62,7 +63,7 @@ func NewLoggingMiddleware() core.Middleware {
 func NewCSRFMiddleware() core.Middleware {
 	return &csrfMiddleware{
 		name:     "csrf",
-		priority: 60,
+		priority: constants.PriorityCSRF,
 	}
 }
 
@@ -70,7 +71,7 @@ func NewCSRFMiddleware() core.Middleware {
 func NewRateLimitMiddleware() core.Middleware {
 	return &rateLimitMiddleware{
 		name:     "rate-limit",
-		priority: 70,
+		priority: constants.PriorityRateLimit,
 	}
 }
 
@@ -78,7 +79,7 @@ func NewRateLimitMiddleware() core.Middleware {
 func NewInputValidationMiddleware() core.Middleware {
 	return &inputValidationMiddleware{
 		name:     "input-validation",
-		priority: 80,
+		priority: constants.PriorityInputValidation,
 	}
 }
 
@@ -86,7 +87,7 @@ func NewInputValidationMiddleware() core.Middleware {
 func NewSessionMiddleware() core.Middleware {
 	return &sessionMiddleware{
 		name:     "session",
-		priority: 100,
+		priority: constants.PrioritySession,
 	}
 }
 
@@ -94,7 +95,7 @@ func NewSessionMiddleware() core.Middleware {
 func NewAuthenticationMiddleware() core.Middleware {
 	return &authenticationMiddleware{
 		name:     "authentication",
-		priority: 110,
+		priority: constants.PriorityAuthentication,
 	}
 }
 
@@ -102,7 +103,7 @@ func NewAuthenticationMiddleware() core.Middleware {
 func NewAuthorizationMiddleware() core.Middleware {
 	return &authorizationMiddleware{
 		name:     "authorization",
-		priority: 120,
+		priority: constants.PriorityAuthorization,
 	}
 }
 

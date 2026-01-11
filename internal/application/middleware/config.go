@@ -199,18 +199,18 @@ func (c *middlewareConfig) getMiddlewareCategory(name string) core.MiddlewareCat
 // getMiddlewarePriority returns the priority for a middleware
 func (c *middlewareConfig) getMiddlewarePriority(name string) int {
 	priorities := map[string]int{
-		"recovery":         10,
-		"cors":             20,
-		"request-id":       30,
-		"timeout":          40,
-		"security-headers": 50,
-		"csrf":             60,
-		"rate-limit":       70,
-		"input-validation": 80,
-		"logging":          90,
-		"session":          100,
-		"authentication":   110,
-		"authorization":    120,
+		"recovery":         constants.PriorityRecovery,
+		"cors":             constants.PriorityCORS,
+		"request-id":       constants.PriorityRequestID,
+		"timeout":          constants.PriorityTimeout,
+		"security-headers": constants.PrioritySecurityHeaders,
+		"csrf":             constants.PriorityCSRF,
+		"rate-limit":       constants.PriorityRateLimit,
+		"input-validation": constants.PriorityInputValidation,
+		"logging":          constants.PriorityLogging,
+		"session":          constants.PrioritySession,
+		"authentication":   constants.PriorityAuthentication,
+		"authorization":    constants.PriorityAuthorization,
 	}
 
 	if priority, exists := priorities[name]; exists {
@@ -282,16 +282,16 @@ func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]any
 		"csrf": {
 			"token_header": "X-CSRF-Token",
 			"cookie_name":  "csrf_token",
-			"expire_time":  3600, // 1 hour
+			"expire_time":  constants.SessionExpiry,
 		},
 		"rate-limit": {
-			"requests_per_minute": 60,
-			"burst_size":          10,
-			"window_size":         60, // seconds
+			"requests_per_minute": constants.RequestsPerMinute,
+			"burst_size":          constants.BurstSizeDefault,
+			"window_size":         constants.WindowSizeDefault,
 		},
 		"timeout": {
-			"timeout_seconds": 30,
-			"grace_period":    5,
+			"timeout_seconds": constants.TimeoutDefault,
+			"grace_period":    constants.GracePeriod,
 		},
 		"logging": {
 			"log_level":     "info",
@@ -301,20 +301,20 @@ func (c *middlewareConfig) getCustomMiddlewareConfig(name string) map[string]any
 			"log_responses": true,
 		},
 		"session": {
-			"session_timeout": 3600, // 1 hour
-			"refresh_timeout": 300,  // 5 minutes
+			"session_timeout": constants.SessionExpiry,
+			"refresh_timeout": constants.RefreshTimeout,
 			"secure_cookies":  true,
 			"http_only":       true,
 		},
 		"authentication": {
 			"jwt_secret":     "your-secret-key",
-			"token_expiry":   3600,  // 1 hour
-			"refresh_expiry": 86400, // 24 hours
+			"token_expiry":   constants.TokenExpiry,
+			"refresh_expiry": constants.RefreshExpiry,
 		},
 		"authorization": {
 			"default_role": "user",
 			"admin_role":   "admin",
-			"cache_ttl":    300, // 5 minutes
+			"cache_ttl":    constants.CacheTTLShortSec,
 		},
 	}
 
@@ -383,13 +383,13 @@ func (c *middlewareConfig) getChainCustomConfig(chainType core.ChainType) map[st
 	// Return default configuration for unknown chain types
 	return map[string]any{
 		"enabled": true,
-		"timeout": 30,
+		"timeout": constants.TimeoutDefault,
 	}
 }
 
 // Chain custom configs as package-level variables
 var chainCustomConfigDefault = map[string]any{
-	"timeout":          30,
+	"timeout":          constants.TimeoutDefault,
 	"max_body_size":    "10MB",
 	"compress":         true,
 	"cors_origins":     []string{"*"},
@@ -397,7 +397,7 @@ var chainCustomConfigDefault = map[string]any{
 }
 
 var chainCustomConfigAPI = map[string]any{
-	"timeout":          60,
+	"timeout":          constants.TimeoutMedium,
 	"max_body_size":    "50MB",
 	"compress":         true,
 	"cors_origins":     []string{"https://api.example.com"},
@@ -409,7 +409,7 @@ var chainCustomConfigAPI = map[string]any{
 }
 
 var chainCustomConfigWeb = map[string]any{
-	"timeout":          30,
+	"timeout":          constants.TimeoutDefault,
 	"max_body_size":    "25MB",
 	"compress":         true,
 	"cors_origins":     []string{"https://app.example.com"},
@@ -421,7 +421,7 @@ var chainCustomConfigWeb = map[string]any{
 }
 
 var chainCustomConfigAuth = map[string]any{
-	"timeout":          15,
+	"timeout":          constants.TimeoutAuth,
 	"max_body_size":    "5MB",
 	"compress":         false,
 	"cors_origins":     []string{"https://auth.example.com"},
@@ -433,7 +433,7 @@ var chainCustomConfigAuth = map[string]any{
 }
 
 var chainCustomConfigAdmin = map[string]any{
-	"timeout":          60,
+	"timeout":          constants.TimeoutMedium,
 	"max_body_size":    "100MB",
 	"compress":         true,
 	"cors_origins":     []string{"https://admin.example.com"},
@@ -447,7 +447,7 @@ var chainCustomConfigAdmin = map[string]any{
 }
 
 var chainCustomConfigPublic = map[string]any{
-	"timeout":          10,
+	"timeout":          constants.TimeoutPublic,
 	"max_body_size":    "1MB",
 	"compress":         true,
 	"cors_origins":     []string{"*"},
@@ -459,7 +459,7 @@ var chainCustomConfigPublic = map[string]any{
 }
 
 var chainCustomConfigStatic = map[string]any{
-	"timeout":          5,
+	"timeout":          constants.TimeoutShort,
 	"max_body_size":    "100MB",
 	"compress":         true,
 	"cors_origins":     []string{"*"},
@@ -469,7 +469,7 @@ var chainCustomConfigStatic = map[string]any{
 	"request_logging":  false,
 	"response_logging": false,
 	"cache_headers":    true,
-	"cache_duration":   86400, // 24 hours
+	"cache_duration":   constants.CacheDurationDay,
 }
 
 // getChainCustomConfigs returns the complete chain configuration map

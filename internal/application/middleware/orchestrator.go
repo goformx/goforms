@@ -281,10 +281,12 @@ func (o *orchestrator) GetChainPerformance() map[string]time.Duration {
 
 // getOrderedMiddleware returns middleware ordered by priority for the given chain type.
 func (o *orchestrator) getOrderedMiddleware(chainType core.ChainType) []core.Middleware {
-	var middlewares []core.Middleware
-
 	// Get categories for this chain type
 	categories := o.getCategoriesForChainType(chainType)
+
+	// Preallocate with estimated capacity (estimatedMiddlewarePerCategory is defined as a constant)
+	const estimatedMiddlewarePerCategory = 4
+	middlewares := make([]core.Middleware, 0, len(categories)*estimatedMiddlewarePerCategory)
 
 	// Collect middleware from all relevant categories
 	for _, category := range categories {

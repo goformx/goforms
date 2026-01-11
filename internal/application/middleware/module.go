@@ -216,7 +216,9 @@ func registerAllMiddleware(registry core.Registry, logger logging.Logger) error 
 
 // generateAccessRules creates access rules using the path manager
 func generateAccessRules(pathManager *constants.PathManager) []access.Rule {
-	rules := []access.Rule{}
+	// Preallocate with estimated capacity based on typical path counts
+	rules := make([]access.Rule, 0, len(pathManager.PublicPaths)+len(pathManager.APIValidationPaths)+
+		len(pathManager.AdminPaths)+len(pathManager.StaticPaths))
 
 	// Public routes
 	for _, path := range pathManager.PublicPaths {
