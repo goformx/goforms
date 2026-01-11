@@ -208,8 +208,8 @@ tasks:
     desc: Run frontend linters
     sources:
       - "src/**/*"
-      - .eslintrc.js
-      - .prettierrc
+      - eslint.config.js
+      - tsconfig.json
     cmds:
     - npm run lint
 

@@ -1,4 +1,4 @@
-import { describe, it, expect, beforeEach } from "vitest";
+import { describe, it, expect } from "vitest";
 import { z } from "zod";
 import {
   useFormValidation,
@@ -17,7 +17,11 @@ describe("useFormValidation", () => {
   describe("validate", () => {
     it("returns valid result for correct data", () => {
       const { validate } = useFormValidation(testSchema);
-      const result = validate({ name: "John", email: "john@example.com", age: 25 });
+      const result = validate({
+        name: "John",
+        email: "john@example.com",
+        age: 25,
+      });
 
       expect(result.valid).toBe(true);
       expect(result.errors).toEqual({});
@@ -72,7 +76,8 @@ describe("useFormValidation", () => {
     });
 
     it("updates errors ref for invalid field", () => {
-      const { validateField, errors, hasErrors } = useFormValidation(testSchema);
+      const { validateField, errors, hasErrors } =
+        useFormValidation(testSchema);
 
       validateField("email", "invalid");
 
@@ -81,7 +86,8 @@ describe("useFormValidation", () => {
     });
 
     it("clears field error when valid", () => {
-      const { validateField, errors, hasErrors } = useFormValidation(testSchema);
+      const { validateField, errors, hasErrors } =
+        useFormValidation(testSchema);
 
       // First fail
       validateField("email", "invalid");
@@ -111,7 +117,8 @@ describe("useFormValidation", () => {
 
   describe("clearFieldError", () => {
     it("clears specific field error", () => {
-      const { validate, clearFieldError, errors } = useFormValidation(testSchema);
+      const { validate, clearFieldError, errors } =
+        useFormValidation(testSchema);
 
       validate({ name: "", email: "invalid", age: 16 });
       expect(errors.value.email).toBeDefined();
@@ -136,7 +143,8 @@ describe("useFormValidation", () => {
 
   describe("setFieldError", () => {
     it("sets error for a field", () => {
-      const { setFieldError, errors, hasErrors } = useFormValidation(testSchema);
+      const { setFieldError, errors, hasErrors } =
+        useFormValidation(testSchema);
 
       setFieldError("email", "Custom error message");
 

@@ -183,9 +183,7 @@ describe("useCommandPalette", () => {
   describe("executeCommand", () => {
     it("executes the command handler", () => {
       const handler = vi.fn();
-      const commands: Command[] = [
-        { id: "test", label: "Test", handler },
-      ];
+      const commands: Command[] = [{ id: "test", label: "Test", handler }];
       const { executeCommand } = useCommandPalette(commands);
 
       executeCommand("test");
@@ -262,7 +260,9 @@ describe("useCommandPalette", () => {
     });
 
     it("handles non-existent command gracefully", () => {
-      const consoleWarn = vi.spyOn(console, "warn").mockImplementation(() => {});
+      const consoleWarn = vi
+        .spyOn(console, "warn")
+        .mockImplementation(() => {});
       const { executeCommand } = useCommandPalette(testCommands);
 
       expect(() => executeCommand("non-existent")).not.toThrow();

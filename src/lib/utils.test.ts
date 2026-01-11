@@ -21,11 +21,13 @@ describe("cn", () => {
   });
 
   it("handles conditional classes with false", () => {
-    expect(cn("base", false && "hidden")).toBe("base");
+    const showHidden = false;
+    expect(cn("base", showHidden && "hidden")).toBe("base");
   });
 
   it("handles conditional classes with true", () => {
-    expect(cn("base", true && "visible")).toBe("base visible");
+    const showVisible = true;
+    expect(cn("base", showVisible && "visible")).toBe("base visible");
   });
 
   it("handles mixed conditional classes", () => {
@@ -58,13 +60,14 @@ describe("cn", () => {
   });
 
   it("handles complex Tailwind class combinations", () => {
-    expect(
-      cn(
-        "px-4 py-2 rounded",
-        "bg-blue-500 hover:bg-blue-600",
-        "text-white font-medium",
-      ),
-    ).toBe("px-4 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white font-medium");
+    const result = cn(
+      "px-4 py-2 rounded",
+      "bg-blue-500 hover:bg-blue-600",
+      "text-white font-medium",
+    );
+    expect(result).toBe(
+      "px-4 py-2 rounded bg-blue-500 hover:bg-blue-600 text-white font-medium",
+    );
   });
 
   it("handles responsive and state variants", () => {

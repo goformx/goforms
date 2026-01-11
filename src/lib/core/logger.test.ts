@@ -1,4 +1,5 @@
 import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import type { Logger as LoggerType } from "./logger";
 
 // We need to test the Logger class with different DEV states
 // Since import.meta.env.DEV is read at class definition time,
@@ -36,7 +37,7 @@ describe("Logger", () => {
 
   describe("in development mode", () => {
     // Import fresh to get the test environment state
-    let Logger: typeof import("./logger").Logger;
+    let Logger: typeof LoggerType;
 
     beforeEach(async () => {
       // Dynamic import to get fresh module
@@ -119,13 +120,9 @@ describe("Logger", () => {
       Logger.log("message", 1, 2, 3, { nested: { value: true } });
 
       if (import.meta.env.DEV) {
-        expect(consoleSpy.log).toHaveBeenCalledWith(
-          "message",
-          1,
-          2,
-          3,
-          { nested: { value: true } },
-        );
+        expect(consoleSpy.log).toHaveBeenCalledWith("message", 1, 2, 3, {
+          nested: { value: true },
+        });
       }
     });
 
