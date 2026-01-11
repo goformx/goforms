@@ -32,6 +32,10 @@ const (
 	DefaultBurst = 10
 	// DefaultWindow is the default rate limit window
 	DefaultWindow = time.Minute
+	// HTTPStatusServerError is the threshold for server errors (5xx)
+	HTTPStatusServerError = 500
+	// HTTPStatusClientError is the threshold for client errors (4xx)
+	HTTPStatusClientError = 400
 )
 
 // PathChecker handles path-based logic for middleware
@@ -222,9 +226,9 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 			if v.Error != nil {
 				fields = append(fields, "error", v.Error.Error())
 				logger.Error("request failed", fields...)
-			} else if v.Status >= 500 {
+			} else if v.Status >= HTTPStatusServerError {
 				logger.Error("request completed with server error", fields...)
-			} else if v.Status >= 400 {
+			} else if v.Status >= HTTPStatusClientError {
 				logger.Warn("request completed with client error", fields...)
 			} else {
 				logger.Info("request completed", fields...)
