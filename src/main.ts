@@ -3,11 +3,10 @@ import { createInertiaApp } from "@inertiajs/vue3";
 import { Toaster } from "@/components/ui/sonner";
 import "./assets/css/main.css";
 
-// Type for page modules with proper Vue component type
-type PageModule = { default: DefineComponent };
-
-// Import all page components
-const pages = import.meta.glob<PageModule>("./pages/**/*.vue");
+// Import all page components with lazy loading
+const pages = import.meta.glob<{ default: DefineComponent }>(
+  "./pages/**/*.vue",
+);
 
 void createInertiaApp({
   resolve: async (name: string) => {
@@ -15,7 +14,9 @@ void createInertiaApp({
     if (!match) {
       throw new Error(`Page not found: ${name}`);
     }
-    return match();
+    // Await the dynamic import and return the default export
+    const module = await match();
+    return module.default;
   },
   setup({ el, App, props, plugin }) {
     const app = createApp({

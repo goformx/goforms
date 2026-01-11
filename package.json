@@ -9,7 +9,7 @@
     "lint": "npx eslint ./src --ext .ts,.tsx,.js,.jsx,.css",
     "lint:fix": "npx eslint ./src --ext .ts,.tsx,.js,.jsx,.css --fix",
     "preview": "vite preview",
-    "typecheck": "tsc --noEmit",
+    "typecheck": "npx vue-tsc --noEmit",
     "format": "prettier --write \"**/*.{ts,tsx,js,.jsx,css}\"",
     "format:check": "prettier --check \"**/*.{ts,tsx,js,.jsx,css}\"",
     "test": "vitest run",
