@@ -11,6 +11,8 @@ import (
 )
 
 // Test the response implementation
+//
+//nolint:gocognit // Test function with multiple subtests
 func TestResponseImplementation(t *testing.T) {
 	// Test JSON response
 	t.Run("JSON Response", func(t *testing.T) {

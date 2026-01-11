@@ -281,6 +281,8 @@ const (
 	FieldPairSize = 2
 	// DefaultUnknown is the default value for unknown identifiers
 	DefaultUnknown = "unknown"
+	// DefaultMiddlewarePriority is the default priority for middleware
+	DefaultMiddlewarePriority = 50
 )
 
 // StaticFileExtensions contains all supported static file extensions
