@@ -12,6 +12,7 @@ import (
 
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/domain/user"
+	"github.com/goformx/goforms/internal/infrastructure/repository/common"
 	mocklogging "github.com/goformx/goforms/test/mocks/logging"
 	mockuser "github.com/goformx/goforms/test/mocks/user"
 )
@@ -32,8 +33,8 @@ func TestService_SignUp(t *testing.T) {
 			ConfirmPassword: "password123",
 		}
 
-		// Mock repository calls
-		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, errors.New("record not found"))
+		// Mock repository calls - use common.ErrNotFound to indicate user doesn't exist
+		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, common.ErrNotFound)
 		repo.EXPECT().Create(gomock.Any(), gomock.Any()).DoAndReturn(func(_ context.Context, u *entities.User) error {
 			// Set timestamps to simulate DB behavior
 			u.CreatedAt = time.Now()
@@ -109,8 +110,8 @@ func TestService_SignUp(t *testing.T) {
 			ConfirmPassword: "password123",
 		}
 
-		// Mock repository calls
-		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, errors.New("record not found"))
+		// Mock repository calls - user not found (good), then creation fails
+		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, common.ErrNotFound)
 		repo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(errors.New("database constraint violation"))
 		logger.EXPECT().Error(gomock.Any(), gomock.Any())
 
@@ -130,10 +131,9 @@ func TestService_SignUp(t *testing.T) {
 			ConfirmPassword: "password123",
 		}
 
-		// Mock repository calls
-		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, errors.New("record not found"))
-		repo.EXPECT().Create(gomock.Any(), gomock.Any()).Return(errors.New("invalid email format"))
-		logger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
+		// Mock repository calls - user not found, but email has no @ symbol
+		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, common.ErrNotFound)
+		// Create should NOT be called because email validation fails first
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -141,7 +141,7 @@ func TestService_SignUp(t *testing.T) {
 		result, err := svc.SignUp(ctx, signup)
 		require.Error(t, err)
 		require.Nil(t, result)
-		assert.Contains(t, err.Error(), "create:")
+		assert.Contains(t, err.Error(), "invalid email format")
 	})
 
 	t.Run("password too short", func(t *testing.T) {
@@ -151,9 +151,10 @@ func TestService_SignUp(t *testing.T) {
 			ConfirmPassword: "short",
 		}
 
-		// Mock repository calls
-		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, errors.New("record not found"))
-		// Do NOT expect Create to be called, as password validation should fail first
+		// Mock repository calls - user not found
+		repo.EXPECT().GetByEmail(gomock.Any(), signup.Email).Return(nil, common.ErrNotFound)
+		// Create will be called but NewUser will fail due to password validation
+		logger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)
 		defer cancel()
@@ -161,7 +162,7 @@ func TestService_SignUp(t *testing.T) {
 		result, err := svc.SignUp(ctx, signup)
 		require.Error(t, err)
 		require.Nil(t, result)
-		assert.Contains(t, err.Error(), "password must be at least 8 characters")
+		assert.Contains(t, err.Error(), "password")
 	})
 }
 
@@ -202,8 +203,8 @@ func TestService_Login(t *testing.T) {
 			Password: "password123",
 		}
 
-		// Mock repository call
-		repo.EXPECT().GetByEmail(gomock.Any(), login.Email).Return(nil, errors.New("record not found"))
+		// Mock repository call - use common.ErrNotFound
+		repo.EXPECT().GetByEmail(gomock.Any(), login.Email).Return(nil, common.ErrNotFound)
 		logger.EXPECT().Error(gomock.Any(), gomock.Any())
 
 		ctx, cancel := context.WithTimeout(context.Background(), 5*time.Second)

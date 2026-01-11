@@ -3,7 +3,6 @@
 package errors
 
 import (
-	"errors"
 	"fmt"
 	"net/http"
 )
@@ -213,173 +212,40 @@ func Wrap(err error, code ErrorCode, message string) *DomainError {
 
 // IsNotFound checks if the error represents a "not found" error
 func IsNotFound(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeNotFound, ErrCodeFormNotFound, ErrCodeUserNotFound:
-			return true
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
-			ErrCodeInsufficientRole, ErrCodeConflict, ErrCodeBadRequest, ErrCodeServerError,
-			ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase,
-			ErrCodeTimeout, ErrCodeFormValidation, ErrCodeFormSubmission, ErrCodeFormAccessDenied,
-			ErrCodeFormInvalid, ErrCodeFormExpired, ErrCodeUserExists, ErrCodeUserDisabled,
-			ErrCodeUserInvalid, ErrCodeUserUnauthorized:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategoryNotFound)
 }
 
 // IsValidation checks if the error represents a validation error
 func IsValidation(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeBadRequest, ErrCodeFormValidation, ErrCodeFormInvalid, ErrCodeUserInvalid,
-			ErrCodeFormSubmission, ErrCodeFormExpired, ErrCodeUserDisabled:
-			return true
-		case ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
-			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeServerError,
-			ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase,
-			ErrCodeTimeout, ErrCodeFormNotFound, ErrCodeFormAccessDenied, ErrCodeUserNotFound,
-			ErrCodeUserExists, ErrCodeUserUnauthorized:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategoryValidation)
 }
 
 // IsFormError checks if the error represents a form-related error
 func IsFormError(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
-			ErrCodeFormAccessDenied, ErrCodeFormInvalid, ErrCodeFormExpired:
-			return true
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
-			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
-			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
-			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeUserNotFound,
-			ErrCodeUserExists, ErrCodeUserDisabled, ErrCodeUserInvalid, ErrCodeUserUnauthorized:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategoryForm)
 }
 
 // IsUserError checks if the error represents a user-related error
 func IsUserError(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeUserNotFound, ErrCodeUserExists, ErrCodeUserDisabled,
-			ErrCodeUserInvalid, ErrCodeUserUnauthorized:
-			return true
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
-			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
-			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
-			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeFormValidation,
-			ErrCodeFormNotFound, ErrCodeFormSubmission, ErrCodeFormAccessDenied,
-			ErrCodeFormInvalid, ErrCodeFormExpired:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategoryUser)
 }
 
 // IsAuthenticationError checks if the error represents an authentication error
 func IsAuthenticationError(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeUnauthorized, ErrCodeUserUnauthorized, ErrCodeAuthentication,
-			ErrCodeInsufficientRole:
-			return true
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeForbidden, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
-			ErrCodeServerError, ErrCodeAlreadyExists, ErrCodeStartup, ErrCodeShutdown,
-			ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout, ErrCodeFormValidation,
-			ErrCodeFormNotFound, ErrCodeFormSubmission, ErrCodeFormAccessDenied,
-			ErrCodeFormInvalid, ErrCodeFormExpired, ErrCodeUserNotFound,
-			ErrCodeUserExists, ErrCodeUserDisabled, ErrCodeUserInvalid:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategoryAuthentication)
 }
 
 // IsSystemError checks if the error represents a system error
 func IsSystemError(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeServerError, ErrCodeDatabase, ErrCodeConfig,
-			ErrCodeStartup, ErrCodeShutdown, ErrCodeTimeout:
-			return true
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
-			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeConflict, ErrCodeBadRequest,
-			ErrCodeAlreadyExists, ErrCodeFormValidation, ErrCodeFormNotFound,
-			ErrCodeFormSubmission, ErrCodeFormAccessDenied, ErrCodeFormInvalid,
-			ErrCodeFormExpired, ErrCodeUserNotFound, ErrCodeUserExists,
-			ErrCodeUserDisabled, ErrCodeUserInvalid, ErrCodeUserUnauthorized:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategorySystem)
 }
 
 // IsConflictError checks if the error represents a conflict error
 func IsConflictError(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeConflict, ErrCodeAlreadyExists, ErrCodeUserExists:
-			return true
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeForbidden, ErrCodeAuthentication,
-			ErrCodeInsufficientRole, ErrCodeNotFound, ErrCodeBadRequest, ErrCodeServerError,
-			ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout,
-			ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
-			ErrCodeFormAccessDenied, ErrCodeFormInvalid, ErrCodeFormExpired,
-			ErrCodeUserNotFound, ErrCodeUserDisabled, ErrCodeUserInvalid,
-			ErrCodeUserUnauthorized:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategoryConflict)
 }
 
 // IsForbiddenError checks if the error represents a forbidden error
 func IsForbiddenError(err error) bool {
-	var domainErr *DomainError
-	if errors.As(err, &domainErr) {
-		switch domainErr.Code {
-		case ErrCodeForbidden, ErrCodeFormAccessDenied, ErrCodeInsufficientRole:
-			return true
-		case ErrCodeValidation, ErrCodeRequired, ErrCodeInvalid, ErrCodeInvalidFormat, ErrCodeInvalidInput,
-			ErrCodeUnauthorized, ErrCodeAuthentication, ErrCodeNotFound,
-			ErrCodeConflict, ErrCodeBadRequest, ErrCodeServerError, ErrCodeAlreadyExists,
-			ErrCodeStartup, ErrCodeShutdown, ErrCodeConfig, ErrCodeDatabase, ErrCodeTimeout,
-			ErrCodeFormValidation, ErrCodeFormNotFound, ErrCodeFormSubmission,
-			ErrCodeFormInvalid, ErrCodeFormExpired, ErrCodeUserNotFound,
-			ErrCodeUserExists, ErrCodeUserDisabled, ErrCodeUserInvalid,
-			ErrCodeUserUnauthorized:
-			return false
-		}
-	}
-
-	return false
+	return HasCategory(err, CategoryForbidden)
 }

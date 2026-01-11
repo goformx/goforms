@@ -4,12 +4,14 @@ package user
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"strings"
 
 	domainerrors "github.com/goformx/goforms/internal/domain/common/errors"
 	"github.com/goformx/goforms/internal/domain/entities"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
+	"github.com/goformx/goforms/internal/infrastructure/repository/common"
 )
 
 // Signup represents a user signup request
@@ -51,7 +53,6 @@ type Service interface {
 	UpdateUser(ctx context.Context, user *entities.User) error
 	DeleteUser(ctx context.Context, id string) error
 	ListUsers(ctx context.Context, offset, limit int) ([]*entities.User, error)
-	GetByID(ctx context.Context, id string) (*entities.User, error)
 	Authenticate(ctx context.Context, email, password string) (*entities.User, error)
 }
 
@@ -74,22 +75,27 @@ func (s *ServiceImpl) SignUp(ctx context.Context, signup *Signup) (*entities.Use
 	// Check if email already exists
 	existingUser, err := s.repo.GetByEmail(ctx, signup.Email)
 	if err != nil {
-		// Check if it's a "not found" error, which is expected for new users
-		if strings.Contains(err.Error(), "record not found") || strings.Contains(err.Error(), "not found") {
-			// User doesn't exist, which is what we want for signup
-			existingUser = nil
-		} else {
-			// It's a real error, return it
+		// Check if it's a "not found" error using errors.Is (expected for new users)
+		if !errors.Is(err, common.ErrNotFound) && !domainerrors.IsNotFound(err) {
+			// It's a real error, not just "not found"
 			return nil, fmt.Errorf("failed to check existing user: %w", err)
 		}
+		// User doesn't exist, which is what we want for signup
+		existingUser = nil
 	}
 
 	if existingUser != nil {
 		return nil, ErrUserExists
 	}
 
-	// Create user with default first/last name
-	user, err := entities.NewUser(signup.Email, signup.Password, signup.Email[:strings.Index(signup.Email, "@")+1], "")
+	// Create user with default first/last name (extract username before @)
+	atIndex := strings.Index(signup.Email, "@")
+	if atIndex == -1 {
+		return nil, fmt.Errorf("invalid email format: missing @ symbol")
+	}
+	username := signup.Email[:atIndex]
+
+	user, err := entities.NewUser(signup.Email, signup.Password, username, "")
 	if err != nil {
 		s.logger.Error("failed to create user", "error", err)
 
@@ -182,16 +188,6 @@ func (s *ServiceImpl) ListUsers(ctx context.Context, offset, limit int) ([]*enti
 	}
 
 	return users, nil
-}
-
-// GetByID retrieves a user by ID string
-func (s *ServiceImpl) GetByID(ctx context.Context, id string) (*entities.User, error) {
-	user, err := s.repo.GetByID(ctx, id)
-	if err != nil {
-		return nil, fmt.Errorf("get user by ID: %w", err)
-	}
-
-	return user, nil
 }
 
 // Authenticate matches the domain.UserService interface
