@@ -1,4 +1,5 @@
 import { ref, watch, type Ref } from "vue";
+import { Logger } from "@/lib/core/logger";
 
 export interface ThemeConfig {
   primary: string;
@@ -210,7 +211,7 @@ export function useThemeCustomization(
       applyThemeVariables();
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Failed to load theme";
-      console.error("Failed to load theme:", err);
+      Logger.error("Failed to load theme:", err);
     } finally {
       isLoading.value = false;
     }
@@ -244,7 +245,7 @@ export function useThemeCustomization(
       }
     } catch (err) {
       error.value = err instanceof Error ? err.message : "Failed to save theme";
-      console.error("Failed to save theme:", err);
+      Logger.error("Failed to save theme:", err);
     } finally {
       isLoading.value = false;
     }
@@ -264,7 +265,7 @@ export function useThemeCustomization(
   const applyPreset = (presetName: string): void => {
     const preset = THEME_PRESETS.find((p) => p.name === presetName);
     if (!preset) {
-      console.warn(`Theme preset "${presetName}" not found`);
+      Logger.warn(`Theme preset "${presetName}" not found`);
       return;
     }
 
@@ -295,7 +296,7 @@ export function useThemeCustomization(
       applyTheme(imported);
     } catch (err) {
       error.value = "Invalid theme JSON";
-      console.error("Failed to import theme:", err);
+      Logger.error("Failed to import theme:", err);
     }
   };
 

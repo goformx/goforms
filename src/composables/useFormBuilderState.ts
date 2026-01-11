@@ -1,4 +1,5 @@
 import { ref, computed, type Ref } from "vue";
+import { Logger } from "@/lib/core/logger";
 
 export interface FormComponent {
   key: string;
@@ -88,7 +89,7 @@ export function useFormBuilderState(
         selectedField.value = parsed.selectedField;
       }
     } catch (error) {
-      console.error("Failed to load form builder state:", error);
+      Logger.error("Failed to load form builder state:", error);
     }
   }
 
@@ -107,7 +108,7 @@ export function useFormBuilderState(
         JSON.stringify(state),
       );
     } catch (error) {
-      console.error("Failed to save form builder state:", error);
+      Logger.error("Failed to save form builder state:", error);
     }
   };
 

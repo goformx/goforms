@@ -1,4 +1,5 @@
 import { ref, computed, type Ref } from "vue";
+import { Logger } from "@/lib/core/logger";
 
 export interface Command {
   id: string;
@@ -111,7 +112,7 @@ export function useCommandPalette(
         .filter((cmd): cmd is Command => cmd !== undefined);
     }
   } catch (error) {
-    console.error("Failed to load recent commands:", error);
+    Logger.error("Failed to load recent commands:", error);
   }
 
   /**
@@ -183,7 +184,7 @@ export function useCommandPalette(
   const executeCommand = (commandId: string): void => {
     const command = commands.find((cmd) => cmd.id === commandId);
     if (!command) {
-      console.warn(`Command "${commandId}" not found`);
+      Logger.warn(`Command "${commandId}" not found`);
       return;
     }
 
@@ -203,7 +204,7 @@ export function useCommandPalette(
         JSON.stringify(recentCommands.value.map((cmd) => cmd.id)),
       );
     } catch (error) {
-      console.error("Failed to save recent commands:", error);
+      Logger.error("Failed to save recent commands:", error);
     }
 
     // Close palette
@@ -218,7 +219,7 @@ export function useCommandPalette(
     try {
       localStorage.removeItem("command-palette-recent");
     } catch (error) {
-      console.error("Failed to clear recent commands:", error);
+      Logger.error("Failed to clear recent commands:", error);
     }
   };
 

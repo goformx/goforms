@@ -1,3 +1,4 @@
+/* eslint-disable no-console */
 /**
  * Logger utility for conditional logging based on environment
  */
