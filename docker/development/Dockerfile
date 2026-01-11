@@ -21,7 +21,15 @@ RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
 
 # Copy package files for frontend
 COPY package*.json ./
-RUN npm ci
+
+# Create public/fonts directory before npm install to avoid postinstall script issues
+RUN mkdir -p public/fonts
+
+# Install dependencies, skipping problematic postinstall scripts that require git
+RUN npm ci --ignore-scripts
+
+# Manually copy fonts (equivalent to postinstall script)
+RUN cp -r node_modules/@formio/js/dist/fonts/* public/fonts/ 2>/dev/null || true
 
 # Copy source code
 COPY . .
