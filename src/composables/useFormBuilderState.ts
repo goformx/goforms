@@ -8,7 +8,7 @@ export interface FormComponent {
 }
 
 export interface FormSchema {
-  components?: FormComponent[];
+  components: FormComponent[];
   display?: string;
   [key: string]: unknown;
 }

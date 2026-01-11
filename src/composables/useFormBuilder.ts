@@ -1,7 +1,7 @@
 import { ref, onMounted, onUnmounted, watch, type Ref } from "vue";
 import { Formio } from "@formio/js";
 import goforms from "@goformx/formio";
-import { Logger } from "@/js/core/logger";
+import { Logger } from "@/lib/core/logger";
 import { useFormBuilderState, type FormComponent } from "./useFormBuilderState";
 
 // Register GoFormX templates
@@ -9,7 +9,7 @@ Formio.use(goforms);
 
 export interface FormSchema {
   display?: string;
-  components: unknown[];
+  components: FormComponent[];
 }
 
 export interface FormBuilderOptions {
