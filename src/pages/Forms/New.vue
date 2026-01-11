@@ -50,8 +50,8 @@ function handleSubmit() {
       }
     },
     onError: (errors) => {
-      if (errors.title) {
-        serverError.value = errors.title;
+      if (errors['title']) {
+        serverError.value = errors['title'];
       } else {
         serverError.value = "Failed to create form. Please try again.";
       }

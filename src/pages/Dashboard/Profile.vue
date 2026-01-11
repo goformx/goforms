@@ -32,6 +32,7 @@ interface PageProps {
     success?: string;
     error?: string;
   };
+  [key: string]: unknown;
 }
 
 const page = usePage<PageProps>();
