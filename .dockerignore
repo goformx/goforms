@@ -71,4 +71,8 @@ go.work
 
 # Temporary files
 *.tmp
-*.temp 
+*.temp storage
+
+# Storage directory
+storage/
+storage/
