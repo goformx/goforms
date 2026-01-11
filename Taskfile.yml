@@ -77,7 +77,6 @@ tasks:
     desc: Install Go development tools
     cmds:
     - go install go.uber.org/mock/mockgen@latest
-    - go install github.com/a-h/templ/cmd/templ@latest
     - go install github.com/air-verse/air@latest
     - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
     - go install -tags 'mysql,postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
@@ -96,16 +95,7 @@ tasks:
 
   generate:
     desc: Generate all code artifacts
-    deps: [ generate:templ, generate:mocks ]
-
-  generate:templ:
-    desc: Generate templ files
-    sources:
-      - "internal/**/*.templ"
-    generates:
-      - "internal/**/*_templ.go"
-    cmds:
-    - templ generate ./internal/...
+    deps: [ generate:mocks ]
 
   generate:mocks:
     desc: Generate all mock implementations
@@ -198,7 +188,6 @@ tasks:
     cmds:
     - for: ['bin/', 'dist/', 'node_modules/', 'coverage/', '.task/']
       cmd: rm -rf {{.ITEM}}
-    - find internal/ -name '*_templ.go' -delete
     - find test/mocks -name 'mock_*.go' -delete
 
   lint:

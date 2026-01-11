@@ -9,7 +9,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/inertia"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 // Dependencies contains all presentation layer dependencies
@@ -40,15 +39,6 @@ func (d *Dependencies) Validate() error {
 	return nil
 }
 
-// NewRenderer creates a new view renderer
-func NewRenderer(deps Dependencies) (view.Renderer, error) {
-	if err := deps.Validate(); err != nil {
-		return nil, err
-	}
-
-	return view.NewRenderer(deps.Logger), nil
-}
-
 // NewInertiaManager creates a new Inertia manager
 func NewInertiaManager(deps Dependencies) (*inertia.Manager, error) {
 	if err := deps.Validate(); err != nil {
@@ -60,13 +50,6 @@ func NewInertiaManager(deps Dependencies) (*inertia.Manager, error) {
 
 // Module provides all presentation layer dependencies
 var Module = fx.Module("presentation",
-	// View renderer (for backward compatibility during migration)
-	fx.Provide(
-		fx.Annotate(
-			NewRenderer,
-			fx.As(new(view.Renderer)),
-		),
-	),
 	// Inertia manager for Vue SPA rendering
 	fx.Provide(NewInertiaManager),
 	fx.Provide(inertia.NewEchoHandler),

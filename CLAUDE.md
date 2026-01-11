@@ -8,7 +8,7 @@ This file provides guidance to Claude Code (claude.ai/code) when working with co
 # Install dependencies (Go tools + npm packages)
 task install
 
-# Generate code (templ templates + mocks)
+# Generate code (mocks)
 task generate
 
 # Build entire application (frontend + backend)
@@ -49,7 +49,7 @@ internal/
 ├── domain/           # Business entities, interfaces, services (form/, user/, common/)
 ├── application/      # HTTP handlers, middleware, validation, response builders
 ├── infrastructure/   # Database, config, logging, server, event bus
-└── presentation/     # Templ templates and view rendering
+└── presentation/     # Inertia.js rendering for Vue SPA
 ```
 
 **Dependency flow**: Infrastructure → Application → Domain (dependencies point inward)
@@ -78,7 +78,6 @@ internal/
 
 ### Code Generation
 
-- **Templ templates**: `*.templ` → `*_templ.go` via `templ generate`
 - **Mocks**: Generated in `test/mocks/` via `go generate ./...` (uses mockgen)
 
 ## Configuration

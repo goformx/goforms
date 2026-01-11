@@ -21,7 +21,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/presentation/inertia"
-	"github.com/goformx/goforms/internal/presentation/view"
 
 	"github.com/goformx/goforms/internal/application/constants"
 )
@@ -33,15 +32,12 @@ var Module = fx.Module("web-handlers",
 		// Base handler for common functionality
 		fx.Annotate(
 			NewBaseHandler,
-			fx.ParamTags(``, ``, ``, ``, ``, ``, ``, ``, ``),
+			fx.ParamTags(``, ``, ``, ``, ``, ``, ``, ``),
 		),
 
 		// Auth components for SRP compliance
 		NewAuthRequestParser,
-		fx.Annotate(
-			NewAuthResponseBuilder,
-			fx.ParamTags(``),
-		),
+		NewAuthResponseBuilder,
 		NewAuthService,
 
 		// Legacy HandlerDeps for backward compatibility
@@ -51,7 +47,6 @@ var Module = fx.Module("web-handlers",
 				cfg *config.Config,
 				sessionManager *session.Manager,
 				middlewareManager *middleware.Manager,
-				renderer view.Renderer,
 				inertiaManager *inertia.Manager,
 				userService user.Service,
 				formService form.Service,
@@ -61,7 +56,6 @@ var Module = fx.Module("web-handlers",
 					Config:            cfg,
 					SessionManager:    sessionManager,
 					MiddlewareManager: middlewareManager,
-					Renderer:          renderer,
 					Inertia:           inertiaManager,
 					UserService:       userService,
 					FormService:       formService,

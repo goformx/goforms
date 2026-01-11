@@ -5,7 +5,6 @@ import (
 	"fmt"
 	"os"
 
-	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/middleware/context"
@@ -34,7 +33,6 @@ type PageData struct {
 	Submissions          []*model.FormSubmission
 	CSRFToken            string
 	IsDevelopment        bool
-	Content              templ.Component
 	FormBuilderAssetPath string
 	FormPreviewAssetPath string
 	Message              *Message
@@ -212,7 +210,6 @@ func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.C
 		Submissions:   make([]*model.FormSubmission, 0),
 		CSRFToken:     GetCSRFToken(c, csrfContextKey, csrfCookieName),
 		IsDevelopment: cfg.App.IsDevelopment(),
-		Content:       nil,
 		Message:       nil,
 		Config:        cfg,
 		Session:       GetSession(c),
@@ -243,13 +240,6 @@ func (p *PageData) WithKeywords(keywords string) *PageData {
 // WithAuthor sets the page author
 func (p *PageData) WithAuthor(author string) *PageData {
 	p.Author = author
-
-	return p
-}
-
-// WithContent sets the page content component
-func (p *PageData) WithContent(content templ.Component) *PageData {
-	p.Content = content
 
 	return p
 }

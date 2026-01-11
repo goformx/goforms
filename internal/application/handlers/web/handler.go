@@ -13,7 +13,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/presentation/inertia"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 // Handler defines the interface for web handlers.
@@ -53,8 +52,6 @@ type HandlerDeps struct {
 	SessionManager *session.Manager
 	// MiddlewareManager manages middleware configuration and setup
 	MiddlewareManager *middleware.Manager
-	// Renderer handles view rendering and template management (legacy Templ)
-	Renderer view.Renderer
 	// Inertia handles Vue SPA rendering via Gonertia
 	Inertia *inertia.Manager
 	// UserService provides user-related operations and business logic
@@ -87,7 +84,6 @@ func (d *HandlerDeps) Validate() error {
 		{"Config", d.Config},
 		{"SessionManager", d.SessionManager},
 		{"MiddlewareManager", d.MiddlewareManager},
-		{"Renderer", d.Renderer},
 	}
 
 	for _, r := range required {
@@ -109,7 +105,6 @@ type HandlerParams struct {
 	Config            *config.Config
 	SessionManager    *session.Manager
 	MiddlewareManager *middleware.Manager
-	Renderer          view.Renderer
 }
 
 // NewHandlerDeps creates a new HandlerDeps instance.
@@ -123,7 +118,6 @@ func NewHandlerDeps(params *HandlerParams) (*HandlerDeps, error) {
 		Config:            params.Config,
 		SessionManager:    params.SessionManager,
 		MiddlewareManager: params.MiddlewareManager,
-		Renderer:          params.Renderer,
 	}
 
 	if err := deps.Validate(); err != nil {

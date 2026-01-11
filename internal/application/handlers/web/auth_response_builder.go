@@ -13,13 +13,12 @@ import (
 
 // AuthResponseBuilder handles authentication-related HTTP responses
 type AuthResponseBuilder struct {
-	Renderer view.Renderer
-	Inertia  *inertia.Manager
+	Inertia *inertia.Manager
 }
 
 // NewAuthResponseBuilder creates a new AuthResponseBuilder
-func NewAuthResponseBuilder(renderer view.Renderer) *AuthResponseBuilder {
-	return &AuthResponseBuilder{Renderer: renderer}
+func NewAuthResponseBuilder() *AuthResponseBuilder {
+	return &AuthResponseBuilder{}
 }
 
 // AJAXError returns a JSON error response for AJAX requests

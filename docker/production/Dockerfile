@@ -45,7 +45,6 @@ RUN go mod download
 
 # Install build tools
 RUN go install go.uber.org/mock/mockgen@latest
-RUN go install github.com/a-h/templ/cmd/templ@latest
 
 # Copy built frontend assets first
 COPY --from=frontend-builder /app/dist ./dist
@@ -53,8 +52,7 @@ COPY --from=frontend-builder /app/dist ./dist
 # Copy source code
 COPY . .
 
-# Generate code artifacts (templ files and mocks)
-RUN templ generate ./internal/...
+# Generate code artifacts (mocks)
 RUN go generate ./...
 
 # Build the application

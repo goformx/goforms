@@ -1,9 +1,6 @@
 # =============================================
 # Go Generated Files
 # =============================================
-# Templ generated files
-*_templ.go
-
 # Mock files
 mock_*.go
 *_mock.go

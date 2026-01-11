@@ -27,7 +27,6 @@ type BaseHandler struct {
 	Config         *config.Config
 	UserService    user.Service
 	FormService    form.Service
-	Renderer       view.Renderer
 	Inertia        *inertia.Manager
 	SessionManager *session.Manager
 	ErrorHandler   response.ErrorHandlerInterface
@@ -40,7 +39,6 @@ func NewBaseHandler(
 	cfg *config.Config,
 	userService user.Service,
 	formService form.Service,
-	renderer view.Renderer,
 	inertiaManager *inertia.Manager,
 	sessionManager *session.Manager,
 	errorHandler response.ErrorHandlerInterface,
@@ -51,7 +49,6 @@ func NewBaseHandler(
 		Config:         cfg,
 		UserService:    userService,
 		FormService:    formService,
-		Renderer:       renderer,
 		Inertia:        inertiaManager,
 		SessionManager: sessionManager,
 		ErrorHandler:   errorHandler,
