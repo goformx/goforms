@@ -2,6 +2,7 @@
 import { ref, onMounted } from "vue";
 import { Button } from "@/components/ui/button";
 import { ChevronLeft, ChevronRight } from "lucide-vue-next";
+import { Logger } from "@/lib/core/logger";
 
 interface Props {
   showFieldsPanel?: boolean;
@@ -30,7 +31,7 @@ onMounted(() => {
       isSettingsPanelCollapsed.value = savedSettingsState === "true";
     }
   } catch (error) {
-    console.error("Failed to load panel state:", error);
+    Logger.error("Failed to load panel state:", error);
   }
 });
 
@@ -45,7 +46,7 @@ function toggleFieldsPanel() {
       String(isFieldsPanelCollapsed.value)
     );
   } catch (error) {
-    console.error("Failed to save fields panel state:", error);
+    Logger.error("Failed to save fields panel state:", error);
   }
 }
 
@@ -60,7 +61,7 @@ function toggleSettingsPanel() {
       String(isSettingsPanelCollapsed.value)
     );
   } catch (error) {
-    console.error("Failed to save settings panel state:", error);
+    Logger.error("Failed to save settings panel state:", error);
   }
 }
 </script>

@@ -3,7 +3,6 @@ import { ref, computed } from "vue";
 import { useForm, router, Link } from "@inertiajs/vue3";
 import DashboardLayout from "@/components/layout/DashboardLayout.vue";
 import BuilderLayout from "@/components/form-builder/BuilderLayout.vue";
-import FieldsPanel from "@/components/form-builder/FieldsPanel.vue";
 import FieldSettingsPanel from "@/components/form-builder/FieldSettingsPanel.vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -208,22 +207,10 @@ if (builderError.value) {
         <Separator orientation="vertical" class="h-6" />
 
         <!-- Undo/Redo -->
-        <Button
-          variant="ghost"
-          size="icon"
-          :disabled="!canUndo"
-          title="Undo (Cmd+Z)"
-          @click="undo"
-        >
+        <Button variant="ghost" size="icon" :disabled="!canUndo" title="Undo (Cmd+Z)" @click="undo">
           <Undo2 class="h-4 w-4" />
         </Button>
-        <Button
-          variant="ghost"
-          size="icon"
-          :disabled="!canRedo"
-          title="Redo (Cmd+Shift+Z)"
-          @click="redo"
-        >
+        <Button variant="ghost" size="icon" :disabled="!canRedo" title="Redo (Cmd+Shift+Z)" @click="redo">
           <Redo2 class="h-4 w-4" />
         </Button>
 
@@ -258,8 +245,8 @@ if (builderError.value) {
       </div>
     </template>
 
-    <!-- Three-Panel Builder -->
-    <BuilderLayout class="rounded-lg border bg-background shadow-sm">
+    <!-- Two-Panel Builder (Form.io provides its own sidebar) -->
+    <BuilderLayout class="rounded-lg border bg-background shadow-sm" :show-fields-panel="false">
       <!-- Header Slot -->
       <template #header>
         <div class="px-6 py-4 space-y-4">
@@ -267,23 +254,14 @@ if (builderError.value) {
             <!-- Form Title -->
             <div class="space-y-2">
               <Label for="title" class="text-xs">Form Title</Label>
-              <Input
-                id="title"
-                v-model="detailsForm.title"
-                type="text"
-                placeholder="Enter form title"
-                required
-              />
+              <Input id="title" v-model="detailsForm.title" type="text" placeholder="Enter form title" required />
             </div>
 
             <!-- Status -->
             <div class="space-y-2">
               <Label for="status" class="text-xs">Status</Label>
-              <select
-                id="status"
-                v-model="detailsForm.status"
-                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
-              >
+              <select id="status" v-model="detailsForm.status"
+                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
                 <option value="archived">Archived</option>
@@ -293,22 +271,14 @@ if (builderError.value) {
 
           <div class="space-y-2">
             <Label for="description" class="text-xs">Description</Label>
-            <Input
-              id="description"
-              v-model="detailsForm.description"
-              type="text"
-              placeholder="Enter form description"
-            />
+            <Input id="description" v-model="detailsForm.description" type="text"
+              placeholder="Enter form description" />
           </div>
 
           <div class="space-y-2">
             <Label for="corsOrigins" class="text-xs">Allowed Origins (CORS)</Label>
-            <Input
-              id="corsOrigins"
-              v-model="detailsForm.cors_origins"
-              type="text"
-              placeholder="e.g. *, https://example.com"
-            />
+            <Input id="corsOrigins" v-model="detailsForm.cors_origins" type="text"
+              placeholder="e.g. *, https://example.com" />
             <p class="text-xs text-muted-foreground">
               Required when publishing. Use * to allow all origins.
             </p>
@@ -316,37 +286,23 @@ if (builderError.value) {
         </div>
       </template>
 
-      <!-- Fields Panel -->
-      <template #fields-panel>
-        <FieldsPanel />
-      </template>
-
-      <!-- Canvas -->
+      <!-- Canvas (Form.io renders its own sidebar here) -->
       <template #canvas>
         <div class="p-6">
           <div v-if="isBuilderLoading" class="flex items-center justify-center py-12">
             <div class="text-muted-foreground">Loading form builder...</div>
           </div>
-          <div
-            id="form-schema-builder"
-            class="min-h-[500px]"
-            :data-form-id="props.form.id"
-          />
+          <div id="form-schema-builder" class="min-h-[500px]" :data-form-id="props.form.id" />
         </div>
       </template>
 
       <!-- Settings Panel -->
       <template #settings-panel>
-        <FieldSettingsPanel
-          :selected-field="selectedFieldData"
-          @update:field="(field) => {
-            // Update field in schema
-            console.log('Update field:', field);
-          }"
-          @duplicate="(key) => duplicateField(key)"
-          @delete="(key) => deleteField(key)"
-          @close="() => selectField(null)"
-        />
+        <FieldSettingsPanel :selected-field="selectedFieldData" @update:field="(field) => {
+          // Update field in schema
+          console.log('Update field:', field);
+        }" @duplicate="(key) => duplicateField(key)" @delete="(key) => deleteField(key)"
+          @close="() => selectField(null)" />
       </template>
     </BuilderLayout>
 
@@ -372,13 +328,10 @@ if (builderError.value) {
           <DialogTitle>Keyboard Shortcuts</DialogTitle>
         </DialogHeader>
         <div class="space-y-3">
-          <div
-            v-for="shortcut in shortcuts"
-            :key="shortcut.description"
-            class="flex items-center justify-between py-2"
-          >
+          <div v-for="shortcut in shortcuts" :key="shortcut.description" class="flex items-center justify-between py-2">
             <span class="text-sm">{{ shortcut.description }}</span>
-            <kbd class="inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-xs font-mono">
+            <kbd
+              class="inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-xs font-mono">
               {{ formatShortcut(shortcut) }}
             </kbd>
           </div>

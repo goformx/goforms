@@ -135,11 +135,7 @@ func (h *AuthHandler) Logout(c echo.Context) error {
 		h.Logger.Error("failed to clear session", "error", err)
 	}
 
-	// For Inertia requests, use location redirect
-	if gonertia.IsInertiaRequest(c.Request()) {
-		return h.Inertia.Location(c, constants.PathLogin)
-	}
-
+	// Use standard redirect - Inertia automatically follows 303 redirects
 	return h.redirectToLogin(c)
 }
 
@@ -250,11 +246,8 @@ func (h *AuthHandler) handleAuthSuccess(c echo.Context) error {
 		})
 	}
 
-	// For Inertia requests, use location redirect
-	if gonertia.IsInertiaRequest(c.Request()) {
-		return h.Inertia.Location(c, constants.PathDashboard)
-	}
-
+	// Use standard redirect - Inertia automatically follows 303 redirects
+	// Note: Location() is for external redirects and causes a brief flash
 	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
 

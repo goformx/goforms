@@ -99,39 +99,52 @@ export function useFormBuilder(
         }
       }
 
-      // Create the builder
+      // Create the builder with Form.io's built-in sidebar
       builderInstance = await Formio.builder(container, schema.value, {
         builder: {
           basic: {
             default: true,
+            weight: 0,
+            title: "Basic",
             components: {
               textfield: true,
               textarea: true,
               number: true,
-              password: true,
               checkbox: true,
-              selectboxes: true,
               select: true,
               radio: true,
-              button: true,
               email: true,
-              url: true,
               phoneNumber: true,
               datetime: true,
+              button: true,
             },
-          },
-          advanced: {
-            default: false,
           },
           layout: {
             default: false,
+            weight: 10,
+            title: "Layout",
+            components: {
+              panel: true,
+              columns: true,
+              fieldset: true,
+            },
           },
-          data: {
-            default: false,
-          },
+          advanced: false,
+          data: false,
           premium: false,
         },
         noDefaultSubmitButton: false,
+        i18n: {
+          en: {
+            searchFields: "Search fields...",
+            dragAndDropComponent: "Drag and drop fields here",
+            basic: "Basic",
+            advanced: "Advanced",
+            layout: "Layout",
+            data: "Data",
+            premium: "Premium",
+          },
+        },
         editForm: {
           textfield: [
             { key: "display", components: [] },
