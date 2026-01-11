@@ -76,14 +76,28 @@ func GetCurrentUser(c echo.Context) *entities.User {
 	}
 }
 
-// GetCSRFToken retrieves the CSRF token from context
-func GetCSRFToken(c echo.Context) string {
+// GetCSRFToken retrieves the CSRF token from context using the configured context key
+// Falls back to reading from cookie if not in context (for GET requests)
+func GetCSRFToken(c echo.Context, contextKey string) string {
 	if c == nil {
 		return ""
 	}
 
-	if token, ok := c.Get("csrf").(string); ok {
+	if contextKey == "" {
+		contextKey = "csrf" // Fallback to default
+	}
+
+	// Try to get token from context first (works for POST requests and some GET requests)
+	if token, ok := c.Get(contextKey).(string); ok && token != "" {
 		return token
+	}
+
+	// Fallback: Try to get token from cookie (for GET requests)
+	// Echo's CSRF middleware stores tokens in a cookie named "_csrf" by default
+	// Note: This works even if the cookie is httpOnly since we're on the server side
+	cookie, err := c.Cookie("_csrf")
+	if err == nil && cookie != nil && cookie.Value != "" {
+		return cookie.Value
 	}
 
 	return ""
@@ -111,6 +125,11 @@ func GenerateAssetPath(manager web.AssetManagerInterface) func(string) string {
 
 // NewPageData creates a new PageData instance with essential data
 func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.Context, title string) *PageData {
+	csrfContextKey := "csrf" // Default context key
+	if cfg != nil && cfg.Security.CSRF.ContextKey != "" {
+		csrfContextKey = cfg.Security.CSRF.ContextKey
+	}
+
 	return &PageData{
 		Title:         title,
 		Description:   "",
@@ -125,7 +144,7 @@ func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.C
 		Forms:         make([]*model.Form, 0),
 		Form:          nil,
 		Submissions:   make([]*model.FormSubmission, 0),
-		CSRFToken:     GetCSRFToken(c),
+		CSRFToken:     GetCSRFToken(c, csrfContextKey),
 		IsDevelopment: cfg.App.IsDevelopment(),
 		Content:       nil,
 		Message:       nil,

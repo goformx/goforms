@@ -248,12 +248,18 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(security.SetupSecurityHeaders())
 
 	// CSRF middleware
+	m.logger.Info("CSRF middleware configuration",
+		"enabled", m.config.Config.Security.CSRF.Enabled,
+		"context_key", m.config.Config.Security.CSRF.ContextKey)
 	if m.config.Config.Security.CSRF.Enabled {
 		csrfMiddleware := security.SetupCSRF(
 			&m.config.Config.Security.CSRF,
 			m.config.Config.App.Environment == "development",
 		)
 		e.Use(csrfMiddleware)
+		m.logger.Info("CSRF middleware registered")
+	} else {
+		m.logger.Warn("CSRF middleware is DISABLED")
 	}
 
 	// Rate limiting

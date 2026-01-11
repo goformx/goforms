@@ -17,6 +17,11 @@ func SetupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 	sameSite := getSameSite(csrfConfig.CookieSameSite, isDevelopment)
 	tokenLength := getTokenLength(csrfConfig.TokenLength)
 
+	// Log CSRF configuration
+	if isDevelopment {
+		println("[CSRF] Setting up CSRF middleware with context_key:", csrfConfig.ContextKey)
+	}
+
 	return echomw.CSRFWithConfig(echomw.CSRFConfig{
 		TokenLength:    uint8(tokenLength), // #nosec G115
 		TokenLookup:    csrfConfig.TokenLookup,

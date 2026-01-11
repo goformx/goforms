@@ -150,7 +150,7 @@ func TestGetCSRFToken(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.setupCtx()
-			got := view.GetCSRFToken(c)
+			got := view.GetCSRFToken(c, "csrf")
 			assert.Equal(t, tt.want, got)
 		})
 	}

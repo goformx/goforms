@@ -24,8 +24,20 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 		return err
 	}
 
+	// Debug: Log CSRF token from context
+	csrfToken, _ := c.Get("csrf").(string)
+	h.Logger.Debug("handleNew: CSRF token from context",
+		"token_present", csrfToken != "",
+		"token_length", len(csrfToken),
+		"path", c.Request().URL.Path)
+
 	data := h.NewPageData(c, "New Form")
 	data.SetUser(user)
+
+	// Debug: Log CSRF token in page data
+	h.Logger.Debug("handleNew: CSRF token in page data",
+		"token_present", data.CSRFToken != "",
+		"token_length", len(data.CSRFToken))
 
 	if renderErr := h.Renderer.Render(c, pages.NewForm(*data)); renderErr != nil {
 		return fmt.Errorf("failed to render new form page: %w", renderErr)
@@ -53,10 +65,15 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		return h.handleFormCreationError(c, err)
 	}
 
-	return fmt.Errorf("build success response: %w",
-		h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
+	// For AJAX requests, return JSON so the frontend can handle the redirect
+	if c.Request().Header.Get(constants.HeaderXRequestedWith) == "XMLHttpRequest" {
+		return h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
 			"form_id": form.ID,
-		}))
+		})
+	}
+
+	// For regular form submissions, redirect to the edit page
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 // handleEdit displays the form editing page
