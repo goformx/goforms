@@ -16,6 +16,9 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
+// tokenPreviewLength is the maximum length of token to show in debug logs
+const tokenPreviewLength = 20
+
 // PageData represents the data passed to templates
 type PageData struct {
 	Title                string
@@ -111,8 +114,8 @@ func GetCSRFToken(c echo.Context, contextKey, cookieName string) string {
 	// Try to get token from context first (works for POST requests and some GET requests)
 	if token, ok := c.Get(contextKey).(string); ok && token != "" {
 		tokenPreview := token
-		if len(token) > 20 {
-			tokenPreview = token[:20] + "..."
+		if len(token) > tokenPreviewLength {
+			tokenPreview = token[:tokenPreviewLength] + "..."
 		}
 		fmt.Fprintf(os.Stdout, "[CSRF DEBUG] GetCSRFToken: token found in context, context_key=%q, token_length=%d, token_preview=%s\n",
 			contextKey, len(token), tokenPreview)
@@ -137,8 +140,8 @@ func GetCSRFToken(c echo.Context, contextKey, cookieName string) string {
 	cookie, err := c.Cookie(cookieName)
 	if err == nil && cookie != nil && cookie.Value != "" {
 		cookiePreview := cookie.Value
-		if len(cookie.Value) > 20 {
-			cookiePreview = cookie.Value[:20] + "..."
+		if len(cookie.Value) > tokenPreviewLength {
+			cookiePreview = cookie.Value[:tokenPreviewLength] + "..."
 		}
 		fmt.Fprintf(os.Stdout, "[CSRF DEBUG] GetCSRFToken: token found in cookie, cookie_name=%q, token_length=%d, token_preview=%s\n",
 			cookieName, len(cookie.Value), cookiePreview)

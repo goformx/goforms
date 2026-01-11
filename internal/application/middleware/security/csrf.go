@@ -20,7 +20,8 @@ func SetupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 	// Log CSRF configuration
 	if isDevelopment {
 		println("[CSRF] Setting up CSRF middleware with context_key:", csrfConfig.ContextKey)
-		println("[CSRF] Configuration: TokenLookup=", csrfConfig.TokenLookup, ", CookieName=", csrfConfig.CookieName, ", CookieSecure=", !isDevelopment, ", CookieSameSite=", sameSite)
+		println("[CSRF] TokenLookup=", csrfConfig.TokenLookup, ", CookieName=", csrfConfig.CookieName)
+		println("[CSRF] CookieSecure=", !isDevelopment, ", CookieSameSite=", sameSite)
 	}
 
 	// Wrap Echo's CSRF middleware to add debug logging

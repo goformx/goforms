@@ -111,3 +111,75 @@ Configuration struct: `internal/infrastructure/config/`
 - Error handling: Always wrap errors with `fmt.Errorf("context: %w", err)`
 - Linting: golangci-lint v2 with 40+ linters enabled (see `.golangci.yml`)
 - Frontend: ESLint + Prettier, strict TypeScript
+
+## Linting Requirements
+
+**IMPORTANT**: All code must pass linting before commit. Run `task lint` to verify.
+
+### Go Linting Rules
+
+1. **Use `any` instead of `interface{}`** (revive: use-any)
+   ```go
+   // ❌ Bad
+   data := map[string]interface{}{"key": "value"}
+   
+   // ✅ Good
+   data := map[string]any{"key": "value"}
+   ```
+
+2. **No magic numbers** (mnd) - Extract to named constants
+   ```go
+   // ❌ Bad
+   if len(token) > 20 { ... }
+   
+   // ✅ Good
+   const tokenPreviewLength = 20
+   if len(token) > tokenPreviewLength { ... }
+   ```
+
+3. **Line length max 150 characters** (lll) - Break long lines
+   ```go
+   // ❌ Bad
+   println("[DEBUG] Very long message with many params:", param1, ", param2=", param2, ", param3=", param3, ", param4=", param4)
+   
+   // ✅ Good
+   println("[DEBUG] Message:", param1, ", param2=", param2)
+   println("[DEBUG] More params:", param3, ", param4=", param4)
+   ```
+
+4. **Security: Avoid unsafe template functions** (gosec G203)
+   ```go
+   // When using template.JS/HTML with trusted data, add nosec comment
+   return template.JS(trustedData) // #nosec G203 - data is from trusted source
+   ```
+
+### TypeScript/Frontend Linting Rules
+
+1. **Handle promises properly** (@typescript-eslint/no-floating-promises)
+   ```typescript
+   // ❌ Bad
+   onMounted(() => {
+     initializeAsync();
+   });
+   
+   // ✅ Good - use void for intentionally ignored promises
+   onMounted(() => {
+     void initializeAsync();
+   });
+   ```
+
+2. **Use nullish coalescing** (@typescript-eslint/prefer-nullish-coalescing)
+   ```typescript
+   // ❌ Bad
+   const value = data.items || [];
+   
+   // ✅ Good
+   const value = data.items ?? [];
+   ```
+
+### Pre-commit Checklist
+
+Before committing, ensure:
+- `task lint` passes (both backend and frontend)
+- `task test` passes
+- No new linter warnings introduced

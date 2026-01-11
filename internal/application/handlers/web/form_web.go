@@ -139,7 +139,7 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 	// Render form preview using Inertia
 	return h.Inertia.Render(c, "Forms/Preview", inertia.Props{
 		"title": "Form Preview",
-		"form": map[string]interface{}{
+		"form": map[string]any{
 			"id":          form.ID,
 			"title":       form.Title,
 			"description": form.Description,

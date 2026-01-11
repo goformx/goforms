@@ -108,7 +108,7 @@ export async function createFormBuilder(
     const formSchema = {
       ...schema,
       display: "form",
-      components: schema.components || [],
+      components: schema.components ?? [],
     };
 
     Logger.group("Schema & Configuration");

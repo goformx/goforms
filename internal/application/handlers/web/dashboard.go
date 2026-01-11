@@ -53,9 +53,9 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 	}
 
 	// Convert forms to serializable format
-	formsList := make([]map[string]interface{}, len(forms))
+	formsList := make([]map[string]any, len(forms))
 	for i, f := range forms {
-		formsList[i] = map[string]interface{}{
+		formsList[i] = map[string]any{
 			"id":          f.ID,
 			"title":       f.Title,
 			"description": f.Description,

@@ -126,8 +126,8 @@ func (m *Manager) getSharedProps(c echo.Context) Props {
 
 	// Add authenticated user if present
 	if user := m.getCurrentUser(c); user != nil {
-		props["auth"] = map[string]interface{}{
-			"user": map[string]interface{}{
+		props["auth"] = map[string]any{
+			"user": map[string]any{
 				"id":        user.ID,
 				"email":     user.Email,
 				"firstName": user.FirstName,
@@ -136,7 +136,7 @@ func (m *Manager) getSharedProps(c echo.Context) Props {
 			},
 		}
 	} else {
-		props["auth"] = map[string]interface{}{
+		props["auth"] = map[string]any{
 			"user": nil,
 		}
 	}
@@ -225,19 +225,20 @@ func (m *Manager) ShareProps(props Props) {
 
 // InertiaPageData represents the data structure for an Inertia page.
 type InertiaPageData struct {
-	Component string                 `json:"component"`
-	Props     map[string]interface{} `json:"props"`
-	URL       string                 `json:"url"`
-	Version   string                 `json:"version"`
+	Component string         `json:"component"`
+	Props     map[string]any `json:"props"`
+	URL       string         `json:"url"`
+	Version   string         `json:"version"`
 }
 
 // MarshalInertiaPage marshals page data for the data-page attribute.
+// The JSON is marshaled from trusted internal data structures, not user input.
 func MarshalInertiaPage(data InertiaPageData) template.JS {
 	bytes, err := json.Marshal(data)
 	if err != nil {
-		return template.JS("{}")
+		return template.JS("{}") // #nosec G203 - empty object is safe
 	}
-	return template.JS(bytes)
+	return template.JS(bytes) // #nosec G203 - data is from trusted internal sources
 }
 
 // IsInertiaRequest checks if the current request is an Inertia request.

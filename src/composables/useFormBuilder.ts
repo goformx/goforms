@@ -196,7 +196,7 @@ export function useFormBuilder(
   }
 
   onMounted(() => {
-    initializeBuilder();
+    void initializeBuilder();
   });
 
   onUnmounted(() => {
@@ -253,7 +253,7 @@ export function useFormRenderer(options: {
   }
 
   onMounted(() => {
-    initializeForm();
+    void initializeForm();
   });
 
   return {

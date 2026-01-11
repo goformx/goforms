@@ -77,7 +77,7 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 
 	return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
 		"title": "Edit Form",
-		"form": map[string]interface{}{
+		"form": map[string]any{
 			"id":          form.ID,
 			"title":       form.Title,
 			"description": form.Description,
@@ -161,9 +161,9 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 	}
 
 	// Convert submissions to serializable format
-	submissionsList := make([]map[string]interface{}, len(submissions))
+	submissionsList := make([]map[string]any, len(submissions))
 	for i, s := range submissions {
-		submissionsList[i] = map[string]interface{}{
+		submissionsList[i] = map[string]any{
 			"id":        s.ID,
 			"data":      s.Data,
 			"status":    s.Status,
@@ -174,7 +174,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 
 	return h.Inertia.Render(c, "Forms/Submissions", inertia.Props{
 		"title": "Form Submissions",
-		"form": map[string]interface{}{
+		"form": map[string]any{
 			"id":    form.ID,
 			"title": form.Title,
 		},
