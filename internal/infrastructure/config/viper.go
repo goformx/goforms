@@ -217,11 +217,11 @@ func (vc *ViperConfig) loadAPIKeyConfig() APIKeyConfig {
 	}
 
 	return APIKeyConfig{
-		Enabled:    vc.viper.GetBool("security.api_key.enabled"),
-		Keys:       keys,
-		HeaderName: headerName,
-		QueryParam: vc.viper.GetString("security.api_key.query_param"),
-		SkipPaths:  vc.viper.GetStringSlice("security.api_key.skip_paths"),
+		Enabled:     vc.viper.GetBool("security.api_key.enabled"),
+		Keys:        keys,
+		HeaderName:  headerName,
+		QueryParam:  vc.viper.GetString("security.api_key.query_param"),
+		SkipPaths:   vc.viper.GetStringSlice("security.api_key.skip_paths"),
 		SkipMethods: vc.viper.GetStringSlice("security.api_key.skip_methods"),
 	}
 }
@@ -305,7 +305,7 @@ func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 			Enabled:        vc.viper.GetBool("security.trust_proxy.enabled"),
 			TrustedProxies: vc.viper.GetStringSlice("security.trust_proxy.trusted_proxies"),
 		},
-		APIKey: vc.loadAPIKeyConfig(),
+		APIKey:       vc.loadAPIKeyConfig(),
 		SecureCookie: vc.viper.GetBool("security.secure_cookie"),
 		Debug:        vc.viper.GetBool("security.debug"),
 	}
