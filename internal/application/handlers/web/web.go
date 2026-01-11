@@ -11,7 +11,7 @@ import (
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
 	mwcontext "github.com/goformx/goforms/internal/application/middleware/context"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 )
 
 const (
@@ -49,38 +49,28 @@ func (h *PageHandler) Register(e *echo.Echo) {
 
 // handleHome handles the home page request
 func (h *PageHandler) handleHome(c echo.Context) error {
-	data := h.NewPageData(c, "Home")
-	if h.Logger != nil {
-		h.Logger.Debug("handleHome: data.User", "user", data.User)
-	}
-
 	// Check if user is authenticated and redirect to dashboard
 	if mwcontext.IsAuthenticated(c) {
 		return fmt.Errorf("redirect to dashboard: %w", c.Redirect(constants.StatusSeeOther, constants.PathDashboard))
 	}
 
-	// User is not authenticated, render home page
-	if renderErr := h.Renderer.Render(c, pages.Home(*data)); renderErr != nil {
-		return h.HandleError(c, renderErr, "Failed to render home page")
-	}
-
-	return nil
+	// Render home page using Inertia
+	return h.Inertia.Render(c, "Home", inertia.Props{
+		"title": "Home",
+	})
 }
 
 // handleDemo handles the demo page request
 func (h *PageHandler) handleDemo(c echo.Context) error {
-	data := h.NewPageData(c, "Demo")
-	if h.Logger != nil {
-		h.Logger.Debug("handleDemo: data.User", "user", data.User)
-	}
-
 	// Check if user is authenticated and redirect to dashboard
 	if mwcontext.IsAuthenticated(c) {
 		return fmt.Errorf("redirect to dashboard: %w", c.Redirect(constants.StatusSeeOther, constants.PathDashboard))
 	}
 
-	// User is not authenticated, render demo page
-	return fmt.Errorf("render demo page: %w", h.Renderer.Render(c, pages.Demo(*data)))
+	// Render demo page using Inertia
+	return h.Inertia.Render(c, "Demo", inertia.Props{
+		"title": "Demo",
+	})
 }
 
 // Start initializes the page handler.

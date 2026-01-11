@@ -1,0 +1,115 @@
+services:
+  # GoForms Application (Development)
+  goforms-dev:
+    build:
+      context: .
+      dockerfile: docker/development/Dockerfile
+    restart: unless-stopped
+    env_file:
+      - .env
+    ports:
+      - "8090:8090"
+      - "5173:5173" # Vite dev server
+    environment:
+      # Application Configuration
+      - APP_NAME=${APP_NAME}
+      - APP_ENV=${APP_ENV}
+      - APP_DEBUG=${APP_DEBUG}
+      - APP_LOG_LEVEL=${APP_LOG_LEVEL}
+      - APP_SCHEME=${APP_SCHEME}
+      - APP_PORT=${APP_PORT}
+      - APP_HOST=${APP_HOST}
+
+      # Database Configuration (mapped to Viper's DATABASE_ prefix)
+      - DATABASE_DRIVER=${DB_DRIVER}
+      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_PORT=${DB_PORT}
+      - DATABASE_NAME=${DB_NAME}
+      - DATABASE_USERNAME=${DB_USERNAME}
+      - DATABASE_PASSWORD=${DB_PASSWORD}
+      - DATABASE_MAX_OPEN_CONNS=${DB_MAX_OPEN_CONNS}
+      - DATABASE_MAX_IDLE_CONNS=${DB_MAX_IDLE_CONNS}
+
+      # Security Configuration
+      - SESSION_SECRET=${SESSION_SECRET}
+      - SECURITY_CSRF_SECRET=${SECURITY_CSRF_SECRET}
+      - SECURE_COOKIES=${SECURE_COOKIES}
+
+      # CSP Configuration
+      - SECURITY_CSP_SCRIPT_SRC=${SECURITY_CSP_SCRIPT_SRC}
+      - SECURITY_CSP_STYLE_SRC=${SECURITY_CSP_STYLE_SRC}
+      - SECURITY_CSP_CONNECT_SRC=${SECURITY_CSP_CONNECT_SRC}
+
+      # CORS Configuration
+      - CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS}
+      - CORS_ALLOWED_METHODS=${CORS_ALLOWED_METHODS}
+      - CORS_ALLOWED_HEADERS=${CORS_ALLOWED_HEADERS}
+      - CORS_ALLOW_CREDENTIALS=${CORS_ALLOW_CREDENTIALS}
+      - CORS_MAX_AGE=${CORS_MAX_AGE}
+
+      # API Key Configuration
+      - API_KEY_ENABLED=${API_KEY_ENABLED}
+      - API_KEYS=${API_KEYS}
+      - API_KEY_HEADER_NAME=${API_KEY_HEADER_NAME}
+
+      # Development Settings
+      - VITE_DEV_HOST=${VITE_DEV_HOST}
+      - VITE_DEV_PORT=${VITE_DEV_PORT}
+
+      # Timeouts
+      - READ_TIMEOUT=${READ_TIMEOUT}
+      - WRITE_TIMEOUT=${WRITE_TIMEOUT}
+      - IDLE_TIMEOUT=${IDLE_TIMEOUT}
+      - REQUEST_TIMEOUT=${REQUEST_TIMEOUT}
+    depends_on:
+      postgres-dev:
+        condition: service_healthy
+    networks:
+      - goforms-dev-network
+    volumes:
+      - .:/app
+      - goforms-dev-logs:/app/logs
+      - go-cache:/go
+    healthcheck:
+      test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/health" ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 60s
+
+  # PostgreSQL Database (Development)
+  postgres-dev:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    env_file:
+      - .env
+    environment:
+      - POSTGRES_DB=${DB_NAME}
+      - POSTGRES_USER=${DB_USERNAME}
+      - POSTGRES_PASSWORD=${DB_PASSWORD}
+      - POSTGRES_INITDB_ARGS=--encoding=UTF-8 --lc-collate=C --lc-ctype=C
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres-dev-data:/var/lib/postgresql/data
+      - ./migrations:/docker-entrypoint-initdb.d
+    networks:
+      - goforms-dev-network
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U ${DB_USERNAME} -d ${DB_NAME}" ]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 30s
+
+networks:
+  goforms-dev-network:
+    driver: bridge
+
+volumes:
+  postgres-dev-data:
+    driver: local
+  goforms-dev-logs:
+    driver: local
+  go-cache:
+    driver: local

@@ -4,7 +4,6 @@ package web
 
 import (
 	"context"
-	"fmt"
 
 	"github.com/labstack/echo/v4"
 
@@ -14,7 +13,7 @@ import (
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 )
 
 // Default CORS settings for forms
@@ -45,7 +44,7 @@ func NewFormWebHandler(
 	formBaseHandler := NewFormBaseHandler(base, formService, formValidator)
 
 	// Create dependencies
-	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator)
+	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator, base.Logger)
 	responseBuilder := NewFormResponseBuilder()
 	errorHandler := NewFormErrorHandler(responseBuilder)
 	formServiceHandler := NewFormService(formService, base.Logger)
@@ -137,17 +136,16 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 		"form_id_length", len(formID),
 		"form_title", h.Logger.SanitizeField("form_title", form.Title))
 
-	// Build page data using the new API
-	data := h.NewPageData(c, "Form Preview").
-		WithForm(form).
-		WithFormPreviewAssetPath(h.AssetManager.AssetPath("src/js/pages/form-preview.ts"))
-
-	// Render form preview template
-	if renderErr := h.Renderer.Render(c, pages.FormPreview(*data, form)); renderErr != nil {
-		return fmt.Errorf("failed to render form preview page: %w", renderErr)
-	}
-
-	return nil
+	// Render form preview using Inertia
+	return h.Inertia.Render(c, "Forms/Preview", inertia.Props{
+		"title": "Form Preview",
+		"form": map[string]any{
+			"id":          form.ID,
+			"title":       form.Title,
+			"description": form.Description,
+			"status":      form.Status,
+		},
+	})
 }
 
 // handleNewFormValidation returns the validation schema for the new form

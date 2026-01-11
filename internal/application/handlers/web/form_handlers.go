@@ -6,12 +6,13 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/domain/form/model"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 )
 
 // HTTP handler methods for form operations
@@ -19,19 +20,14 @@ import (
 
 // handleNew displays the new form creation page
 func (h *FormWebHandler) handleNew(c echo.Context) error {
-	user, err := h.AuthHelper.RequireAuthenticatedUser(c)
+	_, err := h.AuthHelper.RequireAuthenticatedUser(c)
 	if err != nil {
 		return err
 	}
 
-	data := h.NewPageData(c, "New Form")
-	data.SetUser(user)
-
-	if renderErr := h.Renderer.Render(c, pages.NewForm(*data)); renderErr != nil {
-		return fmt.Errorf("failed to render new form page: %w", renderErr)
-	}
-
-	return nil
+	return h.Inertia.Render(c, "Forms/New", inertia.Props{
+		"title": "Create New Form",
+	})
 }
 
 // handleCreate processes form creation requests
@@ -44,7 +40,8 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)
 	if err != nil {
-		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
+		// Re-render the form creation page with the validation error
+		return h.handleFormCreationError(c, err)
 	}
 
 	// Create form using business logic service
@@ -53,15 +50,14 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		return h.handleFormCreationError(c, err)
 	}
 
-	return fmt.Errorf("build success response: %w",
-		h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
-			"form_id": form.ID,
-		}))
+	// Always redirect to the edit page after successful creation
+	// Inertia will follow the redirect and render the new page
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 // handleEdit displays the form editing page
 func (h *FormWebHandler) handleEdit(c echo.Context) error {
-	user, err := h.AuthHelper.RequireAuthenticatedUser(c)
+	_, err := h.AuthHelper.RequireAuthenticatedUser(c)
 	if err != nil {
 		return err
 	}
@@ -74,17 +70,21 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	// Log form access for debugging
 	h.FormService.LogFormAccess(form)
 
-	data := h.NewPageData(c, "Edit Form").
-		WithForm(form).
-		WithFormBuilderAssetPath(h.AssetManager.AssetPath("src/js/pages/form-builder.ts"))
+	// Extract CORS origins as a string slice for the frontend
+	corsOrigins, _, _ := form.GetCorsConfig()
 
-	data.SetUser(user)
-
-	if renderErr := h.Renderer.Render(c, pages.EditForm(*data, form)); renderErr != nil {
-		return fmt.Errorf("failed to render edit form page: %w", renderErr)
-	}
-
-	return nil
+	return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
+		"title": "Edit Form",
+		"form": map[string]any{
+			"id":          form.ID,
+			"title":       form.Title,
+			"description": form.Description,
+			"status":      form.Status,
+			"corsOrigins": corsOrigins,
+			"createdAt":   form.CreatedAt,
+			"updatedAt":   form.UpdatedAt,
+		},
+	})
 }
 
 // handleUpdate processes form update requests
@@ -102,20 +102,19 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessUpdateRequest(c)
 	if err != nil {
-		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
+		// Re-render the edit page with validation error
+		return h.handleFormUpdateError(c, form, err)
 	}
 
 	// Update form using business logic service
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form, req); updateErr != nil {
 		h.Logger.Error("failed to update form", "error", updateErr)
 
-		return h.HandleError(c, updateErr, "Failed to update form")
+		return h.handleFormUpdateError(c, form, updateErr)
 	}
 
-	return fmt.Errorf("build success response: %w",
-		h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
-			"form_id": form.ID,
-		}))
+	// Redirect back to the edit page (Inertia will re-render with updated data)
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 // handleDelete processes form deletion requests
@@ -136,12 +135,14 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 
-	return fmt.Errorf("no content response: %w", c.NoContent(constants.StatusNoContent))
+	// Redirect to dashboard after successful deletion
+	// Inertia will follow the redirect and render the dashboard
+	return c.Redirect(http.StatusSeeOther, constants.PathDashboard)
 }
 
 // handleSubmissions displays form submissions
 func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
-	user, err := h.AuthHelper.RequireAuthenticatedUser(c)
+	_, err := h.AuthHelper.RequireAuthenticatedUser(c)
 	if err != nil {
 		return err
 	}
@@ -158,30 +159,81 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to get form submissions")
 	}
 
-	data := h.NewPageData(c, "Form Submissions").
-		WithForm(form).
-		WithSubmissions(submissions)
-
-	data.SetUser(user)
-
-	if renderErr := h.Renderer.Render(c, pages.FormSubmissions(*data)); renderErr != nil {
-		return fmt.Errorf("failed to render form submissions page: %w", renderErr)
+	// Convert submissions to serializable format
+	submissionsList := make([]map[string]any, len(submissions))
+	for i, s := range submissions {
+		submissionsList[i] = map[string]any{
+			"id":        s.ID,
+			"data":      s.Data,
+			"status":    s.Status,
+			"createdAt": s.CreatedAt,
+			"updatedAt": s.UpdatedAt,
+		}
 	}
 
-	return nil
+	return h.Inertia.Render(c, "Forms/Submissions", inertia.Props{
+		"title": "Form Submissions",
+		"form": map[string]any{
+			"id":    form.ID,
+			"title": form.Title,
+		},
+		"submissions": submissionsList,
+	})
 }
 
 // handleFormCreationError handles form creation errors
 func (h *FormWebHandler) handleFormCreationError(c echo.Context, err error) error {
+	errorMessage := h.getFormErrorMessage(err, "Failed to create form")
+
+	// Re-render the form creation page with the error message
+	return h.Inertia.Render(c, "Forms/New", inertia.Props{
+		"title": "Create New Form",
+		"flash": map[string]string{
+			"error": errorMessage,
+		},
+	})
+}
+
+// handleFormUpdateError handles form update errors
+func (h *FormWebHandler) handleFormUpdateError(c echo.Context, form *model.Form, err error) error {
+	errorMessage := h.getFormErrorMessage(err, "Failed to update form")
+
+	// Extract CORS origins for re-rendering
+	corsOrigins, _, _ := form.GetCorsConfig()
+
+	// Re-render the edit page with the error message
+	return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
+		"title": "Edit Form",
+		"form": map[string]any{
+			"id":          form.ID,
+			"title":       form.Title,
+			"description": form.Description,
+			"status":      form.Status,
+			"corsOrigins": corsOrigins,
+			"createdAt":   form.CreatedAt,
+			"updatedAt":   form.UpdatedAt,
+		},
+		"flash": map[string]string{
+			"error": errorMessage,
+		},
+	})
+}
+
+// getFormErrorMessage returns a user-friendly error message
+func (h *FormWebHandler) getFormErrorMessage(err error, defaultMessage string) string {
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required"))
+		return "Form title is required"
 	case errors.Is(err, model.ErrFormSchemaRequired):
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required"))
+		return "Form schema is required"
+	case errors.Is(err, model.ErrFormInvalid):
+		return "Form validation failed"
 	default:
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to create form"))
+		// For validation errors (like CORS), return the actual message
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "CORS") || strings.Contains(errMsg, "required") {
+			return errMsg
+		}
+		return defaultMessage
 	}
 }

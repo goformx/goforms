@@ -46,6 +46,7 @@ security:
       - "Authorization"
       - "X-Csrf-Token"
       - "X-Requested-With"
+      - "X-API-Key"
       - "Accept"
       - "Origin"
     exposed_headers:
@@ -84,18 +85,18 @@ security:
     enabled: true
     # More restrictive CSP for better security
     default_src: "'self'"
-    script_src: "'self' 'unsafe-inline' 'unsafe-eval'"  # Remove unsafe-* in production
-    style_src: "'self' 'unsafe-inline'"
+    script_src: "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.form.io"  # Remove unsafe-* in production
+    style_src: "'self' 'unsafe-inline' https://cdn.form.io"
     img_src: "'self' data: https:"
-    connect_src: "'self' ws: wss:"  # Add WebSocket support if needed
-    font_src: "'self'"
+    connect_src: "'self' ws: wss: https://cdn.form.io"  # Add WebSocket support if needed
+    font_src: "'self' https://cdn.form.io"
     object_src: "'none'"
     media_src: "'self'"
     frame_src: "'none'"
     form_action: "'self'"
     base_uri: "'self'"
     manifest_src: "'self'"
-    worker_src: "'self'"
+    worker_src: "'self' blob:"
     report_uri: "/csp-report"  # Add CSP violation reporting
 
   tls:
@@ -134,3 +135,15 @@ security:
       - "127.0.0.1"
       - "::1"
       # Add your reverse proxy IPs here
+
+  # API Key authentication for form submissions
+  api_key:
+    enabled: false  # Set to true to enable API key authentication
+    # API keys are loaded from API_KEYS environment variable (comma-separated)
+    # Example: API_KEYS=key1,key2,key3
+    keys: []  # Leave empty when using environment variable
+    header_name: "X-API-Key"  # Header name to read API key from
+    query_param: ""  # Optional query parameter name
+    skip_paths: []  # Paths to skip API key validation
+    skip_methods:
+      - "OPTIONS"  # Skip OPTIONS method for CORS preflight

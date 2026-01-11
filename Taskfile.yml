@@ -4,14 +4,17 @@ output: 'prefixed'
 
 includes:
   migrate:
-    taskfile: Taskfile.migrate.yml
+    taskfile: tasks/Taskfile.migrate.yml
     namespace: migrate
   user:
-    taskfile: Taskfile.user.yml
+    taskfile: tasks/Taskfile.user.yml
     namespace: user
   act:
-    taskfile: Taskfile.act.yml
+    taskfile: tasks/Taskfile.act.yml
     namespace: act
+  docker:
+    taskfile: tasks/Taskfile.docker.yml
+    namespace: docker
 
 dotenv: [ '.env' ]
 
@@ -74,7 +77,6 @@ tasks:
     desc: Install Go development tools
     cmds:
     - go install go.uber.org/mock/mockgen@latest
-    - go install github.com/a-h/templ/cmd/templ@latest
     - go install github.com/air-verse/air@latest
     - go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest
     - go install -tags 'mysql,postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
@@ -93,16 +95,7 @@ tasks:
 
   generate:
     desc: Generate all code artifacts
-    deps: [ generate:templ, generate:mocks ]
-
-  generate:templ:
-    desc: Generate templ files
-    sources:
-      - "internal/**/*.templ"
-    generates:
-      - "internal/**/*_templ.go"
-    cmds:
-    - templ generate ./internal/...
+    deps: [ generate:mocks ]
 
   generate:mocks:
     desc: Generate all mock implementations
@@ -195,7 +188,6 @@ tasks:
     cmds:
     - for: ['bin/', 'dist/', 'node_modules/', 'coverage/', '.task/']
       cmd: rm -rf {{.ITEM}}
-    - find internal/ -name '*_templ.go' -delete
     - find test/mocks -name 'mock_*.go' -delete
 
   lint:
@@ -216,8 +208,8 @@ tasks:
     desc: Run frontend linters
     sources:
       - "src/**/*"
-      - .eslintrc.js
-      - .prettierrc
+      - eslint.config.js
+      - tsconfig.json
     cmds:
     - npm run lint
 
@@ -470,22 +462,6 @@ tasks:
     - task: format
     - task: lint
     - task: test
-
-  docker:build:
-    desc: Build Docker image
-    sources:
-      - Dockerfile
-      - "**/*.go"
-      - go.mod
-      - go.sum
-    cmds:
-    - docker build -t goforms:{{.VERSION}} .
-
-  docker:run:
-    desc: Run application in Docker container
-    deps: [ docker:build ]
-    cmds:
-    - docker run -p 8080:8080 goforms:{{.VERSION}}
 
   deps:update:
     desc: Update all dependencies

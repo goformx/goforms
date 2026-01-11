@@ -23,7 +23,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 	"github.com/goformx/goforms/internal/infrastructure/server"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 // Dependencies holds all application dependencies
@@ -42,7 +41,6 @@ type Dependencies struct {
 	Presentation      fx.Option
 	MiddlewareModule  fx.Option
 	SessionManager    *session.Manager
-	Renderer          view.Renderer
 	MiddlewareManager *middleware.Manager
 	AccessManager     *access.Manager
 	Sanitizer         sanitization.ServiceInterface
@@ -63,7 +61,6 @@ func (d Dependencies) Validate() error {
 		{"Presentation", d.Presentation},
 		{"MiddlewareModule", d.MiddlewareModule},
 		{"SessionManager", d.SessionManager},
-		{"Renderer", d.Renderer},
 		{"MiddlewareManager", d.MiddlewareManager},
 		{"AccessManager", d.AccessManager},
 		{"Sanitizer", d.Sanitizer},
@@ -91,7 +88,6 @@ func NewHandlerDeps(deps Dependencies) (*web.HandlerDeps, error) {
 		MiddlewareManager: deps.MiddlewareManager,
 		Config:            deps.Config,
 		Logger:            deps.Logger,
-		Renderer:          deps.Renderer,
 	}, nil
 }
 
@@ -134,7 +130,6 @@ func New(lc fx.Lifecycle, deps Dependencies) *Application {
 		presentation:     deps.Presentation,
 		middlewareModule: deps.MiddlewareModule,
 		sessionManager:   deps.SessionManager,
-		renderer:         deps.Renderer,
 	}
 
 	lc.Append(fx.Hook{
@@ -158,7 +153,6 @@ type Application struct {
 	presentation     fx.Option
 	middlewareModule fx.Option
 	sessionManager   *session.Manager
-	renderer         view.Renderer
 }
 
 // Start starts the application

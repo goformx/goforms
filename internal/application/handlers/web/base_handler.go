@@ -17,6 +17,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/web"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 	"github.com/goformx/goforms/internal/presentation/view"
 )
 
@@ -26,7 +27,7 @@ type BaseHandler struct {
 	Config         *config.Config
 	UserService    user.Service
 	FormService    form.Service
-	Renderer       view.Renderer
+	Inertia        *inertia.Manager
 	SessionManager *session.Manager
 	ErrorHandler   response.ErrorHandlerInterface
 	AssetManager   web.AssetManagerInterface // Use interface instead of concrete type
@@ -38,7 +39,7 @@ func NewBaseHandler(
 	cfg *config.Config,
 	userService user.Service,
 	formService form.Service,
-	renderer view.Renderer,
+	inertiaManager *inertia.Manager,
 	sessionManager *session.Manager,
 	errorHandler response.ErrorHandlerInterface,
 	assetManager web.AssetManagerInterface, // Use interface
@@ -48,7 +49,7 @@ func NewBaseHandler(
 		Config:         cfg,
 		UserService:    userService,
 		FormService:    formService,
-		Renderer:       renderer,
+		Inertia:        inertiaManager,
 		SessionManager: sessionManager,
 		ErrorHandler:   errorHandler,
 		AssetManager:   assetManager,

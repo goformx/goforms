@@ -1,43 +1,58 @@
-# Development stage
-FROM golang:1.24-alpine
+# ------------------------------------------------------------
+# Base stage — shared system dependencies
+# ------------------------------------------------------------
+FROM golang:1.25-alpine AS base
 
-# Install build dependencies
 RUN apk add --no-cache \
     git \
     ca-certificates \
     tzdata \
     nodejs \
     npm \
-    wget
+    wget \
+    go-task-task \
+    curl \
+    dumb-init
 
 WORKDIR /app
+ENV PATH="/go/bin:/root/go/bin:/usr/local/bin:${PATH}"
 
-# Install Go tools
+
+# ------------------------------------------------------------
+# Dev stage — full tooling + Air + npm run dev
+# ------------------------------------------------------------
+FROM base AS dev
+
+# Install Go tooling
 RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
-    && go install github.com/a-h/templ/cmd/templ@latest \
     && go install go.uber.org/mock/mockgen@latest \
     && go install github.com/air-verse/air@latest \
-    && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+    && go install github.com/bombsimon/wsl/v4/cmd/wsl@latest \
+    && go install golang.org/x/tools/gopls@latest \
+    && go install github.com/go-delve/delve/cmd/dlv@latest \
+    && go install golang.org/x/tools/cmd/goimports@latest \
+    && go install github.com/securego/gosec/v2/cmd/gosec@latest \
+    && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
-# Copy package files for frontend
+# Frontend deps (install base dependencies - bind mount will overlay source)
 COPY package*.json ./
-RUN npm ci
+RUN mkdir -p public/fonts \
+    && npm ci --ignore-scripts
 
-# Copy source code
-COPY . .
+# Copy fonts manually (postinstall workaround)
+RUN cp -r node_modules/@formio/js/dist/fonts/* public/fonts/ 2>/dev/null || true
 
-# Build frontend assets for development
-RUN npm run build
-
-# Create necessary directories
+# Create runtime dirs
 RUN mkdir -p logs
 
-# Expose ports
+# Note: Source code is mounted via bind mount in docker-compose.yml
+# No need to COPY source here - bind mount provides live code for development
+
 EXPOSE 8090 5173
 
-# Health check
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8090/health || exit 1
 
-# Run with Air for hot reload
-CMD ["air", "-c", ".air.toml"] 
+# Run Air + npm run dev concurrently
+# Configure git safe directory for bind-mounted repos, then start services
+CMD ["dumb-init", "--", "sh", "-c", "git config --global --add safe.directory /app && npm run dev & air -c .air.toml"]

@@ -4,7 +4,6 @@ package middleware
 import (
 	"errors"
 	"fmt"
-	"os"
 	"strings"
 	"time"
 
@@ -33,6 +32,10 @@ const (
 	DefaultBurst = 10
 	// DefaultWindow is the default rate limit window
 	DefaultWindow = time.Minute
+	// HTTPStatusServerError is the threshold for server errors (5xx)
+	HTTPStatusServerError = 500
+	// HTTPStatusClientError is the threshold for client errors (4xx)
+	HTTPStatusClientError = 400
 )
 
 // PathChecker handles path-based logic for middleware
@@ -175,27 +178,72 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Recovery middleware first
 	e.Use(Recovery(m.logger, m.config.Sanitizer))
 
-	// Timeout middleware
-	e.Use(echomw.TimeoutWithConfig(echomw.TimeoutConfig{
-		Timeout:      m.config.Config.App.RequestTimeout,
-		ErrorMessage: "Request timeout",
+	// Timeout middleware (using context-based timeout to avoid data races)
+	e.Use(echomw.ContextTimeoutWithConfig(echomw.ContextTimeoutConfig{
+		Timeout: m.config.Config.App.RequestTimeout,
 	}))
 
 	// Context middleware
 	e.Use(m.contextMiddleware.WithContext())
 
-	// Logging middleware
-	if m.config.Config.App.IsDevelopment() {
-		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
-			Format:  "${time_rfc3339} ${status} ${method} ${uri} ${latency_human}\n",
-			Output:  os.Stdout,
-			Skipper: isNoisePath,
-		}))
-	} else {
-		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
-			Skipper: isNoisePath,
-		}))
-	}
+	// Logging middleware (using RequestLoggerWithConfig for race-free logging)
+	e.Use(echomw.RequestLoggerWithConfig(echomw.RequestLoggerConfig{
+		LogURI:      true,
+		LogStatus:   true,
+		LogMethod:   true,
+		LogLatency:  true,
+		LogError:    true,
+		HandleError: true,
+		Skipper:     isNoisePath,
+		LogValuesFunc: func(c echo.Context, v echomw.RequestLoggerValues) error {
+			// Get request ID from header
+			requestID := c.Request().Header.Get("X-Trace-Id")
+			logger := m.logger
+			if requestID != "" {
+				logger = logger.WithRequestID(requestID)
+			}
+
+			// Build base fields
+			fields := []any{
+				"method", v.Method,
+				"uri", v.URI,
+				"status", v.Status,
+				"latency_ms", v.Latency.Milliseconds(),
+				"remote_ip", c.RealIP(),
+			}
+
+			// Add user_id if authenticated
+			if userID, ok := contextmw.GetUserID(c); ok {
+				fields = append(fields, "user_id", userID)
+			}
+
+			// Add form_id if this is a form route
+			if formID := c.Param("id"); formID != "" && isFormRoute(v.URI) {
+				fields = append(fields, "form_id", formID)
+			}
+
+			// Log based on status and error
+			if v.Error != nil {
+				fields = append(fields, "error", v.Error.Error())
+				logger.Error("request failed", fields...)
+			} else if v.Status >= HTTPStatusServerError {
+				logger.Error("request completed with server error", fields...)
+			} else if v.Status >= HTTPStatusClientError {
+				logger.Warn("request completed with client error", fields...)
+			} else {
+				logger.Info("request completed", fields...)
+			}
+
+			return nil
+		},
+	}))
+
+	// Slow request detection middleware
+	e.Use(SlowRequestDetectorWithConfig(m.logger, SlowRequestConfig{
+		Threshold:         DefaultSlowRequestThreshold,
+		VerySlowThreshold: VerySlowRequestThreshold,
+		Skipper:           NewSlowRequestSkipper(),
+	}))
 }
 
 func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
@@ -232,12 +280,23 @@ func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	e.Use(security.SetupSecurityHeaders())
 
 	// CSRF middleware
+	m.logger.Info("CSRF middleware configuration",
+		"enabled", m.config.Config.Security.CSRF.Enabled,
+		"context_key", m.config.Config.Security.CSRF.ContextKey,
+		"cookie_name", m.config.Config.Security.CSRF.CookieName,
+		"token_lookup", m.config.Config.Security.CSRF.TokenLookup)
 	if m.config.Config.Security.CSRF.Enabled {
 		csrfMiddleware := security.SetupCSRF(
 			&m.config.Config.Security.CSRF,
 			m.config.Config.App.Environment == "development",
+			m.logger,
 		)
 		e.Use(csrfMiddleware)
+		m.logger.Info("CSRF middleware registered",
+			"context_key", m.config.Config.Security.CSRF.ContextKey,
+			"cookie_name", m.config.Config.Security.CSRF.CookieName)
+	} else {
+		m.logger.Warn("CSRF middleware is DISABLED")
 	}
 
 	// Rate limiting
@@ -264,6 +323,13 @@ func isNoisePath(c echo.Context) bool {
 		strings.Contains(path, "com.chrome.devtools") ||
 		strings.Contains(path, "devtools") ||
 		strings.Contains(path, "chrome-devtools")
+}
+
+// isFormRoute checks if the path is a form-related route
+func isFormRoute(path string) bool {
+	return strings.HasPrefix(path, "/forms/") ||
+		strings.HasPrefix(path, "/api/v1/forms/") ||
+		strings.HasPrefix(path, "/submit/")
 }
 
 // EchoLogger is exported for backward compatibility.

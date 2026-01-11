@@ -77,21 +77,6 @@
             }
         },
         {
-            "label": "task: generate templ",
-            "type": "shell",
-            "command": "task",
-            "args": [
-                "generate:templ"
-            ],
-            "group": "build",
-            "presentation": {
-                "echo": true,
-                "reveal": "silent",
-                "focus": false,
-                "panel": "shared"
-            }
-        },
-        {
             "label": "task: dev backend",
             "type": "shell",
             "command": "task",

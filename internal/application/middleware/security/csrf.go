@@ -10,14 +10,34 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
 
 // SetupCSRF creates and configures CSRF middleware
-func SetupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.MiddlewareFunc {
+func SetupCSRF(
+	csrfConfig *appconfig.CSRFConfig,
+	isDevelopment bool,
+	logger logging.Logger,
+) echo.MiddlewareFunc {
 	sameSite := getSameSite(csrfConfig.CookieSameSite, isDevelopment)
 	tokenLength := getTokenLength(csrfConfig.TokenLength)
 
-	return echomw.CSRFWithConfig(echomw.CSRFConfig{
+	// Create component-scoped logger for CSRF
+	csrfLogger := logger.WithComponent("csrf")
+
+	// Log CSRF configuration at debug level
+	if isDevelopment {
+		csrfLogger.Debug("CSRF middleware configured",
+			"context_key", csrfConfig.ContextKey,
+			"token_lookup", csrfConfig.TokenLookup,
+			"cookie_name", csrfConfig.CookieName,
+			"cookie_secure", !isDevelopment,
+			"cookie_same_site", sameSite,
+		)
+	}
+
+	// Wrap Echo's CSRF middleware to add debug logging
+	csrfMiddleware := echomw.CSRFWithConfig(echomw.CSRFConfig{
 		TokenLength:    uint8(tokenLength), // #nosec G115
 		TokenLookup:    csrfConfig.TokenLookup,
 		ContextKey:     csrfConfig.ContextKey,
@@ -28,9 +48,44 @@ func SetupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 		CookieHTTPOnly: csrfConfig.CookieHTTPOnly,
 		CookieSameSite: sameSite,
 		CookieMaxAge:   csrfConfig.CookieMaxAge,
-		Skipper:        CreateCSRFSkipper(isDevelopment),
-		ErrorHandler:   CreateCSRFErrorHandler(csrfConfig, isDevelopment),
+		Skipper:        CreateCSRFSkipper(isDevelopment, csrfLogger),
+		ErrorHandler:   CreateCSRFErrorHandler(csrfConfig, isDevelopment, csrfLogger),
 	})
+
+	// Wrap middleware to add debug logging after it runs
+	if isDevelopment {
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			csrfHandler := csrfMiddleware(next)
+			return func(c echo.Context) error {
+				// Call the CSRF middleware
+				err := csrfHandler(c)
+
+				// After CSRF middleware runs, check if token exists
+				if token, ok := c.Get(csrfConfig.ContextKey).(string); ok && token != "" {
+					csrfLogger.Debug("CSRF token found in context",
+						"token_length", len(token),
+						"path", c.Request().URL.Path,
+					)
+				} else {
+					csrfLogger.Debug("CSRF token not in context",
+						"context_key", csrfConfig.ContextKey,
+						"path", c.Request().URL.Path,
+					)
+				}
+
+				if cookie, cookieErr := c.Cookie(csrfConfig.CookieName); cookieErr == nil && cookie != nil && cookie.Value != "" {
+					csrfLogger.Debug("CSRF token found in cookie",
+						"token_length", len(cookie.Value),
+						"path", c.Request().URL.Path,
+					)
+				}
+
+				return err
+			}
+		}
+	}
+
+	return csrfMiddleware
 }
 
 // getSameSite converts string SameSite to http.SameSite
@@ -59,25 +114,35 @@ func getTokenLength(tokenLength int) int {
 }
 
 // CreateCSRFSkipper creates a CSRF skipper function
-func CreateCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
+func CreateCSRFSkipper(isDevelopment bool, logger logging.Logger) func(c echo.Context) bool {
 	return func(c echo.Context) bool {
 		path := c.Request().URL.Path
 		method := c.Request().Method
 
 		if isDevelopment {
-			logCSRFSkipperDebug(c, path, method)
+			logCSRFSkipperDebug(logger, path, method)
 		}
 
 		if IsSafeMethod(method) {
-			return handleSafeMethodCSRF(c, path, isDevelopment)
+			skipResult := handleSafeMethodCSRF(logger, path, isDevelopment)
+			if !skipResult {
+				// handleSafeMethodCSRF explicitly said DON'T skip
+				// This means it's a form/auth page that needs a token
+				if isDevelopment {
+					logger.Debug("CSRF skipper: form/auth page detected, forcing token generation",
+						"path", path, "method", method)
+				}
+				return false // Don't skip, generate token
+			}
+			// If skipResult is true, continue to other checks
 		}
 
-		if shouldSkipCSRFForRoute(path, isDevelopment) {
+		if shouldSkipCSRFForRoute(logger, path, isDevelopment) {
 			return true
 		}
 
 		if isDevelopment {
-			c.Logger().Debug("CSRF not skipped - requires protection", "path", path, "method", method)
+			logger.Debug("CSRF not skipped - requires protection", "path", path, "method", method)
 		}
 
 		return false
@@ -85,8 +150,8 @@ func CreateCSRFSkipper(isDevelopment bool) func(c echo.Context) bool {
 }
 
 // logCSRFSkipperDebug logs debug information for CSRF skipper
-func logCSRFSkipperDebug(c echo.Context, path, method string) {
-	c.Logger().Debug("CSRF skipper check",
+func logCSRFSkipperDebug(logger logging.Logger, path, method string) {
+	logger.Debug("CSRF skipper check",
 		"path", path,
 		"method", method,
 		"is_safe_method", IsSafeMethod(method),
@@ -100,23 +165,28 @@ func logCSRFSkipperDebug(c echo.Context, path, method string) {
 }
 
 // handleSafeMethodCSRF handles CSRF logic for safe HTTP methods
-func handleSafeMethodCSRF(c echo.Context, path string, isDevelopment bool) bool {
+func handleSafeMethodCSRF(logger logging.Logger, path string, isDevelopment bool) bool {
 	if IsAuthPage(path) || IsFormPage(path) {
 		if isDevelopment {
-			c.Logger().Debug("CSRF not skipped - token generation needed", "path", path)
+			logger.Debug("CSRF not skipped - token generation needed", "path", path)
 		}
 		return false
-	}
-
-	if isDevelopment {
-		c.Logger().Debug("CSRF skipped - safe method", "path", path, "method", c.Request().Method)
 	}
 
 	return true
 }
 
 // shouldSkipCSRFForRoute checks if CSRF should be skipped for the given route
-func shouldSkipCSRFForRoute(path string, isDevelopment bool) bool {
+func shouldSkipCSRFForRoute(logger logging.Logger, path string, isDevelopment bool) bool {
+	// NEVER skip CSRF for form pages or auth pages - they ALWAYS need tokens
+	// This acts as a safety guard even if other checks are misconfigured
+	if IsFormPage(path) || IsAuthPage(path) {
+		if isDevelopment {
+			logger.Debug("CSRF skipper: never skipping form/auth pages", "path", path)
+		}
+		return false
+	}
+
 	if IsAuthEndpoint(path) {
 		return true
 	}
@@ -144,6 +214,7 @@ func shouldSkipCSRFForRoute(path string, isDevelopment bool) bool {
 func CreateCSRFErrorHandler(
 	csrfConfig *appconfig.CSRFConfig,
 	isDevelopment bool,
+	logger logging.Logger,
 ) func(err error, c echo.Context) error {
 	return func(err error, c echo.Context) error {
 		if isDevelopment {
@@ -152,9 +223,8 @@ func CreateCSRFErrorHandler(
 			if token, ok := c.Get(csrfConfig.ContextKey).(string); ok {
 				contextToken = token
 			}
-			cookies := c.Request().Header.Get("Cookie")
 
-			c.Logger().Error("CSRF validation failed",
+			logger.Error("CSRF validation failed",
 				"error", err.Error(),
 				"path", c.Request().URL.Path,
 				"method", c.Request().Method,
@@ -162,15 +232,16 @@ func CreateCSRFErrorHandler(
 				"origin", c.Request().Header.Get("Origin"),
 				"csrf_token_present", csrfToken != "",
 				"csrf_token_length", len(csrfToken),
-				"csrf_token_value", csrfToken,
 				"context_token_present", contextToken != "",
 				"context_token_length", len(contextToken),
-				"context_token_value", contextToken,
-				"cookies", cookies,
 				"content_type", c.Request().Header.Get("Content-Type"),
-				"user_agent", c.Request().UserAgent(),
-				"is_development", isDevelopment,
-				"csrf_enabled", true)
+			)
+		} else {
+			// In production, log minimal info without sensitive details
+			logger.Warn("CSRF validation failed",
+				"path", c.Request().URL.Path,
+				"method", c.Request().Method,
+			)
 		}
 
 		return c.NoContent(http.StatusForbidden)
@@ -202,9 +273,27 @@ func IsStaticRoute(path string) bool {
 
 // IsFormSubmissionRoute checks if the path is a form submission endpoint
 func IsFormSubmissionRoute(path string) bool {
-	return strings.Contains(path, "/api/v1/forms/") ||
-		strings.Contains(path, "/forms/") ||
-		strings.Contains(path, "/submit")
+	// Only skip CSRF for public API form submission endpoints
+	// These are typically POST/PUT/DELETE endpoints that don't need CSRF
+	// (e.g., public form submissions that use other auth mechanisms)
+
+	// Check for API submission endpoints
+	if strings.HasPrefix(path, "/api/v1/forms/submit") {
+		return true
+	}
+
+	// Check for direct submission endpoints (not form pages)
+	if strings.HasPrefix(path, "/submit/") {
+		return true
+	}
+
+	// Do NOT skip for:
+	// - /forms/new (form creation page)
+	// - /forms/:id (form detail page)
+	// - /forms/:id/edit (form edit page)
+	// These pages need CSRF tokens
+
+	return false
 }
 
 // IsAuthPage checks if the path is an authentication page

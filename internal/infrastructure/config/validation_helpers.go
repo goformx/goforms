@@ -134,11 +134,11 @@ func ValidateEnvironmentVariables() ValidationResult {
 
 	// Check for required environment variables
 	requiredVars := []string{
-		"GOFORMS_APP_NAME",
-		"GOFORMS_DATABASE_HOST",
-		"GOFORMS_DATABASE_NAME",
-		"GOFORMS_DATABASE_USERNAME",
-		"GOFORMS_DATABASE_PASSWORD",
+		"APP_NAME",
+		"DB_HOST",
+		"DB_NAME",
+		"DB_USERNAME",
+		"DB_PASSWORD",
 	}
 
 	for _, envVar := range requiredVars {
@@ -148,15 +148,15 @@ func ValidateEnvironmentVariables() ValidationResult {
 	}
 
 	// Validate environment variable formats
-	if port := os.Getenv("GOFORMS_APP_PORT"); port != "" {
+	if port := os.Getenv("APP_PORT"); port != "" {
 		if _, err := strconv.Atoi(port); err != nil {
-			result.AddError("GOFORMS_APP_PORT", "must be a valid integer", port)
+			result.AddError("APP_PORT", "must be a valid integer", port)
 		}
 	}
 
-	if timeout := os.Getenv("GOFORMS_APP_READ_TIMEOUT"); timeout != "" {
+	if timeout := os.Getenv("APP_READ_TIMEOUT"); timeout != "" {
 		if _, err := time.ParseDuration(timeout); err != nil {
-			result.AddError("GOFORMS_APP_READ_TIMEOUT", "must be a valid duration", timeout)
+			result.AddError("APP_READ_TIMEOUT", "must be a valid duration", timeout)
 		}
 	}
 

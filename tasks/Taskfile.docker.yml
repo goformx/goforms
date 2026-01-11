@@ -1,0 +1,176 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+tasks:
+  # Environment setup
+  setup-env:
+    desc: Generate environment variables for production
+    cmds:
+      - echo "# GoFormX Production Environment Variables"
+      - echo "# Copy and paste these into your shell:"
+      - echo ""
+      - echo "export POSTGRES_DB=\"goforms\""
+      - echo "export POSTGRES_USER=\"goforms\""
+      - echo "export POSTGRES_PASSWORD=\"your-secure-password\""
+      - echo "export SESSION_SECRET=\"$(openssl rand -hex 32)\""
+      - echo "export CSRF_SECRET=\"$(openssl rand -hex 32)\""
+      - echo "export CORS_ORIGINS=\"https://goforms.example.com\""
+      - echo "export DOCKER_REGISTRY=\"ghcr.io\""
+      - echo "export GITHUB_REPOSITORY=\"goformx/goforms\""
+      - echo "export IMAGE_TAG=\"latest\""
+      - echo ""
+      - echo "# Optional overrides:"
+      - echo "export APP_NAME=\"GoFormX\""
+      - echo "export APP_ENV=\"production\""
+      - echo "export APP_DEBUG=\"false\""
+
+  check-env:
+    desc: Check if required environment variables are set
+    cmds:
+      - echo "Checking required environment variables..."
+      - 'echo "POSTGRES_DB: ${POSTGRES_DB:-❌ NOT SET (using default: goforms)}"'
+      - 'echo "POSTGRES_USER: ${POSTGRES_USER:-❌ NOT SET (using default: goforms)}"'
+      - 'echo "POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:+✅ SET}"'
+      - 'echo "SESSION_SECRET: ${SESSION_SECRET:+✅ SET (${#SESSION_SECRET} chars)}"'
+      - 'echo "CSRF_SECRET: ${CSRF_SECRET:+✅ SET (${#CSRF_SECRET} chars)}"'
+      - 'echo "CORS_ORIGINS: ${CORS_ORIGINS:-❌ NOT SET (using default)}"'
+      - 'echo "DOCKER_REGISTRY: ${DOCKER_REGISTRY:-❌ NOT SET (using default: ghcr.io)}"'
+      - 'echo "GITHUB_REPOSITORY: ${GITHUB_REPOSITORY:-❌ NOT SET (using default: goformx/goforms)}"'
+      - echo ""
+      - |
+        if [[ -z "${POSTGRES_PASSWORD:-}" || -z "${SESSION_SECRET:-}" || -z "${CSRF_SECRET:-}" ]]; then
+          echo "❌ Missing required environment variables!"
+          echo "Run 'task docker:setup-env' to generate them."
+          exit 1
+        else
+          echo "✅ All required environment variables are set!"
+        fi
+
+  # Development
+  dev:build:
+    desc: Build development Docker images
+    dir: docker/development
+    cmds:
+      - docker compose build
+
+  dev:up:
+    desc: Start development environment
+    dir: docker/development
+    cmds:
+      - docker compose up -d
+
+  dev:down:
+    desc: Stop development environment
+    dir: docker/development
+    cmds:
+      - docker compose down
+
+  dev:logs:
+    desc: View development logs
+    dir: docker/development
+    cmds:
+      - docker compose logs -f
+
+  # Production management
+  prod-up:
+    desc: Start production environment (app + database)
+    dir: docker/production
+    cmds:
+      - task: docker:check-env
+      - docker compose up -d
+
+  prod-down:
+    desc: Stop production environment
+    dir: docker/production
+    cmds:
+      - docker compose down
+
+  prod-logs:
+    desc: View production logs
+    dir: docker/production
+    cmds:
+      - docker compose logs -f
+
+  prod-restart:
+    desc: Restart production environment
+    dir: docker/production
+    cmds:
+      - docker compose restart
+
+  prod-pull:
+    desc: Pull latest production image
+    dir: docker/production
+    cmds:
+      - docker compose pull
+
+  # Database management
+  db:backup:
+    desc: Backup PostgreSQL database
+    dir: docker/production
+    cmds:
+      - echo "Creating database backup..."
+      - docker compose exec -T postgres pg_dump -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms} > backup_$(date +%Y%m%d_%H%M%S).sql
+      - 'echo "Backup completed: backup_$(date +%Y%m%d_%H%M%S).sql"'
+
+  db:restore:
+    desc: Restore PostgreSQL database from backup
+    dir: docker/production
+    cmds:
+      - echo "Restoring database from backup..."
+      - docker compose exec -T postgres psql -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms} < backup_${BACKUP_FILE}
+
+  db:shell:
+    desc: Open PostgreSQL shell
+    dir: docker/production
+    cmds:
+      - docker compose exec postgres psql -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms}
+
+  # Utility tasks
+  clean:
+    desc: Clean up Docker resources
+    cmds:
+      - docker system prune -f
+      - docker volume prune -f
+
+  clean-all:
+    desc: Clean up all Docker resources (including images)
+    cmds:
+      - docker system prune -a -f
+      - docker volume prune -f
+
+  status:
+    desc: Show Docker container status
+    cmds:
+      - echo "=== Development ==="
+      - cd docker/development && docker compose ps
+      - echo "=== Production ==="
+      - cd ../production && docker compose ps
+
+  health:
+    desc: Check application health
+    cmds:
+      - curl -f http://localhost:8090/health || echo "Application not healthy"
+
+  # Help
+  help:
+    desc: Show available tasks
+    cmds:
+      - task --list
+
+  # Quick deployment workflow
+  quick-deploy:
+    desc: Quick deployment workflow (setup env, pull, deploy)
+    cmds:
+      - echo "🚀 Starting quick deployment workflow..."
+      - echo "1. Setting up environment variables..."
+      - task: docker:setup-env
+      - echo ""
+      - echo "2. Pulling latest image from GitHub Packages..."
+      - task: docker:prod-pull
+      - echo ""
+      - echo "3. Starting production environment..."
+      - task: docker:prod-up
+      - echo ""
+      - echo "✅ Quick deployment completed!"
+      - 'echo "Check status with: task docker:status"'
+      - 'echo "View logs with: task docker:prod-logs"'

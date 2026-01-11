@@ -3,16 +3,14 @@ testdata_dir = "testdata"
 tmp_dir = "tmp"
 
 [build]
-  # Commands to run before building
-  pre_cmd = ["task generate:templ"]
   # Build command - match Taskfile build command
   cmd = "go build -ldflags '-s -w -X github.com/goformx/goforms/internal/infrastructure/version.Version=dev -X github.com/goformx/goforms/internal/infrastructure/version.BuildTime=dev -X github.com/goformx/goforms/internal/infrastructure/version.GitCommit=dev -X github.com/goformx/goforms/internal/infrastructure/version.GoVersion=dev' -o ./tmp/main main.go"
   # Binary file yields from `cmd`
-  bin = "./tmp/main"
+  entrypoint = "./tmp/main"
   # Full binary path
   full_bin = ""
   # Watch these filename extensions
-  include_ext = ["go", "tpl", "tmpl", "html", "templ"]
+  include_ext = ["go", "tpl", "tmpl", "html"]
   # Ignore these directories
   exclude_dir = ["assets", "tmp", "vendor", "testdata", "node_modules", "dist", "bin"]
   # Watch these directories if you specified
@@ -22,7 +20,7 @@ tmp_dir = "tmp"
   # Exclude unchanged files
   exclude_unchanged = false
   # Exclude files matching these regular expressions
-  exclude_regex = ["_test.go", "_templ.go", "mock_.*\\.go"]
+  exclude_regex = ["_test.go", "mock_.*\\.go"]
   # This log file places in your tmp_dir
   log = "build-errors.log"
   # Stop running old binary when build errors occur

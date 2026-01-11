@@ -114,7 +114,31 @@ func TestForm_Validate(t *testing.T) {
 				},
 			),
 			wantErr:     true,
-			errContains: "invalid schema type: must be 'object'",
+			errContains: "invalid schema: must have 'type: object' or 'display: form'",
+		},
+		{
+			name: "valid Form.io format schema",
+			form: model.NewForm(
+				"user123",
+				"Test Form",
+				"A test form description",
+				model.JSON{
+					"display": "form",
+					"components": []any{
+						map[string]any{
+							"type":  "textfield",
+							"key":   "name",
+							"label": "Name",
+						},
+						map[string]any{
+							"type":  "button",
+							"key":   "submit",
+							"label": "Submit",
+						},
+					},
+				},
+			),
+			wantErr: false,
 		},
 		{
 			name: "missing schema properties",

@@ -122,13 +122,15 @@ func New(deps Deps) *Server {
 		"environment", deps.Config.App.Environment,
 		"server_type", "echo")
 
-	// Add health check endpoint
-	deps.Echo.GET("/health", func(c echo.Context) error {
+	// Add health check endpoint (supports both GET and HEAD for health check tools)
+	healthHandler := func(c echo.Context) error {
 		return response.Success(c, map[string]string{
 			"status": "ok",
 			"time":   time.Now().Format(time.RFC3339),
 		})
-	})
+	}
+	deps.Echo.GET("/health", healthHandler)
+	deps.Echo.HEAD("/health", healthHandler)
 
 	// Register asset routes
 	if err := deps.AssetServer.RegisterRoutes(deps.Echo); err != nil {

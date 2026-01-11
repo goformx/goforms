@@ -2,7 +2,6 @@
 package view
 
 import (
-	"github.com/a-h/templ"
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/middleware/context"
@@ -31,7 +30,6 @@ type PageData struct {
 	Submissions          []*model.FormSubmission
 	CSRFToken            string
 	IsDevelopment        bool
-	Content              templ.Component
 	FormBuilderAssetPath string
 	FormPreviewAssetPath string
 	Message              *Message
@@ -76,14 +74,33 @@ func GetCurrentUser(c echo.Context) *entities.User {
 	}
 }
 
-// GetCSRFToken retrieves the CSRF token from context
-func GetCSRFToken(c echo.Context) string {
+// GetCSRFToken retrieves the CSRF token from context using the configured context key
+// Falls back to reading from cookie if not in context (for GET requests)
+// cookieName defaults to "_csrf" if empty for backward compatibility
+func GetCSRFToken(c echo.Context, contextKey, cookieName string) string {
 	if c == nil {
 		return ""
 	}
 
-	if token, ok := c.Get("csrf").(string); ok {
+	if contextKey == "" {
+		contextKey = "csrf" // Fallback to default
+	}
+
+	// Use default cookie name if not provided
+	if cookieName == "" {
+		cookieName = "_csrf"
+	}
+
+	// Try to get token from context first (works for POST requests and some GET requests)
+	if token, ok := c.Get(contextKey).(string); ok && token != "" {
 		return token
+	}
+
+	// Fallback: Try to get token from cookie (for GET requests)
+	// Note: This works even if the cookie is httpOnly since we're on the server side
+	cookie, err := c.Cookie(cookieName)
+	if err == nil && cookie != nil && cookie.Value != "" {
+		return cookie.Value
 	}
 
 	return ""
@@ -111,6 +128,16 @@ func GenerateAssetPath(manager web.AssetManagerInterface) func(string) string {
 
 // NewPageData creates a new PageData instance with essential data
 func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.Context, title string) *PageData {
+	csrfContextKey := "csrf" // Default context key
+	if cfg != nil && cfg.Security.CSRF.ContextKey != "" {
+		csrfContextKey = cfg.Security.CSRF.ContextKey
+	}
+
+	csrfCookieName := "_csrf" // Default cookie name
+	if cfg != nil && cfg.Security.CSRF.CookieName != "" {
+		csrfCookieName = cfg.Security.CSRF.CookieName
+	}
+
 	return &PageData{
 		Title:         title,
 		Description:   "",
@@ -125,9 +152,8 @@ func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.C
 		Forms:         make([]*model.Form, 0),
 		Form:          nil,
 		Submissions:   make([]*model.FormSubmission, 0),
-		CSRFToken:     GetCSRFToken(c),
+		CSRFToken:     GetCSRFToken(c, csrfContextKey, csrfCookieName),
 		IsDevelopment: cfg.App.IsDevelopment(),
-		Content:       nil,
 		Message:       nil,
 		Config:        cfg,
 		Session:       GetSession(c),
@@ -158,13 +184,6 @@ func (p *PageData) WithKeywords(keywords string) *PageData {
 // WithAuthor sets the page author
 func (p *PageData) WithAuthor(author string) *PageData {
 	p.Author = author
-
-	return p
-}
-
-// WithContent sets the page content component
-func (p *PageData) WithContent(content templ.Component) *PageData {
-	p.Content = content
 
 	return p
 }

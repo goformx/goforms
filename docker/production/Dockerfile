@@ -26,7 +26,7 @@ COPY vite.config.ts tsconfig.json postcss.config.cjs ./
 RUN npm run build
 
 # Go build stage
-FROM golang:1.24-alpine AS go-builder
+FROM golang:1.25-alpine AS go-builder
 
 # Install build dependencies
 RUN apk add --no-cache git ca-certificates tzdata
@@ -45,7 +45,6 @@ RUN go mod download
 
 # Install build tools
 RUN go install go.uber.org/mock/mockgen@latest
-RUN go install github.com/a-h/templ/cmd/templ@latest
 
 # Copy built frontend assets first
 COPY --from=frontend-builder /app/dist ./dist
@@ -53,8 +52,7 @@ COPY --from=frontend-builder /app/dist ./dist
 # Copy source code
 COPY . .
 
-# Generate code artifacts (templ files and mocks)
-RUN templ generate ./internal/...
+# Generate code artifacts (mocks)
 RUN go generate ./...
 
 # Build the application
@@ -66,7 +64,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 FROM alpine:3.19
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata wget
 
 # Create non-root user
 RUN addgroup -g 1001 -S goforms && \

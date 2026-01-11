@@ -32,8 +32,14 @@ const (
 	EmailKey Key = "email"
 	// RoleKey is the context key for user role
 	RoleKey Key = "role"
+	// FirstNameKey is the context key for user first name
+	FirstNameKey Key = "first_name"
+	// LastNameKey is the context key for user last name
+	LastNameKey Key = "last_name"
 	// SessionKey is the context key for session
 	SessionKey Key = "session"
+	// FormIDKey is the context key for form ID
+	FormIDKey Key = "form_id"
 )
 
 // Middleware provides context handling for HTTP requests
@@ -155,6 +161,28 @@ func IsAdmin(c echo.Context) bool {
 	return ok && role == "admin"
 }
 
+// GetFirstName retrieves the user first name from context
+func GetFirstName(c echo.Context) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+
+	firstName, ok := c.Get(string(FirstNameKey)).(string)
+
+	return firstName, ok && firstName != ""
+}
+
+// GetLastName retrieves the user last name from context
+func GetLastName(c echo.Context) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+
+	lastName, ok := c.Get(string(LastNameKey)).(string)
+
+	return lastName, ok && lastName != ""
+}
+
 // SetUserID sets the user ID in context
 func SetUserID(c echo.Context, userID string) {
 	c.Set(string(UserIDKey), userID)
@@ -170,9 +198,51 @@ func SetRole(c echo.Context, role string) {
 	c.Set(string(RoleKey), role)
 }
 
+// SetFirstName sets the user first name in context
+func SetFirstName(c echo.Context, firstName string) {
+	c.Set(string(FirstNameKey), firstName)
+}
+
+// SetLastName sets the user last name in context
+func SetLastName(c echo.Context, lastName string) {
+	c.Set(string(LastNameKey), lastName)
+}
+
 // ClearUserContext clears all user-related data from context
 func ClearUserContext(c echo.Context) {
 	c.Set(string(UserIDKey), "")
 	c.Set(string(EmailKey), "")
 	c.Set(string(RoleKey), "")
+	c.Set(string(FirstNameKey), "")
+	c.Set(string(LastNameKey), "")
+}
+
+// GetFormID retrieves the form ID from context (Go context)
+func GetFormID(ctx context.Context) string {
+	if id, ok := ctx.Value(FormIDKey).(string); ok {
+		return id
+	}
+
+	return ""
+}
+
+// GetFormIDFromEcho retrieves the form ID from Echo context
+func GetFormIDFromEcho(c echo.Context) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+
+	formID, ok := c.Get(string(FormIDKey)).(string)
+
+	return formID, ok && formID != ""
+}
+
+// SetFormID sets the form ID in Echo context
+func SetFormID(c echo.Context, formID string) {
+	c.Set(string(FormIDKey), formID)
+}
+
+// SetFormIDInContext sets the form ID in Go context
+func SetFormIDInContext(ctx context.Context, formID string) context.Context {
+	return context.WithValue(ctx, FormIDKey, formID)
 }

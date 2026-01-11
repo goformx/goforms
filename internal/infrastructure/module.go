@@ -25,7 +25,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
 	infraweb "github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 const (
@@ -58,10 +57,9 @@ var (
 // These dependencies form the foundation of the application's runtime environment.
 type CoreParams struct {
 	fx.In
-	Config   *config.Config `validate:"required"`
-	Logger   logging.Logger `validate:"required"`
-	Renderer view.Renderer  `validate:"required"`
-	Echo     *echo.Echo     `validate:"required"`
+	Config *config.Config `validate:"required"`
+	Logger logging.Logger `validate:"required"`
+	Echo   *echo.Echo     `validate:"required"`
 }
 
 // Validate ensures all required core parameters are present
@@ -72,10 +70,6 @@ func (p CoreParams) Validate() error {
 
 	if p.Logger == nil {
 		return ErrMissingLogger
-	}
-
-	if p.Renderer == nil {
-		return errors.New("renderer is required")
 	}
 
 	if p.Echo == nil {

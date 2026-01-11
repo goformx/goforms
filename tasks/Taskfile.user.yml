@@ -1,0 +1,70 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+vars:
+  CLI_BIN: bin/goforms-cli
+  DB_USER: '{{.DB_USER | default "goforms"}}'
+  DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+  DB_NAME: '{{.DB_NAME | default "goforms"}}'
+  DB_HOST: '{{.DB_HOST | default "localhost"}}'
+  DB_PORT: '{{.DB_PORT | default "5432"}}'
+  ADMIN_EMAIL: '{{.ADMIN_EMAIL | default "admin@example.com"}}'
+  ADMIN_PASSWORD: '{{.ADMIN_PASSWORD | default "admin123"}}'
+  ADMIN_FIRST_NAME: '{{.ADMIN_FIRST_NAME | default "Admin"}}'
+  ADMIN_LAST_NAME: '{{.ADMIN_LAST_NAME | default "User"}}'
+  USER_EMAIL: '{{.USER_EMAIL | default "user@example.com"}}'
+  USER_PASSWORD: '{{.USER_PASSWORD | default "user123"}}'
+  USER_FIRST_NAME: '{{.USER_FIRST_NAME | default "John"}}'
+  USER_LAST_NAME: '{{.USER_LAST_NAME | default "Doe"}}'
+
+tasks:
+  default:
+    desc: Show available user management commands
+    cmds:
+      - task --list
+
+  build:
+    desc: Build the CLI tool
+    cmds:
+      - go build -o {{.CLI_BIN}} ./cmd/cli
+
+  create-admin:
+    desc: Create an admin user using environment variables
+    deps: [build]
+    cmds:
+      - >-
+        {{.CLI_BIN}} user create
+        --email {{.ADMIN_EMAIL}}
+        --password {{.ADMIN_PASSWORD}}
+        --first-name {{.ADMIN_FIRST_NAME}}
+        --last-name {{.ADMIN_LAST_NAME}}
+        --role admin
+
+  create-regular-user:
+    desc: Create a regular user using environment variables
+    deps: [build]
+    cmds:
+      - >-
+        {{.CLI_BIN}} user create
+        --email {{.USER_EMAIL}}
+        --password {{.USER_PASSWORD}}
+        --first-name {{.USER_FIRST_NAME}}
+        --last-name {{.USER_LAST_NAME}}
+        --role user
+
+  list-users:
+    desc: List all users
+    deps: [build]
+    cmds:
+      - >-
+        {{.CLI_BIN}} user list
+
+  delete-user:
+    desc: Delete a user by ID
+    requires:
+      vars: [id]
+    deps: [build]
+    cmds:
+      - >-
+        {{.CLI_BIN}} user delete
+        --id {{.id}}

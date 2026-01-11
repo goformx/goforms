@@ -10,8 +10,7 @@ import (
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/middleware/auth"
-	"github.com/goformx/goforms/internal/presentation/templates/pages"
-	"github.com/goformx/goforms/internal/presentation/view"
+	"github.com/goformx/goforms/internal/presentation/inertia"
 )
 
 // DashboardHandler handles dashboard routes.
@@ -53,19 +52,24 @@ func (h *DashboardHandler) handleDashboard(c echo.Context) error {
 		return h.HandleError(c, err, "Failed to list forms")
 	}
 
-	// Build page data using the fluent interface
-	data := view.NewPageData(h.Config, h.AssetManager, c, "Dashboard").
-		WithForms(forms)
-
-	// Set the user (NewPageData should already populate this from context, but being explicit)
-	data.SetUser(user)
-
-	// Render dashboard template
-	if renderErr := h.Renderer.Render(c, pages.Dashboard(*data, forms)); renderErr != nil {
-		return fmt.Errorf("render dashboard: %w", renderErr)
+	// Convert forms to serializable format
+	formsList := make([]map[string]any, len(forms))
+	for i, f := range forms {
+		formsList[i] = map[string]any{
+			"id":          f.ID,
+			"title":       f.Title,
+			"description": f.Description,
+			"status":      f.Status,
+			"createdAt":   f.CreatedAt,
+			"updatedAt":   f.UpdatedAt,
+		}
 	}
 
-	return nil
+	// Render using Inertia
+	return h.Inertia.Render(c, "Dashboard/Index", inertia.Props{
+		"title": "Dashboard",
+		"forms": formsList,
+	})
 }
 
 // Start initializes the dashboard handler.

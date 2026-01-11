@@ -108,12 +108,13 @@ func TestGetCurrentUser(t *testing.T) {
 
 func TestGetCSRFToken(t *testing.T) {
 	tests := []struct {
-		name     string
-		setupCtx func() echo.Context
-		want     string
+		name       string
+		setupCtx   func() echo.Context
+		cookieName string
+		want       string
 	}{
 		{
-			name: "CSRF token present",
+			name: "CSRF token present in context",
 			setupCtx: func() echo.Context {
 				e := echo.New()
 				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
@@ -124,7 +125,42 @@ func TestGetCSRFToken(t *testing.T) {
 
 				return c
 			},
-			want: "csrf-token-123",
+			cookieName: "_csrf",
+			want:       "csrf-token-123",
+		},
+		{
+			name: "CSRF token from cookie with default name",
+			setupCtx: func() echo.Context {
+				e := echo.New()
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+				req.AddCookie(&http.Cookie{
+					Name:  "_csrf",
+					Value: "csrf-cookie-token-123",
+				})
+				rec := httptest.NewRecorder()
+				c := e.NewContext(req, rec)
+
+				return c
+			},
+			cookieName: "_csrf",
+			want:       "csrf-cookie-token-123",
+		},
+		{
+			name: "CSRF token from cookie with custom name",
+			setupCtx: func() echo.Context {
+				e := echo.New()
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+				req.AddCookie(&http.Cookie{
+					Name:  "custom_csrf_token",
+					Value: "custom-csrf-token-123",
+				})
+				rec := httptest.NewRecorder()
+				c := e.NewContext(req, rec)
+
+				return c
+			},
+			cookieName: "custom_csrf_token",
+			want:       "custom-csrf-token-123",
 		},
 		{
 			name: "no CSRF token",
@@ -136,21 +172,40 @@ func TestGetCSRFToken(t *testing.T) {
 
 				return c
 			},
-			want: "",
+			cookieName: "_csrf",
+			want:       "",
 		},
 		{
 			name: "nil context",
 			setupCtx: func() echo.Context {
 				return nil
 			},
-			want: "",
+			cookieName: "_csrf",
+			want:       "",
+		},
+		{
+			name: "empty cookie name defaults to _csrf",
+			setupCtx: func() echo.Context {
+				e := echo.New()
+				req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+				req.AddCookie(&http.Cookie{
+					Name:  "_csrf",
+					Value: "default-csrf-token-123",
+				})
+				rec := httptest.NewRecorder()
+				c := e.NewContext(req, rec)
+
+				return c
+			},
+			cookieName: "",
+			want:       "default-csrf-token-123",
 		},
 	}
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			c := tt.setupCtx()
-			got := view.GetCSRFToken(c)
+			got := view.GetCSRFToken(c, "csrf", tt.cookieName)
 			assert.Equal(t, tt.want, got)
 		})
 	}
@@ -248,6 +303,68 @@ func TestNewPageData(t *testing.T) {
 	assert.Empty(t, pageData.Forms) // Should be empty slice
 	assert.NotNil(t, pageData.Submissions)
 	assert.Empty(t, pageData.Submissions) // Should be empty slice
+}
+
+func TestNewPageData_WithCustomCSRFCookieName(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	defer ctrl.Finish()
+
+	// Create test dependencies with custom CSRF cookie name
+	cfg := &config.Config{
+		App: config.AppConfig{
+			Name:           "Test App",
+			Environment:    "development",
+			Version:        "1.0.0",
+			Debug:          false,
+			LogLevel:       "info",
+			URL:            "",
+			Scheme:         "http",
+			Port:           8080,
+			Host:           "localhost",
+			ReadTimeout:    15 * time.Second,
+			WriteTimeout:   15 * time.Second,
+			IdleTimeout:    60 * time.Second,
+			RequestTimeout: 30 * time.Second,
+			ViteDevHost:    "localhost",
+			ViteDevPort:    "5173",
+		},
+		Database: config.DatabaseConfig{},
+		Security: config.SecurityConfig{
+			CSRF: config.CSRFConfig{
+				ContextKey: "csrf",
+				CookieName: "custom_csrf_token",
+			},
+		},
+		Email:   config.EmailConfig{},
+		Storage: config.StorageConfig{},
+		Cache:   config.CacheConfig{},
+		Logging: config.LoggingConfig{},
+		Session: config.SessionConfig{},
+		Auth:    config.AuthConfig{},
+		Form:    config.FormConfig{},
+		API:     config.APIConfig{},
+		Web:     config.WebConfig{},
+		User:    config.UserConfig{},
+	}
+
+	// Create a mock asset manager
+	mockManager := webmocks.NewMockAssetManagerInterface(ctrl)
+	mockManager.EXPECT().AssetPath(gomock.Any()).Return("/assets/test.js").AnyTimes()
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/", http.NoBody)
+	req.AddCookie(&http.Cookie{
+		Name:  "custom_csrf_token",
+		Value: "custom-csrf-token-from-cookie",
+	})
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+
+	// Test building page data - token should come from cookie with custom name
+	pageData := view.NewPageData(cfg, mockManager, c, "Test Page")
+
+	// Verify the page data uses the token from the custom cookie name
+	assert.Equal(t, "custom-csrf-token-from-cookie", pageData.CSRFToken)
 }
 
 func TestNewPageDataWithTitle(t *testing.T) {
@@ -388,7 +505,6 @@ func TestPageData_IsAuthenticated(t *testing.T) {
 				Submissions:          nil,
 				CSRFToken:            "",
 				IsDevelopment:        false,
-				Content:              nil,
 				FormBuilderAssetPath: "",
 				FormPreviewAssetPath: "",
 				Message:              nil,

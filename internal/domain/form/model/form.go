@@ -304,11 +304,12 @@ func (f *Form) validateSchema() error {
 
 // validateRequiredSchemaFields validates that all required schema fields are present
 func (f *Form) validateRequiredSchemaFields() error {
-	requiredFields := []string{"type"}
-	for _, field := range requiredFields {
-		if _, exists := f.Schema[field]; !exists {
-			return fmt.Errorf("missing required schema field: %s", field)
-		}
+	// Accept either JSON Schema format (type) or Form.io format (display)
+	_, hasType := f.Schema["type"]
+	_, hasDisplay := f.Schema["display"]
+
+	if !hasType && !hasDisplay {
+		return errors.New("schema must have 'type' or 'display' field")
 	}
 
 	return nil
@@ -316,9 +317,14 @@ func (f *Form) validateRequiredSchemaFields() error {
 
 // validateSchemaType validates that the schema type is correct
 func (f *Form) validateSchemaType() error {
+	// Accept Form.io format (display: form) or JSON Schema format (type: object)
+	if display, ok := f.Schema["display"].(string); ok && display == "form" {
+		return nil
+	}
+
 	schemaType, typeOk := f.Schema["type"].(string)
 	if !typeOk || schemaType != "object" {
-		return errors.New("invalid schema type: must be 'object'")
+		return errors.New("invalid schema: must have 'type: object' or 'display: form'")
 	}
 
 	return nil

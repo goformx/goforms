@@ -21,9 +21,11 @@ import (
 func createTestLogger(ctrl *gomock.Controller) *mocklogging.MockLogger {
 	logger := mocklogging.NewMockLogger(ctrl)
 	logger.EXPECT().WithComponent(gomock.Any()).Return(logger).AnyTimes()
+	logger.EXPECT().WithRequestID(gomock.Any()).Return(logger).AnyTimes()
 	logger.EXPECT().Info(gomock.Any(), gomock.Any()).AnyTimes()
 	logger.EXPECT().Debug(gomock.Any(), gomock.Any()).AnyTimes()
 	logger.EXPECT().Warn(gomock.Any(), gomock.Any()).AnyTimes()
+	logger.EXPECT().Error(gomock.Any(), gomock.Any()).AnyTimes()
 
 	return logger
 }
@@ -31,7 +33,8 @@ func createTestLogger(ctrl *gomock.Controller) *mocklogging.MockLogger {
 func createTestConfig() *appconfig.Config {
 	return &appconfig.Config{
 		App: appconfig.AppConfig{
-			Environment: "test",
+			Environment:    "test",
+			RequestTimeout: 30 * time.Second,
 		},
 		Security: appconfig.SecurityConfig{
 			RateLimit: appconfig.RateLimitConfig{

@@ -20,34 +20,33 @@
     "noUnusedParameters": true,
     "noFallthroughCasesInSwitch": true,
     "noUncheckedSideEffectImports": true,
-    "exactOptionalPropertyTypes": true,
+    "exactOptionalPropertyTypes": false,
     "noImplicitReturns": true,
     "noImplicitOverride": true,
-    "noPropertyAccessFromIndexSignature": true,
+    "noPropertyAccessFromIndexSignature": false,
     "isolatedModules": true,
+    "jsx": "preserve",
+    "jsxImportSource": "vue",
     "baseUrl": ".",
     "paths": {
-      "@/*": [
-        "src/js/*"
-      ],
-      "@/core/*": [
-        "src/js/core/*"
-      ],
-      "@/features/*": [
-        "src/js/features/*"
-      ],
-      "@/shared/*": [
-        "src/js/shared/*"
-      ],
-      "@/pages/*": [
-        "src/js/pages/*"
-      ]
+      "@/*": ["src/*"],
+      "@/components/*": ["src/components/*"],
+      "@/pages/*": ["src/pages/*"],
+      "@/composables/*": ["src/composables/*"],
+      "@/lib/*": ["src/lib/*"],
+      "@/types/*": ["src/types/*"],
+      "@/core/*": ["src/lib/core/*"],
+      "@/features/*": ["src/lib/features/*"],
+      "@/shared/*": ["src/lib/shared/*"]
     }
   },
   "include": [
-    "src",
+    "src/**/*.ts",
+    "src/**/*.tsx",
+    "src/**/*.vue",
     "vitest.config.ts",
     "vite.config.ts",
-    "eslint.config.js"
+    "eslint.config.js",
+    "tailwind.config.ts"
   ]
 }

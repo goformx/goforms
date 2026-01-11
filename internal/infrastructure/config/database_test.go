@@ -217,7 +217,7 @@ func TestDatabaseConfig_ValidateDriverSpecific(t *testing.T) {
 			dbConfig: config.DatabaseConfig{
 				Driver:       "mariadb",
 				Host:         "localhost",
-				Port:         3306,
+				Port:         5432,
 				Name:         "testdb",
 				Username:     "testuser",
 				Password:     "testpass",
@@ -230,7 +230,7 @@ func TestDatabaseConfig_ValidateDriverSpecific(t *testing.T) {
 			dbConfig: config.DatabaseConfig{
 				Driver:       "mariadb",
 				Host:         "localhost",
-				Port:         3306,
+				Port:         5432,
 				Name:         "testdb",
 				Username:     "testuser",
 				Password:     "testpass",

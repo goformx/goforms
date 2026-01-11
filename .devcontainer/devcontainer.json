@@ -24,7 +24,6 @@
                 "SanjulaGanepola.github-local-actions",
                 "humao.rest-client",
                 "docker.docker",
-                "a-h.templ",
                 "cweijan.vscode-mysql-client2",
                 "hbenl.vscode-test-explorer",
                 "ms-vscode.test-adapter-converter",
@@ -55,10 +54,6 @@
                 ],
                 "go.buildOnSave": "package",
                 "go.vetOnSave": "package",
-                "templ.executablePath": "/home/vscode/go/bin/templ",
-                "files.associations": {
-                    "*.templ": "templ"
-                },
                 "vscode-postgres.connections": [
                     {
                         "host": "postgres",
@@ -85,10 +80,6 @@
                 },
                 "[docker]": {
                     "editor.defaultFormatter": "docker.docker"
-                },
-                "[templ]": {
-                    "editor.defaultFormatter": "a-h.templ",
-                    "editor.formatOnSave": false
                 },
                 "[typescript]": {
                     "editor.defaultFormatter": "esbenp.prettier-vscode",

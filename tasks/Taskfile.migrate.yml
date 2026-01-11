@@ -1,0 +1,66 @@
+# yaml-language-server: $schema=https://taskfile.dev/schema.json
+version: '3'
+
+vars:
+  MIGRATIONS_DIR: migrations
+  # Database variables (matches DB_* env vars from .env)
+  DB_CONNECTION: '{{.DB_DRIVER | default "postgres"}}'
+  DB_HOST: '{{.DB_HOST | default "localhost"}}'
+  DB_PORT: '{{.DB_PORT | default "5432"}}'
+  DB_DATABASE: '{{.DB_NAME | default "goforms"}}'
+  DB_USERNAME: '{{.DB_USERNAME | default "goforms"}}'
+  DB_PASSWORD: '{{.DB_PASSWORD | default "goforms"}}'
+  DB_SSLMODE: '{{.DB_SSLMODE | default "disable"}}'
+
+  # Connection URLs
+  DB_URL: '{{if eq .DB_CONNECTION "postgres"}}postgresql://{{.DB_USERNAME}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_DATABASE}}?sslmode={{.DB_SSLMODE}}{{else}}mysql://{{.DB_USERNAME}}:{{.DB_PASSWORD}}@{{.DB_HOST}}:{{.DB_PORT}}/{{.DB_DATABASE}}?multiStatements=true{{end}}'
+
+  # Migration directory based on database type
+  MIGRATION_PATH: '{{if eq .DB_CONNECTION "postgres"}}{{.MIGRATIONS_DIR}}/postgresql{{else}}{{.MIGRATIONS_DIR}}/mariadb{{end}}'
+
+tasks:
+  default:
+    desc: Show available migration commands
+    cmds:
+    - task --list
+
+  create:
+    desc: Create a new migration
+    requires:
+      vars: [ name ]
+    cmds:
+    - migrate create -ext sql -dir {{.MIGRATION_PATH}} -seq {{.name}}
+
+  up:
+    desc: Run all pending migrations
+    cmds:
+    - migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" up
+
+  down:
+    desc: Rollback the last migration
+    cmds:
+    - migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" down
+
+  down-all:
+    desc: Rollback all migrations
+    cmds:
+    - migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" down -all
+
+  version:
+    desc: Show current migration version
+    cmds:
+    - migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" version
+
+  force:
+    desc: Force migration version
+    requires:
+      vars: [ version ]
+    cmds:
+    - migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" force {{.version}}
+
+  fix-dirty:
+    desc: Fix dirty database state
+    cmds:
+    - |
+      CURRENT_VERSION=$(migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" version | cut -d' ' -f1)
+      migrate -path {{.MIGRATION_PATH}} -database "{{.DB_URL}}" force $CURRENT_VERSION

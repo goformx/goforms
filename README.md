@@ -16,7 +16,7 @@ A modern Go web application for form management with MariaDB backend.
 
 ## Tech Stack
 
-- Go 1.24
+- Go 1.25
 - PostgreSQL 17
 - Echo v4 web framework
 - Uber FX for dependency injection
@@ -27,17 +27,20 @@ A modern Go web application for form management with MariaDB backend.
 ## Quick Start
 
 1. Prerequisites:
+
    - Docker
    - VS Code with Dev Containers
    - Git
 
 2. Clone and Setup:
+
    ```bash
    git clone https://github.com/goformx/goforms.git
    cd goforms
    ```
 
 3. Start Development:
+
    - Click "Reopen in Container" when prompted
    - Copy environment file: `cp .env.example .env`
    - Install dependencies: `task install`
@@ -48,6 +51,7 @@ A modern Go web application for form management with MariaDB backend.
 ## Documentation
 
 Documentation is available in the `docs` directory:
+
 - [API Documentation](docs/api/README.md)
 - [Development Guide](docs/development/README.md)
 - [Architecture Overview](docs/architecture/README.md)
@@ -74,13 +78,13 @@ The application automatically configures these settings in development mode, but
 
 ```bash
 # CSRF Configuration for Development
-GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE=Lax
-GOFORMS_SECURITY_SECURE_COOKIE=false
+SECURITY_CSRF_COOKIE_SAME_SITE=Lax
+SECURITY_SECURE_COOKIE=false
 
 # CORS Configuration
-GOFORMS_SECURITY_CORS_ENABLED=true
-GOFORMS_SECURITY_CORS_ORIGINS=http://localhost:5173
-GOFORMS_SECURITY_CORS_CREDENTIALS=true
+SECURITY_CORS_ENABLED=true
+SECURITY_CORS_ORIGINS=http://localhost:5173
+SECURITY_CORS_CREDENTIALS=true
 ```
 
 ### Troubleshooting CSRF Issues

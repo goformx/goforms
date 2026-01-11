@@ -2,7 +2,6 @@ import js from "@eslint/js";
 import globals from "globals";
 import tseslint from "typescript-eslint";
 import json from "@eslint/json";
-import css from "@eslint/css";
 import { defineConfig } from "eslint/config";
 import prettier from "eslint-plugin-prettier";
 
@@ -29,13 +28,10 @@ export default defineConfig([
     language: "json/jsonc",
     extends: ["json/recommended"],
   },
+  // CSS files are excluded - Tailwind CSS v4 uses custom syntax (@theme, etc.)
+  // that ESLint's CSS parser doesn't understand
   {
-    files: ["**/*.css"],
-    plugins: { css },
-    language: "css/css",
-    rules: {
-      "css/no-invalid-at-rules": "off",
-    },
+    ignores: ["**/*.css"],
   },
   // Configuration files - relaxed rules
   {
@@ -65,11 +61,10 @@ export default defineConfig([
       parserOptions: {
         // Enable all modern TypeScript features
         project: "./tsconfig.json",
-        tsconfigRootDir: ".",
+        tsconfigRootDir: import.meta.dirname,
       },
     },
     plugins: {
-      css,
       prettier,
     },
     rules: {

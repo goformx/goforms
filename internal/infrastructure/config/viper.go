@@ -15,7 +15,13 @@ import (
 
 // ViperConfig represents the Viper-based configuration loader
 type ViperConfig struct {
-	viper *viper.Viper
+	viper          *viper.Viper
+	configFilePath string // Path to loaded config file, available after Load()
+}
+
+// GetConfigFilePath returns the path to the loaded config file
+func (vc *ViperConfig) GetConfigFilePath() string {
+	return vc.configFilePath
 }
 
 // NewViperConfig creates a new Viper configuration instance
@@ -26,7 +32,6 @@ func NewViperConfig() *ViperConfig {
 	setDefaults(v)
 
 	// Configure Viper with best practices
-	v.SetEnvPrefix("GOFORMS")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
@@ -70,16 +75,15 @@ func (vc *ViperConfig) loadConfigFiles() error {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
 			// Config file not found is not an error - we can use environment variables
-			fmt.Printf("No configuration file found, using environment variables and defaults\n")
-
+			// Silent in production, no logging needed here
 			return nil
 		}
 
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Log which config file was loaded
-	fmt.Printf("Loaded configuration from: %s\n", vc.viper.ConfigFileUsed())
+	// Store config file path for later logging (once logger is available)
+	vc.configFilePath = vc.viper.ConfigFileUsed()
 
 	// Try to merge additional config files (like .env)
 	if err := vc.viper.MergeInConfig(); err != nil {
@@ -196,6 +200,36 @@ func (vc *ViperConfig) loadCORSConfig() CORSConfig {
 	}
 }
 
+// loadAPIKeyConfig loads API key configuration from viper
+func (vc *ViperConfig) loadAPIKeyConfig() APIKeyConfig {
+	// Support environment variable with comma-separated keys
+	keysEnv := os.Getenv("API_KEYS")
+	var keys []string
+	if keysEnv != "" {
+		keys = strings.Split(keysEnv, ",")
+		// Trim whitespace from each key
+		for i, key := range keys {
+			keys[i] = strings.TrimSpace(key)
+		}
+	} else {
+		keys = vc.viper.GetStringSlice("security.api_key.keys")
+	}
+
+	headerName := vc.viper.GetString("security.api_key.header_name")
+	if headerName == "" {
+		headerName = "X-API-Key" // Default header name
+	}
+
+	return APIKeyConfig{
+		Enabled:     vc.viper.GetBool("security.api_key.enabled"),
+		Keys:        keys,
+		HeaderName:  headerName,
+		QueryParam:  vc.viper.GetString("security.api_key.query_param"),
+		SkipPaths:   vc.viper.GetStringSlice("security.api_key.skip_paths"),
+		SkipMethods: vc.viper.GetStringSlice("security.api_key.skip_methods"),
+	}
+}
+
 // loadRateLimitConfig loads rate limit configuration from viper
 func (vc *ViperConfig) loadRateLimitConfig() RateLimitConfig {
 	return RateLimitConfig{
@@ -275,6 +309,7 @@ func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 			Enabled:        vc.viper.GetBool("security.trust_proxy.enabled"),
 			TrustedProxies: vc.viper.GetStringSlice("security.trust_proxy.trusted_proxies"),
 		},
+		APIKey:       vc.loadAPIKeyConfig(),
 		SecureCookie: vc.viper.GetBool("security.secure_cookie"),
 		Debug:        vc.viper.GetBool("security.debug"),
 	}
@@ -552,11 +587,21 @@ func setCORSDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.enabled", true)
 	v.SetDefault("security.cors.allowed_origins", []string{"*"})
 	v.SetDefault("security.cors.allowed_methods", []string{"GET", "POST", "PUT", "DELETE", "OPTIONS"})
-	allowedHeaders := []string{"Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With"}
+	allowedHeaders := []string{"Content-Type", "Authorization", "X-Csrf-Token", "X-Requested-With", "X-API-Key"}
 	v.SetDefault("security.cors.allowed_headers", allowedHeaders)
 	v.SetDefault("security.cors.exposed_headers", []string{})
 	v.SetDefault("security.cors.allow_credentials", true)
 	v.SetDefault("security.cors.max_age", DefaultCookieMaxAge)
+}
+
+// setAPIKeyDefaults sets API key default values
+func setAPIKeyDefaults(v *viper.Viper) {
+	v.SetDefault("security.api_key.enabled", false)
+	v.SetDefault("security.api_key.keys", []string{})
+	v.SetDefault("security.api_key.header_name", "X-API-Key")
+	v.SetDefault("security.api_key.query_param", "")
+	v.SetDefault("security.api_key.skip_paths", []string{})
+	v.SetDefault("security.api_key.skip_methods", []string{"OPTIONS"})
 }
 
 // setCSPDefaults sets CSP default values
@@ -588,6 +633,7 @@ func setSecurityHeadersDefaults(v *viper.Viper) {
 func setSecurityDefaults(v *viper.Viper) {
 	setCSRFDefaults(v)
 	setCORSDefaults(v)
+	setAPIKeyDefaults(v)
 	v.SetDefault("security.rate_limit.enabled", false)
 	v.SetDefault("security.rate_limit.rps", DefaultRateLimitRPS)
 	v.SetDefault("security.rate_limit.burst", DefaultRateLimitBurst)

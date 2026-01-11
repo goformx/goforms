@@ -7,9 +7,6 @@ export default defineConfig({
     environment: "jsdom",
     globals: true,
 
-    // Setup files for test initialization
-    setupFiles: ["./src/js/test/setup.ts"],
-
     // Mock management - reset mocks between tests for cleaner test isolation
     clearMocks: true,
     mockReset: false, // Keep implementations but clear history
@@ -49,7 +46,7 @@ export default defineConfig({
       reporter: ["text", "json", "html", "lcov"],
 
       // Include patterns - focus on source code
-      include: ["src/js/**/*.{js,ts,tsx}", "!src/js/**/*.d.ts"],
+      include: ["src/**/*.{js,ts,tsx,vue}", "!src/**/*.d.ts"],
 
       // Comprehensive exclude patterns
       exclude: [
@@ -64,12 +61,7 @@ export default defineConfig({
         "**/*.test.*",
         "**/*.spec.*",
         "**/mocks/**",
-        // Exclude specific patterns for your project
-        "src/js/test/**", // Test utilities
-        "src/js/**/*.stories.*", // Storybook files
         "src/vite-plugin-ejs.ts", // Build tools
-        // Add any demo/example files
-        "src/js/pages/demo.ts",
       ],
 
       // Coverage thresholds - start reasonable and improve over time
@@ -87,26 +79,18 @@ export default defineConfig({
         perFile: true,
 
         // Specific file patterns with higher requirements
-        "src/js/core/**/*.ts": {
+        "src/lib/**/*.ts": {
           lines: 90,
           functions: 90,
           branches: 80,
           statements: 90,
         },
 
-        "src/js/shared/**/*.ts": {
+        "src/composables/**/*.ts": {
           lines: 85,
           functions: 85,
           branches: 75,
           statements: 85,
-        },
-
-        // Lower requirements for complex UI components
-        "src/js/features/**/*.tsx": {
-          lines: 60,
-          functions: 60,
-          branches: 50,
-          statements: 60,
         },
       },
 
@@ -182,11 +166,3 @@ export default defineConfig({
   },
 });
 
-// Add TypeScript module declaration for better IDE support
-declare module "vitest" {
-  export interface InferredConfig {
-    test: {
-      // Add custom test configuration types if needed
-    };
-  }
-}

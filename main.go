@@ -1,6 +1,6 @@
 // Package main is the entry point for the GoForms application.
-// It sets up the application using the fx dependency injection framework
-// and manages the application lifecycle including startup and graceful shutdown.
+// It wires the system using Uber Fx, initializes middleware, registers handlers,
+// and manages startup and graceful shutdown.
 package main
 
 import (
@@ -12,9 +12,8 @@ import (
 	"syscall"
 	"time"
 
-	"go.uber.org/fx"
-
 	"github.com/labstack/echo/v4"
+	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
@@ -32,103 +31,92 @@ import (
 //go:embed all:dist
 var distFS embed.FS
 
-// DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown
-// before forcing termination.
+// DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown.
 const DefaultShutdownTimeout = 30 * time.Second
 
-// appParams defines the dependency injection parameters for the application.
-// It uses fx.In to automatically inject dependencies provided by the fx container.
-// Note: This struct should be used by value, not as a pointer, when fx.In is embedded.
+// appParams collects all dependencies injected by Fx.
 type appParams struct {
 	fx.In
-	Lifecycle         fx.Lifecycle           // Manages application lifecycle hooks
-	Echo              *echo.Echo             // HTTP server framework instance
-	Server            *server.Server         // Custom server implementation
-	Logger            logging.Logger         // Application logger
-	Handlers          []web.Handler          `group:"handlers"` // Web request handlers
-	MiddlewareManager *appmiddleware.Manager // Legacy middleware management
-	AccessManager     *access.Manager        // Access control management
-	Config            *config.Config         // Application configuration
 
-	// NEW: New middleware system components
-	MigrationAdapter *appmiddleware.MigrationAdapter // Migration adapter for gradual transition
+	Lifecycle         fx.Lifecycle
+	Echo              *echo.Echo
+	Server            *server.Server
+	Logger            logging.Logger
+	Handlers          []web.Handler `group:"handlers"`
+	MiddlewareManager *appmiddleware.Manager
+	AccessManager     *access.Manager
+	Config            *config.Config
+
+	// New middleware system components
+	MigrationAdapter *appmiddleware.MigrationAdapter
 }
 
-// setupHandlers registers all web handlers with the Echo server.
-// It validates that no nil handlers are present and registers each handler
-// with the Echo instance.
+// setupHandlers registers all HTTP handlers with Echo.
 func setupHandlers(
 	handlers []web.Handler,
 	e *echo.Echo,
 	accessManager *access.Manager,
 	logger logging.Logger,
 ) error {
-	for i, handler := range handlers {
-		if handler == nil {
+	for i, h := range handlers {
+		if h == nil {
 			return fmt.Errorf("nil handler encountered at index %d", i)
 		}
 	}
 
-	// Use the RegisterHandlers function to properly register routes with access control
 	web.RegisterHandlers(e, handlers, accessManager, logger)
-
 	return nil
 }
 
-// setupApplication initializes the application by setting up middleware
-// and registering all web handlers.
-// Note: params is passed by value, not as a pointer
-func setupApplication(params appParams) error {
-	// Use the migration adapter to setup middleware with fallback capability
-	if err := params.MigrationAdapter.SetupWithFallback(params.Echo, params.MiddlewareManager); err != nil {
-		return fmt.Errorf("failed to setup middleware: %w", err)
+// setupApplication configures middleware and registers handlers.
+func setupApplication(p appParams) error {
+	if err := p.MigrationAdapter.SetupWithFallback(p.Echo, p.MiddlewareManager); err != nil {
+		return fmt.Errorf("middleware setup failed: %w", err)
 	}
 
-	return setupHandlers(params.Handlers, params.Echo, params.AccessManager, params.Logger)
+	return setupHandlers(p.Handlers, p.Echo, p.AccessManager, p.Logger)
 }
 
-// setupLifecycle configures the application lifecycle hooks for startup and shutdown.
-// It logs application information and manages server startup in a goroutine.
-// Note: params is passed by value, not as a pointer
-func setupLifecycle(params appParams) {
-	params.Lifecycle.Append(fx.Hook{
+// setupLifecycle configures startup and shutdown hooks.
+func setupLifecycle(p appParams) {
+	p.Lifecycle.Append(fx.Hook{
 		OnStart: func(ctx context.Context) error {
-			versionInfo := version.GetInfo()
-			// Log application startup information
-			params.Logger.Info("starting application",
-				"app", params.Config.App.Name,
-				"version", versionInfo.Version,
-				"environment", params.Config.App.Environment,
-				"build_time", versionInfo.BuildTime,
-				"git_commit", versionInfo.GitCommit,
+			v := version.GetInfo()
+
+			p.Logger.Info("starting application",
+				"app", p.Config.App.Name,
+				"version", v.Version,
+				"environment", p.Config.App.Environment,
+				"build_time", v.BuildTime,
+				"git_commit", v.GitCommit,
 			)
 
-			// Log middleware system status
-			migrationStatus := params.MigrationAdapter.GetMigrationStatus()
-			params.Logger.Info("middleware system status",
-				"new_system_enabled", migrationStatus.NewSystemEnabled,
-				"registered_middleware_count", len(migrationStatus.RegisteredMiddleware),
-				"available_chains_count", len(migrationStatus.AvailableChains),
+			status := p.MigrationAdapter.GetMigrationStatus()
+			p.Logger.Info("middleware system status",
+				"new_system_enabled", status.NewSystemEnabled,
+				"registered_middleware_count", len(status.RegisteredMiddleware),
+				"available_chains_count", len(status.AvailableChains),
 			)
 
-			// Start the server in a goroutine to prevent blocking
+			// Start server asynchronously
 			go func() {
-				if err := params.Server.Start(ctx); err != nil {
-					params.Logger.Fatal("server startup failed", "error", err)
+				if err := p.Server.Start(ctx); err != nil {
+					p.Logger.Fatal("server startup failed", "error", err)
 					os.Exit(1)
 				}
 			}()
 
 			return nil
 		},
+
 		OnStop: func(_ context.Context) error {
-			versionInfo := version.GetInfo()
-			// Log application shutdown information
-			params.Logger.Info("shutting down application",
-				"app", params.Config.App.Name,
-				"version", versionInfo.Version,
-				"build_time", versionInfo.BuildTime,
-				"git_commit", versionInfo.GitCommit,
+			v := version.GetInfo()
+
+			p.Logger.Info("shutting down application",
+				"app", p.Config.App.Name,
+				"version", v.Version,
+				"build_time", v.BuildTime,
+				"git_commit", v.GitCommit,
 			)
 
 			return nil
@@ -136,45 +124,37 @@ func setupLifecycle(params appParams) {
 	})
 }
 
-// main is the entry point of the application.
-// It initializes the dependency injection container, starts the application,
-// and handles graceful shutdown on termination signals.
+// main initializes the Fx application and manages graceful shutdown.
 func main() {
-	// Initialize the fx application container with all required modules and providers
 	app := fx.New(
-		// Provide embedded filesystem
-		fx.Provide(func() embed.FS {
-			return distFS
-		}),
-		// Include all application modules
-		config.Module, // Config must come first as other modules depend on it
+		fx.Provide(func() embed.FS { return distFS }),
+
+		// Modules
+		config.Module,
 		infrastructure.Module,
 		domain.Module,
 		application.Module,
 		appmiddleware.Module,
 		presentation.Module,
 		web.Module,
-		// Invoke setup functions
+
+		// Setup
 		fx.Invoke(setupApplication),
 		fx.Invoke(setupLifecycle),
 	)
 
-	// Start the application
-	if startErr := app.Start(context.Background()); startErr != nil {
-		fmt.Fprintf(os.Stderr, "Application startup failed: %v\n", startErr)
+	if err := app.Start(context.Background()); err != nil {
+		fmt.Fprintf(os.Stderr, "application startup failed: %v\n", err)
 		os.Exit(1)
 	}
 
-	// Set up signal handling for graceful shutdown
+	// Wait for termination signal
 	sigChan := make(chan os.Signal, 1)
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
-
-	// Wait for interrupt signal
 	<-sigChan
 
-	// Attempt graceful shutdown
-	if stopErr := app.Stop(context.Background()); stopErr != nil {
-		fmt.Fprintf(os.Stderr, "Application shutdown failed: %v\n", stopErr)
+	if err := app.Stop(context.Background()); err != nil {
+		fmt.Fprintf(os.Stderr, "application shutdown failed: %v\n", err)
 		os.Exit(1)
 	}
 }

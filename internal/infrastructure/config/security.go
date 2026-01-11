@@ -11,6 +11,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// MinAPIKeyLength is the minimum required length for API keys
+const MinAPIKeyLength = 16
+
 // SecurityConfig represents the enhanced security configuration
 type SecurityConfig struct {
 	CSRF            CSRFConfig            `json:"csrf"`
@@ -22,6 +25,7 @@ type SecurityConfig struct {
 	SecurityHeaders SecurityHeadersConfig `json:"security_headers"`
 	CookieSecurity  CookieSecurityConfig  `json:"cookie_security"`
 	TrustProxy      TrustProxyConfig      `json:"trust_proxy"`
+	APIKey          APIKeyConfig          `json:"api_key"`
 	SecureCookie    bool                  `json:"secure_cookie"`
 	Debug           bool                  `json:"debug"`
 }
@@ -153,6 +157,16 @@ type EncryptionConfig struct {
 	EnableChaCha20 bool   `json:"enable_cha_cha20"`
 }
 
+// APIKeyConfig represents API key authentication configuration
+type APIKeyConfig struct {
+	Enabled     bool     `json:"enabled"`
+	Keys        []string `json:"keys"`         // List of valid API keys
+	HeaderName  string   `json:"header_name"`  // Header name to read API key from (default: X-API-Key)
+	QueryParam  string   `json:"query_param"`  // Query parameter name (optional)
+	SkipPaths   []string `json:"skip_paths"`   // Paths to skip API key validation
+	SkipMethods []string `json:"skip_methods"` // HTTP methods to skip (e.g., OPTIONS)
+}
+
 // Validate validates the security configuration
 func (s *SecurityConfig) Validate() error {
 	var errs []string
@@ -181,6 +195,13 @@ func (s *SecurityConfig) Validate() error {
 	// Validate cookie security
 	if err := s.validateCookieSecurity(); err != nil {
 		errs = append(errs, fmt.Sprintf("Cookie Security: %v", err))
+	}
+
+	// Validate API key configuration
+	if s.APIKey.Enabled {
+		if err := s.validateAPIKey(); err != nil {
+			errs = append(errs, fmt.Sprintf("API Key: %v", err))
+		}
 	}
 
 	if len(errs) > 0 {
@@ -266,6 +287,30 @@ func (s *SecurityConfig) validateCookieSecurity() error {
 	// If SameSite=None, Secure must be true
 	if s.CookieSecurity.SameSite == "None" && !s.CookieSecurity.Secure {
 		return errors.New("cookie with SameSite=None requires Secure=true")
+	}
+
+	return nil
+}
+
+// validateAPIKey validates API key configuration
+func (s *SecurityConfig) validateAPIKey() error {
+	if len(s.APIKey.Keys) == 0 {
+		return errors.New("at least one API key must be configured when API key authentication is enabled")
+	}
+
+	// Validate that each API key is not empty and has minimum length
+	for i, key := range s.APIKey.Keys {
+		if key == "" {
+			return fmt.Errorf("API key at index %d is empty", i)
+		}
+		if len(key) < MinAPIKeyLength {
+			return fmt.Errorf("API key at index %d must be at least %d characters long", i, MinAPIKeyLength)
+		}
+	}
+
+	// Validate header name
+	if s.APIKey.HeaderName == "" {
+		return errors.New("API key header name cannot be empty")
 	}
 
 	return nil

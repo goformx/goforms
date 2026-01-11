@@ -10,6 +10,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
@@ -23,23 +24,33 @@ const (
 type FormRequestProcessorImpl struct {
 	sanitizer sanitization.ServiceInterface
 	validator *validation.FormValidator
+	logger    logging.Logger
 }
 
 // NewFormRequestProcessor creates a new form request processor
 func NewFormRequestProcessor(
 	sanitizer sanitization.ServiceInterface,
 	validator *validation.FormValidator,
+	logger logging.Logger,
 ) FormRequestProcessor {
 	return &FormRequestProcessorImpl{
 		sanitizer: sanitizer,
 		validator: validator,
+		logger:    logger.WithComponent("form_request_processor"),
 	}
 }
 
 // ProcessCreateRequest processes form creation requests
 func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCreateRequest, error) {
-	req := &FormCreateRequest{
-		Title: p.sanitizer.String(c.FormValue("title")),
+	req := &FormCreateRequest{}
+
+	// Try to bind JSON first (Inertia sends JSON)
+	if err := c.Bind(req); err != nil {
+		// Fallback to form values
+		req.Title = p.sanitizer.String(c.FormValue("title"))
+	} else {
+		// Sanitize bound values
+		req.Title = p.sanitizer.String(req.Title)
 	}
 
 	if err := p.validateCreateRequest(req); err != nil {
@@ -51,11 +62,21 @@ func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCr
 
 // ProcessUpdateRequest processes form update requests
 func (p *FormRequestProcessorImpl) ProcessUpdateRequest(c echo.Context) (*FormUpdateRequest, error) {
-	req := &FormUpdateRequest{
-		Title:       p.sanitizer.String(c.FormValue("title")),
-		Description: p.sanitizer.String(c.FormValue("description")),
-		Status:      p.sanitizer.String(c.FormValue("status")),
-		CorsOrigins: p.sanitizer.String(c.FormValue("cors_origins")),
+	req := &FormUpdateRequest{}
+
+	// Try to bind JSON first (Inertia sends JSON)
+	if err := c.Bind(req); err != nil {
+		// Fallback to form values
+		req.Title = p.sanitizer.String(c.FormValue("title"))
+		req.Description = p.sanitizer.String(c.FormValue("description"))
+		req.Status = p.sanitizer.String(c.FormValue("status"))
+		req.CorsOrigins = p.sanitizer.String(c.FormValue("cors_origins"))
+	} else {
+		// Sanitize bound values
+		req.Title = p.sanitizer.String(req.Title)
+		req.Description = p.sanitizer.String(req.Description)
+		req.Status = p.sanitizer.String(req.Status)
+		req.CorsOrigins = p.sanitizer.String(req.CorsOrigins)
 	}
 
 	// Validate CORS origins when publishing
@@ -86,28 +107,28 @@ func (p *FormRequestProcessorImpl) ProcessSchemaUpdateRequest(c echo.Context) (m
 
 // ProcessSubmissionRequest processes form submission requests
 func (p *FormRequestProcessorImpl) ProcessSubmissionRequest(c echo.Context) (model.JSON, error) {
+	logger := p.logger.WithOperation("process_submission")
+
 	// Log request details for debugging
-	c.Logger().Debug("Processing submission request",
+	logger.Debug("processing submission request",
 		"content_type", c.Request().Header.Get("Content-Type"),
 		"content_length", c.Request().ContentLength,
 		"method", c.Request().Method)
 
 	var submissionData model.JSON
 	if err := json.NewDecoder(c.Request().Body).Decode(&submissionData); err != nil {
-		c.Logger().Error("Failed to decode submission data", "error", err)
+		logger.Debug("failed to decode submission data", "error", err)
 
 		return nil, fmt.Errorf("failed to decode submission data: %w", err)
 	}
 
-	c.Logger().Debug("Submission data decoded successfully", "data_keys", len(submissionData))
+	logger.Debug("submission data decoded", "data_keys", len(submissionData))
 
 	if submissionData == nil {
-		c.Logger().Warn("Submission data is nil")
+		logger.Debug("submission data is nil")
 
 		return nil, errors.New("submission data is required")
 	}
-
-	c.Logger().Debug("Submission request processed successfully")
 
 	return submissionData, nil
 }

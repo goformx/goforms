@@ -195,7 +195,7 @@ jobs:
           task install
           task install:frontend
           task build:frontend
-          task generate:templ
+          task generate
           mkdir -p bin
           task build:backend
 
