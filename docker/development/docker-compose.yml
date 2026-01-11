@@ -61,7 +61,7 @@ services:
     networks:
       - goforms-dev-network
     volumes:
-      - .:/app
+      - ../..:/app
       - goforms-dev-logs:/app/logs
       - go-cache:/go
       - node-cache:/app/node_modules
