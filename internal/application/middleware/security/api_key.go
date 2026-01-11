@@ -10,10 +10,10 @@ import (
 )
 
 const (
-	// APIKeyMissingMsg is returned when API key is missing
-	APIKeyMissingMsg = "API key is required"
-	// APIKeyInvalidMsg is returned when API key is invalid
-	APIKeyInvalidMsg = "Invalid API key"
+	// ErrMsgAPIMissing is returned when API key is missing
+	ErrMsgAPIMissing = "API key is required"
+	// ErrMsgAPIInvalid is returned when API key is invalid
+	ErrMsgAPIInvalid = "Invalid API key"
 )
 
 // APIKeyAuth handles API key authentication middleware setup
@@ -73,7 +73,7 @@ func (a *APIKeyAuth) Setup() echo.MiddlewareFunc {
 					"method", c.Request().Method,
 					"ip", c.RealIP(),
 				)
-				return echo.NewHTTPError(http.StatusUnauthorized, APIKeyMissingMsg)
+				return echo.NewHTTPError(http.StatusUnauthorized, ErrMsgAPIMissing)
 			}
 
 			// Validate API key
@@ -83,7 +83,7 @@ func (a *APIKeyAuth) Setup() echo.MiddlewareFunc {
 					"method", c.Request().Method,
 					"ip", c.RealIP(),
 				)
-				return echo.NewHTTPError(http.StatusUnauthorized, APIKeyInvalidMsg)
+				return echo.NewHTTPError(http.StatusUnauthorized, ErrMsgAPIInvalid)
 			}
 
 			// API key is valid, proceed
@@ -152,7 +152,7 @@ func subtleConstantTimeCompare(a, b string) bool {
 	}
 
 	result := 0
-	for i := 0; i < len(a); i++ {
+	for i := range len(a) {
 		result |= int(a[i]) ^ int(b[i])
 	}
 

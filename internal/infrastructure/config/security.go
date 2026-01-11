@@ -11,6 +11,9 @@ import (
 	"github.com/labstack/echo/v4"
 )
 
+// MinAPIKeyLength is the minimum required length for API keys
+const MinAPIKeyLength = 16
+
 // SecurityConfig represents the enhanced security configuration
 type SecurityConfig struct {
 	CSRF            CSRFConfig            `json:"csrf"`
@@ -300,8 +303,8 @@ func (s *SecurityConfig) validateAPIKey() error {
 		if key == "" {
 			return fmt.Errorf("API key at index %d is empty", i)
 		}
-		if len(key) < 16 {
-			return fmt.Errorf("API key at index %d must be at least 16 characters long", i)
+		if len(key) < MinAPIKeyLength {
+			return fmt.Errorf("API key at index %d must be at least %d characters long", i, MinAPIKeyLength)
 		}
 	}
 

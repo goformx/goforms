@@ -175,27 +175,43 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 	// Recovery middleware first
 	e.Use(Recovery(m.logger, m.config.Sanitizer))
 
-	// Timeout middleware
-	e.Use(echomw.TimeoutWithConfig(echomw.TimeoutConfig{
-		Timeout:      m.config.Config.App.RequestTimeout,
-		ErrorMessage: "Request timeout",
+	// Timeout middleware (using context-based timeout to avoid data races)
+	e.Use(echomw.ContextTimeoutWithConfig(echomw.ContextTimeoutConfig{
+		Timeout: m.config.Config.App.RequestTimeout,
 	}))
 
 	// Context middleware
 	e.Use(m.contextMiddleware.WithContext())
 
-	// Logging middleware
-	if m.config.Config.App.IsDevelopment() {
-		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
-			Format:  "${time_rfc3339} ${status} ${method} ${uri} ${latency_human}\n",
-			Output:  os.Stdout,
-			Skipper: isNoisePath,
-		}))
-	} else {
-		e.Use(echomw.LoggerWithConfig(echomw.LoggerConfig{
-			Skipper: isNoisePath,
-		}))
-	}
+	// Logging middleware (using RequestLoggerWithConfig for race-free logging)
+	e.Use(echomw.RequestLoggerWithConfig(echomw.RequestLoggerConfig{
+		LogURI:      true,
+		LogStatus:   true,
+		LogMethod:   true,
+		LogLatency:  true,
+		LogError:    true,
+		HandleError: true,
+		Skipper:     isNoisePath,
+		LogValuesFunc: func(c echo.Context, v echomw.RequestLoggerValues) error {
+			if m.config.Config.App.IsDevelopment() {
+				fmt.Fprintf(os.Stdout, "%s %d %s %s %s\n",
+					time.Now().Format(time.RFC3339),
+					v.Status,
+					v.Method,
+					v.URI,
+					v.Latency,
+				)
+			} else {
+				m.logger.Info("request",
+					"method", v.Method,
+					"uri", v.URI,
+					"status", v.Status,
+					"latency", v.Latency,
+				)
+			}
+			return nil
+		},
+	}))
 }
 
 func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
