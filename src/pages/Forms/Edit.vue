@@ -269,10 +269,10 @@ onMounted(() => {
 <style>
 /* Form.io builder styles */
 .formio-builder {
-  @apply bg-background;
+  background-color: var(--color-background);
 }
 
 .formio-component {
-  @apply mb-4;
+  margin-bottom: 1rem;
 }
 </style>

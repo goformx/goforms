@@ -1,7 +1,7 @@
 import { ref, onMounted, onUnmounted, type Ref } from "vue";
 import { Formio } from "@formio/js";
 import goforms from "@goformx/formio";
-import { Logger } from "@/lib/core/logger";
+import { Logger } from "@/js/core/logger";
 
 // Register GoFormX templates
 Formio.use(goforms);
