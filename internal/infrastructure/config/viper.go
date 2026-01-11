@@ -26,7 +26,6 @@ func NewViperConfig() *ViperConfig {
 	setDefaults(v)
 
 	// Configure Viper with best practices
-	v.SetEnvPrefix("GOFORMS")
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
@@ -199,7 +198,7 @@ func (vc *ViperConfig) loadCORSConfig() CORSConfig {
 // loadAPIKeyConfig loads API key configuration from viper
 func (vc *ViperConfig) loadAPIKeyConfig() APIKeyConfig {
 	// Support environment variable with comma-separated keys
-	keysEnv := os.Getenv("GOFORMS_API_KEYS")
+	keysEnv := os.Getenv("API_KEYS")
 	var keys []string
 	if keysEnv != "" {
 		keys = strings.Split(keysEnv, ",")

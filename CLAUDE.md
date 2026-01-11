@@ -82,12 +82,12 @@ internal/
 
 ## Configuration
 
-Uses Viper with environment variables. Key env var pattern: `GOFORMS_<SECTION>_<KEY>`
+Uses Viper with environment variables. Key env var pattern: `<SECTION>_<KEY>`
 
 ```bash
-GOFORMS_APP_ENV=development
-GOFORMS_DATABASE_HOST=localhost
-GOFORMS_SECURITY_CSRF_COOKIE_SAME_SITE=Lax
+APP_ENV=development
+DATABASE_HOST=localhost
+SECURITY_CSRF_COOKIE_SAME_SITE=Lax
 ```
 
 Configuration struct: `internal/infrastructure/config/`
