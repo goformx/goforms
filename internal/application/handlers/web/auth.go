@@ -169,7 +169,11 @@ func (h *AuthHandler) renderAuthPage(
 		return h.redirectToDashboard(c)
 	}
 
-	return fmt.Errorf("render auth page: %w", h.Renderer.Render(c, templateFunc(*data)))
+	if renderErr := h.Renderer.Render(c, templateFunc(*data)); renderErr != nil {
+		return h.HandleError(c, renderErr, "Failed to render auth page")
+	}
+
+	return nil
 }
 
 // handleAuthSubmission handles the common pattern for auth form submissions
