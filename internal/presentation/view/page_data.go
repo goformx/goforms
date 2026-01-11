@@ -2,9 +2,6 @@
 package view
 
 import (
-	"fmt"
-	"os"
-
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/middleware/context"
@@ -15,9 +12,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/version"
 	"github.com/goformx/goforms/internal/infrastructure/web"
 )
-
-// tokenPreviewLength is the maximum length of token to show in debug logs
-const tokenPreviewLength = 20
 
 // PageData represents the data passed to templates
 type PageData struct {
@@ -97,69 +91,16 @@ func GetCSRFToken(c echo.Context, contextKey, cookieName string) string {
 		cookieName = "_csrf"
 	}
 
-	// Debug logging (only in development to avoid performance impact)
-	// Use fmt.Fprintf to os.Stdout to bypass logger sanitization for debugging
-	if c.Request() != nil {
-		// Try to detect if we're in development mode by checking if logger supports debug
-		fmt.Fprintf(os.Stdout, "[CSRF DEBUG] GetCSRFToken: attempting to retrieve token, path=%s, context_key=%q, cookie_name=%q\n",
-			c.Request().URL.Path, contextKey, cookieName)
-		if c.Logger() != nil {
-			c.Logger().Debug("GetCSRFToken: attempting to retrieve token",
-				"context_key", contextKey,
-				"cookie_name", cookieName,
-				"path", c.Request().URL.Path)
-		}
-	}
-
 	// Try to get token from context first (works for POST requests and some GET requests)
 	if token, ok := c.Get(contextKey).(string); ok && token != "" {
-		tokenPreview := token
-		if len(token) > tokenPreviewLength {
-			tokenPreview = token[:tokenPreviewLength] + "..."
-		}
-		fmt.Fprintf(os.Stdout, "[CSRF DEBUG] GetCSRFToken: token found in context, context_key=%q, token_length=%d, token_preview=%s\n",
-			contextKey, len(token), tokenPreview)
-		if c.Logger() != nil {
-			c.Logger().Debug("GetCSRFToken: token found in context",
-				"context_key", contextKey,
-				"token_length", len(token))
-		}
 		return token
-	}
-
-	fmt.Fprintf(os.Stdout, "[CSRF DEBUG] GetCSRFToken: token not found in context, trying cookie, context_key=%q, cookie_name=%q\n",
-		contextKey, cookieName)
-	if c.Logger() != nil {
-		c.Logger().Debug("GetCSRFToken: token not found in context, trying cookie",
-			"context_key", contextKey,
-			"cookie_name", cookieName)
 	}
 
 	// Fallback: Try to get token from cookie (for GET requests)
 	// Note: This works even if the cookie is httpOnly since we're on the server side
 	cookie, err := c.Cookie(cookieName)
 	if err == nil && cookie != nil && cookie.Value != "" {
-		cookiePreview := cookie.Value
-		if len(cookie.Value) > tokenPreviewLength {
-			cookiePreview = cookie.Value[:tokenPreviewLength] + "..."
-		}
-		fmt.Fprintf(os.Stdout, "[CSRF DEBUG] GetCSRFToken: token found in cookie, cookie_name=%q, token_length=%d, token_preview=%s\n",
-			cookieName, len(cookie.Value), cookiePreview)
-		if c.Logger() != nil {
-			c.Logger().Debug("GetCSRFToken: token found in cookie",
-				"cookie_name", cookieName,
-				"token_length", len(cookie.Value))
-		}
 		return cookie.Value
-	}
-
-	fmt.Fprintf(os.Stdout, "[CSRF DEBUG] GetCSRFToken: token not found in cookie or context, context_key=%q, cookie_name=%q, cookie_error=%v\n",
-		contextKey, cookieName, err)
-	if c.Logger() != nil {
-		c.Logger().Debug("GetCSRFToken: token not found in cookie or context",
-			"context_key", contextKey,
-			"cookie_name", cookieName,
-			"cookie_error", err)
 	}
 
 	return ""

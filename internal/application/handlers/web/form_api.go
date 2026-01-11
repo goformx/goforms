@@ -37,7 +37,7 @@ func NewFormAPIHandler(
 	sanitizer sanitization.ServiceInterface,
 ) *FormAPIHandler {
 	// Create dependencies
-	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator)
+	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator, base.Logger)
 	responseBuilder := NewFormResponseBuilder()
 	errorHandler := NewFormErrorHandler(responseBuilder)
 	comprehensiveValidator := validation.NewComprehensiveValidator()

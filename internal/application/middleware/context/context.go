@@ -38,6 +38,8 @@ const (
 	LastNameKey Key = "last_name"
 	// SessionKey is the context key for session
 	SessionKey Key = "session"
+	// FormIDKey is the context key for form ID
+	FormIDKey Key = "form_id"
 )
 
 // Middleware provides context handling for HTTP requests
@@ -213,4 +215,34 @@ func ClearUserContext(c echo.Context) {
 	c.Set(string(RoleKey), "")
 	c.Set(string(FirstNameKey), "")
 	c.Set(string(LastNameKey), "")
+}
+
+// GetFormID retrieves the form ID from context (Go context)
+func GetFormID(ctx context.Context) string {
+	if id, ok := ctx.Value(FormIDKey).(string); ok {
+		return id
+	}
+
+	return ""
+}
+
+// GetFormIDFromEcho retrieves the form ID from Echo context
+func GetFormIDFromEcho(c echo.Context) (string, bool) {
+	if c == nil {
+		return "", false
+	}
+
+	formID, ok := c.Get(string(FormIDKey)).(string)
+
+	return formID, ok && formID != ""
+}
+
+// SetFormID sets the form ID in Echo context
+func SetFormID(c echo.Context, formID string) {
+	c.Set(string(FormIDKey), formID)
+}
+
+// SetFormIDInContext sets the form ID in Go context
+func SetFormIDInContext(ctx context.Context, formID string) context.Context {
+	return context.WithValue(ctx, FormIDKey, formID)
 }

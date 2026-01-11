@@ -44,7 +44,7 @@ func NewFormWebHandler(
 	formBaseHandler := NewFormBaseHandler(base, formService, formValidator)
 
 	// Create dependencies
-	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator)
+	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator, base.Logger)
 	responseBuilder := NewFormResponseBuilder()
 	errorHandler := NewFormErrorHandler(responseBuilder)
 	formServiceHandler := NewFormService(formService, base.Logger)

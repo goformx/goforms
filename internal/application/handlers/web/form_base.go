@@ -1,9 +1,9 @@
 package web
 
 import (
-	"github.com/labstack/echo/v4"
-
 	"fmt"
+
+	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/validation"
@@ -34,23 +34,24 @@ func NewFormBaseHandler(
 // GetFormByID retrieves a form by ID without ownership verification
 func (h *FormBaseHandler) GetFormByID(c echo.Context) (*model.Form, error) {
 	formID := c.Param("id")
+	logger := h.Logger.WithComponent("form_base").With("form_id", formID)
 
-	c.Logger().Debug("Getting form by ID", "form_id", formID)
+	logger.Debug("getting form by ID")
 
 	form, err := h.FormService.GetForm(c.Request().Context(), formID)
 	if err != nil {
-		c.Logger().Error("Failed to get form by ID", "form_id", formID, "error", err)
+		logger.Debug("failed to get form by ID", "error", err)
 
 		return nil, fmt.Errorf("get form by ID: %w", err)
 	}
 
 	if form == nil {
-		c.Logger().Warn("Form not found", "form_id", formID)
+		logger.Debug("form not found")
 
 		return nil, fmt.Errorf("get form by ID: %w", h.HandleNotFound(c, "Form not found"))
 	}
 
-	c.Logger().Debug("Form retrieved successfully", "form_id", form.ID, "title", form.Title, "user_id", form.UserID)
+	logger.Debug("form retrieved successfully", "title", form.Title)
 
 	return form, nil
 }

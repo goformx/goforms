@@ -15,7 +15,13 @@ import (
 
 // ViperConfig represents the Viper-based configuration loader
 type ViperConfig struct {
-	viper *viper.Viper
+	viper          *viper.Viper
+	configFilePath string // Path to loaded config file, available after Load()
+}
+
+// GetConfigFilePath returns the path to the loaded config file
+func (vc *ViperConfig) GetConfigFilePath() string {
+	return vc.configFilePath
 }
 
 // NewViperConfig creates a new Viper configuration instance
@@ -69,16 +75,15 @@ func (vc *ViperConfig) loadConfigFiles() error {
 		var configFileNotFoundError viper.ConfigFileNotFoundError
 		if errors.As(err, &configFileNotFoundError) {
 			// Config file not found is not an error - we can use environment variables
-			fmt.Printf("No configuration file found, using environment variables and defaults\n")
-
+			// Silent in production, no logging needed here
 			return nil
 		}
 
 		return fmt.Errorf("failed to read config file: %w", err)
 	}
 
-	// Log which config file was loaded
-	fmt.Printf("Loaded configuration from: %s\n", vc.viper.ConfigFileUsed())
+	// Store config file path for later logging (once logger is available)
+	vc.configFilePath = vc.viper.ConfigFileUsed()
 
 	// Try to merge additional config files (like .env)
 	if err := vc.viper.MergeInConfig(); err != nil {
