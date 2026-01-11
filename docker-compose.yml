@@ -15,7 +15,7 @@ services:
       - APP_NAME=${APP_NAME}
       - APP_ENV=${APP_ENV}
       - APP_DEBUG=${APP_DEBUG}
-      - APP_LOGLEVEL=${APP_LOGLEVEL}
+      - APP_LOG_LEVEL=${APP_LOG_LEVEL}
       - APP_SCHEME=${APP_SCHEME}
       - APP_PORT=${APP_PORT}
       - APP_HOST=${APP_HOST}
@@ -70,7 +70,6 @@ services:
       - .:/app
       - goforms-dev-logs:/app/logs
       - go-cache:/go
-      - node-cache:/app/node_modules
     healthcheck:
       test: [ "CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/health" ]
       interval: 30s
@@ -113,6 +112,4 @@ volumes:
   goforms-dev-logs:
     driver: local
   go-cache:
-    driver: local
-  node-cache:
     driver: local

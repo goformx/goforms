@@ -10,7 +10,7 @@ services:
       - APP_NAME=${APP_NAME:-GoFormX}
       - APP_ENV=${APP_ENV:-production}
       - APP_DEBUG=${APP_DEBUG:-false}
-      - APP_LOGLEVEL=${APP_LOGLEVEL:-info}
+      - APP_LOG_LEVEL=${APP_LOG_LEVEL:-info}
       - APP_SCHEME=${APP_SCHEME:-https}
       - APP_PORT=${APP_PORT:-8090}
       - APP_HOST=${APP_HOST:-0.0.0.0}
