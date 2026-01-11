@@ -147,6 +147,28 @@ tasks:
     cmds:
     - go build -ldflags "{{.LDFLAGS}}" -o bin/goforms main.go
 
+  build:production:
+    desc: Build production binary with Go 1.25 optimizations
+    deps: [ generate ]
+    cmds:
+    - task: build:frontend
+    - task: build:backend:production
+
+  build:backend:production:
+    desc: Build optimized production backend with Go 1.25 features
+    sources:
+      - "**/*.go"
+      - "!**/*_test.go"
+      - go.mod
+      - go.sum
+    generates:
+      - bin/goforms
+    env:
+      GOEXPERIMENT: greenteagc
+      CGO_ENABLED: "0"
+    cmds:
+    - go build -ldflags "{{.LDFLAGS}}" -trimpath -o bin/goforms main.go
+
   run:
     desc: Run the compiled application
     deps: [ build:backend ]
