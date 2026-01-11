@@ -77,8 +77,14 @@ async function handleSubmit() {
 
 <template>
   <GuestLayout title="Login">
-    <div class="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-      <Card class="w-full max-w-md">
+    <div class="relative flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+      <!-- Subtle gradient background -->
+      <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute top-[30%] left-[20%] w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-3xl" />
+        <div class="absolute bottom-[20%] right-[20%] w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
+      
+      <Card class="relative z-10 w-full max-w-md bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader class="space-y-1">
           <CardTitle class="text-2xl font-bold text-center">
             Sign in to your account

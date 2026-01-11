@@ -113,8 +113,14 @@ onMounted(async () => {
 
 <template>
   <GuestLayout title="Demo">
-    <div class="container py-12">
-      <div class="max-w-2xl mx-auto">
+    <div class="relative container py-12">
+      <!-- Subtle gradient background -->
+      <div class="absolute inset-0 overflow-hidden pointer-events-none">
+        <div class="absolute top-[10%] left-[10%] w-[400px] h-[400px] bg-indigo-500/10 rounded-full blur-3xl" />
+        <div class="absolute bottom-[20%] right-[10%] w-[300px] h-[300px] bg-purple-500/10 rounded-full blur-3xl" />
+      </div>
+      
+      <div class="relative z-10 max-w-2xl mx-auto">
         <!-- Header -->
         <div class="text-center mb-8">
           <h1 class="text-3xl font-bold tracking-tight sm:text-4xl">
@@ -126,7 +132,7 @@ onMounted(async () => {
         </div>
 
         <!-- Demo Form Card -->
-        <Card>
+        <Card class="bg-card/80 backdrop-blur-sm border-border/50">
           <CardHeader>
             <CardTitle>Contact Form Demo</CardTitle>
             <CardDescription>
@@ -163,10 +169,10 @@ onMounted(async () => {
             Ready to build your own forms?
           </p>
           <div class="flex justify-center gap-4">
-            <Button as-child>
+            <Button class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-0" as-child>
               <Link href="/signup">Get Started Free</Link>
             </Button>
-            <Button variant="outline" as-child>
+            <Button variant="outline" class="border-border/50 bg-background/50 backdrop-blur hover:bg-background/80" as-child>
               <a
                 href="https://github.com/goformx/goforms"
                 target="_blank"

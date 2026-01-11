@@ -13,7 +13,7 @@ withDefaults(defineProps<Props>(), {
 </script>
 
 <template>
-  <div class="min-h-screen flex flex-col bg-background">
+  <div class="dark min-h-screen flex flex-col bg-background">
     <Head :title="title" />
     
     <header>
