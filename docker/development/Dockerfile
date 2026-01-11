@@ -38,8 +38,7 @@ RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
 # Frontend deps (install base dependencies - bind mount will overlay source)
 COPY package*.json ./
 RUN mkdir -p public/fonts \
-    && npm ci --ignore-scripts \
-    && npx update-browserslist-db@latest
+    && npm ci --ignore-scripts
 
 # Copy fonts manually (postinstall workaround)
 RUN cp -r node_modules/@formio/js/dist/fonts/* public/fonts/ 2>/dev/null || true
