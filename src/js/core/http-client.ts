@@ -122,6 +122,12 @@ export class HttpClient {
       "/api/v1/forms/", // Form submission endpoints
       "/health",
       "/healthz",
+      // Auth endpoints - backend skips CSRF for these
+      "/login",
+      "/signup",
+      "/logout",
+      "/forgot-password",
+      "/reset-password",
     ];
 
     return publicEndpoints.some((endpoint) => url.includes(endpoint));
