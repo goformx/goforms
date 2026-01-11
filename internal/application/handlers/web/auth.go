@@ -228,12 +228,12 @@ func (h *AuthHandler) processSignup(c echo.Context) error {
 
 // handleAuthError handles authentication errors with appropriate response format
 func (h *AuthHandler) handleAuthError(c echo.Context, err error, page string) error {
-	// For Inertia requests, return validation errors
-	if gonertia.IsInertiaRequest(c.Request()) || h.isAJAXRequest(c) {
+	// For pure AJAX requests (non-Inertia), return JSON error
+	if h.isAJAXRequest(c) && !gonertia.IsInertiaRequest(c.Request()) {
 		return h.ResponseBuilder.AJAXError(c, constants.StatusBadRequest, err.Error())
 	}
 
-	// For regular requests, render the page with error
+	// For Inertia and regular requests, render the page with error props
 	return h.Inertia.Render(c, page, inertia.Props{
 		"title": page,
 		"flash": map[string]string{

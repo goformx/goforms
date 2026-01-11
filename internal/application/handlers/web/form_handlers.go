@@ -8,7 +8,6 @@ import (
 	"net/http"
 
 	"github.com/labstack/echo/v4"
-	"github.com/romsar/gonertia"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/domain/form/model"
@@ -49,14 +48,8 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 		return h.handleFormCreationError(c, err)
 	}
 
-	// For AJAX/Inertia requests, return JSON so the frontend can handle the redirect
-	if c.Request().Header.Get(constants.HeaderXRequestedWith) == "XMLHttpRequest" || gonertia.IsInertiaRequest(c.Request()) {
-		return h.ResponseBuilder.BuildSuccessResponse(c, "Form created successfully", map[string]any{
-			"form_id": form.ID,
-		})
-	}
-
-	// For regular form submissions, redirect to the edit page
+	// Always redirect to the edit page after successful creation
+	// Inertia will follow the redirect and render the new page
 	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
@@ -139,7 +132,9 @@ func (h *FormWebHandler) handleDelete(c echo.Context) error {
 		return h.HandleError(c, deleteErr, "Failed to delete form")
 	}
 
-	return fmt.Errorf("no content response: %w", c.NoContent(constants.StatusNoContent))
+	// Redirect to dashboard after successful deletion
+	// Inertia will follow the redirect and render the dashboard
+	return c.Redirect(http.StatusSeeOther, constants.PathDashboard)
 }
 
 // handleSubmissions displays form submissions
@@ -185,15 +180,22 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 
 // handleFormCreationError handles form creation errors
 func (h *FormWebHandler) handleFormCreationError(c echo.Context, err error) error {
+	var errorMessage string
+
 	switch {
 	case errors.Is(err, model.ErrFormTitleRequired):
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form title is required"))
+		errorMessage = "Form title is required"
 	case errors.Is(err, model.ErrFormSchemaRequired):
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusBadRequest, "Form schema is required"))
+		errorMessage = "Form schema is required"
 	default:
-		return fmt.Errorf("build error response: %w",
-			h.ResponseBuilder.BuildErrorResponse(c, http.StatusInternalServerError, "Failed to create form"))
+		errorMessage = "Failed to create form"
 	}
+
+	// Re-render the form creation page with the error message
+	return h.Inertia.Render(c, "Forms/New", inertia.Props{
+		"title": "Create New Form",
+		"flash": map[string]string{
+			"error": errorMessage,
+		},
+	})
 }
