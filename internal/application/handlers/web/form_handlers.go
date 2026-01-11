@@ -39,7 +39,8 @@ func (h *FormWebHandler) handleCreate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)
 	if err != nil {
-		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
+		// Re-render the form creation page with the validation error
+		return h.handleFormCreationError(c, err)
 	}
 
 	// Create form using business logic service
@@ -100,14 +101,15 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 	// Process and validate request
 	req, err := h.RequestProcessor.ProcessUpdateRequest(c)
 	if err != nil {
-		return fmt.Errorf("handle error: %w", h.ErrorHandler.HandleError(c, err))
+		// Re-render the edit page with validation error
+		return h.handleFormUpdateError(c, form, err)
 	}
 
 	// Update form using business logic service
 	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form, req); updateErr != nil {
 		h.Logger.Error("failed to update form", "error", updateErr)
 
-		return h.HandleError(c, updateErr, "Failed to update form")
+		return h.handleFormUpdateError(c, form, updateErr)
 	}
 
 	// Redirect back to the edit page (Inertia will re-render with updated data)
@@ -180,16 +182,7 @@ func (h *FormWebHandler) handleSubmissions(c echo.Context) error {
 
 // handleFormCreationError handles form creation errors
 func (h *FormWebHandler) handleFormCreationError(c echo.Context, err error) error {
-	var errorMessage string
-
-	switch {
-	case errors.Is(err, model.ErrFormTitleRequired):
-		errorMessage = "Form title is required"
-	case errors.Is(err, model.ErrFormSchemaRequired):
-		errorMessage = "Form schema is required"
-	default:
-		errorMessage = "Failed to create form"
-	}
+	errorMessage := h.getFormErrorMessage(err, "Failed to create form")
 
 	// Re-render the form creation page with the error message
 	return h.Inertia.Render(c, "Forms/New", inertia.Props{
@@ -198,4 +191,43 @@ func (h *FormWebHandler) handleFormCreationError(c echo.Context, err error) erro
 			"error": errorMessage,
 		},
 	})
+}
+
+// handleFormUpdateError handles form update errors
+func (h *FormWebHandler) handleFormUpdateError(c echo.Context, form *model.Form, err error) error {
+	errorMessage := h.getFormErrorMessage(err, "Failed to update form")
+
+	// Extract CORS origins for re-rendering
+	corsOrigins, _, _ := form.GetCorsConfig()
+
+	// Re-render the edit page with the error message
+	return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
+		"title": "Edit Form",
+		"form": map[string]any{
+			"id":          form.ID,
+			"title":       form.Title,
+			"description": form.Description,
+			"status":      form.Status,
+			"corsOrigins": corsOrigins,
+			"createdAt":   form.CreatedAt,
+			"updatedAt":   form.UpdatedAt,
+		},
+		"flash": map[string]string{
+			"error": errorMessage,
+		},
+	})
+}
+
+// getFormErrorMessage returns a user-friendly error message
+func (h *FormWebHandler) getFormErrorMessage(err error, defaultMessage string) string {
+	switch {
+	case errors.Is(err, model.ErrFormTitleRequired):
+		return "Form title is required"
+	case errors.Is(err, model.ErrFormSchemaRequired):
+		return "Form schema is required"
+	case errors.Is(err, model.ErrFormInvalid):
+		return "Form validation failed"
+	default:
+		return defaultMessage
+	}
 }

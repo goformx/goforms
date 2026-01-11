@@ -62,7 +62,7 @@ function handleSubmit() {
 
 <template>
   <DashboardLayout title="Create New Form" subtitle="Create a new form to collect data">
-    <div class="max-w-2xl">
+    <div class="max-w-2xl mx-auto">
       <Card class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Form Details</CardTitle>
@@ -74,9 +74,10 @@ function handleSubmit() {
         <form @submit.prevent="handleSubmit">
           <CardContent class="space-y-4">
             <!-- Error Alert -->
-            <Alert v-if="serverError || props.flash?.error" variant="destructive">
+            <Alert v-if="serverError || props.flash?.error" variant="destructive"
+              class="bg-destructive/15 border-destructive text-destructive">
               <AlertCircle class="h-4 w-4" />
-              <AlertDescription>
+              <AlertDescription class="font-medium">
                 {{ serverError || props.flash?.error }}
               </AlertDescription>
             </Alert>

@@ -38,8 +38,15 @@ func NewFormRequestProcessor(
 
 // ProcessCreateRequest processes form creation requests
 func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCreateRequest, error) {
-	req := &FormCreateRequest{
-		Title: p.sanitizer.String(c.FormValue("title")),
+	req := &FormCreateRequest{}
+
+	// Try to bind JSON first (Inertia sends JSON)
+	if err := c.Bind(req); err != nil {
+		// Fallback to form values
+		req.Title = p.sanitizer.String(c.FormValue("title"))
+	} else {
+		// Sanitize bound values
+		req.Title = p.sanitizer.String(req.Title)
 	}
 
 	if err := p.validateCreateRequest(req); err != nil {
