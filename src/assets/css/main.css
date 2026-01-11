@@ -403,15 +403,15 @@
 .component-edit-header {
   background-color: hsl(var(--card)) !important;
   border-bottom: 1px solid hsl(var(--border)) !important;
-  padding: 1.25rem 1.5rem !important;
+  padding: 1rem !important;
 }
 
 .formio-dialog .formio-dialog-header h4,
 .formio-dialog-content h4 {
   color: hsl(var(--foreground)) !important;
   font-weight: 600 !important;
-  font-size: 1.125rem !important;
-  margin: 0 0 0.5rem 0 !important;
+  font-size: 1rem !important;
+  margin: 0 !important;
 }
 
 /* Close button */
@@ -430,7 +430,7 @@
 .formio-dialog .formio-dialog-body,
 .component-edit-container {
   background-color: hsl(var(--card)) !important;
-  padding: 1.5rem !important;
+  padding: 1rem !important;
   max-height: 70vh;
   overflow-y: auto;
 }
@@ -439,25 +439,35 @@
 .formio-dialog .nav-tabs,
 .component-edit-tabs .nav-tabs,
 .editForm .nav-tabs {
+  display: flex !important;
+  flex-direction: row !important;
+  flex-wrap: wrap !important;
+  list-style: none !important;
   background-color: hsl(var(--card)) !important;
   border-bottom: 1px solid hsl(var(--border)) !important;
-  padding: 0 1.5rem !important;
-  margin-bottom: 0 !important;
-  flex-wrap: nowrap !important;
-  overflow-x: auto !important;
+  padding: 0 !important;
+  margin: 0 0 1rem 0 !important;
+  gap: 0 !important;
+}
+
+.formio-dialog .nav-tabs .nav-item,
+.editForm .nav-tabs .nav-item {
+  margin: 0 !important;
 }
 
 .formio-dialog .nav-tabs .nav-link,
 .component-edit-tabs .nav-tabs .nav-link,
 .editForm .nav-tabs .nav-link {
+  display: inline-block !important;
   color: hsl(var(--muted-foreground)) !important;
   background-color: transparent !important;
   border: none !important;
   border-bottom: 2px solid transparent !important;
-  padding: 0.75rem 1rem !important;
-  font-size: 0.875rem !important;
+  padding: 0.625rem 0.875rem !important;
+  font-size: 0.8125rem !important;
   white-space: nowrap !important;
   transition: all 0.15s ease !important;
+  text-decoration: none !important;
 }
 
 .formio-dialog .nav-tabs .nav-link:hover,
@@ -480,7 +490,7 @@
 .component-edit-tabs .tab-content,
 .editForm .tab-content {
   background-color: hsl(var(--card)) !important;
-  padding: 1.5rem !important;
+  padding: 1rem !important;
 }
 
 .formio-dialog .tab-pane {
@@ -490,7 +500,7 @@
 /* Form groups in modal */
 .formio-dialog .form-group,
 .editForm .form-group {
-  margin-bottom: 1.5rem !important;
+  margin-bottom: 0.5rem !important;
 }
 
 /* Labels in modal */
@@ -499,10 +509,9 @@
 .formio-dialog .col-form-label,
 .editForm label {
   color: hsl(var(--foreground)) !important;
-  font-size: 0.875rem !important;
+  font-size: 0.8125rem !important;
   font-weight: 500 !important;
-  margin-bottom: 0.5rem !important;
-  display: block !important;
+  margin-bottom: 0.375rem !important;
 }
 
 /* Help text / descriptions */
@@ -511,7 +520,7 @@
 .editForm .form-text {
   color: hsl(var(--muted-foreground)) !important;
   font-size: 0.75rem !important;
-  margin-top: 0.5rem !important;
+  margin-top: 0.25rem !important;
 }
 
 /* Text inputs in modal */
@@ -525,9 +534,9 @@
   border: 1px solid hsl(var(--border)) !important;
   border-radius: var(--radius) !important;
   color: hsl(var(--foreground)) !important;
-  padding: 0.625rem 0.875rem !important;
-  font-size: 0.875rem !important;
-  line-height: 1.5 !important;
+  padding: 0.5rem 0.75rem !important;
+  font-size: 0.8125rem !important;
+  line-height: 1.4 !important;
 }
 
 .formio-dialog .form-control:focus,
@@ -552,8 +561,8 @@
   border: 1px solid hsl(var(--border)) !important;
   border-radius: var(--radius) !important;
   color: hsl(var(--foreground)) !important;
-  padding: 0.625rem 0.875rem !important;
-  line-height: 1.5 !important;
+  padding: 0.5rem 0.75rem !important;
+  line-height: 1.4 !important;
 }
 
 .formio-dialog select option,
@@ -662,6 +671,8 @@
   background-color: hsl(var(--input)) !important;
   border: 1px solid hsl(var(--border)) !important;
   border-radius: var(--radius) !important;
+  width: 100% !important;
+  min-height: 60px !important;
 }
 
 .formio-dialog .ace_gutter {
@@ -669,13 +680,48 @@
   color: hsl(var(--muted-foreground)) !important;
 }
 
-.formio-dialog .ace_content {
+.formio-dialog .ace_content,
+.formio-dialog .ace_scroller {
   background-color: hsl(var(--input)) !important;
 }
 
 .formio-dialog .ace_line,
 .formio-dialog .ace_text-layer {
   color: hsl(var(--foreground)) !important;
+}
+
+.formio-dialog .ace_cursor {
+  color: hsl(var(--foreground)) !important;
+}
+
+.formio-dialog .ace_placeholder {
+  color: hsl(var(--muted-foreground)) !important;
+  font-style: italic !important;
+}
+
+/* Fix HTML/text editor split-pane layout */
+.formio-dialog .formio-editor-read,
+.formio-dialog .formio-component-htmlelement .card,
+.formio-dialog .formio-wysiwyg-editor {
+  display: none !important;
+}
+
+/* Editor container should be full width */
+.formio-dialog .formio-editor,
+.formio-dialog .form-group .row {
+  display: block !important;
+}
+
+.formio-dialog .form-group .row > [class*="col-"] {
+  width: 100% !important;
+  max-width: 100% !important;
+  flex: none !important;
+  padding: 0 !important;
+}
+
+/* Hide the preview column in split editor */
+.formio-dialog .form-group .row > [class*="col-"]:last-child:not(:first-child) {
+  display: none !important;
 }
 
 /* Cards inside modal */
@@ -696,6 +742,7 @@
 .formio-dialog .card-body,
 .editForm .card-body {
   background-color: hsl(var(--card)) !important;
+  padding: 0.75rem 1rem !important;
 }
 
 /* Table inside modal */

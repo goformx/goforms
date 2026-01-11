@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref, computed } from "vue";
+import { ref, computed, watch } from "vue";
 import { useForm, router, Link } from "@inertiajs/vue3";
 import DashboardLayout from "@/components/layout/DashboardLayout.vue";
 import BuilderLayout from "@/components/form-builder/BuilderLayout.vue";
@@ -183,16 +183,30 @@ function viewSchema() {
   showSchemaModal.value = true;
 }
 
-// Show flash messages on mount
-if (props.flash?.success) {
-  toast.success(props.flash.success);
-}
-if (props.flash?.error) {
-  toast.error(props.flash.error);
-}
-if (builderError.value) {
-  toast.error(builderError.value);
-}
+// Show flash messages reactively (when page re-renders with flash)
+watch(
+  () => props.flash,
+  (flash) => {
+    if (flash?.success) {
+      toast.success(flash.success);
+    }
+    if (flash?.error) {
+      toast.error(flash.error);
+    }
+  },
+  { immediate: true }
+);
+
+// Show builder errors
+watch(
+  builderError,
+  (error) => {
+    if (error) {
+      toast.error(error);
+    }
+  },
+  { immediate: true }
+);
 </script>
 
 <template>

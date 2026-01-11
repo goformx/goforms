@@ -1,6 +1,7 @@
 import { createApp, h, type DefineComponent } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
 import { Toaster } from "@/components/ui/sonner";
+import "vue-sonner/style.css";
 import "./assets/css/main.css";
 
 // Import all page components with lazy loading

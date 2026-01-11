@@ -6,6 +6,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -228,6 +229,11 @@ func (h *FormWebHandler) getFormErrorMessage(err error, defaultMessage string) s
 	case errors.Is(err, model.ErrFormInvalid):
 		return "Form validation failed"
 	default:
+		// For validation errors (like CORS), return the actual message
+		errMsg := err.Error()
+		if strings.Contains(errMsg, "CORS") || strings.Contains(errMsg, "required") {
+			return errMsg
+		}
 		return defaultMessage
 	}
 }
