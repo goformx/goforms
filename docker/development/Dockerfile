@@ -12,12 +12,21 @@ RUN apk add --no-cache \
 
 WORKDIR /app
 
+# Add Go tools to PATH
+ENV PATH=$PATH:/go/bin:/root/go/bin:/usr/local/bin
+
 # Install Go tools
 RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
     && go install github.com/a-h/templ/cmd/templ@latest \
     && go install go.uber.org/mock/mockgen@latest \
     && go install github.com/air-verse/air@latest \
-    && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b ~/.local/bin
+    && go install github.com/bombsimon/wsl/v4/cmd/wsl@latest \
+    && go install golang.org/x/tools/gopls@latest \
+    && go install github.com/go-delve/delve/cmd/dlv@latest \
+    && go install golang.org/x/tools/cmd/goimports@latest \
+    && go install github.com/securego/gosec/v2/cmd/gosec@latest \
+    && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
+    && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
 
 # Copy package files for frontend
 COPY package*.json ./
