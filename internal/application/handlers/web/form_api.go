@@ -10,6 +10,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/security"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
@@ -77,7 +78,13 @@ func (h *FormAPIHandler) RegisterAuthenticatedRoutes(formsAPI *echo.Group) {
 
 // RegisterPublicRoutes registers routes that don't require authentication
 func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
-	// Public routes (no authentication required)
+	// Apply API key middleware if enabled
+	if h.Config.Security.APIKey.Enabled {
+		apiKeyAuth := security.NewAPIKeyAuth(h.Logger, h.Config)
+		formsAPI.Use(apiKeyAuth.Setup())
+	}
+
+	// Public routes (no authentication required, but API key required if enabled)
 	// These are for embedded forms on external websites
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
 	formsAPI.GET("/:id/validation", h.handleFormValidationSchema)
