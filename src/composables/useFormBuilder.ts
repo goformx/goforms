@@ -332,16 +332,15 @@ export function useFormBuilder(
     const currentSchema = getSchema();
 
     // Remove component from array
-    const filterComponents = (components: unknown[]): unknown[] => {
-      return components.filter((component) => {
-        const comp = component as FormComponent;
+    const filterComponents = (components: FormComponent[]): FormComponent[] => {
+      return components.filter((comp) => {
         if (comp.key === fieldKey) return false;
 
         // Recursively filter nested components
         if (comp["components"]) {
           comp["components"] = filterComponents(
-            comp["components"] as unknown[],
-          ) as FormComponent[];
+            comp["components"] as FormComponent[],
+          );
         }
         return true;
       });
