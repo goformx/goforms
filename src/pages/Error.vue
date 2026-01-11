@@ -73,8 +73,14 @@ function goBack() {
 
 <template>
   <GuestLayout :title="title">
-    <div class="flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
-      <Card class="w-full max-w-md text-center">
+    <div class="relative flex min-h-[calc(100vh-8rem)] items-center justify-center px-4 py-12">
+      <!-- Subtle gradient background -->
+      <div class="absolute inset-0 overflow-hidden">
+        <div class="absolute top-[30%] left-[20%] w-[400px] h-[400px] bg-red-500/10 rounded-full blur-3xl" />
+        <div class="absolute bottom-[20%] right-[20%] w-[300px] h-[300px] bg-orange-500/10 rounded-full blur-3xl" />
+      </div>
+
+      <Card class="relative z-10 w-full max-w-md text-center bg-card/80 backdrop-blur-sm border-border/50">
         <CardHeader>
           <div class="mx-auto mb-4 flex h-16 w-16 items-center justify-center rounded-full bg-destructive/10">
             <AlertTriangle class="h-8 w-8 text-destructive" />

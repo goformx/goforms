@@ -63,7 +63,7 @@ function handleSubmit() {
 <template>
   <DashboardLayout title="Create New Form" subtitle="Create a new form to collect data">
     <div class="max-w-2xl">
-      <Card>
+      <Card class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Form Details</CardTitle>
           <CardDescription>
@@ -84,37 +84,25 @@ function handleSubmit() {
             <!-- Title Field -->
             <div class="space-y-2">
               <Label for="title">Form Title <span class="text-destructive">*</span></Label>
-              <Input
-                id="title"
-                v-model="form.title"
-                type="text"
-                placeholder="Enter form title"
-                required
-              />
+              <Input id="title" v-model="form.title" type="text" placeholder="Enter form title" required />
             </div>
 
             <!-- Description Field -->
             <div class="space-y-2">
               <Label for="description">Description</Label>
-              <textarea
-                id="description"
-                v-model="form.description"
+              <textarea id="description" v-model="form.description"
                 class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
-                placeholder="Enter form description (optional)"
-                rows="3"
-              />
+                placeholder="Enter form description (optional)" rows="3" />
             </div>
           </CardContent>
 
           <CardFooter class="flex justify-between">
-            <Button
-              type="button"
-              variant="outline"
-              @click="router.visit('/dashboard')"
-            >
+            <Button type="button" variant="outline" @click="router.visit('/dashboard')">
               Cancel
             </Button>
-            <Button type="submit" :disabled="isSubmitting">
+            <Button type="submit"
+              class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-0"
+              :disabled="isSubmitting">
               <span v-if="isSubmitting">Creating...</span>
               <span v-else>Create Form</span>
             </Button>

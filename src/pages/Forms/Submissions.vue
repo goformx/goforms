@@ -97,10 +97,7 @@ function exportSubmissions() {
 </script>
 
 <template>
-  <DashboardLayout
-    :title="`Submissions: ${props.form.title}`"
-    subtitle="View and manage form submissions"
-  >
+  <DashboardLayout :title="`Submissions: ${props.form.title}`" subtitle="View and manage form submissions">
     <template #actions>
       <Button variant="outline" as-child>
         <Link :href="`/forms/${props.form.id}/edit`">
@@ -115,7 +112,7 @@ function exportSubmissions() {
     </template>
 
     <!-- Empty State -->
-    <Card v-if="!hasSubmissions">
+    <Card v-if="!hasSubmissions" class="bg-card/50 backdrop-blur-sm border-border/50">
       <CardContent class="flex flex-col items-center justify-center py-12">
         <div class="text-center">
           <h3 class="text-lg font-semibold">No submissions yet</h3>
@@ -133,7 +130,7 @@ function exportSubmissions() {
     </Card>
 
     <!-- Submissions Table -->
-    <Card v-else>
+    <Card v-else class="bg-card/50 backdrop-blur-sm border-border/50">
       <Table>
         <TableHeader>
           <TableRow>

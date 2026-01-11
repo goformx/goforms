@@ -97,7 +97,8 @@ function deleteForm() {
 </script>
 
 <template>
-  <Card class="form-card group hover:shadow-lg transition-all duration-200 border-border">
+  <Card
+    class="form-card group hover:shadow-lg transition-all duration-200 bg-card/50 backdrop-blur-sm border-border/50 hover:bg-card/70 hover:border-border">
     <CardHeader>
       <div class="flex items-start justify-between gap-2">
         <div class="flex-1 min-w-0">
@@ -115,11 +116,7 @@ function deleteForm() {
         </div>
         <DropdownMenu>
           <DropdownMenuTrigger as-child>
-            <Button
-              variant="ghost"
-              size="icon"
-              class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity"
-            >
+            <Button variant="ghost" size="icon" class="h-8 w-8 opacity-0 group-hover:opacity-100 transition-opacity">
               <MoreVertical class="h-4 w-4" />
             </Button>
           </DropdownMenuTrigger>

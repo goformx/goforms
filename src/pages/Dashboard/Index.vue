@@ -154,7 +154,9 @@ if (props.flash?.error) {
 <template>
   <DashboardLayout title="Your Forms" subtitle="Manage and create forms">
     <template #actions>
-      <Button as-child>
+      <Button
+        class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-0"
+        as-child>
         <Link href="/forms/new">
           <Plus class="mr-2 h-4 w-4" />
           New Form
@@ -165,27 +167,27 @@ if (props.flash?.error) {
     <div class="space-y-6">
       <!-- Stats Overview -->
       <div v-if="hasForms" class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
+        <Card class="bg-card/50 backdrop-blur-sm border-border/50">
           <CardContent class="pt-6">
             <div class="text-2xl font-bold">{{ stats.total }}</div>
             <p class="text-xs text-muted-foreground">Total Forms</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card class="bg-card/50 backdrop-blur-sm border-border/50">
           <CardContent class="pt-6">
-            <div class="text-2xl font-bold text-green-600">{{ stats.published }}</div>
+            <div class="text-2xl font-bold text-green-400">{{ stats.published }}</div>
             <p class="text-xs text-muted-foreground">Published</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card class="bg-card/50 backdrop-blur-sm border-border/50">
           <CardContent class="pt-6">
-            <div class="text-2xl font-bold text-yellow-600">{{ stats.draft }}</div>
+            <div class="text-2xl font-bold text-yellow-400">{{ stats.draft }}</div>
             <p class="text-xs text-muted-foreground">Drafts</p>
           </CardContent>
         </Card>
-        <Card>
+        <Card class="bg-card/50 backdrop-blur-sm border-border/50">
           <CardContent class="pt-6">
-            <div class="text-2xl font-bold text-gray-600">{{ stats.archived }}</div>
+            <div class="text-2xl font-bold text-gray-400">{{ stats.archived }}</div>
             <p class="text-xs text-muted-foreground">Archived</p>
           </CardContent>
         </Card>
@@ -195,12 +197,8 @@ if (props.flash?.error) {
       <div v-if="hasForms" class="flex flex-col sm:flex-row gap-4">
         <div class="relative flex-1">
           <Search class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            v-model="searchQuery"
-            type="search"
-            placeholder="Search forms by title or description..."
-            class="pl-9"
-          />
+          <Input v-model="searchQuery" type="search" placeholder="Search forms by title or description..."
+            class="pl-9" />
         </div>
         <div class="flex gap-2">
           <Select v-model="statusFilter">
@@ -228,17 +226,22 @@ if (props.flash?.error) {
       </div>
 
       <!-- Empty State (No Forms) -->
-      <Card v-if="!hasForms">
+      <Card v-if="!hasForms" class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardContent class="flex flex-col items-center justify-center py-16">
           <div class="text-center max-w-sm">
-            <div class="mx-auto mb-4 h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center">
-              <Plus class="h-6 w-6 text-primary" />
+            <div
+              class="mx-auto mb-4 h-12 w-12 rounded-full bg-gradient-to-br from-indigo-500/20 to-purple-500/20 flex items-center justify-center">
+              <Plus class="h-6 w-6 text-indigo-400" />
             </div>
             <h3 class="text-lg font-semibold mb-2">No forms yet</h3>
             <p class="text-muted-foreground mb-6">
-              Get started by creating your first form. You can collect responses, analyze data, and share your forms with anyone.
+              Get started by creating your first form. You can collect responses, analyze data, and share your forms
+              with
+              anyone.
             </p>
-            <Button as-child>
+            <Button
+              class="bg-gradient-to-r from-indigo-500 to-purple-500 hover:from-indigo-600 hover:to-purple-600 text-white border-0"
+              as-child>
               <Link href="/forms/new">
                 <Plus class="mr-2 h-4 w-4" />
                 Create Your First Form
@@ -249,7 +252,7 @@ if (props.flash?.error) {
       </Card>
 
       <!-- Empty State (No Results) -->
-      <Card v-else-if="!hasFilteredForms">
+      <Card v-else-if="!hasFilteredForms" class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardContent class="flex flex-col items-center justify-center py-16">
           <div class="text-center max-w-sm">
             <SlidersHorizontal class="mx-auto h-12 w-12 text-muted-foreground/50 mb-4" />
@@ -257,13 +260,10 @@ if (props.flash?.error) {
             <p class="text-muted-foreground mb-6">
               No forms match your current filters. Try adjusting your search or filter criteria.
             </p>
-            <Button
-              variant="outline"
-              @click="() => {
-                searchQuery = '';
-                statusFilter = 'all';
-              }"
-            >
+            <Button variant="outline" class="border-border/50" @click="() => {
+              searchQuery = '';
+              statusFilter = 'all';
+            }">
               Clear Filters
             </Button>
           </div>
@@ -272,15 +272,8 @@ if (props.flash?.error) {
 
       <!-- Forms Grid -->
       <div v-else class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-        <FormCard
-          v-for="form in filteredForms"
-          :key="form.id"
-          :form="form"
-          @duplicate="duplicateForm"
-          @export="exportForm"
-          @archive="archiveForm"
-          @delete="deleteForm"
-        />
+        <FormCard v-for="form in filteredForms" :key="form.id" :form="form" @duplicate="duplicateForm"
+          @export="exportForm" @archive="archiveForm" @delete="deleteForm" />
       </div>
     </div>
   </DashboardLayout>

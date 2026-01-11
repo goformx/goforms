@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import { onMounted, onUnmounted } from "vue";
 import { Head } from "@inertiajs/vue3";
 import Nav from "@/components/shared/Nav.vue";
 import Footer from "@/components/shared/Footer.vue";
@@ -13,16 +14,26 @@ withDefaults(defineProps<Props>(), {
   title: "Dashboard",
   subtitle: "",
 });
+
+// Apply dark mode to html element for Tailwind
+onMounted(() => {
+  document.documentElement.classList.add("dark");
+});
+
+onUnmounted(() => {
+  document.documentElement.classList.remove("dark");
+});
 </script>
 
 <template>
   <div class="min-h-screen flex flex-col bg-background">
+
     <Head :title="title" />
-    
+
     <header>
       <Nav />
     </header>
-    
+
     <main class="flex-1">
       <div class="container py-6">
         <DashboardHeader :title="title" :subtitle="subtitle">
@@ -30,13 +41,13 @@ withDefaults(defineProps<Props>(), {
             <slot name="actions" />
           </template>
         </DashboardHeader>
-        
+
         <div class="mt-6">
           <slot />
         </div>
       </div>
     </main>
-    
+
     <Footer />
   </div>
 </template>

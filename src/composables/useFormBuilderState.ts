@@ -65,7 +65,7 @@ const MAX_HISTORY_SIZE = 50;
  * ```
  */
 export function useFormBuilderState(
-  formId?: string
+  formId?: string,
 ): UseFormBuilderStateReturn {
   // State
   const selectedField = ref<string | null>(null);
@@ -80,9 +80,7 @@ export function useFormBuilderState(
   // Load state from localStorage if formId provided
   if (formId) {
     try {
-      const savedState = localStorage.getItem(
-        `form-builder-state-${formId}`
-      );
+      const savedState = localStorage.getItem(`form-builder-state-${formId}`);
       if (savedState) {
         const parsed = JSON.parse(savedState) as {
           selectedField: string | null;
@@ -106,7 +104,7 @@ export function useFormBuilderState(
       };
       localStorage.setItem(
         `form-builder-state-${formId}`,
-        JSON.stringify(state)
+        JSON.stringify(state),
       );
     } catch (error) {
       console.error("Failed to save form builder state:", error);
@@ -166,7 +164,7 @@ export function useFormBuilderState(
 
     historyIndex.value--;
     return JSON.parse(
-      JSON.stringify(history.value[historyIndex.value])
+      JSON.stringify(history.value[historyIndex.value]),
     ) as FormSchema;
   };
 
@@ -179,7 +177,7 @@ export function useFormBuilderState(
 
     historyIndex.value++;
     return JSON.parse(
-      JSON.stringify(history.value[historyIndex.value])
+      JSON.stringify(history.value[historyIndex.value]),
     ) as FormSchema;
   };
 

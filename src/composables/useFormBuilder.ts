@@ -245,7 +245,7 @@ export function useFormBuilder(
           void saveSchema();
         }, delay);
       },
-      { deep: true }
+      { deep: true },
     );
   }
 
@@ -257,7 +257,7 @@ export function useFormBuilder(
       markDirty();
       options.onSchemaChange?.(newSchema);
     },
-    { deep: true }
+    { deep: true },
   );
 
   /**
@@ -283,7 +283,10 @@ export function useFormBuilder(
   /**
    * Find a component by key in the schema
    */
-  function findComponent(components: unknown[], key: string): FormComponent | null {
+  function findComponent(
+    components: unknown[],
+    key: string,
+  ): FormComponent | null {
     for (const component of components) {
       const comp = component as FormComponent;
       if (comp.key === key) {
@@ -336,7 +339,9 @@ export function useFormBuilder(
 
         // Recursively filter nested components
         if (comp["components"]) {
-          comp["components"] = filterComponents(comp["components"] as unknown[]) as FormComponent[];
+          comp["components"] = filterComponents(
+            comp["components"] as unknown[],
+          ) as FormComponent[];
         }
         return true;
       });

@@ -105,7 +105,7 @@ function handlePasswordSubmit() {
       </Alert>
 
       <!-- Profile Information -->
-      <Card>
+      <Card class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Profile Information</CardTitle>
           <CardDescription>
@@ -117,31 +117,16 @@ function handlePasswordSubmit() {
             <div class="grid grid-cols-2 gap-4">
               <div class="space-y-2">
                 <Label for="firstName">First Name</Label>
-                <Input
-                  id="firstName"
-                  v-model="form.firstName"
-                  type="text"
-                  placeholder="Enter your first name"
-                />
+                <Input id="firstName" v-model="form.firstName" type="text" placeholder="Enter your first name" />
               </div>
               <div class="space-y-2">
                 <Label for="lastName">Last Name</Label>
-                <Input
-                  id="lastName"
-                  v-model="form.lastName"
-                  type="text"
-                  placeholder="Enter your last name"
-                />
+                <Input id="lastName" v-model="form.lastName" type="text" placeholder="Enter your last name" />
               </div>
             </div>
             <div class="space-y-2">
               <Label for="email">Email</Label>
-              <Input
-                id="email"
-                v-model="form.email"
-                type="email"
-                placeholder="Enter your email"
-              />
+              <Input id="email" v-model="form.email" type="email" placeholder="Enter your email" />
             </div>
           </CardContent>
           <CardFooter>
@@ -154,7 +139,7 @@ function handlePasswordSubmit() {
       </Card>
 
       <!-- Update Password -->
-      <Card>
+      <Card class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>Update Password</CardTitle>
           <CardDescription>
@@ -165,30 +150,18 @@ function handlePasswordSubmit() {
           <CardContent class="space-y-4">
             <div class="space-y-2">
               <Label for="currentPassword">Current Password</Label>
-              <Input
-                id="currentPassword"
-                v-model="passwordForm.currentPassword"
-                type="password"
-                placeholder="Enter your current password"
-              />
+              <Input id="currentPassword" v-model="passwordForm.currentPassword" type="password"
+                placeholder="Enter your current password" />
             </div>
             <div class="space-y-2">
               <Label for="newPassword">New Password</Label>
-              <Input
-                id="newPassword"
-                v-model="passwordForm.newPassword"
-                type="password"
-                placeholder="Enter your new password"
-              />
+              <Input id="newPassword" v-model="passwordForm.newPassword" type="password"
+                placeholder="Enter your new password" />
             </div>
             <div class="space-y-2">
               <Label for="confirmPassword">Confirm Password</Label>
-              <Input
-                id="confirmPassword"
-                v-model="passwordForm.confirmPassword"
-                type="password"
-                placeholder="Confirm your new password"
-              />
+              <Input id="confirmPassword" v-model="passwordForm.confirmPassword" type="password"
+                placeholder="Confirm your new password" />
             </div>
           </CardContent>
           <CardFooter>

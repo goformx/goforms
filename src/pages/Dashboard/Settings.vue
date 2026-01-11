@@ -82,7 +82,7 @@ function handleDeleteAccount() {
       </Alert>
 
       <!-- General Settings -->
-      <Card>
+      <Card class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>General Settings</CardTitle>
           <CardDescription>
@@ -93,11 +93,8 @@ function handleDeleteAccount() {
           <CardContent class="space-y-4">
             <div class="space-y-2">
               <Label for="defaultFormStatus">Default Form Status</Label>
-              <select
-                id="defaultFormStatus"
-                v-model="form.defaultFormStatus"
-                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-              >
+              <select id="defaultFormStatus" v-model="form.defaultFormStatus"
+                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2">
                 <option value="draft">Draft</option>
                 <option value="published">Published</option>
               </select>
@@ -107,12 +104,8 @@ function handleDeleteAccount() {
             </div>
 
             <div class="flex items-center space-x-2">
-              <input
-                id="notificationsEnabled"
-                v-model="form.notificationsEnabled"
-                type="checkbox"
-                class="h-4 w-4 rounded border-input"
-              />
+              <input id="notificationsEnabled" v-model="form.notificationsEnabled" type="checkbox"
+                class="h-4 w-4 rounded border-input" />
               <Label for="notificationsEnabled">Enable email notifications</Label>
             </div>
           </CardContent>
@@ -126,7 +119,7 @@ function handleDeleteAccount() {
       </Card>
 
       <!-- Danger Zone -->
-      <Card class="border-destructive">
+      <Card class="bg-card/50 backdrop-blur-sm border-destructive/50">
         <CardHeader>
           <CardTitle class="text-destructive">Danger Zone</CardTitle>
           <CardDescription>
@@ -141,10 +134,7 @@ function handleDeleteAccount() {
                 Permanently delete your account and all associated data.
               </p>
             </div>
-            <Button
-              variant="destructive"
-              @click="handleDeleteAccount"
-            >
+            <Button variant="destructive" @click="handleDeleteAccount">
               <Trash2 class="mr-2 h-4 w-4" />
               Delete Account
             </Button>

@@ -130,7 +130,7 @@ onMounted(async () => {
         <AlertDescription>{{ error }}</AlertDescription>
       </Alert>
 
-      <Card>
+      <Card class="bg-card/50 backdrop-blur-sm border-border/50">
         <CardHeader>
           <CardTitle>{{ props.form.title }}</CardTitle>
           <p v-if="props.form.description" class="text-muted-foreground">

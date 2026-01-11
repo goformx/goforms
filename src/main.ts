@@ -10,7 +10,7 @@ type PageResolver = Record<string, () => Promise<PageModule>>;
 // Import all page components
 const pages = import.meta.glob<PageModule>("./pages/**/*.vue");
 
-createInertiaApp({
+void createInertiaApp({
   resolve: (name: string) => {
     const resolver = pages as PageResolver;
     const match = resolver[`./pages/${name}.vue`];

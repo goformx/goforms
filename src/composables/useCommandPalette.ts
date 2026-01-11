@@ -43,14 +43,20 @@ function fuzzyMatch(search: string, target: string): number {
   let score = 0;
   let searchIndex = 0;
 
-  for (let i = 0; i < targetLower.length && searchIndex < searchLower.length; i++) {
+  for (
+    let i = 0;
+    i < targetLower.length && searchIndex < searchLower.length;
+    i++
+  ) {
     if (targetLower[i] === searchLower[searchIndex]) {
       score += 1;
       searchIndex++;
     }
   }
 
-  return searchIndex === searchLower.length ? 50 * (score / searchLower.length) : 0;
+  return searchIndex === searchLower.length
+    ? 50 * (score / searchLower.length)
+    : 0;
 }
 
 /**
@@ -89,7 +95,7 @@ function fuzzyMatch(search: string, target: string): number {
  * ```
  */
 export function useCommandPalette(
-  commands: Command[]
+  commands: Command[],
 ): UseCommandPaletteReturn {
   const isOpen = ref(false);
   const query = ref("");
@@ -194,7 +200,7 @@ export function useCommandPalette(
     try {
       localStorage.setItem(
         "command-palette-recent",
-        JSON.stringify(recentCommands.value.map((cmd) => cmd.id))
+        JSON.stringify(recentCommands.value.map((cmd) => cmd.id)),
       );
     } catch (error) {
       console.error("Failed to save recent commands:", error);

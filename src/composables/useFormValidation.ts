@@ -54,10 +54,15 @@ export function useFormValidation<T extends Record<string, unknown>>(
 
   function validateField(field: keyof T, value: unknown): string | null {
     try {
+      // Get the inner schema if wrapped in ZodEffects (from .refine())
+      let innerSchema = schema;
+      while (innerSchema instanceof z.ZodEffects) {
+        innerSchema = innerSchema._def.schema;
+      }
+
       // Create a partial schema for the single field
-      const fieldSchema = (schema as z.ZodObject<z.ZodRawShape>).shape[
-        field as string
-      ];
+      const fieldSchema = (innerSchema as unknown as z.ZodObject<z.ZodRawShape>)
+        .shape[field as string];
       if (fieldSchema) {
         fieldSchema.parse(value);
         delete errors.value[field as string];

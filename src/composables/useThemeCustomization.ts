@@ -139,7 +139,7 @@ const THEME_PRESETS: ThemePreset[] = [
  * ```
  */
 export function useThemeCustomization(
-  formId?: string
+  formId?: string,
 ): UseThemeCustomizationReturn {
   const theme = ref<ThemeConfig>({ ...DEFAULT_THEME });
   const isLoading = ref(false);
@@ -155,19 +155,19 @@ export function useThemeCustomization(
     root.style.setProperty("--primary", theme.value.primary);
     root.style.setProperty(
       "--primary-foreground",
-      theme.value.primaryForeground
+      theme.value.primaryForeground,
     );
     root.style.setProperty("--secondary", theme.value.secondary);
     root.style.setProperty(
       "--secondary-foreground",
-      theme.value.secondaryForeground
+      theme.value.secondaryForeground,
     );
     root.style.setProperty("--accent", theme.value.accent);
     root.style.setProperty("--accent-foreground", theme.value.accentForeground);
     root.style.setProperty("--destructive", theme.value.destructive);
     root.style.setProperty(
       "--destructive-foreground",
-      theme.value.destructiveForeground
+      theme.value.destructiveForeground,
     );
     root.style.setProperty("--muted", theme.value.muted);
     root.style.setProperty("--muted-foreground", theme.value.mutedForeground);
@@ -305,7 +305,7 @@ export function useThemeCustomization(
     () => {
       applyThemeVariables();
     },
-    { deep: true }
+    { deep: true },
   );
 
   // Apply initial theme

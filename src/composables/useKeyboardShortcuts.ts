@@ -50,7 +50,7 @@ export interface UseKeyboardShortcutsReturn {
  */
 export function useKeyboardShortcuts(
   shortcuts: ShortcutConfig[],
-  options?: UseKeyboardShortcutsOptions
+  options?: UseKeyboardShortcutsOptions,
 ): UseKeyboardShortcutsReturn {
   const isEnabled = options?.enabled ?? ref(true);
   const isMac = ref(false);
@@ -65,7 +65,7 @@ export function useKeyboardShortcuts(
    */
   const matchesShortcut = (
     event: KeyboardEvent,
-    shortcut: ShortcutConfig
+    shortcut: ShortcutConfig,
   ): boolean => {
     // Check key match (case-insensitive)
     const keyMatches = event.key.toLowerCase() === shortcut.key.toLowerCase();
@@ -89,7 +89,7 @@ export function useKeyboardShortcuts(
 
     // Find matching shortcut
     const matchedShortcut = shortcuts.find((shortcut) =>
-      matchesShortcut(event, shortcut)
+      matchesShortcut(event, shortcut),
     );
 
     if (matchedShortcut) {
