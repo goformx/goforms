@@ -4,8 +4,8 @@ services:
   # GoForms Application (Development)
   goforms-dev:
     build:
-      context: .
-      dockerfile: Dockerfile
+      context: ../..
+      dockerfile: docker/development/Dockerfile
     restart: unless-stopped
     ports:
       - "8090:8090"
@@ -39,9 +39,14 @@ services:
       # CORS Configuration (Development)
       - GOFORMS_CORS_ALLOWED_ORIGINS=http://localhost:5173,http://localhost:8090
       - GOFORMS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
-      - GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With
+      - GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With,X-API-Key
       - GOFORMS_CORS_ALLOW_CREDENTIALS=true
       - GOFORMS_CORS_MAX_AGE=3600
+
+      # API Key Configuration (Development)
+      - GOFORMS_API_KEY_ENABLED=${API_KEY_ENABLED:-false}
+      - GOFORMS_API_KEYS=${API_KEYS:-}
+      - GOFORMS_API_KEY_HEADER_NAME=X-API-Key
 
       # Development Settings
       - GOFORMS_VITE_DEV_HOST=localhost
@@ -82,7 +87,7 @@ services:
       - "5432:5432"
     volumes:
       - postgres-dev-data:/var/lib/postgresql/data
-      - ./migrations:/docker-entrypoint-initdb.d
+      - ../../migrations:/docker-entrypoint-initdb.d
     networks:
       - goforms-dev-network
     healthcheck:

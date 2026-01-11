@@ -36,9 +36,14 @@ services:
       # CORS Configuration
       - GOFORMS_CORS_ALLOWED_ORIGINS=${CORS_ORIGINS:-https://goforms.example.com}
       - GOFORMS_CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
-      - GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With
+      - GOFORMS_CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With,X-API-Key
       - GOFORMS_CORS_ALLOW_CREDENTIALS=true
       - GOFORMS_CORS_MAX_AGE=3600
+
+      # API Key Configuration (Production)
+      - GOFORMS_API_KEY_ENABLED=${API_KEY_ENABLED:-true}
+      - GOFORMS_API_KEYS=${API_KEYS:-}
+      - GOFORMS_API_KEY_HEADER_NAME=X-API-Key
 
       # Timeouts
       - GOFORMS_READ_TIMEOUT=5s

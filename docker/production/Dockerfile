@@ -66,7 +66,7 @@ RUN CGO_ENABLED=0 GOOS=linux go build \
 FROM alpine:3.19
 
 # Install runtime dependencies
-RUN apk add --no-cache ca-certificates tzdata
+RUN apk add --no-cache ca-certificates tzdata wget
 
 # Create non-root user
 RUN addgroup -g 1001 -S goforms && \
