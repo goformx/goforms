@@ -78,7 +78,8 @@ func GetCurrentUser(c echo.Context) *entities.User {
 
 // GetCSRFToken retrieves the CSRF token from context using the configured context key
 // Falls back to reading from cookie if not in context (for GET requests)
-func GetCSRFToken(c echo.Context, contextKey string) string {
+// cookieName defaults to "_csrf" if empty for backward compatibility
+func GetCSRFToken(c echo.Context, contextKey, cookieName string) string {
 	if c == nil {
 		return ""
 	}
@@ -87,17 +88,52 @@ func GetCSRFToken(c echo.Context, contextKey string) string {
 		contextKey = "csrf" // Fallback to default
 	}
 
+	// Use default cookie name if not provided
+	if cookieName == "" {
+		cookieName = "_csrf"
+	}
+
+	// Debug logging (only in development to avoid performance impact)
+	if c.Request() != nil && c.Logger() != nil {
+		c.Logger().Debug("GetCSRFToken: attempting to retrieve token",
+			"context_key", contextKey,
+			"cookie_name", cookieName,
+			"path", c.Request().URL.Path)
+	}
+
 	// Try to get token from context first (works for POST requests and some GET requests)
 	if token, ok := c.Get(contextKey).(string); ok && token != "" {
+		if c.Logger() != nil {
+			c.Logger().Debug("GetCSRFToken: token found in context",
+				"context_key", contextKey,
+				"token_length", len(token))
+		}
 		return token
 	}
 
+	if c.Logger() != nil {
+		c.Logger().Debug("GetCSRFToken: token not found in context, trying cookie",
+			"context_key", contextKey,
+			"cookie_name", cookieName)
+	}
+
 	// Fallback: Try to get token from cookie (for GET requests)
-	// Echo's CSRF middleware stores tokens in a cookie named "_csrf" by default
 	// Note: This works even if the cookie is httpOnly since we're on the server side
-	cookie, err := c.Cookie("_csrf")
+	cookie, err := c.Cookie(cookieName)
 	if err == nil && cookie != nil && cookie.Value != "" {
+		if c.Logger() != nil {
+			c.Logger().Debug("GetCSRFToken: token found in cookie",
+				"cookie_name", cookieName,
+				"token_length", len(cookie.Value))
+		}
 		return cookie.Value
+	}
+
+	if c.Logger() != nil {
+		c.Logger().Debug("GetCSRFToken: token not found in cookie or context",
+			"context_key", contextKey,
+			"cookie_name", cookieName,
+			"cookie_error", err)
 	}
 
 	return ""
@@ -130,6 +166,11 @@ func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.C
 		csrfContextKey = cfg.Security.CSRF.ContextKey
 	}
 
+	csrfCookieName := "_csrf" // Default cookie name
+	if cfg != nil && cfg.Security.CSRF.CookieName != "" {
+		csrfCookieName = cfg.Security.CSRF.CookieName
+	}
+
 	return &PageData{
 		Title:         title,
 		Description:   "",
@@ -144,7 +185,7 @@ func NewPageData(cfg *config.Config, manager web.AssetManagerInterface, c echo.C
 		Forms:         make([]*model.Form, 0),
 		Form:          nil,
 		Submissions:   make([]*model.FormSubmission, 0),
-		CSRFToken:     GetCSRFToken(c, csrfContextKey),
+		CSRFToken:     GetCSRFToken(c, csrfContextKey, csrfCookieName),
 		IsDevelopment: cfg.App.IsDevelopment(),
 		Content:       nil,
 		Message:       nil,

@@ -24,20 +24,50 @@ func (h *FormWebHandler) handleNew(c echo.Context) error {
 		return err
 	}
 
-	// Debug: Log CSRF token from context
-	csrfToken, _ := c.Get("csrf").(string)
-	h.Logger.Debug("handleNew: CSRF token from context",
-		"token_present", csrfToken != "",
-		"token_length", len(csrfToken),
-		"path", c.Request().URL.Path)
+	// Debug: Log CSRF token from context with configured key
+	csrfConfig := h.Config.Security.CSRF
+	csrfContextKey := csrfConfig.ContextKey
+	if csrfContextKey == "" {
+		csrfContextKey = "csrf"
+	}
+	csrfToken, _ := c.Get(csrfContextKey).(string)
+
+	// Also check cookie
+	csrfCookieName := csrfConfig.CookieName
+	if csrfCookieName == "" {
+		csrfCookieName = "_csrf"
+	}
+	csrfCookie, _ := c.Cookie(csrfCookieName)
+
+	cookieTokenLength := 0
+	if csrfCookie != nil && csrfCookie.Value != "" {
+		cookieTokenLength = len(csrfCookie.Value)
+	}
+
+	h.Logger.Debug("handleNew: CSRF token check",
+		"path", c.Request().URL.Path,
+		"context_key", csrfContextKey,
+		"cookie_name", csrfCookieName,
+		"token_in_context", csrfToken != "",
+		"token_in_context_length", len(csrfToken),
+		"token_in_cookie", csrfCookie != nil && csrfCookie.Value != "",
+		"token_in_cookie_length", cookieTokenLength)
 
 	data := h.NewPageData(c, "New Form")
 	data.SetUser(user)
 
 	// Debug: Log CSRF token in page data
+	tokenValuePreview := ""
+	if len(data.CSRFToken) > 0 && len(data.CSRFToken) <= 50 {
+		tokenValuePreview = data.CSRFToken
+	} else if len(data.CSRFToken) > 50 {
+		tokenValuePreview = data.CSRFToken[:50] + "..."
+	}
+
 	h.Logger.Debug("handleNew: CSRF token in page data",
 		"token_present", data.CSRFToken != "",
-		"token_length", len(data.CSRFToken))
+		"token_length", len(data.CSRFToken),
+		"token_value_preview", tokenValuePreview)
 
 	if renderErr := h.Renderer.Render(c, pages.NewForm(*data)); renderErr != nil {
 		return fmt.Errorf("failed to render new form page: %w", renderErr)
