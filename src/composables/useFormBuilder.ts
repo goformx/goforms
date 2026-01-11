@@ -38,14 +38,17 @@ const defaultSchema: FormSchema = {
 /**
  * Composable for integrating Form.io builder into Vue components
  */
-export function useFormBuilder(options: FormBuilderOptions): UseFormBuilderReturn {
+export function useFormBuilder(
+  options: FormBuilderOptions,
+): UseFormBuilderReturn {
   const builder = ref<unknown | null>(null);
   const schema = ref<FormSchema>(options.schema ?? { ...defaultSchema });
   const isLoading = ref(true);
   const error = ref<string | null>(null);
   const isSaving = ref(false);
 
-  let builderInstance: { schema: FormSchema; destroy?: () => void } | null = null;
+  let builderInstance: { schema: FormSchema; destroy?: () => void } | null =
+    null;
 
   async function initializeBuilder() {
     const container = document.getElementById(options.containerId);
@@ -117,8 +120,19 @@ export function useFormBuilder(options: FormBuilderOptions): UseFormBuilderRetur
       builder.value = builderInstance;
 
       // Listen for schema changes
-      if (builderInstance && typeof (builderInstance as { on?: (event: string, callback: (s: FormSchema) => void) => void }).on === "function") {
-        (builderInstance as { on: (event: string, callback: (s: FormSchema) => void) => void }).on("change", (newSchema: FormSchema) => {
+      if (
+        builderInstance &&
+        typeof (
+          builderInstance as {
+            on?: (event: string, callback: (s: FormSchema) => void) => void;
+          }
+        ).on === "function"
+      ) {
+        (
+          builderInstance as {
+            on: (event: string, callback: (s: FormSchema) => void) => void;
+          }
+        ).on("change", (newSchema: FormSchema) => {
           schema.value = newSchema;
           options.onSchemaChange?.(newSchema);
         });
@@ -156,7 +170,7 @@ export function useFormBuilder(options: FormBuilderOptions): UseFormBuilderRetur
 
     try {
       const currentSchema = getSchema();
-      
+
       const response = await fetch(`/api/v1/forms/${options.formId}/schema`, {
         method: "PUT",
         headers: {

@@ -20,7 +20,7 @@ export interface UseFormValidationReturn<T> {
  * Composable for form validation using Zod schemas
  */
 export function useFormValidation<T extends Record<string, unknown>>(
-  schema: ZodSchema<T>
+  schema: ZodSchema<T>,
 ): UseFormValidationReturn<T> {
   const errors = ref<Record<string, string>>({});
   const hasErrors = ref(false);
@@ -55,7 +55,9 @@ export function useFormValidation<T extends Record<string, unknown>>(
   function validateField(field: keyof T, value: unknown): string | null {
     try {
       // Create a partial schema for the single field
-      const fieldSchema = (schema as z.ZodObject<z.ZodRawShape>).shape[field as string];
+      const fieldSchema = (schema as z.ZodObject<z.ZodRawShape>).shape[
+        field as string
+      ];
       if (fieldSchema) {
         fieldSchema.parse(value);
         delete errors.value[field as string];
@@ -106,20 +108,25 @@ export const loginSchema = z.object({
   password: z.string().min(1, "Password is required"),
 });
 
-export const signupSchema = z.object({
-  email: z.string().email("Please enter a valid email address"),
-  password: z
-    .string()
-    .min(8, "Password must be at least 8 characters")
-    .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
-    .regex(/[a-z]/, "Password must contain at least one lowercase letter")
-    .regex(/[0-9]/, "Password must contain at least one number")
-    .regex(/[^A-Za-z0-9]/, "Password must contain at least one special character"),
-  confirmPassword: z.string().min(1, "Please confirm your password"),
-}).refine((data) => data.password === data.confirmPassword, {
-  message: "Passwords don't match",
-  path: ["confirmPassword"],
-});
+export const signupSchema = z
+  .object({
+    email: z.string().email("Please enter a valid email address"),
+    password: z
+      .string()
+      .min(8, "Password must be at least 8 characters")
+      .regex(/[A-Z]/, "Password must contain at least one uppercase letter")
+      .regex(/[a-z]/, "Password must contain at least one lowercase letter")
+      .regex(/[0-9]/, "Password must contain at least one number")
+      .regex(
+        /[^A-Za-z0-9]/,
+        "Password must contain at least one special character",
+      ),
+    confirmPassword: z.string().min(1, "Please confirm your password"),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords don't match",
+    path: ["confirmPassword"],
+  });
 
 export const forgotPasswordSchema = z.object({
   email: z.string().email("Please enter a valid email address"),
