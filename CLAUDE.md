@@ -57,6 +57,7 @@ internal/
 ### Key Architectural Patterns
 
 1. **Uber FX Modules** - DI is organized in modules loaded in `main.go`:
+
    - `config.Module` → `infrastructure.Module` → `domain.Module` → `application.Module` → `presentation.Module` → `web.Module`
 
 2. **Handler Interface** - All HTTP handlers implement `web.Handler` with `Register()`, `Start()`, `Stop()` methods and are collected via FX groups.
