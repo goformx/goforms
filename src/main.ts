@@ -1,5 +1,6 @@
 import { createApp, h } from "vue";
 import { createInertiaApp } from "@inertiajs/vue3";
+import { Toaster } from "@/components/ui/sonner";
 import "./assets/css/main.css";
 
 // Type for page modules
@@ -19,8 +20,17 @@ createInertiaApp({
     return match();
   },
   setup({ el, App, props, plugin }) {
-    createApp({ render: () => h(App, props) })
-      .use(plugin)
-      .mount(el);
+    const app = createApp({
+      render: () =>
+        h("div", [
+          h(App, props),
+          h(Toaster, {
+            position: "top-right",
+            richColors: true,
+          }),
+        ]),
+    });
+
+    app.use(plugin).mount(el);
   },
 });

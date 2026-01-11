@@ -1,7 +1,8 @@
-import { ref, onMounted, onUnmounted, type Ref } from "vue";
+import { ref, onMounted, onUnmounted, watch, type Ref } from "vue";
 import { Formio } from "@formio/js";
 import goforms from "@goformx/formio";
 import { Logger } from "@/js/core/logger";
+import { useFormBuilderState, type FormComponent } from "./useFormBuilderState";
 
 // Register GoFormX templates
 Formio.use(goforms);
@@ -17,6 +18,8 @@ export interface FormBuilderOptions {
   schema?: FormSchema;
   onSchemaChange?: (schema: FormSchema) => void;
   onSave?: (schema: FormSchema) => Promise<void>;
+  autoSave?: boolean;
+  autoSaveDelay?: number;
 }
 
 export interface UseFormBuilderReturn {
@@ -28,6 +31,17 @@ export interface UseFormBuilderReturn {
   saveSchema: () => Promise<void>;
   getSchema: () => FormSchema;
   setSchema: (newSchema: FormSchema) => void;
+  // New methods
+  selectedField: Ref<string | null>;
+  selectField: (fieldKey: string | null) => void;
+  duplicateField: (fieldKey: string) => void;
+  deleteField: (fieldKey: string) => void;
+  undo: () => void;
+  redo: () => void;
+  canUndo: Ref<boolean>;
+  canRedo: Ref<boolean>;
+  exportSchema: () => string;
+  importSchema: (json: string) => void;
 }
 
 const defaultSchema: FormSchema = {
@@ -47,8 +61,21 @@ export function useFormBuilder(
   const error = ref<string | null>(null);
   const isSaving = ref(false);
 
+  // Initialize builder state with undo/redo
+  const {
+    selectedField,
+    selectField,
+    pushHistory,
+    undo: undoHistory,
+    redo: redoHistory,
+    canUndo,
+    canRedo,
+    markDirty,
+  } = useFormBuilderState(options.formId);
+
   let builderInstance: { schema: FormSchema; destroy?: () => void } | null =
     null;
+  let autoSaveTimeout: ReturnType<typeof setTimeout> | null = null;
 
   async function initializeBuilder() {
     const container = document.getElementById(options.containerId);
@@ -120,19 +147,12 @@ export function useFormBuilder(
       builder.value = builderInstance;
 
       // Listen for schema changes
-      if (
-        builderInstance &&
-        typeof (
-          builderInstance as {
-            on?: (event: string, callback: (s: FormSchema) => void) => void;
-          }
-        ).on === "function"
-      ) {
-        (
-          builderInstance as {
-            on: (event: string, callback: (s: FormSchema) => void) => void;
-          }
-        ).on("change", (newSchema: FormSchema) => {
+      const builderWithEvents = builderInstance as unknown as {
+        on?: (event: string, callback: (s: FormSchema) => void) => void;
+      };
+
+      if (builderInstance && typeof builderWithEvents.on === "function") {
+        builderWithEvents.on("change", (newSchema: FormSchema) => {
           schema.value = newSchema;
           options.onSchemaChange?.(newSchema);
         });
@@ -203,7 +223,152 @@ export function useFormBuilder(
     if (builderInstance && typeof builderInstance.destroy === "function") {
       builderInstance.destroy();
     }
+    // Clear auto-save timeout
+    if (autoSaveTimeout) {
+      clearTimeout(autoSaveTimeout);
+    }
   });
+
+  // Auto-save functionality
+  if (options.autoSave) {
+    watch(
+      schema,
+      () => {
+        // Clear existing timeout
+        if (autoSaveTimeout) {
+          clearTimeout(autoSaveTimeout);
+        }
+
+        // Set new timeout
+        const delay = options.autoSaveDelay ?? 2000;
+        autoSaveTimeout = setTimeout(() => {
+          void saveSchema();
+        }, delay);
+      },
+      { deep: true }
+    );
+  }
+
+  // Schema change handler with history tracking
+  watch(
+    schema,
+    (newSchema) => {
+      pushHistory(newSchema);
+      markDirty();
+      options.onSchemaChange?.(newSchema);
+    },
+    { deep: true }
+  );
+
+  /**
+   * Undo last change
+   */
+  function undo() {
+    const previousSchema = undoHistory();
+    if (previousSchema) {
+      setSchema(previousSchema);
+    }
+  }
+
+  /**
+   * Redo last undone change
+   */
+  function redo() {
+    const nextSchema = redoHistory();
+    if (nextSchema) {
+      setSchema(nextSchema);
+    }
+  }
+
+  /**
+   * Find a component by key in the schema
+   */
+  function findComponent(components: unknown[], key: string): FormComponent | null {
+    for (const component of components) {
+      const comp = component as FormComponent;
+      if (comp.key === key) {
+        return comp;
+      }
+      // Recursively search in nested components
+      if (comp["components"]) {
+        const found = findComponent(comp["components"] as unknown[], key);
+        if (found) return found;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Duplicate a field by key
+   */
+  function duplicateField(fieldKey: string) {
+    const currentSchema = getSchema();
+    const component = findComponent(currentSchema.components, fieldKey);
+
+    if (!component) {
+      Logger.warn(`Component with key "${fieldKey}" not found`);
+      return;
+    }
+
+    // Create a duplicate with a new key
+    const duplicate = JSON.parse(JSON.stringify(component)) as FormComponent;
+    duplicate.key = `${component.key}_copy`;
+    duplicate.label = `${component.label ?? component.type} (Copy)`;
+
+    // Add to schema
+    currentSchema.components.push(duplicate);
+    setSchema(currentSchema);
+
+    Logger.debug(`Duplicated component: ${fieldKey}`);
+  }
+
+  /**
+   * Delete a field by key
+   */
+  function deleteField(fieldKey: string) {
+    const currentSchema = getSchema();
+
+    // Remove component from array
+    const filterComponents = (components: unknown[]): unknown[] => {
+      return components.filter((component) => {
+        const comp = component as FormComponent;
+        if (comp.key === fieldKey) return false;
+
+        // Recursively filter nested components
+        if (comp["components"]) {
+          comp["components"] = filterComponents(comp["components"] as unknown[]) as FormComponent[];
+        }
+        return true;
+      });
+    };
+
+    currentSchema.components = filterComponents(currentSchema.components);
+    setSchema(currentSchema);
+
+    Logger.debug(`Deleted component: ${fieldKey}`);
+  }
+
+  /**
+   * Export schema as JSON string
+   */
+  function exportSchema(): string {
+    const currentSchema = getSchema();
+    return JSON.stringify(currentSchema, null, 2);
+  }
+
+  /**
+   * Import schema from JSON string
+   */
+  function importSchema(json: string) {
+    try {
+      const imported = JSON.parse(json) as FormSchema;
+      setSchema(imported);
+      Logger.debug("Schema imported successfully");
+    } catch (err) {
+      Logger.error("Failed to import schema:", err);
+      error.value = "Invalid schema JSON";
+    }
+  }
 
   return {
     builder,
@@ -214,6 +379,17 @@ export function useFormBuilder(
     saveSchema,
     getSchema,
     setSchema,
+    // New methods
+    selectedField,
+    selectField,
+    duplicateField,
+    deleteField,
+    undo,
+    redo,
+    canUndo,
+    canRedo,
+    exportSchema,
+    importSchema,
   };
 }
 

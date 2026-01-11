@@ -1,14 +1,21 @@
 <script setup lang="ts">
-import { ref } from "vue";
+import { ref, computed } from "vue";
 import { useForm, router, Link } from "@inertiajs/vue3";
 import DashboardLayout from "@/components/layout/DashboardLayout.vue";
+import BuilderLayout from "@/components/form-builder/BuilderLayout.vue";
+import FieldsPanel from "@/components/form-builder/FieldsPanel.vue";
+import FieldSettingsPanel from "@/components/form-builder/FieldSettingsPanel.vue";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Alert, AlertDescription } from "@/components/ui/alert";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useFormBuilder, type FormSchema } from "@/composables/useFormBuilder";
-import { Eye, ListChecks, Save, Code, CheckCircle2, AlertCircle } from "lucide-vue-next";
+import { useKeyboardShortcuts, formatShortcut } from "@/composables/useKeyboardShortcuts";
+import type { FormComponent } from "@/composables/useFormBuilderState";
+import { Eye, ListChecks, Save, Code, Undo2, Redo2, Settings, Keyboard } from "lucide-vue-next";
+import { toast } from "vue-sonner";
 
 interface Form {
   id: string;
@@ -36,32 +43,116 @@ const detailsForm = useForm({
   cors_origins: props.form.corsOrigins?.join(", ") ?? "",
 });
 
-const successMessage = ref<string | null>(null);
-const errorMessage = ref<string | null>(null);
 const showSchemaModal = ref(false);
+const showShortcutsModal = ref(false);
 const isSavingAll = ref(false);
 
-// Form builder
+// Form builder with new features
 const {
   isLoading: isBuilderLoading,
   error: builderError,
+  isSaving,
   saveSchema,
   getSchema,
+  selectedField,
+  selectField,
+  duplicateField,
+  deleteField,
+  undo,
+  redo,
+  canUndo,
+  canRedo,
+  exportSchema,
 } = useFormBuilder({
   containerId: "form-schema-builder",
   formId: props.form.id,
+  autoSave: false,
   onSchemaChange: (_schema: FormSchema) => {
-    // Optional: Auto-save or mark as dirty
+    // Schema changed
   },
 });
 
+// Get selected field data
+const selectedFieldData = computed<FormComponent | null>(() => {
+  if (!selectedField.value) return null;
+
+  const schema = getSchema();
+  const findField = (components: unknown[]): FormComponent | null => {
+    for (const comp of components) {
+      const component = comp as FormComponent;
+      if (component.key === selectedField.value) return component;
+      if (component.components) {
+        const found = findField(component.components as unknown[]);
+        if (found) return found;
+      }
+    }
+    return null;
+  };
+
+  return findField(schema.components);
+});
+
+// Keyboard shortcuts
+const shortcuts = [
+  {
+    key: "s",
+    meta: true,
+    handler: () => void handleSave(),
+    description: "Save form",
+  },
+  {
+    key: "p",
+    meta: true,
+    handler: () => router.visit(`/forms/${props.form.id}/preview`),
+    description: "Preview form",
+  },
+  {
+    key: "z",
+    meta: true,
+    handler: () => undo(),
+    description: "Undo",
+  },
+  {
+    key: "z",
+    meta: true,
+    shift: true,
+    handler: () => redo(),
+    description: "Redo",
+  },
+  {
+    key: "d",
+    meta: true,
+    handler: () => {
+      if (selectedField.value) duplicateField(selectedField.value);
+    },
+    description: "Duplicate selected field",
+  },
+  {
+    key: "Backspace",
+    meta: true,
+    handler: () => {
+      if (selectedField.value) deleteField(selectedField.value);
+    },
+    description: "Delete selected field",
+  },
+  {
+    key: "/",
+    meta: true,
+    handler: () => {
+      showShortcutsModal.value = true;
+    },
+    description: "Show shortcuts",
+  },
+];
+
+useKeyboardShortcuts(shortcuts);
+
 async function handleSave() {
-  successMessage.value = null;
-  errorMessage.value = null;
+  if (isSavingAll.value || isSaving.value) return;
 
   // Validate CORS origins if publishing
   if (detailsForm.status === "published" && !detailsForm.cors_origins.trim()) {
-    errorMessage.value = "CORS origins are required when publishing a form.";
+    toast.error("CORS origins are required when publishing a form.");
     return;
   }
 
@@ -80,10 +171,10 @@ async function handleSave() {
       });
     });
 
-    successMessage.value = "Form saved successfully";
+    toast.success("Form saved successfully");
   } catch (err) {
-    errorMessage.value =
-      err instanceof Error ? err.message : "Failed to save form";
+    const message = err instanceof Error ? err.message : "Failed to save form";
+    toast.error(message);
   } finally {
     isSavingAll.value = false;
   }
@@ -93,169 +184,209 @@ function viewSchema() {
   showSchemaModal.value = true;
 }
 
-function closeSchemaModal() {
-  showSchemaModal.value = false;
+// Show flash messages on mount
+if (props.flash?.success) {
+  toast.success(props.flash.success);
 }
-
-// Form.io styles are imported via main.css
+if (props.flash?.error) {
+  toast.error(props.flash.error);
+}
+if (builderError.value) {
+  toast.error(builderError.value);
+}
 </script>
 
 <template>
-  <DashboardLayout title="Edit Form" subtitle="Configure your form settings and fields">
+  <DashboardLayout title="Edit Form" :subtitle="props.form.title">
     <template #actions>
-      <Button variant="outline" as-child>
-        <Link :href="`/forms/${props.form.id}/preview`">
-          <Eye class="mr-2 h-4 w-4" />
-          Preview
-        </Link>
-      </Button>
-      <Button variant="outline" as-child>
-        <Link :href="`/forms/${props.form.id}/submissions`">
-          <ListChecks class="mr-2 h-4 w-4" />
-          Submissions
-        </Link>
-      </Button>
-      <Button :disabled="isSavingAll || isBuilderLoading" @click="handleSave">
-        <Save class="mr-2 h-4 w-4" />
-        <span v-if="isSavingAll">Saving...</span>
-        <span v-else>Save</span>
-      </Button>
+      <div class="flex items-center gap-2">
+        <!-- Status Badge -->
+        <Badge :variant="props.form.status === 'published' ? 'default' : 'secondary'">
+          {{ props.form.status }}
+        </Badge>
+
+        <Separator orientation="vertical" class="h-6" />
+
+        <!-- Undo/Redo -->
+        <Button
+          variant="ghost"
+          size="icon"
+          :disabled="!canUndo"
+          title="Undo (Cmd+Z)"
+          @click="undo"
+        >
+          <Undo2 class="h-4 w-4" />
+        </Button>
+        <Button
+          variant="ghost"
+          size="icon"
+          :disabled="!canRedo"
+          title="Redo (Cmd+Shift+Z)"
+          @click="redo"
+        >
+          <Redo2 class="h-4 w-4" />
+        </Button>
+
+        <Separator orientation="vertical" class="h-6" />
+
+        <!-- Actions -->
+        <Button variant="outline" size="sm" @click="showShortcutsModal = true">
+          <Keyboard class="mr-2 h-4 w-4" />
+          Shortcuts
+        </Button>
+        <Button variant="outline" size="sm" @click="viewSchema">
+          <Code class="mr-2 h-4 w-4" />
+          Schema
+        </Button>
+        <Button variant="outline" size="sm" as-child>
+          <Link :href="`/forms/${props.form.id}/preview`">
+            <Eye class="mr-2 h-4 w-4" />
+            Preview
+          </Link>
+        </Button>
+        <Button variant="outline" size="sm" as-child>
+          <Link :href="`/forms/${props.form.id}/submissions`">
+            <ListChecks class="mr-2 h-4 w-4" />
+            Submissions
+          </Link>
+        </Button>
+        <Button size="sm" :disabled="isSavingAll || isBuilderLoading" @click="handleSave">
+          <Save class="mr-2 h-4 w-4" />
+          <span v-if="isSavingAll">Saving...</span>
+          <span v-else>Save</span>
+        </Button>
+      </div>
     </template>
 
-    <div class="space-y-6">
-      <!-- Success/Error Messages -->
-      <Alert v-if="successMessage || props.flash?.success" variant="success">
-        <CheckCircle2 class="h-4 w-4" />
-        <AlertDescription>{{ successMessage || props.flash?.success }}</AlertDescription>
-      </Alert>
-
-      <Alert v-if="errorMessage || builderError || props.flash?.error" variant="destructive">
-        <AlertCircle class="h-4 w-4" />
-        <AlertDescription>{{ errorMessage || builderError || props.flash?.error }}</AlertDescription>
-      </Alert>
-
-      <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <!-- Form Details Sidebar -->
-        <div class="lg:col-span-1">
-          <Card>
-            <CardHeader>
-              <CardTitle>Form Details</CardTitle>
-            </CardHeader>
-            <CardContent class="space-y-4">
-              <div class="space-y-2">
-                <Label for="title">Form Title</Label>
-                <Input
-                  id="title"
-                  v-model="detailsForm.title"
-                  type="text"
-                  placeholder="Enter form title"
-                  required
-                />
-              </div>
-
-              <div class="space-y-2">
-                <Label for="description">Description</Label>
-                <textarea
-                  id="description"
-                  v-model="detailsForm.description"
-                  class="flex min-h-[80px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background placeholder:text-muted-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                  placeholder="Enter form description"
-                  rows="3"
-                />
-              </div>
-
-              <div class="space-y-2">
-                <Label for="status">Status</Label>
-                <select
-                  id="status"
-                  v-model="detailsForm.status"
-                  class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2"
-                >
-                  <option value="draft">Draft</option>
-                  <option value="published">Published</option>
-                  <option value="archived">Archived</option>
-                </select>
-              </div>
-
-              <div class="space-y-2">
-                <Label for="corsOrigins">Allowed Origins</Label>
-                <Input
-                  id="corsOrigins"
-                  v-model="detailsForm.cors_origins"
-                  type="text"
-                  placeholder="e.g. *, https://example.com"
-                />
-                <p class="text-xs text-muted-foreground">
-                  Required when publishing. Use * to allow all origins.
-                </p>
-              </div>
-
-              <Button
-                variant="outline"
-                @click="router.visit('/dashboard')"
-              >
-                Cancel
-              </Button>
-            </CardContent>
-          </Card>
-        </div>
-
-        <!-- Form Builder -->
-        <div class="lg:col-span-2">
-          <Card>
-            <CardHeader class="flex flex-row items-center justify-between">
-              <CardTitle>Form Builder</CardTitle>
-              <Button variant="outline" size="sm" @click="viewSchema">
-                <Code class="mr-2 h-4 w-4" />
-                View Schema
-              </Button>
-            </CardHeader>
-            <CardContent>
-              <div v-if="isBuilderLoading" class="flex items-center justify-center py-12">
-                <div class="text-muted-foreground">Loading form builder...</div>
-              </div>
-              <div
-                id="form-schema-builder"
-                class="min-h-[400px] border rounded-md"
-                :data-form-id="props.form.id"
+    <!-- Three-Panel Builder -->
+    <BuilderLayout class="rounded-lg border bg-background shadow-sm">
+      <!-- Header Slot -->
+      <template #header>
+        <div class="px-6 py-4 space-y-4">
+          <div class="grid grid-cols-2 gap-4">
+            <!-- Form Title -->
+            <div class="space-y-2">
+              <Label for="title" class="text-xs">Form Title</Label>
+              <Input
+                id="title"
+                v-model="detailsForm.title"
+                type="text"
+                placeholder="Enter form title"
+                required
               />
-            </CardContent>
-          </Card>
+            </div>
+
+            <!-- Status -->
+            <div class="space-y-2">
+              <Label for="status" class="text-xs">Status</Label>
+              <select
+                id="status"
+                v-model="detailsForm.status"
+                class="flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              >
+                <option value="draft">Draft</option>
+                <option value="published">Published</option>
+                <option value="archived">Archived</option>
+              </select>
+            </div>
+          </div>
+
+          <div class="space-y-2">
+            <Label for="description" class="text-xs">Description</Label>
+            <Input
+              id="description"
+              v-model="detailsForm.description"
+              type="text"
+              placeholder="Enter form description"
+            />
+          </div>
+
+          <div class="space-y-2">
+            <Label for="corsOrigins" class="text-xs">Allowed Origins (CORS)</Label>
+            <Input
+              id="corsOrigins"
+              v-model="detailsForm.cors_origins"
+              type="text"
+              placeholder="e.g. *, https://example.com"
+            />
+            <p class="text-xs text-muted-foreground">
+              Required when publishing. Use * to allow all origins.
+            </p>
+          </div>
         </div>
-      </div>
-    </div>
+      </template>
+
+      <!-- Fields Panel -->
+      <template #fields-panel>
+        <FieldsPanel />
+      </template>
+
+      <!-- Canvas -->
+      <template #canvas>
+        <div class="p-6">
+          <div v-if="isBuilderLoading" class="flex items-center justify-center py-12">
+            <div class="text-muted-foreground">Loading form builder...</div>
+          </div>
+          <div
+            id="form-schema-builder"
+            class="min-h-[500px]"
+            :data-form-id="props.form.id"
+          />
+        </div>
+      </template>
+
+      <!-- Settings Panel -->
+      <template #settings-panel>
+        <FieldSettingsPanel
+          :selected-field="selectedFieldData"
+          @update:field="(field) => {
+            // Update field in schema
+            console.log('Update field:', field);
+          }"
+          @duplicate="(key) => duplicateField(key)"
+          @delete="(key) => deleteField(key)"
+          @close="() => selectField(null)"
+        />
+      </template>
+    </BuilderLayout>
 
     <!-- Schema Modal -->
-    <div
-      v-if="showSchemaModal"
-      class="fixed inset-0 z-50 flex items-center justify-center bg-black/50"
-      @click.self="closeSchemaModal"
-    >
-      <div class="bg-background rounded-lg shadow-lg max-w-2xl w-full max-h-[80vh] overflow-hidden">
-        <div class="flex items-center justify-between p-4 border-b">
-          <h3 class="text-lg font-semibold">Form Schema (JSON)</h3>
-          <Button variant="ghost" size="sm" @click="closeSchemaModal">
-            &times;
-          </Button>
+    <Dialog v-model:open="showSchemaModal">
+      <DialogContent class="max-w-3xl max-h-[80vh]">
+        <DialogHeader>
+          <DialogTitle>Form Schema (JSON)</DialogTitle>
+        </DialogHeader>
+        <div class="overflow-auto max-h-[60vh]">
+          <pre class="text-xs bg-muted p-4 rounded-md overflow-auto">{{ exportSchema() }}</pre>
         </div>
-        <div class="p-4 overflow-auto max-h-[60vh]">
-          <pre class="text-sm bg-muted p-4 rounded-md overflow-auto">{{ JSON.stringify(getSchema(), null, 2) }}</pre>
+        <div class="flex justify-end gap-2">
+          <Button variant="outline" @click="showSchemaModal = false">Close</Button>
         </div>
-        <div class="flex justify-end p-4 border-t">
-          <Button @click="closeSchemaModal">Close</Button>
+      </DialogContent>
+    </Dialog>
+
+    <!-- Shortcuts Modal -->
+    <Dialog v-model:open="showShortcutsModal">
+      <DialogContent class="max-w-md">
+        <DialogHeader>
+          <DialogTitle>Keyboard Shortcuts</DialogTitle>
+        </DialogHeader>
+        <div class="space-y-3">
+          <div
+            v-for="shortcut in shortcuts"
+            :key="shortcut.description"
+            class="flex items-center justify-between py-2"
+          >
+            <span class="text-sm">{{ shortcut.description }}</span>
+            <kbd class="inline-flex items-center gap-1 rounded border border-border bg-muted px-2 py-1 text-xs font-mono">
+              {{ formatShortcut(shortcut) }}
+            </kbd>
+          </div>
         </div>
-      </div>
-    </div>
+        <div class="flex justify-end">
+          <Button @click="showShortcutsModal = false">Close</Button>
+        </div>
+      </DialogContent>
+    </Dialog>
   </DashboardLayout>
 </template>
-
-<style>
-/* Form.io builder styles */
-.formio-builder {
-  background-color: var(--color-background);
-}
-
-.formio-component {
-  margin-bottom: 1rem;
-}
-</style>
