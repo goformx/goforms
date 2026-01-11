@@ -26,7 +26,7 @@ RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
     && go install golang.org/x/tools/cmd/goimports@latest \
     && go install github.com/securego/gosec/v2/cmd/gosec@latest \
     && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-    && sh -c "$(curl --location https://taskfile.dev/install.sh)" -- -d -b /usr/local/bin
+    && curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b /usr/local/bin
 
 # Copy package files for frontend
 COPY package*.json ./
