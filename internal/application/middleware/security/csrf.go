@@ -20,9 +20,11 @@ func SetupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 	// Log CSRF configuration
 	if isDevelopment {
 		println("[CSRF] Setting up CSRF middleware with context_key:", csrfConfig.ContextKey)
+		println("[CSRF] Configuration: TokenLookup=", csrfConfig.TokenLookup, ", CookieName=", csrfConfig.CookieName, ", CookieSecure=", !isDevelopment, ", CookieSameSite=", sameSite)
 	}
 
-	return echomw.CSRFWithConfig(echomw.CSRFConfig{
+	// Wrap Echo's CSRF middleware to add debug logging
+	csrfMiddleware := echomw.CSRFWithConfig(echomw.CSRFConfig{
 		TokenLength:    uint8(tokenLength), // #nosec G115
 		TokenLookup:    csrfConfig.TokenLookup,
 		ContextKey:     csrfConfig.ContextKey,
@@ -36,6 +38,34 @@ func SetupCSRF(csrfConfig *appconfig.CSRFConfig, isDevelopment bool) echo.Middle
 		Skipper:        CreateCSRFSkipper(isDevelopment),
 		ErrorHandler:   CreateCSRFErrorHandler(csrfConfig, isDevelopment),
 	})
+
+	// Wrap middleware to add debug logging after it runs
+	if isDevelopment {
+		return func(next echo.HandlerFunc) echo.HandlerFunc {
+			csrfHandler := csrfMiddleware(next)
+			return func(c echo.Context) error {
+				// Call the CSRF middleware
+				err := csrfHandler(c)
+				
+				// After CSRF middleware runs, check if token exists
+				if token, ok := c.Get(csrfConfig.ContextKey).(string); ok && token != "" {
+					println("[CSRF DEBUG] After CSRF middleware: token found in context, length=", len(token))
+				} else {
+					println("[CSRF DEBUG] After CSRF middleware: token NOT in context, context_key=", csrfConfig.ContextKey)
+				}
+				
+				if cookie, cookieErr := c.Cookie(csrfConfig.CookieName); cookieErr == nil && cookie != nil && cookie.Value != "" {
+					println("[CSRF DEBUG] After CSRF middleware: token found in cookie, length=", len(cookie.Value))
+				} else {
+					println("[CSRF DEBUG] After CSRF middleware: token NOT in cookie, cookie_name=", csrfConfig.CookieName, ", error=", cookieErr)
+				}
+				
+				return err
+			}
+		}
+	}
+
+	return csrfMiddleware
 }
 
 // getSameSite converts string SameSite to http.SameSite
