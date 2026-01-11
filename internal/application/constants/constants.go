@@ -6,7 +6,6 @@ package constants
 
 import (
 	"net/http"
-	"strings"
 )
 
 // HTTP Status Codes
@@ -288,15 +287,4 @@ const (
 var StaticFileExtensions = []string{
 	".css", ".js", ".jpg", ".jpeg", ".png", ".gif", ".ico",
 	".svg", ".woff", ".woff2", ".ttf", ".eot",
-}
-
-// IsStaticFile checks if the given path is a static file
-func IsStaticFile(path string) bool {
-	for _, ext := range StaticFileExtensions {
-		if strings.HasSuffix(path, ext) {
-			return true
-		}
-	}
-
-	return false
 }
