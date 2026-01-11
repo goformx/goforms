@@ -31,7 +31,7 @@ services:
 
       # Security Configuration (Development)
       - GOFORMS_SESSION_SECRET=dev-session-secret-32-chars-long
-      - GOFORMS_SECURITY_CSRF_SECRET=dev-csrf-secret-32-chars-long
+      - GOFORMS_SECURITY_CSRF_SECRET=dev-csrf-secret-32-characters-xxx
       - GOFORMS_SECURE_COOKIES=false
 
       # CORS Configuration (Development)
