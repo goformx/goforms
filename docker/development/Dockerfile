@@ -8,7 +8,8 @@ RUN apk add --no-cache \
     tzdata \
     nodejs \
     npm \
-    wget
+    wget \
+    go-task-task
 
 WORKDIR /app
 
@@ -25,8 +26,7 @@ RUN go install github.com/golangci/golangci-lint/v2/cmd/golangci-lint@latest \
     && go install github.com/go-delve/delve/cmd/dlv@latest \
     && go install golang.org/x/tools/cmd/goimports@latest \
     && go install github.com/securego/gosec/v2/cmd/gosec@latest \
-    && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest \
-    && curl -sL https://taskfile.dev/install.sh | sh -s -- -d -b /usr/local/bin
+    && go install -tags 'postgres' github.com/golang-migrate/migrate/v4/cmd/migrate@latest
 
 # Copy package files for frontend
 COPY package*.json ./
