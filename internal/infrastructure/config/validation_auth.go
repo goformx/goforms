@@ -3,7 +3,7 @@ package config
 
 // validateAuthConfig validates authentication configuration
 func validateAuthConfig(cfg AuthConfig, result *ValidationResult) {
-	if cfg.PasswordMinLength < 6 {
+	if cfg.PasswordMinLength < MinPasswordLengthThreshold {
 		result.AddError("auth.password_min_length",
 			"password minimum length must be at least 6", cfg.PasswordMinLength)
 	}

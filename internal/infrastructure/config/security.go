@@ -196,7 +196,7 @@ func (s *SecurityConfig) validateCSRF() error {
 		return errors.New("CSRF secret is required")
 	}
 
-	if len(s.CSRF.Secret) < 32 {
+	if len(s.CSRF.Secret) < MinSecretLength {
 		return errors.New("CSRF secret must be at least 32 characters")
 	}
 

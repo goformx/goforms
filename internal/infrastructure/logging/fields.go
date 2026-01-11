@@ -9,6 +9,9 @@ import (
 	"go.uber.org/zap/zapcore"
 )
 
+// minMaskableLength is the minimum length required for partial masking
+const minMaskableLength = 4
+
 // Field represents a structured log field with type information
 type Field struct {
 	Key   string
@@ -350,7 +353,7 @@ func MaskedField(key, value, mask string) zap.Field {
 	}
 
 	// Apply masking logic: show first and last characters with mask in middle
-	if len(value) <= 4 {
+	if len(value) <= minMaskableLength {
 		// For short values, just return the mask
 		return zap.String(key, mask)
 	}

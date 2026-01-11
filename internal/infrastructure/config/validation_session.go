@@ -40,7 +40,7 @@ func validateSessionType(cfg SessionConfig, result *ValidationResult) {
 func validateSessionSecret(cfg SessionConfig, result *ValidationResult) {
 	if cfg.Secret == "" {
 		result.AddError("session.secret", "session secret is required", "***")
-	} else if len(cfg.Secret) < 32 {
+	} else if len(cfg.Secret) < MinSecretLength {
 		result.AddError("session.secret",
 			"session secret must be at least 32 characters long", "***")
 	}

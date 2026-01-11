@@ -82,8 +82,8 @@ func (m Manifest) GetEntry(path string) (ManifestEntry, bool) {
 func (m Manifest) GetEntryPaths() []string {
 	var entries []string
 
-	for path, entry := range m {
-		if entry.IsEntry {
+	for path := range m {
+		if m[path].IsEntry {
 			entries = append(entries, path)
 		}
 	}

@@ -125,6 +125,10 @@ func (s *SlogAdapter) attrToZapField(attr slog.Attr) zap.Field {
 			return s.attrToZapField(slog.Attr{Key: key + "." + groupAttrs[0].Key, Value: groupAttrs[0].Value})
 		}
 		return zap.Any(key, attr.Value.Any())
+	case slog.KindAny:
+		return zap.Any(key, attr.Value.Any())
+	case slog.KindLogValuer:
+		return zap.Any(key, attr.Value.Any())
 	default:
 		return zap.Any(key, attr.Value.Any())
 	}
