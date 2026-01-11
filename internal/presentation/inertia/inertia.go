@@ -71,12 +71,12 @@ func buildRootTemplate(cfg *config.Config) string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="GoFormX - A self-hosted form backend service built with Go">
     <meta name="color-scheme" content="light dark">
-    <title>{{ .title }} - GoFormX</title>
+    {{ .inertiaHead }}
     <script type="module" src="http://localhost:5173/@vite/client"></script>
     <script type="module" src="http://localhost:5173/src/main.ts"></script>
 </head>
 <body>
-    <div id="app" data-page='{{ .inertiaPage }}'></div>
+    {{ .inertia }}
 </body>
 </html>`
 	}
@@ -88,11 +88,11 @@ func buildRootTemplate(cfg *config.Config) string {
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <meta name="description" content="GoFormX - A self-hosted form backend service built with Go">
     <meta name="color-scheme" content="light dark">
-    <title>{{ .title }} - GoFormX</title>
+    {{ .inertiaHead }}
     {{ .viteAssets }}
 </head>
 <body>
-    <div id="app" data-page='{{ .inertiaPage }}'></div>
+    {{ .inertia }}
 </body>
 </html>`
 }

@@ -75,6 +75,9 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 	// Log form access for debugging
 	h.FormService.LogFormAccess(form)
 
+	// Extract CORS origins as a string slice for the frontend
+	corsOrigins, _, _ := form.GetCorsConfig()
+
 	return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
 		"title": "Edit Form",
 		"form": map[string]any{
@@ -82,7 +85,7 @@ func (h *FormWebHandler) handleEdit(c echo.Context) error {
 			"title":       form.Title,
 			"description": form.Description,
 			"status":      form.Status,
-			"corsOrigins": form.CorsOrigins,
+			"corsOrigins": corsOrigins,
 			"createdAt":   form.CreatedAt,
 			"updatedAt":   form.UpdatedAt,
 		},
@@ -114,10 +117,8 @@ func (h *FormWebHandler) handleUpdate(c echo.Context) error {
 		return h.HandleError(c, updateErr, "Failed to update form")
 	}
 
-	return fmt.Errorf("build success response: %w",
-		h.ResponseBuilder.BuildSuccessResponse(c, "Form updated successfully", map[string]any{
-			"form_id": form.ID,
-		}))
+	// Redirect back to the edit page (Inertia will re-render with updated data)
+	return c.Redirect(http.StatusSeeOther, fmt.Sprintf("/forms/%s/edit", form.ID))
 }
 
 // handleDelete processes form deletion requests

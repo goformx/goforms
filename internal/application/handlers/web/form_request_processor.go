@@ -51,11 +51,21 @@ func (p *FormRequestProcessorImpl) ProcessCreateRequest(c echo.Context) (*FormCr
 
 // ProcessUpdateRequest processes form update requests
 func (p *FormRequestProcessorImpl) ProcessUpdateRequest(c echo.Context) (*FormUpdateRequest, error) {
-	req := &FormUpdateRequest{
-		Title:       p.sanitizer.String(c.FormValue("title")),
-		Description: p.sanitizer.String(c.FormValue("description")),
-		Status:      p.sanitizer.String(c.FormValue("status")),
-		CorsOrigins: p.sanitizer.String(c.FormValue("cors_origins")),
+	req := &FormUpdateRequest{}
+
+	// Try to bind JSON first (Inertia sends JSON)
+	if err := c.Bind(req); err != nil {
+		// Fallback to form values
+		req.Title = p.sanitizer.String(c.FormValue("title"))
+		req.Description = p.sanitizer.String(c.FormValue("description"))
+		req.Status = p.sanitizer.String(c.FormValue("status"))
+		req.CorsOrigins = p.sanitizer.String(c.FormValue("cors_origins"))
+	} else {
+		// Sanitize bound values
+		req.Title = p.sanitizer.String(req.Title)
+		req.Description = p.sanitizer.String(req.Description)
+		req.Status = p.sanitizer.String(req.Status)
+		req.CorsOrigins = p.sanitizer.String(req.CorsOrigins)
 	}
 
 	// Validate CORS origins when publishing

@@ -85,18 +85,18 @@ security:
     enabled: true
     # More restrictive CSP for better security
     default_src: "'self'"
-    script_src: "'self' 'unsafe-inline' 'unsafe-eval'"  # Remove unsafe-* in production
-    style_src: "'self' 'unsafe-inline'"
+    script_src: "'self' 'unsafe-inline' 'unsafe-eval' https://cdn.form.io"  # Remove unsafe-* in production
+    style_src: "'self' 'unsafe-inline' https://cdn.form.io"
     img_src: "'self' data: https:"
-    connect_src: "'self' ws: wss:"  # Add WebSocket support if needed
-    font_src: "'self'"
+    connect_src: "'self' ws: wss: https://cdn.form.io"  # Add WebSocket support if needed
+    font_src: "'self' https://cdn.form.io"
     object_src: "'none'"
     media_src: "'self'"
     frame_src: "'none'"
     form_action: "'self'"
     base_uri: "'self'"
     manifest_src: "'self'"
-    worker_src: "'self'"
+    worker_src: "'self' blob:"
     report_uri: "/csp-report"  # Add CSP violation reporting
 
   tls:

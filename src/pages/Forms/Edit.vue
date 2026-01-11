@@ -33,7 +33,7 @@ const detailsForm = useForm({
   title: props.form.title,
   description: props.form.description,
   status: props.form.status,
-  corsOrigins: props.form.corsOrigins?.join(", ") ?? "",
+  cors_origins: props.form.corsOrigins?.join(", ") ?? "",
 });
 
 const successMessage = ref<string | null>(null);
@@ -62,7 +62,7 @@ function handleDetailsSubmit() {
   errorMessage.value = null;
 
   // Validate CORS origins if publishing
-  if (detailsForm.status === "published" && !detailsForm.corsOrigins.trim()) {
+  if (detailsForm.status === "published" && !detailsForm.cors_origins.trim()) {
     errorMessage.value = "CORS origins are required when publishing a form.";
     return;
   }
@@ -97,13 +97,7 @@ function closeSchemaModal() {
   showSchemaModal.value = false;
 }
 
-onMounted(() => {
-  // Import Form.io styles
-  const link = document.createElement("link");
-  link.rel = "stylesheet";
-  link.href = "/node_modules/@formio/js/dist/formio.full.min.css";
-  document.head.appendChild(link);
-});
+// Form.io styles are imported via main.css
 </script>
 
 <template>
@@ -183,7 +177,7 @@ onMounted(() => {
                   <Label for="corsOrigins">Allowed Origins</Label>
                   <Input
                     id="corsOrigins"
-                    v-model="detailsForm.corsOrigins"
+                    v-model="detailsForm.cors_origins"
                     type="text"
                     placeholder="e.g. *, https://example.com"
                   />
