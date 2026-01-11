@@ -2,6 +2,7 @@ package web
 
 import (
 	"fmt"
+	"strings"
 
 	"github.com/labstack/echo/v4"
 
@@ -19,7 +20,7 @@ func NewAuthRequestParser() *AuthRequestParser {
 // ParseLogin parses login credentials from the request (JSON or form)
 func (p *AuthRequestParser) ParseLogin(c echo.Context) (email, password string, err error) {
 	contentType := c.Request().Header.Get("Content-Type")
-	if contentType == "application/json" {
+	if strings.HasPrefix(contentType, "application/json") {
 		var data struct {
 			Email    string `json:"email"`
 			Password string `json:"password"`
@@ -45,7 +46,7 @@ func (p *AuthRequestParser) ParseSignup(c echo.Context) (user.Signup, error) {
 
 	var signup user.Signup
 
-	if contentType == "application/json" {
+	if strings.HasPrefix(contentType, "application/json") {
 		if err := c.Bind(&signup); err != nil {
 			return signup, fmt.Errorf("failed to bind signup: %w", err)
 		}
