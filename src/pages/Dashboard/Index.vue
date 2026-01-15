@@ -75,7 +75,7 @@ const filteredForms = computed(() => {
   return filtered;
 });
 
-const hasForms = computed(() => props.forms && props.forms.length > 0);
+const hasForms = computed(() => props.forms.length > 0);
 const hasFilteredForms = computed(() => filteredForms.value.length > 0);
 
 // Stats
@@ -87,9 +87,8 @@ const stats = computed(() => ({
 }));
 
 // Form actions
-async function duplicateForm(formId: string) {
+function duplicateForm(_formId: string) {
   toast.info("Duplicate functionality coming soon!");
-  console.log("Duplicate form:", formId);
 }
 
 async function exportForm(formId: string) {
@@ -120,9 +119,8 @@ async function exportForm(formId: string) {
   }
 }
 
-async function archiveForm(formId: string) {
+function archiveForm(_formId: string) {
   toast.info("Archive functionality coming soon!");
-  console.log("Archive form:", formId);
 }
 
 async function deleteForm(formId: string) {
@@ -140,6 +138,11 @@ async function deleteForm(formId: string) {
     },
   });
 }
+
+const clearFilters = () => {
+  searchQuery.value = "";
+  statusFilter.value = "all";
+};
 
 // Show flash messages
 if (props.flash?.success) {
@@ -259,10 +262,7 @@ if (props.flash?.error) {
             <p class="text-muted-foreground mb-6">
               No forms match your current filters. Try adjusting your search or filter criteria.
             </p>
-            <Button variant="outline" class="border-border/50" @click="() => {
-              searchQuery = '';
-              statusFilter = 'all';
-            }">
+            <Button variant="outline" class="border-border/50" @click="clearFilters">
               Clear Filters
             </Button>
           </div>
