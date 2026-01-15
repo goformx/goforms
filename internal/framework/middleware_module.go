@@ -40,14 +40,14 @@ func middlewareModule() fx.Option {
 }
 
 func provideAccessManager(_ logging.Logger, pathManager *constants.PathManager) *access.Manager {
-	config := &access.Config{
+	accessConfig := &access.Config{
 		DefaultAccess: access.Authenticated,
 		PublicPaths:   pathManager.PublicPaths,
 		AdminPaths:    pathManager.AdminPaths,
 	}
 	rules := middleware.GenerateAccessRules(pathManager)
 
-	return access.NewManager(config, rules)
+	return access.NewManager(accessConfig, rules)
 }
 
 func provideSessionManager(
