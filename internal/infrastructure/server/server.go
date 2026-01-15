@@ -3,14 +3,12 @@ package server
 
 import (
 	"context"
-	"errors"
 	"fmt"
 	"net"
 	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
-	"go.uber.org/fx"
 
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/infrastructure/config"
@@ -94,32 +92,27 @@ func (s *Server) Start(ctx context.Context) error {
 
 		return nil
 	case <-time.After(StartupTimeout):
-		return errors.New("server startup timed out after 5 seconds")
+		return fmt.Errorf("server startup timed out after %s", StartupTimeout)
 	}
-}
-
-// Deps contains the dependencies for creating a server
-type Deps struct {
-	fx.In
-	Lifecycle   fx.Lifecycle
-	Logger      logging.Logger
-	Config      *config.Config
-	Echo        *echo.Echo
-	AssetServer web.AssetServer
 }
 
 // New creates a new server instance with the provided dependencies
-func New(deps Deps) *Server {
+func New(
+	logger logging.Logger,
+	cfg *config.Config,
+	echoInstance *echo.Echo,
+	assetServer web.AssetServer,
+) *Server {
 	srv := &Server{
-		echo:   deps.Echo,
-		logger: deps.Logger,
-		config: deps.Config,
+		echo:   echoInstance,
+		logger: logger,
+		config: cfg,
 	}
 
 	// Log server configuration
-	deps.Logger.Info("initializing server",
+	logger.Info("initializing server",
 		"url", srv.URL(),
-		"environment", deps.Config.App.Environment,
+		"environment", cfg.App.Environment,
 		"server_type", "echo")
 
 	// Add health check endpoint (supports both GET and HEAD for health check tools)
@@ -129,40 +122,13 @@ func New(deps Deps) *Server {
 			"time":   time.Now().Format(time.RFC3339),
 		})
 	}
-	deps.Echo.GET("/health", healthHandler)
-	deps.Echo.HEAD("/health", healthHandler)
+	echoInstance.GET("/health", healthHandler)
+	echoInstance.HEAD("/health", healthHandler)
 
 	// Register asset routes
-	if err := deps.AssetServer.RegisterRoutes(deps.Echo); err != nil {
-		deps.Logger.Error("failed to register asset routes", "error", err)
+	if err := assetServer.RegisterRoutes(echoInstance); err != nil {
+		logger.Error("failed to register asset routes", "error", err)
 	}
-
-	// Register lifecycle hooks
-	deps.Lifecycle.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
-			return nil // Server will be started after middleware is registered
-		},
-		OnStop: func(ctx context.Context) error {
-			if srv.server == nil {
-				return nil
-			}
-
-			srv.logger.Info("shutting down server")
-
-			shutdownCtx, cancel := context.WithTimeout(ctx, ShutdownTimeout)
-			defer cancel()
-
-			if err := srv.server.Shutdown(shutdownCtx); err != nil {
-				srv.logger.Error("server shutdown error", "error", err, "timeout", ShutdownTimeout)
-
-				return fmt.Errorf("server shutdown error: %w", err)
-			}
-
-			srv.logger.Info("server stopped gracefully")
-
-			return nil
-		},
-	})
 
 	return srv
 }
@@ -175,4 +141,25 @@ func (s *Server) Echo() *echo.Echo {
 // Config returns the server configuration
 func (s *Server) Config() *config.Config {
 	return s.config
+}
+
+// Shutdown gracefully stops the server.
+func (s *Server) Shutdown(ctx context.Context) error {
+	if s.server == nil {
+		return nil
+	}
+
+	s.logger.Info("shutting down server")
+
+	shutdownCtx, cancel := context.WithTimeout(ctx, ShutdownTimeout)
+	defer cancel()
+
+	if err := s.server.Shutdown(shutdownCtx); err != nil {
+		s.logger.Error("server shutdown error", "error", err, "timeout", ShutdownTimeout)
+		return fmt.Errorf("server shutdown error: %w", err)
+	}
+
+	s.logger.Info("server stopped gracefully")
+
+	return nil
 }
