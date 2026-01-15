@@ -49,16 +49,17 @@ internal/
 ├── domain/           # Business entities, interfaces, services (form/, user/, common/)
 ├── application/      # HTTP handlers, middleware, validation, response builders
 ├── infrastructure/   # Database, config, logging, server, event bus
-└── presentation/     # Inertia.js rendering for Vue SPA
+├── presentation/     # Inertia.js rendering for Vue SPA
+└── framework/        # FX modules, wiring, and lifecycle hooks
 ```
 
 **Dependency flow**: Infrastructure → Application → Domain (dependencies point inward)
 
 ### Key Architectural Patterns
 
-1. **Uber FX Modules** - DI is organized in modules loaded in `main.go`:
+1. **Uber FX Modules** - DI is organized in a single module loaded in `main.go`:
 
-   - `config.Module` → `infrastructure.Module` → `domain.Module` → `application.Module` → `presentation.Module` → `web.Module`
+   - `framework.Module`
 
 2. **Handler Interface** - All HTTP handlers implement `web.Handler` with `Register()`, `Start()`, `Stop()` methods and are collected via FX groups.
 

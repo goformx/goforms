@@ -15,17 +15,14 @@ import (
 	"github.com/labstack/echo/v4"
 	"go.uber.org/fx"
 
-	"github.com/goformx/goforms/internal/application"
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/domain"
-	"github.com/goformx/goforms/internal/infrastructure"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
-	"github.com/goformx/goforms/internal/presentation"
+	"github.com/goformx/goforms/internal/framework"
 )
 
 //go:embed all:dist
@@ -130,13 +127,7 @@ func main() {
 		fx.Provide(func() embed.FS { return distFS }),
 
 		// Modules
-		config.Module,
-		infrastructure.Module,
-		domain.Module,
-		application.Module,
-		appmiddleware.Module,
-		presentation.Module,
-		web.Module,
+		framework.Module,
 
 		// Setup
 		fx.Invoke(setupApplication),
