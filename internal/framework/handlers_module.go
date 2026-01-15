@@ -101,7 +101,12 @@ func handlersModule() fx.Option {
 				fx.ResultTags(`group:"handlers"`),
 			),
 		),
-		fx.Invoke(registerHandlerLifecycle),
+		fx.Invoke(
+			fx.Annotate(
+				registerHandlerLifecycle,
+				fx.ParamTags(``, `group:"handlers"`),
+			),
+		),
 	)
 }
 
