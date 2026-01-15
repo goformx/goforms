@@ -774,4 +774,3 @@ func setUserDefaults(v *viper.Viper) {
 	v.SetDefault("user.default.role", "user")
 	v.SetDefault("user.default.permissions", []string{"read"})
 }
-

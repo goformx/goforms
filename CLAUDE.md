@@ -58,7 +58,6 @@ internal/
 ### Key Architectural Patterns
 
 1. **Uber FX Modules** - DI is organized in a single module loaded in `main.go`:
-
    - `framework.Module`
 
 2. **Handler Interface** - All HTTP handlers implement `web.Handler` with `Register()`, `Start()`, `Stop()` methods and are collected via FX groups.
@@ -84,6 +83,7 @@ internal/
 #### Frontend Architecture
 
 **Component Structure:**
+
 ```
 src/
 ├── components/
@@ -151,11 +151,13 @@ src/
 **Form Builder Architecture:**
 
 The form builder uses a three-panel layout:
+
 - **Left Panel**: Searchable field library (Basic, Layout, Advanced)
 - **Center Canvas**: Form.io builder instance
 - **Right Panel**: Tabbed field settings (Display, Data, Validation)
 
 Keyboard shortcuts:
+
 - `Cmd+S` - Save form
 - `Cmd+P` - Preview form
 - `Cmd+Z` / `Cmd+Shift+Z` - Undo/Redo
@@ -209,12 +211,13 @@ toast.info("Processing...");
 
 // With description
 toast.success("Form saved", {
-  description: "Your changes have been saved successfully"
+  description: "Your changes have been saved successfully",
 });
 ```
 
 **Toast Provider Setup:**
 The Sonner toast provider is configured in `src/main.ts` with:
+
 - Position: `top-right`
 - Rich colors: enabled
 - Auto-dismiss: default (4s)
@@ -229,8 +232,18 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import {
+  Sheet,
+  SheetContent,
+  SheetHeader,
+  SheetTitle,
+} from "@/components/ui/sheet";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 </script>
 
@@ -253,6 +266,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 ```
 
 **Component Variants:**
+
 ```vue
 <!-- Buttons -->
 <Button variant="default">Default</Button>
@@ -285,17 +299,17 @@ import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
 const shortcuts = [
   {
     key: "s",
-    meta: true,  // Cmd on Mac, Ctrl on Windows
+    meta: true, // Cmd on Mac, Ctrl on Windows
     handler: () => save(),
-    description: "Save form"
+    description: "Save form",
   },
   {
     key: "z",
     meta: true,
-    shift: true,  // Cmd+Shift+Z
+    shift: true, // Cmd+Shift+Z
     handler: () => redo(),
-    description: "Redo"
-  }
+    description: "Redo",
+  },
 ];
 
 useKeyboardShortcuts(shortcuts);
@@ -325,7 +339,7 @@ const {
 } = useFormBuilder({
   containerId: "form-schema-builder",
   formId: props.form.id,
-  autoSave: false,  // Set to true for auto-save with 2s debounce
+  autoSave: false, // Set to true for auto-save with 2s debounce
   onSchemaChange: (schema) => {
     // Handle schema changes
   },
@@ -357,6 +371,7 @@ Use Tailwind responsive prefixes:
 #### Component Communication
 
 **Props & Emits Pattern:**
+
 ```typescript
 interface Props {
   form: Form;
@@ -377,6 +392,7 @@ function handleUpdate() {
 ```
 
 **Composable Pattern:**
+
 ```typescript
 // Composable for shared logic
 export function useFormActions(formId: string) {
@@ -446,6 +462,7 @@ docker compose logs -f goforms-dev  # Follow logs
 Viper maps config keys to env vars: `database.host` → `DATABASE_HOST`
 
 Key `.env` variables:
+
 ```bash
 DATABASE_HOST=postgres-dev     # Docker service name
 DATABASE_PORT=5432
@@ -457,6 +474,7 @@ DATABASE_PASSWORD=goforms
 ### CSP Configuration
 
 Form.io requires CDN access. Update `.env` for development:
+
 ```bash
 SECURITY_CSP_SCRIPT_SRC="'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173 https://localhost:5173 https://cdn.form.io blob:"
 SECURITY_CSP_STYLE_SRC="'self' 'unsafe-inline' http://localhost:5173 https://localhost:5173 https://cdn.form.io"
@@ -539,29 +557,32 @@ logger.InfoWithFields("form created",
 ### Go Linting Rules
 
 1. **Use `any` instead of `interface{}`** (revive: use-any)
+
    ```go
    // ❌ Bad
    data := map[string]interface{}{"key": "value"}
-   
+
    // ✅ Good
    data := map[string]any{"key": "value"}
    ```
 
 2. **No magic numbers** (mnd) - Extract to named constants
+
    ```go
    // ❌ Bad
    if len(token) > 20 { ... }
-   
+
    // ✅ Good
    const tokenPreviewLength = 20
    if len(token) > tokenPreviewLength { ... }
    ```
 
 3. **Line length max 150 characters** (lll) - Break long lines
+
    ```go
    // ❌ Bad
    println("[DEBUG] Very long message with many params:", param1, ", param2=", param2, ", param3=", param3, ", param4=", param4)
-   
+
    // ✅ Good
    println("[DEBUG] Message:", param1, ", param2=", param2)
    println("[DEBUG] More params:", param3, ", param4=", param4)
@@ -576,12 +597,13 @@ logger.InfoWithFields("form created",
 ### TypeScript/Frontend Linting Rules
 
 1. **Handle promises properly** (@typescript-eslint/no-floating-promises)
+
    ```typescript
    // ❌ Bad
    onMounted(() => {
      initializeAsync();
    });
-   
+
    // ✅ Good - use void for intentionally ignored promises
    onMounted(() => {
      void initializeAsync();
@@ -589,10 +611,11 @@ logger.InfoWithFields("form created",
    ```
 
 2. **Use nullish coalescing** (@typescript-eslint/prefer-nullish-coalescing)
+
    ```typescript
    // ❌ Bad
    const value = data.items || [];
-   
+
    // ✅ Good
    const value = data.items ?? [];
    ```
@@ -600,6 +623,7 @@ logger.InfoWithFields("form created",
 ### Pre-commit Checklist
 
 Before committing, ensure:
+
 - `task lint` passes (both backend and frontend)
 - `task test` passes
 - No new linter warnings introduced
@@ -609,6 +633,7 @@ Before committing, ensure:
 The frontend has been modernized with a Linear/Vercel/Stripe/Notion-inspired design language. Key improvements:
 
 **New Features:**
+
 - Three-panel form builder with collapsible sides
 - Keyboard shortcuts for power users (Cmd+S, Cmd+Z, etc.)
 - Toast notifications (via Sonner)
@@ -618,6 +643,7 @@ The frontend has been modernized with a Linear/Vercel/Stripe/Notion-inspired des
 - Theme customization system
 
 **When Building New Features:**
+
 - Use shadcn-vue components for UI primitives
 - Use composables for shared logic (not Pinia/Vuex)
 - Implement keyboard shortcuts for common actions
@@ -626,6 +652,7 @@ The frontend has been modernized with a Linear/Vercel/Stripe/Notion-inspired des
 - Add undo/redo for complex state changes
 
 **Reference Documentation:**
+
 - Full details in `MODERNIZATION_SUMMARY.md`
 - Component examples in existing pages (`Dashboard/Index.vue`, `Forms/Edit.vue`)
 - Composable patterns in `src/composables/`

@@ -18,11 +18,11 @@ import (
 	"github.com/goformx/goforms/internal/application/handlers/web"
 	appmiddleware "github.com/goformx/goforms/internal/application/middleware"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/framework"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
-	"github.com/goformx/goforms/internal/framework"
 )
 
 //go:embed all:dist
