@@ -35,6 +35,23 @@ func NewViperConfig() *ViperConfig {
 	v.SetEnvKeyReplacer(strings.NewReplacer(".", "_"))
 	v.AutomaticEnv()
 
+	// Bind DB_* environment variables to database.* config keys
+	// This allows users to use the common DB_ prefix convention
+	_ = v.BindEnv("database.host", "DB_HOST")
+	_ = v.BindEnv("database.port", "DB_PORT")
+	_ = v.BindEnv("database.name", "DB_NAME", "DB_DATABASE")
+	_ = v.BindEnv("database.username", "DB_USERNAME", "DB_USER")
+	_ = v.BindEnv("database.password", "DB_PASSWORD")
+	_ = v.BindEnv("database.driver", "DB_CONNECTION", "DB_DRIVER")
+	_ = v.BindEnv("database.ssl_mode", "DB_SSL_MODE")
+
+	// Bind CORS_* environment variables for convenience
+	_ = v.BindEnv("security.cors.allowed_origins", "CORS_ALLOWED_ORIGINS", "CORS_ORIGINS")
+	_ = v.BindEnv("security.cors.allowed_methods", "CORS_ALLOWED_METHODS")
+	_ = v.BindEnv("security.cors.allowed_headers", "CORS_ALLOWED_HEADERS")
+	_ = v.BindEnv("security.cors.allow_credentials", "CORS_ALLOW_CREDENTIALS")
+	_ = v.BindEnv("security.cors.max_age", "CORS_MAX_AGE")
+
 	// Set config file search paths (order matters - first found wins)
 	v.AddConfigPath(".")
 	v.AddConfigPath("./config")

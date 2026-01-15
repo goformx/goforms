@@ -74,6 +74,7 @@ func (h *FormWebHandler) RegisterRoutes(e *echo.Echo, accessManager *access.Mana
 	forms.DELETE("/:id", h.handleDelete)
 	forms.GET("/:id/submissions", h.handleSubmissions)
 	forms.GET("/:id/preview", h.handlePreview)
+	forms.GET("/:id/embed", h.handleEmbed)
 
 	// API routes with validation
 	api := e.Group(constants.PathAPIV1)
@@ -145,6 +146,62 @@ func (h *FormWebHandler) handlePreview(c echo.Context) error {
 			"description": form.Description,
 			"status":      form.Status,
 		},
+	})
+}
+
+// handleEmbed handles the form embed/integration page request
+func (h *FormWebHandler) handleEmbed(c echo.Context) error {
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		return h.HandleForbidden(c, "User not authenticated")
+	}
+
+	formID := c.Param("id")
+	if formID == "" {
+		return h.HandleError(c, nil, "Form ID is required")
+	}
+
+	// Fetch form data using the domain service
+	form, err := h.FormBaseHandler.FormService.GetForm(c.Request().Context(), formID)
+	if err != nil || form == nil {
+		h.Logger.Warn("form embed access attempt failed",
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"form_id_length", len(formID),
+			"error_type", "form_not_found")
+
+		return h.HandleNotFound(c, "Form not found")
+	}
+
+	// Verify form ownership
+	if form.UserID != userID {
+		h.Logger.Warn("unauthorized form embed access attempt",
+			"user_id", h.Logger.SanitizeField("user_id", userID),
+			"form_id_length", len(formID),
+			"form_owner", h.Logger.SanitizeField("form_owner", form.UserID),
+			"error_type", "authorization_error")
+
+		return h.HandleForbidden(c, "You don't have permission to access this form's embed settings")
+	}
+
+	// Get CORS origins
+	corsOrigins, _, _ := form.GetCorsConfig()
+
+	h.Logger.Debug("form embed page accessed successfully",
+		"user_id", h.Logger.SanitizeField("user_id", userID),
+		"form_id_length", len(formID),
+		"form_title", h.Logger.SanitizeField("form_title", form.Title))
+
+	// Render form embed page using Inertia
+	return h.Inertia.Render(c, "Forms/Embed", inertia.Props{
+		"title": "Embed Form",
+		"form": map[string]any{
+			"id":          form.ID,
+			"title":       form.Title,
+			"description": form.Description,
+			"status":      form.Status,
+			"corsOrigins": corsOrigins,
+		},
+		"apiBaseUrl": h.Config.App.GetServerURL(),
 	})
 }
 
