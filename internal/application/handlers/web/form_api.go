@@ -56,6 +56,7 @@ func NewFormAPIHandler(
 func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 	api := e.Group(constants.PathAPIv1)
 	formsAPI := api.Group(constants.PathForms)
+	formsAPI.Use(NewFormCORSMiddleware(h.FormService, h.Config.Security.CORS))
 
 	// Register authenticated routes
 	h.RegisterAuthenticatedRoutes(formsAPI)

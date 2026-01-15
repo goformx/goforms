@@ -11,7 +11,7 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Eye, Pencil, ListChecks, MoreVertical, Copy, Download, Archive, Trash2 } from "lucide-vue-next";
+import { Eye, Pencil, ListChecks, MoreVertical, Copy, Download, Archive, Trash2, Code } from "lucide-vue-next";
 
 interface Form {
   id: string;
@@ -74,6 +74,10 @@ function previewForm() {
   router.visit(`/forms/${props.form.id}/preview`);
 }
 
+function embedForm() {
+  router.visit(`/forms/${props.form.id}/embed`);
+}
+
 // Dropdown actions
 function duplicateForm() {
   emit("duplicate", props.form.id);
@@ -120,6 +124,10 @@ function deleteForm() {
             <DropdownMenuItem @click="duplicateForm">
               <Copy class="mr-2 h-4 w-4" />
               Duplicate
+            </DropdownMenuItem>
+            <DropdownMenuItem @click="embedForm">
+              <Code class="mr-2 h-4 w-4" />
+              Embed
             </DropdownMenuItem>
             <DropdownMenuItem @click="exportForm">
               <Download class="mr-2 h-4 w-4" />
