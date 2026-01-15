@@ -4,6 +4,7 @@ package middleware
 import (
 	"errors"
 	"fmt"
+	"net/http"
 	"strings"
 	"time"
 
@@ -249,13 +250,15 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 func (m *Manager) setupSecurityMiddleware(e *echo.Echo) {
 	// CORS middleware
 	if m.config.Config.Security.CORS.Enabled {
-		e.Use(echomw.CORSWithConfig(echomw.CORSConfig{
+		corsConfig := echomw.CORSConfig{
 			AllowOrigins:     m.config.Config.Security.CORS.AllowedOrigins,
 			AllowMethods:     m.config.Config.Security.CORS.AllowedMethods,
 			AllowHeaders:     m.config.Config.Security.CORS.AllowedHeaders,
 			AllowCredentials: m.config.Config.Security.CORS.AllowCredentials,
 			MaxAge:           m.config.Config.Security.CORS.MaxAge,
-		}))
+			Skipper:          shouldSkipGlobalCORS,
+		}
+		e.Use(echomw.CORSWithConfig(corsConfig))
 	}
 
 	// Secure middleware
@@ -332,7 +335,24 @@ func isFormRoute(path string) bool {
 		strings.HasPrefix(path, "/submit/")
 }
 
-// EchoLogger is exported for backward compatibility.
-//
-// Deprecated: Use adapters.NewEchoLogger instead.
-type EchoLogger = adapters.EchoLogger
+func shouldSkipGlobalCORS(c echo.Context) bool {
+	return isPublicFormCORSPath(c.Request().Method, c.Request().URL.Path)
+}
+
+func isPublicFormCORSPath(method, requestPath string) bool {
+	if !strings.HasPrefix(requestPath, constants.PathAPIForms+"/") {
+		return false
+	}
+
+	switch {
+	case strings.HasSuffix(requestPath, "/schema"):
+		return method == http.MethodGet || method == http.MethodOptions
+	case strings.HasSuffix(requestPath, "/validation"):
+		return method == http.MethodGet || method == http.MethodOptions
+	case strings.HasSuffix(requestPath, "/submit"):
+		return method == http.MethodPost || method == http.MethodOptions
+	default:
+		return false
+	}
+}
+
