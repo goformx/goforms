@@ -355,4 +355,3 @@ func isPublicFormCORSPath(method, requestPath string) bool {
 		return false
 	}
 }
-
