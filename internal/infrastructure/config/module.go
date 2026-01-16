@@ -1,28 +1,5 @@
-// Package config provides configuration module for Fx dependency injection
+// Package config provides configuration helpers.
 package config
-
-import (
-	"go.uber.org/fx"
-)
-
-// Module provides the configuration module for Fx
-var Module = fx.Module("config",
-	// Use Viper configuration provider instead of LoadFromEnv
-	NewViperConfigProvider(),
-	fx.Provide(NewAppConfig),
-	fx.Provide(NewDatabaseConfig),
-	fx.Provide(NewSecurityConfig),
-	fx.Provide(NewEmailConfig),
-	fx.Provide(NewStorageConfig),
-	fx.Provide(NewCacheConfig),
-	fx.Provide(NewLoggingConfig),
-	fx.Provide(NewSessionConfig),
-	fx.Provide(NewAuthConfig),
-	fx.Provide(NewFormConfig),
-	fx.Provide(NewAPIConfig),
-	fx.Provide(NewWebConfig),
-	fx.Provide(NewUserConfig),
-)
 
 // Individual config providers for fine-grained dependency injection
 

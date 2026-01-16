@@ -49,64 +49,85 @@ tasks:
   # Development
   dev:build:
     desc: Build development Docker images
-    dir: docker/development
     cmds:
-      - docker compose build
+      - go run ./cmd/goforms-compose dev build
 
   dev:up:
     desc: Start development environment
-    dir: docker/development
     cmds:
-      - docker compose up -d
+      - go run ./cmd/goforms-compose dev up
 
   dev:down:
     desc: Stop development environment
-    dir: docker/development
     cmds:
-      - docker compose down
+      - go run ./cmd/goforms-compose dev down
+
+  dev:status:
+    desc: Show development container status
+    cmds:
+      - go run ./cmd/goforms-compose dev status
 
   dev:logs:
     desc: View development logs
-    dir: docker/development
     cmds:
-      - docker compose logs -f
+      - go run ./cmd/goforms-compose dev logs
+
+  dev:health:
+    desc: Wait for development services to be healthy
+    cmds:
+      - go run ./cmd/goforms-compose dev health
 
   # Production management
-  prod-up:
-    desc: Start production environment (app + database)
-    dir: docker/production
+  prod:deploy:
+    desc: Deploy production environment (requires IMAGE_TAG env var)
     cmds:
       - task: docker:check-env
-      - docker compose up -d
+      - go run ./cmd/goforms-compose prod deploy --tag ${IMAGE_TAG:-latest} --compose-file docker-compose.prod.yml
+
+  prod:rollback:
+    desc: Rollback to previous production deployment
+    cmds:
+      - go run ./cmd/goforms-compose prod rollback --compose-file docker-compose.prod.yml
+
+  prod:status:
+    desc: Show production container status
+    cmds:
+      - go run ./cmd/goforms-compose prod status --compose-file docker-compose.prod.yml
+
+  prod:logs:
+    desc: View production logs
+    cmds:
+      - go run ./cmd/goforms-compose prod logs --compose-file docker-compose.prod.yml
+
+  prod:health:
+    desc: Wait for production services to be healthy
+    cmds:
+      - go run ./cmd/goforms-compose prod health --compose-file docker-compose.prod.yml
+
+  # Legacy aliases for backward compatibility
+  prod-up:
+    desc: Start production environment (alias for prod:deploy)
+    cmds:
+      - task: docker:prod:deploy
 
   prod-down:
     desc: Stop production environment
-    dir: docker/production
     cmds:
-      - docker compose down
-
-  prod-logs:
-    desc: View production logs
-    dir: docker/production
-    cmds:
-      - docker compose logs -f
+      - go run ./cmd/goforms-compose prod down --compose-file docker-compose.prod.yml
 
   prod-restart:
     desc: Restart production environment
-    dir: docker/production
     cmds:
-      - docker compose restart
+      - task: docker:prod:deploy
 
   prod-pull:
     desc: Pull latest production image
-    dir: docker/production
     cmds:
-      - docker compose pull
+      - go run ./cmd/goforms-compose prod deploy --tag ${IMAGE_TAG:-latest} --pull --compose-file docker-compose.prod.yml --dry-run
 
   # Database management
   db:backup:
     desc: Backup PostgreSQL database
-    dir: docker/production
     cmds:
       - echo "Creating database backup..."
       - docker compose exec -T postgres pg_dump -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms} > backup_$(date +%Y%m%d_%H%M%S).sql
@@ -114,14 +135,12 @@ tasks:
 
   db:restore:
     desc: Restore PostgreSQL database from backup
-    dir: docker/production
     cmds:
       - echo "Restoring database from backup..."
       - docker compose exec -T postgres psql -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms} < backup_${BACKUP_FILE}
 
   db:shell:
     desc: Open PostgreSQL shell
-    dir: docker/production
     cmds:
       - docker compose exec postgres psql -U ${POSTGRES_USER:-goforms} ${POSTGRES_DB:-goforms}
 
@@ -142,9 +161,10 @@ tasks:
     desc: Show Docker container status
     cmds:
       - echo "=== Development ==="
-      - cd docker/development && docker compose ps
+      - go run ./cmd/goforms-compose dev status
+      - echo ""
       - echo "=== Production ==="
-      - cd ../production && docker compose ps
+      - go run ./cmd/goforms-compose prod status --compose-file docker-compose.prod.yml
 
   health:
     desc: Check application health
@@ -165,12 +185,9 @@ tasks:
       - echo "1. Setting up environment variables..."
       - task: docker:setup-env
       - echo ""
-      - echo "2. Pulling latest image from GitHub Packages..."
-      - task: docker:prod-pull
-      - echo ""
-      - echo "3. Starting production environment..."
-      - task: docker:prod-up
+      - echo "2. Deploying production environment..."
+      - task: docker:prod:deploy
       - echo ""
       - echo "✅ Quick deployment completed!"
       - 'echo "Check status with: task docker:status"'
-      - 'echo "View logs with: task docker:prod-logs"'
+      - 'echo "View logs with: task docker:prod:logs"'

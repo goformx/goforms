@@ -1,0 +1,569 @@
+package compose
+
+import (
+	"context"
+	"errors"
+	"fmt"
+	"io"
+	"math/rand"
+	"os"
+	"path/filepath"
+	"time"
+
+	"github.com/compose-spec/compose-go/v2/types"
+	"github.com/docker/cli/cli/command"
+	"github.com/docker/cli/cli/flags"
+	"github.com/docker/compose/v5/pkg/api"
+	"github.com/docker/compose/v5/pkg/compose"
+	containertypes "github.com/docker/docker/api/types/container"
+)
+
+// service implements the Service interface using Docker Compose SDK.
+type service struct {
+	composeService api.Compose
+	logger         Logger
+	dockerCLI      command.Cli
+}
+
+// NewService creates a new Compose service instance.
+func NewService(logger Logger) (Service, error) {
+	if logger == nil {
+		logger = &NullLogger{}
+	}
+
+	// Initialize Docker CLI
+	dockerCLI, err := command.NewDockerCli()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create docker CLI: %w", err)
+	}
+
+	err = dockerCLI.Initialize(&flags.ClientOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize docker CLI: %w", err)
+	}
+
+	// Create Compose service with progress writer
+	outputWriter := os.Stdout
+	errorWriter := os.Stderr
+
+	const defaultMaxConcurrency = 4
+
+	composeService, err := compose.NewComposeService(
+		dockerCLI,
+		compose.WithOutputStream(outputWriter),
+		compose.WithErrorStream(errorWriter),
+		compose.WithMaxConcurrency(defaultMaxConcurrency),
+		compose.WithPrompt(compose.AlwaysOkPrompt()),
+	)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compose service: %w", err)
+	}
+
+	return &service{
+		composeService: composeService,
+		logger:         logger,
+		dockerCLI:      dockerCLI,
+	}, nil
+}
+
+// NewServiceWithOptions creates a new Compose service with custom options.
+func NewServiceWithOptions(logger Logger, opts ...compose.Option) (Service, error) {
+	if logger == nil {
+		logger = &NullLogger{}
+	}
+
+	// Initialize Docker CLI
+	dockerCLI, err := command.NewDockerCli()
+	if err != nil {
+		return nil, fmt.Errorf("failed to create docker CLI: %w", err)
+	}
+
+	err = dockerCLI.Initialize(&flags.ClientOptions{})
+	if err != nil {
+		return nil, fmt.Errorf("failed to initialize docker CLI: %w", err)
+	}
+
+	// Create Compose service with provided options
+	composeService, err := compose.NewComposeService(dockerCLI, opts...)
+	if err != nil {
+		return nil, fmt.Errorf("failed to create compose service: %w", err)
+	}
+
+	return &service{
+		composeService: composeService,
+		logger:         logger,
+		dockerCLI:      dockerCLI,
+	}, nil
+}
+
+// LoadProject loads a Compose project from the given context.
+func (s *service) LoadProject(ctx context.Context, projectCtx ProjectContext) (*Project, error) {
+	// Resolve project directory
+	projectDir := projectCtx.ProjectDir
+	if projectDir == "" {
+		// Default to directory of first compose file
+		if len(projectCtx.ComposeFiles) > 0 {
+			projectDir = filepath.Dir(projectCtx.ComposeFiles[0])
+		} else {
+			wd, err := os.Getwd()
+			if err != nil {
+				return nil, fmt.Errorf("failed to get working directory: %w", err)
+			}
+			projectDir = wd
+		}
+	}
+
+	// Resolve compose file paths relative to project dir
+	configPaths := make([]string, 0, len(projectCtx.ComposeFiles))
+	for _, file := range projectCtx.ComposeFiles {
+		if !filepath.IsAbs(file) {
+			file = filepath.Join(projectDir, file)
+		}
+		configPaths = append(configPaths, file)
+	}
+
+	// Build load options
+	loadOptions := api.ProjectLoadOptions{
+		ConfigPaths: configPaths,
+		ProjectName: projectCtx.Name,
+		WorkingDir:  projectDir,
+	}
+
+	// Load environment file if provided
+	if projectCtx.EnvFile != "" {
+		envFile := projectCtx.EnvFile
+		if !filepath.IsAbs(envFile) {
+			envFile = filepath.Join(projectDir, envFile)
+		}
+		loadOptions.EnvFiles = []string{envFile}
+	}
+
+	// Load the project
+	project, err := s.composeService.LoadProject(ctx, loadOptions)
+	if err != nil {
+		return nil, fmt.Errorf("failed to load project: %w", err)
+	}
+
+	// Convert to our Project type
+	result := &Project{
+		Name:     project.Name,
+		Services: make(map[string]ServiceConfig),
+		internal: project,
+	}
+
+	// Extract service configurations for dry-run and status display
+	result.Services = s.extractServiceConfigs(project.Services)
+
+	s.logger.Info(fmt.Sprintf("Loaded project '%s' with %d services", result.Name, len(result.Services)))
+
+	return result, nil
+}
+
+// extractServiceConfigs extracts service configurations from the SDK project.
+func (s *service) extractServiceConfigs(services types.Services) map[string]ServiceConfig {
+	result := make(map[string]ServiceConfig)
+
+	for name := range services {
+		svc := services[name]
+		serviceConfig := ServiceConfig{
+			Name:        name,
+			Image:       svc.Image,
+			Ports:       []string{},
+			Environment: make(map[string]string),
+			DependsOn:   make([]string, 0),
+		}
+
+		s.extractDependsOn(&serviceConfig, svc)
+		s.extractPorts(&serviceConfig, svc)
+		s.extractEnvironment(&serviceConfig, svc)
+		s.extractBuildConfig(&serviceConfig, svc)
+
+		result[name] = serviceConfig
+	}
+
+	return result
+}
+
+// extractDependsOn extracts depends_on relationships.
+func (s *service) extractDependsOn(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.DependsOn == nil {
+		return
+	}
+
+	for depName := range svc.DependsOn {
+		config.DependsOn = append(config.DependsOn, depName)
+	}
+}
+
+// extractPorts extracts port mappings.
+func (s *service) extractPorts(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.Ports == nil {
+		return
+	}
+
+	for _, port := range svc.Ports {
+		if port.Published != "" && port.Target != 0 {
+			config.Ports = append(config.Ports,
+				fmt.Sprintf("%s:%d/%s", port.Published, port.Target, port.Protocol))
+		}
+	}
+}
+
+// extractEnvironment extracts environment variables.
+func (s *service) extractEnvironment(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.Environment == nil {
+		return
+	}
+
+	for envName, envValue := range svc.Environment {
+		if envValue != nil {
+			config.Environment[envName] = *envValue
+		}
+	}
+}
+
+// extractBuildConfig extracts build configuration.
+func (s *service) extractBuildConfig(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.Build == nil {
+		return
+	}
+
+	config.Build = &BuildConfig{
+		Context:    svc.Build.Context,
+		Dockerfile: svc.Build.Dockerfile,
+		Args:       make(map[string]string),
+	}
+
+	if svc.Build.Args != nil {
+		for k, v := range svc.Build.Args {
+			if v != nil {
+				config.Build.Args[k] = *v
+			}
+		}
+	}
+}
+
+// getInternalProject safely extracts the internal project type.
+func (s *service) getInternalProject(project *Project) (*types.Project, error) {
+	if project.internal == nil {
+		return nil, errors.New("invalid internal project: nil")
+	}
+
+	internalProject, ok := project.internal.(*types.Project)
+	if !ok || internalProject == nil {
+		return nil, errors.New("invalid internal project: expected *types.Project")
+	}
+
+	return internalProject, nil
+}
+
+// Up creates and starts services.
+func (s *service) Up(ctx context.Context, project *Project, options UpOptions) error {
+	if options.DryRun {
+		return s.dryRunUp(ctx, project, options)
+	}
+
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
+
+	upOptions := api.UpOptions{
+		Create: api.CreateOptions{
+			Recreate:      options.Create.Recreate,
+			RemoveOrphans: options.Create.RemoveOrphans,
+			QuietPull:     options.Create.Quiet,
+		},
+		Start: api.StartOptions{
+			Wait:        options.Start.Wait,
+			WaitTimeout: time.Duration(options.Start.WaitTimeout) * time.Second,
+		},
+	}
+
+	err = s.composeService.Up(ctx, internalProject, upOptions)
+	if err != nil {
+		return fmt.Errorf("failed to start services: %w", err)
+	}
+
+	s.logger.Info(fmt.Sprintf("Successfully started project '%s'", project.Name))
+	return nil
+}
+
+// dryRunUp performs a dry-run of the Up operation.
+func (s *service) dryRunUp(_ context.Context, project *Project, _ UpOptions) error {
+	s.logger.Info("DRY RUN: Would start the following services:")
+
+	for name, svc := range project.Services {
+		s.logger.Info(fmt.Sprintf("  Service: %s", name))
+		if svc.Image != "" {
+			s.logger.Info(fmt.Sprintf("    Image: %s", svc.Image))
+		}
+		if svc.Build != nil {
+			s.logger.Info(fmt.Sprintf("    Build: %s (Dockerfile: %s)", svc.Build.Context, svc.Build.Dockerfile))
+		}
+		if len(svc.Ports) > 0 {
+			s.logger.Info(fmt.Sprintf("    Ports: %v", svc.Ports))
+		}
+		if len(svc.DependsOn) > 0 {
+			s.logger.Info(fmt.Sprintf("    Depends on: %v", svc.DependsOn))
+		}
+	}
+
+	s.logger.Info("DRY RUN: No changes were made")
+	return nil
+}
+
+// Down stops and removes services.
+func (s *service) Down(ctx context.Context, project *Project, options DownOptions) error {
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
+
+	downOptions := api.DownOptions{
+		Volumes:       options.RemoveVolumes,
+		RemoveOrphans: options.RemoveOrphans,
+		Project:       internalProject,
+	}
+
+	if options.Timeout > 0 {
+		timeout := time.Duration(options.Timeout) * time.Second
+		downOptions.Timeout = &timeout
+	}
+
+	err = s.composeService.Down(ctx, internalProject.Name, downOptions)
+	if err != nil {
+		return fmt.Errorf("failed to stop services: %w", err)
+	}
+
+	s.logger.Info(fmt.Sprintf("Successfully stopped project '%s'", project.Name))
+	return nil
+}
+
+// Pull pulls images for services.
+func (s *service) Pull(ctx context.Context, project *Project, options PullOptions) error {
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
+
+	pullOptions := api.PullOptions{
+		Quiet:           options.Quiet,
+		IgnoreBuildable: options.IgnoreBuildable,
+	}
+
+	err = s.composeService.Pull(ctx, internalProject, pullOptions)
+	if err != nil {
+		return fmt.Errorf("failed to pull images: %w", err)
+	}
+
+	s.logger.Info(fmt.Sprintf("Successfully pulled images for project '%s'", project.Name))
+	return nil
+}
+
+// Build builds images for services.
+func (s *service) Build(ctx context.Context, project *Project, options BuildOptions) error {
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
+
+	buildOptions := api.BuildOptions{
+		Pull:     options.Pull,
+		NoCache:  options.NoCache,
+		Quiet:    options.Quiet,
+		Services: options.Services,
+		Deps:     options.Deps,
+		Progress: "auto",
+	}
+
+	err = s.composeService.Build(ctx, internalProject, buildOptions)
+	if err != nil {
+		return fmt.Errorf("failed to build images: %w", err)
+	}
+
+	s.logger.Info(fmt.Sprintf("Successfully built images for project '%s'", project.Name))
+	return nil
+}
+
+// Ps lists running containers.
+func (s *service) Ps(ctx context.Context, project *Project) ([]ServiceStatus, error) {
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return nil, err
+	}
+
+	containers, err := s.composeService.Ps(ctx, internalProject.Name, api.PsOptions{
+		Project: internalProject,
+	})
+	if err != nil {
+		return nil, fmt.Errorf("failed to list containers: %w", err)
+	}
+
+	statuses := make([]ServiceStatus, 0, len(containers))
+	for i := range containers {
+		container := containers[i]
+		portsStr := ""
+		if len(container.Publishers) > 0 {
+			portParts := make([]string, 0, len(container.Publishers))
+			for _, pub := range container.Publishers {
+				if pub.URL != "" {
+					portParts = append(portParts, pub.URL)
+				} else if pub.PublishedPort > 0 {
+					portParts = append(portParts, fmt.Sprintf("%d:%d/%s", pub.PublishedPort, pub.TargetPort, pub.Protocol))
+				}
+			}
+			if len(portParts) > 0 {
+				portsStr = fmt.Sprintf("%v", portParts)
+			}
+		}
+		statuses = append(statuses, ServiceStatus{
+			Name:   container.Name,
+			State:  container.State,
+			Status: container.Status,
+			Ports:  portsStr,
+			Image:  container.Image,
+			Health: container.Health,
+		})
+	}
+
+	return statuses, nil
+}
+
+// Logs writes logs for services to the given writer.
+// Uses Docker CLI directly since Compose SDK may not expose Logs method.
+func (s *service) Logs(ctx context.Context, project *Project, services []string, follow bool, outputWriter io.Writer) error {
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
+
+	// Use Docker client to get logs for containers in the project
+	containers, err := s.composeService.Ps(ctx, internalProject.Name, api.PsOptions{
+		Project:  internalProject,
+		Services: services,
+	})
+	if err != nil {
+		return fmt.Errorf("failed to list containers: %w", err)
+	}
+
+	// For each container, stream logs using Docker client
+	for i := range containers {
+		container := containers[i]
+		opts := containertypes.LogsOptions{
+			ShowStdout: true,
+			ShowStderr: true,
+			Follow:     follow,
+			Timestamps: false,
+			Tail:       "all",
+		}
+
+		containerLogs, logErr := s.dockerCLI.Client().ContainerLogs(ctx, container.ID, opts)
+		if logErr != nil {
+			s.logger.Warn(fmt.Sprintf("Failed to get logs for container %s: %v", container.Name, logErr))
+			continue
+		}
+
+		// Write container name header
+		fmt.Fprintf(outputWriter, "\n=== %s ===\n", container.Name)
+		_, copyErr := io.Copy(outputWriter, containerLogs)
+		containerLogs.Close() // Close immediately after use to prevent resource leak
+
+		if copyErr != nil {
+			s.logger.Warn(fmt.Sprintf("Error copying logs for container %s: %v", container.Name, copyErr))
+		}
+	}
+
+	return nil
+}
+
+// WaitForHealthy waits for services to become healthy.
+func (s *service) WaitForHealthy(ctx context.Context, project *Project, services []string, config HealthWaitConfig) error {
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
+
+	timeout := time.Duration(config.Timeout) * time.Second
+	retryInterval := time.Duration(config.RetryInterval) * time.Second
+
+	// Create context with timeout
+	waitCtx, cancel := context.WithTimeout(ctx, timeout)
+	defer cancel()
+
+	// Determine which services to wait for
+	servicesToWait := services
+	if len(servicesToWait) == 0 {
+		// Wait for all services
+		for name := range project.Services {
+			servicesToWait = append(servicesToWait, name)
+		}
+	}
+
+	// Wait for each service
+	for _, serviceName := range servicesToWait {
+		if healthErr := s.waitForServiceHealthy(waitCtx, internalProject, serviceName, retryInterval, config.Jitter); healthErr != nil {
+			return fmt.Errorf("service '%s' failed health check: %w", serviceName, healthErr)
+		}
+		s.logger.Info(fmt.Sprintf("Service '%s' is healthy", serviceName))
+	}
+
+	return nil
+}
+
+// waitForServiceHealthy waits for a single service to become healthy.
+func (s *service) waitForServiceHealthy(ctx context.Context, project *types.Project, serviceName string, interval time.Duration, jitter bool) error {
+	ticker := time.NewTicker(interval)
+	defer ticker.Stop()
+
+	for {
+		select {
+		case <-ctx.Done():
+			return ctx.Err()
+		case <-ticker.C:
+			if jitter {
+				s.applyJitter()
+			}
+
+			if s.isServiceHealthy(ctx, project, serviceName) {
+				return nil
+			}
+		}
+	}
+}
+
+// applyJitter applies random jitter to avoid thundering herd.
+func (s *service) applyJitter() {
+	const maxJitterMs = 500 // 0-500ms jitter
+	jitterMs := rand.Intn(maxJitterMs)
+	time.Sleep(time.Duration(jitterMs) * time.Millisecond)
+}
+
+// isServiceHealthy checks if a service is healthy.
+func (s *service) isServiceHealthy(ctx context.Context, project *types.Project, serviceName string) bool {
+	containers, err := s.composeService.Ps(ctx, project.Name, api.PsOptions{
+		Project:  project,
+		Services: []string{serviceName},
+	})
+	if err != nil {
+		s.logger.Debug(fmt.Sprintf("Failed to check service status: %v", err))
+		return false
+	}
+
+	for i := range containers {
+		container := containers[i]
+		if container.Service == serviceName {
+			if s.isContainerHealthy(container) {
+				return true
+			}
+			s.logger.Debug(fmt.Sprintf("Service '%s' not healthy yet: state=%s, health=%s", serviceName, container.State, container.Health))
+		}
+	}
+
+	return false
+}
+
+// isContainerHealthy checks if a container is healthy.
+func (s *service) isContainerHealthy(container api.ContainerSummary) bool {
+	return container.Health == "healthy" || (container.Health == "" && container.State == "running")
+}

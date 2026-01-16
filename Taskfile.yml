@@ -188,7 +188,7 @@ tasks:
     cmds:
     - for: ['bin/', 'dist/', 'node_modules/', 'coverage/', '.task/']
       cmd: rm -rf {{.ITEM}}
-    - find test/mocks -name 'mock_*.go' -delete
+    - if [ -d test/mocks ]; then find test/mocks -name 'mock_*.go' -delete; fi
 
   lint:
     desc: Run all linters

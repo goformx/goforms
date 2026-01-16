@@ -10,8 +10,6 @@ import (
 	"path/filepath"
 	"time"
 
-	"go.uber.org/fx"
-
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 )
@@ -20,7 +18,6 @@ import (
 func NewManager(
 	logger logging.Logger,
 	cfg *Config,
-	lc fx.Lifecycle,
 	accessManager *access.Manager,
 ) *Manager {
 	// Create tmp directory if it doesn't exist
@@ -42,33 +39,29 @@ func NewManager(
 		accessManager: accessManager,
 	}
 
-	// Register lifecycle hooks
-	lc.Append(fx.Hook{
-		OnStart: func(_ context.Context) error {
-			// Initialize session store
-			if err := sm.initialize(); err != nil {
-				return fmt.Errorf("failed to initialize session store: %w", err)
-			}
-
-			// Start cleanup routine
-			go sm.cleanupRoutine()
-
-			return nil
-		},
-		OnStop: func(_ context.Context) error {
-			// Stop cleanup routine
-			close(sm.stopChan)
-
-			// Save sessions before shutdown
-			if err := sm.saveSessions(); err != nil {
-				sm.logger.Error("failed to save sessions during shutdown", "error", err)
-			}
-
-			return nil
-		},
-	})
-
 	return sm
+}
+
+// Start initializes session storage and cleanup routines.
+func (sm *Manager) Start(_ context.Context) error {
+	if err := sm.initialize(); err != nil {
+		return fmt.Errorf("failed to initialize session store: %w", err)
+	}
+
+	go sm.cleanupRoutine()
+
+	return nil
+}
+
+// Stop shuts down cleanup routines and persists sessions.
+func (sm *Manager) Stop(_ context.Context) error {
+	close(sm.stopChan)
+
+	if err := sm.saveSessions(); err != nil {
+		sm.logger.Error("failed to save sessions during shutdown", "error", err)
+	}
+
+	return nil
 }
 
 // initialize sets up the session store

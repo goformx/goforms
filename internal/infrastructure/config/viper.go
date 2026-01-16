@@ -10,7 +10,6 @@ import (
 	"time"
 
 	"github.com/spf13/viper"
-	"go.uber.org/fx"
 )
 
 // ViperConfig represents the Viper-based configuration loader
@@ -774,13 +773,4 @@ func setUserDefaults(v *viper.Viper) {
 	v.SetDefault("user.admin.name", "Administrator")
 	v.SetDefault("user.default.role", "user")
 	v.SetDefault("user.default.permissions", []string{"read"})
-}
-
-// NewViperConfigProvider creates an Fx provider for Viper configuration
-func NewViperConfigProvider() fx.Option {
-	return fx.Provide(func() (*Config, error) {
-		vc := NewViperConfig()
-
-		return vc.Load()
-	})
 }
