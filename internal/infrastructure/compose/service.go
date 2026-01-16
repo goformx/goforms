@@ -245,10 +245,15 @@ func (s *service) extractBuildConfig(config *ServiceConfig, svc types.ServiceCon
 
 // getInternalProject safely extracts the internal project type.
 func (s *service) getInternalProject(project *Project) (*types.Project, error) {
-	internalProject, ok := project.internal.(*types.Project)
-	if !ok {
-		return nil, errors.New("invalid project type: expected *types.Project")
+	if project.internal == nil {
+		return nil, errors.New("invalid internal project: nil")
 	}
+
+	internalProject, ok := project.internal.(*types.Project)
+	if !ok || internalProject == nil {
+		return nil, errors.New("invalid internal project: expected *types.Project")
+	}
+
 	return internalProject, nil
 }
 
@@ -459,17 +464,14 @@ func (s *service) Logs(ctx context.Context, project *Project, services []string,
 			continue
 		}
 
-		// Use an IIFE to ensure defer executes in each iteration
-		func() {
-			defer containerLogs.Close()
+		// Write container name header
+		fmt.Fprintf(outputWriter, "\n=== %s ===\n", container.Name)
+		_, copyErr := io.Copy(outputWriter, containerLogs)
+		containerLogs.Close() // Close immediately after use to prevent resource leak
 
-			// Write container name header
-			fmt.Fprintf(outputWriter, "\n=== %s ===\n", container.Name)
-			_, copyErr := io.Copy(outputWriter, containerLogs)
-			if copyErr != nil {
-				s.logger.Warn(fmt.Sprintf("Error copying logs for container %s: %v", container.Name, copyErr))
-			}
-		}()
+		if copyErr != nil {
+			s.logger.Warn(fmt.Sprintf("Error copying logs for container %s: %v", container.Name, copyErr))
+		}
 	}
 
 	return nil
