@@ -40,12 +40,12 @@ type HealthWaitConfig struct {
 
 // ServiceStatus represents the status of a service in a Compose project.
 type ServiceStatus struct {
-	Name    string
-	State   string
-	Status  string
-	Ports   string
-	Image   string
-	Health  string
+	Name   string
+	State  string
+	Status string
+	Ports  string
+	Image  string
+	Health string
 }
 
 // Service provides methods for managing Compose projects.
@@ -70,6 +70,9 @@ type Service interface {
 
 	// WaitForHealthy waits for services to become healthy
 	WaitForHealthy(ctx context.Context, project *Project, services []string, config HealthWaitConfig) error
+
+	// Build builds images for services
+	Build(ctx context.Context, project *Project, options BuildOptions) error
 }
 
 // Project represents a loaded Compose project.
@@ -83,12 +86,12 @@ type Project struct {
 
 // ServiceConfig represents a service configuration in a project.
 type ServiceConfig struct {
-	Name      string
-	Image     string
-	Build     *BuildConfig
-	Ports     []string
+	Name        string
+	Image       string
+	Build       *BuildConfig
+	Ports       []string
 	Environment map[string]string
-	DependsOn []string
+	DependsOn   []string
 }
 
 // BuildConfig represents build configuration for a service.
@@ -142,4 +145,18 @@ type PullOptions struct {
 	Quiet bool
 	// IgnoreBuildable skips services with build configuration
 	IgnoreBuildable bool
+}
+
+// BuildOptions configures the Build operation.
+type BuildOptions struct {
+	// Pull always attempt to pull a newer version of the image
+	Pull bool
+	// NoCache disables cache use
+	NoCache bool
+	// Quiet suppresses progress output
+	Quiet bool
+	// Services specifies which services to build (empty = all)
+	Services []string
+	// Deps also build selected services dependencies
+	Deps bool
 }

@@ -50,7 +50,7 @@ tasks:
   dev:build:
     desc: Build development Docker images
     cmds:
-      - docker compose build
+      - go run ./cmd/goforms-compose dev build
 
   dev:up:
     desc: Start development environment

@@ -80,7 +80,7 @@ Run '%s <command> --help' for command-specific help.
 
 func handleDev(ctx context.Context, svc compose.Service, logger compose.Logger, args []string) {
 	if len(args) < 1 {
-		fmt.Fprintf(os.Stderr, "Error: dev command requires a subcommand (up, down, status, logs, health)\n")
+		fmt.Fprintf(os.Stderr, "Error: dev command requires a subcommand (up, down, build, status, logs, health)\n")
 		os.Exit(1)
 	}
 
@@ -107,10 +107,10 @@ func handleDev(ctx context.Context, svc compose.Service, logger compose.Logger, 
 	}
 
 	projectCtx := compose.ProjectContext{
-		Name:        *projectName,
+		Name:         *projectName,
 		ComposeFiles: composeFiles,
-		EnvFile:     *envFile,
-		ProjectDir:  *projectDir,
+		EnvFile:      *envFile,
+		ProjectDir:   *projectDir,
 	}
 
 	switch subcommand {
@@ -118,6 +118,8 @@ func handleDev(ctx context.Context, svc compose.Service, logger compose.Logger, 
 		handleDevUp(ctx, svc, logger, projectCtx, *dryRun)
 	case "down":
 		handleDevDown(ctx, svc, logger, projectCtx)
+	case "build":
+		handleDevBuild(ctx, svc, logger, projectCtx, fs.Args())
 	case "status":
 		handleDevStatus(ctx, svc, logger, projectCtx)
 	case "logs":
@@ -126,7 +128,7 @@ func handleDev(ctx context.Context, svc compose.Service, logger compose.Logger, 
 		handleDevHealth(ctx, svc, logger, projectCtx)
 	default:
 		fmt.Fprintf(os.Stderr, "Error: Unknown dev subcommand '%s'\n", subcommand)
-		fmt.Fprintf(os.Stderr, "Valid subcommands: up, down, status, logs, health\n")
+		fmt.Fprintf(os.Stderr, "Valid subcommands: up, down, build, status, logs, health\n")
 		os.Exit(1)
 	}
 }
@@ -162,10 +164,10 @@ func handleProd(ctx context.Context, svc compose.Service, logger compose.Logger,
 	}
 
 	projectCtx := compose.ProjectContext{
-		Name:        *projectName,
+		Name:         *projectName,
 		ComposeFiles: composeFiles,
-		EnvFile:     *envFile,
-		ProjectDir:  *projectDir,
+		EnvFile:      *envFile,
+		ProjectDir:   *projectDir,
 	}
 
 	switch subcommand {

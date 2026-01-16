@@ -9,11 +9,11 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/compose-spec/compose-go/v2/types"
 	"github.com/docker/cli/cli/command"
 	"github.com/docker/cli/cli/flags"
 	"github.com/docker/compose/v5/pkg/api"
 	"github.com/docker/compose/v5/pkg/compose"
-	"github.com/compose-spec/compose-go/v2/types"
 	containertypes "github.com/docker/docker/api/types/container"
 )
 
@@ -152,10 +152,10 @@ func (s *service) LoadProject(ctx context.Context, projectCtx ProjectContext) (*
 	for name, svc := range project.Services {
 		serviceConfig := ServiceConfig{
 			Name:        name,
-			Image:        svc.Image,
+			Image:       svc.Image,
 			Ports:       []string{},
-			Environment:  make(map[string]string),
-			DependsOn:    make([]string, 0),
+			Environment: make(map[string]string),
+			DependsOn:   make([]string, 0),
 		}
 
 		// Extract depends_on
@@ -223,7 +223,7 @@ func (s *service) Up(ctx context.Context, project *Project, options UpOptions) e
 			QuietPull:     options.Create.Quiet,
 		},
 		Start: api.StartOptions{
-			Wait:       options.Start.Wait,
+			Wait:        options.Start.Wait,
 			WaitTimeout: time.Duration(options.Start.WaitTimeout) * time.Second,
 		},
 	}
@@ -266,9 +266,9 @@ func (s *service) Down(ctx context.Context, project *Project, options DownOption
 	internalProject := project.internal.(*types.Project)
 
 	downOptions := api.DownOptions{
-		Volumes:      options.RemoveVolumes,
+		Volumes:       options.RemoveVolumes,
 		RemoveOrphans: options.RemoveOrphans,
-		Project:      internalProject,
+		Project:       internalProject,
 	}
 
 	if options.Timeout > 0 {
@@ -290,7 +290,7 @@ func (s *service) Pull(ctx context.Context, project *Project, options PullOption
 	internalProject := project.internal.(*types.Project)
 
 	pullOptions := api.PullOptions{
-		Quiet:          options.Quiet,
+		Quiet:           options.Quiet,
 		IgnoreBuildable: options.IgnoreBuildable,
 	}
 
@@ -300,6 +300,28 @@ func (s *service) Pull(ctx context.Context, project *Project, options PullOption
 	}
 
 	s.logger.Info(fmt.Sprintf("Successfully pulled images for project '%s'", project.Name))
+	return nil
+}
+
+// Build builds images for services.
+func (s *service) Build(ctx context.Context, project *Project, options BuildOptions) error {
+	internalProject := project.internal.(*types.Project)
+
+	buildOptions := api.BuildOptions{
+		Pull:     options.Pull,
+		NoCache:  options.NoCache,
+		Quiet:    options.Quiet,
+		Services: options.Services,
+		Deps:     options.Deps,
+		Progress: "auto",
+	}
+
+	err := s.composeService.Build(ctx, internalProject, buildOptions)
+	if err != nil {
+		return fmt.Errorf("failed to build images: %w", err)
+	}
+
+	s.logger.Info(fmt.Sprintf("Successfully built images for project '%s'", project.Name))
 	return nil
 }
 
@@ -336,7 +358,7 @@ func (s *service) Ps(ctx context.Context, project *Project) ([]ServiceStatus, er
 			Status: container.Status,
 			Ports:  portsStr,
 			Image:  container.Image,
-			Health:  container.Health,
+			Health: container.Health,
 		})
 	}
 

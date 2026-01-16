@@ -23,7 +23,7 @@ func handleDevUp(ctx context.Context, svc compose.Service, logger compose.Logger
 			Quiet:         false,
 		},
 		Start: compose.StartOptions{
-			Wait:       true,
+			Wait:        true,
 			WaitTimeout: 60,
 		},
 		DryRun: dryRun,
@@ -50,6 +50,27 @@ func handleDevDown(ctx context.Context, svc compose.Service, logger compose.Logg
 
 	if err := svc.Down(ctx, project, options); err != nil {
 		fmt.Fprintf(os.Stderr, "Error stopping services: %v\n", err)
+		os.Exit(1)
+	}
+}
+
+func handleDevBuild(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext, services []string) {
+	project, err := svc.LoadProject(ctx, projectCtx)
+	if err != nil {
+		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
+		os.Exit(1)
+	}
+
+	options := compose.BuildOptions{
+		Pull:     false,
+		NoCache:  false,
+		Quiet:    false,
+		Services: services,
+		Deps:     true,
+	}
+
+	if err := svc.Build(ctx, project, options); err != nil {
+		fmt.Fprintf(os.Stderr, "Error building images: %v\n", err)
 		os.Exit(1)
 	}
 }
@@ -100,9 +121,9 @@ func handleDevHealth(ctx context.Context, svc compose.Service, logger compose.Lo
 	}
 
 	config := compose.HealthWaitConfig{
-		Timeout:      60,
+		Timeout:       60,
 		RetryInterval: 2,
-		Jitter:       true,
+		Jitter:        true,
 	}
 
 	if err := svc.WaitForHealthy(ctx, project, nil, config); err != nil {

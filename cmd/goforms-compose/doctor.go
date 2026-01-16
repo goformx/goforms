@@ -63,9 +63,9 @@ func handleDoctor(ctx context.Context, svc compose.Service, logger compose.Logge
 	// Try to parse compose files
 	fmt.Print("Validating compose file syntax... ")
 	projectCtx := compose.ProjectContext{
-		Name:        "goforms-dev",
+		Name:         "goforms-dev",
 		ComposeFiles: []string{"docker-compose.yml"},
-		EnvFile:     ".env",
+		EnvFile:      ".env",
 	}
 	_, err = svc.LoadProject(ctx, projectCtx)
 	if err != nil {

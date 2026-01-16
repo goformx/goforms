@@ -32,10 +32,10 @@ func TestComposeCLIUpDown(t *testing.T) {
 
 	ctx := context.Background()
 	projectCtx := compose.ProjectContext{
-		Name:        "goforms-test",
+		Name:         "goforms-test",
 		ComposeFiles: []string{"docker-compose.yml"},
-		EnvFile:     ".env",
-		ProjectDir:  ".",
+		EnvFile:      ".env",
+		ProjectDir:   ".",
 	}
 
 	// Load project
@@ -49,10 +49,10 @@ func TestComposeCLIUpDown(t *testing.T) {
 		Create: compose.CreateOptions{
 			Recreate:      "missing",
 			RemoveOrphans: false,
-			Quiet:          false,
+			Quiet:         false,
 		},
 		Start: compose.StartOptions{
-			Wait:       false,
+			Wait:        false,
 			WaitTimeout: 30,
 		},
 		DryRun: true,
@@ -90,10 +90,10 @@ func TestComposeCLIHealthWait(t *testing.T) {
 
 	ctx := context.Background()
 	projectCtx := compose.ProjectContext{
-		Name:        "goforms-test",
+		Name:         "goforms-test",
 		ComposeFiles: []string{"docker-compose.yml"},
-		EnvFile:     ".env",
-		ProjectDir:  ".",
+		EnvFile:      ".env",
+		ProjectDir:   ".",
 	}
 
 	project, err := svc.LoadProject(ctx, projectCtx)
@@ -173,10 +173,10 @@ func TestComposeCLIProjectLoad(t *testing.T) {
 
 	// Test loading dev compose file
 	projectCtx := compose.ProjectContext{
-		Name:        "goforms-test",
+		Name:         "goforms-test",
 		ComposeFiles: []string{"docker-compose.yml"},
-		EnvFile:     ".env",
-		ProjectDir:  ".",
+		EnvFile:      ".env",
+		ProjectDir:   ".",
 	}
 
 	project, err := svc.LoadProject(ctx, projectCtx)

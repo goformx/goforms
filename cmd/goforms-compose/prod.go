@@ -43,7 +43,7 @@ func handleProdDeploy(ctx context.Context, svc compose.Service, logger compose.L
 	// Pull images if requested
 	if pull && !dryRun {
 		pullOptions := compose.PullOptions{
-			Quiet:          false,
+			Quiet:           false,
 			IgnoreBuildable: false,
 		}
 		if err := svc.Pull(ctx, project, pullOptions); err != nil {
@@ -60,7 +60,7 @@ func handleProdDeploy(ctx context.Context, svc compose.Service, logger compose.L
 			Quiet:         false,
 		},
 		Start: compose.StartOptions{
-			Wait:       true,
+			Wait:        true,
 			WaitTimeout: 120,
 		},
 		DryRun: dryRun,
@@ -125,7 +125,7 @@ func handleProdRollback(ctx context.Context, svc compose.Service, logger compose
 			Quiet:         false,
 		},
 		Start: compose.StartOptions{
-			Wait:       true,
+			Wait:        true,
 			WaitTimeout: 120,
 		},
 		DryRun: dryRun,
@@ -198,9 +198,9 @@ func handleProdHealth(ctx context.Context, svc compose.Service, logger compose.L
 	}
 
 	config := compose.HealthWaitConfig{
-		Timeout:      120,
+		Timeout:       120,
 		RetryInterval: 3,
-		Jitter:       true,
+		Jitter:        true,
 	}
 
 	if err := svc.WaitForHealthy(ctx, project, nil, config); err != nil {
