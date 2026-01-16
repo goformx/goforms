@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # GoFormX Production Deployment Script
-# This script provides a clean deployment with fresh PostgreSQL
+# This script generates environment variables and uses goforms-compose CLI for orchestration
 
 set -e  # Exit on any error
 
@@ -14,7 +14,7 @@ POSTGRES_PASSWORD="$(openssl rand -hex 32)"
 SESSION_SECRET="$(openssl rand -hex 32)"
 CSRF_SECRET="$(openssl rand -hex 32)"
 DOCKER_IMAGE="ghcr.io/goformx/goforms"
-LATEST_TAG="v0.1.5"  # Update this when you want a new version
+LATEST_TAG="${IMAGE_TAG:-v0.1.5}"  # Use IMAGE_TAG env var if set
 
 # Colors for output
 RED='\033[0;31m'
@@ -42,6 +42,20 @@ if [[ $EUID -eq 0 ]]; then
    error "This script should not be run as root. Please run as a regular user with sudo privileges."
 fi
 
+# Check if goforms-compose CLI is available
+if ! command -v goforms-compose &> /dev/null; then
+    # Try to find it in common locations
+    if [ -f "./bin/goforms-compose" ]; then
+        GOFORMS_COMPOSE="./bin/goforms-compose"
+    elif [ -f "/usr/local/bin/goforms-compose" ]; then
+        GOFORMS_COMPOSE="/usr/local/bin/goforms-compose"
+    else
+        error "goforms-compose CLI not found. Please build it first: go build -o bin/goforms-compose ./cmd/goforms-compose"
+    fi
+else
+    GOFORMS_COMPOSE="goforms-compose"
+fi
+
 log "Starting GoFormX production deployment..."
 
 # Step 1: Clean up old deployment
@@ -52,9 +66,12 @@ if [ -d "$APP_DIR" ]; then
     sudo rm -rf "$APP_DIR"
 fi
 
-# Stop and remove old containers
+# Stop and remove old containers using CLI
 log "Stopping old Docker containers..."
-docker-compose -f /tmp/goforms-compose.yml down -v 2>/dev/null || true
+if [ -f "$APP_DIR/docker-compose.prod.yml" ]; then
+    cd "$APP_DIR" || true
+    $GOFORMS_COMPOSE prod down --project-dir "$APP_DIR" --compose-file docker-compose.prod.yml || true
+fi
 docker system prune -f
 
 # Step 2: Create fresh application directory
@@ -62,117 +79,89 @@ log "Step 2: Creating fresh application directory..."
 sudo mkdir -p "$APP_DIR"
 sudo chown $USER:$USER "$APP_DIR"
 
-# Step 3: Set up fresh PostgreSQL
-log "Step 3: Setting up fresh PostgreSQL..."
+# Step 3: Copy compose file to deployment directory
+log "Step 3: Setting up Compose configuration..."
+# Copy the production compose file from repo to deployment directory
+# In a real scenario, this would come from the repo or be templated
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
-# Create PostgreSQL data directory
-sudo mkdir -p /opt/postgres-data
-sudo chown 999:999 /opt/postgres-data  # PostgreSQL container user
+if [ -f "$REPO_ROOT/docker-compose.prod.yml" ]; then
+    cp "$REPO_ROOT/docker-compose.prod.yml" "$APP_DIR/docker-compose.prod.yml"
+    log "Copied docker-compose.prod.yml to $APP_DIR"
+else
+    error "docker-compose.prod.yml not found in repository root"
+fi
 
-# Create docker-compose.yml
-cat > "$APP_DIR/docker-compose.yml" << EOF
-version: '3.8'
+# Step 4: Create environment file
+log "Step 4: Creating environment file..."
+cat > "$APP_DIR/.env" << EOF
+# GoFormX Production Environment
+APP_NAME=${APP_NAME}
+APP_ENV=production
+APP_DEBUG=false
+APP_LOG_LEVEL=info
 
-services:
-  postgres:
-    image: postgres:15-alpine
-    container_name: goforms-postgres
-    environment:
-      POSTGRES_DB: goforms
-      POSTGRES_USER: goforms
-      POSTGRES_PASSWORD: $POSTGRES_PASSWORD
-    volumes:
-      - /opt/postgres-data:/var/lib/postgresql/data
-    ports:
-      - "5432:5432"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U goforms"]
-      interval: 10s
-      timeout: 5s
-      retries: 5
+# Database Configuration
+DB_DRIVER=postgres
+DB_HOST=postgres
+DB_PORT=5432
+DB_NAME=goforms
+DB_USERNAME=goforms
+DB_PASSWORD=${POSTGRES_PASSWORD}
+DB_MAX_OPEN_CONNS=25
+DB_MAX_IDLE_CONNS=5
 
-  app:
-    image: $DOCKER_IMAGE:$LATEST_TAG
-    container_name: goforms-app
-    depends_on:
-      postgres:
-        condition: service_healthy
-    environment:
-      - DB_HOST=postgres
-      - DB_PORT=5432
-      - DB_NAME=goforms
-      - DB_USER=goforms
-      - DB_PASSWORD=$POSTGRES_PASSWORD
-      - SESSION_SECRET=$SESSION_SECRET
-      - CSRF_SECRET=$CSRF_SECRET
-      - ENV=production
-    ports:
-      - "8090:8090"
-    restart: unless-stopped
-    healthcheck:
-      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost:8090/health"]
-      interval: 30s
-      timeout: 10s
-      retries: 3
-      start_period: 40s
+# PostgreSQL Configuration (for postgres service)
+POSTGRES_DB=goforms
+POSTGRES_USER=goforms
+POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
 
-networks:
-  default:
-    name: goforms-network
+# Security
+SESSION_SECRET=${SESSION_SECRET}
+SECURITY_CSRF_SECRET=${CSRF_SECRET}
+SECURE_COOKIES=true
+
+# Docker Image
+DOCKER_REGISTRY=${DOCKER_REGISTRY:-ghcr.io}
+GITHUB_REPOSITORY=${GITHUB_REPOSITORY:-goformx/goforms}
+IMAGE_TAG=${LATEST_TAG}
+
+# CORS (adjust as needed)
+CORS_ALLOWED_ORIGINS=${CORS_ALLOWED_ORIGINS:-https://goforms.example.com}
+CORS_ALLOWED_METHODS=GET,POST,PUT,DELETE,OPTIONS
+CORS_ALLOWED_HEADERS=Content-Type,Authorization,X-Requested-With,X-API-Key
+CORS_ALLOW_CREDENTIALS=true
+CORS_MAX_AGE=3600
 EOF
 
-# Step 4: Pull latest Docker image
-log "Step 4: Pulling latest Docker image ($LATEST_TAG)..."
-docker pull "$DOCKER_IMAGE:$LATEST_TAG"
+log "Environment file created at $APP_DIR/.env"
 
-# Step 5: Start PostgreSQL first
-log "Step 5: Starting PostgreSQL..."
+# Step 5: Deploy using goforms-compose CLI
+log "Step 5: Deploying with goforms-compose..."
 cd "$APP_DIR"
-docker-compose up -d postgres
 
-# Wait for PostgreSQL to be ready
-log "Waiting for PostgreSQL to be ready..."
-for i in {1..30}; do
-    if docker-compose exec -T postgres pg_isready -U goforms >/dev/null 2>&1; then
-        log "PostgreSQL is ready!"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        error "PostgreSQL failed to start within 60 seconds"
-    fi
-    sleep 2
-done
+# Deploy with pull and wait for health
+log "Deploying services..."
+$GOFORMS_COMPOSE prod deploy \
+    --project-name "$APP_NAME" \
+    --compose-file docker-compose.prod.yml \
+    --env-file .env \
+    --project-dir "$APP_DIR" \
+    --tag "$LATEST_TAG" \
+    --pull
 
-# Step 6: Run database migrations (if needed)
-log "Step 6: Running database migrations..."
-# Note: Your app should handle migrations on startup, but you can add manual migration here if needed
+if [ $? -ne 0 ]; then
+    error "Deployment failed"
+fi
 
-# Step 7: Start the application
-log "Step 7: Starting GoFormX application..."
-docker-compose up -d app
-
-# Wait for application to be ready
-log "Waiting for application to be ready..."
-for i in {1..30}; do
-    if curl -f http://localhost:8090/health >/dev/null 2>&1; then
-        log "Application is ready!"
-        break
-    fi
-    if [ $i -eq 30 ]; then
-        warn "Application health check failed, but continuing..."
-        break
-    fi
-    sleep 2
-done
-
-# Step 8: Configure Supervisor (if not already configured)
-log "Step 8: Configuring Supervisor..."
+# Step 6: Configure Supervisor (if not already configured)
+log "Step 6: Configuring Supervisor..."
 
 if [ ! -f "$SUPERVISOR_CONF" ]; then
     sudo tee "$SUPERVISOR_CONF" > /dev/null << EOF
 [program:goforms]
-command=docker-compose -f $APP_DIR/docker-compose.yml up
+command=$GOFORMS_COMPOSE prod deploy --project-dir $APP_DIR --compose-file docker-compose.prod.yml --env-file .env --tag ${LATEST_TAG}
 directory=$APP_DIR
 user=$USER
 autostart=true
@@ -189,8 +178,8 @@ else
     log "Supervisor configuration already exists"
 fi
 
-# Step 9: Create deployment info file
-log "Step 9: Creating deployment info..."
+# Step 7: Create deployment info file
+log "Step 7: Creating deployment info..."
 cat > "$APP_DIR/deployment-info.txt" << EOF
 GoFormX Deployment Information
 =============================
@@ -214,14 +203,15 @@ Supervisor:
 - Status: sudo supervisorctl status goforms
 
 Useful Commands:
-- View logs: docker-compose logs -f
-- Restart app: docker-compose restart app
-- Stop all: docker-compose down
-- Update: Run this script again with new tag
+- View logs: $GOFORMS_COMPOSE prod logs --project-dir $APP_DIR
+- Status: $GOFORMS_COMPOSE prod status --project-dir $APP_DIR
+- Restart: $GOFORMS_COMPOSE prod deploy --tag $LATEST_TAG --project-dir $APP_DIR
+- Stop: $GOFORMS_COMPOSE prod down --project-dir $APP_DIR
+- Rollback: $GOFORMS_COMPOSE prod rollback --project-dir $APP_DIR
 EOF
 
-# Step 10: Final status check
-log "Step 10: Final status check..."
+# Step 8: Final status check
+log "Step 8: Final status check..."
 
 echo
 log "=== Deployment Summary ==="
@@ -238,9 +228,11 @@ log "PostgreSQL: localhost:5432 (goforms/$POSTGRES_PASSWORD)"
 
 echo
 log "=== Useful Commands ==="
-log "View logs: cd $APP_DIR && docker-compose logs -f"
-log "Restart: cd $APP_DIR && docker-compose restart"
-log "Stop: cd $APP_DIR && docker-compose down"
+log "View logs: cd $APP_DIR && $GOFORMS_COMPOSE prod logs"
+log "Status: cd $APP_DIR && $GOFORMS_COMPOSE prod status"
+log "Restart: cd $APP_DIR && $GOFORMS_COMPOSE prod deploy --tag $LATEST_TAG"
+log "Stop: cd $APP_DIR && $GOFORMS_COMPOSE prod down"
+log "Rollback: cd $APP_DIR && $GOFORMS_COMPOSE prod rollback"
 log "Supervisor status: sudo supervisorctl status goforms"
 
 echo
