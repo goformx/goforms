@@ -152,8 +152,19 @@ func (s *service) LoadProject(ctx context.Context, projectCtx ProjectContext) (*
 	}
 
 	// Extract service configurations for dry-run and status display
-	for name := range project.Services {
-		svc := project.Services[name]
+	result.Services = s.extractServiceConfigs(project.Services)
+
+	s.logger.Info(fmt.Sprintf("Loaded project '%s' with %d services", result.Name, len(result.Services)))
+
+	return result, nil
+}
+
+// extractServiceConfigs extracts service configurations from the SDK project.
+func (s *service) extractServiceConfigs(services types.Services) map[string]ServiceConfig {
+	result := make(map[string]ServiceConfig)
+
+	for name := range services {
+		svc := services[name]
 		serviceConfig := ServiceConfig{
 			Name:        name,
 			Image:       svc.Image,
@@ -162,54 +173,74 @@ func (s *service) LoadProject(ctx context.Context, projectCtx ProjectContext) (*
 			DependsOn:   make([]string, 0),
 		}
 
-		// Extract depends_on
-		if svc.DependsOn != nil {
-			for depName := range svc.DependsOn {
-				serviceConfig.DependsOn = append(serviceConfig.DependsOn, depName)
-			}
-		}
+		s.extractDependsOn(&serviceConfig, svc)
+		s.extractPorts(&serviceConfig, svc)
+		s.extractEnvironment(&serviceConfig, svc)
+		s.extractBuildConfig(&serviceConfig, svc)
 
-		// Extract ports
-		if svc.Ports != nil {
-			for _, port := range svc.Ports {
-				if port.Published != "" && port.Target != 0 {
-					serviceConfig.Ports = append(serviceConfig.Ports,
-						fmt.Sprintf("%s:%d/%s", port.Published, port.Target, port.Protocol))
-				}
-			}
-		}
-
-		// Extract environment variables
-		if svc.Environment != nil {
-			for envName, envValue := range svc.Environment {
-				if envValue != nil {
-					serviceConfig.Environment[envName] = *envValue
-				}
-			}
-		}
-
-		// Extract build config if present
-		if svc.Build != nil {
-			serviceConfig.Build = &BuildConfig{
-				Context:    svc.Build.Context,
-				Dockerfile: svc.Build.Dockerfile,
-				Args:       make(map[string]string),
-			}
-			if svc.Build.Args != nil {
-				for k, v := range svc.Build.Args {
-					if v != nil {
-						serviceConfig.Build.Args[k] = *v
-					}
-				}
-			}
-		}
-
-		result.Services[name] = serviceConfig
+		result[name] = serviceConfig
 	}
 
-	s.logger.Info(fmt.Sprintf("Loaded project '%s' with %d services", result.Name, len(result.Services)))
+	return result
+}
 
-	return result, nil
+// extractDependsOn extracts depends_on relationships.
+func (s *service) extractDependsOn(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.DependsOn == nil {
+		return
+	}
+
+	for depName := range svc.DependsOn {
+		config.DependsOn = append(config.DependsOn, depName)
+	}
+}
+
+// extractPorts extracts port mappings.
+func (s *service) extractPorts(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.Ports == nil {
+		return
+	}
+
+	for _, port := range svc.Ports {
+		if port.Published != "" && port.Target != 0 {
+			config.Ports = append(config.Ports,
+				fmt.Sprintf("%s:%d/%s", port.Published, port.Target, port.Protocol))
+		}
+	}
+}
+
+// extractEnvironment extracts environment variables.
+func (s *service) extractEnvironment(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.Environment == nil {
+		return
+	}
+
+	for envName, envValue := range svc.Environment {
+		if envValue != nil {
+			config.Environment[envName] = *envValue
+		}
+	}
+}
+
+// extractBuildConfig extracts build configuration.
+func (s *service) extractBuildConfig(config *ServiceConfig, svc types.ServiceConfig) {
+	if svc.Build == nil {
+		return
+	}
+
+	config.Build = &BuildConfig{
+		Context:    svc.Build.Context,
+		Dockerfile: svc.Build.Dockerfile,
+		Args:       make(map[string]string),
+	}
+
+	if svc.Build.Args != nil {
+		for k, v := range svc.Build.Args {
+			if v != nil {
+				config.Build.Args[k] = *v
+			}
+		}
+	}
 }
 
 // getInternalProject safely extracts the internal project type.
@@ -488,33 +519,49 @@ func (s *service) waitForServiceHealthy(ctx context.Context, project *types.Proj
 		case <-ctx.Done():
 			return ctx.Err()
 		case <-ticker.C:
-			// Add jitter if enabled
 			if jitter {
-				const maxJitterMs = 500 // 0-500ms jitter
-				jitterMs := rand.Intn(maxJitterMs)
-				time.Sleep(time.Duration(jitterMs) * time.Millisecond)
+				s.applyJitter()
 			}
 
-			// Check service health
-			containers, err := s.composeService.Ps(ctx, project.Name, api.PsOptions{
-				Project:  project,
-				Services: []string{serviceName},
-			})
-			if err != nil {
-				s.logger.Debug(fmt.Sprintf("Failed to check service status: %v", err))
-				continue
-			}
-
-			// Find the container for this service
-			for i := range containers {
-				container := containers[i]
-				if container.Service == serviceName {
-					if container.Health == "healthy" || (container.Health == "" && container.State == "running") {
-						return nil
-					}
-					s.logger.Debug(fmt.Sprintf("Service '%s' not healthy yet: state=%s, health=%s", serviceName, container.State, container.Health))
-				}
+			if s.isServiceHealthy(ctx, project, serviceName) {
+				return nil
 			}
 		}
 	}
+}
+
+// applyJitter applies random jitter to avoid thundering herd.
+func (s *service) applyJitter() {
+	const maxJitterMs = 500 // 0-500ms jitter
+	jitterMs := rand.Intn(maxJitterMs)
+	time.Sleep(time.Duration(jitterMs) * time.Millisecond)
+}
+
+// isServiceHealthy checks if a service is healthy.
+func (s *service) isServiceHealthy(ctx context.Context, project *types.Project, serviceName string) bool {
+	containers, err := s.composeService.Ps(ctx, project.Name, api.PsOptions{
+		Project:  project,
+		Services: []string{serviceName},
+	})
+	if err != nil {
+		s.logger.Debug(fmt.Sprintf("Failed to check service status: %v", err))
+		return false
+	}
+
+	for i := range containers {
+		container := containers[i]
+		if container.Service == serviceName {
+			if s.isContainerHealthy(container) {
+				return true
+			}
+			s.logger.Debug(fmt.Sprintf("Service '%s' not healthy yet: state=%s, health=%s", serviceName, container.State, container.Health))
+		}
+	}
+
+	return false
+}
+
+// isContainerHealthy checks if a container is healthy.
+func (s *service) isContainerHealthy(container api.ContainerSummary) bool {
+	return container.Health == "healthy" || (container.Health == "" && container.State == "running")
 }
