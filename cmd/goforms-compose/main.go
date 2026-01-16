@@ -11,19 +11,21 @@ import (
 )
 
 const (
-	appName    = "goforms-compose"
-	appVersion = "0.1.0"
+	appName       = "goforms-compose"
+	appVersion    = "0.1.0"
+	unknownVal    = "unknown"
+	minArgsLength = 2
 )
 
 // Build metadata - populated via -ldflags at build time
 var (
-	buildCommit = "unknown"
-	buildDate   = "unknown"
-	buildGoVer  = "unknown"
+	buildCommit = unknownVal
+	buildDate   = unknownVal
+	buildGoVer  = unknownVal
 )
 
 func main() {
-	if len(os.Args) < 2 {
+	if len(os.Args) < minArgsLength {
 		printUsage()
 		os.Exit(1)
 	}
@@ -190,7 +192,7 @@ func handleProd(ctx context.Context, svc compose.Service, logger compose.Logger,
 
 func handleVersion() {
 	fmt.Printf("%s version %s\n", appName, appVersion)
-	if buildCommit != "unknown" || buildDate != "unknown" || buildGoVer != "unknown" {
+	if buildCommit != unknownVal || buildDate != unknownVal || buildGoVer != unknownVal {
 		fmt.Printf("Build commit: %s\n", buildCommit)
 		fmt.Printf("Build date: %s\n", buildDate)
 		fmt.Printf("Go version: %s\n", buildGoVer)

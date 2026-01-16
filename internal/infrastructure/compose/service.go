@@ -2,6 +2,7 @@ package compose
 
 import (
 	"context"
+	"errors"
 	"fmt"
 	"io"
 	"math/rand"
@@ -45,11 +46,13 @@ func NewService(logger Logger) (Service, error) {
 	outputWriter := os.Stdout
 	errorWriter := os.Stderr
 
+	const defaultMaxConcurrency = 4
+
 	composeService, err := compose.NewComposeService(
 		dockerCLI,
 		compose.WithOutputStream(outputWriter),
 		compose.WithErrorStream(errorWriter),
-		compose.WithMaxConcurrency(4),
+		compose.WithMaxConcurrency(defaultMaxConcurrency),
 		compose.WithPrompt(compose.AlwaysOkPrompt()),
 	)
 	if err != nil {
@@ -149,7 +152,8 @@ func (s *service) LoadProject(ctx context.Context, projectCtx ProjectContext) (*
 	}
 
 	// Extract service configurations for dry-run and status display
-	for name, svc := range project.Services {
+	for name := range project.Services {
+		svc := project.Services[name]
 		serviceConfig := ServiceConfig{
 			Name:        name,
 			Image:       svc.Image,
@@ -208,13 +212,25 @@ func (s *service) LoadProject(ctx context.Context, projectCtx ProjectContext) (*
 	return result, nil
 }
 
+// getInternalProject safely extracts the internal project type.
+func (s *service) getInternalProject(project *Project) (*types.Project, error) {
+	internalProject, ok := project.internal.(*types.Project)
+	if !ok {
+		return nil, errors.New("invalid project type: expected *types.Project")
+	}
+	return internalProject, nil
+}
+
 // Up creates and starts services.
 func (s *service) Up(ctx context.Context, project *Project, options UpOptions) error {
 	if options.DryRun {
 		return s.dryRunUp(ctx, project, options)
 	}
 
-	internalProject := project.internal.(*types.Project)
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
 
 	upOptions := api.UpOptions{
 		Create: api.CreateOptions{
@@ -228,7 +244,7 @@ func (s *service) Up(ctx context.Context, project *Project, options UpOptions) e
 		},
 	}
 
-	err := s.composeService.Up(ctx, internalProject, upOptions)
+	err = s.composeService.Up(ctx, internalProject, upOptions)
 	if err != nil {
 		return fmt.Errorf("failed to start services: %w", err)
 	}
@@ -238,7 +254,7 @@ func (s *service) Up(ctx context.Context, project *Project, options UpOptions) e
 }
 
 // dryRunUp performs a dry-run of the Up operation.
-func (s *service) dryRunUp(ctx context.Context, project *Project, options UpOptions) error {
+func (s *service) dryRunUp(_ context.Context, project *Project, _ UpOptions) error {
 	s.logger.Info("DRY RUN: Would start the following services:")
 
 	for name, svc := range project.Services {
@@ -263,7 +279,10 @@ func (s *service) dryRunUp(ctx context.Context, project *Project, options UpOpti
 
 // Down stops and removes services.
 func (s *service) Down(ctx context.Context, project *Project, options DownOptions) error {
-	internalProject := project.internal.(*types.Project)
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
 
 	downOptions := api.DownOptions{
 		Volumes:       options.RemoveVolumes,
@@ -276,7 +295,7 @@ func (s *service) Down(ctx context.Context, project *Project, options DownOption
 		downOptions.Timeout = &timeout
 	}
 
-	err := s.composeService.Down(ctx, internalProject.Name, downOptions)
+	err = s.composeService.Down(ctx, internalProject.Name, downOptions)
 	if err != nil {
 		return fmt.Errorf("failed to stop services: %w", err)
 	}
@@ -287,14 +306,17 @@ func (s *service) Down(ctx context.Context, project *Project, options DownOption
 
 // Pull pulls images for services.
 func (s *service) Pull(ctx context.Context, project *Project, options PullOptions) error {
-	internalProject := project.internal.(*types.Project)
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
 
 	pullOptions := api.PullOptions{
 		Quiet:           options.Quiet,
 		IgnoreBuildable: options.IgnoreBuildable,
 	}
 
-	err := s.composeService.Pull(ctx, internalProject, pullOptions)
+	err = s.composeService.Pull(ctx, internalProject, pullOptions)
 	if err != nil {
 		return fmt.Errorf("failed to pull images: %w", err)
 	}
@@ -305,7 +327,10 @@ func (s *service) Pull(ctx context.Context, project *Project, options PullOption
 
 // Build builds images for services.
 func (s *service) Build(ctx context.Context, project *Project, options BuildOptions) error {
-	internalProject := project.internal.(*types.Project)
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
 
 	buildOptions := api.BuildOptions{
 		Pull:     options.Pull,
@@ -316,7 +341,7 @@ func (s *service) Build(ctx context.Context, project *Project, options BuildOpti
 		Progress: "auto",
 	}
 
-	err := s.composeService.Build(ctx, internalProject, buildOptions)
+	err = s.composeService.Build(ctx, internalProject, buildOptions)
 	if err != nil {
 		return fmt.Errorf("failed to build images: %w", err)
 	}
@@ -327,7 +352,10 @@ func (s *service) Build(ctx context.Context, project *Project, options BuildOpti
 
 // Ps lists running containers.
 func (s *service) Ps(ctx context.Context, project *Project) ([]ServiceStatus, error) {
-	internalProject := project.internal.(*types.Project)
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return nil, err
+	}
 
 	containers, err := s.composeService.Ps(ctx, internalProject.Name, api.PsOptions{
 		Project: internalProject,
@@ -337,7 +365,8 @@ func (s *service) Ps(ctx context.Context, project *Project) ([]ServiceStatus, er
 	}
 
 	statuses := make([]ServiceStatus, 0, len(containers))
-	for _, container := range containers {
+	for i := range containers {
+		container := containers[i]
 		portsStr := ""
 		if len(container.Publishers) > 0 {
 			portParts := make([]string, 0, len(container.Publishers))
@@ -354,7 +383,7 @@ func (s *service) Ps(ctx context.Context, project *Project) ([]ServiceStatus, er
 		}
 		statuses = append(statuses, ServiceStatus{
 			Name:   container.Name,
-			State:  string(container.State),
+			State:  container.State,
 			Status: container.Status,
 			Ports:  portsStr,
 			Image:  container.Image,
@@ -368,7 +397,10 @@ func (s *service) Ps(ctx context.Context, project *Project) ([]ServiceStatus, er
 // Logs writes logs for services to the given writer.
 // Uses Docker CLI directly since Compose SDK may not expose Logs method.
 func (s *service) Logs(ctx context.Context, project *Project, services []string, follow bool, outputWriter io.Writer) error {
-	internalProject := project.internal.(*types.Project)
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
 
 	// Use Docker client to get logs for containers in the project
 	containers, err := s.composeService.Ps(ctx, internalProject.Name, api.PsOptions{
@@ -380,7 +412,8 @@ func (s *service) Logs(ctx context.Context, project *Project, services []string,
 	}
 
 	// For each container, stream logs using Docker client
-	for _, container := range containers {
+	for i := range containers {
+		container := containers[i]
 		opts := containertypes.LogsOptions{
 			ShowStdout: true,
 			ShowStderr: true,
@@ -389,19 +422,23 @@ func (s *service) Logs(ctx context.Context, project *Project, services []string,
 			Tail:       "all",
 		}
 
-		containerLogs, err := s.dockerCLI.Client().ContainerLogs(ctx, container.ID, opts)
-		if err != nil {
-			s.logger.Warn(fmt.Sprintf("Failed to get logs for container %s: %v", container.Name, err))
+		containerLogs, logErr := s.dockerCLI.Client().ContainerLogs(ctx, container.ID, opts)
+		if logErr != nil {
+			s.logger.Warn(fmt.Sprintf("Failed to get logs for container %s: %v", container.Name, logErr))
 			continue
 		}
-		defer containerLogs.Close()
 
-		// Write container name header
-		fmt.Fprintf(outputWriter, "\n=== %s ===\n", container.Name)
-		_, err = io.Copy(outputWriter, containerLogs)
-		if err != nil {
-			s.logger.Warn(fmt.Sprintf("Error copying logs for container %s: %v", container.Name, err))
-		}
+		// Use an IIFE to ensure defer executes in each iteration
+		func() {
+			defer containerLogs.Close()
+
+			// Write container name header
+			fmt.Fprintf(outputWriter, "\n=== %s ===\n", container.Name)
+			_, copyErr := io.Copy(outputWriter, containerLogs)
+			if copyErr != nil {
+				s.logger.Warn(fmt.Sprintf("Error copying logs for container %s: %v", container.Name, copyErr))
+			}
+		}()
 	}
 
 	return nil
@@ -409,7 +446,10 @@ func (s *service) Logs(ctx context.Context, project *Project, services []string,
 
 // WaitForHealthy waits for services to become healthy.
 func (s *service) WaitForHealthy(ctx context.Context, project *Project, services []string, config HealthWaitConfig) error {
-	internalProject := project.internal.(*types.Project)
+	internalProject, err := s.getInternalProject(project)
+	if err != nil {
+		return err
+	}
 
 	timeout := time.Duration(config.Timeout) * time.Second
 	retryInterval := time.Duration(config.RetryInterval) * time.Second
@@ -429,8 +469,8 @@ func (s *service) WaitForHealthy(ctx context.Context, project *Project, services
 
 	// Wait for each service
 	for _, serviceName := range servicesToWait {
-		if err := s.waitForServiceHealthy(waitCtx, internalProject, serviceName, retryInterval, config.Jitter); err != nil {
-			return fmt.Errorf("service '%s' failed health check: %w", serviceName, err)
+		if healthErr := s.waitForServiceHealthy(waitCtx, internalProject, serviceName, retryInterval, config.Jitter); healthErr != nil {
+			return fmt.Errorf("service '%s' failed health check: %w", serviceName, healthErr)
 		}
 		s.logger.Info(fmt.Sprintf("Service '%s' is healthy", serviceName))
 	}
@@ -450,7 +490,8 @@ func (s *service) waitForServiceHealthy(ctx context.Context, project *types.Proj
 		case <-ticker.C:
 			// Add jitter if enabled
 			if jitter {
-				jitterMs := rand.Intn(500) // 0-500ms jitter
+				const maxJitterMs = 500 // 0-500ms jitter
+				jitterMs := rand.Intn(maxJitterMs)
 				time.Sleep(time.Duration(jitterMs) * time.Millisecond)
 			}
 
@@ -465,7 +506,8 @@ func (s *service) waitForServiceHealthy(ctx context.Context, project *types.Proj
 			}
 
 			// Find the container for this service
-			for _, container := range containers {
+			for i := range containers {
+				container := containers[i]
 				if container.Service == serviceName {
 					if container.Health == "healthy" || (container.Health == "" && container.State == "running") {
 						return nil

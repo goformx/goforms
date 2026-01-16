@@ -9,7 +9,14 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/compose"
 )
 
-func handleDevUp(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext, dryRun bool) {
+const (
+	defaultWaitTimeout    = 60
+	defaultRetryInterval  = 2
+	defaultDownTimeout    = 10
+	devStatusDisplayWidth = 85
+)
+
+func handleDevUp(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext, dryRun bool) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
@@ -24,18 +31,18 @@ func handleDevUp(ctx context.Context, svc compose.Service, logger compose.Logger
 		},
 		Start: compose.StartOptions{
 			Wait:        true,
-			WaitTimeout: 60,
+			WaitTimeout: defaultWaitTimeout,
 		},
 		DryRun: dryRun,
 	}
 
-	if err := svc.Up(ctx, project, options); err != nil {
+	if err = svc.Up(ctx, project, options); err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting services: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func handleDevDown(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext) {
+func handleDevDown(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
@@ -45,16 +52,16 @@ func handleDevDown(ctx context.Context, svc compose.Service, logger compose.Logg
 	options := compose.DownOptions{
 		RemoveVolumes: false,
 		RemoveOrphans: false,
-		Timeout:       10,
+		Timeout:       defaultDownTimeout,
 	}
 
-	if err := svc.Down(ctx, project, options); err != nil {
+	if err = svc.Down(ctx, project, options); err != nil {
 		fmt.Fprintf(os.Stderr, "Error stopping services: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func handleDevBuild(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext, services []string) {
+func handleDevBuild(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext, services []string) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
@@ -69,13 +76,13 @@ func handleDevBuild(ctx context.Context, svc compose.Service, logger compose.Log
 		Deps:     true,
 	}
 
-	if err := svc.Build(ctx, project, options); err != nil {
+	if err = svc.Build(ctx, project, options); err != nil {
 		fmt.Fprintf(os.Stderr, "Error building images: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func handleDevStatus(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext) {
+func handleDevStatus(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
@@ -94,26 +101,26 @@ func handleDevStatus(ctx context.Context, svc compose.Service, logger compose.Lo
 	}
 
 	fmt.Printf("%-20s %-15s %-30s %-20s\n", "NAME", "STATE", "STATUS", "PORTS")
-	fmt.Println(strings.Repeat("-", 85))
+	fmt.Println(strings.Repeat("-", devStatusDisplayWidth))
 	for _, status := range statuses {
 		fmt.Printf("%-20s %-15s %-30s %-20s\n", status.Name, status.State, status.Status, status.Ports)
 	}
 }
 
-func handleDevLogs(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext, services []string) {
+func handleDevLogs(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext, services []string) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := svc.Logs(ctx, project, services, true, os.Stdout); err != nil {
+	if err = svc.Logs(ctx, project, services, true, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting logs: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func handleDevHealth(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext) {
+func handleDevHealth(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
@@ -121,12 +128,12 @@ func handleDevHealth(ctx context.Context, svc compose.Service, logger compose.Lo
 	}
 
 	config := compose.HealthWaitConfig{
-		Timeout:       60,
-		RetryInterval: 2,
+		Timeout:       defaultWaitTimeout,
+		RetryInterval: defaultRetryInterval,
 		Jitter:        true,
 	}
 
-	if err := svc.WaitForHealthy(ctx, project, nil, config); err != nil {
+	if err = svc.WaitForHealthy(ctx, project, nil, config); err != nil {
 		fmt.Fprintf(os.Stderr, "Error waiting for health: %v\n", err)
 		os.Exit(1)
 	}

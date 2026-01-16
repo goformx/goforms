@@ -12,6 +12,12 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/compose"
 )
 
+const (
+	prodWaitTimeout        = 120
+	prodRetryInterval      = 3
+	prodStatusDisplayWidth = 100
+)
+
 const stateFileName = ".compose-state.json"
 
 // DeploymentState tracks deployment metadata for rollback.
@@ -23,7 +29,14 @@ type DeploymentState struct {
 	ProjectName  string    `json:"projectName"`
 }
 
-func handleProdDeploy(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext, tag string, pull bool, dryRun bool) {
+func handleProdDeploy(
+	ctx context.Context,
+	svc compose.Service,
+	logger compose.Logger,
+	projectCtx compose.ProjectContext,
+	tag string,
+	pull, dryRun bool,
+) {
 	if tag == "" {
 		fmt.Fprintf(os.Stderr, "Error: --tag is required for production deployment\n")
 		os.Exit(1)
@@ -46,7 +59,7 @@ func handleProdDeploy(ctx context.Context, svc compose.Service, logger compose.L
 			Quiet:           false,
 			IgnoreBuildable: false,
 		}
-		if err := svc.Pull(ctx, project, pullOptions); err != nil {
+		if err = svc.Pull(ctx, project, pullOptions); err != nil {
 			fmt.Fprintf(os.Stderr, "Error pulling images: %v\n", err)
 			os.Exit(1)
 		}
@@ -61,19 +74,19 @@ func handleProdDeploy(ctx context.Context, svc compose.Service, logger compose.L
 		},
 		Start: compose.StartOptions{
 			Wait:        true,
-			WaitTimeout: 120,
+			WaitTimeout: prodWaitTimeout,
 		},
 		DryRun: dryRun,
 	}
 
-	if err := svc.Up(ctx, project, upOptions); err != nil {
+	if err = svc.Up(ctx, project, upOptions); err != nil {
 		fmt.Fprintf(os.Stderr, "Error starting services: %v\n", err)
 		os.Exit(1)
 	}
 
 	// Save deployment state
 	if !dryRun {
-		if err := saveDeploymentState(projectCtx, project, tag); err != nil {
+		if err = saveDeploymentState(projectCtx, project, tag); err != nil {
 			logger.Warn(fmt.Sprintf("Failed to save deployment state: %v", err))
 		}
 	}
@@ -126,19 +139,19 @@ func handleProdRollback(ctx context.Context, svc compose.Service, logger compose
 		},
 		Start: compose.StartOptions{
 			Wait:        true,
-			WaitTimeout: 120,
+			WaitTimeout: prodWaitTimeout,
 		},
 		DryRun: dryRun,
 	}
 
-	if err := svc.Up(ctx, project, upOptions); err != nil {
+	if err = svc.Up(ctx, project, upOptions); err != nil {
 		fmt.Fprintf(os.Stderr, "Error rolling back services: %v\n", err)
 		os.Exit(1)
 	}
 
 	if !dryRun {
 		// Update state to reflect rollback
-		if err := saveDeploymentState(projectCtx, project, state.LastTag); err != nil {
+		if err = saveDeploymentState(projectCtx, project, state.LastTag); err != nil {
 			logger.Warn(fmt.Sprintf("Failed to update deployment state: %v", err))
 		}
 	}
@@ -146,7 +159,7 @@ func handleProdRollback(ctx context.Context, svc compose.Service, logger compose
 	fmt.Printf("Successfully rolled back project '%s' to tag '%s'\n", project.Name, state.LastTag)
 }
 
-func handleProdStatus(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext) {
+func handleProdStatus(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
@@ -171,26 +184,26 @@ func handleProdStatus(ctx context.Context, svc compose.Service, logger compose.L
 	}
 
 	fmt.Printf("%-20s %-15s %-30s %-20s %-15s\n", "NAME", "STATE", "STATUS", "PORTS", "HEALTH")
-	fmt.Println(strings.Repeat("-", 100))
+	fmt.Println(strings.Repeat("-", prodStatusDisplayWidth))
 	for _, status := range statuses {
 		fmt.Printf("%-20s %-15s %-30s %-20s %-15s\n", status.Name, status.State, status.Status, status.Ports, status.Health)
 	}
 }
 
-func handleProdLogs(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext, services []string) {
+func handleProdLogs(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext, services []string) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
 		os.Exit(1)
 	}
 
-	if err := svc.Logs(ctx, project, services, true, os.Stdout); err != nil {
+	if err = svc.Logs(ctx, project, services, true, os.Stdout); err != nil {
 		fmt.Fprintf(os.Stderr, "Error getting logs: %v\n", err)
 		os.Exit(1)
 	}
 }
 
-func handleProdHealth(ctx context.Context, svc compose.Service, logger compose.Logger, projectCtx compose.ProjectContext) {
+func handleProdHealth(ctx context.Context, svc compose.Service, _ compose.Logger, projectCtx compose.ProjectContext) {
 	project, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Fprintf(os.Stderr, "Error loading project: %v\n", err)
@@ -198,12 +211,12 @@ func handleProdHealth(ctx context.Context, svc compose.Service, logger compose.L
 	}
 
 	config := compose.HealthWaitConfig{
-		Timeout:       120,
-		RetryInterval: 3,
+		Timeout:       prodWaitTimeout,
+		RetryInterval: prodRetryInterval,
 		Jitter:        true,
 	}
 
-	if err := svc.WaitForHealthy(ctx, project, nil, config); err != nil {
+	if err = svc.WaitForHealthy(ctx, project, nil, config); err != nil {
 		fmt.Fprintf(os.Stderr, "Error waiting for health: %v\n", err)
 		os.Exit(1)
 	}
@@ -246,7 +259,7 @@ func saveDeploymentState(projectCtx compose.ProjectContext, project *compose.Pro
 		return fmt.Errorf("failed to marshal state: %w", err)
 	}
 
-	if err := os.WriteFile(statePath, data, 0644); err != nil {
+	if err = os.WriteFile(statePath, data, 0600); err != nil {
 		return fmt.Errorf("failed to write state file: %w", err)
 	}
 
@@ -276,7 +289,7 @@ func loadDeploymentState(projectCtx compose.ProjectContext) (*DeploymentState, e
 	}
 
 	var state DeploymentState
-	if err := json.Unmarshal(data, &state); err != nil {
+	if err = json.Unmarshal(data, &state); err != nil {
 		return nil, fmt.Errorf("failed to unmarshal state: %w", err)
 	}
 

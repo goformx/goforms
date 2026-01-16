@@ -10,7 +10,7 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/compose"
 )
 
-func handleDoctor(ctx context.Context, svc compose.Service, logger compose.Logger, _ []string) {
+func handleDoctor(ctx context.Context, svc compose.Service, _ compose.Logger, _ []string) {
 	issues := 0
 
 	fmt.Println("🔍 Checking system health...")
@@ -18,28 +18,12 @@ func handleDoctor(ctx context.Context, svc compose.Service, logger compose.Logge
 
 	// Check Docker daemon connectivity
 	fmt.Print("Checking Docker daemon connectivity... ")
-	dockerCLI, err := command.NewDockerCli()
-	if err != nil {
+	if err := checkDockerDaemon(ctx); err != nil {
 		fmt.Println("❌ FAILED")
 		fmt.Printf("  Error: %v\n", err)
 		issues++
 	} else {
-		err = dockerCLI.Initialize(&flags.ClientOptions{})
-		if err != nil {
-			fmt.Println("❌ FAILED")
-			fmt.Printf("  Error: %v\n", err)
-			issues++
-		} else {
-			// Try to ping the daemon
-			_, err = dockerCLI.Client().Ping(ctx)
-			if err != nil {
-				fmt.Println("❌ FAILED")
-				fmt.Printf("  Error: Cannot connect to Docker daemon: %v\n", err)
-				issues++
-			} else {
-				fmt.Println("✅ OK")
-			}
-		}
+		fmt.Println("✅ OK")
 	}
 
 	// Check compose files
@@ -47,7 +31,7 @@ func handleDoctor(ctx context.Context, svc compose.Service, logger compose.Logge
 	composeFiles := []string{"docker-compose.yml", "docker-compose.prod.yml"}
 	missingFiles := []string{}
 	for _, file := range composeFiles {
-		if _, err := os.Stat(file); os.IsNotExist(err) {
+		if _, statErr := os.Stat(file); os.IsNotExist(statErr) {
 			missingFiles = append(missingFiles, file)
 		}
 	}
@@ -67,7 +51,7 @@ func handleDoctor(ctx context.Context, svc compose.Service, logger compose.Logge
 		ComposeFiles: []string{"docker-compose.yml"},
 		EnvFile:      ".env",
 	}
-	_, err = svc.LoadProject(ctx, projectCtx)
+	_, err := svc.LoadProject(ctx, projectCtx)
 	if err != nil {
 		fmt.Println("❌ FAILED")
 		fmt.Printf("  Error: %v\n", err)
@@ -78,7 +62,7 @@ func handleDoctor(ctx context.Context, svc compose.Service, logger compose.Logge
 
 	// Check environment file
 	fmt.Print("Checking environment file... ")
-	if _, err := os.Stat(".env"); os.IsNotExist(err) {
+	if _, statErr := os.Stat(".env"); os.IsNotExist(statErr) {
 		fmt.Println("⚠️  WARNING")
 		fmt.Println("  .env file not found (may be optional)")
 	} else {
@@ -93,4 +77,24 @@ func handleDoctor(ctx context.Context, svc compose.Service, logger compose.Logge
 		fmt.Printf("❌ Found %d issue(s)\n", issues)
 		os.Exit(1)
 	}
+}
+
+// checkDockerDaemon checks Docker daemon connectivity.
+func checkDockerDaemon(ctx context.Context) error {
+	dockerCLI, err := command.NewDockerCli()
+	if err != nil {
+		return err
+	}
+
+	err = dockerCLI.Initialize(&flags.ClientOptions{})
+	if err != nil {
+		return err
+	}
+
+	_, err = dockerCLI.Client().Ping(ctx)
+	if err != nil {
+		return fmt.Errorf("cannot connect to Docker daemon: %w", err)
+	}
+
+	return nil
 }
