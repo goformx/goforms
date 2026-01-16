@@ -169,6 +169,52 @@ Keyboard shortcuts:
 
 **IMPORTANT**: Web handlers must return Inertia-compatible responses:
 
+**Response Pattern for Form Submissions:**
+
+When handling POST/PUT/DELETE requests from web forms:
+
+1. **Always check for Inertia requests first** - Inertia requests should redirect or render pages, never return JSON
+2. **Then check for pure AJAX** - Non-Inertia AJAX requests can return JSON
+3. **Fall back to redirect** - Regular form submissions redirect
+
+```go
+// ✅ Good - Check Inertia first, then AJAX, then redirect
+func (h *Handler) handleFormSubmission(c echo.Context) error {
+    // Process form...
+
+    // Inertia requests should always redirect (Inertia follows redirects)
+    if gonertia.IsInertiaRequest(c.Request()) {
+        return c.Redirect(http.StatusSeeOther, "/dashboard")
+    }
+
+    // Pure AJAX (non-Inertia) requests can get JSON
+    if h.isAJAXRequest(c) {
+        return response.Success(c, map[string]string{"status": "ok"})
+    }
+
+    // Regular form submissions redirect
+    return c.Redirect(http.StatusSeeOther, "/dashboard")
+}
+
+// ❌ Bad - Checking AJAX before Inertia
+func (h *Handler) handleFormSubmission(c echo.Context) error {
+    if h.isAJAXRequest(c) {  // This catches Inertia requests too!
+        return response.Success(c, map[string]string{"status": "ok"})
+    }
+    return c.Redirect(http.StatusSeeOther, "/dashboard")
+}
+```
+
+**Key Points:**
+
+- Inertia requests have both `X-Inertia` and `X-Requested-With` headers
+- Always check `gonertia.IsInertiaRequest()` or `inertia.IsInertiaRequest()` first
+- Web routes (non-API routes) should never return JSON for Inertia requests
+- Use `c.Redirect(http.StatusSeeOther, path)` for Inertia redirects
+- Use `h.Inertia.Render()` for Inertia page renders
+
+**Examples:**
+
 ```go
 // ✅ Good - Render page for GET requests
 return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
@@ -176,7 +222,8 @@ return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
     "form":  formData,
 })
 
-// ✅ Good - Redirect after mutations (POST/PUT/DELETE)
+// ✅ Good - Redirect after mutations (POST/PUT/DELETE) for Inertia
+// Inertia automatically follows 303 redirects
 return c.Redirect(http.StatusSeeOther, "/dashboard")
 
 // ✅ Good - Render page with error flash
@@ -187,6 +234,11 @@ return h.Inertia.Render(c, "Forms/New", inertia.Props{
 
 // ❌ Bad - JSON response breaks Inertia
 return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
+
+// ❌ Bad - Checking AJAX before Inertia causes JSON responses for Inertia requests
+if h.isAJAXRequest(c) {  // Don't do this - Inertia requests also have X-Requested-With!
+    return response.Success(c, map[string]string{"redirect": "/dashboard"})
+}
 ```
 
 The gonertia template uses `{{ .inertia }}` and `{{ .inertiaHead }}` placeholders (see `internal/presentation/inertia/inertia.go`).

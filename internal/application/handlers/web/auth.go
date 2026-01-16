@@ -240,14 +240,19 @@ func (h *AuthHandler) handleAuthError(c echo.Context, err error, page string) er
 
 // handleAuthSuccess handles successful authentication with appropriate response format
 func (h *AuthHandler) handleAuthSuccess(c echo.Context) error {
+	// Inertia requests should always redirect (Inertia follows redirects)
+	if gonertia.IsInertiaRequest(c.Request()) {
+		return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
+	}
+
+	// Pure AJAX (non-Inertia) requests can get JSON
 	if h.isAJAXRequest(c) {
 		return response.Success(c, map[string]string{
 			"redirect": constants.PathDashboard,
 		})
 	}
 
-	// Use standard redirect - Inertia automatically follows 303 redirects
-	// Note: Location() is for external redirects and causes a brief flash
+	// Regular form submissions redirect
 	return h.ResponseBuilder.Redirect(c, constants.PathDashboard)
 }
 
