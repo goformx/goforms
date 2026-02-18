@@ -1,99 +1,86 @@
-# GoFormX
+# GoFormX (Go Forms API)
 
-A modern Go web application for form management with MariaDB backend.
+Forms API backend for GoFormX. Handles form CRUD, schema storage, submissions, and public embed/submit. The web UI (dashboard, form builder) lives in [goformx-laravel](https://github.com/goformx/goformx-laravel); this repo is API-only.
+
+## Architecture
+
+- **Authenticated API** (`/api/forms`): Used by Laravel. Requires signed headers `X-User-Id`, `X-Timestamp`, `X-Signature` (HMAC-SHA256). Laravel sends these after authenticating the user.
+- **Public API** (`/forms/:id/...`): No auth. Embed page, schema, validation rules, and form submission for external sites. CORS and rate limiting apply.
+- **Database**: PostgreSQL. Go owns forms, submissions, and related tables; Laravel has its own DB for users and sessions.
+
+See the [split design doc](https://github.com/goformx/goformx-laravel/blob/main/docs/plans/2026-02-18-goformx-laravel-go-split-design.md) in goformx-laravel for the full architecture.
 
 ## Features
 
-- Email subscription system with validation
-- RESTful API using Echo framework
-- PostgreSQL database with migrations
-- Dependency injection using Uber FX
-- Structured logging with Zap
-- Rate limiting and CORS support
-- Comprehensive test coverage
-- Docker-based development environment
-- Health check monitoring
+- Form CRUD and schema (Form.io–compatible)
+- Submissions and event bus
+- Laravel assertion auth (signed headers)
+- Public embed and submit with CORS
+- PostgreSQL, migrations (GORM)
+- Uber FX, Echo, Zap, Testify, Task
 
 ## Tech Stack
 
-- Go 1.25
+- Go 1.25+
 - PostgreSQL 17
-- Echo v4 web framework
-- Uber FX for dependency injection
-- Zap for structured logging
-- Testify for testing
-- Task for automation
+- Echo v4
+- Uber FX, GORM, Zap, Testify, Task
 
 ## Quick Start
 
-1. Prerequisites:
+1. **Prerequisites**
 
-   - Docker
-   - VS Code with Dev Containers
-   - Git
+   - Go 1.25+
+   - PostgreSQL
+   - Task (optional; see `Taskfile.yml`)
 
-2. Clone and Setup:
+2. **Clone and setup**
 
    ```bash
    git clone https://github.com/goformx/goforms.git
    cd goforms
+   cp .env.example .env
    ```
 
-3. Start Development:
+3. **Environment**
 
-   - Click "Reopen in Container" when prompted
-   - Copy environment file: `cp .env.example .env`
-   - Install dependencies: `task install`
-   - Start server: `task dev`
+   Set database and shared secret (must match Laravel):
 
-4. View the application at `http://localhost:8090`
+   ```bash
+   DATABASE_HOST=localhost
+   DATABASE_PORT=5432
+   DATABASE_NAME=goforms
+   DATABASE_USERNAME=goforms
+   DATABASE_PASSWORD=goforms
+   GOFORMS_SHARED_SECRET=your-shared-secret
+   ```
+
+4. **Run**
+
+   ```bash
+   task migrate:up
+   task dev:backend
+   ```
+
+   API: `http://localhost:8090`. Use with goformx-laravel (`GOFORMS_API_URL=http://localhost:8090`, same `GOFORMS_SHARED_SECRET`).
+
+## API Overview
+
+| Route | Auth | Purpose |
+|-------|------|---------|
+| `GET/POST /api/forms`, `GET/PUT/DELETE /api/forms/:id` | Assertion | Laravel form CRUD |
+| `GET /api/forms/:id/submissions` | Assertion | List/get submissions |
+| `GET /forms/:id/schema` | None | Public schema |
+| `POST /forms/:id/submit` | None | Public submit |
+| `GET /forms/:id/embed` | None | Embeddable form page |
+| `GET /health` | None | Health check |
 
 ## Documentation
 
-Documentation is available in the `docs` directory:
-
-- [API Documentation](docs/api/README.md)
-- [Development Guide](docs/development/README.md)
-- [Architecture Overview](docs/architecture/README.md)
-
-## Contributing
-
-We welcome contributions! Please see our [Contributing Guide](docs/development/README.md#git-workflow) for details.
+- [CLAUDE.md](CLAUDE.md) — development and architecture notes
+- [API Documentation](docs/api/README.md) (if present)
+- [Development Guide](docs/development/README.md) (if present)
 
 ## License
 
-This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
-
-## Development Setup
-
-### CSRF Configuration for Development
-
-When running the frontend (localhost:5173) and backend (localhost:8090) on different ports, you need to configure CSRF properly for cross-origin requests:
-
-1. **Set CSRF Cookie SameSite to Lax**: This allows cookies to be sent in cross-origin requests
-2. **Disable Secure Flag**: In development, cookies don't need to be HTTPS-only
-3. **Include CSRF Headers in CORS**: Allow the `X-Csrf-Token` header
-
-The application automatically configures these settings in development mode, but you can override them with environment variables:
-
-```bash
-# CSRF Configuration for Development
-SECURITY_CSRF_COOKIE_SAME_SITE=Lax
-SECURITY_SECURE_COOKIE=false
-
-# CORS Configuration
-SECURITY_CORS_ENABLED=true
-SECURITY_CORS_ORIGINS=http://localhost:5173
-SECURITY_CORS_CREDENTIALS=true
-```
-
-### Troubleshooting CSRF Issues
-
-If you encounter 403 Forbidden errors with CSRF token mismatch:
-
-1. **Clear Browser Cookies**: Old CSRF cookies may be invalid
-2. **Restart the Backend**: Ensure new CSRF configuration is loaded
-3. **Check Browser Console**: Verify CSRF token is being sent in headers
-4. **Check Network Tab**: Ensure cookies are being sent with requests
-
-The frontend automatically includes CSRF tokens in the `X-Csrf-Token` header for all non-GET requests.
+MIT — see [LICENSE](LICENSE).
