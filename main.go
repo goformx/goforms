@@ -25,7 +25,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
-	"github.com/goformx/goforms/internal/presentation"
 )
 
 //go:embed all:dist
@@ -135,7 +134,6 @@ func main() {
 		domain.Module,
 		application.Module,
 		appmiddleware.Module,
-		presentation.Module,
 		web.Module,
 
 		// Setup

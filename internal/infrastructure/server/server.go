@@ -16,7 +16,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/version"
-	"github.com/goformx/goforms/internal/infrastructure/web"
 )
 
 const (
@@ -101,11 +100,10 @@ func (s *Server) Start(ctx context.Context) error {
 // Deps contains the dependencies for creating a server
 type Deps struct {
 	fx.In
-	Lifecycle   fx.Lifecycle
-	Logger      logging.Logger
-	Config      *config.Config
-	Echo        *echo.Echo
-	AssetServer web.AssetServer
+	Lifecycle fx.Lifecycle
+	Logger    logging.Logger
+	Config    *config.Config
+	Echo      *echo.Echo
 }
 
 // New creates a new server instance with the provided dependencies
@@ -131,11 +129,6 @@ func New(deps Deps) *Server {
 	}
 	deps.Echo.GET("/health", healthHandler)
 	deps.Echo.HEAD("/health", healthHandler)
-
-	// Register asset routes
-	if err := deps.AssetServer.RegisterRoutes(deps.Echo); err != nil {
-		deps.Logger.Error("failed to register asset routes", "error", err)
-	}
 
 	// Register lifecycle hooks
 	deps.Lifecycle.Append(fx.Hook{

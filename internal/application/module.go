@@ -38,7 +38,7 @@ type Dependencies struct {
 	Config            *config.Config
 	Server            *server.Server
 	DomainModule      fx.Option
-	Presentation      fx.Option
+	Presentation      fx.Option `optional:"true"`
 	MiddlewareModule  fx.Option
 	SessionManager    *session.Manager
 	MiddlewareManager *middleware.Manager
@@ -58,7 +58,6 @@ func (d Dependencies) Validate() error {
 		{"Config", d.Config},
 		{"Server", d.Server},
 		{"DomainModule", d.DomainModule},
-		{"Presentation", d.Presentation},
 		{"MiddlewareModule", d.MiddlewareModule},
 		{"SessionManager", d.SessionManager},
 		{"MiddlewareManager", d.MiddlewareManager},

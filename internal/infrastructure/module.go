@@ -355,11 +355,7 @@ var Module = fx.Module("infrastructure",
 		NewEventPublisher,
 		event.NewMemoryEventBus,
 
-		// Asset handling - provide both the interface and the module
-		fx.Annotate(
-			ProvideAssetServer,
-			fx.As(new(infraweb.AssetServer)),
-		),
+		// Asset manager for path resolution (assets served by Laravel)
 		fx.Annotate(
 			NewAssetManager,
 			fx.As(new(infraweb.AssetManagerInterface)),
