@@ -29,7 +29,7 @@ const isAuthenticated = computed(() => !!user.value);
     <div class="container flex h-14 items-center">
       <!-- Brand -->
       <div class="mr-4 flex">
-        <Link href="/" class="mr-6 flex items-center space-x-2">
+        <Link href="/login" class="mr-6 flex items-center space-x-2">
           <span class="font-bold text-xl">GoFormX</span>
         </Link>
       </div>

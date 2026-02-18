@@ -99,9 +99,9 @@ function goBack() {
             Go Back
           </Button>
           <Button as-child>
-            <Link href="/">
+            <Link href="/login">
               <Home class="mr-2 h-4 w-4" />
-              Go Home
+              Log in
             </Link>
           </Button>
         </CardFooter>
