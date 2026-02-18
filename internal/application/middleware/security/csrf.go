@@ -315,7 +315,7 @@ func IsAuthEndpoint(path string) bool {
 
 // IsFormPage checks if the path is a form page
 func IsFormPage(path string) bool {
-	return path == "/" || strings.Contains(path, "/forms/new") ||
+	return strings.Contains(path, "/forms/new") ||
 		strings.Contains(path, "/forms/") || strings.Contains(path, "/submit") ||
 		strings.Contains(path, "/dashboard")
 }

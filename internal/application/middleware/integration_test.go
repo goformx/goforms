@@ -102,7 +102,7 @@ func TestIntegration_MiddlewareOrchestrator(t *testing.T) {
 		require.NoError(t, err)
 
 		// Test chain building for specific paths
-		paths := []string{"/api/users", "/dashboard", "/login", "/admin/users", "/", "/static/css/style.css"}
+		paths := []string{"/api/users", "/dashboard", "/login", "/admin/users", "/public/", "/static/css/style.css"}
 		for _, path := range paths {
 			chain, chainErr := adapter.BuildChainForPath(path)
 			require.NoError(t, chainErr)
@@ -232,8 +232,9 @@ func TestIntegration_PathBasedChains(t *testing.T) {
 			{"/dashboard", core.ChainTypeWeb},
 			{"/login", core.ChainTypeAuth},
 			{"/admin/users", core.ChainTypeAdmin},
-			{"/", core.ChainTypePublic},
+			{"/public/", core.ChainTypePublic},
 			{"/static/css/style.css", core.ChainTypeStatic},
+			{"/", core.ChainTypeDefault},
 			{"/unknown/path", core.ChainTypeDefault},
 		}
 

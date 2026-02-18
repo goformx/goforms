@@ -364,7 +364,7 @@ func (c *middlewareConfig) getChainPaths(chainType core.ChainType) []string {
 	case core.ChainTypeAdmin:
 		return []string{"/admin/*"}
 	case core.ChainTypePublic:
-		return []string{"/", "/public/*"}
+		return []string{"/public/*"}
 	case core.ChainTypeStatic:
 		return []string{"/static/*", "/assets/*"}
 	default:

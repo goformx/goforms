@@ -259,7 +259,7 @@ func (ea *EchoOrchestratorAdapter) isAdminPath(path string) bool {
 
 // isPublicPath checks if the path is a public path
 func (ea *EchoOrchestratorAdapter) isPublicPath(path string) bool {
-	return path == "/" || len(path) >= 8 && path[:8] == "/public"
+	return len(path) >= 8 && path[:8] == "/public"
 }
 
 // isStaticPath checks if the path is a static path
