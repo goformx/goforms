@@ -42,360 +42,37 @@ task migrate:down   # Rollback one migration
 
 ## Architecture Overview
 
-GoFormX follows **Clean Architecture** with Uber FX dependency injection:
+GoFormX is the **forms API backend**. The web UI (dashboard, form builder) lives in **goformx-laravel** (Laravel + Inertia/Vue). This repo is API-only: form domain, public embed/submit, and assertion auth.
+
+**Clean Architecture** with Uber FX:
 
 ```
 internal/
-├── domain/           # Business entities, interfaces, services (form/, user/, common/)
+├── domain/           # Business entities, interfaces, services (form/, common/)
 ├── application/      # HTTP handlers, middleware, validation, response builders
-├── infrastructure/   # Database, config, logging, server, event bus
-└── presentation/     # Inertia.js rendering for Vue SPA
+└── infrastructure/   # Database, config, logging, server, event bus
 ```
 
 **Dependency flow**: Infrastructure → Application → Domain (dependencies point inward)
 
 ### Key Architectural Patterns
 
-1. **Uber FX Modules** - DI is organized in modules loaded in `main.go`:
+1. **Uber FX Modules** - DI in `main.go`: `config.Module` → `infrastructure.Module` → `domain.Module` → `application.Module` → `web.Module`.
 
-   - `config.Module` → `infrastructure.Module` → `domain.Module` → `application.Module` → `presentation.Module` → `web.Module`
+2. **Handler Interface** - HTTP handlers implement `web.Handler` with `Register()`, `Start()`, `Stop()` and are collected via FX groups.
 
-2. **Handler Interface** - All HTTP handlers implement `web.Handler` with `Register()`, `Start()`, `Stop()` methods and are collected via FX groups.
+3. **Service-Repository Pattern** - Handlers call domain services; services use repositories and may emit events via EventBus.
 
-3. **Service-Repository Pattern** - Handlers call services (business logic) which use repositories (data access) and may emit events via EventBus.
+4. **Laravel assertion auth** - Authenticated form API uses signed headers from Laravel: `X-User-Id`, `X-Timestamp`, `X-Signature` (HMAC-SHA256 of `user_id:timestamp`). Middleware: `internal/application/middleware/assertion/`. Config: `security.assertion.secret` (env `GOFORMS_SHARED_SECRET`), `timestamp_skew_seconds`.
 
-4. **Dual Middleware System** - Currently migrating from legacy `Manager` to new `Orchestrator` system:
-   - Legacy: `internal/application/middleware/manager.go`
-   - New: `internal/application/middleware/orchestrator.go`
-   - Migration adapter provides fallback capability
+### API Surface
 
-### Frontend (TypeScript/Vite/Vue 3)
+- **Authenticated** (require assertion headers): `GET/POST /api/forms`, `GET/PUT/DELETE /api/forms/:id`, `GET /api/forms/:id/submissions`, `GET /api/forms/:id/submissions/:sid`. Used by Laravel only.
+- **Public** (no auth): `GET /forms/:id/schema`, `GET /forms/:id/validation`, `POST /forms/:id/submit`, `GET /forms/:id/embed`. For embedded forms and public submission. CORS and rate limiting apply.
 
-- **Inertia.js** for SPA routing - Go backend renders pages, Vue handles client-side
-- Entry point: `src/main.ts` with Inertia app setup + Sonner toast provider
-- Page components in `src/pages/` (e.g., `Dashboard/Index.vue`, `Forms/Edit.vue`)
-- Path aliases: `@/`, `@/components`, `@/pages`, `@/composables`, `@/lib`
-- **Tailwind CSS v4** with `@tailwindcss/postcss` plugin
-- **Form.io** integration with custom components via `@goformx/formio`
-- **shadcn-vue** component library for UI primitives
-- Build output: `dist/`
+### Frontend (goformx-laravel)
 
-#### Frontend Architecture
-
-**Component Structure:**
-```
-src/
-├── components/
-│   ├── ui/                  # shadcn-vue UI primitives (22+ components)
-│   │   ├── button/, card/, input/, badge/, alert/
-│   │   ├── dialog/, sheet/, tabs/, tooltip/, popover/
-│   │   ├── dropdown-menu/, select/, switch/
-│   │   ├── command/, separator/, scroll-area/
-│   │   ├── sonner/ (toast), skeleton/, table/
-│   │   └── ... (see components.json for full list)
-│   ├── layout/              # Layout wrappers
-│   │   ├── AppLayout.vue, DashboardLayout.vue, GuestLayout.vue
-│   ├── shared/              # Shared components
-│   │   ├── Nav.vue, UserMenu.vue, DashboardHeader.vue
-│   ├── form-builder/        # Form builder specific
-│   │   ├── BuilderLayout.vue       # Three-panel builder layout
-│   │   ├── FieldsPanel.vue         # Searchable field library
-│   │   └── FieldSettingsPanel.vue  # Inline field settings
-│   └── dashboard/           # Dashboard specific
-│       └── FormCard.vue            # Form card component
-├── composables/             # Vue 3 Composition API composables
-│   ├── useFormBuilder.ts           # Form.io builder integration
-│   ├── useFormValidation.ts        # Zod validation
-│   ├── useFormBuilderState.ts      # Builder state + undo/redo
-│   ├── useKeyboardShortcuts.ts     # Keyboard shortcuts system
-│   ├── useThemeCustomization.ts    # Theme management
-│   └── useCommandPalette.ts        # Command palette logic
-├── pages/                   # Inertia.js pages
-│   ├── Dashboard/Index.vue  # Grid layout with search/filter
-│   └── Forms/Edit.vue       # Three-panel builder
-└── lib/
-    └── utils.ts             # Tailwind class utilities (cn)
-```
-
-**Key Composables:**
-
-1. **`useFormBuilder.ts`** - Form.io builder integration with:
-   - Auto-save with debounce (2s)
-   - Undo/redo history (50 actions)
-   - Field CRUD operations (duplicate, delete)
-   - Schema import/export
-   - Selected field state management
-
-2. **`useFormBuilderState.ts`** - Centralized builder state:
-   - Selected field tracking
-   - Dirty state management
-   - Undo/redo history with localStorage
-   - Field CRUD operations
-
-3. **`useKeyboardShortcuts.ts`** - Platform-aware shortcuts:
-   - Cmd on Mac, Ctrl on Windows
-   - Auto-cleanup on unmount
-   - Enable/disable toggling
-
-4. **`useThemeCustomization.ts`** - Theme management:
-   - CSS variable injection
-   - Presets: Linear, Stripe, Notion, Vercel
-   - Load/save to server and localStorage
-
-5. **`useCommandPalette.ts`** - Command palette:
-   - Fuzzy search across commands
-   - Recent commands tracking (last 10)
-   - localStorage persistence
-
-**Form Builder Architecture:**
-
-The form builder uses a three-panel layout:
-- **Left Panel**: Searchable field library (Basic, Layout, Advanced)
-- **Center Canvas**: Form.io builder instance
-- **Right Panel**: Tabbed field settings (Display, Data, Validation)
-
-Keyboard shortcuts:
-- `Cmd+S` - Save form
-- `Cmd+P` - Preview form
-- `Cmd+Z` / `Cmd+Shift+Z` - Undo/Redo
-- `Cmd+D` - Duplicate selected field
-- `Cmd+Backspace` - Delete selected field
-- `Cmd+/` - Show shortcuts help
-
-### Inertia.js Patterns
-
-**IMPORTANT**: Web handlers must return Inertia-compatible responses:
-
-```go
-// ✅ Good - Render page for GET requests
-return h.Inertia.Render(c, "Forms/Edit", inertia.Props{
-    "title": "Edit Form",
-    "form":  formData,
-})
-
-// ✅ Good - Redirect after mutations (POST/PUT/DELETE)
-return c.Redirect(http.StatusSeeOther, "/dashboard")
-
-// ✅ Good - Render page with error flash
-return h.Inertia.Render(c, "Forms/New", inertia.Props{
-    "title": "Create Form",
-    "flash": map[string]string{"error": "Form title is required"},
-})
-
-// ❌ Bad - JSON response breaks Inertia
-return c.JSON(http.StatusOK, map[string]string{"status": "ok"})
-```
-
-The gonertia template uses `{{ .inertia }}` and `{{ .inertiaHead }}` placeholders (see `internal/presentation/inertia/inertia.go`).
-
-### UI Component Patterns
-
-#### Toast Notifications
-
-Use Sonner for all transient feedback (replaces inline alerts):
-
-```typescript
-import { toast } from "vue-sonner";
-
-// Success
-toast.success("Form saved successfully");
-
-// Error
-toast.error("Failed to save form");
-
-// Info
-toast.info("Processing...");
-
-// With description
-toast.success("Form saved", {
-  description: "Your changes have been saved successfully"
-});
-```
-
-**Toast Provider Setup:**
-The Sonner toast provider is configured in `src/main.ts` with:
-- Position: `top-right`
-- Rich colors: enabled
-- Auto-dismiss: default (4s)
-
-#### shadcn-vue Component Usage
-
-All UI components follow shadcn-vue patterns with Radix Vue primitives:
-
-```vue
-<script setup lang="ts">
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Card, CardHeader, CardTitle, CardContent } from "@/components/ui/card";
-import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Sheet, SheetContent, SheetHeader, SheetTitle } from "@/components/ui/sheet";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-</script>
-
-<template>
-  <Card>
-    <CardHeader>
-      <CardTitle>Form Title</CardTitle>
-    </CardHeader>
-    <CardContent>
-      <div class="space-y-4">
-        <div class="space-y-2">
-          <Label for="name">Name</Label>
-          <Input id="name" v-model="form.name" type="text" />
-        </div>
-        <Button @click="save">Save</Button>
-      </div>
-    </CardContent>
-  </Card>
-</template>
-```
-
-**Component Variants:**
-```vue
-<!-- Buttons -->
-<Button variant="default">Default</Button>
-<Button variant="destructive">Delete</Button>
-<Button variant="outline">Cancel</Button>
-<Button variant="ghost">Ghost</Button>
-<Button variant="link">Link</Button>
-<Button size="sm">Small</Button>
-<Button size="lg">Large</Button>
-<Button size="icon">🔍</Button>
-
-<!-- Badges -->
-<Badge variant="default">Default</Badge>
-<Badge variant="secondary">Draft</Badge>
-<Badge variant="destructive">Error</Badge>
-<Badge variant="outline">Outline</Badge>
-
-<!-- Alerts -->
-<Alert variant="default">Info message</Alert>
-<Alert variant="destructive">Error message</Alert>
-```
-
-#### Keyboard Shortcuts Pattern
-
-Use `useKeyboardShortcuts` composable for keyboard-first interactions:
-
-```typescript
-import { useKeyboardShortcuts } from "@/composables/useKeyboardShortcuts";
-
-const shortcuts = [
-  {
-    key: "s",
-    meta: true,  // Cmd on Mac, Ctrl on Windows
-    handler: () => save(),
-    description: "Save form"
-  },
-  {
-    key: "z",
-    meta: true,
-    shift: true,  // Cmd+Shift+Z
-    handler: () => redo(),
-    description: "Redo"
-  }
-];
-
-useKeyboardShortcuts(shortcuts);
-```
-
-#### Form Builder Integration
-
-When integrating with the form builder:
-
-```typescript
-import { useFormBuilder } from "@/composables/useFormBuilder";
-
-const {
-  isLoading,
-  error,
-  isSaving,
-  saveSchema,
-  getSchema,
-  selectedField,
-  selectField,
-  duplicateField,
-  deleteField,
-  undo,
-  redo,
-  canUndo,
-  canRedo,
-} = useFormBuilder({
-  containerId: "form-schema-builder",
-  formId: props.form.id,
-  autoSave: false,  // Set to true for auto-save with 2s debounce
-  onSchemaChange: (schema) => {
-    // Handle schema changes
-  },
-});
-```
-
-#### Responsive Design Patterns
-
-Use Tailwind responsive prefixes:
-
-```vue
-<template>
-  <!-- Grid: 1 column mobile, 2 tablet, 3 desktop -->
-  <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-    <FormCard v-for="form in forms" :key="form.id" :form="form" />
-  </div>
-
-  <!-- Stack on mobile, row on desktop -->
-  <div class="flex flex-col sm:flex-row gap-4">
-    <Input class="flex-1" />
-    <Button>Submit</Button>
-  </div>
-
-  <!-- Hide on mobile, show on desktop -->
-  <div class="hidden lg:block">Desktop only</div>
-</template>
-```
-
-#### Component Communication
-
-**Props & Emits Pattern:**
-```typescript
-interface Props {
-  form: Form;
-  readonly?: boolean;
-}
-
-interface Emits {
-  (e: "update", form: Form): void;
-  (e: "delete", formId: string): void;
-}
-
-const props = defineProps<Props>();
-const emit = defineEmits<Emits>();
-
-function handleUpdate() {
-  emit("update", props.form);
-}
-```
-
-**Composable Pattern:**
-```typescript
-// Composable for shared logic
-export function useFormActions(formId: string) {
-  const isLoading = ref(false);
-
-  async function save() {
-    isLoading.value = true;
-    try {
-      // Save logic
-      toast.success("Saved");
-    } catch (err) {
-      toast.error("Failed to save");
-    } finally {
-      isLoading.value = false;
-    }
-  }
-
-  return { isLoading, save };
-}
-```
+The **UI lives in the Laravel app** (goformx-laravel). This repo has **no** Inertia, no page rendering, no auth UI, no Vite assets. For Form.io embed HTML and public endpoints only.
 
 ### Code Generation
 
@@ -406,11 +83,12 @@ export function useFormActions(formId: string) {
 Uses Viper with environment variables. Viper maps nested config to env vars using underscore separator:
 
 - Config key `database.host` → env var `DATABASE_HOST`
-- Config key `security.csrf.enabled` → env var `SECURITY_CSRF_ENABLED`
+- Config key `security.assertion.secret` → env var `GOFORMS_SHARED_SECRET` (must match Laravel)
 
 ```bash
 APP_ENV=development
 DATABASE_HOST=postgres-dev
+GOFORMS_SHARED_SECRET=    # Same value as in goformx-laravel .env
 SECURITY_CSRF_COOKIE_SAME_SITE=Lax
 ```
 
@@ -425,11 +103,9 @@ Default values: `internal/infrastructure/config/viper.go` (see `setDatabaseDefau
 
 ## Development Environment
 
-- Uses Docker Compose for local development
-- Backend: `localhost:8090` (Go/Echo)
-- Frontend dev server: `localhost:5173` (Vite)
-- PostgreSQL: `localhost:5432`
-- Access app via `localhost:8090` (not 5173) - Go serves HTML, Vite serves assets
+- **Go only**: Runs standalone at `localhost:8090`. No built-in frontend; UI is in goformx-laravel.
+- Laravel runs separately (e.g. `localhost:8000`) and calls Go with `GOFORMS_API_URL=http://localhost:8090` and the same `GOFORMS_SHARED_SECRET`.
+- PostgreSQL: `localhost:5432` (or per docker-compose). Go owns form tables; Laravel has its own DB for users/sessions.
 
 ### Docker Commands
 
@@ -451,24 +127,18 @@ DATABASE_PORT=5432
 DATABASE_NAME=goforms
 DATABASE_USERNAME=goforms
 DATABASE_PASSWORD=goforms
+GOFORMS_SHARED_SECRET=         # Same as Laravel; used for assertion verification
 ```
 
-### CSP Configuration
+### Embed / Form.io
 
-Form.io requires CDN access. Update `.env` for development:
-```bash
-SECURITY_CSP_SCRIPT_SRC="'self' 'unsafe-inline' 'unsafe-eval' http://localhost:5173 https://localhost:5173 https://cdn.form.io blob:"
-SECURITY_CSP_STYLE_SRC="'self' 'unsafe-inline' http://localhost:5173 https://localhost:5173 https://cdn.form.io"
-SECURITY_CSP_CONNECT_SRC="'self' ws: wss: http://localhost:5173 https://localhost:5173 https://cdn.form.io"
-SECURITY_CSP_FONT_SRC="'self' http://localhost:5173 https://localhost:5173 https://cdn.form.io"
-```
+Public embed route `GET /forms/:id/embed` serves HTML that loads Form.io from CDN. CSP may need to allow `https://cdn.form.io` for embed pages.
 
 ## Code Style
 
 - Go: snake_case files, standard Go naming conventions
 - Error handling: Always wrap errors with `fmt.Errorf("context: %w", err)`
 - Linting: golangci-lint v2 with 40+ linters enabled (see `.golangci.yml`)
-- Frontend: ESLint + Prettier, strict TypeScript
 
 ## Logging Conventions
 
@@ -509,18 +179,14 @@ SECURITY_CSP_FONT_SRC="'self' http://localhost:5173 https://localhost:5173 https
 
 ```go
 // Handler-level logging with context enrichment
-func (h *FormWebHandler) handleUpdate(c echo.Context) error {
-    logger := h.Logger.WithComponent("form_handler").
-        WithOperation("update").
-        With("form_id", form.ID)
-
-    if err := h.FormService.UpdateForm(ctx, form, req); err != nil {
+func (h *FormAPIHandler) handleUpdateForm(c echo.Context) error {
+    logger := h.Logger.WithComponent("form_api").WithOperation("update").With("form_id", formID)
+    if err := h.FormServiceHandler.UpdateForm(ctx, formID, req); err != nil {
         logger.Error("form update failed", "error", err)
-        return h.handleFormUpdateError(c, form, err)
+        return h.ErrorHandler.HandleError(c, err)
     }
-
     logger.Info("form updated successfully")
-    return c.Redirect(http.StatusSeeOther, redirectURL)
+    return c.NoContent(http.StatusNoContent)
 }
 
 // Type-safe field construction for complex scenarios
@@ -572,59 +238,9 @@ logger.InfoWithFields("form created",
    return template.JS(trustedData) // #nosec G203 - data is from trusted source
    ```
 
-### TypeScript/Frontend Linting Rules
-
-1. **Handle promises properly** (@typescript-eslint/no-floating-promises)
-   ```typescript
-   // ❌ Bad
-   onMounted(() => {
-     initializeAsync();
-   });
-   
-   // ✅ Good - use void for intentionally ignored promises
-   onMounted(() => {
-     void initializeAsync();
-   });
-   ```
-
-2. **Use nullish coalescing** (@typescript-eslint/prefer-nullish-coalescing)
-   ```typescript
-   // ❌ Bad
-   const value = data.items || [];
-   
-   // ✅ Good
-   const value = data.items ?? [];
-   ```
-
 ### Pre-commit Checklist
 
 Before committing, ensure:
-- `task lint` passes (both backend and frontend)
+- `task lint` passes
 - `task test` passes
 - No new linter warnings introduced
-
-## Frontend Modernization
-
-The frontend has been modernized with a Linear/Vercel/Stripe/Notion-inspired design language. Key improvements:
-
-**New Features:**
-- Three-panel form builder with collapsible sides
-- Keyboard shortcuts for power users (Cmd+S, Cmd+Z, etc.)
-- Toast notifications (via Sonner)
-- Modern grid layouts with search/filter
-- Undo/redo with 50-action history
-- Auto-save with debounce
-- Theme customization system
-
-**When Building New Features:**
-- Use shadcn-vue components for UI primitives
-- Use composables for shared logic (not Pinia/Vuex)
-- Implement keyboard shortcuts for common actions
-- Use toast notifications instead of inline alerts
-- Follow responsive design patterns (mobile-first)
-- Add undo/redo for complex state changes
-
-**Reference Documentation:**
-- Full details in `MODERNIZATION_SUMMARY.md`
-- Component examples in existing pages (`Dashboard/Index.vue`, `Forms/Edit.vue`)
-- Composable patterns in `src/composables/`
