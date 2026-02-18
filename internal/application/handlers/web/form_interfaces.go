@@ -14,10 +14,11 @@ type FormCreateRequest struct {
 
 // FormUpdateRequest represents the data needed to update a form
 type FormUpdateRequest struct {
-	Title       string `json:"title"`
-	Description string `json:"description"`
-	Status      string `json:"status"`
-	CorsOrigins string `json:"cors_origins"`
+	Title       string     `json:"title"`
+	Description string     `json:"description"`
+	Status      string     `json:"status"`
+	CorsOrigins string     `json:"cors_origins"`
+	Schema      model.JSON `json:"schema"`
 }
 
 // FormRetriever interface for retrieving forms
@@ -45,8 +46,10 @@ type FormResponseBuilder interface {
 	BuildErrorResponse(c echo.Context, statusCode int, message string) error
 	BuildSchemaResponse(c echo.Context, schema model.JSON) error
 	BuildSubmissionResponse(c echo.Context, submission *model.FormSubmission) error
+	BuildSubmissionListResponse(c echo.Context, submissions []*model.FormSubmission) error
 	BuildFormResponse(c echo.Context, form *model.Form) error
 	BuildFormListResponse(c echo.Context, forms []*model.Form) error
+	BuildNotFoundResponse(c echo.Context, resource string) error
 	BuildValidationErrorResponse(c echo.Context, field, message string) error
 	BuildMultipleErrorResponse(c echo.Context, errors []validation.Error) error
 }

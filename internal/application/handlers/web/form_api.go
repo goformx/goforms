@@ -4,12 +4,14 @@ import (
 	"context"
 	"errors"
 	"fmt"
+	"net/http"
 	"time"
 
 	"github.com/labstack/echo/v4"
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/assertion"
 	"github.com/goformx/goforms/internal/application/middleware/security"
 	"github.com/goformx/goforms/internal/application/response"
 	"github.com/goformx/goforms/internal/application/validation"
@@ -26,6 +28,8 @@ type FormAPIHandler struct {
 	ResponseBuilder        FormResponseBuilder
 	ErrorHandler           FormErrorHandler
 	ComprehensiveValidator *validation.ComprehensiveValidator
+	FormServiceHandler     *FormService
+	AssertionMiddleware    *assertion.Middleware
 }
 
 // NewFormAPIHandler creates a new FormAPIHandler.
@@ -41,6 +45,8 @@ func NewFormAPIHandler(
 	responseBuilder := NewFormResponseBuilder()
 	errorHandler := NewFormErrorHandler(responseBuilder)
 	comprehensiveValidator := validation.NewComprehensiveValidator()
+	formServiceHandler := NewFormService(formService, base.Logger)
+	assertionMiddleware := assertion.NewMiddleware(base.Config)
 
 	return &FormAPIHandler{
 		FormBaseHandler:        NewFormBaseHandler(base, formService, formValidator),
@@ -49,6 +55,8 @@ func NewFormAPIHandler(
 		ResponseBuilder:        responseBuilder,
 		ErrorHandler:           errorHandler,
 		ComprehensiveValidator: comprehensiveValidator,
+		FormServiceHandler:     formServiceHandler,
+		AssertionMiddleware:    assertionMiddleware,
 	}
 }
 
@@ -58,11 +66,28 @@ func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 	formsAPI := api.Group(constants.PathForms)
 	formsAPI.Use(NewFormCORSMiddleware(h.FormService, h.Config.Security.CORS))
 
-	// Register authenticated routes
+	// Register authenticated routes (session-based)
 	h.RegisterAuthenticatedRoutes(formsAPI)
 
 	// Register public routes
 	h.RegisterPublicRoutes(formsAPI)
+
+	// Register Laravel API routes with assertion auth
+	h.RegisterLaravelRoutes(e)
+}
+
+// RegisterLaravelRoutes registers /api/forms routes with assertion middleware for Laravel proxy.
+func (h *FormAPIHandler) RegisterLaravelRoutes(e *echo.Echo) {
+	formsLaravel := e.Group(constants.PathAPIFormsLaravel)
+	formsLaravel.Use(h.AssertionMiddleware.Verify())
+
+	formsLaravel.GET("", h.handleListForms)
+	formsLaravel.POST("", h.handleCreateForm)
+	formsLaravel.GET("/:id", h.handleGetForm)
+	formsLaravel.PUT("/:id", h.handleUpdateForm)
+	formsLaravel.DELETE("/:id", h.handleDeleteForm)
+	formsLaravel.GET("/:id/submissions", h.handleListSubmissions)
+	formsLaravel.GET("/:id/submissions/:sid", h.handleGetSubmission)
 }
 
 // RegisterAuthenticatedRoutes registers routes that require authentication
@@ -214,6 +239,149 @@ func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
 	}
 
 	return nil
+}
+
+// POST /api/forms - create form (assertion auth)
+func (h *FormAPIHandler) handleCreateForm(c echo.Context) error {
+	userID, ok := c.Get("user_id").(string)
+	if !ok {
+		return h.HandleForbidden(c, "User not authenticated")
+	}
+
+	req, err := h.RequestProcessor.ProcessCreateRequest(c)
+	if err != nil {
+		return h.wrapError("handle create error", h.ErrorHandler.HandleSchemaError(c, err))
+	}
+
+	form, err := h.FormServiceHandler.CreateForm(c.Request().Context(), userID, req)
+	if err != nil {
+		h.Logger.Error("failed to create form", "error", err)
+
+		return h.HandleError(c, err, "Failed to create form")
+	}
+
+	h.Logger.Debug("form created successfully", "form_id", form.ID, "user_id", h.Logger.SanitizeField("user_id", userID))
+
+	return c.JSON(http.StatusCreated, response.APIResponse{
+		Success: true,
+		Message: "Form created successfully",
+		Data: map[string]any{
+			"form": map[string]any{
+				"id":          form.ID,
+				"title":       form.Title,
+				"description": form.Description,
+				"status":      form.Status,
+				"schema":      form.Schema,
+				"created_at":  form.CreatedAt.Format(time.RFC3339),
+				"updated_at":  form.UpdatedAt.Format(time.RFC3339),
+			},
+		},
+	})
+}
+
+// PUT /api/forms/:id - update form (assertion auth)
+func (h *FormAPIHandler) handleUpdateForm(c echo.Context) error {
+	form, err := h.getFormWithOwnershipOrError(c)
+	if err != nil {
+		return err
+	}
+
+	req, err := h.RequestProcessor.ProcessUpdateRequest(c)
+	if err != nil {
+		return h.wrapError("handle update error", h.ErrorHandler.HandleSchemaError(c, err))
+	}
+
+	if updateErr := h.FormServiceHandler.UpdateForm(c.Request().Context(), form, req); updateErr != nil {
+		h.Logger.Error("failed to update form", "error", updateErr, "form_id", form.ID)
+
+		return h.HandleError(c, updateErr, "Failed to update form")
+	}
+
+	// Reload form to get updated schema if it was changed
+	updatedForm, getErr := h.FormService.GetForm(c.Request().Context(), form.ID)
+	if getErr != nil || updatedForm == nil {
+		updatedForm = form
+	}
+
+	if respErr := h.ResponseBuilder.BuildFormResponse(c, updatedForm); respErr != nil {
+		h.Logger.Error("failed to build form response", "error", respErr, "form_id", form.ID)
+
+		return h.HandleError(c, respErr, "Failed to build response")
+	}
+
+	return nil
+}
+
+// DELETE /api/forms/:id - delete form (assertion auth)
+func (h *FormAPIHandler) handleDeleteForm(c echo.Context) error {
+	form, err := h.getFormWithOwnershipOrError(c)
+	if err != nil {
+		return err
+	}
+
+	if deleteErr := h.FormServiceHandler.DeleteForm(c.Request().Context(), form.ID); deleteErr != nil {
+		h.Logger.Error("failed to delete form", "error", deleteErr, "form_id", form.ID)
+
+		return h.HandleError(c, deleteErr, "Failed to delete form")
+	}
+
+	return c.JSON(http.StatusNoContent, nil)
+}
+
+// GET /api/forms/:id/submissions - list submissions (assertion auth)
+func (h *FormAPIHandler) handleListSubmissions(c echo.Context) error {
+	form, err := h.getFormWithOwnershipOrError(c)
+	if err != nil {
+		return err
+	}
+
+	submissions, err := h.FormServiceHandler.GetFormSubmissions(c.Request().Context(), form.ID)
+	if err != nil {
+		h.Logger.Error("failed to list form submissions", "error", err, "form_id", form.ID)
+
+		return h.HandleError(c, err, "Failed to list submissions")
+	}
+
+	if respErr := h.ResponseBuilder.BuildSubmissionListResponse(c, submissions); respErr != nil {
+		h.Logger.Error("failed to build submission list response", "error", respErr, "form_id", form.ID)
+
+		return h.HandleError(c, respErr, "Failed to build response")
+	}
+
+	return nil
+}
+
+// GET /api/forms/:id/submissions/:sid - get submission (assertion auth)
+func (h *FormAPIHandler) handleGetSubmission(c echo.Context) error {
+	form, err := h.getFormWithOwnershipOrError(c)
+	if err != nil {
+		return err
+	}
+
+	submissionID := c.Param("sid")
+	if submissionID == "" {
+		return h.ResponseBuilder.BuildNotFoundResponse(c, "Submission")
+	}
+
+	submission, err := h.FormService.GetFormSubmission(c.Request().Context(), submissionID)
+	if err != nil {
+		return h.HandleError(c, err, "Failed to get submission")
+	}
+
+	if submission == nil || submission.FormID != form.ID {
+		return h.ResponseBuilder.BuildNotFoundResponse(c, "Submission")
+	}
+
+	return c.JSON(http.StatusOK, response.APIResponse{
+		Success: true,
+		Data: map[string]any{
+			"id":           submission.ID,
+			"form_id":      submission.FormID,
+			"status":       submission.Status,
+			"submitted_at": submission.SubmittedAt.Format(time.RFC3339),
+			"data":         submission.Data,
+		},
+	})
 }
 
 // POST /api/v1/forms/:id/submit

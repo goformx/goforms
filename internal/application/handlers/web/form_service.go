@@ -59,6 +59,10 @@ func (s *FormService) UpdateForm(ctx context.Context, form *model.Form, req *For
 		form.CorsOrigins = model.JSON{"origins": parseCSV(req.CorsOrigins)}
 	}
 
+	if req.Schema != nil {
+		form.Schema = req.Schema
+	}
+
 	if err := s.formService.UpdateForm(ctx, form); err != nil {
 		return fmt.Errorf("update form: %w", err)
 	}

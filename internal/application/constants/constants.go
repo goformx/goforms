@@ -67,6 +67,7 @@ const (
 	PathAPIHealth           = "/api/v1/health"
 	PathAPIMetrics          = "/api/v1/metrics"
 	PathAPIForms            = "/api/v1/forms"
+	PathAPIFormsLaravel     = "/api/forms"
 	PathAPIAdmin            = "/api/v1/admin"
 	PathAPIAdminUsers       = "/api/v1/admin/users"
 	PathAPIAdminForms       = "/api/v1/admin/forms"
