@@ -25,6 +25,7 @@ type SecurityConfig struct {
 	SecurityHeaders SecurityHeadersConfig `json:"security_headers"`
 	CookieSecurity  CookieSecurityConfig  `json:"cookie_security"`
 	TrustProxy      TrustProxyConfig      `json:"trust_proxy"`
+	Assertion       AssertionConfig       `json:"assertion"`
 	APIKey          APIKeyConfig          `json:"api_key"`
 	SecureCookie    bool                  `json:"secure_cookie"`
 	Debug           bool                  `json:"debug"`
@@ -155,6 +156,12 @@ type EncryptionConfig struct {
 	Iterations     int    `json:"iterations"`
 	EnableAES      bool   `json:"enable_aes"`
 	EnableChaCha20 bool   `json:"enable_cha_cha20"`
+}
+
+// AssertionConfig represents Laravel signed assertion verification configuration
+type AssertionConfig struct {
+	Secret               string `json:"secret"`
+	TimestampSkewSeconds int    `json:"timestamp_skew_seconds"`
 }
 
 // APIKeyConfig represents API key authentication configuration

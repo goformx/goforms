@@ -52,6 +52,9 @@ func NewViperConfig() *ViperConfig {
 	_ = v.BindEnv("security.cors.allow_credentials", "CORS_ALLOW_CREDENTIALS")
 	_ = v.BindEnv("security.cors.max_age", "CORS_MAX_AGE")
 
+	// Bind GOFORMS_SHARED_SECRET for Laravel-Go assertion verification
+	_ = v.BindEnv("security.assertion.secret", "GOFORMS_SHARED_SECRET")
+
 	// Set config file search paths (order matters - first found wins)
 	v.AddConfigPath(".")
 	v.AddConfigPath("./config")
@@ -217,6 +220,14 @@ func (vc *ViperConfig) loadCORSConfig() CORSConfig {
 	}
 }
 
+// loadAssertionConfig loads assertion verification configuration from viper
+func (vc *ViperConfig) loadAssertionConfig() AssertionConfig {
+	return AssertionConfig{
+		Secret:               vc.viper.GetString("security.assertion.secret"),
+		TimestampSkewSeconds: vc.viper.GetInt("security.assertion.timestamp_skew_seconds"),
+	}
+}
+
 // loadAPIKeyConfig loads API key configuration from viper
 func (vc *ViperConfig) loadAPIKeyConfig() APIKeyConfig {
 	// Support environment variable with comma-separated keys
@@ -326,6 +337,7 @@ func (vc *ViperConfig) loadSecurityConfig(config *Config) error {
 			Enabled:        vc.viper.GetBool("security.trust_proxy.enabled"),
 			TrustedProxies: vc.viper.GetStringSlice("security.trust_proxy.trusted_proxies"),
 		},
+		Assertion:    vc.loadAssertionConfig(),
 		APIKey:       vc.loadAPIKeyConfig(),
 		SecureCookie: vc.viper.GetBool("security.secure_cookie"),
 		Debug:        vc.viper.GetBool("security.debug"),
@@ -611,6 +623,12 @@ func setCORSDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.max_age", DefaultCookieMaxAge)
 }
 
+// setAssertionDefaults sets assertion verification default values
+func setAssertionDefaults(v *viper.Viper) {
+	v.SetDefault("security.assertion.secret", "")
+	v.SetDefault("security.assertion.timestamp_skew_seconds", 60)
+}
+
 // setAPIKeyDefaults sets API key default values
 func setAPIKeyDefaults(v *viper.Viper) {
 	v.SetDefault("security.api_key.enabled", false)
@@ -650,6 +668,7 @@ func setSecurityHeadersDefaults(v *viper.Viper) {
 func setSecurityDefaults(v *viper.Viper) {
 	setCSRFDefaults(v)
 	setCORSDefaults(v)
+	setAssertionDefaults(v)
 	setAPIKeyDefaults(v)
 	v.SetDefault("security.rate_limit.enabled", false)
 	v.SetDefault("security.rate_limit.rps", DefaultRateLimitRPS)
