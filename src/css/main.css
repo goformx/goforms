@@ -28,14 +28,12 @@ layer(components);
 
 /* Feature-specific components */
 @import url("components/forms.css") layer(components);
-@import url("components/demo_form.css") layer(components);
 
 /* Page-specific styles */
 @import url("pages/form-builder.css") layer(pages);
 
 /* Page styles */
 @import url("pages/error.css") layer(pages);
-@import url("pages/demo/sections.css") layer(pages);
 @import url("pages/form-preview.css") layer(pages);
 
 /* Dashboard styles */
