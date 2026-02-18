@@ -340,7 +340,9 @@ func shouldSkipGlobalCORS(c echo.Context) bool {
 }
 
 func isPublicFormCORSPath(method, requestPath string) bool {
-	if !strings.HasPrefix(requestPath, constants.PathAPIForms+"/") {
+	apiPrefix := constants.PathAPIForms + "/"
+	publicPrefix := constants.PathFormsPublic + "/"
+	if !strings.HasPrefix(requestPath, apiPrefix) && !strings.HasPrefix(requestPath, publicPrefix) {
 		return false
 	}
 
@@ -351,6 +353,8 @@ func isPublicFormCORSPath(method, requestPath string) bool {
 		return method == http.MethodGet || method == http.MethodOptions
 	case strings.HasSuffix(requestPath, "/submit"):
 		return method == http.MethodPost || method == http.MethodOptions
+	case strings.HasSuffix(requestPath, "/embed"):
+		return method == http.MethodGet || method == http.MethodOptions
 	default:
 		return false
 	}

@@ -132,3 +132,34 @@ func TestFormCORSMiddleware_SkipsWhenOriginMissing(t *testing.T) {
 	assert.Equal(t, http.StatusOK, rec.Code)
 	assert.Empty(t, rec.Header().Get("Access-Control-Allow-Origin"))
 }
+
+func TestFormCORSMiddleware_AllowsPublicFormsPath(t *testing.T) {
+	ctrl := gomock.NewController(t)
+	formService := mockform.NewMockService(ctrl)
+
+	formService.EXPECT().
+		GetForm(gomock.Any(), "form-456").
+		Return(&model.Form{
+			CorsOrigins: model.JSON{"origins": []any{"https://embed.example"}},
+		}, nil)
+
+	e := echo.New()
+	formsPublic := e.Group(constants.PathFormsPublic)
+	formsPublic.Use(web.NewFormCORSMiddleware(formService, config.CORSConfig{}))
+	formsPublic.GET("/:id/schema", func(c echo.Context) error {
+		return c.String(http.StatusOK, "ok")
+	})
+	formsPublic.GET("/:id/embed", func(c echo.Context) error {
+		return c.String(http.StatusOK, "embed")
+	})
+
+	req := httptest.NewRequest(http.MethodGet, "/forms/form-456/schema", http.NoBody)
+	req.Header.Set("Origin", "https://embed.example")
+	rec := httptest.NewRecorder()
+
+	e.ServeHTTP(rec, req)
+
+	assert.Equal(t, http.StatusOK, rec.Code)
+	assert.Equal(t, "https://embed.example", rec.Header().Get("Access-Control-Allow-Origin"))
+	assert.Equal(t, "ok", rec.Body.String())
+}

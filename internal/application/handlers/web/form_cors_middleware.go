@@ -108,7 +108,9 @@ func isOriginAllowed(origin string, allowedOrigins []string) bool {
 }
 
 func isPublicFormCORSRequest(method, requestPath string) bool {
-	if !strings.HasPrefix(requestPath, constants.PathAPIForms+"/") {
+	prefix := constants.PathAPIForms + "/"
+	publicPrefix := constants.PathFormsPublic + "/"
+	if !strings.HasPrefix(requestPath, prefix) && !strings.HasPrefix(requestPath, publicPrefix) {
 		return false
 	}
 
@@ -119,17 +121,24 @@ func isPublicFormCORSRequest(method, requestPath string) bool {
 		return method == http.MethodGet || method == http.MethodOptions
 	case strings.HasSuffix(requestPath, "/submit"):
 		return method == http.MethodPost || method == http.MethodOptions
+	case strings.HasSuffix(requestPath, "/embed"):
+		return method == http.MethodGet || method == http.MethodOptions
 	default:
 		return false
 	}
 }
 
 func extractFormIDFromPath(requestPath string) string {
-	if !strings.HasPrefix(requestPath, constants.PathAPIForms+"/") {
+	prefix := constants.PathAPIForms + "/"
+	publicPrefix := constants.PathFormsPublic + "/"
+	var trimmed string
+	if strings.HasPrefix(requestPath, prefix) {
+		trimmed = strings.TrimPrefix(requestPath, prefix)
+	} else if strings.HasPrefix(requestPath, publicPrefix) {
+		trimmed = strings.TrimPrefix(requestPath, publicPrefix)
+	} else {
 		return ""
 	}
-
-	trimmed := strings.TrimPrefix(requestPath, constants.PathAPIForms+"/")
 	parts := strings.Split(trimmed, "/")
 	if len(parts) == 0 {
 		return ""

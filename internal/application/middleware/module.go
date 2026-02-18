@@ -268,5 +268,14 @@ func generateAccessRules(pathManager *constants.PathManager) []access.Rule {
 		})
 	}
 
+	// Public form embed routes at /forms/:id/... for cross-origin embedding
+	publicFormRules := []access.Rule{
+		{Path: constants.PathFormsPublic + "/:id/schema", AccessLevel: access.Public},
+		{Path: constants.PathFormsPublic + "/:id/validation", AccessLevel: access.Public},
+		{Path: constants.PathFormsPublic + "/:id/submit", AccessLevel: access.Public},
+		{Path: constants.PathFormsPublic + "/:id/embed", AccessLevel: access.Public},
+	}
+	rules = append(rules, publicFormRules...)
+
 	return rules
 }

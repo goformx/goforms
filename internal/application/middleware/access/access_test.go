@@ -186,6 +186,40 @@ func TestManager_AddRule(t *testing.T) {
 	}
 }
 
+func TestManager_PublicFormEmbedRoutes(t *testing.T) {
+	config := access.DefaultConfig()
+	manager := access.NewManager(config, access.DefaultRules())
+
+	// Add public form embed rules (same as generateAccessRules in middleware module)
+	publicFormRules := []access.Rule{
+		{Path: constants.PathFormsPublic + "/:id/schema", AccessLevel: access.Public},
+		{Path: constants.PathFormsPublic + "/:id/validation", AccessLevel: access.Public},
+		{Path: constants.PathFormsPublic + "/:id/submit", AccessLevel: access.Public},
+		{Path: constants.PathFormsPublic + "/:id/embed", AccessLevel: access.Public},
+	}
+	for _, r := range publicFormRules {
+		manager.AddRule(r)
+	}
+
+	tests := []struct {
+		path     string
+		method   string
+		expected access.Level
+	}{
+		{"/forms/form-123/schema", "GET", access.Public},
+		{"/forms/form-123/validation", "GET", access.Public},
+		{"/forms/form-123/submit", "POST", access.Public},
+		{"/forms/form-123/embed", "GET", access.Public},
+	}
+
+	for _, tt := range tests {
+		t.Run(tt.path, func(t *testing.T) {
+			result := manager.GetRequiredAccess(tt.path, tt.method)
+			assert.Equal(t, tt.expected, result)
+		})
+	}
+}
+
 func TestConfig_Validate(t *testing.T) {
 	tests := []struct {
 		name        string

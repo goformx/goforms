@@ -178,6 +178,12 @@ func handleSafeMethodCSRF(logger logging.Logger, path string, isDevelopment bool
 
 // shouldSkipCSRFForRoute checks if CSRF should be skipped for the given route
 func shouldSkipCSRFForRoute(logger logging.Logger, path string, isDevelopment bool) bool {
+	// Skip CSRF for public form submission endpoints first (before form page check)
+	// These are API endpoints for embedded forms, not form builder pages
+	if IsFormSubmissionRoute(path) {
+		return true
+	}
+
 	// NEVER skip CSRF for form pages or auth pages - they ALWAYS need tokens
 	// This acts as a safety guard even if other checks are misconfigured
 	if IsFormPage(path) || IsAuthPage(path) {
@@ -200,10 +206,6 @@ func shouldSkipCSRFForRoute(logger logging.Logger, path string, isDevelopment bo
 	}
 
 	if IsStaticRoute(path) {
-		return true
-	}
-
-	if IsFormSubmissionRoute(path) {
 		return true
 	}
 
@@ -273,23 +275,26 @@ func IsStaticRoute(path string) bool {
 
 // IsFormSubmissionRoute checks if the path is a form submission endpoint
 func IsFormSubmissionRoute(path string) bool {
-	// Only skip CSRF for public API form submission endpoints
-	// These are typically POST/PUT/DELETE endpoints that don't need CSRF
-	// (e.g., public form submissions that use other auth mechanisms)
+	// Only skip CSRF for public form submission endpoints
+	// (e.g., embedded form submissions from external sites)
 
-	// Check for API submission endpoints
-	if strings.HasPrefix(path, "/api/v1/forms/submit") {
+	// Match /api/v1/forms/:id/submit
+	if strings.HasPrefix(path, "/api/v1/forms/") && strings.HasSuffix(path, "/submit") {
 		return true
 	}
 
-	// Check for direct submission endpoints (not form pages)
+	// Match /forms/:id/submit (public embed routes)
+	if strings.HasPrefix(path, "/forms/") && strings.HasSuffix(path, "/submit") {
+		return true
+	}
+
+	// Check for direct submission endpoints
 	if strings.HasPrefix(path, "/submit/") {
 		return true
 	}
 
 	// Do NOT skip for:
 	// - /forms/new (form creation page)
-	// - /forms/:id (form detail page)
 	// - /forms/:id/edit (form edit page)
 	// These pages need CSRF tokens
 

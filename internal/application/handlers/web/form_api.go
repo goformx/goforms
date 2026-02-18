@@ -5,6 +5,7 @@ import (
 	"errors"
 	"fmt"
 	"net/http"
+	"strings"
 	"time"
 
 	"github.com/labstack/echo/v4"
@@ -74,6 +75,9 @@ func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 
 	// Register Laravel API routes with assertion auth
 	h.RegisterLaravelRoutes(e)
+
+	// Register public /forms routes for embed (cleaner URLs for cross-origin embedding)
+	h.RegisterPublicFormsRoutes(e)
 }
 
 // RegisterLaravelRoutes registers /api/forms routes with assertion middleware for Laravel proxy.
@@ -115,6 +119,24 @@ func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
 	formsAPI.GET("/:id/schema", h.handleFormSchema)
 	formsAPI.GET("/:id/validation", h.handleFormValidationSchema)
 	formsAPI.POST("/:id/submit", h.handleFormSubmit)
+}
+
+// RegisterPublicFormsRoutes registers public routes at /forms/:id/... for cleaner embed URLs.
+// These routes bypass the /api/v1 prefix and are intended for cross-origin embedding.
+func (h *FormAPIHandler) RegisterPublicFormsRoutes(e *echo.Echo) {
+	formsPublic := e.Group(constants.PathFormsPublic)
+	formsPublic.Use(NewFormCORSMiddleware(h.FormService, h.Config.Security.CORS))
+
+	// Apply API key middleware if enabled (same as /api/v1/forms)
+	if h.Config.Security.APIKey.Enabled {
+		apiKeyAuth := security.NewAPIKeyAuth(h.Logger, h.Config)
+		formsPublic.Use(apiKeyAuth.Setup())
+	}
+
+	formsPublic.GET("/:id/schema", h.handleFormSchema)
+	formsPublic.GET("/:id/validation", h.handleFormValidationSchema)
+	formsPublic.POST("/:id/submit", h.handleFormSubmit)
+	formsPublic.GET("/:id/embed", h.handleFormEmbed)
 }
 
 // Register registers the FormAPIHandler with the Echo instance.
@@ -382,6 +404,75 @@ func (h *FormAPIHandler) handleGetSubmission(c echo.Context) error {
 			"data":         submission.Data,
 		},
 	})
+}
+
+// GET /forms/:id/embed returns a minimal HTML page for embedding the form via iframe.
+// Loads Form.io from CDN and renders the form, posting to /forms/:id/submit.
+func (h *FormAPIHandler) handleFormEmbed(c echo.Context) error {
+	form, err := h.getFormOrError(c)
+	if err != nil {
+		return err
+	}
+
+	if form.Schema == nil {
+		h.Logger.Warn("form schema is nil for embed", "form_id", form.ID)
+
+		return h.wrapError("handle embed error",
+			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
+	}
+
+	formID := form.ID
+	schemaURL := "/forms/" + formID + "/schema"
+	submitURL := "/forms/" + formID + "/submit"
+
+	html := `<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>` + escapeHTML(form.Title) + `</title>
+  <link rel="stylesheet" href="https://cdn.form.io/formiojs/formio.full.min.css">
+</head>
+<body>
+  <div id="formio"></div>
+  <script src="https://cdn.form.io/formiojs/formio.full.min.js"></script>
+  <script>
+    (function() {
+      var schemaUrl = '` + schemaURL + `';
+      var submitUrl = '` + submitURL + `';
+      var container = document.getElementById('formio');
+      Formio.createForm(container, schemaUrl, {
+        submit: submitUrl,
+        noSubmit: false
+      }).then(function(form) {
+        form.on('submit', function(submission) {
+          if (submission && submission.submission) {
+            window.parent.postMessage({ type: 'goformx:submitted', submission: submission.submission }, '*');
+          }
+        });
+      }).catch(function(err) {
+        container.innerHTML = '<p style="color: #dc2626;">Failed to load form. Please try again.</p>';
+        console.error('Form.io load error:', err);
+      });
+    })();
+  </script>
+</body>
+</html>`
+
+	c.Response().Header().Set("Content-Type", "text/html; charset=utf-8")
+
+	return c.HTML(http.StatusOK, html)
+}
+
+// escapeHTML escapes HTML special characters for safe inclusion in attribute values.
+func escapeHTML(s string) string {
+	return strings.NewReplacer(
+		"&", "&amp;",
+		"<", "&lt;",
+		">", "&gt;",
+		`"`, "&quot;",
+		"'", "&#39;",
+	).Replace(s)
 }
 
 // POST /api/v1/forms/:id/submit

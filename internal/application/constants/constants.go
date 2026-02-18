@@ -68,6 +68,7 @@ const (
 	PathAPIMetrics          = "/api/v1/metrics"
 	PathAPIForms            = "/api/v1/forms"
 	PathAPIFormsLaravel     = "/api/forms"
+	PathFormsPublic         = "/forms" // Public embed routes: /forms/:id/embed, schema, submit
 	PathAPIAdmin            = "/api/v1/admin"
 	PathAPIAdminUsers       = "/api/v1/admin/users"
 	PathAPIAdminForms       = "/api/v1/admin/forms"
