@@ -86,27 +86,6 @@ var Module = fx.Module("web-handlers",
 			fx.ResultTags(`group:"handlers"`),
 		),
 
-		// Web handler - public access
-		fx.Annotate(
-			func(base *BaseHandler, authMiddleware *auth.Middleware) (Handler, error) {
-				return NewPageHandler(base, authMiddleware)
-			},
-			fx.ResultTags(`group:"handlers"`),
-		),
-
-		// Form Web handler - authenticated access
-		fx.Annotate(
-			func(
-				base *BaseHandler,
-				formService form.Service,
-				formValidator *validation.FormValidator,
-				sanitizer sanitization.ServiceInterface,
-			) (Handler, error) {
-				return NewFormWebHandler(base, formService, formValidator, sanitizer), nil
-			},
-			fx.ResultTags(`group:"handlers"`),
-		),
-
 		// Form API handler - authenticated access
 		fx.Annotate(
 			func(
@@ -197,10 +176,6 @@ func (rr *RouteRegistrar) registerHandlerRoutes(e *echo.Echo, handler Handler) {
 	switch h := handler.(type) {
 	case *AuthHandler:
 		rr.registerAuthRoutes(e, h)
-	case *PageHandler:
-		rr.registerWebRoutes(e, h)
-	case *FormWebHandler:
-		rr.registerFormWebRoutes(e, h)
 	case *FormAPIHandler:
 		rr.registerFormAPIRoutes(e, h)
 	case *DashboardHandler:
@@ -222,17 +197,6 @@ func (rr *RouteRegistrar) registerAuthRoutes(e *echo.Echo, h *AuthHandler) {
 	validationGroup := api.Group(constants.PathValidation)
 	validationGroup.GET("/user-login", h.LoginValidation)
 	validationGroup.GET("/user-signup", h.SignupValidation)
-}
-
-// registerWebRoutes registers public web routes
-func (rr *RouteRegistrar) registerWebRoutes(e *echo.Echo, h *PageHandler) {
-	e.GET(constants.PathHome, h.handleHome)
-	e.GET(constants.PathDemo, h.handleDemo)
-}
-
-// registerFormWebRoutes registers form web UI routes
-func (rr *RouteRegistrar) registerFormWebRoutes(e *echo.Echo, h *FormWebHandler) {
-	h.RegisterRoutes(e, rr.accessManager)
 }
 
 // registerFormAPIRoutes registers form API routes
