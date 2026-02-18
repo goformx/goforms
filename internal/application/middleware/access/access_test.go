@@ -281,7 +281,6 @@ func TestDefaultRules(t *testing.T) {
 
 	// Test that essential rules are present
 	essentialPaths := map[string]access.Level{
-		constants.PathHome:      access.Public,
 		constants.PathLogin:     access.Public,
 		constants.PathSignup:    access.Public,
 		constants.PathDashboard: access.Authenticated,
@@ -289,7 +288,6 @@ func TestDefaultRules(t *testing.T) {
 		constants.PathForms:     access.Authenticated,
 		constants.PathProfile:   access.Authenticated,
 		constants.PathSettings:  access.Authenticated,
-		constants.PathDemo:      access.Public,
 		constants.PathHealth:    access.Public,
 		constants.PathMetrics:   access.Public,
 		constants.PathAssets:    access.Public,
