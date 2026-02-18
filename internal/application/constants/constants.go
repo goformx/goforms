@@ -37,10 +37,8 @@ const (
 // Application Paths
 const (
 	// Public paths
-	PathHome           = "/"
 	PathLogin          = "/login"
 	PathSignup         = "/signup"
-	PathDemo           = "/demo"
 	PathHealth         = "/health"
 	PathMetrics        = "/metrics"
 	PathForgotPassword = "/forgot-password"

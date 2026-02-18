@@ -18,10 +18,8 @@ type PathManager struct {
 func NewPathManager() *PathManager {
 	return &PathManager{
 		PublicPaths: []string{
-			PathHome,
 			PathLogin,
 			PathSignup,
-			PathDemo,
 			PathHealth,
 			PathMetrics,
 			PathForgotPassword,
