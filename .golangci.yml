@@ -74,9 +74,6 @@ linters:
     - whitespace
     - misspell
   settings:
-    contextcheck:
-      disable: false
-      enable-avoid-perf-hit: false
     cyclop:
       max-complexity: 30
       package-average: 10
@@ -104,7 +101,6 @@ linters:
     errcheck:
       check-type-assertions: true
     errchkjson:
-      check-error-variable-names: true
       report-no-exported: false
     exhaustive:
       check:
