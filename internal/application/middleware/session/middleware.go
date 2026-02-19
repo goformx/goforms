@@ -97,8 +97,16 @@ func (sm *Manager) processSession(c echo.Context, path string, next echo.Handler
 	return next(c)
 }
 
+// Laravel assertion API path (no session cookie; auth via X-User-Id/X-Signature).
+const pathAPIFormsLaravel = "/api/forms"
+
 // shouldSkipSession checks if a path should skip session processing entirely
 func (sm *Manager) shouldSkipSession(path string) bool {
+	// Laravel assertion auth: skip session for /api/forms and below
+	if path == pathAPIFormsLaravel || strings.HasPrefix(path, pathAPIFormsLaravel+"/") {
+		return true
+	}
+
 	// Early returns for different path types
 	if sm.isStaticFile(path) {
 		return true
