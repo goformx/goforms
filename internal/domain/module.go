@@ -134,5 +134,10 @@ var Module = fx.Module("domain",
 			fx.As(new(form.Service)),
 		),
 		NewStores,
+		// User ensurer (ensures Go user row exists for assertion-authenticated requests)
+		fx.Annotate(
+			userstore.NewUserEnsurer,
+			fx.As(new(user.UserEnsurer)),
+		),
 	),
 )

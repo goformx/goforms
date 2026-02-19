@@ -12,6 +12,7 @@ import (
 	"github.com/goformx/goforms/internal/application/middleware/access"
 	"github.com/goformx/goforms/internal/application/validation"
 	"github.com/goformx/goforms/internal/domain/form"
+	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
@@ -31,8 +32,9 @@ var Module = fx.Module("web-handlers",
 				accessManager *access.Manager,
 				formValidator *validation.FormValidator,
 				sanitizer sanitization.ServiceInterface,
+				userEnsurer user.UserEnsurer,
 			) (Handler, error) {
-				return NewFormAPIHandler(base, formService, accessManager, formValidator, sanitizer), nil
+				return NewFormAPIHandler(base, formService, accessManager, formValidator, sanitizer, userEnsurer), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),
