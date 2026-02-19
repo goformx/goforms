@@ -16,9 +16,6 @@ import (
 	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/config"
 	"github.com/goformx/goforms/internal/infrastructure/logging"
-	"github.com/goformx/goforms/internal/infrastructure/web"
-	"github.com/goformx/goforms/internal/presentation/inertia"
-	"github.com/goformx/goforms/internal/presentation/view"
 )
 
 // BaseHandler provides common functionality for all handlers
@@ -27,10 +24,8 @@ type BaseHandler struct {
 	Config         *config.Config
 	UserService    user.Service
 	FormService    form.Service
-	Inertia        *inertia.Manager
 	SessionManager *session.Manager
 	ErrorHandler   response.ErrorHandlerInterface
-	AssetManager   web.AssetManagerInterface // Use interface instead of concrete type
 }
 
 // NewBaseHandler creates a new base handler with common dependencies
@@ -39,20 +34,16 @@ func NewBaseHandler(
 	cfg *config.Config,
 	userService user.Service,
 	formService form.Service,
-	inertiaManager *inertia.Manager,
 	sessionManager *session.Manager,
 	errorHandler response.ErrorHandlerInterface,
-	assetManager web.AssetManagerInterface, // Use interface
 ) *BaseHandler {
 	return &BaseHandler{
 		Logger:         logger,
 		Config:         cfg,
 		UserService:    userService,
 		FormService:    formService,
-		Inertia:        inertiaManager,
 		SessionManager: sessionManager,
 		ErrorHandler:   errorHandler,
-		AssetManager:   assetManager,
 	}
 }
 
@@ -71,11 +62,6 @@ func (h *BaseHandler) RequireAuthenticatedUser(c echo.Context) (*entities.User, 
 	}
 
 	return userEntity, nil
-}
-
-// NewPageData creates page data with common fields
-func (h *BaseHandler) NewPageData(c echo.Context, title string) *view.PageData {
-	return view.NewPageData(h.Config, h.AssetManager, c, title)
 }
 
 // HandleError handles common error scenarios
@@ -103,20 +89,6 @@ func (h *BaseHandler) HandleForbidden(c echo.Context, message string) error {
 		domainerrors.New(domainerrors.ErrCodeForbidden, message, nil), c,
 	); forbiddenErr != nil {
 		return fmt.Errorf("handle forbidden error: %w", forbiddenErr)
-	}
-
-	return nil
-}
-
-// GetAssetBaseURL returns the base URL for assets (convenience method)
-func (h *BaseHandler) GetAssetBaseURL() string {
-	return h.AssetManager.GetBaseURL()
-}
-
-// ValidateAssetPath validates an asset path (convenience method)
-func (h *BaseHandler) ValidateAssetPath(path string) error {
-	if err := h.AssetManager.ValidatePath(path); err != nil {
-		return fmt.Errorf("validate asset path: %w", err)
 	}
 
 	return nil

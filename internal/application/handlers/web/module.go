@@ -19,13 +19,7 @@ import (
 // Module provides web handler dependencies
 var Module = fx.Module("web-handlers",
 	// Core dependencies
-	fx.Provide(
-		// Base handler for common functionality
-		fx.Annotate(
-			NewBaseHandler,
-			fx.ParamTags(``, ``, ``, ``, `optional:"true"`, ``, ``, ``),
-		),
-	),
+	fx.Provide(NewBaseHandler),
 
 	// Handler providers
 	fx.Provide(
