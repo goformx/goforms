@@ -85,16 +85,8 @@ func (am *Manager) AddRule(rule Rule) {
 
 // IsPublicPath checks if a path is public
 func (am *Manager) IsPublicPath(path string) bool {
-	// Check exact matches first
 	for _, p := range am.config.PublicPaths {
-		if path == p {
-			return true
-		}
-	}
-
-	// Check if path starts with any public path
-	for _, p := range am.config.PublicPaths {
-		if strings.HasPrefix(path, p) {
+		if path == p || strings.HasPrefix(path, p+"/") {
 			return true
 		}
 	}
@@ -104,16 +96,8 @@ func (am *Manager) IsPublicPath(path string) bool {
 
 // IsAdminPath checks if a path requires admin access
 func (am *Manager) IsAdminPath(path string) bool {
-	// Check exact matches first
 	for _, p := range am.config.AdminPaths {
-		if path == p {
-			return true
-		}
-	}
-
-	// Check if path starts with any admin path
-	for _, p := range am.config.AdminPaths {
-		if strings.HasPrefix(path, p) {
+		if path == p || strings.HasPrefix(path, p+"/") {
 			return true
 		}
 	}

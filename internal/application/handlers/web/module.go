@@ -32,9 +32,9 @@ var Module = fx.Module("web-handlers",
 				accessManager *access.Manager,
 				formValidator *validation.FormValidator,
 				sanitizer sanitization.ServiceInterface,
-				laravelUserSyncer user.LaravelUserSyncer,
+				userEnsurer user.UserEnsurer,
 			) (Handler, error) {
-				return NewFormAPIHandler(base, formService, accessManager, formValidator, sanitizer, laravelUserSyncer), nil
+				return NewFormAPIHandler(base, formService, accessManager, formValidator, sanitizer, userEnsurer), nil
 			},
 			fx.ResultTags(`group:"handlers"`),
 		),

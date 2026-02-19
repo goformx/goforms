@@ -30,6 +30,21 @@ func TestManager_IsPublicPath(t *testing.T) {
 			expected: true,
 		},
 		{
+			name:     "Laravel API forms path is public",
+			path:     constants.PathAPIFormsLaravel,
+			expected: true,
+		},
+		{
+			name:     "Laravel API forms sub-path is public",
+			path:     constants.PathAPIFormsLaravel + "/some-form-id",
+			expected: true,
+		},
+		{
+			name:     "path with same prefix but no separator is not public",
+			path:     constants.PathAPIFormsLaravel + "anything",
+			expected: false,
+		},
+		{
 			name:     "non-public path",
 			path:     "/dashboard",
 			expected: false,
@@ -110,6 +125,12 @@ func TestManager_GetRequiredAccess(t *testing.T) {
 			path:     constants.PathAdmin,
 			method:   "GET",
 			expected: access.Admin,
+		},
+		{
+			name:     "Laravel API forms path returns Public",
+			path:     constants.PathAPIFormsLaravel,
+			method:   "POST",
+			expected: access.Public,
 		},
 		{
 			name:     "unknown path defaults to authenticated",

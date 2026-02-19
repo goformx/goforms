@@ -134,10 +134,10 @@ var Module = fx.Module("domain",
 			fx.As(new(form.Service)),
 		),
 		NewStores,
-		// Laravel user syncer (ensures Go user row exists for assertion-authenticated requests)
+		// User ensurer (ensures Go user row exists for assertion-authenticated requests)
 		fx.Annotate(
-			userstore.NewLaravelUserSyncer,
-			fx.As(new(user.LaravelUserSyncer)),
+			userstore.NewUserEnsurer,
+			fx.As(new(user.UserEnsurer)),
 		),
 	),
 )

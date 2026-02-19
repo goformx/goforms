@@ -32,7 +32,7 @@ type FormAPIHandler struct {
 	ComprehensiveValidator *validation.ComprehensiveValidator
 	FormServiceHandler     *FormService
 	AssertionMiddleware    *assertion.Middleware
-	LaravelUserSyncer      user.LaravelUserSyncer
+	UserEnsurer            user.UserEnsurer
 }
 
 // NewFormAPIHandler creates a new FormAPIHandler.
@@ -42,7 +42,7 @@ func NewFormAPIHandler(
 	accessManager *access.Manager,
 	formValidator *validation.FormValidator,
 	sanitizer sanitization.ServiceInterface,
-	laravelUserSyncer user.LaravelUserSyncer,
+	userEnsurer user.UserEnsurer,
 ) *FormAPIHandler {
 	// Create dependencies
 	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator, base.Logger)
@@ -61,7 +61,7 @@ func NewFormAPIHandler(
 		ComprehensiveValidator: comprehensiveValidator,
 		FormServiceHandler:     formServiceHandler,
 		AssertionMiddleware:    assertionMiddleware,
-		LaravelUserSyncer:      laravelUserSyncer,
+		UserEnsurer:            userEnsurer,
 	}
 }
 
@@ -78,6 +78,7 @@ func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
 func (h *FormAPIHandler) RegisterLaravelRoutes(e *echo.Echo) {
 	formsLaravel := e.Group(constants.PathAPIFormsLaravel)
 	formsLaravel.Use(h.AssertionMiddleware.Verify())
+	formsLaravel.Use(h.ensureUserMiddleware())
 
 	formsLaravel.GET("", h.handleListForms)
 	formsLaravel.POST("", h.handleCreateForm)
@@ -86,6 +87,25 @@ func (h *FormAPIHandler) RegisterLaravelRoutes(e *echo.Echo) {
 	formsLaravel.DELETE("/:id", h.handleDeleteForm)
 	formsLaravel.GET("/:id/submissions", h.handleListSubmissions)
 	formsLaravel.GET("/:id/submissions/:sid", h.handleGetSubmission)
+}
+
+// ensureUserMiddleware returns middleware that lazily syncs the Laravel user to a Go shadow row.
+// Runs after assertion verification so user_id is available in the context.
+func (h *FormAPIHandler) ensureUserMiddleware() echo.MiddlewareFunc {
+	return func(next echo.HandlerFunc) echo.HandlerFunc {
+		return func(c echo.Context) error {
+			userID, ok := c.Get("user_id").(string)
+			if !ok {
+				return next(c)
+			}
+			if err := h.UserEnsurer.EnsureUser(c.Request().Context(), userID); err != nil {
+				h.Logger.Error("failed to ensure Laravel user",
+					"user_id", h.Logger.SanitizeField("user_id", userID), "error", err)
+				return h.HandleError(c, err, "Failed to ensure user")
+			}
+			return next(c)
+		}
+	}
 }
 
 // RegisterPublicFormsRoutes registers public routes at /forms/:id/... for cleaner embed URLs.
@@ -204,12 +224,6 @@ func (h *FormAPIHandler) handleCreateForm(c echo.Context) error {
 		return h.HandleForbidden(c, "User not authenticated")
 	}
 
-	if err := h.LaravelUserSyncer.EnsureUser(c.Request().Context(), userID); err != nil {
-		h.Logger.Error("failed to ensure Laravel user", "user_id", h.Logger.SanitizeField("user_id", userID), "error", err)
-
-		return h.HandleError(c, err, "Failed to ensure user")
-	}
-
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)
 	if err != nil {
 		return h.wrapError("handle create error", h.ErrorHandler.HandleSchemaError(c, err))
@@ -262,6 +276,8 @@ func (h *FormAPIHandler) handleUpdateForm(c echo.Context) error {
 	// Reload form to get updated schema if it was changed
 	updatedForm, getErr := h.FormService.GetForm(c.Request().Context(), form.ID)
 	if getErr != nil || updatedForm == nil {
+		h.Logger.Warn("failed to reload form after update, returning pre-update data", "form_id", form.ID, "error", getErr)
+
 		updatedForm = form
 	}
 
@@ -327,6 +343,8 @@ func (h *FormAPIHandler) handleGetSubmission(c echo.Context) error {
 
 	submission, err := h.FormService.GetFormSubmission(c.Request().Context(), submissionID)
 	if err != nil {
+		h.Logger.Error("failed to get submission", "error", err, "form_id", form.ID, "submission_id", submissionID)
+
 		return h.HandleError(c, err, "Failed to get submission")
 	}
 
