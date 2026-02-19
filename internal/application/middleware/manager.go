@@ -14,8 +14,8 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
-	"github.com/goformx/goforms/internal/application/middleware/assertion"
 	"github.com/goformx/goforms/internal/application/middleware/adapters"
+	"github.com/goformx/goforms/internal/application/middleware/assertion"
 	contextmw "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/security"
 	"github.com/goformx/goforms/internal/application/middleware/session"
