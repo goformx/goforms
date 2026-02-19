@@ -34,12 +34,11 @@ type Dependencies struct {
 	FormService form.Service
 
 	// Infrastructure
-	Logger            logging.Logger
-	Config            *config.Config
-	Server            *server.Server
-	DomainModule      fx.Option
-	Presentation      fx.Option `optional:"true"`
-	MiddlewareModule  fx.Option
+	Logger           logging.Logger
+	Config           *config.Config
+	Server           *server.Server
+	DomainModule     fx.Option
+	MiddlewareModule fx.Option
 	SessionManager    *session.Manager
 	MiddlewareManager *middleware.Manager
 	AccessManager     *access.Manager
@@ -126,7 +125,6 @@ func New(lc fx.Lifecycle, deps Dependencies) *Application {
 		config:           deps.Config,
 		server:           deps.Server,
 		domainModule:     deps.DomainModule,
-		presentation:     deps.Presentation,
 		middlewareModule: deps.MiddlewareModule,
 		sessionManager:   deps.SessionManager,
 	}
@@ -149,7 +147,6 @@ type Application struct {
 	config           *config.Config
 	server           *server.Server
 	domainModule     fx.Option
-	presentation     fx.Option
 	middlewareModule fx.Option
 	sessionManager   *session.Manager
 }
