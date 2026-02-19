@@ -63,20 +63,10 @@ func NewFormAPIHandler(
 
 // RegisterRoutes registers API routes for forms.
 func (h *FormAPIHandler) RegisterRoutes(e *echo.Echo) {
-	api := e.Group(constants.PathAPIv1)
-	formsAPI := api.Group(constants.PathForms)
-	formsAPI.Use(NewFormCORSMiddleware(h.FormService, h.Config.Security.CORS))
-
-	// Register authenticated routes (session-based)
-	h.RegisterAuthenticatedRoutes(formsAPI)
-
-	// Register public routes
-	h.RegisterPublicRoutes(formsAPI)
-
-	// Register Laravel API routes with assertion auth
+	// Laravel API routes with assertion auth
 	h.RegisterLaravelRoutes(e)
 
-	// Register public /forms routes for embed (cleaner URLs for cross-origin embedding)
+	// Public /forms routes for embed (schema, validation, submit, embed HTML)
 	h.RegisterPublicFormsRoutes(e)
 }
 
@@ -92,33 +82,6 @@ func (h *FormAPIHandler) RegisterLaravelRoutes(e *echo.Echo) {
 	formsLaravel.DELETE("/:id", h.handleDeleteForm)
 	formsLaravel.GET("/:id/submissions", h.handleListSubmissions)
 	formsLaravel.GET("/:id/submissions/:sid", h.handleGetSubmission)
-}
-
-// RegisterAuthenticatedRoutes registers routes that require authentication
-func (h *FormAPIHandler) RegisterAuthenticatedRoutes(formsAPI *echo.Group) {
-	// Apply authentication middleware
-	formsAPI.Use(access.Middleware(h.AccessManager, h.Logger))
-
-	// Authenticated routes
-	formsAPI.GET("", h.handleListForms)
-	formsAPI.GET("/:id", h.handleGetForm)
-	formsAPI.GET("/:id/schema", h.handleFormSchema)
-	formsAPI.PUT("/:id/schema", h.handleFormSchemaUpdate)
-}
-
-// RegisterPublicRoutes registers routes that don't require authentication
-func (h *FormAPIHandler) RegisterPublicRoutes(formsAPI *echo.Group) {
-	// Apply API key middleware if enabled
-	if h.Config.Security.APIKey.Enabled {
-		apiKeyAuth := security.NewAPIKeyAuth(h.Logger, h.Config)
-		formsAPI.Use(apiKeyAuth.Setup())
-	}
-
-	// Public routes (no authentication required, but API key required if enabled)
-	// These are for embedded forms on external websites
-	formsAPI.GET("/:id/schema", h.handleFormSchema)
-	formsAPI.GET("/:id/validation", h.handleFormValidationSchema)
-	formsAPI.POST("/:id/submit", h.handleFormSubmit)
 }
 
 // RegisterPublicFormsRoutes registers public routes at /forms/:id/... for cleaner embed URLs.
