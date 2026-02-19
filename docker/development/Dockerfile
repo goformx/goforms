@@ -53,6 +53,6 @@ EXPOSE 8090 5173
 HEALTHCHECK --interval=30s --timeout=3s --start-period=5s --retries=3 \
     CMD wget --no-verbose --tries=1 --spider http://localhost:8090/health || exit 1
 
-# Run Air + npm run dev concurrently
-# Configure git safe directory for bind-mounted repos, then start services
-CMD ["dumb-init", "--", "sh", "-c", "git config --global --add safe.directory /app && npm run dev & air -c .air.toml"]
+# Run Air for Go hot-reload (frontend lives in goformx-laravel)
+# Configure git safe directory for bind-mounted repos, then start
+CMD ["dumb-init", "--", "sh", "-c", "git config --global --add safe.directory /app && air -c .air.toml"]

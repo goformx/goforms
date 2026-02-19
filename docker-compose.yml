@@ -18,7 +18,8 @@ services:
       - APP_LOG_LEVEL=${APP_LOG_LEVEL}
       - APP_SCHEME=${APP_SCHEME}
       - APP_PORT=${APP_PORT}
-      - APP_HOST=${APP_HOST}
+      # Listen on all interfaces so port 8090 is reachable from host (e.g. DDEV → host.docker.internal:8090)
+      - APP_HOST=${APP_HOST:-0.0.0.0}
 
       # Database Configuration (mapped to Viper's DATABASE_ prefix)
       # Host must match the postgres service name on the Compose network
