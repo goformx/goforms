@@ -14,6 +14,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/constants"
 	"github.com/goformx/goforms/internal/application/middleware/access"
+	"github.com/goformx/goforms/internal/application/middleware/assertion"
 	"github.com/goformx/goforms/internal/application/middleware/adapters"
 	contextmw "github.com/goformx/goforms/internal/application/middleware/context"
 	"github.com/goformx/goforms/internal/application/middleware/security"
@@ -221,6 +222,11 @@ func (m *Manager) setupBasicMiddleware(e *echo.Echo) {
 			// Add form_id if this is a form route
 			if formID := c.Param("id"); formID != "" && isFormRoute(v.URI) {
 				fields = append(fields, "form_id", formID)
+			}
+
+			// Add assertion failure reason when 401 from assertion middleware
+			if r, ok := c.Get(assertion.FailureReasonContextKey).(string); ok && r != "" {
+				fields = append(fields, "assertion_reason", r)
 			}
 
 			// Log based on status and error

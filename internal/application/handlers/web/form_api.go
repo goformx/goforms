@@ -47,7 +47,7 @@ func NewFormAPIHandler(
 	errorHandler := NewFormErrorHandler(responseBuilder)
 	comprehensiveValidator := validation.NewComprehensiveValidator()
 	formServiceHandler := NewFormService(formService, base.Logger)
-	assertionMiddleware := assertion.NewMiddleware(base.Config)
+	assertionMiddleware := assertion.NewMiddleware(base.Config, base.Logger)
 
 	return &FormAPIHandler{
 		FormBaseHandler:        NewFormBaseHandler(base, formService, formValidator),

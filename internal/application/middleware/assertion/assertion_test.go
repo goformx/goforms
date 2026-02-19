@@ -34,7 +34,7 @@ func TestVerify_ValidSignature_Passes(t *testing.T) {
 			},
 		},
 	}
-	mw := assertion.NewMiddleware(cfg)
+	mw := assertion.NewMiddleware(cfg, nil)
 	e := echo.New()
 	e.Use(mw.Verify())
 	e.GET("/test", func(c echo.Context) error {
@@ -66,7 +66,7 @@ func TestVerify_InvalidSignature_Returns401(t *testing.T) {
 			},
 		},
 	}
-	mw := assertion.NewMiddleware(cfg)
+	mw := assertion.NewMiddleware(cfg, nil)
 	e := echo.New()
 	e.Use(mw.Verify())
 	e.GET("/test", func(c echo.Context) error {
@@ -102,7 +102,7 @@ func TestVerify_MissingHeaders_Returns401(t *testing.T) {
 			},
 		},
 	}
-	mw := assertion.NewMiddleware(cfg)
+	mw := assertion.NewMiddleware(cfg, nil)
 	e := echo.New()
 	e.Use(mw.Verify())
 	e.GET("/test", func(c echo.Context) error {
@@ -160,7 +160,7 @@ func TestVerify_StaleTimestamp_Returns401(t *testing.T) {
 			},
 		},
 	}
-	mw := assertion.NewMiddleware(cfg)
+	mw := assertion.NewMiddleware(cfg, nil)
 	e := echo.New()
 	e.Use(mw.Verify())
 	e.GET("/test", func(c echo.Context) error {

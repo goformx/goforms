@@ -12,6 +12,7 @@ import (
 
 	"github.com/goformx/goforms/internal/application/middleware/context"
 	appconfig "github.com/goformx/goforms/internal/infrastructure/config"
+	"github.com/goformx/goforms/internal/infrastructure/logging"
 	"github.com/labstack/echo/v4"
 )
 
@@ -19,16 +20,22 @@ const (
 	headerUserID    = "X-User-Id"
 	headerTimestamp = "X-Timestamp"
 	headerSignature = "X-Signature"
+
+	// FailureReasonContextKey is the Echo context key set when assertion verification fails (value: reason string).
+	// The request logging middleware can include it in the "request completed with client error" log.
+	FailureReasonContextKey = "assertion_failure_reason"
 )
 
 // Middleware verifies Laravel signed assertion headers and sets user_id in Echo context.
 type Middleware struct {
 	config *appconfig.Config
+	logger logging.Logger
 }
 
 // NewMiddleware creates a new assertion verification middleware.
-func NewMiddleware(config *appconfig.Config) *Middleware {
-	return &Middleware{config: config}
+// logger may be nil; if set, it is used to log assertion failures so the 401 reason is always visible.
+func NewMiddleware(config *appconfig.Config, logger logging.Logger) *Middleware {
+	return &Middleware{config: config, logger: logger}
 }
 
 // Verify returns an Echo middleware that verifies X-User-Id, X-Timestamp, X-Signature headers.
@@ -41,17 +48,40 @@ func (m *Middleware) Verify() echo.MiddlewareFunc {
 			timestamp := strings.TrimSpace(c.Request().Header.Get(headerTimestamp))
 			signature := strings.TrimSpace(c.Request().Header.Get(headerSignature))
 
+			setFailureReason := func(reason string) {
+				c.Set(FailureReasonContextKey, reason)
+				msg := "assertion verification failed"
+				var logFn func(string, ...any)
+				if m.logger != nil {
+					logFn = m.logger.Warn
+				} else if logger := context.GetLogger(c.Request().Context()); logger != nil {
+					logFn = logger.Warn
+				} else {
+					c.Logger().Warn(msg, "reason", reason, "path", c.Path())
+					return
+				}
+				logFn(msg, "reason", reason, "path", c.Path())
+			}
+
 			if userID == "" || timestamp == "" || signature == "" {
+				setFailureReason("missing_headers")
+				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+			}
+
+			if cfg.Secret == "" {
+				setFailureReason("empty_secret")
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			}
 
 			ts, err := parseTimestamp(timestamp)
 			if err != nil {
+				setFailureReason("timestamp_parse_error")
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			}
 
 			skew := time.Duration(cfg.TimestampSkewSeconds) * time.Second
 			if time.Since(ts) > skew {
+				setFailureReason("timestamp_too_old")
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			}
 
@@ -60,10 +90,12 @@ func (m *Middleware) Verify() echo.MiddlewareFunc {
 
 			sigBytes, err := hex.DecodeString(signature)
 			if err != nil {
+				setFailureReason("signature_not_hex")
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			}
 
 			if !hmacEqual(sigBytes, expected) {
+				setFailureReason("signature_mismatch")
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			}
 
