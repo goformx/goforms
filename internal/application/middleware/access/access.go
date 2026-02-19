@@ -56,6 +56,7 @@ func DefaultConfig() *Config {
 			constants.PathRobotsTxt,
 			constants.PathStatic,
 			constants.PathImages,
+			constants.PathAPIFormsLaravel, // Laravel assertion API: auth via X-User-Id/X-Signature on route group
 		},
 		AdminPaths: []string{
 			constants.PathAdmin,

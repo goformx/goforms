@@ -23,6 +23,8 @@ var (
 const (
 	// MinPasswordLength is the minimum length required for passwords
 	MinPasswordLength = 8
+	// LaravelShadowPassword is a non-login placeholder for Laravel-synced users (bcrypt of "laravel-sync-no-login").
+	LaravelShadowPassword = "$2a$10$N9qo8uLOickgx2ZMRZoMyeIjZAgcfl7p92ldGxad68LJZdL17lhWy"
 )
 
 // User represents a user entity
@@ -193,6 +195,27 @@ func isValidEmail(email string) bool {
 		return false
 	}
 	return true
+}
+
+// NewLaravelShadowUser returns a minimal user for Laravel assertion auth so forms.user_id FK is satisfied.
+// The user is not intended for login via Go (placeholder email and password).
+func NewLaravelShadowUser(id string) *User {
+	email := "laravel-" + id + "@localhost"
+	if len(email) > maxEmailLength {
+		email = email[:maxEmailLength]
+	}
+	return &User{
+		ID:             id,
+		Email:          email,
+		HashedPassword: LaravelShadowPassword,
+		FirstName:      "Laravel",
+		LastName:       "Sync",
+		Role:           "user",
+		Active:         true,
+		CreatedAt:      time.Now(),
+		UpdatedAt:      time.Now(),
+		DeletedAt:      gorm.DeletedAt{},
+	}
 }
 
 // GetID returns the user's ID

@@ -18,6 +18,7 @@ import (
 	"github.com/goformx/goforms/internal/application/validation"
 	formdomain "github.com/goformx/goforms/internal/domain/form"
 	"github.com/goformx/goforms/internal/domain/form/model"
+	"github.com/goformx/goforms/internal/domain/user"
 	"github.com/goformx/goforms/internal/infrastructure/sanitization"
 )
 
@@ -31,6 +32,7 @@ type FormAPIHandler struct {
 	ComprehensiveValidator *validation.ComprehensiveValidator
 	FormServiceHandler     *FormService
 	AssertionMiddleware    *assertion.Middleware
+	LaravelUserSyncer      user.LaravelUserSyncer
 }
 
 // NewFormAPIHandler creates a new FormAPIHandler.
@@ -40,6 +42,7 @@ func NewFormAPIHandler(
 	accessManager *access.Manager,
 	formValidator *validation.FormValidator,
 	sanitizer sanitization.ServiceInterface,
+	laravelUserSyncer user.LaravelUserSyncer,
 ) *FormAPIHandler {
 	// Create dependencies
 	requestProcessor := NewFormRequestProcessor(sanitizer, formValidator, base.Logger)
@@ -58,6 +61,7 @@ func NewFormAPIHandler(
 		ComprehensiveValidator: comprehensiveValidator,
 		FormServiceHandler:     formServiceHandler,
 		AssertionMiddleware:    assertionMiddleware,
+		LaravelUserSyncer:      laravelUserSyncer,
 	}
 }
 
@@ -198,6 +202,12 @@ func (h *FormAPIHandler) handleCreateForm(c echo.Context) error {
 	userID, ok := c.Get("user_id").(string)
 	if !ok {
 		return h.HandleForbidden(c, "User not authenticated")
+	}
+
+	if err := h.LaravelUserSyncer.EnsureUser(c.Request().Context(), userID); err != nil {
+		h.Logger.Error("failed to ensure Laravel user", "user_id", h.Logger.SanitizeField("user_id", userID), "error", err)
+
+		return h.HandleError(c, err, "Failed to ensure user")
 	}
 
 	req, err := h.RequestProcessor.ProcessCreateRequest(c)

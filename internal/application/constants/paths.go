@@ -27,6 +27,7 @@ func NewPathManager() *PathManager {
 			PathVerifyEmail,
 			PathAPIHealth,
 			PathAPIValidation,
+			PathAPIFormsLaravel, // Laravel assertion API: auth via X-User-Id/X-Signature on route group
 		},
 		StaticPaths: []string{
 			PathStatic,
