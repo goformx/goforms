@@ -623,10 +623,12 @@ func setCORSDefaults(v *viper.Viper) {
 	v.SetDefault("security.cors.max_age", DefaultCookieMaxAge)
 }
 
+const defaultAssertionTimestampSkewSeconds = 60
+
 // setAssertionDefaults sets assertion verification default values
 func setAssertionDefaults(v *viper.Viper) {
 	v.SetDefault("security.assertion.secret", "")
-	v.SetDefault("security.assertion.timestamp_skew_seconds", 60)
+	v.SetDefault("security.assertion.timestamp_skew_seconds", defaultAssertionTimestampSkewSeconds)
 }
 
 // setAPIKeyDefaults sets API key default values

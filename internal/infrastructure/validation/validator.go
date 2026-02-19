@@ -47,7 +47,7 @@ func (e Errors) Error() string {
 			sb.WriteString("; ")
 		}
 
-		sb.WriteString(fmt.Sprintf("%s: %s", err.Field, err.Message))
+		_, _ = fmt.Fprintf(&sb, "%s: %s", err.Field, err.Message)
 	}
 
 	return sb.String()

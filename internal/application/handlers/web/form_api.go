@@ -193,39 +193,6 @@ func (h *FormAPIHandler) handleFormValidationSchema(c echo.Context) error {
 	return response.Success(c, clientValidation)
 }
 
-// PUT /api/v1/forms/:id/schema
-func (h *FormAPIHandler) handleFormSchemaUpdate(c echo.Context) error {
-	_, err := h.RequireAuthenticatedUser(c)
-	if err != nil {
-		return h.wrapError("handle ownership error", h.ErrorHandler.HandleOwnershipError(c, err))
-	}
-
-	form, err := h.getFormWithOwnershipOrError(c)
-	if err != nil {
-		return err
-	}
-
-	// Process and validate schema update request
-	schema, err := h.RequestProcessor.ProcessSchemaUpdateRequest(c)
-	if err != nil {
-		return h.wrapError("handle schema error", h.ErrorHandler.HandleSchemaError(c, err))
-	}
-
-	// Update form schema
-	if updateErr := h.updateFormSchema(c, form, schema); updateErr != nil {
-		return updateErr
-	}
-
-	// Build response with proper error checking
-	if respErr := h.ResponseBuilder.BuildSchemaResponse(c, form.Schema); respErr != nil {
-		h.Logger.Error("failed to build schema response", "error", respErr, "form_id", form.ID)
-
-		return h.HandleError(c, respErr, "Failed to build response")
-	}
-
-	return nil
-}
-
 // POST /api/forms - create form (assertion auth)
 func (h *FormAPIHandler) handleCreateForm(c echo.Context) error {
 	userID, ok := c.Get("user_id").(string)
@@ -536,18 +503,6 @@ func (h *FormAPIHandler) validateFormSchema(c echo.Context, form *model.Form) er
 
 		return h.wrapError("handle submission error",
 			h.ErrorHandler.HandleSchemaError(c, errors.New("form schema is required")))
-	}
-
-	return nil
-}
-
-// updateFormSchema updates the form schema in the database
-func (h *FormAPIHandler) updateFormSchema(c echo.Context, form *model.Form, schema model.JSON) error {
-	form.Schema = schema
-	if updateErr := h.FormService.UpdateForm(c.Request().Context(), form); updateErr != nil {
-		h.Logger.Error("failed to update form schema", "error", updateErr)
-
-		return h.wrapError("handle schema update error", h.ErrorHandler.HandleSchemaError(c, updateErr))
 	}
 
 	return nil

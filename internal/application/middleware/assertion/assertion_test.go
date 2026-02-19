@@ -45,7 +45,7 @@ func TestVerify_ValidSignature_Passes(t *testing.T) {
 		return c.String(http.StatusOK, "ok")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	req.Header.Set("X-User-Id", userID)
 	req.Header.Set("X-Timestamp", timestamp)
 	req.Header.Set("X-Signature", signature)
@@ -73,7 +73,7 @@ func TestVerify_InvalidSignature_Returns401(t *testing.T) {
 		return c.String(http.StatusOK, "ok")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	req.Header.Set("X-User-Id", "user-123")
 	req.Header.Set("X-Timestamp", time.Now().Format(time.RFC3339))
 	req.Header.Set("X-Signature", "invalid-signature-hex")
@@ -122,7 +122,7 @@ func TestVerify_MissingHeaders_Returns401(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			req := httptest.NewRequest(http.MethodGet, "/test", nil)
+			req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 			if tt.userID != "" {
 				req.Header.Set("X-User-Id", tt.userID)
 			}
@@ -167,7 +167,7 @@ func TestVerify_StaleTimestamp_Returns401(t *testing.T) {
 		return c.String(http.StatusOK, "ok")
 	})
 
-	req := httptest.NewRequest(http.MethodGet, "/test", nil)
+	req := httptest.NewRequest(http.MethodGet, "/test", http.NoBody)
 	req.Header.Set("X-User-Id", userID)
 	req.Header.Set("X-Timestamp", timestamp)
 	req.Header.Set("X-Signature", signature)
