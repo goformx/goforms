@@ -44,58 +44,10 @@ func (m *Middleware) Verify() echo.MiddlewareFunc {
 
 	return func(next echo.HandlerFunc) echo.HandlerFunc {
 		return func(c echo.Context) error {
-			userID := strings.TrimSpace(c.Request().Header.Get(headerUserID))
-			timestamp := strings.TrimSpace(c.Request().Header.Get(headerTimestamp))
-			signature := strings.TrimSpace(c.Request().Header.Get(headerSignature))
+			userID, failReason := verifyAssertionHeaders(c.Request().Header, cfg)
+			if failReason != "" {
+				m.logFailure(c, failReason)
 
-			setFailureReason := func(reason string) {
-				c.Set(FailureReasonContextKey, reason)
-				msg := "assertion verification failed"
-				var logFn func(string, ...any)
-				if m.logger != nil {
-					logFn = m.logger.Warn
-				} else if logger := context.GetLogger(c.Request().Context()); logger != nil {
-					logFn = logger.Warn
-				} else {
-					c.Logger().Warn(msg, "reason", reason, "path", c.Path())
-					return
-				}
-				logFn(msg, "reason", reason, "path", c.Path())
-			}
-
-			if userID == "" || timestamp == "" || signature == "" {
-				setFailureReason("missing_headers")
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			}
-
-			if cfg.Secret == "" {
-				setFailureReason("empty_secret")
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			}
-
-			ts, err := parseTimestamp(timestamp)
-			if err != nil {
-				setFailureReason("timestamp_parse_error")
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			}
-
-			skew := time.Duration(cfg.TimestampSkewSeconds) * time.Second
-			if time.Since(ts) > skew {
-				setFailureReason("timestamp_too_old")
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			}
-
-			payload := userID + ":" + timestamp
-			expected := computeHMAC(cfg.Secret, payload)
-
-			sigBytes, err := hex.DecodeString(signature)
-			if err != nil {
-				setFailureReason("signature_not_hex")
-				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
-			}
-
-			if !hmacEqual(sigBytes, expected) {
-				setFailureReason("signature_mismatch")
 				return c.JSON(http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
 			}
 
@@ -104,6 +56,61 @@ func (m *Middleware) Verify() echo.MiddlewareFunc {
 			return next(c)
 		}
 	}
+}
+
+// verifyAssertionHeaders checks headers and config; returns (userID, "") on success or ("", reason) on failure.
+func verifyAssertionHeaders(headers http.Header, cfg appconfig.AssertionConfig) (userID, failureReason string) {
+	userID = strings.TrimSpace(headers.Get(headerUserID))
+	timestamp := strings.TrimSpace(headers.Get(headerTimestamp))
+	signature := strings.TrimSpace(headers.Get(headerSignature))
+
+	if userID == "" || timestamp == "" || signature == "" {
+		return "", "missing_headers"
+	}
+
+	if cfg.Secret == "" {
+		return "", "empty_secret"
+	}
+
+	ts, err := parseTimestamp(timestamp)
+	if err != nil {
+		return "", "timestamp_parse_error"
+	}
+
+	skew := time.Duration(cfg.TimestampSkewSeconds) * time.Second
+	if time.Since(ts) > skew {
+		return "", "timestamp_too_old"
+	}
+
+	payload := userID + ":" + timestamp
+	expected := computeHMAC(cfg.Secret, payload)
+
+	sigBytes, err := hex.DecodeString(signature)
+	if err != nil {
+		return "", "signature_not_hex"
+	}
+
+	if !hmacEqual(sigBytes, expected) {
+		return "", "signature_mismatch"
+	}
+
+	return userID, ""
+}
+
+func (m *Middleware) logFailure(c echo.Context, reason string) {
+	c.Set(FailureReasonContextKey, reason)
+	msg := "assertion verification failed"
+	var logFn func(string, ...any)
+	if m.logger != nil {
+		logFn = m.logger.Warn
+	} else if logger := context.GetLogger(c.Request().Context()); logger != nil {
+		logFn = logger.Warn
+	} else {
+		c.Logger().Warn(msg, "reason", reason, "path", c.Path())
+
+		return
+	}
+	logFn(msg, "reason", reason, "path", c.Path())
 }
 
 func parseTimestamp(s string) (time.Time, error) {

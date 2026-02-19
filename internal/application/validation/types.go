@@ -47,11 +47,9 @@ type FieldValidatorInterface interface {
 	ValidateFieldType(fieldName string, value any, fieldType string) *Error
 }
 
-// getMessage returns a custom message or default message
+// getMessage returns the default message for a validation rule.
+// Custom per-ruleType message lookup is not implemented; callers may extend this later.
 func (fv *FieldValidation) getMessage(ruleType, defaultMessage string) string {
-	// TODO: Implement custom message lookup based on ruleType
-	// For now, return the default message
-	_ = ruleType // Suppress unused parameter warning
-
+	_ = ruleType // reserved for future per-rule message overrides
 	return defaultMessage
 }
