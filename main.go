@@ -5,7 +5,6 @@ package main
 
 import (
 	"context"
-	"embed"
 	"fmt"
 	"os"
 	"os/signal"
@@ -26,9 +25,6 @@ import (
 	"github.com/goformx/goforms/internal/infrastructure/server"
 	"github.com/goformx/goforms/internal/infrastructure/version"
 )
-
-//go:embed all:dist
-var distFS embed.FS
 
 // DefaultShutdownTimeout defines the maximum time to wait for graceful shutdown.
 const DefaultShutdownTimeout = 30 * time.Second
@@ -126,8 +122,6 @@ func setupLifecycle(p appParams) {
 // main initializes the Fx application and manages graceful shutdown.
 func main() {
 	app := fx.New(
-		fx.Provide(func() embed.FS { return distFS }),
-
 		// Modules
 		config.Module,
 		infrastructure.Module,

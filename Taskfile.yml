@@ -63,9 +63,9 @@ tasks:
     - task: lint:backend
 
   format:
-    desc: Format frontend code
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - npm run format
+    - echo "Frontend lives in goformx-laravel; nothing to format here."
 
   install:
     desc: Install all project dependencies
@@ -81,15 +81,9 @@ tasks:
     - export PATH=$PATH:$(go env GOPATH)/bin
 
   install:frontend:
-    desc: Install frontend dependencies
-    sources:
-      - package.json
-      - package-lock.json
-    generates:
-      - node_modules/.package-lock.json
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - npm install
-    - npm run postinstall
+    - echo "Frontend lives in goformx-laravel; no npm install needed."
 
   generate:
     desc: Generate all code artifacts
@@ -114,16 +108,9 @@ tasks:
     - task: build:backend
 
   build:frontend:
-    desc: Build the frontend application
-    sources:
-      - "src/**/*"
-      - package.json
-      - vite.config.js
-      - tsconfig.json
-    generates:
-      - "dist/**/*"
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - npm run build
+    - echo "Frontend lives in goformx-laravel; no build here."
 
   build:backend:
     desc: Build the backend application
@@ -175,9 +162,9 @@ tasks:
     - air -c .air.toml
 
   dev:frontend:
-    desc: Run frontend dev server with environment-based configuration
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - npx vite
+    - echo "Frontend lives in goformx-laravel; run it there."
 
   clean:
     desc: Remove generated artifacts and dependencies
@@ -201,13 +188,9 @@ tasks:
     - golangci-lint run ./...
 
   lint:frontend:
-    desc: Run frontend linters
-    sources:
-      - "src/**/*"
-      - eslint.config.js
-      - tsconfig.json
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - npm run lint
+    - echo "Frontend lives in goformx-laravel; lint there."
 
   test:
     desc: Run all tests (backend only; frontend in goformx-laravel)
@@ -215,24 +198,14 @@ tasks:
     - task: test:backend
 
   test:frontend:
-    desc: Run frontend tests
-    sources:
-      - "src/**/*"
-      - "**/*.test.*"
-      - "**/*.spec.*"
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - npm run test
+    - echo "Frontend lives in goformx-laravel; test there."
 
   test:frontend:cover:
-    desc: Run frontend tests with coverage
-    sources:
-      - "src/**/*"
-      - "**/*.test.*"
-      - "**/*.spec.*"
-    generates:
-      - coverage/frontend/
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - npm run test:coverage
+    - echo "Frontend lives in goformx-laravel; test there."
 
   test:backend:
     desc: Run backend unit tests
@@ -244,8 +217,8 @@ tasks:
     - go test -v ./internal/...
 
   test:cover:
-    desc: Run tests and generate coverage report
-    deps: [ test:frontend:cover, test:backend:cover ]
+    desc: Run backend tests and generate coverage report
+    deps: [ test:backend:cover ]
 
   test:backend:cover:
     desc: Run backend tests and generate coverage report
@@ -347,12 +320,13 @@ tasks:
       fi
 
   middleware:validate:
-    desc: Validate middleware configuration
+    desc: Validate middleware configuration (runs middleware tests)
     deps: [ generate ]
     sources:
       - "internal/application/middleware/**/*.go"
+      - "internal/application/middleware/**/*_test.go"
     cmds:
-    - go run -tags=validation ./internal/application/middleware/validate.go
+    - go test -v ./internal/application/middleware/...
 
   middleware:benchmark:
     desc: Run middleware performance benchmarks
@@ -443,13 +417,9 @@ tasks:
     - staticcheck ./...
 
   security:frontend:
-    desc: Run frontend security audit
-    sources:
-      - package.json
-      - package-lock.json
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-      - cmd: npm audit --audit-level=moderate
-        ignore_error: true
+    - echo "Frontend lives in goformx-laravel."
 
   pre-commit:
     desc: Pre-commit quality checks
@@ -469,18 +439,9 @@ tasks:
     - test -f package.json
 
   docs:serve:
-    desc: Serve documentation locally
+    desc: No-op (no docs site in this repo)
     cmds:
-    - |
-      if command -v hugo >/dev/null 2>&1; then
-        hugo server --buildDrafts
-      else
-        echo "Hugo not installed. Install with: go install github.com/gohugoio/hugo@latest"
-        exit 1
-      fi
-    preconditions:
-    - sh: test -f config.yaml || test -f config.toml || test -f config.json
-      msg: "No Hugo config file found. Are you in a Hugo project directory?"
+    - echo "No documentation site in this repo."
 
   benchmark:
     desc: Run Go benchmarks
@@ -513,10 +474,9 @@ tasks:
     - go env GOROOT
 
   health:node:
-    desc: Check Node.js environment
+    desc: No-op (frontend in goformx-laravel)
     cmds:
-    - node --version
-    - npm --version
+    - echo "Node not required for API-only backend."
 
   health:database:
     desc: Check database connectivity
