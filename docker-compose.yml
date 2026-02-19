@@ -21,8 +21,9 @@ services:
       - APP_HOST=${APP_HOST}
 
       # Database Configuration (mapped to Viper's DATABASE_ prefix)
+      # Host must match the postgres service name on the Compose network
       - DATABASE_DRIVER=${DB_DRIVER}
-      - DATABASE_HOST=${DB_HOST}
+      - DATABASE_HOST=postgres-dev
       - DATABASE_PORT=${DB_PORT}
       - DATABASE_NAME=${DB_NAME}
       - DATABASE_USERNAME=${DB_USERNAME}
