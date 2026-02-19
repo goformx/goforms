@@ -58,11 +58,9 @@ tasks:
     - task: act
 
   verify:
-    desc: Verify frontend code quality and types
-    deps: [ lint:frontend ]
+    desc: Verify code quality (backend only; frontend in goformx-laravel)
     cmds:
-    - npm run typecheck
-    - npm run format:check
+    - task: lint:backend
 
   format:
     desc: Format frontend code
@@ -71,7 +69,7 @@ tasks:
 
   install:
     desc: Install all project dependencies
-    deps: [ install:go-tools, install:frontend ]
+    deps: [ install:go-tools ]
 
   install:go-tools:
     desc: Install Go development tools
@@ -113,7 +111,6 @@ tasks:
     desc: Build the entire application
     deps: [ generate ]
     cmds:
-    - task: build:frontend
     - task: build:backend
 
   build:frontend:
@@ -144,7 +141,6 @@ tasks:
     desc: Build production binary with Go 1.25 optimizations
     deps: [ generate ]
     cmds:
-    - task: build:frontend
     - task: build:backend:production
 
   build:backend:production:
@@ -169,8 +165,8 @@ tasks:
     - ./bin/goforms
 
   dev:
-    desc: Run development environment (frontend + backend)
-    deps: [ dev:backend, dev:frontend ]
+    desc: Run development environment (backend only; frontend in goformx-laravel)
+    deps: [ dev:backend ]
 
   dev:backend:
     desc: Run backend with hot reload
@@ -192,7 +188,7 @@ tasks:
 
   lint:
     desc: Run all linters
-    deps: [ lint:backend, lint:frontend ]
+    deps: [ lint:backend ]
 
   lint:backend:
     desc: Run all backend linters
@@ -214,9 +210,8 @@ tasks:
     - npm run lint
 
   test:
-    desc: Run all tests (frontend + backend)
+    desc: Run all tests (backend only; frontend in goformx-laravel)
     cmds:
-    - task: test:frontend
     - task: test:backend
 
   test:frontend:
