@@ -34,11 +34,11 @@ type Dependencies struct {
 	FormService form.Service
 
 	// Infrastructure
-	Logger           logging.Logger
-	Config           *config.Config
-	Server           *server.Server
-	DomainModule     fx.Option
-	MiddlewareModule fx.Option
+	Logger            logging.Logger
+	Config            *config.Config
+	Server            *server.Server
+	DomainModule      fx.Option
+	MiddlewareModule  fx.Option
 	SessionManager    *session.Manager
 	MiddlewareManager *middleware.Manager
 	AccessManager     *access.Manager
