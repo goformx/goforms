@@ -5,6 +5,7 @@ package entities
 import (
 	"errors"
 	"fmt"
+	"strings"
 	"time"
 
 	"github.com/google/uuid"
@@ -173,10 +174,25 @@ func (u *User) GetFullName() string {
 	return u.FirstName + " " + u.LastName
 }
 
-// isValidEmail validates an email address
+const (
+	minEmailLength = 5
+	maxEmailLength = 255
+)
+
+// isValidEmail validates an email address (local@domain format, length).
 func isValidEmail(email string) bool {
-	// TODO: Implement proper email validation
-	return len(email) > 3 && len(email) < 255
+	if len(email) < minEmailLength || len(email) > maxEmailLength {
+		return false
+	}
+	at := strings.Index(email, "@")
+	if at <= 0 || at >= len(email)-1 {
+		return false
+	}
+	domain := email[at+1:]
+	if !strings.Contains(domain, ".") || domain[0] == '.' || domain[len(domain)-1] == '.' {
+		return false
+	}
+	return true
 }
 
 // GetID returns the user's ID
